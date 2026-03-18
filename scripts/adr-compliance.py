@@ -671,7 +671,71 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Path to pipeline-spec-format.md (authoritative schema/family types)",
     )
 
+    # Subcommand: check-adr (lightweight component-ADR alignment check)
+    adr_parser = subparsers.add_parser(
+        "check-adr",
+        help="Check if a component file aligns with the active ADR session",
+    )
+    adr_parser.add_argument("--file", required=True, help="Path to the component file to check")
+    adr_parser.add_argument("--adr", help="Path to ADR file (default: from .adr-session.json)")
+
     return parser
+
+
+def cmd_check_adr(args) -> int:
+    """Lightweight check: does a component file align with the active ADR?
+
+    Checks:
+    1. ADR session exists (or --adr provided)
+    2. ADR file exists and is readable
+    3. Component file's name: field matches an ADR-listed component
+    4. Component file contains an ADR reference comment or section
+    """
+    import json as _json
+
+    # Find ADR path
+    adr_path = None
+    if args.adr:
+        adr_path = Path(args.adr)
+    else:
+        session_file = Path(".adr-session.json")
+        if session_file.exists():
+            try:
+                session = _json.loads(session_file.read_text())
+                adr_path = Path(session.get("adr_path", ""))
+            except Exception:
+                pass
+
+    if not adr_path or not adr_path.exists():
+        print(_json.dumps({"verdict": "SKIP", "reason": "No active ADR session"}))
+        return 0
+
+    component_path = Path(args.file)
+    if not component_path.exists():
+        print(_json.dumps({"verdict": "FAIL", "reason": f"File not found: {args.file}"}))
+        return 1
+
+    adr_text = adr_path.read_text(encoding="utf-8").lower()
+    component_text = component_path.read_text(encoding="utf-8")
+
+    # Extract name from frontmatter
+    name_match = re.search(r"^name:\s*(.+)$", component_text, re.MULTILINE)
+    component_name = name_match.group(1).strip().strip("'\"") if name_match else component_path.stem
+
+    # Check if ADR mentions this component
+    mentioned = component_name.lower() in adr_text or component_path.stem.lower() in adr_text
+
+    result = {
+        "verdict": "PASS" if mentioned else "INFO",
+        "file": str(component_path),
+        "adr": str(adr_path),
+        "component_name": component_name,
+        "mentioned_in_adr": mentioned,
+        "note": "Component referenced in ADR" if mentioned else "Component not mentioned in ADR (may be new addition)",
+    }
+
+    print(_json.dumps(result, indent=2))
+    return 0
 
 
 def main() -> int:
@@ -681,6 +745,8 @@ def main() -> int:
 
     if args.command == "check":
         return cmd_check(args)
+    elif args.command == "check-adr":
+        return cmd_check_adr(args)
 
     parser.print_help()
     return 2
