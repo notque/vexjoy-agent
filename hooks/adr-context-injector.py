@@ -16,7 +16,8 @@ Detection Logic:
 
 Relevance Keywords (any one triggers injection):
   pipeline, scaffold, subdomain, chain, step, skill, agent, hook,
-  adr, compose, orchestrat
+  adr, compose, orchestrat, create, new, build, implement, design,
+  feature, component, write, add, generat, develop
 
 Design Principles:
 - Non-blocking (always exits 0)
@@ -52,6 +53,17 @@ RELEVANCE_KEYWORDS = [
     "adr",
     "compose",
     "orchestrat",
+    "create",
+    "new",
+    "build",
+    "implement",
+    "design",
+    "feature",
+    "component",
+    "write",
+    "add",
+    "generat",
+    "develop",
 ]
 
 

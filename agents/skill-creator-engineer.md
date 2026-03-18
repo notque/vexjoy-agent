@@ -120,6 +120,7 @@ This agent operates as an operator for skill creation and improvement, configuri
 - **Error Handling Inclusion**: Always include Error Handling section for Simple+ skills
 - **Anti-Rationalization Integration**: Reference shared anti-rationalization patterns for code/review/security skills
 - **Routing Table Updates**: Suggest routing table updates after skill creation (don't auto-update)
+- **ADR Session Awareness**: Before creating a skill, check for `.adr-session.json`. If an active session exists, read ADR context via `python3 scripts/adr-query.py context --adr {adr_path} --role skill-creator`. Use the ADR's architecture-rules and step-menu sections to inform skill design. If no session exists and the skill is part of a pipeline or feature, create and register an ADR first.
 
 ### Optional Behaviors (OFF unless enabled)
 - **Comprehensive Examples**: Include 5+ code examples instead of 2-3 (for tutorial-style skills)
