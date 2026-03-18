@@ -40,6 +40,7 @@ echo ""
 # Parse arguments
 MODE=""
 DRY_RUN=false
+FORCE=false
 while [[ $# -gt 0 ]]; do
     case $1 in
         --symlink)
@@ -58,14 +59,19 @@ while [[ $# -gt 0 ]]; do
             DRY_RUN=true
             shift
             ;;
+        --force|-f)
+            FORCE=true
+            shift
+            ;;
         --help|-h)
-            echo "Usage: $0 [--symlink|--copy|--uninstall|--dry-run]"
+            echo "Usage: $0 [--symlink|--copy|--uninstall|--dry-run|--force]"
             echo ""
             echo "Options:"
             echo "  --symlink    Create symlinks to this repo (recommended for development)"
             echo "  --copy       Copy files to ~/.claude (recommended for stability)"
             echo "  --uninstall  Remove the installation"
             echo "  --dry-run    Show what would happen without making changes"
+            echo "  --force      Replace existing directories without prompting"
             echo ""
             echo "If no option provided, will prompt interactively."
             exit 0
@@ -200,7 +206,10 @@ install_component() {
         else
             echo -e "${YELLOW}  Warning: $target exists and is not a symlink${NC}"
             if [ "$DRY_RUN" = true ]; then
-                echo -e "${BLUE}  Would prompt for overwrite${NC}"
+                echo -e "${BLUE}  Would replace existing directory${NC}"
+            elif [ "$FORCE" = true ]; then
+                echo "  Replacing existing directory (--force): $target"
+                rm -rf "$target"
             else
                 read -p "  Overwrite? [y/N]: " confirm
                 if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
