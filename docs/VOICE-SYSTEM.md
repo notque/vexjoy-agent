@@ -29,13 +29,13 @@ Use the interactive skill:
 ```
 
 This walks you through a 7-phase pipeline:
-1. **Collect** — gather and organize samples
-2. **Extract** — pull measurable metrics from the writing
-3. **Pattern** — identify distinctive stylistic patterns
-4. **Rule** — create validation rules from patterns
-5. **Generate** — produce test content using the voice
-6. **Validate** — run the validator against generated content
-7. **Iterate** — refine until the voice passes validation
+1. **Collect**:gather and organize samples
+2. **Extract**:pull measurable metrics from the writing
+3. **Pattern**:identify distinctive stylistic patterns
+4. **Rule**:create validation rules from patterns
+5. **Generate**:produce test content using the voice
+6. **Validate**:run the validator against generated content
+7. **Iterate**:refine until the voice passes validation
 
 ### 4. Generate Content in That Voice
 
@@ -93,7 +93,7 @@ python3 scripts/voice_analyzer.py compare --profile1 voice1.json --profile2 voic
 
 ### Voice Calibrator (`skills/voice-calibrator/`)
 
-Advanced calibration skill for iterative refinement. Key insight from development: getting the **rules** right isn't enough — you need **100+ real samples categorized by pattern** for the voice to pass authorship matching.
+Advanced calibration skill for iterative refinement. Key insight from development: getting the **rules** right isn't enough:you need **100+ real samples categorized by pattern** for the voice to pass authorship matching.
 
 ### Wabi-Sabi Principle
 
@@ -106,10 +106,10 @@ Natural imperfections (run-ons, fragments, casual punctuation) are **features**,
 ### Step 1: Sample Selection
 
 Pick writing that is:
-- **Recent** — voice evolves over time
-- **Natural** — not heavily edited or ghostwritten
-- **Varied** — different topics, same author
-- **Substantial** — at least 500 words per sample
+- **Recent**:voice evolves over time
+- **Natural**:not heavily edited or ghostwritten
+- **Varied**:different topics, same author
+- **Substantial**:at least 500 words per sample
 
 Avoid:
 - Heavily edited corporate copy
@@ -144,10 +144,10 @@ python3 scripts/voice_validator.py validate --content draft.md --voice your-voic
 ### Step 4: Integration
 
 Once calibrated, the voice is available to:
-- `blog-post-writer` — generates posts in your voice
-- `voice-orchestrator` — multi-step content generation with validation
-- `anti-ai-editor` — reviews content for AI tells relative to your voice
-- `article-evaluation-pipeline` — evaluates articles for voice fidelity
+- `blog-post-writer`:generates posts in your voice
+- `voice-orchestrator`:multi-step content generation with validation
+- `anti-ai-editor`:reviews content for AI tells relative to your voice
+- `article-evaluation-pipeline`:evaluates articles for voice fidelity
 
 ---
 

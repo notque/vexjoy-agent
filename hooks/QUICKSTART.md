@@ -2,7 +2,7 @@
 
 ## What is this?
 
-A self-improving hook ecosystem that learns from errors across Claude Code sessions and provides intelligent suggestions based on accumulated knowledge.
+A self-improving hook system that learns from errors across Claude Code sessions and suggests fixes based on accumulated knowledge.
 
 ## How it works
 

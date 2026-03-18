@@ -207,9 +207,9 @@ Edit the constants at the top of `instruction-reminder.py`:
 - `THROTTLE_INTERVAL = 3` - Re-inject every N prompts
 - `INSTRUCTION_FILES = ["CLAUDE.md", "AGENTS.md", "RULES.md"]` - Files to discover
 
-### Why This Matters
+### Context Drift Prevention
 
-Long Claude sessions suffer from "context drift" where early instructions fade as new content fills the context window. This hook ensures critical rules stay fresh.
+Long Claude sessions lose early instructions as new content fills the context window. This hook re-injects them on a schedule.
 
 Inspired by the `claude-md-reminder.sh` pattern.
 
@@ -308,7 +308,7 @@ The `session-summary.py` hook generates metrics when Claude Code stops.
 
 ### `lib/learning_db_v2.py`
 
-Unified learning database — replaces both `patterns.db` and retro L2 markdown files:
+Unified learning database. Replaces both `patterns.db` and retro L2 markdown files:
 - **SQLite database** with WAL mode for concurrent access
 - FTS5 full-text search with porter stemming
 - Error classification (8 types) and MD5 signature generation
