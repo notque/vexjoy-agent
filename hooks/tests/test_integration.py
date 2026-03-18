@@ -150,10 +150,7 @@ def test_database_stats():
     assert "by_category" in stats
     assert "high_confidence" in stats
 
-    print(
-        f"  Stats: {stats['total_learnings']} learnings, "
-        f"{stats.get('high_confidence', 0)} high-confidence"
-    )
+    print(f"  Stats: {stats['total_learnings']} learnings, {stats.get('high_confidence', 0)} high-confidence")
     print("  ✓ Database statistics working correctly")
 
 
