@@ -67,7 +67,10 @@ Extended routing tables for the `/do` router. The main SKILL.md contains the cor
 | Triggers | Skill |
 |----------|-------|
 | submit PR, create pull request | pr-pipeline |
-| sync to GitHub, push and PR | pr-sync |
+| **push, push this, push changes, commit and push, sync to GitHub, push to GitHub** | **pr-sync (FORCE)** |
+| **create a PR, create PR, open PR, open pull request, ship this, send this** | **pr-sync (FORCE)** |
+| **commit, commit this, commit changes, stage and commit** | **git-commit-flow (FORCE)** |
+| **check CI, CI status, actions status, did CI pass** | **github-actions-check (FORCE)** |
 | PR cleanup, merged branch | pr-cleanup |
 | PR review comments, fix feedback | pr-fix |
 | address PR feedback, what did reviewers say | pr-review-address-feedback |
