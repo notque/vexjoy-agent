@@ -39,7 +39,8 @@ This skill operates as the build engine of the self-improving pipeline generator
 ### Default Behaviors (ON unless disabled)
 - **Communication Style**: Report facts without self-congratulation. Show generated file paths, component counts, and key decisions rather than describing them.
 - **Temporary File Cleanup**: Remove any intermediate generation files. Keep only the final pipeline components.
-- **Naming Convention**: Agents follow `{domain}-{function}-engineer` pattern. Skills use `{domain}-{function}`. Hooks use `{pipeline-name}-detector.py`. Scripts use `{domain}-{function}.py`.
+- **Naming Convention**: Agents follow `{domain}-{function}-engineer` pattern. Skills use `{group}-{function}`. Hooks use `{pipeline-name}-detector.py`. Scripts use `{domain}-{function}.py`.
+- **Group-Prefix Consistency**: New skills MUST use the same prefix as related existing skills. Before naming, check `ls skills/ | grep {domain}` to find the group. Examples: voice skills start with `voice-`, Go skills with `go-`, PR skills with `pr-`, writing/content skills with `writing-`, review skills with `review-`. If no group exists, the new skill starts one.
 - **Profile-Aware Generation**: Respect the `operator_profile` field from the Pipeline Spec. Include or exclude safety/interaction steps based on the profile. WHY: Personal profiles don't need APPROVE gates; production profiles require them. Over-gating personal workflows adds friction; under-gating production workflows creates risk.
 
 ### Optional Behaviors (OFF unless enabled)
