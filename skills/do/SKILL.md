@@ -127,8 +127,13 @@ These skills have MANDATORY routing. They MUST be invoked when triggers appear:
 | **retro-pipeline** | run retro, retro pipeline, phase checkpoint retro, retro checkpoint |
 | **system-upgrade** | upgrade agents, system upgrade, claude update, upgrade skills, apply claude update, apply update, new claude version, apply retro to system |
 | **de-ai-pipeline** | de-ai docs, clean ai patterns, fix ai writing, scan and fix docs, remove ai tells |
+| **pr-sync** | push, push this, push changes, commit and push, push to GitHub, sync to GitHub, create a PR, create PR, open PR, open pull request, ship this, send this |
+| **git-commit-flow** | commit, commit this, commit changes, stage and commit |
+| **github-actions-check** | check CI, CI status, actions status, did CI pass, are tests passing |
 
 If a force-route trigger matches, invoke that skill BEFORE any other action.
+
+**Critical**: "push", "commit", "create PR", "merge" are NOT trivial git commands. They MUST route through skills that run quality gates (lint, tests, review) before executing. Running raw `git push` or `gh pr create` without routing through pr-sync or pr-pipeline bypasses all quality gates.
 
 **Step 2: Select domain agent**
 
@@ -479,6 +484,11 @@ Solution:
 **What it looks like**: Fixing 3 independent test failures one at a time
 **Why wrong**: Independent work items can run concurrently, saving significant time
 **Do instead**: Detect independent items and use dispatching-parallel-agents.
+
+### Anti-Pattern 5: Raw Git Commands Instead of Skills
+**What it looks like**: Running `git push`, `git commit`, `gh pr create`, or `gh pr merge` directly without routing through pr-sync, git-commit-flow, or pr-pipeline
+**Why wrong**: Bypasses lint checks, test runs, review loops, CI verification, and repo classification. This is how broken code gets merged. A CI failure after merge costs more than a pre-push check.
+**Do instead**: Route ALL git submission actions through their skills. "push" routes to pr-sync. "commit" routes to git-commit-flow. "create PR" routes to pr-pipeline. No exceptions, even when the user asks to "just push it."
 
 ---
 
