@@ -325,6 +325,7 @@ STOP and ask the user (do NOT proceed autonomously) when:
 
 ### Never Guess On
 - Skill naming conventions (ask if unsure about {domain}-{action} pattern)
+- Group-prefix consistency (run `ls skills/ | grep {domain}` to find existing group before naming. Related skills share a prefix: `voice-*`, `go-*`, `pr-*`, `writing-*`, `review-*`, `feature-*`, `testing-*`, `git-*`. If a group exists, use its prefix. If none exists, the new skill starts one.)
 - Whether to create new skill vs improve existing skill
 - Routing category (language/infrastructure/review/meta/content)
 - Whether Python script automation is needed (deterministic operations)
