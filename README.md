@@ -25,7 +25,7 @@ cd ~/claude-code-toolkit
 ./install.sh --copy           # alternative: stable snapshot
 ```
 
-The installer places agents, skills, hooks, commands, and scripts in `~/.claude/`. It configures hooks in `settings.json` and prompts before overwriting files. Use `--uninstall` to remove.
+The installer places agents, skills, hooks, commands, and scripts in `~/.claude/`. It configures hooks in `settings.json`. Use `--uninstall` to remove. Add `--force` to replace existing directories without prompting (needed when switching from copy to symlink mode).
 
 Back up any existing Claude Code customizations before installing. Symlink mode replaces directories.
 
