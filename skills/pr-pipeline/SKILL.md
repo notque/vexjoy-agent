@@ -383,7 +383,33 @@ If CI fails, report which checks failed and the PR URL. Do not attempt to fix CI
 
 If `--no-wait` was passed, skip this phase and report the PR URL immediately.
 
-**Gate**: CI status reported. Pipeline complete.
+**Gate**: CI status reported. Proceed to Phase 7.
+
+### Phase 7: CLEANUP
+
+**Goal**: Delete the feature branch after successful merge or PR creation.
+
+For personal repos where CI passed and PR was merged:
+```bash
+# Switch to main and pull
+git checkout main
+git pull origin main
+
+# Delete local branch
+git branch -d <branch-name>
+
+# Delete remote branch
+git push origin --delete <branch-name>
+
+# Prune stale tracking refs
+git fetch --prune
+```
+
+For personal repos where PR was created but not yet merged: skip cleanup (branch is still active).
+
+For protected-org repos: skip cleanup (their processes handle branch lifecycle).
+
+**Gate**: Branch cleaned up (or skipped if PR is still open). Pipeline complete.
 
 ---
 
