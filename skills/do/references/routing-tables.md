@@ -152,7 +152,6 @@ Sequential pipeline: design → plan → implement → validate → release. Eac
 | upgrade agent, improve agent, fix agent quality, align agent to template | agent-upgrade (skill-creator-engineer) |
 | research then write, article with research | research-to-article |
 | document this, create readme, write docs | doc-pipeline |
-| document python, generate python docs, document script, document hook | python-doc-generator (python-general-engineer) |
 | submit PR, create pull request | pr-pipeline |
 | understand codebase, explore repo | explore-pipeline |
 | evaluate article, check voice authenticity | article-evaluation-pipeline |

@@ -1,21 +1,8 @@
 {
   "version": "1.1",
-  "generated": "2026-03-18T03:57:08Z",
+  "generated": "2026-03-18T04:53:25Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": [
-    {
-      "name": "python-doc-generator",
-      "description": "Generate comprehensive technical documentation for a Python source file using AST extraction, parallel multi-agent research, structured generation, and deterministic verification.",
-      "file": "skills/ab-test-b-pipeline/SKILL.md",
-      "triggers": [
-        "python-doc-generator",
-        "python",
-        "doc",
-        "generator"
-      ],
-      "version": "2.0.0",
-      "user-invocable": false
-    },
     {
       "name": "agent-comparison",
       "description": "A/B test agent variants measuring quality and total session token cost across simple and complex benchmarks.",
