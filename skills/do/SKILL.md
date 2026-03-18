@@ -242,7 +242,7 @@ For pipeline skills — add the Pipeline: line with all phases in order:
 | `retro-pipeline` | WALK → MERGE → GATE → APPLY → REPORT |
 | `explore-pipeline` | SCAN → MAP → ANALYZE → REPORT |
 | `research-to-article` | RESEARCH → COMPILE → GROUND → GENERATE → VALIDATE → REFINE → OUTPUT |
-| `pr-pipeline` | CLASSIFY → STAGE → REVIEW → COMMIT → PUSH → CREATE → VERIFY |
+| `pr-pipeline` | CLASSIFY → STAGE → REVIEW → COMMIT → PUSH → CREATE → VERIFY → CLEANUP |
 | `voice-orchestrator` | LOAD → GROUND → GENERATE → VALIDATE → REFINE → OUTPUT → CLEANUP |
 | `github-profile-rules` | PROFILE-SCAN → CODE-ANALYSIS → REVIEW-MINING → PATTERN-SYNTHESIS → RULES-GENERATION → VALIDATION → OUTPUT |
 | `doc-pipeline` | RESEARCH → OUTLINE → GENERATE → VERIFY → OUTPUT |
