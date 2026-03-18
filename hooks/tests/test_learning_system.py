@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Tests for the learning hook system.
+Tests for the learning hook system (v2 unified database).
 
 Run with: python3 -m pytest hooks/tests/test_learning_system.py -v
 Or directly: python3 hooks/tests/test_learning_system.py
@@ -12,14 +12,14 @@ from pathlib import Path
 # Add parent lib directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "lib"))
 
-from learning_db import (
+from learning_db_v2 import (
     classify_error,
     generate_signature,
     get_stats,
     init_db,
-    lookup_solution,
+    lookup_error_solution,
     normalize_error,
-    record_error,
+    record_learning,
 )
 
 
@@ -94,64 +94,80 @@ def test_signature_generation():
 
 
 def test_record_and_lookup():
-    """Test recording and looking up errors."""
+    """Test recording and looking up errors via v2 API."""
     init_db()
 
-    # Record a new error
     import uuid
 
     unique_id = str(uuid.uuid4())[:8]
     error_msg = f"Test error for lookup {unique_id}"
+    error_type = classify_error(error_msg)
+    signature = generate_signature(error_msg, error_type)
 
-    result = record_error(
-        error_message=error_msg,
-        solution="Test solution",
-        success=False,
-        project_path="/test/project",
+    result = record_learning(
+        topic=error_type,
+        key=signature,
+        value=f"{error_msg} → Test solution",
+        category="error",
+        confidence=0.55,
+        source="test",
+        error_signature=signature,
+        error_type=error_type,
     )
 
     assert result["is_new"] is True
     assert result["confidence"] < 0.7  # Not high confidence yet
 
-    # Build up confidence
-    for _ in range(10):
-        record_error(
-            error_message=error_msg,
-            solution="Test solution",
-            success=True,
-            project_path="/test/project",
-        )
+    # Boost confidence above threshold
+    from learning_db_v2 import boost_confidence
 
-    # Now should be lookupable
-    solution = lookup_solution(error_msg)
-    assert solution is not None
-    assert solution["confidence"] >= 0.7
-    assert solution["solution"] == "Test solution"
+    for _ in range(3):
+        boost_confidence(error_type, signature, delta=0.12)
+
+    # Now should be lookupable via signature
+    from learning_db_v2 import get_connection
+
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT * FROM learnings WHERE error_signature = ? AND confidence >= 0.7",
+            (signature,),
+        ).fetchone()
+        assert row is not None
+        assert row["confidence"] >= 0.7
 
 
 def test_confidence_updates():
-    """Test confidence score updates."""
+    """Test confidence score updates via v2 API."""
     init_db()
 
     import uuid
 
-    unique_id = str(uuid.uuid4())[:8]
-    error_msg = f"Confidence test error {unique_id}"
+    from learning_db_v2 import boost_confidence, decay_confidence
 
-    # Initial failure
-    result = record_error(error_msg, solution="Fix it", success=False, project_path="/test")
+    unique_id = str(uuid.uuid4())[:8]
+    topic = "test-confidence"
+    key = f"conf-test-{unique_id}"
+
+    result = record_learning(
+        topic=topic,
+        key=key,
+        value="Confidence test entry",
+        category="error",
+        confidence=0.55,
+        source="test",
+    )
     initial_conf = result["confidence"]
 
     # Success should increase confidence
-    result = record_error(error_msg, solution="Fix it", success=True, project_path="/test")
-    assert result["confidence"] > initial_conf
+    new_conf = boost_confidence(topic, key, delta=0.12)
+    assert new_conf > initial_conf
 
-    # Multiple failures should decrease confidence
+    # Multiple decays should decrease confidence
     for _ in range(5):
-        result = record_error(error_msg, solution="Fix it", success=False, project_path="/test")
+        new_conf = decay_confidence(topic, key, delta=0.18)
 
     # Confidence should be lower but bounded at 0
-    assert result["confidence"] >= 0.0
+    assert new_conf >= 0.0
 
 
 def test_statistics():
@@ -160,10 +176,10 @@ def test_statistics():
 
     stats = get_stats()
 
-    assert "patterns" in stats
-    assert "sessions" in stats
-    assert "total_patterns" in stats["patterns"]
-    assert stats["patterns"]["total_patterns"] >= 0
+    assert "total_learnings" in stats
+    assert "by_category" in stats
+    assert "high_confidence" in stats
+    assert stats["total_learnings"] >= 0
 
 
 def test_fix_type_recording():
@@ -174,18 +190,33 @@ def test_fix_type_recording():
 
     unique_id = str(uuid.uuid4())[:8]
     error_msg = f"Fix type test error {unique_id}"
+    error_type = classify_error(error_msg)
+    signature = generate_signature(error_msg, error_type)
 
-    result = record_error(
-        error_message=error_msg,
-        solution="Use skill to fix",
-        success=True,
-        project_path="/test",
+    result = record_learning(
+        topic=error_type,
+        key=signature,
+        value=f"{error_msg} → Use skill to fix",
+        category="error",
+        confidence=0.65,
+        source="test",
+        error_signature=signature,
+        error_type=error_type,
         fix_type="skill",
         fix_action="systematic-debugging",
     )
 
-    assert result["fix_type"] == "skill"
-    assert result["fix_action"] == "systematic-debugging"
+    # Verify via direct query
+    from learning_db_v2 import get_connection
+
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT fix_type, fix_action FROM learnings WHERE topic = ? AND key = ?",
+            (error_type, signature),
+        ).fetchone()
+        assert row is not None
+        assert row["fix_type"] == "skill"
+        assert row["fix_action"] == "systematic-debugging"
 
 
 if __name__ == "__main__":

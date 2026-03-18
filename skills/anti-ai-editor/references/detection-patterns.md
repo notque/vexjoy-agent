@@ -109,7 +109,106 @@ Em-dashes (---) and double-dashes (--) are strong AI formatting tells. **WordPre
 \bit has been\s+\w+ed\s+that\b
 ```
 
-### Tier 5: Redundant Modifiers
+### Tier 1c: False Agency (Inanimate Actors)
+
+AI avoids naming human actors by giving agency to inanimate things. "The decision emerges" means someone decided. "The culture shifts" means people changed behavior. This is distinct from passive voice. The sentence HAS an active subject, but it's the wrong one.
+
+```regex
+# Inanimate subjects doing human verbs
+\b(the decision|the culture|the conversation|the data|the market|the narrative|the dynamic|the tone)\s+(emerges?|shifts?|moves?|tells us|rewards?|becomes?|changes?|evolves?)\b
+
+# Abstract processes with false autonomy
+\b(a bet|the complaint|the problem)\s+(lives or dies|becomes a|turns into)\b
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "**The decision emerges** from discussion" | "The team decided after a two-hour meeting" |
+| "**The culture shifts** toward openness" | "Engineers started sharing postmortems publicly" |
+| "**The data tells us** that churn increased" | "Churn increased 15% in Q3 (we checked)" |
+| "**The complaint becomes** a fix" | "The team fixed it within a week of the complaint" |
+
+**False positive note:** "The market rewards" is legitimate in economics writing. "The data shows" is fine in technical contexts (vs "tells us" which anthropomorphizes). Flag only when a specific human actor could replace the inanimate subject.
+
+### Tier 1d: Narrator-from-a-Distance (Observer Perspective)
+
+AI floats above the scene as a detached narrator instead of putting the reader in it. "Nobody designed this" is observation from orbit. "You don't sit down one day and decide to build this" puts you in the chair.
+
+```regex
+# Detached observation from nowhere
+\bnobody designed this\b
+\bthis happens because\b
+\bpeople tend to\b
+\bone might argue\b
+\bobservers note\b
+\bcritics point out\b
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "**Nobody designed this.** It emerged over time" | "You don't sit down one day and decide to build this. It accumulates" |
+| "**People tend to** underestimate complexity" | "You'll underestimate how long this takes. Everyone does" |
+| "**This happens because** teams avoid conflict" | "Your team avoids the hard conversation. Then the debt compounds" |
+
+**Fix strategy:** Replace distant third-person observation with direct second-person address ("you") or specific first-person experience ("I", "we"). Put the reader in the room.
+
+**False positive note:** Technical documentation legitimately uses observer perspective. "This happens because the GC runs during allocation" is fine. Flag only in persuasive, narrative, or opinion writing.
+
+### Tier 1e: Dramatic Fragmentation
+
+AI uses performative simplicity. A noun. A period. "That's it." Another period. This pattern announces significance rather than demonstrating it.
+
+```regex
+# "That's it. That's the [thing]." pattern
+\.\s+That's it\.\s+That's the\b
+
+# Staccato drama: "X. And Y. And Z."
+\.\s+And \w+\.\s+And \w+\.
+
+# Artificial revelation
+\bThis unlocks something\.\b
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "Routing. **That's it. That's the** whole system." | "The whole system is routing. Everything else is support." |
+| "Fast. **And** reliable. **And** cheap." | "It's fast, reliable, and cheap." |
+| "**This unlocks something.** Velocity." | "This gives you velocity." |
+
+**Fix strategy:** Complete sentences. Trust content over presentation. If something is significant, the facts will show it without dramatic formatting.
+
+### Tier 1f: Performative Emphasis
+
+AI tells the reader to feel something instead of presenting facts that create the feeling naturally.
+
+```regex
+# Emphasis crutches
+\bfull stop\b
+\blet that sink in\b
+\bmake no mistake\b
+\bthis matters because\b
+\bhere's why that matters\b
+\band that's okay\b
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "10,000 users in a week. **Let that sink in.**" | "10,000 users in a week, triple their previous best." |
+| "Quality matters. **Full stop.**" | "Quality matters." (the period already stops) |
+| "**Make no mistake**, this changes everything" | "This changes the deployment model entirely" |
+| "It's messy. **And that's okay.**" | "It's messy. It works." |
+
+**Fix strategy:** If you need to tell the reader something matters, the preceding facts didn't do their job. Fix the facts, then delete the emphasis.
+
+
 
 ```regex
 # Absolute adjectives with modifiers

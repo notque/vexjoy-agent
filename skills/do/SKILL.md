@@ -126,6 +126,7 @@ These skills have MANDATORY routing. They MUST be invoked when triggers appear:
 | **feature-release** | release feature, merge feature, ship it, feature release |
 | **retro-pipeline** | run retro, retro pipeline, phase checkpoint retro, retro checkpoint |
 | **system-upgrade** | upgrade agents, system upgrade, claude update, upgrade skills, apply claude update, apply update, new claude version, apply retro to system |
+| **de-ai-pipeline** | de-ai docs, clean ai patterns, fix ai writing, scan and fix docs, remove ai tells |
 
 If a force-route trigger matches, invoke that skill BEFORE any other action.
 
@@ -241,6 +242,7 @@ For pipeline skills — add the Pipeline: line with all phases in order:
 | `github-profile-rules` | PROFILE-SCAN → CODE-ANALYSIS → REVIEW-MINING → PATTERN-SYNTHESIS → RULES-GENERATION → VALIDATION → OUTPUT |
 | `doc-pipeline` | RESEARCH → OUTLINE → GENERATE → VERIFY → OUTPUT |
 | `workflow-orchestrator` | BRAINSTORM → WRITE-PLAN → EXECUTE-PLAN |
+| `de-ai-pipeline` | SCAN → FIX → VERIFY (loop max 3) → REPORT |
 
 If a skill is not in this registry but has explicit phases in its SKILL.md, show those phases. If it's not a pipeline, omit the Pipeline: line entirely.
 

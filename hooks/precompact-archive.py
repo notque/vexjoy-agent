@@ -8,7 +8,7 @@ before context is compacted.
 
 Design Principles:
 - Extract actionable patterns from session
-- Archive to persistent SQLite learning database
+- Archive to unified learning database (learning_db_v2)
 - Identify successful error resolutions
 - Update confidence scores for applied patterns
 - Non-blocking (always exits 0)
@@ -28,7 +28,7 @@ from pathlib import Path
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from learning_db import get_stats, record_error
+from learning_db_v2 import classify_error, generate_signature, get_stats, record_learning
 
 
 def inject_adr_anchor(event: dict) -> None:
@@ -190,11 +190,21 @@ def main():
         new_patterns = 0
 
         for resolution in resolutions:
-            result = record_error(
-                error_message=resolution["error_context"],
-                solution=resolution["resolution"],
-                success=True,
+            error_msg = resolution["error_context"]
+            error_type = classify_error(error_msg)
+            signature = generate_signature(error_msg, error_type)
+            value = error_msg[:200]
+            if resolution["resolution"]:
+                value += f" → {resolution['resolution'][:200]}"
+            result = record_learning(
+                topic=error_type,
+                key=signature,
+                value=value,
+                category="error",
+                source="precompact-archive",
                 project_path=cwd,
+                error_signature=signature,
+                error_type=error_type,
             )
             if result.get("is_new"):
                 new_patterns += 1
@@ -205,7 +215,6 @@ def main():
 
         # Get overall stats
         stats = get_stats()
-        pattern_stats = stats.get("patterns", {})
 
         # Only print if we found meaningful learnings
         if new_patterns > 0 or summary["high_confidence_applied"] > 0:
@@ -222,10 +231,10 @@ def main():
                 print(f"[learning-archive]   Error types: {error_types}")
 
             # Show overall learning stats
-            total = pattern_stats.get("total_patterns", 0) or 0
-            high_conf = pattern_stats.get("high_confidence", 0) or 0
+            total = stats.get("total_learnings", 0)
+            high_conf = stats.get("high_confidence", 0)
             if total > 0:
-                print(f"[learning-archive]   Total patterns: {high_conf}/{total} high-confidence")
+                print(f"[learning-archive]   Total learnings: {high_conf}/{total} high-confidence")
 
     except json.JSONDecodeError:
         pass  # Silent failure - invalid JSON

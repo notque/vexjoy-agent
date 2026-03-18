@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """
-Integration tests for the complete learning system.
+Integration tests for the complete learning system (v2 unified database).
 
 Tests the full workflow from error detection through learning to solution suggestion.
-Uses the SQLite-based learning database.
-
-Note: Tests use the real database at ~/.claude/learning/patterns.db
+Uses the unified learning database at ~/.claude/learning/learning.db.
 """
 
 import sys
@@ -20,11 +18,13 @@ def test_end_to_end_learning():
     """Test complete learning workflow."""
     print("Testing end-to-end learning workflow...")
 
-    from learning_db import (
+    from learning_db_v2 import (
+        boost_confidence,
         classify_error,
+        generate_signature,
+        get_connection,
         init_db,
-        lookup_solution,
-        record_error,
+        record_learning,
     )
 
     # Initialize database
@@ -39,27 +39,32 @@ def test_end_to_end_learning():
     assert error_type == "multiple_matches", f"Expected 'multiple_matches', got '{error_type}'"
 
     # Record initial error (low confidence)
-    result = record_error(
-        error_message=error_message,
-        solution="Use replace_all or provide unique context",
-        success=False,
+    signature = generate_signature(error_message, error_type)
+    result = record_learning(
+        topic=error_type,
+        key=signature,
+        value=f"{error_message} → Use replace_all or provide unique context",
+        category="error",
+        confidence=0.55,
+        source="test",
         project_path="/test/project",
+        error_signature=signature,
+        error_type=error_type,
     )
     assert result["is_new"] is True
 
-    # Simulate learning (multiple successes)
-    for _ in range(8):
-        record_error(
-            error_message=error_message,
-            solution="Use replace_all or provide unique context",
-            success=True,
-            project_path="/test/project",
-        )
+    # Simulate learning (multiple successes boost confidence)
+    for _ in range(3):
+        boost_confidence(error_type, signature, delta=0.12)
 
-    # Check confidence increased
-    solution = lookup_solution(error_message)
-    assert solution is not None, "Solution should not be None after recording"
-    assert solution["confidence"] >= 0.7, f"Expected confidence >= 0.7, got {solution['confidence']}"
+    # Check confidence increased above threshold
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT confidence FROM learnings WHERE error_signature = ?",
+            (signature,),
+        ).fetchone()
+        assert row is not None, "Should find learning after recording"
+        assert row["confidence"] >= 0.7, f"Expected confidence >= 0.7, got {row['confidence']}"
 
     print("  ✓ Pattern learned and reached high confidence")
 
@@ -68,7 +73,7 @@ def test_multiple_error_types():
     """Test learning multiple different error types."""
     print("Testing multiple error type learning...")
 
-    from learning_db import classify_error, init_db
+    from learning_db_v2 import classify_error, init_db
 
     init_db()
 
@@ -92,46 +97,42 @@ def test_confidence_bounds():
     """Test confidence score bounds."""
     print("Testing confidence bounds...")
 
-    from learning_db import (
-        classify_error,
-        generate_signature,
-        get_connection,
+    from learning_db_v2 import (
+        boost_confidence,
+        decay_confidence,
         init_db,
-        record_error,
+        record_learning,
     )
 
     init_db()
 
-    # Use unique error message with a known error type pattern
+    # Use unique error message
     unique_id = str(uuid.uuid4())[:8]
-    error_msg = f"Permission denied test-{unique_id}"  # matches "permissions" type
+    topic = "test-bounds"
+    key = f"bounds-test-{unique_id}"
 
-    # Helper to get pattern confidence
-    def get_confidence(msg):
-        error_type = classify_error(msg)
-        sig = generate_signature(msg, error_type)
-        with get_connection() as conn:
-            row = conn.execute("SELECT confidence FROM patterns WHERE signature = ?", (sig,)).fetchone()
-            return row["confidence"] if row else None
+    # Start with low confidence
+    record_learning(
+        topic=topic,
+        key=key,
+        value="Test solution for bounds checking",
+        category="error",
+        confidence=0.55,
+        source="test",
+    )
 
-    # Start with failure
-    record_error(error_msg, solution="Test solution", success=False, project_path="/test")
-
-    # Many failures should drive confidence down
+    # Many decays should drive confidence down but not below 0
     for _ in range(15):
-        record_error(error_msg, solution="Test solution", success=False, project_path="/test")
+        conf = decay_confidence(topic, key, delta=0.18)
 
-    confidence = get_confidence(error_msg)
-    assert confidence is not None, "Should find pattern after recording"
-    assert confidence >= 0.0, f"Confidence went below 0: {confidence}"
+    assert conf >= 0.0, f"Confidence went below 0: {conf}"
 
-    # Many successes should drive confidence up but not above 1
+    # Many boosts should drive confidence up but not above 1
     for _ in range(25):
-        record_error(error_msg, solution="Test solution", success=True, project_path="/test")
+        conf = boost_confidence(topic, key, delta=0.12)
 
-    confidence = get_confidence(error_msg)
-    assert confidence <= 1.0, f"Confidence went above 1: {confidence}"
-    assert confidence > 0.5, f"Confidence should be high after many successes: {confidence}"
+    assert conf <= 1.0, f"Confidence went above 1: {conf}"
+    assert conf > 0.5, f"Confidence should be high after many successes: {conf}"
 
     print("  ✓ Confidence bounds enforced correctly")
 
@@ -140,18 +141,18 @@ def test_database_stats():
     """Test database statistics."""
     print("Testing database statistics...")
 
-    from learning_db import get_stats, init_db
+    from learning_db_v2 import get_stats, init_db
 
     init_db()
 
     stats = get_stats()
-    assert "patterns" in stats
-    assert "sessions" in stats
-    assert "total_patterns" in stats["patterns"]
+    assert "total_learnings" in stats
+    assert "by_category" in stats
+    assert "high_confidence" in stats
 
     print(
-        f"  Stats: {stats['patterns']['total_patterns']} patterns, "
-        f"{stats['patterns'].get('high_confidence') or 0} high-confidence"
+        f"  Stats: {stats['total_learnings']} learnings, "
+        f"{stats.get('high_confidence', 0)} high-confidence"
     )
     print("  ✓ Database statistics working correctly")
 
@@ -159,7 +160,7 @@ def test_database_stats():
 def main():
     """Run all integration tests."""
     print("╔═══════════════════════════════════════════════════════════╗")
-    print("║       Learning System Integration Tests (SQLite)         ║")
+    print("║    Learning System Integration Tests (v2 unified DB)     ║")
     print("╚═══════════════════════════════════════════════════════════╝\n")
 
     test_end_to_end_learning()

@@ -3,7 +3,7 @@
 Stop Hook: Session Summary and Metrics
 
 Generates a summary when the conversation ends and persists session metrics
-to the SQLite learning database.
+to the unified learning database (learning_db_v2).
 
 Design Principles:
 - Comprehensive session tracking
@@ -21,7 +21,7 @@ from pathlib import Path
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from learning_db import get_stats, record_session
+from learning_db_v2 import get_stats, record_session
 
 
 def main():
@@ -55,7 +55,7 @@ def main():
 
         # Record session
         record_session(
-            session_id=session_id,
+            session_id,
             files_modified=files_modified,
             tools_used=tools_used,
             errors_encountered=errors,
@@ -66,16 +66,14 @@ def main():
 
         # Get stats
         stats = get_stats()
-        pattern_stats = stats.get("patterns", {})
-        session_stats = stats.get("sessions", {})
 
-        total_patterns = pattern_stats.get("total_patterns", 0) or 0
-        high_conf = pattern_stats.get("high_confidence", 0) or 0
-        total_sessions = session_stats.get("total_sessions", 0) or 0
+        total_learnings = stats.get("total_learnings", 0)
+        high_conf = stats.get("high_confidence", 0)
+        total_sessions = stats.get("sessions_tracked", 0)
 
-        if total_patterns > 0 or total_sessions > 1:
+        if total_learnings > 0 or total_sessions > 1:
             print("[session-summary] Session ended")
-            print(f"[session-summary] Learning: {high_conf}/{total_patterns} high-confidence patterns")
+            print(f"[session-summary] Learning: {high_conf}/{total_learnings} high-confidence")
             print(f"[session-summary] Total sessions: {total_sessions}")
 
     except Exception as e:

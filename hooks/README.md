@@ -98,15 +98,15 @@ The crown jewel. A self-improving system that learns from errors and automatical
 ├─────────────────────────────────────────────────────────────┤
 │  1. Check pending feedback (automatic!)                     │
 │  2. Detect errors in tool result                            │
-│  3. Lookup/record patterns in SQLite                        │
+│  3. Lookup/record patterns in unified learning database      │
 │  4. Emit fix instructions if confidence ≥ 0.7               │
 │  5. Set pending feedback for next iteration                 │
 └─────────────────────────────────────────────────────────────┘
                            │
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
-│           Learning Database (SQLite)                        │
-│           ~/.claude/learning/patterns.db                    │
+│           Unified Learning Database (SQLite)                │
+│           ~/.claude/learning/learning.db                    │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -207,9 +207,9 @@ Edit the constants at the top of `instruction-reminder.py`:
 - `THROTTLE_INTERVAL = 3` - Re-inject every N prompts
 - `INSTRUCTION_FILES = ["CLAUDE.md", "AGENTS.md", "RULES.md"]` - Files to discover
 
-### Why This Matters
+### Context Drift Prevention
 
-Long Claude sessions suffer from "context drift" where early instructions fade as new content fills the context window. This hook ensures critical rules stay fresh.
+Long Claude sessions lose early instructions as new content fills the context window. This hook re-injects them on a schedule.
 
 Inspired by the `claude-md-reminder.sh` pattern.
 
@@ -306,15 +306,16 @@ The `session-summary.py` hook generates metrics when Claude Code stops.
 
 ## Supporting Libraries
 
-### `lib/learning_db.py`
+### `lib/learning_db_v2.py`
 
-Core library for pattern storage:
-- **SQLite database** (NOT JSON) with ACID guarantees
+Unified learning database. Replaces both `patterns.db` and retro L2 markdown files:
+- **SQLite database** with WAL mode for concurrent access
+- FTS5 full-text search with porter stemming
 - Error classification (8 types) and MD5 signature generation
-- Confidence tracking (+0.12 success, -0.18 failure)
-- Project-aware patterns (global and project-specific)
+- Confidence tracking with category-specific defaults
+- Project-aware learnings (global and project-specific)
 - Auto-fix metadata (fix_type, fix_action)
-- Initial confidence: 0.6 on first success, 0.4 on first failure
+- Import/export for retro L1/L2 and legacy patterns.db migration
 
 ### `lib/feedback_tracker.py`
 
@@ -380,9 +381,9 @@ SQLite provides ACID guarantees:
 ```
 ~/.claude/
 ├── learning/
-│   ├── patterns.db           # SQLite learning database (NOT JSON)
-│   ├── patterns.db-shm       # SQLite shared memory file
-│   ├── patterns.db-wal       # SQLite write-ahead log
+│   ├── learning.db           # Unified SQLite learning database
+│   ├── learning.db-shm       # SQLite shared memory file
+│   ├── learning.db-wal       # SQLite write-ahead log
 │   └── pending_feedback.json # Automatic feedback state (60s expiry)
 
 hooks/
@@ -393,7 +394,7 @@ hooks/
 ├── precompact-archive.py     # PreCompact: Archive learnings
 ├── post-tool-lint-hint.py    # PostToolUse: Lint hints
 ├── lib/
-│   ├── learning_db.py        # Core learning library
+│   ├── learning_db_v2.py     # Unified learning database library
 │   ├── feedback_tracker.py   # Automatic feedback tracking
 │   ├── quality_gate.py       # Quality gate utilities
 │   └── builtin_checks.py     # Built-in quality checks
@@ -408,8 +409,8 @@ hooks/
 Use SQLite directly to inspect the learning database:
 
 ```bash
-sqlite3 ~/.claude/learning/patterns.db "SELECT * FROM patterns WHERE confidence >= 0.7"
-sqlite3 ~/.claude/learning/patterns.db "SELECT error_type, COUNT(*) FROM patterns GROUP BY error_type"
+sqlite3 ~/.claude/learning/learning.db "SELECT * FROM patterns WHERE confidence >= 0.7"
+sqlite3 ~/.claude/learning/learning.db "SELECT error_type, COUNT(*) FROM patterns GROUP BY error_type"
 ```
 
 ---
@@ -552,7 +553,7 @@ def main():
             return
 
         # Your logic here
-        # Use lib/learning_db.py for database access
+        # Use lib/learning_db_v2.py for database access
         # Use lib/feedback_tracker.py for feedback state
 
     except (json.JSONDecodeError, Exception):

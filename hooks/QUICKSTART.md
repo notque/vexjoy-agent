@@ -2,12 +2,12 @@
 
 ## What is this?
 
-A self-improving hook ecosystem that learns from errors across Claude Code sessions and provides intelligent suggestions based on accumulated knowledge.
+A self-improving hook system that learns from errors across Claude Code sessions and suggests fixes based on accumulated knowledge.
 
 ## How it works
 
 1. **You encounter an error** (e.g., "Found 3 matches, use replace_all")
-2. **System learns the pattern** (stores in SQLite database with initial confidence 0.4)
+2. **System learns the pattern** (stores in unified learning database with initial confidence 0.55)
 3. **You fix it and it works** (automatic feedback: confidence increases by +0.12 to 0.52)
 4. **After multiple successful fixes** (confidence reaches 0.7 threshold - typically 3-4 successes)
 5. **System auto-suggests solution** next time you encounter similar error
@@ -17,17 +17,17 @@ A self-improving hook ecosystem that learns from errors across Claude Code sessi
 
 ### View Statistics
 ```bash
-sqlite3 ~/.claude/learning/patterns.db "SELECT COUNT(*) as total, SUM(CASE WHEN confidence >= 0.7 THEN 1 ELSE 0 END) as high_confidence FROM patterns"
+python3 scripts/learning-db.py stats
 ```
 
-### List All Patterns
+### List All Learnings
 ```bash
-sqlite3 ~/.claude/learning/patterns.db "SELECT error_type, solution, confidence FROM patterns ORDER BY confidence DESC"
+python3 scripts/learning-db.py query --category error
 ```
 
 ### View High-Confidence Patterns (Ready to Use)
 ```bash
-sqlite3 ~/.claude/learning/patterns.db "SELECT error_type, solution, confidence FROM patterns WHERE confidence >= 0.7"
+python3 scripts/learning-db.py query --category error --min-confidence 0.7
 ```
 
 ### Run Tests
@@ -40,9 +40,9 @@ python3 test_learning_system.py
 
 | File | Purpose |
 |------|---------|
-| `~/.claude/learning/patterns.db` | Main SQLite learning database (NOT JSON) |
-| `~/.claude/learning/patterns.db-shm` | SQLite shared memory file |
-| `~/.claude/learning/patterns.db-wal` | SQLite write-ahead log |
+| `~/.claude/learning/learning.db` | Unified SQLite learning database |
+| `~/.claude/learning/learning.db-shm` | SQLite shared memory file |
+| `~/.claude/learning/learning.db-wal` | SQLite write-ahead log |
 | `~/.claude/learning/pending_feedback.json` | Automatic feedback state (60s expiry) |
 | `/tmp/claude_error_learner_debug.log` | Debug logs (if enabled) |
 
@@ -112,20 +112,22 @@ tail -f /tmp/claude_error_learner_debug.log
 
 ## Database Schema (SQLite)
 
-Each pattern contains:
+Each learning entry contains:
 - **id**: Auto-incrementing primary key
-- **signature**: MD5 hash of normalized error (16 chars, unique index)
-- **error_type**: Classified error category (8 types)
-- **error_message**: First 500 chars of error (for reference)
-- **solution**: Human-readable solution description
-- **confidence**: Success probability (0.0 - 1.0, default 0.5)
-- **success_count**: Times this solution worked
-- **failure_count**: Times this solution failed
-- **last_seen**: ISO timestamp of last occurrence
-- **project_path**: Where this pattern applies (NULL = global)
-- **created_at**: ISO timestamp of pattern creation
+- **topic**: Category grouping (e.g., error type or domain)
+- **key**: Unique identifier within topic (e.g., error signature)
+- **value**: Human-readable description and solution
+- **category**: Learning type (error, pivot, review, design, debug, gotcha)
+- **confidence**: Reliability score (0.0 - 1.0, category-specific defaults)
+- **tags**: Comma-separated tags for search
+- **source**: Origin (error-learner, manual, migrated, etc.)
+- **observation_count**: Times this pattern was observed
+- **success_count**: Times the solution worked
+- **failure_count**: Times the solution failed
+- **error_signature**: MD5 hash for error pattern matching
 - **fix_type**: Type of fix (manual, auto, skill, agent)
 - **fix_action**: Specific action/command/skill/agent name
+- **graduated_to**: Target when knowledge is embedded into an agent
 
 ## Confidence Evolution Example
 
@@ -156,10 +158,10 @@ If you want to start fresh:
 
 ```bash
 # Backup first
-sqlite3 ~/.claude/learning/patterns.db .dump > patterns_backup.sql
+sqlite3 ~/.claude/learning/learning.db .dump > learning_backup.sql
 
 # Delete to start fresh
-rm ~/.claude/learning/patterns.db
+rm ~/.claude/learning/learning.db
 ```
 
 ## Tips
@@ -195,86 +197,52 @@ Stop → Save session summary and metrics
 
 ### Manual Pattern Creation
 
-```python
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path.cwd() / "hooks" / "lib"))
-
-from learning_db import record_error, get_connection, generate_signature, classify_error
-
-# Record a new error pattern
-error_msg = "My custom error message"
-solution = "How to fix it"
-fix_type = "manual"  # or "auto", "skill", "agent"
-fix_action = "specific_command"  # or skill name, agent name, etc.
-
-record_error(
-    error_message=error_msg,
-    solution=solution,
-    success=True,  # True = start with confidence 0.6, False = 0.4
-    fix_type=fix_type,
-    fix_action=fix_action,
-    project_path=None  # None = global pattern
-)
-
-# Optionally boost confidence for manually-added patterns
-sig = generate_signature(error_msg, classify_error(error_msg))
-with get_connection() as conn:
-    conn.execute('UPDATE patterns SET confidence = 0.9 WHERE signature = ?', (sig,))
-    conn.commit()
-
-print(f"Pattern created with signature: {sig}")
+Use the CLI:
+```bash
+python3 scripts/learning-db.py record \
+  "multiple_matches" \
+  "edit-tool-multiple-matches" \
+  "Edit tool fails with 'found N matches' → Use replace_all=True parameter" \
+  --category error \
+  --confidence 0.9
 ```
 
-### Querying Patterns
+Or use the `/learn` skill:
+```
+/learn "Edit found multiple matches" → "Use replace_all=true or provide more unique context"
+```
 
+### Querying Learnings
+
+```bash
+# Query by category
+python3 scripts/learning-db.py query --category error --min-confidence 0.7
+
+# Full-text search
+python3 scripts/learning-db.py search "multiple matches"
+
+# Get statistics
+python3 scripts/learning-db.py stats
+```
+
+Or via Python:
 ```python
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path.cwd() / "hooks" / "lib"))
 
-from learning_db import (
-    get_connection,
-    get_high_confidence_patterns,
-    lookup_solution,
-    classify_error,
-    generate_signature
-)
+from learning_db_v2 import query_learnings, lookup_error_solution, get_stats
 
 # Find solution for specific error
-error_msg = "Found 3 matches"
-solution = lookup_solution(error_msg)
+solution = lookup_error_solution("Found 3 matches")
 if solution:
-    print(f"Solution: {solution['solution']}")
-    print(f"Fix type: {solution['fix_type']}")
+    print(f"Solution: {solution['value']}")
     print(f"Confidence: {solution['confidence']}")
 
-# Get all high-confidence patterns
-high_conf = get_high_confidence_patterns(min_confidence=0.7, limit=10)
-for pattern in high_conf:
-    print(f"{pattern['error_type']}: {pattern['solution']} ({pattern['confidence']:.2f})")
-
-# Get project-specific patterns
-project_patterns = get_high_confidence_patterns(
-    min_confidence=0.7,
-    project_path="/home/user/myproject",
-    limit=10
-)
-
-# Manual confidence update (use feedback_tracker instead for automatic)
-sig = generate_signature(error_msg, classify_error(error_msg))
-with get_connection() as conn:
-    row = conn.execute(
-        'SELECT confidence, success_count FROM patterns WHERE signature = ?',
-        (sig,)
-    ).fetchone()
-    if row:
-        new_conf = min(1.0, row['confidence'] + 0.12)  # Success
-        conn.execute(
-            'UPDATE patterns SET confidence = ?, success_count = ? WHERE signature = ?',
-            (new_conf, row['success_count'] + 1, sig)
-        )
-        conn.commit()
+# Get all high-confidence error patterns
+patterns = query_learnings(category="error", min_confidence=0.7, limit=10)
+for p in patterns:
+    print(f"{p['topic']}: {p['value']} ({p['confidence']:.2f})")
 ```
 
 ## Troubleshooting
@@ -291,9 +259,9 @@ with get_connection() as conn:
 
 **Q: Database corrupted?**
 - SQLite has automatic recovery via write-ahead log
-- Manual backup: `sqlite3 ~/.claude/learning/patterns.db .dump > backup.sql`
-- Restore: `sqlite3 ~/.claude/learning/patterns.db < backup.sql`
-- Or reset by removing the database file: `rm ~/.claude/learning/patterns.db`
+- Manual backup: `sqlite3 ~/.claude/learning/learning.db .dump > backup.sql`
+- Restore: `sqlite3 ~/.claude/learning/learning.db < backup.sql`
+- Or reset by removing the database file: `rm ~/.claude/learning/learning.db`
 
 **Q: Hooks too slow?**
 - Check debug logs for execution times

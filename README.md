@@ -1,158 +1,119 @@
 # Claude Code Toolkit
 
-Agents, skills, hooks, and scripts for Claude Code. A collection of patterns built over a year of daily use that make Claude Code significantly more effective for real development work.
+A collection of 59 agents, 111 skills, and 27 hooks for Claude Code. Built over a year of daily use.
 
-## What this is
+## The problem and the fix
 
-A routing system that matches your requests to specialized domain agents, enforces workflow methodologies that prevent skipping steps, and accumulates knowledge across sessions so the system improves over time.
+Claude Code gives you one general-purpose model for all tasks. Claude Code Toolkit gives you a router (`/do`) that classifies your request by domain and action, picks a specialized agent, and loads a workflow skill to enforce methodology. The agent knows domain idioms. The skill structures the work into gated phases. Python scripts handle deterministic validation.
 
-The core idea: instead of hoping Claude figures out the right approach, route to an agent that has deep domain expertise and pair it with a skill that enforces a methodology. `/do debug this Go test` doesn't just "debug." It routes to a Go specialist agent, loads Go-specific idioms, and enforces a REPRODUCE, ISOLATE, IDENTIFY, FIX workflow with gates between each phase.
+```
+Router -> Agent -> Skill -> Script
+```
 
-This system is built around my work. The agents reflect my domains. The skills reflect my workflows. You'll get value from the patterns and infrastructure, but the real payoff comes from building your own agents and skills for your domains using these as reference.
+Example: `/do debug this Go test` routes to `golang-general-engineer` + `systematic-debugging` + `go-testing`. The agent loads Go-specific context. The skill enforces REPRODUCE, ISOLATE, IDENTIFY, FIX, VERIFY. Each phase has a gate.
 
-## How to use this
+## Setup
 
-**Study the patterns.** The most valuable thing here isn't the install script. It's the structure.
-
-- **`agents/*.md`** Domain-expert system prompts with routing metadata, force-triggered skills, and phase gates. Pick one and read it. The pattern: frontmatter declares triggers and capabilities, the body is deep domain expertise, the end has a quality gate that prevents declaring victory without evidence.
-
-- **`skills/*/SKILL.md`** Workflow methodologies that enforce process. The `systematic-debugging` skill has four phases (REPRODUCE, ISOLATE, IDENTIFY, FIX) with gates between them. You can't skip to "fix" because the skill checks. Steal this pattern for any multi-step workflow.
-
-- **`hooks/*.py`** Event-driven automation. The `error-learner.py` hook watches for tool errors, stores error-to-solution patterns in SQLite, and suggests fixes when it sees similar errors later. The system learns from its own mistakes.
-
-- **`skills/comprehensive-review/SKILL.md`** Multi-wave parallel dispatch. Wave 0 discovers packages, Wave 1 runs specialized reviewers in parallel, Wave 2 does cross-cutting analysis using Wave 1 findings. A template for "fan out, gather, synthesize."
-
-- **`skills/do/SKILL.md`** A natural-language routing layer. You describe what you want, it classifies domain + action + complexity, selects the right agent and skill, and handles force-routing for specific triggers.
-
-Read the patterns, then build your own agents for your domains, your own skills for your workflows, your own hooks for your pain points. The system includes tools to help: `/do create an agent for [your domain]` and `/do create a skill for [your workflow]` scaffold new components using the same patterns. The `.local/` overlay lets you add private agents and skills that survive updates.
-
-**Or install it.** If you want to try the whole system:
+Requires Python 3.10+.
 
 ```bash
 git clone https://github.com/notque/claude-code-toolkit.git ~/claude-code-toolkit
 cd ~/claude-code-toolkit
 
-# See what would happen first
-./install.sh --dry-run
-
-# Install
-./install.sh --symlink    # symlink mode (updates via git pull)
-# OR
-./install.sh --copy       # copy mode (stable, re-run to update)
+./install.sh --dry-run        # preview changes
+./install.sh --symlink        # recommended: updates with git pull
+./install.sh --copy           # alternative: stable snapshot
 ```
 
-The installer links or copies agents, skills, hooks, commands, and scripts into `~/.claude/`, installs Python dependencies, and configures hooks in `settings.json`. It has `--dry-run`, `--uninstall`, and asks before overwriting anything.
+The installer places agents, skills, hooks, commands, and scripts in `~/.claude/`. It configures hooks in `settings.json` and prompts before overwriting files. Use `--uninstall` to remove.
 
-**Back up first** if you have existing Claude Code customizations. Symlink mode replaces directories.
+Back up any existing Claude Code customizations before installing. Symlink mode replaces directories.
 
-**Updating:** `cd ~/claude-code-toolkit && git pull` (symlink mode updates automatically).
+Update with `cd ~/claude-code-toolkit && git pull` in symlink mode.
 
----
+## /do router and force-routing
 
-## The `/do` router
+`/do` is the single entry point. Describe what you want, and the router matches you to an agent and skill.
 
-Everything goes through `/do`. That's the entry point.
+Force-routing overrides normal selection for specific triggers:
 
-```
-You: "/do debug this Go test"
+| Trigger | Skill |
+|---------|-------|
+| goroutine, channel, sync.Mutex | `go-concurrency` |
+| _test.go, t.Run, benchmark | `go-testing` |
+| fmt.Errorf, error handling | `go-error-handling` |
+| "create voice", "voice from samples" | `create-voice` |
+| "design feature", "plan feature" | `feature-design` / `feature-plan` |
 
-  Router classifies: domain=Go, action=debug
-  Selects agent: golang-general-engineer
-  Selects skill: systematic-debugging
-  Force-routes: go-testing (trigger match)
+These overrides exist because the corresponding domains require very specific patterns. Generic advice about Go concurrency or error wrapping produces broken code.
 
-  Agent loads Go-specific context and idioms
-  Skill enforces: REPRODUCE -> ISOLATE -> IDENTIFY -> FIX -> VERIFY
-  Scripts run deterministic validation (go vet, gopls, gofmt)
-```
+## Code review in 3 waves
 
-You don't need to know which agent or skill exists. Just say what you want. The router matches you to a domain expert with a methodology. That single change, routing to specialized agents instead of hoping the general model figures it out, is where most of the value comes from.
+`/comprehensive-review` runs 20+ specialist reviewers across 3 waves.
 
-### Force-routing
+**Wave 0:** Package discovery. Per-package language specialists dispatch automatically.
 
-Certain triggers always invoke specific skills:
+**Wave 1:** Parallel foundation review. Security, concurrency, silent failures, performance, dead code, API contracts, naming consistency, and others run simultaneously.
 
-| Trigger | Skill | Why |
-|---------|-------|-----|
-| goroutine, channel, sync.Mutex | `go-concurrency` | Generic concurrency advice is how you get data races |
-| _test.go, t.Run, benchmark | `go-testing` | Test patterns need table-driven, t.Helper, race detection |
-| error handling, fmt.Errorf | `go-error-handling` | Error wrapping chains have specific Go patterns |
+**Wave 2:** Cross-cutting analysis. Reviewers in this wave read all Wave 1 findings. A security reviewer flagged a swallowed error in Wave 1? The concurrency reviewer in Wave 2 can trace that swallowed error to a concurrent code path.
 
-Without force-routing, Claude gives you generic advice when you need specific patterns.
+Result: unified BLOCK/FIX/APPROVE verdict, severity-ranked.
 
----
+## Cross-session knowledge (retro system)
 
-## Multi-wave code review
+The retro pipeline runs at feature completion. Two parallel walkers extract different knowledge:
 
-`/comprehensive-review` dispatches parallel specialist agents across 3 waves. Each wave's findings feed the next. The security reviewer finds a swallowed error. The concurrency reviewer reads that finding and realizes the swallowed error is on a concurrent path. That's how you find invisible race conditions that no single-pass review catches.
+- Context walker: domain and implementation learnings (what you learned about the problem)
+- Meta walker: process learnings (what caused friction, what worked well)
 
-**Wave 0** auto-discovers packages, dispatches per-package language specialists
+Findings go into an L1 (summary) / L2 (detailed) hierarchy. Knowledge graduates upward as confidence grows. In your next session, the system matches relevant knowledge by keyword and injects it before the agent starts.
 
-**Wave 1** parallel foundation reviewers (security, concurrency, silent failures, performance, dead code, type design, API contracts, code quality, language idioms, docs)
+Five phases: WALK, MERGE, GATE, APPLY, REPORT.
 
-**Wave 2** cross-cutting analysis using Wave 1 findings (deep concurrency, config safety, observability, error messages, naming consistency)
+## ADR coordination
 
-Final output: unified BLOCK/FIX/APPROVE verdict with severity-ranked findings.
+When you create agents, skills, or pipelines, the system writes an Architecture Decision Record and registers a session. The `adr-context-injector` hook feeds role-targeted sections to each sub-agent. A skill-creator gets step-menu and type-matrix sections. An agent-creator gets architecture-rules. All agents involved in a creation task read from the same architectural decisions.
 
----
+## Voice cloning with deterministic validation
 
-## Cross-session learning
-
-Most AI coding sessions are stateless. This one accumulates knowledge.
+Provide writing samples. `voice_analyzer.py` extracts measurable style patterns: sentence length distribution, comma density, contraction rate, fragment usage. `voice_validator.py` validates generated content against those measurements and flags AI tells. Both scripts are deterministic Python, not self-assessment.
 
 ```
-Feature completed
-  -> retro-pipeline extracts learnings
-  -> Saved to retro/L2/
-  -> Next session, injected automatically when keywords match
-  -> Agent receives context from prior work before starting
+/create-voice              # build a profile from samples
+/do write in voice [name]  # generate matching content
 ```
 
-The `error-learner` hook does this automatically for tool errors: records the pattern, suggests the fix next time, tracks whether the fix worked, adjusts confidence. It's a SQLite database with reinforcement learning characteristics.
+No voices are pre-built. The measurement infrastructure ships; you build your profiles.
 
----
+## Feature lifecycle
 
-## Voice system
+| Command | Output |
+|---------|--------|
+| `/feature-design` | Design doc from collaborative exploration |
+| `/feature-plan` | Wave-ordered tasks with agent assignments |
+| `/feature-implement` | Dispatched execution by domain agents |
+| `/feature-validate` | Quality gates: tests, lint, type checks |
+| `/feature-release` | PR, merge, tag, cleanup |
 
-Create AI writing profiles that match a specific person's style. Bring your own writing samples, the system extracts measurable patterns, validates generated content against those patterns, and flags AI tells. See [docs/VOICE-SYSTEM.md](docs/VOICE-SYSTEM.md).
+Each phase produces saved artifacts. The retro pipeline runs at each checkpoint to extract learnings.
 
-No pre-built voices included. The infrastructure ships; your voice is yours to create.
+## More features
 
----
+**Pipeline generator.** Describe the domain, and the system discovers subdomains and scaffolds agents, skills, and routing through a 7-phase flow (ADR, Domain Research, Chain Composition, Scaffold, Integrate, Test, Retro).
 
-## What's included
+**PR workflow.** `/pr-sync` stages, commits, pushes, and creates a PR. On personal repos, it runs up to 3 automated review-and-fix iterations before opening the PR.
 
-| Component | Description |
-|-----------|-------------|
-| Domain agents | Specialized experts for Go, Python, TypeScript, Kubernetes, databases, and more |
-| Workflow skills | TDD, debugging, refactoring, code review, PR pipelines, content creation |
-| Event hooks | Error learning, auto-planning, retro injection, context archiving |
-| Review agents | Parallel specialist reviewers across security, concurrency, performance, and more |
-| Pipeline generator | Say "I need a pipeline for X" and the system builds agents, skills, and routing for it |
-| Voice system | Clone a writing style with deterministic validation |
-| PR workflow | `/pr-sync` stages, commits, pushes, and creates PRs in one command |
-| `.local/` overlay | Your private customizations that survive `git pull` |
-
----
+**.local/ overlay.** Put custom agents, skills, and hooks in `.local/`. They survive `git pull` without modifying the toolkit.
 
 ## FAQ
 
-**Q: How do I get started?**
-A: Read the patterns first. Pick an agent or skill that's close to your domain and study how it's structured. Then either install the whole system or adapt the patterns to your own setup.
+**How do I start?** Install, then use `/do` for all requests. Try `/do review this file` or `/do debug this test`. The router handles agent and skill selection.
 
-**Q: Can I use just parts of it?**
-A: Yes. Delete what you don't want. The router adapts to what's available. Hooks can be individually disabled in settings.json.
+**Can I use part of it?** Delete agents and skills you do not need. The router adapts. Disable individual hooks in `settings.json`.
 
-**Q: How is this different from Superpowers?**
-A: Different tools for different needs. Superpowers is a clean workflow system (brainstorm, plan, build, review, ship) that installs in one command and works on multiple platforms. This toolkit focuses on deep domain agents with high context, a router that matches you to the right specialist, multi-wave review, and a knowledge system that compounds over time. One is a workflow. This is an arsenal. They're not competing.
+**How does this differ from Superpowers?** Superpowers provides a workflow system (brainstorm, plan, build, review, ship) with single-command install across platforms. This toolkit provides specialist routing, multi-wave review, cross-session knowledge, and voice cloning. Different purposes.
 
-**Q: Will this slow down my sessions?**
-A: Hooks add ~200ms at session start. After that, agents only load when invoked. The comprehensive review takes longer because you're running waves of parallel agents.
-
-**Q: I only write Python. Why are there Go agents?**
-A: They're markdown files doing nothing until invoked. The cost of having them is zero. The cost of needing one and not having it is a bad session.
-
----
+**Performance impact?** Hooks add ~200ms at session start. Agents load on demand. An unused agent is a markdown file on disk and costs nothing to have around.
 
 ## License
 

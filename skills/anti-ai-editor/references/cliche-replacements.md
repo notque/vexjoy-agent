@@ -66,6 +66,62 @@ AI substitutes complex verbs for simple "is/has/are". Sourced from Wikipedia's W
 
 ---
 
+## Tier 1c: False Agency (Inanimate Actors)
+
+AI gives agency to inanimate objects to avoid naming who actually did the thing.
+
+| AI Phrase | Replacement | Notes |
+|-----------|-------------|-------|
+| the decision emerges | the team decided, we decided | Name the person or group |
+| the culture shifts | engineers changed how they... | Name the people changing |
+| the conversation moves toward | the team steered discussion to | Someone steered it |
+| the data tells us | the data shows (we learned that) | Data doesn't talk |
+| the market rewards | buyers pay more for, customers chose | Name the economic actors |
+| the complaint becomes a fix | the team fixed it after the complaint | Someone fixed it |
+| the narrative shifts | reporters started covering... | Someone shifted it |
+| the tone shifts | the speaker changed tone when... | Someone changed it |
+| the dynamic changes | [name specific change] | What actually changed? |
+| a bet lives or dies | the team killed the project / it shipped | Someone made the call |
+
+## Tier 1d: Observer Perspective (Narrator-from-Distance)
+
+AI narrates from orbit instead of putting the reader in the scene.
+
+| AI Phrase | Replacement | Notes |
+|-----------|-------------|-------|
+| nobody designed this | you don't sit down and decide to build this | Put reader in the chair |
+| this happens because | your [thing] breaks because | Address reader directly |
+| people tend to | you'll probably | Second person is closer |
+| one might argue | [just make the argument] | If you'd argue it, argue it |
+| observers note | [state the observation] | Who observed? Say it or cut |
+| critics point out | [state the criticism] | Unnamed critics are weasel words |
+
+## Tier 1e: Performative Emphasis (Emphasis Crutches)
+
+AI tells the reader how to feel instead of letting facts do the work.
+
+| AI Phrase | Replacement | Notes |
+|-----------|-------------|-------|
+| full stop | [remove - the period already stops] | Emphasis through repetition |
+| let that sink in | [remove or add context] | Add the "so what" instead |
+| make no mistake | [remove] | Just state the claim |
+| this matters because | [remove and show why] | If you need to say it matters... |
+| here's why that matters | [remove] | The facts should show it |
+| and that's okay | [remove or replace with "it works"] | False reassurance |
+| i promise | [remove] | Manufactured intimacy |
+
+## Tier 1f: Dramatic Fragmentation
+
+AI uses fragments and staccato for artificial drama.
+
+| AI Phrase | Replacement | Notes |
+|-----------|-------------|-------|
+| [Noun]. That's it. That's the [X]. | The whole thing is [noun]. | Trust a complete sentence |
+| X. And Y. And Z. | X, Y, and Z. | A list is fine |
+| This unlocks something. [Word]. | This gives you [word]. | Don't manufacture reveals |
+
+---
+
 ## Tier 2: Meta-Commentary (Usually Remove)
 
 | Phrase | Action | Better Alternative |

@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Machine-readable database of banned patterns for voice validation",
   "matching_rules": {
     "case_sensitive": false,
@@ -23,10 +23,9 @@
       "suggestion_template": "Use direct verbs: examine, look at, consider, discuss"
     },
     "empty_adjectives": {
-      "severity": "warning",
+      "severity": "error",
       "patterns": [
         "robust",
-        "comprehensive",
         "holistic",
         "cutting-edge",
         "innovative",
@@ -45,7 +44,8 @@
         "world-class"
       ],
       "message": "Empty adjectives add no specific meaning and inflate prose",
-      "suggestion_template": "Remove or replace with concrete description of what makes it notable"
+      "suggestion_template": "Remove or replace with concrete description of what makes it notable",
+      "notes": "'comprehensive' is valid when it is a literal skill/command name (e.g. /comprehensive-review). Flag only as standalone adjective."
     },
     "corporate_verbs": {
       "severity": "error",
@@ -60,28 +60,31 @@
         "unleash",
         "catalyze",
         "spearhead",
-        "pivot"
+        "pivot to",
+        "pivot toward",
+        "lean into",
+        "double down",
+        "circle back",
+        "take a step back",
+        "on the same page"
       ],
-      "notes": "Removed champion/leverage/synergy - valid in domain contexts",
+      "notes": "Removed champion/leverage/synergy - valid in domain contexts. Added lean into, double down, circle back, take a step back, on the same page.",
       "message": "Corporate jargon signals inauthentic voice and lacks specificity",
       "suggestion_template": "Use plain verbs: use, help, improve, lead, change"
     },
     "abstract_nouns": {
-      "severity": "warning",
+      "severity": "error",
       "patterns": [
         "ecosystem",
         "landscape",
         "paradigm",
-        "framework",
-        "methodology",
         "synergies",
         "bandwidth",
-        "learnings",
-        "asks",
         "deliverables"
       ],
+      "notes": "Removed 'framework', 'methodology', 'learnings', 'asks'. Framework and methodology are legitimate technical terms. Learnings is used by retro system. Asks matched as substring of 'tasks'.",
       "message": "Abstract nouns obscure meaning with vague corporate-speak",
-      "suggestion_template": "Name the specific thing: system, field, approach, method, time, lessons, requests, outputs"
+      "suggestion_template": "Name the specific thing: system, field, approach, time, requests, outputs"
     },
     "opening_phrases": {
       "severity": "error",
@@ -131,7 +134,7 @@
         "as we've seen",
         "in summary",
         "all in all",
-        "overall",
+        "overall,",
         "to wrap up",
         "in closing",
         "the bottom line is"
@@ -157,14 +160,14 @@
     "forbidden_punctuation": {
       "severity": "error",
       "patterns": [
-        "\u2014",
-        "\u2013"
+        "—",
+        "–"
       ],
       "message": "Em-dashes (U+2014) and en-dashes (U+2013) are absolutely forbidden. Use commas, periods, or hyphens",
       "suggestion_template": "Replace em-dash with comma, period, or restructure sentence. Use hyphen (-) for compound words only"
     },
     "hedging_language": {
-      "severity": "warning",
+      "severity": "error",
       "patterns": [
         "i think",
         "i believe",
@@ -196,7 +199,7 @@
       "suggestion_template": "State the significance directly: X shows, X proves, X means"
     },
     "ai_rhetorical_structures": {
-      "severity": "warning",
+      "severity": "error",
       "patterns": [
         "it's not .+\\. it's",
         "this isn't .+\\. this is",
@@ -211,11 +214,309 @@
         "it's not merely .+\\. it's",
         "it's not simply .+\\. it's",
         "not .+ but rather",
-        "stop .+ing .+ and start .+ing"
+        "stop .+ing .+ and start .+ing",
+        "stops being .+ and starts being",
+        "not because .+\\. because",
+        "not because .+, but because",
+        "the answer isn't .+\\. it's",
+        "the question isn't .+\\. it's",
+        "it feels like .+\\. it's actually",
+        "doesn't mean .+, but actually",
+        "is about .+ but not"
       ],
-      "notes": "Downgraded to warning, reduced patterns. Some voices use 'wasn't just X, it was Y' naturally",
+      "notes": "Downgraded to warning, reduced patterns. Some voices use 'wasn't just X, it was Y' naturally. 'stops being' variant added for coverage.",
       "message": "The 'It's not X. It's Y' rhetorical pivot is an overused AI pattern that feels manufactured",
       "suggestion_template": "State what it IS directly: 'Errors are measurements' instead of 'They're not failures. They're measurements'"
+    },
+    "false_agency": {
+      "severity": "error",
+      "patterns": [
+        "the decision emerges",
+        "the culture shifts",
+        "the conversation moves",
+        "the data tells us",
+        "the market rewards",
+        "the complaint becomes",
+        "a bet lives or dies",
+        "the narrative shifts",
+        "the dynamic changes",
+        "the tone shifts",
+        "the system learns",
+        "the code reveals",
+        "the architecture demands",
+        "the process evolves",
+        "the technology enables",
+        "the infrastructure supports",
+        "the platform delivers",
+        "the strategy dictates",
+        "the evidence suggests",
+        "the trend indicates",
+        "the numbers speak",
+        "the results demonstrate",
+        "the approach yields",
+        "the method produces",
+        "the framework provides",
+        "the design communicates",
+        "the experience teaches",
+        "the community responds",
+        "the industry recognizes",
+        "the feedback reveals"
+      ],
+      "notes": "AI avoids naming human actors by giving agency to inanimate things. Flag only when a specific person or team could be named instead. 'The system learns' is fine in ML contexts.",
+      "message": "Inanimate objects doing human actions avoids naming who actually did the thing",
+      "suggestion_template": "Name the human actor: 'The team fixed it' instead of 'The complaint becomes a fix'"
+    },
+    "observer_perspective": {
+      "severity": "info",
+      "patterns": [
+        "nobody designed this",
+        "this happens because",
+        "people tend to",
+        "one might argue",
+        "observers note",
+        "critics point out",
+        "it's widely recognized",
+        "it's generally understood",
+        "there's a growing consensus",
+        "many have noted",
+        "some would say",
+        "it's been observed that",
+        "the prevailing view",
+        "conventional wisdom suggests",
+        "it's commonly believed",
+        "there's an argument to be made",
+        "the broader point is",
+        "the underlying issue is",
+        "what often gets overlooked",
+        "what's less discussed"
+      ],
+      "notes": "Narrator floating above the scene instead of putting the reader in it. Lower severity because sometimes appropriate in technical writing.",
+      "message": "Observer voice distances reader from the scene. Put the reader in the room.",
+      "suggestion_template": "Use 'you' or 'I' or name a specific person. 'You don't sit down one day and decide to build this' instead of 'Nobody designed this'"
+    },
+    "performative_emphasis": {
+      "severity": "error",
+      "patterns": [
+        "full stop",
+        "let that sink in",
+        "make no mistake",
+        "this matters because",
+        "here's why that matters",
+        "i promise",
+        "they exist, i promise",
+        "and that's okay",
+        "read that again",
+        "think about that",
+        "think about it",
+        "let me say that again",
+        "worth repeating",
+        "can't stress this enough",
+        "here's the kicker",
+        "here's what nobody tells you",
+        "here's what i find interesting",
+        "here's the problem though",
+        "can we talk about",
+        "let me be clear",
+        "to be perfectly clear",
+        "the important thing is",
+        "what really matters is",
+        "the key takeaway",
+        "the takeaway here",
+        "don't underestimate",
+        "you might be surprised",
+        "this is huge",
+        "this changes everything",
+        "creeps in",
+        "not always\\. not perfectly\\."
+      ],
+      "notes": "Manufactured emphasis and false intimacy. These crutches announce significance instead of demonstrating it. If the preceding facts don't create the feeling, fix the facts.",
+      "message": "Telling the reader to feel something instead of showing facts that create the feeling",
+      "suggestion_template": "Show with facts. If it matters, the facts will show it. Drop the emphasis crutch."
+    },
+    "dramatic_fragmentation": {
+      "severity": "error",
+      "patterns": [
+        "\\.\\s+that's it\\.\\s+that's the",
+        "\\.\\s+and that's (okay|fine|the point|enough)",
+        "this unlocks something\\.",
+        "\\. and \\w+\\. and \\w+\\.",
+        "\\.\\s+period\\.",
+        "\\.\\s+end of story",
+        "\\.\\s+done\\.",
+        "\\.\\s+seriously\\.",
+        "\\.\\s+no, really\\.",
+        "\\.\\s+yes, really\\."
+      ],
+      "notes": "AI uses performative simplicity fragments for artificial drama. '[Noun]. That's it. That's the [thing].' and staccato 'X. And Y. And Z.' patterns. Also catches mic-drop suffixes.",
+      "message": "Dramatic fragmentation is a structural AI tell. Artificial revelation through manufactured simplicity.",
+      "suggestion_template": "Complete sentences. Trust the content over the presentation."
+    },
+    "throat_clearing": {
+      "severity": "error",
+      "patterns": [
+        "here's the thing",
+        "here's what i mean",
+        "here's what i find interesting",
+        "here's the problem though",
+        "here's what nobody tells you",
+        "here's why",
+        "here's how",
+        "here's where it gets interesting",
+        "here's this",
+        "here's that",
+        "can we talk about",
+        "let me be clear",
+        "let me explain why",
+        "let me walk you through",
+        "look,",
+        "so,",
+        "okay so",
+        "right, so",
+        "the thing is",
+        "the point is",
+        "the bottom line",
+        "it turns out",
+        "it turns out that",
+        "as it turns out",
+        "what's interesting is",
+        "what's worth noting",
+        "what's important here",
+        "the uncomfortable truth is",
+        "the real .+ is",
+        "i'll say it again",
+        "i'm going to be honest",
+        "in a world where",
+        "i want to explore"
+      ],
+      "notes": "Conversational throat-clearing that delays the actual point. AI uses these to simulate thinking-out-loud. Every one can be cut, and the sentence after it IS the point.",
+      "message": "Throat-clearing delays the point. The sentence after this IS your lede. Start there.",
+      "suggestion_template": "Delete entirely. Start with the actual point."
+    },
+    "vague_declaratives": {
+      "severity": "error",
+      "patterns": [
+        "the reasons are structural",
+        "the implications are significant",
+        "the stakes are high",
+        "the consequences are real",
+        "this is the deepest problem",
+        "this is genuinely hard",
+        "this is what leadership looks like",
+        "this is what .+ actually looks like",
+        "that's a big deal",
+        "that's significant",
+        "that's meaningful",
+        "this is important",
+        "this is critical",
+        "this matters",
+        "this is no small thing",
+        "this can't be overstated",
+        "actually matters"
+      ],
+      "notes": "AI announces importance abstractly instead of stating what specifically makes something significant. 'The stakes are high' says nothing. 'Failure means losing the contract' says everything.",
+      "message": "Vague declarations of importance without specific evidence. State what makes it significant.",
+      "suggestion_template": "Replace with the specific fact: 'The stakes are high' -> 'A loss here means missing the deadline by two weeks'"
+    },
+    "adverb_crutches": {
+      "severity": "error",
+      "patterns": [
+        "genuinely",
+        "honestly",
+        "truly",
+        "fundamentally",
+        "inherently",
+        "inevitably",
+        "interestingly",
+        "importantly",
+        "crucially",
+        "deeply",
+        "profoundly"
+      ],
+      "notes": "Adverbs that prop up weak verbs. 'Genuinely believes' should be 'believes' (or show why). Lower severity because some voices use these sparingly and naturally.",
+      "message": "Adverb propping up a weak verb. The verb should carry the weight alone.",
+      "suggestion_template": "Remove the adverb. If the sentence loses meaning, the verb was too weak. Fix the verb."
+    },
+    "meta_commentary": {
+      "severity": "error",
+      "patterns": [
+        "hint:",
+        "plot twist:",
+        "spoiler:",
+        "you already know this, but",
+        "but that's another post",
+        "is a feature, not a bug",
+        "dressed up as",
+        "the rest of this .+ explains",
+        "in this section, we'll",
+        "as we'll see",
+        "as we discussed",
+        "as mentioned earlier",
+        "as i noted",
+        "as you may recall",
+        "we'll come back to this",
+        "more on this later",
+        "stay with me here",
+        "bear with me",
+        "if you're still reading"
+      ],
+      "notes": "Self-referential asides that announce structure instead of letting the writing move. The essay should flow, not narrate itself.",
+      "message": "Meta-commentary announces the essay's structure instead of just moving through it",
+      "suggestion_template": "Delete entirely. Let the essay move without narrating itself."
+    },
+    "lazy_extremes": {
+      "severity": "error",
+      "patterns": [
+        "every single",
+        "each and every",
+        "everyone knows",
+        "everybody knows",
+        "no one ever",
+        "nothing ever",
+        "everything about"
+      ],
+      "notes": "Sweeping claims that substitute false authority for specifics. 'Every developer' should be 'most developers on the team' or 'the three senior engineers'. Lower severity because sometimes accurate.",
+      "message": "Sweeping generalization substitutes false authority for specific evidence",
+      "suggestion_template": "Replace with specifics: 'every developer' -> 'the five engineers on the platform team'"
+    },
+    "negative_listing": {
+      "severity": "error",
+      "patterns": [
+        "not a .+\\. not a .+\\.",
+        "it wasn't .+\\. it wasn't .+\\. it was",
+        "it's not .+\\. it's not .+\\. it's"
+      ],
+      "notes": "Listing what something is NOT before revealing what it IS. A rhetorical striptease. State the positive claim directly.",
+      "message": "Negative listing builds drama through negation. State what it IS directly.",
+      "suggestion_template": "Skip the runway. State the positive claim: 'It was Z' instead of 'Not X. Not Y. Z.'"
+    },
+    "wh_sentence_starters": {
+      "severity": "info",
+      "patterns": [
+        "^what makes .+ is",
+        "^what's .+ is that",
+        "^when you .+, you",
+        "^where .+ meets",
+        "^why .+ matters",
+        "^how .+ works is"
+      ],
+      "notes": "Wh- openers (What, When, Where, Why, How) become crutches. 'What makes this hard is...' should be 'The constraint is...' or name the specific constraint. Lower severity because sometimes the clearest structure.",
+      "message": "Wh- sentence openers are crutches. Lead with the subject or verb instead.",
+      "suggestion_template": "Restructure: 'What makes this hard is X' -> 'X makes this hard' or 'The constraint is X'"
+    },
+    "formulaic_constructions": {
+      "severity": "error",
+      "patterns": [
+        "by the time .+, i was",
+        "by the time .+, we were",
+        ".+ that isn't .+",
+        "the moment i .+, i knew",
+        "the moment you .+, you realize",
+        "if there's one thing .+, it's",
+        "if .+ taught me anything"
+      ],
+      "notes": "Template narrative constructions that AI uses to simulate personal experience. 'By the time X, I was Y' is a fill-in-the-blank.",
+      "message": "Formulaic narrative template. Rewrite with specific detail instead of a structural cliche.",
+      "suggestion_template": "Replace the template with specific narrative: what happened, when, what you actually did"
     }
   },
   "voice_specific": {

@@ -1,461 +1,223 @@
-# Learning Database Reference
+# Learning Database Reference (v2)
 
-Complete schema, operations, and confidence tracking for Claude Code learning database.
+Complete schema, operations, and confidence tracking for the unified learning database.
 
-## Database Schema
+## Database Location
 
-### Main Structure
+`~/.claude/learning/learning.db` (SQLite with WAL mode for concurrent access)
 
-```json
-{
-  "metadata": {
-    "version": "1.0",
-    "created": "2026-01-15T10:00:00Z",
-    "last_updated": "2026-02-14T15:30:00Z",
-    "total_patterns": 42
-  },
-  "patterns": [
-    {
-      "id": "Edit_multiple_matches_001",
-      "tool": "Edit",
-      "error_type": "multiple_matches",
-      "signature": "a3b5c7d9e1f2g3h4i5j6k7l8m9n0",
-      "error_message_snippet": "Error: Found 3 matches for old_string",
-      "solution": {
-        "description": "Use replace_all parameter when multiple matches exist",
-        "command": "Edit with replace_all=true",
-        "prerequisites": ["Multiple matches detected in file"]
-      },
-      "confidence": 0.85,
-      "success_count": 12,
-      "failure_count": 2,
-      "created": "2026-01-20T12:00:00Z",
-      "last_updated": "2026-02-10T09:15:00Z",
-      "last_applied": "2026-02-10T09:15:00Z"
-    }
-  ]
-}
-```
+## Schema
 
-### Required Fields
+```sql
+CREATE TABLE learnings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    topic TEXT NOT NULL,
+    key TEXT NOT NULL,
+    value TEXT NOT NULL,
+    category TEXT NOT NULL,        -- error | pivot | review | design | debug | gotcha | effectiveness
+    confidence REAL DEFAULT 0.5,
+    tags TEXT,                     -- comma-separated
+    source TEXT NOT NULL,          -- error-learner | manual | precompact-archive | migrated:*
+    source_detail TEXT,
+    project_path TEXT,
+    session_id TEXT,
+    observation_count INTEGER DEFAULT 1,
+    success_count INTEGER DEFAULT 0,
+    failure_count INTEGER DEFAULT 0,
+    first_seen TEXT DEFAULT (datetime('now')),
+    last_seen TEXT DEFAULT (datetime('now')),
+    graduated_to TEXT,             -- target agent/skill when knowledge is embedded
+    error_signature TEXT,          -- MD5 hash for error pattern matching
+    error_type TEXT,               -- missing_file, permissions, syntax_error, etc.
+    fix_type TEXT,                 -- manual | auto | skill | agent
+    fix_action TEXT,               -- specific command/skill/agent name
+    UNIQUE(topic, key)
+);
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | string | Yes | Unique identifier: `{tool}_{error_type}_{index}` |
-| `tool` | string | Yes | Tool name (Edit, Read, Bash, etc.) |
-| `error_type` | string | Yes | Classification (missing_file, permissions, etc.) |
-| `signature` | string | Yes | MD5 hash for pattern matching |
-| `solution` | object | Yes | Solution with description and command |
-| `confidence` | float | Yes | 0.0-1.0, updated with ±0.1/0.2 |
+-- FTS5 full-text search with porter stemming
+CREATE VIRTUAL TABLE learnings_fts USING fts5(
+    topic, key, value, tags,
+    content='learnings', content_rowid='id',
+    tokenize='porter unicode61'
+);
 
-### Optional Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `error_message_snippet` | string | First 200 chars of error message |
-| `success_count` | int | Number of successful applications |
-| `failure_count` | int | Number of failed applications |
-| `created` | ISO8601 | Pattern creation timestamp |
-| `last_updated` | ISO8601 | Last confidence update |
-| `last_applied` | ISO8601 | Last time solution was injected |
-
----
-
-## Confidence Tracking
-
-### Scoring Algorithm
-
-**Initial confidence**: 0.0 (new patterns start unproven)
-
-**Success adjustment**: +0.1 (capped at 1.0)
-```python
-new_confidence = min(1.0, current_confidence + 0.1)
-```
-
-**Failure adjustment**: -0.2 (floored at 0.0)
-```python
-new_confidence = max(0.0, current_confidence - 0.2)
-```
-
-**Injection threshold**: >0.7 (only high-confidence solutions auto-inject)
-
-### Confidence States
-
-| Confidence | State | Behavior |
-|------------|-------|----------|
-| 0.0 - 0.3 | Unproven | Not injected, learning phase |
-| 0.4 - 0.6 | Uncertain | Logged but not auto-applied |
-| 0.7 - 0.9 | High Confidence | Auto-injected into context |
-| 0.9 - 1.0 | Proven | Highly reliable solutions |
-
-### Example Confidence Evolution
-
-```
-Pattern: Edit multiple_matches solution
-
-Attempt 1: Success → 0.0 + 0.1 = 0.1
-Attempt 2: Success → 0.1 + 0.1 = 0.2
-Attempt 3: Success → 0.2 + 0.1 = 0.3
-Attempt 4: Success → 0.3 + 0.1 = 0.4
-Attempt 5: Failure → 0.4 - 0.2 = 0.2
-Attempt 6: Success → 0.2 + 0.1 = 0.3
-Attempt 7: Success → 0.3 + 0.1 = 0.4
-Attempt 8: Success → 0.4 + 0.1 = 0.5
-Attempt 9: Success → 0.5 + 0.1 = 0.6
-Attempt 10: Success → 0.6 + 0.1 = 0.7 ← Now eligible for injection!
+CREATE TABLE sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT UNIQUE NOT NULL,
+    start_time TEXT,
+    end_time TEXT,
+    project_path TEXT,
+    files_modified INTEGER DEFAULT 0,
+    tools_used INTEGER DEFAULT 0,
+    errors_encountered INTEGER DEFAULT 0,
+    errors_resolved INTEGER DEFAULT 0,
+    learnings_captured INTEGER DEFAULT 0,
+    summary TEXT
+);
 ```
 
 ---
 
-## Atomic Operations
+## Core API (`hooks/lib/learning_db_v2.py`)
 
-### Write-to-Temp-Then-Rename Pattern
+### Record a learning
 
 ```python
-def atomic_save(data, db_path):
-    """
-    Atomic database save using temp file and rename.
+from learning_db_v2 import record_learning
 
-    Args:
-        data: Database dict to save
-        db_path: Path to learning database file
-    """
-    # Write to temporary file
-    temp_path = db_path.with_suffix('.tmp')
-    with temp_path.open('w') as f:
-        json.dump(data, f, indent=2)
-
-    # Atomic rename (POSIX filesystem guarantee)
-    temp_path.replace(db_path)
-
-    # Create backup
-    backup_path = db_path.with_suffix('.bak')
-    import shutil
-    shutil.copy2(db_path, backup_path)
+result = record_learning(
+    topic="multiple_matches",
+    key="edit-replace-all",
+    value="Edit tool fails with 'found N matches' → Use replace_all=True",
+    category="error",
+    confidence=0.9,
+    source="manual",
+    error_signature="a3b5c7d9e1f2g3h4",
+    error_type="multiple_matches",
+    fix_type="auto",
+    fix_action="use_replace_all",
+)
+# Returns: {"topic": ..., "key": ..., "is_new": True/False, ...}
 ```
 
-### File Locking (Advanced)
+If `topic+key` already exists: increments observation_count, keeps higher confidence, updates value only if new is longer.
 
-For concurrent access safety:
+### Query learnings
 
 ```python
-import fcntl
+from learning_db_v2 import query_learnings
 
-def locked_read(db_path):
-    """Read with file lock."""
-    with db_path.open('r') as f:
-        fcntl.flock(f.fileno(), fcntl.LOCK_SH)  # Shared lock for reading
-        try:
-            data = json.load(f)
-        finally:
-            fcntl.flock(f.fileno(), fcntl.LOCK_UN)  # Release lock
-    return data
-
-
-def locked_write(data, db_path):
-    """Write with exclusive lock."""
-    temp_path = db_path.with_suffix('.tmp')
-    with temp_path.open('w') as f:
-        fcntl.flock(f.fileno(), fcntl.LOCK_EX)  # Exclusive lock for writing
-        try:
-            json.dump(data, f, indent=2)
-        finally:
-            fcntl.flock(f.fileno(), fcntl.LOCK_UN)  # Release lock
-
-    temp_path.replace(db_path)
+patterns = query_learnings(
+    category="error",
+    min_confidence=0.7,
+    project_path="/home/user/project",
+    limit=10,
+)
 ```
 
----
-
-## Database Operations
-
-### Query by Signature
+### Full-text search
 
 ```python
-def find_pattern(signature, db_path, threshold=0.7):
-    """
-    Find pattern by signature with confidence threshold.
+from learning_db_v2 import search_learnings
 
-    Args:
-        signature: MD5 signature to find
-        db_path: Path to learning database
-        threshold: Minimum confidence (default 0.7)
-
-    Returns:
-        dict: Pattern if found with high confidence, else None
-    """
-    try:
-        with db_path.open('r') as f:
-            data = json.load(f)
-
-        for pattern in data.get('patterns', []):
-            if pattern.get('signature') == signature:
-                if pattern.get('confidence', 0.0) >= threshold:
-                    return pattern
-                else:
-                    return None  # Found but low confidence
-
-    except Exception:
-        return None
-
-    return None
+results = search_learnings("goroutine OR channel", min_confidence=0.5)
 ```
 
-### Update Confidence
+### Look up error solution
 
 ```python
-def update_confidence(pattern_id, success, db_path):
-    """
-    Update pattern confidence based on outcome.
+from learning_db_v2 import lookup_error_solution
 
-    Args:
-        pattern_id: ID of pattern to update
-        success: True if solution worked, False if failed
-        db_path: Path to learning database
-    """
-    data = load_db(db_path)
-
-    for pattern in data['patterns']:
-        if pattern.get('id') == pattern_id:
-            current = pattern.get('confidence', 0.0)
-
-            if success:
-                new = min(1.0, current + 0.1)
-                pattern['success_count'] = pattern.get('success_count', 0) + 1
-            else:
-                new = max(0.0, current - 0.2)
-                pattern['failure_count'] = pattern.get('failure_count', 0) + 1
-
-            pattern['confidence'] = new
-            pattern['last_updated'] = datetime.now().isoformat()
-            break
-
-    atomic_save(data, db_path)
+solution = lookup_error_solution("Found 3 matches for old_string")
+if solution:
+    print(f"Fix: {solution['value']}")
 ```
 
-### Add New Pattern
+### Confidence operations
 
 ```python
-def add_pattern(tool, error_type, signature, solution, db_path):
-    """
-    Add new pattern to learning database.
+from learning_db_v2 import boost_confidence, decay_confidence
 
-    Args:
-        tool: Tool name
-        error_type: Error classification
-        signature: Unique MD5 signature
-        solution: Solution dict
-        db_path: Path to learning database
-    """
-    data = load_db(db_path)
+new_conf = boost_confidence("multiple_matches", "edit-replace-all", delta=0.12)
+new_conf = decay_confidence("multiple_matches", "edit-replace-all", delta=0.18)
+```
 
-    # Check for duplicates
-    for pattern in data['patterns']:
-        if pattern.get('signature') == signature:
-            return  # Already exists
+### Statistics
 
-    # Generate unique ID
-    pattern_id = f"{tool}_{error_type}_{len(data['patterns'])}"
+```python
+from learning_db_v2 import get_stats
 
-    new_pattern = {
-        'id': pattern_id,
-        'tool': tool,
-        'error_type': error_type,
-        'signature': signature,
-        'solution': solution,
-        'confidence': 0.0,  # Start unproven
-        'success_count': 0,
-        'failure_count': 0,
-        'created': datetime.now().isoformat(),
-        'last_updated': datetime.now().isoformat()
-    }
-
-    data['patterns'].append(new_pattern)
-    data['metadata']['total_patterns'] = len(data['patterns'])
-
-    atomic_save(data, db_path)
+stats = get_stats()
+# Returns: {
+#   "total_learnings": 42,
+#   "by_category": {"error": 20, "design": 15, ...},
+#   "by_topic": {"multiple_matches": 5, ...},
+#   "high_confidence": 28,
+#   "graduated": 3,
+#   "sessions_tracked": 100,
+#   "learnings_per_session": 0.42
+# }
 ```
 
 ---
 
-## Error Types Classification
+## CLI (`scripts/learning-db.py`)
 
-### Standard Error Types
+```bash
+# Record a learning
+python3 scripts/learning-db.py record TOPIC KEY "VALUE" --category CATEGORY
 
-| Error Type | Triggers | Example Error Message |
-|------------|----------|----------------------|
-| `missing_file` | File not found errors | "FileNotFoundError: config.json" |
-| `permissions` | Permission denied | "PermissionError: /etc/restricted" |
-| `multiple_matches` | Edit tool ambiguity | "Found 3 matches for old_string" |
-| `syntax_error` | Python/JS syntax errors | "SyntaxError: invalid syntax" |
-| `type_error` | Type mismatches | "TypeError: str expected, got int" |
-| `connection_error` | Network issues | "ConnectionError: timeout" |
-| `import_error` | Missing dependencies | "ModuleNotFoundError: requests" |
-| `unknown` | Unclassified errors | Any other error |
+# Query learnings
+python3 scripts/learning-db.py query --category error --min-confidence 0.7
 
-### Classification Logic
+# Search
+python3 scripts/learning-db.py search "multiple matches"
 
-```python
-def classify_error(tool_name, error_output):
-    """
-    Classify error from tool output.
+# Stats
+python3 scripts/learning-db.py stats
 
-    Args:
-        tool_name: Name of tool that errored
-        error_output: Error message text
+# Import from legacy patterns.db
+python3 scripts/learning-db.py import-patterns ~/.claude/learning/patterns.db
 
-    Returns:
-        str: Error classification
-    """
-    output_lower = error_output.lower()
-
-    # Pattern matching for classification
-    if any(x in output_lower for x in ['no such file', 'filenotfound', 'file not found']):
-        return 'missing_file'
-
-    elif any(x in output_lower for x in ['permission denied', 'permissionerror']):
-        return 'permissions'
-
-    elif 'multiple matches' in output_lower and tool_name == 'Edit':
-        return 'multiple_matches'
-
-    elif any(x in output_lower for x in ['syntaxerror', 'syntax error']):
-        return 'syntax_error'
-
-    elif any(x in output_lower for x in ['typeerror', 'type error']):
-        return 'type_error'
-
-    elif any(x in output_lower for x in ['connectionerror', 'timeout', 'connection refused']):
-        return 'connection_error'
-
-    elif any(x in output_lower for x in ['importerror', 'modulenotfound', 'no module named']):
-        return 'import_error'
-
-    else:
-        return 'unknown'
+# Import from retro L2 markdown
+python3 scripts/learning-db.py import-retro retro/
 ```
 
 ---
 
-## Signature Generation
+## Category Defaults
 
-### MD5 Hashing for Uniqueness
+| Category | Initial Confidence | Use Case |
+|----------|-------------------|----------|
+| error | 0.55 | Tool errors and solutions |
+| pivot | 0.60 | Approach changes during work |
+| review | 0.70 | PR review findings |
+| design | 0.65 | Design decisions and trade-offs |
+| debug | 0.60 | Debugging insights |
+| gotcha | 0.70 | Non-obvious pitfalls |
+| effectiveness | 0.50 | What worked well |
 
-```python
-import hashlib
+---
 
-def generate_signature(tool_name, error_type, error_message):
-    """
-    Generate unique MD5 signature for error pattern.
+## Error Classification
 
-    Args:
-        tool_name: Tool that produced error
-        error_type: Error classification
-        error_message: Full error message
+| Type | Patterns |
+|------|----------|
+| `missing_file` | "no such file", "file not found", "does not exist" |
+| `permissions` | "permission denied", "access denied" |
+| `syntax_error` | "syntax error", "unexpected token" |
+| `type_error` | "type error", "cannot convert" |
+| `import_error` | "import error", "no module named" |
+| `timeout` | "timeout", "timed out" |
+| `connection` | "connection refused", "network error" |
+| `multiple_matches` | "multiple matches", "found N matches" |
 
-    Returns:
-        str: 32-character MD5 hash
-    """
-    # Use first 200 chars to avoid dynamic data pollution
-    message_snippet = error_message[:200]
+---
 
-    # Combine tool, type, and snippet
-    signature_input = f"{tool_name}:{error_type}:{message_snippet}"
+## Confidence Lifecycle
 
-    # MD5 hash for unique signature
-    return hashlib.md5(signature_input.encode()).hexdigest()
 ```
+New error pattern recorded at confidence 0.55
+  → Success (+0.12): 0.55 → 0.67
+  → Success (+0.12): 0.67 → 0.79  ← Now above 0.7 injection threshold
+  → Failure (-0.18): 0.79 → 0.61  ← Drops below threshold
+  → Success (+0.12): 0.61 → 0.73  ← Back above threshold
 
-### Collision Handling
-
-```python
-def check_signature_collision(signature, db_path):
-    """
-    Check if signature already exists.
-
-    Args:
-        signature: MD5 signature to check
-        db_path: Path to learning database
-
-    Returns:
-        bool: True if collision detected, False otherwise
-    """
-    try:
-        with db_path.open('r') as f:
-            data = json.load(f)
-
-        for pattern in data.get('patterns', []):
-            if pattern.get('signature') == signature:
-                return True
-
-    except Exception:
-        pass
-
-    return False
+Injection threshold: ≥ 0.7
+Pruning threshold: < 0.3 AND older than 90 days
+Graduation: manually marked when embedded into agent/skill
 ```
 
 ---
 
-## Schema Evolution
+## Graduation
 
-### Version Compatibility
-
-```python
-def migrate_schema(data, from_version, to_version):
-    """
-    Migrate learning database schema.
-
-    Args:
-        data: Current database dict
-        from_version: Current schema version
-        to_version: Target schema version
-
-    Returns:
-        dict: Migrated database
-    """
-    if from_version == "1.0" and to_version == "1.1":
-        # Example: Add success/failure counts
-        for pattern in data.get('patterns', []):
-            if 'success_count' not in pattern:
-                pattern['success_count'] = 0
-            if 'failure_count' not in pattern:
-                pattern['failure_count'] = 0
-
-        data['metadata']['version'] = "1.1"
-
-    return data
-```
-
-### Backward Compatibility
+When a learning is mature enough to embed directly into an agent:
 
 ```python
-def load_with_compatibility(db_path):
-    """
-    Load database with backward compatibility handling.
+from learning_db_v2 import mark_graduated
 
-    Args:
-        db_path: Path to learning database
-
-    Returns:
-        dict: Database with latest schema
-    """
-    try:
-        with db_path.open('r') as f:
-            data = json.load(f)
-
-        current_version = data.get('metadata', {}).get('version', '1.0')
-        latest_version = '1.1'
-
-        if current_version != latest_version:
-            data = migrate_schema(data, current_version, latest_version)
-            atomic_save(data, db_path)
-
-        return data
-
-    except Exception:
-        # Return empty database on error
-        return {
-            'metadata': {'version': latest_version},
-            'patterns': []
-        }
+mark_graduated("go-patterns", "mutex-over-atomics", "golang-general-engineer")
 ```
+
+Graduated entries are excluded from injection by default (`exclude_graduated=True`).

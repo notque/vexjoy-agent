@@ -2,7 +2,7 @@
 """
 SessionStart Hook: Learning Context Loader
 
-Loads relevant learned patterns at session start from SQLite database.
+Loads relevant learned patterns at session start from unified learning database.
 Injects high-confidence solutions into context.
 
 Design Principles:
@@ -20,7 +20,7 @@ from pathlib import Path
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from learning_db import get_high_confidence_patterns, get_stats
+from learning_db_v2 import get_stats, query_learnings
 
 
 def main():
@@ -28,19 +28,24 @@ def main():
     try:
         cwd = os.getcwd()
 
-        # Get high-confidence patterns
-        patterns = get_high_confidence_patterns(min_confidence=0.7, project_path=cwd, limit=10)
+        # Get high-confidence learnings
+        learnings = query_learnings(
+            category="error",
+            min_confidence=0.7,
+            project_path=cwd,
+            limit=10,
+        )
 
-        if not patterns:
+        if not learnings:
             return  # Silent when no relevant patterns
 
         # Print context information
-        print(f"[learned-context] Loaded {len(patterns)} high-confidence patterns")
+        print(f"[learned-context] Loaded {len(learnings)} high-confidence patterns")
 
         # Group by error type
         by_type = {}
-        for p in patterns:
-            et = p.get("error_type", "unknown")
+        for p in learnings:
+            et = p.get("error_type") or p.get("topic", "unknown")
             by_type[et] = by_type.get(et, 0) + 1
 
         type_summary = ", ".join(f"{et}({count})" for et, count in sorted(by_type.items()))
@@ -48,10 +53,9 @@ def main():
 
         # Show stats
         stats = get_stats()
-        pattern_stats = stats.get("patterns", {})
-        if pattern_stats.get("total_patterns", 0) > 0:
-            high_conf = pattern_stats.get("high_confidence", 0) or 0
-            total = pattern_stats.get("total_patterns", 1)
+        total = stats.get("total_learnings", 0)
+        if total > 0:
+            high_conf = stats.get("high_confidence", 0)
             print(f"[learned-context] {high_conf}/{total} patterns at high confidence")
 
     except Exception as e:

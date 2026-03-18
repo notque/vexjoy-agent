@@ -96,7 +96,7 @@ The retro loop uses our existing learning infrastructure:
 | Component | Role |
 |-----------|------|
 | `scripts/feature-state.py` | Deterministic state and retro operations |
-| `hooks/lib/learning_db.py` | Confidence scoring for gate auto-flip |
+| `hooks/lib/learning_db_v2.py` | Confidence scoring for gate auto-flip |
 | `shared-patterns/gate-enforcement.md` | Phase transition gates |
 | `agents/retro-context-walker.md` | Reconciles phase artifacts against context docs |
 | `agents/retro-meta-walker.md` | Extracts process learnings from phase execution |
