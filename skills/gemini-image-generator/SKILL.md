@@ -194,15 +194,33 @@ File must exist and have non-zero size.
 python3 -c "from PIL import Image; img = Image.open('/absolute/path/to/output.png'); print(f'Size: {img.size}, Mode: {img.mode}')"
 ```
 
-**Step 3: Report result**
+**Step 3: Visual inspection (MANDATORY)**
+
+Read the generated image file using the Read tool to visually inspect it:
+
+```
+Read the image at /absolute/path/to/output.png
+```
+
+Check for:
+- Content matches the prompt intent (correct subject, layout, composition)
+- No unwanted watermarks, logos, or artifacts
+- Text renders correctly (if text was requested)
+- Appropriate aspect ratio and framing
+- No excessive empty space or dark padding that needs cropping
+
+If the image fails visual inspection, regenerate with an adjusted prompt before reporting to the user. Do not commit or deliver images without visual verification.
+
+**Step 4: Report result**
 
 Provide the user with:
 - Output file path
 - Image dimensions
 - Model used
-- Any post-processing applied
+- Visual verification status (what you checked and confirmed)
+- Any post-processing applied (cropping, resizing)
 
-**Gate**: Output file exists with non-zero size. Generation is complete.
+**Gate**: Output file exists with non-zero size AND visual inspection passed. Generation is complete.
 
 ---
 
@@ -278,10 +296,10 @@ Solution:
 **Why wrong**: Produces confusing error messages. Wastes time debugging environment issues as generation bugs.
 **Do instead**: Complete Phase 1 (ENVIRONMENT) before any generation attempt. Always.
 
-### Anti-Pattern 3: Generating Without Verifying Output
-**What it looks like**: Running the script and immediately telling the user "image generated" without checking the file
-**Why wrong**: Script may have failed silently. File may be zero bytes. Post-processing may have corrupted output.
-**Do instead**: Complete Phase 4 (VERIFY). Check file exists, has non-zero size, and report dimensions.
+### Anti-Pattern 3: Generating Without Visual Verification
+**What it looks like**: Running the script, checking file size, and committing the image without reading it to visually inspect
+**Why wrong**: The file may exist with correct dimensions but contain watermarks, wrong composition, excessive padding, or content that doesn't match the prompt. A 952KB PNG with a cat watermark and wrong aspect ratio passed file-exists checks but looked bad in the README.
+**Do instead**: Complete Phase 4 (VERIFY) including Step 3 (visual inspection). Read the image file with the Read tool. Check composition, content, and artifacts before delivering or committing.
 
 ### Anti-Pattern 4: Writing Custom Generation Code Instead of Using the Script
 **What it looks like**: Writing inline Python to call the Gemini API directly instead of using `generate_image.py`
