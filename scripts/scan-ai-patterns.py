@@ -143,7 +143,7 @@ def main():
                 error_count = sum(1 for h in file_hits if h["severity"] == "error")
                 print(f"\n{filepath}: {len(file_hits)} hits ({error_count} errors)")
                 for h in sorted(file_hits, key=lambda x: x["line"]):
-                    print(f"  L{h['line']} [{h['severity']}] {h['category']}: \"{h['pattern']}\"")
+                    print(f'  L{h["line"]} [{h["severity"]}] {h["category"]}: "{h["pattern"]}"')
                     print(f"    {h['context']}")
 
             total_errors = sum(1 for h in all_hits if h["severity"] == "error")

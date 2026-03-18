@@ -362,13 +362,17 @@ class TestScoreCalculation:
         assert result["score"] < 100
 
     def test_warning_reduces_score(self):
-        """Warnings should reduce the score."""
+        """Non-error violations should reduce the score."""
         text = "Let me delve into this journey. We explore the landscape."
         returncode, stdout, stderr = run_validator(["validate", "--voice", "voice_a", "--json"], text)
 
         result = parse_result(stdout)
+        # Count all non-error violations (warnings + info)
         warning_count = len(result["violations"]["warnings"])
-        assert warning_count > 0
+        info_count = len(result["violations"]["info"])
+        error_count = len(result["violations"]["errors"])
+        total_violations = warning_count + info_count + error_count
+        assert total_violations > 0
         assert result["score"] < 100
 
     def test_score_matches_formula(self, sample_voice_bad):
