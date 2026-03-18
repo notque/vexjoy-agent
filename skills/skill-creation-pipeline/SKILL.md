@@ -33,6 +33,7 @@ the creator agent; it provides the scaffolding around it.
 - **DISCOVER Before Any Files**: Phase 1 (DISCOVER) must complete before any
   SKILL.md is written. No exceptions. This prevents duplicate skills from being
   added to the repo.
+- **Group-Prefix Naming**: New skills MUST use the same prefix as related existing skills. During DISCOVER, run `ls skills/ | grep {domain}` to find the group. Examples: voice skills start with `voice-`, Go skills with `go-`, PR skills with `pr-`, writing/content skills with `writing-`, review skills with `review-`. If no group exists, the new skill starts one. The directory name and the `name:` frontmatter field must match.
 - **Design Brief Before SCAFFOLD**: Phase 2 (DESIGN) must produce a saved design
   brief before Phase 3 begins. Writing a skill without a tier decision and phase
   list produces inconsistent results.
