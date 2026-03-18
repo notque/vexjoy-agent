@@ -1,0 +1,270 @@
+# Bad Research Plan Example
+
+## Query
+
+"Research the current state of Kubernetes cluster management in 2025: hosted vs self-managed, cost comparison, operational complexity, and enterprise adoption trends"
+
+## ❌ Bad Plan (What NOT to Do)
+
+### Phase 1: Assessment (Insufficient)
+
+**Vague Assessment**:
+- Need to research Kubernetes
+- Compare different approaches
+- Look at costs
+- Check what people are using
+
+**Problems**:
+- No specific questions identified
+- No data points enumerated
+- No output format defined
+- No user priorities understood
+
+---
+
+### Phase 2: Query Classification (Skipped)
+
+**No Classification Performed**:
+Just jumped straight to deploying subagents without thinking about query type.
+
+**Problems**:
+- Missed opportunity to select optimal strategy
+- No rationale for subagent count
+- Random delegation without systematic approach
+- Reduces research quality and efficiency
+
+---
+
+### Phase 3: Research Plan (Poorly Structured)
+
+#### Vague Subagent Allocation: 10 Subagents (Too Many, Too Granular)
+
+**Subagent 1**: Research EKS
+**Subagent 2**: Research GKE
+**Subagent 3**: Research AKS
+**Subagent 4**: Research kubeadm
+**Subagent 5**: Research kops
+**Subagent 6**: Research costs
+**Subagent 7**: Research operational stuff
+**Subagent 8**: Research what companies use
+**Subagent 9**: Research Kubernetes in general
+**Subagent 10**: Compare everything
+
+**Problems with This Allocation**:
+
+1. **Overly Granular** (Anti-Pattern):
+   - 10 subagents for medium-complexity query is excessive
+   - Should be 3-5 subagents maximum
+   - Subagents 1-3 could be combined: "Hosted Kubernetes landscape"
+   - Subagents 4-5 could be combined: "Self-managed Kubernetes landscape"
+   - Creates unnecessary coordination overhead
+
+2. **Vague Instructions**:
+   - "Research EKS" - research what about it? Features? Pricing? Use cases?
+   - "Research costs" - costs of what? How compare? What scenarios?
+   - "Research operational stuff" - what operations? Complexity? Time? Tools?
+   - No specific objectives, sources, or data points
+
+3. **Unclear Scope Boundaries**:
+   - Subagent 6 "costs" overlaps with Subagents 1-5 (each service has costs)
+   - Subagent 9 "Kubernetes in general" overlaps with everything
+   - Subagent 10 "compare everything" overlaps with all others
+   - High likelihood of duplicated effort
+
+4. **No Aggregation Strategy**:
+   - How will 10 separate reports be combined?
+   - What structure will organize findings?
+   - No synthesis plan defined
+
+---
+
+### Example of Bad Subagent Instructions
+
+**Subagent 6: Research costs**
+
+"Research Kubernetes costs. Look at how much it costs to run Kubernetes. Find pricing information. Write a report about costs."
+
+**Why This Is Bad**:
+
+1. **No Specific Objectives**:
+   - "Research costs" is too vague
+   - Costs of what exactly? Infrastructure? Operations? Tooling?
+   - For what scenarios? Small clusters? Large? Which providers?
+
+2. **No Source Guidance**:
+   - Where should research begin?
+   - What types of sources are authoritative?
+   - Primary vs secondary sources?
+   - No prioritization
+
+3. **No Data Points Specified**:
+   - What specific numbers needed?
+   - What granularity? (per node? per cluster? per hour?)
+   - What cost components? (compute, storage, network, labor?)
+
+4. **No Output Format**:
+   - "Write a report" is not specific
+   - What structure? What density?
+   - Comparison table? Narrative? Scenarios?
+
+5. **No Scope Boundaries**:
+   - Should this cover hosted AND self-managed costs?
+   - Does it overlap with other subagents researching specific providers?
+   - No clarity on what NOT to research
+
+6. **No Quality Criteria**:
+   - How recent must data be?
+   - What level of verification required?
+   - When is research complete?
+
+---
+
+### Phase 4: Execution (No Plan)
+
+**Unplanned Deployment**:
+- Deploy all 10 subagents at once without thought
+- No monitoring plan
+- No adaptation strategy
+- No diminishing returns detection
+
+**Problems**:
+- Inefficient parallel execution of redundant work
+- No Bayesian adaptation based on findings
+- Likely to continue past diminishing returns
+- May miss critical information due to poor coordination
+
+---
+
+## Why This Is a Bad Research Plan
+
+### Critical Failures
+
+#### 1. Insufficient Assessment
+- Jumped to execution without understanding query
+- No enumeration of key questions
+- No identification of required data points
+- Output format undefined
+
+#### 2. Skipped Query Classification
+- No systematic thinking about research strategy
+- Random subagent allocation
+- No optimization for query type
+- Missed opportunity for parallel efficiency
+
+#### 3. Overly Granular Decomposition
+- 10 subagents when 3-5 optimal
+- Unnecessary coordination overhead
+- Violates "fewer capable subagents" principle
+- Wastes resources
+
+#### 4. Vague Subagent Instructions
+- No specific objectives
+- No source guidance
+- No data points enumerated
+- No output format
+- No scope boundaries
+
+#### 5. Unclear Scope Boundaries
+- Significant overlap between subagents
+- High likelihood of duplicated research
+- Inefficient use of parallel execution
+- Difficult synthesis due to redundancy
+
+#### 6. No Aggregation Strategy
+- Unclear how 10 reports will be combined
+- No structure pre-planned
+- Synthesis ad-hoc rather than systematic
+
+#### 7. No Execution Plan
+- No monitoring for progress
+- No adaptation strategy
+- No diminishing returns detection
+- Inefficient and likely incomplete
+
+### Likely Outcomes
+
+Following this bad plan would produce:
+
+❌ **Inefficient Research**:
+- Wasted effort on duplicated work
+- 10 subagents when 4 would suffice
+- Coordination overhead exceeds value
+
+❌ **Incomplete Coverage**:
+- Vague instructions likely miss critical data
+- No verification of key questions answered
+- Gaps in research due to poor planning
+
+❌ **Poor Quality Sources**:
+- No source prioritization guidance
+- Subagents may use low-quality sources
+- No verification protocol
+
+❌ **Difficult Synthesis**:
+- Redundant findings across 10 reports
+- Unclear how to structure final output
+- High likelihood of missing connections
+
+❌ **Low Information Density**:
+- Vague instructions produce vague reports
+- Lack of specific data points
+- More words, less insight
+
+❌ **Delayed Delivery**:
+- Excessive subagent count takes longer
+- May continue past diminishing returns
+- Inefficient process overall
+
+---
+
+## How to Fix This Bad Plan
+
+### Apply Good Research Coordination Principles
+
+1. **Start with Systematic Assessment**:
+   - List ALL key questions explicitly
+   - Enumerate required data points
+   - Define output format upfront
+   - Understand user priorities
+
+2. **Always Classify Query Type**:
+   - Depth-first, breadth-first, or straightforward?
+   - Select strategy matching query type
+   - Plan subagent count accordingly
+
+3. **Optimize Subagent Count**:
+   - Combine Subagents 1-3 → "Hosted Kubernetes Landscape"
+   - Combine Subagents 4-5 → "Self-Managed Kubernetes Landscape"
+   - Keep Subagent 6 as "Cost Comparison Analysis"
+   - Keep Subagent 8 as "Enterprise Adoption Trends"
+   - Remove Subagents 7, 9, 10 (redundant or vague)
+   - Result: 4 capable subagents instead of 10 narrow ones
+
+4. **Write Extremely Detailed Instructions**:
+   - 1-4 specific objectives per subagent
+   - Sources explicitly identified
+   - Exact data points enumerated
+   - Output format defined
+   - Scope boundaries clear
+
+5. **Define Clear Scope Boundaries**:
+   - Each subagent knows exactly what to cover
+   - Each knows what NOT to cover
+   - Minimal overlap, maximum efficiency
+
+6. **Plan Aggregation Strategy**:
+   - Pre-define final report structure
+   - Identify cross-stream dependencies
+   - Document synthesis approach
+
+7. **Plan Execution Carefully**:
+   - Parallel deployment where appropriate
+   - Monitoring for progress and gaps
+   - Bayesian adaptation based on findings
+   - Diminishing returns detection
+
+### Result: Good Research Plan
+
+Following these fixes transforms the bad plan into a systematic, efficient, high-quality research coordination effort that produces actionable, comprehensive results.
+
+See `good-research-plan.md` for the properly structured version.

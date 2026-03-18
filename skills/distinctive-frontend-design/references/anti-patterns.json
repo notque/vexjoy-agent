@@ -1,0 +1,44 @@
+{
+  "banned_fonts": [
+    "Inter",
+    "Roboto",
+    "Arial",
+    "Helvetica",
+    "System",
+    "-apple-system",
+    "BlinkMacSystemFont",
+    "Segoe UI",
+    "Space Grotesk",
+    "sans-serif"
+  ],
+  "cliche_colors": [
+    {
+      "name": "Purple gradient on white",
+      "colors": ["#8B5CF6", "#A855F7", "#667eea", "#764ba2", "#9333EA", "#C084FC"]
+    },
+    {
+      "name": "Generic blue primary",
+      "colors": ["#3B82F6", "#2563EB", "#1D4ED8"]
+    },
+    {
+      "name": "Pure black/white dominant",
+      "colors": ["#000000", "#FFFFFF"]
+    },
+    {
+      "name": "Washed-out pastels",
+      "colors": ["#FDE2E4", "#FFF1E6", "#F0EFFF", "#E3F2FD"]
+    }
+  ],
+  "layout_cliches": [
+    "Centered hero with single CTA",
+    "Three-column feature grid",
+    "Alternating left-right sections",
+    "Full-width gradient header"
+  ],
+  "component_cliches": [
+    "Rounded card with drop shadow",
+    "Pill-shaped buttons with gradient",
+    "Floating action button (FAB)",
+    "Hamburger menu on desktop"
+  ]
+}

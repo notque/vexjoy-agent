@@ -1,0 +1,16 @@
+# GitHub Actions Check Configuration
+#
+# Maps your local working directories to GitHub repositories.
+# Used by the github-actions-check skill to find the right repo.
+#
+# Copy this file to .local/github-actions-check.yaml and customize.
+
+repositories:
+  # Format: /path/to/local/dir: org/repo
+  #
+  # Example:
+  # /home/youruser/my-project: your-org/my-project
+  # /home/youruser/another-project: your-org/another-project
+
+# Default repository if no match found
+# default: your-org/default-repo

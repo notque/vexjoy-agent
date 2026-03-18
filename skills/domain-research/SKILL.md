@@ -1,0 +1,587 @@
+---
+name: domain-research
+description: |
+  Discover and classify subdomains within a target domain for pipeline generation.
+  Dispatches 4 parallel research agents (Rule 12 mandatory — validated by A/B test),
+  classifies task types, maps subdomains to step menu chains, and produces a Component
+  Manifest for the chain-composer. Use for "research domain", "discover subdomains",
+  "domain decomposition", "what pipelines does X need". Do NOT use for scaffolding
+  pipelines (use pipeline-scaffolder), modifying existing pipelines, or single-skill
+  creation.
+version: 1.0.0
+user-invocable: false
+agent: pipeline-orchestrator-engineer
+model: opus
+allowed-tools:
+  - Read
+  - Write
+  - Bash
+  - Grep
+  - Glob
+  - Edit
+  - Agent
+routing:
+  triggers:
+    - research domain
+    - discover subdomains
+    - domain decomposition
+    - what pipelines
+    - domain research
+  pairs_with:
+    - pipeline-scaffolder
+    - codebase-analyzer
+  complexity: Medium
+  category: meta
+---
+
+# Domain Research Skill
+
+## Operator Context
+
+This skill operates as an operator for domain decomposition, configuring Claude's behavior for discovering, classifying, and mapping subdomains within a target domain before pipeline generation begins. It implements a **Research-Classify-Map-Produce** pattern — broad parallel discovery narrows into structured classification, then maps to pipeline chains, then produces a Component Manifest.
+
+This skill is the first step in the self-improving pipeline generator (see `adr/self-improving-pipeline-generator.md`). It answers: "What subdomains exist in this domain, and what kind of pipeline does each one need?"
+
+### Hardcoded Behaviors (Always Apply)
+- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before execution. Project instructions override default skill behaviors.
+- **Parallel Research Enforcement (Rule 12)**: Phase 1 MUST dispatch 4 parallel research agents. Sequential research is BANNED. WHY: A/B testing proved parallel research eliminates a 1.40-point gap in Examples quality (`adr/pipeline-creator-ab-test.md`). Sequential grep-based research produces shallower, less diverse findings.
+- **Dual-Layer Artifacts**: Every phase produces both `manifest.json` (machine envelope) and `content.md` (human-readable output). WHY: The Pipeline Architect needs machine-readable metadata to validate chain composition, while agents need readable content for reasoning. See ADR "Artifact Format: Dual-Layer Output Standard".
+- **Discovery Over Invention**: The skill discovers subdomains through research — it does NOT hardcode or assume subdomain lists. WHY: Hardcoded lists miss domain-specific nuances and become stale. The whole point of this skill is that it adapts to any domain.
+- **Reuse Before Create (Rule 9)**: When classifying subdomains, always check if existing agents/skills cover 70%+ of the subdomain before marking it as "needs new component". WHY: Agents are expensive context. Skills are cheap. The generator biases toward binding new skills to existing agents.
+
+### Default Behaviors (ON unless disabled)
+- **Communication Style**: Report findings without self-congratulation. Show the subdomain list and classifications directly rather than describing the process.
+- **Temporary File Cleanup**: Phase artifacts live in `/tmp/pipeline-{run-id}/`. The PRODUCE phase copies final artifacts to permanent location. Intermediate files remain for debugging until the pipeline-orchestrator-engineer cleans up.
+- **Operator Profile Detection**: Read the detected operator profile from pipeline context but do NOT gate any research steps on it. WHY: Research itself is read-only and harmless across all profiles. The profile information is passed through to the Component Manifest so downstream skills (chain-composer, scaffolder) can apply the correct safety gates.
+
+### Optional Behaviors (OFF unless enabled)
+- **Deep Reference Research**: Agent 4 (Reference Research) fetches external documentation URLs. OFF by default because it requires network access and increases latency.
+- **Verbose Classification**: Show detailed rationale for every task type assignment. ON for debugging classification disagreements.
+
+## What This Skill CAN Do
+- Discover subdomains within any target domain by dispatching parallel research agents
+- Scan the existing repository for agents, skills, hooks, and scripts that overlap with the target domain
+- Classify each subdomain by task type, complexity, and reuse potential
+- Map each subdomain to a preliminary pipeline chain from the step menu
+- Produce a Component Manifest listing everything the scaffolder needs to build
+- Detect which existing agents can be reused as executors for new subdomain skills
+
+## What This Skill CANNOT Do
+- **Scaffold pipeline components**: That is handled by `pipeline-scaffolder` after this skill completes
+- **Compose final pipeline chains**: Preliminary chains are draft proposals; the chain-composer skill finalizes them with type compatibility validation
+- **Create or modify routing entries**: That is handled by `routing-table-updater`
+- **Validate pipeline chains against the type compatibility matrix**: This skill maps chains; validation is the chain-composer's responsibility
+
+## Instructions
+
+### Inputs
+
+| Input | Source | Required |
+|-------|--------|----------|
+| Domain name | User prompt (e.g., "Prometheus", "RabbitMQ", "Terraform") | Yes |
+| Run ID | Generated by pipeline-orchestrator-engineer or `uuidgen` | Yes |
+| Operator profile | Detected by `pipeline-context-detector` hook or pipeline-orchestrator Phase 0 | No (default: Personal) |
+| Environmental state JSON | From `pipeline-context-detector` hook | No (Phase 1 can scan directly) |
+
+### Phase 1: DISCOVER (Parallel Multi-Agent — Rule 12 Mandatory)
+
+**Goal**: Build a broad, multi-perspective understanding of the target domain. Breadth of research directly determines the quality of subdomain discovery — this is why parallel agents are mandatory, not optional.
+
+**Default N = 4 agents.** Override with `--research-agents N` (minimum 2, maximum 6).
+
+**Step 1: Prepare research context**
+
+Create the run directory and shared context block:
+
+```bash
+mkdir -p /tmp/pipeline-{run-id}/phase-1-research
+```
+
+Assemble shared context from:
+- The domain name and any user-provided context about what they need
+- The ADR from pipeline-orchestrator Phase 0 (if it exists)
+- Environmental state JSON (if available from pipeline-context-detector)
+
+**Step 2: Dispatch 4 parallel research agents**
+
+Launch all 4 agents simultaneously using the Task tool. Each agent receives the shared context block and saves findings to a separate artifact file. Each has a 5-minute timeout.
+
+**Agent 1: Domain Expert**
+- Investigate: What are the subdomains of this domain? What tasks do practitioners commonly perform? What are the natural workflow boundaries?
+- Method: Use domain knowledge, web search if available, and reasoning about the domain's structure
+- Output: List of candidate subdomains with descriptions and common tasks for each
+- Save to: `/tmp/pipeline-{run-id}/phase-1-research/agent-1-domain-expert.md`
+
+**Agent 2: Existing Inventory**
+- Investigate: What agents, skills, hooks, and scripts already exist in this repository for this domain or closely related domains?
+- Method: Search `agents/INDEX.json` for matching agent names and triggers. Search `skills/do/references/routing-tables.md` for matching skill routes. Glob for file patterns matching the domain name. Grep agent descriptions for domain keywords.
+- Output: Inventory of existing components with relevance assessment (full match, partial match, tangential)
+- Save to: `/tmp/pipeline-{run-id}/phase-1-research/agent-2-existing-inventory.md`
+
+**Agent 3: Workflow Patterns**
+- Investigate: For each candidate subdomain (or domain-level if subdomains aren't yet known), what pipeline patterns from the step menu fit?
+- Method: Read `skills/pipeline-scaffolder/references/step-menu.md`. For each step family, assess whether the domain's tasks match the "When To Use" criteria. Identify which step families are most relevant.
+- Output: Mapping of domain task patterns to step menu families, with reasoning
+- Save to: `/tmp/pipeline-{run-id}/phase-1-research/agent-3-workflow-patterns.md`
+
+**Agent 4: Reference Research**
+- Investigate: What reference documentation would subdomain skills need? What external specs, APIs, or tools define this domain? What domain-specific validators exist or could be built?
+- Method: Identify key domain concepts that would need reference files. List external documentation sources. Identify domain artifacts that could be validated deterministically (e.g., PromQL syntax, HCL validation, YAML schema).
+- Output: Reference file recommendations and deterministic validation opportunities
+- Save to: `/tmp/pipeline-{run-id}/phase-1-research/agent-4-reference-research.md`
+
+**Step 3: Collect and merge research artifacts**
+
+After all agents complete (at least 3 of 4 must succeed), merge findings into a single research compilation at `/tmp/pipeline-{run-id}/phase-1-research/content.md`.
+
+Create the Phase 1 dual-layer artifact:
+
+`/tmp/pipeline-{run-id}/phase-1-research/manifest.json`:
+```json
+{
+  "schema": "research-artifact",
+  "step": "RESEARCH",
+  "phase": 1,
+  "status": "complete",
+  "metrics": {
+    "agents_dispatched": 4,
+    "agents_completed": 4,
+    "candidate_subdomains": 0,
+    "existing_components_found": 0
+  },
+  "inputs": ["adr/pipeline-{name}.md"],
+  "outputs": ["content.md", "agent-1-domain-expert.md", "agent-2-existing-inventory.md", "agent-3-workflow-patterns.md", "agent-4-reference-research.md"],
+  "timestamp": "",
+  "tags": ["{domain-name}", "research", "domain-decomposition"]
+}
+```
+
+Update `metrics.candidate_subdomains` and `metrics.existing_components_found` with actual counts.
+
+**GATE**: All of the following must be true before proceeding:
+- At least 3 of 4 research agents completed successfully
+- Research compilation file exists at `/tmp/pipeline-{run-id}/phase-1-research/content.md`
+- At least 1 candidate subdomain identified
+- `manifest.json` written with `status: "complete"`
+
+If fewer than 3 agents completed: set `status: "partial"`, report which agents failed and why, and proceed with available data only if at least 1 subdomain was identified. Otherwise STOP and report failure to pipeline-orchestrator.
+
+### Phase 2: CLASSIFY
+
+**Goal**: For each candidate subdomain from Phase 1, assign a task type, complexity tier, reuse assessment, and required references. This phase transforms raw research findings into structured classifications that Phase 3 can map to pipeline chains.
+
+**Step 1: Load classification reference**
+
+Read `skills/domain-research/references/task-type-guide.md` for task type definitions and canonical chain patterns. This file defines the 8 task types and provides examples of how each maps to step menu families.
+
+**Step 2: Classify each subdomain**
+
+For each candidate subdomain discovered in Phase 1, determine:
+
+**Task Type** (exactly one primary, optionally one secondary):
+
+| Task Type | Description | Key Indicator |
+|-----------|-------------|---------------|
+| `generation` | Produces new artifacts (code, config, docs) | "Write me a...", "Create a...", "Generate..." |
+| `review` | Evaluates existing artifacts against criteria | "Review this...", "Check if...", "Audit..." |
+| `debugging` | Diagnoses and resolves failures | "Why is X broken?", "Fix this...", "Troubleshoot..." |
+| `operations` | Manages running systems (deploy, scale, monitor) | "Deploy...", "Scale...", "Restart...", "Monitor..." |
+| `configuration` | Produces or validates configuration artifacts | "Configure...", "Set up...", "Add rule for..." |
+| `analysis` | Investigates data/systems to produce insights | "Analyze...", "What's the impact of...", "Compare..." |
+| `migration` | Transforms between versions, formats, or systems | "Migrate from...", "Upgrade...", "Convert..." |
+| `monitoring` | Ongoing observation with threshold-based alerting | "Alert when...", "Watch for...", "Track..." |
+
+When a subdomain's tasks span two types (e.g., alerting is `configuration` + `monitoring`), assign the primary type based on the most common practitioner workflow and note the secondary type.
+
+**Complexity** (based on expected pipeline chain length):
+
+| Complexity | Chain Length | Characteristics |
+|------------|-------------|-----------------|
+| Simple | 3-5 steps | Linear flow, single output type, no cross-domain dependencies |
+| Medium | 5-8 steps | May include review or validation loops, 1-2 output types |
+| Complex | 8+ steps | Cross-domain delegation, safety gates, multiple output types, experimentation |
+
+**Reuse Potential** — For each subdomain, check the existing inventory (from Agent 2):
+- **Full reuse** (80%+): Existing agent AND skill cover this subdomain. Skip it or note for enhancement only.
+- **Partial reuse** (40-79%): Existing agent covers the domain but no skill for this specific subdomain. Create new skill, bind to existing agent.
+- **New** (<40%): No existing components meaningfully cover this. Needs new skill and possibly new agent.
+
+**Required References** — What domain knowledge files would the subdomain skill need?
+- Pattern libraries (e.g., `promql-patterns.md`, `terraform-module-patterns.md`)
+- Configuration schemas (e.g., `alertmanager-routing.md`, `helm-values-schema.md`)
+- Best practices guides (e.g., `metric-naming-conventions.md`)
+
+**Required Scripts** — What deterministic validators would the subdomain skill need?
+- Syntax validators (e.g., `promql-validator.py`, `hcl-lint.py`)
+- Schema validators (e.g., `yaml-schema-check.py`)
+- Convention checkers (e.g., `naming-convention-check.py`)
+
+**Step 3: Produce classification artifact**
+
+Create the Phase 2 dual-layer artifact:
+
+`/tmp/pipeline-{run-id}/phase-2-classify/manifest.json`:
+```json
+{
+  "schema": "structured-corpus",
+  "step": "CLASSIFY",
+  "phase": 2,
+  "status": "complete",
+  "metrics": {
+    "subdomains_classified": 0,
+    "full_reuse": 0,
+    "partial_reuse": 0,
+    "new_components": 0
+  },
+  "inputs": ["../phase-1-research/content.md"],
+  "outputs": ["content.md"],
+  "timestamp": "",
+  "tags": ["{domain-name}", "classification", "subdomain"]
+}
+```
+
+`/tmp/pipeline-{run-id}/phase-2-classify/content.md` — Structured classification table:
+
+```markdown
+# Subdomain Classification: {Domain}
+
+## Classification Summary
+
+| Subdomain | Task Type | Secondary | Complexity | Reuse | Existing Agent |
+|-----------|-----------|-----------|------------|-------|----------------|
+| {name} | {type} | {type|none} | {Simple|Medium|Complex} | {Full|Partial|New} | {agent-name|none} |
+
+## Detailed Classifications
+
+### {Subdomain Name}
+- **Task Type**: {primary} (secondary: {secondary|none})
+- **Complexity**: {tier} — {rationale}
+- **Reuse**: {assessment} — {which existing components and what % coverage}
+- **Required References**: {list of reference files needed}
+- **Required Scripts**: {list of deterministic validators needed}
+- **Key Tasks**: {what practitioners do in this subdomain}
+```
+
+**GATE**: All of the following must be true before proceeding:
+- Every candidate subdomain from Phase 1 has a task_type assigned
+- Every candidate subdomain has a complexity tier
+- Every candidate subdomain has a reuse assessment
+- At least 2 subdomains classified (if only 1 found, reconsider whether the domain is too narrow for decomposition — report to pipeline-orchestrator and ask whether to proceed as single-pipeline)
+- `manifest.json` written with `status: "complete"`
+
+### Phase 3: MAP (Compose Preliminary Chains)
+
+**Goal**: For each classified subdomain, select steps from the step menu and compose a preliminary pipeline chain. These are draft chains — the chain-composer skill validates and finalizes them.
+
+**Step 1: Load step menu**
+
+Read `skills/pipeline-scaffolder/references/step-menu.md` for the complete step inventory with output schemas and type compatibility.
+
+**Step 2: Compose chains**
+
+For each classified subdomain, build a preliminary chain by:
+
+1. **Start with ADR** (mandatory — every chain starts with ADR per composition rules)
+
+2. **Select research steps** based on what the subdomain needs to know before generating output:
+   - Domain needing broad investigation: GATHER or RESEARCH (parallel)
+   - Domain needing codebase analysis: SCAN or SEARCH
+   - Domain needing external data: FETCH
+
+3. **Select structuring steps** to organize research into usable form:
+   - Most generation tasks: COMPILE (structure findings) or OUTLINE (define output shape)
+   - Decision-heavy tasks: ASSESS or BRAINSTORM
+   - Architecture tasks: MAP
+
+4. **Select generation/execution steps** based on task type:
+   - `generation`: GENERATE (possibly preceded by GROUND for audience-specific content)
+   - `review`: REVIEW (parallel 3+ lenses) then AGGREGATE
+   - `debugging`: SEARCH then PLAN then EXECUTE
+   - `operations`: PROBE then PLAN then EXECUTE
+   - `configuration`: GENERATE then CONFORM
+   - `analysis`: RESEARCH then SYNTHESIZE
+   - `migration`: CHARACTERIZE then PLAN then TRANSFORM then EXECUTE
+   - `monitoring`: GENERATE then MONITOR (or PROBE for health checks)
+
+5. **Select validation steps** based on whether output is deterministically checkable:
+   - Has a syntax/schema: LINT or CONFORM
+   - Has testable behavior: VERIFY
+   - Has quality criteria: VALIDATE
+   - Add REFINE (max 3 cycles) after any validation step that can fail
+
+6. **Apply profile gates** — note which steps are profile-dependent:
+   - APPROVE: Work/Production only
+   - GUARD + SNAPSHOT: Work/Production only for state changes
+   - SIMULATE: Production only (optional elsewhere)
+   - NOTIFY: CI/Work/Production (skip in Personal)
+   - Record these as annotations on the chain, not hard inclusions
+
+7. **Check for cross-domain dependencies**:
+   - Does this subdomain need expertise from another domain? Add DELEGATE
+   - Does this subdomain's output feed into another subdomain's input? Note the dependency
+
+**Step 3: Validate chains against type compatibility**
+
+For each preliminary chain, verify adjacent steps have compatible output-to-input types using the Type Compatibility Matrix from the ADR:
+
+```
+Step A produces → Schema X
+Step B consumes → [list of acceptable schemas]
+If Schema X is in Step B's consumes list → compatible
+Otherwise → flag the incompatibility and adjust
+```
+
+**Step 4: Produce mapping artifact**
+
+`/tmp/pipeline-{run-id}/phase-3-map/manifest.json`:
+```json
+{
+  "schema": "decision-record",
+  "step": "MAP",
+  "phase": 3,
+  "status": "complete",
+  "metrics": {
+    "chains_composed": 0,
+    "profile_gated_steps": 0,
+    "cross_domain_delegates": 0,
+    "type_incompatibilities_resolved": 0
+  },
+  "inputs": ["../phase-2-classify/content.md"],
+  "outputs": ["content.md"],
+  "timestamp": "",
+  "tags": ["{domain-name}", "chain-composition", "step-menu"]
+}
+```
+
+`/tmp/pipeline-{run-id}/phase-3-map/content.md`:
+
+```markdown
+# Preliminary Pipeline Chains: {Domain}
+
+## Chain Summary
+
+| Subdomain | Chain | Profile Gates |
+|-----------|-------|---------------|
+| {name} | ADR -> STEP -> STEP -> ... -> OUTPUT | {list of profile-dependent steps} |
+
+## Detailed Chains
+
+### {Subdomain Name}
+**Task type**: {type} | **Complexity**: {tier}
+**Chain**: `ADR -> {step} -> {step} -> ... -> OUTPUT`
+
+| Step | Purpose | Output Schema | Profile Gate |
+|------|---------|---------------|-------------|
+| ADR | Persistent reference | - | None |
+| {step} | {why this step} | {schema} | {None|Work|Production} |
+
+**Cross-domain dependencies**: {none | DELEGATE to {domain} for {reason}}
+**Type compatibility**: All adjacent steps validated / {list any resolved incompatibilities}
+```
+
+**GATE**: All of the following must be true before proceeding:
+- Every classified subdomain has a preliminary chain
+- Every chain starts with ADR and ends with OUTPUT (or REPORT for analysis tasks)
+- No unresolved type compatibility issues remain
+- All profile-gated steps are annotated (not hard-included)
+- `manifest.json` written with `status: "complete"`
+
+### Phase 4: PRODUCE (Component Manifest)
+
+**Goal**: Compile all findings into the final Component Manifest — the single document that tells pipeline-scaffolder and chain-composer exactly what to build.
+
+**Step 1: Determine agent strategy**
+
+Based on the existing inventory (Phase 1, Agent 2) and reuse assessments (Phase 2):
+
+- If an existing agent covers 70%+ of the domain: **Reuse it**. Bind all new subdomain skills to this agent. Note the agent name and what gaps it has (if any).
+- If no existing agent covers the domain: **Create one new coordinator agent**. Define its name (`{domain}-pipeline-engineer` or `{domain}-{function}-engineer`), purpose, and which subdomain skills it will execute.
+- NEVER create one agent per subdomain. WHY: Agents are expensive context; skills are cheap. The architecture is "1 agent : N skills" not "N agents : N skills".
+
+**Step 2: Compile shared resources**
+
+Identify resources that span multiple subdomains:
+- **Shared references**: Domain knowledge files useful across multiple subdomain skills (e.g., `{domain}-domain-knowledge.md`)
+- **Shared scripts**: Validators that multiple subdomain skills invoke (e.g., `{domain}-syntax-validator.py`)
+- **Shared hooks**: Detectors that trigger multiple subdomain skills based on context
+
+**Step 3: Write the Component Manifest**
+
+`/tmp/pipeline-{run-id}/phase-4-produce/manifest.json`:
+```json
+{
+  "schema": "orchestration-manifest",
+  "step": "PRODUCE",
+  "phase": 4,
+  "status": "complete",
+  "metrics": {
+    "subdomains": 0,
+    "new_skills": 0,
+    "new_agents": 0,
+    "reused_agents": 0,
+    "reference_files": 0,
+    "scripts": 0
+  },
+  "inputs": [
+    "../phase-1-research/content.md",
+    "../phase-2-classify/content.md",
+    "../phase-3-map/content.md"
+  ],
+  "outputs": ["content.md"],
+  "timestamp": "",
+  "tags": ["{domain-name}", "component-manifest", "pipeline-generation"]
+}
+```
+
+`/tmp/pipeline-{run-id}/phase-4-produce/content.md`:
+
+```markdown
+# Component Manifest: {Domain}
+
+## Domain
+- **Name**: {domain}
+- **Description**: {1-2 sentence domain summary}
+- **Operator Profile**: {detected profile}
+- **Subdomains Discovered**: {count}
+
+## Agent Strategy
+
+### Reused Agent
+- **Name**: {agent-name} (from `agents/{agent-name}.md`)
+- **Coverage**: {what it covers, what gaps remain}
+- **Binding**: All subdomain skills below bind to this agent
+
+### New Agent (if needed)
+- **Name**: {domain}-{function}-engineer
+- **Purpose**: {single-purpose description}
+- **Pairs With**: [{skill-1}, {skill-2}, ...]
+
+## Subdomain Skills
+
+### {Subdomain 1}: {name}
+- **Skill name**: {domain}-{subdomain}
+- **Task type**: {primary} (secondary: {secondary|none})
+- **Complexity**: {tier}
+- **Preliminary chain**: `ADR -> {steps} -> OUTPUT`
+- **Executor agent**: {agent-name} (reused|new)
+- **References needed**:
+  - `references/{file}.md` — {purpose}
+- **Scripts needed**:
+  - `scripts/{file}.py` — {purpose}
+- **Profile-gated steps**: {list|none}
+- **Cross-domain delegates**: {list|none}
+
+### {Subdomain 2}: {name}
+(same structure)
+
+## Shared Resources
+
+### References (span multiple subdomains)
+- `{domain}-domain-knowledge.md` — {what it contains}
+
+### Scripts (shared validators)
+- `scripts/{domain}-{function}.py` — {what it validates}
+
+### Hooks
+- `hooks/{domain}-context-detector.py` — {what it detects, which skills it triggers}
+
+## Routing Entries (to be created by routing-table-updater)
+- Agent triggers: [{trigger keywords}]
+- Skill triggers per subdomain: [{per-skill triggers}]
+```
+
+**GATE**: All of the following must be true before proceeding:
+- Component Manifest file exists at `/tmp/pipeline-{run-id}/phase-4-produce/content.md`
+- At least 2 subdomains listed with complete metadata
+- Every subdomain has: skill name, task type, complexity, preliminary chain, executor agent
+- Agent strategy documented (reuse vs. create, with rationale)
+- Shared resources identified
+- `manifest.json` written with `status: "complete"`
+
+If gate passes: Report completion to pipeline-orchestrator-engineer. The Component Manifest is the handoff artifact for the chain-composer skill.
+
+## Error Handling
+
+### Error: Domain Too Narrow
+**Cause**: Phase 1 discovers only 1 subdomain, or all discovered subdomains collapse to the same task type.
+**Solution**: Report to pipeline-orchestrator-engineer with findings. The domain may not need decomposition — it may be a single-pipeline domain. Ask: "Only 1 subdomain found for {domain}. Proceed as single pipeline or broaden the domain scope?"
+
+### Error: Research Agent Timeout
+**Cause**: One or more parallel agents in Phase 1 exceed the 5-minute timeout.
+**Solution**: If 3+ agents completed, proceed with available data. If fewer than 3, retry the failed agent(s) once with a simplified prompt. If retry fails, proceed with available data and note the gap in the research compilation. Never retry more than once — move forward with what you have.
+
+### Error: No Existing Inventory Match
+**Cause**: Agent 2 finds zero existing components for the domain.
+**Solution**: This is valid for novel domains. Set all subdomains to reuse potential "New" and note that a new agent will be needed. The Component Manifest should flag this prominently so the scaffolder creates the agent.
+
+### Error: Ambiguous Task Type
+**Cause**: A subdomain's tasks span 3+ task types with no clear primary.
+**Solution**: Split the subdomain. If "Prometheus operations" covers debugging, monitoring, AND configuration, split into "Prometheus troubleshooting" (debugging), "Prometheus monitoring" (monitoring), and "Prometheus configuration" (configuration). Smaller, focused subdomains produce better pipeline chains than broad, unfocused ones.
+
+### Error: Type Incompatibility in Chain
+**Cause**: Phase 3 chain validation finds that step A's output schema doesn't match step B's input requirements.
+**Solution**: Insert a bridging step. Common bridges:
+- Research Artifact needs to become Structured Corpus: insert COMPILE
+- Multiple Verdicts need to become one: insert AGGREGATE
+- Generation Artifact needs Verdict before next step: insert VALIDATE
+If no bridge works, restructure the chain. Never skip type validation.
+
+## Anti-Patterns
+
+### Anti-Pattern 1: Hardcoded Subdomain Lists
+**What it looks like**: Skipping Phase 1 research and providing a predetermined list of subdomains
+**Why wrong**: Misses domain nuances, produces generic pipelines, defeats the purpose of the research phase. A human can guess "Prometheus has metrics and alerting" — the value of this skill is discovering the non-obvious subdomains (performance tuning, federation, recording rules).
+**Do instead**: Always run the full parallel research phase. Even for well-known domains, Agent 2 (Existing Inventory) and Agent 4 (Reference Research) will discover context the human prompt missed.
+
+### Anti-Pattern 2: One Agent Per Subdomain
+**What it looks like**: Component Manifest creates 5 agents for 5 subdomains
+**Why wrong**: Agents are expensive context (loaded per session). Skills are cheap (loaded per task). Creating N agents where 1 agent + N skills would work wastes context budget and fragments routing.
+**Do instead**: Create at most 1 new agent per domain. Bind all subdomain skills to it (or to an existing agent that covers the domain). The ratio should be 1 agent : N skills, not 1:1.
+
+### Anti-Pattern 3: Over-Splitting Subdomains
+**What it looks like**: Discovering 10+ subdomains for a moderate-complexity domain
+**Why wrong**: Produces too many narrow skills that overlap. Each skill has a fixed context cost (frontmatter + phases). 10 micro-skills may cost more context total than 5 well-scoped skills.
+**Do instead**: Target 3-7 subdomains for most domains. If you discover more, look for natural groupings. "Prometheus metric types", "Prometheus metric naming", and "Prometheus recording rules" can likely merge into "Prometheus metrics authoring".
+
+### Anti-Pattern 4: Sequential Research
+**What it looks like**: Running Agent 1, waiting for results, then Agent 2, then Agent 3, then Agent 4
+**Why wrong**: Rule 12 is not a suggestion — A/B testing proved parallel research produces measurably better output. Sequential research takes 4x longer and produces narrower findings because later agents don't benefit from the breadth that parallelism provides.
+**Do instead**: Always dispatch all 4 agents simultaneously. The gate requires 3 of 4 to succeed, not all 4 in sequence.
+
+### Anti-Pattern 5: Ignoring Reuse Assessment
+**What it looks like**: Marking every subdomain as "New" without checking existing inventory
+**Why wrong**: Creates duplicate agents/skills that fragment routing and waste maintenance effort
+**Do instead**: Agent 2 specifically searches for existing components. Phase 2 must assess every subdomain against this inventory before marking anything as "New".
+
+## Anti-Rationalization
+
+| Rationalization Attempt | Why It's Wrong | Required Action |
+|------------------------|----------------|-----------------|
+| "I already know the subdomains, skip research" | You know SOME subdomains. Research finds the non-obvious ones. | Run all 4 agents. Phase 1 is not optional. |
+| "Sequential research is fine for simple domains" | Rule 12 has no complexity exception. The A/B data applies universally. | Dispatch agents in parallel. Always. |
+| "This subdomain needs its own agent" | Agents are for domains, skills are for subdomains. 1 agent : N skills. | Bind to existing/shared agent. Only create new agent if no existing agent covers 70%+ of domain. |
+| "3 subdomains aren't enough, let me add more" | More subdomains ≠ better decomposition. Over-splitting is an anti-pattern. | Stop at natural boundaries. 3-7 is the target range. |
+| "I'll just pick the obvious chain, no need for step menu lookup" | The step menu exists to prevent chain composition errors. It has type compatibility rules. | Load and reference the step menu. Validate types. |
+| "Type compatibility is just bureaucracy" | It's the type system of pipeline composition. Invalid types produce broken chains. | Validate every adjacent pair. Insert bridges for incompatibilities. |
+
+## Blocker Criteria
+
+STOP and ask the pipeline-orchestrator-engineer (do NOT proceed autonomously) when:
+
+| Situation | Why Stop | Ask This |
+|-----------|----------|----------|
+| Only 1 subdomain discovered | Domain may not need decomposition | "Only 1 subdomain found. Proceed as single pipeline or broaden scope?" |
+| 8+ subdomains discovered | May be over-splitting | "Found {N} subdomains — should I merge related ones or keep all?" |
+| Existing agent covers 90%+ of domain with existing skills | May not need new pipelines at all | "Existing components cover nearly everything. What specifically is missing?" |
+| No existing agent AND domain is well-established | Surprising — may indicate search failure | "Found no existing agent for {domain}. Verify this is correct before creating new one?" |
+| Two subdomains have identical preliminary chains | May be duplicates that should merge | "{Sub A} and {Sub B} have the same chain. Merge them?" |
+
+### Never Guess On
+- Whether to create a new agent vs. reuse an existing one (always check inventory first)
+- How many subdomains a domain should have (discover, don't prescribe)
+- Which operator profile to apply (detect from context or use default)
+- Whether a subdomain is too narrow or too broad (ask when uncertain)
+
+## References
+
+- **Task Type Guide**: `references/task-type-guide.md` — Detailed task type definitions with canonical chains and examples (loaded in Phase 2)

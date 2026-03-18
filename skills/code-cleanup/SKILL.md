@@ -1,0 +1,400 @@
+---
+name: code-cleanup
+description: |
+  Systematic detection and prioritization of neglected code quality issues:
+  stale TODOs, unused imports, deprecated functions, high complexity, dead code.
+  Use when user requests "code cleanup", "find TODOs", "technical debt scan",
+  or "quality of life fixes". Do NOT use for bug fixing (use systematic-debugging),
+  feature work (use test-driven-development), or formatting-only (use code-linting).
+version: 2.0.0
+user-invocable: true
+allowed-tools:
+  - Read
+  - Write
+  - Bash
+  - Grep
+  - Glob
+  - Edit
+  - Task
+triggers:
+  - "code cleanup"
+  - "find small improvements"
+  - "fix neglected issues"
+  - "clean up code"
+  - "quality of life fixes"
+  - "find TODOs"
+  - "stale comments"
+  - "unused imports"
+  - "technical debt scan"
+---
+
+# Code Cleanup Skill
+
+## Operator Context
+
+This skill operates as an operator for systematic code quality scanning, configuring Claude's behavior for focused detection and prioritized reporting of technical debt.
+
+### Hardcoded Behaviors (Always Apply)
+- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before execution
+- **Over-Engineering Prevention**: Only scan for requested issue types or smart defaults. Do not build elaborate reporting systems, dashboards, or speculative features
+- **Report Before Fix**: NEVER modify files without explicit user permission. Default mode is read-only scan and report
+- **Exact References**: Report all findings with exact file:line references. Never summarize away specifics
+- **Exclude Non-Source**: Always exclude vendor/, node_modules/, .venv/, build/, dist/, generated/ directories
+- **Prioritized Output**: Rank findings by impact/effort ratio. Never present a flat unsorted list
+
+### Default Behaviors (ON unless disabled)
+- **Focused Scope**: Ask user for target directories when request is vague rather than scanning everything
+- **Context Lines**: Show 3 lines of context around each finding for quick comprehension
+- **TODO Age Triage**: Use git blame to age TODOs and categorize by staleness (Critical >90d, High 30-90d, Normal <30d)
+- **Quick Wins First**: Present auto-fixable issues (unused imports, formatting) before manual-effort items
+- **Effort Estimates**: Include time estimates per category so user can plan
+- **Tool Availability Check**: Verify required analysis tools exist before scanning; report missing tools with install commands
+- **Temporary File Cleanup**: Remove intermediate scan outputs at completion, keep only final report
+
+### Optional Behaviors (OFF unless enabled)
+- **Auto-Fix**: Apply safe, deterministic fixes (requires --fix flag or explicit permission)
+- **Direct File Modification**: Write changes to source files (only with explicit permission)
+- **Tool Auto-Install**: Install missing analysis tools automatically
+- **Commit Fixes**: Stage and commit applied fixes
+
+## What This Skill CAN Do
+- Scan repositories for 9 categories of technical debt (TODOs, unused imports, dead code, missing type hints, deprecated functions, naming inconsistencies, high complexity, duplicate code, missing docstrings)
+- Prioritize findings by impact/effort ratio with time estimates
+- Generate structured markdown reports with exact file:line references
+- Apply safe auto-fixes when user grants permission (unused imports, formatting, import sorting)
+- Triage TODO comments by age using git history
+
+## What This Skill CANNOT Do
+- Fix bugs or investigate failures (use systematic-debugging)
+- Implement new features (use test-driven-development)
+- Perform architectural review (use domain-specific agent)
+- Run security audits (use security scanning tools)
+- Modify files without explicit user permission
+- Skip the prioritization step
+
+---
+
+## Examples
+
+### Example 1: Focused Cleanup Request
+User says: "Clean up the API handlers in src/api/"
+Actions:
+1. Read CLAUDE.md and project config (SCOPE)
+2. Scan src/api/ only for all 9 categories (SCAN)
+3. Prioritize: 5 unused imports (auto-fixable), 2 stale TODOs (>90d), 1 high-complexity function (PRIORITIZE)
+4. Present tiered report with auto-fix commands (REPORT)
+Result: User gets focused, actionable report for their working area
+
+### Example 2: Broad Technical Debt Scan
+User says: "What's the state of technical debt in this repo?"
+Actions:
+1. Identify languages and source directories, exclude vendor/generated (SCOPE)
+2. Run all applicable scans across source directories (SCAN)
+3. Group 47 findings into Quick Wins (12), Important (8), Polish (27) (PRIORITIZE)
+4. Generate full report with effort estimates: 2h quick wins, 6h important, 4h polish (REPORT)
+Result: User has clear picture of debt and time investment needed
+
+### Example 3: Auto-Fix Request
+User says: "Fix all the unused imports and sort them"
+Actions:
+1. Verify ruff/goimports available (SCOPE)
+2. Scan for F401 and I001 violations only (SCAN)
+3. Report findings: 23 unused imports across 8 files (PRIORITIZE + REPORT)
+4. User confirms: apply fixes, run tests, show diff (FIX)
+Result: Clean imports with verified test suite
+
+---
+
+## Instructions
+
+### Phase 1: SCOPE
+
+**Goal**: Determine what to scan and verify tooling is available.
+
+**Step 1: Read project context**
+- Check for CLAUDE.md, .gitignore, pyproject.toml, go.mod, package.json
+- Identify primary languages and project structure
+
+**Step 2: Determine scan scope**
+- If user specified a directory or issue type, use that exactly
+- If user specified only issue type (e.g., "find unused imports"), scan all source directories for that type only
+- If request is vague ("clean up code"), ask user for target area or default to source directories only
+- Always exclude: vendor/, node_modules/, .venv/, build/, dist/, generated/, .git/
+- Respect .gitignore patterns when determining what to scan
+
+**Step 3: Verify tool availability**
+
+Check which analysis tools are installed. Report missing tools with install commands before proceeding.
+
+```bash
+# Python tools
+command -v ruff && echo "ruff: available" || echo "ruff: MISSING (pip install ruff)"
+command -v vulture && echo "vulture: available" || echo "vulture: MISSING (pip install vulture)"
+
+# Go tools
+command -v gocyclo && echo "gocyclo: available" || echo "gocyclo: MISSING (go install github.com/fzipp/gocyclo/cmd/gocyclo@latest)"
+command -v goimports && echo "goimports: available" || echo "goimports: MISSING (go install golang.org/x/tools/cmd/goimports@latest)"
+```
+
+If critical tools are missing, offer to proceed with partial scan using available tools (grep, git blame are always available).
+
+**Gate**: Scope defined, languages identified, tool availability known. Proceed only when gate passes.
+
+### Phase 2: SCAN
+
+**Goal**: Detect all cleanup opportunities within scope using deterministic tools.
+
+Run applicable scans based on language and scope. See `references/scan-commands.md` for full command reference.
+
+**Core scans (all languages)**:
+1. **Stale TODOs**: grep for TODO/FIXME/HACK/XXX, age with git blame
+2. **Unused imports**: ruff (Python), goimports (Go)
+3. **Dead code**: vulture (Python), staticcheck (Go)
+4. **Complexity**: radon (Python), gocyclo (Go)
+
+**Extended scans (if tools available)**:
+5. Missing type hints (Python: ruff --select ANN)
+6. Deprecated function usage (staticcheck, grep for known patterns)
+7. Naming inconsistencies (grep for convention violations)
+8. Duplicate code (pylint --enable=duplicate-code)
+9. Missing docstrings (ruff --select D)
+
+Collect all output with exact file:line references. Do not filter or summarize raw scan output.
+
+For each scan, record:
+- Number of findings
+- Files affected
+- Whether findings are auto-fixable
+
+If a scan tool is unavailable, note it as skipped and continue with remaining scans. Never abort the entire scan because one tool is missing.
+
+**Gate**: All applicable scans complete with raw output collected. Proceed only when gate passes.
+
+### Phase 3: PRIORITIZE
+
+**Goal**: Rank findings by impact/effort ratio and categorize.
+
+**Step 1: Assign impact and effort**
+
+| Issue Type | Impact | Effort | Priority Score |
+|------------|--------|--------|----------------|
+| Stale TODOs (>90 days) | High | Low | 8 |
+| Unused imports | Medium | Trivial | 10 |
+| Deprecated functions | High | Medium | 6 |
+| High complexity (>20) | High | High | 5 |
+| Dead code | Medium | Low | 7 |
+| Missing type hints | Medium | Medium | 5 |
+| Duplicate code | High | High | 5 |
+| Missing docstrings | Medium | Medium | 5 |
+| Naming inconsistencies | Low | Medium | 3 |
+| Magic numbers | Low | Low | 5 |
+
+**Step 2: Group into tiers**
+- **Quick Wins** (High priority, low effort): Unused imports, stale TODOs, dead code
+- **Important** (High impact, medium+ effort): Deprecated functions, high complexity, duplicates
+- **Polish** (Lower impact): Missing types, docstrings, naming, magic numbers
+
+**Step 3: Estimate total effort per tier**
+
+Use these time estimates per issue:
+
+| Issue Type | Time per Instance |
+|------------|-------------------|
+| Unused imports | 1-2 min (auto-fix) |
+| Stale TODOs | 5-15 min each |
+| Dead code removal | 5-10 min each |
+| Magic numbers | 2-5 min each |
+| Missing type hints | 10-20 min per function |
+| Missing docstrings | 5-15 min per function |
+| Naming fixes | 10-30 min per violation |
+| High complexity refactor | 30-120 min per function |
+| Duplicate code elimination | 30-90 min per instance |
+| Deprecated function replacement | 15-60 min per usage |
+
+Multiply by instance count for tier totals.
+
+**Gate**: All findings categorized and prioritized with effort estimates. Proceed only when gate passes.
+
+### Phase 4: REPORT
+
+**Goal**: Present findings in structured, actionable format.
+
+Generate report with this structure:
+1. Executive summary (total issues, tier counts, estimated effort)
+2. Quick Wins with auto-fix commands where available
+3. Important issues with specific suggestions
+4. Polish items grouped by type
+5. Files sorted by issue count
+
+See `references/report-template.md` for complete template.
+
+Print complete report to stdout. Do NOT summarize or truncate findings.
+
+If user provided `--output {file}` flag, also write report to the specified file.
+
+For each finding in the report:
+- Include exact file:line reference
+- Show 3 lines of surrounding context
+- Provide specific fix suggestion or auto-fix command
+- Note whether the fix is auto-fixable or requires manual effort
+
+**Gate**: Report delivered with all findings, exact references, and actionable suggestions.
+
+### Phase 5: FIX (Optional - only with explicit permission)
+
+**Goal**: Apply safe, deterministic fixes.
+
+MUST have explicit user permission before proceeding. Never auto-enter this phase.
+
+**Step 1: Confirm scope with user**
+
+Before applying any fixes, confirm exactly what will be changed:
+```markdown
+Will apply these auto-fixes:
+- Remove {N} unused imports across {N} files
+- Sort imports in {N} files
+- Format {N} files
+
+{N} files will be modified. Proceed? (y/n)
+```
+
+**Step 2: Apply auto-fixes**
+
+Apply fixes in order of safety (most safe first):
+
+```bash
+# Python - safe fixes only
+ruff check . --select F401,I001 --fix    # Remove unused imports, sort
+ruff format .                             # Consistent formatting
+
+# Go - safe fixes only
+goimports -w .                            # Remove unused imports, sort, format
+gofmt -w .                                # Consistent formatting
+go mod tidy                               # Clean up go.mod/go.sum
+```
+
+Do NOT apply fixes flagged as "unsafe" by ruff. Do NOT rename variables, refactor functions, or make any semantic changes in this phase.
+
+**Step 3: Validate fixes**
+
+Run the project's existing test suite to verify nothing broke:
+
+```bash
+# Python
+pytest                  # Run full test suite
+ruff check .           # Verify no new lint issues
+
+# Go
+go test ./...          # Run full test suite
+go build ./...         # Verify build succeeds
+golangci-lint run      # Verify no new lint issues
+```
+
+**Step 4: Show diff and results**
+
+```bash
+git diff --stat        # Summary of changes
+git diff               # Full diff for review
+```
+
+Present results:
+```markdown
+## Fix Results
+- Files modified: {N}
+- Imports removed: {N}
+- Tests: PASS ({N} tests)
+- Lint: CLEAN
+
+Review diff above. Commit when satisfied.
+```
+
+**Step 5: Handle failures**
+
+If tests fail after auto-fix:
+1. Roll back ALL changes immediately: `git checkout .`
+2. Report exactly which test(s) failed and why
+3. Suggest applying fixes incrementally (one file at a time) with testing between each
+
+Do NOT leave the repository in a broken state.
+
+**Gate**: All auto-fixes applied, tests pass, diff shown to user. Repository is in a clean, working state.
+
+---
+
+## Error Handling
+
+### Error: "Required analysis tool not found"
+Cause: ruff, vulture, gocyclo, or other tool not installed
+Solution:
+1. Report which tools are missing with install commands
+2. Offer to proceed with partial scan using available tools
+3. grep and git blame are always available as fallback
+
+### Error: "Not a git repository"
+Cause: Cannot use git blame for TODO aging
+Solution: Continue scan but mark all TODO ages as "unknown". Warn user that age-based triage is unavailable.
+
+### Error: "Tests fail after auto-fix"
+Cause: Auto-fix changed behavior that tests depend on
+Solution:
+1. Roll back all changes immediately: `git checkout .`
+2. Report which fixes caused failures
+3. Suggest applying fixes file-by-file with incremental testing
+
+### Error: "Permission denied modifying files"
+Cause: Files are read-only, locked, or user did not grant write permission
+Solution:
+1. Do NOT attempt to bypass permissions
+2. Report which files could not be modified and why
+3. Provide the fix commands so user can run them manually
+
+---
+
+## Anti-Patterns
+
+### Anti-Pattern 1: Scanning Everything Without Focus
+**What it looks like**: Running all 9 scan types across entire codebase for "check for any code issues"
+**Why wrong**: Produces overwhelming noise, user cannot act on 100+ unsorted findings
+**Do instead**: Ask for target area, start with quick wins, offer to expand scope
+
+### Anti-Pattern 2: Auto-Fixing Without Permission
+**What it looks like**: Running `ruff --fix` immediately after scan completes
+**Why wrong**: User expected a report, not file modifications. Changes may conflict with in-progress work
+**Do instead**: Report findings first. Only fix when user explicitly requests it
+
+### Anti-Pattern 3: Flat Unsorted Reports
+**What it looks like**: Alphabetical list of all issues with equal weight
+**Why wrong**: Critical 90-day-old security TODO buried among trivial missing docstrings
+**Do instead**: Always prioritize by impact/effort. Quick wins first, polish last
+
+### Anti-Pattern 4: Scanning Vendor/Generated Code
+**What it looks like**: Reporting 500 issues mostly in node_modules/ or generated protobuf files
+**Why wrong**: User cannot fix third-party or generated code
+**Do instead**: Exclude non-source directories. Only scan code the user controls
+
+### Anti-Pattern 5: Treating All TODOs Equally
+**What it looks like**: Listing 47 TODOs in a flat list with no age or severity context
+**Why wrong**: A 180-day-old TODO about a data race is fundamentally different from yesterday's "TODO: add test case"
+**Do instead**: Age every TODO with git blame. Triage by age (Critical >90d, High 30-90d, Normal <30d) and severity keywords
+
+---
+
+## References
+
+This skill uses these shared patterns:
+- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
+- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
+
+### Domain-Specific Anti-Rationalization
+
+| Rationalization | Why It's Wrong | Required Action |
+|-----------------|----------------|-----------------|
+| "I'll just fix these while scanning" | Modifying without permission violates report-first rule | Complete report, ask permission, then fix |
+| "Scanning everything is more thorough" | Thoroughness without focus produces noise, not value | Scope first, scan second |
+| "These findings are obvious, no need for references" | file:line references are non-negotiable | Always include exact locations |
+| "Auto-fix is safe, no need to ask" | Safe for tool does not mean safe for user's workflow | Always get explicit permission |
+
+### Reference Files
+- `${CLAUDE_SKILL_DIR}/references/scan-commands.md`: Language-specific scan commands and expected output
+- `${CLAUDE_SKILL_DIR}/references/report-template.md`: Full structured report template
+- `${CLAUDE_SKILL_DIR}/references/tools.md`: Tool installation, versions, and capabilities

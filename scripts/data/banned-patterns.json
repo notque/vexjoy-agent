@@ -1,0 +1,235 @@
+{
+  "version": "1.0.0",
+  "description": "Machine-readable database of banned patterns for voice validation",
+  "matching_rules": {
+    "case_sensitive": false,
+    "word_boundary": true,
+    "regex_patterns": "Patterns containing .* or special regex characters should be matched as regex"
+  },
+  "categories": {
+    "exploration_verbs": {
+      "severity": "error",
+      "patterns": [
+        "delve",
+        "dive into",
+        "deep dive",
+        "embark",
+        "unpack",
+        "navigate",
+        "traverse"
+      ],
+      "notes": "Removed 'journey' and 'explore' - valid in narrative contexts",
+      "message": "Exploration verbs are overused AI patterns that signal synthetic writing",
+      "suggestion_template": "Use direct verbs: examine, look at, consider, discuss"
+    },
+    "empty_adjectives": {
+      "severity": "warning",
+      "patterns": [
+        "robust",
+        "comprehensive",
+        "holistic",
+        "cutting-edge",
+        "innovative",
+        "seamless",
+        "powerful",
+        "elegant",
+        "vibrant",
+        "dynamic",
+        "exciting",
+        "game-changing",
+        "revolutionary",
+        "transformative",
+        "groundbreaking",
+        "state-of-the-art",
+        "best-in-class",
+        "world-class"
+      ],
+      "message": "Empty adjectives add no specific meaning and inflate prose",
+      "suggestion_template": "Remove or replace with concrete description of what makes it notable"
+    },
+    "corporate_verbs": {
+      "severity": "error",
+      "patterns": [
+        "utilize",
+        "facilitate",
+        "optimize",
+        "streamline",
+        "empower",
+        "harness",
+        "unlock",
+        "unleash",
+        "catalyze",
+        "spearhead",
+        "pivot"
+      ],
+      "notes": "Removed champion/leverage/synergy - valid in domain contexts",
+      "message": "Corporate jargon signals inauthentic voice and lacks specificity",
+      "suggestion_template": "Use plain verbs: use, help, improve, lead, change"
+    },
+    "abstract_nouns": {
+      "severity": "warning",
+      "patterns": [
+        "ecosystem",
+        "landscape",
+        "paradigm",
+        "framework",
+        "methodology",
+        "synergies",
+        "bandwidth",
+        "learnings",
+        "asks",
+        "deliverables"
+      ],
+      "message": "Abstract nouns obscure meaning with vague corporate-speak",
+      "suggestion_template": "Name the specific thing: system, field, approach, method, time, lessons, requests, outputs"
+    },
+    "opening_phrases": {
+      "severity": "error",
+      "patterns": [
+        "in today's",
+        "it's worth noting",
+        "let me explain",
+        "in this article",
+        "have you ever wondered",
+        "as we all know",
+        "it goes without saying",
+        "simply put",
+        "at its core",
+        "the reality is",
+        "here's the thing",
+        "the truth is"
+      ],
+      "notes": "Removed 'in the world of' and 'when it comes to' - These are valid in domain-specific contexts",
+      "message": "Cliche opening phrases signal AI-generated content immediately",
+      "suggestion_template": "Start with your actual point or a specific detail"
+    },
+    "transition_phrases": {
+      "severity": "info",
+      "patterns": [
+        "at the end of the day",
+        "moving forward",
+        "going forward",
+        "last but not least",
+        "without further ado",
+        "needless to say",
+        "that being said",
+        "having said that",
+        "with that in mind",
+        "on that note",
+        "by the same token",
+        "it's important to note"
+      ],
+      "message": "Filler transitions add length without meaning",
+      "suggestion_template": "Cut entirely or use simple connectors: but, and, so, also"
+    },
+    "conclusion_phrases": {
+      "severity": "error",
+      "patterns": [
+        "in conclusion",
+        "to summarize",
+        "to sum up",
+        "as we've seen",
+        "in summary",
+        "all in all",
+        "overall",
+        "to wrap up",
+        "in closing",
+        "the bottom line is"
+      ],
+      "message": "Formulaic conclusions signal template-based writing",
+      "suggestion_template": "End with your final thought directly, no preamble needed"
+    },
+    "enthusiasm_markers": {
+      "severity": "info",
+      "patterns": [
+        "i'm excited to",
+        "we're thrilled to",
+        "great news",
+        "amazing",
+        "awesome",
+        "incredible",
+        "fantastic",
+        "wonderful"
+      ],
+      "message": "Manufactured enthusiasm feels inauthentic",
+      "suggestion_template": "Show enthusiasm through specific details, not exclamations"
+    },
+    "forbidden_punctuation": {
+      "severity": "error",
+      "patterns": [
+        "\u2014",
+        "\u2013"
+      ],
+      "message": "Em-dashes (U+2014) and en-dashes (U+2013) are absolutely forbidden. Use commas, periods, or hyphens",
+      "suggestion_template": "Replace em-dash with comma, period, or restructure sentence. Use hyphen (-) for compound words only"
+    },
+    "hedging_language": {
+      "severity": "warning",
+      "patterns": [
+        "i think",
+        "i believe",
+        "perhaps",
+        "arguably",
+        "it seems",
+        "it appears",
+        "somewhat",
+        "relatively",
+        "fairly",
+        "sort of"
+      ],
+      "notes": "Removed 'kind of' and 'pretty' - some voices use these for self-correction style",
+      "message": "Hedging weakens assertions and signals uncertainty",
+      "suggestion_template": "State claims directly or provide specific qualifications"
+    },
+    "ai_significance_phrases": {
+      "severity": "error",
+      "patterns": [
+        "stands as a testament",
+        "speaks volumes",
+        "perfectly captures",
+        "encapsulates the essence",
+        "serves as a reminder",
+        "demonstrates the power",
+        "underscores the importance"
+      ],
+      "message": "These phrases are statistical markers of AI-generated content from research",
+      "suggestion_template": "State the significance directly: X shows, X proves, X means"
+    },
+    "ai_rhetorical_structures": {
+      "severity": "warning",
+      "patterns": [
+        "it's not .+\\. it's",
+        "this isn't .+\\. this is",
+        "they're not .+\\. they're",
+        "it isn't .+\\. it is",
+        "we're not .+\\. we're",
+        "you're not .+\\. you're",
+        "that's not .+\\. that's",
+        "these aren't .+\\. these are",
+        "those aren't .+\\. those are",
+        "it's not just .+\\. it's",
+        "it's not merely .+\\. it's",
+        "it's not simply .+\\. it's",
+        "not .+ but rather",
+        "stop .+ing .+ and start .+ing"
+      ],
+      "notes": "Downgraded to warning, reduced patterns. Some voices use 'wasn't just X, it was Y' naturally",
+      "message": "The 'It's not X. It's Y' rhetorical pivot is an overused AI pattern that feels manufactured",
+      "suggestion_template": "State what it IS directly: 'Errors are measurements' instead of 'They're not failures. They're measurements'"
+    }
+  },
+  "voice_specific": {
+    "voice_a": {
+      "observer_language": {
+        "severity": "info",
+        "patterns": [
+          "witnessing"
+        ],
+        "notes": "Reduced - the voice uses 'watching X come together' and 'there's something X about' naturally",
+        "message": "Consider if observer language distances the voice from the action",
+        "suggestion_template": "If appropriate, replace with direct participation: I helped, I joined, we built"
+      }
+    },
+    "voice_b": {}
+  }
+}

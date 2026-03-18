@@ -1,0 +1,134 @@
+{
+  "check": {
+    "description": "Primary quality gate - runs all checks (static analysis + tests + coverage)",
+    "usage": "make check",
+    "when_to_use": "Before creating PR, during PR review, before merging",
+    "includes": ["static-check", "test", "coverage report"]
+  },
+  "static-check": {
+    "description": "Static analysis only (golangci-lint, shellcheck, license checks)",
+    "usage": "make static-check",
+    "when_to_use": "Quick check for linting issues without running tests",
+    "speed": "fast"
+  },
+  "test": {
+    "description": "Run all unit tests without coverage",
+    "usage": "make test",
+    "when_to_use": "Quick test verification, debugging specific test failures",
+    "speed": "medium"
+  },
+  "goimports": {
+    "description": "Fix import formatting automatically (adds/removes/organizes imports)",
+    "usage": "make goimports",
+    "when_to_use": "Fix import-related linting errors",
+    "fixes": ["goimports", "gci linting errors"],
+    "side_effects": "Modifies .go files in place"
+  },
+  "tidy-deps": {
+    "description": "Clean up go.mod and verify all dependencies (go mod tidy + go mod verify)",
+    "usage": "make tidy-deps",
+    "when_to_use": "Fix dependency-related errors, after adding/removing imports",
+    "fixes": ["go.mod out of sync", "missing dependencies", "unused dependencies"],
+    "side_effects": "Modifies go.mod and go.sum"
+  },
+  "license-headers": {
+    "description": "Auto-add or update SPDX license headers in source files",
+    "usage": "make license-headers",
+    "when_to_use": "Fix missing or outdated license headers",
+    "fixes": ["REUSE compliance errors", "missing SPDX headers"],
+    "side_effects": "Modifies source files to add/update headers"
+  },
+  "build/cover.html": {
+    "description": "Generate HTML coverage report and open in browser",
+    "usage": "make build/cover.html && open build/cover.html",
+    "when_to_use": "Investigate coverage gaps, identify untested code paths",
+    "requires": "Successful test run with coverage",
+    "output": "build/cover.html (visual coverage report)"
+  },
+  "build/cover.out": {
+    "description": "Generate coverage profile data",
+    "usage": "make build/cover.out",
+    "when_to_use": "Generate coverage data for tools or CI pipelines",
+    "output": "build/cover.out (coverage profile)"
+  },
+  "lint": {
+    "description": "Run golangci-lint only",
+    "usage": "make lint",
+    "when_to_use": "Focus on Go linting issues, skip other static checks",
+    "speed": "medium"
+  },
+  "build": {
+    "description": "Build the Go binary",
+    "usage": "make build",
+    "when_to_use": "Verify code compiles, test binary locally",
+    "output": "Binary in build/ directory (varies by project)"
+  },
+  "clean": {
+    "description": "Remove build artifacts and generated files",
+    "usage": "make clean",
+    "when_to_use": "Clean workspace, force rebuild",
+    "removes": ["build/ directory", "generated files", "coverage reports"]
+  },
+  "vendor": {
+    "description": "Vendor all dependencies into vendor/ directory",
+    "usage": "make vendor",
+    "when_to_use": "Create vendored dependencies for offline builds",
+    "output": "vendor/ directory with all dependencies",
+    "side_effects": "Creates/updates vendor directory"
+  },
+  "download-deps": {
+    "description": "Download all Go module dependencies",
+    "usage": "make download-deps",
+    "when_to_use": "Pre-fetch dependencies, prepare for offline work",
+    "speed": "varies (depends on network and cache)"
+  },
+  "creds": {
+    "description": "Set up credentials for accessing private repositories",
+    "usage": "make creds",
+    "when_to_use": "First-time setup, credential refresh",
+    "context": "For private repository access"
+  },
+  "gofmt": {
+    "description": "Format Go code with gofmt",
+    "usage": "make gofmt",
+    "when_to_use": "Fix basic formatting issues",
+    "fixes": ["gofmt linting errors"],
+    "side_effects": "Modifies .go files in place"
+  },
+  "vet": {
+    "description": "Run go vet for suspicious constructs",
+    "usage": "make vet",
+    "when_to_use": "Quick check for common Go mistakes",
+    "speed": "fast"
+  },
+  "generate": {
+    "description": "Run go generate to create generated code",
+    "usage": "make generate",
+    "when_to_use": "After modifying code generation templates or interfaces",
+    "context": "Projects with //go:generate directives"
+  },
+  "install": {
+    "description": "Install the binary to $GOPATH/bin",
+    "usage": "make install",
+    "when_to_use": "Install tool for command-line use",
+    "output": "Binary in $GOPATH/bin or $GOBIN"
+  },
+  "docker-build": {
+    "description": "Build Docker image",
+    "usage": "make docker-build",
+    "when_to_use": "Test containerized build, prepare for deployment",
+    "context": "Projects with Dockerfile"
+  },
+  "shellcheck": {
+    "description": "Run shellcheck on shell scripts",
+    "usage": "make shellcheck",
+    "when_to_use": "Validate shell script quality",
+    "requires": "shellcheck installed"
+  },
+  "help": {
+    "description": "Show available make targets and descriptions",
+    "usage": "make help",
+    "when_to_use": "Discover available targets, learn project commands",
+    "speed": "instant"
+  }
+}

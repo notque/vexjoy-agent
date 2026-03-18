@@ -1,0 +1,407 @@
+# Good Research Plan Example
+
+## Query
+
+"Research the current state of Kubernetes cluster management in 2025: hosted vs self-managed, cost comparison, operational complexity, and enterprise adoption trends"
+
+## Phase 1: Assessment and Breakdown
+
+### Main Concepts Identified
+- Kubernetes cluster management approaches (hosted vs self-managed)
+- Cost analysis (TCO comparison)
+- Operational complexity (management burden, expertise required)
+- Enterprise adoption trends (market direction)
+
+### Key Questions to Answer
+1. What are the major hosted Kubernetes options in 2025? (EKS, GKE, AKS, others)
+2. What does self-managed Kubernetes entail? (infrastructure, tools, processes)
+3. How do costs compare across approaches? (compute, operational overhead, tooling)
+4. What is the operational complexity difference? (time investment, expertise needed)
+5. What are enterprise adoption trends? (shift toward hosted, hybrid approaches)
+
+### Required Data Points
+- Hosted K8s offerings with feature comparisons
+- Self-managed K8s tooling ecosystem (kubeadm, kops, Cluster API)
+- TCO breakdowns with real numbers
+- Operational metrics (time spent on management tasks)
+- Adoption statistics from enterprises
+- Case studies showing decision factors
+
+### Output Format
+Detailed comparative analysis organized by:
+- Approach comparison (hosted vs self-managed)
+- Cost analysis with specific numbers
+- Operational complexity breakdown
+- Adoption trends with data
+- Decision framework for selection
+
+### User Priorities
+- Actionable comparison for decision-making
+- Real cost data (not just theoretical)
+- Understanding operational trade-offs
+- Current market direction
+
+## Phase 2: Query Classification
+
+**Classification: BREADTH-FIRST**
+
+### Rationale
+This query has four distinct independent sub-questions:
+1. Hosted Kubernetes landscape (what options exist, features)
+2. Self-managed Kubernetes landscape (tooling, processes)
+3. Cost comparison (quantitative analysis across approaches)
+4. Enterprise adoption trends (market research)
+
+Each sub-question requires different sources and research approaches:
+- Sub-question 1: Cloud provider docs, feature comparisons
+- Sub-question 2: CNCF landscape, tooling docs, community practices
+- Sub-question 3: Cost calculators, case studies, TCO analyses
+- Sub-question 4: Analyst reports, surveys, adoption studies
+
+These are best researched in parallel by separate subagents, then aggregated.
+
+**Why not depth-first?**
+- Not multiple perspectives on single issue
+- Each sub-question is distinct domain requiring different expertise
+- Synthesis is aggregation rather than reconciliation of perspectives
+
+**Why not straightforward?**
+- Too complex for single investigation
+- Multiple independent research streams needed
+- Requires synthesis across diverse sources
+
+## Phase 3: Research Plan Development
+
+### Subagent Allocation: 4 Subagents (Breadth-First Strategy)
+
+#### Subagent 1: Hosted Kubernetes Landscape
+
+**Scope**: Research managed Kubernetes offerings from major cloud providers
+
+**Primary Objectives**:
+1. Catalog major hosted K8s options (EKS, GKE, AKS, DigitalOcean, Linode, etc.)
+2. Compare features and capabilities across providers
+3. Identify differentiators and unique offerings
+4. Document SLA/support commitments
+
+**Sources to Prioritize**:
+- AWS EKS documentation and feature announcements
+- Google GKE documentation and release notes
+- Azure AKS documentation and roadmap
+- Cloud provider pricing pages
+- CNCF landscape for additional providers
+- Recent announcements (Q4 2024 - Q1 2025)
+
+**Specific Data Points**:
+- Kubernetes versions supported
+- Control plane management (who manages, SLA)
+- Add-on services (monitoring, service mesh, etc.)
+- Multi-region/multi-cluster capabilities
+- Security features (encryption, RBAC, policies)
+- Integration with cloud-native services
+
+**Output Format**:
+Dense report covering:
+- Provider-by-provider feature matrix
+- Key differentiators highlighted
+- SLA and support commitments
+- Recent improvements and roadmap items
+
+**Scope Boundaries**:
+- Focus ONLY on hosted/managed offerings
+- Exclude self-managed tooling (separate subagent)
+- Exclude cost analysis (separate subagent)
+- Exclude adoption trends (separate subagent)
+
+---
+
+#### Subagent 2: Self-Managed Kubernetes Landscape
+
+**Scope**: Research self-managed K8s tooling, processes, and requirements
+
+**Primary Objectives**:
+1. Document primary self-managed approaches (kubeadm, kops, Cluster API, Rancher, etc.)
+2. Identify operational requirements and tooling ecosystem
+3. Understand expertise needed and learning curve
+4. Document ongoing maintenance burden
+
+**Sources to Prioritize**:
+- Kubernetes official documentation (kubeadm, Cluster API)
+- CNCF landscape for cluster management tools
+- Community best practices (Reddit, HackerNews, blogs)
+- Case studies from companies self-managing
+- Tool documentation (kops, Rancher, k3s, etc.)
+
+**Specific Data Points**:
+- Installation/setup complexity (time, steps, expertise)
+- Upgrade procedures and frequency
+- Monitoring and observability requirements
+- Disaster recovery and backup approaches
+- Security hardening necessary
+- Day 2 operations workload
+
+**Output Format**:
+Dense report covering:
+- Approach comparison (kubeadm vs kops vs Cluster API, etc.)
+- Operational requirements breakdown
+- Expertise and team size needs
+- Maintenance time investment estimates
+- Tooling ecosystem for operations
+
+**Scope Boundaries**:
+- Focus ONLY on self-managed approaches
+- Exclude hosted services (separate subagent)
+- Exclude cost analysis (separate subagent)
+- Exclude adoption trends (separate subagent)
+
+---
+
+#### Subagent 3: Cost Comparison Analysis
+
+**Scope**: Research and compare total cost of ownership across approaches
+
+**Primary Objectives**:
+1. Gather hosted K8s pricing models and real costs
+2. Calculate self-managed costs (infrastructure, operational overhead, tooling)
+3. Compare TCO across approaches with specific scenarios
+4. Identify hidden costs and cost optimization strategies
+
+**Sources to Prioritize**:
+- Cloud provider pricing calculators
+- TCO case studies and analyses
+- Cost optimization guides
+- Real-world cost breakdowns from companies
+- Analyst reports with cost comparisons
+
+**Specific Data Points**:
+- Hosted K8s pricing (control plane, worker nodes, add-ons)
+- Self-managed infrastructure costs (compute, storage, network)
+- Operational costs (engineer time, SRE team size)
+- Tooling costs (Rancher licensing, monitoring, etc.)
+- Cost scenarios: small (10-50 nodes), medium (50-200), large (200+)
+
+**Output Format**:
+Dense report covering:
+- Pricing model breakdown by approach
+- TCO calculations for 3 scenarios (small, medium, large)
+- Cost comparison table with specific numbers
+- Hidden costs identified (operational overhead, tooling)
+- Cost optimization strategies
+
+**Scope Boundaries**:
+- Focus ONLY on cost analysis
+- Exclude feature comparisons (separate subagent)
+- Exclude operational complexity beyond cost (separate subagent)
+- Use findings from Subagents 1 and 2 for context, but focus on $$
+
+---
+
+#### Subagent 4: Enterprise Adoption Trends
+
+**Scope**: Research market direction and enterprise decision patterns
+
+**Primary Objectives**:
+1. Gather adoption statistics (hosted vs self-managed split)
+2. Identify trends over time (shift toward hosted, hybrid approaches)
+3. Document decision factors from enterprise case studies
+4. Understand future outlook from analysts
+
+**Sources to Prioritize**:
+- Gartner, Forrester, IDC analyst reports
+- CNCF surveys and state of Kubernetes reports
+- Cloud provider customer case studies
+- Enterprise architecture blogs and talks
+- Recent surveys (Q4 2024 - Q1 2025)
+
+**Specific Data Points**:
+- % of enterprises using hosted vs self-managed
+- Trend direction (year-over-year changes)
+- Reasons for choosing hosted (top 3-5 factors)
+- Reasons for choosing self-managed (top 3-5 factors)
+- Hybrid approaches (percentage, patterns)
+- Company size correlation (startups vs enterprise)
+
+**Output Format**:
+Dense report covering:
+- Current adoption split (with percentages)
+- Trend analysis (historical and projected)
+- Decision factor breakdown by approach
+- Enterprise case study patterns
+- Future outlook from analysts
+
+**Scope Boundaries**:
+- Focus ONLY on adoption trends and market research
+- Exclude technical feature details (separate subagent)
+- Exclude cost specifics (separate subagent)
+- Cite enterprise examples, don't deep-dive implementation
+
+---
+
+### Scope Boundary Clarity
+
+**Clear Division of Labor**:
+- Subagent 1: WHAT hosted options offer (features, capabilities)
+- Subagent 2: WHAT self-managed requires (tooling, operations)
+- Subagent 3: HOW MUCH each approach costs (TCO analysis)
+- Subagent 4: WHO is adopting what and WHY (market trends)
+
+**Minimal Overlap**:
+- Each subagent focuses on distinct aspect
+- No redundant research expected
+- Synthesis will combine four independent reports
+
+### Aggregation Strategy
+
+**Final Report Structure**:
+1. Executive Summary (synthesis of all findings)
+2. Approach Overview
+   - Hosted Kubernetes (from Subagent 1)
+   - Self-Managed Kubernetes (from Subagent 2)
+3. Cost Analysis (from Subagent 3)
+   - Pricing models
+   - TCO comparison
+   - Cost scenarios
+4. Operational Complexity (synthesize from Subagents 1 and 2)
+   - Hosted: What provider manages
+   - Self-managed: What you manage
+   - Effort comparison
+5. Market Trends (from Subagent 4)
+   - Current adoption
+   - Trend direction
+   - Decision factors
+6. Decision Framework
+   - When to choose hosted (synthesize findings)
+   - When to choose self-managed (synthesize findings)
+   - Hybrid approaches (synthesize findings)
+
+**Cross-Stream Dependencies Identified**:
+- Cost analysis uses feature knowledge from Subagents 1 and 2
+- Decision framework synthesizes all four subagent findings
+- Operational complexity combines technical and market insights
+
+### Expected Deliverables
+
+**Four Independent Reports** (from subagents):
+1. Hosted K8s landscape report (~500-800 words)
+2. Self-managed K8s landscape report (~500-800 words)
+3. Cost comparison analysis (~500-800 words)
+4. Adoption trends report (~500-800 words)
+
+**Final Synthesis** (from lead agent):
+- Comprehensive analysis (~2000-2500 words)
+- High information density
+- Actionable decision framework
+- No citations (as required)
+
+## Phase 4: Execution Plan
+
+### Deployment Strategy
+
+**Parallel Execution** (all 4 subagents simultaneously):
+- No dependencies between Subagents 1, 2, 3, 4
+- Each has independent sources and objectives
+- Maximum efficiency through parallelization
+
+**Detailed Instructions Prepared**:
+- Each subagent receives instructions as detailed above
+- Clear primary objectives (1-4 items each)
+- Specific sources identified
+- Exact data points listed
+- Output format defined
+- Scope boundaries explicit
+
+### Monitoring Plan
+
+**Progress Signals**:
+- Watch for subagents completing early
+- Review initial findings for unexpected gaps
+- Note if any subagent reports missing data
+
+**Bayesian Adaptation**:
+- If cost data shows strong preference for one approach, emphasize that in synthesis
+- If adoption trends contradict expected patterns, investigate further
+- If operational complexity difference smaller than expected, adjust recommendations
+
+**Diminishing Returns Detection**:
+- If multiple sources repeating same cost figures, sufficient data gathered
+- If adoption trend consistent across all reports, consensus reached
+- If feature comparisons saturate, no new capabilities found
+
+### Synthesis Approach
+
+**Integration Strategy**:
+1. Read all four subagent reports thoroughly
+2. Extract key facts into master list
+3. Build cost comparison table from Subagent 3 data
+4. Build feature matrix from Subagents 1 and 2 data
+5. Identify adoption patterns from Subagent 4 data
+6. Synthesize decision framework using all findings
+7. Structure final report logically
+8. Write with high information density
+9. No citations included
+
+**Quality Verification Before Delivery**:
+- All original questions answered? ✓
+- Cost data specific and quantified? ✓
+- Feature comparisons comprehensive? ✓
+- Adoption trends backed by data? ✓
+- Decision framework actionable? ✓
+- Format matches user needs? ✓
+- No citations in output? ✓
+
+## Why This Is a Good Research Plan
+
+### Strengths
+
+1. **Systematic Assessment**:
+   - Main concepts clearly identified
+   - Key questions explicitly enumerated
+   - Data points specified before research begins
+   - Output format defined upfront
+
+2. **Correct Query Classification**:
+   - Identified as breadth-first (four independent streams)
+   - Rationale provided with clear logic
+   - Alternative classifications considered and rejected with reasons
+
+3. **Optimal Subagent Count**:
+   - 4 subagents matches 4 distinct sub-questions
+   - Not overly granular (could have been 8+ subagents)
+   - Not too broad (could have been 1-2 subagents)
+   - Follows guideline: 3-5 for medium complexity
+
+4. **Extremely Detailed Subagent Instructions**:
+   - Each has 1-4 specific objectives
+   - Sources explicitly identified by name/type
+   - Exact data points listed (no vagueness)
+   - Output format clearly described
+   - Scope boundaries prevent overlap
+
+5. **Clear Scope Boundaries**:
+   - Each subagent knows exactly what to research
+   - Each knows what NOT to research (other subagents' domains)
+   - Minimal overlap, maximum efficiency
+   - Clean division of labor
+
+6. **Well-Planned Aggregation**:
+   - Final report structure pre-planned
+   - Cross-stream dependencies identified
+   - Synthesis strategy defined
+   - Quality checklist included
+
+7. **Efficient Execution**:
+   - Parallel deployment (no unnecessary sequential steps)
+   - Monitoring plan for adaptation
+   - Diminishing returns detection planned
+   - Synthesis approach detailed
+
+### Expected Outcome
+
+Following this plan will produce:
+- Comprehensive coverage of all four aspects (hosted, self-managed, cost, trends)
+- High-quality sources with specific data
+- Actionable decision framework
+- Efficient research (no wasted effort)
+- Professional deliverable ready for immediate use
+
+This plan demonstrates **research coordination excellence** through systematic methodology, effective delegation, and clear synthesis strategy.

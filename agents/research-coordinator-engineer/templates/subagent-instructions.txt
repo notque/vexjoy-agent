@@ -1,0 +1,496 @@
+# Subagent Instruction Templates
+
+This document provides reusable templates for creating detailed subagent instructions. Each template follows the established pattern of extremely detailed, specific delegation.
+
+---
+
+## Template 1: Technology/Tool Research
+
+**Use Case**: Researching a specific technology, framework, or tool in depth.
+
+```markdown
+**Subagent N: [Technology Name] Research**
+
+Research [technology name] for [specific use case/context] in 2025.
+Use web_search and web_fetch tools.
+
+PRIMARY OBJECTIVES:
+1. [Core features and capabilities]
+2. [Performance characteristics and benchmarks]
+3. [Ecosystem and integrations]
+4. [Production readiness and adoption]
+
+SOURCES TO PRIORITIZE:
+- Official documentation ([specific URL if known])
+- [Technology] GitHub repository (releases, issues, discussions)
+- Recent blog posts from [organization] (Q4 2024 - Q1 2025)
+- Industry analyst reports ([Gartner/Forrester/etc.] if applicable)
+- Production case studies from major users
+- Community resources ([Stack Overflow/Reddit/HackerNews] for trends only)
+
+SPECIFIC DATA POINTS:
+- Current stable version and release cadence
+- [Feature 1] implementation and maturity
+- [Feature 2] capabilities and limitations
+- Performance metrics ([specific metrics relevant to technology])
+- Integration patterns with [related technologies]
+- Known issues and workarounds
+- Roadmap and upcoming features
+
+OUTPUT FORMAT:
+Dense report covering:
+- Overview and current state (1-2 paragraphs)
+- Core capabilities breakdown (bulleted with specifics)
+- Performance characteristics (with numbers/benchmarks)
+- Ecosystem and integrations (major tools/platforms)
+- Production considerations (deployment, operations, monitoring)
+- Adoption and community health (metrics, trends)
+
+SCOPE BOUNDARIES:
+- Focus on [Technology X] ONLY
+- Exclude [Related Technology Y] (separate subagent)
+- Exclude [Aspect Z] (separate subagent handles this)
+- Do NOT research historical versions (focus on current state)
+- Do NOT cover basic tutorials (assume technical audience)
+
+QUALITY CRITERIA:
+- Prioritize official documentation over blog posts
+- Verify performance claims from multiple sources
+- Include version numbers with all features mentioned
+- Note any beta/experimental features separately
+```
+
+---
+
+## Template 2: Market/Adoption Research
+
+**Use Case**: Researching market trends, adoption patterns, or industry analysis.
+
+```markdown
+**Subagent N: [Topic] Market Analysis**
+
+Research [topic] adoption and market trends for [time period/context].
+Use web_search and web_fetch tools.
+
+PRIMARY OBJECTIVES:
+1. Quantify current adoption rates and market share
+2. Identify trend direction (growth, decline, stability)
+3. Document key decision factors and drivers
+4. Project future outlook based on analyst insights
+
+SOURCES TO PRIORITIZE:
+- Industry analyst firms (Gartner, Forrester, IDC, McKinsey)
+- Market research reports and surveys
+- [Industry association] reports and data
+- Public company earnings calls and investor presentations
+- CNCF/Linux Foundation surveys (if applicable)
+- Academic research on industry trends
+- Recent news coverage (Q4 2024 - Q1 2025)
+
+SPECIFIC DATA POINTS:
+- Adoption rates by [segment] (with percentages)
+- Market share by [vendor/approach] (with percentages)
+- Year-over-year growth rates
+- Total addressable market (TAM) estimates
+- Investment trends (VC funding, M&A, etc.)
+- Geographic distribution of adoption
+- Company size correlation (startup vs SMB vs enterprise)
+- Top 3-5 decision factors (survey data)
+
+OUTPUT FORMAT:
+Dense report covering:
+- Current market state (adoption rates, market share with numbers)
+- Trend analysis (historical progression, current direction)
+- Decision factor breakdown (why companies adopt/don't adopt)
+- Segmentation insights (by industry, size, geography)
+- Future outlook (analyst projections, timeline)
+
+SCOPE BOUNDARIES:
+- Focus on MARKET RESEARCH only
+- Exclude technical implementation details (separate subagent)
+- Exclude pricing/cost analysis (separate subagent)
+- Do NOT research competing technologies deeply (mention but don't deep-dive)
+
+QUALITY CRITERIA:
+- Prefer primary research (surveys, studies) over opinion pieces
+- Verify statistics from multiple independent sources
+- Note methodology and sample size for all quantitative claims
+- Distinguish between self-reported and observed data
+- Include confidence intervals or margin of error where available
+```
+
+---
+
+## Template 3: Cost/Pricing Analysis
+
+**Use Case**: Researching pricing models, TCO analysis, or cost comparisons.
+
+```markdown
+**Subagent N: [Topic] Cost Analysis**
+
+Research total cost of ownership for [topic/approach] with specific scenarios.
+Use web_search and web_fetch tools.
+
+PRIMARY OBJECTIVES:
+1. Document pricing models and cost structures
+2. Calculate TCO for representative scenarios
+3. Identify hidden costs and optimization opportunities
+4. Compare costs across alternatives (if applicable)
+
+SOURCES TO PRIORITIZE:
+- Official pricing pages and calculators
+- TCO case studies and whitepapers
+- Cost optimization guides from [vendors/consultants]
+- Real-world cost breakdowns from companies (blog posts, talks)
+- Cloud provider cost documentation
+- Industry analyst cost reports
+- Billing/usage data (if available)
+
+SPECIFIC DATA POINTS:
+- Base pricing model (per [unit], tiered, usage-based, etc.)
+- Cost breakdown by component ([compute/storage/network/etc.])
+- Scenario 1 costs: [small scale] - $X/month or $Y/year
+- Scenario 2 costs: [medium scale] - $X/month or $Y/year
+- Scenario 3 costs: [large scale] - $X/month or $Y/year
+- Hidden costs (operational overhead, support, training, tools)
+- Cost optimization strategies (reserved capacity, spot instances, etc.)
+- ROI timeline and break-even analysis (if applicable)
+
+OUTPUT FORMAT:
+Dense report covering:
+- Pricing model explanation (how you're charged)
+- Cost breakdown by component (itemized)
+- Scenario analysis (3 scales with specific numbers)
+- Hidden costs identified (often overlooked expenses)
+- Cost comparison table (vs alternatives if applicable)
+- Optimization strategies (how to reduce costs)
+
+SCOPE BOUNDARIES:
+- Focus on COST ONLY (quantitative financial analysis)
+- Exclude feature comparisons (separate subagent)
+- Exclude performance analysis (separate subagent)
+- Do NOT research free/open-source alternatives deeply (mention but focus on paid)
+
+QUALITY CRITERIA:
+- Use official pricing sources when available
+- Cross-verify costs from multiple real-world examples
+- Include all cost components (avoid hidden costs)
+- Specify assumptions clearly for each scenario
+- Note regional pricing variations if significant
+- Update with most recent pricing (cache invalidation)
+```
+
+---
+
+## Template 4: Technical Implementation Research
+
+**Use Case**: Researching implementation patterns, best practices, or technical deep-dives.
+
+```markdown
+**Subagent N: [Topic] Implementation Patterns**
+
+Research production implementation patterns and best practices for [topic].
+Use web_search and web_fetch tools.
+
+PRIMARY OBJECTIVES:
+1. Document recommended implementation approaches
+2. Identify common patterns and anti-patterns
+3. Gather real-world examples with specific architectures
+4. Document operational considerations and debugging
+
+SOURCES TO PRIORITIZE:
+- Official implementation guides and best practices
+- Company engineering blogs ([Netflix/Google/Meta/etc.])
+- Conference talks and presentations (recent)
+- GitHub repositories with production examples
+- Stack Overflow high-voted questions and answers
+- Technical deep-dive articles from experts
+- Operational runbooks and SRE guides
+
+SPECIFIC DATA POINTS:
+- Recommended architecture patterns (with diagrams if available)
+- Configuration examples (actual code/config snippets)
+- Integration patterns with [related systems]
+- Scaling considerations (when to scale, how to scale)
+- Common mistakes and how to avoid them
+- Debugging approaches and common issues
+- Monitoring and observability patterns
+- Security hardening recommendations
+
+OUTPUT FORMAT:
+Dense report covering:
+- Implementation overview (high-level approach)
+- Detailed patterns (3-5 patterns with examples)
+- Configuration guidance (specific settings, rationale)
+- Operational considerations (monitoring, debugging, scaling)
+- Anti-patterns and pitfalls (what NOT to do)
+- Real-world examples (companies/projects using this)
+
+SCOPE BOUNDARIES:
+- Focus on IMPLEMENTATION DETAILS and patterns
+- Exclude basic "getting started" tutorials
+- Exclude cost analysis (separate subagent)
+- Exclude market trends (separate subagent)
+- Do NOT cover alternative approaches (focus on [specific approach])
+
+QUALITY CRITERIA:
+- Prioritize production-tested patterns over theoretical
+- Include actual code/config examples (not pseudo-code)
+- Verify patterns from multiple independent sources
+- Note version compatibility for all examples
+- Distinguish between beta/experimental and stable patterns
+```
+
+---
+
+## Template 5: Comparative Analysis Research
+
+**Use Case**: Comparing multiple options, vendors, or approaches.
+
+```markdown
+**Subagent N: [Option A] vs [Option B] vs [Option C] Comparison**
+
+Research and compare [options] across [dimensions] for [use case].
+Use web_search and web_fetch tools.
+
+PRIMARY OBJECTIVES:
+1. Document each option's capabilities in [dimension 1]
+2. Document each option's characteristics in [dimension 2]
+3. Identify differentiators and unique strengths
+4. Build decision framework for selection
+
+SOURCES TO PRIORITIZE:
+- Official documentation for each option
+- Third-party comparison reports and analyses
+- Head-to-head benchmark studies
+- User reviews and experience reports
+- Migration case studies (switching from X to Y)
+- Industry analyst comparisons
+
+SPECIFIC DATA POINTS:
+For EACH option ([Option A], [Option B], [Option C]):
+- [Dimension 1] capability (with specifics)
+- [Dimension 2] measurement (with numbers)
+- [Dimension 3] characteristics
+- Unique differentiators
+- Ideal use cases
+- Known limitations
+
+OUTPUT FORMAT:
+Dense report covering:
+- Individual option profiles (1 paragraph each)
+- Comparison matrix (table with all options vs dimensions)
+- Dimension-by-dimension analysis (who wins where, why)
+- Use case recommendations (when to choose each)
+- Migration considerations (switching between options)
+
+SCOPE BOUNDARIES:
+- Compare ONLY [Option A], [Option B], [Option C]
+- Focus on [specific dimensions] only
+- Exclude [other aspects] (separate analysis)
+- Do NOT deep-dive into implementation (separate subagent)
+
+QUALITY CRITERIA:
+- Ensure apple-to-apple comparisons (same version, same config)
+- Verify benchmarks are recent and methodology sound
+- Note any vendor bias in comparison sources
+- Include version numbers for all comparisons
+- Distinguish between features and claims (verify availability)
+```
+
+---
+
+## Template 6: Regulatory/Compliance Research
+
+**Use Case**: Researching regulations, compliance requirements, or legal landscape.
+
+```markdown
+**Subagent N: [Topic] Regulatory Landscape**
+
+Research regulatory requirements and compliance landscape for [topic] in [region/industry].
+Use web_search and web_fetch tools.
+
+PRIMARY OBJECTIVES:
+1. Identify applicable regulations and legal requirements
+2. Document compliance requirements and standards
+3. Research enforcement patterns and penalties
+4. Identify upcoming regulatory changes
+
+SOURCES TO PRIORITIZE:
+- Government regulatory websites ([agency].gov, [agency].europa.eu)
+- Official regulation text and guidance documents
+- Legal analysis from law firms specializing in [area]
+- Industry compliance frameworks and standards
+- Regulatory enforcement databases and case studies
+- Recent regulatory updates and proposed changes
+
+SPECIFIC DATA POINTS:
+- Applicable regulations by [region/industry]
+- Key requirements and obligations
+- Compliance deadlines and timelines
+- Penalties for non-compliance (fines, sanctions)
+- Enforcement patterns (who gets audited, frequency)
+- Compliance frameworks and certifications
+- Upcoming changes (proposed regulations, timeline)
+
+OUTPUT FORMAT:
+Dense report covering:
+- Regulatory overview (which regulations apply, scope)
+- Key requirements breakdown (what must be done)
+- Compliance approach (frameworks, certifications, audits)
+- Enforcement and penalties (risks of non-compliance)
+- Regional variations (differences by geography)
+- Future outlook (proposed changes, timeline)
+
+SCOPE BOUNDARIES:
+- Focus on [specific regulation types] only
+- Cover [specific regions] only
+- Exclude technical implementation (separate subagent)
+- Do NOT provide legal advice (informational only)
+
+QUALITY CRITERIA:
+- Use official regulatory sources as primary
+- Verify interpretation through multiple legal analyses
+- Note effective dates for all requirements
+- Distinguish between mandatory and recommended
+- Include penalties with specific amounts/consequences
+```
+
+---
+
+## Template 7: Internal Tool Integration Research
+
+**Use Case**: Researching data from internal tools (Asana, Slack, Github, etc.).
+
+```markdown
+**Subagent N: [Tool Name] Data Extraction**
+
+Extract and analyze [specific data] from [Tool Name] for [purpose/project].
+Use [tool_name] integration tools.
+
+PRIMARY OBJECTIVES:
+1. [Extract specific data set 1]
+2. [Extract specific data set 2]
+3. [Analyze patterns or trends]
+4. [Generate actionable insights]
+
+TOOL USAGE:
+1. Use `[tool]_[function_1]` with parameters:
+   - [parameter_1]: "[value]"
+   - [parameter_2]: "[value]"
+   - [parameter_3]: [value]
+
+2. For each [item] found, use `[tool]_[function_2]` to retrieve:
+   - [detail 1]
+   - [detail 2]
+   - [detail 3]
+
+3. Use `[tool]_[function_3]` to extract:
+   - [aggregate data 1]
+   - [aggregate data 2]
+
+EXPECTED DATA POINTS:
+- [Metric 1] (total count, breakdown by category)
+- [Metric 2] (percentages, trends over time)
+- [Metric 3] (top N items with specific attributes)
+- [Insight 1] (pattern identified from data)
+
+OUTPUT FORMAT:
+Structured report with:
+- Executive summary (1-2 sentences, key finding)
+- [Data Category 1] breakdown (with numbers)
+- [Data Category 2] analysis (with trends)
+- [Data Category 3] insights (with examples)
+- Recommended actions based on data (3-5 items)
+
+ERROR HANDLING:
+- If [expected_id] not found, try [alternative approach]
+- If [function] returns empty, report and document gap
+- If API errors occur, document and continue with available data
+- Note any data quality issues or limitations
+
+SCOPE BOUNDARIES:
+- Extract from [Tool Name] ONLY
+- Focus on [Project/Timeframe] only
+- Do NOT analyze [other tool's data] (separate subagent)
+- Do NOT make changes (read-only operations)
+
+QUALITY CRITERIA:
+- Verify data completeness (cross-check totals)
+- Note data freshness (when was it last updated)
+- Identify outliers or anomalies
+- Validate against expected ranges
+```
+
+---
+
+## Usage Guidelines
+
+### Selecting the Right Template
+
+| Research Need | Use Template |
+|---------------|--------------|
+| Deep-dive into specific technology | Template 1: Technology/Tool Research |
+| Understanding market and adoption | Template 2: Market/Adoption Research |
+| Cost analysis and TCO calculation | Template 3: Cost/Pricing Analysis |
+| Implementation patterns and best practices | Template 4: Technical Implementation Research |
+| Comparing multiple options | Template 5: Comparative Analysis Research |
+| Regulatory and compliance landscape | Template 6: Regulatory/Compliance Research |
+| Internal tool data extraction | Template 7: Internal Tool Integration Research |
+
+### Customization Checklist
+
+When adapting a template, ensure you:
+
+1. ✅ Replace all `[placeholders]` with specific values
+2. ✅ Add domain-specific sources beyond template suggestions
+3. ✅ Enumerate exact data points needed (not generic categories)
+4. ✅ Define output format matching query needs
+5. ✅ Set clear scope boundaries preventing overlap
+6. ✅ Include quality criteria appropriate for domain
+7. ✅ Specify tools and their exact usage if internal tools involved
+
+### Quality Standards
+
+Every subagent instruction must include:
+
+- **Primary Objectives**: 1-4 specific, measurable goals
+- **Sources to Prioritize**: Exact source types, domains, or organizations
+- **Specific Data Points**: Concrete facts, numbers, or insights needed
+- **Output Format**: Structure and density expectations
+- **Scope Boundaries**: What NOT to research (prevent overlap)
+- **Quality Criteria**: Recency, verification, source authority standards
+
+### Anti-Pattern Warning
+
+❌ **Bad Usage of Template**:
+```
+Research [technology].
+Use web search.
+Write a report.
+```
+
+This is NOT using the template - it's ignoring it entirely.
+
+✅ **Good Usage of Template**:
+```
+Research Kubernetes Cluster API for automated cluster lifecycle management in 2025.
+Use web_search and web_fetch tools.
+
+PRIMARY OBJECTIVES:
+1. Document Cluster API architecture and core components
+2. Identify supported infrastructure providers (AWS, Azure, GCP, etc.)
+3. Gather production implementation examples and patterns
+4. Assess maturity and production readiness
+
+SOURCES TO PRIORITIZE:
+- Cluster API official documentation (cluster-api.sigs.k8s.io)
+- CNCF Cluster API GitHub repository
+- Production case studies from major users
+- Recent conference talks (KubeCon 2024-2025)
+- Provider implementation guides
+
+[...continues with all sections filled out in detail...]
+```
+
+This shows proper template usage with all placeholders replaced and domain-specific details added.

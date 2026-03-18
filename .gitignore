@@ -1,0 +1,79 @@
+# Claude Code configuration directory
+.claude/
+
+# Local overlay directory (private/org-specific customizations)
+.local/
+!.local/.gitkeep
+
+# Development history (contains project-specific data)
+.dev-history/
+
+# Architecture Decision Records (internal development artifacts)
+adr/
+
+# Environment files (NEVER commit credentials)
+.env
+.env.*
+!.env.example
+
+# SQLite databases (learning system, usage tracking)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Task plans (ephemeral, per-session)
+task_plan.md
+
+# Internal migration/development docs (not for public release)
+MIGRATION_CHECKLIST_V2.md
+
+# Development artifacts (generated content, research outputs)
+content/
+research/
+
+# AB test output directories (raw trial outputs, not committed)
+ab-test-results/
+ab-test-results-r2/
+
+# ADR session state (ephemeral, per-session, not committed)
+.adr-session.json
+
+# Credentials and secrets
+*.pem
+*.key
+*.crt
+*.p12
+service-account*.json

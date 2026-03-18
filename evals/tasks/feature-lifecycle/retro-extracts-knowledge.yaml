@@ -1,0 +1,32 @@
+name: retro-extracts-knowledge
+description: |
+  After a phase checkpoint, the retro loop should extract knowledge
+  and write it to the meta hierarchy.
+
+setup:
+  commands:
+    - "mkdir -p /tmp/test-retro && cd /tmp/test-retro && git init"
+    - "cp -r scripts/feature-state.py /tmp/test-retro/scripts/"
+    - "python3 /tmp/test-retro/scripts/feature-state.py init 'test-feature'"
+
+execute:
+  commands:
+    - "cd /tmp/test-retro && python3 scripts/feature-state.py retro-record test-feature error-handling 'always wrap errors with context using fmt.Errorf' --confidence medium"
+    - "cd /tmp/test-retro && python3 scripts/feature-state.py retro-record test-feature naming-convention 'use snake_case for database columns' --confidence high"
+    - "cd /tmp/test-retro && python3 scripts/feature-state.py retro-promote test-feature error-handling"
+    - "cd /tmp/test-retro && python3 scripts/feature-state.py retro-promote test-feature naming-convention"
+  timeout: 30
+
+graders:
+  - type: file_exists
+    description: "L3 retro records written"
+    glob: "/tmp/test-retro/.feature/meta/design/*.md"
+
+  - type: file_exists
+    description: "L2 context promoted"
+    glob: "/tmp/test-retro/.feature/context/design/*.md"
+
+  - type: command_exit_code
+    description: "Promoted record appears in L1 summary"
+    command: "grep -l 'naming-convention' /tmp/test-retro/.feature/context/DESIGN.md"
+    expected: 0

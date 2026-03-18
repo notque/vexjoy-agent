@@ -1,0 +1,41 @@
+name: state-manager-operations
+description: |
+  The feature-state.py script handles all lifecycle operations
+  deterministically with correct exit codes and JSON output.
+
+setup:
+  commands:
+    - "mkdir -p /tmp/test-state && cd /tmp/test-state && git init"
+    - "cp -r scripts/feature-state.py /tmp/test-state/scripts/"
+
+execute:
+  commands:
+    - "cd /tmp/test-state && python3 scripts/feature-state.py init 'my cool feature'"
+    - "cd /tmp/test-state && python3 scripts/feature-state.py status"
+    - "cd /tmp/test-state && python3 scripts/feature-state.py status my-cool-feature"
+    - "cd /tmp/test-state && python3 scripts/feature-state.py checkpoint my-cool-feature design"
+    - "cd /tmp/test-state && python3 scripts/feature-state.py advance my-cool-feature"
+    - "cd /tmp/test-state && python3 scripts/feature-state.py status my-cool-feature"
+    - "cd /tmp/test-state && python3 scripts/feature-state.py gate my-cool-feature plan.plan-approval"
+  timeout: 30
+
+graders:
+  - type: command_exit_code
+    description: "Init succeeds"
+    command: "cd /tmp/test-state-verify && python3 scripts/feature-state.py init 'verify-feature'"
+    expected: 0
+
+  - type: json_valid
+    description: "Status output is valid JSON"
+    command: "cd /tmp/test-state && python3 scripts/feature-state.py status"
+
+  - type: string_contains
+    description: "Feature name is slugified correctly"
+    command: "cd /tmp/test-state && python3 scripts/feature-state.py status"
+    strings:
+      - "my-cool-feature"
+
+  - type: command_exit_code
+    description: "Gate returns exit code 2 for human gates"
+    command: "cd /tmp/test-state && python3 scripts/feature-state.py gate my-cool-feature plan.plan-approval"
+    expected: 2

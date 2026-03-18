@@ -1,0 +1,25 @@
+{
+  "name": "rate-limiter",
+  "current_phase": "plan",
+  "phases_completed": ["design"],
+  "created": "2026-03-08T10:00:00",
+  "updated": "2026-03-08T10:30:00",
+  "worktree_path": "",
+  "branch": "feature/rate-limiter",
+  "gates": {
+    "design.intent-discussion": "auto",
+    "design.approach-selection": "auto",
+    "design.design-approval": "auto",
+    "plan.plan-approval": "human",
+    "plan.wave-ordering": "auto",
+    "implement.architectural-deviation": "human",
+    "implement.domain-agent-selection": "auto",
+    "validate.quality-gates": "auto",
+    "validate.test-coverage": "auto",
+    "release.merge-strategy": "human",
+    "retro.l3-records": "auto",
+    "retro.l2-context": "human",
+    "retro.l1-summaries": "human"
+  },
+  "retro_records": {}
+}

@@ -1,0 +1,59 @@
+# Imperative Keywords for PR Comment Detection
+
+## Strong Directives
+should
+must
+please
+required
+mandatory
+needs to
+has to
+
+## Best Practices
+always
+never
+avoid
+don't
+do not
+prefer
+better to
+consider
+recommend
+
+## Pattern Indicators
+use
+instead
+replace
+change to
+switch to
+
+## Standard Violations
+violates
+breaks
+conflicts with
+goes against
+doesn't follow
+
+## Quality Issues
+unclear
+confusing
+misleading
+incorrect
+wrong
+problematic
+
+## Architecture/Design
+couples
+depends on
+tightly
+circular
+layering
+boundary
+
+## Context Phrases
+we use
+our convention
+our standard
+team practice
+established pattern
+consistent with

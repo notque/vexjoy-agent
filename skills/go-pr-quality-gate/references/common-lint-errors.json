@@ -1,0 +1,172 @@
+{
+  "errcheck": {
+    "description": "Unchecked error returns - detects when error values are not checked",
+    "fix": "Check error return values or explicitly ignore with _ = err. Common pattern: if err != nil { return err }",
+    "severity": "high",
+    "example": "resp, err := http.Get(url)\n// Must check: if err != nil { return err }"
+  },
+  "gosec": {
+    "description": "Security vulnerabilities - identifies potential security issues",
+    "fix": "Review security issue and apply recommended fix. Common issues: weak crypto, command injection, SQL injection",
+    "severity": "critical",
+    "reference": "https://github.com/securego/gosec"
+  },
+  "govet": {
+    "description": "Suspicious constructs - reports constructs that look like bugs",
+    "fix": "Review code logic and fix reported issue. Common issues: printf format mismatches, unreachable code, suspicious comparisons",
+    "severity": "high",
+    "reference": "https://pkg.go.dev/cmd/vet"
+  },
+  "staticcheck": {
+    "description": "Static analysis issues - advanced code analysis for bugs and performance",
+    "fix": "Follow staticcheck recommendations for code improvements. Usually indicates real bugs or inefficiencies",
+    "severity": "medium",
+    "reference": "https://staticcheck.io/"
+  },
+  "ineffassign": {
+    "description": "Ineffectual assignments - detects assignments to existing variables that are never used",
+    "fix": "Remove the ineffectual assignment or use the variable. Often indicates dead code",
+    "severity": "low",
+    "example": "x := 5\nx = 10  // If x is never used after this, it's ineffectual"
+  },
+  "unused": {
+    "description": "Unused code - detects unused constants, variables, functions, and types",
+    "fix": "Remove unused code or use it. Helps keep codebase clean",
+    "severity": "low"
+  },
+  "gocritic": {
+    "description": "Opinionated code quality checks - suggests improvements and simplifications",
+    "fix": "Review suggestion and apply if it improves code quality. Often suggests simpler or more idiomatic Go",
+    "severity": "medium",
+    "reference": "https://go-critic.github.io/overview"
+  },
+  "bodyclose": {
+    "description": "HTTP response body not closed - detects HTTP response bodies that are not properly closed",
+    "fix": "Add defer resp.Body.Close() after checking error from HTTP request",
+    "severity": "high",
+    "example": "resp, err := http.Get(url)\nif err != nil { return err }\ndefer resp.Body.Close()"
+  },
+  "errorlint": {
+    "description": "Error wrapping issues - detects incorrect error wrapping patterns",
+    "fix": "Use fmt.Errorf with %w for wrapping errors, %v for non-wrapping. Use errors.Is/As for checking wrapped errors",
+    "severity": "medium",
+    "example": "return fmt.Errorf(\"failed to process: %w\", err)"
+  },
+  "forbidigo": {
+    "description": "Forbidden function/pattern usage - detects use of forbidden functions",
+    "fix": "Replace forbidden function with approved alternative. Common: fmt.Println → logger, panic → error return",
+    "severity": "medium"
+  },
+  "goconst": {
+    "description": "Repeated string/numeric constants - suggests defining constants for repeated values",
+    "fix": "Define a constant for repeated values to improve maintainability",
+    "severity": "low",
+    "example": "const defaultTimeout = 30 * time.Second"
+  },
+  "misspell": {
+    "description": "Misspelled words in code - detects common spelling mistakes",
+    "fix": "Correct the spelling mistake",
+    "severity": "low"
+  },
+  "whitespace": {
+    "description": "Unnecessary whitespace - detects unnecessary blank lines",
+    "fix": "Remove extra blank lines. Usually at start/end of blocks",
+    "severity": "low"
+  },
+  "goimports": {
+    "description": "Import formatting issues - detects improperly formatted or missing imports",
+    "fix": "Run: make goimports (or goimports -w .)",
+    "severity": "low"
+  },
+  "gci": {
+    "description": "Import ordering issues - detects imports not in standard order",
+    "fix": "Run: make goimports to fix import ordering (stdlib, external, local)",
+    "severity": "low"
+  },
+  "revive": {
+    "description": "Linting issues - general purpose linter with many rules",
+    "fix": "Review specific revive rule and apply suggested fix",
+    "severity": "medium",
+    "reference": "https://revive.run/"
+  },
+  "typecheck": {
+    "description": "Type checking errors - detects type errors that prevent compilation",
+    "fix": "Fix type errors - usually indicates incorrect type usage or missing imports",
+    "severity": "critical"
+  },
+  "nilnil": {
+    "description": "Returning nil, nil - detects functions returning both nil values",
+    "fix": "Return meaningful error instead of nil, nil. Pattern: return nil, fmt.Errorf(\"not found\")",
+    "severity": "medium"
+  },
+  "nilerr": {
+    "description": "Returning nil error with non-nil value - detects suspicious error returns",
+    "fix": "Ensure error is non-nil when returning error condition",
+    "severity": "high"
+  },
+  "gofmt": {
+    "description": "Code formatting issues - detects code not formatted with gofmt",
+    "fix": "Run: gofmt -w . or make goimports",
+    "severity": "low"
+  },
+  "gofumpt": {
+    "description": "Stricter gofmt - enforces more strict formatting rules",
+    "fix": "Run: gofumpt -w . or make goimports if gofumpt is configured",
+    "severity": "low"
+  },
+  "unconvert": {
+    "description": "Unnecessary type conversions - detects redundant type conversions",
+    "fix": "Remove unnecessary type conversion",
+    "severity": "low",
+    "example": "int(x) where x is already int"
+  },
+  "unparam": {
+    "description": "Unused function parameters - detects parameters that are never used",
+    "fix": "Remove unused parameter or use _ if required by interface",
+    "severity": "low"
+  },
+  "gosimple": {
+    "description": "Code simplification suggestions - suggests simpler code alternatives",
+    "fix": "Apply suggested simplification to improve code readability",
+    "severity": "low",
+    "reference": "https://staticcheck.io/docs/checks#S"
+  },
+  "durationcheck": {
+    "description": "Duration multiplication issues - detects incorrect duration multiplications",
+    "fix": "Use time.Duration constants correctly: time.Second, time.Millisecond, etc.",
+    "severity": "high",
+    "example": "time.Sleep(5 * time.Second) not time.Sleep(5)"
+  },
+  "exhaustive": {
+    "description": "Exhaustive switch/map - ensures all enum values are handled",
+    "fix": "Add missing cases to switch statement or add default case",
+    "severity": "medium"
+  },
+  "exportloopref": {
+    "description": "Loop variable captured by reference - detects loop variable reference bugs",
+    "fix": "Create local copy of loop variable before using in closure/goroutine",
+    "severity": "high",
+    "example": "for _, item := range items {\n  item := item // Create copy\n  go process(item)\n}"
+  },
+  "noctx": {
+    "description": "Missing context.Context - detects HTTP requests without context",
+    "fix": "Use context-aware HTTP methods: req.WithContext(ctx)",
+    "severity": "medium"
+  },
+  "rowserrcheck": {
+    "description": "SQL rows.Err() not checked - detects unchecked SQL iteration errors",
+    "fix": "Check rows.Err() after rows.Next() loop",
+    "severity": "high",
+    "example": "for rows.Next() { ... }\nif err := rows.Err(); err != nil { return err }"
+  },
+  "sqlclosecheck": {
+    "description": "SQL rows/stmt not closed - detects unclosed database resources",
+    "fix": "Add defer rows.Close() or defer stmt.Close()",
+    "severity": "high"
+  },
+  "wastedassign": {
+    "description": "Wasted assignment - detects assignments that are overwritten before use",
+    "fix": "Remove the wasted assignment or fix the logic",
+    "severity": "low"
+  }
+}

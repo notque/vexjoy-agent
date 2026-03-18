@@ -1,0 +1,224 @@
+{
+  "version": "1.0.0",
+  "description": "Language detection and tool configuration for universal quality gate",
+  "languages": {
+    "python": {
+      "extensions": [".py"],
+      "markers": ["pyproject.toml", "requirements.txt", "setup.py", "Pipfile"],
+      "tools": {
+        "lint": {
+          "cmd": "ruff check {files}",
+          "fix_cmd": "ruff check --fix {files}",
+          "optional": true,
+          "description": "Fast Python linter"
+        },
+        "format": {
+          "cmd": "ruff format --check {files}",
+          "fix_cmd": "ruff format {files}",
+          "optional": true,
+          "description": "Code formatting check"
+        },
+        "typecheck": {
+          "cmd": "mypy {files}",
+          "optional": true,
+          "condition": "has_mypy_config",
+          "description": "Static type checking"
+        },
+        "security": {
+          "cmd": "bandit -r {files}",
+          "optional": true,
+          "description": "Security vulnerability scanner"
+        }
+      },
+      "patterns": {
+        "unused_variable": {"code": "F841", "severity": "warning"},
+        "unused_import": {"code": "F401", "severity": "warning"},
+        "syntax_error": {"code": "E999", "severity": "error"},
+        "undefined_name": {"code": "F821", "severity": "error"}
+      }
+    },
+    "go": {
+      "extensions": [".go"],
+      "markers": ["go.mod", "go.sum"],
+      "tools": {
+        "format": {
+          "cmd": "gofmt -l {files}",
+          "fix_cmd": "gofmt -w {files}",
+          "description": "Go code formatting"
+        },
+        "lint": {
+          "cmd": "golangci-lint run {files}",
+          "optional": true,
+          "description": "Comprehensive Go linter"
+        },
+        "vet": {
+          "cmd": "go vet {files}",
+          "optional": true,
+          "description": "Go static analysis"
+        },
+        "build": {
+          "cmd": "go build ./...",
+          "description": "Verify compilation"
+        }
+      },
+      "patterns": {
+        "unused_variable": {"pattern": "declared but not used", "severity": "error"},
+        "unused_import": {"pattern": "imported but not used", "severity": "error"}
+      }
+    },
+    "javascript": {
+      "extensions": [".js", ".jsx", ".mjs", ".cjs"],
+      "markers": ["package.json"],
+      "tools": {
+        "lint": {
+          "cmd": "npx eslint {files}",
+          "fix_cmd": "npx eslint --fix {files}",
+          "optional": true,
+          "description": "JavaScript linter"
+        },
+        "format": {
+          "cmd": "npx biome check {files}",
+          "fix_cmd": "npx biome check --write {files}",
+          "optional": true,
+          "description": "Biome formatter/linter"
+        }
+      },
+      "patterns": {
+        "unused_variable": {"pattern": "is defined but never used", "severity": "warning"},
+        "no_var": {"pattern": "Unexpected var", "severity": "warning"}
+      }
+    },
+    "typescript": {
+      "extensions": [".ts", ".tsx"],
+      "markers": ["tsconfig.json"],
+      "tools": {
+        "typecheck": {
+          "cmd": "npx tsc --noEmit",
+          "optional": true,
+          "description": "TypeScript type checking"
+        },
+        "lint": {
+          "cmd": "npx eslint {files}",
+          "fix_cmd": "npx eslint --fix {files}",
+          "optional": true,
+          "description": "TypeScript linter"
+        },
+        "format": {
+          "cmd": "npx biome check {files}",
+          "fix_cmd": "npx biome check --write {files}",
+          "optional": true,
+          "description": "Biome formatter/linter"
+        }
+      }
+    },
+    "rust": {
+      "extensions": [".rs"],
+      "markers": ["Cargo.toml"],
+      "tools": {
+        "lint": {
+          "cmd": "cargo clippy -- -D warnings",
+          "optional": true,
+          "description": "Rust linter (operates on entire Cargo workspace)"
+        },
+        "format": {
+          "cmd": "cargo fmt -- --check",
+          "fix_cmd": "cargo fmt",
+          "optional": true,
+          "description": "Rust formatter (operates on entire Cargo workspace)"
+        },
+        "build": {
+          "cmd": "cargo build",
+          "optional": true,
+          "description": "Verify compilation"
+        }
+      }
+    },
+    "ruby": {
+      "extensions": [".rb"],
+      "markers": ["Gemfile", ".ruby-version"],
+      "tools": {
+        "lint": {
+          "cmd": "rubocop {files}",
+          "fix_cmd": "rubocop -a {files}",
+          "optional": true,
+          "description": "Ruby linter"
+        }
+      }
+    },
+    "java": {
+      "extensions": [".java"],
+      "markers": ["pom.xml", "build.gradle"],
+      "tools": {
+        "lint": {
+          "cmd": "npx pmd check -d {files} -R rulesets/java/quickstart.xml",
+          "optional": true,
+          "description": "PMD static analysis"
+        },
+        "format": {
+          "cmd": "google-java-format --dry-run {files}",
+          "fix_cmd": "google-java-format -i {files}",
+          "optional": true,
+          "description": "Google Java formatter"
+        }
+      }
+    },
+    "shell": {
+      "extensions": [".sh", ".bash"],
+      "markers": [],
+      "tools": {
+        "lint": {
+          "cmd": "shellcheck {files}",
+          "optional": true,
+          "description": "Shell script linter"
+        }
+      }
+    },
+    "yaml": {
+      "extensions": [".yml", ".yaml"],
+      "markers": [],
+      "tools": {
+        "lint": {
+          "cmd": "yamllint {files}",
+          "optional": true,
+          "description": "YAML linter"
+        }
+      }
+    },
+    "markdown": {
+      "extensions": [".md"],
+      "markers": [],
+      "tools": {
+        "lint": {
+          "cmd": "npx markdownlint {files}",
+          "fix_cmd": "npx markdownlint --fix {files}",
+          "optional": true,
+          "description": "Markdown linter"
+        }
+      }
+    }
+  },
+  "fallback": {
+    "description": "For unrecognized languages, use AI-only analysis",
+    "tools": {}
+  },
+  "global_patterns": {
+    "silent_except": {
+      "pattern": "except.*:\\s*(pass|\\.\\.\\.)\\s*$",
+      "languages": ["python"],
+      "severity": "warning",
+      "message": "Silent exception handler - add explanatory comment"
+    },
+    "todo_fixme": {
+      "pattern": "(TODO|FIXME|XXX|HACK):",
+      "languages": ["*"],
+      "severity": "info",
+      "message": "Unresolved TODO comment"
+    },
+    "debug_print": {
+      "pattern": "(console\\.log|print\\(|fmt\\.Print)",
+      "languages": ["javascript", "typescript", "python", "go"],
+      "severity": "warning",
+      "message": "Debug statement - remove before commit"
+    }
+  }
+}

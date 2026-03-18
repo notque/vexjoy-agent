@@ -1,0 +1,1535 @@
+{
+  "version": "1.1",
+  "generated": "2026-03-18T03:57:08Z",
+  "generated_by": "scripts/generate-skill-index.py",
+  "skills": [
+    {
+      "name": "python-doc-generator",
+      "description": "Generate comprehensive technical documentation for a Python source file using AST extraction, parallel multi-agent research, structured generation, and deterministic verification.",
+      "file": "skills/ab-test-b-pipeline/SKILL.md",
+      "triggers": [
+        "python-doc-generator",
+        "python",
+        "doc",
+        "generator"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "agent-comparison",
+      "description": "A/B test agent variants measuring quality and total session token cost across simple and complex benchmarks.",
+      "file": "skills/agent-comparison/SKILL.md",
+      "triggers": [
+        "agent-comparison",
+        "agent",
+        "comparison"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "agent-evaluation",
+      "description": "Evaluate agents and skills for quality, completeness, and standards compliance using a 6-step rubric: Identify, Structural, Content, Code, Integration, Report.",
+      "file": "skills/agent-evaluation/SKILL.md",
+      "triggers": [
+        "agent-evaluation",
+        "agent",
+        "evaluation"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "agent-upgrade",
+      "description": "5-phase pipeline for systematically improving an existing agent or skill: AUDIT \u2192 DIFF \u2192 PLAN \u2192 IMPLEMENT \u2192 RE-EVALUATE.",
+      "file": "skills/agent-upgrade/SKILL.md",
+      "triggers": [
+        "agent-upgrade",
+        "agent",
+        "upgrade"
+      ],
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "anti-ai-editor",
+      "description": "Review and revise content to remove AI-sounding patterns.",
+      "file": "skills/anti-ai-editor/SKILL.md",
+      "triggers": [
+        "anti-ai-editor",
+        "anti",
+        "editor"
+      ],
+      "version": "2.1.0",
+      "user-invocable": false
+    },
+    {
+      "name": "article-evaluation-pipeline",
+      "description": "Wabi-sabi-aware 4-phase article evaluation: Fetch, Validate, Analyze, Report.",
+      "file": "skills/article-evaluation-pipeline/SKILL.md",
+      "triggers": [
+        "evaluate article",
+        "check article voice",
+        "is this authentic",
+        "review my article",
+        "voice evaluation",
+        "article evaluation",
+        "check my voice"
+      ],
+      "category": "content-validation",
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "batch-editor",
+      "description": "Safe bulk editing across multiple Hugo markdown posts: find/replace, frontmatter updates, content transforms with mandatory preview before apply.",
+      "file": "skills/batch-editor/SKILL.md",
+      "triggers": [
+        "batch-editor",
+        "batch",
+        "editor"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "blog-post-writer",
+      "description": "Voice-integrated blog post creation with 4-phase workflow: Assess, Decide, Draft, Preview.",
+      "file": "skills/blog-post-writer/SKILL.md",
+      "triggers": [
+        "blog-post-writer",
+        "blog",
+        "post",
+        "writer"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "bluesky-reader",
+      "description": "Read public Bluesky feeds via the AT Protocol API.",
+      "file": "skills/bluesky-reader/SKILL.md",
+      "triggers": [
+        "bluesky-reader",
+        "bluesky",
+        "reader"
+      ],
+      "version": "1.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "branch-naming",
+      "description": "Generate and validate Git branch names from commit messages or descriptions.",
+      "file": "skills/branch-naming/SKILL.md",
+      "triggers": [
+        "branch-naming",
+        "branch",
+        "naming"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "chain-composer",
+      "description": "Compose valid pipeline chains from the step menu for each subdomain in a Component Manifest.",
+      "file": "skills/chain-composer/SKILL.md",
+      "triggers": [
+        "compose chains",
+        "build pipeline chains",
+        "chain composition",
+        "pipeline spec",
+        "compose pipeline"
+      ],
+      "category": "meta",
+      "version": "1.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "checkpoint-context",
+      "description": "Structured session state capture before context compaction: task progress, decisions, files, debugging state, and next steps.",
+      "file": "skills/checkpoint-context/SKILL.md",
+      "triggers": [
+        "checkpoint-context",
+        "checkpoint",
+        "context"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "code-cleanup",
+      "description": "Systematic detection and prioritization of neglected code quality issues: stale TODOs, unused imports, deprecated functions, high complexity, dead code.",
+      "file": "skills/code-cleanup/SKILL.md",
+      "triggers": [
+        "code-cleanup",
+        "code",
+        "cleanup"
+      ],
+      "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "code-linting",
+      "description": "Run Python (ruff) and JavaScript (Biome) linting, formatting, and code quality checks with auto-fix support.",
+      "file": "skills/code-linting/SKILL.md",
+      "triggers": [
+        "code-linting",
+        "code",
+        "linting"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "codebase-analyzer",
+      "description": "Statistical rule discovery through measurement of Go codebases: Count patterns, derive confidence-scored rules, produce Style Vector fingerprint.",
+      "file": "skills/codebase-analyzer/SKILL.md",
+      "triggers": [
+        "codebase-analyzer",
+        "codebase",
+        "analyzer"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "codebase-overview",
+      "description": "Systematic 4-phase codebase exploration: Detect, Explore, Map, Summarize.",
+      "file": "skills/codebase-overview/SKILL.md",
+      "triggers": [
+        "codebase-overview",
+        "codebase",
+        "overview"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "comment-quality",
+      "description": "Review and fix comments containing temporal references, development-activity language, or relative comparisons.",
+      "file": "skills/comment-quality/SKILL.md",
+      "triggers": [
+        "comment-quality",
+        "comment",
+        "quality"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "comprehensive-review",
+      "description": "Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per package for deep per-package analysis.",
+      "file": "skills/comprehensive-review/SKILL.md",
+      "triggers": [
+        "comprehensive review",
+        "full review",
+        "review everything",
+        "review and fix",
+        "thorough review",
+        "multi-agent review",
+        "complete code review",
+        "20-agent review",
+        "per-package review",
+        "3-wave review"
+      ],
+      "category": "review",
+      "version": "3.2.0",
+      "user-invocable": true
+    },
+    {
+      "name": "condition-based-waiting",
+      "description": "Condition-based polling and retry patterns: exponential backoff, health checks, rate limit recovery, circuit breakers.",
+      "file": "skills/condition-based-waiting/SKILL.md",
+      "triggers": [
+        "condition-based-waiting",
+        "condition",
+        "based",
+        "waiting"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "content-calendar",
+      "description": "Manage editorial content pipeline through 6 stages: Ideas, Outlined, Drafted, Editing, Ready, Published.",
+      "file": "skills/content-calendar/SKILL.md",
+      "triggers": [
+        "content-calendar",
+        "content",
+        "calendar"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "create-voice",
+      "description": "Create a new voice profile from writing samples.",
+      "file": "skills/create-voice/SKILL.md",
+      "triggers": [
+        "create voice",
+        "new voice",
+        "build voice",
+        "voice from samples",
+        "calibrate voice",
+        "voice profile from scratch",
+        "make a voice"
+      ],
+      "category": "content",
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "cron-job-auditor",
+      "description": "Deterministic audit of cron/scheduled job scripts for reliability, error handling, logging, cleanup, and concurrency safety.",
+      "file": "skills/cron-job-auditor/SKILL.md",
+      "triggers": [
+        "cron-job-auditor",
+        "cron",
+        "job",
+        "auditor"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "data-analysis",
+      "description": "Decision-first data analysis with statistical rigor gates.",
+      "file": "skills/data-analysis/SKILL.md",
+      "triggers": [
+        "analyze data",
+        "data analysis",
+        "CSV",
+        "dataset",
+        "metrics",
+        "trend",
+        "cohort",
+        "A/B test",
+        "statistical",
+        "distribution",
+        "correlation",
+        "KPI",
+        "funnel",
+        "experiment results"
+      ],
+      "category": "analysis",
+      "version": "1.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "dispatching-parallel-agents",
+      "description": "Dispatch independent subagents in parallel for unrelated problems spanning different subsystems.",
+      "file": "skills/dispatching-parallel-agents/SKILL.md",
+      "triggers": [
+        "dispatching-parallel-agents",
+        "dispatching",
+        "parallel",
+        "agents"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "distinctive-frontend-design",
+      "description": "Context-driven aesthetic exploration with anti-cliche validation: typography, color, animation, atmosphere.",
+      "file": "skills/distinctive-frontend-design/SKILL.md",
+      "triggers": [
+        "distinctive-frontend-design",
+        "distinctive",
+        "frontend",
+        "design"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "do",
+      "description": "Classify user requests and route to the correct agent + skill combination.",
+      "file": "skills/do/SKILL.md",
+      "triggers": [
+        "do"
+      ],
+      "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "do-parallel",
+      "description": "Spawn 10 independent parallel agents to analyze source material from distinct perspectives, synthesize findings, and apply improvements to a target agent or skill.",
+      "file": "skills/do-parallel/SKILL.md",
+      "triggers": [
+        "do-parallel",
+        "parallel"
+      ],
+      "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "do-perspectives",
+      "description": "Inline multi-perspective analysis: 10 analytical lenses applied sequentially in a single session to extract patterns and improve agents or skills.",
+      "file": "skills/do-perspectives/SKILL.md",
+      "triggers": [
+        "do-perspectives",
+        "perspectives"
+      ],
+      "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "doc-pipeline",
+      "description": "Structured 5-phase documentation pipeline: Research, Outline, Generate, Verify, Output.",
+      "file": "skills/doc-pipeline/SKILL.md",
+      "triggers": [
+        "document this",
+        "create readme",
+        "write documentation",
+        "document codebase",
+        "generate docs",
+        "technical documentation"
+      ],
+      "category": "documentation",
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "docs-sync-checker",
+      "description": "Deterministic 4-phase documentation drift detector: Scan, Cross-Reference, Detect, Report.",
+      "file": "skills/docs-sync-checker/SKILL.md",
+      "triggers": [
+        "docs-sync-checker",
+        "docs",
+        "sync",
+        "checker"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "domain-research",
+      "description": "Discover and classify subdomains within a target domain for pipeline generation.",
+      "file": "skills/domain-research/SKILL.md",
+      "triggers": [
+        "research domain",
+        "discover subdomains",
+        "domain decomposition",
+        "what pipelines",
+        "domain research"
+      ],
+      "category": "meta",
+      "version": "1.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "endpoint-validator",
+      "description": "Deterministic API endpoint validation with structured pass/fail reporting.",
+      "file": "skills/endpoint-validator/SKILL.md",
+      "triggers": [
+        "endpoint-validator",
+        "endpoint",
+        "validator"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "explore-pipeline",
+      "description": "Systematic 4-phase codebase exploration pipeline: Scan, Map, Analyze, Report with parallel subagents.",
+      "file": "skills/explore-pipeline/SKILL.md",
+      "triggers": [
+        "understand codebase",
+        "explore repo",
+        "how does this work",
+        "codebase exploration",
+        "understand this code",
+        "map architecture"
+      ],
+      "category": "exploration",
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "feature-design",
+      "description": "Collaborative design phase for feature lifecycle: explore requirements, discuss trade-offs, produce design document.",
+      "file": "skills/feature-design/SKILL.md",
+      "triggers": [
+        "feature design",
+        "design feature",
+        "think through",
+        "explore approaches",
+        "design first",
+        "feature-design"
+      ],
+      "category": "process",
+      "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "feature-implement",
+      "description": "Execute wave-ordered implementation plan by dispatching tasks to domain agents.",
+      "file": "skills/feature-implement/SKILL.md",
+      "triggers": [
+        "feature implement",
+        "implement feature",
+        "execute plan",
+        "start building",
+        "feature-implement"
+      ],
+      "category": "process",
+      "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "feature-plan",
+      "description": "Break a design document into wave-ordered implementation tasks with domain agent assignments.",
+      "file": "skills/feature-plan/SKILL.md",
+      "triggers": [
+        "feature plan",
+        "plan feature",
+        "break down design",
+        "create tasks",
+        "feature-plan"
+      ],
+      "category": "process",
+      "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "feature-release",
+      "description": "Merge validated feature to main via PR, tag release, cleanup worktree.",
+      "file": "skills/feature-release/SKILL.md",
+      "triggers": [
+        "feature release",
+        "release feature",
+        "merge feature",
+        "ship it",
+        "feature-release"
+      ],
+      "category": "process",
+      "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "feature-validate",
+      "description": "Run quality gates on implemented feature: tests, lint, type checks, and custom validation.",
+      "file": "skills/feature-validate/SKILL.md",
+      "triggers": [
+        "feature validate",
+        "validate feature",
+        "run quality gates",
+        "check feature",
+        "feature-validate"
+      ],
+      "category": "process",
+      "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "fish-shell-config",
+      "description": "Fish shell configuration: config.fish, functions, abbreviations, variable scoping, conf.d modules, and PATH management.",
+      "file": "skills/fish-shell-config/SKILL.md",
+      "triggers": [
+        "fish",
+        "fish shell",
+        "config.fish",
+        "abbr",
+        "fish function",
+        "fish_config",
+        "fish_variables",
+        "funced",
+        "funcsave",
+        "~/.config/fish",
+        "conf.d",
+        "fish abbreviation",
+        ".fish file",
+        "#!/usr/bin/env fish"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "gemini-image-generator",
+      "description": "CLI-based image generation from text prompts using Google Gemini APIs via Python.",
+      "file": "skills/gemini-image-generator/SKILL.md",
+      "triggers": [
+        "generate image",
+        "create image with AI",
+        "gemini image",
+        "text to image",
+        "python image generation",
+        "create sprite",
+        "generate character art"
+      ],
+      "category": "image-generation",
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "git-commit-flow",
+      "description": "Phase-gated git commit workflow with validation, staging, and CLAUDE.md compliance enforcement.",
+      "file": "skills/git-commit-flow/SKILL.md",
+      "triggers": [
+        "git-commit-flow",
+        "git",
+        "commit",
+        "flow"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "github-actions-check",
+      "description": "Check GitHub Actions workflow status after git push using gh CLI.",
+      "file": "skills/github-actions-check/SKILL.md",
+      "triggers": [
+        "github-actions-check",
+        "github",
+        "actions",
+        "check"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "github-profile-rules",
+      "description": "Extract programming rules and coding conventions from a GitHub user's public profile via API.",
+      "file": "skills/github-profile-rules/SKILL.md",
+      "triggers": [
+        "github-profile-rules",
+        "github",
+        "profile",
+        "rules"
+      ],
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "go-anti-patterns",
+      "description": "Detect and remediate Go anti-patterns: premature interface abstraction, goroutine overkill, context soup, error wrapping mistakes, generic abuse, c...",
+      "file": "skills/go-anti-patterns/SKILL.md",
+      "triggers": [
+        "anti-pattern",
+        "Go mistake",
+        "bad Go",
+        "Go smell",
+        "code smell",
+        "premature abstraction",
+        "over-engineering",
+        "unnecessary complexity"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "go-code-review",
+      "description": "Go-specific code review with 6-phase methodology: Context, Automated Checks, Quality Analysis, Specific Analysis, Line-by-Line, Documentation.",
+      "file": "skills/go-code-review/SKILL.md",
+      "triggers": [
+        "review Go",
+        "Go PR",
+        "Go code review",
+        "review .go",
+        "check Go code",
+        "Go quality"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "go-concurrency",
+      "description": "Go concurrency patterns and primitives: goroutines, channels, sync primitives, worker pools, rate limiting, context propagation.",
+      "file": "skills/go-concurrency/SKILL.md",
+      "triggers": [
+        "goroutine",
+        "channel",
+        "chan",
+        "sync.Mutex",
+        "sync.WaitGroup",
+        "worker pool",
+        "fan-out",
+        "fan-in",
+        "rate limit",
+        "concurrent",
+        "parallel",
+        "context.Context",
+        "race condition",
+        "deadlock"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "go-error-handling",
+      "description": "Go error handling patterns: wrapping with context, sentinel errors, custom error types, errors.Is/As chains, and HTTP error mapping.",
+      "file": "skills/go-error-handling/SKILL.md",
+      "triggers": [
+        "error handling",
+        "fmt.Errorf",
+        "errors.Is",
+        "errors.As",
+        "error wrapping",
+        "%w",
+        "sentinel error",
+        "custom error",
+        "error context"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "go-pr-quality-gate",
+      "description": "Run Go quality checks via make check with intelligent error categorization and actionable fix suggestions.",
+      "file": "skills/go-pr-quality-gate/SKILL.md",
+      "triggers": [
+        "go-pr-quality-gate",
+        "quality",
+        "gate"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "go-testing",
+      "description": "Go testing patterns and methodology: table-driven tests, t.Run subtests, t.Helper helpers, mocking interfaces, benchmarks, race detection, and synctest.",
+      "file": "skills/go-testing/SKILL.md",
+      "triggers": [
+        "go test",
+        "Go test",
+        "*_test.go",
+        "testing",
+        "table-driven",
+        "t.Run",
+        "t.Helper",
+        "benchmark",
+        "mock",
+        "test coverage",
+        "race detection"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "hook-development-pipeline",
+      "description": "Formal 5-phase pipeline for creating production-quality hooks with mandatory performance gates: SPEC \u2192 IMPLEMENT \u2192 TEST \u2192 REGISTER \u2192 DOCUMENT.",
+      "file": "skills/hook-development-pipeline/SKILL.md",
+      "triggers": [
+        "hook-development-pipeline",
+        "hook",
+        "development"
+      ],
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "image-auditor",
+      "description": "Non-destructive 4-phase image validation: Discover, Validate, Analyze, Report.",
+      "file": "skills/image-auditor/SKILL.md",
+      "triggers": [
+        "image-auditor",
+        "image",
+        "auditor"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "image-to-video",
+      "description": "FFmpeg-based 4-step video creation: Validate, Prepare, Encode, Verify.",
+      "file": "skills/image-to-video/SKILL.md",
+      "triggers": [
+        "image to video",
+        "audio visualization",
+        "static video",
+        "mp4 from image",
+        "music video",
+        "podcast video",
+        "video from image",
+        "combine image audio",
+        "album art video",
+        "cover art video"
+      ],
+      "category": "video-creation",
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "learn",
+      "description": "Manually teach Claude Code an error pattern and its solution, storing it in the learning database with high confidence.",
+      "file": "skills/learn/SKILL.md",
+      "triggers": [
+        "learn",
+        "learn"
+      ],
+      "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "link-auditor",
+      "description": "Hugo site link health analysis: scan markdown, build internal link graph, validate paths, and report issues.",
+      "file": "skills/link-auditor/SKILL.md",
+      "triggers": [
+        "link-auditor",
+        "link",
+        "auditor"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "mcp-pipeline-builder",
+      "description": "Convert any repository into a registered MCP server: ANALYZE \u2192 DESIGN \u2192 GENERATE \u2192 VALIDATE \u2192 EVALUATE \u2192 REGISTER.",
+      "file": "skills/mcp-pipeline-builder/SKILL.md",
+      "triggers": [
+        "mcp pipeline",
+        "repo to mcp",
+        "create mcp from repo",
+        "generate mcp",
+        "mcp builder",
+        "mcp from repo"
+      ],
+      "category": "pipeline",
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "nano-banana-builder",
+      "description": "Build Next.js web applications with Google Gemini Nano Banana image generation APIs (gemini-2.5-flash-image, gemini-3-pro-image-preview).",
+      "file": "skills/nano-banana-builder/SKILL.md",
+      "triggers": [
+        "nano banana",
+        "gemini image generation",
+        "AI image generator",
+        "image generation app",
+        "gemini-2.5-flash-image",
+        "gemini-3-pro-image-preview",
+        "text to image"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "parallel-code-review",
+      "description": "Parallel 3-reviewer code review orchestration: launch Security, Business-Logic, and Architecture reviewers simultaneously, aggregate findings by se...",
+      "file": "skills/parallel-code-review/SKILL.md",
+      "triggers": [
+        "parallel-code-review",
+        "parallel",
+        "code",
+        "review"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "pipeline-retro",
+      "description": "Trace pipeline test failures to generator root causes and propose fixes using the Three-Layer Pattern: skip artifact fixes (Layer 1), propose gener...",
+      "file": "skills/pipeline-retro/SKILL.md",
+      "triggers": [
+        "pipeline retro",
+        "trace failures",
+        "generator improvement",
+        "three-layer fix",
+        "fix generator"
+      ],
+      "category": "meta",
+      "version": "1.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "pipeline-scaffolder",
+      "description": "Scaffold pipeline components from a Pipeline Spec JSON: N subdomain skills, 0-1 agents, reference files, scripts, hooks, and routing entries.",
+      "file": "skills/pipeline-scaffolder/SKILL.md",
+      "triggers": [
+        "pipeline-scaffolder",
+        "scaffolder"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "pipeline-test-runner",
+      "description": "Test generated pipeline skills against real targets.",
+      "file": "skills/pipeline-test-runner/SKILL.md",
+      "triggers": [
+        "test generated pipelines",
+        "run pipeline tests",
+        "validate scaffolded skills",
+        "pipeline test runner"
+      ],
+      "category": "meta",
+      "version": "1.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "plan-manager",
+      "description": "Deterministic plan lifecycle management via scripts/plan-manager.py CLI.",
+      "file": "skills/plan-manager/SKILL.md",
+      "triggers": [
+        "plan-manager",
+        "plan",
+        "manager"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "planning-with-files",
+      "description": "Persistent markdown files as working memory for complex tasks: plan, track progress, store findings.",
+      "file": "skills/planning-with-files/SKILL.md",
+      "triggers": [
+        "planning-with-files",
+        "planning",
+        "files"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "plans",
+      "description": "Deterministic plan lifecycle management via scripts/plan-manager.py: create, track, check, complete, and abandon task plans.",
+      "file": "skills/plans/SKILL.md",
+      "triggers": [
+        "plans",
+        "plans"
+      ],
+      "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "post-outliner",
+      "description": "Create structural blueprints for blog posts before writing.",
+      "file": "skills/post-outliner/SKILL.md",
+      "triggers": [
+        "post-outliner",
+        "post",
+        "outliner"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "pptx-generator",
+      "description": "6-phase PPTX presentation generation with visual QA: Gather, Design, Generate, Convert, QA, Output.",
+      "file": "skills/pptx-generator/SKILL.md",
+      "triggers": [
+        "presentation",
+        "powerpoint",
+        "pptx",
+        "slide deck",
+        "pitch deck",
+        "slides",
+        "create slides",
+        "generate presentation",
+        "make a deck",
+        "conference talk slides"
+      ],
+      "category": "content-generation",
+      "version": "1.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "pr-cleanup",
+      "description": "Local branch cleanup after PR merge: identify, switch, delete, prune in 4 steps.",
+      "file": "skills/pr-cleanup/SKILL.md",
+      "triggers": [
+        "pr-cleanup",
+        "cleanup"
+      ],
+      "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "pr-fix",
+      "description": "Validate-then-fix workflow for PR review comments: Fetch, Validate, Plan, Fix, Commit.",
+      "file": "skills/pr-fix/SKILL.md",
+      "triggers": [
+        "pr-fix",
+        "fix"
+      ],
+      "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "pr-miner",
+      "description": "Deterministic 3-phase GitHub PR review comment extraction: Authenticate, Mine, Validate.",
+      "file": "skills/pr-miner/SKILL.md",
+      "triggers": [
+        "pr-miner",
+        "miner"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "pr-mining-coordinator",
+      "description": "Coordinate PR mining to extract tribal knowledge and coding standards from GitHub PR history.",
+      "file": "skills/pr-mining-coordinator/SKILL.md",
+      "triggers": [
+        "pr-mining-coordinator",
+        "mining",
+        "coordinator"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "pr-pipeline",
+      "description": "End-to-end pipeline for creating pull requests: Classify Repo, Stage, Review, Commit, Push, Review-Fix Loop (max 3), Create, Verify.",
+      "file": "skills/pr-pipeline/SKILL.md",
+      "triggers": [
+        "submit PR",
+        "create pull request",
+        "send for review",
+        "push and PR",
+        "submit changes",
+        "open PR"
+      ],
+      "category": "git-workflow",
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "pr-review-address-feedback",
+      "description": "Fetch PR feedback from all GitHub sources and validate every comment before acting.",
+      "file": "skills/pr-review-address-feedback/SKILL.md",
+      "triggers": [
+        "pr-review-address-feedback",
+        "review",
+        "address",
+        "feedback"
+      ],
+      "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "pr-status",
+      "description": "Quick status check for current branch and PR state showing local changes, CI results, reviews, and merge readiness.",
+      "file": "skills/pr-status/SKILL.md",
+      "triggers": [
+        "pr-status",
+        "status"
+      ],
+      "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "pr-sync",
+      "description": "Sync local changes to GitHub in one command: detect state, branch, commit, push, create PR.",
+      "file": "skills/pr-sync/SKILL.md",
+      "triggers": [
+        "pr-sync",
+        "sync"
+      ],
+      "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "pre-publish-checker",
+      "description": "Pre-publication validation for Hugo posts: front matter, SEO, links, images, draft status, and taxonomy.",
+      "file": "skills/pre-publish-checker/SKILL.md",
+      "triggers": [
+        "pre-publish-checker",
+        "pre",
+        "publish",
+        "checker"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "professional-communication",
+      "description": "Transform dense technical communication into clear, structured business formats using proposition extraction and deterministic templates.",
+      "file": "skills/professional-communication/SKILL.md",
+      "triggers": [
+        "professional-communication",
+        "professional",
+        "communication"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "python-quality-gate",
+      "description": "Run Python quality checks with ruff, pytest, mypy, and bandit in deterministic order.",
+      "file": "skills/python-quality-gate/SKILL.md",
+      "triggers": [
+        "python-quality-gate",
+        "python",
+        "quality",
+        "gate"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "read-only-ops",
+      "description": "Read-only exploration, status checks, and reporting without modifications.",
+      "file": "skills/read-only-ops/SKILL.md",
+      "triggers": [
+        "read-only-ops",
+        "read",
+        "only",
+        "ops"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "research-pipeline",
+      "description": "Formal 5-phase research pipeline with artifact saving and source quality gates: SCOPE \u2192 GATHER \u2192 SYNTHESIZE \u2192 VALIDATE \u2192 DELIVER.",
+      "file": "skills/research-pipeline/SKILL.md",
+      "triggers": [
+        "research-pipeline",
+        "research"
+      ],
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "research-to-article",
+      "description": "Multi-agent research pipeline for voice content generation.",
+      "file": "skills/research-to-article/SKILL.md",
+      "triggers": [
+        "research then write",
+        "article with research",
+        "write about",
+        "research and article",
+        "full article pipeline",
+        "comprehensive article"
+      ],
+      "category": "content-pipeline",
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "retro",
+      "description": "Interact with the retro knowledge system: audit L2 files, list accumulated knowledge, fix hygiene issues, check injection health, and graduate mature knowledge into specific agents/skills.",
+      "file": "skills/retro/SKILL.md",
+      "triggers": [
+        "retro",
+        "retro"
+      ],
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "retro-pipeline",
+      "description": "5-phase retro orchestration pipeline: Walk, Merge, Gate, Apply, Report.",
+      "file": "skills/retro-pipeline/SKILL.md",
+      "triggers": [
+        "retro pipeline",
+        "run retro",
+        "phase checkpoint retro",
+        "retro checkpoint"
+      ],
+      "category": "process",
+      "version": "1.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "roast",
+      "description": "Constructive critique through 5 HackerNews commenter personas with evidence-based claim validation.",
+      "file": "skills/roast/SKILL.md",
+      "triggers": [
+        "roast",
+        "roast"
+      ],
+      "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "routing-table-updater",
+      "description": "Maintain /do routing tables and command references when skills or agents are added, modified, or removed.",
+      "file": "skills/routing-table-updater/SKILL.md",
+      "triggers": [
+        "routing-table-updater",
+        "routing",
+        "table",
+        "updater"
+      ],
+      "version": "2.1.0",
+      "user-invocable": false
+    },
+    {
+      "name": "seo-optimizer",
+      "description": "Analyze and optimize blog post SEO: keywords, titles, meta descriptions, headers, and internal linking.",
+      "file": "skills/seo-optimizer/SKILL.md",
+      "triggers": [
+        "seo-optimizer",
+        "seo",
+        "optimizer"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "series-planner",
+      "description": "Plan multi-part content series with structure, cross-linking, and publishing cadence.",
+      "file": "skills/series-planner/SKILL.md",
+      "triggers": [
+        "series-planner",
+        "series",
+        "planner"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "service-health-check",
+      "description": "Deterministic 3-phase service health monitoring: Discover, Check, Report.",
+      "file": "skills/service-health-check/SKILL.md",
+      "triggers": [
+        "service-health-check",
+        "service",
+        "health",
+        "check"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "skill-composer",
+      "description": "DAG-based multi-skill orchestration: Discover, Plan, Validate, Execute.",
+      "file": "skills/skill-composer/SKILL.md",
+      "triggers": [
+        "skill-composer",
+        "composer"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "skill-creation-pipeline",
+      "description": "Formal 5-phase pipeline for creating new skills with quality gates: DISCOVER \u2192 DESIGN \u2192 SCAFFOLD \u2192 VALIDATE \u2192 INTEGRATE.",
+      "file": "skills/skill-creation-pipeline/SKILL.md",
+      "triggers": [
+        "skill-creation-pipeline",
+        "creation"
+      ],
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "skill-eval",
+      "description": "Evaluate and improve skills through measured testing.",
+      "file": "skills/skill-eval/SKILL.md",
+      "triggers": [
+        "improve skill",
+        "test skill",
+        "eval skill",
+        "optimize description",
+        "benchmark skill",
+        "skill triggers",
+        "skill quality"
+      ],
+      "category": "meta",
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "subagent-driven-development",
+      "description": "Fresh-subagent-per-task execution with two-stage review (spec compliance + code quality).",
+      "file": "skills/subagent-driven-development/SKILL.md",
+      "triggers": [
+        "subagent-driven-development",
+        "subagent",
+        "driven",
+        "development"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "system-upgrade",
+      "description": "Systematic 6-phase pipeline for adapting agents, skills, hooks, and scripts to external changes: Claude Code releases, user goal shifts, or retro-driven upgrades.",
+      "file": "skills/system-upgrade/SKILL.md",
+      "triggers": [
+        "system-upgrade",
+        "system",
+        "upgrade"
+      ],
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "systematic-code-review",
+      "description": "4-phase code review methodology: UNDERSTAND changes, VERIFY claims against code, ASSESS security/performance/architecture risks, DOCUMENT findings with severity classification.",
+      "file": "skills/systematic-code-review/SKILL.md",
+      "triggers": [
+        "systematic-code-review",
+        "systematic",
+        "code",
+        "review"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "systematic-debugging",
+      "description": "Evidence-based 4-phase root cause analysis: Reproduce, Isolate, Identify, Verify.",
+      "file": "skills/systematic-debugging/SKILL.md",
+      "triggers": [
+        "systematic-debugging",
+        "systematic",
+        "debugging"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "systematic-refactoring",
+      "description": "Safe, phase-gated refactoring: CHARACTERIZE with tests, PLAN incremental steps, EXECUTE one change at a time, VALIDATE no regressions.",
+      "file": "skills/systematic-refactoring/SKILL.md",
+      "triggers": [
+        "systematic-refactoring",
+        "systematic",
+        "refactoring"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "taxonomy-manager",
+      "description": "Audit and maintain blog taxonomy (categories/tags) for consistency, SEO, and navigation: scan content, detect orphans and duplicates, merge and rename terms, verify builds.",
+      "file": "skills/taxonomy-manager/SKILL.md",
+      "triggers": [
+        "taxonomy-manager",
+        "taxonomy",
+        "manager"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "test-driven-development",
+      "description": "RED-GREEN-REFACTOR cycle with strict phase gates.",
+      "file": "skills/test-driven-development/SKILL.md",
+      "triggers": [
+        "test-driven-development",
+        "test",
+        "driven",
+        "development"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "testing-agents-with-subagents",
+      "description": "RED-GREEN-REFACTOR testing for agents: dispatch subagents with known inputs, capture verbatim outputs, verify against expectations.",
+      "file": "skills/testing-agents-with-subagents/SKILL.md",
+      "triggers": [
+        "testing-agents-with-subagents",
+        "testing",
+        "agents",
+        "subagents"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "testing-anti-patterns",
+      "description": "Identify and fix common testing mistakes across unit, integration, and E2E test suites.",
+      "file": "skills/testing-anti-patterns/SKILL.md",
+      "triggers": [
+        "flaky test",
+        "brittle test",
+        "test smell",
+        "test anti-pattern",
+        "slow tests",
+        "skipped test",
+        "test depends on order",
+        "over-mocking",
+        "fragile test",
+        "testing implementation details"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "threejs-builder",
+      "description": "Scene-graph-driven 4-phase Three.js app builder: Design, Build, Animate, Polish.",
+      "file": "skills/threejs-builder/SKILL.md",
+      "triggers": [
+        "threejs",
+        "three.js",
+        "3D web",
+        "3D scene",
+        "WebGL",
+        "3D animation",
+        "3D graphics"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "topic-brainstormer",
+      "description": "Generate blog post topic ideas through problem mining, gap analysis, and technology expansion.",
+      "file": "skills/topic-brainstormer/SKILL.md",
+      "triggers": [
+        "topic-brainstormer",
+        "topic",
+        "brainstormer"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "typescript-check",
+      "description": "Run TypeScript type checking with tsc --noEmit and parse errors into actionable, file-grouped output.",
+      "file": "skills/typescript-check/SKILL.md",
+      "triggers": [
+        "typescript-check",
+        "typescript",
+        "check"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "universal-quality-gate",
+      "description": "Multi-language code quality gate with auto-detection and language-specific linters.",
+      "file": "skills/universal-quality-gate/SKILL.md",
+      "triggers": [
+        "universal-quality-gate",
+        "universal",
+        "quality",
+        "gate"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "verification-before-completion",
+      "description": "Defense-in-depth verification before declaring any task complete.",
+      "file": "skills/verification-before-completion/SKILL.md",
+      "triggers": [
+        "verification-before-completion",
+        "verification",
+        "before",
+        "completion"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "vitest-runner",
+      "description": "Run Vitest tests and parse results into actionable output.",
+      "file": "skills/vitest-runner/SKILL.md",
+      "triggers": [
+        "vitest-runner",
+        "vitest",
+        "runner"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "voice-calibrator",
+      "description": "Analyze writing samples and extract voice patterns to create or update voice skills with deterministic metrics and authorship-matching validation.",
+      "file": "skills/voice-calibrator/SKILL.md",
+      "triggers": [
+        "voice-calibrator",
+        "voice",
+        "calibrator"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "voice-orchestrator",
+      "description": "Multi-step voice content generation with deterministic validation.",
+      "file": "skills/voice-orchestrator/SKILL.md",
+      "triggers": [
+        "voice-orchestrator",
+        "voice",
+        "orchestrator"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "voice-validator",
+      "description": "Critique-and-rewrite enforcement loop for voice fidelity.",
+      "file": "skills/voice-validator/SKILL.md",
+      "triggers": [
+        "voice-validator",
+        "voice",
+        "validator"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "with-anti-rationalization",
+      "description": "Explicit anti-rationalization enforcement for maximum-rigor task execution.",
+      "file": "skills/with-anti-rationalization/SKILL.md",
+      "triggers": [
+        "with-anti-rationalization",
+        "anti",
+        "rationalization"
+      ],
+      "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "wordpress-live-validation",
+      "description": "Validate a published or draft-preview WordPress post in a real browser using Playwright.",
+      "file": "skills/wordpress-live-validation/SKILL.md",
+      "triggers": [
+        "validate wordpress post",
+        "check live post",
+        "verify published post",
+        "wordpress post looks right",
+        "check og tags live",
+        "responsive check wordpress",
+        "post rendering check",
+        "live site validation"
+      ],
+      "category": "content-publishing",
+      "version": "1.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "wordpress-uploader",
+      "description": "WordPress REST API integration for posts and media via deterministic Python scripts.",
+      "file": "skills/wordpress-uploader/SKILL.md",
+      "triggers": [
+        "upload to wordpress",
+        "create wordpress draft",
+        "publish to your-blog",
+        "wordpress draft",
+        "upload article",
+        "post to wordpress",
+        "upload image to wordpress",
+        "edit wordpress post",
+        "update wordpress post",
+        "wordpress media"
+      ],
+      "category": "content-publishing",
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "workflow-help",
+      "description": "Interactive guide to repository workflow system: agents, skills, routing, and execution patterns.",
+      "file": "skills/workflow-help/SKILL.md",
+      "triggers": [
+        "workflow-help",
+        "workflow",
+        "help"
+      ],
+      "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "workflow-orchestrator",
+      "description": "Three-phase task orchestration: BRAINSTORM requirements and approaches, WRITE-PLAN with atomic verifiable tasks, EXECUTE-PLAN with progress tracking.",
+      "file": "skills/workflow-orchestrator/SKILL.md",
+      "triggers": [
+        "workflow-orchestrator",
+        "workflow",
+        "orchestrator"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    }
+  ]
+}

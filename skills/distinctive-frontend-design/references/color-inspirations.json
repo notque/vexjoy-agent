@@ -1,0 +1,304 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2025-12-04",
+  "categories": {
+    "ide_themes": {
+      "description": "Color schemes from beloved code editor themes",
+      "palettes": [
+        {
+          "name": "Dracula",
+          "inspiration": "Popular dark theme with purple accents",
+          "dominant": "#282A36",
+          "secondary": "#44475A",
+          "accent": "#BD93F9",
+          "functional": {
+            "success": "#50FA7B",
+            "warning": "#FFB86C",
+            "error": "#FF5555",
+            "info": "#8BE9FD"
+          },
+          "rationale": "High contrast, excellent for technical UIs"
+        },
+        {
+          "name": "Nord",
+          "inspiration": "Arctic, north-bluish color palette",
+          "dominant": "#2E3440",
+          "secondary": "#3B4252",
+          "accent": "#88C0D0",
+          "functional": {
+            "success": "#A3BE8C",
+            "warning": "#EBCB8B",
+            "error": "#BF616A",
+            "info": "#81A1C1"
+          },
+          "rationale": "Calm, sophisticated, Scandinavian aesthetics"
+        },
+        {
+          "name": "Gruvbox",
+          "inspiration": "Retro groove with warm tones",
+          "dominant": "#282828",
+          "secondary": "#3C3836",
+          "accent": "#FABD2F",
+          "functional": {
+            "success": "#B8BB26",
+            "warning": "#FE8019",
+            "error": "#FB4934",
+            "info": "#83A598"
+          },
+          "rationale": "Warm, vintage feel with excellent contrast"
+        },
+        {
+          "name": "Tokyo Night",
+          "inspiration": "Neon-lit Tokyo cityscape at night",
+          "dominant": "#1A1B26",
+          "secondary": "#24283B",
+          "accent": "#7AA2F7",
+          "functional": {
+            "success": "#9ECE6A",
+            "warning": "#E0AF68",
+            "error": "#F7768E",
+            "info": "#7DCFFF"
+          },
+          "rationale": "Modern cyberpunk aesthetic"
+        },
+        {
+          "name": "Catppuccin Mocha",
+          "inspiration": "Soothing pastel theme for night owls",
+          "dominant": "#1E1E2E",
+          "secondary": "#313244",
+          "accent": "#CBA6F7",
+          "functional": {
+            "success": "#A6E3A1",
+            "warning": "#F9E2AF",
+            "error": "#F38BA8",
+            "info": "#89DCEB"
+          },
+          "rationale": "Soft pastels with deep backgrounds"
+        }
+      ]
+    },
+    "cultural_aesthetics": {
+      "description": "Color palettes inspired by cultural traditions",
+      "palettes": [
+        {
+          "name": "Japanese Indigo",
+          "inspiration": "Traditional Japanese dye techniques",
+          "dominant": "#EAE6DF",
+          "secondary": "#38444F",
+          "accent": "#003171",
+          "functional": {
+            "success": "#4A7C59",
+            "warning": "#D4A574",
+            "error": "#A64942",
+            "info": "#5B7C8D"
+          },
+          "rationale": "Minimalist, natural, sophisticated"
+        },
+        {
+          "name": "Scandinavian Woods",
+          "inspiration": "Nordic forests and natural materials",
+          "dominant": "#F4F1EA",
+          "secondary": "#8B7355",
+          "accent": "#C1502E",
+          "functional": {
+            "success": "#5F7161",
+            "warning": "#D4A574",
+            "error": "#A64942",
+            "info": "#6D7993"
+          },
+          "rationale": "Earthy, organic, calming"
+        },
+        {
+          "name": "Mediterranean Sun",
+          "inspiration": "Greek islands and coastal architecture",
+          "dominant": "#F8F6F0",
+          "secondary": "#0077BE",
+          "accent": "#E67E22",
+          "functional": {
+            "success": "#27AE60",
+            "warning": "#F39C12",
+            "error": "#C0392B",
+            "info": "#3498DB"
+          },
+          "rationale": "Bright, warm, inviting"
+        },
+        {
+          "name": "Desert Dusk",
+          "inspiration": "Southwestern US desert landscapes",
+          "dominant": "#E8DCC7",
+          "secondary": "#7C5D4F",
+          "accent": "#D1603D",
+          "functional": {
+            "success": "#8B956D",
+            "warning": "#E6AA68",
+            "error": "#B85042",
+            "info": "#547C84"
+          },
+          "rationale": "Warm earth tones, natural depth"
+        }
+      ]
+    },
+    "natural_phenomena": {
+      "description": "Colors from nature and atmospheric effects",
+      "palettes": [
+        {
+          "name": "Arctic Twilight",
+          "inspiration": "Northern lights and polar night",
+          "dominant": "#1B2838",
+          "secondary": "#2D4654",
+          "accent": "#66D9EF",
+          "functional": {
+            "success": "#A6E3A1",
+            "warning": "#F9E2AF",
+            "error": "#F38BA8",
+            "info": "#89B4FA"
+          },
+          "rationale": "Cool, mysterious, ethereal"
+        },
+        {
+          "name": "Autumn Forest",
+          "inspiration": "Fall foliage and forest floor",
+          "dominant": "#F5EFE7",
+          "secondary": "#4A403A",
+          "accent": "#D4A574",
+          "functional": {
+            "success": "#6B8E23",
+            "warning": "#CD853F",
+            "error": "#A0522D",
+            "info": "#8B7355"
+          },
+          "rationale": "Rich, organic, comforting"
+        },
+        {
+          "name": "Deep Ocean",
+          "inspiration": "Underwater depths and bioluminescence",
+          "dominant": "#0B132B",
+          "secondary": "#1C2541",
+          "accent": "#00D9FF",
+          "functional": {
+            "success": "#6FFFE9",
+            "warning": "#FFB627",
+            "error": "#FF006E",
+            "info": "#5BC0EB"
+          },
+          "rationale": "Deep, mysterious, luminous accents"
+        },
+        {
+          "name": "Volcanic Ash",
+          "inspiration": "Iceland volcanic landscapes",
+          "dominant": "#E5E3DF",
+          "secondary": "#4A4A48",
+          "accent": "#FF4500",
+          "functional": {
+            "success": "#3D5A40",
+            "warning": "#FF8C42",
+            "error": "#C1121F",
+            "info": "#6C757D"
+          },
+          "rationale": "Stark contrasts, dramatic energy"
+        }
+      ]
+    },
+    "art_movements": {
+      "description": "Palettes inspired by artistic periods and styles",
+      "palettes": [
+        {
+          "name": "Bauhaus Primary",
+          "inspiration": "Bauhaus school color theory",
+          "dominant": "#F4F1E8",
+          "secondary": "#1A1A1A",
+          "accent": "#E63946",
+          "functional": {
+            "success": "#06A77D",
+            "warning": "#F7B801",
+            "error": "#D62828",
+            "info": "#1D3557"
+          },
+          "rationale": "Bold primaries, geometric precision"
+        },
+        {
+          "name": "De Stijl",
+          "inspiration": "Dutch modernism and Mondrian",
+          "dominant": "#EFEFEF",
+          "secondary": "#000000",
+          "accent": "#DD0100",
+          "functional": {
+            "success": "#4CAF50",
+            "warning": "#FFC107",
+            "error": "#DD0100",
+            "info": "#0050B3"
+          },
+          "rationale": "Primary colors, stark geometry"
+        },
+        {
+          "name": "Art Deco Gold",
+          "inspiration": "1920s glamour and luxury",
+          "dominant": "#1B1B1B",
+          "secondary": "#2F2F2F",
+          "accent": "#D4AF37",
+          "functional": {
+            "success": "#3A7D44",
+            "warning": "#FF8C00",
+            "error": "#C41E3A",
+            "info": "#4682B4"
+          },
+          "rationale": "Luxurious, sophisticated, timeless"
+        }
+      ]
+    },
+    "industrial": {
+      "description": "Utilitarian and industrial design influences",
+      "palettes": [
+        {
+          "name": "Concrete & Voltage",
+          "inspiration": "Brutalist architecture + high-voltage signage",
+          "dominant": "#E8E6E3",
+          "secondary": "#3A3A3A",
+          "accent": "#FFDE00",
+          "functional": {
+            "success": "#00C853",
+            "warning": "#FF6D00",
+            "error": "#D32F2F",
+            "info": "#0091EA"
+          },
+          "rationale": "Industrial materials with safety yellow energy"
+        },
+        {
+          "name": "Factory Floor",
+          "inspiration": "Manufacturing equipment and warning stripes",
+          "dominant": "#3D3D3D",
+          "secondary": "#5C5C5C",
+          "accent": "#FFB700",
+          "functional": {
+            "success": "#4CAF50",
+            "warning": "#FF9800",
+            "error": "#F44336",
+            "info": "#2196F3"
+          },
+          "rationale": "Heavy machinery aesthetic, functional color coding"
+        },
+        {
+          "name": "Railway Station",
+          "inspiration": "Victorian railway architecture",
+          "dominant": "#E4DED0",
+          "secondary": "#2C3E2E",
+          "accent": "#8B0000",
+          "functional": {
+            "success": "#2E7D32",
+            "warning": "#F57C00",
+            "error": "#C62828",
+            "info": "#1565C0"
+          },
+          "rationale": "Historic industrial with deep greens and reds"
+        }
+      ]
+    }
+  },
+  "usage_guidelines": {
+    "dominance_rule": "60% dominant, 30% secondary, 10% accent for balanced composition",
+    "contrast_minimum": "WCAG AA requires 4.5:1 for normal text, 3:1 for large text",
+    "accent_strategy": "Use accent sparingly for high-impact moments (CTAs, highlights, alerts)",
+    "background_layering": "Layer gradients or patterns over dominant color for atmospheric depth",
+    "dark_mode": "Flip dominance (dark becomes dominant) but keep accent for consistency"
+  }
+}

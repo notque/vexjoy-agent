@@ -1,0 +1,480 @@
+# Source Quality Checklist
+
+Use this checklist to evaluate source credibility and quality during research coordination.
+
+---
+
+## Source Quality Hierarchy
+
+### Tier 1: Primary Sources ⭐⭐⭐⭐⭐ (Highest Priority)
+
+**Official Documentation & Specifications**
+- [ ] Published by authoritative organization/standards body
+- [ ] Represents official specification or reference
+- [ ] Includes version numbers and dates
+- [ ] Actively maintained and updated
+
+**Government & Regulatory Data**
+- [ ] From official government website (.gov, .europa.eu, etc.)
+- [ ] Published by regulatory agency with authority
+- [ ] Includes methodology and data sources
+- [ ] Recent publication date (within appropriate timeframe)
+
+**Academic Peer-Reviewed Publications**
+- [ ] Published in recognized journal or conference
+- [ ] Peer review process documented
+- [ ] Methodology clearly described
+- [ ] Results reproducible with data/code provided
+
+**Corporate Financial Filings**
+- [ ] SEC EDGAR filings (10-K, 10-Q, 8-K)
+- [ ] Investor relations official reports
+- [ ] Earnings call transcripts (official)
+- [ ] Audited financial statements
+
+**Original Research Reports**
+- [ ] Conducted by authoritative organization (Gartner, Forrester, IDC, McKinsey)
+- [ ] Methodology and sample size documented
+- [ ] Recent publication (within relevance period)
+- [ ] Full report available (not just summary)
+
+---
+
+### Tier 2: Reputable Secondary Sources ⭐⭐⭐⭐ (High Priority)
+
+**Industry Analyst Firms**
+- [ ] Established analyst firm (Gartner, Forrester, IDC, etc.)
+- [ ] Named analyst(s) with relevant expertise
+- [ ] Methodology described
+- [ ] Recent publication date
+- [ ] Potential bias disclosed
+
+**Established Technical Media**
+- [ ] Recognized publication in field (IEEE, ACM, etc.)
+- [ ] Technical rigor and fact-checking evident
+- [ ] Authors with verifiable expertise
+- [ ] Citations to primary sources included
+
+**Reputable News Organizations**
+- [ ] Established news organization with editorial standards
+- [ ] Fact-checking process documented
+- [ ] Multiple sources cited
+- [ ] Potential conflicts of interest disclosed
+
+**Well-Maintained Open Source Documentation**
+- [ ] Official project documentation
+- [ ] Active maintenance (recent updates)
+- [ ] Community review process
+- [ ] Version-specific information
+
+---
+
+### Tier 3: Community Sources ⭐⭐⭐ (Use with Verification)
+
+**Technical Community Platforms**
+- [ ] High-reputation contributor (Stack Overflow points, etc.)
+- [ ] Answer accepted or highly upvoted
+- [ ] Recent activity (not outdated)
+- [ ] Cross-verified with other sources
+- [ ] **Verification Required**: Use for trends/patterns, not facts
+
+**Expert Technical Blogs**
+- [ ] Author has verifiable expertise in domain
+- [ ] Technical depth and accuracy evident
+- [ ] Citations to primary sources
+- [ ] Recent publication
+- [ ] **Verification Required**: Cross-check claims
+
+**Conference Presentations**
+- [ ] Recognized conference in field
+- [ ] Speaker credentials verified
+- [ ] Slides/video available
+- [ ] Recent presentation (within 2 years)
+- [ ] **Verification Required**: Supplement with other sources
+
+**Company Engineering Blogs**
+- [ ] Official company blog
+- [ ] Named author(s) with role/credentials
+- [ ] Technical details specific and verifiable
+- [ ] Recent publication
+- [ ] **Verification Required**: May have company bias
+
+---
+
+### Tier 4: Avoid Unless Necessary ⭐ (Low Priority)
+
+**Content Farms & SEO Blogs**
+- [ ] Generic content targeting search keywords
+- [ ] No named author or credentials
+- [ ] No citations to authoritative sources
+- [ ] Outdated information
+- [ ] **Use Only If**: No better source available, verify heavily
+
+**Uncited Claims**
+- [ ] No source attribution
+- [ ] No methodology described
+- [ ] No verifiable data
+- [ ] **Use Only If**: Can verify independently
+
+**Outdated Content**
+- [ ] Publication >3 years old for technology
+- [ ] No updates or maintenance
+- [ ] Superseded by newer information
+- [ ] **Use Only If**: Historical context needed
+
+**Anonymous/Unverifiable Sources**
+- [ ] No author attribution
+- [ ] No organizational affiliation
+- [ ] No way to verify credentials
+- [ ] **Use Only If**: Cross-verified with multiple Tier 1-2 sources
+
+---
+
+## Verification Protocols
+
+### For Critical Facts (MUST Verify)
+
+**Definition**: Critical facts are those that would change conclusions if wrong.
+
+**Examples**:
+- Quantitative data driving decisions (market share percentages)
+- Performance benchmarks influencing technology selection
+- Security vulnerabilities affecting risk assessment
+- Regulatory requirements impacting compliance
+
+**Verification Steps**:
+1. [ ] Identify 2+ independent sources (different organizations)
+2. [ ] Prioritize Tier 1 primary sources
+3. [ ] Check publication dates (all recent?)
+4. [ ] Compare methodologies if quantitative
+5. [ ] Note discrepancies and investigate causes
+6. [ ] Document verification in research notes
+
+**When Sources Disagree**:
+- [ ] Investigate methodology differences
+- [ ] Check temporal differences (different time periods?)
+- [ ] Assess potential bias in each source
+- [ ] Note uncertainty in final report
+- [ ] Explain context for disagreement
+
+---
+
+### For Quantitative Data (Verify Thoroughly)
+
+**Checklist**:
+- [ ] Confirm methodology behind numbers
+- [ ] Verify sample size and representativeness
+- [ ] Check for selection bias in data collection
+- [ ] Note margin of error or confidence interval
+- [ ] Identify any exclusions or limitations
+- [ ] Cross-verify from independent source
+- [ ] Ensure units and definitions consistent
+
+**Example**:
+```
+Claim: "70% of enterprises use Kubernetes"
+
+Verification:
+- Who: CNCF Survey 2024
+- Sample: 2,500 respondents
+- Selection: CNCF community members (potential bias toward K8s)
+- Definition: "Use" = any usage (dev, staging, prod)
+- Margin of error: ±2%
+- Cross-verify: Gartner report shows 65% (broader sample, stricter definition)
+
+Report: "Kubernetes adoption ranges from 65-70% of enterprises depending
+on definition. CNCF survey (70%) includes any usage, while Gartner (65%)
+measures production deployments only."
+```
+
+---
+
+### For Qualitative Claims (Assess Context)
+
+**Checklist**:
+- [ ] Identify potential bias in source
+- [ ] Look for supporting evidence
+- [ ] Check for counterarguments
+- [ ] Assess consensus vs. outlier opinion
+- [ ] Verify author expertise in specific area
+- [ ] Note any conflicts of interest
+
+**Example**:
+```
+Claim: "Microservices are always better than monoliths"
+
+Assessment:
+- Source: Company blog promoting their microservices platform (bias!)
+- Counterarguments: Martin Fowler "Microservices are not a free lunch"
+- Consensus: Industry recognizes trade-offs, not universal "better"
+- Context: Claim oversimplifies complex architectural decision
+
+Report: "Microservices offer benefits (scalability, team autonomy) but
+introduce complexity (distributed systems, operational overhead). Choice
+depends on team size, system complexity, and operational maturity. Not
+universally 'better' than monoliths for all contexts."
+```
+
+---
+
+## Recency Requirements by Topic
+
+### Technology & Software: <6 months preferred, <1 year acceptable
+**Rationale**: Rapid evolution, frequent updates, new releases
+
+**Verification**:
+- [ ] Check version numbers mentioned
+- [ ] Verify still current (not deprecated)
+- [ ] Look for more recent information
+- [ ] Note if outdated information found
+
+---
+
+### Market Data: <3 months preferred, <6 months acceptable
+**Rationale**: Market conditions change quickly
+
+**Verification**:
+- [ ] Check report publication date
+- [ ] Verify data collection period
+- [ ] Look for more recent quarterly data
+- [ ] Note any major market changes since publication
+
+---
+
+### Regulatory/Legal: Current year essential
+**Rationale**: Laws change, enforcement evolves
+
+**Verification**:
+- [ ] Check effective date of regulation
+- [ ] Verify no subsequent amendments
+- [ ] Check enforcement guidance updates
+- [ ] Confirm current status
+
+---
+
+### Academic Research: <2 years preferred, <5 years acceptable
+**Rationale**: Slower evolution, citation half-life varies by field
+
+**Verification**:
+- [ ] Check for newer studies on same topic
+- [ ] Verify results not contradicted by recent research
+- [ ] Assess if methodology still considered valid
+- [ ] Look for systematic reviews or meta-analyses
+
+---
+
+### Historical Facts: Original sources preferred
+**Rationale**: Historical facts don't change, but interpretations do
+
+**Verification**:
+- [ ] Use primary historical sources when available
+- [ ] Check for scholarly consensus
+- [ ] Note any historiographical debates
+- [ ] Distinguish fact from interpretation
+
+---
+
+### Business Strategy: <1 year preferred
+**Rationale**: Business environment changes rapidly
+
+**Verification**:
+- [ ] Check for more recent strategic shifts
+- [ ] Verify still aligned with current market
+- [ ] Look for updated guidance
+- [ ] Note any major disruptions since publication
+
+---
+
+## Source Triangulation
+
+### When to Triangulate
+
+**Always triangulate**:
+- Critical quantitative data
+- Surprising or counterintuitive claims
+- Facts that drive major conclusions
+- Security or compliance information
+- Cost data influencing decisions
+
+**Triangulation not required**:
+- Widely known established facts
+- Official specifications (version numbers, API syntax)
+- Background information not central to query
+- When single authoritative source is definitive
+
+### How to Triangulate
+
+1. **Identify Critical Claim**:
+   - [ ] Mark as requiring triangulation
+   - [ ] Define exact claim to verify
+   - [ ] Note why this is critical
+
+2. **Seek Independent Sources**:
+   - [ ] Find 2+ sources from different organizations
+   - [ ] Prefer different source types (e.g., govt + industry + academic)
+   - [ ] Ensure truly independent (not citing each other)
+
+3. **Compare Findings**:
+   - [ ] Do all sources agree?
+   - [ ] If different, why? (methodology, timeframe, definition)
+   - [ ] Which source is most authoritative for this claim?
+
+4. **Document Verification**:
+   - [ ] Note all sources consulted
+   - [ ] Explain verification result
+   - [ ] Document any uncertainty or disagreement
+
+### Triangulation Example
+
+```
+Critical Claim: "GPU availability improved 40% in Q4 2024"
+
+Source 1 (Primary): NVIDIA Q4 2024 Earnings
+- Claim: Shipped 40% more H100 units vs Q3
+- Credibility: ⭐⭐⭐⭐⭐ Official financial filing
+
+Source 2 (Secondary): TechAnalyst Report
+- Claim: Cloud GPU availability up 35% based on wait times
+- Credibility: ⭐⭐⭐⭐ Analyst firm with methodology
+
+Source 3 (Tertiary): Industry News
+- Claim: "Major GPU shortage relief in late 2024"
+- Credibility: ⭐⭐⭐ News report citing Sources 1 and 2
+
+Triangulation Result:
+✅ VERIFIED - Multiple independent sources confirm 35-40% improvement
+   NVIDIA official data (40% shipments) aligns with analyst measurement
+   (35% availability). High confidence in claim.
+
+Report: "GPU availability improved significantly in Q4 2024, with NVIDIA
+reporting 40% increase in H100 shipments and independent analysis showing
+35% reduction in cloud GPU wait times."
+```
+
+---
+
+## Red Flags Checklist
+
+### Source Credibility Red Flags
+
+- ⚠️ No author attribution or credentials
+- ⚠️ Organization/publication not verifiable
+- ⚠️ No publication date or "last updated" information
+- ⚠️ Excessive advertising or promotional content
+- ⚠️ Grammatical errors or unprofessional presentation
+- ⚠️ No citations to support major claims
+- ⚠️ Obvious conflicts of interest not disclosed
+- ⚠️ Extreme or sensational language
+- ⚠️ "Secret" or "insider" claims without evidence
+
+### Data Quality Red Flags
+
+- ⚠️ No methodology described for quantitative claims
+- ⚠️ Sample size not disclosed for survey data
+- ⚠️ Percentages without absolute numbers
+- ⚠️ Charts/graphs without axis labels or scales
+- ⚠️ Comparisons without time periods specified
+- ⚠️ "Up to X%" claims (weasel words)
+- ⚠️ Exact numbers that seem too precise (156.23%?)
+- ⚠️ Data from years ago presented as current
+
+### Bias Red Flags
+
+- ⚠️ Vendor promoting their own product/service
+- ⚠️ Comparison that only shows favorable results
+- ⚠️ Cherry-picked examples supporting single narrative
+- ⚠️ Ignoring known counterarguments or limitations
+- ⚠️ Conflict of interest not disclosed
+- ⚠️ Paid sponsorship not clearly labeled
+- ⚠️ One-sided presentation of complex topic
+
+---
+
+## Source Documentation Template
+
+When documenting sources in research notes:
+
+```
+Source [N]: [Title]
+URL: [full URL]
+Author: [name, credentials, organization]
+Publication Date: [date]
+Source Type: [Tier 1-4, category]
+Relevance: [what information this provides]
+Credibility: ⭐⭐⭐⭐⭐ [rating with rationale]
+Verification: [if triangulated, note other sources]
+Notes: [key points, limitations, potential bias]
+```
+
+---
+
+## Usage in Research Coordination
+
+### During Subagent Instructions
+
+Include source quality guidance:
+```
+SOURCES TO PRIORITIZE (in order):
+1. Official [Organization] documentation (Tier 1)
+2. [Analyst Firm] reports from 2024-2025 (Tier 2)
+3. Company engineering blogs with named authors (Tier 3)
+
+QUALITY CRITERIA:
+- Prefer Tier 1-2 sources over Tier 3-4
+- Verify critical quantitative claims from 2+ independent sources
+- Ensure all sources published within [timeframe]
+- Note any potential bias in vendor-published content
+```
+
+### During Synthesis
+
+Document source quality in notes:
+```
+Fact: "Kubernetes adoption at 70% of enterprises"
+Sources: CNCF Survey 2024 (Tier 1), Gartner Report (Tier 2)
+Verification: Triangulated, both show 65-70% range
+Confidence: HIGH - multiple independent authoritative sources
+```
+
+### In Final Report
+
+**DO NOT include citations in final report** (separate agent handles this).
+
+However, internal notes should track source quality for validation.
+
+---
+
+## Quick Reference Card
+
+### Source Quality at a Glance
+
+| Source Type | Tier | Priority | Verification Needed? |
+|-------------|------|----------|----------------------|
+| Official docs, govt data | 1 | ⭐⭐⭐⭐⭐ | Optional for non-critical |
+| Analyst reports, academic | 2 | ⭐⭐⭐⭐ | Optional for non-critical |
+| Expert blogs, conferences | 3 | ⭐⭐⭐ | **Required** |
+| SEO content, anonymous | 4 | ⭐ | **Required + use sparingly** |
+
+### Verification Requirements
+
+| Claim Type | Verification | Sources Needed |
+|------------|--------------|----------------|
+| Critical facts | **Required** | 2+ independent |
+| Quantitative data | **Required** | 2+ with methodology |
+| Qualitative claims | Assess bias | 1+ authoritative |
+| Background info | Optional | 1 credible |
+
+### Recency Requirements
+
+| Topic | Age Limit | Rationale |
+|-------|-----------|-----------|
+| Technology | <6 months | Rapid change |
+| Market data | <3 months | Quick evolution |
+| Regulations | Current year | Legal changes |
+| Academic | <2 years | Field-dependent |
+| Historical | Original | Facts stable |
+| Strategy | <1 year | Business shifts |
+
+---
+
+Use this checklist during all research coordination to ensure high-quality, credible sources supporting reliable conclusions.

@@ -1,0 +1,30 @@
+# Placeholder Values for Substitution (Optional)
+#
+# If you use placeholder syntax like {{USER_HOME}} in your files,
+# this file defines the substitution values.
+#
+# Usage: Run scripts/inject-placeholders.py to generate rendered files
+# Most users won't need this - direct file editing in .local/ is simpler.
+
+# Personal paths
+USER_HOME: /home/youruser
+PROJECT_ROOT: /home/youruser/projects
+
+# Organization-specific
+INTERNAL_GITHUB: github.yourcompany.com
+INTERNAL_DOMAIN: .yourcompany.internal
+ORG_NAME: YourCompany
+
+# Service names (rename generic services to your internal names)
+AUDIT_SERVICE: audit-service
+METRICS_SERVICE: prometheus
+REGISTRY_SERVICE: registry
+
+# Cloud regions (use your provider's naming)
+REGION_EU: eu-west-1
+REGION_US: us-east-1
+REGION_ASIA: ap-northeast-1
+
+# Team-specific
+TEAM_NAME: platform-team
+REVIEWER_USERNAME: your-github-username

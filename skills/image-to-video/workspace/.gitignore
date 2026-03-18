@@ -1,0 +1,12 @@
+# Ignore all files in workspace subdirectories
+input/*
+output/*
+completed/*
+
+# But keep the directories (via .gitkeep)
+!input/.gitkeep
+!output/.gitkeep
+!completed/.gitkeep
+
+# Keep the README
+!README.md

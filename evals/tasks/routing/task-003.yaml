@@ -1,0 +1,76 @@
+# Task 003: Don't route trivial lookups to agents
+# Negative test: Verifies routing does NOT invoke domain agents for simple questions
+#
+# Per Anthropic: "Test both the cases where a behavior should occur and where it shouldn't.
+# One-sided evals create one-sided optimization."
+
+task:
+  id: "routing-003"
+  name: "Don't route trivial lookups"
+  description: |
+    Verify that simple factual questions are answered directly without
+    spawning domain agents. Routing trivial questions wastes tokens and
+    adds unnecessary latency.
+  category: "routing"
+  type: "regression"
+
+  input:
+    prompt: "What is the syntax for a Python f-string?"
+    context_files: []
+    setup_commands: []
+
+  execution:
+    agent: null  # Let routing decide - should NOT route
+    skill: "do"
+    timeout_seconds: 60
+    trials: 1
+
+  graders:
+    # POSITIVE check: Should contain the actual answer
+    - type: "string_contains"
+      config:
+        target: "transcript"
+        patterns:
+          - "f\""
+        match_all: false
+      weight: 0.3
+
+    # NEGATIVE check: Should NOT contain agent-spawning indicators
+    # Note: This uses llm_rubric to check for ABSENCE of patterns
+    # A dedicated string_not_contains grader would be more efficient
+    - type: "llm_rubric"
+      config:
+        rubric: null
+        assertions:
+          - "Response does NOT mention spawning an agent"
+          - "Response does NOT use Task tool to invoke python-general-engineer"
+          - "Response answers the f-string question directly"
+          - "Response is concise (under 500 words for this simple question)"
+      weight: 0.7
+
+  metrics:
+    - turns
+    - tokens
+    - latency
+
+  reference:
+    solution_file: null
+    notes: |
+      This is a NEGATIVE test - we're testing that something does NOT happen.
+
+      Expected behavior:
+      - Answer directly: f"Hello {name}" or f'Value: {value}'
+      - Do NOT spawn python-general-engineer agent
+      - Do NOT use Task tool for agent delegation
+      - Keep response concise
+
+      Anti-patterns to detect:
+      - "Spawning agent..."
+      - "Using python-general-engineer"
+      - "Task tool invocation"
+      - Unnecessarily verbose explanations for a syntax question
+
+      Why this matters:
+      - Routing trivial questions wastes tokens (10-100x overhead)
+      - Adds latency (agent spawning takes time)
+      - Confuses the optimization signal if routing over-triggers

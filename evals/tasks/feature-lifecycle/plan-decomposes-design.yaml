@@ -1,0 +1,38 @@
+name: plan-decomposes-design
+description: |
+  Given a design document, /feature-plan should decompose it into
+  wave-ordered tasks with domain agent assignments.
+
+setup:
+  commands:
+    - "mkdir -p /tmp/test-feature-plan && cd /tmp/test-feature-plan && git init"
+    - "cp -r scripts/feature-state.py /tmp/test-feature-plan/scripts/"
+    - "mkdir -p /tmp/test-feature-plan/.feature/state/design"
+  fixtures:
+    - source: "evals/fixtures/feature-lifecycle/sample-design.md"
+      dest: "/tmp/test-feature-plan/.feature/state/design/2026-03-08-rate-limiter.md"
+    - source: "evals/fixtures/feature-lifecycle/sample-state.json"
+      dest: "/tmp/test-feature-plan/.feature/state/rate-limiter.json"
+
+execute:
+  skill: feature-plan
+  args: "rate-limiter"
+  timeout: 300
+
+graders:
+  - type: file_exists
+    description: "Plan artifact was saved"
+    glob: ".feature/state/plan/*.md"
+
+  - type: string_contains
+    description: "Plan contains wave ordering"
+    file_glob: ".feature/state/plan/*.md"
+    strings:
+      - "Wave"
+      - "Agent"
+      - "Verification"
+
+  - type: llm_rubric
+    description: "Plan decomposition quality"
+    rubric: "evals/rubrics/plan_quality.md"
+    file_glob: ".feature/state/plan/*.md"

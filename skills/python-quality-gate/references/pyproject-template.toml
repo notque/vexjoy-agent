@@ -1,0 +1,556 @@
+# Python Quality Gate - Complete Configuration Template
+# Copy relevant sections to your project's pyproject.toml
+
+# This template includes comprehensive configuration for:
+# - Ruff (linting and formatting)
+# - Pytest (testing with coverage)
+# - Mypy (type checking)
+# - Build system metadata
+
+# ============================================================================
+# Project Metadata (PEP 621)
+# ============================================================================
+
+[project]
+name = "your-project-name"
+version = "0.1.0"
+description = "Brief description of your project"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "Your Name", email = "your.email@example.com" }
+]
+keywords = ["python", "example"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    # Add your runtime dependencies here
+    # "requests>=2.31.0",
+    # "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    # Quality tools
+    "ruff>=0.1.0",
+    "mypy>=1.7.0",
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "bandit>=1.7.5",
+
+    # Additional dev tools
+    "black>=23.0.0",  # If you prefer black over ruff format
+    "isort>=5.12.0",  # If you prefer isort over ruff's I rules
+]
+
+test = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+    "pytest-asyncio>=0.21.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/username/project"
+Documentation = "https://project.readthedocs.io"
+Repository = "https://github.com/username/project.git"
+Issues = "https://github.com/username/project/issues"
+
+# ============================================================================
+# Build System
+# ============================================================================
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# ============================================================================
+# Ruff Configuration
+# ============================================================================
+# Ruff is an extremely fast Python linter and formatter written in Rust
+# It replaces: flake8, black, isort, pydocstyle, pyupgrade, autoflake, etc.
+
+[tool.ruff]
+# Maximum line length (PEP 8 recommends 79, but 120 is common in modern projects)
+line-length = 120
+
+# Target Python version for syntax and stdlib features
+target-version = "py311"
+
+# Exclude common directories
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+]
+
+# ============================================================================
+# Ruff Linting Rules
+# ============================================================================
+
+[tool.ruff.lint]
+# Enable specific rule categories
+# Full list: https://docs.astral.sh/ruff/rules/
+select = [
+    # Pyflakes (F) - Basic error detection
+    "F",        # Pyflakes errors (undefined names, unused imports, etc.)
+
+    # pycodestyle (E, W) - PEP 8 style guide
+    "E",        # Error-level violations (E9xx are syntax errors)
+    "W",        # Warning-level violations
+
+    # mccabe (C90) - Complexity checking
+    # "C90",    # Complexity warnings (uncomment to enable)
+
+    # isort (I) - Import sorting
+    "I",        # Import order and grouping
+
+    # pydocstyle (D) - Docstring conventions
+    # "D",      # Docstring style (uncomment for strict docstring checking)
+
+    # pyupgrade (UP) - Upgrade syntax for newer Python
+    "UP",       # Suggest modern Python syntax (e.g., type hints)
+
+    # flake8-bugbear (B) - Additional bug detection
+    "B",        # Likely bugs and design problems
+
+    # flake8-simplify (SIM) - Simplification suggestions
+    "SIM",      # Suggest simpler code patterns
+
+    # flake8-comprehensions (C4) - Better list/dict/set comprehensions
+    "C4",       # Unnecessary comprehension patterns
+
+    # flake8-bandit (S) - Security issues
+    # "S",      # Security-related checks (uncomment for security focus)
+
+    # flake8-annotations (ANN) - Type annotation checking
+    # "ANN",    # Missing type annotations (uncomment for strict typing)
+
+    # flake8-async (ASYNC) - Async/await best practices
+    "ASYNC",    # Async code issues
+
+    # Ruff-specific (RUF) - Ruff's own rules
+    "RUF",      # Ruff-specific improvements
+
+    # Naming (N) - PEP 8 naming conventions
+    "N",        # Naming convention violations
+]
+
+# Rules to ignore globally
+ignore = [
+    # E203: Whitespace before ':' (conflicts with black)
+    "E203",
+
+    # E501: Line too long (handled by line-length setting and formatter)
+    # Uncomment to enforce strict line length:
+    # "E501",
+
+    # W503: Line break before binary operator (not PEP 8 compliant anymore)
+    "W503",
+
+    # SIM108: Use ternary operator (sometimes less readable)
+    "SIM108",
+
+    # B008: Do not perform function calls in argument defaults
+    # (common pattern with FastAPI Depends, SQLAlchemy, etc.)
+    # Uncomment if you use these frameworks:
+    # "B008",
+
+    # RUF001/002/003: Ambiguous unicode characters (may be valid in comments)
+    # "RUF001",
+    # "RUF002",
+    # "RUF003",
+]
+
+# Allow auto-fixing for these rule categories
+fixable = [
+    "F",      # Fix import issues, remove unused code
+    "E",      # Fix formatting issues
+    "W",      # Fix warnings
+    "I",      # Sort imports
+    "UP",     # Upgrade syntax
+    "C4",     # Simplify comprehensions
+    "RUF",    # Apply ruff suggestions
+]
+
+# Never auto-fix these (require manual review)
+unfixable = [
+    "F401",   # Unused import (may be intentional, e.g., __init__.py)
+    "F841",   # Unused variable (may be intentional for debugging)
+]
+
+# ============================================================================
+# Per-File Rule Overrides
+# ============================================================================
+
+[tool.ruff.lint.per-file-ignores]
+# Allow unused imports in __init__.py (common for re-exports)
+"__init__.py" = ["F401", "F403"]
+
+# Relax rules in test files
+"tests/*" = [
+    "F401",     # Allow unused imports (test fixtures)
+    "F811",     # Allow redefinition (test parametrization)
+    "S101",     # Allow assert statements (required in pytest)
+    "ANN",      # Don't require type annotations in tests
+]
+
+# Relax rules in migration files (if using alembic, etc.)
+"migrations/*" = [
+    "E501",     # Allow longer lines in generated code
+    "F401",     # Allow unused imports
+]
+
+# Relax rules in scripts
+"scripts/*" = [
+    "T201",     # Allow print statements in scripts
+]
+
+# ============================================================================
+# Import Sorting (isort-compatible)
+# ============================================================================
+
+[tool.ruff.lint.isort]
+# Import section order
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
+
+# Known first-party modules (your project)
+known-first-party = ["your_project_name"]
+
+# Known third-party modules (if not auto-detected)
+known-third-party = [
+    # Add third-party packages here if needed
+    # "requests",
+    # "pydantic",
+]
+
+# Combine 'from x import a, b, c' on one line if they fit
+combine-as-imports = true
+
+# Sort imports case-insensitively
+force-sort-within-sections = true
+
+# ============================================================================
+# Code Complexity
+# ============================================================================
+
+[tool.ruff.lint.mccabe]
+# Maximum cyclomatic complexity
+# Default is 10, increase if you have complex but well-tested code
+max-complexity = 10
+
+# ============================================================================
+# Ruff Formatting
+# ============================================================================
+
+[tool.ruff.format]
+# Use double quotes for strings (matches black default)
+quote-style = "double"
+
+# Use spaces for indentation (not tabs)
+indent-style = "space"
+
+# Normalize string quotes to double quotes
+skip-magic-trailing-comma = false
+
+# Respect existing line endings (auto-detect)
+line-ending = "auto"
+
+# ============================================================================
+# Pytest Configuration
+# ============================================================================
+
+[tool.pytest.ini_options]
+# Test discovery patterns
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+# Minimum Python version for tests
+minversion = "7.0"
+
+# Command-line options
+addopts = [
+    # Verbose output
+    "-v",
+
+    # Show summary of all test outcomes
+    "--tb=short",
+
+    # Show extra test summary info
+    "-ra",
+
+    # Coverage options
+    "--cov=src",              # Measure coverage of src/ directory
+    "--cov-report=term-missing",  # Show missing lines in terminal
+    "--cov-report=html",      # Generate HTML coverage report
+    "--cov-report=xml",       # Generate XML coverage report (for CI)
+
+    # Coverage thresholds (fail if below)
+    "--cov-fail-under=80",
+
+    # Strict markers (all markers must be registered)
+    "--strict-markers",
+
+    # Strict config (unknown config options are errors)
+    "--strict-config",
+
+    # Show warnings
+    "-W", "error",            # Treat warnings as errors (strict mode)
+    # Or use: "-W", "default"  # Show warnings but don't fail
+]
+
+# Register custom markers
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "smoke: marks tests as smoke tests",
+]
+
+# Filter out specific warnings (if needed)
+filterwarnings = [
+    # Ignore specific deprecation warnings
+    # "ignore::DeprecationWarning",
+    # "ignore::PendingDeprecationWarning",
+]
+
+# ============================================================================
+# Coverage Configuration
+# ============================================================================
+
+[tool.coverage.run]
+# Directories to measure coverage
+source = ["src"]
+
+# Files to omit from coverage
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/site-packages/*",
+    "*/venv/*",
+    "*/.venv/*",
+]
+
+# Enable branch coverage (not just line coverage)
+branch = true
+
+# Plugins for coverage
+plugins = []
+
+[tool.coverage.report]
+# Fail if coverage is below this percentage
+fail_under = 80
+
+# Show lines that are missing coverage
+show_missing = true
+
+# Skip empty files
+skip_empty = true
+
+# Skip files with 100% coverage in reports
+skip_covered = false
+
+# Precision of coverage percentage
+precision = 2
+
+# Files to exclude from coverage reports
+exclude_lines = [
+    # Standard pragma
+    "pragma: no cover",
+
+    # Defensive programming
+    "raise AssertionError",
+    "raise NotImplementedError",
+
+    # Type checking
+    "if TYPE_CHECKING:",
+    "if typing.TYPE_CHECKING:",
+
+    # Debugging
+    "def __repr__",
+    "def __str__",
+
+    # Abstract methods
+    "@abstractmethod",
+    "@abc.abstractmethod",
+
+    # Main guard
+    'if __name__ == "__main__":',
+
+    # Ellipsis (protocol stubs)
+    '^\s*\.\.\.\s*$',
+]
+
+[tool.coverage.html]
+# Directory for HTML coverage report
+directory = "htmlcov"
+
+# ============================================================================
+# Mypy Configuration (Static Type Checking)
+# ============================================================================
+
+[tool.mypy]
+# Python version to target
+python_version = "3.11"
+
+# Directories to type check
+files = ["src", "tests"]
+
+# Import discovery
+namespace_packages = true
+explicit_package_bases = true
+
+# Strictness options (gradually enable these for stricter checking)
+# Start with basic checks, then enable more as your codebase improves
+
+# Basic checks (recommended to enable)
+warn_return_any = true
+warn_unused_configs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unreachable = true
+
+# Intermediate checks (enable after fixing basic issues)
+# check_untyped_defs = true        # Check function bodies without type hints
+# disallow_untyped_calls = true    # Require type hints on called functions
+# disallow_untyped_defs = true     # Require type hints on all functions
+
+# Strict checks (enable for maximum type safety)
+# disallow_any_generics = true     # Require specific types in generics
+# disallow_subclassing_any = true  # Disallow subclassing 'Any'
+# disallow_untyped_decorators = true  # Require type hints on decorators
+# no_implicit_optional = true      # Don't assume Optional for None defaults
+# strict_equality = true           # Strict equality checks
+# warn_no_return = true            # Warn if function doesn't return
+
+# Error reporting
+show_error_codes = true
+show_error_context = true
+show_column_numbers = true
+pretty = true
+
+# Import handling
+ignore_missing_imports = true     # Don't fail on missing type stubs
+follow_imports = "normal"
+
+# Caching
+cache_dir = ".mypy_cache"
+incremental = true
+
+# ============================================================================
+# Per-Module Mypy Configuration
+# ============================================================================
+
+# Example: Ignore type checking for specific modules
+# [[tool.mypy.overrides]]
+# module = "untyped_module.*"
+# ignore_missing_imports = true
+
+# Example: Stricter checking for specific modules
+# [[tool.mypy.overrides]]
+# module = "src.core.*"
+# disallow_untyped_defs = true
+# disallow_any_generics = true
+
+# ============================================================================
+# Bandit Configuration (Security Linting)
+# ============================================================================
+
+[tool.bandit]
+# Directories to scan
+# targets = ["src"]
+
+# Exclude patterns
+exclude_dirs = [
+    "/tests/",
+    "/test/",
+    "/.venv/",
+    "/venv/",
+]
+
+# Severity levels to report (LOW, MEDIUM, HIGH)
+# level = "MEDIUM"
+
+# Confidence levels to report (LOW, MEDIUM, HIGH)
+# confidence = "MEDIUM"
+
+# Tests to skip (B*** codes)
+skips = [
+    # Skip assert_used in test files (B101)
+    # "B101",
+]
+
+# ============================================================================
+# Example Project-Specific Settings
+# ============================================================================
+
+# If using FastAPI:
+# [tool.ruff.lint.per-file-ignores]
+# "src/api/*" = ["B008"]  # Allow function calls in defaults (Depends)
+
+# If using SQLAlchemy:
+# [tool.ruff.lint.per-file-ignores]
+# "src/models/*" = ["N805"]  # Allow non-lowercase variable names (Column)
+
+# If using Django:
+# [tool.ruff.lint.per-file-ignores]
+# "*/migrations/*" = ["E501", "F401"]
+# "settings.py" = ["F405"]  # Allow star imports
+
+# ============================================================================
+# Usage Examples
+# ============================================================================
+
+# Run all quality checks:
+#   ruff check .                    # Lint
+#   ruff format --check .           # Check formatting
+#   mypy .                          # Type check
+#   pytest                          # Run tests with coverage
+#   bandit -r src/                  # Security scan
+
+# Auto-fix issues:
+#   ruff check . --fix              # Fix linting issues
+#   ruff format .                   # Format code
+
+# Run quality gate skill:
+#   python-quality-gate             # Run all checks with structured report

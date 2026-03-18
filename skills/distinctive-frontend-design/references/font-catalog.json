@@ -1,0 +1,262 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2025-12-04",
+  "categories": {
+    "neo_brutalist": {
+      "description": "Bold, geometric, unapologetic. Technical precision with attitude.",
+      "fonts": [
+        {
+          "name": "Unbounded",
+          "type": "display",
+          "weights": [300, 400, 600, 800],
+          "source": "Google Fonts",
+          "rationale": "Variable geometric sans with distinctive rounded terminals. Strong presence without being corporate."
+        },
+        {
+          "name": "Bebas Neue",
+          "type": "display",
+          "weights": [400],
+          "source": "Google Fonts",
+          "rationale": "Condensed all-caps. Industrial strength, brutalist aesthetic."
+        },
+        {
+          "name": "Archivo Black",
+          "type": "display",
+          "weights": [400],
+          "source": "Google Fonts",
+          "rationale": "Heavy grotesque. Commands attention, brutalist energy."
+        },
+        {
+          "name": "Work Sans",
+          "type": "body",
+          "weights": [400, 500, 600, 700],
+          "source": "Google Fonts",
+          "rationale": "Geometric sans optimized for screens. Pairs well with bold display fonts."
+        }
+      ]
+    },
+    "sophisticated_serif": {
+      "description": "Elegant, editorial, refined. Literary quality and timeless appeal.",
+      "fonts": [
+        {
+          "name": "Playfair Display",
+          "type": "display",
+          "weights": [400, 700, 900],
+          "source": "Google Fonts",
+          "rationale": "High-contrast transitional serif. Sophisticated without being stuffy."
+        },
+        {
+          "name": "Crimson Pro",
+          "type": "body",
+          "weights": [400, 500, 600, 700],
+          "source": "Google Fonts",
+          "rationale": "Book-style serif designed for text. Readable elegance."
+        },
+        {
+          "name": "Cormorant",
+          "type": "display",
+          "weights": [300, 400, 500, 700],
+          "source": "Google Fonts",
+          "rationale": "Delicate display serif with Garamond influence. Graceful personality."
+        },
+        {
+          "name": "Lora",
+          "type": "body",
+          "weights": [400, 500, 600, 700],
+          "source": "Google Fonts",
+          "rationale": "Contemporary serif with calligraphic roots. Warmth and character."
+        },
+        {
+          "name": "Spectral",
+          "type": "body",
+          "weights": [300, 400, 600, 700],
+          "source": "Google Fonts",
+          "rationale": "Serif optimized for digital reading. Clear hierarchy."
+        }
+      ]
+    },
+    "technical_mono": {
+      "description": "Code-focused, precise, developer-friendly. Terminal aesthetics.",
+      "fonts": [
+        {
+          "name": "JetBrains Mono",
+          "type": "mono",
+          "weights": [400, 500, 700],
+          "source": "JetBrains",
+          "rationale": "Purpose-built for code. Excellent ligatures, increased letter height."
+        },
+        {
+          "name": "Fira Code",
+          "type": "mono",
+          "weights": [400, 500, 700],
+          "source": "Google Fonts",
+          "rationale": "Extension of Fira Mono with programming ligatures. Developer favorite."
+        },
+        {
+          "name": "IBM Plex Mono",
+          "type": "mono",
+          "weights": [400, 500, 600, 700],
+          "source": "Google Fonts",
+          "rationale": "Corporate heritage with humanist warmth. Distinctive personality."
+        },
+        {
+          "name": "Space Mono",
+          "type": "mono",
+          "weights": [400, 700],
+          "source": "Google Fonts",
+          "rationale": "Geometric monospace with retro-tech feel. Quirky but readable."
+        }
+      ]
+    },
+    "warm_humanist": {
+      "description": "Approachable, organic, friendly. Human touch and crafted feel.",
+      "fonts": [
+        {
+          "name": "Quicksand",
+          "type": "display",
+          "weights": [400, 500, 600, 700],
+          "source": "Google Fonts",
+          "rationale": "Rounded geometric sans with friendly personality. Warm without being childish."
+        },
+        {
+          "name": "Josefin Sans",
+          "type": "display",
+          "weights": [400, 600, 700],
+          "source": "Google Fonts",
+          "rationale": "Geometric with vintage poster influence. Distinctive character."
+        },
+        {
+          "name": "Manrope",
+          "type": "body",
+          "weights": [400, 500, 600, 700, 800],
+          "source": "Google Fonts",
+          "rationale": "Modern geometric sans with open apertures. Friendly and functional."
+        },
+        {
+          "name": "Plus Jakarta Sans",
+          "type": "body",
+          "weights": [400, 500, 600, 700, 800],
+          "source": "Google Fonts",
+          "rationale": "Neo-grotesque with Indonesian design influence. Fresh perspective."
+        }
+      ]
+    },
+    "retro_display": {
+      "description": "Nostalgic, distinctive, bold. Vintage energy and character.",
+      "fonts": [
+        {
+          "name": "Righteous",
+          "type": "display",
+          "weights": [400],
+          "source": "Google Fonts",
+          "rationale": "Futuristic retro with 80s influence. Strong personality."
+        },
+        {
+          "name": "Bungee",
+          "type": "display",
+          "weights": [400],
+          "source": "Google Fonts",
+          "rationale": "Modular signage typeface. Urban energy and attitude."
+        },
+        {
+          "name": "Audiowide",
+          "type": "display",
+          "weights": [400],
+          "source": "Google Fonts",
+          "rationale": "Techno-futuristic with 80s sci-fi vibe. Synthetic but engaging."
+        },
+        {
+          "name": "Permanent Marker",
+          "type": "display",
+          "weights": [400],
+          "source": "Google Fonts",
+          "rationale": "Handwritten marker aesthetic. Casual energy and immediacy."
+        }
+      ]
+    },
+    "editorial_condensed": {
+      "description": "Compact, impactful, magazine-quality. Efficient use of space.",
+      "fonts": [
+        {
+          "name": "Barlow Condensed",
+          "type": "display",
+          "weights": [400, 600, 700, 900],
+          "source": "Google Fonts",
+          "rationale": "Tall grotesque with low contrast. Efficient and striking."
+        },
+        {
+          "name": "Oswald",
+          "type": "display",
+          "weights": [400, 600, 700],
+          "source": "Google Fonts",
+          "rationale": "Gothic condensed with newspaper heritage. Strong vertical emphasis."
+        },
+        {
+          "name": "Fjalla One",
+          "type": "display",
+          "weights": [400],
+          "source": "Google Fonts",
+          "rationale": "Nordic-inspired condensed sans. Sturdy and confident."
+        }
+      ]
+    },
+    "geometric_modern": {
+      "description": "Clean, precise, contemporary. Mathematical harmony and balance.",
+      "fonts": [
+        {
+          "name": "Montserrat",
+          "type": "body",
+          "weights": [400, 500, 600, 700, 800],
+          "source": "Google Fonts",
+          "rationale": "Urban geometric inspired by Buenos Aires signage. Clean but characterful."
+        },
+        {
+          "name": "Poppins",
+          "type": "body",
+          "weights": [400, 500, 600, 700, 800],
+          "source": "Google Fonts",
+          "rationale": "Geometric sans with international flair. Rounded but not soft."
+        },
+        {
+          "name": "DM Sans",
+          "type": "body",
+          "weights": [400, 500, 700],
+          "source": "Google Fonts",
+          "rationale": "Low-contrast geometric optimized for UI. Clean efficiency."
+        }
+      ]
+    }
+  },
+  "pairing_suggestions": [
+    {
+      "aesthetic": "Neo-Brutalist Technical",
+      "display": "Unbounded",
+      "body": "Work Sans",
+      "rationale": "Geometric strength meets functional readability"
+    },
+    {
+      "aesthetic": "Sophisticated Editorial",
+      "display": "Playfair Display",
+      "body": "Crimson Pro",
+      "rationale": "High-contrast display with book-quality body"
+    },
+    {
+      "aesthetic": "Developer Tool",
+      "display": "Barlow Condensed",
+      "body": "JetBrains Mono",
+      "rationale": "Efficient condensed with code-optimized mono"
+    },
+    {
+      "aesthetic": "Warm Artisan",
+      "display": "Josefin Sans",
+      "body": "Lora",
+      "rationale": "Vintage display character with warm serif body"
+    },
+    {
+      "aesthetic": "Retro Synthwave",
+      "display": "Righteous",
+      "body": "Space Mono",
+      "rationale": "80s futurism with retro-tech monospace"
+    }
+  ]
+}

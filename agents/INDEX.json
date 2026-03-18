@@ -1,0 +1,1114 @@
+{
+  "version": "1.0",
+  "generated_by": "scripts/generate-agent-index.py",
+  "agents": {
+    "agent-creator-engineer": {
+      "file": "agent-creator-engineer.md",
+      "short_description": "**DEPRECATED**: Use skill-creator-engineer agent instead",
+      "triggers": [
+        "create agent",
+        "new agent",
+        "agent template",
+        "agent design",
+        "agent architecture",
+        "legacy agent creation"
+      ],
+      "pairs_with": [
+        "skill-creator-engineer",
+        "agent-evaluation"
+      ],
+      "complexity": "Simple",
+      "category": "meta"
+    },
+    "ansible-automation-engineer": {
+      "file": "ansible-automation-engineer.md",
+      "short_description": "Use this agent when you need expert assistance with Ansible automation for infrastructure management, configuration orchestration, and DevOps automation workflows",
+      "triggers": [
+        "ansible",
+        "playbook",
+        "automation",
+        "molecule",
+        "ansible-tower",
+        "AWX"
+      ],
+      "pairs_with": [
+        "verification-before-completion",
+        "kubernetes-helm-engineer"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "infrastructure"
+    },
+    "data-engineer": {
+      "file": "data-engineer.md",
+      "short_description": "Use this agent when you need expert assistance with data pipelines, ETL/ELT processes,\ndata warehouse design, dimensional modeling, stream processing, or data quality frameworks",
+      "triggers": [
+        "data pipeline",
+        "ETL",
+        "ELT",
+        "dbt",
+        "Airflow",
+        "Prefect",
+        "Dagster",
+        "dimensional model",
+        "data warehouse",
+        "star schema",
+        "snowflake schema",
+        "data lake",
+        "data quality",
+        "streaming",
+        "Kafka",
+        "Spark",
+        "Flink",
+        "BigQuery",
+        "Redshift",
+        "Parquet",
+        "Delta Lake",
+        "Iceberg",
+        "data vault",
+        "slowly changing dimension",
+        "SCD",
+        "data lineage"
+      ],
+      "pairs_with": [
+        "database-engineer",
+        "data-analysis"
+      ],
+      "complexity": "Medium",
+      "category": "infrastructure"
+    },
+    "database-engineer": {
+      "file": "database-engineer.md",
+      "short_description": "Use this agent when you need expert assistance with database design, optimization, and query performance",
+      "triggers": [
+        "database",
+        "schema",
+        "SQL",
+        "postgres",
+        "mysql",
+        "indexing",
+        "query optimization"
+      ],
+      "pairs_with": [
+        "nodejs-api-engineer",
+        "sqlite-peewee-engineer",
+        "data-engineer"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "infrastructure"
+    },
+    "github-profile-rules-engineer": {
+      "file": "github-profile-rules-engineer.md",
+      "short_description": "Use this agent when extracting programming rules, coding conventions, or style\npreferences from a GitHub user's public profile",
+      "triggers": [
+        "github rules",
+        "profile analysis",
+        "coding style extraction",
+        "github conventions",
+        "programming rules"
+      ],
+      "pairs_with": [
+        "github-profile-rules-repo-analysis",
+        "github-profile-rules-pr-review",
+        "github-profile-rules-synthesis",
+        "github-profile-rules-validation"
+      ],
+      "complexity": "Medium",
+      "category": "meta"
+    },
+    "golang-general-engineer-compact": {
+      "file": "golang-general-engineer-compact.md",
+      "short_description": "Use this agent for focused Go development with tight context budgets",
+      "triggers": [
+        "go",
+        "golang",
+        "tight context",
+        "compact",
+        "focused go"
+      ],
+      "pairs_with": [
+        "go-pr-quality-gate",
+        "go-testing"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "language"
+    },
+    "golang-general-engineer": {
+      "file": "golang-general-engineer.md",
+      "short_description": "Use this agent when you need expert assistance with Go development, including implementing features,\ndebugging issues, reviewing code quality, optimizing performance, or answering technical questions\nabout Go codebases",
+      "triggers": [
+        "go",
+        "golang",
+        ".go files",
+        "gofmt",
+        "go mod",
+        "goroutine",
+        "channel",
+        "gopls"
+      ],
+      "pairs_with": [
+        "go-pr-quality-gate"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "language"
+    },
+    "hook-development-engineer": {
+      "file": "hook-development-engineer.md",
+      "short_description": "Use this agent when developing Python hooks for Claude Code's event-driven system",
+      "triggers": [
+        "create hook",
+        "hook development",
+        "event handler",
+        "PostToolUse",
+        "PreToolUse",
+        "SessionStart",
+        "learning database",
+        "error detection hook"
+      ],
+      "pairs_with": [
+        "verification-before-completion",
+        "python-quality-gate"
+      ],
+      "complexity": "Comprehensive",
+      "category": "meta"
+    },
+    "kubernetes-helm-engineer": {
+      "file": "kubernetes-helm-engineer.md",
+      "short_description": "Use this agent for Kubernetes and Helm deployment management, troubleshooting, and cloud-native infrastructure",
+      "triggers": [
+        "kubernetes",
+        "helm",
+        "k8s",
+        "kubectl",
+        "statefulset",
+        "argocd",
+        "deployment"
+      ],
+      "pairs_with": [
+        "verification-before-completion",
+        "prometheus-grafana-engineer"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "infrastructure"
+    },
+    "mcp-local-docs-engineer": {
+      "file": "mcp-local-docs-engineer.md",
+      "short_description": "Use this agent when you need expert assistance with building MCP (Model Context Protocol) servers for local documentation access",
+      "triggers": [
+        "MCP",
+        "docs server",
+        "documentation server",
+        "hugo"
+      ],
+      "pairs_with": [
+        "verification-before-completion"
+      ],
+      "complexity": "Medium",
+      "category": "devops"
+    },
+    "nextjs-ecommerce-engineer": {
+      "file": "nextjs-ecommerce-engineer.md",
+      "short_description": "Use this agent when building Next",
+      "triggers": [
+        "next.js e-commerce",
+        "nextjs ecommerce",
+        "shopping cart",
+        "stripe",
+        "e-commerce",
+        "online store",
+        "product catalog"
+      ],
+      "pairs_with": [
+        "verification-before-completion",
+        "typescript-frontend-engineer"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "language"
+    },
+    "nodejs-api-engineer": {
+      "file": "nodejs-api-engineer.md",
+      "short_description": "Use this agent when you need expert assistance with Node",
+      "triggers": [
+        "node.js",
+        "nodejs",
+        "express",
+        "API",
+        "backend",
+        "webhook",
+        "authentication"
+      ],
+      "pairs_with": [
+        "systematic-code-review",
+        "database-engineer"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "language"
+    },
+    "opensearch-elasticsearch-engineer": {
+      "file": "opensearch-elasticsearch-engineer.md",
+      "short_description": "Use this agent for OpenSearch and Elasticsearch cluster management, performance tuning, index optimization, and search infrastructure operations",
+      "triggers": [
+        "opensearch",
+        "elasticsearch",
+        "search cluster",
+        "logstash",
+        "kibana",
+        "search performance"
+      ],
+      "pairs_with": [
+        "verification-before-completion"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "infrastructure"
+    },
+    "performance-optimization-engineer": {
+      "file": "performance-optimization-engineer.md",
+      "short_description": "Use this agent when you need expert assistance with web performance optimization, Core Web Vitals, and advanced performance monitoring for modern web applications",
+      "triggers": [
+        "performance",
+        "optimization",
+        "speed",
+        "profiling"
+      ],
+      "pairs_with": [
+        "verification-before-completion"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "performance"
+    },
+    "pipeline-orchestrator-engineer": {
+      "file": "pipeline-orchestrator-engineer.md",
+      "short_description": "Use this agent when building new pipelines that require coordinated creation\nof agents, skills, and hooks",
+      "triggers": [
+        "create pipeline",
+        "new pipeline",
+        "scaffold pipeline",
+        "build pipeline",
+        "pipeline creator"
+      ],
+      "pairs_with": [
+        "pipeline-scaffolder",
+        "codebase-analyzer",
+        "routing-table-updater",
+        "domain-research",
+        "chain-composer",
+        "pipeline-test-runner",
+        "pipeline-retro"
+      ],
+      "complexity": "Complex",
+      "category": "meta"
+    },
+    "project-coordinator-engineer": {
+      "file": "project-coordinator-engineer.md",
+      "short_description": "Use this agent when orchestrating multi-agent software development projects across\nspecialized agents",
+      "triggers": [
+        "coordinate",
+        "multi-agent",
+        "orchestrate",
+        "project",
+        "task management",
+        "agent coordination"
+      ],
+      "pairs_with": [
+        "workflow-orchestrator",
+        "dispatching-parallel-agents"
+      ],
+      "complexity": "Complex",
+      "category": "meta"
+    },
+    "prometheus-grafana-engineer": {
+      "file": "prometheus-grafana-engineer.md",
+      "short_description": "Use this agent for Prometheus and Grafana monitoring infrastructure, alerting configuration, dashboard design, and observability optimization",
+      "triggers": [
+        "prometheus",
+        "grafana",
+        "monitoring",
+        "alerting",
+        "dashboards",
+        "metrics",
+        "observability"
+      ],
+      "pairs_with": [
+        "verification-before-completion",
+        "kubernetes-helm-engineer"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "infrastructure"
+    },
+    "python-general-engineer": {
+      "file": "python-general-engineer.md",
+      "short_description": "Use this agent when you need expert assistance with Python development, including implementing features,\ndebugging issues, reviewing code quality, optimizing performance, or answering technical questions about\nPython codebases",
+      "triggers": [
+        "python",
+        ".py files",
+        "pip",
+        "pytest",
+        "asyncio",
+        "fastapi",
+        "django",
+        "flask"
+      ],
+      "pairs_with": [
+        "python-quality-gate"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "language"
+    },
+    "python-openstack-engineer": {
+      "file": "python-openstack-engineer.md",
+      "short_description": "Use this agent when developing OpenStack services, plugins, or components in Python",
+      "triggers": [
+        "openstack",
+        "oslo",
+        "neutron",
+        "nova",
+        "cinder",
+        "tempest",
+        "oslo.config",
+        "oslo.messaging"
+      ],
+      "pairs_with": [
+        "python-quality-gate",
+        "python-general-engineer"
+      ],
+      "complexity": "Complex",
+      "category": "language"
+    },
+    "rabbitmq-messaging-engineer": {
+      "file": "rabbitmq-messaging-engineer.md",
+      "short_description": "Use this agent for RabbitMQ message queue architecture, operations, clustering, and high-availability messaging systems",
+      "triggers": [
+        "rabbitmq",
+        "messaging",
+        "message queue",
+        "amqp",
+        "event bus"
+      ],
+      "pairs_with": [
+        "verification-before-completion"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "infrastructure"
+    },
+    "react-portfolio-engineer": {
+      "file": "react-portfolio-engineer.md",
+      "short_description": "Use this agent when building React portfolio and gallery websites for artists, photographers,\nand creative professionals",
+      "triggers": [
+        "portfolio",
+        "gallery",
+        "react portfolio",
+        "art website",
+        "image gallery",
+        "lightbox"
+      ],
+      "pairs_with": [
+        "ui-design-engineer",
+        "typescript-frontend-engineer"
+      ],
+      "complexity": "Medium",
+      "category": "language"
+    },
+    "research-coordinator-engineer": {
+      "file": "research-coordinator-engineer.md",
+      "short_description": "Use this agent when conducting complex research requiring systematic investigation,\nmulti-source analysis, and comprehensive synthesis",
+      "triggers": [
+        "research",
+        "investigate",
+        "explore",
+        "analyze",
+        "comprehensive analysis",
+        "study",
+        "examine"
+      ],
+      "pairs_with": [
+        "workflow-orchestrator",
+        "dispatching-parallel-agents"
+      ],
+      "complexity": "Complex",
+      "category": "meta"
+    },
+    "research-subagent-executor": {
+      "file": "research-subagent-executor.md",
+      "short_description": "Use this agent when you need to execute individual research tasks as a subagent under research coordination",
+      "triggers": [
+        "research subtask",
+        "delegated research"
+      ],
+      "pairs_with": [
+        "research-coordinator-engineer"
+      ],
+      "complexity": "Medium",
+      "category": "research"
+    },
+    "retro-context-walker": {
+      "file": "retro-context-walker.md",
+      "short_description": "Use this agent at feature lifecycle phase checkpoints to extract domain and implementation\nlearnings from phase artifacts",
+      "triggers": [
+        "retro",
+        "context",
+        "walker",
+        "knowledge",
+        "checkpoint"
+      ],
+      "pairs_with": [
+        "workflow-orchestrator"
+      ],
+      "complexity": "Simple",
+      "category": "meta"
+    },
+    "retro-meta-walker": {
+      "file": "retro-meta-walker.md",
+      "short_description": "Use this agent at feature lifecycle phase checkpoints to extract process and workflow\nlearnings",
+      "triggers": [
+        "retro",
+        "walker",
+        "meta",
+        "context",
+        "knowledge",
+        "checkpoint"
+      ],
+      "pairs_with": [
+        "workflow-orchestrator"
+      ],
+      "complexity": "Simple",
+      "category": "meta"
+    },
+    "reviewer-api-contract": {
+      "file": "reviewer-api-contract.md",
+      "short_description": "Use this agent for detecting breaking API changes, backward compatibility issues, schema validation gaps, HTTP status code misuse, and API versioning problems",
+      "triggers": [
+        "API contract",
+        "breaking changes",
+        "backward compatibility",
+        "API versioning",
+        "HTTP status codes",
+        "schema validation",
+        "API review"
+      ],
+      "pairs_with": [
+        "comprehensive-review",
+        "reviewer-type-design",
+        "reviewer-business-logic"
+      ],
+      "complexity": "Medium",
+      "category": "review"
+    },
+    "reviewer-business-logic": {
+      "file": "reviewer-business-logic.md",
+      "short_description": "Use this agent for domain correctness and business logic review",
+      "triggers": [
+        "business logic",
+        "domain review",
+        "requirements",
+        "correctness",
+        "edge cases",
+        "state machine"
+      ],
+      "pairs_with": [
+        "parallel-code-review",
+        "systematic-code-review"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "review"
+    },
+    "reviewer-code-quality": {
+      "file": "reviewer-code-quality.md",
+      "short_description": "Use this agent for code quality review against project conventions, style guides, and CLAUDE",
+      "triggers": [
+        "code quality review",
+        "style review",
+        "convention check",
+        "CLAUDE.md compliance",
+        "code quality",
+        "style guide",
+        "coding standards"
+      ],
+      "pairs_with": [
+        "comprehensive-review",
+        "parallel-code-review",
+        "systematic-code-review"
+      ],
+      "complexity": "Medium",
+      "category": "review"
+    },
+    "reviewer-code-simplifier": {
+      "file": "reviewer-code-simplifier.md",
+      "short_description": "Use this agent for simplifying recently modified code for clarity and maintainability",
+      "triggers": [
+        "simplify code",
+        "code clarity",
+        "reduce complexity",
+        "refactor for clarity",
+        "code simplification",
+        "too complex",
+        "readability"
+      ],
+      "pairs_with": [
+        "comprehensive-review",
+        "code-cleanup"
+      ],
+      "complexity": "Medium",
+      "category": "review"
+    },
+    "reviewer-comment-analyzer": {
+      "file": "reviewer-comment-analyzer.md",
+      "short_description": "Use this agent for analyzing code comments for accuracy, completeness, and long-term value",
+      "triggers": [
+        "comment accuracy",
+        "documentation review",
+        "comment rot",
+        "verify comments",
+        "stale comments",
+        "misleading comments",
+        "comment quality"
+      ],
+      "pairs_with": [
+        "comprehensive-review",
+        "comment-quality"
+      ],
+      "complexity": "Medium",
+      "category": "review"
+    },
+    "reviewer-concurrency": {
+      "file": "reviewer-concurrency.md",
+      "short_description": "Use this agent for detecting concurrency bugs: race conditions, goroutine leaks, deadlocks, mutex misuse, channel lifecycle issues, and unsafe shared state",
+      "triggers": [
+        "concurrency review",
+        "race condition",
+        "goroutine leak",
+        "deadlock",
+        "mutex",
+        "channel safety",
+        "async safety",
+        "thread safety"
+      ],
+      "pairs_with": [
+        "comprehensive-review",
+        "reviewer-performance",
+        "reviewer-silent-failures",
+        "go-concurrency"
+      ],
+      "complexity": "Medium",
+      "category": "review"
+    },
+    "reviewer-config-safety": {
+      "file": "reviewer-config-safety.md",
+      "short_description": "Use this agent for detecting configuration safety issues: hardcoded values that should be configurable, missing environment variable validation, secrets in source code, unsafe defaults, and configuration drift between environments",
+      "triggers": [
+        "config safety",
+        "hardcoded values",
+        "environment variables",
+        "secrets in code",
+        "unsafe defaults",
+        "configuration review",
+        "env var validation"
+      ],
+      "pairs_with": [
+        "comprehensive-review",
+        "reviewer-security",
+        "reviewer-docs-validator"
+      ],
+      "complexity": "Medium",
+      "category": "review"
+    },
+    "reviewer-contrarian": {
+      "file": "reviewer-contrarian.md",
+      "short_description": "Use this agent for professional skepticism that challenges fundamental assumptions and\nexplores alternatives through systematic critique",
+      "triggers": [
+        "contrarian",
+        "alternatives",
+        "assumptions",
+        "challenge",
+        "roast"
+      ],
+      "pairs_with": [
+        "reviewer-skeptical-senior"
+      ],
+      "complexity": "Simple",
+      "category": "review"
+    },
+    "reviewer-dead-code": {
+      "file": "reviewer-dead-code.md",
+      "short_description": "Use this agent for detecting dead code: unreachable branches, unused exports, orphaned files, stale feature flags, commented-out code, and obsolete TODOs",
+      "triggers": [
+        "dead code",
+        "unused code",
+        "unreachable code",
+        "orphaned files",
+        "stale feature flags",
+        "commented-out code",
+        "unused exports"
+      ],
+      "pairs_with": [
+        "comprehensive-review",
+        "reviewer-code-quality",
+        "reviewer-docs-validator"
+      ],
+      "complexity": "Medium",
+      "category": "review"
+    },
+    "reviewer-dependency-audit": {
+      "file": "reviewer-dependency-audit.md",
+      "short_description": "Use this agent for auditing project dependencies: known CVEs, problematic licenses, deprecated packages, unnecessary transitive dependencies, version pinning issues, and supply chain risks",
+      "triggers": [
+        "dependency audit",
+        "CVE check",
+        "vulnerability scan",
+        "license check",
+        "deprecated packages",
+        "supply chain",
+        "dependency review"
+      ],
+      "pairs_with": [
+        "comprehensive-review",
+        "reviewer-docs-validator",
+        "reviewer-security"
+      ],
+      "complexity": "Medium",
+      "category": "review"
+    },
+    "reviewer-docs-validator": {
+      "file": "reviewer-docs-validator.md",
+      "short_description": "Use this agent for validating project documentation, configuration completeness, dependency health, CI/CD setup, and project metadata",
+      "triggers": [
+        "documentation review",
+        "README check",
+        "CLAUDE.md validation",
+        "project completeness",
+        "config validation",
+        "CI check"
+      ],
+      "pairs_with": [
+        "comprehensive-review",
+        "docs-sync-checker",
+        "comment-quality"
+      ],
+      "complexity": "Medium",
+      "category": "review"
+    },
+    "reviewer-error-messages": {
+      "file": "reviewer-error-messages.md",
+      "short_description": "Use this agent for reviewing error message quality: actionable messages, sufficient context (IDs, states, operation names), consistent formatting, user-facing vs internal distinction, and localization readiness",
+      "triggers": [
+        "error messages",
+        "error text quality",
+        "actionable errors",
+        "error format",
+        "user-facing errors",
+        "error context"
+      ],
+      "pairs_with": [
+        "comprehensive-review",
+        "reviewer-silent-failures",
+        "reviewer-code-quality"
+      ],
+      "complexity": "Medium",
+      "category": "review"
+    },
+    "reviewer-language-specialist": {
+      "file": "reviewer-language-specialist.md",
+      "short_description": "Use this agent for language-specific code review that adapts criteria based on the programming language",
+      "triggers": [
+        "language idioms",
+        "modern stdlib",
+        "Go patterns",
+        "Python patterns",
+        "language-specific",
+        "anti-patterns",
+        "LLM code tells"
+      ],
+      "pairs_with": [
+        "comprehensive-review",
+        "golang-general-engineer",
+        "python-general-engineer",
+        "typescript-frontend-engineer"
+      ],
+      "complexity": "Medium",
+      "category": "review"
+    },
+    "reviewer-migration-safety": {
+      "file": "reviewer-migration-safety.md",
+      "short_description": "Use this agent for reviewing migration safety: reversible database migrations, API deprecation paths, feature flag lifecycle, backward-compatible schema changes, and safe rollback strategies",
+      "triggers": [
+        "migration safety",
+        "database migration",
+        "schema change",
+        "API deprecation",
+        "rollback strategy",
+        "backward compatible",
+        "feature flag lifecycle"
+      ],
+      "pairs_with": [
+        "comprehensive-review",
+        "reviewer-api-contract",
+        "reviewer-business-logic",
+        "database-engineer"
+      ],
+      "complexity": "Medium",
+      "category": "review"
+    },
+    "reviewer-naming-consistency": {
+      "file": "reviewer-naming-consistency.md",
+      "short_description": "Use this agent for detecting naming inconsistencies: convention drift (userID vs userId vs user_id), package naming violations, verb inconsistency (Get vs Fetch vs Retrieve), acronym casing violations, and file naming mismatches",
+      "triggers": [
+        "naming consistency",
+        "naming conventions",
+        "naming drift",
+        "variable naming",
+        "acronym casing",
+        "convention drift",
+        "inconsistent naming"
+      ],
+      "pairs_with": [
+        "comprehensive-review",
+        "reviewer-code-quality",
+        "reviewer-language-specialist"
+      ],
+      "complexity": "Medium",
+      "category": "review"
+    },
+    "reviewer-newcomer": {
+      "file": "reviewer-newcomer.md",
+      "short_description": "Use this agent when you need code review from an enthusiastic newcomer perspective",
+      "triggers": [
+        "newcomer perspective",
+        "fresh eyes review",
+        "documentation review"
+      ],
+      "pairs_with": [
+        "systematic-code-review"
+      ],
+      "complexity": "Simple",
+      "category": "review"
+    },
+    "reviewer-observability": {
+      "file": "reviewer-observability.md",
+      "short_description": "Use this agent for reviewing observability: missing metrics, logging quality, trace propagation, health checks, structured logging, and alerting gaps",
+      "triggers": [
+        "observability review",
+        "metrics",
+        "logging quality",
+        "trace propagation",
+        "health checks",
+        "structured logging",
+        "monitoring gaps"
+      ],
+      "pairs_with": [
+        "comprehensive-review",
+        "reviewer-silent-failures",
+        "prometheus-grafana-engineer"
+      ],
+      "complexity": "Medium",
+      "category": "review"
+    },
+    "reviewer-pedant": {
+      "file": "reviewer-pedant.md",
+      "short_description": "Use this agent when you need code review from a technical pedant perspective",
+      "triggers": [
+        "technical accuracy",
+        "spec compliance",
+        "pedantic review"
+      ],
+      "pairs_with": [
+        "systematic-code-review"
+      ],
+      "complexity": "Simple",
+      "category": "review"
+    },
+    "reviewer-performance": {
+      "file": "reviewer-performance.md",
+      "short_description": "Use this agent for detecting performance issues, hot paths, algorithmic complexity problems, unnecessary allocations, N+1 queries, missing caching opportunities, and index usage gaps",
+      "triggers": [
+        "performance review",
+        "hot paths",
+        "N+1 queries",
+        "allocations",
+        "O(n\u00b2)",
+        "caching",
+        "slow code",
+        "performance optimization"
+      ],
+      "pairs_with": [
+        "comprehensive-review",
+        "reviewer-concurrency",
+        "golang-general-engineer"
+      ],
+      "complexity": "Medium",
+      "category": "review"
+    },
+    "reviewer-pragmatic-builder": {
+      "file": "reviewer-pragmatic-builder.md",
+      "short_description": "Use this agent when you need production-focused critique and operational reality checks for code, documentation, architecture, or deployment plans",
+      "triggers": [
+        "builder",
+        "production",
+        "ops",
+        "operational"
+      ],
+      "pairs_with": [
+        "roast"
+      ],
+      "complexity": "Medium",
+      "category": "review"
+    },
+    "reviewer-security": {
+      "file": "reviewer-security.md",
+      "short_description": "Use this agent for security-focused code review",
+      "triggers": [
+        "security review",
+        "vulnerability",
+        "OWASP",
+        "auth check",
+        "injection",
+        "XSS",
+        "CSRF",
+        "security scan"
+      ],
+      "pairs_with": [
+        "parallel-code-review",
+        "systematic-code-review"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "review"
+    },
+    "reviewer-silent-failures": {
+      "file": "reviewer-silent-failures.md",
+      "short_description": "Use this agent for detecting silent failures, inadequate error handling, swallowed errors, and dangerous fallback behavior",
+      "triggers": [
+        "silent failures",
+        "error handling review",
+        "catch blocks",
+        "fallback behavior",
+        "swallowed errors",
+        "error swallowing",
+        "empty catch"
+      ],
+      "pairs_with": [
+        "comprehensive-review",
+        "go-error-handling",
+        "systematic-code-review"
+      ],
+      "complexity": "Medium",
+      "category": "review"
+    },
+    "reviewer-skeptical-senior": {
+      "file": "reviewer-skeptical-senior.md",
+      "short_description": "Use this agent when you need code review from a skeptical senior engineer perspective",
+      "triggers": [
+        "production readiness",
+        "senior review",
+        "skeptical review"
+      ],
+      "pairs_with": [
+        "systematic-code-review"
+      ],
+      "complexity": "Medium",
+      "category": "review"
+    },
+    "reviewer-test-analyzer": {
+      "file": "reviewer-test-analyzer.md",
+      "short_description": "Use this agent for reviewing test coverage quality, completeness, and resilience",
+      "triggers": [
+        "test coverage",
+        "test quality",
+        "test gaps",
+        "missing tests",
+        "test completeness",
+        "test review",
+        "test analysis"
+      ],
+      "pairs_with": [
+        "comprehensive-review",
+        "test-driven-development",
+        "go-testing"
+      ],
+      "complexity": "Medium",
+      "category": "review"
+    },
+    "reviewer-type-design": {
+      "file": "reviewer-type-design.md",
+      "short_description": "Use this agent for evaluating type design quality, invariant expression, encapsulation, and type safety",
+      "triggers": [
+        "type design",
+        "type invariants",
+        "encapsulation review",
+        "type quality",
+        "type safety",
+        "illegal states",
+        "constructor validation"
+      ],
+      "pairs_with": [
+        "comprehensive-review",
+        "systematic-code-review"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "review"
+    },
+    "skill-creator-engineer": {
+      "file": "skill-creator-engineer.md",
+      "short_description": "Use this agent when creating new Claude Code skills, designing workflow automation,\nor improving existing skill architecture",
+      "triggers": [
+        "create skill",
+        "new skill",
+        "skill template",
+        "skill design",
+        "workflow automation",
+        "skill improvement",
+        "refactor skill"
+      ],
+      "pairs_with": [
+        "agent-evaluation",
+        "verification-before-completion",
+        "workflow-orchestrator"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "meta"
+    },
+    "sqlite-peewee-engineer": {
+      "file": "sqlite-peewee-engineer.md",
+      "short_description": "Use this agent when you need expert assistance with SQLite database development using the Peewee ORM in Python",
+      "triggers": [
+        "peewee",
+        "sqlite",
+        "ORM",
+        "python database",
+        "playhouse"
+      ],
+      "pairs_with": [
+        "python-general-engineer",
+        "database-engineer"
+      ],
+      "complexity": "Medium",
+      "category": "language"
+    },
+    "system-upgrade-engineer": {
+      "file": "system-upgrade-engineer.md",
+      "short_description": "Use this agent for systematic upgrades to the agent/skill/hook ecosystem when\nClaude Code ships updates, user goals change, or retro learnings accumulate",
+      "triggers": [
+        "upgrade agents",
+        "system upgrade",
+        "claude update",
+        "upgrade skills",
+        "adapt workflow",
+        "apply claude update",
+        "apply update",
+        "system health",
+        "update system",
+        "new claude version",
+        "apply retro"
+      ],
+      "pairs_with": [
+        "system-upgrade",
+        "agent-evaluation",
+        "codebase-analyzer",
+        "routing-table-updater",
+        "pr-pipeline"
+      ],
+      "complexity": "Complex",
+      "category": "meta"
+    },
+    "technical-documentation-engineer": {
+      "file": "technical-documentation-engineer.md",
+      "short_description": "Use this agent when you need expert assistance with creating, maintaining, and validating technical documentation for enterprise software systems",
+      "triggers": [
+        "API documentation",
+        "technical docs",
+        "documentation validation",
+        "integration guide"
+      ],
+      "pairs_with": [
+        "verification-before-completion"
+      ],
+      "complexity": "Complex",
+      "category": "documentation"
+    },
+    "technical-journalist-writer": {
+      "file": "technical-journalist-writer.md",
+      "short_description": "Use this agent when you need professional technical journalism and article writing",
+      "triggers": [
+        "technical article",
+        "technical writing",
+        "journalist voice",
+        "technical writer",
+        "technical journalism"
+      ],
+      "pairs_with": [
+        "voice-orchestrator"
+      ],
+      "complexity": "Comprehensive",
+      "category": "content"
+    },
+    "testing-automation-engineer": {
+      "file": "testing-automation-engineer.md",
+      "short_description": "Use this agent when you need expert assistance with comprehensive testing strategy and automation for modern web applications",
+      "triggers": [
+        "testing",
+        "E2E",
+        "playwright",
+        "vitest",
+        "test automation",
+        "visual regression"
+      ],
+      "pairs_with": [
+        "test-driven-development"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "testing"
+    },
+    "typescript-debugging-engineer": {
+      "file": "typescript-debugging-engineer.md",
+      "short_description": "Use this agent when you need expert assistance debugging TypeScript applications",
+      "triggers": [
+        "typescript debug",
+        "async bug",
+        "race condition",
+        "type error",
+        "production error",
+        "memory leak"
+      ],
+      "pairs_with": [
+        "systematic-debugging",
+        "typescript-frontend-engineer"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "language"
+    },
+    "typescript-frontend-engineer": {
+      "file": "typescript-frontend-engineer.md",
+      "short_description": "Use this agent when you need expert assistance with TypeScript frontend architecture and optimization for modern web applications",
+      "triggers": [
+        "typescript",
+        "react",
+        "next.js",
+        "frontend",
+        ".tsx",
+        ".ts",
+        "zod"
+      ],
+      "pairs_with": [
+        "universal-quality-gate",
+        "go-testing"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "language"
+    },
+    "ui-design-engineer": {
+      "file": "ui-design-engineer.md",
+      "short_description": "Use this agent when designing and implementing UI/UX for modern web applications with\ndesign systems, responsive layouts, accessibility compliance, and animations",
+      "triggers": [
+        "UI",
+        "design",
+        "tailwind",
+        "accessibility",
+        "responsive",
+        "animations",
+        "design system"
+      ],
+      "pairs_with": [
+        "distinctive-frontend-design",
+        "typescript-frontend-engineer"
+      ],
+      "complexity": "Medium",
+      "category": "language"
+    }
+  }
+}

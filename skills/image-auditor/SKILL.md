@@ -1,0 +1,333 @@
+---
+name: image-auditor
+description: |
+  Non-destructive 4-phase image validation: Discover, Validate, Analyze,
+  Report. Use when auditing web images for accessibility, broken references,
+  oversized files, or format mismatches. Use for "image audit", "check alt
+  text", "find broken images", "optimize images", or "page weight". Do NOT
+  use for image creation, editing pixels, CDN configuration, or automated
+  image conversion without explicit user consent.
+version: 2.0.0
+user-invocable: false
+allowed-tools:
+  - Read
+  - Write
+  - Bash
+  - Grep
+  - Glob
+  - Edit
+  - Task
+---
+
+# Image Auditor Skill
+
+## Operator Context
+
+This skill operates as an operator for image validation and optimization, configuring Claude's behavior for comprehensive image auditing. It implements a **Discovery-Validation** architectural pattern — scan references, validate existence, assess quality, report findings — with **Domain Intelligence** embedded in web performance and accessibility standards.
+
+### Hardcoded Behaviors (Always Apply)
+- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before auditing
+- **Non-Destructive**: NEVER modify, resize, convert, or delete images without explicit user request
+- **Complete Output**: Show all validation results with absolute file paths and line numbers
+- **Reproduce First**: Verify every reported issue by reading the actual file/reference
+- **Evidence Required**: Every FAIL or WARN must cite the file path, line number, and concrete evidence
+
+### Default Behaviors (ON unless disabled)
+- **Full Audit**: Run all check categories (alt text, existence, size, format, unused)
+- **Unused Image Detection**: Find images in static/ not referenced by any content
+- **Size Thresholds**: Flag images >500KB for web optimization
+- **Format Suggestions**: Recommend WebP conversion where beneficial
+- **Page Weight Calculation**: Sum image sizes per post and flag heavy pages
+
+### Optional Behaviors (OFF unless enabled)
+- **Deep Scan**: Include theme images and assets/ directory
+- **Auto-Optimize**: Generate optimized versions (requires imagemagick, explicit consent only)
+- **Strict Mode**: Treat all suggestions as blockers
+
+## What This Skill CAN Do
+- Scan all content files for image references (Markdown, Hugo shortcodes, HTML)
+- Verify all referenced images exist at resolved paths
+- Analyze alt text quality (missing, generic, descriptive)
+- Measure file sizes and flag oversized images against thresholds
+- Detect format mismatches (photo as PNG, screenshot as JPEG)
+- Find unused images not referenced by any content
+- Calculate total page weight per post
+- Generate optimization recommendations with estimated savings
+- Report line numbers and absolute paths for all issues
+
+## What This Skill CANNOT Do
+- Modify, resize, or convert images (destructive operations require explicit consent)
+- Access external image URLs (CDN-hosted, remote images)
+- Judge alt text semantic accuracy (only structural and heuristic checks)
+- Delete unused images without user confirmation
+- Skip any of the 4 phases
+
+---
+
+## Instructions
+
+### Usage
+
+```
+/image-audit                    # Audit entire site
+/image-audit content/posts/     # Audit specific directory
+/image-audit --post my-post.md  # Audit single post
+```
+
+### Phase 1: DISCOVER
+
+**Goal**: Build a complete map of all images and all image references in the codebase.
+
+**Step 1: Find all image files**
+
+Use Glob to locate image files:
+- Pattern: `static/**/*.{png,jpg,jpeg,gif,webp,svg}`
+- Record each file's absolute path and size (use `ls -la` or `stat`)
+
+**Step 2: Find all image references in content**
+
+Use Grep to search content files for these patterns:
+- Markdown images: `![alt](path)` -- regex: `!\[.*?\]\(.*?\)`
+- Hugo figure shortcode: `{{< figure src="..." >}}` -- regex: `figure.*src=`
+- HTML img tags: `<img src="..." alt="...">` -- regex: `<img.*src=`
+- Raw path references: `.png)`, `.jpg)`, `.webp)`, `.svg)`
+
+**Step 3: Build reference map**
+
+For each image reference, record:
+- Source file path (absolute)
+- Line number
+- Image path (as written in source)
+- Resolved path (in static/)
+- Alt text (if present)
+
+**Path Resolution Rules:**
+- `/images/foo.png` resolves to `static/images/foo.png`
+- `images/foo.png` resolves to `static/images/foo.png`
+- `../images/foo.png` resolves relative to the content file's location
+- Hugo shortcode `src=` values follow the same resolution rules
+
+**Gate**: Reference map is complete with all images and all references catalogued. Proceed only when gate passes.
+
+### Phase 2: VALIDATE
+
+**Goal**: Check every reference and every image against quality criteria.
+
+**Step 1: Alt text validation**
+
+| Status | Condition |
+|--------|-----------|
+| PASS | Alt text present, descriptive, 10-125 characters |
+| WARN | Alt text too generic (single words: "image", "screenshot", "picture", "photo", "diagram", "figure", "img") |
+| FAIL | Alt text missing or empty |
+
+See `references/alt-text-examples.md` for detailed quality guidelines.
+
+**Step 2: File existence validation**
+
+| Status | Condition |
+|--------|-----------|
+| PASS | Image file exists at resolved path |
+| FAIL | Image file not found at resolved path |
+
+**Step 3: File size validation**
+
+| Status | Threshold |
+|--------|-----------|
+| PASS | <200KB |
+| WARN | 200KB-500KB |
+| FAIL | >500KB |
+
+See `references/size-guidelines.md` for type-specific thresholds.
+
+**Step 4: Format appropriateness**
+
+| Image Type | Preferred Format | Detection Heuristic |
+|------------|------------------|---------------------|
+| Photos | WebP, JPEG | Filename: "photo", "hero", "banner" |
+| Screenshots | WebP, PNG | Filename: "screenshot", "screen-", "capture" |
+| Diagrams | SVG, WebP | Filename: "diagram", "chart", "graph", "flow" |
+| Icons/Logos | SVG | Filename: "icon", "logo", "favicon" |
+
+See `references/format-selection.md` for the complete decision flowchart.
+
+**Step 5: Unused image detection**
+
+Compare all files in static/images/ against the reference map. Any file with zero references is reported as unused.
+
+**Gate**: All references validated against all criteria. Every issue has a severity level, file path, and line number. Proceed only when gate passes.
+
+### Phase 3: ANALYZE
+
+**Goal**: Compute aggregate metrics and optimization potential.
+
+**Step 1: Page weight per post**
+
+For each post containing images, sum total image bytes and count images.
+
+| Status | Total Images |
+|--------|--------------|
+| Good | <1 MB |
+| Warn | 1-3 MB |
+| Critical | >3 MB |
+
+**Step 2: Optimization estimates**
+
+Calculate potential savings for each actionable item:
+- WebP conversion: ~30% for photos, ~25% for screenshots
+- Resize to max 1200px width: varies by original dimensions
+- Compression optimization: ~10-20% additional savings
+- Total estimated savings across all recommendations
+
+Present estimates as concrete byte counts (e.g., "save ~340 KB"), never as vague percentages alone.
+
+**Step 3: Identify highest-impact fixes**
+
+Rank issues by potential impact:
+1. Broken references (FAIL) -- content is visibly broken
+2. Missing alt text (FAIL) -- accessibility violation
+3. Oversized images on heavy pages -- worst page weight first
+4. Format mismatches with largest savings potential
+
+**Gate**: Metrics computed for all posts. Optimization estimates are concrete numbers. Priority ranking established. Proceed only when gate passes.
+
+### Phase 4: REPORT
+
+**Goal**: Generate a structured, actionable audit report.
+
+Follow the report format in `references/report-templates.md`. The report must include:
+
+1. **Summary**: Total images, total size, posts with images, averages
+2. **Alt Text Issues**: Every FAIL and WARN with file path, line number, current alt text
+3. **File Size Issues**: Every oversized image with size and recommendation
+4. **Missing Files**: Every broken reference with source file and line number
+5. **Unused Images**: Every orphaned file with size
+6. **Format Suggestions**: Aggregated conversion recommendations with estimated savings
+7. **Page Weight**: Per-post breakdown, heaviest posts first
+8. **Recommendations**: Numbered, prioritized action items
+9. **Status Line**: PASS, WARN, or FAIL with counts
+
+**Gate**: Report is complete with all sections populated. Every issue is actionable (file path + line number + recommendation). Report ends with a status line.
+
+---
+
+## Examples
+
+### Example 1: Clean Site
+User says: "Run an image audit"
+Actions:
+1. Glob for all images in static/, Grep for all references in content/ (DISCOVER)
+2. Validate alt text, existence, sizes, formats for each reference (VALIDATE)
+3. Compute page weights and optimization potential (ANALYZE)
+4. Generate report showing no critical issues, minor format suggestions (REPORT)
+Result: STATUS: PASS with optional WebP conversion suggestions
+
+### Example 2: Site with Multiple Issues
+User says: "Check all images before we publish"
+Actions:
+1. Build reference map of 24 images across 8 posts (DISCOVER)
+2. Find 2 missing alt texts, 1 broken reference, 1 oversized image (VALIDATE)
+3. Calculate 4.2 MB total weight, 2.1 MB on heaviest post (ANALYZE)
+4. Generate report with 4 critical issues and 5 format suggestions (REPORT)
+Result: STATUS: FAIL with prioritized fix list
+
+### Example 3: Single Post Audit
+User says: "Audit images in content/posts/2024-12-theme.md"
+Actions:
+1. Grep that specific file for image references (DISCOVER)
+2. Validate the 4 images found: 3 pass, 1 missing alt text (VALIDATE)
+3. Sum 890 KB total weight for this post (ANALYZE)
+4. Generate focused report for single post (REPORT)
+Result: 1 issue to fix (missing alt text on line 45)
+
+---
+
+## Error Handling
+
+### Error: "No Images Found"
+Cause: Wrong directory, no content files, or non-standard image paths
+Solution:
+1. Verify static/images/ directory exists
+2. Confirm content files use standard image reference patterns
+3. Check for custom Hugo shortcodes that reference images differently
+
+### Error: "Cannot Determine Image Dimensions"
+Cause: imagemagick not installed or file permissions issue
+Solution:
+1. Skip dimension checks and audit only file size
+2. Report that dimension analysis was skipped
+3. Note that `identify` command requires imagemagick package
+
+### Error: "Path Resolution Ambiguous"
+Cause: Relative paths in content that could resolve to multiple locations
+Solution:
+1. Try resolving relative to the content file's directory first
+2. Fall back to resolving relative to static/
+3. Report both possible resolutions if ambiguous
+
+### Error: "Permission Denied Reading Files"
+Cause: File permissions prevent reading image files or content directories
+Solution:
+1. Check file permissions with `ls -la` on the failing path
+2. Report which files are inaccessible and skip them
+3. Note skipped files in the report summary so the user knows the audit is incomplete
+
+---
+
+## Anti-Patterns
+
+### Anti-Pattern 1: Modifying Images Without Consent
+**What it looks like**: Automatically resizing or converting images during audit
+**Why wrong**: User may have specific requirements. Destructive changes cannot be undone.
+**Do instead**: Report findings and recommendations. Only modify when user explicitly requests it.
+
+### Anti-Pattern 2: Missing Line Numbers in Reports
+**What it looks like**: Reporting "screenshot.png missing alt text" without file location
+**Why wrong**: User cannot find and fix the issue efficiently without location.
+**Do instead**: Always include absolute file path and line number for every issue.
+
+### Anti-Pattern 3: Treating Suggestions as Blockers
+**What it looks like**: Marking a post as "failed audit" because images are not WebP
+**Why wrong**: Format suggestions are optimizations, not requirements. Conflating severity levels undermines trust.
+**Do instead**: Clearly distinguish FAIL (broken), WARN (should fix), INFO (suggestion).
+
+### Anti-Pattern 4: Skipping Unused Image Detection
+**What it looks like**: Only auditing referenced images, ignoring orphaned files in static/
+**Why wrong**: Unused images bloat the repository and deployment size.
+**Do instead**: Always compare static/ files against the reference map and report orphans.
+
+### Anti-Pattern 5: Not Resolving Relative Paths
+**What it looks like**: Checking for `../images/foo.png` literally in static/
+**Why wrong**: Relative paths must be resolved from the content file's location to find the actual file.
+**Do instead**: Compute absolute path from content file location, then check static/.
+
+---
+
+## References
+
+This skill uses these shared patterns:
+- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
+- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
+
+### Domain-Specific Anti-Rationalization
+
+| Rationalization | Why It's Wrong | Required Action |
+|-----------------|----------------|-----------------|
+| "Alt text looks fine to me" | Subjective assessment misses generic patterns | Check against generic term list |
+| "File sizes are probably okay" | Estimation is not measurement | Measure actual bytes |
+| "Nobody uses screen readers" | 15% of users rely on assistive technology | Validate all alt text |
+| "WebP is overkill for this site" | Format choice affects page load for every visitor | Report savings, let user decide |
+
+### Integration Notes
+
+**With pre-publish-checker**: The pre-publish-checker skill performs basic image validation (existence, alt text presence). This skill provides deeper analysis including format optimization, page weight, and unused image detection. Use pre-publish for quick pass/fail; use image-auditor for comprehensive audits.
+
+**With Hugo build**: Run image audit before `hugo --minify` to catch broken references and optimize assets before deployment.
+
+**Recommended cadence**: Run full audit periodically (weekly or before releases). Address FAIL issues immediately. Schedule WARN issues for optimization sprints.
+
+### Reference Files
+- `${CLAUDE_SKILL_DIR}/references/alt-text-examples.md`: Good and bad alt text examples by image type
+- `${CLAUDE_SKILL_DIR}/references/size-guidelines.md`: Maximum file sizes, dimension limits, page weight budgets
+- `${CLAUDE_SKILL_DIR}/references/format-selection.md`: Format decision flowchart and detection heuristics
+- `${CLAUDE_SKILL_DIR}/references/report-templates.md`: Full audit and single-post report templates

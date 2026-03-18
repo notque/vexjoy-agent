@@ -1,0 +1,59 @@
+# Task 001: Route Go debugging request correctly
+# Tests that /do routes Go-related debug requests to the appropriate agent
+
+task:
+  id: "routing-001"
+  name: "Route Go debug request to golang agent"
+  description: |
+    Verify that when a user asks to debug Go tests, the /do command
+    correctly routes to golang-general-engineer or invokes systematic-debugging.
+  category: "routing"
+  type: "capability"
+
+  input:
+    prompt: "/do debug why my Go tests are failing in pkg/worker"
+    context_files: []
+    setup_commands: []
+
+  execution:
+    agent: null  # Let /do decide
+    skill: "do"
+    timeout_seconds: 60
+    trials: 1
+
+  graders:
+    - type: "string_contains"
+      config:
+        target: "transcript"
+        patterns:
+          - "golang"  # Should mention Go/golang
+        match_all: false
+      weight: 0.3
+
+    - type: "regex_match"
+      config:
+        target: "transcript"
+        pattern: "(golang-general-engineer|go-testing|systematic-debugging|debug)"
+      weight: 0.4
+
+    - type: "string_contains"
+      config:
+        target: "transcript"
+        patterns:
+          - "Task"  # Should use Task tool to spawn agent
+        match_all: false
+      weight: 0.3
+
+  metrics:
+    - turns
+    - tokens
+    - latency
+
+  reference:
+    solution_file: null
+    notes: |
+      Acceptable outcomes:
+      - Routes to golang-general-engineer agent
+      - Invokes systematic-debugging skill with Go context
+      - Uses go-testing skill
+      Should NOT route to Python or generic agents.

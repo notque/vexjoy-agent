@@ -1,0 +1,111 @@
+# Task 002: Reject vague agent request
+# Negative test: Verifies agent creator asks for clarification rather than guessing
+#
+# Per Anthropic: "Test both the cases where a behavior should occur and where it shouldn't.
+# One-sided evals create one-sided optimization."
+
+task:
+  id: "agent-creation-002"
+  name: "Reject vague agent request"
+  description: |
+    Test that agent-creator-engineer asks for clarification when given a vague
+    request, rather than creating an incomplete or incorrect agent specification.
+    The agent should request more details about purpose, triggers, and tools.
+  category: "agent-creation"
+  type: "capability"
+
+  input:
+    prompt: "Create an agent for stuff"
+    context_files: []
+    setup_commands: []
+
+  execution:
+    agent: "agent-creator-engineer"
+    skill: null
+    timeout_seconds: 120
+    trials: 1
+
+  graders:
+    # POSITIVE check: Should ask clarifying questions
+    - type: "string_contains"
+      config:
+        target: "transcript"
+        patterns:
+          - "clarify"
+          - "more specific"
+          - "what kind"
+          - "could you"
+          - "can you"
+          - "what type"
+          - "please provide"
+          - "need more"
+          - "details"
+        match_all: false
+      weight: 0.4
+
+    # NEGATIVE check: Should NOT create an agent file
+    - type: "file_exists"
+      config:
+        path: "agents/stuff.md"
+      weight: 0.0
+      # Note: weight 0.0 means this doesn't affect score, but we track it
+      # A proper implementation would invert this (file should NOT exist)
+
+    # COMPREHENSIVE check: Evaluate the full response
+    - type: "llm_rubric"
+      config:
+        rubric: |
+          Agent creation quality rubric for vague requests:
+
+          When given a vague request like "create an agent for stuff", the agent
+          creator should NOT proceed with creation. Instead, it should:
+
+          1. Acknowledge the request
+          2. Ask clarifying questions about:
+             - What domain or task the agent should handle
+             - What tools/capabilities are needed
+             - What triggers should route to this agent
+             - What outputs are expected
+          3. Wait for user response before creating anything
+        assertions:
+          - "Agent asks clarifying questions rather than making assumptions"
+          - "Agent does NOT create a file based on guesses"
+          - "Agent requests specific information about the agent's purpose"
+          - "Agent mentions needing details about tools, triggers, or domain"
+          - "Response is conversational and awaits user input"
+      weight: 0.6
+
+  metrics:
+    - turns
+    - tokens
+    - latency
+
+  reference:
+    solution_file: null
+    notes: |
+      This is a NEGATIVE test - the agent should NOT create an agent from a vague request.
+
+      The request "Create an agent for stuff" is intentionally:
+      - Vague (no specific domain)
+      - Undefined (no tools, triggers, or outputs)
+      - Ambiguous (could mean anything)
+
+      Expected behavior:
+      - Recognize the request is too vague
+      - Ask clarifying questions:
+        - "What kind of stuff should this agent handle?"
+        - "What tools does it need (Bash, Read, Write, etc.)?"
+        - "What triggers should route to this agent?"
+      - Wait for response before creating anything
+
+      Failure modes to detect:
+      - Creating agents/stuff.md with guessed content
+      - Making assumptions about what "stuff" means
+      - Generating placeholder agent without clarity
+      - Proceeding without asking questions
+
+      Why this matters:
+      - Bad agents pollute the routing table
+      - Guessed agents waste tokens on recreation
+      - Clarification prevents incorrect implementations
+      - Shows the agent respects user intent over completion metrics

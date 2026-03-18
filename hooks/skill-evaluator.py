@@ -1,0 +1,252 @@
+#!/usr/bin/env python3
+"""
+UserPromptSubmit Hook: Dynamic Skill/Agent Evaluation
+
+Discovers available skills and agents from filesystem,
+injecting a targeted evaluation protocol when meaningful.
+"""
+
+import json
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).parent.parent
+
+# Complete agent routing guide with when-to-use descriptions
+AGENT_ROUTING = {
+    # Language/Framework Experts
+    "golang-general-engineer": "Go development, concurrency, testing, interfaces",
+    "golang-general-engineer-compact": "Go tasks with tight context limits",
+    "python-general-engineer": "Python development, async, typing, pytest",
+    "python-openstack-engineer": "OpenStack Python, oslo libraries, Tempest",
+    "typescript-frontend-engineer": "TypeScript, React, type safety, Zod",
+    "typescript-debugging-engineer": "TypeScript debugging, race conditions, async issues",
+    "nodejs-api-engineer": "Node.js backends, Express, auth, webhooks",
+    "nextjs-ecommerce-engineer": "Next.js e-commerce, Stripe, cart, checkout",
+    "react-portfolio-engineer": "React portfolios, galleries, image optimization",
+    # Infrastructure
+    "kubernetes-helm-engineer": "K8s, Helm charts, deployments, troubleshooting",
+    "ansible-automation-engineer": "Ansible playbooks, roles, automation",
+    "prometheus-grafana-engineer": "Monitoring, alerting, dashboards, metrics",
+    "opensearch-elasticsearch-engineer": "Search clusters, indexing, queries",
+    "rabbitmq-messaging-engineer": "Message queues, routing, clustering",
+    # Data & Docs
+    "database-engineer": "PostgreSQL, Prisma, schema design, optimization",
+    "sqlite-peewee-engineer": "SQLite, Peewee ORM, migrations",
+    "technical-documentation-engineer": "API docs, READMEs, technical writing",
+    "technical-journalist-writer": "Technical articles, journalism, explainers",
+    # UI/Performance
+    "ui-design-engineer": "UI/UX, Tailwind, accessibility, animations",
+    "performance-optimization-engineer": "Core Web Vitals, bundle size, caching",
+    "testing-automation-engineer": "Unit/E2E tests, Playwright, CI pipelines",
+    # Meta/Creation
+    "agent-creator-engineer": "Create new specialized agents",
+    "skill-creator-engineer": "Create new Claude skills",
+    "hook-development-engineer": "Create Claude Code hooks, event handlers",
+    "mcp-local-docs-engineer": "Build MCP servers for documentation",
+    # Coordination
+    "research-coordinator-engineer": "Complex research, multi-source analysis",
+    "project-coordinator-engineer": "Multi-agent orchestration, TodoWrite",
+    # Roasters (critique personas)
+    "reviewer-contrarian": "Challenge assumptions, explore alternatives",
+    "reviewer-newcomer": "Fresh perspective on docs, onboarding",
+    "reviewer-pragmatic-builder": "Production concerns, operational reality",
+    "reviewer-skeptical-senior": "Long-term sustainability, maintenance burden",
+    "reviewer-pedant": "Terminology precision, factual accuracy",
+}
+
+# Complete skill routing guide
+SKILL_ROUTING = {
+    # Code Quality
+    "systematic-code-review": "Review code changes, PRs, security audits",
+    "systematic-debugging": "4-phase root cause analysis, no guessing",
+    "systematic-refactoring": "Safe refactoring with phase gates",
+    "test-driven-development": "RED-GREEN-REFACTOR cycle",
+    "code-cleanup": "Stale TODOs, unused imports, missing types",
+    "comment-quality": "Fix temporal/development-activity comments",
+    # Language-Specific Quality
+    "go-pr-quality-gate": "Go linting, tests, vet, staticcheck",
+    "python-quality-gate": "ruff, pytest, mypy, bandit",
+    "universal-quality-gate": "Multi-language quality checks",
+    "code-linting": "Python (ruff) + JavaScript (Biome) linting",
+    # Git/CI
+    "branch-naming": "Generate branch names from commit messages",
+    "git-commit-flow": "Standardized commit workflow, validation",
+    "github-actions-check": "Check CI status after push",
+    # Research/Analysis
+    "codebase-overview": "Rapidly understand unfamiliar codebases",
+    "codebase-analyzer": "Extract implicit coding rules from patterns",
+    "pr-miner": "Mine PR comments for coding standards",
+    "pr-mining-coordinator": "Coordinate PR mining operations",
+    # Process
+    "workflow-orchestrator": "Multi-step tasks, brainstorming, planning",
+    "verification-before-completion": "Multiple validation layers before done",
+    "read-only-ops": "Exploration and reporting without modifications",
+    "skill-composer": "Orchestrate multi-skill workflows",
+    # Evaluation
+    "agent-evaluation": "Evaluate agents/skills for quality",
+    "agent-comparison": "A/B test agent variants",
+    "roast": "5-persona constructive criticism",
+    # Specialized
+    "distinctive-frontend-design": "Unique aesthetics, avoid generic AI patterns",
+    "professional-communication": "Transform technical to business formats",
+    "endpoint-validator": "API endpoint validation, pass/fail",
+    "service-health-check": "Service monitoring, restart recommendations",
+    "cron-job-auditor": "Audit cron scripts for best practices",
+    "docs-sync-checker": "Verify all skills/agents documented",
+    "routing-table-updater": "Maintain /do routing tables",
+    # Plan Management
+    "plan-manager": "Deterministic plan lifecycle (list, show, check, complete, abandon)",
+}
+
+
+def classify_complexity(prompt: str) -> str:
+    """Classify request complexity."""
+    prompt_lower = prompt.lower()
+    word_count = len(prompt.split())
+
+    if word_count < 10 and "?" in prompt:
+        return "trivial"
+
+    complex_signals = [
+        "implement",
+        "create",
+        "build",
+        "refactor",
+        "review",
+        "analyze",
+        "debug",
+        "fix",
+        "add feature",
+        "and also",
+        "then",
+        "first",
+        "after that",
+    ]
+
+    complex_count = sum(1 for s in complex_signals if s in prompt_lower)
+
+    if complex_count >= 2 or word_count > 50:
+        return "complex"
+    elif complex_count >= 1 or word_count > 20:
+        return "medium"
+    return "simple"
+
+
+def get_evaluation_prompt(complexity: str) -> str:
+    """Generate skill evaluation injection prompt."""
+
+    # Group agents by category for readability
+    agent_sections = """
+**Agents by Domain:**
+- Go: golang-general-engineer (full) or golang-general-engineer-compact (tight context)
+- Python: python-general-engineer, python-openstack-engineer (OpenStack)
+- TypeScript/React: typescript-frontend-engineer, typescript-debugging-engineer (bugs)
+- Node.js: nodejs-api-engineer, nextjs-ecommerce-engineer, react-portfolio-engineer
+- Infra: kubernetes-helm-engineer, ansible-automation-engineer
+- Monitoring: prometheus-grafana-engineer, opensearch-elasticsearch-engineer
+- Data: database-engineer (PostgreSQL), sqlite-peewee-engineer
+- Docs: technical-documentation-engineer, technical-journalist-writer
+- UI: ui-design-engineer, performance-optimization-engineer
+- Testing: testing-automation-engineer
+- Meta: agent-creator-engineer, skill-creator-engineer, hook-development-engineer
+- Research: research-coordinator-engineer, project-coordinator-engineer
+- Critique: roast skill (5 personas: contrarian, newcomer, builder, senior, pedant)"""
+
+    skill_sections = """
+**Skills by Purpose:**
+- Code Review: systematic-code-review, systematic-debugging, systematic-refactoring
+- Quality Gates: go-pr-quality-gate, python-quality-gate, universal-quality-gate
+- Git: branch-naming, git-commit-flow, github-actions-check
+- Process: workflow-orchestrator, verification-before-completion, test-driven-development
+- Analysis: codebase-overview, codebase-analyzer, agent-evaluation
+- Cleanup: code-cleanup, comment-quality, code-linting"""
+
+    phases = {
+        "trivial": "",
+        "simple": "**SIMPLE**: UNDERSTAND → EXECUTE → VERIFY",
+        "medium": "**MEDIUM**: UNDERSTAND (restate) → PLAN (steps) → EXECUTE → VERIFY",
+        "complex": """**COMPLEX** (ALL required):
+1. UNDERSTAND: Request, criteria, assumptions
+2. PLAN: Steps, tools, risks
+3. EXECUTE: Show progress
+4. VERIFY: Criteria met, no side effects""",
+    }
+
+    systematic = phases.get(complexity, "")
+
+    return f"""<skill-evaluation-protocol>
+EVALUATE before responding:
+{agent_sections}
+{skill_sections}
+
+{systematic}
+
+Route with: `skill: [name]` or Task tool with subagent_type
+</skill-evaluation-protocol>"""
+
+
+def should_skip(prompt: str) -> bool:
+    """Determine if prompt should skip evaluation."""
+    prompt_lower = prompt.lower().strip()
+
+    if len(prompt_lower) < 20:
+        return True
+
+    skip_patterns = [
+        "hello",
+        "hi ",
+        "hey ",
+        "thanks",
+        "thank you",
+        "what is",
+        "how do i",
+        "can you explain",
+        "help",
+    ]
+
+    if any(p in prompt_lower for p in skip_patterns):
+        return True
+
+    if prompt_lower.endswith("?") and len(prompt_lower) < 50:
+        return True
+
+    return False
+
+
+def main():
+    """Process UserPromptSubmit hook event."""
+    try:
+        stdin_data = sys.stdin.read()
+        if not stdin_data:
+            return
+
+        event = json.loads(stdin_data)
+    except (json.JSONDecodeError, ValueError):
+        return
+
+    try:
+        event_type = event.get("hook_event_name") or event.get("type", "")
+
+        if event_type != "UserPromptSubmit":
+            return
+
+        prompt = event.get("prompt", "")
+
+        if should_skip(prompt):
+            return
+
+        complexity = classify_complexity(prompt)
+        print(get_evaluation_prompt(complexity))
+
+    except Exception:
+        pass
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        pass
+    finally:
+        sys.exit(0)

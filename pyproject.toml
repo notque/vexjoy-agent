@@ -1,0 +1,67 @@
+[project]
+name = "ai-overkill"
+version = "1.0.0"
+description = "Claude Code agents, skills, and hooks for automated development workflows"
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+quality = [
+    "ruff>=0.8.0",
+]
+dev = [
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+    "pytest>=8.0.0",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    # Pyflakes - logical errors
+    "F",
+    # pycodestyle errors
+    "E",
+    # pycodestyle warnings
+    "W",
+    # isort - import sorting
+    "I",
+    # flake8-bugbear - common bugs
+    "B",
+    # flake8-simplify - code simplification
+    "SIM",
+    # flake8-unused-arguments
+    "ARG",
+    # flake8-use-pathlib
+    "PTH",
+    # Ruff-specific rules
+    "RUF",
+]
+
+ignore = [
+    # Allow print statements in hooks/demo files (they're meant for output)
+    "T201",
+    # Allow broad exception catching in hooks (they need to be robust)
+    "BLE001",
+    # Allow assert in non-test files
+    "S101",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Test files: allow print, assert, unused unpacked vars, temp files, unused args, long test strings
+"**/tests/*.py" = ["T201", "S101", "RUF059", "SIM115", "ARG002", "B007", "RUF005"]
+# Scripts are allowed to use print for user feedback
+"**/scripts/*.py" = ["T201"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_ignores = true
+ignore_missing_imports = true

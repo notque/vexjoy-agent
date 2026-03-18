@@ -1,0 +1,31 @@
+# Local Configuration Template
+#
+# Copy this file to .local/config.yaml and customize with your values.
+# This file is gitignored and will not be committed.
+
+# Your GitHub organization/username
+github:
+  org: your-org
+  # Default repositories for PR mining
+  repos:
+    - your-org/main-repo
+    - your-org/shared-libs
+  # GitHub token (or use GITHUB_TOKEN env var)
+  # token: ghp_xxxxx  # Don't commit real tokens!
+
+# Project directory mappings (for GitHub Actions check)
+projects:
+  # Map working directories to GitHub repos
+  # /home/youruser/project1: your-org/project1
+  # /home/youruser/project2: your-org/project2
+
+# Team/organization info
+team:
+  name: Your Team Name
+  email_domain: example.com
+  support_group: your-team
+
+# Vault configuration (if using vault-helper)
+vault:
+  # mount: your-secrets-mount
+  # namespace: your-namespace

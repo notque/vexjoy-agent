@@ -1,0 +1,655 @@
+# Detection Patterns
+
+Regex patterns and heuristics for detecting AI writing patterns.
+
+---
+
+## Pattern Matching Rules
+
+### Tier 1: High-Confidence AI Cliches
+
+```regex
+# Single word replacements (case insensitive)
+\bdelve[sd]?\b
+\butilize[sd]?\b
+\bleverage[sd]?\b
+\bfacilitate[sd]?\b
+\bsynerg(y|ies|ize|izing)\b
+\bholistic(ally)?\b
+\bparadigm\b
+\bactionable\b
+\bimpactful\b
+
+# Phrase patterns
+\bin today'?s\s+\w+\s+world\b
+\bin today'?s\s+(fast-paced|modern|digital|competitive)\b
+\bembark(s|ed|ing)?\s+on\s+a\s+journey\b
+\bat the end of the day\b
+\brobust and comprehensive\b
+\bcomprehensive and robust\b
+\bseamless(ly)?\s+integrat(e|es|ed|ing|ion)\b
+\bcutting[- ]edge\b
+\bstate[- ]of[- ]the[- ]art\b
+\bgame[- ]?changer\b
+\bdeep[- ]?dive\b
+\bunpack(s|ed|ing)?\s+(this|that|the)\b
+```
+
+### Em-Dash and Double-Dash (Tier 1)
+
+Em-dashes (---) and double-dashes (--) are strong AI formatting tells. **WordPress renders both as em-dashes.** This is one of the most reliably detectable AI patterns in news articles. Rewrite every sentence to not need them.
+- Regex: `—|--`
+- False positive note: YAML frontmatter delimiters (---) are NOT dashes in content
+- **Fix strategy**: Rewrite using periods, commas, or parentheses. Never substitute one dash type for another.
+  - WRONG: "framing it as historic -- the first woman to pull double duty"
+  - RIGHT: "She framed it as historic. The first woman to pull double duty."
+  - RIGHT: "She framed it as historic (the first woman to pull double duty)."
+
+### Tier 2: Meta-Commentary
+
+```regex
+# Article self-reference
+\bin this (article|post|guide|tutorial)\b
+\bas (we've|we have) (discussed|seen|mentioned)\b
+\blet me explain\b
+\blet's (explore|examine|look at|dive into)\b
+\bi('d| would) like to\b
+\bwithout further ado\b
+\bfirst and foremost\b
+\blast but not least\b
+\bin conclusion\b
+\bto sum(marize)? up\b
+\ball in all\b
+\bhaving said that\b
+\bthat being said\b
+\bit goes without saying\b
+\bneedless to say\b
+\bit'?s (important|worth) (to note|noting) that\b
+```
+
+### Tier 3: Fluff Phrases
+
+```regex
+# Wordy constructions
+\ba (wide )?variety of\b
+\ba (large )?number of\b
+\bdue to the fact that\b
+\bin order to\b
+\bfor the purpose of\b
+\bin the event that\b
+\bat this point in time\b
+\bin the near future\b
+\bon a (daily|regular|weekly) basis\b
+\bin the process of\b
+\b(is|are) able to\b
+\bhas the (ability|capacity) to\b
+\bin spite of the fact that\b
+\bwith regard to\b
+\bin light of\b
+\bin terms of\b
+\bby means of\b
+\bfor all intents and purposes\b
+\bthe fact of the matter is\b
+\bwhen all is said and done\b
+```
+
+### Tier 4: Passive Voice Detection
+
+```regex
+# Common passive constructions
+\bwas\s+\w+ed\s+by\b
+\bwere\s+\w+ed\s+by\b
+\bhas been\s+\w+ed\b
+\bhave been\s+\w+ed\b
+\bwill be\s+\w+ed\b
+\bcan be\s+\w+ed\b
+\bshould be\s+\w+ed\b
+\bmust be\s+\w+ed\b
+\bit was\s+\w+ed\s+that\b
+\bit has been\s+\w+ed\s+that\b
+```
+
+### Tier 5: Redundant Modifiers
+
+```regex
+# Absolute adjectives with modifiers
+\bvery unique\b
+\bcompletely (finished|destroyed|unanimous)\b
+\babsolutely (essential|critical|necessary)\b
+\btotally (destroyed|unanimous)\b
+\bextremely (critical|essential|important)\b
+\bhighly (innovative|unique)\b
+\btruly (exceptional|unique)\b
+
+# Filler words (context-dependent)
+\bquite frankly\b
+\bhonestly,?\s
+\bbasically,?\s
+\bliterally\b
+\bactually,?\s
+\breally\b
+\bjust\b
+\bsimply\b
+\bobviously\b
+\bclearly\b
+```
+
+---
+
+## Structural Analysis Heuristics
+
+### Sentence Length Monotony
+
+Algorithm:
+```
+1. Split content into sentences
+2. Calculate word count for each sentence
+3. For windows of 5 consecutive sentences:
+   - Calculate standard deviation of word counts
+   - Flag if std_dev < 3 (too uniform)
+4. Report "Monotonous sentence lengths in paragraph N"
+```
+
+Threshold: Flag if 5+ consecutive sentences are within 5 words of each other.
+
+### Preamble Detection
+
+Patterns for empty opening paragraphs:
+```regex
+# Starts with vague opener
+^In (today's|our|the) (modern|current|digital|fast-paced)\b
+^(As|When) (we|you) (think about|consider|look at)\b
+^Have you ever (wondered|thought|considered)\b
+^(Everyone|We all) knows?\b
+^It's no secret that\b
+^There's no doubt that\b
+```
+
+Flag first paragraph if:
+- Contains 2+ patterns from above
+- Contains no specific nouns, dates, or data
+- Ends with a question (rhetorical opener pattern)
+
+### Contraction Avoidance (AI Formality Tell)
+
+AI models tend to avoid contractions, producing unnaturally formal text. In news articles and blog posts, humans use contractions at 80%+ rate. Low contraction rates are a strong AI signal.
+
+**Detection heuristic:**
+```
+1. Count expandable contractions present: don't, can't, won't, isn't, aren't, hasn't, haven't, didn't, doesn't, shouldn't, wouldn't, couldn't, it's, he's, she's, they've, we've, he'd, she'd, they'd, we'd
+2. Count missed contraction opportunities: "do not", "can not", "will not", "is not", "are not", "has not", "have not", "did not", "does not", "should not", "would not", "could not", "it is", "he is", "she is", "they have", "we have"
+3. Calculate contraction rate: contractions / (contractions + missed opportunities)
+4. Flag if rate < 75% (target for news articles: 82%+)
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "She does not plan to stop." | "She doesn't plan to stop." |
+| "It is the first time..." | "It's the first time..." |
+| "They have been building..." | "They've been building..." |
+| "He would not comment." | "He wouldn't comment." |
+
+**False positive note:** Contractions are inappropriate in direct quotes where the speaker used the formal form, and in legal/formal contexts. Skip this check inside blockquotes.
+
+### List Overuse
+
+Heuristic:
+```
+1. Count bulleted/numbered lists in content
+2. Count total words in content
+3. Calculate ratio: lists per 500 words
+4. Flag if ratio > 2
+```
+
+Also flag when:
+- List items could form a coherent paragraph
+- List has 2 items (should be prose)
+- List items are complete sentences (often should be paragraphs)
+
+### Tier 1b: Copula Avoidance (AI Verb Substitution)
+
+AI models avoid simple copulas ("is", "has", "are") by substituting unnecessarily complex verbs. Sourced from Wikipedia's WikiProject AI Cleanup via OpenClaw's Humanizer skill.
+
+```regex
+# "Is/are" avoidance — substituting complex verbs for simple copulas
+\b(serves|stands|functions|acts)\s+as\s+(a|an|the)\b
+
+# "Has" avoidance — inflated verbs replacing "has"
+\b(boasts|features|offers)\s+(a|an|the)\b
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "The library **serves as a** bridge between APIs" | "The library **is a** bridge between APIs" |
+| "The framework **stands as a** testament to good design" | "The framework **is** a testament to good design" |
+| "The package **functions as a** wrapper" | "The package **is** a wrapper" |
+| "The city **boasts a** rich history" | "The city **has a** rich history" |
+| "The platform **features a** modern UI" | "The platform **has** a modern UI" |
+| "The SDK **offers a** simple interface" | "The SDK **has** a simple interface" |
+
+**False positive note:** "serves as" is legitimate when describing actual service/duty roles (e.g., "She serves as the committee chair"). Flag only when substituting for "is".
+
+### Tier 2b: Superficial -ing Analysis (Dangling Participial Phrases)
+
+AI appends dangling participial phrases to sentences to add fake analytical depth. These trailing clauses sound insightful but say nothing specific.
+
+```regex
+# Trailing participial phrases that add fake depth
+,\s*(highlighting|underscoring|emphasizing|showcasing|symbolizing|reflecting|fostering|cultivating|encompassing)\b
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "The team shipped 3 features this quarter, **highlighting its importance** to the roadmap" | "The team shipped 3 features this quarter" |
+| "Revenue grew 20%, **underscoring the significance** of the pivot" | "Revenue grew 20% -- the pivot paid off" |
+| "The festival draws 50,000 visitors, **showcasing the diversity** of the region" | "The festival draws 50,000 visitors from across the region" |
+| "The architecture uses event sourcing, **reflecting** modern design trends" | "The architecture uses event sourcing" |
+
+**Fix strategy:** Usually remove the trailing clause entirely. If the idea matters, make it a standalone sentence with a specific claim.
+
+### Tier 2c: Significance/Legacy Puffery
+
+AI inflates the importance of mundane subjects with grandiose "legacy" and "testament" language. Common in biographical, historical, and organizational content.
+
+```regex
+# Testament phrasing
+\b(is|stands?\s+as)\s+a\s+testament\s+to\b
+
+# Landscape/evolving language
+\b(pivotal|crucial|vital)\s+role\s+in\s+the\s+(evolving|ever-changing|shifting)\s+landscape\b
+
+# Legacy/mark language
+\bindelible\s+mark\b
+\benduring\s+legacy\b
+\blasting\s+(impact|impression|legacy)\b
+\bprofound\s+(impact|influence|effect)\b
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "Her career **is a testament to** hard work" | "She built her career through hard work" |
+| "The company plays a **pivotal role in the evolving landscape**" | "The company is a major player in the market" |
+| "He left an **indelible mark** on the industry" | "He changed how the industry works" |
+| "The project's **enduring legacy** continues to inspire" | "The project still influences new work" |
+| "This had a **profound impact** on the community" | "This changed the community" |
+
+### Tier 2d: Generic Positive Conclusions
+
+AI closes articles with vague optimism instead of specific forward-looking statements. Mirrors the preamble detection logic but for endings.
+
+```regex
+# Bright future closers
+\bthe future (looks|is) bright\b
+\bexciting times (lie|are) ahead\b
+\bonly time will tell\b
+
+# Continues to [vague verb]
+\b(continues|continue) to (thrive|evolve|grow|inspire|shape)\b
+
+# Poised/positioned language
+\b(poised|positioned|well-positioned) (to|for)\b
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "**The future looks bright** for the project" | [Remove -- end with a specific fact or callback] |
+| "**Exciting times lie ahead** for the community" | [Remove or state what's actually coming next] |
+| "The framework **continues to evolve** and grow" | "The framework added async support in v3.2" |
+| "The team is **poised to** deliver results" | "The team ships v2 next month" |
+| "The organization **continues to thrive**" | [Be specific about what "thriving" means] |
+
+**Fix strategy:** Replace with a specific fact, a callback to the opening, or simply cut the closing platitude.
+
+### Tier 3b: Curly Quote Detection (ChatGPT-Specific)
+
+ChatGPT outputs curly/smart quotes by default. In code-adjacent, Markdown, and plain-text contexts, humans use straight quotes. Presence of curly quotes in these contexts is a strong ChatGPT signal.
+
+```regex
+# Curly double quotes (left and right)
+[\u201C\u201D]
+
+# Curly single quotes / apostrophes (left and right)
+[\u2018\u2019]
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| \u201CThis is a quote\u201D | "This is a quote" |
+| it\u2019s working | it's working |
+| \u2018single quoted\u2019 | 'single quoted' |
+
+**False positive note:** Curly quotes ARE correct in typeset documents (books, PDFs, formal publications). Only flag in Markdown, README, code comments, blog posts, and plain-text contexts. Do NOT flag in `.docx`, `.pdf`, or formal publishing formats.
+
+### News Article AI Tells (Tier 1)
+
+AI writing in news articles and event recaps produces distinct tells that differ from general prose. These patterns emerge when AI tries to sound like a journalist but lacks actual editorial instinct -- it substitutes pseudo-profundity for analysis and dramatic rhythm for real storytelling.
+
+#### Pseudo-Profound Commentary
+
+AI inserts "worth sitting with", "worth noting", "worth a pause" type phrases that add no information. These create a false sense of significance without any actual insight.
+
+```regex
+# "Worth" phrases that add no substance
+\b(worth|deserves?)\s+(sitting with|a (second|moment|pause)|noting|a closer look)\b
+
+# "Let that sink in" -- AI mic-drop that says nothing
+\blet that sink in\b
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "That's **worth sitting with for a second**" | [Remove entirely -- if it's worth sitting with, the reader will do it without being told] |
+| "That number **deserves a closer look**" | [State what the closer look reveals, or cut] |
+| "The event drew 10,000 fans. **Let that sink in.**" | "The event drew 10,000 fans, their biggest gate since 2022" |
+| "It's **worth noting** that this was her first product launch" | "This was her first product launch" |
+
+**False positive note:** "Worth noting" is acceptable in genuinely parenthetical asides where the information IS the note (e.g., "Worth noting: the contract expires in June"). Flag when it's throat-clearing before stating a fact that should just be stated.
+
+#### Abstract Philosophizing About Consequences
+
+AI inflates the significance of events with abstract language about "consequences" and "beyond". Instead of stating what actually happened next, it gestures vaguely at importance.
+
+```regex
+# "Consequences extend beyond" -- abstract inflation
+\b(consequences|implications)\s+(extend|go|reach)\s+(beyond|past|further than)\b
+
+# "Beyond the night itself" -- vague significance gesture
+\b(beyond|transcends?)\s+(the night|this moment|the keynote|the event)\s+itself\b
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "The **consequences extend beyond the night itself**" | "The loss means they drop out of the leadership track heading into the finals" |
+| "The **implications go beyond** just this match" | "A loss here means they miss the tournament entirely" |
+| "This **transcends the event itself**" | [State the specific downstream effect, or cut] |
+
+**False positive note:** Legitimate when the sentence then immediately specifies what those consequences are (e.g., "The consequences extend beyond the roster -- it affects the entire promotion's TV deal"). Flag only when the abstraction IS the entire thought.
+
+#### Dramatic Short-Sentence AI Rhythm
+
+AI creates a pattern of: long sentence. Short dramatic sentence. Long sentence. This "mic drop" rhythm is a structural tell. Real journalists vary rhythm organically; AI alternates mechanically.
+
+```
+Detection heuristic:
+1. Split into sentences, count words per sentence
+2. For each consecutive pair, classify as LONG (>15 words) or SHORT (<8 words)
+3. Flag when 3+ consecutive sentence-pairs alternate LONG-SHORT-LONG or SHORT-LONG-SHORT
+4. This is a structural check, not a regex pattern
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "The conference featured eight sessions across four hours of content. **Attendees had options.** They could attend the flagship conference or catch the free pre-conference workshop. **They chose this event.** The registration rate reflected a hungry audience ready for something different." | "The conference ran eight sessions across four hours. Attendees who signed up -- and most did, given the registration rate -- got a packed agenda from start to finish." |
+
+**Fix strategy:** Merge the short dramatic sentences into their surrounding context, or rewrite to break the mechanical alternation. Real writers use short sentences too, but not in a predictable pattern.
+
+**False positive note:** A single short-sentence punch is fine and natural. Only flag the *pattern* of alternation -- three or more consecutive pairs switching between long and short. Also skip this check inside quoted speech.
+
+#### Event/Review Commentary Clichés (Tier 2)
+
+Domain-specific AI patterns that emerge when AI tries to sound enthusiastic but falls into generic prediction commentary instead of reporting.
+
+```regex
+# Prediction commentary -- editorial, not news
+\bshould be a (must-see|intense one|highlight|instant classic|showdown)\b
+
+# Explaining motivation -- telling instead of showing
+\bthat's what \w+ does when\b
+
+# Overused event descriptors
+\b(blockbuster|stacked|loaded)\s+(card|lineup|show|event)\b
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "This **should be a must-see**" | "Every time these two present, the event delivers" |
+| "**That's what they do when** pushed" | "They delivered their best presentation of the year" |
+| "A **blockbuster lineup** from top to bottom" | "Six headline acts. The organizers are not messing around" |
+| "This **stacked lineup** has something for everyone" | [State what's in the lineup; let the reader decide] |
+
+#### Bibliography Format Tell (Tier 1)
+
+AI (especially ChatGPT) appends academic-style bibliography sections to news articles. Real news articles cite inline. A "Sources:" or "References:" section at the end of a news article is a strong AI tell.
+
+```regex
+# Bibliography headers at article end
+^#+\s*(Sources|References)\s*:?\s*$
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| `## Sources:\n- Source A\n- Source B` | [No section — cite inline where the source IS the value] |
+| `### References\n1. [Source A](url)\n2. [Source C](url)` | "The CEO told Bloomberg they first met their co-founder at a conference" — inline citation |
+
+**Fix strategy:** Remove the bibliography section entirely. If any source in it represents original reporting worth linking (an interview, an exclusive), move that citation inline to where the information appears in the article. Public knowledge facts (session results, schedule announcements) need no citation at all.
+
+#### Meta-Commentary on Significance
+
+AI tells the reader HOW to feel about facts instead of just presenting them. It editorializes about why something matters rather than letting the facts speak.
+
+```regex
+# "That's the kind of" -- telling reader how to categorize
+\bthat's the kind of\b
+
+# "This is what/why/how" -- editorial significance framing
+\b(this|that) is (exactly )?(what|why|how|where)\b
+
+# "You'd be hard-pressed" / "hard to overstate" -- fake superlatives
+\b(you'd be hard-pressed|it's hard to overstate)\b
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "**That's the kind of** stakes that make an event feel like it actually matters" | "With the title and a promotion on the line, both teams had reason to compete" |
+| "**This is exactly why** fans tune in every week" | [Remove -- let the preceding facts be the reason] |
+| "**You'd be hard-pressed** to find a better closing keynote this year" | "Best closing keynote of the year so far" |
+| "**It's hard to overstate** how important this win was" | "This win puts them in line for a shot at the title" |
+
+**False positive note:** "This is what/why/how" is fine in factual explanations (e.g., "This is how the scoring works"). Flag only when used as editorial commentary framing significance, not when explaining mechanics. The test: does removing the phrase lose any factual information? If no, it's a tell.
+
+---
+
+## Structural Analysis Heuristics — Additional Checks
+
+### Boldface Overuse (Mechanical Emphasis)
+
+AI mechanically bolds key terms in lists and explanations, creating a pattern of `**term** -- explanation` that looks like a glossary rather than natural prose. This is a structural check, not a regex pattern.
+
+**Detection heuristic:**
+```
+1. Count lines containing markdown bold (**text**)
+2. Calculate ratio: bold lines per 10 content lines
+3. Flag if ratio > 3 (more than 30% of lines have bold)
+4. Also flag if 3+ consecutive list items follow the pattern: **Term** - description
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "- **Scalability** -- handles millions of requests" | "It handles millions of requests (scalability was the main goal)" |
+| "- **Performance** -- optimized for speed" | "Speed was the priority, so we optimized the hot path" |
+| "- **Reliability** -- 99.9% uptime guarantee" | "We guarantee 99.9% uptime" |
+
+**Fix strategy:** Convert mechanical bold-term lists into prose paragraphs. If a list is genuinely needed, reduce bolding to only the most critical 1-2 items.
+
+---
+
+## Scoring System
+
+Each issue type has a severity weight:
+
+| Category | Weight | Description |
+|----------|--------|-------------|
+| AI Cliche (Tier 1) | 3 | Obvious AI tell |
+| News AI Tell (Tier 1-News) | 3 | Pseudo-profound commentary, abstract philosophizing, meta-significance |
+| Copula Avoidance (Tier 1b) | 3 | "Serves as a" replacing "is a" |
+| Meta-commentary | 2 | Usually removable |
+| Dangling -ing clause (Tier 2b) | 2 | Fake-depth trailing phrases |
+| Significance puffery (Tier 2c) | 2 | "Testament to", "indelible mark" |
+| Generic positive conclusion (Tier 2d) | 2 | "Future looks bright" closers |
+| Dramatic AI rhythm (Tier 1-News) | 2 | Mechanical long-short-long alternation |
+| Fluff phrase | 1 | Makes text wordy |
+| Passive voice | 1 | Context-dependent |
+| Redundant modifier | 1 | Easy fix |
+| Curly quotes (Tier 3b) | 1 | ChatGPT-specific typography |
+| Structural issue | 2 | Affects readability |
+| Boldface overuse (structural) | 2 | Mechanical emphasis patterns |
+
+**Total Score Thresholds:**
+- 0-5: Content appears natural
+- 6-15: Light editing recommended
+- 16-30: Significant editing needed
+- 30+: Consider paragraph-by-paragraph review
+
+---
+
+## False Positive Prevention
+
+### Technical Context Exceptions
+
+Do NOT flag these in technical content:
+
+```regex
+# Legitimate technical uses
+\boptimize[sd]?\s+(for|the)\s+(performance|memory|speed|latency)\b
+\bleverage\s+(point|ratio|mechanical)\b
+\bfacilitate\s+(communication|transfer)\s+between\b
+\bscalable\s+(architecture|system|solution)\b
+\becosystem\b  # When discussing software ecosystems
+```
+
+### Quote Preservation
+
+Skip pattern matching inside:
+- Code blocks (``` ... ```)
+- Inline code (` ... `)
+- Blockquotes (> ...)
+- Quoted text ("...")
+
+### Frontmatter Skip
+
+Always skip content between:
+```
+---
+[YAML frontmatter]
+---
+```
+
+Parse frontmatter separately, do not apply style rules.
+
+---
+
+## Detection Order
+
+Run detection in this order for best results:
+
+1. **Identify skip zones** (code, quotes, frontmatter)
+2. **Tier 1 scan** (high-confidence AI tells)
+3. **Tier 1-News scan** (news article AI tells -- pseudo-profound, philosophizing, meta-significance)
+4. **Tier 1b scan** (copula avoidance -- "serves as a", "boasts a")
+5. **Meta-commentary scan** (usually at start/end)
+6. **Tier 2b-2d scan** (dangling -ing, puffery, generic closers)
+7. **Structural analysis** (requires full document, includes boldface overuse, dramatic AI rhythm)
+8. **Tier 3-5 scan** (lower priority, includes curly quote detection)
+9. **Passive voice analysis** (context-dependent)
+
+Report issues grouped by paragraph for easier review.
+
+---
+
+## Pattern Testing
+
+Test patterns against known AI text:
+
+```
+In today's fast-paced world of software development, it's important
+to note that leveraging cutting-edge technologies can help facilitate
+seamless integration. This robust and comprehensive solution utilizes
+state-of-the-art algorithms to optimize performance.
+
+Expected detections:
+- "In today's fast-paced world" (Tier 1)
+- "it's important to note that" (Tier 2)
+- "leveraging" (Tier 1)
+- "cutting-edge" (Tier 1)
+- "facilitate" (Tier 1)
+- "seamless integration" (Tier 1)
+- "robust and comprehensive" (Tier 1)
+- "utilizes" (Tier 1)
+- "state-of-the-art" (Tier 1)
+- "optimize performance" (check context)
+```
+
+Test patterns against known AI text (copula avoidance + puffery):
+
+```
+The framework serves as a bridge between frontend and backend systems,
+highlighting its importance in the evolving landscape. It boasts a
+modern API that continues to evolve and grow. The project stands as
+a testament to the team's enduring legacy, and the future looks bright
+for its continued development.
+
+Expected detections:
+- "serves as a" (Tier 1b -- copula avoidance)
+- "highlighting its importance" (Tier 2b -- dangling -ing)
+- "evolving landscape" (Tier 2c -- puffery)
+- "boasts a" (Tier 1b -- copula avoidance)
+- "continues to evolve and grow" (Tier 2d -- generic positive conclusion)
+- "stands as a testament to" (Tier 2c -- puffery)
+- "enduring legacy" (Tier 2c -- puffery)
+- "the future looks bright" (Tier 2d -- generic positive conclusion)
+```
+
+Test patterns against known AI text (news article tells):
+
+```
+The closing keynote delivered a career-defining performance from both
+people. That's worth sitting with for a second. The consequences
+extend beyond the night itself, reshaping the leadership track heading
+into the summer. Attendees had options. They chose this event. That's the
+kind of stakes that make an event feel like it actually matters.
+It's hard to overstate how much this win changes things.
+
+Expected detections:
+- "worth sitting with for a second" (Tier 1-News -- pseudo-profound)
+- "consequences extend beyond the night itself" (Tier 1-News -- abstract philosophizing)
+- "Attendees had options. They chose this event." (Tier 1-News -- dramatic AI rhythm, check context)
+- "That's the kind of" (Tier 1-News -- meta-significance)
+- "It's hard to overstate" (Tier 1-News -- meta-significance)
+```
+
+Test against natural human text:
+
+```
+The cache was stale. I spent three hours debugging before realizing
+the CDN had a 24-hour TTL. Changed it to 5 minutes and the problem
+went away. Sometimes the simplest fix is the right one.
+
+Expected detections: 0
+(Natural, direct, specific, varied sentence lengths)
+```
