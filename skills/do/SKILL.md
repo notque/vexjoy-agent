@@ -299,6 +299,20 @@ For explicit maximum rigor, use `/with-anti-rationalization [task]`.
 
 **Goal**: Invoke the selected agent + skill and deliver results.
 
+**Step 0: Execute Creation Protocol** (for creation requests ONLY)
+
+Detect creation requests by checking if the request contains: "create", "new", "scaffold", "build pipeline", "build agent", "build skill", "build hook". If detected AND complexity is Simple+:
+
+```
+1. Write ADR: adr/{kebab-case-name}.md
+   - Include: Context, Decision, Component list, Consequences
+2. Register session: python3 scripts/adr-query.py register --adr adr/{name}.md
+3. Display in banner: "ADR: adr/{name}.md (registered)"
+4. Proceed to Step 1 (plan creation)
+```
+
+If NOT a creation request, skip to Step 1. The ADR session persists across sub-agent dispatches. The `adr-context-injector` hook injects relevant ADR sections into every sub-agent prompt. The `adr-enforcement` hook checks compliance after every Write/Edit.
+
 **Step 1: Create plan** (for Simple+ complexity)
 
 Create `task_plan.md` before execution. The `auto-plan-detector.py` hook auto-detects and injects `<auto-plan-required>` context. See `skills/planning-with-files/SKILL.md` for template. Skip only for Trivial tasks.

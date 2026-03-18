@@ -46,6 +46,7 @@ Transform a feature idea into a structured design document through collaborative
 - **State Management via Script**: All state operations go through `python3 scripts/feature-state.py`
 - **Gate Enforcement**: Check gate status before proceeding past decision points
 - **Design Doc Required**: Phase CANNOT complete without a design document artifact in `.feature/state/design/`
+- **ADR for Design Decisions**: Write an ADR to `adr/{feature-name}.md` documenting architectural decisions made during design exploration. Register the ADR session (`python3 scripts/adr-query.py register --adr adr/{name}.md`) so sub-phase skills (feature-plan, feature-implement) receive design context via hook injection.
 - **Branch Safety**: Create feature branch via worktree, never work on main
 
 ### Default Behaviors (ON unless disabled)
