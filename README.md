@@ -1,5 +1,7 @@
 # Claude Code Toolkit
 
+<img src="docs/repo-hero.png" alt="Claude Code Toolkit - /do routes to specialized agents" width="100%">
+
 A collection of 59 agents, 111 skills, and 27 hooks for Claude Code. Built over a year of daily use.
 
 ## The problem and the fix
