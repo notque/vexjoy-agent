@@ -850,6 +850,26 @@
       "complexity": "Medium",
       "category": "review"
     },
+    "reviewer-sapcc-structural": {
+      "file": "reviewer-sapcc-structural.md",
+      "short_description": "Structural code review agent for SAP CC Go repos, focused on 8 categories: type exports, unnecessary wrappers, Option[T] timing, dependency management, anti-over-engineering, forward-compatible naming, go-bits library usage, and test structure",
+      "triggers": [
+        "sapcc structural",
+        "go-bits design",
+        "sapcc structural review",
+        "type export",
+        "anti-over-engineering",
+        "go-bits usage"
+      ],
+      "pairs_with": [
+        "comprehensive-review",
+        "reviewer-language-specialist",
+        "reviewer-code-quality",
+        "go-sapcc-conventions"
+      ],
+      "complexity": "Medium",
+      "category": "review"
+    },
     "reviewer-security": {
       "file": "reviewer-security.md",
       "short_description": "Use this agent for security-focused code review",

@@ -674,6 +674,23 @@
       "user-invocable": false
     },
     {
+      "name": "go-sapcc-conventions",
+      "description": "SAP Converged Cloud Go coding conventions. Enforces architecture patterns, library usage rules, error handling, testing patterns, and anti-over-engineering principles for sapcc repos.",
+      "file": "skills/go-sapcc-conventions/SKILL.md",
+      "triggers": [
+        "sapcc",
+        "sap-cloud-infrastructure",
+        "go-bits",
+        "keppel",
+        "go-api-declarations",
+        "go-makefile-maker",
+        "sapcc/go-bits",
+        "sap-cloud-infrastructure/go-bits"
+      ],
+      "version": "1.0.0",
+      "user-invocable": false
+    },
+    {
       "name": "go-testing",
       "description": "Go testing patterns and methodology: table-driven tests, t.Run subtests, t.Helper helpers, mocking interfaces, benchmarks, race detection, and synctest.",
       "file": "skills/go-testing/SKILL.md",
@@ -1134,6 +1151,32 @@
       ],
       "version": "2.1.0",
       "user-invocable": false
+    },
+    {
+      "name": "sapcc-audit",
+      "description": "Full-repo SAP CC Go compliance audit. Reviews every package against established review standards — focusing on over-engineering, error quality, dead code, and pattern consistency.",
+      "file": "skills/sapcc-audit/SKILL.md",
+      "triggers": [
+        "sapcc audit",
+        "sapcc compliance",
+        "full repo audit",
+        "sapcc standards check"
+      ],
+      "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "sapcc-review",
+      "description": "10-agent domain-specialist code review for SAP CC Go repositories. Each agent masters one rule domain and scans every package for violations.",
+      "file": "skills/sapcc-review/SKILL.md",
+      "triggers": [
+        "sapcc review",
+        "sapcc compliance review",
+        "comprehensive sapcc audit",
+        "full sapcc check"
+      ],
+      "version": "1.0.0",
+      "user-invocable": true
     },
     {
       "name": "seo-optimizer",

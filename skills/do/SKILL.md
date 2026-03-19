@@ -117,6 +117,7 @@ These skills have MANDATORY routing. They MUST be invoked when triggers appear:
 | **go-error-handling** | error handling, fmt.Errorf, errors.Is, errors.As, %w, sentinel error |
 | **go-code-review** | review Go, Go PR, Go code review, check Go quality |
 | **go-anti-patterns** | anti-pattern, code smell, over-engineering, premature abstraction |
+| **go-sapcc-conventions** | sapcc, sap-cloud-infrastructure, go-bits, keppel, go-api-declarations, go-makefile-maker |
 | **create-voice** | create voice, new voice, build voice, voice from samples, calibrate voice |
 | **voice-orchestrator** | write in voice, generate voice content, voice workflow |
 | **feature-design** | design feature, feature design, think through feature, explore approaches |
@@ -143,6 +144,7 @@ Primary lookup: `agents/INDEX.json`. Fallback: table below.
 |----------|-------|---------------|
 | Go, Golang, .go, gofmt | golang-general-engineer | go-pr-quality-gate |
 | Go (tight context) | golang-general-engineer-compact | go-pr-quality-gate |
+| Go + sapcc (go-bits, keppel) | golang-general-engineer | go-sapcc-conventions |
 | Python, .py, pip, pytest | python-general-engineer | python-quality-gate |
 | Python + OpenStack | python-openstack-engineer | python-quality-gate |
 | TypeScript, .ts | typescript-frontend-engineer | universal-quality-gate |

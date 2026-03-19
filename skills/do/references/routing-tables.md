@@ -33,6 +33,9 @@ Extended routing tables for the `/do` router. The main SKILL.md contains the cor
 | **error handling, fmt.Errorf, errors.Is, %w** | **go-error-handling (FORCE)** |
 | **review Go, Go PR, Go code review** | **go-code-review (FORCE)** |
 | **anti-pattern, code smell, over-engineering** | **go-anti-patterns** |
+| **sapcc, sap-cloud-infrastructure, go-bits, keppel, go-api-declarations** | **go-sapcc-conventions (FORCE)** |
+| sapcc review, sapcc compliance, comprehensive sapcc | sapcc-review |
+| sapcc audit, full repo audit, sapcc standards | sapcc-audit |
 | **fish shell, config.fish, fish function** | **fish-shell-config** |
 
 ---
@@ -227,3 +230,6 @@ Invoked via the roast skill or directly:
 | "generate image with Python" | python-general-engineer + gemini-image-generator |
 | "extract coding rules from github user X" | github-profile-rules-engineer + github-profile-rules |
 | "analyze github profile conventions" | github-profile-rules-engineer + github-profile-rules |
+| "review sapcc Go repo" | golang-general-engineer + sapcc-review |
+| "audit sapcc conventions" | golang-general-engineer + sapcc-audit |
+| "work on sapcc Go code" | **go-sapcc-conventions (FORCE)** (auto-detected by hook) |
