@@ -163,13 +163,10 @@ Quick validation before formal validation phase:
    echo "IMPL_SUMMARY" | python3 scripts/feature-state.py checkpoint FEATURE implement
    ```
 
-2. **Invoke retro pipeline** (`retro-pipeline` skill):
-   - FEATURE: current feature name
-   - PHASE: implement
-   - ARTIFACT_PATH: path to the checkpoint artifact just saved
-   - The pipeline spawns context + meta walkers in parallel, merges outputs, gates bottom-up (L3→L2→L1), applies approved changes, and reports.
-   - Context walker focus: Do implementation choices match design? Any drift?
-   - Meta walker focus: Which agents performed well? Wave ordering? Recurring deviations?
+2. **Record learnings** — if this phase produced non-obvious insights, record them:
+   ```bash
+   python3 scripts/learning-db.py record TOPIC KEY "VALUE" --category design
+   ```
 
 3. Advance:
    ```bash

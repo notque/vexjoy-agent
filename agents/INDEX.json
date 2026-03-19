@@ -439,39 +439,6 @@
       "complexity": "Medium",
       "category": "research"
     },
-    "retro-context-walker": {
-      "file": "retro-context-walker.md",
-      "short_description": "Use this agent at feature lifecycle phase checkpoints to extract domain and implementation\nlearnings from phase artifacts",
-      "triggers": [
-        "retro",
-        "context",
-        "walker",
-        "knowledge",
-        "checkpoint"
-      ],
-      "pairs_with": [
-        "workflow-orchestrator"
-      ],
-      "complexity": "Simple",
-      "category": "meta"
-    },
-    "retro-meta-walker": {
-      "file": "retro-meta-walker.md",
-      "short_description": "Use this agent at feature lifecycle phase checkpoints to extract process and workflow\nlearnings",
-      "triggers": [
-        "retro",
-        "walker",
-        "meta",
-        "context",
-        "knowledge",
-        "checkpoint"
-      ],
-      "pairs_with": [
-        "workflow-orchestrator"
-      ],
-      "complexity": "Simple",
-      "category": "meta"
-    },
     "reviewer-api-contract": {
       "file": "reviewer-api-contract.md",
       "short_description": "Use this agent for detecting breaking API changes, backward compatibility issues, schema validation gaps, HTTP status code misuse, and API versioning problems",

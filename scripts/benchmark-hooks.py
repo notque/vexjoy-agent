@@ -77,7 +77,6 @@ HOOK_EVENT_MAP: dict[str, str] = {
     "adr-enforcement": "UserPromptSubmit",
     "pipeline-context-detector": "UserPromptSubmit",
     "confidence-decay": "UserPromptSubmit",
-    "auto-graduation-scanner": "UserPromptSubmit",
     "routing-gap-recorder": "UserPromptSubmit",
     "post-tool-lint-hint": "PostToolUse",
     "error-learner": "PostToolUse",

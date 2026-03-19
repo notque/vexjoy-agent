@@ -315,7 +315,7 @@ Unified learning database. Replaces both `patterns.db` and retro L2 markdown fil
 - Confidence tracking with category-specific defaults
 - Project-aware learnings (global and project-specific)
 - Auto-fix metadata (fix_type, fix_action)
-- Import/export for retro L1/L2 and legacy patterns.db migration
+- Import/export and legacy patterns.db migration
 
 ### `lib/feedback_tracker.py`
 

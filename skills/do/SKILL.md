@@ -39,7 +39,7 @@ This skill operates as the primary routing operator for the Claude Code agent sy
 - **Creation Protocol**: For any "create" or "new" request involving a significant component (pipeline, agent, skill, feature) at Simple+ complexity, automatically sequence: (1) ADR at `adr/[name].md`, (2) task plan at `task_plan.md`, (3) implementation via domain agent. The user should never need to say "do the ADR first, then plan, then implement" — this sequence IS the default. Show the full three-step sequence in the routing banner when a creation request is detected.
 
 ### Default Behaviors (ON unless disabled)
-- **Retro Knowledge Injection**: Auto-inject L1/L2 accumulated knowledge from `retro/` for cross-feature learning (benchmark: +5.3 avg, 67% win rate). Relevance-gated by keyword matching.
+- **Retro Knowledge Injection**: Auto-inject accumulated knowledge from learning.db for cross-feature learning (benchmark: +5.3 avg, 67% win rate). Relevance-gated by FTS5 keyword matching.
 - **Enhancement Stacking**: Add verification-before-completion, TDD, or parallel reviewers when signals detected
 - **MCP Auto-Invocation**: Use Context7 for documentation lookups; use gopls MCP for Go workspace intelligence (symbols, diagnostics, references)
 - **Dynamic Discovery**: Check `agents/INDEX.json` first, fall back to static routing tables
@@ -125,7 +125,6 @@ These skills have MANDATORY routing. They MUST be invoked when triggers appear:
 | **feature-implement** | implement feature, execute plan, start building, feature implement |
 | **feature-validate** | validate feature, run quality gates, feature validate |
 | **feature-release** | release feature, merge feature, ship it, feature release |
-| **retro-pipeline** | run retro, retro pipeline, phase checkpoint retro, retro checkpoint |
 | **system-upgrade** | upgrade agents, system upgrade, claude update, upgrade skills, apply claude update, apply update, new claude version, apply retro to system |
 | **de-ai-pipeline** | de-ai docs, clean ai patterns, fix ai writing, scan and fix docs, remove ai tells |
 | **pr-sync** | push, push this, push changes, commit and push, push to GitHub, sync to GitHub, create a PR, create PR, open PR, open pull request, ship this, send this |
@@ -241,7 +240,6 @@ For pipeline skills — add the Pipeline: line with all phases in order:
 | `hook-development-pipeline` | SPEC → IMPLEMENT → TEST → REGISTER → DOCUMENT |
 | `research-pipeline` | SCOPE → GATHER → SYNTHESIZE → VALIDATE → DELIVER |
 | `agent-upgrade` | AUDIT → DIFF → PLAN → IMPLEMENT → RE-EVALUATE |
-| `retro-pipeline` | WALK → MERGE → GATE → APPLY → REPORT |
 | `explore-pipeline` | SCAN → MAP → ANALYZE → REPORT |
 | `research-to-article` | RESEARCH → COMPILE → GROUND → GENERATE → VALIDATE → REFINE → OUTPUT |
 | `pr-pipeline` | CLASSIFY → STAGE → REVIEW → COMMIT → PUSH → CREATE → VERIFY → CLEANUP |
@@ -263,7 +261,7 @@ This banner MUST be the FIRST visible output. Display it immediately after selec
 
 | Signal in Request | Enhancement to Add |
 |-------------------|-------------------|
-| Any substantive work (code, design, plan) | **Auto-inject retro knowledge** (L1/L2 from prior features via `retro-knowledge-injector` hook) |
+| Any substantive work (code, design, plan) | **Auto-inject retro knowledge** (from learning.db via `retro-knowledge-injector` hook) |
 | "comprehensive" / "thorough" / "full" | Add parallel reviewers (security + business + quality) |
 | "with tests" / "production ready" | Append test-driven-development + verification-before-completion |
 | "research needed" / "investigate first" | Prepend research-coordinator-engineer |
@@ -273,15 +271,15 @@ This banner MUST be the FIRST visible output. Display it immediately after selec
 
 **Auto-inject retro knowledge** (DEFAULT ON — benchmark validated: +5.3 avg, 67% win rate):
 
-The `retro-knowledge-injector` hook automatically loads accumulated L1/L2 knowledge from `retro/` when:
+The `retro-knowledge-injector` hook automatically queries learning.db (FTS5) when:
 1. The prompt indicates substantive work (not trivial lookups)
-2. L2 tags match the current task keywords (relevance gate)
-3. The knowledge store has content from completed features
+2. Keywords match entries in the database (relevance gate)
+3. The knowledge store has non-graduated entries above confidence threshold
 
 This is the system's cross-feature learning mechanism. Agents receiving retro knowledge should:
 - **Adapt, don't copy** — note where patterns apply AND where they don't
 - **Document transfer** — explicitly state which prior learnings were reused
-- **Skip when irrelevant** — if the L1/L2 content doesn't apply, ignore it entirely
+- **Skip when irrelevant** — if the injected content doesn't apply, ignore it entirely
 
 **Auto-inject anti-rationalization** for these task types:
 
@@ -319,22 +317,9 @@ If NOT a creation request, skip to Step 1. The ADR session persists across sub-a
 
 Create `task_plan.md` before execution. The `auto-plan-detector.py` hook auto-detects and injects `<auto-plan-required>` context. See `skills/planning-with-files/SKILL.md` for template. Skip only for Trivial tasks.
 
-**Step 2: Inject agent-scoped retro knowledge**
+**Step 2: Retro knowledge injection**
 
-Before dispatching, check if the selected agent declares `retro-topics` in its frontmatter. If it does, load ONLY the matching L2 files and include them in the agent's prompt. This replaces the broad hook injection with targeted knowledge.
-
-```
-1. Read agents/<selected-agent>.md frontmatter
-2. Extract retro-topics list (e.g., [go-patterns, concurrency, debugging])
-3. For each topic, read retro/L2/<topic>.md if it exists
-4. Filter out entries marked [GRADUATED → <agent>] (already embedded)
-5. Include matching L2 content in the agent dispatch prompt as:
-   <retro-knowledge scope="agent-specific">
-   [L2 content for matching topics only]
-   </retro-knowledge>
-```
-
-If the agent has no `retro-topics`, or no matching L2 files exist, skip this step. The broad hook injection still serves as fallback for non-scoped agents.
+The `retro-knowledge-injector` hook automatically queries learning.db and injects relevant knowledge into agent context via `<retro-knowledge>` blocks. No manual injection step is needed — the hook handles this on every `UserPromptSubmit`.
 
 **Step 2.5: Inject MCP tool discovery into agent dispatch prompt**
 

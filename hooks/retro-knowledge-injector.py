@@ -2,8 +2,8 @@
 """
 UserPromptSubmit Hook: Retro Knowledge Auto-Injection
 
-Automatically injects accumulated L1/L2 knowledge from completed features
-into agent context when the current task is structurally similar.
+Queries learning.db (SQLite + FTS5) for relevant accumulated knowledge
+and injects it into agent context for cross-feature learning.
 
 Benchmark results (7 trials):
 - Win rate: 67% when retro knowledge is relevant
@@ -11,15 +11,11 @@ Benchmark results (7 trials):
 - Knowledge Transfer dimension: 5-0 win record
 - Token efficiency: 23.5K vs 34.5K (retro agents use LESS context)
 
-Key finding: Loading full SKILL.md hurts (-11 points), but compact L1/L2
-retro summaries help (+5.3 avg). The relevance gate is critical — when
-prior knowledge isn't structurally similar, overhead hurts (-10 JWT, -4 logging).
-
 Design:
-- L1 (~20 lines): Always loaded when ANY relevance detected (cheap)
-- L2 (~50 lines each): Only loaded when tag-level similarity exceeds threshold
-- Relevance gate: keyword matching between prompt and L2 tags
+- Single source: learning.db via FTS5 search
+- Relevance gate: keyword matching + work-intent detection
 - Fast path: skip entirely for trivial prompts (< 5 words)
+- Token budget: ~2000 tokens per injection
 """
 
 import json
@@ -51,9 +47,6 @@ EVENT_NAME = "UserPromptSubmit"
 # Minimum prompt length to consider for retro injection (skip trivial)
 MIN_PROMPT_WORDS = 4
 
-# Minimum tag matches to load an L2 file
-L2_RELEVANCE_THRESHOLD = 2
-
 # Tags that indicate code/design/plan work (trigger retro consideration)
 WORK_INDICATORS = {
     "implement",
@@ -72,9 +65,6 @@ WORK_INDICATORS = {
     "architecture",
 }
 
-# Language tags that indicate language-specific knowledge
-LANGUAGE_TAGS = {"go", "golang", "python", "typescript", "javascript", "rust", "java"}
-
 # Prompts starting with these are trivial (skip retro)
 SKIP_PREFIXES = [
     re.compile(r"^(what|how|show|read|cat|ls|git|explain|help)\b", re.IGNORECASE),
@@ -86,96 +76,16 @@ SKIP_PREFIXES = [
 ]
 
 # =============================================================================
-# Knowledge Store
-# =============================================================================
-
-
-def find_retro_dir() -> Path | None:
-    """Find the retro knowledge directory.
-
-    Searches in order:
-    1. CLAUDE_RETRO_DIR env var (explicit override)
-    2. agents/retro/ relative to this hook's location
-    3. .feature/context/ in the project dir (active feature knowledge)
-    """
-    # Explicit override
-    env_dir = os.environ.get("CLAUDE_RETRO_DIR")
-    if env_dir:
-        p = Path(env_dir)
-        if p.is_dir():
-            return p
-
-    # Relative to hook location (agents/retro/)
-    hook_dir = Path(__file__).resolve().parent.parent
-    retro_dir = hook_dir / "retro"
-    if retro_dir.is_dir():
-        return retro_dir
-
-    return None
-
-
-def read_l1(retro_dir: Path) -> str | None:
-    """Read L1 summary file. Returns content or None."""
-    l1_file = retro_dir / "L1.md"
-    if l1_file.is_file():
-        try:
-            content = l1_file.read_text().strip()
-            if content:
-                return content
-        except OSError:
-            pass
-    return None
-
-
-def read_l2_files(retro_dir: Path) -> list[dict]:
-    """Read all L2 knowledge files with their tags.
-
-    Returns list of dicts with keys: name, tags, content
-    """
-    l2_dir = retro_dir / "L2"
-    if not l2_dir.is_dir():
-        return []
-
-    results = []
-    try:
-        for f in sorted(l2_dir.glob("*.md")):
-            try:
-                content = f.read_text().strip()
-                if not content:
-                    continue
-
-                # Extract tags from **Tags**: line
-                tags = set()
-                for line in content.split("\n"):
-                    if line.startswith("**Tags**:"):
-                        tag_str = line.split(":", 1)[1].strip()
-                        tags = {t.strip().lower() for t in tag_str.split(",")}
-                        break
-
-                results.append(
-                    {
-                        "name": f.stem,
-                        "tags": tags,
-                        "content": content,
-                    }
-                )
-            except OSError:
-                continue
-    except OSError:
-        pass
-
-    return results
-
-
-# =============================================================================
 # Relevance Gate
 # =============================================================================
 
 
 def extract_prompt_keywords(prompt: str) -> set[str]:
     """Extract meaningful keywords from the prompt for relevance matching."""
-    # Normalize and split
-    words = set(re.findall(r"\b[a-z][a-z0-9_-]+\b", prompt.lower()))
+    # Normalize and split — exclude hyphens from token chars because
+    # FTS5 interprets '-' as NOT operator, so 'force-route' would become
+    # 'force NOT route' and poison the entire OR query
+    words = set(re.findall(r"\b[a-z][a-z0-9_]+\b", prompt.lower()))
     # Remove very common stop words
     stop_words = {
         "the",
@@ -273,86 +183,8 @@ def is_trivial(prompt: str) -> bool:
     return any(pattern.search(prompt) for pattern in SKIP_PREFIXES)
 
 
-def detect_project_languages() -> set[str]:
-    """Detect primary language(s) of the current project from file extensions."""
-    cwd = Path(os.environ.get("CLAUDE_WORKING_DIR", os.getcwd()))
-    lang_map = {".go": "go", ".py": "python", ".ts": "typescript", ".js": "javascript", ".rs": "rust"}
-    langs = set()
-    for ext, lang in lang_map.items():
-        # Check top-level and one level deep only (fast)
-        if list(cwd.glob(f"*{ext}"))[:1] or list(cwd.glob(f"*/*{ext}"))[:1]:
-            langs.add(lang)
-    return langs
-
-
-def score_l2_relevance(l2_tags: set[str], prompt_keywords: set[str], project_langs: set[str] | None = None) -> int:
-    """Score how relevant an L2 file is to the current prompt.
-
-    Returns number of matching tags, with penalty for cross-language matches.
-    """
-    if not l2_tags:
-        return 0
-    base_score = len(l2_tags & prompt_keywords)
-
-    # Penalize cross-language matches
-    if project_langs:
-        l2_langs = l2_tags & LANGUAGE_TAGS
-        if l2_langs and not (l2_langs & project_langs):
-            base_score -= 1  # Language mismatch penalty
-
-    return base_score
-
-
 # =============================================================================
-# Injection Builder
-# =============================================================================
-
-
-def strip_graduated_entries(content: str) -> str:
-    """Remove ### entries marked as [GRADUATED] from L2 content.
-
-    Graduated entries have been embedded into specific agents/skills
-    and should not be re-injected via the broad hook.
-    """
-    # Remove entire sections from ### heading with [GRADUATED] to next ### or EOF
-    return re.sub(
-        r"^### .+\[GRADUATED[^\]]*\].*?(?=\n### |\Z)",
-        "",
-        content,
-        flags=re.MULTILINE | re.DOTALL,
-    ).strip()
-
-
-def build_injection(l1_content: str, relevant_l2: list[dict]) -> str:
-    """Build the context injection string."""
-    parts = [
-        "<retro-knowledge>",
-        "**Accumulated knowledge from prior features.** Use these patterns where applicable.",
-        "Adapt, don't copy. Note where patterns do NOT apply to the current task.",
-        "",
-        l1_content,
-    ]
-
-    if relevant_l2:
-        parts.append("")
-        parts.append("---")
-        parts.append("")
-        parts.append("## Detailed Learnings (from structurally similar features)")
-        for l2 in relevant_l2:
-            # Filter out graduated entries (already embedded in agents)
-            filtered_content = strip_graduated_entries(l2["content"])
-            if filtered_content:
-                parts.append("")
-                parts.append(filtered_content)
-
-    parts.append("")
-    parts.append("</retro-knowledge>")
-
-    return "\n".join(parts)
-
-
-# =============================================================================
-# SQLite-based injection (learning_db_v2)
+# Knowledge Injection (learning_db_v2)
 # =============================================================================
 
 
@@ -497,52 +329,14 @@ def main():
                 print(f"[retro] Skipped: no work intent in keywords {prompt_keywords}", file=sys.stderr)
             empty_output(EVENT_NAME).print_and_exit()
 
-        # PRIMARY: Try SQLite-based injection first
+        # Query learning.db for relevant knowledge
         db_injection = query_knowledge_from_db(prompt_keywords, debug=bool(debug), agent_type=agent_type)
         if db_injection:
             context_output(EVENT_NAME, db_injection).print_and_exit()
 
-        # FALLBACK: File-based injection (original behavior)
-        retro_dir = find_retro_dir()
-        if not retro_dir:
-            if debug:
-                print("[retro] Skipped: no retro/ directory and no DB results", file=sys.stderr)
-            empty_output(EVENT_NAME).print_and_exit()
-
-        # Read L1
-        l1_content = read_l1(retro_dir)
-        if not l1_content:
-            if debug:
-                print("[retro] Skipped: no L1 content", file=sys.stderr)
-            empty_output(EVENT_NAME).print_and_exit()
-
-        # Read and filter L2 by relevance
-        project_langs = detect_project_languages()
-        l2_files = read_l2_files(retro_dir)
-        relevant_l2 = []
-        for l2 in l2_files:
-            score = score_l2_relevance(l2["tags"], prompt_keywords, project_langs)
-            if score >= L2_RELEVANCE_THRESHOLD:
-                relevant_l2.append({**l2, "score": score})
-                if debug:
-                    print(
-                        f"[retro] L2 relevant: {l2['name']} (score={score}, tags={l2['tags'] & prompt_keywords})",
-                        file=sys.stderr,
-                    )
-            elif debug:
-                print(f"[retro] L2 skipped: {l2['name']} (score={score})", file=sys.stderr)
-
-        # Sort by relevance score (highest first)
-        relevant_l2 = sorted(relevant_l2, key=lambda x: x.get("score", 0), reverse=True)
-
-        # Build and inject
-        injection = build_injection(l1_content, relevant_l2)
-
         if debug:
-            l2_names = [l2["name"] for l2 in relevant_l2]
-            print(f"[retro] Injecting L1 + {len(relevant_l2)} L2 files: {l2_names}", file=sys.stderr)
-
-        context_output(EVENT_NAME, injection).print_and_exit()
+            print("[retro] Skipped: no DB results for prompt keywords", file=sys.stderr)
+        empty_output(EVENT_NAME).print_and_exit()
 
     except Exception as e:
         if debug:

@@ -24,7 +24,7 @@ parameters:
     - name: trigger
       description: |
         What triggered the upgrade: Claude Code version/release notes,
-        description of goal change, or "retro" to use retro-graduate candidates
+        description of goal change, or "retro" to use learning.db graduation candidates
   optional:
     - name: scope
       description: "comprehensive | default (default: recent 10 agents + all hooks)"

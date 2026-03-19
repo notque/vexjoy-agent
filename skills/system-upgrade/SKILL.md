@@ -74,7 +74,7 @@ complementing the **bottom-up** retro-knowledge-injector.
 |-------------|---------|--------------|
 | `claude-release` | "claude update", "new version", "release notes", "shipped X" | Version number or release notes text |
 | `goal-change` | "I now want", "we're moving to", "new focus", "deprecate X" | User's description of the change |
-| `retro-driven` | "retro graduate", "apply retro", "/retro" showed 5+ candidates | L2 files from `retro/L2/` |
+| `retro-driven` | "retro graduate", "apply retro", "/retro" showed 5+ candidates | learning.db design/gotcha entries |
 
 **For `claude-release`**: Extract from user's input or web search for Claude Code release notes:
 - New hook event types (e.g., `Notification`, `ToolResult`)
@@ -88,11 +88,11 @@ complementing the **bottom-up** retro-knowledge-injector.
 - What domains/workflows are no longer in scope (DEPRECATED)
 - What patterns should be applied everywhere (ENFORCE)
 
-**For `retro-driven`**: Run the retro graduate scanner:
+**For `retro-driven`**: Query the learning database for graduation candidates:
 ```bash
-python3 scripts/retro-graduate.py scan
+python3 scripts/learning-db.py query --category design --category gotcha
 ```
-Parse candidates with score ≥ 6. These are the upgrade signals.
+Evaluate entries for actionability and specificity. These are the upgrade signals.
 
 **Output**: A structured "Change Manifest" — a list of change signals with type, description, and likely affected component types.
 
@@ -359,4 +359,4 @@ Actions: Phase 1 extracts "Rust as new domain". Phase 2 audits hooks (no Rust fi
 
 ### Example 3: Retro-driven upgrade
 User: "/retro graduate" shows 7 ready candidates.
-Actions: Phase 1 reads retro-graduate.py scan output as the Change Manifest. Phase 2 maps candidates to target agents. Phase 3 proposes injecting 7 patterns into 5 agents. User approves with "skip 3 and 6". Phase 4 injects 5 patterns directly (Low effort, no domain agent needed). Phase 5 scores the 5 modified agents. Phase 6 deploys.
+Actions: Phase 1 queries learning.db for design/gotcha candidates as the Change Manifest. Phase 2 maps candidates to target agents. Phase 3 proposes injecting 7 patterns into 5 agents. User approves with "skip 3 and 6". Phase 4 injects 5 patterns directly (Low effort, no domain agent needed). Phase 5 scores the 5 modified agents. Phase 6 deploys.

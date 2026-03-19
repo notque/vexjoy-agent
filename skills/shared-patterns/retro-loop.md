@@ -1,143 +1,50 @@
 # Retro Loop Pattern
 
-Extract and promote knowledge at phase checkpoints. Any skill can reference this pattern to add self-improving context management.
+Capture and graduate knowledge at phase checkpoints. Any skill can reference this pattern to add self-improving context management.
 
-## Orchestration
+## Architecture
 
-The retro loop is orchestrated by the **retro-pipeline** skill (`skills/retro-pipeline/SKILL.md`), a 5-phase pipeline:
+The learning system uses a single source of truth: **learning.db** (SQLite + FTS5).
 
 ```
-WALK (parallel) → MERGE → GATE → APPLY → REPORT
-```
+CAPTURE (automatic)     → learning.db entries
+  error-learner.py        PostToolUse: tool errors + solutions
+  review-capture.py       PostToolUse: reviewer agent findings
+  session-learning-recorder.py  Stop: gap detection
 
-All 5 feature lifecycle skills invoke the retro pipeline at their Phase 3: CHECKPOINT step. The pipeline spawns both walkers in parallel, merges outputs by hierarchy level, gates bottom-up (L3→L2→L1), applies approved changes, and reports with visual prefixes.
+INJECTION (automatic)   → <retro-knowledge> blocks
+  retro-knowledge-injector.py   UserPromptSubmit: FTS5 search → context injection
+  session-context.py            SessionStart: high-confidence pattern loading
+
+GRADUATION (manual)     → permanent agent/skill edits
+  /retro graduate               LLM-driven: propose edits, user approves
+  learning-db.py graduate       Mark entries as graduated (stop injection)
+```
 
 ## How It Works
 
-At the end of a phase, two parallel analysis passes run:
+### Capture
 
-### Context Walker (what we built vs what we documented)
+Hooks automatically record learnings during normal work:
 
-1. Read the phase's output artifacts from `.feature/state/<phase>/`
-2. Compare against published context in `.feature/context/<PHASE>.md` (L1) and `.feature/context/<phase>/` (L2)
-3. Flag drift: implementation diverged from documented decisions
-4. Propose L2 updates with specific diffs
+- **Error patterns**: `error-learner.py` captures tool errors and their solutions. Confidence adjusts based on whether the same fix works again.
+- **Review findings**: `review-capture.py` extracts high-severity findings from reviewer agents.
+- **Session gaps**: `session-learning-recorder.py` warns when substantive sessions produce zero learnings.
+- **Manual recording**: For design decisions and gotchas that hooks can't detect:
+  ```bash
+  python3 scripts/learning-db.py record TOPIC KEY "VALUE" --category CATEGORY
+  ```
+  Categories: `error | pivot | review | design | debug | gotcha | effectiveness`
 
-### Meta Walker (what we learned about how we work)
+### Injection
 
-1. Review the phase execution: what tools were used, what patterns emerged, what conventions were discovered
-2. Record findings with confidence tags:
-   - **LOW**: First observation. May be one-off.
-   - **MEDIUM**: Seen 2-3 times. Likely a real pattern.
-   - **HIGH**: Well-established. Should be a procedure.
-3. Write L3 records via: `python3 scripts/feature-state.py retro-record FEATURE KEY VALUE --confidence LEVEL`
+The `retro-knowledge-injector` hook fires on every `UserPromptSubmit`:
 
-## Promotion Pipeline
-
-```
-L3 (meta/<phase>/record.md)  →  L2 (context/<phase>/topic.md)  →  L1 (context/PHASE.md)
-     LOW/MEDIUM findings          MEDIUM/HIGH promoted              HIGH auto-summarized
-```
-
-**Promotion criteria**:
-- LOW → stays at L3 until confidence rises
-- MEDIUM → promoted to L2 via `retro-promote` command
-- HIGH → promoted to L2 and L1 summary updated
-
-**Frequency-gated auto-promotion**: When the same key is recorded multiple times, observation count increments automatically. At 3 observations, LOW auto-promotes to MEDIUM. At 6, MEDIUM auto-promotes to HIGH. The highest confidence seen is always preserved.
-
-**Command**: `python3 scripts/feature-state.py retro-promote FEATURE KEY`
-
-## L3 Record Format
-
-Walkers produce structured observations in a lean format:
-
-```markdown
-## {key} [{CONFIDENCE}]
-
-{What was learned - specific, actionable finding}
-
-*Phase*: {design|plan|implement|validate|release}
-*Source*: {artifact path}
-*Recorded*: {ISO timestamp}
-```
-
-This is intentionally simpler than a full Observation/Context/Rationale/Source/Confidence format. We keep it lean because our records go through `retro-record` which handles metadata.
-
-## Observation Clustering
-
-Observations are tracked at two levels:
-
-1. **Within a feature** (`retro-record`): Recording the same key multiple times increments the observation count. This count carries through to archival and triggers frequency-gated auto-promotion.
-
-2. **Across features** (`complete` archival): When archiving to `retro/L2/`, the `complete` command checks existing L2 files for matching `### headings`. If a heading from a new feature matches an existing entry, the `[Nx]` counter is incremented instead of duplicating:
-
-```markdown
-### D4: Sync Mutex Over Atomics For State Machines [3x]
-```
-
-This lightweight confidence signal replaces a full L3 hierarchy. High-observation entries signal well-established patterns.
-
-## Language-Aware Gating
-
-L2 files should include a `**Languages**:` field alongside tags:
-
-```markdown
-**Tags**: go, middleware, concurrency
-**Languages**: go
-```
-
-The injector hook penalizes L2 files whose language tags don't match the current project's language (detected from file extensions). This prevents Go advice from loading in Python projects.
-
-## Integration with Existing System
-
-The retro loop uses our existing learning infrastructure:
-
-| Component | Role |
-|-----------|------|
-| `scripts/feature-state.py` | Deterministic state and retro operations |
-| `hooks/lib/learning_db_v2.py` | Confidence scoring for gate auto-flip |
-| `shared-patterns/gate-enforcement.md` | Phase transition gates |
-| `agents/retro-context-walker.md` | Reconciles phase artifacts against context docs |
-| `agents/retro-meta-walker.md` | Extracts process learnings from phase execution |
-
-## Configurable Retro Gates
-
-Gate modes control whether retro operations require human approval or run automatically. All retro gates default to `auto` (no token limits on Claude Max):
-
-| Gate | Default | Env Override |
-|------|---------|-------------|
-| `retro.l3-records` | auto | `CLAUDE_RETRO_GATE_L3_RECORDS` |
-| `retro.l2-context` | auto | `CLAUDE_RETRO_GATE_L2_CONTEXT` |
-| `retro.l1-summaries` | auto | `CLAUDE_RETRO_GATE_L1_SUMMARIES` |
-| `retro.phase-checkpoint` | auto | `CLAUDE_RETRO_GATE_PHASE_CHECKPOINT` |
-
-Set env var to `human` to require approval for specific gates.
-
-## Retro Audit
-
-Detect stale, orphaned, or incomplete L2 files:
-
-```bash
-python3 scripts/feature-state.py retro-audit
-```
-
-Checks for: missing `**Tags**:` line, missing `**Languages**:` line, no `###` learnings, and cross-file duplicate headings that could be consolidated.
-
-## Auto-Injection (Default ON)
-
-Retro knowledge is automatically injected into agent context via the `retro-knowledge-injector` hook.
-
-**How it works**:
-1. Hook fires on every `UserPromptSubmit`
-2. Fast-path skip for trivial prompts (< 4 words, questions, reads)
-3. Checks work intent (implement, build, design, plan, etc.)
-4. Loads L1 (~20 lines, always) + relevance-gated L2 files (no cap)
-5. L2 relevance: keyword matching between prompt and L2 `**Tags**:` line
-
-**Persistent store**: `retro/L1.md` and `retro/L2/*.md` in the agents repo.
-
-**Archiving**: When `feature-state.py complete` runs, promoted L2 knowledge is automatically copied to `retro/L2/<feature>.md` with observation counts preserved.
+1. Fast-path skip for trivial prompts (< 4 words, questions, reads)
+2. Checks work intent (implement, build, design, plan, etc.)
+3. Queries learning.db via FTS5 with prompt keywords
+4. Injects relevant entries as `<retro-knowledge>` block (~2000 token budget)
+5. Graduated entries are excluded (`graduated_to IS NULL` filter)
 
 **Benchmark validation** (7 trials, blind grading):
 - Win rate: 67% when knowledge is relevant
@@ -145,21 +52,45 @@ Retro knowledge is automatically injected into agent context via the `retro-know
 - Knowledge Transfer dimension: 5-0 win record
 - Token efficiency: retro agents use 32% FEWER tokens (23.5K vs 34.5K)
 
-**Critical finding**: Full SKILL.md loading HURTS (-11 points). Compact L1/L2 summaries HELP (+5.3 avg). The value is in accumulated knowledge, not in process methodology.
+### Graduation
 
-## When to Use
+When learnings are mature enough to become permanent agent/skill instructions:
 
-- After any phase checkpoint in feature-lifecycle skills
-- After completing a `workflow-orchestrator` plan
-- After any multi-phase pipeline completion
-- Whenever a session produces reusable knowledge
+1. Run `/retro graduate`
+2. The LLM evaluates design/gotcha entries for actionability and specificity
+3. Searches the repo for the target file
+4. Proposes a specific edit (2-5 lines)
+5. On user approval: edits target, marks entry graduated
+6. Graduated entries stop being injected
+
+## Integration with Feature Lifecycle
+
+Each feature lifecycle skill (design, plan, implement, validate, release) has a CHECKPOINT phase that records learnings:
+
+```bash
+python3 scripts/learning-db.py record TOPIC KEY "VALUE" --category design
+```
+
+Focus on non-obvious, specific insights — not generic best practices.
+
+## Integration with Existing System
+
+| Component | Role |
+|-----------|------|
+| `scripts/learning-db.py` | CLI for all DB operations (record, query, search, graduate) |
+| `hooks/retro-knowledge-injector.py` | Auto-inject relevant knowledge into agent context |
+| `hooks/session-context.py` | Load high-confidence patterns at session start |
+| `hooks/error-learner.py` | Auto-capture tool errors and solutions |
+| `hooks/review-capture.py` | Capture review findings from subagents |
+| `hooks/confidence-decay.py` | Prune stale low-confidence entries |
+| `skills/retro/SKILL.md` | User-facing `/retro` commands (status, list, search, graduate) |
 
 ## Anti-Patterns
 
 | Anti-Pattern | Why Wrong | Do Instead |
 |--------------|-----------|------------|
-| Skip retro because "nothing learned" | Every phase teaches something | Run walkers; they handle empty phases gracefully |
-| Write directly to L2/L1 | Bypasses confidence gating | Always write to L3 first, promote via script |
-| Record generic findings | "Follow best practices" teaches nothing | Record specific: "use snake_case for DB columns in this project" |
-| Promote everything to HIGH | Dilutes signal | Let frequency-gated auto-promotion handle it (3 obs → MEDIUM, 6 → HIGH) |
-| Ignore retro-audit output | Stale L2 files degrade injection quality | Run `retro-audit` periodically and fix issues |
+| Skip recording because "nothing learned" | Every phase teaches something | Record specific insights; hooks catch errors automatically |
+| Record generic findings | "Follow best practices" teaches nothing | Record specific: "sync.Mutex for multi-field state machines in this project" |
+| Graduate without checking target | Creates duplication | Always grep target file for equivalent guidance |
+| Graduate without user approval | Changes agent behavior permanently | Present proposals, wait for explicit approval |
+| Maintain parallel file stores | Two sources of truth drift | learning.db is the single source; no L1/L2 markdown files |
