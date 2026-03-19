@@ -39,7 +39,7 @@ This skill operates as the primary routing operator for the Claude Code agent sy
 - **Creation Protocol**: For any "create" or "new" request involving a significant component (pipeline, agent, skill, feature) at Simple+ complexity, automatically sequence: (1) ADR at `adr/[name].md`, (2) task plan at `task_plan.md`, (3) implementation via domain agent. The user should never need to say "do the ADR first, then plan, then implement" — this sequence IS the default. Show the full three-step sequence in the routing banner when a creation request is detected.
 
 ### Default Behaviors (ON unless disabled)
-- **Retro Knowledge Injection**: Auto-inject L1/L2 accumulated knowledge from `retro/` for cross-feature learning (benchmark: +5.3 avg, 67% win rate). Relevance-gated by keyword matching.
+- **Retro Knowledge Injection**: Auto-inject accumulated knowledge from learning.db for cross-feature learning (benchmark: +5.3 avg, 67% win rate). Relevance-gated by FTS5 keyword matching.
 - **Enhancement Stacking**: Add verification-before-completion, TDD, or parallel reviewers when signals detected
 - **MCP Auto-Invocation**: Use Context7 for documentation lookups; use gopls MCP for Go workspace intelligence (symbols, diagnostics, references)
 - **Dynamic Discovery**: Check `agents/INDEX.json` first, fall back to static routing tables
@@ -261,7 +261,7 @@ This banner MUST be the FIRST visible output. Display it immediately after selec
 
 | Signal in Request | Enhancement to Add |
 |-------------------|-------------------|
-| Any substantive work (code, design, plan) | **Auto-inject retro knowledge** (L1/L2 from prior features via `retro-knowledge-injector` hook) |
+| Any substantive work (code, design, plan) | **Auto-inject retro knowledge** (from learning.db via `retro-knowledge-injector` hook) |
 | "comprehensive" / "thorough" / "full" | Add parallel reviewers (security + business + quality) |
 | "with tests" / "production ready" | Append test-driven-development + verification-before-completion |
 | "research needed" / "investigate first" | Prepend research-coordinator-engineer |
@@ -271,15 +271,15 @@ This banner MUST be the FIRST visible output. Display it immediately after selec
 
 **Auto-inject retro knowledge** (DEFAULT ON — benchmark validated: +5.3 avg, 67% win rate):
 
-The `retro-knowledge-injector` hook automatically loads accumulated L1/L2 knowledge from `retro/` when:
+The `retro-knowledge-injector` hook automatically queries learning.db (FTS5) when:
 1. The prompt indicates substantive work (not trivial lookups)
-2. L2 tags match the current task keywords (relevance gate)
-3. The knowledge store has content from completed features
+2. Keywords match entries in the database (relevance gate)
+3. The knowledge store has non-graduated entries above confidence threshold
 
 This is the system's cross-feature learning mechanism. Agents receiving retro knowledge should:
 - **Adapt, don't copy** — note where patterns apply AND where they don't
 - **Document transfer** — explicitly state which prior learnings were reused
-- **Skip when irrelevant** — if the L1/L2 content doesn't apply, ignore it entirely
+- **Skip when irrelevant** — if the injected content doesn't apply, ignore it entirely
 
 **Auto-inject anti-rationalization** for these task types:
 

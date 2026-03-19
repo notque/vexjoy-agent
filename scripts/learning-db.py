@@ -7,7 +7,7 @@ Usage:
     python3 scripts/learning-db.py query --topic debugging --min-confidence 0.6
     python3 scripts/learning-db.py stats
     python3 scripts/learning-db.py export --format l1
-    python3 scripts/learning-db.py export --format l2 --output-dir ~/.claude/retro/L2
+    python3 scripts/learning-db.py export --format l2 --output-dir /tmp/learnings
     python3 scripts/learning-db.py import --from-retro ~/.claude/retro
     python3 scripts/learning-db.py import --from-patterns ~/.claude/learning/patterns.db
     python3 scripts/learning-db.py graduate TOPIC KEY TARGET
