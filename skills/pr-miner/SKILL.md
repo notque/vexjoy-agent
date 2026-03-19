@@ -314,5 +314,5 @@ This skill uses these shared patterns:
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/imperative-keywords.txt`: Full list of detected imperative keywords
 - `${CLAUDE_SKILL_DIR}/references/examples.md`: Real-world mining examples and expected output
-- `scripts/miner.py`: Main mining script (GitHub API extraction)
-- `scripts/validate.py`: Output validation script
+- `${CLAUDE_SKILL_DIR}/scripts/miner.py`: Main mining script (GitHub API extraction)
+- `${CLAUDE_SKILL_DIR}/scripts/validate.py`: Output validation script

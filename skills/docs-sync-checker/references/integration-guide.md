@@ -53,7 +53,7 @@ echo "Documentation sync check passed"
 ## Auto-Fix Mode (Experimental)
 
 ```bash
-python3 scripts/generate_report.py --issues /tmp/issues.json --auto-fix
+python3 skills/docs-sync-checker/scripts/generate_report.py --issues /tmp/issues.json --auto-fix
 ```
 
 **What auto-fix does**:
@@ -72,7 +72,7 @@ Always review changes before committing.
 ## JSON Output
 
 ```bash
-python3 scripts/generate_report.py --issues /tmp/issues.json --format json --output report.json
+python3 skills/docs-sync-checker/scripts/generate_report.py --issues /tmp/issues.json --format json --output report.json
 ```
 
 Schema:
@@ -98,10 +98,10 @@ Schema:
 
 ```bash
 # Skills only
-python3 scripts/scan_tools.py --repo-root . --types skills
+python3 skills/docs-sync-checker/scripts/scan_tools.py --repo-root . --types skills
 
 # Agents and commands
-python3 scripts/scan_tools.py --repo-root . --types agents,commands
+python3 skills/docs-sync-checker/scripts/scan_tools.py --repo-root . --types agents,commands
 ```
 
 ## Workflow Integration

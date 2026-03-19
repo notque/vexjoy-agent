@@ -2,6 +2,8 @@
 
 Real-world examples of skill compositions with complete execution flows.
 
+> **Note**: Scripts referenced below (`discover_skills.py`, `build_dag.py`, `validate.py`) are not yet implemented. These examples illustrate the intended workflow and expected output format.
+
 ## Example 1: Feature Development with Tests
 
 ### User Request

@@ -225,7 +225,7 @@ Solution:
 ## Anti-Patterns
 
 ### Anti-Pattern 1: Using Relative Paths
-**What it looks like**: `python3 scripts/image_to_video.py -i ../cover.png -a song.mp3`
+**What it looks like**: `python3 image_to_video.py -i ../cover.png -a song.mp3`
 **Why wrong**: The script may execute from a different working directory, breaking all paths silently.
 **Do instead**: Always use absolute paths for every argument.
 
@@ -263,4 +263,4 @@ This skill uses these shared patterns:
 
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/ffmpeg-filters.md`: FFmpeg filter documentation for visualization modes
-- `scripts/image_to_video.py`: Python CLI script (exit codes: 0=success, 1=no FFmpeg, 2=encode failed, 3=missing args)
+- `${CLAUDE_SKILL_DIR}/scripts/image_to_video.py`: Python CLI script (exit codes: 0=success, 1=no FFmpeg, 2=encode failed, 3=missing args)

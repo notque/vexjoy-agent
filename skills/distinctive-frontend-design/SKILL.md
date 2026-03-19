@@ -127,10 +127,12 @@ Selection criteria:
 **Step 3: Validate**
 
 ```bash
-python3 scripts/font_validator.py --fonts "FontA,FontB" --project "project-name"
+# TODO: scripts/font_validator.py not yet implemented
+# Manual alternative: check fonts against banned list
+# Banned: Inter, Roboto, Arial, Helvetica, system fonts, Space Grotesk
 ```
 
-Expected output confirms: no banned fonts, pairing not recently used, aesthetic match score, uniqueness score.
+Manually verify: no banned fonts in selection, pairing not recently used, aesthetic match with direction.
 
 **Step 4: Document** typography specification with font families, weights, usage roles, and rationale for each selection. See `references/implementation-examples.md` for template.
 
@@ -165,10 +167,11 @@ Select an inspiration source that resonates with the project context from Phase 
 **Step 4: Validate**
 
 ```bash
-python3 scripts/palette_analyzer.py --palette palette.json --check-cliches
+# TODO: scripts/palette_analyzer.py not yet implemented
+# Manual alternative: check palette against anti-patterns in references/anti-patterns.json
 ```
 
-Expected output confirms: no cliche patterns, clear dominance ratio, sufficient contrast for accessibility.
+Manually verify: no cliche patterns (purple on white, generic blue), clear 60/30/10 dominance ratio, sufficient contrast for accessibility.
 
 **Gate**: Palette passes cliche detection and demonstrates clear 60/30/10 dominance ratio. Do NOT proceed until gate passes.
 
@@ -239,11 +242,8 @@ Duration by scope:
 **Step 1: Run comprehensive validation**
 
 ```bash
-python3 scripts/validate_design.py \
-  --fonts "FontA,FontB" \
-  --palette palette.json \
-  --project "project-name" \
-  --output validation_report.json
+# TODO: scripts/validate_design.py not yet implemented
+# Manual alternative: review each validation check listed below against design choices
 ```
 
 **Step 2: Review** validation report. The report checks:
@@ -367,7 +367,7 @@ Solution:
 **Do instead**: Follow 60/30/10 rule strictly (dominant/secondary/accent), validate dominance ratio
 
 ### Anti-Pattern 5: Implementing Without Validation
-**What it looks like**: Writing CSS/React implementation without ever running `validate_design.py`
+**What it looks like**: Writing CSS/React implementation without ever running design validation
 **Why wrong**: May build entire frontend on flawed design foundations; wastes time on rework; no objective quality measure
 **Do instead**: Run validation in Phase 6, ensure score >= 80 before proceeding to specification output
 

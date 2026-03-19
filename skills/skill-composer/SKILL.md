@@ -88,10 +88,12 @@ Identify:
 **Step 2: Discover available skills**
 
 ```bash
-python3 scripts/discover_skills.py --skills-dir ./skills --output /tmp/skill-index.json
+# TODO: scripts/discover_skills.py not yet implemented
+# Manual alternative: scan skills directory for SKILL.md files
+find ./skills -name "SKILL.md" -exec grep -l "^name:" {} \; | sort
 ```
 
-Review the skill index output. It categorizes skills by type (workflow, testing, quality, documentation, code-analysis, debugging) with dependency metadata.
+Review the discovered skills. Categorize by type (workflow, testing, quality, documentation, code-analysis, debugging) with dependency metadata.
 
 **Step 3: Select skills**
 
@@ -112,19 +114,18 @@ Cross-reference selections against `references/compatibility-matrix.md` to confi
 **Step 1: Build the DAG**
 
 ```bash
-python3 scripts/build_dag.py \
-  --task "{user_task_description}" \
-  --skill-index /tmp/skill-index.json \
-  --output /tmp/execution-dag.json
+# TODO: scripts/build_dag.py not yet implemented
+# Manual alternative: construct the execution DAG as a JSON structure
+# with nodes (skills) and edges (dependencies) based on the task analysis
 ```
 
 **Step 2: Validate the DAG**
 
-```bash
-python3 scripts/validate.py \
-  --dag /tmp/execution-dag.json \
-  --skill-index /tmp/skill-index.json
-```
+Validate the execution DAG manually by checking:
+- No circular dependencies exist between skills
+- Output types from each skill match input requirements of downstream skills
+- All referenced skills exist in the skill index
+- Dependencies satisfy topological ordering
 
 Validation checks:
 - **Acyclic**: No circular dependencies

@@ -263,7 +263,7 @@ Commit messages should still follow best practices regardless. Maintain separate
 
 ### How Patterns Are Detected
 
-The `validate_message.py` script checks each line:
+The intended `validate_message.py` script (not yet implemented) would check each line:
 
 ```python
 for pattern in banned_patterns:
@@ -290,8 +290,8 @@ All banned pattern violations are **CRITICAL** severity:
 # Emergency bypass (use with caution)
 git commit --no-verify -m "message"
 
-# Or with git-commit-flow
-python3 scripts/commit.py --skip-validation
+# Or with git-commit-flow (commit.py not yet implemented)
+# git commit --no-verify -m "message"
 ```
 
 **Only bypass when**:
@@ -389,20 +389,21 @@ Addresses issue #45 (new users struggling with setup)
 ### Check for Banned Patterns
 
 ```bash
-# Validate message from string
-python3 scripts/validate_message.py --message "feat: add feature
+# TODO: scripts/validate_message.py not yet implemented
+# Manual alternative: grep for banned patterns in commit message
+echo "feat: add feature
 
-Generated with Claude Code"
+Generated with Claude Code" | grep -inE 'Generated with Claude Code|Co-Authored-By: Claude'
 
-# Expected output:
-VALIDATION FAILED
-✗ CRITICAL: Contains banned pattern: 'Generated with Claude Code' (line 3)
+# Expected output for banned pattern detected:
+# 3:Generated with Claude Code
 ```
 
 ### Suggest Fixes
 
 ```bash
-python3 scripts/validate_message.py --message "..." --suggest-fixes
+# TODO: scripts/validate_message.py not yet implemented
+# Manual alternative: review message and remove banned patterns
 
 # Output includes:
 REMOVE BANNED PATTERNS:
@@ -435,7 +436,7 @@ The skill will automatically detect and enforce these.
 
 ### Script-Level Patterns
 
-Edit `scripts/validate_message.py`:
+When `scripts/validate_message.py` is implemented, custom patterns would be added as:
 
 ```python
 DEFAULT_BANNED_PATTERNS = [

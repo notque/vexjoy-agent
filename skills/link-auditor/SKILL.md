@@ -74,8 +74,9 @@ This skill operates as an operator for link health analysis on Hugo static sites
 Locate the Hugo content directory and enumerate all markdown files:
 
 ```bash
-# Run the link scanner
-python3 scripts/link_scanner.py ~/your-blog/content/
+# TODO: scripts/link_scanner.py not yet implemented
+# Manual alternative: extract links from markdown files
+grep -rn '\[.*\](.*' ~/your-blog/content/ --include="*.md"
 ```
 
 **Step 2: Extract links by type**

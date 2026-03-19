@@ -244,11 +244,20 @@ This skill uses these shared patterns:
 
 ```yaml
 # GitHub Actions example
+# TODO: scripts/validate_endpoints.py not yet implemented
+# Manual alternative: use curl to validate endpoints from endpoints.json
 - name: Validate API endpoints
-  run: python3 scripts/validate_endpoints.py endpoints.json
+  run: |
+    jq -r '.endpoints[].path' endpoints.json | while read path; do
+      curl -sf "$BASE_URL$path" > /dev/null && echo "PASS: $path" || echo "FAIL: $path"
+    done
 ```
 
 ```bash
 # Pre-deployment gate
-python3 scripts/validate_endpoints.py endpoints.json || exit 1
+# TODO: scripts/validate_endpoints.py not yet implemented
+# Manual alternative: iterate endpoints.json with curl
+jq -r '.endpoints[].path' endpoints.json | while read path; do
+  curl -sf "http://localhost:8000$path" > /dev/null || { echo "FAIL: $path"; exit 1; }
+done
 ```

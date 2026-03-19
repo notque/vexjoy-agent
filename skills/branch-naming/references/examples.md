@@ -321,19 +321,10 @@ $ python3 scripts/generate.py --from-commit-message "feat: add OAuth2"
   "valid": true
 }
 
-# Test validation
-$ python3 scripts/validate.py --branch-name "feature/add-oauth2"
-{
-  "valid": true,
-  "branch_name": "feature/add-oauth2",
-  "format_valid": true,
-  "issues": []
-}
-
-# Test with duplicate check
-$ python3 scripts/validate.py \
-  --branch-name "feature/add-oauth2" \
-  --check-duplicates
+# Test validation (scripts/validate.py not yet implemented for branch-naming)
+# Manual alternative: check branch name format
+$ echo "feature/add-oauth2" | grep -qE '^(feature|fix|docs|chore|refactor|test|ci)/[a-z0-9-]+$' && echo "valid" || echo "invalid"
+valid
 ```
 
 ## See Also

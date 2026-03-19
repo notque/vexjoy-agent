@@ -202,7 +202,8 @@ agent_lines=$(wc -l < agents/{name}.md)
 
 ```bash
 # Python syntax check
-python3 -m py_compile scripts/validate.py
+# Syntax-check any .py scripts found in the skill's scripts/ directory
+python3 -m py_compile scripts/*.py 2>/dev/null
 
 # Placeholder search
 grep -nE '\[TODO\]|\[TBD\]|\[PLACEHOLDER\]|\[INSERT\]' {file}
@@ -293,7 +294,7 @@ Actions:
 1. Confirm `skills/test-driven-development/` exists (IDENTIFY)
 2. Check YAML, Operator Context, Error Handling sections (STRUCTURAL)
 3. Count lines in SKILL.md + references (CONTENT)
-4. Syntax-check validate.py, find placeholders (CODE)
+4. Syntax-check any scripts, find placeholders (CODE)
 5. Verify all referenced files exist (INTEGRATION)
 6. Generate scored report (REPORT)
 Result: Structured report with score, grade, and prioritized findings
@@ -351,7 +352,7 @@ Solution:
 **Do instead**: Score every rubric category. Cite file:line for every finding.
 
 ### Anti-Pattern 2: Skipping Validation Script Execution
-**What it looks like**: "The skill has a validate.py script present."
+**What it looks like**: "The skill has a validation script present."
 **Why wrong**: Presence is not correctness. Script may have syntax errors or do nothing.
 **Do instead**: Run `python3 -m py_compile` at minimum. Execute the script and capture output.
 

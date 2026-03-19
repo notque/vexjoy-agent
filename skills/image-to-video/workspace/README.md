@@ -20,7 +20,7 @@ workspace/
 
 2. **Run the script**
    ```bash
-   python3 scripts/image_to_video.py --process-workspace
+   python3 skills/image-to-video/scripts/image_to_video.py --process-workspace
    ```
 
 3. **Find output in `output/`**

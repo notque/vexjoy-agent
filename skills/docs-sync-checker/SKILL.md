@@ -79,7 +79,7 @@ The 4-phase workflow (Scan, Cross-Reference, Detect, Report) ensures systematic 
 **Step 1: Run the scan script**
 
 ```bash
-python3 scripts/scan_tools.py --repo-root $HOME/claude-code-toolkit
+python3 skills/docs-sync-checker/scripts/scan_tools.py --repo-root $HOME/claude-code-toolkit
 ```
 
 **Step 2: Validate discovery results**
@@ -118,7 +118,7 @@ YAML errors: [N] (must be 0 to proceed)
 **Step 1: Run the documentation parser**
 
 ```bash
-python3 scripts/parse_docs.py --repo-root $HOME/claude-code-toolkit --scan-results /tmp/scan_results.json
+python3 skills/docs-sync-checker/scripts/parse_docs.py --repo-root $HOME/claude-code-toolkit --scan-results /tmp/scan_results.json
 ```
 
 **Step 2: Parse each documentation file**
@@ -181,7 +181,7 @@ For each issue, capture: tool type, tool name, tool path, affected documentation
 **Step 1: Run the report generator**
 
 ```bash
-python3 scripts/generate_report.py --issues /tmp/issues.json --output /tmp/sync-report.md
+python3 skills/docs-sync-checker/scripts/generate_report.py --issues /tmp/issues.json --output /tmp/sync-report.md
 ```
 
 **Step 2: Verify report structure**

@@ -305,10 +305,10 @@ Future enhancement: docs-sync-checker could offer `--auto-format` flag to:
 
 ## Testing Format Parsing
 
-Use `scripts/parse_docs.py --debug` to see detailed parsing output:
+Use `parse_docs.py --debug` to see detailed parsing output:
 
 ```bash
-python3 scripts/parse_docs.py --repo-root . --debug
+python3 skills/docs-sync-checker/scripts/parse_docs.py --repo-root . --debug
 ```
 
 Output includes:

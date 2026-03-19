@@ -579,18 +579,9 @@ Include in commit? [Y/n]
 
 ## Integration with git-commit-flow
 
-The staging rules are implemented in `scripts/stage_files.py`:
+The staging rules described above are applied manually by the skill during Phase 2 (STAGE).
 
-```bash
-# Generate staging plan
-python3 scripts/stage_files.py --strategy smart
-
-# Auto-stage all
-python3 scripts/stage_files.py --strategy all
-
-# Stage specific files
-python3 scripts/stage_files.py --files file1.py file2.md
-```
+> **Note**: `scripts/stage_files.py` is not yet implemented. Use `git add <files>` directly, following the grouping strategy outlined above.
 
 ## References
 

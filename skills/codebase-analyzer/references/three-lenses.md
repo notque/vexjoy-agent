@@ -248,7 +248,8 @@ Let's walk through a real analysis:
 
 ### Step 1: Run Cartographer
 ```bash
-python3 scripts/cartographer.py ~/repos/your-project
+# TODO: scripts/cartographer.py not yet implemented
+# Use manual grep/find pattern counting as described in SKILL.md
 ```
 
 ### Step 2: Review Statistics
