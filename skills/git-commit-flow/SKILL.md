@@ -87,7 +87,9 @@ Verify:
 Check all changed files against sensitive patterns. See `references/banned-patterns.md` for the full pattern list.
 
 ```bash
-python3 scripts/validate_state.py --check sensitive-files
+# TODO: scripts/validate_state.py not yet implemented
+# Manual alternative: check for sensitive files in staged changes
+git diff --cached --name-only | grep -iE '\.(env|pem|key)$|credentials|secret|\.npmrc|\.pypirc'
 ```
 
 If sensitive files detected: display them, suggest `.gitignore` additions, and HARD STOP until resolved.
@@ -156,7 +158,9 @@ Either accept user-provided message or generate one from staged changes.
 **Step 2: Validate message**
 
 ```bash
-python3 scripts/validate_message.py --message "<message>"
+# TODO: scripts/validate_message.py not yet implemented
+# Manual alternative: validate commit message format
+# Check: type prefix exists, no banned patterns, subject line <= 72 chars
 ```
 
 Check:
@@ -280,7 +284,7 @@ Runs VALIDATE and STAGE phases, shows commit message preview, but does not execu
 ### Anti-Pattern 1: Committing Without Validation
 **What it looks like**: `git add . && git commit -m "update files"`
 **Why wrong**: Skips sensitive file detection, CLAUDE.md compliance, conventional format checks. Risk of leaking credentials or creating inconsistent history.
-**Do instead**: Use this skill or run `python3 scripts/validate_state.py --check all` before manual commits.
+**Do instead**: Use this skill to validate all changes before manual commits.
 
 ### Anti-Pattern 2: Using Banned Commit Patterns
 **What it looks like**: Adding "Generated with Claude Code" or "Co-Authored-By: Claude" to messages.

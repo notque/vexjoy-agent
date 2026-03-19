@@ -139,7 +139,8 @@ The orphan page receives NO equity from the internal link structure.
 
 ### 1. Generate Report
 ```bash
-python3 scripts/link_scanner.py ~/your-blog/content/
+# TODO: scripts/link_scanner.py not yet implemented
+# Use manual grep-based link extraction as described in SKILL.md
 ```
 
 ### 2. Priority Order

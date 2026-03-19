@@ -341,7 +341,8 @@ Revisit old posts to add links to new content:
 Always re-run the auditor after making fixes:
 
 ```bash
-python3 scripts/link_scanner.py ~/your-blog/content/
+# TODO: scripts/link_scanner.py not yet implemented
+# Re-run manual link extraction to verify fixes
 ```
 
 Check that:

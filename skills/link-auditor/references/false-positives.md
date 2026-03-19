@@ -81,7 +81,8 @@ The link scanner maintains an internal list of known false-positive domains. Whe
 To add a new domain to the scanner's false positive list, edit:
 
 ```python
-# In scripts/link_scanner.py
+# In scripts/link_scanner.py (not yet implemented)
+# When implemented, false positives would be configured as:
 
 FALSE_POSITIVE_DOMAINS = {
     'linkedin.com': 'Returns 403/999 for bots',
