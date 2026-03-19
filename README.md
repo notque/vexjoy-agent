@@ -61,16 +61,15 @@ These overrides exist because the corresponding domains require very specific pa
 
 Result: unified BLOCK/FIX/APPROVE verdict, severity-ranked.
 
-## Cross-session knowledge (retro system)
+## Cross-session knowledge (learning system)
 
-The retro pipeline runs at feature completion. Two parallel walkers extract different knowledge:
+Hooks automatically capture learnings into a SQLite database (learning.db) during normal work:
 
-- Context walker: domain and implementation learnings (what you learned about the problem)
-- Meta walker: process learnings (what caused friction, what worked well)
+- **error-learner**: captures tool errors and their solutions
+- **review-capture**: extracts findings from reviewer agents
+- **session-context**: loads high-confidence patterns at session start
 
-Findings go into an L1 (summary) / L2 (detailed) hierarchy. Knowledge graduates upward as confidence grows. In your next session, the system matches relevant knowledge by keyword and injects it before the agent starts.
-
-Five phases: WALK, MERGE, GATE, APPLY, REPORT.
+On your next session, the `retro-knowledge-injector` hook queries the database via FTS5 search and injects relevant knowledge before the agent starts. Use `/retro graduate` to permanently embed mature learnings into specific agents.
 
 ## ADR coordination
 
@@ -97,7 +96,7 @@ No voices are pre-built. The measurement infrastructure ships; you build your pr
 | `/feature-validate` | Quality gates: tests, lint, type checks |
 | `/feature-release` | PR, merge, tag, cleanup |
 
-Each phase produces saved artifacts. The retro pipeline runs at each checkpoint to extract learnings.
+Each phase produces saved artifacts. Learnings are captured to learning.db at each checkpoint.
 
 ## More features
 

@@ -1122,7 +1122,7 @@
     },
     {
       "name": "retro",
-      "description": "Interact with the retro knowledge system: audit L2 files, list accumulated knowledge, fix hygiene issues, check injection health, and graduate mature knowledge into specific agents/skills.",
+      "description": "Interact with the learning system: show stats, list/search accumulated knowledge, and graduate mature entries into agents/skills. Backed by learning.db (SQLite + FTS5).",
       "file": "skills/retro/SKILL.md",
       "triggers": [
         "retro",

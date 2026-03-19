@@ -48,7 +48,7 @@ multi-component changes driven by external events.
 ## What This Skill CAN Do
 - Establish an objective baseline score for any agent or skill in the repository
 - Identify structural gaps against `AGENT_TEMPLATE_V2` (missing sections, outdated patterns)
-- Surface retro/L2 entries ready for graduation into the target agent
+- Surface learning.db entries ready for graduation into the target agent
 - Produce a ranked improvement plan with Critical/Important/Minor tiers
 - Apply approved improvements: missing sections, Operator Context behaviors, graduated retro patterns, peer consistency fixes
 - Score the result and report the quality delta
@@ -352,7 +352,7 @@ Solution: Re-read the file before editing. If the baseline state has changed mat
 **Do instead**: Always run agent-evaluation in Phase 5. The delta is the claim. Everything else is opinion.
 
 ### Anti-Pattern 5: Over-Graduating Retro Entries
-**What it looks like**: Adding every L2 retro entry as a new Hardcoded behavior, bloating the agent with marginally relevant rules.
+**What it looks like**: Adding every learning.db entry as a new Hardcoded behavior, bloating the agent with marginally relevant rules.
 **Why wrong**: Bloat degrades usability and reduces the signal-to-noise ratio of the Operator Context.
 **Do instead**: Graduate only retro entries with score ≥ 6 that are directly relevant to the target agent's domain. Surfacing them in the plan lets the user decide their importance.
 
@@ -365,7 +365,7 @@ User: "Upgrade the python-general-engineer agent — it's missing Operator Conte
 Actions: Phase 1 scores it (baseline: 58/C). Phase 2 finds missing Operator Context, no Anti-Patterns section, one retro graduation candidate. Phase 3 presents 3-item plan (Critical: add Operator Context; Important: graduate retro entry; Minor: add Anti-Patterns). User approves all. Phase 4 adds sections. Phase 5 re-evaluates (after: 74/B, delta: +16). Upgrade complete.
 
 ### Example 2: Retro graduation only
-User: "Graduate the retro learnings from L2/debugging.md into systematic-debugging skill."
+User: "Graduate the retro learnings about debugging into the systematic-debugging skill."
 Actions: Phase 1 scores systematic-debugging (baseline: 81/A). Phase 2 finds 2 retro entries in debugging.md with tags matching the skill. Phase 3 presents 2-item plan (both Important: inject as Hardcoded behaviors). User approves item 1, skips item 2. Phase 4 applies one graduation. Phase 5 re-evaluates (after: 84/A, delta: +3). Upgrade complete.
 
 ### Example 3: Regression caught
