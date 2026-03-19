@@ -383,22 +383,14 @@ When uncertain which route: **ROUTE ANYWAY.** Route to the most likely agent + s
 
 ### Phase 5: LEARN
 
-**Goal**: Review auto-captured learnings, upgrade valuable entries, and record new insights to the unified knowledge store (`~/.claude/learning/learning.db`).
+**Goal**: Ensure session insights are captured to `learning.db`.
 
-**Architecture**: Hooks automatically capture errors, approach pivots, and review findings during the session (zero LLM cost). The LEARN phase reviews what was captured and adds human-quality context — it's a **curator**, not the sole capture point.
+**Auto-capture** (hooks, zero LLM cost):
+- `error-learner.py` (PostToolUse) → captures tool errors + solutions
+- `review-capture.py` (PostToolUse) → captures review agent findings
+- `session-learning-recorder.py` (Stop) → warns on substantive sessions with no learnings
 
-**When to run**: After every Simple+ task that produced substantive work. Skip for Trivial tasks and read-only operations.
-
-**Step 1: Check what was auto-captured**
-
-Hooks automatically record to `learning.db` during the session:
-- `error-learner.py` → category:error (tool errors + solutions)
-- Future: `pivot-detector.py` → category:pivot (approach changes)
-- Future: `review-capture.py` → category:review (PR review findings)
-
-**Step 2: Record NEW insights not captured by hooks**
-
-For insights that require LLM judgment (design decisions, gotchas, debugging insights):
+**Manual recording** (for design decisions, gotchas, and insights hooks can't detect):
 
 ```bash
 python3 scripts/learning-db.py record TOPIC KEY "VALUE" --category CATEGORY
@@ -406,38 +398,9 @@ python3 scripts/learning-db.py record TOPIC KEY "VALUE" --category CATEGORY
 
 Categories: `error | pivot | review | design | debug | gotcha | effectiveness`
 
-Examples:
-```bash
-python3 scripts/learning-db.py record go-patterns mutex-over-atomics "sync.Mutex beats atomics for multi-field state machines — correctness > micro-optimization" --category design
-python3 scripts/learning-db.py record debugging hook-timing "UserPromptSubmit hooks fire BEFORE /do routing. Agent-scoped injection must happen in /do Phase 4, not in hooks." --category gotcha
-```
+Record specific, actionable insights — not generic advice. "Force-route triggers must not contain sibling skill names" is good. "Be careful with routing" is not.
 
-**Fallback** (when learning-db.py is not available):
-```bash
-python3 scripts/feature-state.py retro-record-adhoc TOPIC KEY "VALUE"
-```
-
-**Cross-repo** (when outside agents repo):
-```bash
-python3 ~/.claude/scripts/learning-db.py record TOPIC KEY "VALUE" --category CATEGORY
-```
-
-**Step 3: Report what was learned**
-
-```
-CAPTURED: N auto-captured, M new recordings
-  [key] → [topic] (category)
-```
-
-**Quality gate**: Record liberally, inject conservatively. The confidence threshold at injection time (≥0.5) filters noise — so when in doubt, record it. Low-value entries naturally decay via pruning.
-
-| Record this | Don't record this |
-|-------------|-------------------|
-| "sync.Mutex is better than atomics for multi-field state machines" | "Use proper concurrency patterns" |
-| "Edit tool fails with multiple matches — use replace_all=True" | "Handle errors properly" |
-| "Tried shutil.rmtree+copytree, lost cross-repo files — switched to additive sync" | "Be careful with file operations" |
-
-**Gate**: Learning recorded (or skipped if nothing reusable). Routing fully complete.
+**Gate**: Hooks handle capture automatically. Manual recording is for high-value insights only.
 
 ---
 
