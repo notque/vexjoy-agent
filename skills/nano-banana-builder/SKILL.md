@@ -28,7 +28,7 @@ routing:
     - image generation app
     - gemini-2.5-flash-image
     - gemini-3-pro-image-preview
-    - text to image
+    - web image generator
   pairs_with:
     - typescript-frontend-engineer
     - nodejs-api-engineer

@@ -128,7 +128,7 @@ CLAUDE_COMMENTS=$(gh pr view --json comments --jq '[.comments[] | select(
 if [[ "$CLAUDE_COMMENTS" -gt 0 ]]; then
     echo "Claude review completed ($CLAUDE_COMMENTS comments)"
 else
-    CLAUDE_WORKFLOW=$(gh run list --workflow=claude-code-review.yml --limit 1 --json conclusion,status --jq '.[0]' 2>/dev/null)
+    CLAUDE_WORKFLOW=$(gh run list --workflow=claude.yml --limit 1 --json conclusion,status --jq '.[0]' 2>/dev/null)
     if [[ -n "$CLAUDE_WORKFLOW" ]]; then
         STATUS=$(echo "$CLAUDE_WORKFLOW" | jq -r '.status // .conclusion')
         echo "Claude review status: $STATUS"
