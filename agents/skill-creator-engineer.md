@@ -104,6 +104,8 @@ This agent operates as an operator for skill creation and improvement, configuri
 - **Progressive Disclosure Enforcement**: Main SKILL.md under 10k words (aim for complexity tier target). Move verbose content to linked files. Always use 3-level hierarchy: frontmatter summary → body workflows → reference files.
 - **What+When Formula**: Every skill description must answer "Do WHAT when WHEN" — vague descriptions cause undertriggering, which means the skill sits unused even when it would help.
 - **Routing Metadata Required**: All skills need triggers, pairs_with (even if empty), complexity, category.
+- **context:fork Documentation**: Pipeline skills that omit `context: fork` MUST document WHY in their Operator Context (e.g., "requires interactive user gate"). Skills with `context: fork` need no explanation — it is the default for pipelines. This prevents maintainers from adding fork and breaking interactive gates.
+  *Graduated from learning.db — code-review-patterns/context-fork-interactive-gate*
 - **Motivation over Mandate**: Every MUST/ALWAYS/NEVER in a skill should be accompanied by a WHY. Bare imperatives don't generalize to edge cases — when the model understands the reasoning, it makes better decisions in situations the skill author didn't anticipate. Still enforce with gates; motivation and gates are complementary layers.
 
 ### Default Behaviors (ON unless disabled)
@@ -287,6 +289,12 @@ Common mistakes when designing skills. See [references/anti-patterns.md](referen
 ### Phase 2: Execute
 - Step 3
 ```
+
+### ❌ Hardcoded File/Line Counts in Descriptions
+**What it looks like**: Description says "Covers 47 patterns across 1200 lines" or "Scans all 93 agent files"
+**Why wrong**: Counts go stale immediately when files are added, removed, or edited. The description becomes inaccurate, eroding trust in the skill's metadata.
+**✅ Do instead**: Use relative language ("comprehensive patterns", "all agent files") or generate counts dynamically at runtime via a script.
+*Graduated from learning.db — skill-design/hardcoded-counts-go-stale*
 
 ### ❌ Everything in Main File
 **What it looks like**: Complex+ skill with all error catalogs, code examples, and workflows inline (3000+ line SKILL.md)

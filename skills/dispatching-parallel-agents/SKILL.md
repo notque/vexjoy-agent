@@ -200,6 +200,15 @@ Solution: Revert conflicting changes. Re-investigate the conflicting pair sequen
 Cause: Problem depends on state from another subsystem, or environment mismatch
 Solution: Provide additional context. If still cannot reproduce, the problem may not be independent -- move it to a sequential investigation.
 
+### Error: "Worktree Agent Commits to Wrong Branch"
+Cause: When multiple worktrees exist, agents may operate on an unexpected branch because the worktree's branch and push target can diverge.
+Solution:
+1. In each agent's dispatch prompt, explicitly state the target branch name
+2. Include `git branch --show-current` as the first verification step in each agent
+3. After all agents return, verify each commit landed on the intended branch
+4. If a commit landed on the wrong branch, cherry-pick to the correct branch and reset
+*Graduated from learning.db — multi-agent-coordination/worktree-branch-confusion*
+
 ---
 
 ## Anti-Patterns

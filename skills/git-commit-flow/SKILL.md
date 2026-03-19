@@ -306,6 +306,12 @@ Runs VALIDATE and STAGE phases, shows commit message preview, but does not execu
 **Why wrong**: Credentials in git history are permanent. Requires history rewrite and credential rotation to fix.
 **Do instead**: IMMEDIATELY add to `.gitignore`, unstage, and rotate any exposed credentials.
 
+### Anti-Pattern 6: Stash/Pop Across Branch Merges
+**What it looks like**: Running `git stash`, switching branches to merge or rebase, then `git stash pop` back on the original branch.
+**Why wrong**: Stashed changes were based on the pre-merge state. Popping after a merge can silently apply changes to the wrong base, causing branch drift.
+**Do instead**: Commit changes before switching branches. If stash is unavoidable, verify the working tree diff after pop with `git diff` to confirm changes still make sense against the new base.
+*Graduated from learning.db — multi-agent-coordination/stash-pop-branch-drift*
+
 ---
 
 ## References

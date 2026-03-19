@@ -454,6 +454,18 @@ Solution:
 **Why wrong**: Bypasses lint checks, test runs, review loops, CI verification, and repo classification. This is how broken code gets merged. A CI failure after merge costs more than a pre-push check.
 **Do instead**: Route ALL git submission actions through their skills. "push" routes to pr-sync. "commit" routes to git-commit-flow. "create PR" routes to pr-pipeline. No exceptions, even when the user asks to "just push it."
 
+### Anti-Pattern 6: Force-Route Triggers Containing Sibling Skill Names
+**What it looks like**: A force-route trigger list includes the name of another skill (e.g., `go-testing` trigger includes "go-concurrency")
+**Why wrong**: The router matches the sibling skill's name as a trigger for the wrong skill, swallowing requests that should route elsewhere.
+**Do instead**: Force-route triggers must contain only base-level keywords (user language), never sibling skill names. Test each trigger against the full force-route table to confirm it matches exactly one skill.
+*Graduated from learning.db — routing/force-route-swallows-siblings*
+
+### Anti-Pattern 7: Duplicate Trigger Phrases Across Skills
+**What it looks like**: Two skills both claim the same trigger phrase (e.g., both `go-testing` and `go-anti-patterns` claim "test smell")
+**Why wrong**: The router cannot deterministically pick between them — which skill fires depends on table ordering, not intent.
+**Do instead**: Each trigger phrase must map to exactly one skill. Check for collisions before adding new force-routes.
+*Graduated from learning.db — routing/trigger-collision-causes-nondeterministic-routing*
+
 ---
 
 ## References
