@@ -252,10 +252,12 @@ Use the report template from `references/report-template.md`. Include:
 - Specific bugs found and their production impact
 - Verdict based on total evidence
 
-**Step 2: Run comparison script**
+**Step 2: Run comparison analysis**
 
 ```bash
-python3 scripts/compare.py benchmark/{task-name}/
+# TODO: scripts/compare.py not yet implemented
+# Manual alternative: compare benchmark outputs side-by-side
+diff benchmark/{task-name}/full/ benchmark/{task-name}/compact/
 ```
 
 **Step 3: Analyze token economics**

@@ -177,8 +177,10 @@ cd benchmark/{task-name}/full && go test -race -v
 cd benchmark/{task-name}/compact && go test -race -v
 ```
 
-### Step 4: Run comparison script
+### Step 4: Run comparison analysis
 
 ```bash
-python3 scripts/compare.py benchmark/{task-name}/
+# TODO: scripts/compare.py not yet implemented
+# Manual alternative: compare outputs side-by-side using diff
+diff benchmark/{task-name}/full/ benchmark/{task-name}/compact/
 ```

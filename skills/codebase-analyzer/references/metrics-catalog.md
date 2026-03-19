@@ -157,7 +157,9 @@ Complete reference for the Omni-Cartographer's 25 categories and 100 individual 
 
 ## Cartographer Versions
 
-### Basic Cartographer (`cartographer.py`)
+> **Note**: The cartographer scripts described below are not yet implemented. They document the intended analysis tiers.
+
+### Basic Cartographer (`cartographer.py` -- not yet implemented)
 - **Metrics**: ~15 categories, basic patterns
 - **Use Case**: Quick analysis, understanding core patterns
 - **Rules Extracted**: 5-10 rules
@@ -167,7 +169,7 @@ Complete reference for the Omni-Cartographer's 25 categories and 100 individual 
 - **Use Case**: Performance-critical pattern detection
 - **Rules Extracted**: 2-5 rules (very focused)
 
-### Omni-Cartographer (`cartographer_omni.py`) -- RECOMMENDED
+### Omni-Cartographer (`cartographer_omni.py` -- not yet implemented) -- RECOMMENDED
 - **Metrics**: 25 categories, 100 individual metrics
 - **Use Case**: Complete codebase DNA profiling, PR review automation, quality tracking
 - **Rules Extracted**: 30-40+ rules
