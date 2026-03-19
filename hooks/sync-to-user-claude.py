@@ -244,7 +244,7 @@ def main():
         ("hooks", "hooks"),
         ("commands", "commands"),  # Still needed for slash menu discovery
         ("retro", "retro"),  # Knowledge store for retro-knowledge-injector hook
-        ("scripts", "scripts"),  # Deterministic CLI tools (retro-graduate.py, classify-repo.py, etc.)
+        ("scripts", "scripts"),  # Deterministic CLI tools (learning-db.py, classify-repo.py, etc.)
     ]
 
     # Components that only ADD files (never remove stale ones from dst).

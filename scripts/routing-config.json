@@ -15,7 +15,6 @@
     {"skill": "feature-implement", "priority": 1, "triggers": ["implement feature", "execute plan", "start building", "feature implement"]},
     {"skill": "feature-validate", "priority": 1, "triggers": ["validate feature", "run quality gates", "feature validate"]},
     {"skill": "feature-release", "priority": 1, "triggers": ["release feature", "merge feature", "ship it", "feature release"]},
-    {"skill": "retro-pipeline", "priority": 1, "triggers": ["run retro", "retro pipeline", "phase checkpoint retro", "retro checkpoint"]},
     {"skill": "system-upgrade", "priority": 1, "triggers": ["upgrade agents", "system upgrade", "claude update", "upgrade skills", "apply claude update", "apply update", "new claude version", "apply retro to system"]}
   ],
   "domain_agents": [

@@ -125,7 +125,6 @@ These skills have MANDATORY routing. They MUST be invoked when triggers appear:
 | **feature-implement** | implement feature, execute plan, start building, feature implement |
 | **feature-validate** | validate feature, run quality gates, feature validate |
 | **feature-release** | release feature, merge feature, ship it, feature release |
-| **retro-pipeline** | run retro, retro pipeline, phase checkpoint retro, retro checkpoint |
 | **system-upgrade** | upgrade agents, system upgrade, claude update, upgrade skills, apply claude update, apply update, new claude version, apply retro to system |
 | **de-ai-pipeline** | de-ai docs, clean ai patterns, fix ai writing, scan and fix docs, remove ai tells |
 | **pr-sync** | push, push this, push changes, commit and push, push to GitHub, sync to GitHub, create a PR, create PR, open PR, open pull request, ship this, send this |
@@ -241,7 +240,6 @@ For pipeline skills — add the Pipeline: line with all phases in order:
 | `hook-development-pipeline` | SPEC → IMPLEMENT → TEST → REGISTER → DOCUMENT |
 | `research-pipeline` | SCOPE → GATHER → SYNTHESIZE → VALIDATE → DELIVER |
 | `agent-upgrade` | AUDIT → DIFF → PLAN → IMPLEMENT → RE-EVALUATE |
-| `retro-pipeline` | WALK → MERGE → GATE → APPLY → REPORT |
 | `explore-pipeline` | SCAN → MAP → ANALYZE → REPORT |
 | `research-to-article` | RESEARCH → COMPILE → GROUND → GENERATE → VALIDATE → REFINE → OUTPUT |
 | `pr-pipeline` | CLASSIFY → STAGE → REVIEW → COMMIT → PUSH → CREATE → VERIFY → CLEANUP |
@@ -319,22 +317,9 @@ If NOT a creation request, skip to Step 1. The ADR session persists across sub-a
 
 Create `task_plan.md` before execution. The `auto-plan-detector.py` hook auto-detects and injects `<auto-plan-required>` context. See `skills/planning-with-files/SKILL.md` for template. Skip only for Trivial tasks.
 
-**Step 2: Inject agent-scoped retro knowledge**
+**Step 2: Retro knowledge injection**
 
-Before dispatching, check if the selected agent declares `retro-topics` in its frontmatter. If it does, load ONLY the matching L2 files and include them in the agent's prompt. This replaces the broad hook injection with targeted knowledge.
-
-```
-1. Read agents/<selected-agent>.md frontmatter
-2. Extract retro-topics list (e.g., [go-patterns, concurrency, debugging])
-3. For each topic, read retro/L2/<topic>.md if it exists
-4. Filter out entries marked [GRADUATED → <agent>] (already embedded)
-5. Include matching L2 content in the agent dispatch prompt as:
-   <retro-knowledge scope="agent-specific">
-   [L2 content for matching topics only]
-   </retro-knowledge>
-```
-
-If the agent has no `retro-topics`, or no matching L2 files exist, skip this step. The broad hook injection still serves as fallback for non-scoped agents.
+The `retro-knowledge-injector` hook automatically queries learning.db and injects relevant knowledge into agent context via `<retro-knowledge>` blocks. No manual injection step is needed — the hook handles this on every `UserPromptSubmit`.
 
 **Step 2.5: Inject MCP tool discovery into agent dispatch prompt**
 

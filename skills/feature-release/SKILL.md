@@ -135,14 +135,11 @@ Use our existing pr-pipeline patterns:
    echo "RELEASE_NOTES" | python3 scripts/feature-state.py checkpoint FEATURE release
    ```
 
-2. **Invoke retro pipeline** (`retro-pipeline` skill) — final pass:
-   - FEATURE: current feature name
-   - PHASE: release
-   - ARTIFACT_PATH: path to the checkpoint artifact just saved
-   - The pipeline spawns context + meta walkers in parallel, merges outputs, gates bottom-up (L3→L2→L1), applies approved changes, and reports.
-   - Context walker focus: Update L2 with architectural changes from this feature
-   - Meta walker focus: Full lifecycle observations — total time, agent performance, workflow improvements
-   - The pipeline automatically promotes HIGH confidence findings via `retro-promote`
+2. **Record learnings** — final pass, capture insights from the full lifecycle:
+   ```bash
+   python3 scripts/learning-db.py record TOPIC KEY "VALUE" --category design
+   ```
+   Focus on: architectural decisions, workflow improvements, agent performance, patterns to reuse.
 
 3. Report completion:
    ```

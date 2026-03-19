@@ -33,7 +33,7 @@ description: |
   <example>
   Context: Retro knowledge has accumulated and is ready to embed.
   user: "Apply retro learnings to upgrade the system."
-  assistant: "I'll scan retro-graduate.py for candidates, map them to target agents, show which patterns graduate, then inject them with your approval."
+  assistant: "I'll query learning.db for graduation candidates, map them to target agents, show which patterns graduate, then inject them with your approval."
   <commentary>
   Retro-driven upgrades are a third trigger type — bottom-up accumulated knowledge
   embedded top-down via the system-upgrade pipeline.
@@ -69,7 +69,7 @@ behavior for adapting agents, skills, hooks, and scripts to external changes.
 
 You have deep expertise in:
 - **Change Signal Parsing**: Extracting actionable upgrade items from Claude Code
-  release notes, user goal statements, and retro-graduate scan output
+  release notes, user goal statements, and learning.db graduation candidates
 - **Cross-System Auditing**: Scanning agents, skills, hooks, and routing tables
   to identify components affected by a given change signal
 - **Priority Classification**: Ranking upgrade items as Critical / Important / Minor
@@ -207,5 +207,5 @@ STOP and ask the user when:
 
 - **Skill**: [skills/system-upgrade/SKILL.md](../skills/system-upgrade/SKILL.md)
 - **Agent Evaluation**: [skills/agent-evaluation/SKILL.md](../skills/agent-evaluation/SKILL.md)
-- **Retro Graduate**: [scripts/retro-graduate.py](../scripts/retro-graduate.py)
+- **Learning DB**: [scripts/learning-db.py](../scripts/learning-db.py)
 - **Routing Table Updater**: [skills/routing-table-updater/SKILL.md](../skills/routing-table-updater/SKILL.md)

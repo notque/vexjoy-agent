@@ -1132,20 +1132,6 @@
       "user-invocable": true
     },
     {
-      "name": "retro-pipeline",
-      "description": "5-phase retro orchestration pipeline: Walk, Merge, Gate, Apply, Report.",
-      "file": "skills/retro-pipeline/SKILL.md",
-      "triggers": [
-        "retro pipeline",
-        "run retro",
-        "phase checkpoint retro",
-        "retro checkpoint"
-      ],
-      "category": "process",
-      "version": "1.0.0",
-      "user-invocable": false
-    },
-    {
       "name": "roast",
       "description": "Constructive critique through 5 HackerNews commenter personas with evidence-based claim validation.",
       "file": "skills/roast/SKILL.md",

@@ -7,7 +7,7 @@ description: |
   pipeline-test-runner output. Use for "pipeline retro", "trace failures",
   "generator improvement", "three-layer fix", or when pipeline-test-runner
   produces FAIL/PARTIAL results. Do NOT use for feature-lifecycle retros (use
-  retro-pipeline instead) or for ad-hoc skill editing.
+  /retro graduate instead) or for ad-hoc skill editing.
 version: 1.0.0
 user-invocable: false
 agent: pipeline-orchestrator-engineer

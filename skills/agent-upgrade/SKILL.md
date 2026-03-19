@@ -36,7 +36,7 @@ multi-component changes driven by external events.
 - **Use agent-evaluation for scoring**: Do not self-assess quality. Invoke the `agent-evaluation` skill for objective scores.
 
 ### Default Behaviors (ON unless disabled)
-- **Check retro graduates**: Phase 1 always scans `retro/L2/` for entries targeting the agent under upgrade. Graduation candidates are surfaced in Phase 2.
+- **Check retro graduates**: Phase 1 always searches learning.db for entries targeting the agent under upgrade. Graduation candidates are surfaced in Phase 2.
 - **Peer comparison**: Phase 2 compares the target against 2–3 agents in the same category for consistency gaps (e.g., comparing a Go agent against other Go agents).
 - **Regression protection**: If Phase 5 delta is negative, report to user and do NOT auto-revert. User decides.
 
@@ -85,11 +85,7 @@ ls skills/ | grep [name]
 
 **Step 3**: Scan for retro entries targeting this agent:
 ```bash
-python3 scripts/retro-graduate.py scan 2>/dev/null | grep -i "[agent-name]" || echo "No retro candidates found"
-```
-Also scan `retro/L2/` directly for relevant tags:
-```bash
-grep -l "[domain-keyword]" retro/L2/*.md 2>/dev/null
+python3 scripts/learning-db.py search "[agent-name]" 2>/dev/null || echo "No retro candidates found"
 ```
 
 **Step 4**: Check for staleness markers in the target file:
@@ -315,9 +311,9 @@ If the delta is positive, the upgrade is complete. If the delta is zero or negat
 Cause: The `agent-evaluation` skill has a dependency issue or the target file is malformed.
 Solution: Read the target file manually and apply the scoring rubric from the CLAUDE.md quality gates section (Structure 20pts, Operator Context 15pts, Error Handling 15pts, Reference Files 10pts, Validation Scripts 10pts, Content Depth 30pts). Produce a manual score. Note it as manually derived in the report.
 
-### Error: "retro-graduate.py not found or scan returns no output"
-Cause: Script missing or retro/L2/ directory is empty.
-Solution: Manually grep `retro/L2/` for entries with tags matching the target agent's domain. If no L2 files exist, skip retro graduation step and note it in the diff report.
+### Error: "No learning.db entries found for this agent"
+Cause: No relevant learnings in the database for this agent's domain.
+Solution: Skip retro graduation step and note it in the diff report. Learnings accumulate naturally during work.
 
 ### Error: "No AGENT_TEMPLATE_V2 found in repository"
 Cause: Template file not yet created or named differently.
