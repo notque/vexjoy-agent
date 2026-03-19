@@ -342,6 +342,14 @@ Solution:
 3. Retry the branch deletion or PR merge with `--delete-branch`
 4. This commonly happens when worktree agents (`isolation: "worktree"`) created the branch
 
+### Error: "git push says up-to-date but changes are missing on remote"
+Cause: `git push origin master` reports "up-to-date" when HEAD is on a different branch. Git pushes the named remote ref, not the current branch, so feature branch commits are never pushed.
+Solution:
+1. Always push the current branch: `git push -u origin $(git branch --show-current)`
+2. Never hardcode branch names in push commands
+3. Verify after push: `git log origin/$(git branch --show-current)..HEAD` should show 0 commits
+*Graduated from learning.db — multi-agent-coordination/worktree-push-from-wrong-branch*
+
 ---
 
 ## Anti-Patterns
