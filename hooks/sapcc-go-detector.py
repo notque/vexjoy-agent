@@ -39,7 +39,7 @@ SAPCC_MODULE_PREFIXES = [
     "github.com/sapcc/",
     "github.com/sap-cloud-infrastructure/",
 ]
-SAPCC_IMPORT_PATTERN = re.compile(r'github\.com/(sapcc|sap-cloud-infrastructure)/')
+SAPCC_IMPORT_PATTERN = re.compile(r"github\.com/(sapcc|sap-cloud-infrastructure)/")
 
 # Key sapcc libraries that trigger the skill even in non-sapcc modules
 SAPCC_LIBRARIES = {
@@ -84,7 +84,7 @@ def detect_sapcc_project(go_mod_path: Path) -> tuple[bool, str]:
         return False, ""
 
     # Extract module name
-    module_match = re.search(r'^module\s+(\S+)', content, re.MULTILINE)
+    module_match = re.search(r"^module\s+(\S+)", content, re.MULTILINE)
     module_name = module_match.group(1) if module_match else "unknown"
 
     # Check 1: Module itself is sapcc or sap-cloud-infrastructure
