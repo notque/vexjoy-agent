@@ -1,11 +1,11 @@
 ---
-name: repo-competitive-analysis
+name: repo-value-analysis
 description: |
-  Systematic 6-phase competitive analysis of external repositories against our
-  toolkit: clone, parallel deep-read, self-inventory, synthesize gaps, targeted
-  audit of affected subsystems, reality-grounded report. Use when evaluating
-  whether an external repo provides value, comparing toolkits, or analyzing
-  repos for ideas worth adopting.
+  Systematic 6-phase analysis of external repositories for ideas worth adopting:
+  clone, parallel deep-read, self-inventory, synthesize gaps, targeted audit of
+  affected subsystems, reality-grounded report. Use when evaluating whether an
+  external repo provides value, analyzing repos for useful patterns, or
+  comparing approaches.
   Do NOT use for general codebase exploration (use explore-pipeline instead).
 version: 1.0.0
 user-invocable: true
@@ -20,7 +20,7 @@ allowed-tools:
   - Glob
 routing:
   triggers:
-    - competitive analysis
+    - repo value analysis
     - does repo add value
     - analyze repo for ideas
     - what can we learn from
@@ -36,7 +36,7 @@ routing:
 
 ## Operator Context
 
-This skill operates as an operator for systematic competitive analysis of external repositories against our toolkit. It implements a **6-phase Pipeline Architecture** — clone, parallel deep-read, self-inventory, synthesis, targeted audit, reality-grounded report — with parallel subagents dispatched via the Agent tool.
+This skill operates as an operator for systematic repo value analysis of external repositories against our toolkit. It implements a **6-phase Pipeline Architecture** — clone, parallel deep-read, self-inventory, synthesis, targeted audit, reality-grounded report — with parallel subagents dispatched via the Agent tool.
 
 ### Hardcoded Behaviors (Always Apply)
 - **Full File Reading**: Agents MUST read every file in their assigned zone, not sample or skim
@@ -137,7 +137,7 @@ Dispatch 1 Agent per analysis zone (background). Each agent receives:
 - Instructions to read EVERY file (not sample, not skim)
 - A structured output template
 
-**Agent instructions template** (adapt per zone):
+**Agent instructions template** (replace ALL bracketed placeholders with actual values before dispatching):
 
 ```
 You are analyzing the "[zone]" zone of repository [REPO_NAME].
@@ -198,7 +198,7 @@ For each category, note:
 Save your inventory to /tmp/self-inventory.md
 ```
 
-**Gate**: Self-inventory agent completed. `/tmp/self-inventory.md` exists and contains counts for all 4 component types. Proceed only when gate passes.
+**Gate**: Self-inventory agent completed (or timed out after 5 minutes). `/tmp/self-inventory.md` exists and contains counts for all 4 component types. Proceed only when gate passes.
 
 ### Phase 4: SYNTHESIZE
 
