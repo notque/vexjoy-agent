@@ -475,12 +475,13 @@ func (d *driver) PluginTypeID() string { return "keystone" }
 | `api.go` | `api.go` | API struct, constructor, router |
 | `config.go` | `config.go` | Configuration parsing |
 | `database.go` | `database.go` | Schema, ORM setup, migrations |
-| `errors.go` | `errors.go` | Error types and codes |
+| `errors.go` | `errors.go` | Package-wide error types only (interface-specific sentinels live with their interface per §36) |
 
 - **R77**: One file per major entity
 - **R78**: Driver interface files named `<concern>_driver.go`
 - **R79**: Shared test setup in `shared_test.go`
 - **R80**: Constants live adjacent to their types, not in `constants.go`
+- **R80a**: **Contract cohesion** (§36): The file defining an interface/contract type also contains its constants, error sentinels, and validation functions. If you can name which interface owns an artifact, that artifact lives in the interface's file, not in `util.go` or `constants.go`. See sapcc-code-patterns.md §36 for the full rule with keppel evidence.
 
 ---
 

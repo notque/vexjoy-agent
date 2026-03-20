@@ -3611,6 +3611,7 @@ These are non-negotiable. Violating any of these WILL get your PR rejected.
 | Trust stdlib error messages; don't re-wrap | keppel, limes, limesctl | 6, 28.3 |
 | Code duplication is aggressively eliminated | keppel, limes, limesctl, castellum | 25.4, 28 |
 | `append(nil, x)` is valid — never pre-initialize | keppel, limes, limesctl | 19, 29 |
+| Contract cohesion — constants/sentinels/validation live with their interface | keppel, limes, castellum, limesctl | 36 |
 
 ### Tier 2: Appears in 2-3 Repos (Strong Signal)
 
@@ -3648,7 +3649,87 @@ These are non-negotiable. Violating any of these WILL get your PR rejected.
 
 ---
 
-## Master Summary: All New Rules (Sections 26-35)
+## 36. Contract Cohesion — Constants, Sentinels, and Validation Live with Their Interface
+
+File organization follows a "contract cohesion" principle: the file that defines an interface or contract type also contains all artifacts that belong to that contract.
+
+### What Lives Together
+
+The file defining an interface or contract type MUST also contain:
+
+1. **Constants** that are part of that contract (sentinel values, permission enums, error codes)
+2. **Error sentinels** returned by that interface's methods
+3. **Validation functions** for that interface's parameters
+
+The file is named for the domain concept, not generically. `storage_driver.go` not `interface.go`. `auth_driver.go` not `types.go`.
+
+### Evidence from Keppel (Reference Implementation)
+
+| What | File | Pattern |
+|------|------|---------|
+| `StorageDriver` interface + `ErrAuthDriverMismatch` (returned by StorageDriver methods when auth driver is incompatible) + `ErrCannotGenerateURL` | `storage_driver.go` | Interface + its sentinels in same file |
+| `AuthDriver` interface + `Permission` constants (`CanViewAccount`, etc.) | `auth_driver.go` | Interface + its enum constants in same file |
+| `FederationDriver` interface + `ErrNoSuchPrimaryAccount` | `federation_driver.go` | Interface + its sentinel in same file |
+| `RBACPolicy` type + `RBACPermission` constants + `ValidateAndNormalize()` | `rbac_policy.go` | Type + its constants + its validation in same file |
+| `GCPolicy` type + `Validate()` | `gc_policy.go` | Type + its validation in same file |
+
+### Anti-Pattern: Scattered Contract Artifacts
+
+```go
+// util.go -- REJECTED: this constant is part of the Storage contract
+const AllTenants = "*"
+var ErrEmptyTenantID = errors.New("tenant ID cannot be empty")
+func validateTenantID(tenantID string) error { ... }
+
+// interface.go -- the actual Storage interface is over here
+type Storage interface { ... }
+```
+
+Convention: "Move `AllTenants`, `ErrEmptyTenantID`, and `validateTenantID` into the same file as `Storage`. They are part of the Storage contract."
+
+### Correct: Contract Cohesion
+
+```go
+// storage.go (or storage_driver.go)
+const AllTenants = "*"
+var ErrEmptyTenantID = errors.New("tenant ID cannot be empty")
+
+type Storage interface {
+    ListTenants(ctx context.Context) ([]string, error)
+    GetTenant(ctx context.Context, tenantID string) (Tenant, error)
+}
+
+func validateTenantID(tenantID string) error {
+    if tenantID == "" {
+        return ErrEmptyTenantID
+    }
+    return nil
+}
+```
+
+### What IS Acceptable in util.go
+
+Genuinely cross-cutting utilities that serve multiple unrelated types:
+
+- Field mappings shared across backends
+- Generic deduplication helpers
+- String manipulation utilities
+- HTTP/URL helpers
+
+**The test**: if you can name which interface/type a function validates or which contract a constant belongs to, it doesn't belong in `util.go`.
+
+### Review Severity
+
+- **MEDIUM** when introducing new constants/sentinels in `util.go` or `constants.go` that belong to a specific interface. This is a "move it during this PR" finding, not a "rewrite the whole repo" finding.
+- **LOW** for pre-existing violations in code not touched by the current PR.
+
+### Cross-Repo Reinforcement
+
+This pattern appears in 4+ sapcc repos (keppel, limes, castellum, limesctl), making it **NON-NEGOTIABLE** per the reinforcement table (§35 Tier 1).
+
+---
+
+## Master Summary: All New Rules (Sections 26-36)
 
 | # | Section | Rule | One-Line Description |
 |---|---------|------|----------------------|
@@ -3737,7 +3818,11 @@ These are non-negotiable. Violating any of these WILL get your PR rejected.
 | N83 | 34.7 | Batch all related changes atomically | No partial commits that can become inconsistent |
 | N84 | 34.8 | Deep copy when iterating + mutating shared data | Each iteration needs its own copy |
 | N85 | 34.9 | Ignore inconsistent AI linter suggestions | Evaluate for consistency and practical impact |
+| N86 | 36.1 | Contract cohesion — artifacts live with their interface | Constants, sentinels, validation in same file as interface |
+| N87 | 36.2 | Files named for domain concept, not generically | `storage_driver.go` not `interface.go` or `types.go` |
+| N88 | 36.3 | util.go only for genuinely cross-cutting utilities | If you can name the owning interface, it doesn't belong in util |
+| N89 | 36.4 | Scattered contract artifacts are a review finding | MEDIUM for new violations, LOW for pre-existing |
 
 ---
 
-*Sections 26-35 synthesized from 4,837 lines of research across limes (614 comments), castellum/limesctl (111 comments), go-bits (52 PRs), portunus (full codebase analysis), and 23 recent architectural opinions. Total file now covers patterns from 6 repositories.*
+*Sections 26-36 synthesized from 4,837 lines of research across limes (614 comments), castellum/limesctl (111 comments), go-bits (52 PRs), portunus (full codebase analysis), and 23 recent architectural opinions. Total file now covers patterns from 6 repositories.*

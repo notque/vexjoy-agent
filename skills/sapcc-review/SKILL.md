@@ -96,7 +96,7 @@ Reference files live at `skills/go-sapcc-conventions/references/` (or `~/.claude
 | 10 (Anti-Patterns/LLM) | `anti-patterns.md` |
 
 **Optional deep-dive** (load only when findings need calibration):
-- `sapcc-code-patterns.md` — Comprehensive 35-section reference. Only load specific sections, not the entire file.
+- `sapcc-code-patterns.md` — Comprehensive 36-section reference. Only load specific sections, not the entire file.
 - `pr-mining-insights.md` — Review severity calibration
 - `library-reference.md` — Approved/forbidden dependency table
 
@@ -241,7 +241,7 @@ Write ALL findings to: [output file path]
 
 #### Agent 2: Interfaces, Types, Option[T]
 
-**Sections**: §4 (Interface Patterns), §8 (Type Definitions), §32 (Option[T] Complete Guide)
+**Sections**: §4 (Interface Patterns), §8 (Type Definitions), §32 (Option[T] Complete Guide), §36 (Contract Cohesion)
 **Extra Reference**: `architecture-patterns.md`
 
 **What to check across ALL packages:**
@@ -253,6 +253,7 @@ Write ALL findings to: [output file path]
 - Named types for domain concepts missing (raw `string` where `AccountName` type should exist)
 - Pointer receivers where value receiver is appropriate (or vice versa)
 - Type exported when only constructor needs to be public
+- **Contract cohesion (§36)**: Constants, error sentinels, or validation functions in a different file from the interface/type they belong to. If `ErrFoo` is returned by `FooDriver` methods, both must live in `foo_driver.go`. MEDIUM for new violations, LOW for pre-existing.
 
 ---
 
@@ -332,7 +333,7 @@ Write ALL findings to: [output file path]
 
 #### Agent 7: Package Organization, Imports, Comments
 
-**Sections**: §10 (Package Org), §11 (Import Org), §13 (Comment Style), §28 (CLI Patterns)
+**Sections**: §10 (Package Org), §11 (Import Org), §13 (Comment Style), §28 (CLI Patterns), §36 (Contract Cohesion)
 **Extra Reference**: `architecture-patterns.md`
 
 **What to check across ALL packages:**
@@ -345,6 +346,7 @@ Write ALL findings to: [output file path]
 - Exported symbols without godoc comments
 - cmd/ packages using wrong CLI patterns (if CLI repo)
 - Package names not reading as English ("package utils" instead of meaningful name)
+- **Contract cohesion (§36)**: Files named generically (`interface.go`, `types.go`, `constants.go`) when they should be named for the domain concept (`storage_driver.go`, `rbac_policy.go`). Constants/sentinels in `util.go` that belong to a specific interface's file. The test: if you can name the owning interface, the artifact must live in that interface's file.
 
 ---
 
@@ -458,7 +460,7 @@ Create `sapcc-review-report.md`:
 **Date**: [date]
 **Packages reviewed**: [N] packages, [M] Go files, [T] test files
 **Agents dispatched**: 10 domain specialists
-**Reference version**: sapcc-code-patterns.md (comprehensive patterns reference, 35 sections)
+**Reference version**: sapcc-code-patterns.md (comprehensive patterns reference, 36 sections)
 
 ---
 
