@@ -67,6 +67,8 @@ This skill operates as an operator for WordPress content publishing, configuring
 - Upload images and media to the WordPress media library
 - Edit existing posts (title, content, status, featured image, categories, tags)
 - Convert markdown to HTML automatically during upload
+- Generate Gutenberg blocks for: headings, paragraphs, lists (ordered and unordered), blockquotes, images, separators, fenced code blocks, and button links
+- Validate Gutenberg block HTML for structural correctness (`--validate` flag)
 - Set post status: draft, publish, pending, private
 - Assign categories and tags by NAME (script looks up IDs via REST API)
 - Create tags on the fly if they don't exist in WordPress
@@ -225,6 +227,7 @@ python3 scripts/wordpress-edit-post.py \
 | `--category` | | Category by NAME, e.g. `--category "News"` (script looks up ID via REST API). Repeatable. |
 | `--tag` | | Tag by NAME, e.g. `--tag "Example Tag"` (creates if missing). Repeatable. |
 | `--author` | | Author user ID |
+| `--validate` | | Convert to Gutenberg HTML, validate block structure, print results as JSON, and exit without uploading |
 | `--human` | | Human-readable output |
 
 **WordPress categories**: Look up your site's category IDs via the REST API or wp-admin. Use category names with `--category` and the script resolves IDs automatically.
@@ -266,7 +269,52 @@ python3 scripts/wordpress-edit-post.py \
 
 **Do NOT include title or author in the article body.** WordPress manages these as metadata. Duplicating them in content creates inconsistency when editing in wp-admin.
 
-For Gutenberg editor compatibility, use WordPress block comments between sections:
+### Supported Gutenberg Block Types
+
+The upload script automatically converts standard markdown to these Gutenberg block types:
+
+| Markdown Syntax | Gutenberg Block | Notes |
+|-----------------|-----------------|-------|
+| `## Heading` | `wp:heading` | H2-H4 supported; H1 becomes post title |
+| Regular text | `wp:paragraph` | Inline bold, italic, links supported |
+| `- item` / `* item` | `wp:list` | Unordered list |
+| `1. item` | `wp:list` (ordered) | Ordered list with `<ol>` |
+| `> quote` | `wp:quote` | Blockquote |
+| `![alt](url)` | `wp:image` | Standalone images |
+| `---` / `***` / `___` | `wp:separator` | Horizontal rule |
+| `` ```language `` | `wp:code` | Fenced code block with optional language |
+| `[Text](url){.wp-button}` | `wp:buttons` + `wp:button` | Button link |
+
+### Code Blocks
+
+Fenced code blocks with optional language hints are converted to `wp:code` blocks:
+
+````markdown
+```python
+def hello():
+    print("Hello, World!")
+```
+````
+
+### Button Links
+
+Use the `{.wp-button}` attribute to create WordPress button blocks:
+
+```markdown
+[Download Now](https://example.com/download){.wp-button}
+```
+
+### Block Validation
+
+Use `--validate` to check Gutenberg HTML structure without uploading:
+
+```bash
+python3 scripts/wordpress-upload.py --file article.md --validate
+```
+
+Output is JSON: `{"status": "valid", "block_count": N}` or `{"status": "invalid", "errors": [...]}`.
+
+For Gutenberg editor compatibility, you can also use raw WordPress block comments between sections:
 
 ```markdown
 Your opening paragraph here.
