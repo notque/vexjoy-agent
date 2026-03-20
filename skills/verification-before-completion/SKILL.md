@@ -72,10 +72,16 @@ Before verification, understand the scope of changes:
 git diff --name-only
 ```
 
+Use `git status --short` (not just `git diff`) to capture both modified AND untracked (new) files. New files created during the session are easy to miss in status summaries.
+
 For each changed file:
 - Read the file with the Read tool
 - Summarize what changed
 - Identify affected systems/modules and dependencies
+
+Report separately:
+- **New files**: [files with `??` or `A` status in git]
+- **Modified files**: [files with `M` status]
 
 ### Step 2: Run Domain-Specific Tests
 

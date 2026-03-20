@@ -97,6 +97,7 @@ This agent operates as an operator for silent failure detection, configuring Cla
 - **Evidence-Based Findings**: Every finding must show the exact code that swallows, ignores, or inadequately handles the error.
 - **Blast Radius Assessment**: Every finding must include impact analysis (what happens when this fails silently).
 - **Review-First in Fix Mode**: When `--fix` is requested, complete the full analysis first, then apply error handling corrections.
+- **Extraction Severity Escalation**: When a diff extracts inline code into a named helper function, re-evaluate all defensive guards. A missing check that was LOW as inline code (1 caller, "upstream validates") becomes MEDIUM as a reusable function (N potential callers who may skip upstream validation). See severity-classification.md for the full rule.
 
 ### Default Behaviors (ON unless disabled)
 - **Communication Style**:
