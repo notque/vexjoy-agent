@@ -78,12 +78,30 @@ This skill operates as the primary routing operator for the Claude Code agent sy
 
 | Complexity | Agent | Skill | Direct Action |
 |------------|-------|-------|---------------|
-| Trivial | No | No | **Only if pure fact lookup, single read, or single shell command** |
-| Simple | **Yes** (domain agent) | Yes | Never |
+| Trivial | No | No | **ONLY reading a file the user named by exact path** |
+| Simple | **Yes** | Yes | Never |
 | Medium | **Required** | **Required** | Never |
-| Complex | Required (often 2+) | Required (often 2+) | Never |
+| Complex | Required (2+) | Required (2+) | Never |
 
-Trivial means ONLY: pure fact lookup, single shell command with no code changes, reading a specific file the user named. Everything else routes.
+**Trivial = reading a file the user named by exact path.** That is the ONLY Trivial case. Everything else is Simple or above and MUST use an agent, skill, or pipeline.
+
+**Classification bias: when uncertain, classify UP not down.** Over-routing costs tokens. Under-routing costs quality. Tokens are cheap.
+
+**NOT Trivial** (route these — common misclassifications):
+- Evaluating external repos/URLs → `repo-value-analysis` (Simple)
+- Fetching and analyzing external content → Simple (requires judgment)
+- Any request requiring an opinion or recommendation → Simple
+- Shell commands needing interpretation → Simple
+- "Is this good?" / "What do you think?" → Simple (analysis)
+- "Check status of X" → route to appropriate skill
+- Git operations of any kind → route through git skills
+- Questions about the codebase → `explore-pipeline` or `codebase-overview`
+- Looking up learning.db / retro stats → `retro` skill
+- Comparing approaches or trade-offs → Simple with appropriate agent
+
+**Maximize skill/agent/pipeline usage.** The system has 90+ agents, 100+ skills, and 12+ pipelines. If a skill or pipeline exists for the task, USE IT — even if handling directly seems faster. The skill encodes methodology that improves output quality.
+
+**Banner requirement**: Display the routing banner for ALL classifications including Trivial.
 
 **Step 2: Check for parallel patterns FIRST**
 
@@ -100,7 +118,7 @@ If a parallel pattern matches, route to the parallel mechanism FIRST.
 
 **Feature Lifecycle Detection**: When user requests a new feature (not a bug fix or refactor), check for `.feature/` directory. If absent, route to `feature-design` as pipeline entry. If present, route to the skill matching the current phase (`feature-state.py status` determines this).
 
-**Gate**: Complexity classified. If not Trivial, proceed to Phase 2. If Trivial, handle directly.
+**Gate**: Complexity classified. Display routing banner (ALL classifications). If not Trivial, proceed to Phase 2. If Trivial, handle directly after showing banner.
 
 ### Phase 2: ROUTE
 
@@ -252,7 +270,19 @@ For pipeline skills — add the Pipeline: line with all phases in order:
 
 If a skill is not in this registry but has explicit phases in its SKILL.md, show those phases. If it's not a pipeline, omit the Pipeline: line entirely.
 
-This banner MUST be the FIRST visible output. Display it immediately after selecting agent + skill, BEFORE creating plans, BEFORE enhancement stacking, BEFORE invoking agents.
+For Trivial classification (file reads only):
+```
+===================================================================
+ ROUTING: [brief summary]
+===================================================================
+
+ Classification: Trivial - [why: e.g., "user asked to read a specific file"]
+ Handling directly (no agent/skill needed)
+
+===================================================================
+```
+
+This banner MUST be the FIRST visible output for EVERY /do invocation — including Trivial. Display it immediately after classifying, BEFORE any work begins. No exceptions.
 
 **Gate**: Agent and skill selected. Banner displayed. Proceed to Phase 3.
 
@@ -447,7 +477,7 @@ Solution:
 ### Anti-Pattern 2: Under-Routing
 **What it looks like**: Treating code changes as "trivial" to avoid routing overhead
 **Why wrong**: Under-routing wastes implementations. Over-routing only wastes tokens. Tokens are cheap; bad code is expensive.
-**Do instead**: Default to routing. Only handle directly if genuinely trivial (pure fact lookup, single read).
+**Do instead**: Default to routing. Trivial = reading a file the user named by path. Nothing else qualifies.
 
 ### Anti-Pattern 3: Skipping Force-Routes
 **What it looks like**: Writing Go tests without invoking go-testing, or Go concurrency without go-concurrency
@@ -489,7 +519,7 @@ This skill uses these shared patterns:
 
 | Rationalization | Why It's Wrong | Required Action |
 |-----------------|----------------|-----------------|
-| "This is trivial, I'll handle it directly" | Trivial assessment is often wrong for code | Route to agent unless pure fact lookup |
+| "This is trivial, I'll handle it directly" | Trivial = reading a named file, nothing else | Route to agent; show banner regardless |
 | "No agent matches, I'll just do it myself" | Missing agent is a gap to report, not a bypass | Report gap, route to closest match |
 | "Force-route doesn't apply here" | If triggers match, force-route applies. No exceptions | Check trigger table literally |
 | "Routing overhead isn't worth it for this" | Routing overhead < cost of unreviewed code changes | Route anyway; tokens are cheap |
