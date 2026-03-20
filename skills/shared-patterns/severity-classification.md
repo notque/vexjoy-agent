@@ -127,3 +127,19 @@ When unsure about severity:
 2. Note uncertainty: "Potential CRITICAL - please verify"
 3. Explain reasoning
 4. Let reviewer/author make final call
+
+## Extraction Severity Escalation
+
+When a diff extracts inline code into a named helper function, **re-evaluate all defensive guards** that were previously rated LOW because "the caller handles it."
+
+| Before extraction | After extraction | Action |
+|---|---|---|
+| Inline code, 1 caller | Named function, N potential callers | Escalate LOW → MEDIUM for any guard relying on caller discipline |
+| "validateX catches it upstream" | Function callable without validateX | The guard must be self-contained |
+| Missing defensive check rated LOW | Same check on reusable function | Rate as MEDIUM — "fix in this PR" |
+
+**The rule**: inline code has exactly 1 caller (the enclosing function). An extracted helper has N potential callers. Guards that were safe as inline code may be unsafe as reusable functions.
+
+**Trigger**: any diff that creates a new named function from code previously inline in another function.
+
+*Graduated from hermez PR #338: empty-string guard rated LOW 3 times, then Copilot caught it post-extraction as the correct MEDIUM finding. The 2-line fix was trivial but severity classification delayed it.*

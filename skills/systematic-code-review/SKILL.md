@@ -75,6 +75,25 @@ This skill operates as an operator for systematic code review, configuring Claud
 - Use Grep to find all callers/consumers of changed code
 - Note any comments that make claims about behavior
 
+**Step 2a: Caller Tracing** (mandatory when diff modifies function signatures, parameter semantics, or introduces sentinel/special values)
+
+When the change modifies how a function/method is called or what parameters mean:
+
+1. **Find ALL callers** — Grep for the function name with receiver syntax (e.g., `.GetEvents(` not just `GetEvents`) across the entire repo. For Go repos, prefer gopls `go_symbol_references` via ToolSearch("gopls") — it's type-aware and catches interface implementations.
+2. **Trace the VALUE SPACE** — For each parameter source, classify what values can flow through:
+   - Query parameters (`r.FormValue`, `r.URL.Query`): user-controlled — ANY string including sentinel values like `"*"`
+   - Auth token fields: server-controlled (UUIDs, structured IDs)
+   - Constants/enums: fixed set
+   - Do NOT conclude a sentinel is "unreachable" because no Go code constructs that string. If the source is user input, the user constructs it.
+3. **Verify each caller** — For each call site, check that parameters are validated before being passed. Pay special attention to sentinel values (e.g., `"*"` meaning "all/unfiltered") that bypass security filtering.
+4. **Report unvalidated paths** — Any caller that passes user input to a security-sensitive parameter without validation is a BLOCKING finding.
+5. **Do NOT trust PR descriptions** about who calls the function — verify independently. The PR author may have forgotten about callers, or new callers may have been added in other branches.
+
+This step catches:
+- Unchecked paths where user input reaches a security-sensitive parameter
+- Callers the PR author forgot about or didn't mention
+- Interface implementations that don't enforce the same preconditions
+
 **Step 3: Document scope**
 
 ```
@@ -91,11 +110,17 @@ Scope Assessment:
   - Secondary: [what's affected by the change]
   - Dependencies: [external systems/files impacted]
 
+Caller Tracing (if signature/parameter semantics changed):
+  - [function/method]: [N] callers found
+    - [caller1:line] — parameter validated: [yes/no]
+    - [caller2:line] — parameter validated: [yes/no]
+  - Unvalidated paths: [list or "none"]
+
 Questions for Author:
   - [Any unclear aspects that need clarification]
 ```
 
-**Gate**: All changed files read, scope fully mapped. Proceed only when gate passes.
+**Gate**: All changed files read, scope fully mapped, callers traced (if applicable). Proceed only when gate passes.
 
 ### Phase 2: VERIFY
 
@@ -147,6 +172,11 @@ Behavior Verification:
 **Step 3: Architectural assessment**
 - Compare patterns to existing codebase conventions
 - Assess breaking change potential
+
+**Step 4: Extraction severity escalation**
+- If the diff extracts inline code into named helper functions, re-evaluate all defensive guards
+- A missing check rated LOW as inline code (1 caller, "upstream validates") becomes MEDIUM as a reusable function (N potential callers)
+- See `skills/shared-patterns/severity-classification.md` for the full rule
 
 **Step 4: Document assessment**
 

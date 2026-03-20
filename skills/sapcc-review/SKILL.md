@@ -254,6 +254,7 @@ Write ALL findings to: [output file path]
 - Pointer receivers where value receiver is appropriate (or vice versa)
 - Type exported when only constructor needs to be public
 - **Contract cohesion (§36)**: Constants, error sentinels, or validation functions in a different file from the interface/type they belong to. If `ErrFoo` is returned by `FooDriver` methods, both must live in `foo_driver.go`. MEDIUM for new violations, LOW for pre-existing.
+- **Interface consumer audit**: When a sentinel value or special parameter is introduced on an interface method, grep for ALL implementations AND all callers of that interface method across the entire repo. Use gopls `go_symbol_references` when available. Verify every caller validates the sentinel before passing it. Do not rely on the PR description's claim about authorization — verify the call chain independently.
 
 ---
 
@@ -328,6 +329,7 @@ Write ALL findings to: [output file path]
 - Using `require` package instead of `must` from go-bits
 - Not using `must.SucceedT` / `must.ReturnT` for error-checked returns
 - Not using `assert.ErrEqual` for flexible error matching
+- **Assertion depth check**: For security-sensitive code (auth, filtering, tenant isolation), presence-only assertions (`NotEmpty`, `NotNil`, `assert.True(t, ok)`) are INSUFFICIENT. Tests must verify the actual VALUE matches the expected input (e.g., `assert.Equal(t, expectedID, filters[0]["term"]["tenant_ids"])`)
 
 ---
 
@@ -411,6 +413,7 @@ Write ALL findings to: [output file path]
 - Manual row scanning instead of `sqlext.ForeachRow`
 - Test setup in `TestMain` instead of per-test
 - Verbose error checking instead of `assert.ErrEqual` / `must.SucceedT`
+- **Extraction without guard transfer**: When inline code is extracted into a named helper, ALL defensive checks that relied on "the caller handles it" must be re-evaluated. A missing guard rated LOW as inline code becomes MEDIUM as a reusable function. Flag extracted helpers that lack self-contained validation.
 
 ---
 
@@ -421,6 +424,10 @@ Write ALL findings to: [output file path]
 ### Phase 3: AGGREGATE
 
 **Goal**: Compile all agent findings into a single prioritized report.
+
+**Step 0: Full file inventory**
+
+Run `git status --short` (not just `git diff --stat`) to capture both modified AND untracked (new) files. This ensures new files created during the review session are not missed in the report.
 
 **Step 1: Collect all findings**
 

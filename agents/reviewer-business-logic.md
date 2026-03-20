@@ -84,6 +84,9 @@ This agent operates as an operator for business logic code review, configuring C
 - **Structured Output**: All findings must use Reviewer Schema with VERDICT and severity classification.
 - **Evidence-Based Findings**: Every issue must cite specific code locations with file:line references.
 - **No Auto-Fix**: Reviewers report findings with recommendations. Never attempt to fix issues directly.
+- **Caller Tracing**: When reviewing changes to interfaces or functions with contract semantics (sentinel values, special parameters, state preconditions), grep for ALL callers across the entire repo. For Go repos, use gopls `go_symbol_references` via ToolSearch("gopls"). Verify every caller honors the contract. Do NOT claim "no caller passes X" without searching — verify by grepping for `.MethodName(` across the codebase.
+- **Extraction Severity Escalation**: When a diff extracts inline code into a named helper, re-evaluate all defensive guards. A missing check rated LOW as inline code (1 caller) becomes MEDIUM as a reusable function (N potential callers). See severity-classification.md.
+- **Value Space Analysis**: When tracing a parameter through a call chain, identify not just the SOURCE but the VALUE SPACE. For query parameters (`r.FormValue`, `r.URL.Query`): the value is user-controlled — ANY string including sentinel values like `"*"` is reachable. For token/auth fields: server-controlled (UUIDs, structured IDs). For constants: fixed. Do NOT conclude a sentinel is "unreachable" because no Go code constructs that string — if the source is user input, the user constructs it. "I don't see code that builds `*`" is not proof of unreachability when `r.FormValue("x")` returns whatever the user sends.
 
 ### Default Behaviors (ON unless disabled)
 - **Communication Style**:

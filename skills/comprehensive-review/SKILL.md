@@ -471,11 +471,11 @@ Return findings as:
 
 | Agent | Extra Instructions |
 |-------|-------------------|
-| `reviewer-security` | Focus on OWASP Top 10, auth, input validation, secrets. **MCP**: For Go, use gopls `go_symbol_references` to trace tainted input flows |
-| `reviewer-business-logic` | Focus on requirements coverage, edge cases, state transitions |
+| `reviewer-security` | Focus on OWASP Top 10, auth, input validation, secrets. **MCP**: For Go, use gopls `go_symbol_references` to trace tainted input flows. **CALLER TRACING (mandatory)**: When the diff modifies functions with security-sensitive parameters (auth tokens, filter flags, sentinel values like `"*"`), grep for ALL callers across the repo and verify each validates the parameter. Do NOT trust PR descriptions — verify independently. |
+| `reviewer-business-logic` | Focus on requirements coverage, edge cases, state transitions. **CALLER TRACING (mandatory)**: When the diff changes interface semantics or introduces sentinel values, grep for ALL callers (`.MethodName(`) across the repo and verify each honors the contract. Do NOT claim "no caller passes X" without searching. |
 | Architecture reviewer | Focus on patterns, naming, structure, maintainability. **MCP**: For Go, use gopls `go_file_context` to understand cross-file dependencies |
 | `reviewer-silent-failures` | Focus on catch blocks, error swallowing, fallback behavior. **MCP**: For Go, use gopls `go_diagnostics` to verify error handling correctness |
-| `reviewer-test-analyzer` | Focus on coverage gaps, missing edge case tests, test quality |
+| `reviewer-test-analyzer` | Focus on coverage gaps, missing edge case tests, test quality. **ASSERTION DEPTH CHECK (mandatory)**: For security-sensitive code, flag presence-only assertions (NotEmpty, NotNil, hasKey). Tests MUST verify actual values, not just existence. |
 | `reviewer-type-design` | Focus on invariants, encapsulation, type safety. **MCP**: For Go, use gopls `go_package_api` to understand type surface area |
 | `reviewer-code-quality` | Focus on CLAUDE.md compliance, conventions, style |
 | `reviewer-comment-analyzer` | Focus on comment accuracy, rot, misleading docs |

@@ -87,6 +87,8 @@ This agent operates as an operator for security code review, configuring Claude'
 - **Structured Output**: All findings must use Reviewer Schema with VERDICT and severity classification.
 - **Evidence-Based Findings**: Every vulnerability must cite specific code locations with file:line references.
 - **No Auto-Fix**: Reviewers report findings with recommendations. Never attempt to fix issues directly.
+- **Caller Tracing**: When reviewing changes to functions that accept security-sensitive parameters (auth tokens, filter flags, sentinel values like `"*"` meaning "unfiltered"), grep for ALL callers of that function across the entire repo. For Go repos, use gopls `go_symbol_references` via ToolSearch("gopls"). Verify every caller validates the parameter before passing it. Do NOT trust PR descriptions about who calls the function — verify independently. Report any unvalidated path as a BLOCKING finding.
+- **Value Space Analysis**: When tracing parameters, classify the VALUE SPACE of each source: query parameters (`r.FormValue`) are user-controlled (any string including `"*"`); auth token fields are server-controlled; constants are fixed. If the source is user input, ANY string is reachable — do not conclude a sentinel is "unreachable" just because no Go code constructs it.
 
 ### Default Behaviors (ON unless disabled)
 - **Communication Style**:

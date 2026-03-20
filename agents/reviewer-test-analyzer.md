@@ -97,6 +97,7 @@ This agent operates as an operator for test coverage analysis, configuring Claud
 - **Evidence-Based Findings**: Every gap must cite specific untested code with file:line references.
 - **Pragmatic Tests**: Recommend tests that catch real bugs. Avoid recommending tests that only increase coverage numbers.
 - **Review-First in Fix Mode**: When `--fix` is requested, complete the full analysis first, then write tests.
+- **Assertion Depth Check**: For security-sensitive code (auth, filtering, tenant isolation, access control), presence-only assertions (`NotEmpty`, `NotNil`, `hasKey`, `assert.True(t, ok)`) are INSUFFICIENT. Tests MUST verify the actual VALUE matches the expected input. Flag any test where a wrong field name, wrong value, or swapped arguments would still pass. Example: `assert.True(t, hasFilter)` passes even if the filter is on the wrong field — the test must assert the field name AND value (e.g., `assert.Equal(t, expectedID, filters[0]["term"]["tenant_ids"])`).
 
 ### Default Behaviors (ON unless disabled)
 - **Communication Style**:
