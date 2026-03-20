@@ -33,7 +33,10 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import requests
+try:
+    import requests
+except ImportError:
+    requests = None  # type: ignore[assignment]  # Only needed for upload, not --validate
 
 # ---------------------------------------------------------------------------
 # Module-level taxonomy caches (avoid repeated API calls within a single run)
@@ -374,11 +377,34 @@ def _apply_inline_formatting(text: str) -> str:
     return text
 
 
+def _html_escape_code(text: str) -> str:
+    """Escape HTML special characters for use inside <code> blocks.
+
+    Args:
+        text: Raw code text.
+
+    Returns:
+        HTML-escaped text safe for embedding in <code> elements.
+    """
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
 def markdown_to_gutenberg_blocks(markdown_content: str) -> str:
     """Convert markdown to WordPress Gutenberg block format.
 
     Each element becomes a proper Gutenberg block that WordPress
     can edit natively in the block editor.
+
+    Supported block types:
+        - Headings (H1-H4) -> wp:heading
+        - Paragraphs -> wp:paragraph
+        - Unordered lists -> wp:list
+        - Ordered lists -> wp:list (ordered)
+        - Blockquotes -> wp:quote
+        - Images -> wp:image
+        - Separators -> wp:separator
+        - Fenced code blocks -> wp:code
+        - Button links -> wp:buttons / wp:button
 
     Args:
         markdown_content: Markdown text (frontmatter already stripped).
@@ -391,6 +417,12 @@ def markdown_to_gutenberg_blocks(markdown_content: str) -> str:
     current_paragraph: list[str] = []
     list_items: list[str] = []
     in_list = False
+    list_type: str = "ul"  # "ul" for unordered, "ol" for ordered
+
+    # Fenced code block state
+    in_code_block = False
+    code_lines: list[str] = []
+    code_language: str = ""
 
     def flush_paragraph() -> None:
         nonlocal current_paragraph
@@ -400,15 +432,48 @@ def markdown_to_gutenberg_blocks(markdown_content: str) -> str:
             current_paragraph = []
 
     def flush_list() -> None:
-        nonlocal in_list, list_items
+        nonlocal in_list, list_items, list_type
         if list_items:
             items_html = "\n".join(f"<li>{item}</li>" for item in list_items)
-            blocks.append(f"<!-- wp:list -->\n<ul>\n{items_html}\n</ul>\n<!-- /wp:list -->")
+            if list_type == "ol":
+                blocks.append(f'<!-- wp:list {{"ordered":true}} -->\n<ol>\n{items_html}\n</ol>\n<!-- /wp:list -->')
+            else:
+                blocks.append(f"<!-- wp:list -->\n<ul>\n{items_html}\n</ul>\n<!-- /wp:list -->")
             list_items = []
             in_list = False
+            list_type = "ul"
 
     for line in lines:
         stripped = line.strip()
+
+        # --- Fenced code block handling ---
+        if stripped.startswith("```"):
+            if not in_code_block:
+                # Opening fence: flush other accumulators and start code block
+                flush_paragraph()
+                flush_list()
+                in_code_block = True
+                code_lines = []
+                code_language = stripped[3:].strip()
+                continue
+            else:
+                # Closing fence: emit the wp:code block
+                in_code_block = False
+                code_content = _html_escape_code("\n".join(code_lines))
+                if code_language:
+                    attr = f' {{"language":"{code_language}"}}'
+                else:
+                    attr = ""
+                code_html = f'<pre class="wp-block-code"><code>{code_content}</code></pre>'
+                blocks.append(f"<!-- wp:code{attr} -->\n{code_html}\n<!-- /wp:code -->")
+                code_lines = []
+                code_language = ""
+                continue
+
+        if in_code_block:
+            # Preserve original line content (not stripped) inside code blocks
+            code_lines.append(line)
+            continue
 
         # Empty line -- flush accumulators
         if not stripped:
@@ -454,11 +519,47 @@ def markdown_to_gutenberg_blocks(markdown_content: str) -> str:
             blocks.append(f"<!-- wp:separator -->\n{sep_html}\n<!-- /wp:separator -->")
             continue
 
+        # Button link: [Button Text](url){.wp-button}
+        button_match = re.match(r"^\[(.+?)\]\((.+?)\)\{\.wp-button\}$", stripped)
+        if button_match:
+            flush_paragraph()
+            flush_list()
+            btn_text = button_match.group(1)
+            btn_url = button_match.group(2)
+            btn_inner = (
+                f'<div class="wp-block-button"><a class="wp-block-button__link" href="{btn_url}">{btn_text}</a></div>'
+            )
+            blocks.append(
+                f"<!-- wp:buttons -->\n"
+                f'<div class="wp-block-buttons"><!-- wp:button -->\n'
+                f"{btn_inner}\n"
+                f"<!-- /wp:button --></div>\n"
+                f"<!-- /wp:buttons -->"
+            )
+            continue
+
         # List item (unordered: - or *)
         if stripped.startswith("- ") or stripped.startswith("* "):
             flush_paragraph()
+            # If switching from ordered to unordered, flush first
+            if in_list and list_type == "ol":
+                flush_list()
             in_list = True
+            list_type = "ul"
             item_text = _apply_inline_formatting(stripped[2:].strip())
+            list_items.append(item_text)
+            continue
+
+        # List item (ordered: 1. 2. etc.)
+        ordered_match = re.match(r"^\d+\.\s+(.+)$", stripped)
+        if ordered_match:
+            flush_paragraph()
+            # If switching from unordered to ordered, flush first
+            if in_list and list_type == "ul":
+                flush_list()
+            in_list = True
+            list_type = "ol"
+            item_text = _apply_inline_formatting(ordered_match.group(1).strip())
             list_items.append(item_text)
             continue
 
@@ -569,6 +670,100 @@ def markdown_to_html(markdown_content: str, use_blocks: bool = True) -> str:
     if use_blocks:
         return markdown_to_gutenberg_blocks(markdown_content)
     return markdown_to_classic_html(markdown_content)
+
+
+# ---------------------------------------------------------------------------
+# Block Validation
+# ---------------------------------------------------------------------------
+
+# Regex for Gutenberg block comments: opening, closing, and self-closing
+_BLOCK_OPEN_RE = re.compile(r"<!--\s+wp:(\S+?)(?:\s+(\{.*?\}))?\s+-->")
+_BLOCK_CLOSE_RE = re.compile(r"<!--\s+/wp:(\S+?)\s+-->")
+_BLOCK_SELF_CLOSE_RE = re.compile(r"<!--\s+wp:(\S+?)(?:\s+(\{.*?\}))?\s+/-->")
+
+
+def validate_gutenberg_blocks(html: str) -> list[str]:
+    """Validate Gutenberg block HTML for structural correctness.
+
+    Checks:
+        1. Block balance: opening comments must have matching closing comments.
+           Self-closing blocks (e.g., ``<!-- wp:separator /-->``) are excluded.
+        2. JSON attributes: any JSON in block comments must be valid.
+
+    Args:
+        html: Gutenberg block HTML string.
+
+    Returns:
+        List of error strings. Empty list means valid.
+    """
+    errors: list[str] = []
+
+    # Track opening and closing counts per block type
+    open_counts: dict[str, int] = {}
+    close_counts: dict[str, int] = {}
+
+    # Find self-closing blocks first (these don't need closing tags)
+    self_closing_positions: set[int] = set()
+    for match in _BLOCK_SELF_CLOSE_RE.finditer(html):
+        self_closing_positions.add(match.start())
+        # Validate JSON in self-closing blocks too
+        json_str = match.group(2)
+        if json_str:
+            try:
+                json.loads(json_str)
+            except json.JSONDecodeError as e:
+                errors.append(f"Invalid JSON in self-closing wp:{match.group(1)} block: {e}")
+
+    # Count opening blocks (excluding self-closing ones)
+    for match in _BLOCK_OPEN_RE.finditer(html):
+        if match.start() in self_closing_positions:
+            continue
+        block_name = match.group(1)
+        open_counts[block_name] = open_counts.get(block_name, 0) + 1
+
+        # Validate JSON attributes
+        json_str = match.group(2)
+        if json_str:
+            try:
+                json.loads(json_str)
+            except json.JSONDecodeError as e:
+                errors.append(f"Invalid JSON in wp:{block_name} block: {e}")
+
+    # Count closing blocks
+    for match in _BLOCK_CLOSE_RE.finditer(html):
+        block_name = match.group(1)
+        close_counts[block_name] = close_counts.get(block_name, 0) + 1
+
+    # Check balance
+    all_block_names = set(open_counts.keys()) | set(close_counts.keys())
+    for name in sorted(all_block_names):
+        opened = open_counts.get(name, 0)
+        closed = close_counts.get(name, 0)
+        if opened != closed:
+            errors.append(f"Block wp:{name} mismatch: {opened} opening vs {closed} closing")
+
+    return errors
+
+
+def count_gutenberg_blocks(html: str) -> int:
+    """Count the total number of Gutenberg blocks in HTML.
+
+    Args:
+        html: Gutenberg block HTML string.
+
+    Returns:
+        Total block count (opening + self-closing blocks).
+    """
+    self_closing = len(_BLOCK_SELF_CLOSE_RE.findall(html))
+    # Count opening blocks excluding self-closing positions
+    opening = 0
+    self_closing_positions: set[int] = set()
+    for match in _BLOCK_SELF_CLOSE_RE.finditer(html):
+        self_closing_positions.add(match.start())
+    for match in _BLOCK_OPEN_RE.finditer(html):
+        if match.start() not in self_closing_positions:
+            opening += 1
+    return opening + self_closing
 
 
 # ---------------------------------------------------------------------------
@@ -779,18 +974,16 @@ def main() -> int:
         "--update", type=int, metavar="POST_ID", help="Update existing post instead of creating new (pass post ID)"
     )
     parser.add_argument("--classic", action="store_true", help="Use classic HTML format instead of Gutenberg blocks")
+    parser.add_argument(
+        "--validate",
+        action="store_true",
+        help="Convert to Gutenberg HTML, validate blocks, print results, and exit (no upload)",
+    )
     parser.add_argument("--human", action="store_true", help="Output human-readable format instead of JSON")
 
     args = parser.parse_args()
 
-    # Validate config
-    config = get_config()
-    errors = validate_config(config)
-    if errors:
-        print(json.dumps({"status": "error", "error": "Configuration errors", "details": errors}, indent=2))
-        return 1
-
-    # Read markdown file
+    # Read markdown file (needed for both --validate and upload)
     file_path = Path(args.file)
     if not file_path.exists():
         print(json.dumps({"status": "error", "error": f"File not found: {args.file}"}, indent=2))
@@ -800,6 +993,41 @@ def main() -> int:
 
     # Parse frontmatter
     frontmatter, markdown_body = strip_frontmatter(raw_content)
+
+    # Convert markdown to HTML
+    use_blocks = not args.classic
+    html_content = markdown_to_html(markdown_body, use_blocks=use_blocks)
+
+    # --validate mode: validate and exit without uploading
+    if args.validate:
+        if args.classic:
+            print(
+                json.dumps(
+                    {"status": "skipped", "reason": "Validation only applies to Gutenberg blocks (not --classic)"}
+                )
+            )
+            return 0
+        validation_errors = validate_gutenberg_blocks(html_content)
+        block_count = count_gutenberg_blocks(html_content)
+        if validation_errors:
+            print(json.dumps({"status": "invalid", "errors": validation_errors, "block_count": block_count}, indent=2))
+            return 1
+        print(json.dumps({"status": "valid", "block_count": block_count}, indent=2))
+        return 0
+
+    # Validate config (only needed for upload, not --validate)
+    config = get_config()
+    errors = validate_config(config)
+    if errors:
+        print(json.dumps({"status": "error", "error": "Configuration errors", "details": errors}, indent=2))
+        return 1
+
+    # Auto-validate Gutenberg blocks before upload (non-blocking warnings)
+    if use_blocks:
+        validation_errors = validate_gutenberg_blocks(html_content)
+        if validation_errors:
+            for err in validation_errors:
+                print(f"Warning: block validation: {err}", file=sys.stderr)
 
     # Resolve title: CLI arg > frontmatter > first H1
     title = args.title
@@ -812,10 +1040,6 @@ def main() -> int:
     if not title:
         print(json.dumps({"status": "error", "error": "No title provided and no H1 found in markdown"}, indent=2))
         return 1
-
-    # Convert markdown to HTML
-    use_blocks = not args.classic
-    html_content = markdown_to_html(markdown_body, use_blocks=use_blocks)
 
     # Resolve taxonomy IDs from frontmatter
     fm_category_ids, fm_tag_ids = resolve_taxonomy_ids(config, frontmatter)
