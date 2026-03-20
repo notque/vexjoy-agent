@@ -25,7 +25,6 @@ Extended routing tables for the `/do` router. The main SKILL.md contains the cor
 | parallel, independent failures | dispatching-parallel-agents |
 | parallel review, comprehensive review | parallel-code-review |
 | extra rigor, maximum verification | with-anti-rationalization |
-| checkpoint, save context | checkpoint-context |
 | plan status, check plans, audit plans | plan-manager |
 | plan with files, persistent planning | planning-with-files |
 | **Go test, _test.go, table-driven** | **go-testing (FORCE)** |

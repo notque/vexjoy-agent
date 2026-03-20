@@ -252,6 +252,15 @@ def query_knowledge_from_db(prompt_keywords: set[str], debug: bool = False, agen
             "",
         ]
 
+        # Filter out noise topics (worktree telemetry, etc.)
+        NOISE_TOPICS = {"worktree-branches"}
+        results = [r for r in results if r.get("topic") not in NOISE_TOPICS]
+
+        if not results:
+            if debug:
+                print("[retro] DB query: all results filtered as noise", file=sys.stderr)
+            return None
+
         selected = []
         for r in results:
             entry_chars = len(r["value"]) + 80  # overhead for heading

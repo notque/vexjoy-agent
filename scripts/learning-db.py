@@ -3,9 +3,12 @@
 Learning Database CLI — Deterministic operations on the unified knowledge store.
 
 Usage:
+    python3 scripts/learning-db.py learn --skill go-testing "insight text"
+    python3 scripts/learning-db.py learn --agent golang-general-engineer "insight text"
     python3 scripts/learning-db.py record TOPIC KEY VALUE --category error
     python3 scripts/learning-db.py query --topic debugging --min-confidence 0.6
     python3 scripts/learning-db.py stats
+    python3 scripts/learning-db.py purge --topic worktree-branches
     python3 scripts/learning-db.py export --format l1
     python3 scripts/learning-db.py export --format l2 --output-dir /tmp/learnings
     python3 scripts/learning-db.py import --from-retro ~/.claude/retro
@@ -188,6 +191,53 @@ def cmd_prune(args):
     print(f"Pruned {count} entries (confidence < {args.below_confidence}, older than {args.older_than} days)")
 
 
+def cmd_learn(args):
+    """Record a skill- or agent-scoped learning with minimal friction."""
+    import hashlib
+
+    value = args.value
+    # Auto-generate key from value hash
+    key = hashlib.sha256(value.encode()).hexdigest()[:12]
+
+    # Determine topic from --skill or --agent
+    if args.skill:
+        topic = f"skill:{args.skill}"
+    elif args.agent:
+        topic = f"agent:{args.agent}"
+    else:
+        topic = args.topic or "general"
+
+    result = record_learning(
+        topic=topic,
+        key=key,
+        value=value,
+        category="learned",
+        confidence=0.7,
+        tags=[args.skill or args.agent or "general"],
+        source="manual:learn",
+        source_detail=None,
+        project_path=args.project_path,
+    )
+    action = "Updated" if not result["is_new"] else "Recorded"
+    print(
+        f"{action}: [{topic}] {value[:80]}... "
+        f"(confidence: {result['confidence']:.2f})"
+    )
+
+
+def cmd_purge(args):
+    """Delete all entries matching a topic."""
+    import sqlite3
+
+    db_path = get_db_path()
+    conn = sqlite3.connect(db_path)
+    cursor = conn.execute("DELETE FROM learnings WHERE topic = ?", (args.topic,))
+    count = cursor.rowcount
+    conn.commit()
+    conn.close()
+    print(f"Purged {count} entries with topic '{args.topic}'")
+
+
 def cmd_migrate(args):
     """Run all migrations: import from patterns.db and retro markdown."""
     init_db()
@@ -318,6 +368,20 @@ def main():
     p_prune.add_argument("--below-confidence", type=float, default=0.3)
     p_prune.add_argument("--older-than", type=int, default=90, help="Days")
     p_prune.set_defaults(func=cmd_prune)
+
+    # learn (low-friction skill-scoped recording)
+    p_learn = subparsers.add_parser("learn", help="Record a skill/agent-scoped learning (one-liner)")
+    p_learn.add_argument("value", help="The learning content (one sentence)")
+    p_learn.add_argument("--skill", help="Skill name (sets topic to skill:{name})")
+    p_learn.add_argument("--agent", help="Agent name (sets topic to agent:{name})")
+    p_learn.add_argument("--topic", help="Custom topic (fallback if no --skill/--agent)")
+    p_learn.add_argument("--project-path", help="Project path")
+    p_learn.set_defaults(func=cmd_learn)
+
+    # purge (delete by topic)
+    p_purge = subparsers.add_parser("purge", help="Delete all entries matching a topic")
+    p_purge.add_argument("--topic", required=True, help="Topic to purge (e.g., worktree-branches)")
+    p_purge.set_defaults(func=cmd_purge)
 
     # migrate
     p_migrate = subparsers.add_parser("migrate", help="Import from all legacy stores")
