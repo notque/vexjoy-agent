@@ -133,18 +133,6 @@
       "user-invocable": false
     },
     {
-      "name": "checkpoint-context",
-      "description": "Structured session state capture before context compaction: task progress, decisions, files, debugging state, and next steps.",
-      "file": "skills/checkpoint-context/SKILL.md",
-      "triggers": [
-        "checkpoint-context",
-        "checkpoint",
-        "context"
-      ],
-      "version": "2.0.0",
-      "user-invocable": false
-    },
-    {
       "name": "code-cleanup",
       "description": "Systematic detection and prioritization of neglected code quality issues: stale TODOs, unused imports, deprecated functions, high complexity, dead code.",
       "file": "skills/code-cleanup/SKILL.md",

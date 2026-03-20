@@ -306,7 +306,7 @@ STOP and ask the user (do NOT proceed autonomously) when:
 | Agent fails 3 times | Hard retry limit reached | "Agent failed 3 times on {task} - change strategy or escalate?" |
 | Circular dependencies detected | Cannot execute in any order | "Tasks A and B block each other - how to break cycle?" |
 | All agents blocked | No forward progress possible | "All tasks blocked - which dependency should we tackle first?" |
-| Context approaching 90% | Risk of overflow | "Context nearly full - should I create checkpoint and continue fresh?" |
+| Context approaching 90% | Risk of overflow | "Context nearly full - should I compact and continue?" |
 
 ### Never Guess On
 - Which strategy to try after 3 failed attempts

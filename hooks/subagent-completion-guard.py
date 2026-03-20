@@ -482,11 +482,13 @@ def main() -> None:
         agent_type = event.get("agent_type", "")
 
         # Tier 0: Worktree metadata capture (always active, non-blocking)
+        # Note: worktree metadata is output to stderr for dispatchers but
+        # no longer recorded to learning.db (was polluting knowledge store
+        # with operational telemetry — see adr/skill-scoped-learning.md)
         worktree_meta = capture_worktree_metadata(cwd)
         if worktree_meta:
             for line in format_worktree_output(worktree_meta):
                 print(line, file=sys.stderr)
-            record_worktree_learning(worktree_meta, agent_type)
 
         # Run all three tiers — collect violations
         violations = []

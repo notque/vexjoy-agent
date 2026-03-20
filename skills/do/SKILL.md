@@ -376,17 +376,26 @@ When uncertain which route: **ROUTE ANYWAY.** Route to the most likely agent + s
 - `review-capture.py` (PostToolUse) → captures review agent findings
 - `session-learning-recorder.py` (Stop) → warns on substantive sessions with no learnings
 
-**Manual recording** (for design decisions, gotchas, and insights hooks can't detect):
+**Skill-scoped recording** (preferred — low friction, one-liner):
+
+```bash
+python3 scripts/learning-db.py learn --skill go-testing "insight about testing"
+python3 scripts/learning-db.py learn --agent golang-general-engineer "insight about agent"
+python3 scripts/learning-db.py learn "general insight without scope"
+```
+
+Skill-scoped entries (topic=`skill:{name}` or `agent:{name}`) are automatically injected
+when that skill/agent is relevant to a future prompt. Use after any substantive task.
+
+**Legacy recording** (for entries that don't map to a specific skill/agent):
 
 ```bash
 python3 scripts/learning-db.py record TOPIC KEY "VALUE" --category CATEGORY
 ```
 
-Categories: `error | pivot | review | design | debug | gotcha | effectiveness`
-
 Record specific, actionable insights — not generic advice. "Force-route triggers must not contain sibling skill names" is good. "Be careful with routing" is not.
 
-**Gate**: Hooks handle capture automatically. Manual recording is for high-value insights only.
+**Gate**: After Simple+ tasks, record at least one learning via `learn`. Hooks handle error capture automatically.
 
 ---
 
