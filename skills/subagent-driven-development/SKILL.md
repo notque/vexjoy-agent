@@ -1,7 +1,7 @@
 ---
 name: subagent-driven-development
 description: |
-  Fresh-subagent-per-task execution with two-stage review (spec compliance +
+  Fresh-subagent-per-task execution with two-stage review (ADR compliance +
   code quality). Use when an implementation plan exists with mostly independent
   tasks and you want quality gates between each. Use for "execute plan",
   "subagent", "dispatch tasks", or multi-task implementation runs. Do NOT use
@@ -23,12 +23,12 @@ allowed-tools:
 
 ## Operator Context
 
-This skill operates as an operator for plan execution workflows, configuring Claude's behavior for disciplined task dispatch with mandatory quality gates. It implements the **Controller-Worker** architectural pattern -- controller extracts context, workers execute in isolation, reviewers verify -- with **Two-Stage Review** ensuring both spec compliance and code quality.
+This skill operates as an operator for plan execution workflows, configuring Claude's behavior for disciplined task dispatch with mandatory quality gates. It implements the **Controller-Worker** architectural pattern -- controller extracts context, workers execute in isolation, reviewers verify -- with **Two-Stage Review** ensuring both ADR compliance and code quality.
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before executing any task
-- **Over-Engineering Prevention**: Implement only what the spec requires. No speculative improvements, no "while I'm here" changes
-- **Spec Before Quality**: NEVER run code quality review before spec compliance passes
+- **Over-Engineering Prevention**: Implement only what the ADR requires. No speculative improvements, no "while I'm here" changes
+- **ADR Compliance Before Quality**: NEVER run code quality review before ADR compliance passes
 - **Full Context Injection**: NEVER make a subagent read the plan file; provide full task text in the dispatch
 - **Review Gates Mandatory**: NEVER mark a task complete until both reviews pass
 - **Sequential Tasks Only**: NEVER dispatch multiple implementation subagents in parallel (causes file conflicts)
@@ -51,7 +51,7 @@ This skill operates as an operator for plan execution workflows, configuring Cla
 ## What This Skill CAN Do
 - Execute multi-task plans with quality gates between each task
 - Dispatch fresh subagents that implement, test, and commit independently
-- Enforce spec compliance before allowing code quality review
+- Enforce ADR compliance before allowing code quality review
 - Escalate to user when review loops exceed retry limits
 - Track progress across tasks with TodoWrite
 
@@ -60,7 +60,7 @@ This skill operates as an operator for plan execution workflows, configuring Cla
 - Run tasks in parallel (file conflicts make this unsafe)
 - Skip either stage of the two-stage review
 - Fix review issues itself (the implementer subagent must fix)
-- Replace user judgment on spec ambiguity (escalates instead)
+- Replace user judgment on ADR ambiguity (escalates instead)
 
 ---
 
@@ -132,17 +132,17 @@ The implementer MUST:
 5. Self-review code
 6. Commit changes
 
-**Step 3: Dispatch spec reviewer subagent**
+**Step 3: Dispatch ADR compliance reviewer subagent**
 
-Use the prompt template from `./spec-reviewer-prompt.md`. The spec reviewer checks:
-- Does implementation match the spec EXACTLY?
+Use the prompt template from `./adr-reviewer-prompt.md`. The ADR compliance reviewer checks:
+- Does implementation match the ADR EXACTLY?
 - Is anything MISSING from requirements?
 - Is anything EXTRA that was not requested?
 
-If spec reviewer finds issues: dispatch new implementer subagent with fix instructions. Spec reviewer reviews again. Repeat until spec compliance passes.
+If ADR compliance reviewer finds issues: dispatch new implementer subagent with fix instructions. ADR compliance reviewer reviews again. Repeat until ADR compliance passes.
 
-**Max retries: 3** -- After 3 failed spec reviews, STOP and escalate:
-> "Spec compliance failing after 3 attempts. Issues: [list]. Need human decision."
+**Max retries: 3** -- After 3 failed ADR compliance reviews, STOP and escalate:
+> "ADR compliance failing after 3 attempts. Issues: [list]. Need human decision."
 
 **Step 4: Dispatch code quality reviewer subagent**
 
@@ -162,13 +162,13 @@ If quality reviewer finds issues: implementer fixes Critical and Important issue
 Only when BOTH reviews pass:
 ```
 Task [N]: [Title] -- COMPLETE
-  Spec compliance: PASS
+  ADR compliance: PASS
   Code quality: PASS
 ```
 
 Return to Step 1 for the next task.
 
-**Gate**: Both spec compliance and code quality reviews pass. Task marked complete in TodoWrite. Proceed only when gate passes.
+**Gate**: Both ADR compliance and code quality reviews pass. Task marked complete in TodoWrite. Proceed only when gate passes.
 
 ### Phase 3: FINALIZE
 
@@ -202,11 +202,11 @@ Solution:
 3. Re-dispatch implementer with answers included
 
 ### Error: "Review Loop Exceeds 3 Retries"
-Cause: Spec ambiguity, fundamental misunderstanding, or unreasonable review criteria
+Cause: ADR ambiguity, fundamental misunderstanding, or unreasonable review criteria
 Solution:
 1. STOP the loop immediately
 2. Summarize all issues and attempted fixes for the user
-3. Ask user to clarify spec or adjust requirements
+3. Ask user to clarify ADR or adjust requirements
 4. Resume only after user provides direction
 
 ### Error: "Subagent File Conflicts"
@@ -220,7 +220,7 @@ Solution:
 
 ## Anti-Patterns
 
-### Anti-Pattern 1: Skipping Spec Review for "Obvious" Tasks
+### Anti-Pattern 1: Skipping ADR Compliance Review for "Obvious" Tasks
 **What it looks like**: "This task is straightforward, code quality review is enough"
 **Why wrong**: Even simple tasks can miss requirements or add unrequested scope
 **Do instead**: Run both review stages for every task. No exceptions.
@@ -252,7 +252,7 @@ This skill uses these shared patterns:
 
 | Rationalization | Why It's Wrong | Required Action |
 |-----------------|----------------|-----------------|
-| "This task is simple, skip spec review" | Simple tasks still miss requirements | Run both review stages |
+| "This task is simple, skip ADR review" | Simple tasks still miss requirements | Run both review stages |
 | "Subagent can read the plan itself" | File reading wastes tokens, context pollution | Provide full task text in dispatch |
 | "Reviews passed, skip final integration check" | Per-task reviews miss cross-task issues | Run final integration review |
 | "I'll fix this small issue myself instead of dispatching" | Controller context pollution breaks orchestration | Dispatch fix subagent |
@@ -260,5 +260,5 @@ This skill uses these shared patterns:
 
 ### Prompt Templates
 - `implementer-prompt.md`: Dispatch template for implementation subagents
-- `spec-reviewer-prompt.md`: Dispatch template for spec compliance review
+- `adr-reviewer-prompt.md`: Dispatch template for ADR compliance review
 - `code-quality-reviewer-prompt.md`: Dispatch template for code quality review

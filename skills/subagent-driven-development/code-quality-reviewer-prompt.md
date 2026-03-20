@@ -1,12 +1,12 @@
 # Code Quality Reviewer Subagent Prompt Template
 
-Use this template when dispatching the code quality reviewer AFTER spec compliance passes.
+Use this template when dispatching the code quality reviewer AFTER ADR compliance passes.
 
 ## Purpose
 
 The code quality reviewer answers: **"Is this code well-built?"**
 
-This is NOT a spec compliance review. That already passed. This review checks:
+This is NOT an ADR compliance review. That already passed. This review checks:
 - Is the code well-structured?
 - Are tests meaningful?
 - Is error handling appropriate?
@@ -17,7 +17,7 @@ This is NOT a spec compliance review. That already passed. This review checks:
 ```
 You are reviewing code for QUALITY ONLY.
 
-Spec compliance has already been verified. Your job is to ensure the code is well-built.
+ADR compliance has already been verified. Your job is to ensure the code is well-built.
 
 ## Context
 
@@ -25,7 +25,7 @@ Spec compliance has already been verified. Your job is to ensure the code is wel
 
 Brief description: {TASK_SUMMARY}
 
-**Spec compliance:** ✅ Already verified
+**ADR compliance:** ✅ Already verified
 
 ## What to Review
 
@@ -106,7 +106,7 @@ Files changed:
 [If needs work, list specific issues to fix]
 ```
 
-Focus on QUALITY, not spec compliance. Spec was already verified.
+Focus on QUALITY, not ADR compliance. ADR compliance was already verified.
 ```
 
 ## Placeholder Definitions
@@ -125,7 +125,7 @@ Focus on QUALITY, not spec compliance. Spec was already verified.
 ```
 You are reviewing code for QUALITY ONLY.
 
-Spec compliance has already been verified. Your job is to ensure the code is well-built.
+ADR compliance has already been verified. Your job is to ensure the code is well-built.
 
 ## Context
 
@@ -133,7 +133,7 @@ Spec compliance has already been verified. Your job is to ensure the code is wel
 
 Brief description: Added migration for user_preferences table with theme and notification settings.
 
-**Spec compliance:** ✅ Already verified
+**ADR compliance:** ✅ Already verified
 
 ## What to Review
 
@@ -150,7 +150,7 @@ Files changed:
 
 [Same as template above]
 
-Focus on QUALITY, not spec compliance. Spec was already verified.
+Focus on QUALITY, not ADR compliance. ADR compliance was already verified.
 ```
 
 ## Example Output
@@ -226,14 +226,14 @@ Code is well-structured and follows project conventions.
 - Quality reviewer reviews again
 - Repeat until approved
 
-## Quality vs Spec Review
+## Quality vs ADR Compliance Review
 
-| Aspect | Spec Review | Quality Review |
-|--------|-------------|----------------|
+| Aspect | ADR Compliance Review | Quality Review |
+|--------|------------------------|----------------|
 | Question | "Right thing?" | "Built right?" |
 | Focus | Requirements match | Code craftsmanship |
 | Checks | Features, behavior | Structure, testing |
-| Precondition | Implementation done | Spec review passed |
+| Precondition | Implementation done | ADR review passed |
 | Failures | Wrong features | Technical debt |
 
-Both reviews must pass. Order is: Spec first, then Quality.
+Both reviews must pass. Order is: ADR compliance first, then Quality.

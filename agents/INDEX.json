@@ -439,6 +439,25 @@
       "complexity": "Medium",
       "category": "research"
     },
+    "reviewer-adr-compliance": {
+      "file": "reviewer-adr-compliance.md",
+      "short_description": "Use this agent when reviewing implementations against Architecture Decision Records",
+      "triggers": [
+        "adr compliance",
+        "adr review",
+        "architecture decision",
+        "decision record",
+        "adr check",
+        "scope creep"
+      ],
+      "pairs_with": [
+        "comprehensive-review",
+        "parallel-code-review",
+        "systematic-code-review"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "review"
+    },
     "reviewer-api-contract": {
       "file": "reviewer-api-contract.md",
       "short_description": "Use this agent for detecting breaking API changes, backward compatibility issues, schema validation gaps, HTTP status code misuse, and API versioning problems",
@@ -819,7 +838,7 @@
     },
     "reviewer-sapcc-structural": {
       "file": "reviewer-sapcc-structural.md",
-      "short_description": "Structural code review agent for SAP CC Go repos, focused on 8 categories: type exports, unnecessary wrappers, Option[T] timing, dependency management, anti-over-engineering, forward-compatible naming, go-bits library usage, and test structure",
+      "short_description": "Use this agent for reviewing Go code in SAP Converged Cloud repositories for structural and design concerns based on the project's established review standards",
       "triggers": [
         "sapcc structural",
         "go-bits design",

@@ -1,6 +1,6 @@
 {
   "version": "1.1",
-  "generated": "2026-03-19T17:13:35Z",
+  "generated": "2026-03-20T02:40:10Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": [
     {
@@ -1122,13 +1122,13 @@
     },
     {
       "name": "retro",
-      "description": "Interact with the learning system: show stats, list/search accumulated knowledge, and graduate mature entries into agents/skills. Backed by learning.db (SQLite + FTS5).",
+      "description": "Interact with the learning system: show stats, list/search accumulated knowledge, and graduate mature entries into agents/skills.",
       "file": "skills/retro/SKILL.md",
       "triggers": [
         "retro",
         "retro"
       ],
-      "version": "1.0.0",
+      "version": "2.0.0",
       "user-invocable": true
     },
     {
@@ -1265,7 +1265,7 @@
     },
     {
       "name": "subagent-driven-development",
-      "description": "Fresh-subagent-per-task execution with two-stage review (spec compliance + code quality).",
+      "description": "Fresh-subagent-per-task execution with two-stage review (ADR compliance + code quality).",
       "file": "skills/subagent-driven-development/SKILL.md",
       "triggers": [
         "subagent-driven-development",

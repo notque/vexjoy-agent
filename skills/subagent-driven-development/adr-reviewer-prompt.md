@@ -1,24 +1,24 @@
-# Spec Reviewer Subagent Prompt Template
+# ADR Compliance Reviewer Subagent Prompt Template
 
-Use this template when dispatching the spec compliance reviewer after implementer commits.
+Use this template when dispatching the ADR compliance reviewer after implementer commits.
 
 ## Purpose
 
-The spec reviewer answers ONE question: **"Does the implementation match the spec?"**
+The ADR compliance reviewer answers ONE question: **"Does the implementation match the ADR?"**
 
 This is NOT a code quality review. That comes later. This review checks:
-- Is everything in the spec implemented?
-- Is anything implemented that WASN'T in the spec?
+- Is everything in the ADR implemented?
+- Is anything implemented that WASN'T in the ADR?
 - Does behavior match what was specified?
 
 ## Template
 
 ```
-You are reviewing code for SPEC COMPLIANCE ONLY.
+You are reviewing code for ADR COMPLIANCE ONLY.
 
-Your job: Verify the implementation matches the specification exactly.
+Your job: Verify the implementation matches the ADR exactly.
 
-## The Specification (What Was Requested)
+## The ADR (What Was Requested)
 
 **Task {TASK_NUMBER}: {TASK_TITLE}**
 
@@ -32,7 +32,7 @@ Your job: Verify the implementation matches the specification exactly.
 
 ## What Was Implemented
 
-The implementer committed changes. Review them against the spec above.
+The implementer committed changes. Review them against the ADR above.
 
 Git diff from before implementation:
 ```bash
@@ -45,15 +45,15 @@ Or review the changed files directly.
 
 ## Review Checklist
 
-For each requirement in the spec, verify it exists in the code:
+For each requirement in the ADR, verify it exists in the code:
 
 | Requirement | Present? | Notes |
 |-------------|----------|-------|
-| [List each requirement from spec] | ✅/❌ | [If missing, what's missing] |
+| [List each requirement from ADR] | ✅/❌ | [If missing, what's missing] |
 
 ## Check for Extras
 
-Is anything implemented that WASN'T in the spec?
+Is anything implemented that WASN'T in the ADR?
 
 | Extra | Should Remove? | Notes |
 |-------|----------------|-------|
@@ -63,17 +63,17 @@ Is anything implemented that WASN'T in the spec?
 
 Based on your review:
 
-**✅ SPEC COMPLIANT** - Implementation matches spec exactly
+**✅ ADR COMPLIANT** - Implementation matches ADR exactly
 - All requirements present
 - No extras added
 - Behavior matches specification
 
 OR
 
-**❌ NOT SPEC COMPLIANT** - Issues found:
+**❌ NOT ADR COMPLIANT** - Issues found:
 
 **Missing:**
-- [List what's missing from spec]
+- [List what's missing from ADR]
 
 **Extra (should remove):**
 - [List what was added but not requested]
@@ -84,7 +84,7 @@ OR
 ## Output Format
 
 ```markdown
-## Spec Compliance Review
+## ADR Compliance Review
 
 ### Requirement Checklist
 | Requirement | Status | Notes |
@@ -97,12 +97,12 @@ OR
 | ... | Remove/Keep | ... |
 
 ### Verdict
-[✅ SPEC COMPLIANT or ❌ NOT SPEC COMPLIANT]
+[✅ ADR COMPLIANT or ❌ NOT ADR COMPLIANT]
 
 [If not compliant, list specific issues to fix]
 ```
 
-Focus ONLY on spec compliance. Code quality is reviewed separately.
+Focus ONLY on ADR compliance. Code quality is reviewed separately.
 ```
 
 ## Placeholder Definitions
@@ -111,7 +111,7 @@ Focus ONLY on spec compliance. Code quality is reviewed separately.
 |-------------|-------------|
 | `{TASK_NUMBER}` | Task number from plan |
 | `{TASK_TITLE}` | Task title |
-| `{FULL_TASK_TEXT}` | Complete spec from plan |
+| `{FULL_TASK_TEXT}` | Complete ADR task text from plan |
 | `{FILE_LIST}` | Expected files |
 | `{VERIFICATION_STEPS}` | Expected behavior |
 | `{BASE_SHA}` | Git SHA before implementation |
@@ -120,11 +120,11 @@ Focus ONLY on spec compliance. Code quality is reviewed separately.
 ## Example Filled Template
 
 ```
-You are reviewing code for SPEC COMPLIANCE ONLY.
+You are reviewing code for ADR COMPLIANCE ONLY.
 
-Your job: Verify the implementation matches the specification exactly.
+Your job: Verify the implementation matches the ADR exactly.
 
-## The Specification (What Was Requested)
+## The ADR (What Was Requested)
 
 **Task 1: Create database migration**
 
@@ -147,7 +147,7 @@ The migration should be reversible.
 
 ## What Was Implemented
 
-The implementer committed changes. Review them against the spec above.
+The implementer committed changes. Review them against the ADR above.
 
 Git diff from before implementation:
 ```bash
@@ -158,7 +158,7 @@ Or review the changed files directly.
 
 ## Review Checklist
 
-For each requirement in the spec, verify it exists in the code:
+For each requirement in the ADR, verify it exists in the code:
 
 | Requirement | Present? | Notes |
 |-------------|----------|-------|
@@ -172,7 +172,7 @@ For each requirement in the spec, verify it exists in the code:
 
 ## Check for Extras
 
-Is anything implemented that WASN'T in the spec?
+Is anything implemented that WASN'T in the ADR?
 
 | Extra | Should Remove? | Notes |
 |-------|----------------|-------|
@@ -182,9 +182,9 @@ Is anything implemented that WASN'T in the spec?
 
 Based on your review, provide:
 
-**✅ SPEC COMPLIANT** or **❌ NOT SPEC COMPLIANT**
+**✅ ADR COMPLIANT** or **❌ NOT ADR COMPLIANT**
 
-Focus ONLY on spec compliance. Code quality is reviewed separately.
+Focus ONLY on ADR compliance. Code quality is reviewed separately.
 ```
 
 ## Example Output
@@ -192,7 +192,7 @@ Focus ONLY on spec compliance. Code quality is reviewed separately.
 ### Passing Review
 
 ```markdown
-## Spec Compliance Review
+## ADR Compliance Review
 
 ### Requirement Checklist
 | Requirement | Status | Notes |
@@ -211,7 +211,7 @@ Focus ONLY on spec compliance. Code quality is reviewed separately.
 | None | - | - |
 
 ### Verdict
-✅ SPEC COMPLIANT
+✅ ADR COMPLIANT
 
 All requirements implemented, no extras added.
 ```
@@ -219,7 +219,7 @@ All requirements implemented, no extras added.
 ### Failing Review
 
 ```markdown
-## Spec Compliance Review
+## ADR Compliance Review
 
 ### Requirement Checklist
 | Requirement | Status | Notes |
@@ -235,26 +235,26 @@ All requirements implemented, no extras added.
 ### Extras Check
 | Extra Found | Action | Reason |
 |-------------|--------|--------|
-| language column | Remove | Not in spec |
-| timezone column | Remove | Not in spec |
+| language column | Remove | Not in ADR |
+| timezone column | Remove | Not in ADR |
 
 ### Verdict
-❌ NOT SPEC COMPLIANT
+❌ NOT ADR COMPLIANT
 
 **Issues to fix:**
-1. Add UNIQUE constraint to user_id column (spec requires it)
+1. Add UNIQUE constraint to user_id column (ADR requires it)
 2. Remove language column (not requested)
 3. Remove timezone column (not requested)
 ```
 
 ## After Review
 
-**If ✅ SPEC COMPLIANT:**
+**If ✅ ADR COMPLIANT:**
 - Proceed to code quality review
 
-**If ❌ NOT SPEC COMPLIANT:**
+**If ❌ NOT ADR COMPLIANT:**
 - Implementer fixes issues
-- Spec reviewer reviews again
+- ADR compliance reviewer reviews again
 - Repeat until compliant
 
-Do NOT proceed to code quality review until spec compliance passes.
+Do NOT proceed to code quality review until ADR compliance passes.

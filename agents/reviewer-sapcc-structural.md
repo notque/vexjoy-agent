@@ -4,7 +4,7 @@ version: 1.0.0
 description: |
   Use this agent for reviewing Go code in SAP Converged Cloud repositories for structural and design concerns based on the project's established review standards. This agent fills the gap between reviewer-language-specialist (syntax/idiom issues) and reviewer-code-quality (convention violations) by catching architectural decisions at the type, API surface, and dependency level. Checks 8 structural categories: type export decisions, unnecessary wrappers, Option resolution timing, dependency management, anti-over-engineering, forward-compatible naming, go-bits library usage, and test structure. Supports `--fix` mode.
 
-  When used with comprehensive-review, this agent should be dispatched as an additional Wave 1 agent (Agent 11) for sapcc Go repositories — alongside the existing 10 Wave 1 agents.
+  When used with comprehensive-review, this agent should be dispatched as an additional Wave 1 agent (Agent 12) for sapcc Go repositories — alongside the existing 11 Wave 1 agents.
 
   Examples:
 
@@ -29,7 +29,7 @@ description: |
   <example>
   Context: Wave 1 dispatch in comprehensive-review for sapcc repo.
   user: "Run comprehensive review on this sapcc Go repository"
-  assistant: "I'll run as Wave 1 Agent 11 alongside the 10 foundation agents, checking all 8 structural categories with directive review tone and concrete fixes."
+  assistant: "I'll run as Wave 1 Agent 12 alongside the 11 foundation agents, checking all 8 structural categories with directive review tone and concrete fixes."
   <commentary>
   This agent integrates with comprehensive-review as an additional Wave 1 agent for sapcc repos. It loads library-reference.md and go-sapcc-conventions references context automatically.
   </commentary>

@@ -1,0 +1,312 @@
+# Adversarial prompt variations for /do routing to systematic-debugging
+# Tests that diverse phrasings all route correctly to systematic-debugging skill.
+# Per Anthropic: "Your evals should cover the full range of input phrasings."
+
+tasks:
+  - task:
+      id: "adversarial-terse-001"
+      name: "Terse debug request routes to systematic-debugging"
+      description: |
+        Minimal phrasing with no explicit skill mention. The agent must infer
+        that a test failure warrants the systematic-debugging skill.
+      category: "routing"
+      type: "capability"
+
+      input:
+        prompt: "/do tests fail, fix it"
+        context_files: []
+        setup_commands:
+          - "mkdir -p pkg/worker"
+          - |
+            cat > pkg/worker/handler_test.go << 'GOEOF'
+            package worker
+
+            import "testing"
+
+            func TestProcess(t *testing.T) {
+                result := Process("input")
+                if result != "expected" {
+                    t.Errorf("got %q, want %q", result, "expected")
+                }
+            }
+            GOEOF
+
+      execution:
+        agent: null
+        skill: "do"
+        timeout_seconds: 60
+        trials: 1
+
+      graders:
+        - type: "regex_match"
+          config:
+            target: "transcript"
+            pattern: "(systematic-debugging|systematic.debugging|debug)"
+          weight: 0.5
+
+        - type: "tool_calls"
+          config:
+            required_tools: ["Skill"]
+            tool_params:
+              Skill:
+                skill: ".*debug.*"
+          weight: 0.5
+
+      metrics:
+        - turns
+        - tokens
+        - latency
+
+      reference:
+        solution_file: null
+        notes: |
+          Terse input should still route to systematic-debugging.
+          The test failure context gives enough signal.
+
+  - task:
+      id: "adversarial-verbose-002"
+      name: "Verbose debug request routes to systematic-debugging"
+      description: |
+        Excessively detailed bug report with red herrings. The agent should
+        cut through the noise and still route to systematic-debugging.
+      category: "routing"
+      type: "capability"
+
+      input:
+        prompt: |
+          /do So I've been working on this project for the past three weeks and
+          everything was fine until yesterday when I pulled the latest changes from
+          the remote. Now when I run the test suite, I get this really weird error
+          that I've never seen before. It says something about a nil pointer
+          dereference in the handler package but I swear I didn't change anything
+          in that file. I tried reverting my last commit but that didn't help either.
+          The CI pipeline is also failing with the same error. I checked the logs
+          and there's also some warning about deprecated API usage but I don't think
+          that's related. My colleague said it might be a race condition but the
+          tests pass locally sometimes. Can you help me figure out what's going on?
+        context_files: []
+        setup_commands: []
+
+      execution:
+        agent: null
+        skill: "do"
+        timeout_seconds: 60
+        trials: 1
+
+      graders:
+        - type: "regex_match"
+          config:
+            target: "transcript"
+            pattern: "(systematic-debugging|systematic.debugging|debug)"
+          weight: 0.5
+
+        - type: "tool_calls"
+          config:
+            required_tools: ["Skill"]
+            tool_params:
+              Skill:
+                skill: ".*debug.*"
+          weight: 0.5
+
+      metrics:
+        - turns
+        - tokens
+        - latency
+
+      reference:
+        solution_file: null
+        notes: |
+          Verbose input with red herrings (deprecated API, race condition mention).
+          Should still route to systematic-debugging despite the noise.
+
+  - task:
+      id: "adversarial-midconv-003"
+      name: "Mid-conversation debug request routes to systematic-debugging"
+      description: |
+        Simulates a request that references prior conversation context.
+        The agent must handle the implicit reference to "that error."
+      category: "routing"
+      type: "capability"
+
+      input:
+        prompt: "/do ok now debug that error we were discussing"
+        context_files: []
+        setup_commands: []
+
+      execution:
+        agent: null
+        skill: "do"
+        timeout_seconds: 60
+        trials: 1
+
+      graders:
+        - type: "regex_match"
+          config:
+            target: "transcript"
+            pattern: "(systematic-debugging|systematic.debugging|debug)"
+          weight: 0.5
+
+        - type: "tool_calls"
+          config:
+            required_tools: ["Skill"]
+            tool_params:
+              Skill:
+                skill: ".*debug.*"
+          weight: 0.5
+
+      metrics:
+        - turns
+        - tokens
+        - latency
+
+      reference:
+        solution_file: null
+        notes: |
+          Mid-conversation reference with "that error" — no explicit context.
+          Agent should still identify this as a debugging task and route accordingly.
+
+  - task:
+      id: "adversarial-suggestion-004"
+      name: "After-suggestion debug request routes to systematic-debugging"
+      description: |
+        User references a skill by name after seeing a suggestion. The agent
+        should recognize the explicit skill mention and invoke it.
+      category: "routing"
+      type: "capability"
+
+      input:
+        prompt: "/do you mentioned systematic-debugging, let's do that"
+        context_files: []
+        setup_commands: []
+
+      execution:
+        agent: null
+        skill: "do"
+        timeout_seconds: 60
+        trials: 1
+
+      graders:
+        - type: "regex_match"
+          config:
+            target: "transcript"
+            pattern: "(systematic-debugging|systematic.debugging)"
+          weight: 0.5
+
+        - type: "tool_calls"
+          config:
+            required_tools: ["Skill"]
+            tool_params:
+              Skill:
+                skill: ".*systematic-debugging.*"
+          weight: 0.5
+
+      metrics:
+        - turns
+        - tokens
+        - latency
+
+      reference:
+        solution_file: null
+        notes: |
+          Explicit skill name mention should make routing easy.
+          This is the "easy case" — if this fails, routing is fundamentally broken.
+
+  - task:
+      id: "adversarial-impatient-005"
+      name: "Impatient debug request routes to systematic-debugging"
+      description: |
+        Frustrated user phrasing that pressures the agent to skip process.
+        The agent must still route to systematic-debugging despite the tone.
+      category: "routing"
+      type: "capability"
+
+      input:
+        prompt: "/do just fix the damn test already, don't waste time"
+        context_files: []
+        setup_commands:
+          - "mkdir -p tests"
+          - |
+            cat > tests/test_main.py << 'PYEOF'
+            def test_broken():
+                assert 1 + 1 == 3, "Math is broken"
+            PYEOF
+
+      execution:
+        agent: null
+        skill: "do"
+        timeout_seconds: 60
+        trials: 1
+
+      graders:
+        - type: "regex_match"
+          config:
+            target: "transcript"
+            pattern: "(systematic-debugging|systematic.debugging|debug)"
+          weight: 0.5
+
+        - type: "tool_calls"
+          config:
+            required_tools: ["Skill"]
+            tool_params:
+              Skill:
+                skill: ".*debug.*"
+          weight: 0.5
+
+      metrics:
+        - turns
+        - tokens
+        - latency
+
+      reference:
+        solution_file: null
+        notes: |
+          Impatient tone should NOT cause the agent to skip skill loading.
+          The "just fix it" phrasing is adversarial — it pressures the agent
+          to act immediately rather than loading the debugging methodology.
+
+  - task:
+      id: "adversarial-indirect-006"
+      name: "Indirect debug request routes to systematic-debugging"
+      description: |
+        Vague problem description with no explicit "debug" or "test" keywords.
+        The agent must infer that this is a debugging task from context.
+      category: "routing"
+      type: "capability"
+
+      input:
+        prompt: "/do something's wrong with the output, not sure what"
+        context_files: []
+        setup_commands: []
+
+      execution:
+        agent: null
+        skill: "do"
+        timeout_seconds: 60
+        trials: 1
+
+      graders:
+        - type: "regex_match"
+          config:
+            target: "transcript"
+            pattern: "(systematic-debugging|systematic.debugging|debug)"
+          weight: 0.5
+
+        - type: "tool_calls"
+          config:
+            required_tools: ["Skill"]
+            tool_params:
+              Skill:
+                skill: ".*debug.*"
+          weight: 0.5
+
+      metrics:
+        - turns
+        - tokens
+        - latency
+
+      reference:
+        solution_file: null
+        notes: |
+          Most challenging case — no "debug", "test", or "fix" keywords.
+          "Something's wrong" should still be recognized as a debugging scenario.
+          May require the agent to ask clarifying questions first, which is acceptable.

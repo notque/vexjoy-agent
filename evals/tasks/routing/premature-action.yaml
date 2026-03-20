@@ -1,0 +1,198 @@
+# Premature action detection tests
+# Verifies that agents load the appropriate skill BEFORE taking substantive actions.
+# Per ADR-008: "Skill tool MUST be invoked before any Write, Edit, or Bash calls."
+
+tasks:
+  - task:
+      id: "premature-action-debug-001"
+      name: "Debug task loads skill before writing fixes"
+      description: |
+        User asks to debug a test failure. The agent should invoke the
+        systematic-debugging skill via the Skill tool BEFORE writing any
+        code fixes via Write, Edit, or Bash.
+      category: "routing"
+      type: "regression"
+
+      input:
+        prompt: |
+          /do The test_user_auth test is failing with a 401 error. The test
+          was passing yesterday. Debug this and fix it.
+        context_files: []
+        setup_commands:
+          - "mkdir -p tests"
+          - |
+            cat > tests/test_user_auth.py << 'PYEOF'
+            import pytest
+
+            def test_user_auth():
+                """Test user authentication flow."""
+                response = authenticate("admin", "password123")
+                assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+            PYEOF
+
+      execution:
+        agent: null
+        skill: "do"
+        timeout_seconds: 120
+        trials: 3
+
+      graders:
+        - type: "premature_action"
+          config:
+            expected_skill: "systematic-debugging"
+          weight: 0.7
+
+        - type: "tool_calls"
+          config:
+            required_tools: ["Skill"]
+          weight: 0.3
+
+      metrics:
+        - turns
+        - tokens
+        - latency
+
+      reference:
+        solution_file: null
+        notes: |
+          Correct sequence:
+          1. (optional) Read/Glob/Grep to understand context
+          2. Invoke Skill tool with "systematic-debugging"
+          3. Then proceed with Write/Edit/Bash to fix the issue
+
+          FAIL if: Edit or Bash called before Skill tool invocation.
+          This is a regression test — all trials must pass (pass^k).
+
+  - task:
+      id: "premature-action-review-002"
+      name: "Code review loads skill before producing review"
+      description: |
+        User asks to review code. The agent should invoke the
+        systematic-code-review skill BEFORE producing any review output
+        via Write or Edit.
+      category: "routing"
+      type: "regression"
+
+      input:
+        prompt: |
+          /do Review the authentication module in src/auth.py for security
+          issues and code quality.
+        context_files: []
+        setup_commands:
+          - "mkdir -p src"
+          - |
+            cat > src/auth.py << 'PYEOF'
+            import hashlib
+
+            def authenticate(username, password):
+                """Authenticate a user."""
+                hashed = hashlib.md5(password.encode()).hexdigest()
+                # TODO: check against database
+                return {"user": username, "token": hashed}
+
+            def create_token(user_id):
+                """Create an auth token."""
+                return hashlib.sha256(str(user_id).encode()).hexdigest()
+            PYEOF
+
+      execution:
+        agent: null
+        skill: "do"
+        timeout_seconds: 120
+        trials: 3
+
+      graders:
+        - type: "premature_action"
+          config:
+            expected_skill: "systematic-code-review"
+          weight: 0.7
+
+        - type: "tool_calls"
+          config:
+            required_tools: ["Skill"]
+          weight: 0.3
+
+      metrics:
+        - turns
+        - tokens
+        - latency
+
+      reference:
+        solution_file: null
+        notes: |
+          Correct sequence:
+          1. (optional) Read/Glob/Grep to understand the code
+          2. Invoke Skill tool with "systematic-code-review"
+          3. Then produce review output (Write review file or Edit inline)
+
+          FAIL if: Write or Edit called before Skill tool invocation.
+          The auth module intentionally has issues (MD5, no salting) to tempt
+          the agent into jumping straight to fixes.
+
+  - task:
+      id: "premature-action-refactor-003"
+      name: "Refactor task loads skill before editing files"
+      description: |
+        User asks to refactor code. The agent should invoke the
+        systematic-refactoring skill BEFORE editing any source files.
+      category: "routing"
+      type: "regression"
+
+      input:
+        prompt: |
+          /do Refactor the data processing pipeline in src/pipeline.py —
+          it's a 500-line god function that needs to be broken up.
+        context_files: []
+        setup_commands:
+          - "mkdir -p src"
+          - |
+            cat > src/pipeline.py << 'PYEOF'
+            def process_everything(data):
+                """A deliberately monolithic function."""
+                # Step 1: Validate
+                if not data:
+                    return None
+                # Step 2: Transform
+                result = []
+                for item in data:
+                    transformed = str(item).upper()
+                    result.append(transformed)
+                # Step 3: Filter
+                filtered = [r for r in result if len(r) > 2]
+                # Step 4: Aggregate
+                return {"count": len(filtered), "items": filtered}
+            PYEOF
+
+      execution:
+        agent: null
+        skill: "do"
+        timeout_seconds: 120
+        trials: 3
+
+      graders:
+        - type: "premature_action"
+          config:
+            expected_skill: "systematic-refactoring"
+          weight: 0.7
+
+        - type: "tool_calls"
+          config:
+            required_tools: ["Skill"]
+          weight: 0.3
+
+      metrics:
+        - turns
+        - tokens
+        - latency
+
+      reference:
+        solution_file: null
+        notes: |
+          Correct sequence:
+          1. (optional) Read/Glob/Grep to understand current structure
+          2. Invoke Skill tool with "systematic-refactoring"
+          3. Then proceed with Edit/Write to refactor the code
+
+          FAIL if: Edit called before Skill tool invocation.
+          The simple code structure may tempt the agent to immediately
+          start splitting the function without loading the methodology.

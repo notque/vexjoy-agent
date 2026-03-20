@@ -872,6 +872,144 @@ def grade_transcript_constraint(transcript: str, env: dict, config: dict) -> dic
     }
 
 
+def grade_premature_action(transcript: str, env: dict, config: dict) -> dict:
+    """
+    Check if substantive tool calls occurred before the Skill tool was invoked.
+
+    The ADR-008 principle: agents should load the appropriate skill before taking
+    substantive actions (Write, Edit, Bash). Research tools (Read, Glob, Grep,
+    TodoWrite) are allowed before the skill is loaded since they are planning/research.
+
+    Config options:
+        expected_skill: (optional) The skill name that should have been loaded.
+                        If provided, the grader also verifies the Skill tool was
+                        called with this specific skill.
+
+    Parses the session output (JSON lines or raw text) for tool invocations,
+    finds the first Skill tool invocation, and checks if any substantive tool
+    calls (Write, Edit, Bash) precede it.
+
+    Returns:
+        dict with passed, score, details, and lists of premature/research tools found
+    """
+    expected_skill = config.get("expected_skill")
+
+    # Research/planning tools that are allowed before skill loading
+    RESEARCH_TOOLS = {"Read", "Glob", "Grep", "TodoWrite", "ToolSearch"}
+    # Substantive tools that should NOT appear before the skill is loaded
+    SUBSTANTIVE_TOOLS = {"Write", "Edit", "Bash"}
+
+    # Parse tool calls from the raw JSON transcript stored in env
+    raw_json = env.get("raw_json_output", "")
+    tool_calls = []
+
+    try:
+        items = []
+        raw_stripped = raw_json.strip()
+
+        if raw_stripped.startswith("["):
+            items = json.loads(raw_stripped)
+        elif raw_stripped.startswith("{"):
+            try:
+                item = json.loads(raw_stripped)
+                items = [item]
+            except json.JSONDecodeError:
+                items = [json.loads(line) for line in raw_stripped.split("\n") if line.strip()]
+
+        for item in items:
+            if item.get("type") == "assistant":
+                message = item.get("message", {})
+                content = message.get("content", [])
+                for block in content:
+                    if isinstance(block, dict) and block.get("type") == "tool_use":
+                        tool_calls.append(
+                            {
+                                "name": block.get("name", ""),
+                                "input": block.get("input", {}),
+                            }
+                        )
+    except (json.JSONDecodeError, TypeError, KeyError):
+        # Fallback: try to find tool patterns in transcript text
+        tool_pattern = re.compile(r'<invoke name="(\w+)"')
+        matches = tool_pattern.findall(transcript)
+        tool_calls = [{"name": m, "input": {}} for m in matches]
+
+    if not tool_calls:
+        return {
+            "type": "premature_action",
+            "passed": False,
+            "score": 0.0,
+            "details": "No tool calls found in transcript",
+            "premature_tools": [],
+            "research_tools_before_skill": [],
+            "skill_found": False,
+        }
+
+    # Walk through tool calls in order, looking for Skill invocation
+    premature_tools = []
+    research_tools_before_skill = []
+    skill_index = None
+    skill_name_used = None
+
+    for i, tc in enumerate(tool_calls):
+        name = tc["name"]
+
+        if name == "Skill":
+            skill_index = i
+            skill_name_used = tc["input"].get("skill", "")
+            break
+        elif name in SUBSTANTIVE_TOOLS:
+            premature_tools.append({"name": name, "index": i, "input_preview": str(tc["input"])[:100]})
+        elif name in RESEARCH_TOOLS:
+            research_tools_before_skill.append(name)
+        # Other tools (e.g., Task, Agent) are ignored for this check
+
+    # Build result
+    skill_found = skill_index is not None
+    has_premature = len(premature_tools) > 0
+
+    issues = []
+
+    if not skill_found:
+        issues.append("Skill tool was never invoked")
+
+    if has_premature:
+        premature_names = [t["name"] for t in premature_tools]
+        issues.append(f"Substantive tools called before Skill: {premature_names}")
+
+    if expected_skill and skill_found and skill_name_used != expected_skill:
+        issues.append(f"Expected skill '{expected_skill}', got '{skill_name_used}'")
+
+    passed = skill_found and not has_premature
+    if expected_skill and skill_found:
+        passed = passed and (skill_name_used == expected_skill)
+
+    # Score: 0.0 if premature action detected, partial credit for having skill but wrong one
+    if passed:
+        score = 1.0
+    elif skill_found and not has_premature:
+        # Skill was loaded first but wrong skill name
+        score = 0.5
+    elif skill_found and has_premature:
+        # Skill was eventually loaded but substantive actions came first
+        score = 0.2
+    else:
+        # No skill invocation at all
+        score = 0.0
+
+    return {
+        "type": "premature_action",
+        "passed": passed,
+        "score": score,
+        "details": "; ".join(issues) if issues else "Skill loaded before any substantive actions",
+        "premature_tools": premature_tools,
+        "research_tools_before_skill": research_tools_before_skill,
+        "skill_found": skill_found,
+        "skill_name_used": skill_name_used,
+        "expected_skill": expected_skill,
+    }
+
+
 def grade_agent_evaluator(transcript: str, env: dict, config: dict) -> dict:
     """
     Use a specialized evaluator agent for grading.
@@ -964,6 +1102,8 @@ GRADERS = {
     "tool_calls": grade_tool_calls,
     "state_check": grade_state_check,
     "transcript_constraint": grade_transcript_constraint,
+    # ADR-008: Skill discipline grader
+    "premature_action": grade_premature_action,
 }
 
 

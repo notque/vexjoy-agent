@@ -3,7 +3,7 @@ name: comprehensive-review
 description: |
   Unified 3-wave code review: Wave 0 auto-discovers packages/modules and
   dispatches one language-specialist agent per package for deep per-package
-  analysis. Wave 1 dispatches 10 foundation reviewers in parallel (with Wave 0
+  analysis. Wave 1 dispatches 11 foundation reviewers in parallel (with Wave 0
   context). Wave 2 dispatches 10 deep-dive reviewers that receive Wave 0+1
   findings as context for targeted analysis. Aggregates all findings by severity,
   then auto-fixes ALL issues. Covers per-package deep review, security, business
@@ -53,7 +53,7 @@ routing:
 
 # Comprehensive Code Review v3 — Three-Wave Hybrid Architecture
 
-Three-wave review with per-package deep analysis. Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per package to read ALL code in that package. Wave 1 (10 foundation agents) runs in parallel with Wave 0 context. Wave 2 (10 deep-dive agents) receives Wave 0+1 findings for targeted analysis. All findings are aggregated, deduplicated, and auto-fixed.
+Three-wave review with per-package deep analysis. Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per package to read ALL code in that package. Wave 1 (11 foundation agents) runs in parallel with Wave 0 context. Wave 2 (10 deep-dive agents) receives Wave 0+1 findings for targeted analysis. All findings are aggregated, deduplicated, and auto-fixed.
 
 **How this differs from existing skills**:
 - `/parallel-code-review`: 3 agents (security, business, arch) — report only
@@ -84,7 +84,7 @@ Three-wave review with per-package deep analysis. Wave 0 auto-discovers packages
 ### Optional Behaviors (OFF unless enabled)
 - **--review-only**: Skip fix phase, report only (like parallel-code-review)
 - **--skip-wave0**: Skip Wave 0 per-package review (faster, less thorough)
-- **--wave1-only**: Run only Wave 1 (10 agents), skip Wave 0 and Wave 2
+- **--wave1-only**: Run only Wave 1 (11 agents), skip Wave 0 and Wave 2
 - **--focus [files]**: Review only specified files instead of full diff
 - **--severity [critical|high|medium|all]**: Only report/fix findings at or above severity
 - **--org-conventions**: Pass organization-specific convention flags to reviewer-language-specialist. Configure organization detection in `scripts/classify-repo.py`.
@@ -156,6 +156,7 @@ These agents run in parallel with Wave 0 per-package findings as context. They p
 | 8 | `reviewer-comment-analyzer` | Documentation | Comment rot, misleading docs, stale TODOs |
 | 9 | `reviewer-language-specialist` | Language Idioms | Modern stdlib, concurrency, LLM tells, org-specific rules |
 | 10 | `reviewer-docs-validator` | Project Health | README, CLAUDE.md, deps, CI, build system |
+| 11 | `reviewer-adr-compliance` | ADR Compliance | Implementation matches ADR decisions, no scope creep |
 
 *Architecture reviewer selection by language:
 
@@ -215,7 +216,7 @@ Three-wave review and auto-fix of [N] changed files across [N] packages.
 - [ ] Phase 1: Scope (identify files, discover packages)
 - [ ] Phase 1b: Wave 0 Dispatch (per-package deep review)
 - [ ] Phase 1c: Wave 0 Aggregate (per-package findings)
-- [ ] Phase 2a: Wave 1 Dispatch (10-11 foundation agents + Wave 0 context)
+- [ ] Phase 2a: Wave 1 Dispatch (11 foundation agents + Wave 0 context)
 - [ ] Phase 2b: Wave 1 Aggregate (collect and summarize Wave 0+1 findings)
 - [ ] Phase 3a: Wave 2 Dispatch (10 deep-dive agents with Wave 0+1 context)
 - [ ] Phase 3b: Wave 2 Aggregate (merge all agents' findings)
@@ -226,7 +227,7 @@ Three-wave review and auto-fix of [N] changed files across [N] packages.
 - Files: [list]
 - Packages discovered: [N]
 - Wave 0 agents: [N] (one per package)
-- Wave 1 agents: 10
+- Wave 1 agents: 11
 - Wave 2 agents: 10
 - Org conventions: [detected org or none]
 - Mode: [review+fix | review-only]
@@ -403,7 +404,7 @@ echo "Saved Wave 0 findings: $(wc -l < "$REVIEW_DIR/wave0-findings.md") lines"
 
 ### Phase 2a: WAVE 1 DISPATCH
 
-**Goal**: Launch all foundation review agents in a SINGLE message for true parallel execution, with Wave 0 per-package context. This dispatches 10 agents.
+**Goal**: Launch all foundation review agents in a SINGLE message for true parallel execution, with Wave 0 per-package context. This dispatches 11 agents.
 
 **CRITICAL**: ALL Wave 1 agent dispatches MUST be in ONE message. Sequential dispatch defeats parallelism.
 
@@ -480,8 +481,9 @@ Return findings as:
 | `reviewer-comment-analyzer` | Focus on comment accuracy, rot, misleading docs |
 | `reviewer-language-specialist` | Detect language from files, check modern stdlib, idioms, concurrency, LLM tells. **MCP**: For Go files, use gopls `go_file_context` and `go_diagnostics` to detect non-idiomatic patterns with type awareness. If org conventions detected, append org-specific flags to prompt. |
 | `reviewer-docs-validator` | Check README.md, CLAUDE.md, deps, CI config, build system, LICENSE. Review the project, not the code. **MCP**: Use Context7 to verify documented library versions/APIs match actual usage |
+| `reviewer-adr-compliance` | Auto-discover ADRs from `adr/` and `.adr-session.json`. Check every decision point has implementation, no contradictions, no scope creep. Output ADR COMPLIANT or NOT ADR COMPLIANT. |
 
-**Gate**: All Wave 1 agents dispatched in a single message (10 agents). Wait for all to complete. Proceed to Phase 2b.
+**Gate**: All Wave 1 agents dispatched in a single message (11 agents). Wait for all to complete. Proceed to Phase 2b.
 
 ---
 
@@ -555,6 +557,11 @@ Create a condensed summary combining Wave 0 per-package findings and Wave 1 cros
 - Dependency issues: [list]
 - CI/build issues: [list]
 
+### ADR Compliance (Agent 11): [N findings]
+- ADR decisions not implemented: [list]
+- ADR contradictions: [list]
+- Scope creep: [list]
+
 ```
 
 **Step 3: Quick-deduplicate Wave 0+1**
@@ -568,7 +575,7 @@ Write both raw Wave 1 findings AND the combined Wave 0+1 summary to disk:
 ```bash
 # Save raw Wave 1 findings (individual agent outputs)
 cat > "$REVIEW_DIR/wave1-findings.md" << 'WAVE1_EOF'
-[Paste ALL Wave 1 agent outputs — the raw findings from each of the 10-11 agents]
+[Paste ALL Wave 1 agent outputs — the raw findings from each of the 11 agents]
 WAVE1_EOF
 
 # Save the combined Wave 0+1 summary (the structured context for Wave 2)
@@ -729,6 +736,7 @@ If two or more agents flagged the same file:line:
 | Comment Analyzer         | 1    | N        | N    | N      | N   |
 | Language Specialist      | 1    | N        | N    | N      | N   |
 | Docs & Config            | 1    | N        | N    | N      | N   |
+| ADR Compliance           | 1    | N        | N    | N      | N   |
 | **Wave 1 Subtotal**      | **1**| **N**    | **N**| **N**  | **N**|
 | Performance              | 2    | N        | N    | N      | N   |
 | Concurrency              | 2    | N        | N    | N      | N   |
@@ -878,7 +886,7 @@ Write `comprehensive-review-report.md`:
 **Date**: [date]
 **Files reviewed**: [N]
 **Packages discovered**: [N]
-**Agents dispatched**: [N] (Wave 0: [N per-package], Wave 1: 10, Wave 2: 10)
+**Agents dispatched**: [N] (Wave 0: [N per-package], Wave 1: 11, Wave 2: 10)
 **Total findings**: [N]
 **Findings fixed**: [N]
 **Findings blocked**: [N] (ONLY if fix breaks tests after alternative attempt — must be <10%)
@@ -899,7 +907,7 @@ Is the codebase better after fixes?]
 | Wave | Agents | Findings | Fixed | Unique to Wave |
 |------|--------|----------|-------|----------------|
 | Wave 0 (Per-Package) | N | N | N | N |
-| Wave 1 (Foundation) | 10 | N | N | N |
+| Wave 1 (Foundation) | 11 | N | N | N |
 | Wave 2 (Deep-Dive) | 10 | N | N | N |
 | **TOTAL** | **N** | **N** | **N** | |
 
@@ -928,6 +936,7 @@ Is the codebase better after fixes?]
 | Comment Analyzer | 1 | N | N | N | [biggest] |
 | Language Specialist | 1 | N | N | N | [biggest] |
 | Docs & Config | 1 | N | N | N | [biggest] |
+| ADR Compliance | 1 | N | N | N | [biggest] |
 | Performance | 2 | N | N | N | [biggest] |
 | Concurrency | 2 | N | N | N | [biggest] |
 | API Contract | 2 | N | N | N | [biggest] |
@@ -1005,7 +1014,7 @@ These files persist in `/tmp/` until next reboot. They can be re-read in future 
 |-----------|----------|
 | Any PR, any language, full review+fix | `/comprehensive-review` (3 waves) |
 | Fast review, skip per-package | `/comprehensive-review --skip-wave0` (2 waves) |
-| Quick review, 10 agents only | `/comprehensive-review --wave1-only` |
+| Quick review, 11 agents only | `/comprehensive-review --wave1-only` |
 | Quick 3-reviewer check, no fix | `/parallel-code-review` |
 | PR comment validation | `/pr-review-address-feedback` |
 | Sequential deep dive | `systematic-code-review` skill |
@@ -1154,6 +1163,7 @@ This skill uses these shared patterns:
 - `reviewer-comment-analyzer` — Comment accuracy, rot
 - `reviewer-language-specialist` — Modern stdlib, idioms, LLM tells
 - `reviewer-docs-validator` — README, CLAUDE.md, deps, CI
+- `reviewer-adr-compliance` — ADR compliance, decision mapping, scope creep
 
 **Wave 2 Agents:**
 - `reviewer-performance` — Hot paths, N+1, allocations, caching
