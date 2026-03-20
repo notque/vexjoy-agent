@@ -117,6 +117,7 @@ These skills have MANDATORY routing. They MUST be invoked when triggers appear:
 | **go-error-handling** | error handling, fmt.Errorf, errors.Is, errors.As, %w, sentinel error |
 | **go-code-review** | review Go, Go PR, Go code review, check Go quality |
 | **go-anti-patterns** | anti-pattern, code smell, over-engineering, premature abstraction |
+| **python-quality-gate** | bandit, Python security scan, Python SAST |
 | **go-sapcc-conventions** | sapcc, sap-cloud-infrastructure, go-bits, keppel, go-api-declarations, go-makefile-maker |
 | **create-voice** | create voice, new voice, build voice, voice from samples, calibrate voice |
 | **voice-orchestrator** | write in voice, generate voice content, voice workflow |

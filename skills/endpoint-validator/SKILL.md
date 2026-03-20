@@ -119,6 +119,13 @@ For each response, check in order:
 1. **Status code**: Does it match `expect_status`? If not, mark FAIL.
 2. **JSON key**: If `expect_key` set, parse JSON and check key exists. If missing or not valid JSON, mark FAIL.
 3. **Response time**: If `max_time` set and elapsed exceeds it, mark SLOW.
+4. **Security headers**: Check response headers for common security headers. Report missing headers as WARN (not FAIL):
+   - `Strict-Transport-Security` — HSTS enforcement (expected on HTTPS endpoints)
+   - `Content-Security-Policy` — XSS mitigation
+   - `X-Content-Type-Options` — should be `nosniff`
+   - `X-Frame-Options` — clickjacking prevention (or CSP `frame-ancestors`)
+
+Skip security header checks for localhost/127.0.0.1 endpoints (development environments don't typically set these). Only check on non-localhost base URLs unless explicitly configured.
 
 **Step 3: Handle failures gracefully**
 
@@ -146,6 +153,11 @@ RESULTS:
   /api/users                     200 OK     123ms
   /api/products                  500 FAIL   "Internal Server Error"
   /api/slow                      200 SLOW   3.2s > 2.0s threshold
+
+SECURITY HEADERS (non-localhost only):
+  /api/health                    WARN  Missing: Content-Security-Policy, X-Frame-Options
+  /api/users                     OK    All security headers present
+  /api/products                  SKIP  (endpoint failed)
 ```
 
 **Step 2: Produce summary**
@@ -155,6 +167,7 @@ SUMMARY:
   Passed: 13/15 (86.7%)
   Failed: 1 (status error)
   Slow: 1 (exceeded threshold)
+  Security header warnings: 3 endpoints missing headers
 ```
 
 **Step 3: Set exit code**
