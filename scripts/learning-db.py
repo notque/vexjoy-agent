@@ -219,10 +219,7 @@ def cmd_learn(args):
         project_path=args.project_path,
     )
     action = "Updated" if not result["is_new"] else "Recorded"
-    print(
-        f"{action}: [{topic}] {value[:80]}... "
-        f"(confidence: {result['confidence']:.2f})"
-    )
+    print(f"{action}: [{topic}] {value[:80]}... (confidence: {result['confidence']:.2f})")
 
 
 def cmd_purge(args):
