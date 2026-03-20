@@ -1,6 +1,6 @@
 {
   "version": "1.1",
-  "generated": "2026-03-20T02:40:10Z",
+  "generated": "2026-03-20T02:58:51Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": [
     {
@@ -1092,6 +1092,22 @@
       ],
       "version": "2.0.0",
       "user-invocable": false
+    },
+    {
+      "name": "repo-value-analysis",
+      "description": "Systematic 6-phase analysis of external repositories for ideas worth adopting: clone, parallel deep-read, self-inventory, synthesize gaps, targeted...",
+      "file": "skills/repo-value-analysis/SKILL.md",
+      "triggers": [
+        "repo value analysis",
+        "does repo add value",
+        "analyze repo for ideas",
+        "what can we learn from",
+        "compare against repo",
+        "read every file in repo"
+      ],
+      "category": "analysis",
+      "version": "1.0.0",
+      "user-invocable": true
     },
     {
       "name": "research-pipeline",
