@@ -153,8 +153,8 @@ If no uncommitted changes exist, skip to Step 4.
 ### Step 4: Push to Remote
 
 ```bash
-# Push with upstream tracking
-git push -u origin "$CURRENT_BRANCH"
+# Push with upstream tracking (CLAUDE_GATE_BYPASS=1 bypasses the git-submission-gate hook)
+CLAUDE_GATE_BYPASS=1 git push -u origin "$CURRENT_BRANCH"
 ```
 
 **Protected-org repos**: Before executing the push, present the branch name, remote, and commits that will be pushed. Wait for explicit approval before pushing.
@@ -169,7 +169,7 @@ Iteratively review and fix issues before creating the PR. Up to 3 iterations of:
 1. Run `/pr-review` comprehensive review
 2. If clean → exit loop, proceed to Step 5
 3. Fix all reported issues
-4. `git add [fixes] && git commit --amend --no-edit && git push --force-with-lease`
+4. `git add [fixes] && git commit --amend --no-edit && CLAUDE_GATE_BYPASS=1 git push --force-with-lease`
 5. Report iteration: `REVIEW-FIX [N/3]: X found, Y fixed, Z remaining`
 
 After 3 iterations, proceed to Step 5 with any remaining issues documented in the PR body.
@@ -182,7 +182,7 @@ EXISTING_PR=$(gh pr list --head "$CURRENT_BRANCH" --json number --jq '.[0].numbe
 
 if [[ -z "$EXISTING_PR" ]]; then
     # Create new PR
-    gh pr create --title "$PR_TITLE" --body "$(cat <<'EOF'
+    CLAUDE_GATE_BYPASS=1 gh pr create --title "$PR_TITLE" --body "$(cat <<'EOF'
 ## Summary
 [Description of changes]
 

@@ -524,6 +524,8 @@ This skill uses these shared patterns:
 | "Force-route doesn't apply here" | If triggers match, force-route applies. No exceptions | Check trigger table literally |
 | "Routing overhead isn't worth it for this" | Routing overhead < cost of unreviewed code changes | Route anyway; tokens are cheap |
 | "User wants it fast, skip the plan" | Fast without a plan produces wrong results faster | Create plan, then execute |
+| "User seems impatient, skip the review" | **There is never time pressure.** The user wants correct, reviewed results — not fast broken ones. A denied tool call or follow-up message is NOT permission to skip quality gates. | Run the full review loop. If a tool is denied, try a different approach — never skip the step entirely |
+| "Just push it, we can fix later" | Post-merge fixes cost 2 PRs instead of 1. Review before merge is always cheaper | Route through pr-sync/pr-pipeline. The git-submission-gate hook will block raw git push anyway |
 
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/routing-tables.md`: Complete category-specific skill routing (Process, Analysis, PR, Content, Voice, Pipeline, Validation, Roaster Agents, Quick Examples)

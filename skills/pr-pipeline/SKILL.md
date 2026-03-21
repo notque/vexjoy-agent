@@ -243,14 +243,15 @@ Use branch-naming skill if available for compliant names.
 **Step 2: Push with tracking**
 
 ```bash
-git push -u origin $(git branch --show-current)
+# CLAUDE_GATE_BYPASS=1 bypasses the git-submission-gate hook (this skill IS the gate)
+CLAUDE_GATE_BYPASS=1 git push -u origin $(git branch --show-current)
 ```
 
 **Step 3: Verify push**
 
 Confirm push succeeded by checking output. If push fails (e.g., rejected), report error and stop.
 
-**Protected-org repos**: Before executing the push, present the branch name, remote, and list of commits that will be pushed. Wait for user to confirm before executing `git push`.
+**Protected-org repos**: Before executing the push, present the branch name, remote, and list of commits that will be pushed. Wait for user to confirm before executing `CLAUDE_GATE_BYPASS=1 git push`.
 
 **Gate**: Changes pushed to remote. Branch tracks upstream. (protected-org: user confirmed.)
 
@@ -300,7 +301,7 @@ Address each issue found by the review. This includes:
 ```bash
 git add [fixed files]
 git commit --amend --no-edit
-git push --force-with-lease
+CLAUDE_GATE_BYPASS=1 git push --force-with-lease
 ```
 
 **Step 5: Report iteration**
@@ -328,7 +329,7 @@ Analyze the full diff against the base branch and all commit messages to draft:
 **Step 2: Create PR**
 
 ```bash
-gh pr create --title "type(scope): description" --body "$(cat <<'EOF'
+CLAUDE_GATE_BYPASS=1 gh pr create --title "type(scope): description" --body "$(cat <<'EOF'
 ## Summary
 - [Key change 1]
 - [Key change 2]
@@ -399,7 +400,7 @@ git pull origin main
 git branch -d <branch-name>
 
 # Delete remote branch
-git push origin --delete <branch-name>
+CLAUDE_GATE_BYPASS=1 git push origin --delete <branch-name>
 
 # Prune stale tracking refs
 git fetch --prune
