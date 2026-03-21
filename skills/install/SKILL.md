@@ -123,7 +123,40 @@ Your toolkit is ready. Here's what's installed:
   Scripts:  [N] utility scripts
 ```
 
-**Gate**: User sees their inventory. Proceed to Phase 4.
+**Gate**: User sees their inventory. Proceed to Phase 3.5.
+
+### Phase 3.5: MCP INVENTORY
+
+**Goal**: Show which MCP servers are available and their status.
+
+**Step 1: Run MCP registry check**
+
+```bash
+python3 scripts/mcp-registry.py list
+```
+
+If the script is not found at `scripts/mcp-registry.py`, try `~/.claude/scripts/mcp-registry.py`.
+
+**Step 2: Display MCP status**
+
+Show the MCP inventory as:
+
+```
+MCP Servers:
+
+  [✓] Chrome DevTools MCP  — Live browser debugging
+      Paired skills: wordpress-live-validation
+  [✓] Playwright MCP       — Automated browser testing
+      Paired skills: wordpress-live-validation
+  [✓] gopls MCP            — Go workspace intelligence
+      Paired skills: go-code-review, go-testing, go-concurrency
+  [✗] Context7 MCP         — Library documentation lookups
+      Install: claude mcp add context7 -- npx @anthropic-ai/mcp-context7@latest
+```
+
+Use ✓ for connected MCPs and ✗ for missing ones. For missing MCPs, show the install command.
+
+**Gate**: MCP inventory displayed. Proceed to Phase 4.
 
 ### Phase 4: ORIENT
 

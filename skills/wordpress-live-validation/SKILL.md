@@ -4,11 +4,12 @@ description: |
   Validate a published or draft-preview WordPress post in a real browser using
   Playwright. Checks rendered title, heading structure, image loading, OG/meta
   tags, JavaScript errors, and responsive layout at mobile/tablet/desktop
-  breakpoints. Use for "validate wordpress post", "check live post",
-  "verify published post", "wordpress post looks right", "check og tags",
-  or "responsive check wordpress". Do NOT use for source markdown validation
-  (use pre-publish-checker), SEO keyword analysis (use seo-optimizer), or
-  uploading content (use wordpress-uploader).
+  breakpoints. When Chrome DevTools MCP is available, can use it for live browser
+  inspection as an alternative to Playwright. Use for "validate wordpress post",
+  "check live post", "verify published post", "wordpress post looks right",
+  "check og tags", or "responsive check wordpress". Do NOT use for source
+  markdown validation (use pre-publish-checker), SEO keyword analysis
+  (use seo-optimizer), or uploading content (use wordpress-uploader).
 version: 1.0.0
 user-invocable: false
 allowed-tools:
@@ -23,6 +24,13 @@ allowed-tools:
   - mcp__plugin_playwright_playwright__browser_console_messages
   - mcp__plugin_playwright_playwright__browser_resize
   - mcp__plugin_playwright_playwright__browser_take_screenshot
+  - mcp__chrome-devtools__navigate_page
+  - mcp__chrome-devtools__take_screenshot
+  - mcp__chrome-devtools__take_snapshot
+  - mcp__chrome-devtools__list_console_messages
+  - mcp__chrome-devtools__list_network_requests
+  - mcp__chrome-devtools__lighthouse_audit
+  - mcp__chrome-devtools__resize_page
 routing:
   triggers:
     - validate wordpress post
@@ -54,6 +62,22 @@ This skill operates as an operator for post-publish browser validation, configur
 - **Non-Blocking by Default**: Failed validation produces a report but does not revert the upload or block the pipeline. Why: the user decides how to act on findings; automated rollback is a separate, riskier concern.
 - **Severity Accuracy**: BLOCKER means readers see broken content. WARNING means degraded quality. INFO means informational. Never inflate or deflate severity. Why: inflated severity causes alert fatigue; deflated severity hides real problems.
 
+### Browser Backend Selection
+
+This skill supports two browser backends:
+
+| Backend | When to Use | How |
+|---------|-------------|-----|
+| **Playwright MCP** (default) | Automated validation, repeatable checks, CI/CD | Headless browser, deterministic |
+| **Chrome DevTools MCP** (alternative) | Live debugging, user watching the browser, performance profiling | User's real Chrome browser |
+
+**Selection logic**: Use Chrome DevTools MCP when:
+1. The user explicitly asks to "check in my browser" or "debug live"
+2. The task involves Lighthouse audits or performance profiling
+3. The user has Chrome DevTools MCP connected AND is actively debugging
+
+Otherwise, default to Playwright MCP for deterministic, repeatable validation.
+
 ### Default Behaviors (ON unless disabled)
 - **Full Validation**: Run all check categories (content integrity, SEO/social, responsive)
 - **Three Breakpoints**: Test mobile (375px), tablet (768px), desktop (1440px)
@@ -83,10 +107,10 @@ This skill operates as an operator for post-publish browser validation, configur
 - **Modify WordPress content**: Read-only inspection; use wordpress-uploader for edits
 - **Validate source markdown**: Use pre-publish-checker for pre-upload validation
 - **Visual regression testing**: No pixel-level comparison against golden baselines
-- **Performance testing**: No Lighthouse scores, load times, or Core Web Vitals
-- **Cross-browser testing**: Playwright MCP runs Chromium only
+- **Performance testing**: Lighthouse audits available via Chrome DevTools MCP; no load time benchmarking or Core Web Vitals tracking
+- **Cross-browser testing**: Playwright runs Chromium only; Chrome DevTools MCP runs Chrome only
 - **Authenticate to wp-admin**: Draft preview requires the user to provide an authenticated session or use published posts
-- **Work without Playwright MCP**: If the Playwright server is unavailable, the skill exits with a skip report
+- **Work without a browser MCP**: Requires either Playwright MCP or Chrome DevTools MCP. If neither is available, the skill exits with a skip report
 
 ---
 
