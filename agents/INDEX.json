@@ -275,6 +275,85 @@
       "complexity": "Medium-Complex",
       "category": "performance"
     },
+    "perses-core-engineer": {
+      "file": "perses-core-engineer.md",
+      "short_description": "Use this agent for Perses core development and contribution: Go backend (API handlers,\nstorage, auth), React/TypeScript frontend (dashboard editor, panel rendering), CUE schemas,\nand the overall Perses architecture",
+      "triggers": [
+        "perses core",
+        "contribute perses",
+        "perses backend",
+        "perses frontend",
+        "perses architecture",
+        "perses internals"
+      ],
+      "pairs_with": [
+        "perses-code-review",
+        "golang-general-engineer",
+        "typescript-frontend-engineer"
+      ],
+      "complexity": "Complex",
+      "category": "development"
+    },
+    "perses-dashboard-engineer": {
+      "file": "perses-dashboard-engineer.md",
+      "short_description": "Use this agent for Perses observability dashboard operations: creating/managing dashboards,\nconfiguring datasources, managing variables, writing PromQL/LogQL/TraceQL queries, deploying\nvia Dashboard-as-Code, and interacting with Perses API/MCP",
+      "triggers": [
+        "perses",
+        "percli",
+        "perses dashboard",
+        "perses project",
+        "observability dashboard",
+        "perses datasource",
+        "perses variable"
+      ],
+      "pairs_with": [
+        "perses-dashboard-create",
+        "perses-deploy",
+        "perses-grafana-migrate",
+        "perses-dac-pipeline",
+        "prometheus-grafana-engineer"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "infrastructure"
+    },
+    "perses-operator-engineer": {
+      "file": "perses-operator-engineer.md",
+      "short_description": "Use this agent for Perses Kubernetes operator operations: deploying Perses via CRDs,\nmanaging PersesDashboard and PersesDatasource resources, Helm chart configuration, and\nK8s-native Perses management",
+      "triggers": [
+        "perses operator",
+        "perses kubernetes",
+        "perses CRD",
+        "PersesDashboard",
+        "perses helm",
+        "perses k8s"
+      ],
+      "pairs_with": [
+        "perses-deploy",
+        "kubernetes-helm-engineer"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "infrastructure"
+    },
+    "perses-plugin-engineer": {
+      "file": "perses-plugin-engineer.md",
+      "short_description": "Use this agent for Perses plugin development: scaffolding plugins with percli plugin generate,\nCUE schema authoring, React component implementation, Module Federation integration, and the\nbuild/test/deploy workflow",
+      "triggers": [
+        "perses plugin",
+        "create plugin",
+        "panel plugin",
+        "datasource plugin",
+        "perses plugin development",
+        "perses cue schema",
+        "plugin schema"
+      ],
+      "pairs_with": [
+        "perses-plugin-create",
+        "perses-cue-schema",
+        "perses-plugin-test"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "development"
+    },
     "pipeline-orchestrator-engineer": {
       "file": "pipeline-orchestrator-engineer.md",
       "short_description": "Use this agent when building new pipelines that require coordinated creation\nof agents, skills, and hooks",

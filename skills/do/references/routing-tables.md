@@ -191,6 +191,29 @@ Sequential pipeline: design → plan → implement → validate → release. Eac
 
 ---
 
+## Perses Skills
+
+| Triggers | Skill |
+|----------|-------|
+| create perses dashboard, new dashboard, perses new dashboard | perses-dashboard-create (perses-dashboard-engineer) |
+| deploy perses, install perses, perses setup, perses server | perses-deploy (perses-dashboard-engineer) |
+| perses onboard, setup perses, connect to perses | perses-onboard (perses-dashboard-engineer) |
+| **migrate grafana, grafana to perses, perses migrate, convert grafana** | **perses-grafana-migrate (FORCE)** |
+| **dashboard as code, perses dac, perses cue, perses gitops** | **perses-dac-pipeline (FORCE)** |
+| perses datasource, add datasource, configure prometheus perses | perses-datasource-manage (perses-dashboard-engineer) |
+| perses variable, dashboard variable, perses filter | perses-variable-manage (perses-dashboard-engineer) |
+| perses project, create project, perses rbac, perses roles | perses-project-manage (perses-dashboard-engineer) |
+| **perses lint, validate perses, check dashboard** | **perses-lint (FORCE)** |
+| perses query, promql perses, logql perses | perses-query-builder (perses-dashboard-engineer) |
+| review perses dashboard, audit dashboard | perses-dashboard-review (perses-dashboard-engineer) |
+| **create perses plugin, new panel plugin, new datasource plugin** | **perses-plugin-create (FORCE)** |
+| perses plugin pipeline, full plugin development | perses-plugin-pipeline (perses-plugin-engineer) |
+| perses cue schema, perses model, plugin schema | perses-cue-schema (perses-plugin-engineer) |
+| test perses plugin, perses plugin test, perses schema test | perses-plugin-test (perses-plugin-engineer) |
+| review perses, perses pr, perses code review | perses-code-review (perses-core-engineer) |
+
+---
+
 ## Roaster Agents
 
 Invoked via the roast skill or directly:
