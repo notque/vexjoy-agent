@@ -2,6 +2,8 @@
 
 > *For the quick start, see [start-here.md](start-here.md).*
 
+<img src="images/linkedin-hero.png" alt="AI Agent Network" width="100%">
+
 ---
 
 I wasn't going to post this.
@@ -43,6 +45,8 @@ You say "write a blog post about observability" — a content pipeline launches 
 You say "review this PR" — five reviewers run simultaneously, each focused on a different dimension. Security. Performance. Business logic. Naming consistency. Dead code.
 
 The router handles the dispatch. You describe the work. That's it.
+
+<img src="images/linkedin-agents.png" alt="AI Agent Specialists" width="100%">
 
 ---
 
@@ -113,6 +117,8 @@ If this resonated:
 🔀 Fork it and build your own agents
 
 💬 I'm always happy to discuss how agentic workflows change the way teams operate
+
+<img src="images/linkedin-flywheel.png" alt="The Compounding AI Flywheel" width="100%">
 
 ---
 
