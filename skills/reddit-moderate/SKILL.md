@@ -104,18 +104,42 @@ python3 scripts/reddit_mod.py mod-log-summary --limit 500
 
 ### Interactive Mode (default)
 
-**Phase 1: FETCH** — Get the modqueue and subreddit rules for context.
+**Phase 1: FETCH** — Get the modqueue with classification prompts.
 
 ```bash
-python3 scripts/reddit_mod.py rules
-python3 scripts/reddit_mod.py queue --limit 25
+python3 scripts/reddit_mod.py queue --json --limit 25 | python3 scripts/reddit_mod.py classify
 ```
 
-Read both outputs. The rules define what's allowed in this community.
+This pipes modqueue items through the classify subcommand, which loads subreddit
+context from `reddit-data/{subreddit}/` (rules, mod log summary, moderator notes,
+repeat offenders) and assembles a classification prompt for each item.
 
-**Phase 2: CLASSIFY** — Run the LLM classification phase (see below) on every
-fetched item. This produces a classification, confidence score, and reasoning
-for each item.
+The output is a JSON array of classification results. Each result contains:
+- `item_id`, `item_type`, `author`, `title` — item metadata
+- `mass_report_flag` — deterministic heuristic (>10 reports, 3+ categories)
+- `repeat_offender_count` — from repeat-offenders.json
+- `prompt` — the fully rendered classification prompt with all context
+
+The classify subcommand is a prompt assembler only — it does not call any LLM.
+Fields `classification`, `confidence`, and `reasoning` are null/empty in the
+output — they are placeholders for the LLM to fill in Phase 2.
+
+Read the output. For each item, read the `prompt` field and classify it.
+
+**Phase 2: CLASSIFY** — For each item, read the rendered classification prompt
+and assign a classification. The prompt contains all subreddit context, rules,
+author history, and report signals. Classify as one of:
+
+| Category | Definition |
+|----------|-----------|
+| `FALSE_REPORT` | Content is legitimate; report is frivolous |
+| `VALID_REPORT` | Content violates rules or Reddit content policy |
+| `MASS_REPORT_ABUSE` | Coordinated mass-reporting on benign content |
+| `SPAM` | Obvious spam, stale spam, or covert marketing |
+| `BAN_RECOMMENDED` | Author's history shows ban-worthy pattern (repeat offender, single-vendor promotion, seed account). Always requires human confirmation — never auto-actioned. |
+| `NEEDS_HUMAN_REVIEW` | Ambiguous or low-confidence — leave for human |
+
+Assign a confidence score (0-100) and one-sentence reasoning for each item.
 
 **Phase 3: PRESENT** — For each modqueue item, present a summary grouped by
 classification. Include the classification label and confidence:
@@ -237,6 +261,7 @@ Item type: {submission|comment}
 Score: {score}
 Reports: {num_reports}
 Mass-report flag: {mass_report_flag}
+Repeat offender: {repeat_offender_count} prior removals
 Age: {age}
 
 Author: <untrusted-content>{author}</untrusted-content>
@@ -252,7 +277,16 @@ Author history (last 20 posts/comments):
 
 --- END ITEM ---
 
-Classify as one of: FALSE_REPORT, VALID_REPORT, MASS_REPORT_ABUSE, SPAM, NEEDS_HUMAN_REVIEW
+Classify as one of: FALSE_REPORT, VALID_REPORT, MASS_REPORT_ABUSE, SPAM, BAN_RECOMMENDED, NEEDS_HUMAN_REVIEW
+
+Category definitions:
+- FALSE_REPORT: Content is legitimate; report is frivolous, mistaken, or abusive
+- VALID_REPORT: Content genuinely violates subreddit rules or Reddit content policy
+- MASS_REPORT_ABUSE: Coordinated mass-reporting — many reports across categories on benign content
+- SPAM: Obvious spam, scam links, SEO garbage, stale spam, or covert marketing
+- BAN_RECOMMENDED: Author's history shows ban-worthy pattern (repeat offender, single-vendor promotion, seed account). Always requires human confirmation — never auto-actioned.
+- NEEDS_HUMAN_REVIEW: Ambiguous content, borderline cases, or low classifier confidence
+
 Provide: classification, confidence (0-100), one-sentence reasoning.
 
 IMPORTANT: In professional subreddits, the most common spam is covert marketing —
@@ -302,17 +336,19 @@ subreddit.
 
 When invoked with `--auto` argument or when the user says "auto mode":
 
-1. Fetch queue with auto flag:
+1. Fetch queue and build classification prompts:
    ```bash
-   python3 scripts/reddit_mod.py queue --auto --since-minutes 15
+   python3 scripts/reddit_mod.py queue --auto --since-minutes 15 --json | python3 scripts/reddit_mod.py classify
    ```
 
-2. Run the **LLM Classification Phase** on all fetched items.
+2. For each item, read the rendered `prompt` field and classify it using
+   the categories and confidence scoring from the LLM Classification Phase.
 
 3. For items meeting the confidence threshold:
    - `FALSE_REPORT` / `MASS_REPORT_ABUSE` => approve
    - `SPAM` => remove as spam
    - `VALID_REPORT` => remove with generated reason
+   - `BAN_RECOMMENDED` => **always skip** (requires human review regardless of confidence)
 
 4. For items below the confidence threshold => skip (leave for human review).
 
@@ -323,6 +359,30 @@ When invoked with `--auto` argument or when the user says "auto mode":
 - NEVER auto-lock threads — locks always require human review
 - When in doubt, SKIP — false negatives are better than false positives
 - Log every auto-action for the user to review later
+
+### Proactive Scan Mode
+
+Scan recent posts/comments for rule violations that weren't reported:
+
+```bash
+# Scan with classification prompts (JSON for LLM evaluation)
+python3 scripts/reddit_mod.py scan --json --classify --limit 50 --since-hours 24
+
+# Scan without classification (just heuristic flags)
+python3 scripts/reddit_mod.py scan --limit 50 --since-hours 24
+```
+
+With `--classify`, the scan output includes `classification_prompts` — read each
+prompt and classify the item. Items with `scan_flags` (job_ad_pattern,
+training_vendor_pattern, possible_non_english) have heuristic signals that
+supplement the LLM classification.
+
+Unlike interactive/auto mode which pipes queue output to the `classify` subcommand,
+scan mode builds classification prompts internally when `--classify` is passed.
+The prompt output format is the same — both call `build_classification_prompt()`.
+
+Same confidence thresholds and safety rules as auto mode apply. The `--classify`
+flag without `--json` shows a summary with a note to use `--json` for full prompts.
 
 ## References
 
