@@ -2,7 +2,7 @@
 
 <img src="docs/repo-hero.png" alt="Claude Code Toolkit - /do routes to specialized agents" width="100%">
 
-A collection of 60+ agents, 115+ skills, and 30+ hooks for Claude Code. Built over a year of daily use.
+A collection of 60+ agents, 130+ skills, and 30+ hooks for Claude Code. Built over a year of daily use.
 
 ## Install
 
@@ -124,6 +124,8 @@ Each phase produces saved artifacts. Learnings are captured to learning.db at ea
 **Pipeline generator.** Describe the domain, and the system discovers subdomains and scaffolds agents, skills, and routing through a 7-phase flow (ADR, Domain Research, Chain Composition, Scaffold, Integrate, Test, Retro).
 
 **PR workflow.** `/pr-sync` stages, commits, pushes, and creates a PR. On personal repos, it runs up to 3 automated review-and-fix iterations before opening the PR.
+
+**Perses observability tooling.** 4 agents, 16 skills, 2 hooks, and 2 scripts for [Perses](https://github.com/perses/perses) dashboard management and plugin development. MCP-first architecture using the official [Perses MCP server](https://github.com/perses/mcp-server) with `percli` CLI fallback. Covers dashboard operators (create, migrate from Grafana, Dashboard-as-Code, deploy) and plugin developers (scaffold, CUE schemas, test, build). Start with `/perses-onboard`.
 
 **.local/ overlay.** Put custom agents, skills, and hooks in `.local/`. They survive `git pull` without modifying the toolkit.
 

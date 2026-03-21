@@ -71,4 +71,10 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        # A broken hook must fail OPEN (exit 0), not fail CLOSED (exit 2).
+        # Python's default error exit code is 2, which Claude Code interprets
+        # as "block this tool" — causing a deadlock if the hook crashes.
+        sys.exit(0)
