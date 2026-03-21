@@ -1,6 +1,6 @@
 {
   "version": "1.1",
-  "generated": "2026-03-20T02:58:51Z",
+  "generated": "2026-03-21T22:13:16Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": [
     {
@@ -306,6 +306,18 @@
       "category": "content",
       "version": "1.0.0",
       "user-invocable": true
+    },
+    {
+      "name": "decision-helper",
+      "description": "Weighted decision scoring framework for architectural and technology choices.",
+      "file": "skills/decision-helper/SKILL.md",
+      "triggers": [
+        "decision-helper",
+        "decision",
+        "helper"
+      ],
+      "version": "1.0.0",
+      "user-invocable": false
     },
     {
       "name": "dispatching-parallel-agents",
@@ -760,6 +772,17 @@
       "user-invocable": false
     },
     {
+      "name": "install",
+      "description": "Verify Claude Code Toolkit installation, diagnose issues, and guide new users through first-time setup",
+      "file": "skills/install/SKILL.md",
+      "triggers": [
+        "install",
+        "install"
+      ],
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
       "name": "learn",
       "description": "Manually teach Claude Code an error pattern and its solution, storing it in the learning database with high confidence.",
       "file": "skills/learn/SKILL.md",
@@ -823,6 +846,209 @@
         "parallel",
         "code",
         "review"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "perses-code-review",
+      "description": "Perses-aware code review: check Go backend against Perses patterns, React components against Perses UI conventions, CUE schemas against plugin spec, and dashboard definitions against best practices.",
+      "file": "skills/perses-code-review/SKILL.md",
+      "triggers": [
+        "perses-code-review",
+        "perses",
+        "code",
+        "review"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "perses-cue-schema",
+      "description": "CUE schema authoring for Perses plugins: define data models, write validation constraints, create JSON examples, implement Grafana migration schemas in migrate/migrate.cue.",
+      "file": "skills/perses-cue-schema/SKILL.md",
+      "triggers": [
+        "perses-cue-schema",
+        "perses",
+        "cue",
+        "schema"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "perses-dac-pipeline",
+      "description": "Dashboard-as-Code pipeline: initialize CUE or Go module with percli dac setup, write dashboard definitions, build with percli dac build, validate, ...",
+      "file": "skills/perses-dac-pipeline/SKILL.md",
+      "triggers": [
+        "perses-dac-pipeline",
+        "perses",
+        "dac"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "perses-dashboard-create",
+      "description": "Guided Perses dashboard creation: gather requirements (metrics, datasource, layout), generate CUE definition or JSON spec, validate with percli lin...",
+      "file": "skills/perses-dashboard-create/SKILL.md",
+      "triggers": [
+        "perses-dashboard-create",
+        "perses",
+        "dashboard",
+        "create"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "perses-dashboard-review",
+      "description": "Review existing Perses dashboards for quality: fetch via MCP or API, analyze panel layout, query efficiency, variable usage, datasource configuration.",
+      "file": "skills/perses-dashboard-review/SKILL.md",
+      "triggers": [
+        "perses-dashboard-review",
+        "perses",
+        "dashboard",
+        "review"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "perses-datasource-manage",
+      "description": "Perses datasource lifecycle management: create, update, delete datasources at global, project, or dashboard scope.",
+      "file": "skills/perses-datasource-manage/SKILL.md",
+      "triggers": [
+        "perses-datasource-manage",
+        "perses",
+        "datasource",
+        "manage"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "perses-deploy",
+      "description": "Deploy Perses server: Docker Compose for local dev, Helm chart for K8s, or binary for bare metal.",
+      "file": "skills/perses-deploy/SKILL.md",
+      "triggers": [
+        "perses-deploy",
+        "perses",
+        "deploy"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "perses-grafana-migrate",
+      "description": "Grafana-to-Perses dashboard migration: export Grafana dashboards, convert with percli migrate, validate converted output, fix incompatibilities, deploy to Perses.",
+      "file": "skills/perses-grafana-migrate/SKILL.md",
+      "triggers": [
+        "perses-grafana-migrate",
+        "perses",
+        "grafana",
+        "migrate"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "perses-lint",
+      "description": "Validate Perses resources: run percli lint locally or with --online against a server.",
+      "file": "skills/perses-lint/SKILL.md",
+      "triggers": [
+        "perses-lint",
+        "perses",
+        "lint"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "perses-onboard",
+      "description": "First-time Perses setup pipeline: discover or deploy server, configure MCP connection, create initial project, add datasources, and verify connectivity.",
+      "file": "skills/perses-onboard/SKILL.md",
+      "triggers": [
+        "perses-onboard",
+        "perses",
+        "onboard"
+      ],
+      "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "perses-plugin-create",
+      "description": "Perses plugin scaffolding and creation: select plugin type (Panel, Datasource, Query, Variable, Explore), generate with percli plugin generate, imp...",
+      "file": "skills/perses-plugin-create/SKILL.md",
+      "triggers": [
+        "perses-plugin-create",
+        "perses",
+        "plugin",
+        "create"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "perses-plugin-pipeline",
+      "description": "End-to-end Perses plugin development pipeline: SCAFFOLD, SCHEMA, IMPLEMENT, TEST, BUILD, DEPLOY.",
+      "file": "skills/perses-plugin-pipeline/SKILL.md",
+      "triggers": [
+        "perses-plugin-pipeline",
+        "perses",
+        "plugin"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "perses-plugin-test",
+      "description": "Perses plugin testing: CUE schema unit tests with percli plugin test-schemas, React component tests, integration testing with local Perses server, and Grafana migration compatibility testing.",
+      "file": "skills/perses-plugin-test/SKILL.md",
+      "triggers": [
+        "perses-plugin-test",
+        "perses",
+        "plugin",
+        "test"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "perses-project-manage",
+      "description": "Perses project lifecycle management: create, list, switch, and configure projects.",
+      "file": "skills/perses-project-manage/SKILL.md",
+      "triggers": [
+        "perses-project-manage",
+        "perses",
+        "project",
+        "manage"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "perses-query-builder",
+      "description": "Build PromQL, LogQL, TraceQL queries for Perses panels.",
+      "file": "skills/perses-query-builder/SKILL.md",
+      "triggers": [
+        "perses-query-builder",
+        "perses",
+        "query",
+        "builder"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "perses-variable-manage",
+      "description": "Perses variable lifecycle management: create Text and List variables at global, project, or dashboard scope.",
+      "file": "skills/perses-variable-manage/SKILL.md",
+      "triggers": [
+        "perses-variable-manage",
+        "perses",
+        "variable",
+        "manage"
       ],
       "version": "2.0.0",
       "user-invocable": false
@@ -1080,6 +1306,18 @@
       ],
       "version": "2.0.0",
       "user-invocable": false
+    },
+    {
+      "name": "reddit-moderate",
+      "description": "Reddit community moderation via PRAW with LLM-powered report classification: fetch modqueue, classify reports against subreddit rules and author history, and take mod actions (approve, remove, lock).",
+      "file": "skills/reddit-moderate/SKILL.md",
+      "triggers": [
+        "reddit-moderate",
+        "reddit",
+        "moderate"
+      ],
+      "version": "1.0.0",
+      "user-invocable": true
     },
     {
       "name": "repo-value-analysis",
