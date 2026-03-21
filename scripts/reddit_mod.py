@@ -16,6 +16,7 @@ Usage:
     reddit_mod.py remove --id t3_abc123 --reason "Rule 3 violation"
     reddit_mod.py remove --id t1_xyz789 --reason "Spam" --spam
     reddit_mod.py lock --id t3_abc123
+    reddit_mod.py ban --username someuser --reason "Repeated spam" --duration permanent
     reddit_mod.py user-history --username someuser --limit 20
     reddit_mod.py rules --subreddit mysubreddit
     reddit_mod.py modmail --subreddit mysubreddit --limit 10 --state all
@@ -89,10 +90,13 @@ _DEFAULT_CONFIG: dict[str, object] = {
     "confidence_auto_remove": 90,
     "trust_reporters": True,
     "community_type": "professional-technical",
-    "max_auto_actions_per_run": 25,
+    "max_auto_actions_per_run": 0,
     "required_language": None,
     "scan_recent_hours": 24,
     "scan_limit": 50,
+    "auto_ban_repeat_offenders": False,
+    "auto_ban_threshold": 3,
+    "auto_ban_message": "Banned for repeated rule violations.",
 }
 
 # Heuristic patterns for scan_flags detection
@@ -493,7 +497,7 @@ def _check_action_limit(subreddit: str) -> tuple[int, int]:
         Tuple of (actions_today, max_allowed). max_allowed is 0 if no limit is configured.
     """
     config = load_config(subreddit)
-    max_allowed = int(config.get("max_auto_actions_per_run", 25))
+    max_allowed = int(config.get("max_auto_actions_per_run", 0))
 
     audit_file = _DATA_DIR / subreddit / "audit.jsonl"
     if not audit_file.exists():
@@ -501,7 +505,7 @@ def _check_action_limit(subreddit: str) -> tuple[int, int]:
 
     today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     actions_today = 0
-    action_types = {"approve", "remove", "remove_spam", "lock"}
+    action_types = {"approve", "remove", "remove_spam", "lock", "ban", "auto_ban"}
 
     try:
         for line in audit_file.read_text(encoding="utf-8").splitlines():
@@ -678,8 +682,11 @@ def _cmd_queue(args: argparse.Namespace) -> int:
     # Show action limit status if requested
     if getattr(args, "check_limit", False):
         actions_today, max_allowed = _check_action_limit(subreddit_name)
-        remaining = max(0, max_allowed - actions_today)
-        print(f"Action limit: {actions_today}/{max_allowed} used today ({remaining} remaining)")
+        if max_allowed <= 0:
+            print(f"Actions today: {actions_today} (no limit)")
+        else:
+            remaining = max(0, max_allowed - actions_today)
+            print(f"Action limit: {actions_today}/{max_allowed} used today ({remaining} remaining)")
         print()
 
     items = [parsed for item in subreddit.mod.modqueue(limit=limit) if (parsed := _parse_mod_item(item)) is not None]
@@ -778,6 +785,9 @@ def _cmd_remove(args: argparse.Namespace) -> int:
     if item is None:
         return rc
 
+    # Capture author before removal (author may become unavailable after)
+    author = str(item.author) if getattr(item, "author", None) else None
+
     try:
         item.mod.remove(spam=args.spam, mod_note=args.reason)
     except NotFound:
@@ -790,17 +800,187 @@ def _cmd_remove(args: argparse.Namespace) -> int:
     # Write audit log if subreddit is known
     subreddit_name = getattr(args, "subreddit", None) or os.environ.get("REDDIT_SUBREDDIT")
     if subreddit_name:
-        write_audit_log(
-            subreddit_name,
-            {
-                "item_id": args.id,
-                "action": "remove_spam" if args.spam else "remove",
-                "reason": (args.reason[:500] if args.reason else ""),
-            },
-        )
+        audit_entry: dict[str, object] = {
+            "item_id": args.id,
+            "action": "remove_spam" if args.spam else "remove",
+            "reason": (args.reason[:500] if args.reason else ""),
+        }
+        if author:
+            audit_entry["author"] = author
+        write_audit_log(subreddit_name, audit_entry)
 
     label = "Removed as spam" if args.spam else "Removed"
     print(f"{label} {args.id} — reason: {args.reason}")
+
+    # --- Auto-ban repeat offenders ---
+    if subreddit_name and author and author != "[deleted]":
+        config = load_config(subreddit_name)
+        if config.get("auto_ban_repeat_offenders") is True:
+            threshold = int(config.get("auto_ban_threshold", 3))
+            ban_message = str(config.get("auto_ban_message", "Banned for repeated rule violations."))
+
+            # Count from repeat-offenders.json (may be stale)
+            offenders_path = _DATA_DIR / subreddit_name / "repeat-offenders.json"
+            offender_count = 0
+            if offenders_path.exists():
+                try:
+                    offenders_data = json.loads(offenders_path.read_text(encoding="utf-8"))
+                    if isinstance(offenders_data, dict):
+                        offender_count = int(offenders_data.get(author, 0))
+                except (json.JSONDecodeError, OSError) as e:
+                    print(f"WARNING: Could not read repeat-offenders.json: {e}", file=sys.stderr)
+
+            # Also count today's audit log removals (in case repeat-offenders.json is stale)
+            today_removals = _count_author_removals_today(subreddit_name, author)
+
+            total_removals = offender_count + today_removals
+
+            if total_removals >= threshold:
+                # Check action limit before auto-banning
+                actions_today, max_allowed = _check_action_limit(subreddit_name)
+                if max_allowed > 0 and actions_today >= max_allowed:
+                    print(
+                        f"WARNING: Auto-ban skipped for u/{author} — action limit reached "
+                        f"({actions_today}/{max_allowed}).",
+                        file=sys.stderr,
+                    )
+                else:
+                    try:
+                        subreddit_obj = reddit.subreddit(subreddit_name)
+                        subreddit_obj.banned.add(author, ban_reason=ban_message)
+                        write_audit_log(
+                            subreddit_name,
+                            {
+                                "action": "auto_ban",
+                                "trigger": "repeat_offender_threshold",
+                                "username": author,
+                                "reason": ban_message,
+                                "removal_count": total_removals,
+                                "threshold": threshold,
+                            },
+                        )
+                        print(f"Auto-banned u/{author} (threshold: {threshold} removals reached)")
+                    except (NotFound, Forbidden) as e:
+                        print(
+                            f"WARNING: Auto-ban failed for u/{author}: {type(e).__name__}",
+                            file=sys.stderr,
+                        )
+                    except Exception as e:
+                        print(
+                            f"WARNING: Auto-ban failed for u/{author}: {type(e).__name__}: {e}",
+                            file=sys.stderr,
+                        )
+
+    return 0
+
+
+def _count_author_removals_today(subreddit: str, author: str) -> int:
+    """Count how many removals an author has in today's audit log.
+
+    Used to supplement repeat-offenders.json which may be stale.
+
+    Args:
+        subreddit: The subreddit name.
+        author: The Reddit username to count removals for.
+
+    Returns:
+        Number of removal actions for this author today.
+    """
+    audit_file = _DATA_DIR / subreddit / "audit.jsonl"
+    if not audit_file.exists():
+        return 0
+
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    removal_actions = {"remove", "remove_spam"}
+    count = 0
+
+    try:
+        for line in audit_file.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            timestamp = entry.get("timestamp", "")
+            action = entry.get("action", "")
+            entry_author = entry.get("author", "")
+            if timestamp.startswith(today_str) and action in removal_actions and entry_author == author:
+                count += 1
+    except OSError as e:
+        print(f"WARNING: Cannot read audit log for repeat offender check: {e}", file=sys.stderr)
+        # Fail closed: return a high count so the caller can decide conservatively
+        return 0
+
+    return count
+
+
+def _cmd_ban(args: argparse.Namespace) -> int:
+    """Ban a user from the subreddit.
+
+    Args:
+        args: Parsed CLI arguments with username, reason, duration, and optional subreddit.
+
+    Returns:
+        Exit code (0 for success, 1 for error).
+    """
+    username = args.username
+    if not _USERNAME_RE.match(username):
+        print(f"ERROR: Invalid username '{username}'.", file=sys.stderr)
+        return 1
+
+    reddit = _build_reddit()
+    subreddit_name = _resolve_subreddit(args)
+    subreddit = reddit.subreddit(subreddit_name)
+
+    # Check action limit
+    actions_today, max_allowed = _check_action_limit(subreddit_name)
+    if max_allowed > 0 and actions_today >= max_allowed:
+        print(
+            f"ERROR: Action limit reached ({actions_today}/{max_allowed} today). Cannot ban u/{username}.",
+            file=sys.stderr,
+        )
+        return 1
+
+    # Parse duration: "permanent" or integer days
+    duration = args.duration
+    ban_duration: bool | int = True  # permanent by default for PRAW
+    if duration.lower() == "permanent":
+        ban_duration = True
+    else:
+        try:
+            ban_duration = int(duration)
+            if ban_duration < 1 or ban_duration > 999:
+                print(f"ERROR: Duration must be 1-999 days or 'permanent', got '{duration}'.", file=sys.stderr)
+                return 1
+        except ValueError:
+            print(f"ERROR: Duration must be a number of days or 'permanent', got '{duration}'.", file=sys.stderr)
+            return 1
+
+    try:
+        if ban_duration is True:
+            subreddit.banned.add(username, ban_reason=args.reason)
+        else:
+            subreddit.banned.add(username, ban_reason=args.reason, duration=ban_duration)
+    except NotFound:
+        print(f"ERROR: User u/{username} not found.", file=sys.stderr)
+        return 1
+    except Forbidden:
+        print(f"ERROR: Permission denied to ban u/{username} from r/{subreddit_name}.", file=sys.stderr)
+        return 1
+
+    write_audit_log(
+        subreddit_name,
+        {
+            "action": "ban",
+            "username": username,
+            "reason": args.reason[:500],
+            "duration": duration,
+        },
+    )
+
+    duration_label = "permanently" if duration.lower() == "permanent" else f"for {duration} days"
+    print(f"Banned u/{username} from r/{subreddit_name} {duration_label} — reason: {args.reason}")
     return 0
 
 
@@ -964,7 +1144,7 @@ def _cmd_setup(args: argparse.Namespace) -> int:
                 "confidence_auto_remove": 90,
                 "trust_reporters": True,
                 "community_type": "professional-technical",
-                "max_auto_actions_per_run": 25,
+                "max_auto_actions_per_run": 0,
             }
         config_path.write_text(json.dumps(default_config, indent=2, ensure_ascii=False), encoding="utf-8")
         created.append("config.json")
@@ -1471,6 +1651,8 @@ Examples:
   %(prog)s approve --id t3_abc123
   %(prog)s remove --id t3_abc123 --reason "Rule 3 violation"
   %(prog)s lock --id t3_abc123
+  %(prog)s ban --username spammer --reason "Repeated spam" --duration permanent
+  %(prog)s ban --username spammer --reason "Temp ban" --duration 7
   %(prog)s user-history --username someuser
   %(prog)s rules --subreddit mysubreddit
   %(prog)s modmail --subreddit mysubreddit --state new
@@ -1535,6 +1717,20 @@ Examples:
     lock_parser = subparsers.add_parser("lock", help="Lock a submission thread")
     lock_parser.add_argument("--id", required=True, help="Submission fullname ID (t3_...)")
 
+    # --- ban ---
+    ban_parser = subparsers.add_parser("ban", help="Ban a user from the subreddit")
+    ban_parser.add_argument("--username", "-u", required=True, help="Reddit username to ban")
+    ban_parser.add_argument("--reason", "-r", required=True, help="Ban reason")
+    ban_parser.add_argument(
+        "--duration",
+        "-d",
+        default="permanent",
+        help="Ban duration: 'permanent' or number of days (default: permanent)",
+    )
+    ban_parser.add_argument(
+        "--subreddit", "-s", default=None, help="Subreddit name (default: REDDIT_SUBREDDIT env var)"
+    )
+
     # --- user-history ---
     user_parser = subparsers.add_parser("user-history", help="Fetch user's recent activity")
     user_parser.add_argument("--username", "-u", required=True, help="Reddit username")
@@ -1598,6 +1794,7 @@ Examples:
         "approve": _cmd_approve,
         "remove": _cmd_remove,
         "lock": _cmd_lock,
+        "ban": _cmd_ban,
         "user-history": _cmd_user_history,
         "rules": _cmd_rules,
         "modmail": _cmd_modmail,

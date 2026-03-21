@@ -16,11 +16,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import reddit_mod
 from reddit_mod import (
+    _DEFAULT_CONFIG,
     _FULLNAME_RE,
     _SUBREDDIT_RE,
     _USERNAME_RE,
     _analyze_mod_log,
     _check_action_limit,
+    _count_author_removals_today,
     _detect_scan_flags,
     detect_mass_report,
     wrap_untrusted,
@@ -399,3 +401,115 @@ class TestAnalyzeModLog:
         result = _analyze_mod_log(entries, "test")
         assert result["moderator_activity"]["AutoModerator"] == 1
         assert result["moderator_activity"]["humanmod"] == 1
+
+
+# --- _DEFAULT_CONFIG auto-ban fields ---
+
+
+class TestDefaultConfigAutoBanFields:
+    """Tests that _DEFAULT_CONFIG contains the required auto-ban fields."""
+
+    def test_auto_ban_repeat_offenders_present_and_false(self) -> None:
+        assert "auto_ban_repeat_offenders" in _DEFAULT_CONFIG
+        assert _DEFAULT_CONFIG["auto_ban_repeat_offenders"] is False
+
+    def test_auto_ban_threshold_present_and_default(self) -> None:
+        assert "auto_ban_threshold" in _DEFAULT_CONFIG
+        assert _DEFAULT_CONFIG["auto_ban_threshold"] == 3
+
+    def test_auto_ban_message_present_and_default(self) -> None:
+        assert "auto_ban_message" in _DEFAULT_CONFIG
+        assert _DEFAULT_CONFIG["auto_ban_message"] == "Banned for repeated rule violations."
+
+
+# --- _count_author_removals_today ---
+
+
+class TestCountAuthorRemovalsToday:
+    """Tests for _count_author_removals_today audit log counting."""
+
+    def test_no_audit_file(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(reddit_mod, "_DATA_DIR", tmp_path)
+        count = _count_author_removals_today("testsub", "someuser")
+        assert count == 0
+
+    def test_counts_only_matching_author(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(reddit_mod, "_DATA_DIR", tmp_path)
+        sub_dir = tmp_path / "testsub"
+        sub_dir.mkdir()
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        audit = sub_dir / "audit.jsonl"
+        audit.write_text(
+            "\n".join(
+                [
+                    json.dumps({"timestamp": f"{today}T10:00:00+00:00", "action": "remove", "author": "spammer"}),
+                    json.dumps({"timestamp": f"{today}T11:00:00+00:00", "action": "remove_spam", "author": "spammer"}),
+                    json.dumps({"timestamp": f"{today}T12:00:00+00:00", "action": "remove", "author": "otheruser"}),
+                    json.dumps({"timestamp": f"{today}T13:00:00+00:00", "action": "approve", "author": "spammer"}),
+                ]
+            )
+        )
+        count = _count_author_removals_today("testsub", "spammer")
+        assert count == 2  # only remove + remove_spam for "spammer"
+
+    def test_ignores_old_entries(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(reddit_mod, "_DATA_DIR", tmp_path)
+        sub_dir = tmp_path / "testsub"
+        sub_dir.mkdir()
+        audit = sub_dir / "audit.jsonl"
+        audit.write_text(
+            json.dumps({"timestamp": "2020-01-01T00:00:00+00:00", "action": "remove", "author": "spammer"}) + "\n"
+        )
+        count = _count_author_removals_today("testsub", "spammer")
+        assert count == 0
+
+    def test_malformed_lines_skipped(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(reddit_mod, "_DATA_DIR", tmp_path)
+        sub_dir = tmp_path / "testsub"
+        sub_dir.mkdir()
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        audit = sub_dir / "audit.jsonl"
+        audit.write_text(
+            "not json\n"
+            + json.dumps({"timestamp": f"{today}T10:00:00+00:00", "action": "remove", "author": "spammer"})
+            + "\n"
+        )
+        count = _count_author_removals_today("testsub", "spammer")
+        assert count == 1
+
+    def test_os_error_returns_zero(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Fail closed: OSError returns 0 (conservative — won't trigger a false auto-ban)."""
+        monkeypatch.setattr(reddit_mod, "_DATA_DIR", tmp_path)
+        sub_dir = tmp_path / "testsub"
+        sub_dir.mkdir()
+        audit = sub_dir / "audit.jsonl"
+        audit.write_text("data")
+        audit.chmod(0o000)
+        count = _count_author_removals_today("testsub", "spammer")
+        assert count == 0
+        audit.chmod(0o644)  # cleanup
+
+
+# --- _check_action_limit counts ban actions ---
+
+
+class TestCheckActionLimitBans:
+    """Tests that _check_action_limit counts ban and auto_ban actions."""
+
+    def test_counts_ban_actions(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(reddit_mod, "_DATA_DIR", tmp_path)
+        sub_dir = tmp_path / "testsub"
+        sub_dir.mkdir()
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        audit = sub_dir / "audit.jsonl"
+        audit.write_text(
+            "\n".join(
+                [
+                    json.dumps({"timestamp": f"{today}T10:00:00+00:00", "action": "ban"}),
+                    json.dumps({"timestamp": f"{today}T11:00:00+00:00", "action": "auto_ban"}),
+                    json.dumps({"timestamp": f"{today}T12:00:00+00:00", "action": "remove"}),
+                ]
+            )
+        )
+        actions, _ = _check_action_limit("testsub")
+        assert actions == 3  # ban + auto_ban + remove all counted
