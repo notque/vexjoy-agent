@@ -73,6 +73,11 @@ This skill operates as an operator for Go testing workflows, configuring Claude'
 - **Coverage HTML Report**: Generate and open HTML coverage visualization
 - **Interface Deduplication**: Test multiple interface implementations with shared test functions
 
+## Available Scripts
+
+- **`scripts/gen-table-test.sh`** — Scaffold a table-driven test file for a Go function. Run `bash scripts/gen-table-test.sh --help` for options.
+- **`scripts/bench-compare.sh`** — Run Go benchmarks with optional benchstat comparison. Run `bash scripts/bench-compare.sh --help` for options.
+
 ## What This Skill CAN Do
 - Write idiomatic table-driven tests with `t.Run` subtests
 - Create test helpers with proper `t.Helper()` marking
