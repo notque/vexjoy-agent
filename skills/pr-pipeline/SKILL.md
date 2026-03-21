@@ -379,12 +379,18 @@ gh run list --branch $(git branch --show-current) --limit 1
 gh run watch [run-id] --exit-status
 ```
 
-If CI passes, report success with PR URL.
-If CI fails, report which checks failed and the PR URL. Do not attempt to fix CI failures automatically.
+If CI fails, report which checks failed and the PR URL. Do NOT merge. Do NOT proceed to cleanup.
+
+If CI passes and user requested merge:
+```bash
+CLAUDE_GATE_BYPASS=1 gh pr merge --merge --delete-branch
+```
+
+**HARD RULE**: Never merge a PR with failing or pending CI. CI must pass first.
 
 If `--no-wait` was passed, skip this phase and report the PR URL immediately.
 
-**Gate**: CI status reported. Proceed to Phase 7.
+**Gate**: CI green + merged (if requested). Proceed to Phase 7.
 
 ### Phase 7: CLEANUP
 

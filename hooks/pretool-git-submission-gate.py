@@ -62,8 +62,7 @@ def main() -> None:
     for pattern, skill_name, message in BLOCKED_PATTERNS:
         if pattern.search(command):
             print(
-                f"[git-submission-gate] BLOCKED: {message}\n"
-                f"[fix-with-skill] {skill_name}",
+                f"[git-submission-gate] BLOCKED: {message}\n[fix-with-skill] {skill_name}",
                 file=sys.stderr,
             )
             sys.exit(2)
