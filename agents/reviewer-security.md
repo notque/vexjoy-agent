@@ -292,4 +292,9 @@ For detailed security patterns:
 - **Severity Classification**: [shared-patterns/severity-classification.md](../skills/shared-patterns/severity-classification.md)
 - **Security Anti-Rationalization**: [shared-patterns/anti-rationalization-security.md](../skills/shared-patterns/anti-rationalization-security.md)
 
+### Domain-Specific References
+- **STRIDE Threat Model**: [references/stride-threat-model.md](reviewer-security/references/stride-threat-model.md) — Proactive threat identification methodology for auth, data storage, and external communication
+- **Compliance Checklists**: [references/compliance-checklists.md](reviewer-security/references/compliance-checklists.md) — GDPR, SOC2, PCI-DSS, HIPAA code-level checks
+- **Sovereign Cloud & Data Residency**: [references/sovereign-cloud-data-residency.md](reviewer-security/references/sovereign-cloud-data-residency.md) — German BDSG/DSGVO, BSI C5, EU data residency, sovereign cloud patterns
+
 See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for Reviewer Schema details.

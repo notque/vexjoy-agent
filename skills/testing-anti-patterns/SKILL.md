@@ -352,3 +352,4 @@ If you find anti-patterns in a codebase, check if TDD discipline slipped.
 - `${CLAUDE_SKILL_DIR}/references/anti-pattern-catalog.md`: Detailed code examples for all 10 anti-patterns (Go, Python, JavaScript)
 - `${CLAUDE_SKILL_DIR}/references/fix-strategies.md`: Language-specific fix patterns and tooling
 - `${CLAUDE_SKILL_DIR}/references/blind-spot-taxonomy.md`: 6-category taxonomy of what high-coverage test suites commonly miss (concurrency, state, boundaries, security, integration, resilience)
+- `${CLAUDE_SKILL_DIR}/references/load-test-scenarios.md`: 6 load test scenario types (smoke, load, stress, spike, soak, breakpoint) with configurations and critical endpoint priorities
