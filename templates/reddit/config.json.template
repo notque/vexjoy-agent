@@ -11,8 +11,8 @@
   "_comment_community_type": "Describes the community tone. Used by the classifier to calibrate content standards. Values: 'professional-technical', 'casual', 'academic', 'creative', 'support', 'news-discussion'.",
   "community_type": "professional-technical",
 
-  "_comment_max_auto_actions_per_run": "Safety cap on how many items can be auto-actioned in a single run. Prevents runaway automation. Set to 0 to disable auto-actions entirely.",
-  "max_auto_actions_per_run": 25,
+  "_comment_max_auto_actions_per_run": "Safety cap on how many items can be auto-actioned in a single run. Set to 0 for no limit (recommended once validated). Set to a positive number to cap actions per run.",
+  "max_auto_actions_per_run": 0,
 
   "_comment_required_language": "ISO 639-1 language code (e.g., 'en', 'de', 'fr') required for posts and comments. Set to null to allow any language. Used by proactive scanning to flag non-compliant content.",
   "required_language": null,
