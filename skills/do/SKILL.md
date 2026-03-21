@@ -431,7 +431,19 @@ python3 scripts/learning-db.py record TOPIC KEY "VALUE" --category CATEGORY
 
 Record specific, actionable insights — not generic advice. "Force-route triggers must not contain sibling skill names" is good. "Be careful with routing" is not.
 
-**Gate**: After Simple+ tasks, record at least one learning via `learn`. Hooks handle error capture automatically.
+**Immediate graduation for review findings** (MANDATORY):
+
+When a wave review finds an issue and it gets fixed in the same PR, the fix IS the validation. Do not passively record at 0.7 and wait. Instead:
+
+1. Record the learning scoped to the responsible agent/skill
+2. Boost to confidence 1.0 immediately (`python3 scripts/learning-db.py boost TOPIC KEY` x3)
+3. Embed the pattern into the agent/skill's FORBIDDEN patterns or anti-patterns section
+4. Graduate the entry (`python3 scripts/learning-db.py graduate TOPIC KEY "target.md"`)
+5. Stage the agent/skill changes alongside the code changes in the same PR
+
+One cycle. Review finds it → fix it → record at 1.0 → graduate into agent → ship together. No waiting for "multiple observations." The PR review was the observation.
+
+**Gate**: After Simple+ tasks, record at least one learning via `learn`. Review findings get immediate graduation. Hooks handle error capture automatically.
 
 ---
 
