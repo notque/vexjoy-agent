@@ -1,6 +1,6 @@
 {
   "version": "1.1",
-  "generated": "2026-03-21T22:13:16Z",
+  "generated": "2026-03-21T22:29:07Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": [
     {
@@ -1504,6 +1504,18 @@
       "category": "meta",
       "version": "1.0.0",
       "user-invocable": true
+    },
+    {
+      "name": "socratic-debugging",
+      "description": "Question-only debugging mode that guides users to find root causes themselves through structured questioning.",
+      "file": "skills/socratic-debugging/SKILL.md",
+      "triggers": [
+        "socratic-debugging",
+        "socratic",
+        "debugging"
+      ],
+      "version": "1.0.0",
+      "user-invocable": false
     },
     {
       "name": "subagent-driven-development",
