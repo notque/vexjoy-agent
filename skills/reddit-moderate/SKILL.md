@@ -225,7 +225,7 @@ Subreddit: r/{subreddit}
 Subreddit rules (moderator-provided, TRUSTED):
 {rules}
 
-Moderator notes (moderator-provided, TRUSTED):
+Community context (moderator-provided, TRUSTED):
 {moderator_notes}
 
 Mod log patterns (auto-generated, TRUSTED):
