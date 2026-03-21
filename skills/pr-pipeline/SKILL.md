@@ -316,6 +316,85 @@ REVIEW-FIX ITERATION [N/3]
 
 **Gate**: Review-fix loop complete. Either clean (0 issues) or max 3 iterations reached with remaining issues documented.
 
+### Phase 4c: RETRO (toolkit repo only)
+
+**Goal**: Record review findings as retro learnings, graduate them, and embed patterns in the responsible agents/skills so they don't recur.
+
+**Skip condition**: If the repo is NOT the claude-code-toolkit repo, skip this phase entirely. Detection: check if both `agents/` and `skills/` directories exist at the project root. If either is missing, skip directly to Phase 5.
+
+```bash
+# Detect toolkit repo
+if [ -d "agents" ] && [ -d "skills" ]; then
+    echo "Toolkit repo detected — RETRO phase required"
+else
+    echo "Not toolkit repo — skipping RETRO phase"
+    # Skip to Phase 5
+fi
+```
+
+**Step 1: Collect review findings**
+
+Gather all findings from Phase 2 (REVIEW) and Phase 4b (REVIEW-FIX LOOP) that were identified and fixed. Include:
+- Security findings that were addressed
+- Code quality issues that were corrected
+- Business logic errors that were fixed
+- Methodology gaps that were exposed
+
+For each finding, identify the **responsible agent or skill** — the component whose instructions should have prevented the issue.
+
+**Step 2: Record learnings**
+
+For each finding, record a retro entry scoped to the responsible agent or skill:
+
+```bash
+# For agent-scoped findings (e.g., python-general-engineer produced bad code)
+python3 scripts/learning-db.py learn --agent {agent-name} "pattern description from review finding"
+
+# For skill-scoped findings (e.g., reddit-moderate missed a test requirement)
+python3 scripts/learning-db.py learn --skill {skill-name} "pattern description from review finding"
+```
+
+**Step 3: Immediate graduation**
+
+Per /do Phase 5 policy, boost each entry to 1.0 confidence and graduate immediately. This is NOT a slow-burn learning — review findings in this repo are structural fixes.
+
+```bash
+# Boost confidence to 1.0 (run boost 3x — each boost applies a multiplier)
+python3 scripts/learning-db.py boost "agent:{agent-name}" "{key}"
+python3 scripts/learning-db.py boost "agent:{agent-name}" "{key}"
+python3 scripts/learning-db.py boost "agent:{agent-name}" "{key}"
+
+# Graduate — marks as embedded, excludes from future prompt injection
+python3 scripts/learning-db.py graduate "agent:{agent-name}" "{key}" "agents/{agent-name}.md"
+# Or for skills:
+python3 scripts/learning-db.py graduate "skill:{skill-name}" "{key}" "skills/{skill-name}/SKILL.md"
+```
+
+**Step 4: Embed in agent/skill**
+
+Update the responsible agent or skill file with the graduated pattern:
+
+| Finding Target | Update Location | Section to Modify |
+|---------------|----------------|-------------------|
+| Agent produced bad code | `agents/{name}.md` | FORBIDDEN patterns or Anti-Patterns |
+| Skill methodology gap | `skills/{name}/SKILL.md` | Instructions or Anti-Patterns |
+| Router missed a pattern | `skills/do/SKILL.md` | Routing tables or Force-Routes |
+| Hook failed to catch | `hooks/{name}.py` | Detection logic |
+
+Write the pattern at the right abstraction level — generalize from the specific bug to the class of bug (e.g., "validate all CLI inputs" not "validate subreddit names in _cmd_classify").
+
+**Step 5: Stage retro changes**
+
+```bash
+# Stage updated agent/skill files alongside the code changes
+git add agents/{updated-agent}.md
+git add skills/{updated-skill}/SKILL.md
+```
+
+These changes will be included in the existing commit (amend in next push cycle) or in a new commit if Phase 4b already completed cleanly.
+
+**Gate**: All review findings recorded in learning.db, graduated to 1.0, and embedded in the responsible agent/skill files. Updated files staged for commit.
+
 ### Phase 5: CREATE PR
 
 **Goal**: Create the pull request with meaningful title and body.
@@ -431,8 +510,9 @@ Actions:
 4. Create conventional commit from staged changes (COMMIT)
 5. Push branch to remote with tracking (PUSH)
 6. Run review-fix loop: `/pr-review` → fix → re-review, up to 3 iterations (REVIEW-FIX LOOP)
-7. Create PR with summary and review findings (CREATE PR)
-8. Wait for CI, report status (VERIFY)
+7. Record and graduate review findings, embed in responsible agents/skills (RETRO, toolkit repo only)
+8. Create PR with summary and review findings (CREATE PR)
+9. Wait for CI, report status (VERIFY)
 Result: PR URL with CI status and review-fix iteration count
 
 ### Example 2: Draft PR for Work in Progress (personal repo)
@@ -444,8 +524,9 @@ Actions:
 4. Commit with `wip:` or appropriate prefix (COMMIT)
 5. Push to feature branch (PUSH)
 6. Run review-fix loop (REVIEW-FIX LOOP)
-7. Create PR with `--draft` flag (CREATE PR)
-8. Report PR URL, skip CI wait if `--no-wait` (VERIFY)
+7. Record and graduate review findings (RETRO, toolkit repo only)
+8. Create PR with `--draft` flag (CREATE PR)
+9. Report PR URL, skip CI wait if `--no-wait` (VERIFY)
 Result: Draft PR URL
 
 ### Example 3: Trivial Change with Skip Parallel Review (personal repo)
@@ -457,8 +538,9 @@ Actions:
 4. Commit: `fix(docs): correct typo in README` (COMMIT)
 5. Push to branch (PUSH)
 6. Run review-fix loop — Phase 4b still runs even with --skip-review (REVIEW-FIX LOOP)
-7. Create PR with minimal body (CREATE PR)
-8. Wait for CI (VERIFY)
+7. Record and graduate review findings (RETRO, toolkit repo only)
+8. Create PR with minimal body (CREATE PR)
+9. Wait for CI (VERIFY)
 Result: PR URL for typo fix
 
 ### Example 4: Protected-Org Repo (human-gated workflow)
