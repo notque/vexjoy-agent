@@ -166,7 +166,7 @@ spec: close({
     // Optional fields (? suffix)
     field2?: int
     // Shared types from common
-    format?: common.#Format
+    format?: common.#format
 })
 ```
 

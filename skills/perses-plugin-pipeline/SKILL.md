@@ -76,8 +76,8 @@ This skill operates as an end-to-end plugin development guide, enforcing phase g
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| "package name mismatch" | CUE file package declaration does not match directory name | Ensure `package <name>` in .cue file matches the plugin name directory |
-| "cannot find package" / missing imports | Required CUE modules not imported | Add missing imports — common ones: `github.com/perses/perses/schemas/common`, `github.com/perses/perses/schemas/panels` |
+| "package name mismatch" | CUE file uses wrong package name — Perses requires `package model` for all plugin schemas | Change the first line of the .cue file to `package model` |
+| "cannot find package" / missing imports | Required CUE modules not imported | Add missing imports — common ones: `github.com/perses/shared/cue/common` for shared types |
 | "conflicting values" | JSON example does not conform to CUE constraints | Fix JSON to match CUE type definitions, or relax CUE constraints |
 | "cannot convert incomplete value" | CUE schema uses unresolved references | Ensure all referenced definitions are imported or defined locally |
 
@@ -122,7 +122,7 @@ This skill operates as an end-to-end plugin development guide, enforcing phase g
 ## FORBIDDEN Patterns
 - **NEVER** modify percli-generated rsbuild.config.ts module federation settings — this breaks plugin loading
 - **NEVER** manually construct plugin archives (zip/tar) — always use `percli plugin build`
-- **NEVER** skip CUE package declaration — every .cue file must have `package <name>` matching its directory
+- **NEVER** skip CUE package declaration — every plugin .cue schema file must declare `package model`
 - **NEVER** import from `@perses-dev/internal` — use only public API packages (`@perses-dev/plugin-system`, `@perses-dev/components`)
 - **NEVER** hardcode Perses server URLs in plugin source — plugins receive context via the plugin system
 
@@ -167,7 +167,7 @@ percli plugin generate \
 **Goal**: Author CUE schema defining the plugin's data model.
 
 1. Create CUE schema at `schemas/<type>/<name>/<name>.cue`
-   - Declare correct package: `package <name>`
+   - Declare correct package: `package model`
    - Define the plugin's spec structure with CUE types and constraints
    - Import common Perses schema packages as needed
 
