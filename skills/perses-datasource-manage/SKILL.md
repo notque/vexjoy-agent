@@ -146,6 +146,12 @@ percli get datasource --project <project>
 
 # Describe specific datasource
 percli describe globaldatasource <name>
+
+# Test proxy connectivity (global)
+curl -s http://localhost:8080/proxy/globaldatasources/<name>/api/v1/query?query=up
+
+# Test proxy connectivity (project-scoped)
+curl -s http://localhost:8080/proxy/projects/<project>/datasources/<name>/api/v1/query?query=up
 ```
 
 Or via MCP:
@@ -155,3 +161,76 @@ perses_list_datasources(project="<project>")
 ```
 
 **Gate**: Datasource listed and configuration confirmed. Task complete.
+
+---
+
+## Error Handling
+
+| Symptom | Cause | Solution |
+|---------|-------|----------|
+| Datasource proxy returns **403 Forbidden** | `allowedEndpoints` not configured, or the HTTP method in the endpoint pattern does not match the request method (e.g., only GET defined but query uses POST) | Add the missing endpoint patterns to `spec.plugin.spec.proxy.spec.allowedEndpoints`. Prometheus needs both GET and POST for `/api/v1/.*`. Tempo needs GET for `/api/traces/.*` and POST for `/api/search` |
+| MCP tool `perses_create_global_datasource` fails with **conflict/already exists** | A GlobalDatasource with that name already exists | Use `perses_update_global_datasource` instead, or delete the existing one first with `percli delete globaldatasource <name>`. To check: `perses_list_global_datasources()` |
+| MCP tool fails with **invalid plugin kind** | The `type` parameter does not match a registered plugin kind exactly | Use the exact casing: `PrometheusDatasource`, `TempoDatasource`, `LokiDatasource`, `PyroscopeDatasource`, `ClickHouseDatasource`, `VictoriaLogsDatasource`. These are case-sensitive |
+| Datasource connectivity test fails (proxy returns **502/504**) | Backend URL is unreachable from the Perses server. The server cannot connect to the datasource backend at the configured URL | Verify the backend URL is reachable from the Perses server's network context. For Docker, use `host.docker.internal` or the container network name instead of `localhost`. For K8s, use the service DNS name (e.g., `http://prometheus.monitoring.svc:9090`) |
+| Proxy returns **TLS handshake error** | Backend uses HTTPS but Perses cannot verify the certificate (self-signed or missing CA) | For self-signed certs, configure the CA in the Perses server's trust store or set the `PERSES_DATASOURCE_SKIP_TLS_VERIFY` environment variable if available. Prefer fixing the cert chain over disabling verification |
+| Project datasource does **not override** global datasource | The project datasource `metadata.name` does not match the global datasource name exactly. Override only works when names are identical | Ensure the project-scoped `Datasource` has the exact same `metadata.name` as the `GlobalDatasource` it should override. Names are case-sensitive |
+
+---
+
+## Anti-Patterns
+
+| Anti-Pattern | Why It Fails | Do This Instead |
+|--------------|-------------|-----------------|
+| Creating all datasources at global scope | Pollutes the namespace, makes per-team access control impossible, and forces every project to see every datasource | Use global scope only for organization-wide defaults. Use project-scoped datasources for team-specific backends |
+| Omitting `allowedEndpoints` on HTTP proxy datasources | Queries are blocked silently — the proxy returns 403 with no useful error message in dashboards, making debugging difficult | Always define `allowedEndpoints` with both the `endpointPattern` regex and `method` for every HTTP proxy datasource |
+| Not setting `default: true` on the primary datasource | Dashboard panels cannot auto-discover the datasource. Users must manually select it in every panel, and panel YAML must hardcode the datasource name | Set `default: true` on exactly one datasource per plugin kind per scope. If you have multiple Prometheus datasources, designate one as default |
+| Using dashboard-scoped datasources when project scope would enable reuse | Dashboard-scoped datasource config is embedded in the dashboard JSON and cannot be shared. Every dashboard that needs it must duplicate the config | Use project-scoped datasources for any datasource used by more than one dashboard. Reserve dashboard scope for true one-off test configurations |
+| Hardcoding `localhost` URLs in non-local deployments | Breaks when Perses runs in Docker or Kubernetes because `localhost` refers to the container, not the host | Use container/service names: Docker network names for Compose, K8s service DNS for Helm deployments |
+
+---
+
+## Anti-Rationalization
+
+| Rationalization | Why It's Wrong | Required Action |
+|-----------------|---------------|-----------------|
+| "The datasource was created successfully, so it must be working" | Creation succeeding only means the API accepted the resource definition. It does not validate that the backend URL is reachable or that allowedEndpoints are correct | **Test the proxy endpoint** with a real query: `curl` the `/proxy/globaldatasources/<name>/...` path and verify a non-error response |
+| "I don't need allowedEndpoints because I'm only doing GET requests" | Prometheus `/api/v1/query_range` and `/api/v1/labels` use POST for large payloads. Loki and Tempo also mix methods. A GET-only config breaks silently on certain queries | **Always configure both GET and POST** for the relevant endpoint patterns unless the datasource documentation explicitly states only one method is used |
+| "Global scope is fine — we can always move it later" | Moving from global to project scope requires deleting the global datasource and recreating it as project-scoped. All dashboards referencing it by name will keep working only if the project datasource name matches exactly. This is a disruptive migration | **Choose scope deliberately** at creation time. Ask: "Does every project need this, or just one team?" |
+| "The datasource type name is probably case-insensitive" | Plugin kind names are case-sensitive Go type identifiers. `prometheusdatasource` or `prometheus` will fail with an unhelpful "invalid plugin kind" error | **Use exact casing**: `PrometheusDatasource`, `TempoDatasource`, etc. Copy from the supported types table |
+
+---
+
+## FORBIDDEN Patterns
+
+These patterns cause silent failures, data loss, or security issues. Never use them.
+
+- **NEVER** create a datasource without `allowedEndpoints` on HTTP proxy types — results in silent 403 on all queries
+- **NEVER** use `method: *` or omit the `method` field in allowedEndpoints — the Perses proxy requires explicit method matching
+- **NEVER** set `default: true` on multiple datasources of the same plugin kind at the same scope — behavior is undefined and varies between Perses versions
+- **NEVER** embed secrets (passwords, tokens) in datasource YAML committed to version control — use Perses native auth or external secret management
+- **NEVER** delete a global datasource without checking which projects and dashboards reference it — use `percli get datasource --project <project>` across all projects first
+
+---
+
+## Blocker Criteria
+
+Stop and escalate to the user if ANY of these conditions are true:
+
+- Backend URL is unknown or unresolvable — cannot create a functional datasource without a reachable backend
+- Datasource type is not one of the 6 supported plugin kinds — Perses does not support arbitrary datasource plugins without custom plugin development
+- User requests a datasource plugin kind that is not installed on the Perses server — verify available plugins before attempting creation
+- Proxy test returns persistent 5xx errors after datasource creation — indicates infrastructure issues beyond datasource configuration
+- User wants to delete a global datasource used by multiple projects — requires explicit confirmation of the blast radius
+
+---
+
+## References
+
+| Resource | URL |
+|----------|-----|
+| Perses datasource documentation | https://perses.dev/docs/user-guides/datasources/ |
+| Perses HTTP proxy configuration | https://perses.dev/docs/user-guides/datasources/#http-proxy |
+| Perses API: GlobalDatasource | https://perses.dev/docs/api/datasource/ |
+| Perses MCP server (datasource tools) | https://github.com/perses/perses-mcp-server |
+| percli reference | https://perses.dev/docs/user-guides/percli/ |
+| Perses GitHub repository | https://github.com/perses/perses |
