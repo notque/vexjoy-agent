@@ -41,28 +41,22 @@ DANGEROUS_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
     (re.compile(r"\brm\s+(-[a-zA-Z]*f[a-zA-Z]*\s+)?-[a-zA-Z]*r[a-zA-Z]*\s+/\*"), "filesystem", "rm -rf /*"),
     (re.compile(r"\brm\s+(-[a-zA-Z]*f[a-zA-Z]*\s+)?-[a-zA-Z]*r[a-zA-Z]*\s+~/?(\s|$)"), "filesystem", "rm -rf ~"),
     (re.compile(r"\brm\s+(-[a-zA-Z]*f[a-zA-Z]*\s+)?-[a-zA-Z]*r[a-zA-Z]*\s+\./?(\s|$)"), "filesystem", "rm -rf ."),
-
     # Database destruction
     (re.compile(r"\bDROP\s+DATABASE\b", re.IGNORECASE), "database", "DROP DATABASE"),
     (re.compile(r"\bDROP\s+SCHEMA\b", re.IGNORECASE), "database", "DROP SCHEMA"),
     (re.compile(r"\bTRUNCATE\s+TABLE\b", re.IGNORECASE), "database", "TRUNCATE TABLE"),
-
     # Permission escalation
     (re.compile(r"\bchmod\s+(-R\s+)?777\b"), "permissions", "chmod 777"),
-
     # Force-push to protected branches
     (re.compile(r"\bgit\s+push\s+.*--force\s+.*\b(main|master)\b"), "git", "git push --force main/master"),
     (re.compile(r"\bgit\s+push\s+-f\s+.*\b(main|master)\b"), "git", "git push -f main/master"),
-
     # Container mass-kill
     (re.compile(r"\bdocker\s+system\s+prune\s+-af\b"), "container", "docker system prune -af"),
     (re.compile(r"\bkubectl\s+delete\s+namespace\b"), "container", "kubectl delete namespace"),
     (re.compile(r"\bkubectl\s+delete\s+ns\b"), "container", "kubectl delete ns"),
-
     # System-level danger
     (re.compile(r"\bmkfs\b"), "system", "mkfs (format disk)"),
     (re.compile(r"\bdd\s+if="), "system", "dd (raw disk write)"),
-
     # Cloud destructive
     (re.compile(r"\bterraform\s+destroy\b(?!.*-target)"), "cloud", "terraform destroy (no -target)"),
     (re.compile(r"\baws\s+s3\s+rb\s+.*--force\b"), "cloud", "aws s3 rb --force"),
