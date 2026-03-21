@@ -47,7 +47,7 @@ If the script is not found at `scripts/install-doctor.py`, try `~/.claude/script
 | Components missing | Guide user to run `install.sh` — go to Phase 2 |
 | Hooks not configured | Guide user to run `install.sh` — go to Phase 2 |
 | Broken symlinks | Symlink targets moved. Re-run `install.sh --symlink --force` |
-| Python deps missing | Run `pip install -r requirements.txt` |
+| Python deps missing | Run `pip install -r requirements.txt` from the repo directory |
 | Permissions wrong | Run `chmod 755` on affected files |
 
 **Step 3: Display results clearly**
@@ -84,8 +84,8 @@ For fixable issues (permissions, missing deps), offer to fix them:
 find ~/.claude/hooks -name "*.py" -exec chmod 755 {} \;
 find ~/.claude/scripts -name "*.py" -exec chmod 755 {} \;
 
-# Install Python deps
-pip install PyYAML
+# Install Python deps (from repo directory)
+pip install -r requirements.txt
 ```
 
 Only run fixes the user approves.
@@ -111,16 +111,16 @@ python3 scripts/install-doctor.py inventory
 
 **Step 2: Display summary**
 
-Show the component counts and highlight the key entry points:
+Show the actual counts returned by `install-doctor.py inventory` — do not display hardcoded numbers. Present them as:
 
 ```
 Your toolkit is ready. Here's what's installed:
 
-  Agents:   90 specialized domain experts
-  Skills:   115 workflow methodologies (80 user-invocable)
-  Hooks:    30 automation hooks
-  Commands: 7 slash commands
-  Scripts:  60 utility scripts
+  Agents:   [N] specialized domain experts
+  Skills:   [N] workflow methodologies ([N] user-invocable)
+  Hooks:    [N] automation hooks
+  Commands: [N] slash commands
+  Scripts:  [N] utility scripts
 ```
 
 **Gate**: User sees their inventory. Proceed to Phase 4.
@@ -155,7 +155,7 @@ Try these:
 ```
 Documentation:
   docs/QUICKSTART.md   — 30-second overview
-  docs/REFERENCE.md    — full command reference
+  docs/REFERENCE.md    — quick reference card
 ```
 
 **Gate**: User is oriented. Installation complete.
