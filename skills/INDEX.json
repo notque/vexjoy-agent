@@ -1,6 +1,6 @@
 {
   "version": "1.1",
-  "generated": "2026-03-21T22:29:07Z",
+  "generated": "2026-03-21T22:32:19Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": [
     {
@@ -1514,6 +1514,24 @@
         "socratic",
         "debugging"
       ],
+      "version": "1.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "spec-writer",
+      "description": "Structured specification with explicit scope boundaries: user stories, acceptance criteria, out-of-scope definition, risks, and estimation.",
+      "file": "skills/spec-writer/SKILL.md",
+      "triggers": [
+        "write spec",
+        "user stories",
+        "define requirements",
+        "scope this",
+        "what should this do",
+        "acceptance criteria",
+        "define scope",
+        "spec out"
+      ],
+      "category": "process",
       "version": "1.0.0",
       "user-invocable": false
     },
