@@ -592,7 +592,7 @@ All build config is generated from `Makefile.maker.yaml`. Do NOT edit these file
 
 ### golangci-lint v2 Configuration
 
-35 enabled linters. Key settings:
+35+ enabled linters. Key settings:
 
 | Setting | Value | Rationale |
 |---------|-------|-----------|
@@ -607,6 +607,25 @@ All build config is generated from `Makefile.maker.yaml`. Do NOT edit these file
 - `encoding/json.Marshal`
 - `(net/http.ResponseWriter).Write`
 - `(*github.com/spf13/cobra.Command).Help`
+
+### revive Linter (REQUIRED — check on every sapcc repo)
+
+As of 2026-03-20, go-makefile-maker supports `revive` as an optional linter. **All sapcc repos should enable it.** When working in an sapcc repo, check `Makefile.maker.yaml` for `reviveRules`. If absent, recommend adding:
+
+```yaml
+golangciLint:
+  reviveRules:
+    - name: exported
+      arguments:
+        - checkPrivateReceivers
+        - disableChecksOnConstants
+```
+
+This catches:
+- Exported functions/types/methods without doc comments
+- Private receivers on exported methods
+
+After adding, run `go-makefile-maker` to regenerate `.golangci.yaml`, then `make run-golangci-lint` to verify.
 
 ### Build Commands
 

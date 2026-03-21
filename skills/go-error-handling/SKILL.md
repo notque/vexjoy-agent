@@ -65,6 +65,10 @@ This skill operates as an operator for Go error handling implementation, configu
 - **Error Wrapping Audit**: Scan for naked `return err` statements and missing `%w` verbs
 - **Table-Driven Error Tests**: Generate table-driven tests for error paths
 
+## Available Scripts
+
+- **`scripts/check-errors.sh`** — Detect bare `return err` and log-and-return anti-patterns. Run `bash scripts/check-errors.sh --help` for options.
+
 ## What This Skill CAN Do
 - Guide idiomatic error wrapping with `fmt.Errorf` and `%w`
 - Define and use sentinel errors (`errors.New` package-level vars)

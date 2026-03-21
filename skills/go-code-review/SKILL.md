@@ -64,6 +64,10 @@ This skill operates as an operator for Go code review workflows, configuring Cla
 - **API Compatibility Check**: Verify exported API changes against semver expectations
 - **Dependency Audit**: Deep review of new or changed dependencies
 
+## Available Scripts
+
+- **`scripts/check-interface-compliance.sh`** — Find exported interfaces missing compile-time `var _ I = (*T)(nil)` checks. Run `bash scripts/check-interface-compliance.sh --help` for options.
+
 ## What This Skill CAN Do
 - Systematically review Go code across 6 structured phases
 - Run automated checks (build, test, vet, staticcheck, coverage)
