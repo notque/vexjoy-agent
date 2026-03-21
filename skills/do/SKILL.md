@@ -322,6 +322,7 @@ This is the system's cross-feature learning mechanism. Agents receiving retro kn
 | Security work | anti-rationalization-core, anti-rationalization-security |
 | Testing | anti-rationalization-core, anti-rationalization-testing |
 | Debugging | anti-rationalization-core, verification-checklist |
+| External content evaluation | **untrusted-content-handling** (Reddit, WordPress, Bluesky, any external user-generated text) |
 
 For explicit maximum rigor, use `/with-anti-rationalization [task]`.
 
