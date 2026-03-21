@@ -35,12 +35,18 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 praw = None  # lazy import — see _ensure_praw()
 PrawcoreException = Exception  # fallback base for type hints until praw is loaded
+OAuthException = Exception
+NotFound = Exception
+Forbidden = Exception
+TooManyRequests = Exception
+ServerError = Exception
 
 
 # --- Constants ---
@@ -57,21 +63,34 @@ _REQUIRED_ENV_VARS = [
     "REDDIT_PASSWORD",
 ]
 
+_FULLNAME_RE = re.compile(r"^t[13]_[a-z0-9]{1,10}$")
+_USERNAME_RE = re.compile(r"^[A-Za-z0-9_-]{1,20}$")
+
 
 # --- Lazy import ---
 
 
 def _ensure_praw() -> None:
     """Import praw on first use, exit with instructions if missing."""
-    global praw, PrawcoreException
+    global praw, PrawcoreException, OAuthException, NotFound, Forbidden, TooManyRequests, ServerError
     if praw is not None:
         return
     try:
         import praw as _praw
+        from prawcore.exceptions import Forbidden as _Forbidden
+        from prawcore.exceptions import NotFound as _NotFound
+        from prawcore.exceptions import OAuthException as _OAuthException
         from prawcore.exceptions import PrawcoreException as _PrawcoreException
+        from prawcore.exceptions import ServerError as _ServerError
+        from prawcore.exceptions import TooManyRequests as _TooManyRequests
 
         praw = _praw
         PrawcoreException = _PrawcoreException
+        OAuthException = _OAuthException
+        NotFound = _NotFound
+        Forbidden = _Forbidden
+        TooManyRequests = _TooManyRequests
+        ServerError = _ServerError
     except ImportError:
         print("ERROR: praw is not installed. Install it with:", file=sys.stderr)
         print("  pip install praw", file=sys.stderr)
@@ -235,27 +254,33 @@ class UserHistory:
     """A user's recent activity summary."""
 
     username: str
-    comment_karma: int
-    link_karma: int
-    account_created_utc: float
+    comment_karma: int | None
+    link_karma: int | None
+    account_created_utc: float | None
     is_suspended: bool
     recent_posts: list[dict] = field(default_factory=list)
     recent_comments: list[dict] = field(default_factory=list)
 
     @property
-    def account_age_days(self) -> int:
+    def account_age_days(self) -> int | None:
         """Account age in days."""
+        if self.account_created_utc is None:
+            return None
         created = datetime.fromtimestamp(self.account_created_utc, tz=timezone.utc)
         now = datetime.now(timezone.utc)
         return (now - created).days
 
     def format_text(self) -> str:
         """Format as human-readable text."""
+        karma_comment = self.comment_karma if self.comment_karma is not None else "unknown"
+        karma_link = self.link_karma if self.link_karma is not None else "unknown"
+        age = self.account_age_days
+        age_str = f"{age} days" if age is not None else "unknown"
         lines = [
             f"User: /u/{self.username}",
-            f"  Comment karma: {self.comment_karma}",
-            f"  Link karma:    {self.link_karma}",
-            f"  Account age:   {self.account_age_days} days",
+            f"  Comment karma: {karma_comment}",
+            f"  Link karma:    {karma_link}",
+            f"  Account age:   {age_str}",
             f"  Suspended:     {self.is_suspended}",
         ]
         if self.recent_posts:
@@ -291,28 +316,33 @@ class UserHistory:
 # --- Item parsing ---
 
 
-def _parse_mod_item(item: object) -> ModQueueItem:
-    """Parse a PRAW submission or comment into a ModQueueItem."""
-    is_submission = hasattr(item, "title")
-    report_reasons = []
-    if item.mod_reports:
-        report_reasons.extend(reason for reason, _mod in item.mod_reports)
-    if item.user_reports:
-        report_reasons.extend(reason for reason, _count in item.user_reports)
+def _parse_mod_item(item: object) -> ModQueueItem | None:
+    """Parse a PRAW submission or comment into a ModQueueItem. Returns None for malformed items."""
+    try:
+        is_submission = isinstance(item, praw.models.Submission)
+        report_reasons = []
+        for entry in getattr(item, "mod_reports", None) or []:
+            if isinstance(entry, (list, tuple)) and len(entry) >= 2:
+                report_reasons.append(str(entry[0]))
+        for entry in getattr(item, "user_reports", None) or []:
+            if isinstance(entry, (list, tuple)) and len(entry) >= 2:
+                report_reasons.append(str(entry[0]))
 
-    return ModQueueItem(
-        id=item.id,
-        fullname=item.fullname,
-        title=item.title if is_submission else getattr(item, "link_title", ""),
-        author=str(item.author) if item.author else "[deleted]",
-        body=item.selftext if is_submission else item.body,
-        score=item.score,
-        num_reports=item.num_reports or 0,
-        report_reasons=report_reasons,
-        created_utc=item.created_utc,
-        permalink=item.permalink,
-        item_type="submission" if is_submission else "comment",
-    )
+        return ModQueueItem(
+            id=item.id,
+            fullname=item.fullname,
+            title=item.title if is_submission else getattr(item, "link_title", ""),
+            author=str(item.author) if item.author else "[deleted]",
+            body=item.selftext if is_submission else getattr(item, "body", ""),
+            score=item.score,
+            num_reports=item.num_reports or 0,
+            report_reasons=report_reasons,
+            created_utc=item.created_utc,
+            permalink=item.permalink,
+            item_type="submission" if is_submission else "comment",
+        )
+    except Exception:
+        return None
 
 
 def _filter_since_minutes(items: list[ModQueueItem], since_minutes: int | None) -> list[ModQueueItem]:
@@ -333,7 +363,7 @@ def _cmd_queue(args: argparse.Namespace) -> int:
     subreddit = reddit.subreddit(subreddit_name)
     limit = min(args.limit, _MAX_LIMIT)
 
-    items = [_parse_mod_item(item) for item in subreddit.mod.modqueue(limit=limit)]
+    items = [parsed for item in subreddit.mod.modqueue(limit=limit) if (parsed := _parse_mod_item(item)) is not None]
     items = _filter_since_minutes(items, getattr(args, "since_minutes", None))
 
     result = ModQueueResult(subreddit=subreddit_name, source="modqueue", items=items)
@@ -350,7 +380,7 @@ def _cmd_reports(args: argparse.Namespace) -> int:
     subreddit = reddit.subreddit(subreddit_name)
     limit = min(args.limit, _MAX_LIMIT)
 
-    items = [_parse_mod_item(item) for item in subreddit.mod.reports(limit=limit)]
+    items = [parsed for item in subreddit.mod.reports(limit=limit) if (parsed := _parse_mod_item(item)) is not None]
     items = _filter_since_minutes(items, getattr(args, "since_minutes", None))
 
     result = ModQueueResult(subreddit=subreddit_name, source="reports", items=items)
@@ -367,90 +397,113 @@ def _cmd_unmoderated(args: argparse.Namespace) -> int:
     subreddit = reddit.subreddit(subreddit_name)
     limit = min(args.limit, _MAX_LIMIT)
 
-    items = [_parse_mod_item(item) for item in subreddit.mod.unmoderated(limit=limit)]
+    items = [parsed for item in subreddit.mod.unmoderated(limit=limit) if (parsed := _parse_mod_item(item)) is not None]
     items = _filter_since_minutes(items, getattr(args, "since_minutes", None))
 
     result = ModQueueResult(subreddit=subreddit_name, source="unmoderated", items=items)
 
-    print(result.format_json() if args.json_output else result.format_text())
+    use_json = args.json_output or getattr(args, "auto", False)
+    print(result.format_json() if use_json else result.format_text())
     return 0
+
+
+def _resolve_item(reddit: object, fullname: str, *, allow_comments: bool = True) -> tuple[object | None, int]:
+    """Validate fullname and resolve to a PRAW object.
+
+    Returns:
+        (item, 0) on success, (None, exit_code) on failure.
+    """
+    if not _FULLNAME_RE.match(fullname):
+        allowed = "t1_ (comment) or t3_ (submission)" if allow_comments else "t3_ (submission)"
+        print(f"ERROR: Invalid fullname '{fullname}'. Expected {allowed}.", file=sys.stderr)
+        return None, 1
+
+    if not allow_comments and fullname.startswith("t1_"):
+        print(f"ERROR: Invalid fullname '{fullname}'. This command only works on submissions (t3_).", file=sys.stderr)
+        return None, 1
+
+    if fullname.startswith("t1_"):
+        return reddit.comment(fullname[3:]), 0
+    return reddit.submission(fullname[3:]), 0
 
 
 def _cmd_approve(args: argparse.Namespace) -> int:
     """Approve an item by fullname ID."""
     reddit = _build_reddit()
-    fullname = args.id
+    item, rc = _resolve_item(reddit, args.id)
+    if item is None:
+        return rc
 
-    if not (fullname.startswith("t1_") or fullname.startswith("t3_")):
-        print(
-            f"ERROR: Invalid fullname '{fullname}'. Expected t1_ (comment) or t3_ (submission).",
-            file=sys.stderr,
-        )
+    try:
+        item.mod.approve()
+    except NotFound:
+        print(f"ERROR: Item {args.id} not found.", file=sys.stderr)
+        return 1
+    except Forbidden:
+        print(f"ERROR: Permission denied to approve {args.id}.", file=sys.stderr)
         return 1
 
-    if fullname.startswith("t1_"):
-        item = reddit.comment(fullname[3:])
-    else:
-        item = reddit.submission(fullname[3:])
-
-    item.mod.approve()
-    print(f"Approved {fullname}")
+    print(f"Approved {args.id}")
     return 0
 
 
 def _cmd_remove(args: argparse.Namespace) -> int:
     """Remove an item by fullname ID."""
     reddit = _build_reddit()
-    fullname = args.id
+    item, rc = _resolve_item(reddit, args.id)
+    if item is None:
+        return rc
 
-    if not (fullname.startswith("t1_") or fullname.startswith("t3_")):
-        print(
-            f"ERROR: Invalid fullname '{fullname}'. Expected t1_ (comment) or t3_ (submission).",
-            file=sys.stderr,
-        )
+    try:
+        item.mod.remove(spam=args.spam, mod_note=args.reason)
+    except NotFound:
+        print(f"ERROR: Item {args.id} not found.", file=sys.stderr)
+        return 1
+    except Forbidden:
+        print(f"ERROR: Permission denied to remove {args.id}.", file=sys.stderr)
         return 1
 
-    if fullname.startswith("t1_"):
-        item = reddit.comment(fullname[3:])
-    else:
-        item = reddit.submission(fullname[3:])
-
-    item.mod.remove(spam=args.spam, mod_note=args.reason)
     label = "Removed as spam" if args.spam else "Removed"
-    print(f"{label} {fullname} — reason: {args.reason}")
+    print(f"{label} {args.id} — reason: {args.reason}")
     return 0
 
 
 def _cmd_lock(args: argparse.Namespace) -> int:
     """Lock a thread by fullname ID."""
     reddit = _build_reddit()
-    fullname = args.id
+    item, rc = _resolve_item(reddit, args.id, allow_comments=False)
+    if item is None:
+        return rc
 
-    if not fullname.startswith("t3_"):
-        print(
-            f"ERROR: Invalid fullname '{fullname}'. Lock only works on submissions (t3_).",
-            file=sys.stderr,
-        )
+    try:
+        item.mod.lock()
+    except NotFound:
+        print(f"ERROR: Item {args.id} not found.", file=sys.stderr)
+        return 1
+    except Forbidden:
+        print(f"ERROR: Permission denied to lock {args.id}.", file=sys.stderr)
         return 1
 
-    submission = reddit.submission(fullname[3:])
-    submission.mod.lock()
-    print(f"Locked {fullname}")
+    print(f"Locked {args.id}")
     return 0
 
 
 def _cmd_user_history(args: argparse.Namespace) -> int:
     """Fetch a user's recent activity."""
-    reddit = _build_reddit()
     username = args.username
+    if not _USERNAME_RE.match(username):
+        print(f"ERROR: Invalid username '{username}'.", file=sys.stderr)
+        return 1
+
+    reddit = _build_reddit()
     limit = min(args.limit, _MAX_LIMIT)
 
     try:
         redditor = reddit.redditor(username)
         # Force-fetch to detect suspended/shadow-banned accounts
         _ = redditor.id
-    except Exception:
-        print(f"ERROR: Could not fetch user /u/{username}. User may be suspended or deleted.", file=sys.stderr)
+    except PrawcoreException as e:
+        print(f"ERROR: Could not fetch user /u/{username} ({type(e).__name__}).", file=sys.stderr)
         return 1
 
     is_suspended = getattr(redditor, "is_suspended", False)
@@ -487,9 +540,9 @@ def _cmd_user_history(args: argparse.Namespace) -> int:
 
     history = UserHistory(
         username=username,
-        comment_karma=getattr(redditor, "comment_karma", 0),
-        link_karma=getattr(redditor, "link_karma", 0),
-        account_created_utc=getattr(redditor, "created_utc", 0.0),
+        comment_karma=getattr(redditor, "comment_karma", None),
+        link_karma=getattr(redditor, "link_karma", None),
+        account_created_utc=getattr(redditor, "created_utc", None),
         is_suspended=is_suspended,
         recent_posts=recent_posts,
         recent_comments=recent_comments,
@@ -631,7 +684,7 @@ Examples:
 
     # --- unmoderated ---
     unmod_parser = subparsers.add_parser("unmoderated", help="Fetch unmoderated submissions")
-    _add_common_listing_args(unmod_parser)
+    _add_common_listing_args(unmod_parser, with_auto=True)
 
     # --- approve ---
     approve_parser = subparsers.add_parser("approve", help="Approve an item by fullname ID")
@@ -699,16 +752,31 @@ Examples:
 
     try:
         return handler(args)
-    except PrawcoreException as e:
-        print(f"ERROR: Reddit API authentication failed: {e}", file=sys.stderr)
-        print("Check your REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USERNAME, REDDIT_PASSWORD.", file=sys.stderr)
+    except OAuthException as e:
+        print(
+            f"ERROR: Reddit API authentication failed ({type(e).__name__}). Check credential env vars.", file=sys.stderr
+        )
+        return 2  # config error
+    except TooManyRequests:
+        print("ERROR: Rate limited by Reddit. Wait a minute and retry.", file=sys.stderr)
         return 1
-    except ConnectionError as e:
-        print(f"ERROR: Network error: {e}", file=sys.stderr)
-        print("Check your internet connectivity.", file=sys.stderr)
+    except NotFound as e:
+        print(f"ERROR: Resource not found: {type(e).__name__}", file=sys.stderr)
+        return 1
+    except ServerError:
+        print("ERROR: Reddit server error. Try again later.", file=sys.stderr)
+        return 1
+    except Forbidden:
+        print("ERROR: Permission denied. Check moderator status.", file=sys.stderr)
+        return 1
+    except PrawcoreException as e:
+        print(f"ERROR: Reddit API error ({type(e).__name__}). Re-run to diagnose.", file=sys.stderr)
+        return 1
+    except ConnectionError:
+        print("ERROR: Network error. Check your internet connectivity.", file=sys.stderr)
         return 1
     except Exception as e:
-        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        print(f"ERROR: {type(e).__name__}", file=sys.stderr)
         return 1
 
 
