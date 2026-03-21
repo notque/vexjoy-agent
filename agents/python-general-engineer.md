@@ -252,6 +252,21 @@ Common Python mistakes. See [references/python-anti-patterns.md](references/pyth
 **Why wrong**: Catches SystemExit and KeyboardInterrupt, prevents debugging
 **✅ Do instead**: `except Exception:` at minimum, or specific exception types
 
+### ❌ Skipping Input Validation on New CLI Handlers
+**What it looks like**: New subcommand handler accepts subreddit/path from stdin JSON or env var without validating format
+**Why wrong**: Every OTHER handler validates input (e.g., `_resolve_subreddit`), new handler bypasses the pattern. Creates path traversal via crafted stdin JSON.
+**✅ Do instead**: Use the same validation function as existing handlers. If input comes from a new source (stdin JSON), validate BEFORE any file path construction.
+
+### ❌ Computing Data Without Surfacing It in LLM Prompts
+**What it looks like**: Calculating `repeat_offender_count` but not including it in the prompt string
+**Why wrong**: The LLM can only use data that appears in the prompt. Computed-but-invisible data is dead computation.
+**✅ Do instead**: Every signal computed for classification MUST appear in the rendered prompt. Test: "is this value in the prompt string?"
+
+### ❌ Adding Categories Without Definitions
+**What it looks like**: Adding `BAN_RECOMMENDED` to a classification list without explaining when to use it
+**Why wrong**: LLM has no guidance to distinguish it from existing categories, making it dead code
+**✅ Do instead**: Each new category needs a definition, usage criteria, and auto-mode behavior in the prompt
+
 ## Anti-Rationalization
 
 See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md) for universal patterns.
@@ -280,6 +295,9 @@ See [shared-patterns/forbidden-patterns-template.md](../skills/shared-patterns/f
 | Pattern | Why FORBIDDEN | Correct Alternative |
 |---------|---------------|---------------------|
 | `except:` (bare except) | Catches SystemExit, KeyboardInterrupt, prevents debugging | `except Exception:` at minimum |
+| `except OSError: pass` (broad swallow) | Catches permission denied, IO errors, NFS stale handles — not just missing files. Caused 2 critical silent failures in reddit_mod.py | `except FileNotFoundError: pass` for expected-missing, separate `except OSError as e:` with stderr warning |
+| `# type: ignore[return-value]` | Masking a wrong return type annotation instead of fixing it | Fix the annotation to match actual return type |
+| `int(untrusted_json_value)` without guard | Crashes entire pipeline on one malformed entry from user-editable JSON | Wrap in `try: int(x) except (ValueError, TypeError): default` |
 | `eval(user_input)` | Code injection vulnerability, arbitrary execution | `ast.literal_eval` or validators |
 | `pickle.loads(untrusted)` | Arbitrary code execution on deserialization | Use JSON or validated formats |
 | `# type: ignore` without comment | Hides real type errors, defeats type safety | Fix the type or document reason |
@@ -349,6 +367,12 @@ For detailed Python patterns and examples:
 - **Modern Features**: [references/python-modern-features.md](references/python-modern-features.md)
 
 ## Changelog
+
+### v2.1.0 (2026-03-21)
+- Graduated 10 retro patterns from LLM classify runtime review into FORBIDDEN patterns and anti-patterns
+- Added: broad `except OSError: pass`, unguarded `int()` on JSON, `# type: ignore[return-value]`
+- Added: input validation on CLI handlers, LLM prompt data surfacing, category definitions
+- Source: PR feature/llm-classify-runtime wave review (13 findings across 5 reviewers)
 
 ### v2.0.0 (2026-02-13)
 - Migrated to v2.0 structure with Anthropic best practices
