@@ -523,67 +523,23 @@ frontmatter = parse_frontmatter(content)  # Uses PyYAML if available, regex fall
 
 ## Creating New Hooks
 
-1. Create Python script in `hooks/`:
+Use the `/do` router to create hooks — it dispatches the `hook-development-engineer` agent which handles the full lifecycle:
 
-```python
-#!/usr/bin/env python3
-"""
-Hook description.
-Event: PostToolUse/UserPromptSubmit/SessionStart/Stop/PreCompact
-"""
-
-import json
-import sys
-from pathlib import Path
-
-# Add lib directory for shared libraries
-sys.path.insert(0, str(Path(__file__).parent / "lib"))
-
-def main():
-    try:
-        event_data = sys.stdin.read()
-        if not event_data:
-            return
-
-        event = json.loads(event_data)
-
-        # Check event type
-        event_type = event.get("hook_event_name") or event.get("type", "")
-        if event_type != "YourEvent":
-            return
-
-        # Your logic here
-        # Use lib/learning_db_v2.py for database access
-        # Use lib/feedback_tracker.py for feedback state
-
-    except (json.JSONDecodeError, Exception):
-        pass  # Silent failure - never print errors
-    finally:
-        sys.exit(0)  # Always exit 0 - never block
-
-if __name__ == "__main__":
-    main()
+```
+/do create a hook for [your purpose]
 ```
 
-2. Register in `~/.claude/settings.json`:
+Describe the event type (PostToolUse, PreToolUse, UserPromptSubmit, SessionStart, Stop, PreCompact), what it should detect or inject, and any constraints. The creator agent handles file creation, `hooks/lib/` integration, settings.json registration, and testing.
 
-```json
-{
-  "hooks": {
-    "PostToolUse": [
-      {"type": "command", "command": "python3 hooks/your-hook.py"}
-    ]
-  }
-}
-```
+**Example prompts:**
+- `/do create a PostToolUse hook that detects failed SQL queries and suggests index improvements`
+- `/do create a PreToolUse hook that blocks writes to files matching a custom pattern list`
 
-3. Make executable:
-
-```bash
-chmod +x hooks/your-hook.py
-```
-
-See [`hook-development-engineer`](../agents/hook-development-engineer.md) for comprehensive guidance.
+Key constraints for all hooks:
+- **50ms performance target** — hooks fire on every tool call
+- **JSON in, JSON out** — read from stdin, write to stdout
+- **Never block unexpectedly** — exit 0 unless intentionally gating (exit 2 to block PreToolUse)
+- **Use `hooks/lib/`** — shared utilities for output formatting, learning database, feedback tracking
 
 ---
 

@@ -51,269 +51,72 @@ adr/                 Architecture Decision Records. Numbered markdown files trac
 
 A few things that aren't obvious from the listing: `agents/` and `skills/` both have INDEX.json files that are *generated* by scripts (`scripts/generate-agent-index.py` and `scripts/generate-skill-index.py`). The `hooks/lib/` directory is where shared code lives -- hooks import from there, not from each other. And the `services/` directory exists for optional service integrations.
 
-## Adding an Agent
+## Creating Components
 
-Agents are markdown files with YAML frontmatter. The frontmatter tells the router when to use the agent. The body tells Claude *how to be* that agent.
+The toolkit has specialized creator agents for each component type. Tell `/do` what you want, describe the domain and purpose in your prompt, and the creator agent handles structure, registration, and routing integration.
 
-### Step 1: Create the file
-
-```bash
-touch agents/my-domain-engineer.md
-```
-
-Naming convention: `{domain}-{function}-engineer.md`. The `-engineer` suffix isn't mandatory but it's what most agents use. Look at the existing ones -- `golang-general-engineer.md`, `python-general-engineer.md`, `kubernetes-helm-engineer.md`.
-
-### Step 2: Write the frontmatter
-
-Here's the minimum viable frontmatter:
-
-```yaml
----
-name: my-domain-engineer
-version: 1.0.0
-description: |
-  Use this agent when you need help with [your domain].
-  The agent specializes in [specific things].
-
-  Examples:
-
-  <example>
-  Context: User wants to do X
-  user: "Help me do X"
-  assistant: "[Routes to my-domain-engineer] Doing X with proper patterns."
-  <commentary>
-  Routes here because: (1) X is a trigger keyword, (2) requires domain expertise.
-  </commentary>
-  </example>
-
-color: blue
-routing:
-  triggers:
-    - my-domain
-    - relevant-keyword
-    - .file-extension
-  pairs_with:
-    - verification-before-completion
-  complexity: Medium
-  category: language
----
-```
-
-The `color` field sets the accent in the Claude Code UI. Pick from: blue, green, orange, red, purple.
-
-The `routing` block is what `/do` uses to match requests to your agent. Triggers are fuzzy-matched against the user's request. `pairs_with` lists skills that work well with this agent. `complexity` tells the planner how much scaffolding to set up. `category` groups agents for discovery.
-
-### Step 3: Write the body
-
-The body follows a pattern you'll see in every agent. Look at `agents/python-general-engineer.md` for a real example. The key sections:
-
-1. **Operator context preamble** -- "You are an operator for X, configuring Claude's behavior for Y"
-2. **Hardcoded behaviors** -- things this agent always does (CLAUDE.md compliance, over-engineering prevention, plus domain-specific rules)
-3. **Default behaviors** -- on by default, can be turned off (communication style, cleanup habits, domain defaults)
-4. **Optional behaviors** -- off by default (things users can enable)
-5. **Capabilities and limitations** -- what the agent CAN and CANNOT do
-6. **Anti-patterns** -- common mistakes with what-why-instead format
-7. **Anti-rationalization table** -- domain-specific rationalization patterns to watch for
-
-The full template lives at `AGENT_TEMPLATE_V2.md` in the repo root. It's worth reading -- it shows the complete structure including reference file organization.
-
-### Step 4: Register in the index
-
-```bash
-python3 scripts/generate-agent-index.py
-```
-
-This reads all `agents/*.md` files, extracts routing metadata from frontmatter, and writes `agents/INDEX.json`. The `/do` router reads that index at runtime. Don't hand-edit INDEX.json -- it gets overwritten.
-
-### Step 5: Test routing
-
-Start a Claude Code session and try:
+### Creating an Agent
 
 ```
-/do [request that should trigger your agent]
+/do create an agent for [your domain]
 ```
 
-The routing banner should show your agent being selected. If it doesn't, check your triggers -- they might be too narrow, or another agent's triggers might be matching first.
+Describe what the agent should specialize in, what triggers should route to it, and what patterns it should enforce. The `agent-creator-engineer` handles the rest: file creation, frontmatter, operator context, anti-patterns, index registration, and routing table integration.
 
-### Optional: Reference files
+**Example prompts:**
+- `/do create an agent for Terraform infrastructure management that knows HCL, state management, and module patterns`
+- `/do create an agent for Redis caching that specializes in data structures, eviction policies, and cluster management`
 
-For agents with deep domain knowledge, create a references subdirectory:
+The agent creator uses the `AGENT_TEMPLATE_V2.md` template and produces a complete agent with operator context, hardcoded/default/optional behaviors, anti-patterns, and reference files.
+
+### Creating a Skill
 
 ```
-agents/my-domain-engineer/
-  references/
-    error-catalog.md
-    anti-patterns.md
-    code-examples.md
+/do create a skill for [your workflow]
 ```
 
-The agent can reference these when it needs detailed examples or error resolution steps. Keeps the main agent file under 10k words.
+Describe the methodology, phases, and quality gates. The `skill-creator-engineer` builds the skill directory, SKILL.md with frontmatter, phase definitions, and updates the index.
 
-## Adding a Skill
+**Example prompts:**
+- `/do create a skill for database migration safety with pre-migration checks, rollback validation, and post-migration verification`
+- `/do create a skill for API contract testing that validates OpenAPI specs against implementation`
 
-Skills are workflow methodologies. Where agents know *what* to do, skills know *how* to structure the work. A skill might be "test-driven development" or "systematic debugging" or "PR pipeline."
+### Creating a Hook
 
-### Step 1: Create the directory and SKILL.md
-
-```bash
-mkdir -p skills/my-workflow
-touch skills/my-workflow/SKILL.md
+```
+/do create a hook for [your purpose]
 ```
 
-### Step 2: Write the frontmatter
+Describe the event type, what it should detect or inject, and any performance constraints. The `hook-development-engineer` creates the hook with proper event handling, `hooks/lib/` integration, and settings.json registration.
 
-```yaml
----
-name: my-workflow
-description: |
-  One-paragraph description of what this skill does and when to use it.
-  Include trigger phrases so the router can match it.
-version: 1.0.0
-user-invocable: true
-agent: python-general-engineer
-allowed-tools:
-  - Bash
-  - Read
-  - Edit
----
+**Example prompts:**
+- `/do create a hook that warns when test files are modified without updating test fixtures`
+- `/do create a PostToolUse hook that detects when a git merge conflict marker is written to a file`
+
+Hooks must meet a **50ms performance target** since they fire on every tool call or prompt.
+
+### Creating a Pipeline
+
+```
+/do create a pipeline for [your domain]
 ```
 
-Key fields:
+The `pipeline-orchestrator-engineer` decomposes the domain into subdomains, composes pipeline chains, scaffolds skills, and wires routing. See `commands/create-pipeline.md` for details.
 
-- `user-invocable`: set to `true` if users can call it directly as `/my-workflow`. Set to `false` for skills that only get invoked by the router or other skills.
-- `agent`: declares which agent should execute this skill. Optional -- some skills are agent-agnostic.
-- `allowed-tools`: restricts which tools the skill can use. Good for security (a read-only skill shouldn't need Write).
-- `context: fork` -- add this if the skill should run in an isolated sub-agent context. Used for skills that do heavy work and shouldn't pollute the main conversation.
+### Key Architecture Points
 
-### Step 3: Write the body
+- **Agents** (`agents/*.md`) know *what* to do -- domain expertise, patterns, anti-patterns
+- **Skills** (`skills/*/SKILL.md`) know *how* to structure work -- phases, gates, methodology
+- **Hooks** (`hooks/*.py`) fire on lifecycle events -- JSON in, JSON out, 50ms budget
+- **Scripts** (`scripts/*.py`) do deterministic work -- linting, indexing, validation
 
-The body is the methodology. It tells the agent *how* to work through the task. Look at `skills/reddit-moderate/SKILL.md` for a concrete example -- it defines modes, prerequisites, commands, and a step-by-step workflow.
+The `/do` router connects everything. After creating any component, test it:
 
-Skills often include:
-- Operator context (hardcoded/default/optional behaviors)
-- Phase definitions (if it's a pipeline)
-- Quality gates between phases
-- Commands or scripts to invoke
-- Error handling and troubleshooting
-
-### Step 4: Update the index
-
-```bash
-python3 scripts/generate-skill-index.py
+```
+/do [request that should trigger your new component]
 ```
 
-Same idea as the agent index. Reads all `skills/*/SKILL.md` files, extracts frontmatter, writes `skills/INDEX.json`.
-
-### Step 5: Force-route triggers (optional)
-
-Some skills need to be invoked whenever certain keywords appear, regardless of what agent is selected. These go in the `/do` skill's routing table. For example, Go test files *always* trigger the `go-testing` skill. If your skill has that kind of mandatory coupling, you'll need to add it to the force-route list in `skills/do/SKILL.md`.
-
-## Writing a Hook
-
-Hooks are Python scripts that fire on Claude Code lifecycle events. They read JSON from stdin and print JSON to stdout. That's the whole contract.
-
-### The event types
-
-| Event | When it fires | Typical use |
-|-------|--------------|-------------|
-| `SessionStart` | Session begins | Load context, sync files, detect environment |
-| `UserPromptSubmit` | Before processing a prompt | Inject skills, detect task complexity |
-| `PreToolUse` | Before a tool runs | Gate tool calls, inject learning hints |
-| `PostToolUse` | After a tool runs | Detect errors, suggest fixes, capture learnings |
-| `PreCompact` | Before context compression | Archive important state |
-| `TaskCompleted` | After a task finishes | Record learnings, cleanup |
-| `SubagentStop` | Sub-agent finishes | Guard completion quality |
-| `Stop` | Session ends | Generate summary, save state |
-
-### The contract
-
-Your hook receives JSON on stdin describing the event. The shape varies by event type but always includes the event name and relevant context. Your hook prints JSON to stdout. The output format uses the `HookOutput` structure from `hooks/lib/hook_utils.py`:
-
-```python
-#!/usr/bin/env python3
-import json
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import context_output, empty_output
-
-def main():
-    event = json.loads(sys.stdin.read())
-
-    # Your logic here
-    if should_inject_context(event):
-        output = context_output("PostToolUse", "Context to inject into Claude's next response")
-        output.print_and_exit()
-    else:
-        empty_output("PostToolUse").print_and_exit()
-
-if __name__ == "__main__":
-    main()
-```
-
-Three output modes:
-- `empty_output(event_name)` -- nothing to say, no injection
-- `context_output(event_name, text)` -- inject system context (Claude sees it, user doesn't)
-- `user_message_output(event_name, message)` -- message displayed verbatim to the user
-
-### Performance budget
-
-Hooks have a **50ms target**. They fire on every tool call (PostToolUse) or every prompt (UserPromptSubmit), so slow hooks add up fast. The settings.json registration supports a `timeout` field (in milliseconds) -- default varies but keep it tight. If your hook needs to do anything heavy, do it asynchronously or cache aggressively.
-
-### The lib directory
-
-Don't reinvent the wheel. `hooks/lib/` has:
-
-- `hook_utils.py` -- output formatting, JSON escaping, environment helpers, frontmatter parsing, file discovery, cascading fallbacks
-- `learning_db_v2.py` -- SQLite-backed learning database for cross-session pattern storage
-- `feedback_tracker.py` -- automatic feedback loop for error-learning confidence tracking
-- `quality_gate.py` -- shared quality gate logic
-- `usage_db.py` -- usage tracking database
-
-Import from lib by adding it to your path:
-
-```python
-sys.path.insert(0, str(Path(__file__).parent / "lib"))
-from hook_utils import context_output, get_project_dir
-```
-
-### Registration
-
-Hooks are registered in `settings.json` under the `hooks` key. Each event type has an array of hook groups, each group containing an array of hooks:
-
-```json
-{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/my-hook.py\"",
-            "description": "What my hook does",
-            "timeout": 3000
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-Note the path uses `$HOME/.claude/hooks/` -- that's where the sync hook deploys files at session start. You write your hook in the repo's `hooks/` directory. The `sync-to-user-claude.py` hook (which runs on SessionStart) copies it to `~/.claude/hooks/`. The settings.json in the repo is the source of truth for hook registration -- sync replaces the hooks section entirely.
-
-Add `"once": true` for hooks that should only fire once per session (like SessionStart hooks that load initial context).
-
-### Testing hooks
-
-Hook tests live in `hooks/tests/`. Use pytest:
-
-```bash
-pytest hooks/tests/test_my_hook.py -v
-```
-
-Feed your hook test JSON via stdin and assert on the stdout JSON. Look at `hooks/tests/test_feedback_tracker.py` or `hooks/tests/test_learning_system.py` for patterns.
+The routing banner shows which agent and skill were selected. If routing doesn't match, the creator agents handle trigger registration automatically.
 
 ## The PR Workflow
 

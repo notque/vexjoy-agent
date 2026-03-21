@@ -395,6 +395,33 @@ These changes will be included in the existing commit (amend in next push cycle)
 
 **Gate**: All review findings recorded in learning.db, graduated to 1.0, and embedded in the responsible agent/skill files. Updated files staged for commit.
 
+### Phase 4d: ADR VALIDATION (toolkit repo only)
+
+**Goal**: Verify that all ADRs in the `adr/` directory have consistent format and valid status fields before the PR is created.
+
+**Skip condition**: Same as Phase 4c — only runs in the toolkit repo (both `agents/` and `skills/` directories exist at root).
+
+**Step 1: Run ADR format check**
+
+```bash
+python3 scripts/adr-status.py check
+```
+
+If exit code 1 (warnings found):
+- Review each warning (missing headings, empty status)
+- Fix formatting issues in the ADR files
+- Stage the fixes: `git add adr/`
+
+**Step 2: Run ADR status report**
+
+```bash
+python3 scripts/adr-status.py status
+```
+
+Include the status summary in the PR body if the PR touches any `adr/*.md` files. This gives reviewers an at-a-glance view of ADR state.
+
+**Gate**: `python3 scripts/adr-status.py check` exits 0. All ADRs have valid format.
+
 ### Phase 5: CREATE PR
 
 **Goal**: Create the pull request with meaningful title and body.
@@ -511,8 +538,9 @@ Actions:
 5. Push branch to remote with tracking (PUSH)
 6. Run review-fix loop: `/pr-review` → fix → re-review, up to 3 iterations (REVIEW-FIX LOOP)
 7. Record and graduate review findings, embed in responsible agents/skills (RETRO, toolkit repo only)
-8. Create PR with summary and review findings (CREATE PR)
-9. Wait for CI, report status (VERIFY)
+8. Validate ADR format consistency (ADR VALIDATION, toolkit repo only)
+9. Create PR with summary and review findings (CREATE PR)
+10. Wait for CI, report status (VERIFY)
 Result: PR URL with CI status and review-fix iteration count
 
 ### Example 2: Draft PR for Work in Progress (personal repo)
@@ -525,8 +553,9 @@ Actions:
 5. Push to feature branch (PUSH)
 6. Run review-fix loop (REVIEW-FIX LOOP)
 7. Record and graduate review findings (RETRO, toolkit repo only)
-8. Create PR with `--draft` flag (CREATE PR)
-9. Report PR URL, skip CI wait if `--no-wait` (VERIFY)
+8. Validate ADR format consistency (ADR VALIDATION, toolkit repo only)
+9. Create PR with `--draft` flag (CREATE PR)
+10. Report PR URL, skip CI wait if `--no-wait` (VERIFY)
 Result: Draft PR URL
 
 ### Example 3: Trivial Change with Skip Parallel Review (personal repo)
@@ -539,8 +568,9 @@ Actions:
 5. Push to branch (PUSH)
 6. Run review-fix loop — Phase 4b still runs even with --skip-review (REVIEW-FIX LOOP)
 7. Record and graduate review findings (RETRO, toolkit repo only)
-8. Create PR with minimal body (CREATE PR)
-9. Wait for CI (VERIFY)
+8. Validate ADR format consistency (ADR VALIDATION, toolkit repo only)
+9. Create PR with minimal body (CREATE PR)
+10. Wait for CI (VERIFY)
 Result: PR URL for typo fix
 
 ### Example 4: Protected-Org Repo (human-gated workflow)
