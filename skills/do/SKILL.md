@@ -366,10 +366,14 @@ MCP TOOL DISCOVERY (do this FIRST, before reading code):
 - Use ToolSearch("context7") to check for library documentation tools
   (resolve-library-id, query-docs). If found: use for verifying library
   API usage and looking up unfamiliar dependencies.
-- If ToolSearch returns no results for either, proceed without them.
+- Use ToolSearch("chrome-devtools") to check for browser inspection tools
+  (list_pages, navigate_page, take_screenshot, lighthouse_audit,
+  list_console_messages, list_network_requests). If found: use for live
+  browser debugging, page inspection, and performance profiling tasks.
+- If ToolSearch returns no results for any of these, proceed without them.
 ```
 
-**When to include**: Include gopls block when dispatching Go-related agents (`golang-general-engineer`, `golang-general-engineer-compact`, or any agent working on `.go` files). Include Context7 block for any agent that may encounter library/dependency questions. Skip entirely for trivial tasks or non-code agents.
+**When to include**: Include gopls block when dispatching Go-related agents (`golang-general-engineer`, `golang-general-engineer-compact`, or any agent working on `.go` files). Include Context7 block for any agent that may encounter library/dependency questions. Include chrome-devtools block when dispatching agents that need to inspect live browser pages (performance-optimization-engineer, testing-automation-engineer, or any agent working on frontend debugging). Skip entirely for trivial tasks or non-code agents.
 
 **Step 3: Invoke agent with skill**
 
@@ -434,6 +438,8 @@ Record specific, actionable insights — not generic advice. "Force-route trigge
 
 | MCP | Triggers | Rule |
 |-----|----------|------|
+| **Chrome DevTools** | inspect page, lighthouse, console errors, network requests, performance profile, debug in browser, check my site, what's on this page | **AUTO-USE for live browser debugging** — controls the user's real Chrome browser. Use for interactive inspection, profiling, and Lighthouse audits. Requires Chrome to be open. |
+| **Playwright** | validate page, test layout, automated check, screenshot test, responsive check, browser test | **AUTO-USE for automated browser validation** — spins up a headless browser instance. Use for deterministic testing workflows, screenshot comparisons, and repeatable validation. |
 | **Context7** | Library/API docs, unfamiliar library, setup steps, "how do I use X", **Claude Code hooks/settings/slash commands/API** | **AUTO-USE for documentation lookups** |
 | **gopls** | Go workspace, .go files, go.mod, Go symbols, Go diagnostics | **AUTO-USE for Go development** — use `go_workspace` at session start, `go_file_context` after reading .go files, `go_diagnostics` after edits, `go_symbol_references` before renaming. Scoped to Go agents/skills only. |
 
