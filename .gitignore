@@ -77,3 +77,6 @@ ab-test-results-r2/
 *.crt
 *.p12
 service-account*.json
+
+# Reddit moderation local data (per-subreddit context, audit logs)
+reddit-data/

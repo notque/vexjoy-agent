@@ -1,0 +1,74 @@
+# Moderator Notes: {subreddit}
+
+This file contains human-written context that the LLM classifier uses when making
+moderation decisions. Auto-generated data (rules, mod log patterns, repeat offenders)
+lives in separate files — this file is for knowledge that only a moderator can provide.
+
+Fill in each section based on your experience moderating r/{subreddit}. Delete the
+example entries and replace them with real patterns from your community. Sections
+left empty are ignored by the classifier.
+
+---
+
+## Common spam patterns
+
+Describe the types of spam your subreddit receives. Be specific about vendor names,
+account behaviors, and posting patterns. The classifier uses these to detect covert
+marketing that looks benign in isolation.
+
+- [Example: Training vendor accounts that recommend specific courses without disclosure]
+- [Example: Consultancy astroturfing disguised as customer success stories]
+- [Example: Exam prep promotion from accounts that only post about one provider]
+- [Example: Affiliate link spam disguised as "helpful resource" comments]
+
+## Community norms
+
+Describe what is normal and acceptable in your community that an outsider (or LLM)
+might misinterpret. This prevents false positives on legitimate content.
+
+- [Example: Blunt technical feedback is normal and expected, not harassment]
+- [Example: Swearing in frustration about a product is tolerated]
+- [Example: Self-promotion is allowed in designated weekly threads only]
+- [Example: Memes are allowed on weekends but not weekdays]
+
+## Content that belongs in specific threads
+
+List content types that are valid but should be redirected to the appropriate
+megathread or sticky. The classifier will flag these for redirection rather than removal.
+
+- [Example: Career questions belong in the weekly recruiting/career thread]
+- [Example: Certification questions belong in the monthly certification megathread]
+- [Example: "How do I get started" posts belong in the pinned beginner thread]
+
+## Known false-report patterns
+
+Describe any recurring false-report patterns in your community. This helps the
+classifier avoid trusting reports that match these patterns.
+
+- [Example: Users report competitors' comments as "spam" out of professional rivalry]
+- [Example: Controversial but rule-compliant opinions get mass-reported as "misinformation"]
+- [Example: New users report pinned mod posts thinking they are ads]
+
+## Trusted domains and sources
+
+List domains or sources that are commonly shared and should NOT be flagged as spam,
+even if they look promotional. This prevents false positives on legitimate resources.
+
+- [Example: docs.example.com — official product documentation]
+- [Example: community-wiki.example.org — community-maintained knowledge base]
+- [Example: youtube.com/@OfficialChannel — verified official content creator]
+
+## Known bad actors
+
+List specific usernames or account patterns that have been identified as bad actors.
+The classifier will treat content from these accounts with higher suspicion.
+
+- [Example: Accounts with names matching the pattern Word_WordNumber (bot-generated)]
+- [Example: Accounts less than 7 days old posting product recommendations]
+
+## Additional context
+
+Any other moderator knowledge that would help the classifier make better decisions.
+
+- [Example: The subreddit experienced a brigading incident from r/other_sub in Jan 2026]
+- [Example: We temporarily relaxed rules on job posts during the industry layoff period]

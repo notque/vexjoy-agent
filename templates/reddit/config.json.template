@@ -1,0 +1,25 @@
+{
+  "_comment_confidence_auto_approve": "Minimum confidence (0-100) to auto-approve a reported item as FALSE_REPORT or MASS_REPORT_ABUSE. Items below this threshold are left for human review.",
+  "confidence_auto_approve": 95,
+
+  "_comment_confidence_auto_remove": "Minimum confidence (0-100) to auto-remove an item classified as VALID_REPORT or SPAM. Items below this threshold are left for human review.",
+  "confidence_auto_remove": 90,
+
+  "_comment_trust_reporters": "When true, the classifier defaults to trusting community reports unless evidence clearly contradicts them. Set to false for subreddits with high false-report rates.",
+  "trust_reporters": true,
+
+  "_comment_community_type": "Describes the community tone. Used by the classifier to calibrate content standards. Values: 'professional-technical', 'casual', 'academic', 'creative', 'support', 'news-discussion'.",
+  "community_type": "professional-technical",
+
+  "_comment_max_auto_actions_per_run": "Safety cap on how many items can be auto-actioned in a single run. Prevents runaway automation. Set to 0 to disable auto-actions entirely.",
+  "max_auto_actions_per_run": 25,
+
+  "_comment_required_language": "ISO 639-1 language code (e.g., 'en', 'de', 'fr') required for posts and comments. Set to null to allow any language. Used by proactive scanning to flag non-compliant content.",
+  "required_language": null,
+
+  "_comment_scan_recent_hours": "Default time window (in hours) for the proactive scan command. Only posts/comments created within this window are scanned. Overridable via --since-hours CLI flag.",
+  "scan_recent_hours": 24,
+
+  "_comment_scan_limit": "Default maximum number of posts and comments to fetch during a proactive scan. Overridable via --limit CLI flag.",
+  "scan_limit": 50
+}
