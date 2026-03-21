@@ -1,6 +1,6 @@
 {
   "version": "1.1",
-  "generated": "2026-03-21T22:32:19Z",
+  "generated": "2026-03-21T22:36:41Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": [
     {
@@ -835,6 +835,18 @@
         "web image generator"
       ],
       "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "pair-programming",
+      "description": "Collaborative coding with enforced micro-steps: announce, show diff, wait for confirmation, apply, verify.",
+      "file": "skills/pair-programming/SKILL.md",
+      "triggers": [
+        "pair-programming",
+        "pair",
+        "programming"
+      ],
+      "version": "1.0.0",
       "user-invocable": false
     },
     {
