@@ -173,6 +173,14 @@ Sequential pipeline: design → plan → implement → validate → release. Eac
 
 ---
 
+## Reddit Skills
+
+| Triggers | Skill |
+|----------|-------|
+| reddit moderate, modqueue, mod queue, reddit moderation, check subreddit, reddit reports | reddit-moderate |
+
+---
+
 ## Validation Skills
 
 | Triggers | Skill |
@@ -232,3 +240,6 @@ Invoked via the roast skill or directly:
 | "review sapcc Go repo" | golang-general-engineer + sapcc-review |
 | "audit sapcc conventions" | golang-general-engineer + sapcc-audit |
 | "work on sapcc Go code" | **go-sapcc-conventions (FORCE)** (auto-detected by hook) |
+| "moderate reddit" | reddit-moderate |
+| "check my modqueue" | reddit-moderate |
+| "reddit reports" | reddit-moderate |
