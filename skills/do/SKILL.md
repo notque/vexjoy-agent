@@ -149,6 +149,7 @@ These skills have MANDATORY routing. They MUST be invoked when triggers appear:
 | **pr-sync** | push, push this, push changes, commit and push, push to GitHub, sync to GitHub, create a PR, create PR, open PR, open pull request, ship this, send this |
 | **git-commit-flow** | commit, commit this, commit changes, stage and commit |
 | **github-actions-check** | check CI, CI status, actions status, did CI pass, are tests passing |
+| **install** | install, setup, health check, verify installation, diagnose |
 
 If a force-route trigger matches, invoke that skill BEFORE any other action.
 

@@ -4,6 +4,46 @@
 
 A collection of 60+ agents, 115+ skills, and 30+ hooks for Claude Code. Built over a year of daily use.
 
+## Install
+
+Requires Python 3.10+.
+
+```bash
+git clone https://github.com/notque/claude-code-toolkit.git ~/claude-code-toolkit
+cd ~/claude-code-toolkit
+
+./install.sh --symlink        # recommended: updates with git pull
+```
+
+Then start Claude Code and run the health check:
+
+```bash
+claude
+```
+
+```
+/install
+```
+
+This verifies your installation, shows what's available, and walks you through first-time setup. Run it again anytime to diagnose issues.
+
+<details>
+<summary>Install options</summary>
+
+```bash
+./install.sh --dry-run        # preview changes
+./install.sh --symlink        # recommended: updates with git pull
+./install.sh --copy           # alternative: stable snapshot
+./install.sh --uninstall      # remove installation
+./install.sh --force          # replace existing dirs without prompting
+```
+
+The installer places agents, skills, hooks, commands, and scripts in `~/.claude/`. It configures hooks in `settings.json`. Symlink mode replaces directories — back up any existing Claude Code customizations before installing.
+
+Update with `cd ~/claude-code-toolkit && git pull` in symlink mode.
+
+</details>
+
 ## The problem and the fix
 
 Claude Code gives you one general-purpose model for all tasks. Claude Code Toolkit gives you a router (`/do`) that classifies your request by domain and action, picks a specialized agent, and loads a workflow skill to enforce methodology. The agent knows domain idioms. The skill structures the work into gated phases. Python scripts handle deterministic validation.
@@ -13,25 +53,6 @@ Router -> Agent -> Skill -> Script
 ```
 
 Example: `/do debug this Go test` routes to `golang-general-engineer` + `systematic-debugging` + `go-testing`. The agent loads Go-specific context. The skill enforces REPRODUCE, ISOLATE, IDENTIFY, FIX, VERIFY. Each phase has a gate.
-
-## Setup
-
-Requires Python 3.10+.
-
-```bash
-git clone https://github.com/notque/claude-code-toolkit.git ~/claude-code-toolkit
-cd ~/claude-code-toolkit
-
-./install.sh --dry-run        # preview changes
-./install.sh --symlink        # recommended: updates with git pull
-./install.sh --copy           # alternative: stable snapshot
-```
-
-The installer places agents, skills, hooks, commands, and scripts in `~/.claude/`. It configures hooks in `settings.json`. Use `--uninstall` to remove. Add `--force` to replace existing directories without prompting (needed when switching from copy to symlink mode).
-
-Back up any existing Claude Code customizations before installing. Symlink mode replaces directories.
-
-Update with `cd ~/claude-code-toolkit && git pull` in symlink mode.
 
 ## /do router and force-routing
 
