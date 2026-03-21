@@ -7,6 +7,7 @@ Usage:
     python3 ~/.claude/scripts/install-doctor.py check # From anywhere
     python3 scripts/install-doctor.py check --json    # Machine-readable output
     python3 scripts/install-doctor.py inventory       # Count installed components
+    python3 scripts/install-doctor.py mcp             # List MCP servers from registry
 
 Exit codes:
     0 — All checks passed
@@ -15,6 +16,7 @@ Exit codes:
 """
 
 import importlib
+import importlib.util
 import json
 import os
 import sys
@@ -335,6 +337,94 @@ def check_permissions() -> list[dict]:
     return results
 
 
+def check_mcp_servers() -> list[dict]:
+    """Check which MCP servers from the registry are configured.
+
+    Loads the REGISTRY from mcp-registry.py (same directory) and checks
+    whether each server's tool_prefix appears in the mcpServers key of
+    ~/.claude/settings.json or ~/.claude/settings.local.json.
+    """
+    results = []
+
+    # Import REGISTRY from mcp-registry.py in the same directory
+    script_dir = Path(__file__).resolve().parent
+    registry_path = script_dir / "mcp-registry.py"
+    if not registry_path.exists():
+        return [
+            {
+                "name": "mcp_registry",
+                "label": "MCP registry available",
+                "passed": True,
+                "detail": "mcp-registry.py not found (MCP inventory not available yet)",
+            }
+        ]
+
+    try:
+        spec = importlib.util.spec_from_file_location("mcp_registry", registry_path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        registry = getattr(mod, "REGISTRY", None)
+    except Exception as e:
+        return [
+            {
+                "name": "mcp_registry",
+                "label": "MCP registry loadable",
+                "passed": False,
+                "detail": f"Failed to load mcp-registry.py: {e}",
+            }
+        ]
+
+    if not registry:
+        return [
+            {
+                "name": "mcp_registry",
+                "label": "MCP registry has entries",
+                "passed": True,
+                "detail": "REGISTRY is empty or not defined",
+            }
+        ]
+
+    # Collect configured mcpServers keys from settings files
+    configured_servers: set[str] = set()
+    for settings_name in ["settings.json", "settings.local.json"]:
+        settings_path = CLAUDE_DIR / settings_name
+        if not settings_path.exists():
+            continue
+        try:
+            with open(settings_path) as f:
+                data = json.load(f)
+            for key in data.get("mcpServers", {}):
+                configured_servers.add(key)
+        except (json.JSONDecodeError, OSError):
+            continue
+
+    # Also check ~/.claude.json (global config)
+    global_config = Path.home() / ".claude.json"
+    if global_config.exists():
+        try:
+            with open(global_config) as f:
+                data = json.load(f)
+            for key in data.get("mcpServers", {}):
+                configured_servers.add(key)
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    for key, entry in registry.items():
+        display_name = entry.get("name", key)
+        # Match if the registry key appears in configured server names
+        found = key in configured_servers
+        results.append(
+            {
+                "name": f"mcp_{key}",
+                "label": f"MCP: {display_name}",
+                "passed": found,
+                "detail": "configured" if found else "not configured",
+            }
+        )
+
+    return results
+
+
 def inventory() -> dict:
     """Count installed components."""
     counts = {}
@@ -364,6 +454,15 @@ def inventory() -> dict:
         elif comp == "scripts":
             counts[comp] = len([f for f in real_dir.glob("*.py") if f.name != "__init__.py"])
 
+    # Count MCP servers from registry
+    mcp_results = check_mcp_servers()
+    mcp_total = sum(1 for r in mcp_results if r["name"].startswith("mcp_") and r["name"] != "mcp_registry")
+    mcp_configured = sum(
+        1 for r in mcp_results if r["name"].startswith("mcp_") and r["name"] != "mcp_registry" and r["passed"]
+    )
+    counts["mcps"] = mcp_total
+    counts["mcps_configured"] = mcp_configured
+
     return counts
 
 
@@ -378,6 +477,7 @@ def run_all_checks() -> list[dict]:
     results.extend(check_python_deps())
     results.append(check_learning_db())
     results.extend(check_permissions())
+    results.extend(check_mcp_servers())
     return results
 
 
@@ -394,7 +494,7 @@ def print_results(results: list[dict]) -> bool:
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: install-doctor.py [check|inventory] [--json]")
+        print("Usage: install-doctor.py [check|inventory|mcp] [--json]")
         sys.exit(2)
 
     try:
@@ -427,8 +527,24 @@ def main():
                 print(f"  Hooks:    {counts.get('hooks', 0)}")
                 print(f"  Commands: {counts.get('commands', 0)}")
                 print(f"  Scripts:  {counts.get('scripts', 0)}")
+                print(f"  MCPs:     {counts.get('mcps', 0)} ({counts.get('mcps_configured', 0)} configured)")
                 print()
             sys.exit(0)
+
+        elif command == "mcp":
+            import subprocess
+
+            # Delegate to mcp-registry.py list
+            script_dir = Path(__file__).resolve().parent
+            registry_script = script_dir / "mcp-registry.py"
+            if not registry_script.exists():
+                print("mcp-registry.py not found. MCP inventory not available yet.", file=sys.stderr)
+                sys.exit(2)
+            result = subprocess.run(
+                [sys.executable, str(registry_script), "list"],
+                check=False,
+            )
+            sys.exit(result.returncode)
 
         else:
             print(f"Unknown command: {command}")
