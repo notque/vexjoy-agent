@@ -116,6 +116,18 @@
             "command": "python3 \"$HOME/.claude/hooks/block-gitignore-bypass.py\"",
             "description": "Block git add -f on gitignored paths and .gitignore edits",
             "timeout": 1000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/pretool-git-submission-gate.py\"",
+            "description": "Block git push/gh pr create unless routed through pr-sync or pr-pipeline",
+            "timeout": 1000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/pretool-creation-gate.py\"",
+            "description": "Block direct creation of new agent/skill files — must use skill-creator-engineer",
+            "timeout": 1000
           }
         ]
       }
