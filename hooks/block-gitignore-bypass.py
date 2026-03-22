@@ -37,9 +37,11 @@ def main() -> None:
         # Only match direct file operations, not .gitignore mentioned in strings/heredocs
         # Split on heredoc boundaries — only check the command part, not body content
         cmd_part = command.split("<<")[0] if "<<" in command else command
-        if re.search(r'(>|>>)\s*\.gitignore', cmd_part) or \
-           re.search(r'(sed|awk|tee)\s+\S*\s*\.gitignore', cmd_part) or \
-           re.search(r'mv\s+\S+\s+\.gitignore', cmd_part):
+        if (
+            re.search(r"(>|>>)\s*\.gitignore", cmd_part)
+            or re.search(r"(sed|awk|tee)\s+\S*\s*\.gitignore", cmd_part)
+            or re.search(r"mv\s+\S+\s+\.gitignore", cmd_part)
+        ):
             print("[BLOCKED] Agents must not modify .gitignore.")
             print("This file controls repository safety boundaries.")
             sys.exit(2)
@@ -49,7 +51,7 @@ def main() -> None:
             sys.exit(0)
 
         # Block 2: git add with force flags
-        if not re.search(r'git\s+add\s+.*(-f|--force)', command):
+        if not re.search(r"git\s+add\s+.*(-f|--force)", command):
             sys.exit(0)
 
         # Extract paths being force-added
@@ -61,7 +63,7 @@ def main() -> None:
 
         paths = []
         past_separator = False
-        for part in parts[add_idx + 1:]:
+        for part in parts[add_idx + 1 :]:
             if part == "--":
                 past_separator = True
                 continue
@@ -75,10 +77,7 @@ def main() -> None:
 
         # Check which paths are gitignored
         try:
-            result = subprocess.run(
-                ["git", "check-ignore"] + paths,
-                capture_output=True, text=True, timeout=3
-            )
+            result = subprocess.run(["git", "check-ignore"] + paths, capture_output=True, text=True, timeout=3)
             ignored = [p for p in result.stdout.strip().split("\n") if p]
         except (subprocess.TimeoutExpired, OSError):
             sys.exit(0)  # Don't block on check failure
