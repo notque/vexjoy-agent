@@ -16,12 +16,17 @@ Usage:
     python3 scripts/learning-db.py graduate TOPIC KEY TARGET
     python3 scripts/learning-db.py boost TOPIC KEY [--delta 0.15]
     python3 scripts/learning-db.py prune --below-confidence 0.3 --older-than 90
+    python3 scripts/learning-db.py stale [--min-age-days 30] [--json]
+    python3 scripts/learning-db.py stale-prune --dry-run [--min-age-days 30]
+    python3 scripts/learning-db.py stale-prune --confirm [--min-age-days 30]
     python3 scripts/learning-db.py migrate
 """
 
 import argparse
 import json
+import sqlite3
 import sys
+from datetime import datetime, timedelta
 from pathlib import Path
 
 # Add hooks/lib to path for learning_db_v2
@@ -187,8 +192,150 @@ def cmd_decay(args):
 
 
 def cmd_prune(args):
+    """Remove low-confidence old entries (legacy destructive delete)."""
     count = prune(args.below_confidence, args.older_than)
     print(f"Pruned {count} entries (confidence < {args.below_confidence}, older than {args.older_than} days)")
+
+
+def _query_stale_entries(conn: sqlite3.Connection, min_age_days: int) -> list[dict]:
+    """Query entries matching staleness criteria.
+
+    Staleness criteria:
+    - Entry age > min_age_days (based on first_seen)
+    - Confidence < 0.5
+    - NOT graduated
+    """
+    cutoff = (datetime.now() - timedelta(days=min_age_days)).isoformat()
+    rows = conn.execute(
+        """
+        SELECT id, topic, key, value, confidence, category,
+               first_seen, last_seen, graduated_to
+        FROM learnings
+        WHERE first_seen < ?
+          AND confidence < 0.5
+          AND graduated_to IS NULL
+        ORDER BY confidence ASC
+        """,
+        (cutoff,),
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def _ensure_archive_table(conn: sqlite3.Connection) -> None:
+    """Create the learning_archive table if it doesn't exist."""
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS learning_archive (
+            id INTEGER PRIMARY KEY,
+            topic TEXT NOT NULL,
+            key TEXT NOT NULL,
+            value TEXT NOT NULL,
+            confidence REAL,
+            category TEXT,
+            created_at TEXT,
+            updated_at TEXT,
+            archived_at TEXT NOT NULL
+        )
+        """
+    )
+    conn.commit()
+
+
+def cmd_stale(args):
+    """Show entries that appear stale (old, low-confidence, not graduated)."""
+    init_db()
+    db_path = get_db_path()
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+
+    entries = _query_stale_entries(conn, args.min_age_days)
+    conn.close()
+
+    if args.json:
+        print(json.dumps(entries, indent=2, default=str))
+        return
+
+    if not entries:
+        print(f"No stale entries found (age > {args.min_age_days} days, confidence < 0.5, not graduated).")
+        return
+
+    print(f"Stale entries ({len(entries)} found):")
+    print(f"{'─' * 90}")
+    print(f"{'Topic':<25} {'Key':<20} {'Conf':>6} {'Age':>6} {'Last Updated':<20}")
+    print(f"{'─' * 90}")
+
+    now = datetime.now()
+    for entry in entries:
+        first_seen = datetime.fromisoformat(entry["first_seen"]) if entry["first_seen"] else now
+        age_days = (now - first_seen).days
+        last_updated = entry["last_seen"] or entry["first_seen"] or "unknown"
+        if last_updated != "unknown":
+            last_updated = last_updated[:19]  # Trim to datetime precision
+
+        topic_display = entry["topic"][:24]
+        key_display = entry["key"][:19]
+        print(f"{topic_display:<25} {key_display:<20} {entry['confidence']:>5.2f} {age_days:>5}d {last_updated:<20}")
+
+    print(f"{'─' * 90}")
+    print(f"Total: {len(entries)} stale entries")
+
+
+def cmd_stale_prune(args):
+    """Archive stale entries to learning_archive table."""
+    init_db()
+    db_path = get_db_path()
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+
+    entries = _query_stale_entries(conn, args.min_age_days)
+
+    if not entries:
+        print(f"No stale entries to archive (age > {args.min_age_days} days, confidence < 0.5, not graduated).")
+        conn.close()
+        return
+
+    if args.dry_run:
+        print(f"DRY RUN: Would archive {len(entries)} stale entries:")
+        print()
+        now = datetime.now()
+        for entry in entries:
+            first_seen = datetime.fromisoformat(entry["first_seen"]) if entry["first_seen"] else now
+            age_days = (now - first_seen).days
+            print(f"  {entry['topic']}/{entry['key']} (confidence: {entry['confidence']:.2f}, age: {age_days}d)")
+        print()
+        print(f"Run with --confirm to archive these {len(entries)} entries.")
+        conn.close()
+        return
+
+    # --confirm: actually archive
+    _ensure_archive_table(conn)
+    archived_at = datetime.now().isoformat()
+    archived_count = 0
+
+    for entry in entries:
+        conn.execute(
+            """
+            INSERT INTO learning_archive (id, topic, key, value, confidence, category, created_at, updated_at, archived_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                entry["id"],
+                entry["topic"],
+                entry["key"],
+                entry["value"],
+                entry["confidence"],
+                entry["category"],
+                entry["first_seen"],
+                entry["last_seen"],
+                archived_at,
+            ),
+        )
+        conn.execute("DELETE FROM learnings WHERE id = ?", (entry["id"],))
+        archived_count += 1
+
+    conn.commit()
+    conn.close()
+    print(f"Archived {archived_count} stale entries to learning_archive table.")
 
 
 def cmd_learn(args):
@@ -224,8 +371,6 @@ def cmd_learn(args):
 
 def cmd_purge(args):
     """Delete all entries matching a topic."""
-    import sqlite3
-
     db_path = get_db_path()
     conn = sqlite3.connect(db_path)
     cursor = conn.execute("DELETE FROM learnings WHERE topic = ?", (args.topic,))
@@ -360,11 +505,25 @@ def main():
     p_decay.add_argument("--delta", type=float, default=0.10)
     p_decay.set_defaults(func=cmd_decay)
 
-    # prune
-    p_prune = subparsers.add_parser("prune", help="Remove low-confidence old entries")
+    # prune (legacy destructive delete)
+    p_prune = subparsers.add_parser("prune", help="Remove low-confidence old entries (destructive delete)")
     p_prune.add_argument("--below-confidence", type=float, default=0.3)
     p_prune.add_argument("--older-than", type=int, default=90, help="Days")
     p_prune.set_defaults(func=cmd_prune)
+
+    # stale (show stale entries)
+    p_stale = subparsers.add_parser("stale", help="Show entries that appear stale")
+    p_stale.add_argument("--min-age-days", type=int, default=30, help="Minimum age in days (default: 30)")
+    p_stale.add_argument("--json", action="store_true", help="Output as JSON")
+    p_stale.set_defaults(func=cmd_stale)
+
+    # stale-prune (archive stale entries)
+    p_stale_prune = subparsers.add_parser("stale-prune", help="Archive stale entries to learning_archive table")
+    p_stale_prune.add_argument("--min-age-days", type=int, default=30, help="Minimum age in days (default: 30)")
+    p_stale_prune_group = p_stale_prune.add_mutually_exclusive_group(required=True)
+    p_stale_prune_group.add_argument("--dry-run", action="store_true", help="Preview what would be archived")
+    p_stale_prune_group.add_argument("--confirm", action="store_true", help="Actually archive stale entries")
+    p_stale_prune.set_defaults(func=cmd_stale_prune)
 
     # learn (low-friction skill-scoped recording)
     p_learn = subparsers.add_parser("learn", help="Record a skill/agent-scoped learning (one-liner)")
