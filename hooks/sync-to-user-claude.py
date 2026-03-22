@@ -390,6 +390,38 @@ def main():
         except Exception as e:
             errors.append(f".mcp.json: {e}")
 
+    # Sync private voices: private-voices/{name}/skill/ -> ~/.claude/skills/voice-{name}/
+    # Private voices are gitignored — they contain personal writing patterns.
+    # Each voice dir may contain: samples/, profile.json, config.json, skill/SKILL.md
+    # Only the skill/ subdirectory is synced to ~/.claude/skills/ for orchestrator access.
+    private_voices_dir = repo_root / "private-voices"
+    if private_voices_dir.is_dir():
+        voice_count = 0
+        for voice_dir in sorted(private_voices_dir.iterdir()):
+            if not voice_dir.is_dir():
+                continue
+            skill_src = voice_dir / "skill"
+            if not skill_src.is_dir():
+                continue
+            # Map private-voices/{name}/skill/ -> ~/.claude/skills/voice-{name}/
+            voice_name = voice_dir.name
+            skill_dst = user_claude / "skills" / f"voice-{voice_name}"
+            try:
+                skill_dst.mkdir(parents=True, exist_ok=True)
+                for item in skill_src.rglob("*"):
+                    if item.is_file():
+                        rel = item.relative_to(skill_src)
+                        target = skill_dst / rel
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        if target.exists() and filecmp.cmp(item, target, shallow=False):
+                            continue
+                        shutil.copy2(item, target)
+                voice_count += 1
+            except Exception as e:
+                errors.append(f"voice-{voice_name}: {e}")
+        if voice_count > 0:
+            synced.append(f"private-voices({voice_count})")
+
     # Sync soul document (CLAUDE-soul-template.md -> CLAUDE.md)
     soul_result, soul_error = sync_soul_document(repo_root, user_claude)
     if soul_result:
