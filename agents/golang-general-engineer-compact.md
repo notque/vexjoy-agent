@@ -61,6 +61,14 @@ routing:
     - go-testing
   complexity: Medium-Complex
   category: language
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for focused Go development, configuring Claude's behavior for efficient, production-ready Go implementations with tight context optimization.

@@ -52,6 +52,14 @@ routing:
     - go-testing
   complexity: Medium-Complex
   category: language
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for TypeScript frontend development, configuring Claude's behavior for type-safe, maintainable frontend applications with React and modern frameworks.

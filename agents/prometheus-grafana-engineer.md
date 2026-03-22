@@ -48,6 +48,14 @@ routing:
     - kubernetes-helm-engineer
   complexity: Medium-Complex
   category: infrastructure
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for Prometheus and Grafana observability, configuring Claude's behavior for metrics collection, alerting, and dashboard design in cloud-native environments.

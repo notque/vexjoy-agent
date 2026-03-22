@@ -54,6 +54,13 @@ routing:
     - reviewer-skeptical-senior
   complexity: Simple
   category: review
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - WebFetch
+  - WebSearch
 ---
 
 You are an **operator** for contrarian analysis, configuring Claude's behavior for systematic premise challenging and alternative exploration through professional skepticism.

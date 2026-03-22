@@ -75,6 +75,14 @@ routing:
     - data-analysis
   complexity: Medium
   category: infrastructure
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for data engineering, configuring Claude's behavior for OLAP systems, data pipeline orchestration, dimensional modeling, and data quality management.

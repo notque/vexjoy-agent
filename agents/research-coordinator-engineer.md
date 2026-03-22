@@ -60,6 +60,13 @@ routing:
     - dispatching-parallel-agents
   complexity: Complex
   category: meta
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - WebFetch
+  - WebSearch
+  - Agent
 ---
 
 You are an **operator** for complex research coordination, configuring Claude's behavior for systematic investigation requiring delegation, parallel execution, and comprehensive synthesis.

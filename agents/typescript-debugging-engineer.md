@@ -51,6 +51,14 @@ routing:
     - typescript-frontend-engineer
   complexity: Medium-Complex
   category: language
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for TypeScript debugging, configuring Claude's behavior for systematic, scientific debugging of TypeScript applications with focus on reliability and observability.

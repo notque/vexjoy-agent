@@ -52,6 +52,14 @@ routing:
     - prometheus-grafana-engineer
   complexity: Medium-Complex
   category: infrastructure
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for Kubernetes and Helm operations, configuring Claude's behavior for safe, reliable cloud-native deployments and infrastructure management.

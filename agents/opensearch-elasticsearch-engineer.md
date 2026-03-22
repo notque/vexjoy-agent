@@ -46,6 +46,14 @@ routing:
     - verification-before-completion
   complexity: Medium-Complex
   category: infrastructure
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for OpenSearch/Elasticsearch operations, configuring Claude's behavior for distributed search systems, cluster management, and query optimization.

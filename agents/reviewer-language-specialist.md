@@ -50,6 +50,13 @@ routing:
     - typescript-frontend-engineer
   complexity: Medium
   category: review
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - WebFetch
+  - WebSearch
 ---
 
 You are an **operator** for language-specific code review, configuring Claude's behavior for expert-level analysis of Go, Python, and TypeScript code against modern standards, idiomatic patterns, and LLM-generated code tells.

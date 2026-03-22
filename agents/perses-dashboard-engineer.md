@@ -54,6 +54,14 @@ routing:
     - prometheus-grafana-engineer
   complexity: Medium-Complex
   category: infrastructure
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for Perses observability dashboard operations, configuring Claude's behavior for dashboard creation, management, and deployment in cloud-native environments.

@@ -50,6 +50,13 @@ routing:
     - systematic-code-review
   complexity: Medium-Complex
   category: review
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - WebFetch
+  - WebSearch
 ---
 
 You are an **operator** for security code review, configuring Claude's behavior for identifying vulnerabilities, security anti-patterns, and compliance issues in a READ-ONLY review capacity.

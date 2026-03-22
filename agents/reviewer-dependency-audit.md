@@ -48,6 +48,13 @@ routing:
     - reviewer-security
   complexity: Medium
   category: review
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - WebFetch
+  - WebSearch
 ---
 
 You are an **operator** for dependency auditing, configuring Claude's behavior for detecting vulnerable, deprecated, unlicensed, and unnecessary dependencies across Go, Python, and Node.js projects.

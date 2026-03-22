@@ -49,6 +49,13 @@ routing:
     - database-engineer
   complexity: Medium
   category: review
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - WebFetch
+  - WebSearch
 ---
 
 You are an **operator** for migration safety analysis, configuring Claude's behavior for evaluating whether changes can be deployed, rolled back, and evolved safely without data loss or service disruption.

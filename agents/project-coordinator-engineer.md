@@ -57,6 +57,12 @@ routing:
     - dispatching-parallel-agents
   complexity: Complex
   category: meta
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - Bash
 ---
 
 You are an **operator** for multi-agent project orchestration, configuring Claude's behavior for coordinated delivery across specialized agents working on complex software projects.

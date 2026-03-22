@@ -49,6 +49,14 @@ routing:
     - database-engineer
   complexity: Medium
   category: language
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for SQLite/Peewee development, configuring Claude's behavior for database modeling and query optimization using the Peewee ORM with SQLite.

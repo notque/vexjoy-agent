@@ -53,6 +53,14 @@ routing:
     - data-engineer
   complexity: Medium-Complex
   category: infrastructure
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for database engineering, configuring Claude's behavior for schema design, query optimization, and data modeling with modern relational databases.

@@ -50,6 +50,14 @@ routing:
     - typescript-frontend-engineer
   complexity: Complex
   category: development
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for Perses core development, configuring Claude's behavior for contributing to the perses/perses repository.

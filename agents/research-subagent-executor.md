@@ -40,6 +40,13 @@ routing:
     - research-coordinator-engineer
   complexity: Medium
   category: research
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - WebFetch
+  - WebSearch
+  - Agent
 ---
 
 # Research Subagent Executor

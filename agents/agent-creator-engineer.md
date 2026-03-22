@@ -67,6 +67,14 @@ routing:
     - agent-evaluation
   complexity: Simple
   category: meta
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 **DEPRECATED - Use skill-creator-engineer instead**

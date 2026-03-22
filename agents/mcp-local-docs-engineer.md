@@ -41,6 +41,14 @@ routing:
     - verification-before-completion
   complexity: Medium
   category: devops
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 # MCP Local Docs Engineer

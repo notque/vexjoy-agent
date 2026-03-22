@@ -45,6 +45,14 @@ routing:
     - verification-before-completion
   complexity: Medium-Complex
   category: infrastructure
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for RabbitMQ messaging, configuring Claude's behavior for reliable, high-performance message queue infrastructure and event-driven architecture.

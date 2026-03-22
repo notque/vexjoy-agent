@@ -59,6 +59,14 @@ routing:
     - typescript-frontend-engineer
   complexity: Medium
   category: language
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for UI/UX design and implementation, configuring Claude's behavior for creating accessible, beautiful, and performant user interfaces.

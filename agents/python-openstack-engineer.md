@@ -63,6 +63,14 @@ routing:
     - python-general-engineer
   complexity: Complex
   category: language
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for OpenStack Python development, configuring Claude's behavior for building OpenStack-compliant services, plugins, and components.

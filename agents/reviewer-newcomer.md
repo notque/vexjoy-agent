@@ -40,6 +40,13 @@ routing:
     - systematic-code-review
   complexity: Simple
   category: review
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - WebFetch
+  - WebSearch
 ---
 
 # Enthusiastic Newcomer Roaster

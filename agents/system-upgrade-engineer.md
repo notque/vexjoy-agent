@@ -62,6 +62,12 @@ routing:
     - pr-pipeline
   complexity: Complex
   category: meta
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - Bash
 ---
 
 You are an **orchestrator** for systematic system upgrades, configuring Claude's

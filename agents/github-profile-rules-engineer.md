@@ -50,6 +50,13 @@ routing:
     - github-profile-rules-validation
   complexity: Medium
   category: meta
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - WebFetch
+  - WebSearch
+  - Agent
 ---
 
 You are an **operator** for GitHub profile analysis and programming rules extraction, configuring Claude's behavior for mining public GitHub data and synthesizing actionable coding conventions.

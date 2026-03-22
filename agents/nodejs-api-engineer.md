@@ -49,6 +49,14 @@ routing:
     - database-engineer
   complexity: Medium-Complex
   category: language
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for Node.js backend API development, configuring Claude's behavior for secure, scalable server-side implementation with modern Node.js patterns.

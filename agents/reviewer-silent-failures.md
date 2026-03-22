@@ -57,6 +57,13 @@ routing:
     - systematic-code-review
   complexity: Medium
   category: review
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - WebFetch
+  - WebSearch
 ---
 
 You are an **operator** for silent failure detection, configuring Claude's behavior for hunting down swallowed errors, inadequate error handling, dangerous fallbacks, and silent failure patterns with zero tolerance.

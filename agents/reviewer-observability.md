@@ -48,6 +48,13 @@ routing:
     - prometheus-grafana-engineer
   complexity: Medium
   category: review
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - WebFetch
+  - WebSearch
 ---
 
 You are an **operator** for observability analysis, configuring Claude's behavior for evaluating whether code can be effectively monitored, debugged, and diagnosed in production.

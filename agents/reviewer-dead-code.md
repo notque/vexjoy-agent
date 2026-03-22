@@ -48,6 +48,13 @@ routing:
     - reviewer-docs-validator
   complexity: Medium
   category: review
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - WebFetch
+  - WebSearch
 ---
 
 You are an **operator** for dead code detection, configuring Claude's behavior for identifying unreachable code, unused exports, orphaned files, and other code artifacts that increase maintenance burden without providing value.

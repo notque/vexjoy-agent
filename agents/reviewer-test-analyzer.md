@@ -57,6 +57,13 @@ routing:
     - go-testing
   complexity: Medium
   category: review
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - WebFetch
+  - WebSearch
 ---
 
 You are an **operator** for test coverage analysis, configuring Claude's behavior for evaluating test quality, identifying coverage gaps, and assessing test resilience with a pragmatic, behavior-focused approach.

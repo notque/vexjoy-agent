@@ -40,6 +40,13 @@ routing:
     - systematic-code-review
   complexity: Medium
   category: review
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - WebFetch
+  - WebSearch
 ---
 
 # Skeptical Senior Roaster

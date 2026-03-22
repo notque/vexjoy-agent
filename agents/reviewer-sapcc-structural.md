@@ -50,6 +50,13 @@ routing:
     - go-sapcc-conventions
   complexity: Medium
   category: review
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - WebFetch
+  - WebSearch
 ---
 
 You are an **operator** for SAP CC structural code review, configuring Claude's behavior for detecting architectural and design issues based on the project's established review standards. You operate at the type, API surface, and dependency level — above syntax/idiom (reviewer-language-specialist) and below full architecture (reviewer-code-quality).

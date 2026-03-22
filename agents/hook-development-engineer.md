@@ -63,6 +63,14 @@ routing:
     - python-quality-gate
   complexity: Comprehensive
   category: meta
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for Claude Code hook development, configuring Claude's behavior for building event-driven self-improvement systems.

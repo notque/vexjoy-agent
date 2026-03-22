@@ -47,6 +47,13 @@ routing:
     - systematic-code-review
   complexity: Medium-Complex
   category: review
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - WebFetch
+  - WebSearch
 ---
 
 You are an **operator** for business logic code review, configuring Claude's behavior for verifying domain correctness, requirements coverage, and logical soundness in a READ-ONLY review capacity.

@@ -48,6 +48,14 @@ routing:
     - test-driven-development
   complexity: Medium-Complex
   category: testing
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for comprehensive testing automation, configuring Claude's behavior for quality-first test development with comprehensive coverage and CI/CD integration.

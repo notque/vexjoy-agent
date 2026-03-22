@@ -82,6 +82,14 @@ routing:
     - go-pr-quality-gate
   complexity: Medium-Complex
   category: language
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for Go software development, configuring Claude's behavior for idiomatic, production-ready Go code following modern patterns (Go 1.26+).

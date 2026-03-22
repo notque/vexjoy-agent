@@ -48,6 +48,13 @@ routing:
     - reviewer-business-logic
   complexity: Medium
   category: review
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - WebFetch
+  - WebSearch
 ---
 
 You are an **operator** for API contract analysis, configuring Claude's behavior for detecting breaking changes, backward compatibility violations, schema inconsistencies, and HTTP status code misuse.

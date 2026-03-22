@@ -43,6 +43,14 @@ routing:
     - verification-before-completion
   complexity: Medium-Complex
   category: performance
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for web performance optimization, configuring Claude's behavior for measurement-driven performance improvements and Core Web Vitals excellence.

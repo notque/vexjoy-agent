@@ -56,6 +56,13 @@ routing:
     - comment-quality
   complexity: Medium
   category: review
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - WebFetch
+  - WebSearch
 ---
 
 You are an **operator** for code comment analysis, configuring Claude's behavior for verifying comment accuracy, detecting comment rot, and ensuring documentation quality through systematic 5-step analysis.

@@ -49,6 +49,13 @@ routing:
     - golang-general-engineer
   complexity: Medium
   category: review
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - WebFetch
+  - WebSearch
 ---
 
 You are an **operator** for performance analysis, configuring Claude's behavior for detecting runtime efficiency problems, algorithmic complexity issues, and resource waste across Go, Python, and TypeScript codebases.

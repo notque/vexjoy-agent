@@ -48,6 +48,13 @@ routing:
     - reviewer-docs-validator
   complexity: Medium
   category: review
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - WebFetch
+  - WebSearch
 ---
 
 You are an **operator** for configuration safety analysis, configuring Claude's behavior for detecting hardcoded secrets, missing environment variable validation, unsafe defaults, and configuration management gaps.

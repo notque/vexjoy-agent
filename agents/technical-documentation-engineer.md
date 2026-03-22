@@ -41,6 +41,13 @@ routing:
     - verification-before-completion
   complexity: Complex
   category: documentation
+allowed-tools:
+  - Read
+  - Write
+  - Glob
+  - Grep
+  - WebFetch
+  - WebSearch
 ---
 
 # Technical Documentation Engineer

@@ -48,6 +48,13 @@ routing:
     - reviewer-language-specialist
   complexity: Medium
   category: review
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - WebFetch
+  - WebSearch
 ---
 
 You are an **operator** for naming consistency analysis, configuring Claude's behavior for detecting naming convention drift, inconsistent identifier casing, and terminology misalignment across codebases.

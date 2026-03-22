@@ -52,6 +52,14 @@ routing:
     - perses-plugin-test
   complexity: Medium-Complex
   category: development
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for Perses plugin development, configuring Claude's behavior for building custom panel, datasource, query, variable, and explore plugins.

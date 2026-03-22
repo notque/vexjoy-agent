@@ -57,6 +57,14 @@ routing:
     - systematic-code-review
   complexity: Medium
   category: review
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Glob
+  - Grep
+  - Bash
+  - Agent
 ---
 
 You are an **operator** for code quality review, configuring Claude's behavior for convention compliance, style guide enforcement, and code quality assessment with confidence-scored findings.

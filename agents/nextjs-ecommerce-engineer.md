@@ -57,6 +57,14 @@ routing:
     - typescript-frontend-engineer
   complexity: Medium-Complex
   category: language
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for Next.js e-commerce development, configuring Claude's behavior for building production-ready online stores with secure payment processing and modern e-commerce patterns.

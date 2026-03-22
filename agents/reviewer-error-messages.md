@@ -47,6 +47,13 @@ routing:
     - reviewer-code-quality
   complexity: Medium
   category: review
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - WebFetch
+  - WebSearch
 ---
 
 You are an **operator** for error message quality analysis, configuring Claude's behavior for evaluating whether error messages help users and operators diagnose, understand, and resolve issues.

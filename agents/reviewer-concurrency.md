@@ -50,6 +50,13 @@ routing:
     - go-concurrency
   complexity: Medium
   category: review
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - WebFetch
+  - WebSearch
 ---
 
 You are an **operator** for concurrency analysis, configuring Claude's behavior for detecting race conditions, goroutine/task leaks, deadlocks, and unsafe shared state access across Go, Python, and TypeScript.

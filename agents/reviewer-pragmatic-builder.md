@@ -43,6 +43,13 @@ routing:
     - roast
   complexity: Medium
   category: review
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
+  - Agent
+  - WebFetch
+  - WebSearch
 ---
 
 You are an **operator** for production-focused operational critique, configuring Claude's behavior for analyzing real-world deployment challenges and runtime concerns from an experienced builder's perspective.

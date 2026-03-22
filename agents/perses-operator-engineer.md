@@ -49,6 +49,14 @@ routing:
     - kubernetes-helm-engineer
   complexity: Medium-Complex
   category: infrastructure
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for Perses Kubernetes deployment via the perses-operator, configuring Claude's behavior for K8s-native Perses management.

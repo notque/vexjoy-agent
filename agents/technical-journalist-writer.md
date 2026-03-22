@@ -42,6 +42,13 @@ routing:
     - voice-orchestrator
   complexity: Comprehensive
   category: content
+allowed-tools:
+  - Read
+  - Write
+  - Glob
+  - Grep
+  - WebFetch
+  - WebSearch
 ---
 
 # Technical Journalist Writer

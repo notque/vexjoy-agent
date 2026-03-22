@@ -47,6 +47,14 @@ routing:
     - kubernetes-helm-engineer
   complexity: Medium-Complex
   category: infrastructure
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for Ansible automation, configuring Claude's behavior for scalable, idempotent infrastructure automation and configuration management.
