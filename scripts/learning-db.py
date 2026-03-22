@@ -46,6 +46,7 @@ from learning_db_v2 import (
     boost_confidence,
     decay_confidence,
     export_markdown,
+    get_connection,
     get_db_path,
     get_stats,
     import_from_patterns_db,
@@ -346,78 +347,69 @@ def cmd_record_activation(args: argparse.Namespace) -> None:
     """Record that a learning was activated during a session."""
     init_db()
     now = datetime.now().isoformat()
-    db_path = get_db_path()
-    conn = sqlite3.connect(db_path)
     try:
-        conn.execute(
-            "INSERT INTO activations (topic, key, session_id, timestamp, outcome) VALUES (?, ?, ?, ?, ?)",
-            (args.topic, args.key, args.session, now, args.outcome),
-        )
-        conn.commit()
+        with get_connection() as conn:
+            conn.execute(
+                "INSERT INTO activations (topic, key, session_id, timestamp, outcome) VALUES (?, ?, ?, ?, ?)",
+                (args.topic, args.key, args.session, now, args.outcome),
+            )
+            conn.commit()
     except sqlite3.Error as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
-    finally:
-        conn.close()
     print(f"Recorded activation: {args.topic}/{args.key} (session: {args.session}, outcome: {args.outcome})")
 
 
 def cmd_record_waste(args: argparse.Namespace) -> None:
-    """Record wasted tokens from a failure in a session."""
+    """Record wasted tokens from a failure in a session.
+
+    Increments failure_count by 1 and adds tokens to waste_tokens.
+    Creates the session_stats row if it doesn't exist.
+    """
     init_db()
     now = datetime.now().isoformat()
-    db_path = get_db_path()
-    conn = sqlite3.connect(db_path)
     try:
-        row = conn.execute("SELECT id FROM session_stats WHERE session_id = ?", (args.session,)).fetchone()
-        if row:
+        with get_connection() as conn:
             conn.execute(
-                "UPDATE session_stats SET failure_count = failure_count + 1, waste_tokens = waste_tokens + ? WHERE session_id = ?",
-                (args.tokens, args.session),
-            )
-        else:
-            conn.execute(
-                "INSERT INTO session_stats (session_id, failure_count, waste_tokens, created_at) VALUES (?, 1, ?, ?)",
+                """INSERT INTO session_stats (session_id, failure_count, waste_tokens, created_at, had_retro_knowledge)
+                   VALUES (?, 1, ?, ?, 0)
+                   ON CONFLICT(session_id) DO UPDATE SET
+                       failure_count = failure_count + 1,
+                       waste_tokens = waste_tokens + excluded.waste_tokens""",
                 (args.session, args.tokens, now),
             )
-        conn.commit()
+            conn.commit()
     except sqlite3.Error as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
-    finally:
-        conn.close()
     print(f"Recorded waste: session={args.session}, tokens={args.tokens}")
 
 
 def cmd_record_session_stats(args: argparse.Namespace) -> None:
-    """Create or update a session_stats entry."""
+    """Create or update a session_stats entry.
+
+    On conflict (existing session_id), overwrites had_retro_knowledge,
+    failure_count, and waste_tokens with the provided values.
+    """
     init_db()
     now = datetime.now().isoformat()
-    db_path = get_db_path()
-    conn = sqlite3.connect(db_path)
-
     had_retro = 1 if args.had_retro else 0
 
     try:
-        row = conn.execute("SELECT id FROM session_stats WHERE session_id = ?", (args.session,)).fetchone()
-        if row:
+        with get_connection() as conn:
             conn.execute(
-                """UPDATE session_stats
-                   SET had_retro_knowledge = ?, failure_count = ?, waste_tokens = ?
-                   WHERE session_id = ?""",
-                (had_retro, args.failures, args.waste_tokens, args.session),
-            )
-        else:
-            conn.execute(
-                "INSERT INTO session_stats (session_id, had_retro_knowledge, failure_count, waste_tokens, created_at) VALUES (?, ?, ?, ?, ?)",
+                """INSERT INTO session_stats (session_id, had_retro_knowledge, failure_count, waste_tokens, created_at)
+                   VALUES (?, ?, ?, ?, ?)
+                   ON CONFLICT(session_id) DO UPDATE SET
+                       had_retro_knowledge = excluded.had_retro_knowledge,
+                       failure_count = excluded.failure_count,
+                       waste_tokens = excluded.waste_tokens""",
                 (args.session, had_retro, args.failures, args.waste_tokens, now),
             )
-        conn.commit()
+            conn.commit()
     except sqlite3.Error as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
-    finally:
-        conn.close()
     print(
         f"Recorded session: {args.session} (retro={bool(had_retro)}, failures={args.failures}, waste={args.waste_tokens})"
     )
@@ -428,10 +420,7 @@ def _compute_roi_data(db_path: Path) -> dict:
 
     Returns a dict with all ROI data suitable for both human and JSON output.
     """
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-
-    try:
+    with get_connection() as conn:
         # Session cohort stats
         total_sessions = conn.execute("SELECT COUNT(*) FROM session_stats").fetchone()[0]
         with_retro = conn.execute("SELECT COUNT(*) FROM session_stats WHERE had_retro_knowledge = 1").fetchone()[0]
@@ -459,26 +448,26 @@ def _compute_roi_data(db_path: Path) -> dict:
         ).fetchall():
             top_activations.append({"topic": row["topic"], "key": row["key"], "count": row["activation_count"]})
 
-        # Dead weight: learnings with 0 activations
-        dead_weight = []
-        for row in conn.execute(
-            """SELECT l.topic, l.key, l.first_seen
-               FROM learnings l
-               LEFT JOIN activations a ON l.topic = a.topic AND l.key = a.key
-               WHERE a.id IS NULL
-               ORDER BY l.first_seen ASC"""
-        ).fetchall():
-            age_days = -1
-            if row["first_seen"]:
-                try:
-                    first_seen_dt = datetime.fromisoformat(row["first_seen"])
-                    age_days = (datetime.now() - first_seen_dt).days
-                except (ValueError, TypeError) as e:
-                    print(f"Warning: cannot parse first_seen for {row['topic']}/{row['key']}: {e}", file=sys.stderr)
-                    age_days = -1
-            dead_weight.append({"topic": row["topic"], "key": row["key"], "age_days": age_days})
-    finally:
-        conn.close()
+        # Dead weight: learnings with 0 activations (ADR-032 requires 10+ total sessions)
+        dead_weight: list[dict] = []
+        if total_sessions >= 10:
+            for row in conn.execute(
+                """SELECT l.topic, l.key, l.first_seen
+                   FROM learnings l
+                   LEFT JOIN activations a ON l.topic = a.topic AND l.key = a.key
+                   WHERE a.id IS NULL
+                   ORDER BY l.first_seen ASC
+                   LIMIT 10"""
+            ).fetchall():
+                age_days = -1
+                if row["first_seen"]:
+                    try:
+                        first_seen_dt = datetime.fromisoformat(row["first_seen"])
+                        age_days = (datetime.now() - first_seen_dt).days
+                    except (ValueError, TypeError) as e:
+                        print(f"Warning: cannot parse first_seen for {row['topic']}/{row['key']}: {e}", file=sys.stderr)
+                        age_days = -1
+                dead_weight.append({"topic": row["topic"], "key": row["key"], "age_days": age_days})
 
     # Compute rates and improvement
     sufficient_data = with_retro >= 3 and without_retro >= 3
@@ -487,6 +476,7 @@ def _compute_roi_data(db_path: Path) -> dict:
 
     if sufficient_data and rate_without_retro > 0:
         improvement_pct = (rate_without_retro - rate_with_retro) / rate_without_retro * 100
+        # estimated_savings = improvement_fraction * avg_waste_per_session * sessions_with_retro
         estimated_savings = round(improvement_pct / 100 * avg_waste * with_retro)
     else:
         improvement_pct = None
@@ -531,7 +521,10 @@ def cmd_roi(args: argparse.Namespace) -> None:
         print("Failure Rates:")
         print(f"  With retro knowledge:    {data['rate_with_retro']:.2f} failures/session")
         print(f"  Without retro knowledge: {data['rate_without_retro']:.2f} failures/session")
-        print(f"  Improvement:             {data['improvement_pct']:.1f}%")
+        if data["improvement_pct"] is not None:
+            print(f"  Improvement:             {data['improvement_pct']:.1f}%")
+        else:
+            print("  Improvement:             N/A (no failures in baseline cohort)")
         print()
         if data["estimated_savings"] is not None:
             print(

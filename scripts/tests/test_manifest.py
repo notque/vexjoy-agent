@@ -317,7 +317,7 @@ class TestList:
         # Create two manifests with different timestamps
         for ts, count in [("2026-03-20T100000", 2), ("2026-03-22T143000", 5)]:
             data = {
-                "timestamp": ts.replace("T", "T").replace("T", "T"),
+                "timestamp": ts,
                 "files": [
                     {"path": f"file{i}.md", "action": "existing", "sha256": "a" * 64, "backup_path": f"backup{i}"}
                     for i in range(count)

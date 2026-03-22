@@ -492,6 +492,7 @@ class TestDeadWeight:
     """Learnings with 0 activations are detected as dead weight."""
 
     def test_detects_unactivated_learnings(self, isolated_db: Path) -> None:
+        _seed_sessions(isolated_db, with_retro=5, without_retro=5)
         _seed_learnings(isolated_db, [("hooks", "session-timing"), ("general", "placeholder-pattern")])
 
         data = learning_db._compute_roi_data(isolated_db / "learning.db")
@@ -501,6 +502,7 @@ class TestDeadWeight:
         assert ("general", "placeholder-pattern") in dead_topics
 
     def test_activated_learnings_not_dead(self, isolated_db: Path) -> None:
+        _seed_sessions(isolated_db, with_retro=5, without_retro=5)
         _seed_learnings(isolated_db, [("routing", "force-route"), ("hooks", "unused-hook")])
         _seed_activations(isolated_db, [("routing", "force-route", 5)])
 
@@ -511,6 +513,7 @@ class TestDeadWeight:
         assert ("hooks", "unused-hook") in dead_topics
 
     def test_dead_weight_includes_age(self, isolated_db: Path) -> None:
+        _seed_sessions(isolated_db, with_retro=5, without_retro=5)
         _seed_learnings(isolated_db, [("stale", "old-entry")])
 
         data = learning_db._compute_roi_data(isolated_db / "learning.db")
@@ -521,8 +524,17 @@ class TestDeadWeight:
         assert isinstance(dead[0]["age_days"], int)
 
     def test_no_dead_weight_when_all_activated(self, isolated_db: Path) -> None:
+        _seed_sessions(isolated_db, with_retro=5, without_retro=5)
         _seed_learnings(isolated_db, [("a", "key1"), ("b", "key2")])
         _seed_activations(isolated_db, [("a", "key1", 1), ("b", "key2", 1)])
+
+        data = learning_db._compute_roi_data(isolated_db / "learning.db")
+        assert data["dead_weight"] == []
+
+    def test_dead_weight_empty_below_10_sessions(self, isolated_db: Path) -> None:
+        """ADR-032: dead weight analysis requires 10+ total sessions."""
+        _seed_sessions(isolated_db, with_retro=3, without_retro=3)
+        _seed_learnings(isolated_db, [("hooks", "unused-hook")])
 
         data = learning_db._compute_roi_data(isolated_db / "learning.db")
         assert data["dead_weight"] == []

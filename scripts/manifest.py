@@ -122,7 +122,11 @@ def cmd_snapshot(args: argparse.Namespace) -> int:
         # Copy to backup preserving relative path
         backup_dest = backup_dir / rel_path
         backup_dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(str(target), str(backup_dest))
+        try:
+            shutil.copy2(target, backup_dest)
+        except OSError as e:
+            print(f"Error: could not backup {rel_path}: {e}", file=sys.stderr)
+            return 2
 
         backup_rel = backup_dest.relative_to(REPO_ROOT)
         files_entries.append(
@@ -173,12 +177,14 @@ def cmd_undo(args: argparse.Namespace) -> int:
         return 0
 
     restored_count = 0
+    failed_count = 0
     for entry in files:
         try:
             rel_path = entry["path"]
             backup_rel = entry["backup_path"]
         except KeyError as e:
             print(f"Warning: manifest entry missing field {e}", file=sys.stderr)
+            failed_count += 1
             continue
 
         backup_path = (REPO_ROOT / backup_rel).resolve()
@@ -188,18 +194,27 @@ def cmd_undo(args: argparse.Namespace) -> int:
             target_path.relative_to(REPO_ROOT.resolve())
         except ValueError:
             print(f"Error: Path escapes repo root: {rel_path}", file=sys.stderr)
+            failed_count += 1
             continue
 
         if not backup_path.exists():
             print(f"Warning: Backup missing, cannot restore: {rel_path}", file=sys.stderr)
+            failed_count += 1
             continue
 
         target_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(str(backup_path), str(target_path))
+        try:
+            shutil.copy2(backup_path, target_path)
+        except OSError as e:
+            print(f"Error: could not restore {rel_path}: {e}", file=sys.stderr)
+            failed_count += 1
+            continue
         print(f"Restored: {rel_path}")
         restored_count += 1
 
     print(f"Restored {restored_count} files from manifest")
+    if failed_count:
+        print(f"Failed to restore {failed_count} files", file=sys.stderr)
     return 0
 
 
@@ -344,8 +359,15 @@ def cmd_verify(args: argparse.Namespace) -> int:
             if _is_component_file(rel_path) and SCORE_SCRIPT.exists():
                 current_score = _run_scorer(rel_path)
                 # Score the backup to get the original score
-                backup_path = entry.get("backup_path", "")
-                original_score = _run_scorer(backup_path) if backup_path else None
+                backup_rel = entry.get("backup_path", "")
+                original_score = None
+                if backup_rel:
+                    backup_abs = (REPO_ROOT / backup_rel).resolve()
+                    try:
+                        backup_abs.relative_to(REPO_ROOT.resolve())
+                        original_score = _run_scorer(backup_rel)
+                    except ValueError:
+                        print("Warning: backup_path escapes repo root, skipping", file=sys.stderr)
 
                 if current_score is not None and original_score is not None:
                     delta = current_score - original_score

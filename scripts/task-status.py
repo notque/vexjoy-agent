@@ -38,13 +38,21 @@ def _with_lock(func: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(func)
     def wrapper(*args: Any, path: Path = STATUS_FILE, **kwargs: Any) -> Any:
         lock_path = path.with_suffix(".lock")
-        lock_path.touch(exist_ok=True)
-        with open(lock_path) as lock_fd:
+        try:
+            lock_path.touch(exist_ok=True)
+            lock_fd = open(lock_path)  # noqa: SIM115 — explicit close needed for lock lifecycle
+        except OSError as e:
+            print(f"Warning: cannot acquire lock: {e}", file=sys.stderr)
+            return func(*args, path=path, **kwargs)  # proceed unlocked
+
+        try:
             fcntl.flock(lock_fd, fcntl.LOCK_EX)
             try:
                 return func(*args, path=path, **kwargs)
             finally:
                 fcntl.flock(lock_fd, fcntl.LOCK_UN)
+        finally:
+            lock_fd.close()
 
     return wrapper
 
@@ -123,9 +131,16 @@ def _save(store: TaskStore, path: Path) -> None:
     Args:
         store: TaskStore to persist.
         path: Path to write the JSON file.
+
+    Raises:
+        OSError: If the file cannot be written.
     """
     data = {"tasks": [asdict(t) for t in store.tasks]}
-    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    try:
+        path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    except OSError as e:
+        print(f"Error: could not save task status: {e}", file=sys.stderr)
+        raise
 
 
 def _find_task(store: TaskStore, name: str) -> Task | None:
@@ -313,6 +328,9 @@ def cmd_clear(*, path: Path = STATUS_FILE) -> int:
     """
     if path.exists():
         path.unlink()
+    lock_path = path.with_suffix(".lock")
+    if lock_path.exists():
+        lock_path.unlink(missing_ok=True)
     return 0
 
 
@@ -364,19 +382,20 @@ def main() -> int:
         parser.print_help(sys.stderr)
         return 2
 
-    if args.command == "start":
-        return cmd_start(args.name, args.status)
-    elif args.command == "update":
-        return cmd_update(args.name, args.status)
-    elif args.command == "done":
-        return cmd_done(args.name, args.status)
-    elif args.command == "show":
-        return cmd_show(as_json=args.as_json, include_completed=args.include_completed)
-    elif args.command == "clear":
-        return cmd_clear()
-
-    parser.print_help(sys.stderr)
-    return 2
+    match args.command:
+        case "start":
+            return cmd_start(args.name, args.status)
+        case "update":
+            return cmd_update(args.name, args.status)
+        case "done":
+            return cmd_done(args.name, args.status)
+        case "show":
+            return cmd_show(as_json=args.as_json, include_completed=args.include_completed)
+        case "clear":
+            return cmd_clear()
+        case _:
+            parser.print_help(sys.stderr)
+            return 2
 
 
 if __name__ == "__main__":
