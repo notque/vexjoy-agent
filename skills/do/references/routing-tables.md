@@ -48,6 +48,8 @@ Extended routing tables for the `/do` router. The main SKILL.md contains the cor
 | code cleanup, stale TODOs, unused | code-cleanup |
 | comment quality, temporal refs | comment-quality |
 | evaluate agent, grade skill | agent-evaluation |
+| score component, health check agent, deterministic score | component-health-pipeline |
+| stale learnings, prune learnings, dead knowledge | stale-learning-pruner |
 | compare agents, A/B test | agent-comparison |
 | test agent, validate agent | testing-agents-with-subagents |
 | mine PR, extract review comments | pr-miner |
