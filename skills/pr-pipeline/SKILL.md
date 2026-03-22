@@ -146,50 +146,27 @@ git add [files]
 
 **Gate**: Changes staged. No sensitive files included. Staged diff makes sense as a cohesive unit.
 
-### Phase 2: REVIEW (Parallel Subagents)
+### Phase 2: REVIEW (Comprehensive Multi-Agent Review)
 
-**Goal**: Catch issues before they reach the PR.
+**Goal**: Catch ALL issues before they reach the commit. This is the full 3-wave, 20+ agent comprehensive review, not a lightweight pass.
 
-Launch 3 reviewers in a single message with 3 Task calls:
+**Invoke the comprehensive-review skill:**
 
-**Security Reviewer:**
 ```
-Review these changes for security issues:
-[git diff --cached output]
-
-Check for: hardcoded secrets, SQL injection, XSS, command injection, insecure dependencies.
-Return: PASS/FAIL with specific findings.
-Do NOT suggest changes -- only report issues.
+Invoke: /comprehensive-review
+Scope: git diff --cached (staged changes)
+Mode: review + fix (default)
 ```
 
-**Business Logic Reviewer:**
-```
-Review these changes for correctness:
-[git diff --cached output]
+This dispatches:
+- **Wave 1**: 11 foundation agents in parallel (security, business logic, architecture, silent failures, test coverage, type design, code quality, comments, language specialist, docs validator, ADR compliance)
+- **Wave 2**: 10 deep-dive agents with Wave 1 context (performance, concurrency, API contracts, dependencies, error messages, dead code, naming, observability, config safety, migration safety)
 
-Check for: requirements coverage, edge case handling, state correctness, data validation.
-Return: PASS/FAIL with specific findings.
-Do NOT suggest changes -- only report issues.
-```
+All findings are auto-fixed. The fix commit is applied to the staged changes before proceeding to Phase 3.
 
-**Code Quality Reviewer:**
-```
-Review these changes for quality:
-[git diff --cached output]
+**If comprehensive-review finds CRITICAL issues that cannot be auto-fixed**: STOP and report to user. Do not proceed to commit.
 
-Check for: style consistency, error handling, test coverage gaps, naming clarity.
-Return: PASS/FAIL with specific findings.
-Do NOT suggest changes -- only report issues.
-```
-
-**Aggregate results:**
-```
-Security: PASS/FAIL
-Business Logic: PASS/FAIL (warnings if any)
-Code Quality: PASS/FAIL (warnings if any)
-```
-
-**Gate**: No FAIL from any reviewer. Warnings are acceptable. If any reviewer returns FAIL with critical findings, STOP and report to user.
+**Gate**: Comprehensive review complete. All findings fixed or explained. No unresolved CRITICAL issues.
 
 ### Phase 3: COMMIT
 

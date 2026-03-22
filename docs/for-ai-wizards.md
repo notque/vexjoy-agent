@@ -223,6 +223,9 @@ CREATE TABLE learnings (
 );
 ```
 
+Additional tables: activations (learning activation tracking),
+session_stats (per-session ROI cohort data), learning_archive (archived stale entries).
+
 ### Confidence Scoring
 
 Entries start at category-specific defaults (errors: 0.55, reviews: 0.70, gotchas: 0.70). The error-learner boosts confidence by 0.15 when a fix works, decays by 0.10 when it doesn't. The `confidence-decay` hook runs at session end -- entries untouched for 30+ days decay by 0.05, entries below 0.3 and older than 90 days get pruned.
@@ -240,6 +243,20 @@ Manually taught patterns (via `/learn`) enter at 0.9 confidence. The retro-knowl
 ### The /learn Command
 
 `/learn "Edit tool fails with 'found N matches'" -> "Use replace_all=True"` parses the input, classifies the fix type (auto/skill/agent/manual), and stores it at 0.9 confidence via `scripts/learning-db.py record`. It's for pre-loading knowledge you already have, not for debugging live issues.
+
+### CLI
+
+```bash
+# ROI report — cohort comparison of sessions with/without retro knowledge
+python3 scripts/learning-db.py roi [--json]
+
+# Show stale entries (low confidence, old, not graduated)
+python3 scripts/learning-db.py stale [--min-age-days 30]
+
+# Archive stale entries
+python3 scripts/learning-db.py stale-prune --dry-run
+python3 scripts/learning-db.py stale-prune --confirm
+```
 
 ## Pipeline Architecture
 
