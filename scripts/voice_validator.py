@@ -595,12 +595,14 @@ def check_analogy_domains(
     domain_re = re.compile("|".join(re.escape(d) for d in domains), re.IGNORECASE)
     for phrase in simile_markers:
         if not domain_re.search(phrase):
-            violations.append(Violation(
-                pattern=f"analogy outside documented domains: '{phrase}'",
-                context=f"Documented domains: {', '.join(domains)}",
-                severity="warning",
-                category="architectural",
-            ))
+            violations.append(
+                Violation(
+                    type="analogy_domain",
+                    severity="warning",
+                    text=f"analogy outside documented domains: '{phrase}'",
+                    message=f"Documented domains: {', '.join(domains)}",
+                )
+            )
 
     return violations
 
