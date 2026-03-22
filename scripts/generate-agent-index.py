@@ -175,8 +175,14 @@ def main():
         print(f"Error: agents directory not found at {agents_dir}")
         return 1
 
-    # Generate index
+    # Generate index from public agents
     index = generate_index(agents_dir)
+
+    # Also scan private agents if they exist (gitignored, user-specific)
+    private_agents_dir = repo_root / "private-agents"
+    if private_agents_dir.exists() and any(private_agents_dir.iterdir()):
+        private_index = generate_index(private_agents_dir)
+        index["agents"].update(private_index["agents"])
 
     # Write index file
     index_file = agents_dir / "INDEX.json"

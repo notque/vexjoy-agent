@@ -245,6 +245,44 @@ for component in agents skills hooks commands scripts; do
     fi
 done
 
+# Install private components (if they exist, gitignored)
+for private_dir in private-agents private-skills private-hooks; do
+    public_name="${private_dir#private-}"  # strips "private-" prefix
+    if [ -d "${SCRIPT_DIR}/${private_dir}" ]; then
+        echo ""
+        echo -e "${YELLOW}Installing private ${public_name}...${NC}"
+        # Copy/link private components into the same ~/.claude target
+        # Private overrides public when same name exists
+        if [ "$MODE" = "symlink" ]; then
+            for item in "${SCRIPT_DIR}/${private_dir}/"*; do
+                [ -e "$item" ] || continue
+                item_name=$(basename "$item")
+                target="${CLAUDE_DIR}/${public_name}/${item_name}"
+                if [ "$DRY_RUN" = true ]; then
+                    echo -e "${BLUE}  Would link private: ${item_name}${NC}"
+                else
+                    rm -rf "$target" 2>/dev/null
+                    ln -sf "$item" "$target"
+                    echo -e "${GREEN}  ✓ Linked private ${item_name}${NC}"
+                fi
+            done
+        else
+            for item in "${SCRIPT_DIR}/${private_dir}/"*; do
+                [ -e "$item" ] || continue
+                item_name=$(basename "$item")
+                target="${CLAUDE_DIR}/${public_name}/${item_name}"
+                if [ "$DRY_RUN" = true ]; then
+                    echo -e "${BLUE}  Would copy private: ${item_name}${NC}"
+                else
+                    rm -rf "$target" 2>/dev/null
+                    cp -r "$item" "$target"
+                    echo -e "${GREEN}  ✓ Copied private ${item_name}${NC}"
+                fi
+            done
+        fi
+    fi
+done
+
 # Set up local overlay
 echo ""
 echo -e "${YELLOW}Setting up local overlay...${NC}"
@@ -384,6 +422,21 @@ echo -e "${GREEN}✓ Permissions set${NC}"
 
 # Summary
 echo ""
+# Regenerate INDEX.json files with private components included
+echo ""
+echo -e "${YELLOW}Regenerating indexes (including private components)...${NC}"
+if [ "$DRY_RUN" = true ]; then
+    echo -e "${BLUE}  Would regenerate skills/INDEX.json with ${NC}"
+    echo -e "${BLUE}  Would regenerate agents/INDEX.json with ${NC}"
+else
+    python3 "${SCRIPT_DIR}/scripts/generate-skill-index.py"  >/dev/null 2>&1 && \
+        echo -e "${GREEN}  ✓ Skills index regenerated${NC}" || \
+        echo -e "${YELLOW}  ⚠ Skills index generation failed (non-critical)${NC}"
+    python3 "${SCRIPT_DIR}/scripts/generate-agent-index.py"  >/dev/null 2>&1 && \
+        echo -e "${GREEN}  ✓ Agents index regenerated${NC}" || \
+        echo -e "${YELLOW}  ⚠ Agents index generation failed (non-critical)${NC}"
+fi
+
 if [ "$DRY_RUN" = true ]; then
     echo -e "${YELLOW}╔════════════════════════════════════════════════════════════════╗${NC}"
     echo -e "${YELLOW}║                       Dry Run Complete!                        ║${NC}"

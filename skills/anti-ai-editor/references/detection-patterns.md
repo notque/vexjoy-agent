@@ -752,3 +752,291 @@ went away. Sometimes the simplest fix is the right one.
 Expected detections: 0
 (Natural, direct, specific, varied sentence lengths)
 ```
+
+---
+
+## Code & Documentation AI Patterns (Tier CD)
+
+AI patterns specific to code comments, docstrings, READMEs, architecture docs, and technical blog posts. These are distinct from prose AI tells — they emerge when AI generates technical content rather than narrative.
+
+### Tier CD-1: Redundant Explanation
+
+The single most AI-identifiable pattern in prose, equally common in code. AI generates comments that restate what the code already says. Docstrings that merely reword the function signature. Paragraphs that explain what a code block just demonstrated.
+
+**Detection heuristic for code comments:**
+```
+1. Parse each comment and its associated code statement
+2. Extract verbs and nouns from both
+3. If comment verbs/nouns overlap >80% with code verbs/nouns → flag
+4. Common pattern: "// increment X by Y" above "x += y"
+```
+
+**Detection heuristic for docstrings:**
+```
+1. Parse function/method signature: name, parameters, return type
+2. Parse docstring first sentence
+3. If docstring merely restates signature in natural language → flag
+4. Pattern: "Gets the user by ID" docstring on getUserById(id: string): User
+```
+
+```regex
+# Code comments that restate the code (high-confidence subset)
+//\s*(increment|add|subtract|set|get|return|initialize|update|delete|remove|create|check|validate)\s
+#\s*(increment|add|subtract|set|get|return|initialize|update|delete|remove|create|check|validate)\s
+
+# Docstrings that restate the function name
+("""|\*\*|///)\s*(Gets?|Sets?|Creates?|Deletes?|Updates?|Returns?|Checks?|Validates?)\s+the\s+\w+
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| `// increment counter by 1` above `counter++` | [Delete — the code is clear] |
+| `"""Gets the user by ID."""` on `get_user_by_id()` | `"""Fetches from cache first, falls back to DB. Returns None if soft-deleted."""` |
+| `// Check if the value is valid` above `if is_valid(value):` | [Delete — or explain what "valid" means in this context] |
+| `// Create a new instance of the service` above `svc := NewService(cfg)` | [Delete — or explain WHY a new instance is needed here] |
+
+**Fix strategy:** Delete the comment if the code is self-explanatory. If a comment is needed, explain WHY or WHEN, not WHAT. A comment that a senior engineer would find insulting is a comment that should be deleted.
+
+### Tier CD-2: Unearned Confidence
+
+AI describes systems with encyclopedic confidence and zero uncertainty. Real documentation acknowledges limitations, edge cases, and known issues. "Handles all edge cases gracefully" is never true. "Works seamlessly" is never honest.
+
+```regex
+# Absolute claims about system behavior
+\bhandles all .+ gracefully\b
+\bhandles all edge cases\b
+\bworks seamlessly\b
+\bfully reliable\b
+\bfully tested\b
+\bcompletely secure\b
+\bbulletproof\b
+\bhandles any .+ you throw at it\b
+\bjust works\b
+\bno (downsides|trade-?offs)\b
+\bnever fails\b
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "**Handles all edge cases gracefully**" | "Handles UTF-8 input up to 10MB. Rejects oversized payloads with 413." |
+| "**Works seamlessly** with any database" | "Tested with PostgreSQL 14+ and SQLite 3.35+. MySQL support is experimental." |
+| "**Fully tested** and production-ready" | "86% line coverage. Integration tests cover the happy path. Error injection tests are TODO." |
+| "**Completely secure** authentication" | "Uses bcrypt with cost 12. Rate-limits to 5 attempts/minute. No MFA yet." |
+
+**Fix strategy:** Replace absolute claims with specific, falsifiable statements. If you can't state what it actually handles, you don't know enough to claim it handles everything.
+
+### Tier CD-3: Platitude Injection
+
+AI inserts universal truths that add zero information. "At its core, software engineering is about managing complexity" wastes the reader's time. If a truism is needed to introduce a point, the point isn't strong enough to stand alone.
+
+```regex
+\bat its core,?\s+software\b
+\bat the end of the day,?\s+.+\s+is about\b
+\bat its heart,?\s+.+\s+is about\b
+\bthe beauty of .+ is that\b
+\bthe power of .+ lies in\b
+\bthe magic of .+ is\b
+\bin the world of software\b
+\bin the realm of\b
+\bin the landscape of\b
+\bgood code is .+ about\b
+\bgreat software .+ about\b
+\bprogramming is .+ about\b
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "**At its core, software engineering is about** managing complexity" | "This module has three responsibilities. Splitting it reduces coupling." |
+| "**The beauty of** this architecture **is that** it scales" | "This architecture scales horizontally because each node is stateless." |
+| "**In the world of** microservices, communication is key" | "Services communicate via gRPC. Timeouts are set to 5s." |
+| "**Good code is ultimately about** readability" | [Delete — start with the specific readability improvement you're making] |
+
+**Fix strategy:** Delete the platitude and start with the concrete claim that follows it. The concrete claim is always there — the platitude is just throat-clearing before it.
+
+### Tier CD-4: False Precision
+
+AI inserts suspiciously specific numbers to sound authoritative. "Reduces latency by 47.3%" when no benchmark was run. "Processes 1,247 requests per second" when the number was invented. Real precision comes with methodology; AI precision comes with confidence.
+
+```regex
+\breduces .+ by exactly \d+\b
+\bimproves .+ by precisely \d+\b
+\btakes exactly \d+ (ms|seconds|minutes)\b
+\d+\.\d{2,}x (faster|slower|better|improvement)
+\bsaves exactly \d+\b
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "Reduces latency by **exactly 47.3%**" | "Roughly halves latency (benchmarked on M2 with 10K requests)" |
+| "Processes **1,247** requests per second" | "Handles ~1K req/s on a single core (see benchmarks/)" |
+| "Saves **exactly 23 minutes** per deployment" | "Cuts deploy time from ~30min to ~10min" |
+
+**False positive note:** Precision is legitimate when citing actual measurements with methodology. "p99 latency: 12.4ms (measured over 1M requests)" is real data, not a tell. Flag only when precision appears without a citation or benchmark reference.
+
+### Tier CD-5: Template Monotony
+
+AI-generated documentation follows identical structure for every section: intro paragraph, bullet list, code example, summary sentence. Every function doc follows: description, parameters, returns, example. This structural repetition is a tell even when no individual section is bad.
+
+**Detection heuristic (structural, not regex):**
+```
+1. For each H2 or H3 section in a document:
+   a. Classify the section structure:
+      - INTRO-LIST-CODE-SUMMARY
+      - INTRO-CODE-EXPLANATION
+      - QUESTION-ANSWER
+      - NARRATIVE
+      - etc.
+   b. Record the structure type
+2. Count consecutive sections with identical structure type
+3. Flag if 3+ consecutive sections use the same structure
+4. Also flag if >60% of sections in a document use the same structure
+```
+
+**Before (monotonous):**
+```markdown
+## Authentication
+Authentication is a critical part of any application. Here are the key features:
+- JWT tokens
+- Session management
+- OAuth2 support
+
+## Authorization
+Authorization controls what users can access. Here are the key features:
+- Role-based access
+- Permission groups
+- Resource-level policies
+
+## Rate Limiting
+Rate limiting protects your API from abuse. Here are the key features:
+- Per-user limits
+- Global limits
+- Burst allowance
+```
+
+**After (varied):**
+```markdown
+## Authentication
+Uses JWT with 15-minute expiry. Refresh tokens rotate on use.
+
+## Authorization
+Three levels: role → permission group → resource policy. Checked in that order.
+See `middleware/authz.go` for the chain.
+
+## Rate Limiting
+| Scope | Default | Burst |
+|-------|---------|-------|
+| Per-user | 100/min | 20 |
+| Global | 10K/min | 2K |
+
+Override per-route with `@RateLimit(n)`.
+```
+
+**Fix strategy:** Vary section structures deliberately. Use tables where data is tabular. Use code-first where the code IS the explanation. Use narrative where context matters. No two consecutive sections should have the same structure.
+
+### Tier CD-6: Dead Technical Metaphors
+
+Code/docs-specific metaphors that AI overuses to the point of meaninglessness. Different from prose metaphors — these are engineering clichés.
+
+```regex
+\borchestrat(e|es|ed|ing) a (ballet|dance|symphony)\b
+\bsymphony of (services|systems|components)\b
+\btapestry of (services|systems|code)\b
+\bunder the hood\b
+\bswiss army knife\b
+\bsilver bullet\b
+\bheavy lifting\b
+\bmagic happens\b
+\bthe secret sauce\b
+\bbehind the scenes\b
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "**Under the hood**, it uses goroutines" | "Implementation: goroutines with a shared channel" |
+| "The **secret sauce** is the caching layer" | "The caching layer is the reason it's fast" |
+| "This module does the **heavy lifting**" | "This module handles parsing, validation, and storage" |
+| "**Behind the scenes**, React reconciles the DOM" | "React reconciles the DOM on each render" |
+
+**False positive note:** "Under the hood" is so ubiquitous in tech writing that it's borderline acceptable. Flag at info severity, not error.
+
+### Tier CD-7: Tour Guide Transitions
+
+AI connects every section with a transition sentence that reads like a museum audio guide. Real technical docs let sections stand independently — readers jump between sections, they don't read linearly.
+
+```regex
+\bwith that (in place|established|covered)\b
+\bhaving established\b
+\bnow that we('ve| have) (covered|established|set up|configured)\b
+\bbuilding on (this|the previous|what we)\b
+\blet's (now )?turn (our attention )?to\b
+\bthis (brings|leads) us to\b
+\bwith (this|that) (foundation|understanding|context)\b
+\bnow we're ready to\b
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "**With that in place**, let's configure the database" | "## Database Configuration" |
+| "**Now that we've covered** authentication, let's turn to authorization" | "## Authorization" |
+| "**Building on the previous** section, we can now..." | [Start with what this section does, not what the previous one did] |
+
+**Fix strategy:** Delete the transition entirely. Start each section with its own content. If sections must be read in order, a numbered list in the overview is better than inline tour-guiding.
+
+---
+
+## Code/Docs Pattern Testing
+
+Test against AI-generated README:
+
+```
+At its core, this library is about making API calls simple. It handles
+all edge cases gracefully and works seamlessly with any HTTP client.
+The beauty of the architecture is that it reduces boilerplate by exactly
+47.3%, saving developers hours of work.
+
+With that in place, let's turn to configuration. Configuration is a
+critical part of any application. Here are the key options:
+- **Timeout** -- sets the request timeout
+- **Retries** -- configures retry behavior
+- **Auth** -- handles authentication
+
+Under the hood, the secret sauce is the middleware pipeline that
+orchestrates a symphony of interceptors.
+
+Expected detections:
+- "At its core" (CD-3 -- platitude)
+- "handles all edge cases gracefully" (CD-2 -- unearned confidence)
+- "works seamlessly" (CD-2 -- unearned confidence)
+- "The beauty of" (CD-3 -- platitude)
+- "by exactly 47.3%" (CD-4 -- false precision)
+- "With that in place, let's turn to" (CD-7 -- tour guide)
+- "Under the hood" (CD-6 -- dead metaphor)
+- "the secret sauce" (CD-6 -- dead metaphor)
+- "orchestrates a symphony of" (CD-6 -- dead metaphor)
+```
+
+Test against natural technical writing:
+
+```
+The client retries failed requests up to 3 times with exponential
+backoff (100ms, 200ms, 400ms). Timeouts default to 5s. Override
+per-request with WithTimeout(d).
+
+Known limitation: connection pooling doesn't work with HTTP/2 proxies.
+See issue #247.
+
+Expected detections: 0
+(Specific, qualified, acknowledges limitations)
+```

@@ -80,3 +80,12 @@ service-account*.json
 
 # Reddit moderation local data (per-subreddit context, audit logs)
 reddit-data/
+
+# Private components (personal skills, agents, hooks not for public repo)
+private-skills/
+private-agents/
+private-hooks/
+
+# Draft articles (work in progress, not committed)
+drafts/
+draft-*.md

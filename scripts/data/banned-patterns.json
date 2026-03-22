@@ -379,6 +379,11 @@
         "it turns out that",
         "as it turns out",
         "what's interesting is",
+        "that's the interesting part",
+        "actually interesting",
+        "what's actually interesting",
+        "the interesting part is",
+        "here's what's interesting",
         "what's worth noting",
         "what's important here",
         "the uncomfortable truth is",
@@ -517,6 +522,106 @@
       "notes": "Template narrative constructions that AI uses to simulate personal experience. 'By the time X, I was Y' is a fill-in-the-blank.",
       "message": "Formulaic narrative template. Rewrite with specific detail instead of a structural cliche.",
       "suggestion_template": "Replace the template with specific narrative: what happened, when, what you actually did"
+    },
+    "unearned_confidence": {
+      "severity": "warning",
+      "patterns": [
+        "handles all .+ gracefully",
+        "handles all edge cases",
+        "works seamlessly",
+        "fully reliable",
+        "fully tested",
+        "completely secure",
+        "bulletproof",
+        "handles any .+ you throw at it",
+        "works out of the box",
+        "zero configuration",
+        "just works",
+        "no downsides",
+        "no trade-?offs",
+        "nothing can go wrong",
+        "never fails"
+      ],
+      "notes": "AI describes systems with encyclopedic confidence and zero uncertainty. Real docs acknowledge limitations. Legitimate in marketing copy; flag in technical documentation, READMEs, and code comments.",
+      "message": "Unearned confidence. Real systems have limits. State what it actually handles, or qualify the claim.",
+      "suggestion_template": "Add specifics: 'handles UTF-8 input up to 10MB' instead of 'handles all input gracefully'"
+    },
+    "platitude_injection": {
+      "severity": "warning",
+      "patterns": [
+        "at its core,? software .+",
+        "at the end of the day,? .+ is about",
+        "at its heart,? .+ is about",
+        "the beauty of .+ is that",
+        "the power of .+ lies in",
+        "the magic of .+ is",
+        "the true .+ of .+ is",
+        "in the world of software",
+        "in the realm of",
+        "in the landscape of",
+        "when it comes to .+, .+ is key",
+        "good code is .+ about",
+        "great software .+ about",
+        "programming is .+ about"
+      ],
+      "notes": "Universal truths that add zero information. 'At its core, software is about managing complexity' wastes the reader's time. If you need a truism to introduce your point, the point isn't strong enough.",
+      "message": "Platitude. This adds no information. Lead with the specific point instead.",
+      "suggestion_template": "Delete the platitude and start with the concrete claim that follows it"
+    },
+    "false_precision": {
+      "severity": "info",
+      "patterns": [
+        "reduces .+ by exactly \\d+",
+        "improves .+ by precisely \\d+",
+        "takes exactly \\d+ (ms|seconds|minutes)",
+        "\\d+\\.\\d{2,}x (faster|slower|better|improvement)",
+        "saves exactly \\d+"
+      ],
+      "notes": "AI inserts fake-specific numbers in documentation to sound authoritative. 'Reduces latency by exactly 47.3%' when no benchmark was run. Lower severity because some precision is legitimate — flag only when the precision feels performed rather than measured.",
+      "message": "Suspiciously precise claim. Is this measured or fabricated? If measured, cite the benchmark.",
+      "suggestion_template": "Either cite the benchmark methodology, round to honest precision, or use qualitative language"
+    },
+    "redundant_explanation": {
+      "severity": "warning",
+      "patterns": [
+        "// (increment|add|subtract|set|get|return|initialize|update|delete|remove|create|check|validate) .+ (by|to|from|the) ",
+        "# (increment|add|subtract|set|get|return|initialize|update|delete|remove|create|check|validate) .+ (by|to|from|the) "
+      ],
+      "notes": "The most common AI code pattern. AI generates comments that restate what the code already says: '// increment counter by 1' above 'counter++'. Also covers docstrings that merely reword the function signature. Lower-confidence regex — structural analysis in detection-patterns.md provides better coverage for this pattern.",
+      "message": "Comment appears to restate the code. Comments should explain WHY, not WHAT.",
+      "suggestion_template": "Delete the comment if the code is self-explanatory, or rewrite to explain intent/context"
+    },
+    "dead_technical_metaphors": {
+      "severity": "info",
+      "patterns": [
+        "orchestrat(e|es|ed|ing) a (ballet|dance|symphony)",
+        "symphony of (services|systems|components)",
+        "tapestry of (services|systems|code)",
+        "swiss army knife",
+        "silver bullet",
+        "magic happens",
+        "the secret sauce",
+        "behind the scenes"
+      ],
+      "notes": "Engineering cliches that AI overuses. 'Under the hood' omitted — too ubiquitous to flag reliably. 'Heavy lifting' omitted — legitimate in perf contexts.",
+      "message": "Dead technical metaphor. Replace with what actually happens.",
+      "suggestion_template": "State the mechanism directly: 'uses goroutines with a shared channel' instead of 'orchestrates a symphony of workers'"
+    },
+    "tour_guide_transitions": {
+      "severity": "warning",
+      "patterns": [
+        "with that (in place|established|covered)",
+        "having established",
+        "now that we('ve| have) (covered|established|set up|configured)",
+        "building on (this|the previous|what we)",
+        "let's (now )?turn (our attention )?to",
+        "this (brings|leads) us to",
+        "with (this|that) (foundation|understanding|context)",
+        "now we're ready to"
+      ],
+      "notes": "AI connects every section like a museum audio guide. Real technical docs let sections stand alone — readers jump between sections.",
+      "message": "Tour guide transition. Technical docs should let sections stand independently.",
+      "suggestion_template": "Delete the transition. Start the section with its own content."
     }
   },
   "voice_specific": {

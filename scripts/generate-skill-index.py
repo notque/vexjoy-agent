@@ -219,8 +219,19 @@ def main() -> int:
         print(f"Error: skills directory not found at {skills_dir}", file=sys.stderr)
         return 1
 
-    # Generate index
+    # Generate index from public skills
     index, warnings = generate_index(skills_dir)
+
+    # Also scan private skills if they exist (gitignored, user-specific)
+    private_skills_dir = repo_root / "private-skills"
+    if private_skills_dir.exists() and any(private_skills_dir.iterdir()):
+        private_index, private_warnings = generate_index(private_skills_dir)
+        existing_names = {s["name"] for s in index["skills"]}
+        for skill in private_index["skills"]:
+            if skill["name"] in existing_names:
+                index["skills"] = [s for s in index["skills"] if s["name"] != skill["name"]]
+            index["skills"].append(skill)
+        warnings.extend(private_warnings)
 
     # Report warnings if any
     if warnings:
