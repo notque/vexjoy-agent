@@ -101,33 +101,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/pretool-learning-injector.py\"",
-            "description": "Inject known error patterns before Bash/Edit tools run",
+            "command": "python3 \"$HOME/.claude/hooks/pretool-unified-gate.py\"",
+            "description": "Unified gate: attribution, gitignore-bypass, git-submission, dangerous-command, creation-gate, sensitive-file (ADR-068)",
             "timeout": 3000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/block-attribution.py\"",
-            "description": "Block AI attribution strings in git commits and PR bodies",
-            "timeout": 1000
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/block-gitignore-bypass.py\"",
-            "description": "Block git add -f on gitignored paths and .gitignore edits",
-            "timeout": 1000
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/pretool-git-submission-gate.py\"",
-            "description": "Block git push/gh pr create unless routed through pr-sync or pr-pipeline",
-            "timeout": 1000
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/pretool-creation-gate.py\"",
-            "description": "Block direct creation of new agent/skill files — must use skill-creator-engineer",
-            "timeout": 1000
+            "command": "python3 \"$HOME/.claude/hooks/pretool-learning-injector.py\"",
+            "description": "Inject known error patterns before Bash/Edit tools run",
+            "timeout": 3000
           }
         ]
       }
