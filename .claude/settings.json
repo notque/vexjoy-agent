@@ -1,0 +1,218 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/sync-to-user-claude.py\"",
+            "description": "Sync agents/skills/hooks/commands to ~/.claude",
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/session-context.py\"",
+            "description": "Load learned patterns from previous sessions",
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/cross-repo-agents.py\"",
+            "description": "Discover custom agents in working directory",
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/fish-shell-detector.py\"",
+            "description": "Auto-detect Fish shell users and inject fish-shell-config skill",
+            "timeout": 1000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/sapcc-go-detector.py\"",
+            "description": "Auto-detect SAP CC Go projects and inject go-sapcc-conventions skill",
+            "timeout": 1000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/operator-context-detector.py\"",
+            "description": "Detect operator context (pipeline session, ADR session) and inject context",
+            "timeout": 2000,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/auto-graduation-scanner.py\"",
+            "description": "Surface high-confidence retro graduation candidates",
+            "timeout": 3000,
+            "once": true
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/skill-evaluator.py\"",
+            "description": "Evaluate applicable skills/agents for request"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/auto-plan-detector.py\"",
+            "description": "Auto-detect complex tasks and inject planning reminders (Manus methodology)"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/instruction-reminder.py\"",
+            "description": "Re-inject instruction files to combat context drift"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/retro-knowledge-injector.py\"",
+            "description": "Auto-inject accumulated L1/L2 retro knowledge for cross-feature learning"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/adr-context-injector.py\"",
+            "description": "Inject active ADR session context when .adr-session.json present",
+            "timeout": 2000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/pipeline-context-detector.py\"",
+            "description": "Detect pipeline creation requests and inject pipeline context",
+            "timeout": 2000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/capability-catalog-injector.py\"",
+            "description": "Inject full agent/skill catalog for routing intelligence",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/pretool-learning-injector.py\"",
+            "description": "Inject known error patterns before Bash/Edit tools run",
+            "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/block-attribution.py\"",
+            "description": "Block AI attribution strings in git commits and PR bodies",
+            "timeout": 1000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/post-tool-lint-hint.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/error-learner.py\"",
+            "description": "Learn from tool errors and suggest solutions"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/agent-grade-on-change.py\"",
+            "description": "Grade agents when modified - warns if quality drops below B"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/adr-enforcement.py\"",
+            "description": "Enforce ADR compliance after file writes during active pipeline sessions",
+            "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/routing-gap-recorder.py\"",
+            "description": "Record /do routing gaps to learning DB for pattern tracking",
+            "timeout": 2000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/retro-graduation-gate.py\"",
+            "description": "Warn about ungraduated retro entries when creating PRs in toolkit repo",
+            "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/record-activation.py\"",
+            "description": "Record session activation stats for ROI tracking (ADR-032)"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/record-waste.py\"",
+            "description": "Record wasted tokens from tool failures for ROI tracking (ADR-032)"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/precompact-archive.py\"",
+            "description": "Archive session learnings before context compression"
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/task-completed-learner.py\"",
+            "description": "Record task completion metadata for effectiveness tracking",
+            "timeout": 3000
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/subagent-completion-guard.py\"",
+            "description": "Enforce branch safety, reviewer READ-ONLY contracts, and sapcc workflow gates",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/session-summary.py\"",
+            "description": "Generate session summary and save metrics"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/confidence-decay.py\"",
+            "description": "Decay stale learnings and prune dead entries",
+            "timeout": 3000
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,5 +1,6 @@
-# Claude Code configuration directory
-.claude/
+# Claude Code configuration directory (except repo-tracked settings)
+.claude/*
+!.claude/settings.json
 
 # Local overlay directory (private/org-specific customizations)
 .local/
