@@ -74,12 +74,6 @@ def temp_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
             trigger_detail TEXT
         );
 
-        CREATE TABLE IF NOT EXISTS daily_costs (
-            date TEXT PRIMARY KEY,
-            total_cost_usd REAL NOT NULL DEFAULT 0.0,
-            job_count INTEGER NOT NULL DEFAULT 0
-        );
-
         INSERT INTO job_results
             (job_name, trigger_type, started_at, finished_at, exit_code,
              stdout, stderr, model, duration_seconds, cost_estimate_usd, trigger_detail)
@@ -94,8 +88,6 @@ def temp_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
             ('test-job', 'cron', '2026-03-14T10:05:00+00:00', '2026-03-14T10:05:10+00:00',
              1, '', 'Error occurred', 'haiku', 10.0, 0.002, '*/5 * * * *');
 
-        INSERT INTO daily_costs (date, total_cost_usd, job_count) VALUES ('2026-03-14', 0.003, 2);
-        INSERT INTO daily_costs (date, total_cost_usd, job_count) VALUES ('2026-03-13', 0.010, 5);
     """)
     conn.commit()
     conn.close()
@@ -196,39 +188,6 @@ class TestCmdLast:
     def test_last_not_found(self, temp_db: Path) -> None:
         result = scheduler_ctl.cmd_last(_args(job_name="nonexistent"))
         assert result == 1
-
-
-# ---------------------------------------------------------------------------
-# cmd_costs
-# ---------------------------------------------------------------------------
-
-
-class TestCmdCosts:
-    def test_costs_default(
-        self,
-        temp_db: Path,
-        sample_config: Path,
-        monkeypatch: pytest.MonkeyPatch,
-        capsys: pytest.CaptureFixture[str],
-    ) -> None:
-        monkeypatch.setattr(scheduler_ctl, "_DEFAULT_CONFIG", sample_config)
-        result = scheduler_ctl.cmd_costs(_args(days=7))
-        assert result == 0
-        output = capsys.readouterr().out
-        assert "TOTAL" in output
-
-    def test_costs_json(
-        self,
-        temp_db: Path,
-        sample_config: Path,
-        monkeypatch: pytest.MonkeyPatch,
-        capsys: pytest.CaptureFixture[str],
-    ) -> None:
-        monkeypatch.setattr(scheduler_ctl, "_DEFAULT_CONFIG", sample_config)
-        result = scheduler_ctl.cmd_costs(_args(json_output=True, days=7))
-        assert result == 0
-        data = json.loads(capsys.readouterr().out)
-        assert isinstance(data, list)
 
 
 # ---------------------------------------------------------------------------
