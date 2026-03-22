@@ -298,45 +298,6 @@ def cmd_failures(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_costs(args: argparse.Namespace) -> int:
-    """Show daily cost summary."""
-    days = args.days or 7
-    with get_connection() as conn:
-        rows = conn.execute(
-            """
-            SELECT date, total_cost_usd, job_count FROM daily_costs
-            WHERE date >= date('now', ? || ' days')
-            ORDER BY date DESC
-            """,
-            (f"-{days}",),
-        ).fetchall()
-
-    if args.json_output:
-        print(json.dumps([dict(r) for r in rows], indent=2))
-        return 0
-
-    if not rows:
-        print("No cost data available.")
-        return 0
-
-    config = load_config()
-    budget = config.get("daily_budget_usd", 10.0)
-    total = sum(r["total_cost_usd"] for r in rows)
-    total_jobs = sum(r["job_count"] for r in rows)
-
-    print(f"{'DATE':<12} {'COST':<12} {'JOBS':<8} {'BUDGET %'}")
-    print("-" * 45)
-    for row in rows:
-        pct = (row["total_cost_usd"] / budget * 100) if budget > 0 else 0
-        print(f"{row['date']:<12} ${row['total_cost_usd']:<10.4f} {row['job_count']:<8} {pct:.0f}%")
-
-    print("-" * 45)
-    print(f"{'TOTAL':<12} ${total:<10.4f} {total_jobs:<8}")
-    print(f"\nDaily budget: ${budget:.2f}")
-
-    return 0
-
-
 def cmd_status(args: argparse.Namespace) -> int:
     """Show daemon status."""
     pid = _get_daemon_pid()
@@ -420,10 +381,6 @@ def main() -> int:
     # failures
     subparsers.add_parser("failures", help="Show failed runs in last 24h")
 
-    # costs
-    p_costs = subparsers.add_parser("costs", help="Daily cost summary")
-    p_costs.add_argument("--days", type=int, default=7, help="Number of days to show (default: 7)")
-
     # status
     subparsers.add_parser("status", help="Daemon status")
 
@@ -440,7 +397,6 @@ def main() -> int:
         "history": cmd_history,
         "last": cmd_last,
         "failures": cmd_failures,
-        "costs": cmd_costs,
         "status": cmd_status,
         "reload": cmd_reload,
     }
