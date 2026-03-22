@@ -4,6 +4,15 @@ Patterns, repos, and sources that shaped the toolkit. This includes external inf
 
 ## Repos
 
+### BugRoger/beastmode
+https://github.com/BugRoger/beastmode
+
+Referenced as prior art for the retro knowledge system. Our implementation has diverged significantly from this approach.
+
+**Patterns noted:**
+- Original inspiration for session-level learning and knowledge accumulation concepts
+- Our implementation (SQLite + FTS5, confidence scoring, graduation pipeline) bears little resemblance to the current state of beastmode
+
 ### caliber-ai-org/ai-setup
 https://github.com/caliber-ai-org/ai-setup
 
