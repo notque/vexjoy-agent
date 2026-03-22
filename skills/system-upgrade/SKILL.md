@@ -43,7 +43,8 @@ complementing the **bottom-up** retro-knowledge-injector.
 - **Branch Creation**: Create a branch before Phase 4 (e.g., `chore/system-upgrade-YYYY-MM-DD`).
 
 ### Optional Behaviors (OFF unless enabled)
-- **Comprehensive Audit**: Audit all 38+ agents and 120+ skills (slow; enable with "comprehensive audit")
+- **Comprehensive Audit**: Audit all agents and skills (slow; enable with "comprehensive audit")
+- **Full Upgrade Diff**: Force a full component scan instead of incremental diff (enable with `python3 scripts/upgrade-diff.py --full` or "full upgrade")
 - **Auto-Approve**: Skip user approval gate between Phase 3 and Phase 4 (enable with "auto-apply")
 - **Skip Validate**: Skip agent-evaluation scoring (enable with "skip validation")
 
@@ -103,6 +104,17 @@ Evaluate entries for actionability and specificity. These are the upgrade signal
 ### Phase 2: AUDIT
 
 **Goal**: Scan the codebase and identify which components are affected by the Change Manifest.
+
+**Step 0**: Check for incremental mode.
+
+```bash
+python3 scripts/upgrade-diff.py
+```
+
+Evaluate the JSON output:
+- If `mode` is `"incremental"` and `total_changed > 0`: scope the audit to only the files listed in `changed`. Skip Step 1 (audit depth) and proceed directly to Step 2 using only these components.
+- If `mode` is `"incremental"` and `total_changed == 0`: report "No components changed since last upgrade" to the user and **stop**. No further phases are needed.
+- If `mode` is `"full"` (first run or `--full` flag): proceed with existing full audit behavior starting at Step 1.
 
 **Step 1**: Determine audit depth.
 - Default: 10 most-recently-modified agents + all hooks + all relevant skills
@@ -280,7 +292,12 @@ git commit -m "chore: system upgrade — [brief description of trigger]
 
 **Step 3**: Push and create PR using `pr-pipeline` skill.
 
-**Step 4**: Produce completion summary:
+**Step 4**: Record upgrade SHA so the next run diffs incrementally:
+```bash
+python3 scripts/upgrade-diff.py --record
+```
+
+**Step 5**: Produce completion summary:
 
 ```
 SYSTEM UPGRADE COMPLETE
