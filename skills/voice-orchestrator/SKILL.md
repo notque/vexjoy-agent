@@ -156,6 +156,15 @@ If user does not specify a mode, infer the best match from the subject matter an
 
 **Step 4: Apply mode-specific patterns** based on selected mode
 
+**Step 4b: Apply architectural patterns** from the voice skill's `## Architectural Patterns` section (if present):
+
+- **Argument flow**: Build the piece using the documented direction (inductive/deductive/mixed). If inductive, lead with evidence and land the claim late. If deductive, open with the claim.
+- **Concessions**: When handling disagreement, follow the documented concession structure and use the documented pivot markers — not generic "however" or "on the other hand."
+- **Analogy domains**: Draw analogies ONLY from the documented source domains. Do NOT use generic analogies from undocumented domains.
+- **Bookends**: Open with the documented opening move, close with the documented closing move.
+
+If the voice skill has no `## Architectural Patterns` section, skip this step.
+
 **Generation checklist:**
 
 - [ ] Sentence length varies according to profile distribution
@@ -165,6 +174,9 @@ If user does not specify a mode, infer the best match from the subject matter an
 - [ ] Closing matches voice pattern signatures
 - [ ] Transition words from profile preferred list
 - [ ] Banned patterns avoided (exploration verbs, corporate jargon)
+- [ ] Argument builds in documented direction (if architectural patterns present)
+- [ ] Concessions use documented structure and pivot markers (if applicable)
+- [ ] Analogies drawn from documented domains only (if applicable)
 
 **Step 5: Write to temp file**
 

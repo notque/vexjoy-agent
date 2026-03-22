@@ -558,6 +558,53 @@ def calculate_summary(violations: list[Violation], total_checks: int) -> dict[st
     }
 
 
+def check_analogy_domains(
+    content: str,
+    profile: dict[str, Any] | None = None,
+) -> list[Violation]:
+    """Check that analogies draw from documented source domains (if profile specifies them).
+
+    This is the one architectural check that's deterministic enough for script-level
+    validation. Other architectural checks (argument direction, concession structure,
+    bookends) require AI-assisted analysis and belong in voice-orchestrator's validation.
+
+    Profile key: architectural_patterns.analogy_domains (list of allowed domain keywords).
+    """
+    if not profile:
+        return []
+
+    arch_patterns = profile.get("architectural_patterns", {})
+    domains = arch_patterns.get("analogy_domains", [])
+    if not domains:
+        return []
+
+    # Build a regex from documented domains — look for "like a [domain-term]" patterns
+    # This is intentionally conservative: it only flags when a clear simile/metaphor
+    # marker is present AND the domain keyword is absent from all documented domains
+    simile_markers = re.findall(
+        r"(?:like\s+(?:a|an|the)\s+|(?:as\s+(?:a|an)\s+)|(?:reminds?\s+(?:me\s+)?of\s+(?:a|an)\s+))"
+        r"(\w+(?:\s+\w+){0,3})",
+        content,
+        re.IGNORECASE,
+    )
+
+    if not simile_markers:
+        return []
+
+    violations = []
+    domain_re = re.compile("|".join(re.escape(d) for d in domains), re.IGNORECASE)
+    for phrase in simile_markers:
+        if not domain_re.search(phrase):
+            violations.append(Violation(
+                pattern=f"analogy outside documented domains: '{phrase}'",
+                context=f"Documented domains: {', '.join(domains)}",
+                severity="warning",
+                category="architectural",
+            ))
+
+    return violations
+
+
 def validate_content(
     content: str,
     profile: dict[str, Any] | None = None,
@@ -582,6 +629,9 @@ def validate_content(
 
     # Check rhythm
     violations.extend(check_rhythm(content, profile))
+
+    # Check architectural patterns (analogy domains)
+    violations.extend(check_analogy_domains(content, profile))
 
     # Check metrics if profile provided
     metrics: dict[str, float] = {}
