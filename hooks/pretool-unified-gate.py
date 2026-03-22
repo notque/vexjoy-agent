@@ -195,10 +195,10 @@ def _block(message: str) -> None:
 
 
 def check_attribution(command: str) -> None:
-    """Block AI attribution strings in git commands."""
-    # Only check command part, not heredoc body (PR descriptions may mention attribution as docs)
-    cmd_part = command.split("<<")[0] if "<<" in command else command
-    match = _ATTRIBUTION_RE.search(cmd_part)
+    """Block AI attribution strings in git commands.
+    Intentionally scans full command including heredoc bodies — attribution
+    in commit messages via heredoc is the primary leak vector."""
+    match = _ATTRIBUTION_RE.search(command)
     if match:
         _block(
             f"[attribution] BLOCKED: Command contains forbidden AI attribution: '{match.group()}'. "
@@ -285,14 +285,12 @@ def check_dangerous_command(command: str) -> None:
     if os.environ.get(_DANGEROUS_BYPASS_ENV) == "1":
         return
 
-    # Only check the command part, not heredoc body content.
-    # PR bodies, commit messages etc. may mention "DROP DATABASE" as documentation.
-    cmd_part = command.split("<<")[0] if "<<" in command else command
-
+    # Intentionally scans full command including heredoc bodies.
+    # Over-blocking preferred for destructive commands.
     for pattern, category, description in _DANGEROUS_PATTERNS:
-        if pattern.search(cmd_part):
+        if pattern.search(command):
             whitelist = _load_guard_whitelist()
-            if _is_whitelisted(cmd_part, whitelist):
+            if _is_whitelisted(command, whitelist):
                 return
             _block(
                 f"[dangerous-command] BLOCKED: {description} ({category})\n"
@@ -356,7 +354,7 @@ def main() -> None:
 
     # Field name compatibility: try new names first, fall back to old
     tool = event.get("tool_name") or event.get("tool", "")
-    tool_input = event.get("tool_input") or event.get("input") or {}
+    tool_input = event.get("tool_input", event.get("input", {}))
 
     if tool == "Bash":
         command = tool_input.get("command", "")
