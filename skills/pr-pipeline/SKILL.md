@@ -492,7 +492,9 @@ If CI passes and user requested merge:
 CLAUDE_GATE_BYPASS=1 gh pr merge --merge --delete-branch
 ```
 
-**HARD RULE**: Never merge a PR with failing or pending CI. CI must pass first.
+**HARD RULE**: Never merge a PR with failing or pending CI. CI must pass first. The `ci-merge-gate.py` hook enforces this mechanically — it blocks `gh pr merge` when checks are failing or pending. Do NOT use `--admin` or any bypass to circumvent this. If CI fails on an "unrelated" test, investigate the root cause (date-dependent fixtures, flaky tests) rather than force-merging.
+
+*Graduated from learning.db — skill:pr-sync/17fed1ab26c7 (PR #55 merged with failing CI, led to broken main)*
 
 If `--no-wait` was passed, skip this phase and report the PR URL immediately.
 
