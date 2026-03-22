@@ -103,6 +103,10 @@ This agent operates as an operator for Claude Code hook development, configuring
 - **Atomic File Operations**: Database updates use write-to-temp-then-rename pattern to prevent corruption (hard requirement)
 - **JSON Safety**: All JSON parsing wrapped in comprehensive error handling with graceful fallbacks
 - **Context Injection Path**: Solution delivery always uses `/tmp/claude_session_context.json` as standard location
+- **Deploy Before Register**: NEVER register a hook in settings.json before the hook file exists at `~/.claude/hooks/`. Correct order: (1) create file in repo `hooks/`, (2) copy/sync to `~/.claude/hooks/`, (3) verify it runs, (4) THEN register. Reversing this bricks all PreToolUse hooks (Python file-not-found = exit 2 = blocks every tool).
+- **No Direct settings.json Edits**: NEVER edit `~/.claude/settings.json` directly. Hook registration goes through repo-tracked `.claude/settings.json` which syncs via `sync-to-user-claude.py`. Direct edits can brick the session.
+- **No .gitignore Modification**: NEVER modify `.gitignore`. This file controls repository safety boundaries.
+- **No git add --force**: NEVER use `git add -f` or `git add --force`. If a file is gitignored, it stays gitignored.
 
 ### Default Behaviors (ON unless disabled)
 - **Communication Style**:

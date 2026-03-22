@@ -526,6 +526,24 @@ Solution:
 **Do instead**: Each trigger phrase must map to exactly one skill. Check for collisions before adding new force-routes.
 *Graduated from learning.db — routing/trigger-collision-causes-nondeterministic-routing*
 
+### Anti-Pattern 8: Agents Modifying .gitignore
+**What it looks like**: An agent edits `.gitignore` to un-ignore paths so it can commit gitignored files
+**Why wrong**: `.gitignore` defines repository safety boundaries. Agents bypassing it can commit ADRs, research, or local state.
+**Do instead**: NEVER allow agents to modify `.gitignore`. If a file is gitignored, it stays local.
+*Graduated from incident — agent modified .gitignore to un-ignore adr/ and research/*
+
+### Anti-Pattern 9: Agents Using git add --force
+**What it looks like**: An agent runs `git add -f` to force-add gitignored files
+**Why wrong**: Bypasses `.gitignore` safety boundaries.
+**Do instead**: NEVER use `git add -f` or `git add --force`. If git refuses to add a file, that's correct.
+*Graduated from incident — two worktree agents force-added gitignored files*
+
+### Anti-Pattern 10: Registering Hooks Before Deploying Files
+**What it looks like**: Adding a hook to `settings.json` before the script exists at `~/.claude/hooks/`
+**Why wrong**: Python file-not-found = exit code 2 = blocks ALL PreToolUse tools. Total session deadlock.
+**Do instead**: Deploy file first, verify it runs, THEN register. Never reverse this order.
+*Graduated from incident — hook-development-engineer bricked all PreToolUse*
+
 ---
 
 ## References
