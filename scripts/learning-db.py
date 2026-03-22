@@ -20,6 +20,10 @@ Usage:
     python3 scripts/learning-db.py stale-prune --dry-run [--min-age-days 30]
     python3 scripts/learning-db.py stale-prune --confirm [--min-age-days 30]
     python3 scripts/learning-db.py migrate
+    python3 scripts/learning-db.py record-activation TOPIC KEY --session SESSION_ID --outcome success
+    python3 scripts/learning-db.py record-waste --session SESSION_ID --tokens 1500
+    python3 scripts/learning-db.py record-session --session SESSION_ID --had-retro --failures 2 --waste-tokens 3000
+    python3 scripts/learning-db.py roi [--json]
 """
 
 import argparse
@@ -29,19 +33,20 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
-# Add hooks/lib to path for learning_db_v2
-_repo_root = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(_repo_root / "hooks" / "lib"))
-
-# Also check ~/.claude/hooks/lib for cross-repo usage
+# Also check ~/.claude/hooks/lib for cross-repo usage (lower priority)
 _home_lib = Path.home() / ".claude" / "hooks" / "lib"
 if _home_lib.is_dir():
     sys.path.insert(0, str(_home_lib))
+
+# Add repo hooks/lib AFTER home lib so repo copy takes priority (inserted at pos 0)
+_repo_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_repo_root / "hooks" / "lib"))
 
 from learning_db_v2 import (
     boost_confidence,
     decay_confidence,
     export_markdown,
+    get_connection,
     get_db_path,
     get_stats,
     import_from_patterns_db,
@@ -338,6 +343,210 @@ def cmd_stale_prune(args):
     print(f"Archived {archived_count} stale entries to learning_archive table.")
 
 
+def cmd_record_activation(args: argparse.Namespace) -> None:
+    """Record that a learning was activated during a session."""
+    init_db()
+    now = datetime.now().isoformat()
+    try:
+        with get_connection() as conn:
+            conn.execute(
+                "INSERT INTO activations (topic, key, session_id, timestamp, outcome) VALUES (?, ?, ?, ?, ?)",
+                (args.topic, args.key, args.session, now, args.outcome),
+            )
+            conn.commit()
+    except sqlite3.Error as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    print(f"Recorded activation: {args.topic}/{args.key} (session: {args.session}, outcome: {args.outcome})")
+
+
+def cmd_record_waste(args: argparse.Namespace) -> None:
+    """Record wasted tokens from a failure in a session.
+
+    Increments failure_count by 1 and adds tokens to waste_tokens.
+    Creates the session_stats row if it doesn't exist.
+    """
+    init_db()
+    now = datetime.now().isoformat()
+    try:
+        with get_connection() as conn:
+            conn.execute(
+                """INSERT INTO session_stats (session_id, failure_count, waste_tokens, created_at, had_retro_knowledge)
+                   VALUES (?, 1, ?, ?, 0)
+                   ON CONFLICT(session_id) DO UPDATE SET
+                       failure_count = failure_count + 1,
+                       waste_tokens = waste_tokens + excluded.waste_tokens""",
+                (args.session, args.tokens, now),
+            )
+            conn.commit()
+    except sqlite3.Error as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    print(f"Recorded waste: session={args.session}, tokens={args.tokens}")
+
+
+def cmd_record_session_stats(args: argparse.Namespace) -> None:
+    """Create or update a session_stats entry.
+
+    On conflict (existing session_id), overwrites had_retro_knowledge,
+    failure_count, and waste_tokens with the provided values.
+    """
+    init_db()
+    now = datetime.now().isoformat()
+    had_retro = 1 if args.had_retro else 0
+
+    try:
+        with get_connection() as conn:
+            conn.execute(
+                """INSERT INTO session_stats (session_id, had_retro_knowledge, failure_count, waste_tokens, created_at)
+                   VALUES (?, ?, ?, ?, ?)
+                   ON CONFLICT(session_id) DO UPDATE SET
+                       had_retro_knowledge = excluded.had_retro_knowledge,
+                       failure_count = excluded.failure_count,
+                       waste_tokens = excluded.waste_tokens""",
+                (args.session, had_retro, args.failures, args.waste_tokens, now),
+            )
+            conn.commit()
+    except sqlite3.Error as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    print(
+        f"Recorded session: {args.session} (retro={bool(had_retro)}, failures={args.failures}, waste={args.waste_tokens})"
+    )
+
+
+def _compute_roi_data(db_path: Path) -> dict:
+    """Compute ROI metrics from the database.
+
+    Returns a dict with all ROI data suitable for both human and JSON output.
+    """
+    with get_connection() as conn:
+        # Session cohort stats
+        total_sessions = conn.execute("SELECT COUNT(*) FROM session_stats").fetchone()[0]
+        with_retro = conn.execute("SELECT COUNT(*) FROM session_stats WHERE had_retro_knowledge = 1").fetchone()[0]
+        without_retro = conn.execute("SELECT COUNT(*) FROM session_stats WHERE had_retro_knowledge = 0").fetchone()[0]
+
+        # Failure totals per cohort
+        retro_failures_row = conn.execute(
+            "SELECT COALESCE(SUM(failure_count), 0) FROM session_stats WHERE had_retro_knowledge = 1"
+        ).fetchone()
+        retro_failures = retro_failures_row[0]
+
+        no_retro_failures_row = conn.execute(
+            "SELECT COALESCE(SUM(failure_count), 0) FROM session_stats WHERE had_retro_knowledge = 0"
+        ).fetchone()
+        no_retro_failures = no_retro_failures_row[0]
+
+        # Average waste tokens for non-retro cohort only (counterfactual baseline)
+        avg_waste_row = conn.execute(
+            "SELECT COALESCE(AVG(waste_tokens), 0) FROM session_stats WHERE had_retro_knowledge = 0"
+        ).fetchone()
+        avg_waste = avg_waste_row[0]
+
+        # Top activated learnings
+        top_activations = []
+        for row in conn.execute(
+            "SELECT topic, key, COUNT(*) as activation_count FROM activations GROUP BY topic, key ORDER BY activation_count DESC LIMIT 5"
+        ).fetchall():
+            top_activations.append({"topic": row["topic"], "key": row["key"], "count": row["activation_count"]})
+
+        # Dead weight: learnings with 0 activations (ADR-032 requires 10+ total sessions)
+        dead_weight: list[dict] = []
+        if total_sessions >= 10:
+            for row in conn.execute(
+                """SELECT l.topic, l.key, l.first_seen
+                   FROM learnings l
+                   LEFT JOIN activations a ON l.topic = a.topic AND l.key = a.key
+                   WHERE a.id IS NULL
+                   ORDER BY l.first_seen ASC
+                   LIMIT 10"""
+            ).fetchall():
+                age_days = -1
+                if row["first_seen"]:
+                    try:
+                        first_seen_dt = datetime.fromisoformat(row["first_seen"])
+                        age_days = (datetime.now() - first_seen_dt).days
+                    except (ValueError, TypeError) as e:
+                        print(f"Warning: cannot parse first_seen for {row['topic']}/{row['key']}: {e}", file=sys.stderr)
+                        age_days = -1
+                dead_weight.append({"topic": row["topic"], "key": row["key"], "age_days": age_days})
+
+    # Compute rates and improvement
+    sufficient_data = with_retro >= 3 and without_retro >= 3
+    rate_with_retro = retro_failures / with_retro if with_retro > 0 else 0.0
+    rate_without_retro = no_retro_failures / without_retro if without_retro > 0 else 0.0
+
+    if sufficient_data and rate_without_retro > 0:
+        improvement_pct = (rate_without_retro - rate_with_retro) / rate_without_retro * 100
+        # estimated_savings = improvement_fraction * avg_waste_per_session * sessions_with_retro
+        estimated_savings = round(improvement_pct / 100 * avg_waste * with_retro)
+    else:
+        improvement_pct = None
+        estimated_savings = None
+
+    return {
+        "total_sessions": total_sessions,
+        "with_retro": with_retro,
+        "without_retro": without_retro,
+        "rate_with_retro": round(rate_with_retro, 2),
+        "rate_without_retro": round(rate_without_retro, 2),
+        "improvement_pct": round(improvement_pct, 1) if improvement_pct is not None else None,
+        "estimated_savings": estimated_savings,
+        "sufficient_data": sufficient_data,
+        "top_activations": top_activations,
+        "dead_weight": dead_weight,
+    }
+
+
+def cmd_roi(args: argparse.Namespace) -> None:
+    """Compute and display learning ROI report."""
+    init_db()
+    db_path = get_db_path()
+    data = _compute_roi_data(db_path)
+
+    if args.json:
+        print(json.dumps(data, indent=2))
+        return
+
+    print("=== Learning ROI Report ===")
+    print()
+    print(
+        f"Sessions: {data['total_sessions']} total ({data['with_retro']} with retro, {data['without_retro']} without)"
+    )
+    print()
+
+    if not data["sufficient_data"]:
+        print("Failure Rates:")
+        print("  Insufficient data (need >= 3 sessions per cohort)")
+        print()
+    else:
+        print("Failure Rates:")
+        print(f"  With retro knowledge:    {data['rate_with_retro']:.2f} failures/session")
+        print(f"  Without retro knowledge: {data['rate_without_retro']:.2f} failures/session")
+        if data["improvement_pct"] is not None:
+            if data["improvement_pct"] < 0:
+                print(f"  WARNING: Retro cohort shows REGRESSION: {data['improvement_pct']:.1f}%")
+                print(f"  Estimated waste increase: ~{abs(data['estimated_savings']):,} tokens")
+            else:
+                print(f"  Improvement:             {data['improvement_pct']:.1f}%")
+                print(f"  Estimated Savings:       ~{data['estimated_savings']:,} tokens saved")
+        else:
+            print("  Improvement:             N/A (no failures in baseline cohort)")
+        print()
+
+    if data["top_activations"]:
+        print("Top Activated Learnings:")
+        for i, act in enumerate(data["top_activations"], 1):
+            print(f"  {i}. {act['topic']}/{act['key']}  ({act['count']} activations)")
+        print()
+
+    if data["dead_weight"]:
+        print("Dead Weight (0 activations):")
+        for dw in data["dead_weight"]:
+            print(f"  - {dw['topic']}/{dw['key']} (age: {dw['age_days']} days)")
+        print()
+
+
 def cmd_learn(args):
     """Record a skill- or agent-scoped learning with minimal friction."""
     import hashlib
@@ -358,7 +567,7 @@ def cmd_learn(args):
         topic=topic,
         key=key,
         value=value,
-        category="learned",
+        category="gotcha",
         confidence=0.7,
         tags=[args.skill or args.agent or "general"],
         source="manual:learn",
@@ -422,6 +631,24 @@ def cmd_migrate(args):
         f"{stats['high_confidence']} high confidence, "
         f"{stats['sessions_tracked']} sessions"
     )
+
+
+def _non_negative_int(value: str) -> int:
+    """Validate that an argparse integer value is non-negative.
+
+    Args:
+        value: String value from argparse to convert and validate.
+
+    Returns:
+        The parsed non-negative integer.
+
+    Raises:
+        argparse.ArgumentTypeError: If the value is negative.
+    """
+    n = int(value)
+    if n < 0:
+        raise argparse.ArgumentTypeError(f"Value must be >= 0, got {n}")
+    return n
 
 
 def main():
@@ -542,6 +769,33 @@ def main():
     # migrate
     p_migrate = subparsers.add_parser("migrate", help="Import from all legacy stores")
     p_migrate.set_defaults(func=cmd_migrate)
+
+    # record-activation
+    p_rec_act = subparsers.add_parser("record-activation", help="Record a learning activation")
+    p_rec_act.add_argument("topic", help="Learning topic")
+    p_rec_act.add_argument("key", help="Learning key")
+    p_rec_act.add_argument("--session", required=True, help="Session ID")
+    p_rec_act.add_argument("--outcome", default="success", help="Outcome (success/failure)")
+    p_rec_act.set_defaults(func=cmd_record_activation)
+
+    # record-waste
+    p_rec_waste = subparsers.add_parser("record-waste", help="Record wasted tokens from a failure")
+    p_rec_waste.add_argument("--session", required=True, help="Session ID")
+    p_rec_waste.add_argument("--tokens", type=_non_negative_int, required=True, help="Number of wasted tokens")
+    p_rec_waste.set_defaults(func=cmd_record_waste)
+
+    # record-session
+    p_rec_sess = subparsers.add_parser("record-session", help="Create or update a session_stats entry")
+    p_rec_sess.add_argument("--session", required=True, help="Session ID")
+    p_rec_sess.add_argument("--had-retro", action="store_true", help="Session had retro knowledge injected")
+    p_rec_sess.add_argument("--failures", type=_non_negative_int, default=0, help="Number of failures")
+    p_rec_sess.add_argument("--waste-tokens", type=_non_negative_int, default=0, help="Wasted tokens")
+    p_rec_sess.set_defaults(func=cmd_record_session_stats)
+
+    # roi
+    p_roi = subparsers.add_parser("roi", help="Compute and display learning ROI report")
+    p_roi.add_argument("--json", action="store_true", help="Output as JSON")
+    p_roi.set_defaults(func=cmd_roi)
 
     args = parser.parse_args()
     args.func(args)

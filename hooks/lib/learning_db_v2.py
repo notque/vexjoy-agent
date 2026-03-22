@@ -197,6 +197,28 @@ CREATE VIRTUAL TABLE IF NOT EXISTS learnings_fts USING fts5(
     tokenize='porter unicode61'
 );
 
+CREATE TABLE IF NOT EXISTS activations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    topic TEXT NOT NULL,
+    key TEXT NOT NULL,
+    session_id TEXT,
+    timestamp TEXT DEFAULT (datetime('now')),
+    outcome TEXT DEFAULT 'success'
+);
+
+CREATE TABLE IF NOT EXISTS session_stats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT UNIQUE NOT NULL,
+    had_retro_knowledge INTEGER DEFAULT 0,
+    failure_count INTEGER DEFAULT 0,
+    waste_tokens INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_activations_topic_key ON activations(topic, key);
+CREATE INDEX IF NOT EXISTS idx_activations_session ON activations(session_id);
+CREATE INDEX IF NOT EXISTS idx_session_stats_session ON session_stats(session_id);
+
 CREATE TRIGGER IF NOT EXISTS learnings_ai AFTER INSERT ON learnings BEGIN
     INSERT INTO learnings_fts(rowid, topic, key, value, tags)
     VALUES (new.id, new.topic, new.key, new.value, new.tags);

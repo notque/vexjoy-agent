@@ -9,7 +9,6 @@ import os
 import sqlite3
 import subprocess
 import sys
-import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -25,17 +24,23 @@ SCRIPT_PATH = str(_repo_root / "scripts" / "learning-db.py")
 
 
 @pytest.fixture(autouse=True)
-def isolated_db(tmp_path: Path):
+def isolated_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """Point learning.db to a temp directory for each test."""
-    os.environ["CLAUDE_LEARNING_DIR"] = str(tmp_path)
-    # Reset init state so init_db() runs fresh
+    monkeypatch.setenv("CLAUDE_LEARNING_DIR", str(tmp_path))
+    # Force-reload the module to pick up new env and clear all cached state.
+    # Other test files (e.g. test_learning_roi.py) manipulate sys.path and
+    # reload learning_db_v2 from different locations, which can leave the
+    # module pointing at a stale DB path when running in the full test suite.
+    import importlib
+
     import learning_db_v2
 
-    learning_db_v2._initialized = False
-    init_db()
+    importlib.reload(learning_db_v2)
+    # Re-import after reload to get fresh references
+    from learning_db_v2 import init_db as fresh_init
+
+    fresh_init()
     yield tmp_path
-    os.environ.pop("CLAUDE_LEARNING_DIR", None)
-    learning_db_v2._initialized = False
 
 
 def _run_cli(*args: str) -> subprocess.CompletedProcess[str]:
