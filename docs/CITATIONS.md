@@ -83,3 +83,14 @@ Official documentation for hooks, settings.json schema, slash commands, and MCP 
 https://www.conventionalcommits.org
 
 Commit message format used throughout: `feat:`, `fix:`, `refactor:`, `docs:`. Enables automated changelog generation and semantic versioning.
+
+## /do Router Landscape
+
+Projects using the `/do` router pattern for specialist selection. The pattern was first published on vexjoy.com (December 24, 2025) in "The /do Router: Keyword Matching for Specialist Selection." All known implementations postdate that publication. Surveyed March 22, 2026.
+
+| Repo | First `/do` Commit | Mechanism | URL |
+|------|-------------------|-----------|-----|
+| SethGammon/Citadel | 2026-03-22 | Tier-based escalation (route by complexity scale) | https://github.com/SethGammon/Citadel |
+| userFRM/agent-dispatch | 2026-02-24 | TOML keyword index with JIT agent download | https://github.com/userFRM/agent-dispatch |
+| anthroos/claude-code-orchestrator | 2026-03-07 | Trigger phrase matching from skill frontmatter | https://github.com/anthroos/claude-code-orchestrator |
+| stellarlinkco/myclaude | 2026-01-23 | Modular stackable skills with config-driven enable/disable | https://github.com/stellarlinkco/myclaude |
