@@ -1,6 +1,6 @@
 # Citations
 
-Patterns, repos, and sources that influenced the toolkit's design. Not attribution for code (the code is original) but acknowledgment of ideas that shaped decisions.
+Patterns, repos, and sources that shaped the toolkit. This includes external influences and original innovations developed through trial and error. Keeping provenance clear helps future sessions understand why things work the way they do.
 
 ## Repos
 
@@ -31,6 +31,37 @@ The toolkit author's blog. Posts that crystallized design decisions:
 - **The /do Router** - Specialist selection over generalism. Why keyword-matching routing produces more consistent results than generalist improvisation.
 - **The Handyman Principle** - Context as a scarce resource. Why specialized agents beat one giant system prompt.
 - **I Was Excited to See Someone Else Build a /do Router** - Convergent evolution in AI tooling and the case for open sharing.
+
+## Original Innovations
+
+Patterns developed through trial and error in this toolkit, not derived from external sources.
+
+### The /do Router and Specialist Selection
+Keyword-matching routing to domain-specific agents. The insight that "which agent has the right mental scaffolding" matters more than "which agent is smartest." Developed over months of observing inconsistent results from generalist prompts.
+
+### Anti-Rationalization as Infrastructure
+Auto-injected anti-rationalization tables that make it structurally difficult to skip verification. Not a policy doc that gets ignored. Infrastructure that fires on every code modification, review, and security task. Born from repeated incidents where "should work" turned out to be wrong.
+
+### Learning Graduation Pipeline
+Record at 0.7 confidence, boost on validation, graduate into agent/skill markdown, ship together. The insight that review findings should be immediately embedded as permanent behavior changes, not passively recorded for "multiple observations." Developed after noticing that deferred learnings never got acted on.
+
+### Three-Wave Comprehensive Review
+20+ specialized reviewer agents in 3 cascading waves: per-package deep review (Wave 0), cross-cutting foundation (Wave 1, 11 agents), context-aware deep-dive (Wave 2, 10 agents). Each wave's findings enrich the next. Evolved from single-agent reviews that kept missing cross-cutting concerns.
+
+### Pipeline-First Architecture
+The principle that any task with 3+ phases should be a pipeline with gates, artifacts, and parallelization. Emerged from observing that ad-hoc execution skips steps under time pressure but pipelines with explicit phase gates don't.
+
+### Two-Tier Evaluation (Deterministic + LLM)
+Deterministic scoring (file existence, frontmatter validity, path checking) as a fast, free first pass, with LLM evaluation for nuanced quality. Neither replaces the other. Adopted after analyzing how mechanical failures wasted LLM evaluation tokens.
+
+### Retro Knowledge Injection
+SQLite + FTS5 database of operational learnings, auto-injected into relevant agent prompts via hook. Benchmarked at +5.3 avg score improvement, 67% win rate. The cross-session memory that makes each session smarter than the last.
+
+### The Handyman Principle
+"Context is a scarce resource, not a dumpster." Specialized agents loaded only when their triggers match, rather than one giant system prompt. Named and articulated through blog writing that forced clarity on why large prompts degrade performance.
+
+### Manifest + Undo for Upgrades
+SHA-256 snapshot before modification, backup storage, score regression detection, and rollback capability. Created after an upgrade broke agent references and required manual git archaeology to recover.
 
 ## Principles
 

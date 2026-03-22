@@ -193,6 +193,10 @@ The `.claude/` directory inside the repo is gitignored. Only `settings.local.jso
 | `scripts/scan-ai-patterns.py` | Scans docs for AI writing patterns against `scripts/data/banned-patterns.json` |
 | `scripts/feature-state.py` | Feature lifecycle state machine (`.feature/` directory) |
 | `scripts/adr-query.py` | ADR session management: register, query, check compliance |
+| `scripts/score-component.py` | Deterministic health scorer for agents and skills (9 checks, 100-point rubric) |
+| `scripts/lockfile.py` | PID-based concurrent access protection (acquire, release, status) |
+| `scripts/manifest.py` | Snapshot/undo/verify for system upgrades with SHA-256 checksums |
+| `scripts/task-status.py` | Pipeline progress tracking (start, update, done, show, clear) |
 | `hooks/lib/learning_db_v2.py` | Core learning database module -- all hooks import from here |
 | `hooks/lib/hook_utils.py` | Shared hook utilities: JSON output, fallbacks, frontmatter parsing |
 | `hooks/lib/quality_gate.py` | Quality gate enforcement helpers |
@@ -256,6 +260,16 @@ python3 scripts/learning-db.py graduate TOPIC KEY TARGET
 
 # Prune low-confidence old entries
 python3 scripts/learning-db.py prune --below-confidence 0.3 --older-than 90
+
+# ROI report — cohort comparison of sessions with/without retro knowledge
+python3 scripts/learning-db.py roi [--json]
+
+# Show stale entries (low confidence, old, not graduated)
+python3 scripts/learning-db.py stale [--min-age-days 30]
+
+# Archive stale entries
+python3 scripts/learning-db.py stale-prune --dry-run
+python3 scripts/learning-db.py stale-prune --confirm
 ```
 
 ### Lifecycle
