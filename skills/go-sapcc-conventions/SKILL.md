@@ -752,6 +752,23 @@ See [references/anti-patterns.md](references/anti-patterns.md) for the full cata
 
 ---
 
+## Available Scripts
+
+Deterministic checks for sapcc-specific patterns that no linter covers. Run these during code review or as part of quality gates. All support `--help`, `--json`, `--limit`, and meaningful exit codes (0 = clean, 1 = violations, 2 = error).
+
+| Script | What It Checks |
+|--------|---------------|
+| `scripts/check-sapcc-identify-endpoint.sh` | HTTP handlers missing `httpapi.IdentifyEndpoint` call |
+| `scripts/check-sapcc-auth-ordering.sh` | Data access before authentication in handlers |
+| `scripts/check-sapcc-json-strict.sh` | `json.NewDecoder` without `DisallowUnknownFields()` |
+| `scripts/check-sapcc-time-now.sh` | Direct `time.Now()` in testable code (inject clock instead) |
+| `scripts/check-sapcc-httptest.sh` | `httptest.NewRecorder` instead of `assert.HTTPRequest` |
+| `scripts/check-sapcc-todo-format.sh` | Bare TODO comments without context/links |
+
+These scripts only apply to sapcc repos (detected by `github.com/sapcc/go-bits` in go.mod).
+
+---
+
 ## Anti-Rationalization
 
 ### SAP CC Domain-Specific Rationalizations

@@ -522,6 +522,8 @@ For personal repos where PR was created but not yet merged: skip cleanup (branch
 
 For protected-org repos: skip cleanup (their processes handle branch lifecycle).
 
+**ADR status update** (toolkit repo only): If this PR implements an ADR (commit message or PR title contains "ADR-NNN"), update the local ADR file's status from "Proposed" to "Implemented — PR #N". ADRs are gitignored (local-only), so this is a local file update, not a git operation.
+
 **Gate**: Branch cleaned up (or skipped if PR is still open). Pipeline complete.
 
 ---
