@@ -28,7 +28,7 @@ from pathlib import Path
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-from hook_utils import context_output, empty_output
+from hook_utils import context_output, empty_output, get_session_id
 
 # Try to import learning_db_v2 for SQLite-based injection
 try:
@@ -341,6 +341,13 @@ def main():
         # Query learning.db for relevant knowledge
         db_injection = query_knowledge_from_db(prompt_keywords, debug=bool(debug), agent_type=agent_type)
         if db_injection:
+            # Set marker for record-activation.py ROI tracking (ADR-032)
+            try:
+                session_id = get_session_id()
+                marker = Path("/tmp") / f"claude-retro-active-{session_id}"
+                marker.write_text("1")
+            except OSError:
+                pass  # Non-critical — don't block injection
             context_output(EVENT_NAME, db_injection).print_and_exit()
 
         if debug:

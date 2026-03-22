@@ -1,6 +1,6 @@
 {
   "version": "1.1",
-  "generated": "2026-03-22T16:16:19Z",
+  "generated": "2026-03-22T18:42:10Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": [
     {
@@ -549,6 +549,21 @@
       "user-invocable": false
     },
     {
+      "name": "full-repo-review",
+      "description": "Run comprehensive 3-wave review against all source files in the repo, producing a prioritized issue backlog.",
+      "file": "skills/full-repo-review/SKILL.md",
+      "triggers": [
+        "full repo review",
+        "review entire repo",
+        "codebase health check",
+        "review all files",
+        "full codebase review"
+      ],
+      "category": "analysis",
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
       "name": "gemini-image-generator",
       "description": "CLI-based image generation from text prompts using Google Gemini APIs via Python.",
       "file": "skills/gemini-image-generator/SKILL.md",
@@ -726,6 +741,19 @@
       ],
       "version": "2.0.0",
       "user-invocable": false
+    },
+    {
+      "name": "headless-cron-creator",
+      "description": "Generate headless Claude Code cron jobs from a task description and schedule.",
+      "file": "skills/headless-cron-creator/SKILL.md",
+      "triggers": [
+        "headless-cron-creator",
+        "headless",
+        "cron",
+        "creator"
+      ],
+      "version": "1.0.0",
+      "user-invocable": true
     },
     {
       "name": "hook-development-pipeline",
@@ -1850,6 +1878,151 @@
         "workflow-orchestrator",
         "workflow",
         "orchestrator"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "gemini-wrestlejoy-comparison",
+      "description": "A/B test Gemini Pro vs Claude for WrestleJoy voice replication: Prepare inputs, generate with both models, validate outputs, compare results.",
+      "file": "skills/gemini-wrestlejoy-comparison/SKILL.md",
+      "triggers": [
+        "gemini-wrestlejoy-comparison",
+        "gemini",
+        "wrestlejoy",
+        "comparison"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "joy-check",
+      "description": "Validate content for joy-centered tonal framing.",
+      "file": "skills/joy-check/SKILL.md",
+      "triggers": [
+        "joy check",
+        "check framing",
+        "tone check",
+        "negative framing",
+        "joy validation",
+        "too negative",
+        "reframe positively"
+      ],
+      "category": "content",
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "voice-amy-nemmity",
+      "description": "Amy Nemmity's writing voice: warmth, celebration, poetic fragments, community focus, character arc narratives.",
+      "file": "skills/voice-amy-nemmity/SKILL.md",
+      "triggers": [
+        "voice-amy-nemmity",
+        "voice",
+        "amy",
+        "nemmity"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "voice-andy-disagreement",
+      "description": "Andy Nemmity's disagreement and forum voice with reasoning ladder, claims-over-people discipline, and anti-escalation harshness control.",
+      "file": "skills/voice-andy-disagreement/SKILL.md",
+      "triggers": [
+        "disagree",
+        "counter-argument",
+        "critique",
+        "rebuttal",
+        "pushback",
+        "that's wrong",
+        "I disagree",
+        "Hacker News",
+        "HN comment",
+        "Reddit",
+        "forum",
+        "community"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "voice-andy-nemmity",
+      "description": "Apply Andy Nemmity's voice profile for content generation: precision-driven improvisation, constraint accumulation, systems framing, calibration qu...",
+      "file": "skills/voice-andy-nemmity/SKILL.md",
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "wrestlejoy-aew-images",
+      "description": "Fetch official promotional images from allelitewrestling.com for WrestleJoy articles.",
+      "file": "skills/wrestlejoy-aew-images/SKILL.md",
+      "triggers": [
+        "aew image",
+        "aew photo",
+        "wrestler photo",
+        "official aew image",
+        "roster image",
+        "roster photo",
+        "aew event poster",
+        "get aew image"
+      ],
+      "category": "content-pipeline",
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "wrestlejoy-external-research",
+      "description": "Evidence-sourced 4-phase external research: Identify, Search, Extract, Validate.",
+      "file": "skills/wrestlejoy-external-research/SKILL.md",
+      "triggers": [
+        "wrestlejoy-external-research",
+        "wrestlejoy",
+        "external",
+        "research"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "wrestlejoy-mmr-research",
+      "description": "Evidence-based wrestler research from MMR database: Assess, Query, Synthesize, Output.",
+      "file": "skills/wrestlejoy-mmr-research/SKILL.md",
+      "triggers": [
+        "wrestlejoy-mmr-research",
+        "wrestlejoy",
+        "mmr",
+        "research"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "wrestlejoy-news-pipeline",
+      "description": "Automated AEW wrestling news production pipeline for WrestleJoy.com.",
+      "file": "skills/wrestlejoy-news-pipeline/SKILL.md",
+      "triggers": [
+        "run news pipeline",
+        "wrestlejoy news",
+        "scan wrestling news",
+        "generate news articles",
+        "wrestling news automation",
+        "aew news pipeline",
+        "news production pipeline"
+      ],
+      "category": "content-pipeline",
+      "version": "1.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "wrestlejoy-research-transform",
+      "description": "Transform MMR research data into narrative language: convert ratings to superlatives, trajectories to journey language, peaks to memorable moments.",
+      "file": "skills/wrestlejoy-research-transform/SKILL.md",
+      "triggers": [
+        "wrestlejoy-research-transform",
+        "wrestlejoy",
+        "research",
+        "transform"
       ],
       "version": "2.0.0",
       "user-invocable": false
