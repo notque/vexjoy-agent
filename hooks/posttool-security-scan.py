@@ -26,6 +26,9 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from stdin_timeout import read_stdin
+
 # Code file extensions worth scanning
 _CODE_EXTENSIONS = frozenset(
     {
@@ -135,7 +138,7 @@ _PATTERNS = _build_patterns()
 
 def main() -> None:
     try:
-        raw = sys.stdin.read()
+        raw = read_stdin(timeout=2)
         event = json.loads(raw)
 
         event_type = event.get("hook_event_name") or event.get("type", "")

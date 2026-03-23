@@ -21,6 +21,10 @@ Design:
 import json
 import re
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from stdin_timeout import read_stdin
 
 FORBIDDEN_PATTERNS = [
     r"Generated with \[?Claude Code\]?",
@@ -36,7 +40,7 @@ FORBIDDEN_RE = re.compile("|".join(FORBIDDEN_PATTERNS), re.IGNORECASE)
 
 def main() -> None:
     try:
-        data = json.loads(sys.stdin.read())
+        data = json.loads(read_stdin(timeout=2))
     except (json.JSONDecodeError, OSError):
         print(json.dumps({}))
         return

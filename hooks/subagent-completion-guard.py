@@ -39,6 +39,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from stdin_timeout import read_stdin
+
 __EVENT_NAME = "SubagentStop"
 
 # Agents whose names start with this prefix are READ-ONLY by contract
@@ -466,7 +469,7 @@ def check_protected_org_workflow(cwd: str, transcript_path: str) -> str | None:
 
 def main() -> None:
     try:
-        raw = sys.stdin.read()
+        raw = read_stdin(timeout=2)
         if not raw:
             sys.exit(0)
 

@@ -29,6 +29,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from hook_utils import context_output, empty_output, get_session_id
+from stdin_timeout import read_stdin
 
 # Try to import learning_db_v2 for SQLite-based injection
 try:
@@ -312,7 +313,7 @@ def main():
     try:
         # Parse hook input
         try:
-            hook_input = json.load(sys.stdin)
+            hook_input = json.loads(read_stdin(timeout=2))
             if not isinstance(hook_input, dict):
                 empty_output(EVENT_NAME).print_and_exit()
             prompt = hook_input.get("prompt", "").strip()

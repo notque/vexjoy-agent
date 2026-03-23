@@ -27,6 +27,9 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from stdin_timeout import read_stdin
+
 _BYPASS_ENV = "SENSITIVE_FILE_GUARD_BYPASS"
 
 # Compiled patterns for sensitive file paths.
@@ -90,7 +93,7 @@ def _is_exception(file_path: str) -> bool:
 
 
 def main() -> None:
-    raw = sys.stdin.read()
+    raw = read_stdin(timeout=2)
     try:
         event = json.loads(raw)
     except (json.JSONDecodeError, ValueError):

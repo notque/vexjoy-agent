@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from hook_utils import empty_output, get_session_id
 from learning_db_v2 import record_learning
+from stdin_timeout import read_stdin
 
 EVENT_NAME = "UserPromptSubmit"
 
@@ -52,7 +53,7 @@ def generate_key(text: str) -> str:
 
 def main():
     try:
-        hook_input = json.load(sys.stdin)
+        hook_input = json.loads(read_stdin(timeout=2))
         prompt = (hook_input.get("prompt") or "").strip()
         if not prompt:
             empty_output(EVENT_NAME).print_and_exit()
