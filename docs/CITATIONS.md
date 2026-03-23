@@ -94,3 +94,4 @@ Projects using the `/do` router pattern for specialist selection. The pattern wa
 | userFRM/agent-dispatch | 2026-02-24 | TOML keyword index with JIT agent download | https://github.com/userFRM/agent-dispatch |
 | anthroos/claude-code-orchestrator | 2026-03-07 | Trigger phrase matching from skill frontmatter | https://github.com/anthroos/claude-code-orchestrator |
 | stellarlinkco/myclaude | 2026-01-23 | Modular stackable skills with config-driven enable/disable | https://github.com/stellarlinkco/myclaude |
+| gsd-build/get-shit-done | 2026-03-16 | Freeform text classifier routing to `gsd:*` commands via priority-ordered rule table | https://github.com/gsd-build/get-shit-done |
