@@ -102,7 +102,7 @@ Always use off-minutes (7, 23, 47) instead of :00/:30 to spread load.
 **Goal**: Create the wrapper script using `crontab-manager.py generate-wrapper`.
 
 ```bash
-python3 scripts/crontab-manager.py generate-wrapper \
+python3 ~/.claude/scripts/crontab-manager.py generate-wrapper \
   --name "{name}" \
   --prompt "{prompt}" \
   --schedule "{schedule}" \
@@ -149,7 +149,7 @@ Review the generated script. Verify it contains:
 
 1. Show the proposed entry:
    ```bash
-   python3 scripts/crontab-manager.py add \
+   python3 ~/.claude/scripts/crontab-manager.py add \
      --tag "{name}" \
      --schedule "{schedule}" \
      --command "{absolute_script_path} --execute >> {logdir}/cron.log 2>&1" \
@@ -160,7 +160,7 @@ Review the generated script. Verify it contains:
 
 3. If confirmed:
    ```bash
-   python3 scripts/crontab-manager.py add \
+   python3 ~/.claude/scripts/crontab-manager.py add \
      --tag "{name}" \
      --schedule "{schedule}" \
      --command "{absolute_script_path} --execute >> {logdir}/cron.log 2>&1"
@@ -168,7 +168,7 @@ Review the generated script. Verify it contains:
 
 4. Verify:
    ```bash
-   python3 scripts/crontab-manager.py verify --tag "{name}"
+   python3 ~/.claude/scripts/crontab-manager.py verify --tag "{name}"
    ```
 
 **Gate**: Entry installed and verified. Proceed to Phase 5.
@@ -185,9 +185,9 @@ Output:
 - Tag for management
 - Commands for future management:
   ```
-  python3 scripts/crontab-manager.py list          # see all claude cron jobs
-  python3 scripts/crontab-manager.py verify --tag {name}  # health check
-  python3 scripts/crontab-manager.py remove --tag {name}   # uninstall
+  python3 ~/.claude/scripts/crontab-manager.py list          # see all claude cron jobs
+  python3 ~/.claude/scripts/crontab-manager.py verify --tag {name}  # health check
+  python3 ~/.claude/scripts/crontab-manager.py remove --tag {name}   # uninstall
   ```
 
 ---

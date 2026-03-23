@@ -248,7 +248,7 @@ After all runs complete (or timeout), collect:
 **Step 1: For each completed run, validate the manifest**
 
 ```bash
-python3 scripts/artifact-utils.py validate-manifest \
+python3 ~/.claude/scripts/artifact-utils.py validate-manifest \
   /tmp/pipeline-test-{run-id}/runs/{subdomain.name}/manifest.json
 ```
 
@@ -282,7 +282,7 @@ If the manifest exists and is valid, read the `status` field:
 If the subdomain's `scripts_needed` includes a validation script, run it against the output:
 
 ```bash
-python3 scripts/{domain-validator}.py validate \
+python3 ~/.claude/scripts/{domain-validator}.py validate \
   /tmp/pipeline-test-{run-id}/runs/{subdomain.name}/content.md
 ```
 

@@ -72,6 +72,8 @@ Three-wave review with per-package deep analysis. Wave 0 auto-discovers packages
 - **Severity Aggregation**: Combine findings by severity before fixing
 - **Phase Gates Enforced**: Each phase must complete before the next begins
 - **No Skipping Agents**: All agents run even for "simple" changes
+- **No "Acceptable" Disposition**: The only valid review dispositions are FIX NOW, FIX IN FOLLOW-UP (with mandatory tracking artifact — see Deferred Finding Tracking below), or NOT AN ISSUE (with evidence). "Acceptable", "valid but deferred", "real but not blocking", and "conservative" are NOT valid dispositions. If an issue is real, it gets tracked. If it's not real, provide evidence. Include this rule in every Wave 1 and Wave 2 agent dispatch prompt.
+- **Deferred Finding Tracking**: Before marking any finding as FIX IN FOLLOW-UP, create a tracking artifact (GitHub issue, `TODO(follow-up):` in code, or learning.db entry). The review cannot proceed past the aggregation phase until all FIX IN FOLLOW-UP findings have a tracking artifact. Report artifact locations in the review summary under a "Deferred Findings" table.
 
 ### Default Behaviors (ON unless disabled)
 - **Wave 0 Per-Package Review**: Auto-discover packages/modules and dispatch one agent per package. Adds deep per-package context that cross-cutting agents miss.
@@ -92,6 +94,57 @@ Three-wave review with per-package deep analysis. Wave 0 auto-discovers packages
 ---
 
 ## Instructions
+
+### Phase 0.5: STATIC ANALYSIS (Mandatory Prerequisite)
+
+**Goal**: Run deterministic static analysis BEFORE dispatching any review agents. Linters catch syntactic issues that LLM agents miss. Findings feed into Wave 1 as input context.
+
+**Step 1: Detect language and run linters**
+
+```bash
+# Go repos (check for go.mod)
+if [ -f go.mod ]; then
+    golangci-lint run ./... 2>&1 || true
+    # Fallback if golangci-lint not installed
+    if ! command -v golangci-lint &>/dev/null && [ -f Makefile ]; then
+        make check 2>&1 || true
+    fi
+fi
+
+# Python repos (check for pyproject.toml or setup.py)
+if [ -f pyproject.toml ] || [ -f setup.py ]; then
+    ruff check . 2>&1 || true
+fi
+
+# TypeScript repos (check for tsconfig.json)
+if [ -f tsconfig.json ]; then
+    npx tsc --noEmit 2>&1 || true
+fi
+```
+
+**Step 2: Auto-fix trivial findings**
+
+Auto-fixable findings (gofmt, goimports, ruff format) should be fixed BEFORE agent review begins. This prevents agents from wasting time on formatting issues.
+
+```bash
+# Go: auto-fix formatting
+if [ -f go.mod ]; then
+    golangci-lint run --fix ./... 2>&1 || true
+fi
+
+# Python: auto-fix formatting
+if [ -f pyproject.toml ] || [ -f setup.py ]; then
+    ruff check --fix . 2>&1 || true
+fi
+```
+
+**Step 3: Capture remaining findings for Wave 1 context**
+
+Save non-auto-fixable lint findings to pass as context to all Wave 1 agents. Include these in every Wave 1 dispatch prompt as "Static analysis findings (pre-verified, not from LLM)."
+
+**Gate**: Static analysis complete. Auto-fixes applied. Remaining findings captured. Proceed to Phase 1.
+
+---
 
 ### Phase 1: SCOPE
 
@@ -117,7 +170,7 @@ git diff --name-only HEAD~1
 
 ```bash
 # Auto-detect repo type (deterministic — no LLM judgment needed)
-REPO_TYPE=$(python3 scripts/classify-repo.py --type-only 2>/dev/null || echo "personal")
+REPO_TYPE=$(python3 ~/.claude/scripts/classify-repo.py --type-only 2>/dev/null || echo "personal")
 ```
 
 If the repo belongs to a protected organization with custom conventions:
@@ -398,7 +451,50 @@ echo "Saved Wave 0 findings: $(wc -l < "$REVIEW_DIR/wave0-findings.md") lines"
 
 **CRITICAL**: Do NOT skip this step. If compaction fires before Wave 1 dispatch, Wave 0 findings are gone forever without this file.
 
-**Gate**: Wave 0 summary built, saved to `$REVIEW_DIR/wave0-findings.md`. Proceed to Phase 2a.
+**Gate**: Wave 0 summary built, saved to `$REVIEW_DIR/wave0-findings.md`. Proceed to Phase 1.5.
+
+---
+
+### Phase 1.5: LIBRARY CONTRACT VERIFICATION (Go repos only)
+
+**Goal**: Before Wave 1 dispatches, verify that code assumptions about imported library behavior are actually true. This catches the systemic LLM blind spot where agents reason from protocol knowledge instead of reading library source.
+
+**When to run**: Only for Go repos (check for `go.mod`). Skip for Python/TypeScript repos.
+
+**Step 1: Scan changed code for library assumptions**
+
+In the diff (from Phase 1), identify:
+- Comments claiming library behavior ("X will retry", "Y returns error on Z", "will rebalance")
+- Error handling that assumes specific error types from imported libraries
+- Control flow that depends on library lifecycle (reconnect, rebalance, retry, redeliver)
+- Log messages describing expected library behavior
+
+**Step 2: Dispatch a verification agent**
+
+Dispatch a single `golang-general-engineer-compact` agent (model: sonnet) with this prompt structure:
+
+```
+You are a library contract verifier. Your job is to read library source code
+and verify whether the changed code's assumptions about library behavior are correct.
+
+Changed files: [list from Phase 1]
+Library assumptions found: [list from Step 1]
+
+For each assumption:
+1. Find the library in GOMODCACHE: cat $(go env GOMODCACHE)/path/to/lib@version/file.go
+2. Read the relevant source code
+3. Determine if the assumption is VERIFIED or UNVERIFIED
+4. Provide evidence (file:line in library source)
+
+Output a Library Contract Report as a markdown table:
+| Assumption | Location | Verified? | Evidence |
+```
+
+**Step 3: Save report and pass to Wave 1**
+
+Save the Library Contract Report to `$REVIEW_DIR/library-contracts.md`. Include it in every Wave 1 agent dispatch prompt alongside Wave 0 findings and static analysis findings.
+
+**Gate**: Library contract verification complete (or skipped for non-Go repos). Proceed to Phase 2a.
 
 ---
 

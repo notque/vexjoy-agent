@@ -62,8 +62,8 @@ This skill operates as an operator for deterministic plan management, configurin
 **Goal**: Understand current plan landscape before any action.
 
 ```bash
-python3 scripts/plan-manager.py list --human
-python3 scripts/plan-manager.py list --stale --human
+python3 ~/.claude/scripts/plan-manager.py list --human
+python3 ~/.claude/scripts/plan-manager.py list --stale --human
 ```
 
 If stale plans exist (>7 days), warn user before proceeding.
@@ -75,7 +75,7 @@ If stale plans exist (>7 days), warn user before proceeding.
 **Goal**: Understand the target plan's current state before mutation.
 
 ```bash
-python3 scripts/plan-manager.py show PLAN_NAME --tasks --human
+python3 ~/.claude/scripts/plan-manager.py show PLAN_NAME --tasks --human
 ```
 
 Review remaining tasks, completed tasks, and overall progress.
@@ -88,10 +88,10 @@ Review remaining tasks, completed tasks, and overall progress.
 
 | Action | Command |
 |--------|---------|
-| Create | `python3 scripts/plan-manager.py create NAME` |
-| Check task | `python3 scripts/plan-manager.py check NAME TASK_NUM` |
-| Complete | `python3 scripts/plan-manager.py complete NAME` |
-| Abandon | `python3 scripts/plan-manager.py abandon NAME --reason "reason"` |
+| Create | `python3 ~/.claude/scripts/plan-manager.py create NAME` |
+| Check task | `python3 ~/.claude/scripts/plan-manager.py check NAME TASK_NUM` |
+| Complete | `python3 ~/.claude/scripts/plan-manager.py complete NAME` |
+| Abandon | `python3 ~/.claude/scripts/plan-manager.py abandon NAME --reason "reason"` |
 
 For **complete** and **abandon**: require explicit user confirmation before executing.
 
@@ -102,7 +102,7 @@ For **complete** and **abandon**: require explicit user confirmation before exec
 **Goal**: Verify mutation applied correctly.
 
 ```bash
-python3 scripts/plan-manager.py show PLAN_NAME --human
+python3 ~/.claude/scripts/plan-manager.py show PLAN_NAME --human
 ```
 
 Display updated state to user. If exit code != 0, report error and stop.

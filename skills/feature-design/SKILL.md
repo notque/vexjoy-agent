@@ -43,10 +43,10 @@ Transform a feature idea into a structured design document through collaborative
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before design
 - **Over-Engineering Prevention**: Design only what's requested. Don't add speculative requirements.
-- **State Management via Script**: All state operations go through `python3 scripts/feature-state.py`
+- **State Management via Script**: All state operations go through `python3 ~/.claude/scripts/feature-state.py`
 - **Gate Enforcement**: Check gate status before proceeding past decision points
 - **Design Doc Required**: Phase CANNOT complete without a design document artifact in `.feature/state/design/`
-- **ADR for Design Decisions**: Write an ADR to `adr/{feature-name}.md` documenting architectural decisions made during design exploration. Register the ADR session (`python3 scripts/adr-query.py register --adr adr/{name}.md`) so sub-phase skills (feature-plan, feature-implement) receive design context via hook injection.
+- **ADR for Design Decisions**: Write an ADR to `adr/{feature-name}.md` documenting architectural decisions made during design exploration. Register the ADR session (`python3 ~/.claude/scripts/adr-query.py register --adr adr/{name}.md`) so sub-phase skills (feature-plan, feature-implement) receive design context via hook injection.
 - **Branch Safety**: Create feature branch via worktree, never work on main
 
 ### Default Behaviors (ON unless disabled)
@@ -77,22 +77,22 @@ Transform a feature idea into a structured design document through collaborative
 
 1. Initialize feature state:
    ```bash
-   python3 scripts/feature-state.py init "FEATURE_NAME"
+   python3 ~/.claude/scripts/feature-state.py init "FEATURE_NAME"
    ```
 
 2. Load L0 context:
    ```bash
-   python3 scripts/feature-state.py context-read "" L0
+   python3 ~/.claude/scripts/feature-state.py context-read "" L0
    ```
 
 3. Load L1 design context:
    ```bash
-   python3 scripts/feature-state.py context-read "" L1 --phase design
+   python3 ~/.claude/scripts/feature-state.py context-read "" L1 --phase design
    ```
 
 4. If existing L2 context is relevant, load on-demand:
    ```bash
-   python3 scripts/feature-state.py context-read "" L2 --phase design
+   python3 ~/.claude/scripts/feature-state.py context-read "" L2 --phase design
    ```
 
 5. **Surface relevant seeds** (ADR-075): Check `.seeds/index.json` for dormant seeds whose trigger conditions match the current feature. Compare the feature name and description against each seed's `trigger` field using fuzzy keyword overlap. If matches are found, present them:
@@ -123,7 +123,7 @@ Transform a feature idea into a structured design document through collaborative
 
 **Step 1: Understand Requirements**
 
-Check gate: `python3 scripts/feature-state.py gate FEATURE design.intent-discussion`
+Check gate: `python3 ~/.claude/scripts/feature-state.py gate FEATURE design.intent-discussion`
 
 If gate mode is `human`:
 - Ask clarifying questions about the feature, one at a time
@@ -137,7 +137,7 @@ If gate mode is `auto`:
 
 **Step 2: Explore Approaches**
 
-Check gate: `python3 scripts/feature-state.py gate FEATURE design.approach-selection`
+Check gate: `python3 ~/.claude/scripts/feature-state.py gate FEATURE design.approach-selection`
 
 Generate 2-3 approaches:
 ```markdown
@@ -188,7 +188,7 @@ Create the design document:
 
 **Goal**: Verify design document is complete.
 
-Check gate: `python3 scripts/feature-state.py gate FEATURE design.design-approval`
+Check gate: `python3 ~/.claude/scripts/feature-state.py gate FEATURE design.design-approval`
 
 Validation checklist:
 - [ ] Problem statement is clear
@@ -209,17 +209,17 @@ If gate is `auto`: verify checklist passes.
 
 1. Save design document:
    ```bash
-   echo "DESIGN_CONTENT" | python3 scripts/feature-state.py checkpoint FEATURE design
+   echo "DESIGN_CONTENT" | python3 ~/.claude/scripts/feature-state.py checkpoint FEATURE design
    ```
 
 2. **Record learnings** — if this phase produced non-obvious insights, record them:
    ```bash
-   python3 scripts/learning-db.py record TOPIC KEY "VALUE" --category design
+   python3 ~/.claude/scripts/learning-db.py record TOPIC KEY "VALUE" --category design
    ```
 
 3. Advance to plan phase:
    ```bash
-   python3 scripts/feature-state.py advance FEATURE
+   python3 ~/.claude/scripts/feature-state.py advance FEATURE
    ```
 
 4. Suggest next step:

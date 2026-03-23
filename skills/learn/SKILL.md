@@ -44,7 +44,7 @@ This skill operates as an operator for manual knowledge ingestion, configuring C
 ## What This Skill CANNOT Do
 - Debug live issues (use systematic-debugging instead)
 - Automatically learn from tool errors (that is the error-learner hook)
-- Query or list existing patterns (use `python3 scripts/learning-db.py query --category error`)
+- Query or list existing patterns (use `python3 ~/.claude/scripts/learning-db.py query --category error`)
 - Delete or reset the database (remove `~/.claude/learning/learning.db`)
 - Store patterns without user-provided error AND solution text
 
@@ -90,7 +90,7 @@ Apply these rules in order:
 Execute the storage script using the `learning-db.py` CLI:
 
 ```bash
-python3 scripts/learning-db.py record \
+python3 ~/.claude/scripts/learning-db.py record \
   "<error_type>" \
   "<error_signature>" \
   "<error_pattern> → <solution>" \
@@ -102,7 +102,7 @@ Where `<error_type>` is the classified type (e.g., "missing_file", "multiple_mat
 
 Example:
 ```bash
-python3 scripts/learning-db.py record \
+python3 ~/.claude/scripts/learning-db.py record \
   "multiple_matches" \
   "edit-tool-multiple-matches" \
   "Edit tool fails with 'found N matches' → Use replace_all=True parameter" \

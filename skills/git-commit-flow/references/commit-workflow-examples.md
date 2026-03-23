@@ -135,13 +135,13 @@ fi
 Intended interface:
 ```bash
 # Check all validations
-# python3 scripts/validate_state.py --check all
+# python3 ~/.claude/scripts/validate_state.py --check all
 
 # Check specific validation
-# python3 scripts/validate_state.py --check sensitive-files
+# python3 ~/.claude/scripts/validate_state.py --check sensitive-files
 
 # Check only staged files
-# python3 scripts/validate_state.py --check sensitive-files --staged-only
+# python3 ~/.claude/scripts/validate_state.py --check sensitive-files --staged-only
 ```
 
 Exit codes: 0 = clean, 1 = issues found, 2 = critical error.
@@ -151,13 +151,13 @@ Exit codes: 0 = clean, 1 = issues found, 2 = critical error.
 Intended interface:
 ```bash
 # Validate message from string
-# python3 scripts/validate_message.py --message "feat: add feature"
+# python3 ~/.claude/scripts/validate_message.py --message "feat: add feature"
 
 # Validate message from file
-# python3 scripts/validate_message.py --file commit-msg.txt
+# python3 ~/.claude/scripts/validate_message.py --file commit-msg.txt
 
 # Skip conventional commit check
-# python3 scripts/validate_message.py --message "message" --no-conventional
+# python3 ~/.claude/scripts/validate_message.py --message "message" --no-conventional
 ```
 
 Exit codes: 0 = valid, 1 = warnings, 2 = errors.

@@ -23,7 +23,7 @@ allowed-tools:
 This skill wraps `scripts/learning-db.py` into a user-friendly interface for the learning system. The learning database is the single source of truth — there are no L1/L2 markdown files.
 
 ### Hardcoded Behaviors (Always Apply)
-- **DB is the source of truth**: All queries go through `python3 scripts/learning-db.py`; never maintain a parallel file store
+- **DB is the source of truth**: All queries go through `python3 ~/.claude/scripts/learning-db.py`; never maintain a parallel file store
 - **Graduate requires confirmation**: Always present proposals and wait for user approval before editing agent/skill files
 - **Graduate requires specificity**: Only graduate entries that encode non-obvious, actionable knowledge — never generic advice
 
@@ -66,7 +66,7 @@ Show learning system health summary.
 **Step 1**: Get stats.
 
 ```bash
-python3 scripts/learning-db.py stats
+python3 ~/.claude/scripts/learning-db.py stats
 ```
 
 **Step 2**: Present status report.
@@ -96,7 +96,7 @@ Display all accumulated knowledge.
 **Step 1**: Query all entries.
 
 ```bash
-python3 scripts/learning-db.py query
+python3 ~/.claude/scripts/learning-db.py query
 ```
 
 **Step 2**: Present grouped by category:
@@ -121,7 +121,7 @@ Full-text search across all learnings.
 **Step 1**: Run FTS5 search.
 
 ```bash
-python3 scripts/learning-db.py search "TERM"
+python3 ~/.claude/scripts/learning-db.py search "TERM"
 ```
 
 **Step 2**: Present results ranked by relevance:
@@ -147,7 +147,7 @@ edit placement, and phrasing as prescriptive instruction.
 **Step 1**: Get graduation candidates from the DB.
 
 ```bash
-python3 scripts/learning-db.py query --category design --category gotcha
+python3 ~/.claude/scripts/learning-db.py query --category design --category gotcha
 ```
 
 Skip categories `error` and `effectiveness` — those are injection-only (useful
@@ -193,7 +193,7 @@ Use the Edit tool to insert graduated content into target agent/skill files.
 After embedding, mark the entry as graduated:
 
 ```bash
-python3 scripts/learning-db.py graduate TOPIC KEY "target:file/path"
+python3 ~/.claude/scripts/learning-db.py graduate TOPIC KEY "target:file/path"
 ```
 
 Graduated entries stop being injected (the injector filters

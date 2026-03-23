@@ -254,13 +254,13 @@ Deterministic voice validation using Python scripts + AI generation.
 
 ```bash
 # Analyze writing samples
-python3 scripts/voice_analyzer.py analyze --samples file.md
+python3 ~/.claude/scripts/voice_analyzer.py analyze --samples file.md
 
 # Validate against voice profile
-python3 scripts/voice_validator.py validate --content draft.md --voice your-profile
+python3 ~/.claude/scripts/voice_validator.py validate --content draft.md --voice your-profile
 
 # Quick banned pattern check
-python3 scripts/voice_validator.py check-banned --content draft.md
+python3 ~/.claude/scripts/voice_validator.py check-banned --content draft.md
 ```
 
 ### Wabi-Sabi Principle

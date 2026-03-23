@@ -45,34 +45,34 @@ All state operations go through the deterministic CLI:
 
 ```bash
 # Initialize
-python3 scripts/feature-state.py init "my feature"
+python3 ~/.claude/scripts/feature-state.py init "my feature"
 
 # Status
-python3 scripts/feature-state.py status
-python3 scripts/feature-state.py status my-feature
+python3 ~/.claude/scripts/feature-state.py status
+python3 ~/.claude/scripts/feature-state.py status my-feature
 
 # Phase lifecycle
-python3 scripts/feature-state.py checkpoint my-feature design
-python3 scripts/feature-state.py advance my-feature
+python3 ~/.claude/scripts/feature-state.py checkpoint my-feature design
+python3 ~/.claude/scripts/feature-state.py advance my-feature
 
 # Gates
-python3 scripts/feature-state.py gate my-feature design.approach-selection
+python3 ~/.claude/scripts/feature-state.py gate my-feature design.approach-selection
 
 # Retro
-python3 scripts/feature-state.py retro-record my-feature error-handling "always wrap with context" --confidence medium
-python3 scripts/feature-state.py retro-promote my-feature error-handling
+python3 ~/.claude/scripts/feature-state.py retro-record my-feature error-handling "always wrap with context" --confidence medium
+python3 ~/.claude/scripts/feature-state.py retro-promote my-feature error-handling
 
 # Context
-python3 scripts/feature-state.py context-read my-feature L0
-python3 scripts/feature-state.py context-read my-feature L1 --phase design
+python3 ~/.claude/scripts/feature-state.py context-read my-feature L0
+python3 ~/.claude/scripts/feature-state.py context-read my-feature L1 --phase design
 
 # Worktrees
-python3 scripts/feature-state.py worktree my-feature create
-python3 scripts/feature-state.py worktree my-feature path
+python3 ~/.claude/scripts/feature-state.py worktree my-feature create
+python3 ~/.claude/scripts/feature-state.py worktree my-feature path
 
 # Lifecycle
-python3 scripts/feature-state.py complete my-feature
-python3 scripts/feature-state.py abandon my-feature --reason "superseded"
+python3 ~/.claude/scripts/feature-state.py complete my-feature
+python3 ~/.claude/scripts/feature-state.py abandon my-feature --reason "superseded"
 ```
 
 ## Context Loading Rules

@@ -20,16 +20,16 @@ Read public Bluesky profiles via the AT Protocol public API. No auth needed.
 
 ```bash
 # Fetch recent posts
-python3 scripts/bluesky_reader.py feed --handle HANDLE --limit 20
+python3 ~/.claude/scripts/bluesky_reader.py feed --handle HANDLE --limit 20
 
 # Search posts by keyword (fetches feed, filters locally)
-python3 scripts/bluesky_reader.py search --handle HANDLE --query "search terms"
+python3 ~/.claude/scripts/bluesky_reader.py search --handle HANDLE --query "search terms"
 
 # JSON output for pipeline consumption
-python3 scripts/bluesky_reader.py feed --handle HANDLE --json
+python3 ~/.claude/scripts/bluesky_reader.py feed --handle HANDLE --json
 
 # Pagination
-python3 scripts/bluesky_reader.py feed --handle HANDLE --cursor CURSOR_STRING
+python3 ~/.claude/scripts/bluesky_reader.py feed --handle HANDLE --cursor CURSOR_STRING
 ```
 
 ## API Details

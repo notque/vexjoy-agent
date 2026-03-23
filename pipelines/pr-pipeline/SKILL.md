@@ -102,7 +102,7 @@ When this pipeline runs inside a worktree agent (dispatched with `isolation: "wo
 
 ```bash
 # Detect repo type using the classification script
-REPO_TYPE=$(python3 scripts/classify-repo.py --type-only)
+REPO_TYPE=$(python3 ~/.claude/scripts/classify-repo.py --type-only)
 ```
 
 | Repo Type | Review Policy | Merge Policy | Step Execution |
@@ -389,10 +389,10 @@ For each finding, record a retro entry scoped to the responsible agent or skill:
 
 ```bash
 # For agent-scoped findings (e.g., python-general-engineer produced bad code)
-python3 scripts/learning-db.py learn --agent {agent-name} "pattern description from review finding"
+python3 ~/.claude/scripts/learning-db.py learn --agent {agent-name} "pattern description from review finding"
 
 # For skill-scoped findings (e.g., reddit-moderate missed a test requirement)
-python3 scripts/learning-db.py learn --skill {skill-name} "pattern description from review finding"
+python3 ~/.claude/scripts/learning-db.py learn --skill {skill-name} "pattern description from review finding"
 ```
 
 **Step 3: Immediate graduation**
@@ -401,14 +401,14 @@ Per /do Phase 5 policy, boost each entry to 1.0 confidence and graduate immediat
 
 ```bash
 # Boost confidence to 1.0 (run boost 3x — each boost applies a multiplier)
-python3 scripts/learning-db.py boost "agent:{agent-name}" "{key}"
-python3 scripts/learning-db.py boost "agent:{agent-name}" "{key}"
-python3 scripts/learning-db.py boost "agent:{agent-name}" "{key}"
+python3 ~/.claude/scripts/learning-db.py boost "agent:{agent-name}" "{key}"
+python3 ~/.claude/scripts/learning-db.py boost "agent:{agent-name}" "{key}"
+python3 ~/.claude/scripts/learning-db.py boost "agent:{agent-name}" "{key}"
 
 # Graduate — marks as embedded, excludes from future prompt injection
-python3 scripts/learning-db.py graduate "agent:{agent-name}" "{key}" "agents/{agent-name}.md"
+python3 ~/.claude/scripts/learning-db.py graduate "agent:{agent-name}" "{key}" "agents/{agent-name}.md"
 # Or for skills:
-python3 scripts/learning-db.py graduate "skill:{skill-name}" "{key}" "skills/{skill-name}/SKILL.md"
+python3 ~/.claude/scripts/learning-db.py graduate "skill:{skill-name}" "{key}" "skills/{skill-name}/SKILL.md"
 ```
 
 **Step 4: Embed in agent/skill**
@@ -445,7 +445,7 @@ These changes will be included in the existing commit (amend in next push cycle)
 **Step 1: Run ADR format check**
 
 ```bash
-python3 scripts/adr-status.py check
+python3 ~/.claude/scripts/adr-status.py check
 ```
 
 If exit code 1 (warnings found):
@@ -456,12 +456,12 @@ If exit code 1 (warnings found):
 **Step 2: Run ADR status report**
 
 ```bash
-python3 scripts/adr-status.py status
+python3 ~/.claude/scripts/adr-status.py status
 ```
 
 Include the status summary in the PR body if the PR touches any `adr/*.md` files. This gives reviewers an at-a-glance view of ADR state.
 
-**Gate**: `python3 scripts/adr-status.py check` exits 0. All ADRs have valid format.
+**Gate**: `python3 ~/.claude/scripts/adr-status.py check` exits 0. All ADRs have valid format.
 
 ### Phase 5: CREATE PR
 

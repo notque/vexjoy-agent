@@ -115,7 +115,7 @@ This agent operates as an operator for meta-pipeline creation, configuring Claud
 - **Domain Research First**: For domain pipeline requests, ALWAYS invoke `domain-research` skill before composing chains. The old DISCOVER phase only checked existing components — the new Phase 1 discovers *subdomains* within the target domain.
 - **Chain Validation Required**: Every composed chain MUST pass `scripts/artifact-utils.py validate-chain` before scaffolding. Never scaffold from an unvalidated chain.
 - **Skills >> Agents**: The generator MUST produce more skills than agents. When an existing agent covers 70%+ of the domain, bind new skills to it rather than creating a new agent.
-- **Tool Restriction Enforcement (ADR-063)**: Every scaffolded agent MUST include `allowed-tools` in frontmatter. Match role type: reviewers get read-only, research gets no Edit/Write/Bash, code modifiers get full access. Pipeline components inherit restrictions from their role. Validate with `python3 scripts/audit-tool-restrictions.py --audit`.
+- **Tool Restriction Enforcement (ADR-063)**: Every scaffolded agent MUST include `allowed-tools` in frontmatter. Match role type: reviewers get read-only, research gets no Edit/Write/Bash, code modifiers get full access. Pipeline components inherit restrictions from their role. Validate with `python3 ~/.claude/scripts/audit-tool-restrictions.py --audit`.
 
 ### Default Behaviors (ON unless disabled)
 - **Communication Style**: Report facts without self-congratulation. Show the execution plan and fan-out decisions rather than describing them. Be concise but informative.
@@ -220,13 +220,13 @@ PROPOSED | ACCEPTED | IMPLEMENTED | DEPRECATED
 
 **Step: Register ADR Session**
 ```bash
-python3 scripts/adr-query.py register --adr adr/{pipeline-name}.md
+python3 ~/.claude/scripts/adr-query.py register --adr adr/{pipeline-name}.md
 ```
 This creates `.adr-session.json` in the working directory. The `adr-context-injector.py` UserPromptSubmit hook reads this file and automatically injects ADR context into every sub-agent prompt for the rest of this pipeline session. This registration step is the ONLY orchestrator action required — all enforcement is handled by hooks.
 
 To get role-targeted context for a sub-agent manually (optional enhancement for critical sub-agents):
 ```bash
-python3 scripts/adr-query.py context --adr adr/{name}.md --role skill-creator
+python3 ~/.claude/scripts/adr-query.py context --adr adr/{name}.md --role skill-creator
 # Prepend output to sub-agent task description as AUTHORITATIVE CONTEXT
 ```
 
@@ -275,7 +275,7 @@ python3 scripts/adr-query.py context --adr adr/{name}.md --role skill-creator
 **ADR Hash Requirement** (Architecture Rule 18):
 The Pipeline Spec MUST include both `adr_path` and `adr_hash` fields:
 - `adr_path`: path to the governing ADR (e.g., `adr/self-improving-pipeline-generator.md`)
-- `adr_hash`: computed via `python3 scripts/adr-query.py hash --adr {adr_path}`
+- `adr_hash`: computed via `python3 ~/.claude/scripts/adr-query.py hash --adr {adr_path}`
 
 Instruct chain-composer to compute the hash and embed it in the top-level spec.
 The scaffolder's Phase 1 gate verifies this hash — a missing hash skips the gate.

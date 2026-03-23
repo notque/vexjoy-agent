@@ -41,7 +41,7 @@ Transform a design document into a wave-ordered implementation plan with tasks a
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md
 - **Design Doc Required**: CANNOT plan without a design document in `.feature/state/design/`
-- **State Management via Script**: All state operations through `python3 scripts/feature-state.py`
+- **State Management via Script**: All state operations through `python3 ~/.claude/scripts/feature-state.py`
 - **Wave Ordering**: Tasks grouped by dependency wave; Wave N must complete before Wave N+1
 - **Domain Agent Assignment**: Every implementation task MUST specify which domain agent handles it
 - **Parallel Safety Analysis**: Flag which tasks in the same wave can run in parallel
@@ -72,7 +72,7 @@ Transform a design document into a wave-ordered implementation plan with tasks a
 
 1. Check feature state:
    ```bash
-   python3 scripts/feature-state.py status FEATURE
+   python3 ~/.claude/scripts/feature-state.py status FEATURE
    ```
    Verify current phase is `plan` and `design` is in completed phases.
 
@@ -84,7 +84,7 @@ Transform a design document into a wave-ordered implementation plan with tasks a
 
 3. Load L1 plan context:
    ```bash
-   python3 scripts/feature-state.py context-read FEATURE L1 --phase plan
+   python3 ~/.claude/scripts/feature-state.py context-read FEATURE L1 --phase plan
    ```
 
 **Gate**: Design doc loaded. Feature in plan phase. Proceed.
@@ -207,7 +207,7 @@ Each task has a way to verify it's done. If you can't describe how to check whet
 
 ### Phase 2: VALIDATE
 
-Check gate: `python3 scripts/feature-state.py gate FEATURE plan.plan-approval`
+Check gate: `python3 ~/.claude/scripts/feature-state.py gate FEATURE plan.plan-approval`
 
 **Step 1: Requirements Coverage Gate**
 
@@ -271,17 +271,17 @@ If gate is `auto`: verify all checklist items pass.
 
 1. Save plan artifact:
    ```bash
-   echo "PLAN_CONTENT" | python3 scripts/feature-state.py checkpoint FEATURE plan
+   echo "PLAN_CONTENT" | python3 ~/.claude/scripts/feature-state.py checkpoint FEATURE plan
    ```
 
 2. **Record learnings** — if this phase produced non-obvious insights, record them:
    ```bash
-   python3 scripts/learning-db.py record TOPIC KEY "VALUE" --category design
+   python3 ~/.claude/scripts/learning-db.py record TOPIC KEY "VALUE" --category design
    ```
 
 3. Advance:
    ```bash
-   python3 scripts/feature-state.py advance FEATURE
+   python3 ~/.claude/scripts/feature-state.py advance FEATURE
    ```
 
 4. Suggest next step:

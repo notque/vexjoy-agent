@@ -40,7 +40,7 @@ Run comprehensive quality gates on the implemented feature. Phase 4 of the featu
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md
 - **Implementation Required**: CANNOT validate without implementation artifacts
-- **State Management via Script**: All state operations through `python3 scripts/feature-state.py`
+- **State Management via Script**: All state operations through `python3 ~/.claude/scripts/feature-state.py`
 - **Show Full Output**: NEVER summarize test results. Show actual command output.
 - **All Gates Must Pass**: Cannot proceed to release with any gate failing
 - **Existing Quality Gate Integration**: Use our existing quality gate skills (go-pr-quality-gate, python-quality-gate, universal-quality-gate)
@@ -138,17 +138,17 @@ If `BLOCK`: explain blocking issues.
 
 1. Save validation artifact:
    ```bash
-   echo "VALIDATION_REPORT" | python3 scripts/feature-state.py checkpoint FEATURE validate
+   echo "VALIDATION_REPORT" | python3 ~/.claude/scripts/feature-state.py checkpoint FEATURE validate
    ```
 
 2. **Record learnings** — if this phase produced non-obvious insights, record them:
    ```bash
-   python3 scripts/learning-db.py record TOPIC KEY "VALUE" --category design
+   python3 ~/.claude/scripts/learning-db.py record TOPIC KEY "VALUE" --category design
    ```
 
 3. If validation passed, advance:
    ```bash
-   python3 scripts/feature-state.py advance FEATURE
+   python3 ~/.claude/scripts/feature-state.py advance FEATURE
    ```
 
 4. Suggest next step:

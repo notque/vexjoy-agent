@@ -97,7 +97,7 @@ ls skills/ | grep [name]
 
 **Step 3**: Scan for retro entries targeting this agent:
 ```bash
-python3 scripts/learning-db.py search "[agent-name]" 2>/dev/null || echo "No retro candidates found"
+python3 ~/.claude/scripts/learning-db.py search "[agent-name]" 2>/dev/null || echo "No retro candidates found"
 ```
 
 **Step 4**: Check for staleness markers in the target file:

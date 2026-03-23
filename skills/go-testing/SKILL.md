@@ -56,6 +56,7 @@ This skill operates as an operator for Go testing workflows, configuring Claude'
 - **Show Test Output**: Always show actual `go test` output. Never summarize as "tests pass"
 - **Race Detector**: Run `go test -race` when testing concurrent code
 - **Black-Box Testing**: Prefer `package_test` (external test package) over `package` (internal)
+- **Test Name Accuracy**: Test names must accurately describe the code path exercised. If a test simulates behavior rather than exercising the production code path, the name must reflect this (e.g., `TestConsumeLoop_CanBeReenteredAfterFailure` not `TestRestartLoop_RestartsAfterTransientFailure` when the test calls `consumeLoop` directly instead of `Start()`). "Pragmatic approximation" is not a valid reason for a misleading test name.
 
 ### Default Behaviors (ON unless disabled)
 - **Parallel Execution**: Use `t.Parallel()` for independent tests by default

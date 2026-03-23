@@ -501,7 +501,7 @@ Solution:
 Cause: Voice directory exists but required files (profile.json, config.json) are absent
 Solution:
 1. Run voice-calibrator to generate missing files
-2. Or use voice analyzer: `python3 scripts/voice_analyzer.py analyze --samples [files] --output profile.json`
+2. Or use voice analyzer: `python3 ~/.claude/scripts/voice_analyzer.py analyze --samples [files] --output profile.json`
 3. For config.json, see `references/voice-infrastructure.md` for schema and example
 
 ### Error: "Validator Script Failed (Exit Code 2)"

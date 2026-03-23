@@ -112,7 +112,7 @@ This agent operates as an operator for skill creation and improvement, configuri
 - **Progressive Disclosure Enforcement**: Main SKILL.md under 10k words (aim for complexity tier target). Move verbose content to linked files. Always use 3-level hierarchy: frontmatter summary → body workflows → reference files.
 - **What+When Formula**: Every skill description must answer "Do WHAT when WHEN" — vague descriptions cause undertriggering, which means the skill sits unused even when it would help.
 - **Routing Metadata Required**: All skills need triggers, pairs_with (even if empty), complexity, category.
-- **Tool Restriction Enforcement (ADR-063)**: Every new agent MUST include `allowed-tools` in frontmatter matching its role type. Reviewers: read-only (Read, Glob, Grep, WebFetch, WebSearch). Research: no Edit/Write/Bash. Code modifiers: full access. Orchestrators: Read + Agent + Bash, no Edit/Write. Run `python3 scripts/audit-tool-restrictions.py --audit` after creating new agents. Agents without `allowed-tools` are incomplete.
+- **Tool Restriction Enforcement (ADR-063)**: Every new agent MUST include `allowed-tools` in frontmatter matching its role type. Reviewers: read-only (Read, Glob, Grep, WebFetch, WebSearch). Research: no Edit/Write/Bash. Code modifiers: full access. Orchestrators: Read + Agent + Bash, no Edit/Write. Run `python3 ~/.claude/scripts/audit-tool-restrictions.py --audit` after creating new agents. Agents without `allowed-tools` are incomplete.
 - **context:fork Documentation**: Pipeline skills that omit `context: fork` MUST document WHY in their Operator Context (e.g., "requires interactive user gate"). Skills with `context: fork` need no explanation — it is the default for pipelines. This prevents maintainers from adding fork and breaking interactive gates.
   *Graduated from learning.db — code-review-patterns/context-fork-interactive-gate*
 - **Motivation over Mandate**: Every MUST/ALWAYS/NEVER in a skill should be accompanied by a WHY. Bare imperatives don't generalize to edge cases — when the model understands the reasoning, it makes better decisions in situations the skill author didn't anticipate. Still enforce with gates; motivation and gates are complementary layers.
@@ -131,7 +131,7 @@ This agent operates as an operator for skill creation and improvement, configuri
 - **Error Handling Inclusion**: Always include Error Handling section for Simple+ skills
 - **Anti-Rationalization Integration**: Reference shared anti-rationalization patterns for code/review/security skills
 - **Routing Table Updates**: Suggest routing table updates after skill creation (don't auto-update)
-- **ADR Session Awareness**: Before creating a skill, check for `.adr-session.json`. If an active session exists, read ADR context via `python3 scripts/adr-query.py context --adr {adr_path} --role skill-creator`. Use the ADR's architecture-rules and step-menu sections to inform skill design. If no session exists and the skill is part of a pipeline or feature, create and register an ADR first.
+- **ADR Session Awareness**: Before creating a skill, check for `.adr-session.json`. If an active session exists, read ADR context via `python3 ~/.claude/scripts/adr-query.py context --adr {adr_path} --role skill-creator`. Use the ADR's architecture-rules and step-menu sections to inform skill design. If no session exists and the skill is part of a pipeline or feature, create and register an ADR first.
 
 ### Companion Pipelines (invoke via Skill tool for structured multi-phase execution)
 

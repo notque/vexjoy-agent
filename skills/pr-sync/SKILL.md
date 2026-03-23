@@ -81,7 +81,7 @@ This skill operates as an operator for GitHub sync workflows, configuring Claude
 Determine repo type before any git operations.
 
 ```bash
-REPO_TYPE=$(python3 scripts/classify-repo.py --type-only)
+REPO_TYPE=$(python3 ~/.claude/scripts/classify-repo.py --type-only)
 ```
 
 **Protected-org repos**: Every subsequent step (commit, push, PR creation) requires **explicit user confirmation**. Present the proposed action, show what will happen, and wait for approval before executing. Never auto-execute.

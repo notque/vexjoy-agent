@@ -275,10 +275,10 @@ def deploy():
 ## Instructions
 
 ### Step 1: Analyze
-Run: `python3 scripts/analyze.py --input file.csv`
+Run: `python3 ~/.claude/scripts/analyze.py --input file.csv`
 
 ### Step 2: Process
-Run: `python3 scripts/process.py --output results.json`
+Run: `python3 ~/.claude/scripts/process.py --output results.json`
 ```
 
 **Why wrong**:
@@ -291,10 +291,10 @@ Run: `python3 scripts/process.py --output results.json`
 ## Instructions
 
 ### Step 1: Analyze
-Run: `python3 scripts/analyze.py --input file.csv`
+Run: `python3 ~/.claude/scripts/analyze.py --input file.csv`
 
 ### Step 2: Process
-Run: `python3 scripts/process.py --output results.json`
+Run: `python3 ~/.claude/scripts/process.py --output results.json`
 
 ## Error Handling
 

@@ -118,7 +118,7 @@ Log the total file count. If zero files found, STOP and report: "No source files
 **Step 2: Run deterministic pre-check**
 
 ```bash
-python3 scripts/score-component.py --all-agents --all-skills --json
+python3 ~/.claude/scripts/score-component.py --all-agents --all-skills --json
 ```
 
 Parse the JSON output. Flag any component scoring below 60 (grade F) as a

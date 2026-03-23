@@ -198,7 +198,7 @@ If nothing reusable was learned, skip recording.
 **Step 2: Record via retro-record-adhoc**
 
 ```bash
-python3 scripts/feature-state.py retro-record-adhoc TOPIC KEY "VALUE"
+python3 ~/.claude/scripts/feature-state.py retro-record-adhoc TOPIC KEY "VALUE"
 ```
 
 Where:

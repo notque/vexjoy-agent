@@ -42,7 +42,7 @@ This skill operates as an operator for pipeline chain composition, configuring C
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before execution. Project instructions override default skill behaviors.
 - **Over-Engineering Prevention**: Compose the simplest chain that satisfies the task type. Do not add steps "for completeness" or "in case they need it." Every step in a chain must have a concrete reason to be there. If a subdomain's task type maps to a 5-step canonical chain, don't pad it to 8 steps.
-- **Deterministic Validation**: Chain correctness is verified by `python3 scripts/artifact-utils.py validate-chain`, not by LLM self-assessment. The script checks type compatibility, composition rules, ADR-first, and terminal steps. If the script says INVALID, the chain is invalid regardless of how logical it looks.
+- **Deterministic Validation**: Chain correctness is verified by `python3 ~/.claude/scripts/artifact-utils.py validate-chain`, not by LLM self-assessment. The script checks type compatibility, composition rules, ADR-first, and terminal steps. If the script says INVALID, the chain is invalid regardless of how logical it looks.
 - **No Duplication**: The step menu lives in `pipelines/pipeline-scaffolder/references/step-menu.md`. The pipeline spec format lives in `pipelines/pipeline-scaffolder/references/pipeline-spec-format.md`. Reference them; do not copy their content into the Pipeline Spec or into this skill's output.
 - **Operator Profile Enforcement**: Every chain must be modified by the operator profile from the Component Manifest. Personal chains are lean. Production chains have maximum gates. Skipping profile application produces chains that are unsafe (production) or bloated (personal).
 
@@ -231,7 +231,7 @@ EOF
 
 **Step 3**: Run the validator for each chain:
 ```bash
-python3 scripts/artifact-utils.py validate-chain /tmp/pipeline-{run-id}/chain-{subdomain-name}.json
+python3 ~/.claude/scripts/artifact-utils.py validate-chain /tmp/pipeline-{run-id}/chain-{subdomain-name}.json
 ```
 
 **Step 4**: Handle validation results:
@@ -266,7 +266,7 @@ rm -f /tmp/pipeline-{run-id}/chain-*.json
 
 **Step 1a**: Compute the ADR hash for integrity binding:
 ```bash
-python3 scripts/adr-query.py hash --adr {adr_path}
+python3 ~/.claude/scripts/adr-query.py hash --adr {adr_path}
 ```
 Record the output (e.g., `sha256:abc123...`). This value is included as `adr_hash` in the top-level Pipeline Spec to enable the scaffolder's ADR integrity check.
 
@@ -320,7 +320,7 @@ SPEC
 
 **Step 5**: Run a final validation pass on every subdomain chain within the spec. For each subdomain, extract its chain and validate:
 ```bash
-python3 scripts/artifact-utils.py validate-chain /tmp/pipeline-{run-id}/final-chain-{name}.json
+python3 ~/.claude/scripts/artifact-utils.py validate-chain /tmp/pipeline-{run-id}/final-chain-{name}.json
 ```
 
 This redundant validation catches any errors introduced during the spec construction step (e.g., copy errors in Step object assembly).
@@ -329,7 +329,7 @@ This redundant validation catches any errors introduced during the spec construc
 
 **Layer 1 (manifest.json)**:
 ```bash
-python3 scripts/artifact-utils.py create-manifest \
+python3 ~/.claude/scripts/artifact-utils.py create-manifest \
   --schema generation-artifact --step PRODUCE --phase 4 --status complete \
   --outputs content.md pipeline-spec.json \
   --inputs component-manifest.md \
@@ -400,7 +400,7 @@ Total steps across all chains: {total}
 ### Skipping Deterministic Validation
 **What it looks like**: Composing chains in Phase 2 and proceeding directly to Phase 4 output without running `validate-chain`.
 **Why wrong**: The type compatibility matrix has 18 families with specific rules. Transparent steps, primary data flow pass-through, and multi-family steps (LINT, EXECUTE, TEMPLATE) create subtle edge cases. LLM self-assessment will rationalize type mismatches as acceptable.
-**Do instead**: Always run `python3 scripts/artifact-utils.py validate-chain` for every chain. The script is the source of truth.
+**Do instead**: Always run `python3 ~/.claude/scripts/artifact-utils.py validate-chain` for every chain. The script is the source of truth.
 
 ### Padding Chains with Unnecessary Steps
 **What it looks like**: A personal-profile `generation` chain that includes GUARD, SNAPSHOT, APPROVE, PRESENT, and CONFORM "for safety."
