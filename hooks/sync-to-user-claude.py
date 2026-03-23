@@ -276,6 +276,13 @@ def main():
     synced = []
     errors = []
 
+    # Track all source-relative paths per destination for deferred stale cleanup.
+    # Multiple sources can map to the same destination (e.g., skills/ and pipelines/
+    # both sync to ~/.claude/skills/). Stale cleanup must see the UNION of all
+    # source paths before deleting, otherwise the second sync deletes files from
+    # the first sync.
+    dst_all_paths: dict[str, set] = {}
+
     for src_name, dst_name in components:
         src = repo_root / src_name
         dst = user_claude / dst_name
@@ -314,20 +321,11 @@ def main():
                         shutil.copy2(item, target)
                     count += 1
 
-            # For repo-owned components, remove stale files that no longer
-            # exist in the repo. Skip this for additive-only components
-            # (commands, retro) where dst may have files from other sources.
+            # Accumulate paths per destination for deferred stale cleanup
             if src_name not in additive_only:
-                for item in dst.rglob("*"):
-                    if item.is_file():
-                        rel = item.relative_to(dst)
-                        if rel not in src_relative_paths:
-                            item.unlink()
-
-                # Clean up empty directories left behind
-                for dirpath in sorted(dst.rglob("*"), reverse=True):
-                    if dirpath.is_dir() and not any(dirpath.iterdir()):
-                        dirpath.rmdir()
+                if dst_name not in dst_all_paths:
+                    dst_all_paths[dst_name] = set()
+                dst_all_paths[dst_name].update(src_relative_paths)
 
             # For merge components, regenerate L1 from merged L2 files
             if use_merge and merge_count > 0:
@@ -337,6 +335,27 @@ def main():
                 synced.append(f"{dst_name}({count})")
         except Exception as e:
             errors.append(f"{dst_name}: {e}")
+
+    # Deferred stale cleanup: remove files from destinations that no longer
+    # exist in ANY source mapping to that destination. This must run AFTER
+    # all sources have been synced, otherwise ("pipelines", "skills") cleanup
+    # deletes files that ("skills", "skills") just synced.
+    for dst_name, all_paths in dst_all_paths.items():
+        dst = user_claude / dst_name
+        if not dst.is_dir():
+            continue
+        try:
+            for item in dst.rglob("*"):
+                if item.is_file():
+                    rel = item.relative_to(dst)
+                    if rel not in all_paths:
+                        item.unlink()
+            # Clean up empty directories left behind
+            for dirpath in sorted(dst.rglob("*"), reverse=True):
+                if dirpath.is_dir() and not any(dirpath.iterdir()):
+                    dirpath.rmdir()
+        except Exception as e:
+            errors.append(f"stale-cleanup-{dst_name}: {e}")
 
     # Sync settings.json — repo hooks replace global hooks
     repo_settings_path = repo_root / ".claude" / "settings.json"
