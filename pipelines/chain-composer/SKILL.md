@@ -43,7 +43,7 @@ This skill operates as an operator for pipeline chain composition, configuring C
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before execution. Project instructions override default skill behaviors.
 - **Over-Engineering Prevention**: Compose the simplest chain that satisfies the task type. Do not add steps "for completeness" or "in case they need it." Every step in a chain must have a concrete reason to be there. If a subdomain's task type maps to a 5-step canonical chain, don't pad it to 8 steps.
 - **Deterministic Validation**: Chain correctness is verified by `python3 scripts/artifact-utils.py validate-chain`, not by LLM self-assessment. The script checks type compatibility, composition rules, ADR-first, and terminal steps. If the script says INVALID, the chain is invalid regardless of how logical it looks.
-- **No Duplication**: The step menu lives in `skills/pipeline-scaffolder/references/step-menu.md`. The pipeline spec format lives in `skills/pipeline-scaffolder/references/pipeline-spec-format.md`. Reference them; do not copy their content into the Pipeline Spec or into this skill's output.
+- **No Duplication**: The step menu lives in `pipelines/pipeline-scaffolder/references/step-menu.md`. The pipeline spec format lives in `pipelines/pipeline-scaffolder/references/pipeline-spec-format.md`. Reference them; do not copy their content into the Pipeline Spec or into this skill's output.
 - **Operator Profile Enforcement**: Every chain must be modified by the operator profile from the Component Manifest. Personal chains are lean. Production chains have maximum gates. Skipping profile application produces chains that are unsafe (production) or bloated (personal).
 
 ### Default Behaviors (ON unless disabled)
@@ -86,13 +86,13 @@ This skill operates as an operator for pipeline chain composition, configuring C
 - The agent decision (new_agent or reuse_agent)
 - Per-subdomain metadata: references_needed, scripts_needed, routing_triggers
 
-**Step 2**: Load `skills/pipeline-scaffolder/references/step-menu.md`. This file contains:
+**Step 2**: Load `pipelines/pipeline-scaffolder/references/step-menu.md`. This file contains:
 - Step families with output schemas and consumption rules
 - The type compatibility matrix
 - Composition rules (structural, profile-aware, optimization, delegation, type)
 - Operator profile definitions and chain examples
 
-**Step 3**: Load `skills/chain-composer/references/canonical-chains.md`. This contains the 8 canonical chain templates per task type, including common variants.
+**Step 3**: Load `pipelines/chain-composer/references/canonical-chains.md`. This contains the 8 canonical chain templates per task type, including common variants.
 
 **Step 4**: Identify the operator profile from the Component Manifest. Valid profiles: `personal`, `work`, `ci`, `production`.
 
@@ -262,7 +262,7 @@ rm -f /tmp/pipeline-{run-id}/chain-*.json
 
 **Why the Pipeline Spec is JSON, not markdown**: The scaffolder needs machine-readable data to derive build targets (skills, references, scripts, agents, routing). JSON is the contract format defined in `pipeline-spec-format.md`. The human-readable summary is a companion, not a replacement.
 
-**Step 1**: Load `skills/pipeline-scaffolder/references/pipeline-spec-format.md` for the exact format contract. Verify every field requirement against what you will produce.
+**Step 1**: Load `pipelines/pipeline-scaffolder/references/pipeline-spec-format.md` for the exact format contract. Verify every field requirement against what you will produce.
 
 **Step 1a**: Compute the ADR hash for integrity binding:
 ```bash

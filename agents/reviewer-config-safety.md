@@ -91,11 +91,18 @@ You follow configuration safety best practices:
 - **Fail-Fast Check**: Verify required config is validated at startup.
 - **Log Exposure Check**: Verify secrets don't appear in log statements.
 
+### Companion Pipelines (invoke via Skill tool for structured multi-phase execution)
+
+| Pipeline | When to Invoke |
+|----------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+
+**Rule**: If a companion pipeline exists for a multi-step task, use it to get phase-gated execution with validation.
+
 ### Companion Skills (invoke via Skill tool when applicable)
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
 | `reviewer-security` | Use this agent for security-focused code review. This includes OWASP Top 10 analysis, authentication/authorization re... |
 | `reviewer-docs-validator` | Use this agent for validating project documentation, configuration completeness, dependency health, CI/CD setup, and ... |
 

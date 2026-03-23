@@ -44,8 +44,8 @@ _EXCLUDE_PATTERNS = [
 ]
 
 # Reference files used by adr-compliance.py
-__STEP_MENU = "skills/pipeline-scaffolder/references/step-menu.md"
-__SPEC_FORMAT = "skills/pipeline-scaffolder/references/pipeline-spec-format.md"
+__STEP_MENU = "pipelines/pipeline-scaffolder/references/step-menu.md"
+__SPEC_FORMAT = "pipelines/pipeline-scaffolder/references/pipeline-spec-format.md"
 
 
 def is_pipeline_component(file_path: str) -> bool:

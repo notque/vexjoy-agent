@@ -118,33 +118,40 @@ def scan_skills(base_dir: Path) -> list[dict]:
 
     Returns list of {name, user_invocable, agent} dicts.
     """
-    skills_dir = base_dir / "skills"
-    if not skills_dir.is_dir():
+    # Scan both skills/ and pipelines/ directories
+    skill_dirs_to_scan = []
+    for dirname in ("skills", "pipelines"):
+        d = base_dir / dirname
+        if d.is_dir():
+            skill_dirs_to_scan.append(d)
+
+    if not skill_dirs_to_scan:
         return []
 
     skills = []
-    for skill_dir in sorted(skills_dir.iterdir()):
-        if not skill_dir.is_dir():
-            continue
-        skill_md = skill_dir / "SKILL.md"
-        if not skill_md.is_file():
-            continue
-
-        try:
-            content = skill_md.read_text(encoding="utf-8", errors="replace")
-            frontmatter = parse_frontmatter(content)
-            if not frontmatter:
+    for skills_dir in skill_dirs_to_scan:
+        for skill_dir in sorted(skills_dir.iterdir()):
+            if not skill_dir.is_dir():
+                continue
+            skill_md = skill_dir / "SKILL.md"
+            if not skill_md.is_file():
                 continue
 
-            skills.append(
-                {
-                    "name": frontmatter.get("name", skill_dir.name),
-                    "user_invocable": frontmatter.get("user-invocable", True),
-                    "agent": frontmatter.get("agent", None),
-                }
-            )
-        except OSError:
-            continue
+            try:
+                content = skill_md.read_text(encoding="utf-8", errors="replace")
+                frontmatter = parse_frontmatter(content)
+                if not frontmatter:
+                    continue
+
+                skills.append(
+                    {
+                        "name": frontmatter.get("name", skill_dir.name),
+                        "user_invocable": frontmatter.get("user-invocable", True),
+                        "agent": frontmatter.get("agent", None),
+                    }
+                )
+            except OSError:
+                continue
 
     return skills
 

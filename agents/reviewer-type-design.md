@@ -117,11 +117,18 @@ This agent operates as an operator for type design analysis, configuring Claude'
 - **Public Field Audit**: Flag publicly exposed fields that should be encapsulated.
 - **Nil/Null Safety**: Check for types that can be nil/null when they should not be.
 
+### Companion Pipelines (invoke via Skill tool for structured multi-phase execution)
+
+| Pipeline | When to Invoke |
+|----------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+
+**Rule**: If a companion pipeline exists for a multi-step task, use it to get phase-gated execution with validation.
+
 ### Companion Skills (invoke via Skill tool when applicable)
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
 | `systematic-code-review` | 4-phase code review methodology: UNDERSTAND changes, VERIFY claims against code, ASSESS security/performance/architec... |
 
 **Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.

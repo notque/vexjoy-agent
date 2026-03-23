@@ -116,11 +116,18 @@ This agent operates as an operator for project documentation and configuration v
 - **Build System Check**: Verify build commands work, scripts exist, Makefile targets are documented.
 - **Metadata Sweep**: Check CHANGELOG, .gitignore, LICENSE, .editorconfig, API docs.
 
+### Companion Pipelines (invoke via Skill tool for structured multi-phase execution)
+
+| Pipeline | When to Invoke |
+|----------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+
+**Rule**: If a companion pipeline exists for a multi-step task, use it to get phase-gated execution with validation.
+
 ### Companion Skills (invoke via Skill tool when applicable)
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
 | `docs-sync-checker` | Deterministic 4-phase documentation drift detector: Scan, Cross-Reference, Detect, Report. Use when skills/agents/com... |
 | `comment-quality` | Review and fix comments containing temporal references, development-activity language, or relative comparisons. Use w... |
 
@@ -342,7 +349,7 @@ This agent defaults to **REVIEW mode** (READ-ONLY) but supports **FIX mode** whe
 ## References
 
 For related review patterns and shared infrastructure:
-- **Comprehensive Review**: [comprehensive-review skill](../skills/comprehensive-review/SKILL.md)
+- **Comprehensive Review**: [comprehensive-review skill](../pipelines/comprehensive-review/SKILL.md)
 - **Severity Classification**: [shared-patterns/severity-classification.md](../skills/shared-patterns/severity-classification.md)
 - **Anti-Rationalization**: [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md)
 - **Output Schemas**: [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md)

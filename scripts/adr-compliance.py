@@ -7,8 +7,8 @@ and family names in a pipeline component file appear verbatim in authoritative s
 Usage:
     python3 scripts/adr-compliance.py check \\
         --file skills/prometheus-metrics/SKILL.md \\
-        --step-menu skills/pipeline-scaffolder/references/step-menu.md \\
-        --spec-format skills/pipeline-scaffolder/references/pipeline-spec-format.md
+        --step-menu pipelines/pipeline-scaffolder/references/step-menu.md \\
+        --spec-format pipelines/pipeline-scaffolder/references/pipeline-spec-format.md
 """
 
 from __future__ import annotations

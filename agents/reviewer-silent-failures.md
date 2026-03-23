@@ -119,11 +119,18 @@ This agent operates as an operator for silent failure detection, configuring Cla
 - **Fallback Scrutiny**: Evaluate every fallback/default value for hidden error masking.
 - **Optional Chain Analysis**: Check `?.` chains for silent null propagation in TypeScript/JavaScript.
 
+### Companion Pipelines (invoke via Skill tool for structured multi-phase execution)
+
+| Pipeline | When to Invoke |
+|----------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+
+**Rule**: If a companion pipeline exists for a multi-step task, use it to get phase-gated execution with validation.
+
 ### Companion Skills (invoke via Skill tool when applicable)
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
 | `go-error-handling` | Go error handling patterns: wrapping with context, sentinel errors, custom error types, errors.Is/As chains, and HTTP... |
 | `systematic-code-review` | 4-phase code review methodology: UNDERSTAND changes, VERIFY claims against code, ASSESS security/performance/architec... |
 

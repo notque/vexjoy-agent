@@ -118,11 +118,18 @@ This agent operates as an operator for test coverage analysis, configuring Claud
 - **Mock/Stub Assessment**: Evaluate whether mocking is appropriate or if integration tests are needed.
 - **Existing Test Quality**: Assess quality of existing tests, not just missing ones.
 
+### Companion Pipelines (invoke via Skill tool for structured multi-phase execution)
+
+| Pipeline | When to Invoke |
+|----------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+
+**Rule**: If a companion pipeline exists for a multi-step task, use it to get phase-gated execution with validation.
+
 ### Companion Skills (invoke via Skill tool when applicable)
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
 | `test-driven-development` | RED-GREEN-REFACTOR cycle with strict phase gates. Write failing test first, implement minimum code to pass, then refa... |
 | `go-testing` | Go testing patterns and methodology: table-driven tests, t.Run subtests, t.Helper helpers, mocking interfaces, benchm... |
 

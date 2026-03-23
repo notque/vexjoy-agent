@@ -242,6 +242,9 @@ def main():
 
     # Check if CWD is the agents repo (has skills/, agents/, and hooks/ dirs)
     is_agents_repo = (cwd / "skills").is_dir() and (cwd / "agents").is_dir() and (cwd / "hooks").is_dir()
+    # Also accept repos that have pipelines/ instead of or alongside skills/
+    if not is_agents_repo:
+        is_agents_repo = (cwd / "pipelines").is_dir() and (cwd / "agents").is_dir() and (cwd / "hooks").is_dir()
     if not is_agents_repo:
         return
 
@@ -253,6 +256,7 @@ def main():
     components = [
         ("agents", "agents"),
         ("skills", "skills"),
+        ("pipelines", "skills"),  # Pipelines are skills — sync into ~/.claude/skills/
         ("hooks", "hooks"),
         ("commands", "commands"),  # Still needed for slash menu discovery
         ("retro", "retro"),  # Knowledge store for retro-knowledge-injector hook

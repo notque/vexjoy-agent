@@ -92,11 +92,18 @@ You follow migration safety best practices:
 - **Deployment Order Analysis**: Determine safe code/schema deployment sequence.
 - **Feature Flag Lifecycle**: Check flag age and cleanup status.
 
+### Companion Pipelines (invoke via Skill tool for structured multi-phase execution)
+
+| Pipeline | When to Invoke |
+|----------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+
+**Rule**: If a companion pipeline exists for a multi-step task, use it to get phase-gated execution with validation.
+
 ### Companion Skills (invoke via Skill tool when applicable)
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
 | `reviewer-api-contract` | Use this agent for detecting breaking API changes, backward compatibility issues, schema validation gaps, HTTP status... |
 | `reviewer-business-logic` | Use this agent for domain correctness and business logic review. This includes requirements coverage, edge case analy... |
 | `database-engineer` | Use this agent when you need expert assistance with database design, optimization, and query performance. This includ... |

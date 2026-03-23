@@ -371,8 +371,8 @@ If exit 1 (hash mismatch): STOP. The ADR changed after composition. Re-run `chai
 **Compliance check**: After creating any component, verify against authoritative sources:
 ```bash
 python3 scripts/adr-compliance.py check --file {file} \
-  --step-menu skills/pipeline-scaffolder/references/step-menu.md \
-  --spec-format skills/pipeline-scaffolder/references/pipeline-spec-format.md
+  --step-menu pipelines/pipeline-scaffolder/references/step-menu.md \
+  --spec-format pipelines/pipeline-scaffolder/references/pipeline-spec-format.md
 ```
 
 BANNED: Pipeline Specs without `adr_path` and `adr_hash` fields when generated via the self-improving pipeline generator.

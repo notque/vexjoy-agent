@@ -208,5 +208,5 @@ Validate: Accuracy over style.
 This pattern is referenced by:
 - `skills/voice-orchestrator/SKILL.md` - Full orchestration
 - `skills/voice-{name}/SKILL.md` - Individual voice skills
-- `skills/research-to-article/SKILL.md` - Article pipeline
+- `pipelines/research-to-article/SKILL.md` - Article pipeline
 - `CLAUDE.md` - Repository default behavior

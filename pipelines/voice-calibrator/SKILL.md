@@ -1612,7 +1612,7 @@ Create your own voice skill using the voice-calibrator workflow. A complete voic
 - A profile.json with statistical voice metrics
 - Sample files organized by writing context (forums, blogs, comments)
 
-**Study `skills/voice-calibrator/SKILL.md` to understand the calibration process.**
+**Study `pipelines/voice-calibrator/SKILL.md` to understand the calibration process.**
 
 ---
 

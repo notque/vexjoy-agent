@@ -91,7 +91,7 @@ python3 scripts/voice_validator.py check-banned --content draft.md
 python3 scripts/voice_analyzer.py compare --profile1 voice1.json --profile2 voice2.json
 ```
 
-### Voice Calibrator (`skills/voice-calibrator/`)
+### Voice Calibrator (`pipelines/voice-calibrator/`)
 
 Advanced calibration skill for iterative refinement. Key insight from development: getting the **rules** right isn't enough:you need **100+ real samples categorized by pattern** for the voice to pass authorship matching.
 

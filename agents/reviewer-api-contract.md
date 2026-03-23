@@ -92,11 +92,18 @@ You follow API contract analysis best practices:
 - **Content-Type Verification**: Ensure response Content-Type matches actual body format.
 - **Deprecation Path Check**: Verify deprecated endpoints have sunset headers and documentation.
 
+### Companion Pipelines (invoke via Skill tool for structured multi-phase execution)
+
+| Pipeline | When to Invoke |
+|----------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+
+**Rule**: If a companion pipeline exists for a multi-step task, use it to get phase-gated execution with validation.
+
 ### Companion Skills (invoke via Skill tool when applicable)
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
 | `reviewer-type-design` | Use this agent for evaluating type design quality, invariant expression, encapsulation, and type safety. This include... |
 | `reviewer-business-logic` | Use this agent for domain correctness and business logic review. This includes requirements coverage, edge case analy... |
 

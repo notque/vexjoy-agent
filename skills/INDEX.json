@@ -1,6 +1,6 @@
 {
   "version": "1.1",
-  "generated": "2026-03-22T18:42:10Z",
+  "generated": "2026-03-23T15:43:03Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": [
     {
@@ -28,18 +28,6 @@
       "user-invocable": false
     },
     {
-      "name": "agent-upgrade",
-      "description": "5-phase pipeline for systematically improving an existing agent or skill: AUDIT \u2192 DIFF \u2192 PLAN \u2192 IMPLEMENT \u2192 RE-EVALUATE.",
-      "file": "skills/agent-upgrade/SKILL.md",
-      "triggers": [
-        "agent-upgrade",
-        "agent",
-        "upgrade"
-      ],
-      "version": "1.0.0",
-      "user-invocable": true
-    },
-    {
       "name": "anti-ai-editor",
       "description": "Review and revise content to remove AI-sounding patterns.",
       "file": "skills/anti-ai-editor/SKILL.md",
@@ -49,23 +37,6 @@
         "editor"
       ],
       "version": "2.1.0",
-      "user-invocable": false
-    },
-    {
-      "name": "article-evaluation-pipeline",
-      "description": "Wabi-sabi-aware 4-phase article evaluation: Fetch, Validate, Analyze, Report.",
-      "file": "skills/article-evaluation-pipeline/SKILL.md",
-      "triggers": [
-        "evaluate article",
-        "check article voice",
-        "is this authentic",
-        "review my article",
-        "voice evaluation",
-        "article evaluation",
-        "check my voice"
-      ],
-      "category": "content-validation",
-      "version": "2.0.0",
       "user-invocable": false
     },
     {
@@ -115,21 +86,6 @@
         "naming"
       ],
       "version": "2.0.0",
-      "user-invocable": false
-    },
-    {
-      "name": "chain-composer",
-      "description": "Compose valid pipeline chains from the step menu for each subdomain in a Component Manifest.",
-      "file": "skills/chain-composer/SKILL.md",
-      "triggers": [
-        "compose chains",
-        "build pipeline chains",
-        "chain composition",
-        "pipeline spec",
-        "compose pipeline"
-      ],
-      "category": "meta",
-      "version": "1.0.0",
       "user-invocable": false
     },
     {
@@ -191,26 +147,6 @@
       ],
       "version": "2.0.0",
       "user-invocable": false
-    },
-    {
-      "name": "comprehensive-review",
-      "description": "Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per package for deep per-package analysis.",
-      "file": "skills/comprehensive-review/SKILL.md",
-      "triggers": [
-        "comprehensive review",
-        "full review",
-        "review everything",
-        "review and fix",
-        "thorough review",
-        "multi-agent review",
-        "complete code review",
-        "20-agent review",
-        "per-package review",
-        "3-wave review"
-      ],
-      "category": "review",
-      "version": "3.2.0",
-      "user-invocable": true
     },
     {
       "name": "condition-based-waiting",
@@ -292,22 +228,6 @@
       "user-invocable": false
     },
     {
-      "name": "de-ai-pipeline",
-      "description": "Scan-fix-verify loop for removing AI writing patterns from docs.",
-      "file": "skills/de-ai-pipeline/SKILL.md",
-      "triggers": [
-        "de-ai docs",
-        "clean ai patterns",
-        "fix ai writing",
-        "scan and fix docs",
-        "remove ai tells",
-        "de-ai pipeline"
-      ],
-      "category": "content",
-      "version": "1.0.0",
-      "user-invocable": true
-    },
-    {
       "name": "decision-helper",
       "description": "Weighted decision scoring framework for architectural and technology choices.",
       "file": "skills/decision-helper/SKILL.md",
@@ -367,33 +287,6 @@
       "user-invocable": true
     },
     {
-      "name": "do-perspectives",
-      "description": "Inline multi-perspective analysis: 10 analytical lenses applied sequentially in a single session to extract patterns and improve agents or skills.",
-      "file": "skills/do-perspectives/SKILL.md",
-      "triggers": [
-        "do-perspectives",
-        "perspectives"
-      ],
-      "version": "2.0.0",
-      "user-invocable": true
-    },
-    {
-      "name": "doc-pipeline",
-      "description": "Structured 5-phase documentation pipeline: Research, Outline, Generate, Verify, Output.",
-      "file": "skills/doc-pipeline/SKILL.md",
-      "triggers": [
-        "document this",
-        "create readme",
-        "write documentation",
-        "document codebase",
-        "generate docs",
-        "technical documentation"
-      ],
-      "category": "documentation",
-      "version": "2.0.0",
-      "user-invocable": false
-    },
-    {
       "name": "docs-sync-checker",
       "description": "Deterministic 4-phase documentation drift detector: Scan, Cross-Reference, Detect, Report.",
       "file": "skills/docs-sync-checker/SKILL.md",
@@ -404,21 +297,6 @@
         "checker"
       ],
       "version": "2.0.0",
-      "user-invocable": false
-    },
-    {
-      "name": "domain-research",
-      "description": "Discover and classify subdomains within a target domain for pipeline generation.",
-      "file": "skills/domain-research/SKILL.md",
-      "triggers": [
-        "research domain",
-        "discover subdomains",
-        "domain decomposition",
-        "what pipelines",
-        "domain research"
-      ],
-      "category": "meta",
-      "version": "1.0.0",
       "user-invocable": false
     },
     {
@@ -434,20 +312,21 @@
       "user-invocable": false
     },
     {
-      "name": "explore-pipeline",
-      "description": "Systematic 4-phase codebase exploration pipeline: Scan, Map, Analyze, Report with parallel subagents.",
-      "file": "skills/explore-pipeline/SKILL.md",
+      "name": "fast",
+      "description": "Zero-ceremony inline execution for tasks completable in 3 or fewer file edits.",
+      "file": "skills/fast/SKILL.md",
       "triggers": [
-        "understand codebase",
-        "explore repo",
-        "how does this work",
-        "codebase exploration",
-        "understand this code",
-        "map architecture"
+        "quick fix",
+        "typo fix",
+        "one-line change",
+        "trivial fix",
+        "rename variable",
+        "update value",
+        "fix import"
       ],
-      "category": "exploration",
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "process",
+      "version": "1.0.0",
+      "user-invocable": true
     },
     {
       "name": "feature-design",
@@ -549,6 +428,26 @@
       "user-invocable": false
     },
     {
+      "name": "forensics",
+      "description": "Post-mortem diagnostic analysis of failed or stuck workflows.",
+      "file": "skills/forensics/SKILL.md",
+      "triggers": [
+        "forensics",
+        "what went wrong",
+        "why did this fail",
+        "stuck loop",
+        "diagnose workflow",
+        "post-mortem",
+        "workflow failure",
+        "session crashed",
+        "why is this stuck",
+        "investigate failure"
+      ],
+      "category": "process",
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
       "name": "full-repo-review",
       "description": "Run comprehensive 3-wave review against all source files in the repo, producing a prioritized issue backlog.",
       "file": "skills/full-repo-review/SKILL.md",
@@ -605,19 +504,6 @@
       ],
       "version": "2.0.0",
       "user-invocable": false
-    },
-    {
-      "name": "github-profile-rules",
-      "description": "Extract programming rules and coding conventions from a GitHub user's public profile via API.",
-      "file": "skills/github-profile-rules/SKILL.md",
-      "triggers": [
-        "github-profile-rules",
-        "github",
-        "profile",
-        "rules"
-      ],
-      "version": "1.0.0",
-      "user-invocable": true
     },
     {
       "name": "go-anti-patterns",
@@ -756,18 +642,6 @@
       "user-invocable": true
     },
     {
-      "name": "hook-development-pipeline",
-      "description": "Formal 5-phase pipeline for creating production-quality hooks with mandatory performance gates: SPEC \u2192 IMPLEMENT \u2192 TEST \u2192 REGISTER \u2192 DOCUMENT.",
-      "file": "skills/hook-development-pipeline/SKILL.md",
-      "triggers": [
-        "hook-development-pipeline",
-        "hook",
-        "development"
-      ],
-      "version": "1.0.0",
-      "user-invocable": true
-    },
-    {
       "name": "image-auditor",
       "description": "Non-destructive 4-phase image validation: Discover, Validate, Analyze, Report.",
       "file": "skills/image-auditor/SKILL.md",
@@ -811,6 +685,40 @@
       "user-invocable": true
     },
     {
+      "name": "integration-checker",
+      "description": "Verify cross-component wiring: exports are imported AND used, real data flows through connections, output shapes match input expectations.",
+      "file": "skills/integration-checker/SKILL.md",
+      "triggers": [
+        "integration check",
+        "check integration",
+        "verify wiring",
+        "are components connected",
+        "check connections",
+        "integration-checker",
+        "wiring check"
+      ],
+      "category": "process",
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "joy-check",
+      "description": "Validate content for joy-centered tonal framing.",
+      "file": "skills/joy-check/SKILL.md",
+      "triggers": [
+        "joy check",
+        "check framing",
+        "tone check",
+        "negative framing",
+        "joy validation",
+        "too negative",
+        "reframe positively"
+      ],
+      "category": "content",
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
       "name": "learn",
       "description": "Manually teach Claude Code an error pattern and its solution, storing it in the learning database with high confidence.",
       "file": "skills/learn/SKILL.md",
@@ -832,22 +740,6 @@
       ],
       "version": "2.0.0",
       "user-invocable": false
-    },
-    {
-      "name": "mcp-pipeline-builder",
-      "description": "Convert any repository into a registered MCP server: ANALYZE \u2192 DESIGN \u2192 GENERATE \u2192 VALIDATE \u2192 EVALUATE \u2192 REGISTER.",
-      "file": "skills/mcp-pipeline-builder/SKILL.md",
-      "triggers": [
-        "mcp pipeline",
-        "repo to mcp",
-        "create mcp from repo",
-        "generate mcp",
-        "mcp builder",
-        "mcp from repo"
-      ],
-      "category": "pipeline",
-      "version": "1.0.0",
-      "user-invocable": true
     },
     {
       "name": "nano-banana-builder",
@@ -891,6 +783,24 @@
       "user-invocable": false
     },
     {
+      "name": "pause-work",
+      "description": "Create session handoff artifacts (HANDOFF.json + .continue-here.md) that capture completed work, remaining tasks, decisions, uncommitted files, and...",
+      "file": "skills/pause-work/SKILL.md",
+      "triggers": [
+        "pause",
+        "save progress",
+        "handoff",
+        "stopping for now",
+        "end session",
+        "pick this up later",
+        "session handoff",
+        "wrap up session"
+      ],
+      "category": "process",
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
       "name": "perses-code-review",
       "description": "Perses-aware code review: check Go backend against Perses patterns, React components against Perses UI conventions, CUE schemas against plugin spec, and dashboard definitions against best practices.",
       "file": "skills/perses-code-review/SKILL.md",
@@ -912,18 +822,6 @@
         "perses",
         "cue",
         "schema"
-      ],
-      "version": "2.0.0",
-      "user-invocable": false
-    },
-    {
-      "name": "perses-dac-pipeline",
-      "description": "Dashboard-as-Code pipeline: initialize CUE or Go module with percli dac setup, write dashboard definitions, build with percli dac build, validate, ...",
-      "file": "skills/perses-dac-pipeline/SKILL.md",
-      "triggers": [
-        "perses-dac-pipeline",
-        "perses",
-        "dac"
       ],
       "version": "2.0.0",
       "user-invocable": false
@@ -1030,18 +928,6 @@
       "user-invocable": false
     },
     {
-      "name": "perses-plugin-pipeline",
-      "description": "End-to-end Perses plugin development pipeline: SCAFFOLD, SCHEMA, IMPLEMENT, TEST, BUILD, DEPLOY.",
-      "file": "skills/perses-plugin-pipeline/SKILL.md",
-      "triggers": [
-        "perses-plugin-pipeline",
-        "perses",
-        "plugin"
-      ],
-      "version": "2.0.0",
-      "user-invocable": false
-    },
-    {
       "name": "perses-plugin-test",
       "description": "Perses plugin testing: CUE schema unit tests with percli plugin test-schemas, React component tests, integration testing with local Perses server, and Grafana migration compatibility testing.",
       "file": "skills/perses-plugin-test/SKILL.md",
@@ -1094,44 +980,21 @@
       "user-invocable": false
     },
     {
-      "name": "pipeline-retro",
-      "description": "Trace pipeline test failures to generator root causes and propose fixes using the Three-Layer Pattern: skip artifact fixes (Layer 1), propose gener...",
-      "file": "skills/pipeline-retro/SKILL.md",
+      "name": "plan-checker",
+      "description": "Validate plans against 10 verification dimensions before execution begins.",
+      "file": "skills/plan-checker/SKILL.md",
       "triggers": [
-        "pipeline retro",
-        "trace failures",
-        "generator improvement",
-        "three-layer fix",
-        "fix generator"
+        "check plan",
+        "validate plan",
+        "plan checker",
+        "review plan",
+        "is this plan ready",
+        "plan-checker",
+        "pre-execution check"
       ],
-      "category": "meta",
+      "category": "process",
       "version": "1.0.0",
-      "user-invocable": false
-    },
-    {
-      "name": "pipeline-scaffolder",
-      "description": "Scaffold pipeline components from a Pipeline Spec JSON: N subdomain skills, 0-1 agents, reference files, scripts, hooks, and routing entries.",
-      "file": "skills/pipeline-scaffolder/SKILL.md",
-      "triggers": [
-        "pipeline-scaffolder",
-        "scaffolder"
-      ],
-      "version": "2.0.0",
-      "user-invocable": false
-    },
-    {
-      "name": "pipeline-test-runner",
-      "description": "Test generated pipeline skills against real targets.",
-      "file": "skills/pipeline-test-runner/SKILL.md",
-      "triggers": [
-        "test generated pipelines",
-        "run pipeline tests",
-        "validate scaffolded skills",
-        "pipeline test runner"
-      ],
-      "category": "meta",
-      "version": "1.0.0",
-      "user-invocable": false
+      "user-invocable": true
     },
     {
       "name": "plan-manager",
@@ -1166,6 +1029,22 @@
         "plans"
       ],
       "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "plant-seed",
+      "description": "Capture a forward-looking idea as a seed with trigger conditions, scope, and rationale so it surfaces automatically during future feature design.",
+      "file": "skills/plant-seed/SKILL.md",
+      "triggers": [
+        "plant seed",
+        "save idea for later",
+        "defer this idea",
+        "remember this for when",
+        "seed this",
+        "plant-seed"
+      ],
+      "category": "process",
+      "version": "1.0.0",
       "user-invocable": true
     },
     {
@@ -1246,22 +1125,6 @@
       "user-invocable": false
     },
     {
-      "name": "pr-pipeline",
-      "description": "End-to-end pipeline for creating pull requests: Classify Repo, Stage, Review, Commit, Push, Review-Fix Loop (max 3), Create, Verify.",
-      "file": "skills/pr-pipeline/SKILL.md",
-      "triggers": [
-        "submit PR",
-        "create pull request",
-        "send for review",
-        "push and PR",
-        "submit changes",
-        "open PR"
-      ],
-      "category": "git-workflow",
-      "version": "2.0.0",
-      "user-invocable": false
-    },
-    {
       "name": "pr-review-address-feedback",
       "description": "Fetch PR feedback from all GitHub sources and validate every comment before acting.",
       "file": "skills/pr-review-address-feedback/SKILL.md",
@@ -1294,6 +1157,23 @@
         "sync"
       ],
       "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "pre-planning-discussion",
+      "description": "Resolve implementation ambiguities before planning begins.",
+      "file": "skills/pre-planning-discussion/SKILL.md",
+      "triggers": [
+        "discuss ambiguities",
+        "resolve gray areas",
+        "clarify before planning",
+        "assumptions mode",
+        "what are the gray areas",
+        "before we plan",
+        "pre-planning discussion"
+      ],
+      "category": "process",
+      "version": "1.0.0",
       "user-invocable": true
     },
     {
@@ -1333,6 +1213,23 @@
       ],
       "version": "2.0.0",
       "user-invocable": false
+    },
+    {
+      "name": "quick",
+      "description": "Tracked lightweight execution with composable rigor flags for tasks between a typo fix and a full feature.",
+      "file": "skills/quick/SKILL.md",
+      "triggers": [
+        "quick task",
+        "small change",
+        "ad hoc task",
+        "add a flag",
+        "extract function",
+        "small refactor",
+        "targeted fix"
+      ],
+      "category": "process",
+      "version": "1.0.0",
+      "user-invocable": true
     },
     {
       "name": "read-only-ops",
@@ -1376,31 +1273,21 @@
       "user-invocable": true
     },
     {
-      "name": "research-pipeline",
-      "description": "Formal 5-phase research pipeline with artifact saving and source quality gates: SCOPE \u2192 GATHER \u2192 SYNTHESIZE \u2192 VALIDATE \u2192 DELIVER.",
-      "file": "skills/research-pipeline/SKILL.md",
+      "name": "resume-work",
+      "description": "Restore session state from handoff artifacts and route to the next action.",
+      "file": "skills/resume-work/SKILL.md",
       "triggers": [
-        "research-pipeline",
-        "research"
+        "resume",
+        "continue",
+        "pick up where I left off",
+        "what was I doing",
+        "continue work",
+        "where did I leave off",
+        "what's next"
       ],
+      "category": "process",
       "version": "1.0.0",
       "user-invocable": true
-    },
-    {
-      "name": "research-to-article",
-      "description": "Multi-agent research pipeline for voice content generation.",
-      "file": "skills/research-to-article/SKILL.md",
-      "triggers": [
-        "research then write",
-        "article with research",
-        "write about",
-        "research and article",
-        "full article pipeline",
-        "comprehensive article"
-      ],
-      "category": "content-pipeline",
-      "version": "2.0.0",
-      "user-invocable": false
     },
     {
       "name": "retro",
@@ -1518,17 +1405,6 @@
       "user-invocable": false
     },
     {
-      "name": "skill-creation-pipeline",
-      "description": "Formal 5-phase pipeline for creating new skills with quality gates: DISCOVER \u2192 DESIGN \u2192 SCAFFOLD \u2192 VALIDATE \u2192 INTEGRATE.",
-      "file": "skills/skill-creation-pipeline/SKILL.md",
-      "triggers": [
-        "skill-creation-pipeline",
-        "creation"
-      ],
-      "version": "1.0.0",
-      "user-invocable": true
-    },
-    {
       "name": "skill-eval",
       "description": "Evaluate and improve skills through measured testing.",
       "file": "skills/skill-eval/SKILL.md",
@@ -1587,18 +1463,6 @@
       ],
       "version": "2.0.0",
       "user-invocable": false
-    },
-    {
-      "name": "system-upgrade",
-      "description": "Systematic 6-phase pipeline for adapting agents, skills, hooks, and scripts to external changes: Claude Code releases, user goal shifts, or retro-driven upgrades.",
-      "file": "skills/system-upgrade/SKILL.md",
-      "triggers": [
-        "system-upgrade",
-        "system",
-        "upgrade"
-      ],
-      "version": "1.0.0",
-      "user-invocable": true
     },
     {
       "name": "systematic-code-review",
@@ -1757,7 +1621,7 @@
         "before",
         "completion"
       ],
-      "version": "2.0.0",
+      "version": "3.0.0",
       "user-invocable": false
     },
     {
@@ -1768,18 +1632,6 @@
         "vitest-runner",
         "vitest",
         "runner"
-      ],
-      "version": "2.0.0",
-      "user-invocable": false
-    },
-    {
-      "name": "voice-calibrator",
-      "description": "Analyze writing samples and extract voice patterns to create or update voice skills with deterministic metrics and authorship-matching validation.",
-      "file": "skills/voice-calibrator/SKILL.md",
-      "triggers": [
-        "voice-calibrator",
-        "voice",
-        "calibrator"
       ],
       "version": "2.0.0",
       "user-invocable": false
@@ -1871,160 +1723,356 @@
       "user-invocable": true
     },
     {
-      "name": "workflow-orchestrator",
-      "description": "Three-phase task orchestration: BRAINSTORM requirements and approaches, WRITE-PLAN with atomic verifiable tasks, EXECUTE-PLAN with progress tracking.",
-      "file": "skills/workflow-orchestrator/SKILL.md",
+      "name": "agent-upgrade",
+      "description": "5-phase pipeline for systematically improving an existing agent or skill: AUDIT \u2192 DIFF \u2192 PLAN \u2192 IMPLEMENT \u2192 RE-EVALUATE.",
+      "file": "pipelines/agent-upgrade/SKILL.md",
       "triggers": [
-        "workflow-orchestrator",
-        "workflow",
-        "orchestrator"
+        "agent-upgrade",
+        "agent",
+        "upgrade"
       ],
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "article-evaluation-pipeline",
+      "description": "Wabi-sabi-aware 4-phase article evaluation: Fetch, Validate, Analyze, Report.",
+      "file": "pipelines/article-evaluation-pipeline/SKILL.md",
+      "triggers": [
+        "evaluate article",
+        "check article voice",
+        "is this authentic",
+        "review my article",
+        "voice evaluation",
+        "article evaluation",
+        "check my voice"
+      ],
+      "category": "content-validation",
       "version": "2.0.0",
       "user-invocable": false
     },
     {
-      "name": "gemini-wrestlejoy-comparison",
-      "description": "A/B test Gemini Pro vs Claude for WrestleJoy voice replication: Prepare inputs, generate with both models, validate outputs, compare results.",
-      "file": "skills/gemini-wrestlejoy-comparison/SKILL.md",
+      "name": "chain-composer",
+      "description": "Compose valid pipeline chains from the step menu for each subdomain in a Component Manifest.",
+      "file": "pipelines/chain-composer/SKILL.md",
       "triggers": [
-        "gemini-wrestlejoy-comparison",
-        "gemini",
-        "wrestlejoy",
-        "comparison"
+        "compose chains",
+        "build pipeline chains",
+        "chain composition",
+        "pipeline spec",
+        "compose pipeline"
       ],
-      "version": "2.0.0",
+      "category": "meta",
+      "version": "1.0.0",
       "user-invocable": false
     },
     {
-      "name": "joy-check",
-      "description": "Validate content for joy-centered tonal framing.",
-      "file": "skills/joy-check/SKILL.md",
+      "name": "comprehensive-review",
+      "description": "Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per package for deep per-package analysis.",
+      "file": "pipelines/comprehensive-review/SKILL.md",
       "triggers": [
-        "joy check",
-        "check framing",
-        "tone check",
-        "negative framing",
-        "joy validation",
-        "too negative",
-        "reframe positively"
+        "comprehensive review",
+        "full review",
+        "review everything",
+        "review and fix",
+        "thorough review",
+        "multi-agent review",
+        "complete code review",
+        "20-agent review",
+        "per-package review",
+        "3-wave review"
+      ],
+      "category": "review",
+      "version": "3.2.0",
+      "user-invocable": true
+    },
+    {
+      "name": "de-ai-pipeline",
+      "description": "Scan-fix-verify loop for removing AI writing patterns from docs.",
+      "file": "pipelines/de-ai-pipeline/SKILL.md",
+      "triggers": [
+        "de-ai docs",
+        "clean ai patterns",
+        "fix ai writing",
+        "scan and fix docs",
+        "remove ai tells",
+        "de-ai pipeline"
       ],
       "category": "content",
       "version": "1.0.0",
       "user-invocable": true
     },
     {
-      "name": "voice-amy-nemmity",
-      "description": "Amy Nemmity's writing voice: warmth, celebration, poetic fragments, community focus, character arc narratives.",
-      "file": "skills/voice-amy-nemmity/SKILL.md",
+      "name": "do-perspectives",
+      "description": "Inline multi-perspective analysis: 10 analytical lenses applied sequentially in a single session to extract patterns and improve agents or skills.",
+      "file": "pipelines/do-perspectives/SKILL.md",
       "triggers": [
-        "voice-amy-nemmity",
-        "voice",
-        "amy",
-        "nemmity"
+        "do-perspectives",
+        "perspectives"
       ],
+      "version": "2.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "doc-pipeline",
+      "description": "Structured 5-phase documentation pipeline: Research, Outline, Generate, Verify, Output.",
+      "file": "pipelines/doc-pipeline/SKILL.md",
+      "triggers": [
+        "document this",
+        "create readme",
+        "write documentation",
+        "document codebase",
+        "generate docs",
+        "technical documentation"
+      ],
+      "category": "documentation",
       "version": "2.0.0",
       "user-invocable": false
     },
     {
-      "name": "voice-andy-disagreement",
-      "description": "Andy Nemmity's disagreement and forum voice with reasoning ladder, claims-over-people discipline, and anti-escalation harshness control.",
-      "file": "skills/voice-andy-disagreement/SKILL.md",
+      "name": "domain-research",
+      "description": "Discover and classify subdomains within a target domain for pipeline generation.",
+      "file": "pipelines/domain-research/SKILL.md",
       "triggers": [
-        "disagree",
-        "counter-argument",
-        "critique",
-        "rebuttal",
-        "pushback",
-        "that's wrong",
-        "I disagree",
-        "Hacker News",
-        "HN comment",
-        "Reddit",
-        "forum",
-        "community"
+        "research domain",
+        "discover subdomains",
+        "domain decomposition",
+        "what pipelines",
+        "domain research"
       ],
+      "category": "meta",
+      "version": "1.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "explore-pipeline",
+      "description": "Systematic 4-phase codebase exploration pipeline: Scan, Map, Analyze, Report with parallel subagents.",
+      "file": "pipelines/explore-pipeline/SKILL.md",
+      "triggers": [
+        "understand codebase",
+        "explore repo",
+        "how does this work",
+        "codebase exploration",
+        "understand this code",
+        "map architecture"
+      ],
+      "category": "exploration",
       "version": "2.0.0",
       "user-invocable": false
     },
     {
-      "name": "voice-andy-nemmity",
-      "description": "Apply Andy Nemmity's voice profile for content generation: precision-driven improvisation, constraint accumulation, systems framing, calibration qu...",
-      "file": "skills/voice-andy-nemmity/SKILL.md",
-      "version": "2.0.0",
-      "user-invocable": false
-    },
-    {
-      "name": "wrestlejoy-aew-images",
-      "description": "Fetch official promotional images from allelitewrestling.com for WrestleJoy articles.",
-      "file": "skills/wrestlejoy-aew-images/SKILL.md",
+      "name": "github-profile-rules",
+      "description": "Extract programming rules and coding conventions from a GitHub user's public profile via API.",
+      "file": "pipelines/github-profile-rules/SKILL.md",
       "triggers": [
-        "aew image",
-        "aew photo",
-        "wrestler photo",
-        "official aew image",
-        "roster image",
-        "roster photo",
-        "aew event poster",
-        "get aew image"
+        "github-profile-rules",
+        "github",
+        "profile",
+        "rules"
       ],
-      "category": "content-pipeline",
       "version": "1.0.0",
       "user-invocable": true
     },
     {
-      "name": "wrestlejoy-external-research",
-      "description": "Evidence-sourced 4-phase external research: Identify, Search, Extract, Validate.",
-      "file": "skills/wrestlejoy-external-research/SKILL.md",
+      "name": "hook-development-pipeline",
+      "description": "Formal 5-phase pipeline for creating production-quality hooks with mandatory performance gates: SPEC \u2192 IMPLEMENT \u2192 TEST \u2192 REGISTER \u2192 DOCUMENT.",
+      "file": "pipelines/hook-development-pipeline/SKILL.md",
       "triggers": [
-        "wrestlejoy-external-research",
-        "wrestlejoy",
-        "external",
-        "research"
+        "hook-development-pipeline",
+        "hook",
+        "development"
+      ],
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "mcp-pipeline-builder",
+      "description": "Convert any repository into a registered MCP server: ANALYZE \u2192 DESIGN \u2192 GENERATE \u2192 VALIDATE \u2192 EVALUATE \u2192 REGISTER.",
+      "file": "pipelines/mcp-pipeline-builder/SKILL.md",
+      "triggers": [
+        "mcp pipeline",
+        "repo to mcp",
+        "create mcp from repo",
+        "generate mcp",
+        "mcp builder",
+        "mcp from repo"
+      ],
+      "category": "pipeline",
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "perses-dac-pipeline",
+      "description": "Dashboard-as-Code pipeline: initialize CUE or Go module with percli dac setup, write dashboard definitions, build with percli dac build, validate, ...",
+      "file": "pipelines/perses-dac-pipeline/SKILL.md",
+      "triggers": [
+        "perses-dac-pipeline",
+        "perses",
+        "dac"
       ],
       "version": "2.0.0",
       "user-invocable": false
     },
     {
-      "name": "wrestlejoy-mmr-research",
-      "description": "Evidence-based wrestler research from MMR database: Assess, Query, Synthesize, Output.",
-      "file": "skills/wrestlejoy-mmr-research/SKILL.md",
+      "name": "perses-plugin-pipeline",
+      "description": "End-to-end Perses plugin development pipeline: SCAFFOLD, SCHEMA, IMPLEMENT, TEST, BUILD, DEPLOY.",
+      "file": "pipelines/perses-plugin-pipeline/SKILL.md",
       "triggers": [
-        "wrestlejoy-mmr-research",
-        "wrestlejoy",
-        "mmr",
-        "research"
+        "perses-plugin-pipeline",
+        "perses",
+        "plugin"
       ],
       "version": "2.0.0",
       "user-invocable": false
     },
     {
-      "name": "wrestlejoy-news-pipeline",
-      "description": "Automated AEW wrestling news production pipeline for WrestleJoy.com.",
-      "file": "skills/wrestlejoy-news-pipeline/SKILL.md",
+      "name": "pipeline-retro",
+      "description": "Trace pipeline test failures to generator root causes and propose fixes using the Three-Layer Pattern: skip artifact fixes (Layer 1), propose gener...",
+      "file": "pipelines/pipeline-retro/SKILL.md",
       "triggers": [
-        "run news pipeline",
-        "wrestlejoy news",
-        "scan wrestling news",
-        "generate news articles",
-        "wrestling news automation",
-        "aew news pipeline",
-        "news production pipeline"
+        "pipeline retro",
+        "trace failures",
+        "generator improvement",
+        "three-layer fix",
+        "fix generator"
       ],
-      "category": "content-pipeline",
+      "category": "meta",
       "version": "1.0.0",
       "user-invocable": false
     },
     {
-      "name": "wrestlejoy-research-transform",
-      "description": "Transform MMR research data into narrative language: convert ratings to superlatives, trajectories to journey language, peaks to memorable moments.",
-      "file": "skills/wrestlejoy-research-transform/SKILL.md",
+      "name": "pipeline-scaffolder",
+      "description": "Scaffold pipeline components from a Pipeline Spec JSON: N subdomain skills, 0-1 agents, reference files, scripts, hooks, and routing entries.",
+      "file": "pipelines/pipeline-scaffolder/SKILL.md",
       "triggers": [
-        "wrestlejoy-research-transform",
-        "wrestlejoy",
-        "research",
-        "transform"
+        "pipeline-scaffolder",
+        "scaffolder"
       ],
       "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "pipeline-test-runner",
+      "description": "Test generated pipeline skills against real targets.",
+      "file": "pipelines/pipeline-test-runner/SKILL.md",
+      "triggers": [
+        "test generated pipelines",
+        "run pipeline tests",
+        "validate scaffolded skills",
+        "pipeline test runner"
+      ],
+      "category": "meta",
+      "version": "1.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "pr-pipeline",
+      "description": "End-to-end pipeline for creating pull requests: Classify Repo, Stage, Review, Commit, Push, Review-Fix Loop (max 3), Create, Verify.",
+      "file": "pipelines/pr-pipeline/SKILL.md",
+      "triggers": [
+        "submit PR",
+        "create pull request",
+        "send for review",
+        "push and PR",
+        "submit changes",
+        "open PR"
+      ],
+      "category": "git-workflow",
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "research-pipeline",
+      "description": "Formal 5-phase research pipeline with artifact saving and source quality gates: SCOPE \u2192 GATHER \u2192 SYNTHESIZE \u2192 VALIDATE \u2192 DELIVER.",
+      "file": "pipelines/research-pipeline/SKILL.md",
+      "triggers": [
+        "research-pipeline",
+        "research"
+      ],
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "research-to-article",
+      "description": "Multi-agent research pipeline for voice content generation.",
+      "file": "pipelines/research-to-article/SKILL.md",
+      "triggers": [
+        "research then write",
+        "article with research",
+        "write about",
+        "research and article",
+        "full article pipeline",
+        "comprehensive article"
+      ],
+      "category": "content-pipeline",
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "skill-creation-pipeline",
+      "description": "Formal 5-phase pipeline for creating new skills with quality gates: DISCOVER \u2192 DESIGN \u2192 SCAFFOLD \u2192 VALIDATE \u2192 INTEGRATE.",
+      "file": "pipelines/skill-creation-pipeline/SKILL.md",
+      "triggers": [
+        "skill-creation-pipeline",
+        "creation"
+      ],
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "system-upgrade",
+      "description": "Systematic 6-phase pipeline for adapting agents, skills, hooks, and scripts to external changes: Claude Code releases, user goal shifts, or retro-driven upgrades.",
+      "file": "pipelines/system-upgrade/SKILL.md",
+      "triggers": [
+        "system-upgrade",
+        "system",
+        "upgrade"
+      ],
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "voice-calibrator",
+      "description": "Analyze writing samples and extract voice patterns to create or update voice skills with deterministic metrics and authorship-matching validation.",
+      "file": "pipelines/voice-calibrator/SKILL.md",
+      "triggers": [
+        "voice-calibrator",
+        "voice",
+        "calibrator"
+      ],
+      "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "voice-writer",
+      "description": "Unified voice content generation pipeline with mandatory validation and joy-check.",
+      "file": "pipelines/voice-writer/SKILL.md",
+      "triggers": [
+        "write article",
+        "blog post",
+        "write in voice",
+        "generate voice content",
+        "voice workflow",
+        "draft article",
+        "write about",
+        "write post",
+        "blog about",
+        "create content"
+      ],
+      "category": "content",
+      "version": "1.0.0",
+      "user-invocable": true
+    },
+    {
+      "name": "workflow-orchestrator",
+      "description": "Three-phase task orchestration: BRAINSTORM requirements and approaches, WRITE-PLAN with atomic verifiable tasks, EXECUTE-PLAN with progress tracking.",
+      "file": "pipelines/workflow-orchestrator/SKILL.md",
+      "triggers": [
+        "workflow-orchestrator",
+        "workflow",
+        "orchestrator"
+      ],
+      "version": "3.0.0",
       "user-invocable": false
     }
   ]

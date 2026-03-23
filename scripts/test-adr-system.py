@@ -35,10 +35,10 @@ ADR_COMPLIANCE = SCRIPTS_DIR / "adr-compliance.py"
 ADR_CONTEXT_INJECTOR = HOOKS_DIR / "adr-context-injector.py"
 ARTIFACT_UTILS = SCRIPTS_DIR / "artifact-utils.py"
 
-STEP_MENU = REPO_ROOT / "skills" / "pipeline-scaffolder" / "references" / "step-menu.md"
-SPEC_FORMAT = REPO_ROOT / "skills" / "pipeline-scaffolder" / "references" / "pipeline-spec-format.md"
-ARCH_RULES = REPO_ROOT / "skills" / "pipeline-scaffolder" / "references" / "architecture-rules.md"
-CANONICAL_CHAINS = REPO_ROOT / "skills" / "chain-composer" / "references" / "canonical-chains.md"
+STEP_MENU = REPO_ROOT / "pipelines" / "pipeline-scaffolder" / "references" / "step-menu.md"
+SPEC_FORMAT = REPO_ROOT / "pipelines" / "pipeline-scaffolder" / "references" / "pipeline-spec-format.md"
+ARCH_RULES = REPO_ROOT / "pipelines" / "pipeline-scaffolder" / "references" / "architecture-rules.md"
+CANONICAL_CHAINS = REPO_ROOT / "pipelines" / "chain-composer" / "references" / "canonical-chains.md"
 
 # Pick the first real ADR file available (prefer adr-database-system.md)
 PRIMARY_ADR = ADR_DIR / "adr-database-system.md"

@@ -300,8 +300,8 @@ These rationalizations are especially dangerous for {{task_type}} pipelines in t
 
 ## References
 
-- **Architecture Rules**: `skills/pipeline-scaffolder/references/architecture-rules.md`
-- **Step Menu**: `skills/pipeline-scaffolder/references/step-menu.md`
+- **Architecture Rules**: `pipelines/pipeline-scaffolder/references/architecture-rules.md`
+- **Step Menu**: `pipelines/pipeline-scaffolder/references/step-menu.md`
 - **Anti-Rationalization Patterns**: `skills/shared-patterns/anti-rationalization-core.md`
 <!-- SCAFFOLDER: For each file in references_needed + shared_references, add a reference line -->
 {{#for_each_reference}}

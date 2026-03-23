@@ -126,11 +126,18 @@ This agent operates as an operator for complex research coordination, configurin
 - **Source Prioritization**: Prefer primary sources over aggregators, recent data over old
 - **Fact List Compilation**: Maintain running list of key facts during research for synthesis
 
+### Companion Pipelines (invoke via Skill tool for structured multi-phase execution)
+
+| Pipeline | When to Invoke |
+|----------|---------------|
+| `workflow-orchestrator` | Three-phase task orchestration: BRAINSTORM requirements and approaches, WRITE-PLAN with atomic verifiable tasks, EXEC... |
+
+**Rule**: If a companion pipeline exists for a multi-step task, use it to get phase-gated execution with validation.
+
 ### Companion Skills (invoke via Skill tool when applicable)
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `workflow-orchestrator` | Three-phase task orchestration: BRAINSTORM requirements and approaches, WRITE-PLAN with atomic verifiable tasks, EXEC... |
 | `dispatching-parallel-agents` | Dispatch independent subagents in parallel for unrelated problems spanning different subsystems. Use when 2+ failures... |
 
 **Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.

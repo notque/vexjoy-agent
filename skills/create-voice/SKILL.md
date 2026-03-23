@@ -458,7 +458,7 @@ Phase 4/7: RULE
 
 **Goal**: Generate the complete voice skill files following the voice-calibrator template.
 
-**Why the template matters**: The template structure (lines 1063-1512 of `skills/voice-calibrator/SKILL.md`) was refined over 10 iterations. It embeds prompt engineering best practices (attention anchoring, probability dampening, XML context tags, few-shot examples for prohibitions). Deviating from the template means losing those lessons.
+**Why the template matters**: The template structure (lines 1063-1512 of `pipelines/voice-calibrator/SKILL.md`) was refined over 10 iterations. It embeds prompt engineering best practices (attention anchoring, probability dampening, XML context tags, few-shot examples for prohibitions). Deviating from the template means losing those lessons.
 
 #### Files to Create
 
@@ -877,5 +877,5 @@ Create your own voice profiles with `/create-voice`.
 | `scripts/voice_validator.py validate` | Script | Validate generated content against voice profile | Step 6: VALIDATE |
 | `scripts/voice_validator.py check-banned` | Script | Quick banned pattern check | Step 6: VALIDATE |
 | `scripts/data/banned-patterns.json` | Data | AI pattern database used by validator | Step 6 (via validator) |
-| `skills/voice-calibrator/SKILL.md` | Skill | Voice skill template (lines 1063-1554, including the validation checklist) | Step 5: GENERATE (template reference) |
+| `pipelines/voice-calibrator/SKILL.md` | Skill | Voice skill template (lines 1063-1554, including the validation checklist) | Step 5: GENERATE (template reference) |
 | `skills/shared-patterns/wabi-sabi-authenticity.md` | Pattern | Wabi-sabi principle reference | All steps |

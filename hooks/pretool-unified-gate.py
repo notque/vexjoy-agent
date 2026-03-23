@@ -84,7 +84,7 @@ _DANGEROUS_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
 _CREATION_BYPASS_ENV = "CREATION_GATE_BYPASS"
 
 _AGENT_PATTERN = re.compile(r"/agents/[^/]+\.md$")
-_SKILL_PATTERN = re.compile(r"/skills/[^/]+/SKILL\.md$")
+_SKILL_PATTERN = re.compile(r"/(skills|pipelines)/[^/]+/SKILL\.md$")
 
 # ═══════════════════════════════════════════════════════════════
 # 5. SENSITIVE FILE PATTERNS (pretool-sensitive-file-guard.py)

@@ -126,6 +126,14 @@ If ToolSearch returns no results, fall back to percli CLI commands.
 - **Query Validation**: Test PromQL/LogQL queries before adding to panels.
 - **Datasource Scoping**: Default to project-scoped datasources unless global scope is explicitly needed.
 
+### Companion Pipelines (invoke via Skill tool for structured multi-phase execution)
+
+| Pipeline | When to Invoke |
+|----------|---------------|
+| `perses-dac-pipeline` | Dashboard-as-Code pipeline: initialize CUE or Go module with percli dac setup, write dashboard definitions, build wit... |
+
+**Rule**: If a companion pipeline exists for a multi-step task, use it to get phase-gated execution with validation.
+
 ### Companion Skills (invoke via Skill tool when applicable)
 
 | Skill | When to Invoke |
@@ -133,7 +141,6 @@ If ToolSearch returns no results, fall back to percli CLI commands.
 | `perses-dashboard-create` | Guided Perses dashboard creation: gather requirements (metrics, datasource, layout), generate CUE definition or JSON ... |
 | `perses-deploy` | Deploy Perses server: Docker Compose for local dev, Helm chart for K8s, or binary for bare metal. Configure database ... |
 | `perses-grafana-migrate` | Grafana-to-Perses dashboard migration: export Grafana dashboards, convert with percli migrate, validate converted out... |
-| `perses-dac-pipeline` | Dashboard-as-Code pipeline: initialize CUE or Go module with percli dac setup, write dashboard definitions, build wit... |
 | `prometheus-grafana-engineer` | Use this agent for Prometheus and Grafana monitoring infrastructure, alerting configuration, dashboard design, and ob... |
 
 **Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.

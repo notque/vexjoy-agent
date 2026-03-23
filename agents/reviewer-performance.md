@@ -91,11 +91,18 @@ You follow performance analysis best practices:
 - **Cache Opportunity Detection**: Flag repeated expensive computations without memoization.
 - **Benchmark Recommendations**: Suggest specific benchmark tests for each finding.
 
+### Companion Pipelines (invoke via Skill tool for structured multi-phase execution)
+
+| Pipeline | When to Invoke |
+|----------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+
+**Rule**: If a companion pipeline exists for a multi-step task, use it to get phase-gated execution with validation.
+
 ### Companion Skills (invoke via Skill tool when applicable)
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
 | `reviewer-concurrency` | Use this agent for detecting concurrency bugs: race conditions, goroutine leaks, deadlocks, mutex misuse, channel lif... |
 | `golang-general-engineer` | Use this agent when you need expert assistance with Go development, including implementing features, debugging issues... |
 

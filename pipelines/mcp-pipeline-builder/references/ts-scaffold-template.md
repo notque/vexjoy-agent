@@ -405,7 +405,7 @@ npm run build
 ### Register with Claude Code
 
 \`\`\`bash
-python3 skills/mcp-pipeline-builder/scripts/register_mcp.py \
+python3 pipelines/mcp-pipeline-builder/scripts/register_mcp.py \
   --name {service}-mcp-server \
   --command node \
   --args $(pwd)/dist/index.js \

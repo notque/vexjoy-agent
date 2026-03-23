@@ -117,11 +117,18 @@ This agent operates as an operator for code quality review, configuring Claude's
 - **Severity Classification**: Critical (confidence 90-100) blocks merge. Important (confidence 80-89) should fix before merge.
 - **Language-Specific Checks**: Apply language-appropriate idiom checks (Go: error handling, naming; Python: PEP 8, type hints; TypeScript: strict mode).
 
+### Companion Pipelines (invoke via Skill tool for structured multi-phase execution)
+
+| Pipeline | When to Invoke |
+|----------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+
+**Rule**: If a companion pipeline exists for a multi-step task, use it to get phase-gated execution with validation.
+
 ### Companion Skills (invoke via Skill tool when applicable)
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
 | `parallel-code-review` | Parallel 3-reviewer code review orchestration: launch Security, Business-Logic, and Architecture reviewers simultaneo... |
 | `systematic-code-review` | 4-phase code review methodology: UNDERSTAND changes, VERIFY claims against code, ASSESS security/performance/architec... |
 

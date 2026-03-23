@@ -152,20 +152,57 @@ Sequential pipeline: design → plan → implement → validate → release. Eac
 
 ## Pipeline Skills
 
-| Triggers | Skill |
-|----------|-------|
-| create pipeline, new pipeline, scaffold pipeline | pipeline-scaffolder (pipeline-orchestrator-engineer) |
-| **upgrade agents, system upgrade, claude update, upgrade skills, apply claude update, apply retro** | **system-upgrade (system-upgrade-engineer)** |
-| create skill pipeline, new skill formal, skill with gates | skill-creation-pipeline (skill-creator-engineer) |
-| create hook pipeline, new hook formal, hook with gates | hook-development-pipeline (hook-development-engineer) |
-| research pipeline, formal research, research with artifacts | research-pipeline (research-coordinator-engineer) |
-| upgrade agent, improve agent, fix agent quality, align agent to template | agent-upgrade (skill-creator-engineer) |
-| research then write, article with research | research-to-article |
-| document this, create readme, write docs | doc-pipeline |
-| submit PR, create pull request | pr-pipeline |
-| understand codebase, explore repo | explore-pipeline |
-| evaluate article, check voice authenticity | article-evaluation-pipeline |
-| mcp pipeline, repo to mcp, create mcp from repo, generate mcp, mcp builder, mcp from repo | mcp-pipeline-builder (mcp-local-docs-engineer) |
+All pipelines live in the `pipelines/` directory (synced to `~/.claude/skills/` at install time).
+
+| Triggers | Pipeline | Phases |
+|----------|----------|--------|
+| create pipeline, new pipeline, scaffold pipeline | pipeline-scaffolder (pipeline-orchestrator-engineer) | LOAD → SCAFFOLD → INTEGRATE → REPORT |
+| **upgrade agents, system upgrade, claude update, upgrade skills, apply claude update, apply retro** | **system-upgrade (system-upgrade-engineer)** | CHANGELOG → AUDIT → PLAN → IMPLEMENT → VALIDATE → DEPLOY |
+| create skill pipeline, new skill formal, skill with gates | skill-creation-pipeline (skill-creator-engineer) | DISCOVER → DESIGN → SCAFFOLD → VALIDATE → INTEGRATE |
+| create hook pipeline, new hook formal, hook with gates | hook-development-pipeline (hook-development-engineer) | SPEC → IMPLEMENT → TEST → REGISTER → DOCUMENT |
+| research pipeline, formal research, research with artifacts | research-pipeline (research-coordinator-engineer) | SCOPE → GATHER → SYNTHESIZE → VALIDATE → DELIVER |
+| upgrade agent, improve agent, fix agent quality, align agent to template | agent-upgrade (skill-creator-engineer) | AUDIT → DIFF → PLAN → IMPLEMENT → RE-EVALUATE |
+| research then write, article with research | research-to-article | RESEARCH → COMPILE → GROUND → GENERATE → VALIDATE → REFINE → OUTPUT |
+| document this, create readme, write docs | doc-pipeline | RESEARCH → OUTLINE → GENERATE → VERIFY → OUTPUT |
+| submit PR, create pull request | pr-pipeline | CLASSIFY → STAGE → REVIEW → COMMIT → PUSH → CREATE → VERIFY → CLEANUP |
+| understand codebase, explore repo | explore-pipeline | SCAN → MAP → ANALYZE → REPORT |
+| evaluate article, check voice authenticity | article-evaluation-pipeline | FETCH → VALIDATE → ANALYZE → REPORT |
+| mcp pipeline, repo to mcp, create mcp from repo, generate mcp, mcp builder, mcp from repo | mcp-pipeline-builder (mcp-local-docs-engineer) | ANALYZE → DESIGN → GENERATE → VALIDATE → EVALUATE → REGISTER |
+| write in voice, generate voice content, blog post, write article | voice-writer | LOAD → GROUND → GENERATE → VALIDATE → REFINE → JOY-CHECK → OUTPUT → CLEANUP |
+| comprehensive review, full review, review everything | comprehensive-review | WAVE-0 → WAVE-1 → WAVE-2 → AGGREGATE → FIX |
+| multi-perspective analysis, 10 lenses | do-perspectives | VALIDATE → ANALYZE → SYNTHESIZE → APPLY → VERIFY |
+| github rules, profile analysis, coding conventions | github-profile-rules | ADR → FETCH → RESEARCH → SAMPLE → COMPILE → GENERATE → VALIDATE → OUTPUT |
+| voice calibration, refine voice, writing style | voice-calibrator | VOICE-GROUNDING → VOICE-METRICS → THINKING-PATTERNS → VALIDATION |
+| execute plan, run plan, orchestrate | workflow-orchestrator | BRAINSTORM → WRITE-PLAN → EXECUTE-PLAN |
+| de-ai docs, clean ai patterns, scan and fix docs | de-ai-pipeline | SCAN → FIX → VERIFY (loop max 3) → REPORT |
+
+### Pipeline Companion Map
+
+Pipelines that work together in common workflows:
+
+| Workflow | Pipeline Sequence | When |
+|----------|-------------------|------|
+| **Pipeline creation** | domain-research → chain-composer → pipeline-scaffolder → pipeline-test-runner → pipeline-retro | Creating new domain pipelines |
+| **Content creation** | research-pipeline → voice-writer | Research-backed articles in a specific voice |
+| **Feature lifecycle** | explore-pipeline → workflow-orchestrator → pr-pipeline | Understand → implement → ship |
+| **Code review** | comprehensive-review → pr-pipeline | Review then submit |
+| **Agent improvement** | agent-upgrade → skill-creation-pipeline | Audit agent, then scaffold missing skills |
+| **System upgrade** | system-upgrade → agent-upgrade | Upgrade system, then individual agents |
+| **Voice development** | voice-calibrator → voice-writer → article-evaluation-pipeline | Calibrate → write → evaluate |
+| **Documentation** | explore-pipeline → doc-pipeline | Understand codebase → generate docs |
+| **Perses** | perses-dac-pipeline → perses-plugin-pipeline | Dashboard-as-Code + plugin development |
+
+### Pipeline Infrastructure
+
+These pipelines create/manage other pipelines (meta-pipelines):
+
+| Pipeline | Purpose |
+|----------|---------|
+| domain-research | Discover subdomains within a domain for pipeline generation |
+| chain-composer | Compose type-safe pipeline chains from the step menu |
+| pipeline-scaffolder | Scaffold skills/agents/hooks from Pipeline Spec JSON |
+| pipeline-test-runner | Test generated pipeline skills against real targets |
+| pipeline-retro | Trace test failures to generator root causes (Three-Layer Pattern) |
 
 ---
 

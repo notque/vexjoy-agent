@@ -112,8 +112,8 @@ def build_injection(session: dict, base_dir: Path) -> str:
         f"[adr-system]\n"
         f"[adr-system] COMPLIANCE CHECK AFTER WRITING ANY COMPONENT FILE:\n"
         f"[adr-system]   python3 scripts/adr-compliance.py check --file {{file}} \\\n"
-        f"[adr-system]     --step-menu skills/pipeline-scaffolder/references/step-menu.md \\\n"
-        f"[adr-system]     --spec-format skills/pipeline-scaffolder/references/pipeline-spec-format.md\n"
+        f"[adr-system]     --step-menu pipelines/pipeline-scaffolder/references/step-menu.md \\\n"
+        f"[adr-system]     --spec-format pipelines/pipeline-scaffolder/references/pipeline-spec-format.md\n"
         f"[adr-system]\n"
         f"[adr-system] ADR integrity: python3 scripts/adr-query.py verify --adr {adr_path} --hash {adr_hash}"
     )

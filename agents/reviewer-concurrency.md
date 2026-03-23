@@ -94,11 +94,18 @@ You follow concurrency analysis best practices:
 - **Context Propagation Check**: Verify context.Context flows through all concurrent boundaries.
 - **Shared State Audit**: Identify all variables accessed from multiple goroutines/tasks.
 
+### Companion Pipelines (invoke via Skill tool for structured multi-phase execution)
+
+| Pipeline | When to Invoke |
+|----------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+
+**Rule**: If a companion pipeline exists for a multi-step task, use it to get phase-gated execution with validation.
+
 ### Companion Skills (invoke via Skill tool when applicable)
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
 | `reviewer-performance` | Use this agent for detecting performance issues, hot paths, algorithmic complexity problems, unnecessary allocations,... |
 | `reviewer-silent-failures` | Use this agent for detecting silent failures, inadequate error handling, swallowed errors, and dangerous fallback beh... |
 | `go-concurrency` | Go concurrency patterns and primitives: goroutines, channels, sync primitives, worker pools, rate limiting, context p... |

@@ -125,11 +125,16 @@ def extract_short_description(description: str) -> str:
     return desc
 
 
-def generate_index(skills_dir: Path) -> tuple[dict, list[str]]:
+def generate_index(skills_dir: Path, dir_prefix: str | None = None) -> tuple[dict, list[str]]:
     """Generate routing index from all skill directories.
 
     Scans skills_dir for subdirectories containing SKILL.md files,
     extracts frontmatter, and builds index entries with routing metadata.
+
+    Args:
+        skills_dir: Directory to scan for skill subdirectories.
+        dir_prefix: Override for the file path prefix (e.g., "pipelines" instead of "skills").
+                    If None, uses the directory name.
 
     Returns:
         tuple: (index dict with keys: version, generated, generated_by, skills[],
@@ -177,7 +182,7 @@ def generate_index(skills_dir: Path) -> tuple[dict, list[str]]:
         skill_entry = {
             "name": name,
             "description": extract_short_description(description),
-            "file": f"skills/{skill_dir.name}/SKILL.md",
+            "file": f"{dir_prefix or skills_dir.name}/{skill_dir.name}/SKILL.md",
         }
 
         # Add routing metadata if present
@@ -221,6 +226,17 @@ def main() -> int:
 
     # Generate index from public skills
     index, warnings = generate_index(skills_dir)
+
+    # Also scan pipelines directory (pipelines are skills with phases)
+    pipelines_dir = repo_root / "pipelines"
+    if pipelines_dir.exists() and any(pipelines_dir.iterdir()):
+        pipeline_index, pipeline_warnings = generate_index(pipelines_dir)
+        existing_names = {s["name"] for s in index["skills"]}
+        for skill in pipeline_index["skills"]:
+            if skill["name"] in existing_names:
+                index["skills"] = [s for s in index["skills"] if s["name"] != skill["name"]]
+            index["skills"].append(skill)
+        warnings.extend(pipeline_warnings)
 
     # Also scan private skills if they exist (gitignored, user-specific)
     private_skills_dir = repo_root / "private-skills"

@@ -49,7 +49,8 @@ def main() -> None:
 
     # Check if we're in the toolkit repo (use project dir, not cwd)
     project_dir = Path(os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd()))
-    if not (project_dir / "agents").is_dir() or not (project_dir / "skills").is_dir():
+    has_skills = (project_dir / "skills").is_dir() or (project_dir / "pipelines").is_dir()
+    if not (project_dir / "agents").is_dir() or not has_skills:
         empty_output(EVENT).print_and_exit(0)
         return
 

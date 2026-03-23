@@ -114,15 +114,22 @@ This agent operates as an orchestrator for top-down system upgrades.
 - **Sync After Deploy**: After PR is created, remind user to restart Claude Code
   to pick up upgraded agents.
 
+### Companion Pipelines (invoke via Skill tool for structured multi-phase execution)
+
+| Pipeline | When to Invoke |
+|----------|---------------|
+| `system-upgrade` | Systematic 6-phase pipeline for adapting agents, skills, hooks, and scripts to external changes: Claude Code releases... |
+| `pr-pipeline` | End-to-end pipeline for creating pull requests: Classify Repo, Stage, Review, Commit, Push, Review-Fix Loop (max 3), ... |
+
+**Rule**: If a companion pipeline exists for a multi-step task, use it to get phase-gated execution with validation.
+
 ### Companion Skills (invoke via Skill tool when applicable)
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `system-upgrade` | Systematic 6-phase pipeline for adapting agents, skills, hooks, and scripts to external changes: Claude Code releases... |
 | `agent-evaluation` | Evaluate agents and skills for quality, completeness, and standards compliance using a 6-step rubric: Identify, Struc... |
 | `codebase-analyzer` | Statistical rule discovery through measurement of Go codebases: Count patterns, derive confidence-scored rules, produ... |
 | `routing-table-updater` | Maintain /do routing tables and command references when skills or agents are added, modified, or removed. Use when sk... |
-| `pr-pipeline` | End-to-end pipeline for creating pull requests: Classify Repo, Stage, Review, Commit, Push, Review-Fix Loop (max 3), ... |
 
 **Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
 
@@ -223,7 +230,7 @@ STOP and ask the user when:
 
 ## References
 
-- **Skill**: [skills/system-upgrade/SKILL.md](../skills/system-upgrade/SKILL.md)
+- **Skill**: [pipelines/system-upgrade/SKILL.md](../pipelines/system-upgrade/SKILL.md)
 - **Agent Evaluation**: [skills/agent-evaluation/SKILL.md](../skills/agent-evaluation/SKILL.md)
 - **Learning DB**: [scripts/learning-db.py](../scripts/learning-db.py)
 - **Routing Table Updater**: [skills/routing-table-updater/SKILL.md](../skills/routing-table-updater/SKILL.md)

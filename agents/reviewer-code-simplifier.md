@@ -117,11 +117,18 @@ This agent operates as an operator for code simplification, configuring Claude's
 - **Naming Improvements**: Suggest better variable/function names when current names obscure intent.
 - **Remove Dead Code**: Remove unreachable code, unused variables, commented-out code blocks.
 
+### Companion Pipelines (invoke via Skill tool for structured multi-phase execution)
+
+| Pipeline | When to Invoke |
+|----------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+
+**Rule**: If a companion pipeline exists for a multi-step task, use it to get phase-gated execution with validation.
+
 ### Companion Skills (invoke via Skill tool when applicable)
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
 | `code-cleanup` | Systematic detection and prioritization of neglected code quality issues: stale TODOs, unused imports, deprecated fun... |
 
 **Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.

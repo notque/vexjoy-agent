@@ -2,7 +2,7 @@
 """
 GitHub API Fetcher — fetch repos, file contents, and PR reviews via GitHub REST API.
 
-Caller: skills/github-profile-rules/SKILL.md (Phases 1-3)
+Caller: pipelines/github-profile-rules/SKILL.md (Phases 1-3)
 Purpose: Lightweight GitHub data retrieval for programming rules extraction.
          Uses ONLY the GitHub REST API — no git clone, no subprocess git.
 

@@ -33,7 +33,7 @@
 ## Reference Files
 | File | Location |
 |------|----------|
-| `rule-categories.md` | `skills/github-profile-rules/references/` |
+| `rule-categories.md` | `pipelines/github-profile-rules/references/` |
 
 ## Component Graph
 ```

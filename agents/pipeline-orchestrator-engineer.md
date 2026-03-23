@@ -123,17 +123,24 @@ This agent operates as an operator for meta-pipeline creation, configuring Claud
 - **Parallel Fan-Out**: When scaffolding agent, skill, and hook components, dispatch all three in parallel since they are independent. Wait for all to complete before integration.
 - **Integration Verification**: After routing-table-updater runs, verify the new entries appear correctly in both `skills/do/SKILL.md` and `skills/do/references/routing-tables.md`.
 
-### Companion Skills (invoke via Skill tool when applicable)
+### Companion Pipelines (invoke via Skill tool for structured multi-phase execution)
 
-| Skill | When to Invoke |
-|-------|---------------|
+| Pipeline | When to Invoke |
+|----------|---------------|
 | `pipeline-scaffolder` | Scaffold pipeline components from a Pipeline Spec JSON: N subdomain skills, 0-1 agents, reference files, scripts, hoo... |
-| `codebase-analyzer` | Statistical rule discovery through measurement of Go codebases: Count patterns, derive confidence-scored rules, produ... |
-| `routing-table-updater` | Maintain /do routing tables and command references when skills or agents are added, modified, or removed. Use when sk... |
 | `domain-research` | Discover and classify subdomains within a target domain for pipeline generation. Dispatches 4 parallel research agent... |
 | `chain-composer` | Compose valid pipeline chains from the step menu for each subdomain in a Component Manifest. Validates type compatibi... |
 | `pipeline-test-runner` | Test generated pipeline skills against real targets. Discovers test targets (fixtures, codebase files, or synthetic i... |
 | `pipeline-retro` | Trace pipeline test failures to generator root causes and propose fixes using the Three-Layer Pattern: skip artifact ... |
+
+**Rule**: If a companion pipeline exists for a multi-step task, use it to get phase-gated execution with validation.
+
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `codebase-analyzer` | Statistical rule discovery through measurement of Go codebases: Count patterns, derive confidence-scored rules, produ... |
+| `routing-table-updater` | Maintain /do routing tables and command references when skills or agents are added, modified, or removed. Use when sk... |
 
 **Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
 
@@ -252,11 +259,11 @@ python3 scripts/adr-query.py context --adr adr/{name}.md --role skill-creator
 **Goal**: Compose valid pipeline chains for each subdomain.
 
 **Step 1**: Invoke the `chain-composer` skill. It handles:
-- Step selection from the pipeline step menu (`skills/pipeline-scaffolder/references/step-menu.md`)
+- Step selection from the pipeline step menu (`pipelines/pipeline-scaffolder/references/step-menu.md`)
 - Profile gates (matching step types to subdomain task types)
 - Type-safe chain validation (ensuring step outputs match next step's inputs)
 
-**Step 2**: The skill produces a **Pipeline Spec JSON** following the format defined in `skills/pipeline-scaffolder/references/pipeline-spec-format.md`. The spec contains:
+**Step 2**: The skill produces a **Pipeline Spec JSON** following the format defined in `pipelines/pipeline-scaffolder/references/pipeline-spec-format.md`. The spec contains:
 - One entry per subdomain
 - Each entry has: subdomain name, task type, pipeline chain (ordered list of steps), agent binding, reference files needed
 - Global metadata: domain name, existing agent to bind (or new agent spec), routing triggers
@@ -290,7 +297,7 @@ The scaffolder's Phase 1 gate verifies this hash — a missing hash skips the ga
 | `hook-development-engineer` | All new Python hooks (1..K) | `hooks/lib/hook_utils.py` conventions |
 | Direct (this agent) | Python scripts (1..J) | `scripts/` conventions |
 
-For domain pipelines, the Pipeline Spec tells exactly what to create: agents, skills (one per subdomain), references, scripts, hooks. Use `skills/pipeline-scaffolder/references/generated-skill-template.md` (when it exists) as the template for each subdomain skill.
+For domain pipelines, the Pipeline Spec tells exactly what to create: agents, skills (one per subdomain), references, scripts, hooks. Use `pipelines/pipeline-scaffolder/references/generated-skill-template.md` (when it exists) as the template for each subdomain skill.
 
 **Fan-out strategy**: Dispatch one sub-agent per creator type. Each sub-agent receives the full list of components it must create. If a single creator needs to produce 3 agents, it creates all 3 in sequence within its context. This keeps fan-out to 3-4 parallel tasks while supporting N components.
 
@@ -526,12 +533,12 @@ STOP and ask the user (do NOT proceed autonomously) when:
 ## References
 
 For detailed information:
-- **Architecture Rules**: [pipeline-scaffolder/references/architecture-rules.md](../skills/pipeline-scaffolder/references/architecture-rules.md)
+- **Architecture Rules**: [pipeline-scaffolder/references/architecture-rules.md](../pipelines/pipeline-scaffolder/references/architecture-rules.md)
 - **Agent Template**: [AGENT_TEMPLATE_V2.md](../AGENT_TEMPLATE_V2.md)
 - **Error Catalog**: [references/error-catalog.md](references/error-catalog.md)
 - **Anti-Patterns**: [references/anti-patterns.md](references/anti-patterns.md)
-- **Step Menu**: [pipeline-scaffolder/references/step-menu.md](../skills/pipeline-scaffolder/references/step-menu.md)
-- **Pipeline Spec Format**: [pipeline-scaffolder/references/pipeline-spec-format.md](../skills/pipeline-scaffolder/references/pipeline-spec-format.md)
-- **Domain Research Skill**: [domain-research/SKILL.md](../skills/domain-research/SKILL.md)
-- **Chain Composer Skill**: [chain-composer/SKILL.md](../skills/chain-composer/SKILL.md)
+- **Step Menu**: [pipeline-scaffolder/references/step-menu.md](../pipelines/pipeline-scaffolder/references/step-menu.md)
+- **Pipeline Spec Format**: [pipeline-scaffolder/references/pipeline-spec-format.md](../pipelines/pipeline-scaffolder/references/pipeline-spec-format.md)
+- **Domain Research Skill**: [domain-research/SKILL.md](../pipelines/domain-research/SKILL.md)
+- **Chain Composer Skill**: [chain-composer/SKILL.md](../pipelines/chain-composer/SKILL.md)
 - **Artifact Utilities**: [artifact-utils.py](../scripts/artifact-utils.py)

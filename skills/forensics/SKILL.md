@@ -392,7 +392,7 @@ Provide specific, actionable recommendations. Each recommendation should referen
 
 - [ADR-073: Forensics Meta-Workflow Diagnostics](/adr/073-forensics-meta-workflow-diagnostics.md)
 - [Systematic Debugging](/skills/systematic-debugging/SKILL.md) -- for code-level bugs (not workflow-level)
-- [Workflow Orchestrator](/skills/workflow-orchestrator/SKILL.md) -- produces the plans forensics analyzes
+- [Workflow Orchestrator](/pipelines/workflow-orchestrator/SKILL.md) -- produces the plans forensics analyzes
 - [Plan Checker](/skills/plan-checker/SKILL.md) -- validates plans pre-execution (forensics analyzes post-execution)
 - [Error Learner Hook](/hooks/error-learner.py) -- handles tool-level errors (forensics handles workflow-level patterns)
 - [Gate Enforcement](../shared-patterns/gate-enforcement.md)

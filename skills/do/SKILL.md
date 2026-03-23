@@ -254,10 +254,10 @@ For pipeline skills — add the Pipeline: line with all phases in order:
 ===================================================================
 ```
 
-**Pipeline Phase Registry** — use these when the matched skill is a pipeline:
+**Pipeline Phase Registry** — all pipelines live in `pipelines/` (synced to `~/.claude/skills/` at install):
 
-| Skill | Phases |
-|-------|--------|
+| Pipeline | Phases |
+|----------|--------|
 | `system-upgrade` | CHANGELOG → AUDIT → PLAN → IMPLEMENT → VALIDATE → DEPLOY |
 | `skill-creation-pipeline` | DISCOVER → DESIGN → SCAFFOLD → VALIDATE → INTEGRATE |
 | `hook-development-pipeline` | SPEC → IMPLEMENT → TEST → REGISTER → DOCUMENT |
@@ -267,10 +267,25 @@ For pipeline skills — add the Pipeline: line with all phases in order:
 | `research-to-article` | RESEARCH → COMPILE → GROUND → GENERATE → VALIDATE → REFINE → OUTPUT |
 | `pr-pipeline` | CLASSIFY → STAGE → REVIEW → COMMIT → PUSH → CREATE → VERIFY → CLEANUP |
 | `voice-writer` | LOAD → GROUND → GENERATE → VALIDATE → REFINE → JOY-CHECK → OUTPUT → CLEANUP |
-| `github-profile-rules` | PROFILE-SCAN → CODE-ANALYSIS → REVIEW-MINING → PATTERN-SYNTHESIS → RULES-GENERATION → VALIDATION → OUTPUT |
+| `github-profile-rules` | ADR → FETCH → RESEARCH → SAMPLE → COMPILE → GENERATE → VALIDATE → OUTPUT |
 | `doc-pipeline` | RESEARCH → OUTLINE → GENERATE → VERIFY → OUTPUT |
 | `workflow-orchestrator` | BRAINSTORM → WRITE-PLAN → EXECUTE-PLAN |
 | `de-ai-pipeline` | SCAN → FIX → VERIFY (loop max 3) → REPORT |
+| `comprehensive-review` | WAVE-0 → WAVE-1 → WAVE-2 → AGGREGATE → FIX |
+| `article-evaluation-pipeline` | FETCH → VALIDATE → ANALYZE → REPORT |
+| `mcp-pipeline-builder` | ANALYZE → DESIGN → GENERATE → VALIDATE → EVALUATE → REGISTER |
+| `do-perspectives` | VALIDATE → ANALYZE → SYNTHESIZE → APPLY → VERIFY |
+| `voice-calibrator` | VOICE-GROUNDING → VOICE-METRICS → THINKING-PATTERNS → VALIDATION |
+
+**Pipeline Companion Sequences** — common multi-pipeline workflows:
+
+| Workflow | Sequence |
+|----------|----------|
+| Pipeline creation | domain-research → chain-composer → pipeline-scaffolder → pipeline-test-runner → pipeline-retro |
+| Content creation | research-pipeline → voice-writer |
+| Feature delivery | explore-pipeline → workflow-orchestrator → pr-pipeline |
+| Code review + ship | comprehensive-review → pr-pipeline |
+| Voice development | voice-calibrator → voice-writer → article-evaluation-pipeline |
 
 If a skill is not in this registry but has explicit phases in its SKILL.md, show those phases. If it's not a pipeline, omit the Pipeline: line entirely.
 

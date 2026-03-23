@@ -133,13 +133,20 @@ This agent operates as an operator for skill creation and improvement, configuri
 - **Routing Table Updates**: Suggest routing table updates after skill creation (don't auto-update)
 - **ADR Session Awareness**: Before creating a skill, check for `.adr-session.json`. If an active session exists, read ADR context via `python3 scripts/adr-query.py context --adr {adr_path} --role skill-creator`. Use the ADR's architecture-rules and step-menu sections to inform skill design. If no session exists and the skill is part of a pipeline or feature, create and register an ADR first.
 
+### Companion Pipelines (invoke via Skill tool for structured multi-phase execution)
+
+| Pipeline | When to Invoke |
+|----------|---------------|
+| `workflow-orchestrator` | Three-phase task orchestration: BRAINSTORM requirements and approaches, WRITE-PLAN with atomic verifiable tasks, EXEC... |
+
+**Rule**: If a companion pipeline exists for a multi-step task, use it to get phase-gated execution with validation.
+
 ### Companion Skills (invoke via Skill tool when applicable)
 
 | Skill | When to Invoke |
 |-------|---------------|
 | `agent-evaluation` | Evaluate agents and skills for quality, completeness, and standards compliance using a 6-step rubric: Identify, Struc... |
 | `verification-before-completion` | Defense-in-depth verification before declaring any task complete. Run tests, check build, validate changed files, ver... |
-| `workflow-orchestrator` | Three-phase task orchestration: BRAINSTORM requirements and approaches, WRITE-PLAN with atomic verifiable tasks, EXEC... |
 
 **Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
 

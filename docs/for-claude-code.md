@@ -405,7 +405,7 @@ The toolkit includes deterministic tooling for detecting and removing AI writing
 |-----------|------|--------------|
 | `scripts/scan-ai-patterns.py` | Script | Regex scan against `scripts/data/banned-patterns.json` (323 patterns, 24 categories) |
 | `skills/anti-ai-editor/` | Skill | Targeted revision: scan for patterns, propose minimal fixes, preserve meaning |
-| `skills/de-ai-pipeline/` | Skill | Full loop: SCAN -> FIX -> VERIFY, max 3 iterations |
+| `pipelines/de-ai-pipeline/` | Skill | Full loop: SCAN -> FIX -> VERIFY, max 3 iterations |
 | `scripts/voice_analyzer.py` | Script | Extract metrics from writing samples |
 | `scripts/voice_validator.py` | Script | Validate content against voice profiles |
 

@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Add Companion Skills sections to agents that declare pairs_with in their routing metadata.
+"""Add Companion Skills and Companion Pipelines sections to agents.
 
-Scans agents/*.md, parses YAML frontmatter for routing.pairs_with, resolves each
-paired skill/agent description from its SKILL.md or agent .md frontmatter, and
-injects a '### Companion Skills' markdown table before '### Optional Behaviors'
-or '### Default Behaviors'. Agents that already have the section are skipped.
+Scans agents/*.md, parses YAML frontmatter for routing.pairs_with, classifies
+each paired entry as a skill (in skills/) or pipeline (in pipelines/), and
+injects separate '### Companion Skills' and '### Companion Pipelines' markdown
+tables before '### Optional Behaviors' or '### Default Behaviors'.
+
+Existing companion sections are removed and regenerated to stay current.
 """
 
 from __future__ import annotations
@@ -18,19 +20,14 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parent.parent
 AGENTS_DIR = REPO_ROOT / "agents"
 SKILLS_DIR = REPO_ROOT / "skills"
+PIPELINES_DIR = REPO_ROOT / "pipelines"
 
-SKIP_MARKER = "### Companion Skills"
+SKILLS_MARKER = "### Companion Skills"
+PIPELINES_MARKER = "### Companion Pipelines"
 
 
 def parse_frontmatter(text: str) -> tuple[dict | None, str]:
-    """Extract YAML frontmatter and the remaining body from a markdown file.
-
-    Args:
-        text: Full file content.
-
-    Returns:
-        Tuple of (parsed YAML dict or None, body after frontmatter).
-    """
+    """Extract YAML frontmatter and the remaining body from a markdown file."""
     match = re.match(r"^---\n(.*?\n)---\n?(.*)", text, re.DOTALL)
     if not match:
         return None, text
@@ -42,14 +39,7 @@ def parse_frontmatter(text: str) -> tuple[dict | None, str]:
 
 
 def extract_description(frontmatter: dict) -> str:
-    """Pull a one-line description from frontmatter, stripping examples and newlines.
-
-    Args:
-        frontmatter: Parsed YAML frontmatter dict.
-
-    Returns:
-        A single-line description string suitable for a table cell.
-    """
+    """Pull a one-line description from frontmatter, stripping examples and newlines."""
     desc = frontmatter.get("description", "")
     if not desc:
         return ""
@@ -66,20 +56,14 @@ def extract_description(frontmatter: dict) -> str:
 def resolve_paired_description(name: str) -> str | None:
     """Look up description for a paired skill or agent by name.
 
-    Checks skills/{name}/SKILL.md first, then agents/{name}.md.
-
-    Args:
-        name: The skill or agent name from pairs_with.
-
-    Returns:
-        Description string, or None if not found.
+    Checks skills/{name}/SKILL.md first, then pipelines/, then agents/{name}.md.
     """
-    # Try skill first
-    skill_path = SKILLS_DIR / name / "SKILL.md"
-    if skill_path.exists():
-        fm, _ = parse_frontmatter(skill_path.read_text())
-        if fm:
-            return extract_description(fm)
+    for sdir in (SKILLS_DIR, PIPELINES_DIR):
+        skill_path = sdir / name / "SKILL.md"
+        if skill_path.exists():
+            fm, _ = parse_frontmatter(skill_path.read_text())
+            if fm:
+                return extract_description(fm)
 
     # Try agent
     agent_path = AGENTS_DIR / f"{name}.md"
@@ -91,74 +75,128 @@ def resolve_paired_description(name: str) -> str | None:
     return None
 
 
-def build_companion_section(pairs: list[str]) -> str:
-    """Build the Companion Skills markdown section from a list of paired names.
+def is_pipeline(name: str) -> bool:
+    """Check if a paired name lives in pipelines/ directory."""
+    return (PIPELINES_DIR / name / "SKILL.md").exists()
+
+
+def is_skill(name: str) -> bool:
+    """Check if a paired name lives in skills/ directory (or is an agent)."""
+    return (SKILLS_DIR / name / "SKILL.md").exists() or (AGENTS_DIR / f"{name}.md").exists()
+
+
+def classify_pairs(pairs: list[str]) -> tuple[list[str], list[str]]:
+    """Split pairs_with entries into skills and pipelines.
+
+    Returns (skill_names, pipeline_names).
+    """
+    skills = []
+    pipelines = []
+    for name in pairs:
+        if is_pipeline(name):
+            pipelines.append(name)
+        else:
+            skills.append(name)
+    return skills, pipelines
+
+
+def build_section(names: list[str], kind: str) -> str:
+    """Build a Companion Skills or Companion Pipelines markdown section.
 
     Args:
-        pairs: List of skill/agent names from routing.pairs_with.
-
-    Returns:
-        Markdown string for the Companion Skills section.
+        names: List of skill/pipeline names.
+        kind: Either "Skills" or "Pipelines".
     """
     rows: list[str] = []
-    for name in pairs:
+    for name in names:
         desc = resolve_paired_description(name)
         if desc is None:
             desc = f"(description not found for `{name}`)"
         rows.append(f"| `{name}` | {desc} |")
 
     table_rows = "\n".join(rows)
-    return (
-        "### Companion Skills (invoke via Skill tool when applicable)\n"
-        "\n"
-        "| Skill | When to Invoke |\n"
-        "|-------|---------------|\n"
-        f"{table_rows}\n"
-        "\n"
-        "**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.\n"
-    )
+
+    if kind == "Skills":
+        return (
+            "### Companion Skills (invoke via Skill tool when applicable)\n"
+            "\n"
+            "| Skill | When to Invoke |\n"
+            "|-------|---------------|\n"
+            f"{table_rows}\n"
+            "\n"
+            "**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.\n"
+        )
+    else:
+        return (
+            "### Companion Pipelines (invoke via Skill tool for structured multi-phase execution)\n"
+            "\n"
+            "| Pipeline | When to Invoke |\n"
+            "|----------|---------------|\n"
+            f"{table_rows}\n"
+            "\n"
+            "**Rule**: If a companion pipeline exists for a multi-step task, use it to get phase-gated execution with validation.\n"
+        )
 
 
-def insert_section(content: str, section: str) -> str | None:
-    """Insert the Companion Skills section before Optional or Default Behaviors.
+def remove_existing_sections(content: str) -> str:
+    """Remove existing Companion Skills and Companion Pipelines sections.
 
-    Args:
-        content: Full file content of the agent markdown.
-        section: The generated Companion Skills section markdown.
-
-    Returns:
-        Modified content with section inserted, or None if no insertion point found.
+    Removes from the ### heading through the **Rule** line (inclusive).
     """
-    # Try inserting before "### Optional Behaviors" first
+    for marker in [SKILLS_MARKER, PIPELINES_MARKER]:
+        idx = content.find(marker)
+        if idx == -1:
+            continue
+
+        # Find the end of this section: next ### heading or end of content
+        rest = content[idx:]
+        # Find the **Rule** line that ends the section
+        rule_match = re.search(r"\*\*Rule\*\*:.*\n", rest)
+        if rule_match:
+            end_idx = idx + rule_match.end()
+        else:
+            # Fallback: find next ### heading
+            next_heading = re.search(r"\n###\s", rest[len(marker) :])
+            if next_heading:
+                end_idx = idx + len(marker) + next_heading.start()
+            else:
+                end_idx = len(content)
+
+        # Remove the section, cleaning up extra blank lines
+        before = content[:idx].rstrip("\n")
+        after = content[end_idx:].lstrip("\n")
+        content = before + "\n\n" + after
+
+    return content
+
+
+def insert_sections(content: str, skills_section: str | None, pipelines_section: str | None) -> str | None:
+    """Insert Companion Skills and/or Pipelines sections before Optional/Default Behaviors."""
+    combined = ""
+    if pipelines_section:
+        combined += pipelines_section + "\n"
+    if skills_section:
+        combined += skills_section + "\n"
+
+    if not combined:
+        return None
+
+    # Try inserting before "### Optional Behaviors" first, then "### Default Behaviors"
     for marker in ["### Optional Behaviors", "### Default Behaviors"]:
         idx = content.find(marker)
         if idx != -1:
-            # Insert before the marker, with proper spacing
             before = content[:idx].rstrip("\n")
             after = content[idx:]
-            return f"{before}\n\n{section}\n{after}"
+            return f"{before}\n\n{combined}{after}"
     return None
 
 
 def process_agent(agent_path: Path) -> bool:
-    """Process a single agent file, adding Companion Skills if needed.
-
-    Args:
-        agent_path: Path to the agent .md file.
-
-    Returns:
-        True if the file was modified, False otherwise.
-    """
+    """Process a single agent file, adding/updating Companion sections."""
     content = agent_path.read_text()
-
-    # Skip if already has Companion Skills
-    if SKIP_MARKER in content:
-        print(f"  SKIP (already present): {agent_path.name}")
-        return False
 
     fm, _ = parse_frontmatter(content)
     if fm is None:
-        print(f"  SKIP (no frontmatter): {agent_path.name}")
         return False
 
     routing = fm.get("routing", {})
@@ -169,23 +207,32 @@ def process_agent(agent_path: Path) -> bool:
     if not pairs:
         return False
 
-    section = build_companion_section(pairs)
-    new_content = insert_section(content, section)
+    skill_names, pipeline_names = classify_pairs(pairs)
+
+    # Remove existing sections first (always regenerate)
+    content = remove_existing_sections(content)
+
+    # Build new sections
+    skills_section = build_section(skill_names, "Skills") if skill_names else None
+    pipelines_section = build_section(pipeline_names, "Pipelines") if pipeline_names else None
+
+    new_content = insert_sections(content, skills_section, pipelines_section)
     if new_content is None:
         print(f"  SKIP (no insertion point): {agent_path.name}")
         return False
 
     agent_path.write_text(new_content)
-    print(f"  UPDATED: {agent_path.name} ({len(pairs)} companion(s))")
+    parts = []
+    if skill_names:
+        parts.append(f"{len(skill_names)} skill(s)")
+    if pipeline_names:
+        parts.append(f"{len(pipeline_names)} pipeline(s)")
+    print(f"  UPDATED: {agent_path.name} ({', '.join(parts)})")
     return True
 
 
 def main() -> int:
-    """Scan all agent .md files and add Companion Skills sections.
-
-    Returns:
-        Exit code: 0 on success, 1 if no agents directory found.
-    """
+    """Scan all agent .md files and add Companion Skills/Pipelines sections."""
     if not AGENTS_DIR.is_dir():
         print(f"ERROR: agents directory not found at {AGENTS_DIR}", file=sys.stderr)
         return 1

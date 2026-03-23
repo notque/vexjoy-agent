@@ -2,7 +2,7 @@
 """
 Rules Compiler — deduplicate, categorize, and score extracted programming rules.
 
-Caller: skills/github-profile-rules/SKILL.md (Phases 4-6)
+Caller: pipelines/github-profile-rules/SKILL.md (Phases 4-6)
 Purpose: Deterministic processing of raw pattern data into confidence-scored,
          categorized rules. Produces both CLAUDE.md-compatible markdown and
          structured JSON output.

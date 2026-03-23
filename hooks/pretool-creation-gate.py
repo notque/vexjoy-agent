@@ -43,9 +43,9 @@ from stdin_timeout import read_stdin
 _BYPASS_ENV = "CREATION_GATE_BYPASS"
 
 # Patterns for agent and skill file creation.
-# Match agents/<name>.md and skills/<name>/SKILL.md anywhere in the path.
+# Match agents/<name>.md, skills/<name>/SKILL.md, and pipelines/<name>/SKILL.md anywhere in the path.
 _AGENT_PATTERN = re.compile(r"/agents/[^/]+\.md$")
-_SKILL_PATTERN = re.compile(r"/skills/[^/]+/SKILL\.md$")
+_SKILL_PATTERN = re.compile(r"/(skills|pipelines)/[^/]+/SKILL\.md$")
 
 
 def main() -> None:

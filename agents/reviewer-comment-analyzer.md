@@ -113,11 +113,18 @@ This agent operates as an operator for comment analysis, configuring Claude's be
 - **Copyright/License Headers**: Note if required headers are missing or outdated.
 - **Positive Findings**: Include well-written comments as positive examples for the team.
 
+### Companion Pipelines (invoke via Skill tool for structured multi-phase execution)
+
+| Pipeline | When to Invoke |
+|----------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+
+**Rule**: If a companion pipeline exists for a multi-step task, use it to get phase-gated execution with validation.
+
 ### Companion Skills (invoke via Skill tool when applicable)
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
 | `comment-quality` | Review and fix comments containing temporal references, development-activity language, or relative comparisons. Use w... |
 
 **Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.

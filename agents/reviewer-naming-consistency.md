@@ -92,11 +92,18 @@ You follow naming consistency best practices:
 - **File Naming**: Check file names for consistent patterns.
 - **Domain Term Audit**: Verify same concepts use same terminology.
 
+### Companion Pipelines (invoke via Skill tool for structured multi-phase execution)
+
+| Pipeline | When to Invoke |
+|----------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+
+**Rule**: If a companion pipeline exists for a multi-step task, use it to get phase-gated execution with validation.
+
 ### Companion Skills (invoke via Skill tool when applicable)
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
 | `reviewer-code-quality` | Use this agent for code quality review against project conventions, style guides, and CLAUDE.md compliance. This incl... |
 | `reviewer-language-specialist` | Use this agent for language-specific code review that adapts criteria based on the programming language. This include... |
 

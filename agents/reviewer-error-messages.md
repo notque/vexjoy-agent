@@ -90,11 +90,18 @@ You follow error message best practices:
 - **Audience Check**: Verify user-facing errors don't expose internals.
 - **Wrapping Quality**: Check error wrapping preserves context (Go: %w chain).
 
+### Companion Pipelines (invoke via Skill tool for structured multi-phase execution)
+
+| Pipeline | When to Invoke |
+|----------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+
+**Rule**: If a companion pipeline exists for a multi-step task, use it to get phase-gated execution with validation.
+
 ### Companion Skills (invoke via Skill tool when applicable)
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
 | `reviewer-silent-failures` | Use this agent for detecting silent failures, inadequate error handling, swallowed errors, and dangerous fallback beh... |
 | `reviewer-code-quality` | Use this agent for code quality review against project conventions, style guides, and CLAUDE.md compliance. This incl... |
 
