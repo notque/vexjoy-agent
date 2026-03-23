@@ -25,8 +25,8 @@ def run_hook(event: dict) -> tuple[str, str, int]:
     return result.stdout, result.stderr, result.returncode
 
 
-def test_injects_protocol_for_substantive_prompt():
-    """Hook should inject evaluation protocol for long, substantive prompts."""
+def test_disabled_hook_produces_no_output():
+    """Hook is disabled (redundant with /do SKILL.md routing tables) and should produce no output."""
     event = {
         "type": "UserPromptSubmit",
         "prompt": "implement a new feature with comprehensive testing and documentation",
@@ -34,9 +34,7 @@ def test_injects_protocol_for_substantive_prompt():
     stdout, stderr, code = run_hook(event)
 
     assert code == 0, f"Hook failed: {stderr}"
-    assert "<skill-evaluation-protocol>" in stdout
-    assert "EVALUATE" in stdout
-    assert "Route with:" in stdout or "EXECUTE" in stdout
+    assert stdout == "", "Disabled hook should produce no output"
 
 
 def test_skips_short_prompts():
@@ -103,8 +101,8 @@ def test_handles_invalid_json():
     assert result.returncode == 0, "Should not crash on invalid JSON"
 
 
-def test_discovers_skills_dynamically():
-    """Hook should discover skills from filesystem and include them in output."""
+def test_disabled_hook_no_skill_discovery():
+    """Disabled hook should not discover or inject skills."""
     event = {
         "type": "UserPromptSubmit",
         "prompt": "implement a complex feature with multiple components and testing",
@@ -112,14 +110,11 @@ def test_discovers_skills_dynamically():
     stdout, stderr, code = run_hook(event)
 
     assert code == 0, f"Hook failed: {stderr}"
-    # Should include dynamically discovered skills (first 10 alphabetically)
-    assert "agent-evaluation" in stdout
-    assert "code-linting" in stdout
-    assert "codebase-analyzer" in stdout
+    assert stdout == "", "Disabled hook should not inject skill discovery"
 
 
-def test_discovers_agents_dynamically():
-    """Hook should discover agents from filesystem and include them in output."""
+def test_disabled_hook_no_agent_discovery():
+    """Disabled hook should not discover or inject agents."""
     event = {
         "type": "UserPromptSubmit",
         "prompt": "implement a complex feature with multiple components and testing",
@@ -127,22 +122,20 @@ def test_discovers_agents_dynamically():
     stdout, stderr, code = run_hook(event)
 
     assert code == 0, f"Hook failed: {stderr}"
-    # Should include priority agents
-    assert "golang-general-engineer" in stdout
-    assert "database-engineer" in stdout
+    assert stdout == "", "Disabled hook should not inject agent discovery"
 
 
 if __name__ == "__main__":
     # Simple test runner
     tests = [
-        test_injects_protocol_for_substantive_prompt,
+        test_disabled_hook_produces_no_output,
         test_skips_short_prompts,
         test_skips_simple_greetings,
         test_skips_non_user_prompt_events,
         test_handles_missing_type_gracefully,
         test_handles_invalid_json,
-        test_discovers_skills_dynamically,
-        test_discovers_agents_dynamically,
+        test_disabled_hook_no_skill_discovery,
+        test_disabled_hook_no_agent_discovery,
     ]
 
     print("Running hook tests...\n")
