@@ -34,6 +34,7 @@ See [Anti-Rationalization](../skills/shared-patterns/anti-rationalization-core.m
 | `output-schemas.md` | Standardized agent output patterns | All agents |
 | `forbidden-patterns-template.md` | Template for domain-specific hard gates | Domain agents (Go, Python, etc.) |
 | `blocker-criteria.md` | When to STOP and ask vs proceed | All agents |
+| `analysis-paralysis-guard.md` | Prevent unbounded read-only exploration | Debugging, research, exploration skills |
 
 ## Pattern vs Skill Distinction
 

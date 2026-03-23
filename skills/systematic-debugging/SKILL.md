@@ -281,3 +281,110 @@ This skill uses these shared patterns:
 - `${CLAUDE_SKILL_DIR}/references/debugging-patterns.md`: Common bug patterns by category
 - `${CLAUDE_SKILL_DIR}/references/tools.md`: Language-specific debugging tools
 - `${CLAUDE_SKILL_DIR}/references/isolation-techniques.md`: Advanced isolation strategies
+
+---
+
+## Persistent Debug File Protocol
+
+Debugging sessions lose all state on context reset — hypotheses, eliminated causes, evidence, and next actions vanish. This protocol creates a structured file that survives resets and lets a new session resume without re-investigating eliminated causes.
+
+### File: `.debug-session.md`
+
+Create this file at the start of every debug investigation. It has three section types with strict mutation rules:
+
+| Section Type | Sections | Mutation Rule | WHY |
+|-------------|----------|---------------|-----|
+| IMMUTABLE | Symptoms, Reproduction Steps | Write once at session start, never modify | These are the ground truth. If they change, it's a different bug. Editing them mid-investigation causes you to lose track of the original problem. |
+| APPEND-ONLY | Evidence, Eliminated Hypotheses | Add new entries, never remove or edit existing ones | Removing entries lets future sessions re-investigate dead ends. The whole point is to accumulate knowledge, not revise it. |
+| OVERWRITE | Current Hypothesis, Next Action | Replace on each iteration | These represent the live state of the investigation. Old values are captured in Evidence/Eliminated when they're tested. |
+
+### Template
+
+```markdown
+# Debug Session: [Brief Description]
+<!-- Created: [timestamp] -->
+
+## Symptoms (IMMUTABLE — do not edit after initial capture)
+- [Exact error message or behavior]
+- [Environment: OS, language version, dependencies]
+- [How discovered: test failure, user report, monitoring alert]
+
+## Reproduction Steps (IMMUTABLE — do not edit after initial capture)
+1. [Step 1]
+2. [Step 2]
+3. [Expected vs actual result]
+
+## Evidence (APPEND-ONLY — add new entries, never remove or edit)
+- [timestamp] [observation]: [what was found and where]
+
+## Eliminated Hypotheses (APPEND-ONLY — add new entries, never remove or edit)
+- [timestamp] [hypothesis]: [evidence that refuted it]
+
+## Current Hypothesis (OVERWRITE — replace each iteration)
+**Hypothesis**: [specific, testable statement]
+**Supporting evidence**: [what points to this]
+**Test plan**: [how to confirm or refute]
+
+## Next Action (OVERWRITE — replace each iteration)
+[Exactly what to do next — specific enough that a new session can execute it cold]
+```
+
+### Critical Rule: Update BEFORE Acting
+
+Update `.debug-session.md` BEFORE taking any debugging action, not after. WHY: If context resets mid-action, the file shows what was about to happen and what has already been ruled out. A post-action update means a reset loses the most recent work.
+
+The workflow is:
+1. Write your hypothesis and next action to the file
+2. Execute the action
+3. Append the result to Evidence (or Eliminated Hypotheses if refuted)
+4. Update Current Hypothesis and Next Action for the next iteration
+5. Repeat
+
+### Resuming From a Reset
+
+When starting a debug session, check for an existing `.debug-session.md`:
+1. Read the file completely
+2. Do NOT re-investigate anything listed in Eliminated Hypotheses
+3. Resume from the Current Hypothesis and Next Action
+4. If Next Action was partially completed, verify its state before continuing
+
+---
+
+## Debug Knowledge Base
+
+Resolved debug sessions create compounding value when their findings are recorded for future investigations. This protocol maintains an append-only knowledge base of resolved bugs.
+
+### File: `.debug-knowledge-base.md`
+
+After resolving a bug (Phase 4 VERIFY passes), append an entry:
+
+```markdown
+## [Date] [Brief Description]
+**Keywords**: [comma-separated terms for matching: error messages, component names, symptom descriptions]
+**Symptom**: [What was observed]
+**Root Cause**: [What was actually wrong]
+**Resolution**: [What fixed it]
+**Files**: [Which files were involved]
+```
+
+### Lookup Protocol
+
+At the start of every new debug investigation (Phase 1: REPRODUCE), before forming any hypotheses:
+
+1. Check if `.debug-knowledge-base.md` exists in the project root
+2. If it exists, search for keyword matches against the current symptom signature (error messages, component names, behavioral descriptions)
+3. Matches are **hypothesis candidates**, not confirmed diagnoses — the same symptom can have different root causes in different contexts
+4. List any matches in the Evidence section of `.debug-session.md` with the note: "Prior resolution found — verify applicability before assuming same root cause"
+
+WHY this is append-only and match-based (not a lookup table): Bugs are contextual. An "undefined is not a function" error in module A may have a completely different root cause than the same error in module B. The knowledge base accelerates hypothesis formation — it does not replace the 4-phase process.
+
+---
+
+## Analysis Paralysis Guard
+
+This skill uses the [Analysis Paralysis Guard](../shared-patterns/analysis-paralysis-guard.md).
+If 5+ consecutive Read/Grep/Glob calls occur without an Edit/Write/Bash action,
+STOP and explain what you are looking for and why before proceeding.
+
+### Debugging-Specific Addition
+- After explaining, justification for continued reading MUST be recorded in `.debug-session.md` under the Current Hypothesis section — not just stated verbally. This creates an audit trail of investigation decisions that survives context resets.

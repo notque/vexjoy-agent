@@ -564,6 +564,126 @@ If no bridge works, restructure the chain. Never skip type validation.
 | "I'll just pick the obvious chain, no need for step menu lookup" | The step menu exists to prevent chain composition errors. It has type compatibility rules. | Load and reference the step menu. Validate types. |
 | "Type compatibility is just bureaucracy" | It's the type system of pipeline composition. Invalid types produce broken chains. | Validate every adjacent pair. Insert bridges for incompatibilities. |
 
+---
+
+## Source Hierarchy
+
+Research follows a strict source hierarchy. WHY: Stale training data is the most common research failure — hallucinated version numbers, deprecated APIs, and removed features all come from treating training data as current documentation.
+
+| Priority | Source | Confidence | When to Use |
+|----------|--------|------------|-------------|
+| 1 | **MCP/Context7** — current documentation via tool access | HIGH | Always try first. Guaranteed current. Use `resolve-library-id` then `query-docs` for any library research. |
+| 2 | **Official documentation** — vendor/project docs via web fetch | HIGH | When Context7 doesn't cover the library, or for vendor-specific configuration guides |
+| 3 | **Web search** — general web results | MEDIUM | Last resort. Always verify version numbers against source 1 or 2. Community posts may reference outdated APIs. |
+| 4 | **Training data** — model knowledge without external verification | LOW | Only when sources 1-3 are unavailable. MUST be tagged LOW confidence regardless of how certain it appears. |
+
+If a finding comes from training data alone (no external verification), it MUST be tagged LOW confidence. This applies even when the model is highly confident — confidence is not currency without a source.
+
+---
+
+## Confidence-Level Tagging
+
+Every research finding is tagged with a confidence level. WHY: Without explicit confidence, consumers of research output treat all findings as equally reliable — which means a guess from training data carries the same weight as a verified API response. Confidence tagging forces the researcher to assess source quality and forces the consumer to calibrate trust.
+
+### Confidence Levels
+
+| Level | Source Examples | Presentation Rule |
+|-------|---------------|-------------------|
+| **HIGH** | Official documentation, verified API responses, source code inspection, Context7 query results | Present as authoritative. No caveats needed. |
+| **MEDIUM** | Verified web search results, community consensus (multiple independent sources agree), well-maintained third-party docs | Present with source attribution: "According to [source]..." |
+| **LOW** | Unverified sources, single blog post, training data without verification, inference from patterns | Present with explicit caveat: "[UNVERIFIED]" prefix. Never present as authoritative. |
+
+### Rules
+
+- Every finding in the research output MUST have a confidence tag
+- LOW confidence findings are NEVER presented as authoritative — even in summary tables
+- If only LOW confidence information is available for a critical decision point, the research output MUST flag this as a **verification gap**: "No high-confidence source found for [topic]. Manual verification required before proceeding."
+- When multiple sources disagree, report the disagreement rather than picking one. Tag with the confidence of the highest-quality source and note the conflict.
+
+### Format in Output
+
+```markdown
+## Findings
+
+### [Topic]
+**Confidence**: HIGH | Source: Context7 query, official docs
+[Finding details...]
+
+### [Topic 2]
+**Confidence**: LOW | Source: Training data only
+[UNVERIFIED] [Finding details...]
+> Verification gap: No official documentation found for this behavior.
+> Manual verification required before using in production.
+```
+
+---
+
+## "Don't Hand-Roll" Output Section
+
+Research output includes a mandatory section listing problems that seem simple but have battle-tested library solutions. WHY: The most expensive bugs come from reimplementing solutions that already exist with years of production hardening, security patches, and edge case coverage. A hand-rolled JWT validator or rate limiter might pass tests but fail under adversarial conditions.
+
+### Format
+
+Every research deliverable MUST include this section, even if empty (with "No hand-roll risks identified for this domain"):
+
+```markdown
+## Don't Hand-Roll
+
+| Problem | Library/Solution | Why Not DIY |
+|---------|-----------------|-------------|
+| [Problem that seems simple] | [Battle-tested solution] | [Specific edge cases or risks of DIY] |
+```
+
+### Examples by Domain
+
+**Authentication/Security**:
+| Problem | Library | Why Not DIY |
+|---------|---------|-------------|
+| JWT validation | golang-jwt/jwt, PyJWT | Signature verification edge cases, algorithm confusion attacks |
+| Password hashing | bcrypt, argon2 | Timing attacks, salt generation, work factor tuning |
+| CSRF protection | Framework built-in (gorilla/csrf, Django CSRF) | Token generation, double-submit cookie pattern complexity |
+
+**Concurrency**:
+| Problem | Library | Why Not DIY |
+|---------|---------|-------------|
+| Rate limiting | uber-go/ratelimit, token-bucket | Token bucket correctness under concurrency, clock drift |
+| Connection pooling | database/sql, pgxpool | Leak detection, health checking, graceful degradation |
+| Worker pool | gammazero/workerpool, concurrent.futures | Panic recovery, graceful shutdown, backpressure |
+
+The researcher should populate this table with domain-specific entries based on the actual technology being researched, not just copy the examples above.
+
+---
+
+## Anti-Features Output Section
+
+Research output includes a mandatory section listing features to explicitly NOT build, with rationale. WHY: Explicitly naming what is out of scope is as valuable as naming what is in scope. Without this, scope creep happens through "while we're at it" additions that seem reasonable in isolation but compound into over-engineering.
+
+### Format
+
+Every research deliverable MUST include this section:
+
+```markdown
+## Anti-Features
+
+Features to explicitly NOT build:
+
+| Feature | Rationale |
+|---------|-----------|
+| [Feature that might seem useful] | [Why building it would be a mistake] |
+```
+
+### Common Anti-Feature Categories
+
+- **Build vs. Buy**: "Custom auth system" — Use OAuth2 provider; auth is a liability, not a differentiator
+- **Premature Abstraction**: "Plugin system" — No current need for extensibility; add when 3+ real use cases emerge
+- **Complexity Without Demand**: "GraphQL API" — REST covers all current use cases; GraphQL adds complexity without user demand
+- **Scope Creep**: "Admin dashboard" — CLI tooling covers current admin needs; UI adds maintenance burden without proportional value
+- **Future-Proofing**: "Multi-region support" — Single region serves current scale; premature distribution adds latency debugging complexity
+
+The researcher should identify anti-features specific to the domain being researched, not generic ones. Ask: "What will someone inevitably suggest adding that we should preemptively say no to?"
+
+---
+
 ## Blocker Criteria
 
 STOP and ask the pipeline-orchestrator-engineer (do NOT proceed autonomously) when:
