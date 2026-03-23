@@ -165,7 +165,7 @@ All pipelines live in the `pipelines/` directory (synced to `~/.claude/skills/` 
 | research then write, article with research | research-to-article | RESEARCH → COMPILE → GROUND → GENERATE → VALIDATE → REFINE → OUTPUT |
 | document this, create readme, write docs | doc-pipeline | RESEARCH → OUTLINE → GENERATE → VERIFY → OUTPUT |
 | submit PR, create pull request | pr-pipeline | CLASSIFY → STAGE → REVIEW → COMMIT → PUSH → CREATE → VERIFY → CLEANUP |
-| understand codebase, explore repo | explore-pipeline | SCAN → MAP → ANALYZE → REPORT |
+| understand codebase, explore repo, analyze quality, assess consistency | explore-pipeline | SCAN → MAP → ANALYZE → [COMPILE → ASSESS → SYNTHESIZE → REFINE] → REPORT |
 | evaluate article, check voice authenticity | article-evaluation-pipeline | FETCH → VALIDATE → ANALYZE → REPORT |
 | mcp pipeline, repo to mcp, create mcp from repo, generate mcp, mcp builder, mcp from repo | mcp-pipeline-builder (mcp-local-docs-engineer) | ANALYZE → DESIGN → GENERATE → VALIDATE → EVALUATE → REGISTER |
 | write in voice, generate voice content, blog post, write article | voice-writer | LOAD → GROUND → GENERATE → VALIDATE → REFINE → JOY-CHECK → OUTPUT → CLEANUP |

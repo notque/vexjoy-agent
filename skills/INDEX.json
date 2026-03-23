@@ -1,6 +1,6 @@
 {
   "version": "1.1",
-  "generated": "2026-03-23T17:06:22Z",
+  "generated": "2026-03-23T17:42:13Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": [
     {
@@ -1860,7 +1860,7 @@
     },
     {
       "name": "explore-pipeline",
-      "description": "Systematic 4-phase codebase exploration pipeline: Scan, Map, Analyze, Report with parallel subagents.",
+      "description": "Systematic codebase exploration pipeline with parallel subagents and tiered depth.",
       "file": "pipelines/explore-pipeline/SKILL.md",
       "triggers": [
         "understand codebase",
@@ -1868,7 +1868,11 @@
         "how does this work",
         "codebase exploration",
         "understand this code",
-        "map architecture"
+        "map architecture",
+        "analyze quality",
+        "assess consistency",
+        "evaluate patterns",
+        "analyze codebase"
       ],
       "category": "exploration",
       "version": "2.0.0",

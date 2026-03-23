@@ -1,10 +1,15 @@
 ---
 name: explore-pipeline
 description: |
-  Systematic 4-phase codebase exploration pipeline: Scan, Map, Analyze, Report
-  with parallel subagents. Use when user asks to "understand codebase", "explore
-  repo", "how does X work", "map architecture", or "explain this code". Do NOT
-  use for code changes, debugging, refactoring, or any task that modifies files.
+  Systematic codebase exploration pipeline with parallel subagents and
+  tiered depth. Quick: 1 phase (targeted lookup). Standard: 4 phases
+  (Scan, Map, Analyze, Report). Deep: 8 phases (Scan, Map, Analyze,
+  Compile, Assess, Synthesize, Refine, Report) for quality evaluation,
+  consistency assessment, and pattern analysis across the codebase.
+  Use when user asks to "understand codebase", "explore repo", "how does
+  X work", "map architecture", "explain this code", "analyze quality of",
+  "assess consistency of", or "evaluate patterns in". Do NOT use for code
+  changes, debugging, refactoring, or any task that modifies files.
 version: 2.0.0
 user-invocable: false
 allowed-tools:
@@ -24,6 +29,10 @@ routing:
     - codebase exploration
     - understand this code
     - map architecture
+    - analyze quality
+    - assess consistency
+    - evaluate patterns
+    - analyze codebase
   pairs_with:
     - codebase-overview
     - codebase-analyzer
@@ -72,7 +81,7 @@ This skill operates as an operator for systematic codebase exploration, configur
 - Debug or fix bugs (use systematic-debugging instead)
 - Refactor code (use systematic-refactoring instead)
 - Generate documentation (use technical-documentation-engineer instead)
-- Skip any of the 4 phases
+- Skip phases within the selected tier (Quick: Phase 1; Standard: 1-3,8; Deep: all 8)
 
 ---
 
@@ -150,9 +159,83 @@ Document the implicit rules: how errors propagate, how state is managed, how com
 
 **Gate**: Key components analyzed with evidence from actual code. Critical paths traced. Proceed only when gate passes.
 
-### Phase 4: REPORT
+### Phase 4: COMPILE (Deep tier only)
+
+**Goal**: Structure raw findings from Phases 1-3 into a structured corpus for evaluation.
+
+**Step 1: Categorize findings**
+
+Group all Phase 1-3 findings by evaluation dimension:
+- **Consistency**: Same pattern used everywhere, or mixed approaches?
+- **Quality**: Meets best practices? Error handling complete? Tests adequate?
+- **Coverage**: Any gaps? Components without tests, docs, or error handling?
+- **Patterns**: What patterns recur? What's the dominant approach?
+
+**Step 2: Build comparison matrix**
+
+Create a structured table comparing components against each dimension. Save as `analysis-compilation.md`.
+
+**Gate**: Findings structured into evaluation dimensions with per-component data. Compilation artifact saved.
+
+### Phase 5: ASSESS (Deep tier only)
+
+**Goal**: Evaluate the compiled findings against quality criteria.
+
+**Step 1: Score each dimension**
+
+For each evaluation dimension from Phase 4:
+- Rate compliance as a percentage (X/Y components follow the pattern)
+- Identify outliers (components that deviate from the norm)
+- Assess severity of deviations (cosmetic vs functional vs safety)
+
+**Step 2: Identify root causes**
+
+For each deviation found:
+- Is it intentional (documented exception) or accidental (drift)?
+- Is it a one-off or a recurring pattern?
+- What's the fix complexity (trivial, moderate, significant)?
+
+**Gate**: All dimensions scored with evidence. Deviations cataloged with root causes.
+
+### Phase 6: SYNTHESIZE (Deep tier only)
+
+**Goal**: Combine assessment findings into actionable recommendations.
+
+**Step 1: Rank findings by impact**
+
+| Severity | Criteria |
+|----------|----------|
+| Critical | Safety issue, data loss risk, session-blocking |
+| High | Functional gap, inconsistency that causes confusion |
+| Medium | Quality gap, missing best practice |
+| Low | Cosmetic, style preference |
+
+**Step 2: Group by theme**
+
+Cluster related findings into themes (e.g., "error handling consistency", "test coverage gaps", "naming drift").
+
+**Gate**: Findings ranked by severity, grouped by theme.
+
+### Phase 7: REFINE (Deep tier only)
+
+**Goal**: Verify findings against actual code before reporting.
+
+**Step 1: Spot-check top findings**
+
+For the top 5 findings by severity, re-read the actual source code to confirm the finding is accurate. Adjust if the initial analysis was wrong.
+
+**Step 2: Remove false positives**
+
+If spot-checking reveals a finding was incorrect (e.g., the pattern is actually intentional), remove it from the report.
+
+**Gate**: Top findings verified against source. False positives removed.
+
+### Phase 8: REPORT (final phase for all tiers)
 
 **Goal**: Produce a structured, reusable exploration report.
+
+**Standard tier**: This is effectively Phase 4 (Phases 4-7 were skipped). Report covers architecture and patterns.
+**Deep tier**: This is Phase 8. Report includes everything from Standard PLUS quality assessment, consistency scores, and ranked recommendations from Phases 4-7.
 
 Generate and save `exploration-report.md` following this structure:
 
@@ -289,21 +372,23 @@ Not every exploration question needs the same depth. Running a full pipeline for
 
 ### Deep Dive (1+ hour)
 
-**Purpose**: Full architectural analysis for onboarding or major refactoring decisions.
+**Purpose**: Full analysis — architectural understanding PLUS quality evaluation, consistency assessment, and pattern analysis.
 
-**Scope**: All 4 phases with expanded scope. Phase 1 uses additional scanners for broader coverage. Phase 3 traces multiple critical paths rather than just the primary one. Cross-cutting concerns (logging, auth, error handling) get dedicated analysis.
+**Scope**: All 8 phases. Phases 1-3 explore the codebase. Phases 4-7 compile findings, assess quality, synthesize recommendations, and verify against source. Phase 8 produces a comprehensive report.
 
-**Phases used**: All 4 phases with expanded scope at each.
+**Phases used**: All 8 phases: SCAN → MAP → ANALYZE → COMPILE → ASSESS → SYNTHESIZE → REFINE → REPORT.
 
-**Exit criteria**: Comprehensive report covers full architecture, all major subsystems, cross-cutting concerns, and integration points. Multiple artifact files may be produced.
+**Exit criteria**: Comprehensive report covers full architecture, quality assessment with scores, consistency evaluation, pattern analysis, and ranked recommendations. Multiple artifact files produced.
 
 **Examples**:
 - "I'm new to this codebase, give me the full picture."
 - "We're considering a major refactor -- what do we need to know?"
-- "Onboard me to this entire repository."
+- "Analyze the quality and consistency of our error handling."
+- "Assess which patterns are used consistently vs inconsistently."
 - "Full architectural review before we plan next quarter."
+- "Evaluate the test coverage patterns across all modules."
 
-**Output format**: Saved `exploration-report.md` plus supplementary files (`architecture-map.md`, component-specific documents as needed).
+**Output format**: Saved `exploration-report.md` plus supplementary files (`architecture-map.md`, `analysis-compilation.md`, component-specific documents as needed).
 
 ### Tier Selection Logic
 
@@ -312,6 +397,8 @@ If user specifies --tier or --quick or --deep:
   Use the specified tier.
 Else if user asks a single specific question (what/which/does/is):
   Use Quick Verify.
+Else if user asks to analyze/assess/evaluate/audit quality or patterns:
+  Use Deep Dive (needs COMPILE + ASSESS + SYNTHESIZE + REFINE phases).
 Else if user asks about a specific subsystem or flow:
   Use Standard.
 Else if user asks for full picture / onboarding / comprehensive:

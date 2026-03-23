@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "generated": "2026-03-23T17:04:38Z",
+  "generated": "2026-03-23T17:42:13Z",
   "generated_by": "scripts/generate-pipeline-catalog.py",
   "pipelines": [
     {
@@ -195,15 +195,19 @@
     },
     {
       "name": "explore-pipeline",
-      "description": "Systematic 4-phase codebase exploration pipeline: Scan, Map, Analyze, Report",
-      "phase_count": 4,
+      "description": "Systematic codebase exploration pipeline with parallel subagents and",
+      "phase_count": 8,
       "phases": [
         "SCAN",
         "MAP",
         "ANALYZE",
+        "COMPILE",
+        "ASSESS",
+        "SYNTHESIZE",
+        "REFINE",
         "REPORT"
       ],
-      "chain": "SCAN → MAP → ANALYZE → REPORT",
+      "chain": "SCAN → MAP → ANALYZE → COMPILE → ASSESS → SYNTHESIZE → REFINE → REPORT",
       "task_type": "exploration",
       "triggers": [
         "understand codebase",
@@ -211,7 +215,11 @@
         "how does this work",
         "codebase exploration",
         "understand this code",
-        "map architecture"
+        "map architecture",
+        "analyze quality",
+        "assess consistency",
+        "evaluate patterns",
+        "analyze codebase"
       ]
     },
     {
