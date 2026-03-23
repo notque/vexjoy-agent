@@ -103,4 +103,9 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit:
+        raise  # Let intentional exit(2) blocks propagate
+    except Exception:
+        sys.exit(0)  # Fail-open: crashed hook must never block tools
