@@ -17,6 +17,17 @@ allowed-tools:
   - Agent
 agent: perses-plugin-engineer
 version: 2.0.0
+routing:
+  triggers:
+    - perses plugin pipeline
+    - full plugin development
+    - perses plugin create and deploy
+    - plugin end to end
+  pairs_with:
+    - perses-plugin-create
+    - perses-dac-pipeline
+  complexity: Complex
+  category: devops
 ---
 
 # Perses Plugin Development Pipeline
@@ -98,6 +109,18 @@ This skill operates as an end-to-end plugin development guide, enforcing phase g
 | Missing schemas/ directory | CUE schemas not compiled to JSON | Run `percli plugin test-schemas` first, then rebuild |
 | Wrong archive structure | Manual archive creation instead of percli | Always use `percli plugin build` — never manually zip |
 | Archive too large | node_modules or build artifacts included | Check .npmignore or build config; only dist output should be archived |
+
+### Error: Plugin scaffold generation failure
+**Cause**: Invalid `--plugin.type` value, directory name conflict, or `percli` not installed / version too old
+**Solution**: Verify `percli version` meets minimum requirements. Use one of the valid plugin types: Panel, Datasource, TimeSeriesQuery, TraceQuery, ProfileQuery, LogQuery, Variable, Explore. Remove or rename conflicting directories.
+
+### Error: CUE schema compilation failure
+**Cause**: Wrong package name (must be `package model`), missing CUE module imports, or JSON example does not conform to CUE constraints
+**Solution**: Ensure every plugin `.cue` schema file declares `package model`. Add missing imports from `github.com/perses/shared/cue/common`. Fix JSON examples to match CUE type definitions. Run `percli plugin test-schemas` to validate.
+
+### Error: Build archive incomplete
+**Cause**: `percli plugin build` succeeded but archive is missing `mf-manifest.json`, `schemas/`, or `__mf/` directory
+**Solution**: Re-run `percli plugin build` and check for build errors in output. Ensure `percli plugin test-schemas` passes before building. Always use `percli plugin build` — never manually construct archives. List archive contents with `tar -tzf <archive>.tar.gz` to verify.
 
 ---
 

@@ -210,3 +210,7 @@ Solution: Rephrase again avoiding both patterns. If stuck after 3 attempts on on
 ### Anti-Pattern 3: Ignoring False Positives
 **What it looks like**: Forcing awkward rewrites for legitimate technical terms
 **Do instead**: Note the false positive in the report. The pattern database gets refined over time.
+
+## References
+
+- [Anti-Rationalization](../../skills/shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations during scan-fix-verify loops

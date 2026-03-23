@@ -19,6 +19,16 @@ allowed-tools:
   - Glob
   - Edit
   - Agent
+routing:
+  triggers:
+    - scaffold pipeline
+    - create pipeline components
+    - generate pipeline from spec
+  pairs_with:
+    - chain-composer
+    - pipeline-test-runner
+  complexity: Medium
+  category: meta
 ---
 
 # Pipeline Scaffolder Skill

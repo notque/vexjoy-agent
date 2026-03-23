@@ -17,6 +17,16 @@ allowed-tools:
   - Agent
   - Edit
   - Write
+routing:
+  triggers:
+    - create hook pipeline
+    - new hook formal
+    - hook with gates
+  pairs_with:
+    - hook-development-engineer
+    - systematic-debugging
+  complexity: Medium
+  category: infrastructure
 ---
 
 # Hook Development Pipeline
@@ -313,38 +323,21 @@ Docs:
 
 ## Error Handling
 
-### Phase 3: Performance gate fails (≥ 50ms)
+### Error: Performance gate fails (≥ 50ms)
+**Cause**: Top-level imports, eager DB connections, or too much logic before the early-exit check in Phase 3.
+**Solution**: 1) Add `import time; t = time.time()` at the very top, `print(time.time() - t, file=sys.stderr)` just before `sys.exit(0)` to profile. 2) Check for any `import X` at module level where X is not `sys`, `json`, `os`, `re`, or other zero-cost stdlib modules. 3) Check if the hook opens a file or DB connection before checking `tool_name` — move those after the early-exit guard. Return to Phase 2 with specific optimization instructions.
 
-Cause: Top-level imports, eager DB connections, or too much logic before the early-exit check.
+### Error: Non-blocking gate fails (exit non-zero)
+**Cause**: An unguarded code path that calls `sys.exit(1)`, raises an uncaught exception, or calls `exit()` directly. Common locations: JSON parse without try/except, file open without try/except, missing `finally: sys.exit(0)` in `__main__`.
+**Solution**: Identify the specific failure path by running `echo '{}' | python3 hooks/{name}.py; echo $?` and `echo 'invalid json' | python3 hooks/{name}.py; echo $?`. Wrap the failing code path in try/except and ensure the `finally: sys.exit(0)` block exists in `__main__`. Return to Phase 2 with the failure path identified.
 
-Diagnosis sequence:
-1. Add `import time; t = time.time()` at the very top, `print(time.time() - t, file=sys.stderr)` just before `sys.exit(0)`. Run again to see where time goes.
-2. Check for any `import X` at module level where X is not `sys`, `json`, `os`, `re`, or other zero-cost stdlib modules.
-3. Check if the hook opens a file or DB connection before checking `tool_name`. Move those after the early-exit guard.
+### Error: JSON parse fails on settings.json
+**Cause**: Settings file has trailing commas, comments, or other non-standard JSON.
+**Solution**: Run `python3 -m json.tool .claude/settings.json` to identify the parse error location. Fix the JSON syntax error before proceeding. Do not write a broken settings file.
 
-Return to Phase 2 with specific optimization instructions.
-
-### Phase 3: Non-blocking gate fails (exit non-zero)
-
-Cause: An unguarded code path that calls `sys.exit(1)`, raises an uncaught exception, or calls `exit()` directly.
-
-Common locations: JSON parse without try/except, file open without try/except, missing `finally: sys.exit(0)` in `__main__`.
-
-Return to Phase 2 with the specific failure path identified.
-
-### Phase 4: JSON parse fails on settings.json
-
-Cause: Settings file has trailing commas, comments, or other non-standard JSON.
-
-```bash
-python3 -m json.tool .claude/settings.json
-```
-
-Fix the JSON error before proceeding. Do not write a broken settings file.
-
-### Phase 2: hook-development-engineer produces hook without lazy imports
-
-The dispatch to the engineer may produce top-level imports that violate the performance budget. This is expected — the engineer is not in pipeline mode. Review the output before accepting Phase 2 as complete. Move any non-stdlib top-level imports inside the functions that use them.
+### Error: Engineer produces hook without lazy imports
+**Cause**: The dispatch to `hook-development-engineer` in Phase 2 produces top-level imports that violate the performance budget. The engineer is not in pipeline mode and may not enforce the lazy-import constraint.
+**Solution**: Review the Phase 2 output before accepting it as complete. Move any non-stdlib top-level imports inside the functions that use them. Re-run Phase 3 performance check after refactoring.
 
 ---
 
@@ -409,3 +402,10 @@ except (json.JSONDecodeError, ValueError):
 **Why wrong**: The timeout is a ceiling on how long Claude Code will wait before killing the hook. It says nothing about actual hook performance. A hook that takes 2000ms every tool call degrades the session even if it doesn't time out.
 
 **Do instead**: Treat 50ms as the performance target. Treat 5000ms as the safety net. The Phase 3 `time` test measures actual performance; the timeout field does not.
+
+---
+
+## References
+
+- [Hook Development Engineer](../../agents/hook-development-engineer.md) - Agent dispatched in Phase 2 for implementation
+- [Claude Code Hooks Documentation](https://docs.anthropic.com/en/docs/claude-code/hooks) - Official hooks event types, JSON schemas, and registration format

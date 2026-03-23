@@ -19,6 +19,19 @@ allowed-tools:
   - Agent
   - Edit
   - Write
+routing:
+  triggers:
+    - system upgrade
+    - upgrade agents
+    - claude update
+    - upgrade skills
+    - adapt workflow
+    - system health
+  pairs_with:
+    - agent-upgrade
+    - agent-evaluation
+  complexity: Complex
+  category: meta
 ---
 
 # System Upgrade Pipeline
@@ -318,6 +331,8 @@ Next Upgrade: Run /system-upgrade after next Claude Code release
               or when /retro shows 5+ graduation candidates
 ```
 
+**Gate**: Changes committed, synced to ~/.claude, PR created, and upgrade SHA recorded. Pipeline complete.
+
 ---
 
 ## Error Handling
@@ -377,3 +392,13 @@ Actions: Phase 1 extracts "Rust as new domain". Phase 2 audits hooks (no Rust fi
 ### Example 3: Retro-driven upgrade
 User: "/retro graduate" shows 7 ready candidates.
 Actions: Phase 1 queries learning.db for design/gotcha candidates as the Change Manifest. Phase 2 maps candidates to target agents. Phase 3 proposes injecting 7 patterns into 5 agents. User approves with "skip 3 and 6". Phase 4 injects 5 patterns directly (Low effort, no domain agent needed). Phase 5 scores the 5 modified agents. Phase 6 deploys.
+
+---
+
+## References
+
+- [agent-upgrade](../agent-upgrade/SKILL.md) - Bottom-up single-agent upgrade pipeline (complements this top-down system pipeline)
+- [agent-evaluation](../../skills/agent-evaluation/SKILL.md) - Objective scoring skill used in Phase 5 validation
+- [pr-pipeline](../pr-pipeline/SKILL.md) - PR creation pipeline used in Phase 6 deploy
+- [upgrade-diff.py](../../scripts/upgrade-diff.py) - Incremental diff script for scoping audits
+- [learning-db.py](../../scripts/learning-db.py) - Script for querying retro graduation candidates

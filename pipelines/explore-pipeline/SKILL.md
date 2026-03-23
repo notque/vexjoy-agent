@@ -38,7 +38,7 @@ routing:
     - codebase-analyzer
     - technical-documentation-engineer
   complexity: medium
-  category: exploration
+  category: meta
 ---
 
 # Exploration Pipeline

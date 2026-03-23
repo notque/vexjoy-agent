@@ -101,7 +101,7 @@ This skill operates as an operator for pipeline chain composition, configuring C
 - Every subdomain has a task_type that maps to a canonical chain template
 - Operator profile is one of the 4 valid values
 
-**GATE**: Component Manifest loaded with 2+ subdomains. Step menu loaded. Canonical chains loaded. Operator profile identified and valid. Proceed to Phase 2.
+**Gate**: Component Manifest loaded with 2+ subdomains. Step menu loaded. Canonical chains loaded. Operator profile identified and valid. Proceed to Phase 2.
 
 ---
 
@@ -199,7 +199,7 @@ Before moving to the next subdomain, verify the chain satisfies the composition 
 - [ ] Pipeline Summary is terminal (nothing after OUTPUT/REPORT)
 - [ ] No duplicate steps (except VALIDATE, VERIFY, CHECKPOINT)
 
-**GATE**: Every subdomain has a complete chain. All chains follow composition rules. All Step objects have valid family, output_schema, and consumes fields. Proceed to Phase 3.
+**Gate**: Every subdomain has a complete chain. All chains follow composition rules. All Step objects have valid family, output_schema, and consumes fields. Proceed to Phase 3.
 
 ---
 
@@ -252,7 +252,7 @@ python3 scripts/artifact-utils.py validate-chain /tmp/pipeline-{run-id}/chain-{s
 rm -f /tmp/pipeline-{run-id}/chain-*.json
 ```
 
-**GATE**: All chains pass `validate-chain` with exit code 0. Zero type incompatibilities. Proceed to Phase 4.
+**Gate**: All chains pass `validate-chain` with exit code 0. Zero type incompatibilities. Proceed to Phase 4.
 
 ---
 
@@ -366,7 +366,7 @@ All {N} chains passed `validate-chain`.
 Total steps across all chains: {total}
 ```
 
-**GATE**: Pipeline Spec JSON exists at `/tmp/pipeline-{run-id}/pipeline-spec.json`. All chains pass final `validate-chain`. Content summary generated. Handoff to `pipeline-scaffolder`.
+**Gate**: Pipeline Spec JSON exists at `/tmp/pipeline-{run-id}/pipeline-spec.json`. All chains pass final `validate-chain`. Content summary generated. Handoff to `pipeline-scaffolder`.
 
 ## Error Handling
 

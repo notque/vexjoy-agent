@@ -158,7 +158,7 @@ Create the Phase 1 dual-layer artifact:
 
 Update `metrics.candidate_subdomains` and `metrics.existing_components_found` with actual counts.
 
-**GATE**: All of the following must be true before proceeding:
+**Gate**: All of the following must be true before proceeding:
 - At least 3 of 4 research agents completed successfully
 - Research compilation file exists at `/tmp/pipeline-{run-id}/phase-1-research/content.md`
 - At least 1 candidate subdomain identified
@@ -262,7 +262,7 @@ Create the Phase 2 dual-layer artifact:
 - **Key Tasks**: {what practitioners do in this subdomain}
 ```
 
-**GATE**: All of the following must be true before proceeding:
+**Gate**: All of the following must be true before proceeding:
 - Every candidate subdomain from Phase 1 has a task_type assigned
 - Every candidate subdomain has a complexity tier
 - Every candidate subdomain has a reuse assessment
@@ -379,7 +379,7 @@ Otherwise → flag the incompatibility and adjust
 **Type compatibility**: All adjacent steps validated / {list any resolved incompatibilities}
 ```
 
-**GATE**: All of the following must be true before proceeding:
+**Gate**: All of the following must be true before proceeding:
 - Every classified subdomain has a preliminary chain
 - Every chain starts with ADR and ends with OUTPUT (or REPORT for analysis tasks)
 - No unresolved type compatibility issues remain
@@ -490,7 +490,7 @@ Identify resources that span multiple subdomains:
 - Skill triggers per subdomain: [{per-skill triggers}]
 ```
 
-**GATE**: All of the following must be true before proceeding:
+**Gate**: All of the following must be true before proceeding:
 - Component Manifest file exists at `/tmp/pipeline-{run-id}/phase-4-produce/content.md`
 - At least 2 subdomains listed with complete metadata
 - Every subdomain has: skill name, task type, complexity, preliminary chain, executor agent
@@ -704,4 +704,7 @@ STOP and ask the pipeline-orchestrator-engineer (do NOT proceed autonomously) wh
 
 ## References
 
-- **Task Type Guide**: `references/task-type-guide.md` — Detailed task type definitions with canonical chains and examples (loaded in Phase 2)
+- [Task Type Guide](references/task-type-guide.md) - Detailed task type definitions with canonical chains and examples (loaded in Phase 2)
+- [Pipeline Scaffolder](../pipeline-scaffolder/SKILL.md) - Downstream skill that consumes the Component Manifest to build pipeline components
+- [Step Menu](../pipeline-scaffolder/references/step-menu.md) - Complete step inventory with output schemas and type compatibility (loaded in Phases 1 and 3)
+- [Auto-Pipeline](../auto-pipeline/SKILL.md) - Downstream auto-pipeline system that consumes classified task types

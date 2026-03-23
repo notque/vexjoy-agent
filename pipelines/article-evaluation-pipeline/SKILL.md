@@ -32,7 +32,7 @@ routing:
   pairs_with:
     - voice-orchestrator
   complexity: medium
-  category: content-validation
+  category: content
 ---
 
 # Article Evaluation Pipeline Skill
