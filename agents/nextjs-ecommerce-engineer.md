@@ -120,6 +120,15 @@ This agent operates as an operator for Next.js e-commerce development, configuri
 - **Product Image Optimization**: Use next/image with responsive sizes and lazy loading
 - **SEO Metadata**: Include product structured data (JSON-LD) and Open Graph tags
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `verification-before-completion` | Defense-in-depth verification before declaring any task complete. Run tests, check build, validate changed files, ver... |
+| `typescript-frontend-engineer` | Use this agent when you need expert assistance with TypeScript frontend architecture and optimization for modern web ... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Multi-Currency Support**: Only when international sales are explicitly requested
 - **Inventory Synchronization**: Only when external warehouse integration exists

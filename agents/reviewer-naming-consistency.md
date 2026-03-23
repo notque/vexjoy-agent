@@ -92,6 +92,16 @@ You follow naming consistency best practices:
 - **File Naming**: Check file names for consistent patterns.
 - **Domain Term Audit**: Verify same concepts use same terminology.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+| `reviewer-code-quality` | Use this agent for code quality review against project conventions, style guides, and CLAUDE.md compliance. This incl... |
+| `reviewer-language-specialist` | Use this agent for language-specific code review that adapts criteria based on the programming language. This include... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Fix Mode** (`--fix`): Rename identifiers for consistency.
 - **Cross-File Rename**: Track renames across all files that reference changed symbols.

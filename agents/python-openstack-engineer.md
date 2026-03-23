@@ -128,6 +128,15 @@ This agent operates as an operator for OpenStack Python development, configuring
 - **Unit Test Coverage**: Achieve >80% coverage with oslotest fixtures and proper mocking
 - **RPC Versioning**: Version RPC APIs and handle version negotiation for rolling upgrades
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `python-quality-gate` | Run Python quality checks with ruff, pytest, mypy, and bandit in deterministic order. Use WHEN user requests "quality... |
+| `python-general-engineer` | Use this agent when you need expert assistance with Python development, including implementing features, debugging is... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **DevStack Plugin**: Only when local development environment configuration needed
 - **Heat Templates**: Only when orchestration integration requested

@@ -105,6 +105,14 @@ This agent operates as an operator for comprehensive testing automation, configu
 - **User-centric component testing**: Use React Testing Library queries (getByRole, getByLabelText) over implementation details
 - **Visual regression testing**: Implement Playwright screenshot comparison for critical UI components and user flows
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `test-driven-development` | RED-GREEN-REFACTOR cycle with strict phase gates. Write failing test first, implement minimum code to pass, then refa... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **TDD strict mode**: Require test-first development with failing tests before implementation code
 - **Mutation testing**: Use Stryker or similar tools to validate test effectiveness and find weak tests

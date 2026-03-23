@@ -111,6 +111,17 @@ This agent operates as an operator for language-specific code review, configurin
 - **Anti-Pattern Detection**: Flag known language-specific code smells with severity.
 - **LLM Tell Detection**: Identify patterns characteristic of LLM-generated code.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+| `golang-general-engineer` | Use this agent when you need expert assistance with Go development, including implementing features, debugging issues... |
+| `python-general-engineer` | Use this agent when you need expert assistance with Python development, including implementing features, debugging is... |
+| `typescript-frontend-engineer` | Use this agent when you need expert assistance with TypeScript frontend architecture and optimization for modern web ... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Fix Mode** (`--fix`): Apply modern patterns and fix idiom violations after analysis. Requires explicit user request.
 - **Strict Mode**: Treat all findings as blockers, not just critical ones (enable with "strict review").

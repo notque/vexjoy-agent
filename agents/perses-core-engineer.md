@@ -112,6 +112,16 @@ This agent operates as an operator for Perses core contribution, configuring Cla
 - **Error Context**: Wrap errors with `fmt.Errorf("context: %w", err)` for Go code.
 - **Test Coverage**: Include unit tests for new Go functions and integration tests for new API endpoints.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `perses-code-review` | Perses-aware code review: check Go backend against Perses patterns, React components against Perses UI conventions, C... |
+| `golang-general-engineer` | Use this agent when you need expert assistance with Go development, including implementing features, debugging issues... |
+| `typescript-frontend-engineer` | Use this agent when you need expert assistance with TypeScript frontend architecture and optimization for modern web ... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **CUE Schema Development**: Only when creating or modifying plugin data model definitions.
 - **Auth Provider Changes**: Only when working on Native, OIDC, OAuth, or K8s ServiceAccount authentication.
