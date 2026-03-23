@@ -112,6 +112,70 @@ REPO_TYPE=$(python3 scripts/classify-repo.py --type-only)
 
 **Gate**: Repo type classified. Policy determined.
 
+### Phase 0.5: PREFLIGHT CHECKLIST
+
+**Goal**: Fail fast on environment issues before attempting PR creation. Every check produces a specific, actionable error message — not a generic "preflight failed." This checklist runs in seconds and prevents the far more expensive failure of a half-created PR.
+
+**Why this exists**: PR creation can fail mid-way because the working tree is dirty, the branch is main, or `gh` isn't authenticated — all discoverable before starting the pipeline. Catching these upfront avoids partial state (e.g., a commit pushed but no PR created).
+
+Run all checks sequentially. Abort on the first failure.
+
+| # | Check | Command | Failure Action |
+|---|-------|---------|---------------|
+| 1 | Verification status (did quality gates pass?) | Check for recent test/build output or verification artifacts | Abort: "Run verification first — no evidence that quality gates passed." |
+| 2 | Clean working tree (no uncommitted changes) | `git status --porcelain` | Abort: "Working tree is dirty. Uncommitted files:\n{list}. Stage or stash before running PR pipeline." |
+| 3 | Correct branch (not main/master) | `git branch --show-current` | Abort: "Currently on {branch}. Create a feature branch first: `git checkout -b type/description`" |
+| 4 | Remote configured for current branch | `git config --get branch.$(git branch --show-current).remote` | Abort: "No remote configured for branch. Push with: `git push -u origin $(git branch --show-current)`" |
+| 5 | `gh` CLI authenticated | `gh auth status 2>&1` | Abort: "GitHub CLI not authenticated. Run: `gh auth login`" |
+
+```bash
+# Preflight check sequence
+echo "Running preflight checklist..."
+
+# Check 1: Verification status
+# Look for verification artifacts (test output, build logs) — if the project
+# has a test suite and no recent verification evidence exists, warn.
+# This is a soft gate: skip if no test infrastructure is detected.
+
+# Check 2: Clean working tree
+DIRTY=$(git status --porcelain)
+if [ -n "$DIRTY" ]; then
+    echo "PREFLIGHT FAIL: Working tree is dirty."
+    echo "$DIRTY"
+    echo "Stage or stash uncommitted changes before running PR pipeline."
+    exit 1
+fi
+
+# Check 3: Not on main/master
+BRANCH=$(git branch --show-current)
+if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+    echo "PREFLIGHT FAIL: On branch '$BRANCH'."
+    echo "Create a feature branch: git checkout -b type/description"
+    exit 1
+fi
+
+# Check 4: Remote configured
+REMOTE=$(git config --get "branch.$BRANCH.remote" 2>/dev/null)
+if [ -z "$REMOTE" ]; then
+    echo "PREFLIGHT FAIL: No remote configured for branch '$BRANCH'."
+    echo "Push with: git push -u origin $BRANCH"
+    exit 1
+fi
+
+# Check 5: gh CLI authenticated
+if ! gh auth status >/dev/null 2>&1; then
+    echo "PREFLIGHT FAIL: GitHub CLI not authenticated."
+    echo "Run: gh auth login"
+    exit 1
+fi
+
+echo "Preflight checklist PASSED."
+```
+
+**Note on Check 1 (Verification status)**: This is context-dependent. If the project has a test suite (`go test`, `npm test`, `pytest`, etc.), look for evidence that tests were run recently (e.g., verification report files, recent test output in the session). If no test infrastructure exists, this check passes by default. The goal is to prevent submitting code that was never tested, not to block projects without tests.
+
+**Gate**: All preflight checks pass. Environment is ready for PR creation. Proceed to Phase 1.
+
 ### Phase 1: STAGE
 
 **Goal**: Analyze working tree and stage appropriate changes.
@@ -408,6 +472,51 @@ Include the status summary in the PR body if the PR touches any `adr/*.md` files
 Analyze the full diff against the base branch and all commit messages to draft:
 - Title: Short (under 70 chars), descriptive of the change
 - Body: Summary bullets, test plan, review findings from Phase 2
+
+**Step 1.5: Artifact-Driven PR Body Generation**
+
+When planning artifacts exist, generate the PR body from them rather than writing freeform. Artifacts capture *intent* (why the change was made), which is more valuable to reviewers than a mechanical diff summary.
+
+Check for artifacts in this order and build the PR body from what's available:
+
+| Artifact | PR Section Generated | How to Extract |
+|----------|---------------------|----------------|
+| `task_plan.md` | **Summary** (from Goal section) and **Changes** (from completed tasks) | Read the Goal and Phases sections; list completed items as change bullets |
+| Verification reports (`*-verification.md`, test output) | **Test Plan** (from verification output) | Extract pass/fail counts and key assertions verified |
+| Review summaries (Phase 2 / Phase 4b output) | **Review Findings** (from reviewer results) | Summarize security/logic/quality verdicts |
+| Deviation logs (ADR-076 repair actions) | **Deviations** section | List repair actions taken and why the original plan changed |
+
+```markdown
+## PR Body Template (artifact-driven)
+
+## Summary
+<!-- From task_plan.md Goal section, or from commit messages if no plan -->
+- [Goal statement]
+- [Key change 1 from completed tasks]
+- [Key change 2 from completed tasks]
+
+## Changes
+<!-- From task_plan.md completed phases/tasks -->
+- [Completed task description]
+- [Completed task description]
+
+## Test Plan
+<!-- From verification reports, or manual checklist if no reports -->
+- [ ] [Verification result 1]
+- [ ] [Verification result 2]
+
+## Review Findings
+<!-- From Phase 2 / Phase 4b review output -->
+Security: PASS
+Business Logic: PASS
+Code Quality: PASS
+
+## Deviations
+<!-- From deviation logs, omit section if none -->
+- [Deviation description and rationale]
+```
+
+**Fallback**: If no artifacts exist, fall back to diff-based generation — summarize changes from the diff and commit messages. This is the existing behavior and remains the default for ad-hoc PRs without planning artifacts.
 
 **Step 2: Create PR**
 
