@@ -17,6 +17,18 @@ allowed-tools:
   - Write
 agent: perses-dashboard-engineer
 version: 2.0.0
+routing:
+  triggers:
+    - dashboard as code
+    - perses dac
+    - perses cue
+    - perses gitops
+    - perses ci/cd
+  pairs_with:
+    - perses-dashboard-create
+    - perses-plugin-pipeline
+  complexity: Complex
+  category: devops
 ---
 
 # Perses Dashboard-as-Code Pipeline
@@ -186,6 +198,18 @@ jobs:
 | CI/CD pipeline fails with connection refused | `PERSES_URL` variable points to wrong server or server is not reachable from GitHub Actions runner | Verify the URL is publicly accessible (not localhost). Check `vars.PERSES_URL` is set in GitHub repo Settings > Variables |
 | `percli lint` fails on valid-looking JSON | Dashboard JSON is structurally valid but violates Perses schema (e.g., unknown panel type, missing required field) | This is the system working correctly — fix the dashboard definition and rebuild. Run `percli lint --online` against a live server for detailed validation errors |
 
+### Error: CUE module initialization failure
+**Cause**: `cue mod init` was skipped or ran in the wrong directory before running `percli dac setup`
+**Solution**: Navigate to the `dac/` directory and run `cue mod init <module-name>` before `percli dac setup`. Verify `cue version` shows >= 0.12.0.
+
+### Error: Go SDK stdout contamination
+**Cause**: Go DaC program prints to stdout via `fmt.Println` or `log.Println`, corrupting the dashboard JSON output from `percli dac build`
+**Solution**: Remove all stdout writes from Go DaC code. Use `fmt.Fprintln(os.Stderr, ...)` for debug output. Check imported libraries for stray stdout writes. Rebuild and verify output is valid JSON.
+
+### Error: CI/CD authentication failure
+**Cause**: `PERSES_USERNAME` / `PERSES_PASSWORD` secrets not configured in GitHub repository settings, or credentials are incorrect
+**Solution**: Add secrets in GitHub repo Settings > Secrets. Verify credentials work locally with `percli login` first. Ensure `vars.PERSES_URL` points to the correct, publicly accessible server.
+
 ---
 
 ## Anti-Patterns
@@ -250,14 +274,12 @@ Do NOT mark a phase as complete if any of these conditions exist:
 
 ## References
 
-| Resource | URL |
-|----------|-----|
-| Perses DaC documentation | https://perses.dev/docs/dac/ |
-| CUE SDK setup guide | https://perses.dev/docs/dac/cue/setup/ |
-| Go SDK setup guide | https://perses.dev/docs/dac/go/setup/ |
-| CUE DaC utils package | `github.com/perses/perses/cue/dac-utils` |
-| Go SDK package | `github.com/perses/perses/go-sdk` |
-| CI/CD GitHub Actions | `perses/cli-actions/.github/workflows/dac.yaml@v0.1.0` |
-| percli CLI reference | https://perses.dev/docs/cli/ |
-| Perses GitHub repository | https://github.com/perses/perses |
-| CUE language docs | https://cuelang.org/docs/ |
+- [Perses DaC documentation](https://perses.dev/docs/dac/) - Dashboard-as-Code overview and getting started guide
+- [CUE SDK setup guide](https://perses.dev/docs/dac/cue/setup/) - CUE-based DaC module initialization
+- [Go SDK setup guide](https://perses.dev/docs/dac/go/setup/) - Go-based DaC module initialization
+- [CUE DaC utils package](https://github.com/perses/perses/tree/main/cue/dac-utils) - CUE helper utilities for dashboard definitions
+- [Go SDK package](https://github.com/perses/perses/tree/main/go-sdk) - Go SDK for programmatic dashboard building
+- [CI/CD GitHub Actions](https://github.com/perses/cli-actions) - Reusable GitHub Actions for DaC pipelines
+- [percli CLI reference](https://perses.dev/docs/cli/) - Command-line tool for Perses operations
+- [Perses GitHub repository](https://github.com/perses/perses) - Main Perses project repository
+- [CUE language docs](https://cuelang.org/docs/) - CUE language specification and reference

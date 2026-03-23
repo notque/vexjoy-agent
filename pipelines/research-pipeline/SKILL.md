@@ -16,6 +16,18 @@ allowed-tools:
   - Grep
   - Agent
   - Write
+routing:
+  triggers:
+    - research pipeline
+    - formal research
+    - research with artifacts
+    - structured research
+    - research topic
+  pairs_with:
+    - domain-research
+    - explore-pipeline
+  complexity: Medium
+  category: meta
 ---
 
 # Research Pipeline
@@ -408,3 +420,11 @@ Actions: Phase 1 sets depth=quick (~5 calls per agent), 3 sub-questions. Phase 2
 ### Example 3: Resuming interrupted research
 User: "Continue the research on distributed consensus algorithms"
 Actions: Check if `research/distributed-consensus/` exists. If scope.md and some raw-*.md files exist, read scope.md to re-establish context, check which angles are missing, and resume from Phase 3 (SYNTHESIZE) if all raw files are present, or re-dispatch missing angles if some are absent.
+
+---
+
+## References
+
+- [domain-research](../domain-research/SKILL.md) - Subdomain discovery pipeline that uses similar parallel research patterns
+- [explore-pipeline](../explore-pipeline/SKILL.md) - Systematic codebase exploration pipeline for research within a repository
+- [research-subagent-executor](../../agents/research-subagent-executor.md) - Agent dispatched in Phase 2 for parallel research execution

@@ -35,7 +35,7 @@ routing:
     - github-actions-check
     - parallel-code-review
   complexity: medium
-  category: git-workflow
+  category: devops
 ---
 
 # PR Pipeline

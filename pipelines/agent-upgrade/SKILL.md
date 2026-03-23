@@ -18,6 +18,18 @@ allowed-tools:
   - Agent
   - Edit
   - Write
+routing:
+  triggers:
+    - upgrade agent
+    - improve agent
+    - agent upgrade
+    - fix agent quality
+    - align agent to template
+  pairs_with:
+    - agent-evaluation
+    - system-upgrade
+  complexity: Medium
+  category: meta
 ---
 
 # Agent Upgrade Pipeline
@@ -303,6 +315,8 @@ Items applied:
 
 If the delta is positive, the upgrade is complete. If the delta is zero or negative and the user has not already acknowledged it, surface the regression report before closing.
 
+**Gate**: After score recorded and delta computed. If positive, upgrade complete. If negative, user has acknowledged the regression before closing.
+
 ---
 
 ## Error Handling
@@ -371,3 +385,12 @@ Actions: Phase 1 scores systematic-debugging (baseline: 81/A). Phase 2 finds 2 r
 ### Example 3: Regression caught
 User: "Improve the hook-development-engineer agent — align it to current patterns."
 Actions: Phase 1 scores (baseline: 72/B). Phase 2 finds 4 gaps. Phase 3 plan approved. Phase 4 applies all 4. Phase 5 re-evaluates (after: 69/C, delta: -3). Regression detected. Show diff. Ask user: revert item 3 (the likely culprit) or accept? User says revert. Item 3 reverted. Phase 5 re-run (after: 75/B, delta: +3). Upgrade complete.
+
+---
+
+## References
+
+- [agent-evaluation](../../skills/agent-evaluation/SKILL.md) - Objective scoring skill used in Phase 1 (baseline) and Phase 5 (re-evaluate)
+- [system-upgrade](../system-upgrade/SKILL.md) - Top-down multi-component upgrade pipeline (complements this bottom-up single-agent pipeline)
+- [AGENT_TEMPLATE_V2](../../agents/AGENT_TEMPLATE_V2.md) - Structural template used for gap analysis in Phase 2
+- [learning-db.py](../../scripts/learning-db.py) - Script for querying retro graduation candidates

@@ -17,6 +17,16 @@ allowed-tools:
   - Agent
   - Edit
   - Write
+routing:
+  triggers:
+    - create skill pipeline
+    - new skill formal
+    - skill with gates
+  pairs_with:
+    - agent-evaluation
+    - routing-table-updater
+  complexity: Medium
+  category: meta
 ---
 
 # Skill Creation Pipeline
@@ -438,3 +448,11 @@ GATHER, DISPATCH, COLLECT, SYNTHESIZE, REPORT). Design brief saved. Phase 3
 first scaffold scores 64/100 (C — missing Operator Context subsections and Error
 Handling). Returns to Phase 3 with specific fixes. Second scaffold scores 82/100
 (B). Phase 4 passes. Phase 5 integrates with routing trigger "parallel review".
+
+---
+
+## References
+
+- [AGENT_TEMPLATE_V2.md](../../AGENT_TEMPLATE_V2.md) - Template for agent and skill structural patterns
+- [agent-evaluation](../../skills/agent-evaluation/SKILL.md) - Rubric-based scoring used in Phase 4 VALIDATE
+- [routing-table-updater](../../skills/routing-table-updater/SKILL.md) - Routing integration used in Phase 5 INTEGRATE
