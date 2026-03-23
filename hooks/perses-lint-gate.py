@@ -10,11 +10,15 @@ Event: PreToolUse (Bash)
 import json
 import re
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from stdin_timeout import read_stdin
 
 
 def main():
     try:
-        event = json.loads(sys.stdin.read())
+        event = json.loads(read_stdin(timeout=2))
     except (json.JSONDecodeError, EOFError, ValueError):
         # Fail open: if we can't parse the event, allow the tool to run.
         # Exit code 2 = block in Claude Code; broken hooks must not block.

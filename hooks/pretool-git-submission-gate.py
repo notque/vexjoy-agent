@@ -25,6 +25,10 @@ Design Principles:
 import json
 import re
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from stdin_timeout import read_stdin
 
 # Bypass prefix that skills include when they legitimately need to run blocked commands.
 # Checked as a string prefix in the command, not as an env var.
@@ -40,7 +44,7 @@ BLOCKED_PATTERNS = [
 
 
 def main() -> None:
-    raw = sys.stdin.read()
+    raw = read_stdin(timeout=2)
     try:
         event = json.loads(raw)
     except (json.JSONDecodeError, ValueError):

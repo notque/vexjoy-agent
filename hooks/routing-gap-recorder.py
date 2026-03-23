@@ -18,12 +18,15 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from stdin_timeout import read_stdin
+
 _GAP_PATTERN = re.compile(r"GAP DETECTED:\s*No match for\s+\[?([^\]\n]+)\]?")
 
 
 def main():
     try:
-        event_data = sys.stdin.read()
+        event_data = read_stdin(timeout=2)
         if not event_data:
             return
 

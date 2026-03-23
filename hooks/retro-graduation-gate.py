@@ -16,6 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from hook_utils import context_output, empty_output
+from stdin_timeout import read_stdin
 
 DB_PATH = Path.home() / ".claude" / "learning" / "learning.db"
 EVENT = "PostToolUse"
@@ -23,7 +24,7 @@ EVENT = "PostToolUse"
 
 def main() -> None:
     try:
-        data = json.loads(sys.stdin.read())
+        data = json.loads(read_stdin(timeout=2))
     except (json.JSONDecodeError, OSError):
         empty_output(EVENT).print_and_exit(0)
         return

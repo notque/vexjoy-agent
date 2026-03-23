@@ -14,6 +14,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from stdin_timeout import read_stdin
+
 
 def is_agent_file(file_path: str) -> bool:
     """Check if a file path is an agent markdown file."""
@@ -65,11 +68,13 @@ def main():
     # Read hook input - try stdin first, then fall back to temp file
     hook_input = None
 
-    # Try reading from stdin
+    # Try reading from stdin with timeout protection
     try:
         if not sys.stdin.isatty():
-            hook_input = json.load(sys.stdin)
-    except json.JSONDecodeError:
+            raw = read_stdin(timeout=2)
+            if raw:
+                hook_input = json.loads(raw)
+    except (json.JSONDecodeError, ValueError):
         pass
 
     # Fall back to temp file (used by other hooks in the chain)

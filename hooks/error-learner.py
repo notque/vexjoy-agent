@@ -22,6 +22,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from feedback_tracker import check_pending_feedback, set_pending_feedback
+from stdin_timeout import read_stdin
 from learning_db_v2 import (
     DEFAULT_FIX_ACTIONS,
     boost_confidence,
@@ -122,7 +123,7 @@ def main():
     4. Set pending feedback for next iteration
     """
     try:
-        event_data = sys.stdin.read()
+        event_data = read_stdin(timeout=2)
         if not event_data:
             return
 

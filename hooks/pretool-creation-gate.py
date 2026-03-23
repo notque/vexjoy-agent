@@ -34,6 +34,10 @@ import json
 import os
 import re
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from stdin_timeout import read_stdin
 
 # Env var that creator pipelines set to bypass this gate.
 _BYPASS_ENV = "CREATION_GATE_BYPASS"
@@ -45,7 +49,7 @@ _SKILL_PATTERN = re.compile(r"/skills/[^/]+/SKILL\.md$")
 
 
 def main() -> None:
-    raw = sys.stdin.read()
+    raw = read_stdin(timeout=2)
     try:
         event = json.loads(raw)
     except (json.JSONDecodeError, ValueError):

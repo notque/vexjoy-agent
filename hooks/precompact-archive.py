@@ -29,6 +29,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from learning_db_v2 import classify_error, generate_signature, get_stats, record_learning
+from stdin_timeout import read_stdin
 
 
 def inject_adr_anchor(event: dict) -> None:
@@ -168,7 +169,7 @@ def main():
     """Archive learnings before context compression."""
     try:
         # Read event data from stdin
-        event_data = sys.stdin.read()
+        event_data = read_stdin(timeout=2)
         if not event_data:
             return
 
