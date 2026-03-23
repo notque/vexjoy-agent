@@ -180,7 +180,7 @@ Phase 1/7: COLLECT
 #### Run the Analyzer
 
 ```bash
-python3 scripts/voice_analyzer.py analyze \
+python3 ~/.claude/scripts/voice_analyzer.py analyze \
   --samples skills/voice-{name}/references/samples/*.md \
   --output skills/voice-{name}/profile.json
 ```
@@ -188,7 +188,7 @@ python3 scripts/voice_analyzer.py analyze \
 #### Also Get the Text Report
 
 ```bash
-python3 scripts/voice_analyzer.py analyze \
+python3 ~/.claude/scripts/voice_analyzer.py analyze \
   --samples skills/voice-{name}/references/samples/*.md \
   --format text
 ```
@@ -624,7 +624,7 @@ Save each to a temp file.
 For each test piece:
 
 ```bash
-python3 scripts/voice_validator.py validate \
+python3 ~/.claude/scripts/voice_validator.py validate \
   --content /tmp/voice-test-{name}-{N}.md \
   --profile skills/voice-{name}/profile.json \
   --voice {name} \
@@ -635,7 +635,7 @@ python3 scripts/voice_validator.py validate \
 #### Run Banned Pattern Check
 
 ```bash
-python3 scripts/voice_validator.py check-banned \
+python3 ~/.claude/scripts/voice_validator.py check-banned \
   --content /tmp/voice-test-{name}-{N}.md \
   --voice {name}
 ```

@@ -3,7 +3,7 @@
 ## Example 1: Mine Go Repository for Error Handling Patterns
 
 ```bash
-python3 scripts/miner.py your-org/your-repo your-project_errors.json --limit 100
+python3 ~/.claude/scripts/miner.py your-org/your-repo your-project_errors.json --limit 100
 ```
 
 **What it finds:**
@@ -27,7 +27,7 @@ python3 scripts/miner.py your-org/your-repo your-project_errors.json --limit 100
 ## Example 2: Multi-Repo Team Standards
 
 ```bash
-python3 scripts/miner.py your-org/your-repo,your-org/repo1,your-org/repo2 team_standards.json --limit 50
+python3 ~/.claude/scripts/miner.py your-org/your-repo,your-org/repo1,your-org/repo2 team_standards.json --limit 50
 ```
 
 **Use case:** Extract common patterns across the your team repos
@@ -41,7 +41,7 @@ python3 scripts/miner.py your-org/your-repo,your-org/repo1,your-org/repo2 team_s
 ## Example 3: Learning from Senior Developer
 
 ```bash
-python3 scripts/miner.py your-org/your-repo senior_patterns.json \
+python3 ~/.claude/scripts/miner.py your-org/your-repo senior_patterns.json \
   --reviewer senior-developer \
   --limit 200
 ```
@@ -57,7 +57,7 @@ python3 scripts/miner.py your-org/your-repo senior_patterns.json \
 ## Example 4: Recent Standards (Last 6 Months)
 
 ```bash
-python3 scripts/miner.py your-org/your-repo recent_standards.json \
+python3 ~/.claude/scripts/miner.py your-org/your-repo recent_standards.json \
   --since 2024-06-01 \
   --limit 200
 ```
@@ -73,7 +73,7 @@ python3 scripts/miner.py your-org/your-repo recent_standards.json \
 ## Example 5: Quick Summary for Exploration
 
 ```bash
-python3 scripts/miner.py your-org/your-repo your-project_quick.json \
+python3 ~/.claude/scripts/miner.py your-org/your-repo your-project_quick.json \
   --limit 30 \
   --summary
 ```
@@ -100,7 +100,7 @@ Top Keywords:
 ## Example 6: Check Authentication Before Mining
 
 ```bash
-python3 scripts/miner.py --check-auth
+python3 ~/.claude/scripts/miner.py --check-auth
 ```
 
 **Output:**
@@ -164,14 +164,14 @@ The agent will:
 ### Start Small
 ```bash
 # First run: 20 PRs to validate output
-python3 scripts/miner.py your-org/your-repo test.json --limit 20
+python3 ~/.claude/scripts/miner.py your-org/your-repo test.json --limit 20
 # Review test.json before scaling up
 ```
 
 ### Focus on Quality
 ```bash
 # Target specific high-value reviewer
-python3 scripts/miner.py your-org/your-repo quality.json \
+python3 ~/.claude/scripts/miner.py your-org/your-repo quality.json \
   --reviewer senior-developer \
   --limit 100
 ```
@@ -179,7 +179,7 @@ python3 scripts/miner.py your-org/your-repo quality.json \
 ### Update Regularly
 ```bash
 # Quarterly update
-python3 scripts/miner.py your-org/your-repo q4_2025.json \
+python3 ~/.claude/scripts/miner.py your-org/your-repo q4_2025.json \
   --since 2025-10-01 \
   --limit 100
 ```
@@ -187,7 +187,7 @@ python3 scripts/miner.py your-org/your-repo q4_2025.json \
 ### Multi-Repo Analysis
 ```bash
 # All observability repos
-python3 scripts/miner.py \
+python3 ~/.claude/scripts/miner.py \
   your-org/your-repo,your-org/repo1,your-org/repo2,your-org/repo-d \
   observability_standards.json \
   --limit 50

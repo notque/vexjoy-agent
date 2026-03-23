@@ -44,8 +44,8 @@ _EXCLUDE_PATTERNS = [
 ]
 
 # Reference files used by adr-compliance.py
-__STEP_MENU = "pipelines/pipeline-scaffolder/references/step-menu.md"
-__SPEC_FORMAT = "pipelines/pipeline-scaffolder/references/pipeline-spec-format.md"
+__STEP_MENU = "~/.claude/skills/pipeline-scaffolder/references/step-menu.md"
+__SPEC_FORMAT = "~/.claude/skills/pipeline-scaffolder/references/pipeline-spec-format.md"
 
 
 def is_pipeline_component(file_path: str) -> bool:
@@ -148,7 +148,7 @@ def format_violations(file_path: str, check_result: dict) -> str:
         lines.append(f"[adr-enforcement] {entry}")
 
     lines.append("[adr-enforcement] FIX REQUIRED before proceeding:")
-    lines.append(f"[adr-enforcement]   python3 scripts/adr-compliance.py check --file {display_path} \\")
+    lines.append(f"[adr-enforcement]   python3 ~/.claude/scripts/adr-compliance.py check --file {display_path} \\")
     lines.append(f"[adr-enforcement]     --step-menu {_STEP_MENU} \\")
     lines.append(f"[adr-enforcement]     --spec-format {_SPEC_FORMAT}")
 

@@ -364,13 +364,13 @@ Every Pipeline Spec JSON produced by `chain-composer` MUST include:
 
 **Verification**: The `pipeline-scaffolder` Phase 1 gate runs:
 ```bash
-python3 scripts/adr-query.py verify --adr {spec.adr_path} --hash {spec.adr_hash}
+python3 ~/.claude/scripts/adr-query.py verify --adr {spec.adr_path} --hash {spec.adr_hash}
 ```
 If exit 1 (hash mismatch): STOP. The ADR changed after composition. Re-run `chain-composer` with the updated ADR before scaffolding.
 
 **Compliance check**: After creating any component, verify against authoritative sources:
 ```bash
-python3 scripts/adr-compliance.py check --file {file} \
+python3 ~/.claude/scripts/adr-compliance.py check --file {file} \
   --step-menu pipelines/pipeline-scaffolder/references/step-menu.md \
   --spec-format pipelines/pipeline-scaffolder/references/pipeline-spec-format.md
 ```

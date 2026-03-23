@@ -119,7 +119,7 @@ If uploading content, confirm the markdown file exists and is non-empty.
 **For new posts:**
 
 ```bash
-python3 scripts/wordpress-upload.py \
+python3 ~/.claude/scripts/wordpress-upload.py \
   --file <path-to-markdown> \
   --title "Post Title" \
   --human
@@ -128,7 +128,7 @@ python3 scripts/wordpress-upload.py \
 **For media uploads:**
 
 ```bash
-python3 scripts/wordpress-media-upload.py \
+python3 ~/.claude/scripts/wordpress-media-upload.py \
   --file <path-to-image> \
   --alt "Descriptive alt text" \
   --human
@@ -137,7 +137,7 @@ python3 scripts/wordpress-media-upload.py \
 **For editing existing posts:**
 
 ```bash
-python3 scripts/wordpress-edit-post.py \
+python3 ~/.claude/scripts/wordpress-edit-post.py \
   --id <post-id> \
   --human \
   [--title "New Title"] \
@@ -149,7 +149,7 @@ python3 scripts/wordpress-edit-post.py \
 **For inspecting a post before editing:**
 
 ```bash
-python3 scripts/wordpress-edit-post.py \
+python3 ~/.claude/scripts/wordpress-edit-post.py \
   --id <post-id> \
   --get \
   --human
@@ -176,14 +176,14 @@ python3 scripts/wordpress-edit-post.py \
 
 ```bash
 # 1. Upload the featured image
-python3 scripts/wordpress-media-upload.py \
+python3 ~/.claude/scripts/wordpress-media-upload.py \
   --file images/photo.jpg \
   --alt "Description" \
   --human
 # Note the media_id from output
 
 # 2. Create the post (frontmatter auto-parsed for title, categories, tags, slug)
-python3 scripts/wordpress-upload.py \
+python3 ~/.claude/scripts/wordpress-upload.py \
   --file content/article.md \
   --category "News" \
   --tag "Example Tag" --tag "Example Event" \
@@ -192,7 +192,7 @@ python3 scripts/wordpress-upload.py \
 # Note the post_id from output
 
 # 3. Attach featured image to post
-python3 scripts/wordpress-edit-post.py \
+python3 ~/.claude/scripts/wordpress-edit-post.py \
   --id <post_id> \
   --featured-image <media_id> \
   --human
@@ -202,10 +202,10 @@ python3 scripts/wordpress-edit-post.py \
 
 ```bash
 # 1. List existing drafts to find old version
-python3 scripts/wordpress-edit-post.py --list-drafts --human
+python3 ~/.claude/scripts/wordpress-edit-post.py --list-drafts --human
 
 # 2. Delete old draft
-python3 scripts/wordpress-edit-post.py \
+python3 ~/.claude/scripts/wordpress-edit-post.py \
   --id <old_post_id> \
   --delete \
   --human
@@ -309,7 +309,7 @@ Use the `{.wp-button}` attribute to create WordPress button blocks:
 Use `--validate` to check Gutenberg HTML structure without uploading:
 
 ```bash
-python3 scripts/wordpress-upload.py --file article.md --validate
+python3 ~/.claude/scripts/wordpress-upload.py --file article.md --validate
 ```
 
 Output is JSON: `{"status": "valid", "block_count": N}` or `{"status": "invalid", "errors": [...]}`.

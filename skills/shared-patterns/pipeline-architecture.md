@@ -257,7 +257,7 @@ Task(agent3, "Research music...")
 
 ```bash
 # Validation is deterministic, reproducible
-python3 scripts/voice_validator.py validate \
+python3 ~/.claude/scripts/voice_validator.py validate \
   --content article.md \
   --voice {voice-name} \
   --format json
@@ -290,7 +290,7 @@ Why: LLMs hallucinate quality. Scripts measure it.
 
 When a pipeline step performs a deterministic operation (repo classification, file validation, metric calculation, format conversion), extract it into a `scripts/*.py` CLI tool instead of writing inline bash in the skill's instructions. This:
 
-- **Saves tokens**: A single `python3 scripts/classify-repo.py --type-only` call replaces 5+ lines of bash and associated explanation
+- **Saves tokens**: A single `python3 ~/.claude/scripts/classify-repo.py --type-only` call replaces 5+ lines of bash and associated explanation
 - **Ensures consistency**: The same script runs identically across all skills that reference it
 - **Enables testing**: Scripts can be unit-tested independently of the skill
 - **Separates concerns**: `scripts/` = deterministic ops, `skills/` = LLM orchestration

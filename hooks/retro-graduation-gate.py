@@ -87,7 +87,7 @@ def main() -> None:
     lines.append("Before merging, graduate findings into the responsible agents/skills:")
     for row in rows:
         lines.append(f"  - {row['topic']}: {row['key']}")
-    lines.append('Use: python3 scripts/learning-db.py graduate TOPIC KEY "target-file.md"')
+    lines.append('Use: python3 ~/.claude/scripts/learning-db.py graduate TOPIC KEY "target-file.md"')
 
     context_output(EVENT, "\n".join(lines)).print_and_exit(0)
 

@@ -34,7 +34,7 @@ This is a **machine-readable contract**. Both sides must agree on every field.
 | `reuse_agent` | string\|null | Conditional | Existing agent name from `agents/INDEX.json` | If an existing agent covers 70%+ of the domain (Rule 9: Reuse Over Recreation), reference it here instead of creating a new one. |
 | `operator_profile` | string | Yes | See Operator Profile enum | The detected or overridden operator profile. Determines which safety/interaction steps are injected into chains. |
 
-**Note on `adr_hash`**: Computed via `python3 scripts/adr-query.py hash --adr {path}` at the time `chain-composer` produces the spec. The `pipeline-scaffolder` Phase 1 gate runs `python3 scripts/adr-query.py verify --adr {spec.adr_path} --hash {spec.adr_hash}` before proceeding. If exit 1 (hash mismatch), the scaffolder stops — the ADR changed after composition and `chain-composer` must be re-run with the updated ADR before scaffolding.
+**Note on `adr_hash`**: Computed via `python3 ~/.claude/scripts/adr-query.py hash --adr {path}` at the time `chain-composer` produces the spec. The `pipeline-scaffolder` Phase 1 gate runs `python3 ~/.claude/scripts/adr-query.py verify --adr {spec.adr_path} --hash {spec.adr_hash}` before proceeding. If exit 1 (hash mismatch), the scaffolder stops — the ADR changed after composition and `chain-composer` must be re-run with the updated ADR before scaffolding.
 
 **Constraint**: Exactly one of `new_agent` or `reuse_agent` must be non-null. The scaffolder rejects specs where both are null (no executor) or both are non-null (ambiguous executor).
 

@@ -9,6 +9,7 @@ get human-gated PR workflows. All others get automated review-fix loops.
 Configuration:
     Set PROTECTED_ORGS env var (comma-separated) to define protected organizations.
     Example: PROTECTED_ORGS="my-company,acme-corp"
+    When PROTECTED_ORGS is not set, all repos classify as personal.
 
 Usage:
     python3 scripts/classify-repo.py                # JSON output
@@ -47,8 +48,13 @@ def get_remote_url(remote: str = "origin") -> str | None:
         )
         if result.returncode == 0:
             return result.stdout.strip()
-    except (subprocess.TimeoutExpired, FileNotFoundError):
-        pass
+        stderr_msg = result.stderr.strip()
+        if stderr_msg:
+            print(f"classify-repo: git remote get-url {remote}: {stderr_msg}", file=sys.stderr)
+    except FileNotFoundError:
+        print("classify-repo: git not found in PATH", file=sys.stderr)
+    except subprocess.TimeoutExpired:
+        print(f"classify-repo: git remote get-url {remote} timed out", file=sys.stderr)
     return None
 
 
@@ -56,6 +62,8 @@ def _get_protected_orgs() -> list[str]:
     """Get list of protected organization name patterns from env var.
 
     Returns lowercase patterns for case-insensitive matching.
+    Returns empty list when PROTECTED_ORGS is not set — configure via env var
+    or Fish config: set -gx PROTECTED_ORGS "org1,org2"
     """
     orgs_env = os.environ.get("PROTECTED_ORGS", "").strip()
     if not orgs_env:
@@ -122,4 +130,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"classify-repo: unexpected error: {e}", file=sys.stderr)
+        sys.exit(2)

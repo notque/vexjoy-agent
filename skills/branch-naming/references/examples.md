@@ -312,7 +312,7 @@ Use the validation script to test:
 
 ```bash
 # Test generation
-$ python3 scripts/generate.py --from-commit-message "feat: add OAuth2"
+$ python3 ~/.claude/scripts/generate.py --from-commit-message "feat: add OAuth2"
 {
   "branch_name": "feature/add-oauth2",
   "prefix": "feature/",

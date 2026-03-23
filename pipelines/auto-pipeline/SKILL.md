@@ -82,7 +82,7 @@ This pipeline operates as the automatic fallback for `/do` when no existing rout
 
 **Step 1**: Run task type classification:
 ```bash
-python3 scripts/task-type-classifier.py --request "{user_request}" --check-catalog pipelines/auto-pipeline/references/pipeline-catalog.md --json
+python3 ~/.claude/scripts/task-type-classifier.py --request "{user_request}" --check-catalog ~/.claude/skills/auto-pipeline/references/pipeline-catalog.json --json
 ```
 
 **Step 2**: If the classifier returns `existing_pipeline`, STOP. Route to that pipeline instead. Display:
@@ -144,7 +144,7 @@ python3 scripts/task-type-classifier.py --request "{user_request}" --check-catal
 - Proceed to Phase 3 (CRYSTALLIZE) instead of Phase 4 (EPHEMERAL EXECUTE)
 
 **Step 3**: If NOT toolkit repo:
-- Query learning.db: `python3 scripts/learning-db.py search "ephemeral {task_type}" --json`
+- Query learning.db: `python3 ~/.claude/scripts/learning-db.py search "ephemeral {task_type}" --json`
 - Count matching entries for this domain
 - If 3+ found: proceed to Phase 3 (CRYSTALLIZE)
 - If <3 found: proceed to Phase 4 (EPHEMERAL EXECUTE)
@@ -172,7 +172,7 @@ This phase IS a pipeline itself (10 steps):
 - Ensure 8-12 steps
 - Validate type compatibility
 
-**Step 5 — VALIDATE**: Run `python3 scripts/artifact-utils.py validate-chain` against the composed chain.
+**Step 5 — VALIDATE**: Run `python3 ~/.claude/scripts/artifact-utils.py validate-chain` against the composed chain.
 
 **Step 6 — SCAFFOLD**: Create the pipeline skill:
 - Create `pipelines/{pipeline-name}/SKILL.md` with full operator context
@@ -180,7 +180,7 @@ This phase IS a pipeline itself (10 steps):
 - Follow the existing pipeline SKILL.md format (frontmatter + operator context + phases)
 
 **Step 7 — INTEGRATE**: Wire into routing:
-- Run `python3 scripts/generate-skill-index.py` to update INDEX.json
+- Run `python3 ~/.claude/scripts/generate-skill-index.py` to update INDEX.json
 - The routing-table-updater skill handles /do routing table updates
 
 **Step 8 — VERIFY**: Confirm the new pipeline is discoverable:
@@ -235,7 +235,7 @@ This phase IS a pipeline itself (10 steps):
 
 **Step 6**: On completion, record learning:
 ```bash
-python3 scripts/learning-db.py learn --skill auto-pipeline "ephemeral {task_type} for {domain}: {chain_description}"
+python3 ~/.claude/scripts/learning-db.py learn --skill auto-pipeline "ephemeral {task_type} for {domain}: {chain_description}"
 ```
 
 **Gate**: All steps executed. Output delivered. Learning recorded.

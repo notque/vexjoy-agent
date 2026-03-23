@@ -44,7 +44,7 @@ This skill operates as the build engine of the self-improving pipeline generator
 - **Template Compliance**: Every agent MUST follow `AGENT_TEMPLATE_V2.md`. Every skill MUST be generated from `references/generated-skill-template.md`. WHY: Templates ensure structural consistency, which enables automated validation and routing integration.
 - **No Monolithic Prompts**: Agent prompts MUST NOT exceed 10,000 words. If content exceeds this limit, move detail to `references/` subdirectory.
 - **ADR Cascade**: Every generated skill MUST include Phase 0: ADR as its first instruction phase. WHY: ADRs prevent context drift across phases and provide grading artifacts for retrospectives. The ADR mandate cascades from generator to generated.
-- **ADR Hash Verification**: Before scaffolding, verify the ADR has not been modified since session registration: `python3 scripts/adr-query.py verify --adr {adr_path} --hash {hash}`. If verification fails (exit 1), stop and re-register. Check `adr-query.py list` for related ADRs during discovery.
+- **ADR Hash Verification**: Before scaffolding, verify the ADR has not been modified since session registration: `python3 ~/.claude/scripts/adr-query.py verify --adr {adr_path} --hash {hash}`. If verification fails (exit 1), stop and re-register. Check `adr-query.py list` for related ADRs during discovery.
 - **Parallel Research Enforcement**: When a generated skill's chain includes a research-gathering step, the generated phase MUST use parallel multi-agent dispatch per Rule 12. WHY: A/B testing proved sequential research loses 1.40 points on Examples quality versus parallel dispatch.
 
 ### Default Behaviors (ON unless disabled)
@@ -126,7 +126,7 @@ Routing entries     = spec.subdomains[*].routing_triggers (per skill)
 
 If the spec has an `adr_hash` field:
 ```bash
-python3 scripts/adr-query.py verify \
+python3 ~/.claude/scripts/adr-query.py verify \
   --adr {spec.adr_path} \
   --hash {spec.adr_hash}
 ```

@@ -94,7 +94,7 @@ This skill operates as the main orchestration pipeline for extracting programmin
 
 **Step 1**: Run the API fetcher to get repo metadata:
 ```bash
-python3 scripts/github-api-fetcher.py repos \
+python3 ~/.claude/scripts/github-api-fetcher.py repos \
   --username {username} \
   --max-repos {N} \
   --output-dir /tmp/github-rules-{username}
@@ -130,7 +130,7 @@ python3 scripts/github-api-fetcher.py repos \
 - **Agent 4: Documentation Patterns** -- README structure, inline comments, docstring style, documentation quality
 
 Each agent:
-- Uses `python3 scripts/github-api-fetcher.py sample-files` to fetch file contents
+- Uses `python3 ~/.claude/scripts/github-api-fetcher.py sample-files` to fetch file contents
 - Saves findings to `/tmp/github-rules-{username}/research-{aspect}.md`
 - Has a 5-minute timeout
 - Operates independently
@@ -147,7 +147,7 @@ Each agent:
 
 **Step 1**: Run the API fetcher to get PR reviews:
 ```bash
-python3 scripts/github-api-fetcher.py pr-reviews \
+python3 ~/.claude/scripts/github-api-fetcher.py pr-reviews \
   --username {username} \
   --output-dir /tmp/github-rules-{username}
 ```
@@ -185,7 +185,7 @@ python3 scripts/github-api-fetcher.py pr-reviews \
 
 **Step 4**: Run the rules compiler for structured output:
 ```bash
-python3 scripts/rules-compiler.py \
+python3 ~/.claude/scripts/rules-compiler.py \
   --input-dir /tmp/github-rules-{username} \
   --output /tmp/github-rules-{username}/compiled-rules.json
 ```
@@ -260,7 +260,7 @@ python3 scripts/rules-compiler.py \
 
 **Step 4**: Run the rules compiler in validation mode:
 ```bash
-python3 scripts/rules-compiler.py \
+python3 ~/.claude/scripts/rules-compiler.py \
   --input-dir /tmp/github-rules-{username} \
   --output /tmp/github-rules-{username}/validated-rules.json \
   --validate

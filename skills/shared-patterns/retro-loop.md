@@ -32,7 +32,7 @@ Hooks automatically record learnings during normal work:
 - **Session gaps**: `session-learning-recorder.py` warns when substantive sessions produce zero learnings.
 - **Manual recording**: For design decisions and gotchas that hooks can't detect:
   ```bash
-  python3 scripts/learning-db.py record TOPIC KEY "VALUE" --category CATEGORY
+  python3 ~/.claude/scripts/learning-db.py record TOPIC KEY "VALUE" --category CATEGORY
   ```
   Categories: `error | pivot | review | design | debug | gotcha | effectiveness`
 
@@ -68,7 +68,7 @@ When learnings are mature enough to become permanent agent/skill instructions:
 Each feature lifecycle skill (design, plan, implement, validate, release) has a CHECKPOINT phase that records learnings:
 
 ```bash
-python3 scripts/learning-db.py record TOPIC KEY "VALUE" --category design
+python3 ~/.claude/scripts/learning-db.py record TOPIC KEY "VALUE" --category design
 ```
 
 Focus on non-obvious, specific insights — not generic best practices.

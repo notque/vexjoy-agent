@@ -140,7 +140,7 @@ If nothing reusable was learned, skip recording. Generic findings like "add more
 For each reusable finding, call:
 
 ```bash
-python3 scripts/feature-state.py retro-record-adhoc TOPIC KEY "VALUE"
+python3 ~/.claude/scripts/feature-state.py retro-record-adhoc TOPIC KEY "VALUE"
 ```
 
 Where:

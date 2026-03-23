@@ -21,14 +21,14 @@ Git worktrees provide physical branch isolation. Instead of `git checkout` (whic
 ### Via Feature State Script
 ```bash
 # Create worktree for a feature
-python3 scripts/feature-state.py worktree my-feature create
+python3 ~/.claude/scripts/feature-state.py worktree my-feature create
 # Returns: .feature/worktrees/my-feature/ on branch feature/my-feature
 
 # Get worktree path
-python3 scripts/feature-state.py worktree my-feature path
+python3 ~/.claude/scripts/feature-state.py worktree my-feature path
 
 # Cleanup after merge
-python3 scripts/feature-state.py worktree my-feature cleanup
+python3 ~/.claude/scripts/feature-state.py worktree my-feature cleanup
 ```
 
 ### Via Agent Tool (isolation parameter)

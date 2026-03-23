@@ -811,12 +811,12 @@ If user only provides 3-5 samples:
 
 ```bash
 # Run voice analyzer on samples
-python3 scripts/voice_analyzer.py analyze \
+python3 ~/.claude/scripts/voice_analyzer.py analyze \
   --samples skills/voice-{name}/references/samples/*.md \
   --output skills/voice-{name}/profile.json
 
 # View text report for interpretation
-python3 scripts/voice_analyzer.py analyze \
+python3 ~/.claude/scripts/voice_analyzer.py analyze \
   --samples skills/voice-{name}/references/samples/*.md \
   --format text
 ```
@@ -880,7 +880,7 @@ See "Config.json Template" and "Voice Skill Output Structure" sections below.
 # Generate test content (AI), save to temp file
 # Then validate against profile
 
-python3 scripts/voice_validator.py validate \
+python3 ~/.claude/scripts/voice_validator.py validate \
   --content test-output.md \
   --profile skills/voice-{name}/profile.json \
   --voice {name} \
@@ -951,7 +951,7 @@ Process:
 5. Validate with check-banned for quick feedback
 
 Quick validation:
-python3 scripts/voice_validator.py check-banned \
+python3 ~/.claude/scripts/voice_validator.py check-banned \
   --content test-output.md \
   --voice {name} \
   --format text
@@ -972,7 +972,7 @@ Process:
 3. Generate DEFAULT output (generic Claude style)
 4. Generate CALIBRATED output (apply SKILL.md)
 5. Validate CALIBRATED output:
-   python3 scripts/voice_validator.py validate \
+   python3 ~/.claude/scripts/voice_validator.py validate \
      --content calibrated-output.md \
      --profile skills/voice-{name}/profile.json \
      --format text
@@ -988,7 +988,7 @@ Process:
 Use when: Comparing two calibrated voices
 
 ```bash
-python3 scripts/voice_analyzer.py compare \
+python3 ~/.claude/scripts/voice_analyzer.py compare \
   --profile1 skills/voice-profile-a/profile.json \
   --profile2 skills/voice-profile-b/profile.json \
   --format text
@@ -1606,8 +1606,8 @@ When content repeatedly fails validation:
 ### Error: "Script execution failed"
 
 ```
-python3 scripts/voice_analyzer.py --help
-python3 scripts/voice_validator.py --help
+python3 ~/.claude/scripts/voice_analyzer.py --help
+python3 ~/.claude/scripts/voice_validator.py --help
 ```
 
 Check:
@@ -1697,7 +1697,7 @@ After calibration, use the voice profile when:
 Validation command for drafts:
 
 ```bash
-python3 scripts/voice_validator.py validate \
+python3 ~/.claude/scripts/voice_validator.py validate \
   --content draft.md \
   --profile skills/voice-{name}/profile.json \
   --voice {name} \

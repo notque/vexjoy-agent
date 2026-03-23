@@ -33,7 +33,7 @@ Verify your Claude Code Toolkit installation, diagnose issues, and get oriented.
 **Step 1: Run install-doctor.py**
 
 ```bash
-python3 scripts/install-doctor.py check
+python3 ~/.claude/scripts/install-doctor.py check
 ```
 
 If the script is not found at `scripts/install-doctor.py`, try `~/.claude/scripts/install-doctor.py`.
@@ -94,7 +94,7 @@ Only run fixes the user approves.
 
 After fixes, re-run:
 ```bash
-python3 scripts/install-doctor.py check
+python3 ~/.claude/scripts/install-doctor.py check
 ```
 
 **Gate**: All checks pass. Proceed to Phase 3.
@@ -106,7 +106,7 @@ python3 scripts/install-doctor.py check
 **Step 1: Run inventory**
 
 ```bash
-python3 scripts/install-doctor.py inventory
+python3 ~/.claude/scripts/install-doctor.py inventory
 ```
 
 **Step 2: Display summary**
@@ -132,7 +132,7 @@ Your toolkit is ready. Here's what's installed:
 **Step 1: Run MCP registry check**
 
 ```bash
-python3 scripts/mcp-registry.py list
+python3 ~/.claude/scripts/mcp-registry.py list
 ```
 
 If the script is not found at `scripts/mcp-registry.py`, try `~/.claude/scripts/mcp-registry.py`.

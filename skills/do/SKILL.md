@@ -115,7 +115,7 @@ Phase banners are short single-line indicators. The routing decision banner (the
 
 **Step 1**: Run the classifier:
 ```bash
-python3 scripts/task-type-classifier.py --request "{user_request}" --check-catalog pipelines/auto-pipeline/references/pipeline-catalog.json --json
+python3 ~/.claude/scripts/task-type-classifier.py --request "{user_request}" --check-catalog ~/.claude/skills/auto-pipeline/references/pipeline-catalog.json --json
 ```
 
 **Step 2**: Read the JSON output. Three possible outcomes:
@@ -459,7 +459,7 @@ Detect creation requests by checking if the request contains: "create", "new", "
 ```
 1. Write ADR: adr/{kebab-case-name}.md
    - Include: Context, Decision, Component list, Consequences
-2. Register session: python3 scripts/adr-query.py register --adr adr/{name}.md
+2. Register session: python3 ~/.claude/scripts/adr-query.py register --adr adr/{name}.md
 3. Display in banner: "ADR: adr/{name}.md (registered)"
 4. Proceed to Step 1 (plan creation)
 ```
@@ -544,9 +544,9 @@ When uncertain which route: **ROUTE ANYWAY.** Route to the most likely agent + s
 **Skill-scoped recording** (preferred — low friction, one-liner):
 
 ```bash
-python3 scripts/learning-db.py learn --skill go-testing "insight about testing"
-python3 scripts/learning-db.py learn --agent golang-general-engineer "insight about agent"
-python3 scripts/learning-db.py learn "general insight without scope"
+python3 ~/.claude/scripts/learning-db.py learn --skill go-testing "insight about testing"
+python3 ~/.claude/scripts/learning-db.py learn --agent golang-general-engineer "insight about agent"
+python3 ~/.claude/scripts/learning-db.py learn "general insight without scope"
 ```
 
 Skill-scoped entries (topic=`skill:{name}` or `agent:{name}`) are automatically injected
@@ -555,7 +555,7 @@ when that skill/agent is relevant to a future prompt. Use after any substantive 
 **Legacy recording** (for entries that don't map to a specific skill/agent):
 
 ```bash
-python3 scripts/learning-db.py record TOPIC KEY "VALUE" --category CATEGORY
+python3 ~/.claude/scripts/learning-db.py record TOPIC KEY "VALUE" --category CATEGORY
 ```
 
 Record specific, actionable insights — not generic advice. "Force-route triggers must not contain sibling skill names" is good. "Be careful with routing" is not.
@@ -565,9 +565,9 @@ Record specific, actionable insights — not generic advice. "Force-route trigge
 When a wave review finds an issue and it gets fixed in the same PR, the fix IS the validation. Do not passively record at 0.7 and wait. Instead:
 
 1. Record the learning scoped to the responsible agent/skill
-2. Boost to confidence 1.0 immediately (`python3 scripts/learning-db.py boost TOPIC KEY` x3)
+2. Boost to confidence 1.0 immediately (`python3 ~/.claude/scripts/learning-db.py boost TOPIC KEY` x3)
 3. Embed the pattern into the agent/skill's FORBIDDEN patterns or anti-patterns section
-4. Graduate the entry (`python3 scripts/learning-db.py graduate TOPIC KEY "target.md"`)
+4. Graduate the entry (`python3 ~/.claude/scripts/learning-db.py graduate TOPIC KEY "target.md"`)
 5. Stage the agent/skill changes alongside the code changes in the same PR
 
 One cycle. Review finds it → fix it → record at 1.0 → graduate into agent → ship together. No waiting for "multiple observations." The PR review was the observation.
@@ -672,6 +672,24 @@ Solution:
 **Why wrong**: Python file-not-found = exit code 2 = blocks ALL PreToolUse tools. Total session deadlock.
 **Do instead**: Deploy file first, verify it runs, THEN register. Never reverse this order.
 *Graduated from incident — hook-development-engineer bricked all PreToolUse*
+
+### Anti-Pattern 11: "Acceptable" as a Review Disposition
+**What it looks like**: "This is a real issue but acceptable for now" / "valid but deferred" / "conservative, not a bug"
+**Why wrong**: "Acceptable" acknowledges a problem while avoiding the cost of addressing it. Creates the illusion of thoroughness without substance.
+**Do instead**: FIX NOW, FIX IN FOLLOW-UP (with tracked artifact), or NOT AN ISSUE (with evidence). No middle ground.
+*Graduated from incident — Kafka PR shipped double-backoff classified as "conservative, not a bug"*
+
+### Anti-Pattern 12: Deferred Findings Without Tracking Artifacts
+**What it looks like**: "We'll address this in a follow-up" with no issue, TODO, or learning.db entry created.
+**Why wrong**: "Follow-up" without a tracking artifact is a polite way of saying "never."
+**Do instead**: Create a tracking artifact (GitHub issue, `TODO(follow-up):` in code, learning.db entry) before marking any finding as deferred.
+*Graduated from incident — Kafka PR deferred findings lost between review rounds*
+
+### Anti-Pattern 13: Protocol Reasoning Instead of Library Verification
+**What it looks like**: "Kafka consumer groups will rebalance after a member leaves, so this is safe."
+**Why wrong**: Protocol-level behavior and library-level behavior are not the same. LLMs reason from training data about protocols, not from reading the specific library version in go.mod.
+**Do instead**: Read the library source in GOMODCACHE. The question is never "how does the protocol work?" but "how does THIS library version implement THIS method?"
+*Graduated from incident — 40 agent reviews missed segmentio/kafka-go Reader offset behavior*
 
 ---
 

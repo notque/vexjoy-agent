@@ -47,7 +47,7 @@ pip install praw python-dotenv
 Bootstrap subreddit data before first use:
 
 ```bash
-python3 scripts/reddit_mod.py setup
+python3 ~/.claude/scripts/reddit_mod.py setup
 ```
 
 This creates `reddit-data/{subreddit}/` with auto-generated rules, mod log summary,
@@ -58,46 +58,46 @@ for details on what each file provides.
 
 ```bash
 # Fetch modqueue (items awaiting review)
-python3 scripts/reddit_mod.py queue --limit 20
+python3 ~/.claude/scripts/reddit_mod.py queue --limit 20
 
 # Fetch reported items
-python3 scripts/reddit_mod.py reports --limit 20
+python3 ~/.claude/scripts/reddit_mod.py reports --limit 20
 
 # Fetch unmoderated submissions
-python3 scripts/reddit_mod.py unmoderated --limit 20
+python3 ~/.claude/scripts/reddit_mod.py unmoderated --limit 20
 
 # Approve an item
-python3 scripts/reddit_mod.py approve --id t3_abc123
+python3 ~/.claude/scripts/reddit_mod.py approve --id t3_abc123
 
 # Remove an item with reason
-python3 scripts/reddit_mod.py remove --id t3_abc123 --reason "Rule 3: No spam"
+python3 ~/.claude/scripts/reddit_mod.py remove --id t3_abc123 --reason "Rule 3: No spam"
 
 # Remove as spam
-python3 scripts/reddit_mod.py remove --id t3_abc123 --reason "Spam" --spam
+python3 ~/.claude/scripts/reddit_mod.py remove --id t3_abc123 --reason "Spam" --spam
 
 # Lock a thread
-python3 scripts/reddit_mod.py lock --id t3_abc123
+python3 ~/.claude/scripts/reddit_mod.py lock --id t3_abc123
 
 # Check user history
-python3 scripts/reddit_mod.py user-history --username someuser --limit 10
+python3 ~/.claude/scripts/reddit_mod.py user-history --username someuser --limit 10
 
 # Fetch subreddit rules (for classification context)
-python3 scripts/reddit_mod.py rules
+python3 ~/.claude/scripts/reddit_mod.py rules
 
 # Fetch modmail
-python3 scripts/reddit_mod.py modmail --limit 10
+python3 ~/.claude/scripts/reddit_mod.py modmail --limit 10
 
 # Auto mode (for /loop): JSON output, recent items only
-python3 scripts/reddit_mod.py queue --auto --since-minutes 15
+python3 ~/.claude/scripts/reddit_mod.py queue --auto --since-minutes 15
 
 # Bootstrap subreddit data directory
-python3 scripts/reddit_mod.py setup
+python3 ~/.claude/scripts/reddit_mod.py setup
 
 # View subreddit info (sidebar rules, subscribers, etc.)
-python3 scripts/reddit_mod.py subreddit-info
+python3 ~/.claude/scripts/reddit_mod.py subreddit-info
 
 # Generate mod log analysis
-python3 scripts/reddit_mod.py mod-log-summary --limit 500
+python3 ~/.claude/scripts/reddit_mod.py mod-log-summary --limit 500
 ```
 
 ## Instructions
@@ -107,7 +107,7 @@ python3 scripts/reddit_mod.py mod-log-summary --limit 500
 **Phase 1: FETCH** — Get the modqueue with classification prompts.
 
 ```bash
-python3 scripts/reddit_mod.py queue --json --limit 25 | python3 scripts/reddit_mod.py classify
+python3 ~/.claude/scripts/reddit_mod.py queue --json --limit 25 | python3 ~/.claude/scripts/reddit_mod.py classify
 ```
 
 This pipes modqueue items through the classify subcommand, which loads subreddit
@@ -168,8 +168,8 @@ Wait for user input. Do not proceed without explicit confirmation.
 **Phase 5: ACT** — Execute confirmed actions:
 
 ```bash
-python3 scripts/reddit_mod.py approve --id t1_def456
-python3 scripts/reddit_mod.py remove --id t3_abc123 --reason "Rule 3: Self-promotion"
+python3 ~/.claude/scripts/reddit_mod.py approve --id t1_def456
+python3 ~/.claude/scripts/reddit_mod.py remove --id t3_abc123 --reason "Rule 3: Self-promotion"
 ```
 
 Report results after each action.
@@ -211,7 +211,7 @@ For each modqueue item, run these steps in order:
 
 3. **Fetch author history** — Run:
    ```bash
-   python3 scripts/reddit_mod.py user-history --username {author} --limit 20
+   python3 ~/.claude/scripts/reddit_mod.py user-history --username {author} --limit 20
    ```
    Check for: account age, post diversity, whether they only mention one
    vendor/product, ratio of promotional vs. organic content.
@@ -338,7 +338,7 @@ When invoked with `--auto` argument or when the user says "auto mode":
 
 1. Fetch queue and build classification prompts:
    ```bash
-   python3 scripts/reddit_mod.py queue --auto --since-minutes 15 --json | python3 scripts/reddit_mod.py classify
+   python3 ~/.claude/scripts/reddit_mod.py queue --auto --since-minutes 15 --json | python3 ~/.claude/scripts/reddit_mod.py classify
    ```
 
 2. For each item, read the rendered `prompt` field and classify it using
@@ -366,10 +366,10 @@ Scan recent posts/comments for rule violations that weren't reported:
 
 ```bash
 # Scan with classification prompts (JSON for LLM evaluation)
-python3 scripts/reddit_mod.py scan --json --classify --limit 50 --since-hours 24
+python3 ~/.claude/scripts/reddit_mod.py scan --json --classify --limit 50 --since-hours 24
 
 # Scan without classification (just heuristic flags)
-python3 scripts/reddit_mod.py scan --limit 50 --since-hours 24
+python3 ~/.claude/scripts/reddit_mod.py scan --limit 50 --since-hours 24
 ```
 
 With `--classify`, the scan output includes `classification_prompts` — read each

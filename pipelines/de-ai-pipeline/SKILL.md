@@ -76,7 +76,7 @@ Automated scan-fix-verify loop that removes AI writing patterns from documentati
 **Step 1: Run scan-ai-patterns.py**
 
 ```bash
-python3 scripts/scan-ai-patterns.py --errors-only --json
+python3 ~/.claude/scripts/scan-ai-patterns.py --errors-only --json
 ```
 
 Parse the JSON output. Group hits by file.
@@ -143,7 +143,7 @@ When multiple files have errors, dispatch one Agent per file to fix them simulta
 **Step 1: Re-run scanner**
 
 ```bash
-python3 scripts/scan-ai-patterns.py --errors-only
+python3 ~/.claude/scripts/scan-ai-patterns.py --errors-only
 ```
 
 **Step 2: Check results**

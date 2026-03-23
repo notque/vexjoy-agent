@@ -71,7 +71,7 @@ This skill operates as an operator for plan lifecycle management, configuring Cl
 **Step 1: Check for stale plans**
 
 ```bash
-python3 scripts/plan-manager.py list --stale
+python3 ~/.claude/scripts/plan-manager.py list --stale
 ```
 
 Surface any staleness warnings to user immediately. If stale plans exist, address them before proceeding with other operations.
@@ -79,7 +79,7 @@ Surface any staleness warnings to user immediately. If stale plans exist, addres
 **Step 2: List active plans**
 
 ```bash
-python3 scripts/plan-manager.py list --human
+python3 ~/.claude/scripts/plan-manager.py list --human
 ```
 
 Show complete output to user. Never summarize.
@@ -93,46 +93,46 @@ Show complete output to user. Never summarize.
 **For showing a plan:**
 
 ```bash
-python3 scripts/plan-manager.py show PLAN_NAME
-python3 scripts/plan-manager.py show PLAN_NAME --tasks
+python3 ~/.claude/scripts/plan-manager.py show PLAN_NAME
+python3 ~/.claude/scripts/plan-manager.py show PLAN_NAME --tasks
 ```
 
 **For checking off a task:**
 
 ```bash
 # Re-read plan first (keeps goals in recency window)
-python3 scripts/plan-manager.py show PLAN_NAME
+python3 ~/.claude/scripts/plan-manager.py show PLAN_NAME
 # Mark task complete
-python3 scripts/plan-manager.py check PLAN_NAME TASK_NUMBER
+python3 ~/.claude/scripts/plan-manager.py check PLAN_NAME TASK_NUMBER
 # Confirm updated state
-python3 scripts/plan-manager.py show PLAN_NAME --tasks
+python3 ~/.claude/scripts/plan-manager.py show PLAN_NAME --tasks
 ```
 
 **For completing a plan:**
 
 ```bash
 # Show full status first (MANDATORY)
-python3 scripts/plan-manager.py show PLAN_NAME
+python3 ~/.claude/scripts/plan-manager.py show PLAN_NAME
 # Ask user: "Complete this plan? (y/n)"
 # On confirmation:
-python3 scripts/plan-manager.py complete PLAN_NAME
+python3 ~/.claude/scripts/plan-manager.py complete PLAN_NAME
 ```
 
 **For abandoning a plan:**
 
 ```bash
 # Show full status first (MANDATORY)
-python3 scripts/plan-manager.py show PLAN_NAME
+python3 ~/.claude/scripts/plan-manager.py show PLAN_NAME
 # Ask user for reason
-python3 scripts/plan-manager.py abandon PLAN_NAME --reason "User requested: [reason]"
+python3 ~/.claude/scripts/plan-manager.py abandon PLAN_NAME --reason "User requested: [reason]"
 ```
 
 **For creating a plan:**
 
 ```bash
 # Confirm name (lowercase-kebab-case) and title with user first
-python3 scripts/plan-manager.py create PLAN_NAME --title "Descriptive title"
-python3 scripts/plan-manager.py show PLAN_NAME
+python3 ~/.claude/scripts/plan-manager.py create PLAN_NAME --title "Descriptive title"
+python3 ~/.claude/scripts/plan-manager.py show PLAN_NAME
 ```
 
 **Gate**: Operation executed via CLI. Output shown to user in full. State confirmed with follow-up `show`. Proceed only when gate passes.
@@ -159,15 +159,15 @@ ls plan/completed/   # or plan/abandoned/
 
 | User Intent | Command | Example |
 |-------------|---------|---------|
-| "what's on our plan" | `list` | `python3 scripts/plan-manager.py list --human` |
-| "check for stale plans" | `list --stale` | `python3 scripts/plan-manager.py list --stale` |
-| "show me plan X" | `show PLAN_NAME` | `python3 scripts/plan-manager.py show add-auth` |
-| "what tasks remain" | `show --tasks` | `python3 scripts/plan-manager.py show add-auth --tasks` |
-| "mark task done" | `check PLAN_NAME N` | `python3 scripts/plan-manager.py check add-auth 3` |
-| "finish this plan" | `complete PLAN_NAME` | `python3 scripts/plan-manager.py complete add-auth` |
-| "stop this plan" | `abandon PLAN_NAME` | `python3 scripts/plan-manager.py abandon add-auth --reason "..."` |
-| "create a plan for X" | `create PLAN_NAME` | `python3 scripts/plan-manager.py create add-auth --title "..."` |
-| "audit plans" | `audit` | `python3 scripts/plan-manager.py audit` |
+| "what's on our plan" | `list` | `python3 ~/.claude/scripts/plan-manager.py list --human` |
+| "check for stale plans" | `list --stale` | `python3 ~/.claude/scripts/plan-manager.py list --stale` |
+| "show me plan X" | `show PLAN_NAME` | `python3 ~/.claude/scripts/plan-manager.py show add-auth` |
+| "what tasks remain" | `show --tasks` | `python3 ~/.claude/scripts/plan-manager.py show add-auth --tasks` |
+| "mark task done" | `check PLAN_NAME N` | `python3 ~/.claude/scripts/plan-manager.py check add-auth 3` |
+| "finish this plan" | `complete PLAN_NAME` | `python3 ~/.claude/scripts/plan-manager.py complete add-auth` |
+| "stop this plan" | `abandon PLAN_NAME` | `python3 ~/.claude/scripts/plan-manager.py abandon add-auth --reason "..."` |
+| "create a plan for X" | `create PLAN_NAME` | `python3 ~/.claude/scripts/plan-manager.py create add-auth --title "..."` |
+| "audit plans" | `audit` | `python3 ~/.claude/scripts/plan-manager.py audit` |
 
 ### Exit Codes
 
