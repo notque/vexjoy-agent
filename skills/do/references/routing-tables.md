@@ -8,6 +8,8 @@ Extended routing tables for the `/do` router. The main SKILL.md contains the cor
 
 | Triggers | Skill |
 |----------|-------|
+| **quick fix, typo fix, one-line change, trivial fix** | **fast (FORCE)** |
+| **quick task, small change, ad hoc task, add a flag, extract function** | **quick (FORCE)** |
 | branch name | branch-naming |
 | git commit | git-commit-flow |
 | lint, format | code-linting |
@@ -234,6 +236,10 @@ Invoked via the roast skill or directly:
 
 | Request | Routes To |
 |---------|-----------|
+| "fix the typo in main.go" | **fast (FORCE)** |
+| "rename this variable" | **fast (FORCE)** |
+| "add a --verbose flag to the CLI" | **quick (FORCE)** |
+| "small refactor: extract helper function" | **quick (FORCE)** |
 | "debug Go tests" | golang-general-engineer + systematic-debugging |
 | "write Go tests for X" | **go-testing (FORCE)** |
 | "add worker pool" | **go-concurrency (FORCE)** |
