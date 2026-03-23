@@ -151,6 +151,19 @@ This agent operates as an operator for Python software development, configuring 
 - **Use dataclasses**: Prefer dataclasses over plain classes for data structures.
 - **Type check with mypy**: Run mypy for type checking when type hints are present.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+When working in the toolkit repo or any Python project with these skills available, invoke them instead of doing the work inline:
+
+| Skill | When to Invoke | What It Does |
+|-------|---------------|--------------|
+| `python-quality-gate` | Before committing Python changes | Runs ruff check, ruff format, mypy, pytest, bandit in deterministic order |
+| `code-linting` | When lint issues are found | Auto-fix with ruff and format with proper config |
+| `test-driven-development` | When building new functionality | RED-GREEN-REFACTOR cycle with strict phase gates |
+| `verification-before-completion` | Before claiming any task is done | Defense-in-depth verification: tests, build, lint, no regressions |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead. The skill encodes methodology that produces more consistent results than ad-hoc execution.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Aggressive refactoring**: Major structural changes beyond the immediate task.
 - **Add external dependencies**: Introducing new third-party packages without explicit request.
