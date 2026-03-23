@@ -58,6 +58,7 @@ This skill operates as an operator for systematic codebase exploration, configur
 - **Deep Dive**: Use `--deep` for comprehensive multi-layer analysis
 - **Quick Mode**: Use `--quick` for high-level overview only (skip Phase 3)
 - **Specific Focus**: Use `--focus [area]` to constrain exploration to a single component
+- **Explicit Tier Selection**: Use `--tier quick|standard|deep` to set exploration depth (see Tiered Depth Model below)
 
 ## What This Skill CAN Do
 - Systematically scan repository structure using parallel subagents
@@ -238,6 +239,105 @@ Solution:
 **What it looks like**: "Here are 10 things I would improve about this codebase"
 **Why wrong**: User asked to understand, not to change. Scope creep wastes time and adds noise.
 **Do instead**: Report what exists. Only recommend if user explicitly asks.
+
+### Anti-Pattern 5: Same Depth for Every Question
+**What it looks like**: Running all 4 phases with parallel scanners when the user just wants to know "what ORM does this use?"
+**Why wrong**: Wastes time and tokens. A 15-minute pipeline for a 2-minute question erodes trust in the tool.
+**Do instead**: Match depth to the question. Use the Tiered Depth Model below to select the right scope.
+
+---
+
+## Tiered Depth Model
+
+Not every exploration question needs the same depth. Running a full pipeline for a quick fact-check wastes time; running a shallow scan for onboarding misses critical context. The tier is determined by the caller, not guessed. If depth is unspecified, default to **Standard**.
+
+### Quick Verify (2-5 minutes)
+
+**Purpose**: Confirm a specific fact about the codebase.
+
+**Scope**: Answer one question. Read only the files necessary to answer it. No document generation -- the answer IS the output.
+
+**Phases used**: Phase 1 (SCAN) only -- single targeted scanner, not parallel.
+
+**Exit criteria**: Question answered with file path evidence, or "could not determine" with a list of what was checked.
+
+**Examples**:
+- "Does this project use dependency injection?"
+- "What ORM does the API use?"
+- "Is there a CI pipeline configured?"
+- "What version of React is this using?"
+
+**Output format**: Direct answer in conversation (no saved report file).
+
+### Standard (15-30 minutes)
+
+**Purpose**: Understand a subsystem or map one area of the codebase.
+
+**Scope**: All 4 phases execute. Parallel scanners in Phase 1. Produce a single structured document covering the targeted area.
+
+**Phases used**: All 4 phases (SCAN, MAP, ANALYZE, REPORT).
+
+**Exit criteria**: Report covers the subsystem's boundaries, key patterns, and integration points. Saved as `exploration-report.md`.
+
+**Examples**:
+- "How does authentication work in this app?"
+- "Map the payment processing flow."
+- "Explain how the event system works."
+- "What's the testing strategy for this repo?"
+
+**Output format**: Saved `exploration-report.md` with all sections.
+
+### Deep Dive (1+ hour)
+
+**Purpose**: Full architectural analysis for onboarding or major refactoring decisions.
+
+**Scope**: All 4 phases with expanded scope. Phase 1 uses additional scanners for broader coverage. Phase 3 traces multiple critical paths rather than just the primary one. Cross-cutting concerns (logging, auth, error handling) get dedicated analysis.
+
+**Phases used**: All 4 phases with expanded scope at each.
+
+**Exit criteria**: Comprehensive report covers full architecture, all major subsystems, cross-cutting concerns, and integration points. Multiple artifact files may be produced.
+
+**Examples**:
+- "I'm new to this codebase, give me the full picture."
+- "We're considering a major refactor -- what do we need to know?"
+- "Onboard me to this entire repository."
+- "Full architectural review before we plan next quarter."
+
+**Output format**: Saved `exploration-report.md` plus supplementary files (`architecture-map.md`, component-specific documents as needed).
+
+### Tier Selection Logic
+
+```
+If user specifies --tier or --quick or --deep:
+  Use the specified tier.
+Else if user asks a single specific question (what/which/does/is):
+  Use Quick Verify.
+Else if user asks about a specific subsystem or flow:
+  Use Standard.
+Else if user asks for full picture / onboarding / comprehensive:
+  Use Deep Dive.
+Else:
+  Default to Standard.
+```
+
+---
+
+## Source Hierarchy for Research
+
+When exploration requires looking up external information (framework conventions, library APIs, configuration options), follow this source hierarchy strictly. Lower-quality sources introduce hallucination risk -- a wrong framework convention applied confidently is worse than admitting uncertainty.
+
+### Hierarchy (highest to lowest priority)
+
+1. **Context7 MCP** (preferred) -- Use `resolve-library-id` then `query-docs` for up-to-date library documentation. This is the most reliable source because it pulls directly from official package documentation.
+2. **Official documentation** -- Framework and library official docs via WebFetch if Context7 does not cover the library.
+3. **Web search** -- Use WebSearch as a fallback when Context7 and official docs are insufficient. Cross-reference multiple results before citing.
+
+### Rules
+
+- **Never guess framework conventions** -- If you cannot confirm a convention from the source hierarchy, state "could not confirm" rather than assuming.
+- **Cite the source tier** -- When reporting externally-sourced information, note where it came from: "(confirmed via Context7)", "(from official docs)", or "(from web search -- verify independently)".
+- **Source code is ground truth** -- External documentation describes how things SHOULD work. The codebase shows how things ACTUALLY work. When they conflict, report both and flag the discrepancy.
+- **Web search results degrade fastest** -- Blog posts and Stack Overflow answers may reference outdated APIs. Always note the date if visible and prefer recent results.
 
 ---
 
