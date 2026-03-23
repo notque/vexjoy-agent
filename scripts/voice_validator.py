@@ -26,8 +26,8 @@ Usage:
         --profile profile.json
 
 Exit codes:
-    0 = pass (score >= 70)
-    1 = fail (score < 70 or errors)
+    0 = pass (score >= 60)
+    1 = fail (score < 60 or errors)
     2 = execution error (file not found, invalid JSON, etc.)
 """
 
@@ -558,6 +558,55 @@ def calculate_summary(violations: list[Violation], total_checks: int) -> dict[st
     }
 
 
+def check_analogy_domains(
+    content: str,
+    profile: dict[str, Any] | None = None,
+) -> list[Violation]:
+    """Check that analogies draw from documented source domains (if profile specifies them).
+
+    This is the one architectural check that's deterministic enough for script-level
+    validation. Other architectural checks (argument direction, concession structure,
+    bookends) require AI-assisted analysis and belong in voice-orchestrator's validation.
+
+    Profile key: architectural_patterns.analogy_domains (list of allowed domain keywords).
+    """
+    if not profile:
+        return []
+
+    arch_patterns = profile.get("architectural_patterns", {})
+    domains = [d for d in arch_patterns.get("analogy_domains", []) if d.strip()]
+    if not domains:
+        return []
+
+    # Build a regex from documented domains — look for "like a [domain-term]" patterns
+    # This is intentionally conservative: it only flags when a clear simile/metaphor
+    # marker is present AND the domain keyword is absent from all documented domains
+    simile_markers = re.findall(
+        r"(?:like\s+(?:a|an|the)\s+|(?:as\s+(?:a|an)\s+)|(?:reminds?\s+(?:me\s+)?of\s+(?:a|an)\s+))"
+        r"(\w+(?:\s+\w+){0,3})",
+        content,
+        re.IGNORECASE,
+    )
+
+    if not simile_markers:
+        return []
+
+    violations = []
+    domain_re = re.compile("|".join(re.escape(d) for d in domains), re.IGNORECASE)
+    for phrase in simile_markers:
+        if not domain_re.search(phrase):
+            violations.append(
+                Violation(
+                    type="analogy_domain",
+                    severity="warning",
+                    text=f"analogy outside documented domains: '{phrase}'",
+                    message=f"Documented domains: {', '.join(domains)}",
+                )
+            )
+
+    return violations
+
+
 def validate_content(
     content: str,
     profile: dict[str, Any] | None = None,
@@ -583,6 +632,9 @@ def validate_content(
     # Check rhythm
     violations.extend(check_rhythm(content, profile))
 
+    # Check architectural patterns (analogy domains)
+    violations.extend(check_analogy_domains(content, profile))
+
     # Check metrics if profile provided
     metrics: dict[str, float] = {}
     if profile:
@@ -593,8 +645,8 @@ def validate_content(
     score = calculate_score(violations)
     passed = score >= DEFAULT_PASS_THRESHOLD
 
-    # Estimate total checks (banned categories + rhythm + metrics)
-    total_checks = len(banned.categories) + 1 + 3  # categories + rhythm + metrics
+    # Estimate total checks (banned categories + rhythm + metrics + analogy domains)
+    total_checks = len(banned.categories) + 1 + 3 + 1 + 1  # categories + rhythm + metrics + analogy + rhetorical_pivots
 
     summary = calculate_summary(violations, total_checks)
 

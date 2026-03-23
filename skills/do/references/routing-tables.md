@@ -94,7 +94,7 @@ Extended routing tables for the `/do` router. The main SKILL.md contains the cor
 
 | Triggers | Skill |
 |----------|-------|
-| write blog, blog post | blog-post-writer |
+| write blog, blog post | voice-writer |
 | edit content, remove AI patterns | anti-ai-editor |
 | **de-ai docs, clean ai patterns, scan and fix docs** | **de-ai-pipeline** (SCAN → FIX → VERIFY loop) |
 | content outline, post outline | post-outliner |
@@ -120,11 +120,11 @@ Extended routing tables for the `/do` router. The main SKILL.md contains the cor
 | Triggers | Skill |
 |----------|-------|
 | create voice, new voice, build voice, voice from samples | create-voice |
-| multi-step voice generation | voice-orchestrator |
+| multi-step voice generation | voice-writer |
 | voice calibration, writing style | voice-calibrator |
 | voice validation loop | voice-validator |
 
-**Voice selection:** Use `create-voice` to build voice profiles from writing samples, then `voice-orchestrator` for multi-step generation in that voice. Custom voice profiles are matched via their skill triggers.
+**Voice selection:** Use `create-voice` to build voice profiles from writing samples, then `voice-writer` for multi-step generation in that voice. Custom voice profiles are matched via their skill triggers.
 
 **Wabi-sabi principle:** Perfection is an AI tell. Natural imperfections are features. Don't over-polish.
 
@@ -243,7 +243,7 @@ Invoked via the roast skill or directly:
 | "execute plan with subagents" | subagent-driven-development |
 | "fix these 3 failing test files" | dispatching-parallel-agents |
 | "debug TypeScript race condition" | typescript-debugging-engineer + systematic-debugging |
-| "write in custom voice" | voice-orchestrator + [your-voice-skill] |
+| "write in custom voice" | voice-writer + [your-voice-skill] |
 | "comprehensive code review" | parallel-code-review (3 reviewers) |
 | "design a rate limiter feature" | **feature-design (FORCE)** |
 | "plan this feature" | **feature-plan (FORCE)** |
