@@ -175,6 +175,7 @@ All pipelines live in the `pipelines/` directory (synced to `~/.claude/skills/` 
 | voice calibration, refine voice, writing style | voice-calibrator | VOICE-GROUNDING → VOICE-METRICS → THINKING-PATTERNS → VALIDATION |
 | execute plan, run plan, orchestrate | workflow-orchestrator | BRAINSTORM → WRITE-PLAN → EXECUTE-PLAN |
 | de-ai docs, clean ai patterns, scan and fix docs | de-ai-pipeline | SCAN → FIX → VERIFY (loop max 3) → REPORT |
+| **(auto-fallback for unrouted tasks)** | **auto-pipeline** | DEDUP → CLASSIFY → SELECT → ADAPT → EXECUTE/CRYSTALLIZE |
 
 ### Pipeline Companion Map
 

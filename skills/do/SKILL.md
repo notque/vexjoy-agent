@@ -44,7 +44,7 @@ This skill operates as the primary routing operator for the Claude Code agent sy
 - **MCP Auto-Invocation**: Use Context7 for documentation lookups; use gopls MCP for Go workspace intelligence (symbols, diagnostics, references)
 - **Dynamic Discovery**: Check `agents/INDEX.json` first, fall back to static routing tables
 - **Local Agent Discovery**: Route to `.claude/agents/` local agents when `[cross-repo]` output is present
-- **Gap Reporting**: When no agent/skill matches, report the gap and suggest creating one
+- **Auto-Pipeline Fallback**: When no agent/skill matches, invoke auto-pipeline to classify the task type, select a canonical chain (8-12 steps), and execute with phase gates. In the toolkit repo, auto-crystallize into a permanent pipeline immediately.
 - **Post-Task Learning**: After Simple+ tasks, extract reusable patterns and record via `retro-record-adhoc` to build the knowledge store from all work, not just feature lifecycles
 
 ### Optional Behaviors (OFF unless enabled)
@@ -276,6 +276,7 @@ For pipeline skills — add the Pipeline: line with all phases in order:
 | `mcp-pipeline-builder` | ANALYZE → DESIGN → GENERATE → VALIDATE → EVALUATE → REGISTER |
 | `do-perspectives` | VALIDATE → ANALYZE → SYNTHESIZE → APPLY → VERIFY |
 | `voice-calibrator` | VOICE-GROUNDING → VOICE-METRICS → THINKING-PATTERNS → VALIDATION |
+| `auto-pipeline` | DEDUP → CLASSIFY → SELECT → ADAPT → EXECUTE (ephemeral) or CRYSTALLIZE (permanent) |
 
 **Pipeline Companion Sequences** — common multi-pipeline workflows:
 
@@ -405,17 +406,18 @@ Detect: "first...then", "and also", numbered lists, semicolons.
 - Independent items: Launch multiple Task tools in single message
 - Max parallelism: 10 agents
 
-**Step 5: Handle uncertainty**
+**Step 5: Auto-Pipeline Fallback**
 
-When no agent/skill matches:
-```
-===================================================================
- GAP DETECTED: No match for [domain]
-===================================================================
- Closest: [Agent X] + [Skill Y]
- Or create: /do create an agent for [domain]
-===================================================================
-```
+When no agent/skill matches AND complexity >= Simple:
+
+1. **Dedup check**: Run `python3 scripts/task-type-classifier.py --request "{request}" --check-catalog pipelines/auto-pipeline/references/pipeline-catalog.md --json`
+2. **If existing pipeline found** (70%+ coverage): Route to that pipeline. Display routing banner with the matched pipeline.
+3. **If no match**: Invoke the `auto-pipeline` skill. It will:
+   - Classify the task type (8 canonical types)
+   - Select and adapt a canonical chain (8-12 steps)
+   - In toolkit repo: crystallize into permanent pipeline immediately, then execute
+   - In other repos: execute ephemeral chain (crystallize after 3+ runs)
+4. **If task-type-classifier fails or request is truly unclassifiable**: Fall back to closest agent + verification-before-completion as safety net.
 
 When uncertain which route: **ROUTE ANYWAY.** Route to the most likely agent + skill, add verification-before-completion as safety net, let the agent ask clarifying questions.
 
