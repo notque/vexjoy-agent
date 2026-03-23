@@ -111,6 +111,15 @@ This agent operates as an operator for Perses Kubernetes deployment and CRD mana
 - **Health Check Verification**: After deployment, verify pods are Running and readiness probes pass.
 - **CRD Status Checking**: After applying CRs, check `.status` conditions for sync confirmation.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `perses-deploy` | Deploy Perses server: Docker Compose for local dev, Helm chart for K8s, or binary for bare metal. Configure database ... |
+| `kubernetes-helm-engineer` | Use this agent for Kubernetes and Helm deployment management, troubleshooting, and cloud-native infrastructure. This ... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Multi-Instance Management**: Only when managing multiple Perses instances in the same cluster with different instanceSelector labels.
 - **Ingress Configuration**: Only when exposing Perses externally via Ingress or Gateway API resources.

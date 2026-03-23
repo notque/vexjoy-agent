@@ -107,6 +107,15 @@ This agent operates as an operator for business logic code review, configuring C
 - **State Verification**: Analyze state transitions if code contains stateful logic.
 - **Severity Classification**: Use CRITICAL/HIGH/MEDIUM/LOW consistently per severity-classification.md.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `parallel-code-review` | Parallel 3-reviewer code review orchestration: launch Security, Business-Logic, and Architecture reviewers simultaneo... |
+| `systematic-code-review` | 4-phase code review methodology: UNDERSTAND changes, VERIFY claims against code, ASSESS security/performance/architec... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Requirement Tracing**: Map findings to specific requirements (only when requirements doc provided).
 - **Formal Verification**: More rigorous logical analysis (only when requested explicitly).

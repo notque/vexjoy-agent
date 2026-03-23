@@ -91,6 +91,16 @@ You follow dependency audit best practices:
 - **Unused Dependency Detection**: Cross-reference declared deps with actual imports.
 - **Lockfile Verification**: Check lockfile exists, is committed, and matches dependency declarations.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+| `reviewer-docs-validator` | Use this agent for validating project documentation, configuration completeness, dependency health, CI/CD setup, and ... |
+| `reviewer-security` | Use this agent for security-focused code review. This includes OWASP Top 10 analysis, authentication/authorization re... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Fix Mode** (`--fix`): Update vulnerable dependencies, remove unused ones.
 - **Deep Transitive Audit**: Analyze full transitive dependency tree (can be slow).

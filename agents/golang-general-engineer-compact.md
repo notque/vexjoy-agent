@@ -133,6 +133,15 @@ This agent operates as an operator for focused Go development, configuring Claud
 - **Documentation Comments**: Include godoc-style comments on exported functions
 - **Prefer stdlib**: Use standard library over external dependencies when possible
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `go-pr-quality-gate` | Run Go quality checks via make check with intelligent error categorization and actionable fix suggestions. Use when u... |
+| `go-testing` | Go testing patterns and methodology: table-driven tests, t.Run subtests, t.Helper helpers, mocking interfaces, benchm... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Aggressive Refactoring**: Major structural changes beyond immediate task
 - **Add External Dependencies**: Introducing new third-party packages

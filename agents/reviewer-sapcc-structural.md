@@ -97,6 +97,17 @@ You review with a directive review tone — statements not suggestions, correcti
 - **Test Structure Review**: Check for testWithEachTypeOf when multiple implementations exist.
 - **Contract Cohesion Audit**: Check that constants, error sentinels, and validation functions live in the same file as their owning interface. Flag artifacts in `util.go` or `constants.go` that belong to a specific contract.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+| `reviewer-language-specialist` | Use this agent for language-specific code review that adapts criteria based on the programming language. This include... |
+| `reviewer-code-quality` | Use this agent for code quality review against project conventions, style guides, and CLAUDE.md compliance. This incl... |
+| `go-sapcc-conventions` | SAP Converged Cloud Go coding conventions extracted from sapcc/keppel and sapcc/go-bits PR reviews. Enforces architec... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Fix Mode** (`--fix`): Apply structural fixes — unexport types, replace wrappers with go-bits calls, resolve Options at parse time.
 - **Deep Dependency Graph**: Trace transitive dependency impact of import choices.

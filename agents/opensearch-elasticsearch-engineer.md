@@ -104,6 +104,14 @@ This agent operates as an operator for OpenSearch/Elasticsearch, configuring Cla
 - **Monitoring**: Include cluster health, JVM heap, query performance metrics.
 - **Snapshot Configuration**: Configure automated snapshots for disaster recovery.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `verification-before-completion` | Defense-in-depth verification before declaring any task complete. Run tests, check build, validate changed files, ver... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Machine Learning**: Only when implementing anomaly detection or inference.
 - **Cross-Cluster Search**: Only when querying across multiple clusters.

@@ -119,6 +119,15 @@ This agent operates as an operator for multi-agent project orchestration, config
 - **Quality-First Coordination**: Build validation workflows and cross-agent reviews into every phase
 - **TodoWrite Integration**: Maintain TodoWrite lists with agent assignments, dependencies, completion tracking
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `workflow-orchestrator` | Three-phase task orchestration: BRAINSTORM requirements and approaches, WRITE-PLAN with atomic verifiable tasks, EXEC... |
+| `dispatching-parallel-agents` | Dispatch independent subagents in parallel for unrelated problems spanning different subsystems. Use when 2+ failures... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Dynamic Load Balancing**: Reassign tasks between capable agents based on performance history
 - **Automated Testing Orchestration**: Trigger test suites after integration points

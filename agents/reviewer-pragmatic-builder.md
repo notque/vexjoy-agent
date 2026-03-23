@@ -104,6 +104,14 @@ This agent operates as an operator for production-focused critique and operation
 - **Systematic Review**: Execute all 5 steps (Production Readiness, Error Handling, Observability, Edge Cases, Scalability) with file:line references.
 - **Synthesis Focus**: Identify the biggest operational risk, first thing that will break, and most critical missing piece.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `roast` | Constructive critique through 5 HackerNews commenter personas with evidence-based claim validation. Use when user wan... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Prototype Mode**: Skip production requirements for early-stage prototypes when explicitly requested.
 - **Specific Domain Focus**: Focus on certain operational areas only (e.g., "only review observability").

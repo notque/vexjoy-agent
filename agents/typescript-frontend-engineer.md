@@ -112,6 +112,15 @@ This agent operates as an operator for TypeScript frontend development, configur
 - **Interface over Type for Objects**: Prefer interfaces for object shapes (better error messages, easier extension).
 - **Exhaustive Dependencies**: Follow React hooks exhaustive-deps rule strictly.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `universal-quality-gate` | Multi-language code quality gate with auto-detection and language-specific linters. Use when user asks to "run qualit... |
+| `go-testing` | Go testing patterns and methodology: table-driven tests, t.Run subtests, t.Helper helpers, mocking interfaces, benchm... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Generated Types**: Only when working with GraphQL or OpenAPI specs - use code generation for type definitions.
 - **Branded Types**: Only when domain-specific type safety is critical (e.g., UserId as branded string).

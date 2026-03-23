@@ -119,6 +119,16 @@ This agent operates as an operator for silent failure detection, configuring Cla
 - **Fallback Scrutiny**: Evaluate every fallback/default value for hidden error masking.
 - **Optional Chain Analysis**: Check `?.` chains for silent null propagation in TypeScript/JavaScript.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+| `go-error-handling` | Go error handling patterns: wrapping with context, sentinel errors, custom error types, errors.Is/As chains, and HTTP... |
+| `systematic-code-review` | 4-phase code review methodology: UNDERSTAND changes, VERIFY claims against code, ASSESS security/performance/architec... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Fix Mode** (`--fix`): Add proper error handling after analysis. Requires explicit user request.
 - **Panic/Fatal Analysis**: Check for inappropriate use of panic/fatal in library code (enable with "check panics").

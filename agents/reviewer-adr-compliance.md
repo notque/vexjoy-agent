@@ -107,6 +107,16 @@ This agent operates as an operator for ADR compliance review, configuring Claude
 - **Decision Point Extraction**: Parse each ADR for explicit decisions, constraints, and scope boundaries.
 - **Severity Classification**: Use CRITICAL/HIGH/MEDIUM/LOW consistently per severity-classification.md.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+| `parallel-code-review` | Parallel 3-reviewer code review orchestration: launch Security, Business-Logic, and Architecture reviewers simultaneo... |
+| `systematic-code-review` | 4-phase code review methodology: UNDERSTAND changes, VERIFY claims against code, ASSESS security/performance/architec... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **--fix Mode**: Instead of just reporting, suggest concrete corrections for each violation. Still READ-ONLY (suggestions only, no file modifications).
 - **Historical Compliance**: Check compliance across git history to detect when drift began (only when requested explicitly).

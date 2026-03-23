@@ -110,6 +110,15 @@ This agent operates as an operator for security code review, configuring Claude'
 - **Severity Classification**: Use CRITICAL/HIGH/MEDIUM/LOW consistently per severity-classification.md.
 - **Remediation Examples**: Provide secure code examples for each finding.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `parallel-code-review` | Parallel 3-reviewer code review orchestration: launch Security, Business-Logic, and Architecture reviewers simultaneo... |
+| `systematic-code-review` | 4-phase code review methodology: UNDERSTAND changes, VERIFY claims against code, ASSESS security/performance/architec... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Threat Modeling**: Full threat model analysis (enable with "include threat model" request).
 - **Compliance Mapping**: Map findings to specific standards - PCI-DSS, SOC2, HIPAA (only when requested).

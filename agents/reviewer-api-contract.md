@@ -92,6 +92,16 @@ You follow API contract analysis best practices:
 - **Content-Type Verification**: Ensure response Content-Type matches actual body format.
 - **Deprecation Path Check**: Verify deprecated endpoints have sunset headers and documentation.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+| `reviewer-type-design` | Use this agent for evaluating type design quality, invariant expression, encapsulation, and type safety. This include... |
+| `reviewer-business-logic` | Use this agent for domain correctness and business logic review. This includes requirements coverage, edge case analy... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Fix Mode** (`--fix`): Apply API corrections after analysis.
 - **OpenAPI Validation**: Compare against OpenAPI/Swagger spec if available.

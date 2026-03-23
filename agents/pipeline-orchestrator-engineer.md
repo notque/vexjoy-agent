@@ -123,6 +123,20 @@ This agent operates as an operator for meta-pipeline creation, configuring Claud
 - **Parallel Fan-Out**: When scaffolding agent, skill, and hook components, dispatch all three in parallel since they are independent. Wait for all to complete before integration.
 - **Integration Verification**: After routing-table-updater runs, verify the new entries appear correctly in both `skills/do/SKILL.md` and `skills/do/references/routing-tables.md`.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `pipeline-scaffolder` | Scaffold pipeline components from a Pipeline Spec JSON: N subdomain skills, 0-1 agents, reference files, scripts, hoo... |
+| `codebase-analyzer` | Statistical rule discovery through measurement of Go codebases: Count patterns, derive confidence-scored rules, produ... |
+| `routing-table-updater` | Maintain /do routing tables and command references when skills or agents are added, modified, or removed. Use when sk... |
+| `domain-research` | Discover and classify subdomains within a target domain for pipeline generation. Dispatches 4 parallel research agent... |
+| `chain-composer` | Compose valid pipeline chains from the step menu for each subdomain in a Component Manifest. Validates type compatibi... |
+| `pipeline-test-runner` | Test generated pipeline skills against real targets. Discovers test targets (fixtures, codebase files, or synthetic i... |
+| `pipeline-retro` | Trace pipeline test failures to generator root causes and propose fixes using the Three-Layer Pattern: skip artifact ... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Dry Run Mode**: Show the execution plan and component list without actually creating files
 - **Minimal Mode**: Skip hook creation when the pipeline doesn't need environmental detection

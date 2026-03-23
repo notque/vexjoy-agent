@@ -118,6 +118,16 @@ This agent operates as an operator for test coverage analysis, configuring Claud
 - **Mock/Stub Assessment**: Evaluate whether mocking is appropriate or if integration tests are needed.
 - **Existing Test Quality**: Assess quality of existing tests, not just missing ones.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+| `test-driven-development` | RED-GREEN-REFACTOR cycle with strict phase gates. Write failing test first, implement minimum code to pass, then refa... |
+| `go-testing` | Go testing patterns and methodology: table-driven tests, t.Run subtests, t.Helper helpers, mocking interfaces, benchm... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Fix Mode** (`--fix`): Write missing tests after analysis. Follows existing test patterns. Requires explicit user request.
 - **Coverage Metrics**: Include line/branch coverage numbers if coverage tools are available (enable with "include coverage" or "coverage report").

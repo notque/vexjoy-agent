@@ -116,6 +116,16 @@ This agent operates as an operator for project documentation and configuration v
 - **Build System Check**: Verify build commands work, scripts exist, Makefile targets are documented.
 - **Metadata Sweep**: Check CHANGELOG, .gitignore, LICENSE, .editorconfig, API docs.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+| `docs-sync-checker` | Deterministic 4-phase documentation drift detector: Scan, Cross-Reference, Detect, Report. Use when skills/agents/com... |
+| `comment-quality` | Review and fix comments containing temporal references, development-activity language, or relative comparisons. Use w... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Fix Mode** (`--fix`): Create missing files, update stale docs, add CI configs. Requires explicit user request. Always presents changes for approval before writing.
 - **Go-Specific Depth**: Check go.sum, go vet, golangci-lint config, package doc comments, example tests (enable with "check go project").

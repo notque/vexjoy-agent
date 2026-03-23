@@ -129,6 +129,16 @@ This agent operates as an operator for [domain/function], configuring Claude's b
 - **[Domain Default 2]**: [Description]
 - **[Domain Default 3]**: [Description]
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+<!-- Auto-generated from routing.pairs_with in frontmatter. To regenerate: python3 scripts/add-companion-skills.py -->
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `[skill-name]` | [description from SKILL.md frontmatter] |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **[Optional Capability 1]**: [What it enables]
 - **[Optional Capability 2]**: [What it enables]

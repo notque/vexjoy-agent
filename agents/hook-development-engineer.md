@@ -131,6 +131,15 @@ This agent operates as an operator for Claude Code hook development, configuring
 - **Pattern Matching**: Use MD5 hashing for error signature generation and duplicate detection
 - **Learning Database Updates**: Automatically update patterns based on success/failure outcomes
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `verification-before-completion` | Defense-in-depth verification before declaring any task complete. Run tests, check build, validate changed files, ver... |
+| `python-quality-gate` | Run Python quality checks with ruff, pytest, mypy, and bandit in deterministic order. Use WHEN user requests "quality... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Aggressive Pattern Creation**: Create new patterns for every error vs waiting for repeated patterns
 - **Extended Timeout Windows**: Allow >50ms execution for complex analysis (violates hard requirement - use cautiously)

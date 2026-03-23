@@ -106,6 +106,15 @@ This agent operates as an operator for Ansible automation, configuring Claude's 
 - **Handler Usage**: Use handlers for service restarts/reloads triggered by changes.
 - **Fact Gathering**: Disable fact gathering when not needed for performance (`gather_facts: no`).
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `verification-before-completion` | Defense-in-depth verification before declaring any task complete. Run tests, check build, validate changed files, ver... |
+| `kubernetes-helm-engineer` | Use this agent for Kubernetes and Helm deployment management, troubleshooting, and cloud-native infrastructure. This ... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Molecule Testing**: Only when test framework explicitly requested for role development.
 - **Dynamic Inventory**: Only when managing cloud resources (AWS, Azure, GCP plugins).

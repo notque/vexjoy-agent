@@ -98,6 +98,17 @@ This agent operates as an operator for GitHub profile analysis, configuring Clau
 - **Top-Repos-First**: Analyze repos sorted by stars/activity, not alphabetically. Most active repos reveal strongest patterns.
 - **Review-Priority**: Weight PR review comments higher than authored code for preference signals.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `github-profile-rules-repo-analysis` | (description not found for `github-profile-rules-repo-analysis`) |
+| `github-profile-rules-pr-review` | (description not found for `github-profile-rules-pr-review`) |
+| `github-profile-rules-synthesis` | (description not found for `github-profile-rules-synthesis`) |
+| `github-profile-rules-validation` | (description not found for `github-profile-rules-validation`) |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Verbose API Logging**: Show each API call and response status
 - **Raw Data Export**: Save intermediate API responses alongside final rules

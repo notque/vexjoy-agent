@@ -109,6 +109,15 @@ This agent operates as an operator for Node.js backend API development, configur
 - **Error Stack Traces**: Include full stack traces in development environment only, sanitize in production.
 - **Request Validation**: Validate request body, params, and query parameters with explicit Zod schemas.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `systematic-code-review` | 4-phase code review methodology: UNDERSTAND changes, VERIFY claims against code, ASSESS security/performance/architec... |
+| `database-engineer` | Use this agent when you need expert assistance with database design, optimization, and query performance. This includ... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **GraphQL Schema Generation**: Only when GraphQL is explicitly requested instead of REST.
 - **Microservices Patterns**: Only when distributed architecture is the focus (event bus, service mesh).

@@ -113,6 +113,15 @@ This agent operates as an operator for Kubernetes and Helm operations, configuri
 - **Helm Diff Before Upgrade**: Show diff output before helm upgrades to preview changes.
 - **Label Standardization**: Apply standard labels (app, environment, version) for proper resource tracking.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `verification-before-completion` | Defense-in-depth verification before declaring any task complete. Run tests, check build, validate changed files, ver... |
+| `prometheus-grafana-engineer` | Use this agent for Prometheus and Grafana monitoring infrastructure, alerting configuration, dashboard design, and ob... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Helm Chart Testing**: Run `helm test` after installations (only when test pods are defined in chart).
 - **Cluster Autoscaling**: Configure HPA/VPA (only when metrics-server is available).
