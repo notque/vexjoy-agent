@@ -2,12 +2,13 @@
 name: verification-before-completion
 description: |
   Defense-in-depth verification before declaring any task complete. Run tests,
-  check build, validate changed files, verify no regressions. Use before
-  saying "done", "fixed", or "complete" on any code change. Use for "verify",
-  "make sure it works", "check before committing", or "validate changes".
-  Do NOT use for debugging (use systematic-debugging) or code review
-  (use systematic-code-review).
-version: 2.0.0
+  check build, validate changed files, verify no regressions. Applies 4-level
+  adversarial artifact verification (EXISTS > SUBSTANTIVE > WIRED > DATA FLOWS)
+  with goal-backward framing. Use before saying "done", "fixed", or "complete"
+  on any code change. Use for "verify", "make sure it works", "check before
+  committing", or "validate changes". Do NOT use for debugging
+  (use systematic-debugging) or code review (use systematic-code-review).
+version: 3.0.0
 user-invocable: false
 allowed-tools:
   - Read
@@ -34,6 +35,7 @@ This skill operates as an operator for code quality assurance workflows, configu
 - **Check all changed files**: Review every file modification with Read tool
 - **Validate assumptions**: Verify that what you think happened actually happened
 - **No summarization**: Never say "tests pass" - show the actual test output
+- **Adversarial Distrust**: Never trust executor claims. Summary claims document what was SAID, not what IS. Verify what ACTUALLY exists in the codebase by inspecting files, running commands, and tracing data flow. WHY: The same agent that writes code has inherent bias toward believing its own output is correct. Structural distrust counteracts this bias.
 
 ### Default Behaviors (ON unless disabled)
 - **Communication Style**: Report verification results concisely without self-congratulation. Show command output rather than describing it. Be factual and direct.
@@ -53,6 +55,9 @@ This skill operates as an operator for code quality assurance workflows, configu
 - Check for unintended changes via git diff
 - Validate changed files by reading them
 - Detect debug statements and sensitive data left in code
+- Perform 4-level artifact verification (EXISTS, SUBSTANTIVE, WIRED, DATA FLOWS)
+- Apply goal-backward framing to decompose completion into verifiable conditions
+- Run automated stub detection and anti-pattern scans against changed files
 
 ## What This Skill CANNOT Do
 - Declare task complete without running tests
@@ -198,6 +203,200 @@ Test if this addresses the issue.
 - "Test if this addresses the issue"
 - "Please verify the changes work for your use case"
 
+---
+
+## Adversarial Verification Methodology
+
+> **Core Principle**: Never trust executor claims. The verification question is not "did the executor say it's done?" but "does the codebase prove it's done?"
+
+Steps 1-7 above verify that tests pass, builds succeed, and files contain what you expect. The adversarial methodology below goes deeper: it verifies that artifacts are real implementations (not stubs), actually integrated (not orphaned), and processing real data (not hardcoded empties). Apply this methodology after Steps 1-7 pass, focusing on artifacts that are part of the stated goal.
+
+### Goal-Backward Framing
+
+**Do NOT ask**: "Were all tasks completed?"
+**Instead ask**: "What must be TRUE for the goal to be achieved?"
+
+This framing matters because task-forward verification invites the executor to confirm its own narrative. Goal-backward verification derives conditions independently from the goal itself, then checks whether the codebase satisfies them.
+
+**Procedure:**
+
+1. **State the goal as a testable condition**: Express what the user asked for as a concrete, verifiable outcome.
+   - Example: "Users can create a PR with quality scoring that blocks merges below threshold"
+
+2. **Decompose into must-be-true conditions**: Break the goal into independent conditions that must ALL hold.
+   - "A scoring function exists" (L1)
+   - "It contains real scoring logic, not stubs" (L2)
+   - "It is called by the PR pipeline" (L3)
+   - "It receives actual PR data and its score affects the merge gate" (L4)
+
+3. **Verify each condition independently** at the appropriate level using the 4-Level system below.
+
+4. **Report unverified conditions** as blockers -- not "you missed a task" but "this condition is not yet true in the codebase."
+
+### 4-Level Artifact Verification
+
+Each artifact produced during the task is verified at four progressively deeper levels. Higher levels subsume lower ones -- an artifact at Level 4 has passed Levels 1-3 by definition.
+
+**WHY four levels**: Existence checks (L1) catch forgotten writes. Substance checks (L2) catch stubs. Wiring checks (L3) catch orphaned files. Data flow checks (L4) catch integration that exists structurally but passes no real data. Each level catches a distinct class of premature-completion failure.
+
+#### Level 1: EXISTS
+
+The file is present on disk.
+
+**Check**: Use Glob or Bash (`ls`, `test -f`) to confirm the file exists.
+
+**What this catches**: Claims about files that were never created (forgotten Write calls, planned-but-not-executed steps).
+
+**What this misses**: Everything else. Existence is necessary but nowhere near sufficient.
+
+#### Level 2: SUBSTANTIVE
+
+The file contains real logic, not placeholder implementations.
+
+**Check**: Scan for stub indicators using Grep against changed files. See the **Stub Detection Patterns** table below.
+
+**What this catches**: Files that exist but contain no real implementation -- the most common form of premature completion claim.
+
+**What this misses**: Code that has logic but wrong logic, or logic that handles only the happy path.
+
+#### Level 3: WIRED
+
+The artifact is imported AND used by other code in the codebase.
+
+**Check**:
+1. Search for import/require statements referencing the artifact
+2. Verify the imported symbols are actually called (not just imported)
+3. Check that the call sites pass real arguments (not empty objects or nil)
+
+```bash
+# Example: Check if scoring.py is imported anywhere
+grep -r "from.*scoring import\|import.*scoring" --include="*.py" .
+
+# Example: Check if the imported function is actually called
+grep -r "calculate_score\|score_package" --include="*.py" .
+```
+
+**What this catches**: Orphaned files that were created but never integrated.
+
+**What this misses**: Circular or dead-end wiring where the integration exists but the code path is never reached at runtime.
+
+#### Level 4: DATA FLOWS
+
+Real data reaches the artifact and real results come out.
+
+**Check**:
+1. Trace the call chain from entry point to the artifact
+2. Verify inputs are not hardcoded empty values (`[]`, `{}`, `""`, `0`)
+3. Verify outputs are consumed by downstream code (not discarded)
+4. If tests exist, verify test inputs exercise meaningful cases (not just empty-input tests)
+
+**What this catches**: Integration that exists structurally but passes no real data -- functions wired in but fed empty arrays, handlers registered but never triggered.
+
+**What this misses**: Semantic correctness (the data flows but produces wrong results). That is the domain of testing, not verification.
+
+### Stub Detection Patterns
+
+Scan changed files for these patterns. A match does not automatically mean failure -- `return []` is sometimes correct -- but each match requires investigation to confirm the empty return or placeholder is intentional.
+
+| Pattern | Language | Indicates |
+|---------|----------|-----------|
+| `return []` | Python, JS/TS | Empty list return -- may be stub if function should compute results |
+| `return {}` | Python, JS/TS | Empty dict/object return -- may be stub if function should build a structure |
+| `return None` | Python | Sole return in non-optional function -- likely stub |
+| `return nil, nil` | Go | Returning no value and no error -- likely stub |
+| `return nil` | Go | Single nil return in a function expected to produce a value |
+| `pass` (as sole body) | Python | Empty function body -- definite stub |
+| `...` (Ellipsis as body) | Python | Protocol/abstract stub -- should not appear in concrete implementations |
+| `() => {}` | JS/TS | Empty arrow function -- no-op handler |
+| `onClick={() => {}}` | JSX/TSX | Empty click handler -- UI wired but non-functional |
+| `throw new Error("not implemented")` | JS/TS | Explicit "not done" marker |
+| `panic("not implemented")` | Go | Explicit "not done" marker |
+| `raise NotImplementedError` | Python | Explicit "not done" marker |
+| `TODO`, `FIXME`, `HACK`, `XXX` | Any | Markers for incomplete work (in non-test files) |
+| `PLACEHOLDER`, `stub`, `mock` | Any | Self-described placeholder code (in non-test files) |
+| `"coming soon"`, `"not yet implemented"` | Any | Placeholder UI/API text |
+
+**Automated scan command** (run against files changed in the current task):
+
+```bash
+# Get changed files relative to base branch
+changed_files=$(git diff --name-only main...HEAD)
+
+# Scan for stub patterns (adjust base branch as needed)
+grep -n -E "(return \[\]|return \{\}|return None|return nil|pass$|raise NotImplementedError|panic\(\"not implemented\"\)|throw new Error\(\"not implemented\"\)|TODO|FIXME|HACK|XXX|PLACEHOLDER)" $changed_files
+```
+
+Review each match. If the pattern is intentional (e.g., a function that genuinely returns an empty list), note it in the verification report. If it is a stub, flag it as a blocker.
+
+### Anti-Pattern Scan
+
+Beyond stub detection, scan for patterns that correlate with premature completion claims:
+
+**Log-only functions** -- functions whose entire body is a log/print statement with no real logic:
+```bash
+# Python: functions that only log
+grep -A2 "def " $changed_files | grep -B1 "logging\.\|print(" | grep "def "
+```
+
+**Empty handlers** -- event handlers that prevent default but do nothing else:
+```bash
+grep -n "onSubmit.*preventDefault" $changed_files
+grep -n "handler.*{\\s*}" $changed_files
+```
+
+**Placeholder text** in non-test files:
+```bash
+grep -n -i "(placeholder|example data|test data|lorem ipsum)" $changed_files
+```
+
+**Dead imports** -- modules imported but never used:
+```bash
+# Python: imported but not referenced later in the file
+# (manual check -- read the file and verify each import is used)
+```
+
+### Verification Report Format
+
+After completing 4-level verification, produce a structured report. This replaces the simpler verification statement in Step 7 when adversarial verification applies.
+
+```markdown
+## Verification Report
+
+### Goal
+[Stated goal as a testable condition]
+
+### Conditions
+
+| Condition | L1 | L2 | L3 | L4 | Status |
+|-----------|----|----|----|----|--------|
+| [condition 1] | Y/N | Y/N | Y/N | Y/N/- | VERIFIED / INCOMPLETE -- [reason] |
+| [condition 2] | Y/N | Y/N | Y/N | Y/N/- | VERIFIED / INCOMPLETE -- [reason] |
+
+### Blockers
+- [Any condition not verified at the required level]
+
+### Stub Scan Results
+- [N matches found, M confirmed intentional, K flagged as blockers]
+
+### Verdict
+**COMPLETE** / **NOT COMPLETE** -- [summary]
+```
+
+Use `-` in a level column when that level does not apply (e.g., a configuration file does not need L3 wiring checks).
+
+### When to Apply Each Level
+
+Not every artifact needs Level 4 verification. Applying deep verification to trivial changes wastes resources.
+
+| Artifact Type | Minimum Level | Rationale |
+|---------------|---------------|-----------|
+| Core feature code (new modules, handlers, logic) | Level 4 | Must prove data flows end-to-end |
+| Configuration files, YAML, env | Level 1 | Existence is sufficient -- content verified by build/tests |
+| Test files | Level 2 | Must be substantive (not empty test stubs), but wiring is implicit |
+| Documentation, README, comments | Level 1 | Existence check only |
+| Integration glue (imports, routing, wiring) | Level 3 | Must be wired, but data flow verified through the module it connects |
+| Bug fixes to existing code | Level 2 + tests | Substance verified, plus tests must cover the fix |
+
 ## Error Handling
 
 **Error: "Tests failed after changes"**
@@ -222,6 +421,22 @@ Test if this addresses the issue.
 - Document what's missing
 - Attempt alternative verification (syntax checks, manual review)
 - Be explicit about verification limitations
+
+**Error: "Stub patterns detected in changed files"**
+- Review each match individually -- some stubs are intentional (e.g., `return []` when empty list is the correct result)
+- For confirmed stubs: flag as blocker, DO NOT declare task complete
+- For intentional patterns: document in verification report with rationale
+- If unsure: treat as stub (false positive is safer than false negative)
+
+**Error: "Artifact exists but is not wired (Level 3 failure)"**
+- Identify what should import/reference the artifact
+- Check if the wiring was planned but not executed (common in multi-step tasks)
+- Flag as blocker with specific guidance: "File X exists but is not imported by Y"
+
+**Error: "Data flow gap detected (Level 4 failure)"**
+- Trace the call chain to identify where real data stops flowing
+- Common cause: function called with hardcoded `[]` or `{}` instead of computed values
+- Flag as blocker: "Function X is called but receives empty data at call site Y"
 
 ## Common Anti-Patterns
 
@@ -334,11 +549,52 @@ Verification Complete
 Test if this addresses the issue.
 ```
 
+### Anti-Pattern 5: Trusting Executor Summary Claims
+
+**Bad:**
+```
+Executor: "I implemented the scoring module, added tests, and wired it into the pipeline."
+Verifier: Great, scoring module is done. Moving on.
+```
+
+Accepted the claim at face value. Never checked whether the file exists, contains real logic, is imported, or processes real data. Summary claims document what was SAID, not what IS.
+
+**Good:** Independently verify every claim at the appropriate level:
+```
+Executor: "I implemented the scoring module, added tests, and wired it into the pipeline."
+Verifier: Let me verify each claim independently.
+
+L1 EXISTS: ls scoring/calculator.py -- file exists, confirmed.
+L2 SUBSTANTIVE: Reading file... contains calculate_score() with real logic (weighted average across metrics). No stubs detected.
+L3 WIRED: grep -r "from scoring" . -- imported in pipeline/pr_check.py. Checking usage... calculate_score() called on line 47. Confirmed.
+L4 DATA FLOWS: Tracing call site... calculate_score(pr_data.files, pr_data.comments) -- receives real PR data, not empty values. Return value used in gate check on line 52. Confirmed.
+
+All 4 levels verified for scoring module.
+```
+
+### Anti-Pattern 6: Existence-Only Verification
+
+**Bad:**
+```
+Verifier: Let me check -- scoring.py exists, tests exist, pipeline file exists. All artifacts present. Verified!
+```
+
+Checked Level 1 (EXISTS) only. Files can exist but be stubs, orphaned, or processing no real data. Existence is necessary but nowhere near sufficient.
+
+**Good:** Verify at the appropriate depth per artifact type:
+```
+Verifier: scoring.py exists (L1). Checking substance...
+- Reading file: contains calculate_score() with weighted scoring logic (L2 pass)
+- grep for imports: imported in pr_pipeline.py line 12 (L3 pass)
+- Tracing data flow: called with pr.changed_files on line 45 (L4 pass)
+```
+
 ## References
 
 This skill uses these shared patterns:
 - [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
 - [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
+- [Adversarial Verification](../shared-patterns/adversarial-verification.md) - 4-level artifact verification methodology (reusable)
 
 ### Domain-Specific Anti-Rationalization
 
@@ -348,3 +604,7 @@ This skill uses these shared patterns:
 | "Simple change, no need to verify" | Simple changes cause complex bugs | Run full verification regardless |
 | "Those failures were pre-existing" | Assumption without verification | Check with git stash to confirm |
 | "Code looks correct" | Looking correct ≠ being correct | Run tests and read changed files |
+| "I implemented X" (executor claim) | Summary claims document what was SAID, not what IS | Verify independently at L1-L4 |
+| "File exists, so it's done" | Existence (L1) is necessary but not sufficient | Check substance (L2), wiring (L3), data flow (L4) |
+| "It's imported, so it works" | Import without invocation is dead code | Verify the symbol is called with real arguments |
+| "Stubs are fine for now" | Stubs in goal-critical artifacts mean the goal is not achieved | Flag as blocker unless explicitly scoped out |
