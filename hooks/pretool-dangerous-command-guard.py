@@ -32,6 +32,9 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from stdin_timeout import read_stdin
+
 _BYPASS_ENV = "DANGEROUS_GUARD_BYPASS"
 
 # Each tuple: (compiled_regex, category, human_description)
@@ -87,7 +90,7 @@ def _is_whitelisted(command: str, whitelist: list[str]) -> bool:
 
 
 def main() -> None:
-    raw = sys.stdin.read()
+    raw = read_stdin(timeout=2)
     try:
         event = json.loads(raw)
     except (json.JSONDecodeError, ValueError):

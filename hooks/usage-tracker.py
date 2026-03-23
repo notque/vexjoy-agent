@@ -18,12 +18,13 @@ from pathlib import Path
 
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from stdin_timeout import read_stdin
 
 
 def main():
     """Process PostToolUse events, recording Skill and Agent invocations."""
     try:
-        event_data = sys.stdin.read()
+        event_data = read_stdin(timeout=2)
         if not event_data:
             return
 

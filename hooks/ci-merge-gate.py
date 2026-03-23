@@ -9,10 +9,14 @@ failing or still pending.
 import json
 import subprocess
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from stdin_timeout import read_stdin
 
 
 def main() -> None:
-    data = json.loads(sys.stdin.read())
+    data = json.loads(read_stdin(timeout=2))
 
     tool = data.get("tool_name", "")
     if tool != "Bash":

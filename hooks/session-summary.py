@@ -22,12 +22,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from learning_db_v2 import get_stats, record_session
+from stdin_timeout import read_stdin
 
 
 def main():
     """Generate session summary on conversation end."""
     try:
-        event_data = sys.stdin.read()
+        event_data = read_stdin(timeout=2)
         cwd = os.getcwd()
 
         # Generate session ID

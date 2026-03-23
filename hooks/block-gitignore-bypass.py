@@ -18,11 +18,15 @@ import json
 import re
 import subprocess
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from stdin_timeout import read_stdin
 
 
 def main() -> None:
     try:
-        hook_input = json.loads(sys.stdin.read())
+        hook_input = json.loads(read_stdin(timeout=2))
         tool_name = hook_input.get("tool_name", "")
 
         # Fast path: only care about Bash

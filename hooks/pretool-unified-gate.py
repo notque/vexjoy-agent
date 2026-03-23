@@ -23,6 +23,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from stdin_timeout import read_stdin
+
 # ═══════════════════════════════════════════════════════════════
 # 1. GITIGNORE BYPASS (block-gitignore-bypass.py)
 # ═══════════════════════════════════════════════════════════════
@@ -322,7 +325,7 @@ def check_sensitive_file(file_path: str) -> None:
 
 
 def main() -> None:
-    raw = sys.stdin.read()
+    raw = read_stdin(timeout=2)
     try:
         event = json.loads(raw)
     except (json.JSONDecodeError, ValueError):

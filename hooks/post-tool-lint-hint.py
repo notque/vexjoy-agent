@@ -16,6 +16,9 @@ import os
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from stdin_timeout import read_stdin
+
 # File extensions and their linters
 LINTERS = {
     ".py": "ruff check --fix",
@@ -54,7 +57,7 @@ def mark_extension_seen(ext: str):
 def main():
     """Process PostToolUse hook event."""
     try:
-        event_data = sys.stdin.read()
+        event_data = read_stdin(timeout=2)
         event = json.loads(event_data)
 
         # Check this is PostToolUse for Write or Edit

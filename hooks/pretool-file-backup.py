@@ -29,6 +29,9 @@ import sys
 import time
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from stdin_timeout import read_stdin
+
 # 10 MB limit — skip larger files silently
 _MAX_FILE_SIZE = 10 * 1024 * 1024
 
@@ -39,7 +42,7 @@ _BACKUP_ROOT = Path("/tmp/.claude-backups") / _SESSION_ID
 
 
 def main() -> None:
-    raw = sys.stdin.read()
+    raw = read_stdin(timeout=2)
     try:
         event = json.loads(raw)
     except (json.JSONDecodeError, ValueError):

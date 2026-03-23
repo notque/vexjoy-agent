@@ -29,6 +29,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from hook_utils import context_output, empty_output
+from stdin_timeout import read_stdin
 
 # =============================================================================
 # Detection Patterns
@@ -133,7 +134,7 @@ AGENT_TRIGGERS = {
 def get_user_prompt() -> str:
     """Get the user prompt from stdin (hook input)."""
     try:
-        hook_input = json.load(sys.stdin)
+        hook_input = json.loads(read_stdin(timeout=2))
         # Validate input is a dict (expected format from hook system)
         if not isinstance(hook_input, dict):
             print(f"[auto-plan] Expected dict input, got {type(hook_input).__name__}", file=sys.stderr)

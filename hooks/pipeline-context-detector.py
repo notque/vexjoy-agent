@@ -36,6 +36,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from hook_utils import context_output, empty_output, parse_frontmatter
+from stdin_timeout import read_stdin
 
 EVENT_NAME = "UserPromptSubmit"
 
@@ -55,7 +56,7 @@ TRIGGER_PATTERN = re.compile("|".join(PIPELINE_TRIGGERS), re.IGNORECASE)
 def get_user_prompt() -> str:
     """Extract user prompt from stdin JSON."""
     try:
-        data = json.loads(sys.stdin.read())
+        data = json.loads(read_stdin(timeout=2))
         return data.get("userMessage", "")
     except (json.JSONDecodeError, KeyError):
         return ""
