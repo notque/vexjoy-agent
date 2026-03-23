@@ -84,7 +84,7 @@ This skill operates as an operator for tonal framing validation, configuring Cla
 **Step 1: Run the regex-based scanner**
 
 ```bash
-python3 scripts/scan-negative-framing.py [file]
+python3 ~/.claude/scripts/scan-negative-framing.py [file]
 ```
 
 **Step 2: Handle regex hits**

@@ -40,7 +40,7 @@ Hooks fire on every tool use in a live Claude Code session. A slow hook is not a
 ### Hardcoded Behaviors (Always Apply)
 
 - **Spec Before Code**: Phase 1 must produce a written spec with all decisions recorded before Phase 2 begins. Never skip to implementation.
-- **ADR Session Awareness**: In Phase 1 (SPEC), check for active ADR session (`.adr-session.json`). If found, read hook requirements from the ADR via `python3 scripts/adr-query.py context --adr {adr_path} --role script-creator`. Include ADR-specified event types, matchers, and behavioral requirements in the spec. Run `adr-query.py list` to check for related ADRs.
+- **ADR Session Awareness**: In Phase 1 (SPEC), check for active ADR session (`.adr-session.json`). If found, read hook requirements from the ADR via `python3 ~/.claude/scripts/adr-query.py context --adr {adr_path} --role script-creator`. Include ADR-specified event types, matchers, and behavioral requirements in the spec. Run `adr-query.py list` to check for related ADRs.
 - **Performance Gate is Blocking**: If `time python3 hooks/{name}.py < /dev/null` reads ≥ 50ms, return to Phase 2. Do not proceed to Phase 4. No exceptions, no "close enough."
 - **Non-Blocking Gate is Blocking**: If the hook exits non-zero on invalid input, return to Phase 2. A crashing hook is worse than no hook.
 - **Registration is Part of Done**: A hook not registered in `settings.json` is not done. Phase 4 is mandatory.
@@ -285,7 +285,7 @@ If one exists, add a one-line entry for the new hook.
 
 **Step 3**: Record in learning database:
 ```bash
-python3 scripts/learning-db.py record hooks {name} \
+python3 ~/.claude/scripts/learning-db.py record hooks {name} \
   "what it does and when to use it" \
   --category design
 ```

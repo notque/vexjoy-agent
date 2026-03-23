@@ -42,7 +42,7 @@ Execute the implementation plan by dispatching tasks to domain agents wave by wa
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md
 - **Plan Required**: CANNOT implement without a plan in `.feature/state/plan/`
-- **State Management via Script**: All state operations through `python3 scripts/feature-state.py`
+- **State Management via Script**: All state operations through `python3 ~/.claude/scripts/feature-state.py`
 - **Domain Agent Dispatch**: Every task dispatched to its assigned domain agent via Task tool
 - **Wave Order Enforcement**: Complete all tasks in Wave N before starting Wave N+1
 - **Wave Checkpoint**: Run relevant tests after each wave completes
@@ -76,7 +76,7 @@ Execute the implementation plan by dispatching tasks to domain agents wave by wa
 
 1. Verify feature state:
    ```bash
-   python3 scripts/feature-state.py status FEATURE
+   python3 ~/.claude/scripts/feature-state.py status FEATURE
    ```
    Verify current phase is `implement` and `plan` is completed.
 
@@ -86,7 +86,7 @@ Execute the implementation plan by dispatching tasks to domain agents wave by wa
 
 4. Load L1 implement context:
    ```bash
-   python3 scripts/feature-state.py context-read FEATURE L1 --phase implement
+   python3 ~/.claude/scripts/feature-state.py context-read FEATURE L1 --phase implement
    ```
 
 5. Capture BASE_SHA:
@@ -125,7 +125,7 @@ Agent(
 | Tier 2: Blocking | Missing dependency, config issue | Auto-fix if possible, record |
 | Tier 3: Architectural | Schema change, API change, scope expansion | **STOP**, present to user |
 
-Check gate for Tier 3: `python3 scripts/feature-state.py gate FEATURE implement.architectural-deviation`
+Check gate for Tier 3: `python3 ~/.claude/scripts/feature-state.py gate FEATURE implement.architectural-deviation`
 
 **Step 3: Wave Checkpoint**
 
@@ -160,17 +160,17 @@ Quick validation before formal validation phase:
 
 1. Save implementation artifact (summary of what was built):
    ```bash
-   echo "IMPL_SUMMARY" | python3 scripts/feature-state.py checkpoint FEATURE implement
+   echo "IMPL_SUMMARY" | python3 ~/.claude/scripts/feature-state.py checkpoint FEATURE implement
    ```
 
 2. **Record learnings** — if this phase produced non-obvious insights, record them:
    ```bash
-   python3 scripts/learning-db.py record TOPIC KEY "VALUE" --category design
+   python3 ~/.claude/scripts/learning-db.py record TOPIC KEY "VALUE" --category design
    ```
 
 3. Advance:
    ```bash
-   python3 scripts/feature-state.py advance FEATURE
+   python3 ~/.claude/scripts/feature-state.py advance FEATURE
    ```
 
 4. Suggest next step:

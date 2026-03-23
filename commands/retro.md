@@ -37,7 +37,7 @@ Health:
 Shows knowledge store size, injection hook health, and issue count.
 
 ### audit
-Runs `python3 scripts/feature-state.py retro-audit` and formats results by file with severity and hints.
+Runs `python3 ~/.claude/scripts/feature-state.py retro-audit` and formats results by file with severity and hints.
 
 ### list
 Displays L1 summary (always injected into agents) and L2 topic file inventory with tags, languages, and observation counts.
@@ -59,7 +59,7 @@ Parse the argument to select the subcommand:
 - "fix" → run fix subcommand
 - "graduate" → run graduate subcommand
 
-All retro state operations go through `python3 scripts/feature-state.py` — never parse retro files manually.
+All retro state operations go through `python3 ~/.claude/scripts/feature-state.py` — never parse retro files manually.
 
 ## Related
 

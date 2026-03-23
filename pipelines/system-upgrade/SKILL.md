@@ -57,7 +57,7 @@ complementing the **bottom-up** retro-knowledge-injector.
 
 ### Optional Behaviors (OFF unless enabled)
 - **Comprehensive Audit**: Audit all agents and skills (slow; enable with "comprehensive audit")
-- **Full Upgrade Diff**: Force a full component scan instead of incremental diff (enable with `python3 scripts/upgrade-diff.py --full` or "full upgrade")
+- **Full Upgrade Diff**: Force a full component scan instead of incremental diff (enable with `python3 ~/.claude/scripts/upgrade-diff.py --full` or "full upgrade")
 - **Auto-Approve**: Skip user approval gate between Phase 3 and Phase 4 (enable with "auto-apply")
 - **Skip Validate**: Skip agent-evaluation scoring (enable with "skip validation")
 
@@ -104,7 +104,7 @@ complementing the **bottom-up** retro-knowledge-injector.
 
 **For `retro-driven`**: Query the learning database for graduation candidates:
 ```bash
-python3 scripts/learning-db.py query --category design --category gotcha
+python3 ~/.claude/scripts/learning-db.py query --category design --category gotcha
 ```
 Evaluate entries for actionability and specificity. These are the upgrade signals.
 
@@ -121,7 +121,7 @@ Evaluate entries for actionability and specificity. These are the upgrade signal
 **Step 0**: Check for incremental mode.
 
 ```bash
-python3 scripts/upgrade-diff.py
+python3 ~/.claude/scripts/upgrade-diff.py
 ```
 
 Evaluate the JSON output:
@@ -307,7 +307,7 @@ git commit -m "chore: system upgrade — [brief description of trigger]
 
 **Step 4**: Record upgrade SHA so the next run diffs incrementally:
 ```bash
-python3 scripts/upgrade-diff.py --record
+python3 ~/.claude/scripts/upgrade-diff.py --record
 ```
 
 **Step 5**: Produce completion summary:

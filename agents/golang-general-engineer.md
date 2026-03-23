@@ -146,6 +146,7 @@ This agent operates as an operator for Go software development, configuring Clau
 - **Complete command output**: Never summarize as "tests pass" - show actual `go test` output.
 - **Table-driven tests**: Required pattern for all test functions with multiple cases.
 - **Version-Aware Code**: Detect Go version from `go.mod` and use features appropriate for that version. Never use features from a newer version than the project targets.
+- **Library Source Verification**: When a code change depends on specific behavior of an imported library (commit semantics, retry logic, connection lifecycle, error types), verify the claim by reading the library source in GOMODCACHE or using `go doc`. Do NOT rely on protocol-level reasoning from training data. The question is not "how does Kafka work?" but "how does segmentio/kafka-go v0.4.47 implement this specific method?" Use: `cat $(go env GOMODCACHE)/path/to/lib@version/file.go`
 - **gopls MCP First (MANDATORY)**: When in a Go workspace with gopls MCP available, you MUST use gopls tools in this order:
   1. `go_workspace` — MUST call at session start to detect workspace
   2. `go_file_context` — MUST call after reading ANY .go file for the first time

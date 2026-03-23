@@ -41,7 +41,7 @@ Merge the validated feature to main branch via PR, optionally tag a release, and
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md
 - **Validation Required**: CANNOT release without validation passing
-- **State Management via Script**: All state operations through `python3 scripts/feature-state.py`
+- **State Management via Script**: All state operations through `python3 ~/.claude/scripts/feature-state.py`
 - **PR-Based Merge**: Always merge via pull request, never direct push to main
 - **Conventional Commits**: Use conventional commit format
 - **No Attribution Lines**: No "Co-Authored-By" or "Generated with Claude Code"
@@ -75,7 +75,7 @@ Merge the validated feature to main branch via PR, optionally tag a release, and
 
 1. Verify feature state is `release` and `validate` is completed.
 2. Load all artifacts: design, plan, implementation summary, validation report.
-3. Check gate: `python3 scripts/feature-state.py gate FEATURE release.merge-strategy`
+3. Check gate: `python3 ~/.claude/scripts/feature-state.py gate FEATURE release.merge-strategy`
 
 **Gate**: All artifacts loaded. Validation passed. Proceed.
 
@@ -110,12 +110,12 @@ Use our existing pr-pipeline patterns:
 
 1. Clean up worktree:
    ```bash
-   python3 scripts/feature-state.py worktree FEATURE cleanup
+   python3 ~/.claude/scripts/feature-state.py worktree FEATURE cleanup
    ```
 
 2. Archive feature state:
    ```bash
-   python3 scripts/feature-state.py complete FEATURE
+   python3 ~/.claude/scripts/feature-state.py complete FEATURE
    ```
 
 3. Update L0 (remove feature from active list).
@@ -132,12 +132,12 @@ Use our existing pr-pipeline patterns:
 
 1. Save release artifact:
    ```bash
-   echo "RELEASE_NOTES" | python3 scripts/feature-state.py checkpoint FEATURE release
+   echo "RELEASE_NOTES" | python3 ~/.claude/scripts/feature-state.py checkpoint FEATURE release
    ```
 
 2. **Record learnings** — final pass, capture insights from the full lifecycle:
    ```bash
-   python3 scripts/learning-db.py record TOPIC KEY "VALUE" --category design
+   python3 ~/.claude/scripts/learning-db.py record TOPIC KEY "VALUE" --category design
    ```
    Focus on: architectural decisions, workflow improvements, agent performance, patterns to reuse.
 

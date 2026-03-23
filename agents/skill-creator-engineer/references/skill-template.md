@@ -182,7 +182,7 @@ This skill operates as an operator for [workflow], configuring Claude's behavior
 ## Instructions
 
 ### Step 1: [First Action]
-Run: `python3 scripts/main.py --input {input_file}`
+Run: `python3 ~/.claude/scripts/main.py --input {input_file}`
 Expect: [Specific output format]
 Validate: [How to verify success]
 

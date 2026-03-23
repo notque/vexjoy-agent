@@ -70,16 +70,16 @@ def inject_adr_anchor(event: dict) -> None:
         print("[precompact-adr] RECOVERY AFTER COMPACTION:")
         print(f"[precompact-adr]   1. Read this ADR: {adr_path}")
         print(
-            f"[precompact-adr]   2. Verify hash:  python3 scripts/adr-query.py verify --adr {adr_path} --hash {adr_hash}"
+            f"[precompact-adr]   2. Verify hash:  python3 ~/.claude/scripts/adr-query.py verify --adr {adr_path} --hash {adr_hash}"
         )
         print(
-            f"[precompact-adr]   3. Get your context: python3 scripts/adr-query.py context --adr {adr_path} --role orchestrator"
+            f"[precompact-adr]   3. Get your context: python3 ~/.claude/scripts/adr-query.py context --adr {adr_path} --role orchestrator"
         )
         print("[precompact-adr]")
         print("[precompact-adr] COMPLIANCE CHECK FOR ANY COMPONENT FILE:")
-        print("[precompact-adr]   python3 scripts/adr-compliance.py check --file {file} \\")
-        print("[precompact-adr]     --step-menu pipelines/pipeline-scaffolder/references/step-menu.md \\")
-        print("[precompact-adr]     --spec-format pipelines/pipeline-scaffolder/references/pipeline-spec-format.md")
+        print("[precompact-adr]   python3 ~/.claude/scripts/adr-compliance.py check --file {file} \\")
+        print("[precompact-adr]     --step-menu ~/.claude/skills/pipeline-scaffolder/references/step-menu.md \\")
+        print("[precompact-adr]     --spec-format ~/.claude/skills/pipeline-scaffolder/references/pipeline-spec-format.md")
         print("[precompact-adr] ==========================================")
 
     except Exception:

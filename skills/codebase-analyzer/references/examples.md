@@ -10,7 +10,7 @@ You want to understand the error handling standards in a Go service before submi
 ### Command
 ```bash
 cd ~/.claude/skills/codebase-analyzer
-python3 scripts/analyzer.py ~/repos/api-server --output analysis_data/api_server_analysis.json
+python3 ~/.claude/scripts/analyzer.py ~/repos/api-server --output analysis_data/api_server_analysis.json
 ```
 
 ### Output Summary
@@ -89,9 +89,9 @@ You're new to the team and want to understand team-wide patterns across api-serv
 cd ~/.claude/skills/codebase-analyzer
 
 # Analyze each repo
-python3 scripts/analyzer.py ~/repos/api-server --output analysis_data/api-server.json
-python3 scripts/analyzer.py ~/repos/metrics-service --output analysis_data/metrics-service.json
-python3 scripts/analyzer.py ~/repos/registry-service --output analysis_data/registry-service.json
+python3 ~/.claude/scripts/analyzer.py ~/repos/api-server --output analysis_data/api-server.json
+python3 ~/.claude/scripts/analyzer.py ~/repos/metrics-service --output analysis_data/metrics-service.json
+python3 ~/.claude/scripts/analyzer.py ~/repos/registry-service --output analysis_data/registry-service.json
 ```
 
 ### Comparison Analysis
@@ -140,7 +140,7 @@ You want to know if the team is adopting modern Go 1.21+ features (slices, maps,
 
 ### Command
 ```bash
-python3 scripts/analyzer.py ~/repos/your-project
+python3 ~/.claude/scripts/analyzer.py ~/repos/your-project
 ```
 
 ### Relevant Output Section
@@ -179,7 +179,7 @@ You want to introduce a new error handling pattern and first check what the code
 
 ### Analysis
 ```bash
-python3 scripts/analyzer.py ~/repos/your-project
+python3 ~/.claude/scripts/analyzer.py ~/repos/your-project
 ```
 
 ### Check Import Statistics
@@ -225,7 +225,7 @@ You notice reviewers sometimes ask for different things. Let's check what the co
 
 ### Analysis
 ```bash
-python3 scripts/analyzer.py ~/repos/your-project
+python3 ~/.claude/scripts/analyzer.py ~/repos/your-project
 ```
 
 ### Results
@@ -262,7 +262,7 @@ Re-analyze the codebase quarterly to see how patterns evolve over time.
 
 ### Initial Analysis (Q1 2025)
 ```bash
-python3 scripts/analyzer.py ~/repos/your-project --output analysis_data/project_2025_q1.json
+python3 ~/.claude/scripts/analyzer.py ~/repos/your-project --output analysis_data/project_2025_q1.json
 ```
 
 **Results**:
@@ -271,7 +271,7 @@ python3 scripts/analyzer.py ~/repos/your-project --output analysis_data/project_
 
 ### Follow-Up Analysis (Q4 2025)
 ```bash
-python3 scripts/analyzer.py ~/repos/your-project --output analysis_data/project_2025_q4.json
+python3 ~/.claude/scripts/analyzer.py ~/repos/your-project --output analysis_data/project_2025_q4.json
 ```
 
 **Results**:
@@ -297,7 +297,7 @@ golangci-lint fails on your PR with "receiver name should be consistent". You wa
 
 ### Command
 ```bash
-python3 scripts/analyzer.py ~/repos/your-project
+python3 ~/.claude/scripts/analyzer.py ~/repos/your-project
 ```
 
 ### Relevant Output
@@ -350,7 +350,7 @@ cd ~/.claude/skills/pr-miner
 **Step 2**: Analyze codebase (implicit rules)
 ```bash
 cd ~/.claude/skills/codebase-analyzer
-python3 scripts/analyzer.py ~/repos/your-project \
+python3 ~/.claude/scripts/analyzer.py ~/repos/your-project \
   --output analysis_data/project_stats.json
 ```
 
@@ -410,10 +410,10 @@ New developer joins the team. Instead of vague "read the code", give them concre
 cd ~/.claude/skills/codebase-analyzer
 
 echo "Analyzing api-server..."
-python3 scripts/analyzer.py ~/repos/api-server --output /tmp/api-server.json
+python3 ~/.claude/scripts/analyzer.py ~/repos/api-server --output /tmp/api-server.json
 
 echo "Analyzing metrics-service..."
-python3 scripts/analyzer.py ~/repos/metrics-service --output /tmp/metrics-service.json
+python3 ~/.claude/scripts/analyzer.py ~/repos/metrics-service --output /tmp/metrics-service.json
 
 echo ""
 echo "=============================="

@@ -145,22 +145,22 @@ stats = get_stats()
 
 ```bash
 # Record a learning
-python3 scripts/learning-db.py record TOPIC KEY "VALUE" --category CATEGORY
+python3 ~/.claude/scripts/learning-db.py record TOPIC KEY "VALUE" --category CATEGORY
 
 # Query learnings
-python3 scripts/learning-db.py query --category error --min-confidence 0.7
+python3 ~/.claude/scripts/learning-db.py query --category error --min-confidence 0.7
 
 # Search
-python3 scripts/learning-db.py search "multiple matches"
+python3 ~/.claude/scripts/learning-db.py search "multiple matches"
 
 # Stats
-python3 scripts/learning-db.py stats
+python3 ~/.claude/scripts/learning-db.py stats
 
 # Import from legacy patterns.db
-python3 scripts/learning-db.py import-patterns ~/.claude/learning/patterns.db
+python3 ~/.claude/scripts/learning-db.py import-patterns ~/.claude/learning/patterns.db
 
 # Import from retro L2 markdown
-python3 scripts/learning-db.py import-retro retro/
+python3 ~/.claude/scripts/learning-db.py import-retro retro/
 ```
 
 ---

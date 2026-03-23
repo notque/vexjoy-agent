@@ -101,6 +101,7 @@ This agent operates as an operator for comment analysis, configuring Claude's be
 - **Evidence-Based Findings**: Every comment issue must cite the comment text AND the code it describes.
 - **Review-First in Fix Mode**: When `--fix` is requested, complete the full 5-step analysis first, then apply corrections.
 - **Misleading Over Missing**: Prioritize fixing misleading comments (actively harmful) over adding missing comments (passively incomplete).
+- **External Behavior Claims**: When a comment makes a claim about external library or service behavior (e.g., "Kafka will redeliver", "S3 returns 404", "gRPC retries automatically"), flag it as requiring verification. Check the claim against the library source in GOMODCACHE (preferred) or official documentation (fallback). Do NOT verify external claims against protocol-level knowledge from training data. The question is "does THIS library do THIS?" not "does the protocol support THIS?"
 
 ### Default Behaviors (ON unless disabled)
 - **Communication Style**:
