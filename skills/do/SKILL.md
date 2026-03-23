@@ -70,11 +70,48 @@ This skill operates as the primary routing operator for the Claude Code agent sy
 
 ## Instructions
 
+### Phase Banners (MANDATORY)
+
+Every phase of the /do pipeline MUST display a visible banner to the user BEFORE executing that phase's work. The user should always know what stage they're in.
+
+Banner format:
+```
+───────────────────────────────────────────────────
+ /do ► Phase N: PHASE_NAME
+───────────────────────────────────────────────────
+```
+
+The full sequence the user sees:
+```
+/do ► Phase 0: PRE-CLASSIFY — running task-type classifier...
+/do ► Phase 1: CLASSIFY — assessing complexity...
+/do ► Phase 2: ROUTE — selecting agent + skill...
+
+===================================================================
+ ROUTING: [summary]                        ← full routing decision
+===================================================================
+
+/do ► Phase 3: ENHANCE — checking for enhancements...
+/do ► Phase 4: EXECUTE — invoking [agent] with [skill]...
+/do ► Phase 5: LEARN — capturing session insights...
+```
+
+Phase banners are short single-line indicators. The routing decision banner (the `===` block) is the detailed output shown after Phase 2 completes. Both are required — the phase banner tells the user *where they are*, the routing banner tells them *what was decided*.
+
+---
+
 ### Phase 0: DETERMINISTIC PRE-CLASSIFICATION (Mandatory)
 
 **Goal**: Run the task-type classifier script BEFORE any LLM-based routing to get a deterministic signal.
 
 **This phase is mandatory for every `/do` invocation except Trivial (exact file reads).**
+
+**Step 0**: Display phase banner FIRST, before running the script:
+```
+───────────────────────────────────────────────────
+ /do ► Phase 0: PRE-CLASSIFY — running task-type classifier...
+───────────────────────────────────────────────────
+```
 
 **Step 1**: Run the classifier:
 ```bash
@@ -109,6 +146,13 @@ python3 scripts/task-type-classifier.py --request "{user_request}" --check-catal
 ### Phase 1: CLASSIFY
 
 **Goal**: Determine request complexity and whether routing is needed.
+
+**Display phase banner**:
+```
+───────────────────────────────────────────────────
+ /do ► Phase 1: CLASSIFY — assessing complexity...
+───────────────────────────────────────────────────
+```
 
 **Step 1: Assess complexity**
 
@@ -159,6 +203,13 @@ If a parallel pattern matches, route to the parallel mechanism FIRST.
 ### Phase 2: ROUTE
 
 **Goal**: Select the correct agent + skill combination.
+
+**Display phase banner**:
+```
+───────────────────────────────────────────────────
+ /do ► Phase 2: ROUTE — selecting agent + skill...
+───────────────────────────────────────────────────
+```
 
 **Step 1: Check force-route triggers**
 
@@ -346,6 +397,13 @@ This banner MUST be the FIRST visible output for EVERY /do invocation — includ
 
 **Goal**: Stack additional skills based on signals in the request.
 
+**Display phase banner**:
+```
+───────────────────────────────────────────────────
+ /do ► Phase 3: ENHANCE — checking for enhancements...
+───────────────────────────────────────────────────
+```
+
 | Signal in Request | Enhancement to Add |
 |-------------------|-------------------|
 | Any substantive work (code, design, plan) | **Auto-inject retro knowledge** (from learning.db via `retro-knowledge-injector` hook) |
@@ -386,6 +444,13 @@ For explicit maximum rigor, use `/with-anti-rationalization [task]`.
 ### Phase 4: EXECUTE
 
 **Goal**: Invoke the selected agent + skill and deliver results.
+
+**Display phase banner** (include the agent and skill names):
+```
+───────────────────────────────────────────────────
+ /do ► Phase 4: EXECUTE — invoking {agent} with {skill}...
+───────────────────────────────────────────────────
+```
 
 **Step 0: Execute Creation Protocol** (for creation requests ONLY)
 
@@ -463,6 +528,13 @@ When uncertain which route: **ROUTE ANYWAY.** Route to the most likely agent + s
 ### Phase 5: LEARN
 
 **Goal**: Ensure session insights are captured to `learning.db`.
+
+**Display phase banner**:
+```
+───────────────────────────────────────────────────
+ /do ► Phase 5: LEARN — capturing session insights...
+───────────────────────────────────────────────────
+```
 
 **Auto-capture** (hooks, zero LLM cost):
 - `error-learner.py` (PostToolUse) → captures tool errors + solutions
