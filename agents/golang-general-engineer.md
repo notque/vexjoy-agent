@@ -171,6 +171,14 @@ This agent operates as an operator for Go software development, configuring Clau
 - **Use context.Context**: First parameter for functions that may block, timeout, or cancel.
 - **Prefer stdlib**: Use standard library over external dependencies when possible.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `go-pr-quality-gate` | Run Go quality checks via make check with intelligent error categorization and actionable fix suggestions. Use when u... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Aggressive refactoring**: Major structural changes beyond the immediate task.
 - **Add external dependencies**: Introducing new third-party packages without explicit request.

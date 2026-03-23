@@ -109,6 +109,15 @@ This agent operates as an operator for TypeScript debugging, configuring Claude'
 - **Error Boundaries**: Suggest error boundaries for React components with async operations.
 - **Git Bisect for Regressions**: When bug is a regression (used to work), suggest git bisect to find culprit commit.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `systematic-debugging` | Evidence-based 4-phase root cause analysis: Reproduce, Isolate, Identify, Verify. Use when user reports a bug, tests ... |
+| `typescript-frontend-engineer` | Use this agent when you need expert assistance with TypeScript frontend architecture and optimization for modern web ... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Sentry Integration**: Only when production errors need tracking - set up Sentry with source maps.
 - **Performance Profiling**: Only when performance issue confirmed - add performance tracing.

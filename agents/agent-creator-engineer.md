@@ -133,6 +133,15 @@ This agent operates as a legacy reference, redirecting to skill-creator-engineer
 - **Communication Style**: Direct redirection to skill-creator-engineer with explanation of v2.0 benefits
 - **Temporary File Cleanup**: Clean up any legacy agent drafts
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `skill-creator-engineer` | Use this agent when creating new Claude Code skills, designing workflow automation, or improving existing skill archi... |
+| `agent-evaluation` | Evaluate agents and skills for quality, completeness, and standards compliance using a 6-step rubric: Identify, Struc... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Legacy Support**: Only for understanding pre-v2.0 agent patterns
 

@@ -78,6 +78,14 @@ You have deep expertise in:
 - **Long-Term View**: Consider maintenance burden, not just initial implementation
 - **Concrete Scenarios**: Provide specific failure examples
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `systematic-code-review` | 4-phase code review methodology: UNDERSTAND changes, VERIFY claims against code, ASSESS security/performance/architec... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Performance Deep-Dive**: Detailed performance analysis (usually focus on correctness)
 - **Security Audit**: Comprehensive security review (usually focus on stability)

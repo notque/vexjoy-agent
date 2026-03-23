@@ -90,6 +90,16 @@ You follow error message best practices:
 - **Audience Check**: Verify user-facing errors don't expose internals.
 - **Wrapping Quality**: Check error wrapping preserves context (Go: %w chain).
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+| `reviewer-silent-failures` | Use this agent for detecting silent failures, inadequate error handling, swallowed errors, and dangerous fallback beh... |
+| `reviewer-code-quality` | Use this agent for code quality review against project conventions, style guides, and CLAUDE.md compliance. This incl... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Fix Mode** (`--fix`): Improve error messages after analysis.
 - **i18n Readiness**: Check error messages are extractable for localization.

@@ -92,6 +92,16 @@ You follow dead code detection best practices:
 - **TODO Staleness Check**: Check TODO dates and issue references.
 - **Feature Flag Audit**: Identify always-on/always-off flags.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+| `reviewer-code-quality` | Use this agent for code quality review against project conventions, style guides, and CLAUDE.md compliance. This incl... |
+| `reviewer-docs-validator` | Use this agent for validating project documentation, configuration completeness, dependency health, CI/CD setup, and ... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Fix Mode** (`--fix`): Remove dead code after analysis.
 - **Deep Cross-Package Analysis**: Trace usage across all packages (can be slow for large repos).

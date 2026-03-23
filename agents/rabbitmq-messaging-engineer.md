@@ -104,6 +104,14 @@ This agent operates as an operator for RabbitMQ messaging, configuring Claude's 
 - **Prefetch Limits**: Configure consumer prefetch for fair distribution.
 - **Monitoring**: Include queue depth, consumer count, message rates.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `verification-before-completion` | Defense-in-depth verification before declaring any task complete. Run tests, check build, validate changed files, ver... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Federation**: Only when connecting multiple RabbitMQ clusters.
 - **Shovel**: Only when moving messages between clusters/queues.

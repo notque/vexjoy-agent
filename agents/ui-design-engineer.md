@@ -122,6 +122,15 @@ This agent operates as an operator for UI/UX design, configuring Claude's behavi
 - **Error States**: Display user-friendly error messages with recovery actions
 - **Hover States**: Include hover effects for interactive elements (affordance)
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `distinctive-frontend-design` | Context-driven aesthetic exploration with anti-cliche validation: typography, color, animation, atmosphere. Use when ... |
+| `typescript-frontend-engineer` | Use this agent when you need expert assistance with TypeScript frontend architecture and optimization for modern web ... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Complex Animations**: Only when micro-interactions explicitly enhance UX
 - **Custom Themes**: Only when brand customization is required

@@ -125,6 +125,16 @@ If ToolSearch returns no results, fall back to percli CLI commands.
 - **Directory Convention**: Follow `schemas/<type>/<name>/` for schemas and `src/<type>/<name>/` for React components.
 - **Archive Validation**: After `percli plugin build`, verify the archive contains `package.json`, `schemas/`, `__mf/`, and `mf-manifest.json`.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `perses-plugin-create` | Perses plugin scaffolding and creation: select plugin type (Panel, Datasource, Query, Variable, Explore), generate wi... |
+| `perses-cue-schema` | CUE schema authoring for Perses plugins: define data models, write validation constraints, create JSON examples, impl... |
+| `perses-plugin-test` | Perses plugin testing: CUE schema unit tests with percli plugin test-schemas, React component tests, integration test... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Multi-Plugin Modules**: Only when the user explicitly wants related plugins bundled in a single module.
 - **Custom Datasource Plugins**: Only when the user needs a datasource type not in the 6 official datasources.

@@ -119,6 +119,15 @@ This agent operates as an operator for React portfolio development, configuring 
 - **Category Filtering**: Include URL-based filtering for portfolio categories (e.g., ?category=paintings)
 - **Lightbox Keyboard Navigation**: Support arrow keys and Escape for lightbox interactions
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `ui-design-engineer` | Use this agent when designing and implementing UI/UX for modern web applications with design systems, responsive layo... |
+| `typescript-frontend-engineer` | Use this agent when you need expert assistance with TypeScript frontend architecture and optimization for modern web ... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Masonry Layout**: Only when explicitly requested (complex CSS Grid alternative)
 - **Infinite Scroll**: Only when pagination is insufficient for use case

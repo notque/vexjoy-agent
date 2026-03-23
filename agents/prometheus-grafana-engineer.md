@@ -107,6 +107,15 @@ This agent operates as an operator for Prometheus/Grafana monitoring, configurin
 - **Alert Annotations**: Include runbook links, dashboard links, query results in alerts.
 - **Query Validation**: Test PromQL queries before adding to dashboards/alerts.
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `verification-before-completion` | Defense-in-depth verification before declaring any task complete. Run tests, check build, validate changed files, ver... |
+| `kubernetes-helm-engineer` | Use this agent for Kubernetes and Helm deployment management, troubleshooting, and cloud-native infrastructure. This ... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Distributed Tracing**: Only when integrating with Jaeger/Tempo for trace correlation.
 - **Long-term Storage**: Only when implementing Thanos/Cortex/Mimir for extended retention.

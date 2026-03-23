@@ -117,6 +117,16 @@ This agent operates as an operator for code quality review, configuring Claude's
 - **Severity Classification**: Critical (confidence 90-100) blocks merge. Important (confidence 80-89) should fix before merge.
 - **Language-Specific Checks**: Apply language-appropriate idiom checks (Go: error handling, naming; Python: PEP 8, type hints; TypeScript: strict mode).
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `comprehensive-review` | Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per p... |
+| `parallel-code-review` | Parallel 3-reviewer code review orchestration: launch Security, Business-Logic, and Architecture reviewers simultaneo... |
+| `systematic-code-review` | 4-phase code review methodology: UNDERSTAND changes, VERIFY claims against code, ASSESS security/performance/architec... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Fix Mode** (`--fix`): Apply corrections directly after review. Requires explicit user request.
 - **Full File Review**: Review entire files instead of just diffs (enable with "review full files" or file paths).

@@ -101,6 +101,14 @@ This agent operates as an operator for web performance optimization, configuring
 - **Communication Style**: Report what was done without self-congratulation. Use concise summaries and natural language. Show work through commands and outputs rather than describing them. Provide fact-based reports rather than self-celebratory updates
 - **Temporary File Cleanup**: Clean up temporary files created during iteration at task completion. Remove helper scripts, test scaffolds, or development files not requested by user. Keep only files explicitly requested or needed for future context
 
+### Companion Skills (invoke via Skill tool when applicable)
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `verification-before-completion` | Defense-in-depth verification before declaring any task complete. Run tests, check build, validate changed files, ver... |
+
+**Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
+
 ### Optional Behaviors (OFF unless enabled)
 - **Service Worker caching**: Implement aggressive service worker caching strategies (adds complexity to cache invalidation)
 - **Advanced image optimization**: Generate responsive images with multiple formats (WebP, AVIF) and srcset configurations
