@@ -24,7 +24,13 @@ import sys
 from pathlib import Path
 
 # ═══════════════════════════════════════════════════════════════
-# 1. GIT SUBMISSION PATTERNS (pretool-git-submission-gate.py)
+# 1. GITIGNORE BYPASS (block-gitignore-bypass.py)
+# ═══════════════════════════════════════════════════════════════
+
+# (patterns are inline in check_gitignore_bypass function)
+
+# ═══════════════════════════════════════════════════════════════
+# 2. GIT SUBMISSION PATTERNS (pretool-git-submission-gate.py)
 # ═══════════════════════════════════════════════════════════════
 
 _GIT_SUBMISSION_BYPASS = "CLAUDE_GATE_BYPASS=1"

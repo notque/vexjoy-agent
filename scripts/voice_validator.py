@@ -26,8 +26,8 @@ Usage:
         --profile profile.json
 
 Exit codes:
-    0 = pass (score >= 70)
-    1 = fail (score < 70 or errors)
+    0 = pass (score >= 60)
+    1 = fail (score < 60 or errors)
     2 = execution error (file not found, invalid JSON, etc.)
 """
 
@@ -574,7 +574,7 @@ def check_analogy_domains(
         return []
 
     arch_patterns = profile.get("architectural_patterns", {})
-    domains = arch_patterns.get("analogy_domains", [])
+    domains = [d for d in arch_patterns.get("analogy_domains", []) if d.strip()]
     if not domains:
         return []
 
@@ -646,7 +646,7 @@ def validate_content(
     passed = score >= DEFAULT_PASS_THRESHOLD
 
     # Estimate total checks (banned categories + rhythm + metrics + analogy domains)
-    total_checks = len(banned.categories) + 1 + 3 + 1  # categories + rhythm + metrics + analogy
+    total_checks = len(banned.categories) + 1 + 3 + 1 + 1  # categories + rhythm + metrics + analogy + rhetorical_pivots
 
     summary = calculate_summary(violations, total_checks)
 

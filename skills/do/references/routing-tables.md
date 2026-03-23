@@ -94,7 +94,7 @@ Extended routing tables for the `/do` router. The main SKILL.md contains the cor
 
 | Triggers | Skill |
 |----------|-------|
-| write blog, blog post | blog-post-writer |
+| write blog, blog post | voice-writer |
 | edit content, remove AI patterns | anti-ai-editor |
 | **de-ai docs, clean ai patterns, scan and fix docs** | **de-ai-pipeline** (SCAN → FIX → VERIFY loop) |
 | content outline, post outline | post-outliner |

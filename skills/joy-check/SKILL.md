@@ -29,7 +29,7 @@ routing:
     - too negative
     - reframe positively
   pairs_with:
-    - voice-orchestrator
+    - voice-writer
     - anti-ai-editor
     - voice-validator
   complexity: Simple
@@ -392,4 +392,4 @@ This skill uses these shared patterns:
 - `scan-negative-framing.py` -- Regex pre-filter for obvious negative framing patterns (Phase 1)
 - `voice-validator` -- Voice fidelity validation (complementary, different concern)
 - `anti-ai-editor` -- AI pattern detection and removal (complementary, different concern)
-- `voice-orchestrator` -- Multi-step content pipeline that can invoke joy-check as a validation phase
+- `voice-writer` -- Multi-step content pipeline that can invoke joy-check as a validation phase

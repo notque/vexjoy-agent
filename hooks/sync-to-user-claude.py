@@ -451,7 +451,7 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[sync] FATAL: {e}", file=sys.stderr)
     finally:
         sys.exit(0)

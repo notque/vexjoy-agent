@@ -106,7 +106,7 @@
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/pretool-unified-gate.py\"",
-            "description": "Unified gate: attribution, gitignore-bypass, git-submission, dangerous-command, creation-gate, sensitive-file (ADR-068)",
+            "description": "Unified gate: gitignore-bypass, git-submission, dangerous-command, creation-gate, sensitive-file (ADR-068)",
             "timeout": 3000
           },
           {
