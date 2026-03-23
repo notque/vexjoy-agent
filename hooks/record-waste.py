@@ -23,6 +23,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from hook_utils import get_session_id
+from stdin_timeout import read_stdin
 
 # Minimum token waste estimate per failure
 MIN_WASTE_TOKENS = 100
@@ -34,7 +35,7 @@ CHARS_PER_TOKEN = 4
 def main() -> None:
     """Record wasted tokens when a tool execution fails."""
     try:
-        hook_input = json.loads(sys.stdin.read())
+        hook_input = json.loads(read_stdin(timeout=2))
 
         tool_result = hook_input.get("tool_result", {})
         if not tool_result.get("is_error", False):

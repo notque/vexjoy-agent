@@ -22,6 +22,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from hook_utils import context_output, empty_output, log_warning
+from stdin_timeout import read_stdin
 
 __EVENT_NAME = "PostToolUse"
 
@@ -170,7 +171,7 @@ def format_pass(file_path: str, check_result: dict) -> str:
 
 def main() -> None:
     try:
-        raw = sys.stdin.read()
+        raw = read_stdin(timeout=2)
         if not raw:
             empty_output(_EVENT_NAME).print_and_exit(0)
             return

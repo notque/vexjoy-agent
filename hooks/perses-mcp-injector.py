@@ -9,6 +9,10 @@ Event: UserPromptSubmit
 
 import json
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from stdin_timeout import read_stdin
 
 PERSES_KEYWORDS = [
     "perses",
@@ -45,7 +49,7 @@ plugin start, plugin test-schemas, config, whoami, refresh.
 
 def main():
     try:
-        event = json.loads(sys.stdin.read())
+        event = json.loads(read_stdin(timeout=2))
     except (json.JSONDecodeError, EOFError, ValueError):
         # Injector is non-critical — fail open (exit 0), but log
         print("[perses-mcp] WARNING: could not parse hook event", file=sys.stderr)

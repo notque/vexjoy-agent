@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from hook_utils import empty_output, get_session_id
 from learning_db_v2 import get_connection, init_db
+from stdin_timeout import read_stdin
 
 EVENT_NAME = "Stop"
 
@@ -77,7 +78,7 @@ def is_substantive_session(event: dict) -> bool:
 def main():
     """Check learning gap at session end."""
     try:
-        event_data = sys.stdin.read()
+        event_data = read_stdin(timeout=2)
         if not event_data:
             empty_output(EVENT_NAME).print_and_exit()
 

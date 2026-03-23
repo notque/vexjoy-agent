@@ -27,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from hook_utils import empty_output
 from learning_db_v2 import record_learning
+from stdin_timeout import read_stdin
 
 EVENT_NAME = "PostToolUse"
 
@@ -108,7 +109,7 @@ def main() -> None:
     5. Exit silently (no context injection)
     """
     try:
-        event_data = sys.stdin.read()
+        event_data = read_stdin(timeout=2)
         if not event_data:
             return
 

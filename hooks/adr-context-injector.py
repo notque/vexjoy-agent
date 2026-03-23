@@ -35,6 +35,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from hook_utils import context_output, empty_output, log_warning
+from stdin_timeout import read_stdin
 
 EVENT_NAME = "UserPromptSubmit"
 
@@ -123,7 +124,7 @@ def main() -> None:
     debug = os.environ.get("CLAUDE_HOOKS_DEBUG")
 
     try:
-        raw = sys.stdin.read()
+        raw = read_stdin(timeout=2)
         try:
             data = json.loads(raw)
         except json.JSONDecodeError:

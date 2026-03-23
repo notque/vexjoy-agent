@@ -26,6 +26,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from hook_utils import context_output, empty_output
+from stdin_timeout import read_stdin
 
 EVENT_NAME = "PreToolUse"
 
@@ -152,7 +153,7 @@ def main():
     debug = os.environ.get("CLAUDE_HOOKS_DEBUG")
 
     try:
-        event_data = sys.stdin.read()
+        event_data = read_stdin(timeout=2)
         if not event_data:
             empty_output(EVENT_NAME).print_and_exit()
 
