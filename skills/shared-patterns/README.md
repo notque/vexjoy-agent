@@ -35,6 +35,7 @@ See [Anti-Rationalization](../skills/shared-patterns/anti-rationalization-core.m
 | `forbidden-patterns-template.md` | Template for domain-specific hard gates | Domain agents (Go, Python, etc.) |
 | `blocker-criteria.md` | When to STOP and ask vs proceed | All agents |
 | `analysis-paralysis-guard.md` | Prevent unbounded read-only exploration | Debugging, research, exploration skills |
+| `autonomous-repair.md` | Bounded self-repair with RETRY/DECOMPOSE/PRUNE/ESCALATE | Workflow orchestrator, pipeline skills |
 
 ## Pattern vs Skill Distinction
 

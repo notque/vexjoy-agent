@@ -259,14 +259,15 @@ Update plan status to "In Progress".
 
 #### Step 3: Handle Verification Failures
 
-If verification fails:
+If verification fails, apply the [Autonomous Repair](../shared-patterns/autonomous-repair.md) pattern:
 
 1. **Report Failure**: Document the error output and analysis
-2. **Determine Action**:
-   - **Fix and Retry**: If issue is clear and fixable
-   - **Rollback**: If changes broke the system
-   - **Escalate**: If blocker requires user input
-3. **Execute Action**: Apply fix or rollback, then re-verify
+2. **Select Strategy** (decision tree):
+   - **RETRY**: Error is specific and actionable (typo, missing import, wrong arg) — fix and re-verify. Consumes 1 repair attempt.
+   - **DECOMPOSE**: Retry failed and task has independent sub-parts — break into sub-tasks (in-memory only, never modify the plan file). Consumes 1 repair attempt.
+   - **PRUNE**: Task is genuinely unnecessary or already satisfied by prior task — skip with documented justification.
+   - **ESCALATE**: Error is vague/systemic, budget exhausted, or sub-tasks also failed — ask user. Mandatory when repair budget (default: 2 attempts) is exhausted.
+3. **Log Deviation**: Record every repair action (strategy, error, outcome, attempts consumed) in the execution summary.
 
 #### Step 4: Handle Blockers
 
@@ -357,6 +358,7 @@ This skill uses these shared patterns:
 - [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
 - [Gate Enforcement](../shared-patterns/gate-enforcement.md) - Phase transition rules
 - [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
+- [Autonomous Repair](../shared-patterns/autonomous-repair.md) - Bounded self-repair with RETRY/DECOMPOSE/PRUNE/ESCALATE strategies
 
 ### Domain-Specific Anti-Rationalization
 
