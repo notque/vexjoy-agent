@@ -645,8 +645,8 @@ def validate_content(
     score = calculate_score(violations)
     passed = score >= DEFAULT_PASS_THRESHOLD
 
-    # Estimate total checks (banned categories + rhythm + metrics)
-    total_checks = len(banned.categories) + 1 + 3  # categories + rhythm + metrics
+    # Estimate total checks (banned categories + rhythm + metrics + analogy domains)
+    total_checks = len(banned.categories) + 1 + 3 + 1  # categories + rhythm + metrics + analogy
 
     summary = calculate_summary(violations, total_checks)
 
