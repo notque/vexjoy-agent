@@ -140,6 +140,7 @@ These skills have MANDATORY routing. They MUST be invoked when triggers appear:
 | **create-voice** | create voice, new voice, build voice, voice from samples, calibrate voice |
 | **voice-writer** | write in voice, generate voice content, voice workflow, write article, blog post, draft article, write about, write post, blog about, create content |
 | **feature-design** | design feature, feature design, think through feature, explore approaches |
+| **pre-planning-discussion** | discuss ambiguities, resolve gray areas, clarify before planning, assumptions mode |
 | **feature-plan** | plan feature, feature plan, break down design, create tasks |
 | **feature-implement** | implement feature, execute plan, start building, feature implement |
 | **feature-validate** | validate feature, run quality gates, feature validate |
