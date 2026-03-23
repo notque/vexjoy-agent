@@ -22,7 +22,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from feedback_tracker import check_pending_feedback, set_pending_feedback
-from stdin_timeout import read_stdin
 from learning_db_v2 import (
     DEFAULT_FIX_ACTIONS,
     boost_confidence,
@@ -32,6 +31,7 @@ from learning_db_v2 import (
     lookup_error_solution,
     record_learning,
 )
+from stdin_timeout import read_stdin
 
 
 def process_automatic_feedback(current_error: str | None) -> None:
