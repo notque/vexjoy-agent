@@ -95,7 +95,27 @@ Transform a feature idea into a structured design document through collaborative
    python3 scripts/feature-state.py context-read "" L2 --phase design
    ```
 
-**Gate**: Feature state initialized. Context loaded. Proceed to Execute.
+5. **Surface relevant seeds** (ADR-075): Check `.seeds/index.json` for dormant seeds whose trigger conditions match the current feature. Compare the feature name and description against each seed's `trigger` field using fuzzy keyword overlap. If matches are found, present them:
+
+   ```
+   ## Relevant Seeds (N matched)
+
+   ### seed-YYYY-MM-DD-slug [Scope]
+   Trigger: "trigger condition"
+   Rationale: Why this matters...
+   Action: What to do when triggered
+   Breadcrumbs: file1.go, file2.py
+
+   > Incorporate into current design? [yes/no/defer]
+   ```
+
+   - **yes**: Include the seed's action and rationale as a design input for Phase 1. Mark seed as `active` in index.json.
+   - **no**: Dismiss the seed (move to `.seeds/archived/`, status `dismissed`).
+   - **defer**: Leave the seed dormant for future surfacing.
+
+   If `.seeds/` does not exist or contains no dormant seeds, skip this step silently.
+
+**Gate**: Feature state initialized. Context loaded. Seeds surfaced (if any). Proceed to Execute.
 
 ### Phase 1: EXECUTE (Design Dialogue)
 
@@ -231,3 +251,4 @@ If gate is `auto`: verify checklist passes.
 - [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md)
 - [Retro Loop](../shared-patterns/retro-loop.md)
 - [State Conventions](../_feature-shared/state-conventions.md)
+- [Plant Seed](../plant-seed/SKILL.md) — seed-based deferred work surfaced in Phase 0 (ADR-075)
