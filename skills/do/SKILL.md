@@ -138,7 +138,7 @@ These skills have MANDATORY routing. They MUST be invoked when triggers appear:
 | **python-quality-gate** | bandit, Python security scan, Python SAST |
 | **go-sapcc-conventions** | sapcc, sap-cloud-infrastructure, go-bits, keppel, go-api-declarations, go-makefile-maker |
 | **create-voice** | create voice, new voice, build voice, voice from samples, calibrate voice |
-| **voice-orchestrator** | write in voice, generate voice content, voice workflow |
+| **voice-writer** | write in voice, generate voice content, voice workflow, write article, blog post, draft article, write about, write post, blog about, create content |
 | **feature-design** | design feature, feature design, think through feature, explore approaches |
 | **feature-plan** | plan feature, feature plan, break down design, create tasks |
 | **feature-implement** | implement feature, execute plan, start building, feature implement |
@@ -263,7 +263,7 @@ For pipeline skills — add the Pipeline: line with all phases in order:
 | `explore-pipeline` | SCAN → MAP → ANALYZE → REPORT |
 | `research-to-article` | RESEARCH → COMPILE → GROUND → GENERATE → VALIDATE → REFINE → OUTPUT |
 | `pr-pipeline` | CLASSIFY → STAGE → REVIEW → COMMIT → PUSH → CREATE → VERIFY → CLEANUP |
-| `voice-orchestrator` | LOAD → GROUND → GENERATE → VALIDATE → REFINE → OUTPUT → CLEANUP |
+| `voice-writer` | LOAD → GROUND → GENERATE → VALIDATE → REFINE → JOY-CHECK → OUTPUT → CLEANUP |
 | `github-profile-rules` | PROFILE-SCAN → CODE-ANALYSIS → REVIEW-MINING → PATTERN-SYNTHESIS → RULES-GENERATION → VALIDATION → OUTPUT |
 | `doc-pipeline` | RESEARCH → OUTLINE → GENERATE → VERIFY → OUTPUT |
 | `workflow-orchestrator` | BRAINSTORM → WRITE-PLAN → EXECUTE-PLAN |
