@@ -17,6 +17,16 @@ allowed-tools:
   - Glob
   - Edit
   - Task
+routing:
+  triggers:
+    - multi-perspective analysis
+    - do-perspectives
+    - analyze from multiple angles
+  pairs_with:
+    - anti-ai-editor
+    - voice-validator
+  complexity: Medium
+  category: content
 ---
 
 # Multi-Perspective Analysis Skill

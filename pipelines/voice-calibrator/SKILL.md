@@ -18,6 +18,18 @@ allowed-tools:
   - Edit
   - Task
   - Skill
+routing:
+  triggers:
+    - voice calibrate
+    - calibrate voice
+    - voice profile
+    - voice analysis
+    - voice refine
+  pairs_with:
+    - voice-orchestrator
+    - voice-validator
+  complexity: Medium
+  category: content
 ---
 
 # Voice Calibrator
@@ -916,6 +928,8 @@ Display calibration summary:
 ===============================================================
 ```
 
+**Gate**: All 4 generated files exist (profile.json, config.json, SKILL.md, samples/). Validation score >= 70. A/B comparison shows measurable voice differentiation.
+
 ---
 
 ### Mode 2: Refinement
@@ -943,6 +957,8 @@ python3 scripts/voice_validator.py check-banned \
   --format text
 ```
 
+**Gate**: Adjusted metrics saved to profile.json. `check-banned` passes on test output. SKILL.md sections updated to reflect metric changes.
+
 ---
 
 ### Mode 3: A/B Comparison Only
@@ -962,6 +978,8 @@ Process:
      --format text
 6. Highlight specific differences
 ```
+
+**Gate**: Both DEFAULT and CALIBRATED outputs generated. Validation passes on calibrated output. Specific differences highlighted for user review.
 
 ---
 
@@ -1694,8 +1712,27 @@ The profile is NOT automatically applied. Invoke explicitly:
 
 ---
 
+## Anti-Patterns
+
+### Anti-Pattern 1: Rules Without Samples
+**What it looks like**: Generating a voice skill with detailed rules and prohibitions but fewer than 50 writing samples
+**Why wrong**: V7-V9 proved this fails authorship matching (0/5 roasters). LLMs are pattern matchers — examples are more powerful than instructions. Rules tell the AI what to do; only samples show what the voice looks like.
+**Do instead**: Collect 50-100+ writing samples before generating any SKILL.md. The samples ARE the skill. If the user provides fewer than 50, stop and ask for more.
+
+### Anti-Pattern 2: Skipping Deterministic Analysis
+**What it looks like**: Interpreting writing style through AI reading of samples without running voice_analyzer.py first
+**Why wrong**: AI interpretation without quantitative grounding produces vague, non-falsifiable descriptions ("writes casually"). Deterministic metrics (contraction rate: 85%, avg sentence length: 14.2 words) are specific and measurable.
+**Do instead**: Always run voice_analyzer.py before AI interpretation. The script extracts metrics; the AI interprets what they mean for voice reproduction.
+
+### Anti-Pattern 3: Over-Polishing Output
+**What it looks like**: Generating voice skill content that reads as grammatically perfect, well-structured prose
+**Why wrong**: Human writing has natural imperfections — run-ons, fragments, casual punctuation, mid-thought corrections. Sterile perfection is an AI tell that roasters detect immediately. This is the wabi-sabi principle.
+**Do instead**: Preserve the target voice's authentic markers including typos, fragments, and casual patterns. Teach these explicitly in the generated SKILL.md as authenticity markers, not errors.
+
+---
+
 ## References
 
 This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations during calibration
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks for calibration output
+- [Anti-Rationalization](../../skills/shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations during calibration
+- [Verification Checklist](../../skills/shared-patterns/verification-checklist.md) - Pre-completion checks for calibration output

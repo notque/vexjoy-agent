@@ -23,7 +23,7 @@ routing:
     - workflow-orchestrator
     - systematic-debugging
   complexity: Complex
-  category: pipeline
+  category: meta
 allowed-tools:
   - Read
   - Write
@@ -93,7 +93,7 @@ The `{repo-slug}` is derived from the repository name: lowercase, hyphens for se
 
 ---
 
-### PHASE 1: ANALYZE
+### Phase 1: ANALYZE
 
 **Input**: Repository URL or local path (from user invocation).
 **Output artifact**: `mcp-design/{repo-slug}/analysis.md`
@@ -122,11 +122,11 @@ The `{repo-slug}` is derived from the repository name: lowercase, hyphens for se
 
 Write `mcp-design/{repo-slug}/analysis.md` with the schema from `references/analysis-checklist.md` → Output Format.
 
-**GATE**: `analysis.md` must exist and contain all seven sections (`Service Purpose`, `Stack`, `Auth`, `Entities`, `Operations`, `Tool Count Signal`, `Notes`) before Phase 2 begins.
+**Gate**: `analysis.md` must exist and contain all seven sections (`Service Purpose`, `Stack`, `Auth`, `Entities`, `Operations`, `Tool Count Signal`, `Notes`) before Phase 2 begins.
 
 ---
 
-### PHASE 2: DESIGN
+### Phase 2: DESIGN
 
 **Input**: `mcp-design/{repo-slug}/analysis.md`
 **Output artifact**: `mcp-design/{repo-slug}/design.md`
@@ -163,9 +163,11 @@ This gate exists because Phase 1 analysis may misidentify the relevant API surfa
 
 **Do NOT rationalize skipping this gate.** No time pressure, confidence level, or apparent obviousness of the design justifies proceeding without explicit user approval.
 
+**Gate**: User explicitly approves design.md by responding "y", "yes", or "proceed". Do not continue to Phase 3 without explicit approval.
+
 ---
 
-### PHASE 3: GENERATE
+### Phase 3: GENERATE
 
 **Input**: `mcp-design/{repo-slug}/design.md` + access to target repo source code.
 **Output artifact**: `mcp-design/{repo-slug}/{server-name}/` (full project tree)
@@ -216,11 +218,11 @@ Generate tools one at a time from the design.md tool list. For each tool:
 2. Implement the tool using the client approach (call target API/CLI), not import approach
 3. Apply the auth pattern from analysis.md
 
-**GATE**: All tools listed in design.md must be implemented. No stubs, no TODO comments in the generated code. Every file must be complete.
+**Gate**: All tools listed in design.md must be implemented. No stubs, no TODO comments in the generated code. Every file must be complete.
 
 ---
 
-### PHASE 4: VALIDATE
+### Phase 4: VALIDATE
 
 **Input**: Generated project directory `mcp-design/{repo-slug}/{server-name}/`
 **Output**: Build success confirmation or complete error list
@@ -245,11 +247,11 @@ After 3 failures:
 
 Do not attempt a 4th iteration. Three failed iterations means the design has a structural problem that automated fixing cannot resolve.
 
-**GATE**: Build must succeed before Phase 5 begins.
+**Gate**: Build must succeed before Phase 5 begins.
 
 ---
 
-### PHASE 5: EVALUATE
+### Phase 5: EVALUATE
 
 **Input**: Compiled server + `mcp-design/{repo-slug}/analysis.md`
 **Output artifact**: `mcp-design/{repo-slug}/evaluation-report.md`
@@ -288,11 +290,11 @@ Write `mcp-design/{repo-slug}/evaluation-report.md` with:
 - **Accuracy < 7/10**: Attempt one Phase 3 regeneration (re-run GENERATE with additional guidance derived from which questions failed). Then re-run Phase 4 and Phase 5.
 - **If accuracy still < 7/10 after regeneration**: Surface the evaluation report, explain which tools are failing, halt the pipeline. Do not attempt a third generation pass.
 
-**GATE**: Accuracy ≥ 7/10 required to proceed to Phase 6.
+**Gate**: Accuracy ≥ 7/10 required to proceed to Phase 6.
 
 ---
 
-### PHASE 6: REGISTER
+### Phase 6: REGISTER
 
 **Input**: Compiled server path + transport type from Phase 3.
 **Output**: MCP server entry written to config; confirmation printed.
@@ -344,79 +346,64 @@ Restart Claude Code to activate the new MCP server.
 
 The pipeline agent should additionally inform the user: "Test with `/mcp` or the Claude Code MCP menu after restarting."
 
-**GATE**: If `--dry-run` is set, stop here. Do not write config.
+**Gate**: If `--dry-run` is set, stop here. Do not write config.
 
 ---
 
 ## Error Handling
 
-### Phase 1: Analysis Errors
+### Error: Cannot clone or read repository
+**Cause**: Invalid URL, authentication required, or network issue during Phase 1 analysis.
+**Solution**: Ask the user for a local path or credentials. If the URL requires auth, suggest cloning manually and passing the local path instead.
 
-| Error | Cause | Resolution |
-|-------|-------|-----------|
-| Cannot clone/read repo | Invalid URL, auth required, network issue | Ask user for local path or credentials |
-| No API surface found | Repo is data-only, no operations | Inform user: this repo may not produce a useful MCP server |
-| Too many operations (>40) | Large API surface | Phase 2 will enforce grouping; warn user that design may simplify significantly |
+### Error: No API surface found
+**Cause**: The target repository is data-only with no operations, endpoints, or exported functions for Phase 1 to discover.
+**Solution**: Inform the user that this repo may not produce a useful MCP server. Suggest they identify specific operations manually or point to a different repo.
 
-### Phase 2: Design Errors
+### Error: Zero tools after destructive filtering
+**Cause**: All discovered operations are write/update/delete and `--allow-destructive` is not set, leaving Phase 2 with no tools to design.
+**Solution**: Inform the user. Suggest `--allow-destructive` if write operations are appropriate for their use case.
 
-| Error | Cause | Resolution |
-|-------|-------|-----------|
-| Zero tools after filtering | All operations are write-only | Inform user; suggest `--allow-destructive` if appropriate |
-| User aborts at gate | User doesn't like the design | Artifacts remain; user can edit `design.md` manually and re-run from Phase 3 |
+### Error: Build fails after 3 fix iterations
+**Cause**: Structural design problem in Phase 4 — type errors, import mismatches, or Zod schema conflicts that targeted fixes cannot resolve.
+**Solution**: Surface the full error output. Halt the pipeline. Tell the user: "Manual intervention required. Fix the errors above and re-run from Phase 4." Do not attempt a 4th iteration.
 
-### Phase 4: Validation Errors
+### Error: Server fails to start during evaluation
+**Cause**: Build artifact missing, wrong path, or server crashes on startup in Phase 5.
+**Solution**: Re-run Phase 4 to confirm build succeeds. Verify the server path matches the compiled output location. Check for missing environment variables.
 
-| Error | Cause | Resolution |
-|-------|-------|-----------|
-| npm not found | Node.js not installed | Inform user; suggest `brew install node` or `nvm install` |
-| Type errors in generated code | Zod/TypeScript mismatch | 3-iteration fix loop handles these automatically |
-| Import errors | Wrong module path | Fix loop resolves; if not after 3 passes, surface and halt |
-| Still failing after 3 passes | Structural design problem | Halt; show errors; ask user to review design.md |
-
-### Phase 5: Evaluation Errors
-
-| Error | Cause | Resolution |
-|-------|-------|-----------|
-| Server fails to start | Build artifact missing or wrong path | Re-run Phase 4 |
-| All Q&A fail | Tools return wrong format or error | Regeneration pass triggered automatically |
-| Evaluation times out | Server hangs | Kill subprocess; report timeout; check tool implementations |
-
-### Phase 6: Registration Errors
-
-| Error | Cause | Resolution |
-|-------|-------|-----------|
-| Server name already exists | Previous run registered same server | Print warning; do not overwrite; suggest `--name {new-name}` |
-| Config file unwritable | Permission error | Report path; suggest `chmod` or manual edit |
+### Error: Server name already exists in config
+**Cause**: A previous pipeline run already registered an MCP server with the same name in Phase 6.
+**Solution**: Print a warning and do not overwrite. Suggest the user pass `--name {new-name}` or manually remove the existing entry before re-running Phase 6.
 
 ---
 
 ## Anti-Patterns
 
-### Skipping the Phase 2 Gate
+### Anti-Pattern 1: Skipping the Phase 2 Gate
+**What it looks like**: Rationalizing "The design is obviously correct, no need to pause" and proceeding directly to Phase 3 generation.
+**Why wrong**: Phase 1 analysis is probabilistic. The user knows their target repo; the model does not. A 30-second review catches a wrong tool scope that would take 10 minutes to debug in generated code.
+**Do instead**: Always show design.md to the user and wait for explicit "y", "proceed", or "yes" before continuing.
 
-Rationalizing: "The design is obviously correct, no need to pause."
-Why wrong: Phase 1 analysis is probabilistic. The user knows their target repo; the model does not. A 30-second review catches a wrong tool scope that would take 10 minutes to debug in generated code.
+### Anti-Pattern 2: Generating API Wrappers
+**What it looks like**: Exposing every endpoint as a tool for "comprehensive coverage" — resulting in 30+ tools with vague descriptions.
+**Why wrong**: 30 tools with vague descriptions is worse than 8 tools with clear workflow semantics. The model wastes turns selecting between near-identical options.
+**Do instead**: Enforce the 5-15 tool target in Phase 2. Merge operations that would always be called in sequence. Prioritize workflow-level tools over raw API wrappers.
 
-### Generating API Wrappers
+### Anti-Pattern 3: Continuing Past 3 Fix Iterations
+**What it looks like**: Rationalizing "Just one more iteration — this error looks simple" after three failed Phase 4 build attempts.
+**Why wrong**: If three targeted fix passes haven't resolved it, the design has a structural problem. More iterations produce increasingly speculative fixes.
+**Do instead**: Surface the full error output, halt the pipeline, and ask the user to review design.md for structural issues.
 
-Rationalizing: "I'll expose every endpoint as a tool — comprehensive coverage."
-Why wrong: 30 tools with vague descriptions is worse than 8 tools with clear workflow semantics. The model wastes turns selecting between near-identical options. Phase 2 must enforce the 5–15 tool target.
+### Anti-Pattern 4: Writing Config Without Read-First
+**What it looks like**: Writing the new MCP server entry directly to config, assuming "the config is probably empty."
+**Why wrong**: The config may contain other MCP server entries the user depends on. Overwriting destroys existing registrations.
+**Do instead**: Always read the config file before writing. Use `register_mcp.py` which enforces read-before-write and append-only semantics.
 
-### Continuing Past 3 Fix Iterations
-
-Rationalizing: "Just one more iteration — this error looks simple."
-Why wrong: If three targeted fix passes haven't resolved it, the design has a structural problem. More iterations produce increasingly speculative fixes. Surface the error and halt.
-
-### Writing Config Without Read-First
-
-Rationalizing: "I'll just write the new entry — the config is probably empty."
-Why wrong: The config may contain other MCP server entries the user depends on. Always read before write. `register_mcp.py` enforces this.
-
-### Exposing Destructive Operations by Default
-
-Rationalizing: "The user probably wants full CRUD coverage."
-Why wrong: A model cannot reliably determine which write operations are safe to expose. Wrong assumptions here delete production data. Read-only is the safe default.
+### Anti-Pattern 5: Exposing Destructive Operations by Default
+**What it looks like**: Including write, update, and delete operations in the design because "the user probably wants full CRUD coverage."
+**Why wrong**: A model cannot reliably determine which write operations are safe to expose. Wrong assumptions here can delete production data.
+**Do instead**: Default to read-only. Only include destructive operations when the user explicitly passes `--allow-destructive`.
 
 ---
 
@@ -435,9 +422,9 @@ Why wrong: A model cannot reliably determine which write operations are safe to 
 
 ## References
 
-- `references/analysis-checklist.md` — Phase 1 discovery checklist and output schema
-- `references/design-rules.md` — Phase 2 primitive selection, naming, and granularity rules
-- `references/ts-scaffold-template.md` — TypeScript project scaffold patterns for Phase 3
-- `references/python-scaffold-template.md` — Python FastMCP scaffold patterns for Phase 3
-- `references/evaluation-guide.md` — Phase 5 Q&A pair rules and evaluation harness design
-- `scripts/register_mcp.py` — Phase 6 append-only config registration script
+- [Analysis Checklist](references/analysis-checklist.md) - Phase 1 discovery checklist and output schema
+- [Design Rules](references/design-rules.md) - Phase 2 primitive selection, naming, and granularity rules
+- [TypeScript Scaffold Template](references/ts-scaffold-template.md) - TypeScript project scaffold patterns for Phase 3
+- [Python Scaffold Template](references/python-scaffold-template.md) - Python FastMCP scaffold patterns for Phase 3
+- [Evaluation Guide](references/evaluation-guide.md) - Phase 5 Q&A pair rules and evaluation harness design
+- [Register MCP Script](../../scripts/register_mcp.py) - Phase 6 append-only config registration script

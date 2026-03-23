@@ -18,6 +18,16 @@ allowed-tools:
   - Glob
   - Edit
   - WebFetch
+routing:
+  triggers:
+    - github rules
+    - profile analysis
+    - coding style extraction
+    - github conventions
+  pairs_with:
+    - domain-research
+  complexity: Medium
+  category: meta
 ---
 
 # GitHub Profile Rules Extraction

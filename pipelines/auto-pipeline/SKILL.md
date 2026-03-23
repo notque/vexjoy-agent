@@ -288,6 +288,6 @@ Solution: Fall back to ephemeral execution for the current request. Record the f
 
 ## References
 
-- `pipelines/chain-composer/references/canonical-chains.md` — 8 canonical chain templates with variants
-- `pipelines/pipeline-scaffolder/references/step-menu.md` — 23 step families, 150+ steps, type compatibility matrix
-- `pipelines/auto-pipeline/references/pipeline-catalog.md` — auto-generated catalog of all existing pipelines (dedup reference)
+- [Canonical Chains](../chain-composer/references/canonical-chains.md) - 8 canonical chain templates with variants
+- [Step Menu](../pipeline-scaffolder/references/step-menu.md) - 23 step families, 150+ steps, type compatibility matrix
+- [Pipeline Catalog](references/pipeline-catalog.md) - Auto-generated catalog of all existing pipelines (dedup reference)

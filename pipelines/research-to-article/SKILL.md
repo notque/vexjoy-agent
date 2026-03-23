@@ -32,7 +32,7 @@ routing:
   pairs_with:
     - voice-orchestrator
   complexity: complex
-  category: content-pipeline
+  category: content
 ---
 
 # Research-to-Article Pipeline

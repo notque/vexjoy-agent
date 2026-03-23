@@ -173,7 +173,7 @@ For each subdomain, record:
 }
 ```
 
-**GATE**: Every subdomain has a test target (fixture, codebase file, or synthetic). Target metadata recorded. Proceed to Phase 2.
+**Gate**: Every subdomain has a test target (fixture, codebase file, or synthetic). Target metadata recorded. Proceed to Phase 2.
 
 ### Phase 2: EXECUTE (Parallel Skill Runs)
 
@@ -237,7 +237,7 @@ After all runs complete (or timeout), collect:
 }
 ```
 
-**GATE**: All skill runs completed (success, timeout, or error). Results collected for every subdomain. Proceed to Phase 3.
+**Gate**: All skill runs completed (success, timeout, or error). Results collected for every subdomain. Proceed to Phase 3.
 
 ### Phase 3: VALIDATE OUTPUTS
 
@@ -315,7 +315,7 @@ For each FAIL or PARTIAL classification, record the failure trace:
 }
 ```
 
-**GATE**: All outputs classified. Failure traces recorded for every non-PASS result. Proceed to Phase 4.
+**Gate**: All outputs classified. Failure traces recorded for every non-PASS result. Proceed to Phase 4.
 
 ### Phase 4: REPORT
 
@@ -430,7 +430,7 @@ The "Recommended Fix Layer" column tells pipeline-retro WHERE to apply the fix:
 
 Output the results table and overall verdict to the user. Include the report path for `pipeline-retro` to consume.
 
-**GATE**: Report artifacts exist at `/tmp/pipeline-test-{run-id}/report/`. Pipeline test run complete.
+**Gate**: Report artifacts exist at `/tmp/pipeline-test-{run-id}/report/`. Pipeline test run complete.
 
 ---
 

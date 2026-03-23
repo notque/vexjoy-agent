@@ -16,6 +16,18 @@ allowed-tools:
   - Grep
   - Glob
   - Task
+routing:
+  triggers:
+    - orchestrate
+    - complex task
+    - plan and execute
+    - break this down
+    - multi-step implementation
+  pairs_with:
+    - plan-checker
+    - research-pipeline
+  complexity: Complex
+  category: meta
 ---
 
 # Workflow Orchestrator Skill
@@ -157,6 +169,8 @@ Choose the approach that best balances complexity vs. benefit, risk vs. needs, t
 
 Document the selected approach, rationale for choosing it, how it addresses constraints, and why alternatives were rejected.
 
+**Gate**: Requirements clarified, at least 2 approaches considered, selected approach has documented rationale, and constraints identified. Proceed to WRITE-PLAN.
+
 ### Phase 2: WRITE-PLAN
 
 **PHASE GATE: Do NOT proceed to VALIDATE-PLAN phase until:**
@@ -254,6 +268,8 @@ T1 -> T2
 
 **Save location**: `plan/active/{descriptive-name}.md`
 
+**Gate**: All tasks have absolute file paths, verification commands, 2-5 minute scope, documented dependencies, and plan saved to file. Proceed to VALIDATE-PLAN.
+
 ### Phase 2.5: VALIDATE-PLAN
 
 **PHASE GATE: Do NOT proceed to EXECUTE-PLAN phase until:**
@@ -295,6 +311,8 @@ Record in the plan file:
 - Plan-checker verdict (PASS / PASS-WITH-WARNINGS / BLOCK-OVERRIDDEN)
 - Number of revision iterations used
 - Any accepted risks from unresolved findings
+
+**Gate**: Plan-checker evaluated, all blocker-severity findings resolved or documented as accepted risks after 3 iterations, and context-budget estimate confirms achievability. Proceed to EXECUTE-PLAN.
 
 ### Phase 3: EXECUTE-PLAN
 
@@ -383,6 +401,8 @@ After successful execution, prompt user about plan lifecycle:
 2. **Keep active** -- more work needed or waiting for merge
 3. **Abandon** to `plan/abandoned/` -- decided not to proceed (ask for reason)
 
+**Gate**: All tasks attempted, all verification commands run, passing tasks logged, failures documented with root cause, regression checks passed, and final status report generated. Workflow complete.
+
 ## Error Handling
 
 ### Verification Failure Strategy
@@ -414,6 +434,18 @@ After successful execution, prompt user about plan lifecycle:
 | Regression detected | Current task broke prior task's verification | Identify the breaking change, repair without re-breaking prior task |
 | Context entering DEGRADING zone | >50% context consumed with tasks remaining | Prioritize critical-path tasks, skip optional verification, warn user |
 | Context entering POOR zone | >70% context consumed | Complete only in-progress task, create handoff artifacts, stop |
+
+### Error: Task verification timeout
+**Cause**: Verification command took longer than 2 minutes to complete
+**Solution**: Break the task into smaller subtasks with faster verification commands. If the verification inherently requires long execution (e.g., full test suite), increase timeout or switch to a smoke-test verification for the individual task.
+
+### Error: Circular dependency detected
+**Cause**: Tasks form a dependency cycle where Task A depends on Task B and Task B depends on Task A (directly or transitively)
+**Solution**: Restructure the dependency graph to remove the cycle. Identify which task can be executed first with partial inputs, or extract the shared dependency into a new prerequisite task.
+
+### Error: Plan-checker blocker persists after 3 revisions
+**Cause**: Plan has structural issues (vague scope, missing dependencies, unbounded tasks) that incremental revision cannot fix
+**Solution**: Log remaining issues as accepted risks in the plan's Notes section and proceed to execution. The 3-iteration limit prevents infinite planning loops. If issues are fundamental, ask user to restructure the task scope.
 
 ## Common Anti-Patterns
 
