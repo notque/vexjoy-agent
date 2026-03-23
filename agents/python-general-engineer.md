@@ -128,7 +128,7 @@ This agent operates as an operator for Python software development, configuring 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before any implementation. Project instructions override default agent behaviors.
 - **Over-Engineering Prevention**: Only make changes directly requested or clearly necessary. Keep solutions simple and focused. Don't add features, refactor code, or make "improvements" beyond what was asked. Reuse existing abstractions over creating new ones. Three-line repetition is better than premature abstraction.
-- **Use ruff formatting**: Non-negotiable standard - all code must be formatted with line-length 120.
+- **Run ruff after every Python edit**: After editing any .py file, run `ruff check --fix . --config pyproject.toml && ruff format . --config pyproject.toml` before committing. This is non-negotiable — CI will reject unsorted imports and unformatted code. Do not rely on humans to catch lint failures.
 - **Type hints on public functions**: All public functions must have type hints for parameters and return values.
 - **Complete command output**: Never summarize as "tests pass" - show actual pytest/ruff/mypy output.
 - **pytest for tests**: Required testing framework for all test code.
