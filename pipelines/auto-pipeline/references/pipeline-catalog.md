@@ -1,6 +1,6 @@
 # Pipeline Catalog
 Auto-generated reference for auto-pipeline dedup checks.
-Generated: 2026-03-23T17:04:38Z
+Generated: 2026-03-23T17:42:13Z
 
 | Pipeline | Phases | Chain | Task Type | Triggers |
 |----------|--------|-------|-----------|----------|
@@ -13,7 +13,7 @@ Generated: 2026-03-23T17:04:38Z
 | do-perspectives | 5 | VALIDATE INPUTS → MULTI-PERSPECTIVE ANALYSIS → SYNTHESIZE → APPLY → VERIFY AND REPORT | content-pipeline | perspectives |
 | doc-pipeline | 5 | RESEARCH → OUTLINE → GENERATE → VERIFY → OUTPUT | documentation | document this, create readme, write documentation, document codebase, generate docs |
 | domain-research | 4 | DISCOVER → CLASSIFY → MAP → PRODUCE | meta | research domain, discover subdomains, domain decomposition, what pipelines, domain research |
-| explore-pipeline | 4 | SCAN → MAP → ANALYZE → REPORT | exploration | understand codebase, explore repo, how does this work, codebase exploration, understand this code |
+| explore-pipeline | 8 | SCAN → MAP → ANALYZE → COMPILE → ASSESS → SYNTHESIZE → REFINE → REPORT | exploration | understand codebase, explore repo, how does this work, codebase exploration, understand this code |
 | github-profile-rules | 8 | ADR → FETCH → RESEARCH → SAMPLE → COMPILE → GENERATE → VALIDATE → OUTPUT | review | github, profile, rules |
 | hook-development-pipeline | 9 | SPEC → IMPLEMENT → TEST → REGISTER → DOCUMENT → PERFORMANCE GATE FAILS → NON-BLOCKING GATE FAILS → JSON PARSE FAILS ON SETTINGS.JSON → HOOK-DEVELOPMENT-ENGINEER PRODUCES HOOK WITHOUT LAZY IMPORTS | git-workflow | hook, development, pipeline |
 | mcp-pipeline-builder | 5 | ANALYSIS ERRORS → DESIGN ERRORS → VALIDATION ERRORS → EVALUATION ERRORS → REGISTRATION ERRORS | pipeline | mcp pipeline, repo to mcp, create mcp from repo, generate mcp, mcp builder |
