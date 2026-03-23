@@ -156,7 +156,7 @@ def remove_existing_sections(content: str) -> str:
             end_idx = idx + rule_match.end()
         else:
             # Fallback: find next ### heading
-            next_heading = re.search(r"\n###\s", rest[len(marker):])
+            next_heading = re.search(r"\n###\s", rest[len(marker) :])
             if next_heading:
                 end_idx = idx + len(marker) + next_heading.start()
             else:

@@ -143,7 +143,7 @@ def detect_component_type(file_path: Path) -> str | None:
     parts = file_path.parts
     if "agents" in parts and file_path.suffix == ".md":
         return "agent"
-    if "skills" in parts and file_path.name == "SKILL.md":
+    if ("skills" in parts or "pipelines" in parts) and file_path.name == "SKILL.md":
         return "skill"
     return None
 
