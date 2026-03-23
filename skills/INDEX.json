@@ -1,6 +1,6 @@
 {
   "version": "1.1",
-  "generated": "2026-03-23T15:43:03Z",
+  "generated": "2026-03-23T17:06:22Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": [
     {
@@ -1749,6 +1749,20 @@
       ],
       "category": "content-validation",
       "version": "2.0.0",
+      "user-invocable": false
+    },
+    {
+      "name": "auto-pipeline",
+      "description": "Automatic pipeline generation for unrouted tasks.",
+      "file": "pipelines/auto-pipeline/SKILL.md",
+      "triggers": [
+        "auto-pipeline",
+        "ephemeral pipeline",
+        "no route found",
+        "unrouted task"
+      ],
+      "category": "meta",
+      "version": "1.0.0",
       "user-invocable": false
     },
     {
