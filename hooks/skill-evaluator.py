@@ -212,32 +212,15 @@ def should_skip(prompt: str) -> bool:
 
 
 def main():
-    """Process UserPromptSubmit hook event."""
-    try:
-        stdin_data = sys.stdin.read()
-        if not stdin_data:
-            return
+    """Process UserPromptSubmit hook event.
 
-        event = json.loads(stdin_data)
-    except (json.JSONDecodeError, ValueError):
-        return
-
-    try:
-        event_type = event.get("hook_event_name") or event.get("type", "")
-
-        if event_type != "UserPromptSubmit":
-            return
-
-        prompt = event.get("prompt", "")
-
-        if should_skip(prompt):
-            return
-
-        complexity = classify_complexity(prompt)
-        print(get_evaluation_prompt(complexity))
-
-    except Exception:
-        pass
+    DISABLED: The routing cheat sheet this hook injects (~1.8KB per prompt)
+    is redundant. When /do is active, SKILL.md has full routing tables.
+    When /do is NOT active, the user is talking directly and doesn't need
+    routing guidance injected. The Agent tool descriptions in the system
+    prompt already list all available agents.
+    """
+    return
 
 
 if __name__ == "__main__":

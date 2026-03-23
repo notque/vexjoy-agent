@@ -61,11 +61,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/skill-evaluator.py\"",
-            "description": "Evaluate applicable skills/agents for request"
-          },
-          {
-            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/auto-plan-detector.py\"",
             "description": "Auto-detect complex tasks and inject planning reminders (Manus methodology)"
           },
@@ -90,12 +85,6 @@
             "command": "python3 \"$HOME/.claude/hooks/pipeline-context-detector.py\"",
             "description": "Detect pipeline creation requests and inject pipeline context",
             "timeout": 2000
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/capability-catalog-injector.py\"",
-            "description": "Inject full agent/skill catalog for routing intelligence",
-            "timeout": 5000
           }
         ]
       }
