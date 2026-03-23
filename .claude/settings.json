@@ -103,6 +103,12 @@
             "command": "python3 \"$HOME/.claude/hooks/pretool-learning-injector.py\"",
             "description": "Inject known error patterns before Bash/Edit tools run",
             "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/pretool-prompt-injection-scanner.py\"",
+            "description": "Advisory scan for prompt injection patterns in agent context files (ADR-070)",
+            "timeout": 3000
           }
         ]
       }
