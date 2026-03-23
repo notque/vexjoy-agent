@@ -35,6 +35,18 @@ This skill operates as an operator for systematic codebase exploration, configur
 - **Systematic Phases**: Follow DETECT -> EXPLORE -> MAP -> SUMMARIZE in order
 - **Project Agnostic**: Work across any language, framework, or build system
 - **Absolute Paths**: All file references in output MUST use absolute paths
+- **Forbidden-Files Guardrail**: NEVER read or quote files matching sensitive patterns. Secrets leaked into exploration output are hard to retract and easy to miss. Check every file path against the forbidden list BEFORE reading. Skip silently -- do not log the file contents or path contents in output.
+
+  ```
+  # Secrets and credentials
+  .env, .env.*, *.pem, *.key, credentials.json, secrets.*, *secret*, *credential*, *password*
+
+  # Authentication tokens
+  token.json, .npmrc, .pypirc
+
+  # Cloud provider credentials
+  .aws/credentials, .gcloud/, service-account*.json
+  ```
 
 ### Default Behaviors (ON unless disabled)
 - Report facts without self-congratulation; show evidence, not descriptions
@@ -310,11 +322,92 @@ Before outputting, verify:
 - [ ] Paths are absolute, not relative
 - [ ] Commands are real, not guessed
 
-**Step 3: Output report**
+**Step 3: Generate "Where to Add New Code" section**
+
+Append a prescriptive section to the report. Developers exploring a codebase need to know not just what exists but where to put new things. For each major code category discovered during exploration, provide the directory, a concrete example file to use as a template, and any naming conventions.
+
+```markdown
+## Where to Add New Code
+
+| I want to add... | Put it in... | Follow the pattern in... |
+|-------------------|-------------|-------------------------|
+| [category from exploration] | [directory path] | [concrete example file path] |
+```
+
+Populate this table from evidence gathered in Phases 2-3. Every entry MUST reference a real file that already exists in the codebase. If a category has no clear home, note that explicitly rather than guessing.
+
+**Step 4: Post-exploration secret scan**
+
+Before presenting results, scan all output for accidentally captured secrets. Even with the forbidden-files guardrail, secrets can appear in non-obvious places (config comments, inline connection strings, hardcoded tokens in source).
+
+```bash
+# Scan exploration output for common secret patterns
+grep -iE '(password|secret|token|api[_-]?key|auth|credential)\s*[:=]' <output_file> || true
+grep -E '(AIza|sk-|ghp_|gho_|AKIA|-----BEGIN)' <output_file> || true
+```
+
+If any matches are found:
+1. Do NOT present the raw output to the user
+2. Redact the matched lines (replace values with `[REDACTED]`)
+3. Flag the finding: "Secret pattern detected in exploration output -- redacted before display. Review [file path] manually."
+
+**Step 5: Output report**
 
 Display complete markdown report to stdout. If export behavior is enabled, also write to file.
 
-**Gate**: Report has all sections filled. All paths are absolute. All claims cite evidence. Report is actionable for onboarding. Quality check passes. Total files examined count is accurate.
+**Gate**: Report has all sections filled. All paths are absolute. All claims cite evidence. "Where to Add New Code" section populated with real file references. Secret scan passed (no unredacted secrets in output). Report is actionable for onboarding. Quality check passes. Total files examined count is accurate.
+
+---
+
+## Parallel Domain-Specific Mapping (Deep Dive Mode)
+
+When the user requests a full architectural analysis (e.g., "give me the full picture", "I'm new to this codebase", "we're considering a major refactor"), use parallel domain-specific agents instead of single-threaded sequential exploration. This is faster (parallel execution) and produces higher-quality results (each agent focuses on its domain rather than context-switching across concerns).
+
+### When to Use
+
+Use parallel mapping when the exploration goal is broad and open-ended -- full onboarding, major refactor preparation, or comprehensive architectural review. Do NOT use for targeted questions about a single subsystem; the standard 4-phase flow is more efficient for focused exploration.
+
+### Agent Domains
+
+Launch 4 parallel agents using Task, each focused on a specific domain. Each agent follows the forbidden-files guardrail and writes a structured document.
+
+| Agent | Focus | Output File |
+|-------|-------|-------------|
+| **Technology Stack** | Languages, frameworks, dependencies, build tools, CI/CD pipelines, runtime requirements | `exploration/tech-stack.md` |
+| **Architecture** | Module structure, data flow, API boundaries, state management, component relationships, entry points | `exploration/architecture.md` |
+| **Code Quality** | Test coverage patterns, linting config, type safety, documentation density, code style conventions | `exploration/code-quality.md` |
+| **Risks & Concerns** | Technical debt indicators, security patterns, dependency health, TODO/FIXME/HACK density, deprecated APIs | `exploration/risks.md` |
+
+### Orchestration Rules
+
+1. **Phase 1 (DETECT) runs first, sequentially** -- All agents need the project type context from DETECT before they can explore effectively
+2. **Agents launch after DETECT gate passes** -- Spawn all 4 agents in parallel using Task
+3. **Each agent writes its own output file** -- Agents do not share context or coordinate
+4. **Timeout: 5 minutes per agent** -- If an agent times out, proceed with completed results. Minimum 3 of 4 agents MUST complete.
+5. **Orchestrator does NOT merge results** -- The parallel documents ARE the output. The orchestrator collects confirmations and line counts, then runs the post-exploration secret scan across all output files
+6. **Slight redundancy is acceptable** -- Both Architecture and Risks agents may note the same coupling issue. This is preferable to gaps from trying to deduplicate.
+
+### Agent Instructions Template
+
+Each parallel agent receives these instructions:
+
+```
+You are exploring a [language/framework] codebase focused on [DOMAIN].
+Project root: [absolute path]
+Project type: [from DETECT phase]
+
+RULES:
+- Read-only. NEVER modify files.
+- NEVER read files matching forbidden patterns: .env, .env.*, *.pem, *.key, credentials.json, secrets.*, *secret*, *credential*, *password*, token.json, .npmrc, .pypirc, .aws/credentials, .gcloud/, service-account*.json
+- All file paths in output MUST be absolute.
+- Every claim MUST cite an examined file.
+
+Write your findings to: exploration/[domain].md
+```
+
+### Post-Parallel Gate
+
+**Gate**: At least 3 of 4 domain agents completed. All output files exist. Secret scan passed across all output files. Each file contains file-backed evidence (not generic descriptions).
 
 ---
 
