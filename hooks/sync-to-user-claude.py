@@ -150,12 +150,17 @@ def regenerate_l1_at_dst(dst_retro: Path) -> None:
 
 
 def sync_settings(repo_settings: dict, global_settings: dict) -> dict:
-    """Sync repo settings as source-of-truth for hooks.
+    """Sync repo settings as source-of-truth for hooks and attribution.
 
     The repo's hook list is authoritative: hooks that no longer exist in the
     repo settings are removed from global settings.  This prevents phantom
     hook errors when switching branches (hook registered from branch A,
     file cleaned up on branch B, but settings still reference it).
+
+    Attribution is enforced: if the repo settings define attribution,
+    it is synced. If neither repo nor global settings define attribution,
+    empty attribution is set to disable Claude Code's default attribution
+    (per CLAUDE.md: no "Generated with Claude Code" or "Co-Authored-By").
 
     Non-hook keys in global settings are preserved.
     """
@@ -164,6 +169,13 @@ def sync_settings(repo_settings: dict, global_settings: dict) -> dict:
     # Repo hooks are the authoritative set — replace entirely
     repo_hooks = repo_settings.get("hooks", {})
     result["hooks"] = repo_hooks
+
+    # Ensure attribution is disabled (CLAUDE.md requirement).
+    # Repo setting wins if present; otherwise ensure empty attribution exists.
+    if "attribution" in repo_settings:
+        result["attribution"] = repo_settings["attribution"]
+    elif "attribution" not in result:
+        result["attribution"] = {"commit": "", "pr": ""}
 
     return result
 
