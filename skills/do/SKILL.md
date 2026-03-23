@@ -70,6 +70,42 @@ This skill operates as the primary routing operator for the Claude Code agent sy
 
 ## Instructions
 
+### Phase 0: DETERMINISTIC PRE-CLASSIFICATION (Mandatory)
+
+**Goal**: Run the task-type classifier script BEFORE any LLM-based routing to get a deterministic signal.
+
+**This phase is mandatory for every `/do` invocation except Trivial (exact file reads).**
+
+**Step 1**: Run the classifier:
+```bash
+python3 scripts/task-type-classifier.py --request "{user_request}" --check-catalog pipelines/auto-pipeline/references/pipeline-catalog.json --json
+```
+
+**Step 2**: Read the JSON output. Three possible outcomes:
+
+| Output | Action |
+|--------|--------|
+| `"existing_pipeline": "pipeline-name"` | **Route to that pipeline.** Skip Phase 1-2 classification — the script found a match. Display banner and invoke the pipeline. |
+| `"task_type": "analysis"` (or any type) + no existing pipeline | **Record the classification.** Proceed to Phase 1-2 normally. If Phase 2 finds no route, use this classification to invoke auto-pipeline (Step 5). |
+| Script fails or returns error | **Proceed normally.** Phase 0 is advisory when the script fails — fall back to LLM-based routing. |
+
+**Step 3**: Display the Phase 0 result in the routing banner:
+```
+===================================================================
+ ROUTING: [brief summary]
+===================================================================
+
+ Phase 0 classification: {task_type} | existing: {pipeline_name or "none"}
+ ...
+===================================================================
+```
+
+**Why Phase 0 exists**: The LLM will rationalize skipping auto-pipeline ("this seems simple enough to handle directly"). The script doesn't rationalize — it classifies deterministically. Phase 0 gives the router a data point to follow rather than a judgment call to make.
+
+**Anti-rationalization**: If Phase 0 says `task_type: analysis` and Phase 2 finds no matching agent, you MUST invoke auto-pipeline. "I can handle this directly" is not an option when Phase 0 has classified it and no route exists.
+
+**Gate**: Script output captured. Proceed to Phase 1.
+
 ### Phase 1: CLASSIFY
 
 **Goal**: Determine request complexity and whether routing is needed.
@@ -406,18 +442,19 @@ Detect: "first...then", "and also", numbered lists, semicolons.
 - Independent items: Launch multiple Task tools in single message
 - Max parallelism: 10 agents
 
-**Step 5: Auto-Pipeline Fallback**
+**Step 5: Auto-Pipeline Fallback (uses Phase 0 output)**
 
 When no agent/skill matches AND complexity >= Simple:
 
-1. **Dedup check**: Run `python3 scripts/task-type-classifier.py --request "{request}" --check-catalog pipelines/auto-pipeline/references/pipeline-catalog.md --json`
-2. **If existing pipeline found** (70%+ coverage): Route to that pipeline. Display routing banner with the matched pipeline.
-3. **If no match**: Invoke the `auto-pipeline` skill. It will:
-   - Classify the task type (8 canonical types)
+1. **Check Phase 0 output**: The classifier already ran in Phase 0. Use its result — do NOT re-run the script.
+2. **If Phase 0 found existing pipeline**: You should have routed to it in Phase 0 Step 2. If you're here, something went wrong — re-check Phase 0 output.
+3. **If Phase 0 classified a task type**: Invoke `auto-pipeline` with the classified type. The auto-pipeline skill will:
    - Select and adapt a canonical chain (8-12 steps)
    - In toolkit repo: crystallize into permanent pipeline immediately, then execute
    - In other repos: execute ephemeral chain (crystallize after 3+ runs)
-4. **If task-type-classifier fails or request is truly unclassifiable**: Fall back to closest agent + verification-before-completion as safety net.
+4. **If Phase 0 failed or returned no classification**: Fall back to closest agent + verification-before-completion as safety net.
+
+**CRITICAL**: If Phase 0 classified a task type and you're at Step 5 with no route, invoking auto-pipeline is MANDATORY. "Handle directly" is not an option — the script has already determined this needs structured execution.
 
 When uncertain which route: **ROUTE ANYWAY.** Route to the most likely agent + skill, add verification-before-completion as safety net, let the agent ask clarifying questions.
 
