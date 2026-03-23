@@ -106,9 +106,7 @@ _INJECTION_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
         "Attempts to make agent assume false identity",
     ),
     (
-        re.compile(
-            r"from\s+now\s+on\s+you\s+(are|will|should|must)\b", re.IGNORECASE
-        ),
+        re.compile(r"from\s+now\s+on\s+you\s+(are|will|should|must)\b", re.IGNORECASE),
         "role-hijacking",
         "Attempts to permanently alter agent behavior",
     ),
@@ -299,9 +297,7 @@ def main() -> None:
 
     if not warnings:
         if debug:
-            print(
-                f"[injection-scanner] Clean: {file_path}", file=sys.stderr
-            )
+            print(f"[injection-scanner] Clean: {file_path}", file=sys.stderr)
         empty_output(EVENT_NAME).print_and_exit()
 
     # Format advisory output
