@@ -21,6 +21,7 @@ allowed-tools:
 agent: golang-general-engineer
 command: /go-anti-patterns
 routing:
+  force_route: true
   triggers:
     - anti-pattern
     - Go mistake

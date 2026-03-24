@@ -18,6 +18,13 @@ allowed-tools:
   - Edit
   - Task
   - Skill
+routing:
+  force_route: true
+  triggers:
+    - "commit"
+    - "stage and commit"
+    - "commit changes"
+  category: git-workflow
 ---
 
 # Git Commit Flow Skill

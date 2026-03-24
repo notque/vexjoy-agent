@@ -21,6 +21,11 @@ allowed-tools:
   - WebSearch
 agent: perses-dashboard-engineer
 version: 2.0.0
+routing:
+  triggers:
+    - "create Perses dashboard"
+    - "new dashboard"
+  category: perses
 ---
 
 # Perses Dashboard Create

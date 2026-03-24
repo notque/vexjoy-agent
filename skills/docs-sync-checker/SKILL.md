@@ -17,6 +17,12 @@ allowed-tools:
   - Glob
   - Edit
   - Task
+routing:
+  triggers:
+    - "check doc drift"
+    - "sync documentation"
+    - "stale docs"
+  category: documentation
 ---
 
 # Documentation Sync Checker Skill

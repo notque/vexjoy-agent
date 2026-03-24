@@ -22,6 +22,7 @@ allowed-tools:
 context: fork
 command: /pr
 routing:
+  force_route: true
   triggers:
     - submit PR
     - create pull request

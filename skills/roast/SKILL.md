@@ -19,6 +19,12 @@ allowed-tools:
   - Task
   - Skill
 context: fork
+routing:
+  triggers:
+    - "roast code"
+    - "devil's advocate"
+    - "stress test idea"
+  category: analysis
 ---
 
 # Roast: Devil's Advocate Analysis

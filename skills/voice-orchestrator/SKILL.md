@@ -20,6 +20,12 @@ allowed-tools:
   - Task
   - Skill
 context: fork
+routing:
+  triggers:
+    - "voice generation"
+    - "multi-step voice"
+    - "voice pipeline"
+  category: voice
 ---
 
 # Voice Orchestrator Skill

@@ -16,6 +16,7 @@ allowed-tools:
   - Glob
   - Edit
 routing:
+  force_route: true
   triggers:
     - feature plan
     - plan feature

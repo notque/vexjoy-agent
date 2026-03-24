@@ -14,6 +14,14 @@ allowed-tools:
   - Read
   - Bash
   - Grep
+routing:
+  force_route: true
+  triggers:
+    - "check CI"
+    - "CI status"
+    - "actions status"
+    - "did CI pass"
+  category: git-workflow
 ---
 
 # GitHub Actions Check Skill

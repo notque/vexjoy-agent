@@ -17,6 +17,11 @@ allowed-tools:
   - Glob
   - Edit
   - Write
+routing:
+  triggers:
+    - "process PR feedback"
+    - "address review comments"
+  category: git-workflow
 ---
 
 # PR Review Address Feedback Skill

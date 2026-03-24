@@ -20,6 +20,12 @@ allowed-tools:
   - Glob
   - Edit
   - Task
+routing:
+  triggers:
+    - "maximum rigor"
+    - "anti-rationalization"
+    - "strict verification"
+  category: process
 ---
 
 # Anti-Rationalization Enforcement Skill

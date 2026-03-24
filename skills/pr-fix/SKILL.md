@@ -15,6 +15,11 @@ allowed-tools:
   - Bash
   - Grep
   - Glob
+routing:
+  triggers:
+    - "fix PR feedback"
+    - "address review comments"
+  category: git-workflow
 ---
 
 # PR Fix Skill

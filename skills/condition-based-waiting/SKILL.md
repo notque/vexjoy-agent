@@ -16,6 +16,12 @@ allowed-tools:
   - Grep
   - Glob
   - Edit
+routing:
+  triggers:
+    - "exponential backoff"
+    - "health check polling"
+    - "retry pattern"
+  category: process
 ---
 
 # Condition-Based Waiting Skill

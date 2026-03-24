@@ -18,6 +18,11 @@ allowed-tools:
   - Edit
   - Task
   - Skill
+routing:
+  triggers:
+    - "coordinate PR mining"
+    - "extract tribal knowledge"
+  category: git-workflow
 ---
 
 # PR Mining Coordinator Skill

@@ -21,6 +21,12 @@ triggers:
   - parallel
   - concurrent
   - 3+ tasks
+routing:
+  triggers:
+    - "parallel agents"
+    - "independent failures"
+    - "fan-out dispatch"
+  category: process
 ---
 
 # Dispatching Parallel Agents

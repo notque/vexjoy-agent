@@ -12,6 +12,7 @@ version: 1.0.0
 user-invocable: false
 agent: golang-general-engineer
 routing:
+  force_route: true
   triggers:
     - sapcc
     - sap-cloud-infrastructure

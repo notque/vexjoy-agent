@@ -20,6 +20,12 @@ allowed-tools:
   - Edit
   - Task
   - Skill
+routing:
+  triggers:
+    - "compose skills"
+    - "DAG orchestration"
+    - "multi-skill chain"
+  category: meta-tooling
 ---
 
 # Skill Composer

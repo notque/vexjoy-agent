@@ -14,6 +14,12 @@ allowed-tools:
   - Grep
   - Glob
   - Bash
+routing:
+  triggers:
+    - "guide debugging"
+    - "question-based"
+    - "teach debugging"
+  category: process
 ---
 
 # Socratic Debugging Skill

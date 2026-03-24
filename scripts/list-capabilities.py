@@ -24,6 +24,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 SKILLS_INDEX = REPO_ROOT / "skills" / "INDEX.json"
+PIPELINES_INDEX = REPO_ROOT / "pipelines" / "INDEX.json"
 AGENTS_INDEX = REPO_ROOT / "agents" / "INDEX.json"
 ROUTING_CONFIG = REPO_ROOT / "scripts" / "routing-config.json"
 
@@ -36,13 +37,21 @@ STALE_EXIT_CODE = 2
 # ---------------------------------------------------------------------------
 
 
-def load_skills_index() -> list[dict]:
-    """Load skills/INDEX.json and return the skills array."""
+def load_skills_index() -> tuple[dict, str | None]:
+    """Load skills/INDEX.json and return the skills dict keyed by name."""
     if not SKILLS_INDEX.exists():
         print(f"ERROR: {SKILLS_INDEX} not found", file=sys.stderr)
         sys.exit(1)
     data = json.loads(SKILLS_INDEX.read_text())
-    return data.get("skills", []), data.get("generated")
+    return data.get("skills", {}), data.get("generated")
+
+
+def load_pipelines_index() -> tuple[dict, str | None]:
+    """Load pipelines/INDEX.json and return the pipelines dict keyed by name."""
+    if not PIPELINES_INDEX.exists():
+        return {}, None
+    data = json.loads(PIPELINES_INDEX.read_text())
+    return data.get("pipelines", {}), data.get("generated")
 
 
 def load_agents_index() -> dict:
@@ -82,10 +91,10 @@ def check_staleness(index_path: Path, generated: str | None, glob_pattern: str, 
     # Count files newer than the index
     newer_count = sum(1 for p in base.glob(glob_pattern) if p.is_file() and p.stat().st_mtime > index_mtime)
     if newer_count > 0:
-        if "skill" in label.lower():
-            regen_script = "scripts/generate-skill-index.py"
-        else:
+        if "agent" in label.lower():
             regen_script = "scripts/generate-agent-index.py"
+        else:
+            regen_script = "scripts/generate-skill-index.py"
         print(
             f"⚠ {index_path.relative_to(REPO_ROOT)} may be stale ({newer_count} files newer). "
             f"Run: python3 {regen_script}",
@@ -93,37 +102,6 @@ def check_staleness(index_path: Path, generated: str | None, glob_pattern: str, 
         )
         return True
     return False
-
-
-# ---------------------------------------------------------------------------
-# Pipeline detection
-# ---------------------------------------------------------------------------
-
-_PHASE_RE = re.compile(r"\b(\d+)-phase\b", re.IGNORECASE)
-
-
-def _is_pipeline(skill: dict) -> bool:
-    """Return True if skill looks like a pipeline."""
-    name = skill.get("name", "")
-    desc = skill.get("description", "")
-    if name.endswith("-pipeline"):
-        return True
-    if "→" in desc and re.search(r"\bphase\b", desc, re.IGNORECASE):
-        return True
-    return bool(_PHASE_RE.search(desc))
-
-
-def _extract_phases(skill: dict) -> str:
-    """Extract phase count from description, or '?'."""
-    desc = skill.get("description", "")
-    m = _PHASE_RE.search(desc)
-    if m:
-        return m.group(1)
-    # Count → arrows as a fallback (N arrows = N+1 phases, but N is simpler)
-    arrows = desc.count("→")
-    if arrows > 1:
-        return str(arrows)
-    return "?"
 
 
 # ---------------------------------------------------------------------------
@@ -169,30 +147,35 @@ def _markdown_table(headers: list[str], rows: list[list[str]]) -> str:
 
 
 def cmd_summary(args) -> int:
-    skills, skills_gen = load_skills_index()
+    skills_dict, skills_gen = load_skills_index()
+    pipelines_dict, pipelines_gen = load_pipelines_index()
     agents_dict, agents_gen = load_agents_index()
 
     stale = False
     stale |= check_staleness(SKILLS_INDEX, skills_gen, "*/SKILL.md", REPO_ROOT / "skills", "skills")
+    if pipelines_gen:
+        stale |= check_staleness(PIPELINES_INDEX, pipelines_gen, "*/SKILL.md", REPO_ROOT / "pipelines", "pipelines")
     stale |= check_staleness(AGENTS_INDEX, agents_gen, "*.md", REPO_ROOT / "agents", "agents")
 
-    pipelines = [s for s in skills if _is_pipeline(s)]
-    standard = [s for s in skills if not _is_pipeline(s)]
+    total_skills = len(skills_dict)
+    total_pipelines = len(pipelines_dict)
     total_agents = len(agents_dict)
 
     if args.json_output:
         print(
             json.dumps(
                 {
-                    "skills": {"total": len(skills), "pipelines": len(pipelines), "standard": len(standard)},
+                    "skills": {"total": total_skills},
+                    "pipelines": {"total": total_pipelines},
                     "agents": {"total": total_agents},
                 },
                 indent=2,
             )
         )
     else:
-        print(f"Skills:  {len(skills):>4} total ({len(pipelines)} pipelines, {len(standard)} standard)")
-        print(f"Agents:  {total_agents:>4} total")
+        print(f"Skills:    {total_skills:>4}")
+        print(f"Pipelines: {total_pipelines:>4}")
+        print(f"Agents:    {total_agents:>4}")
         print()
         print("Run: python3 scripts/list-capabilities.py skills --category <cat>")
 
@@ -216,8 +199,10 @@ def _filter_skills_by_category(skills: list[dict], category: str) -> list[dict]:
 
 
 def cmd_skills(args) -> int:
-    skills, skills_gen = load_skills_index()
+    skills_dict, skills_gen = load_skills_index()
     stale = check_staleness(SKILLS_INDEX, skills_gen, "*/SKILL.md", REPO_ROOT / "skills", "skills")
+
+    skills = _dict_as_list(skills_dict)
 
     if args.category:
         skills = _filter_skills_by_category(skills, args.category)
@@ -253,11 +238,9 @@ def cmd_skills(args) -> int:
 # ---------------------------------------------------------------------------
 
 
-def _agents_as_list(agents_dict: dict) -> list[dict]:
-    result = []
-    for name, info in agents_dict.items():
-        result.append({"name": name, **info})
-    return result
+def _dict_as_list(d: dict) -> list[dict]:
+    """Convert a dict-keyed index to a list with 'name' field."""
+    return [{"name": name, **info} for name, info in d.items()]
 
 
 def _filter_agents_by_category(agents: list[dict], category: str) -> list[dict]:
@@ -269,7 +252,7 @@ def cmd_agents(args) -> int:
     agents_dict, agents_gen = load_agents_index()
     stale = check_staleness(AGENTS_INDEX, agents_gen, "*.md", REPO_ROOT / "agents", "agents")
 
-    agents = _agents_as_list(agents_dict)
+    agents = _dict_as_list(agents_dict)
 
     if args.category:
         agents = _filter_agents_by_category(agents, args.category)
@@ -306,10 +289,12 @@ def cmd_agents(args) -> int:
 
 
 def cmd_pipelines(args) -> int:
-    skills, skills_gen = load_skills_index()
-    stale = check_staleness(SKILLS_INDEX, skills_gen, "*/SKILL.md", REPO_ROOT / "skills", "skills")
+    pipelines_dict, pipelines_gen = load_pipelines_index()
+    stale = False
+    if pipelines_gen:
+        stale = check_staleness(PIPELINES_INDEX, pipelines_gen, "*/SKILL.md", REPO_ROOT / "pipelines", "pipelines")
 
-    pipelines = [s for s in skills if _is_pipeline(s)]
+    pipelines = _dict_as_list(pipelines_dict)
 
     if args.json_output:
         print(json.dumps(pipelines, indent=2))
@@ -318,15 +303,19 @@ def cmd_pipelines(args) -> int:
     cols = [("NAME", 26), ("PHASES", 7), ("DESCRIPTION", 55)]
 
     if args.markdown:
-        rows = [[s.get("name", ""), _extract_phases(s), s.get("description", "")] for s in pipelines]
+        rows = [
+            [p.get("name", ""), str(len(p.get("phases", []))), p.get("description", "")]
+            for p in pipelines
+        ]
         print(_markdown_table(["NAME", "PHASES", "DESCRIPTION"], rows))
     else:
         print(_table_header(cols))
-        for s in pipelines:
+        for p in pipelines:
+            phase_count = str(len(p.get("phases", [])))
             row = [
-                (s.get("name", ""), 26),
-                (_extract_phases(s), 7),
-                (_trunc(s.get("description", "")), 55),
+                (p.get("name", ""), 26),
+                (phase_count, 7),
+                (_trunc(p.get("description", "")), 55),
             ]
             print(_table_row(row))
 
@@ -339,24 +328,42 @@ def cmd_pipelines(args) -> int:
 
 
 def cmd_show(args) -> int:
-    skills, _ = load_skills_index()
+    skills_dict, _ = load_skills_index()
+    pipelines_dict, _ = load_pipelines_index()
     agents_dict, _ = load_agents_index()
 
     name = args.name
 
-    # Search skills first
-    skill = next((s for s in skills if s.get("name") == name), None)
+    # Search skills first (O(1) lookup)
+    skill = skills_dict.get(name)
     if skill:
         if args.json_output:
-            print(json.dumps({"type": "skill", **skill}, indent=2))
+            print(json.dumps({"type": "skill", "name": name, **skill}, indent=2))
         else:
             print("Type:           skill")
-            print(f"Name:           {skill.get('name', '')}")
+            print(f"Name:           {name}")
             print(f"Description:    {skill.get('description', '')}")
             print(f"Triggers:       {', '.join(skill.get('triggers', []))}")
             print(f"Version:        {skill.get('version', 'unknown')}")
-            print(f"User-invocable: {skill.get('user-invocable', True)}")
+            print(f"User-invocable: {skill.get('user_invocable', True)}")
+            print(f"Category:       {skill.get('category', 'unknown')}")
             print(f"File:           {skill.get('file', '')}")
+        return 0
+
+    # Search pipelines
+    pipeline = pipelines_dict.get(name)
+    if pipeline:
+        if args.json_output:
+            print(json.dumps({"type": "pipeline", "name": name, **pipeline}, indent=2))
+        else:
+            print("Type:           pipeline")
+            print(f"Name:           {name}")
+            print(f"Description:    {pipeline.get('description', '')}")
+            print(f"Triggers:       {', '.join(pipeline.get('triggers', []))}")
+            phases = pipeline.get("phases", [])
+            print(f"Phases:         {' -> '.join(phases)}")
+            print(f"Version:        {pipeline.get('version', 'unknown')}")
+            print(f"File:           {pipeline.get('file', '')}")
         return 0
 
     # Search agents
@@ -377,7 +384,7 @@ def cmd_show(args) -> int:
             print(f"File:           agents/{agent_info.get('file', '')}")
         return 0
 
-    print(f"ERROR: '{name}' not found in skills or agents index", file=sys.stderr)
+    print(f"ERROR: '{name}' not found in skills, pipelines, or agents index", file=sys.stderr)
     return 1
 
 
@@ -387,56 +394,39 @@ def cmd_show(args) -> int:
 
 
 def cmd_search(args) -> int:
-    skills, _ = load_skills_index()
+    skills_dict, _ = load_skills_index()
+    pipelines_dict, _ = load_pipelines_index()
     agents_dict, _ = load_agents_index()
 
     query = args.query.lower()
     results: list[dict] = []
 
-    for s in skills:
-        name = s.get("name", "")
-        desc = s.get("description", "")
-        triggers = s.get("triggers", [])
+    def _search_dict(d: dict, entry_type: str) -> None:
+        for name, info in d.items():
+            desc = info.get("description", "") or info.get("short_description", "")
+            triggers = info.get("triggers", [])
 
-        if query in name.lower():
-            match_field = "name"
-        elif any(query in t.lower() for t in triggers):
-            match_field = "trigger"
-        elif query in desc.lower():
-            match_field = "description"
-        else:
-            continue
+            if query in name.lower():
+                match_field = "name"
+            elif any(query in t.lower() for t in triggers):
+                match_field = "trigger"
+            elif query in desc.lower():
+                match_field = "description"
+            else:
+                continue
 
-        results.append(
-            {
-                "match": match_field,
-                "type": "skill",
-                "name": name,
-                "description": desc,
-            }
-        )
+            results.append(
+                {
+                    "match": match_field,
+                    "type": entry_type,
+                    "name": name,
+                    "description": desc,
+                }
+            )
 
-    for agent_name, info in agents_dict.items():
-        desc = info.get("short_description", "")
-        triggers = info.get("triggers", [])
-
-        if query in agent_name.lower():
-            match_field = "name"
-        elif any(query in t.lower() for t in triggers):
-            match_field = "trigger"
-        elif query in desc.lower():
-            match_field = "description"
-        else:
-            continue
-
-        results.append(
-            {
-                "match": match_field,
-                "type": "agent",
-                "name": agent_name,
-                "description": desc,
-            }
-        )
+    _search_dict(skills_dict, "skill")
+    _search_dict(pipelines_dict, "pipeline")
+    _search_dict(agents_dict, "agent")
 
     # Sort: name > trigger > description
     _order = {"name": 0, "trigger": 1, "description": 2}
@@ -612,12 +602,12 @@ def cmd_catalog(args) -> int:
     name, description (first sentence), and triggers.  Designed to be
     injected as <available-capabilities> context for routing decisions.
     """
-    skills, _ = load_skills_index()
+    skills_dict, _ = load_skills_index()
+    pipelines_dict, _ = load_pipelines_index()
     agents_dict, _ = load_agents_index()
 
     def _first_sentence(text: str, max_len: int = 80) -> str:
         """Extract first sentence, truncated to max_len."""
-        # Split on common sentence-ending patterns
         for sep in [". ", ".\n", ".\t"]:
             idx = text.find(sep)
             if idx != -1:
@@ -627,33 +617,31 @@ def cmd_catalog(args) -> int:
             return text[: max_len - 3] + "..."
         return text
 
-    catalog_skills = []
-    for s in skills:
-        entry = {"name": s.get("name", "")}
-        desc = s.get("description", "")
-        entry["description"] = _first_sentence(desc)
-        triggers = s.get("triggers", [])
-        if triggers:
-            entry["triggers"] = triggers
-        catalog_skills.append(entry)
+    def _catalog_entries(d: dict, desc_key: str = "description") -> list[dict]:
+        entries = []
+        for name, info in d.items():
+            entry = {"name": name}
+            desc = info.get(desc_key, "")
+            entry["description"] = _first_sentence(desc)
+            triggers = info.get("triggers", [])
+            if triggers:
+                entry["triggers"] = triggers
+            pairs = info.get("pairs_with", [])
+            if pairs:
+                entry["pairs_with"] = pairs
+            entries.append(entry)
+        return entries
 
-    catalog_agents = []
-    for agent_name, info in agents_dict.items():
-        entry = {"name": agent_name}
-        desc = info.get("short_description", "")
-        entry["description"] = _first_sentence(desc)
-        triggers = info.get("triggers", [])
-        if triggers:
-            entry["triggers"] = triggers
-        pairs = info.get("pairs_with", [])
-        if pairs:
-            entry["pairs_with"] = pairs
-        catalog_agents.append(entry)
+    catalog_skills = _catalog_entries(skills_dict)
+    catalog_pipelines = _catalog_entries(pipelines_dict)
+    catalog_agents = _catalog_entries(agents_dict, "short_description")
 
     catalog = {
         "skills": catalog_skills,
+        "pipelines": catalog_pipelines,
         "agents": catalog_agents,
         "total_skills": len(catalog_skills),
+        "total_pipelines": len(catalog_pipelines),
         "total_agents": len(catalog_agents),
     }
 

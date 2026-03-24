@@ -18,6 +18,12 @@ allowed-tools:
   - Glob
   - Edit
   - Task
+routing:
+  triggers:
+    - "parallel analysis"
+    - "multi-perspective"
+    - "10 perspectives"
+  category: meta-tooling
 ---
 
 # Parallel Multi-Perspective Analysis

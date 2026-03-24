@@ -14,6 +14,11 @@ allowed-tools:
   - Grep
   - Glob
   - Bash
+routing:
+  triggers:
+    - "review code"
+    - "code review methodology"
+  category: code-review
 ---
 
 # Systematic Code Review Skill
