@@ -4,10 +4,9 @@ description: |
   Spawn 10 independent parallel agents to analyze source material from
   distinct perspectives, synthesize findings, and apply improvements to
   a target agent or skill. Use when source material is complex and
-  multi-angle extraction justifies 3-5x token cost over inline analysis.
+  multi-angle extraction reveals patterns that single-threaded analysis misses.
   Use for "parallel analysis", "multi-perspective", or "deep extraction".
-  Do NOT use for routine improvements, simple source material, or when
-  token budget is limited.
+  Do NOT use for routine improvements or simple source material.
 version: 2.0.0
 user-invocable: true
 allowed-tools:
@@ -33,9 +32,9 @@ This skill operates as an operator for intensive multi-perspective analysis, con
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before execution
 - **Over-Engineering Prevention**: Apply only Priority 1 and Priority 2 synthesized rules. Do not invent improvements beyond what the source material supports. No speculative enhancements.
-- **True Parallel Independence**: All 10 Task invocations MUST be in a single message. Each agent receives ONLY its assigned perspective with zero cross-contamination.
+- **True Parallel Independence**: All 10 Task invocations MUST be in a single message. Each agent receives ONLY its assigned perspective with zero cross-contamination. All 10 agents are read-only analysts — scope overlap checking (`scripts/check-scope-overlap.py`) is not required since agents produce analysis artifacts, not code modifications.
 - **Artifact Persistence**: Save synthesis document and completion report to files. Context is ephemeral; artifacts persist.
-- **Token Budget Awareness**: Estimate total cost before execution. Warn if source material exceeds 5,000 words (drives cost above 50,000 tokens).
+- **Source Material Assessment**: Validate source material has sufficient depth before spawning agents. Thin material (under 500 words) should use inline analysis instead.
 - **Validate Inputs First**: Verify target agent/skill exists and source material is readable before spawning any agents.
 - **No Behavior Changes**: Synthesized rules ADD depth. They NEVER remove or significantly alter existing working patterns in the target.
 
@@ -48,7 +47,7 @@ This skill operates as an operator for intensive multi-perspective analysis, con
 - **Git Commit**: Commit improvements with descriptive message after application.
 
 ### Optional Behaviors (OFF unless enabled)
-- **Reduced Perspectives**: Use 5 perspectives instead of 10 to halve token cost
+- **Reduced Perspectives**: Use 5 perspectives instead of 10 for faster completion
 - **Dry Run Mode**: Generate synthesis without applying changes to target
 - **Compare Mode**: Analyze two sources and extract differences
 
@@ -61,9 +60,8 @@ This skill operates as an operator for intensive multi-perspective analysis, con
 
 ## What This Skill CANNOT Do
 - Replace inline analysis for simple or straightforward material (use `/do-perspectives` for single-target improvements)
-- Operate without sufficient token budget (requires 25,000-63,000 tokens)
+- Generate value from poor source material (marketing fluff, auto-generated docs, under 500 words)
 - Guarantee all 10 agents complete (network/timeout issues may reduce count)
-- Generate value from poor source material (marketing fluff, auto-generated docs)
 - Skip the synthesis phase and apply raw per-perspective rules directly
 
 ---
@@ -72,7 +70,7 @@ This skill operates as an operator for intensive multi-perspective analysis, con
 
 ### Phase 1: VALIDATE INPUTS
 
-**Goal**: Confirm target exists and source material is suitable before spending tokens.
+**Goal**: Confirm target exists and source material is suitable before spawning agents.
 
 **Step 1: Parse arguments**
 - Extract target agent/skill name (first argument)
@@ -100,8 +98,6 @@ ls skills/{target_name}/SKILL.md
 
 File: [path]
 Word count: [N] words
-Estimated token cost: [N * 10 * 3] = [total] tokens
-
 Quality indicators:
 - [ ] Contains concrete examples (not just abstract claims)
 - [ ] Has systematic structure (sections, progression)
@@ -112,22 +108,9 @@ Assessment: SUITABLE / UNSUITABLE
 ```
 
 - Read source file, confirm it is non-empty
-- Estimate word count. If over 5,000 words, warn about elevated token cost.
 - If material fails 2+ quality indicators, recommend inline analysis instead and ask user to confirm
 
-**Step 4: Estimate token budget**
-
-| Component | Estimated Tokens |
-|-----------|-----------------|
-| 10 agents x source material | source_words x 10 x ~3 |
-| 10 agent outputs | ~5,000 (500 words each) |
-| Synthesis | ~3,000 |
-| Application | ~5,000 |
-| **Total** | **sum of above** |
-
-If total exceeds 60,000 tokens, warn user and request confirmation before proceeding.
-
-**Gate**: Target exists and is readable. Source material is present and substantive. Token estimate is acceptable. Proceed only when gate passes.
+**Gate**: Target exists and is readable. Source material is present and substantive. Proceed only when gate passes.
 
 ### Phase 2: MULTI-PERSPECTIVE ANALYSIS (TRUE PARALLEL)
 
@@ -310,7 +293,6 @@ Use template from `references/perspective-prompts.md`. The report MUST include:
 - Per-perspective key insights (one sentence each)
 - Cross-reference showing which perspectives contributed to each improvement
 - Before/after comparison (line counts, section counts)
-- Estimated token usage breakdown
 - Recommendations for future improvements
 
 **Step 3: Save completion report**
@@ -362,53 +344,6 @@ Result: Debugging skill gains domain-specific PostgreSQL patterns
 
 ---
 
-## Token Budget Management
-
-This is a high-cost skill. Understanding and managing token usage is essential.
-
-### Cost Breakdown
-
-| Phase | Token Range | Notes |
-|-------|-------------|-------|
-| Phase 1: Validate | 500-1,000 | Reading target + source |
-| Phase 2: Analysis | 20,000-50,000 | 10 agents x (source + output) |
-| Phase 3: Synthesize | 2,000-5,000 | Cross-reference + prioritization |
-| Phase 4: Apply | 3,000-8,000 | Reading target + modifications |
-| Phase 5: Verify | 1,000-2,000 | Integrity checks + report |
-| **Total** | **26,500-66,000** | **3-5x inline analysis cost** |
-
-### When Cost Is Justified
-
-Use do-parallel when:
-- Source material is difficult and hard to grasp from a single reading
-- Multiple independent interpretations could reveal hidden patterns
-- The target agent/skill is high-impact and warrants deep investment
-- Token budget has room for 30,000-60,000 tokens
-
-Use inline analysis (2,000-10,000 tokens) when:
-- Source material is straightforward with obvious patterns
-- A single reading captures the key insights
-- Token budget is constrained
-- Routine incremental improvement is the goal
-
-### Cost Estimation Formula
-
-```
-Estimated tokens = (source_words * 3 * 10) + 15,000
-
-Example: 2,000-word article
-  = (2,000 * 3 * 10) + 15,000
-  = 60,000 + 15,000
-  = ~75,000 tokens (HIGH - consider trimming source or reducing perspectives)
-
-Example: 800-word article
-  = (800 * 3 * 10) + 15,000
-  = 24,000 + 15,000
-  = ~39,000 tokens (ACCEPTABLE)
-```
-
----
-
 ## Error Handling
 
 ### Error: "Target Agent/Skill Not Found"
@@ -423,7 +358,7 @@ Cause: File path wrong, file empty, or material lacks depth
 Solution:
 1. Verify file path is absolute and file exists
 2. If material is under 500 words, it likely lacks sufficient patterns
-3. Consider using inline analysis instead of parallel (lower cost, similar value for thin material)
+3. Consider using inline analysis instead of parallel (similar value for thin material)
 
 ### Error: "Agents Timing Out"
 Cause: Source material too large, network issues, or agent stuck on web fetch
@@ -447,7 +382,7 @@ Solution:
 
 ### Anti-Pattern 1: Using Parallel for Simple Material
 **What it looks like**: Running 10 agents on a 200-word README
-**Why wrong**: Token cost of 25,000+ for material that inline analysis handles in 2,000 tokens. No depth to analyze from 10 angles.
+**Why wrong**: No depth to analyze from 10 angles. Simple material yields the same insights from a single reading.
 **Do instead**: Use `/do-perspectives` for single-target improvements or simpler inline analysis. Reserve do-parallel for complex, hard-to-grasp material.
 
 ### Anti-Pattern 2: Applying All Rules Without Prioritization
@@ -459,11 +394,6 @@ Solution:
 **What it looks like**: Reading each agent report and applying rules one perspective at a time
 **Why wrong**: Cross-perspective patterns are the primary value. Applying per-perspective rules misses common themes and introduces contradictions.
 **Do instead**: Always collect all reports, identify common themes, then create unified recommendations before touching the target.
-
-### Anti-Pattern 4: Running Without Budget Awareness
-**What it looks like**: Launching 10 agents on a 15,000-word document without estimating cost
-**Why wrong**: Could consume 80,000+ tokens. Session may exhaust budget mid-execution, leaving work incomplete.
-**Do instead**: Estimate cost in Phase 1. Source words x 10 agents x ~3 tokens/word = rough estimate. Warn if over 50,000.
 
 ---
 
