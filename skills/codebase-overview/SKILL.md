@@ -21,9 +21,12 @@ allowed-tools:
 context: fork
 routing:
   triggers:
-    - "explore codebase"
     - "onboard to codebase"
     - "codebase structure"
+    - "what does this project do"
+    - "give me an overview"
+    - "summarize this repo"
+    - "understand this codebase"
   category: analysis
 ---
 

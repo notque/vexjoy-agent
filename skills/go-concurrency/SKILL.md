@@ -32,14 +32,15 @@ routing:
     - sync.Mutex
     - sync.WaitGroup
     - worker pool
-    - fan-out
     - fan-in
     - rate limit
     - concurrent
-    - parallel
     - context.Context
     - race condition
     - deadlock
+    - "goroutine parallel"
+    - "Go parallel"
+    - "goroutine fan-out"
   pairs_with:
     - golang-general-engineer
     - golang-general-engineer-compact

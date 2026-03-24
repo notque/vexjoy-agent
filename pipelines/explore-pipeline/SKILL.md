@@ -22,6 +22,7 @@ allowed-tools:
 context: fork
 command: /explore
 routing:
+  force_route: true
   triggers:
     - understand codebase
     - explore repo
@@ -33,6 +34,10 @@ routing:
     - assess consistency
     - evaluate patterns
     - analyze codebase
+    - "explore codebase"
+    - "understand this repo"
+    - "map the codebase"
+    - "what is in this repo"
   pairs_with:
     - codebase-overview
     - codebase-analyzer

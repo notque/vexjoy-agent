@@ -31,6 +31,7 @@ allowed-tools:
   - TaskList
   - EnterWorktree
 routing:
+  force_route: true
   triggers:
     - comprehensive review
     - full review
@@ -42,6 +43,8 @@ routing:
     - 20-agent review
     - per-package review
     - 3-wave review
+    - "full code review"
+    - "review all packages"
   pairs_with:
     - systematic-code-review
     - parallel-code-review

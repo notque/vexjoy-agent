@@ -19,6 +19,11 @@ routing:
     - "guide debugging"
     - "question-based"
     - "teach debugging"
+    - "ask me questions"
+    - "help me think through"
+    - "guide me"
+    - "coaching mode"
+    - "teach me to find it"
   category: process
 ---
 

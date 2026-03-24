@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-03-24T05:07:28Z",
+  "generated": "2026-03-24T06:47:45Z",
   "generated_by": "scripts/generate-skill-index.py",
   "pipelines": {
     "agent-upgrade": {
@@ -119,9 +119,12 @@
         "complete code review",
         "20-agent review",
         "per-package review",
-        "3-wave review"
+        "3-wave review",
+        "full code review",
+        "review all packages"
       ],
       "category": "review",
+      "force_route": true,
       "user_invocable": true,
       "version": "3.2.0",
       "phases": [
@@ -202,9 +205,14 @@
         "write documentation",
         "document codebase",
         "generate docs",
-        "technical documentation"
+        "technical documentation",
+        "create documentation",
+        "write docs",
+        "generate README",
+        "document the API"
       ],
       "category": "documentation",
+      "force_route": true,
       "user_invocable": false,
       "version": "2.0.0",
       "phases": [
@@ -258,9 +266,14 @@
         "analyze quality",
         "assess consistency",
         "evaluate patterns",
-        "analyze codebase"
+        "analyze codebase",
+        "explore codebase",
+        "understand this repo",
+        "map the codebase",
+        "what is in this repo"
       ],
       "category": "meta",
+      "force_route": true,
       "user_invocable": false,
       "version": "2.0.0",
       "phases": [
@@ -536,9 +549,15 @@
         "formal research",
         "research with artifacts",
         "structured research",
-        "research topic"
+        "research topic",
+        "research this",
+        "investigate thoroughly",
+        "deep research",
+        "systematic research",
+        "multi-source research"
       ],
       "category": "meta",
+      "force_route": true,
       "user_invocable": true,
       "version": "1.0.0",
       "phases": [
@@ -586,9 +605,14 @@
       "triggers": [
         "create skill pipeline",
         "new skill formal",
-        "skill with gates"
+        "skill with gates",
+        "create skill formally",
+        "new skill with gates",
+        "skill creation pipeline",
+        "formal skill creation"
       ],
       "category": "meta",
+      "force_route": true,
       "user_invocable": true,
       "version": "1.0.0",
       "phases": [

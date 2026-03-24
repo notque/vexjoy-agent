@@ -19,6 +19,8 @@ routing:
     - "service status"
     - "process health"
     - "uptime check"
+    - "is service running"
+    - "check health"
   category: infrastructure
 ---
 

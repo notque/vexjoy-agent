@@ -26,6 +26,10 @@ routing:
     - "parallel agents"
     - "independent failures"
     - "fan-out dispatch"
+    - "do these simultaneously"
+    - "handle all at once"
+    - "run in parallel"
+    - "split into tasks"
   category: process
 ---
 

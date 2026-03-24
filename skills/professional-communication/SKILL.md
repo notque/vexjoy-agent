@@ -19,6 +19,11 @@ routing:
     - "business communication"
     - "structured format"
     - "clear writing"
+    - "write email"
+    - "draft memo"
+    - "executive summary"
+    - "summarize for management"
+    - "status update"
   category: content-creation
 ---
 

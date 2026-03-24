@@ -18,10 +18,15 @@ allowed-tools:
   - Edit
   - Write
 routing:
+  force_route: true
   triggers:
     - create skill pipeline
     - new skill formal
     - skill with gates
+    - "create skill formally"
+    - "new skill with gates"
+    - "skill creation pipeline"
+    - "formal skill creation"
   pairs_with:
     - agent-evaluation
     - routing-table-updater

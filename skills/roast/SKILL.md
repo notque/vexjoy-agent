@@ -24,6 +24,9 @@ routing:
     - "roast code"
     - "devil's advocate"
     - "stress test idea"
+    - "roast this"
+    - "stress test this idea"
+    - "poke holes in this"
   category: analysis
 ---
 

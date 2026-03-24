@@ -25,6 +25,10 @@ routing:
     - "TDD"
     - "test first"
     - "red green refactor"
+    - "write tests first"
+    - "test-driven"
+    - "start with failing test"
+    - "tests before code"
   category: testing
 ---
 

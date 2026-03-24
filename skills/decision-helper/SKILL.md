@@ -21,6 +21,12 @@ routing:
     - "weigh options"
     - "decision matrix"
     - "compare approaches"
+    - "help me decide"
+    - "pros and cons"
+    - "trade-offs"
+    - "which is better"
+    - "should I use"
+    - "evaluate options"
   category: process
 ---
 

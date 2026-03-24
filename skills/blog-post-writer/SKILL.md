@@ -21,8 +21,6 @@ allowed-tools:
 routing:
   triggers:
     - "write blog post"
-    - "draft article"
-    - "create content"
   category: content-creation
 ---
 

@@ -20,6 +20,7 @@ allowed-tools:
 context: fork
 command: /doc
 routing:
+  force_route: true
   triggers:
     - document this
     - create readme
@@ -27,6 +28,10 @@ routing:
     - document codebase
     - generate docs
     - technical documentation
+    - "create documentation"
+    - "write docs"
+    - "generate README"
+    - "document the API"
   pairs_with:
     - codebase-overview
     - technical-documentation-engineer

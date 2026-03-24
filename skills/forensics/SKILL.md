@@ -29,6 +29,8 @@ routing:
     - session crashed
     - why is this stuck
     - investigate failure
+    - "why did this break"
+    - "incident review"
   pairs_with:
     - systematic-debugging
     - workflow-orchestrator

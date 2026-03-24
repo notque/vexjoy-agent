@@ -23,7 +23,6 @@ command: /go-anti-patterns
 routing:
   force_route: true
   triggers:
-    - anti-pattern
     - Go mistake
     - bad Go
     - Go smell
@@ -31,6 +30,8 @@ routing:
     - premature abstraction
     - over-engineering
     - unnecessary complexity
+    - "Go anti-pattern"
+    - "Go code smell"
   pairs_with:
     - golang-general-engineer
     - golang-general-engineer-compact

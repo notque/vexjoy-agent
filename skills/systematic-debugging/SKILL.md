@@ -20,6 +20,13 @@ routing:
     - "debug"
     - "find root cause"
     - "reproduce bug"
+    - "fix this bug"
+    - "this is broken"
+    - "not working"
+    - "why is this broken"
+    - "getting an error"
+    - "unexpected behavior"
+    - "investigate error"
   category: process
 ---
 

@@ -27,6 +27,13 @@ routing:
     - "refactor safely"
     - "rename symbol"
     - "extract function"
+    - "refactor"
+    - "simplify this"
+    - "restructure code"
+    - "reduce complexity"
+    - "split this file"
+    - "restructure"
+    - "move to separate file"
   category: process
 ---
 

@@ -34,6 +34,10 @@ routing:
     - KPI
     - funnel
     - experiment results
+    - "data insights"
+    - "statistical analysis"
+    - "CSV analysis"
+    - "explore dataset"
   pairs_with:
     - explore-pipeline
     - codebase-analyzer

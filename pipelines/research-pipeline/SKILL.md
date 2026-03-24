@@ -18,12 +18,18 @@ allowed-tools:
   - Agent
   - Write
 routing:
+  force_route: true
   triggers:
     - research pipeline
     - formal research
     - research with artifacts
     - structured research
     - research topic
+    - "research this"
+    - "investigate thoroughly"
+    - "deep research"
+    - "systematic research"
+    - "multi-source research"
   pairs_with:
     - domain-research
     - explore-pipeline

@@ -20,6 +20,9 @@ routing:
     - "validate endpoints"
     - "smoke test API"
     - "health check endpoints"
+    - "test endpoint"
+    - "check API"
+    - "smoke test"
   category: infrastructure
 ---
 

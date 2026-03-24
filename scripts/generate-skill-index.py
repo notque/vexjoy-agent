@@ -489,7 +489,7 @@ def main() -> int:
 
     # Trigger stats across both indexes
     all_named = list(skills_index["skills"].items()) + list(pipelines_index["pipelines"].items())
-    with_explicit = sum(1 for name, e in all_named if e.get("triggers", [name])[0] != name)
+    with_explicit = sum(1 for name, e in all_named if (e.get("triggers") or [name])[0] != name)
     force_routed = sum(1 for _, e in all_named if e.get("force_route"))
     print(f"\nWith explicit triggers: {with_explicit}")
     print(f"Force-routed: {force_routed}")

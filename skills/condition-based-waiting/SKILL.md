@@ -21,6 +21,10 @@ routing:
     - "exponential backoff"
     - "health check polling"
     - "retry pattern"
+    - "wait for"
+    - "keep trying until"
+    - "poll until ready"
+    - "retry until success"
   category: process
 ---
 

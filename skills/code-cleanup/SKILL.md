@@ -32,6 +32,10 @@ routing:
     - "find dead code"
     - "stale TODOs"
     - "unused imports"
+    - "clean up"
+    - "tidy code"
+    - "remove dead code"
+    - "find unused"
   category: code-quality
 ---
 

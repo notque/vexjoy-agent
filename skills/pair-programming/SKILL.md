@@ -21,6 +21,11 @@ routing:
     - "pair program"
     - "collaborative coding"
     - "micro-steps"
+    - "step by step coding"
+    - "one change at a time"
+    - "show each change"
+    - "walk me through"
+    - "interactive coding"
   category: process
 ---
 
