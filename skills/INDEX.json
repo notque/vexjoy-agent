@@ -352,8 +352,7 @@
         "one-line change",
         "trivial fix",
         "rename variable",
-        "update value",
-        "fix import"
+        "update value"
       ],
       "category": "process",
       "force_route": true,
@@ -571,9 +570,9 @@
       "file": "skills/git-commit-flow/SKILL.md",
       "description": "Phase-gated git commit workflow with validation, staging, and CLAUDE.md compliance enforcement.",
       "triggers": [
-        "commit",
-        "stage and commit",
-        "commit changes"
+        "commit this",
+        "commit changes",
+        "stage and commit"
       ],
       "category": "git-workflow",
       "force_route": true,
@@ -584,10 +583,12 @@
       "file": "skills/github-actions-check/SKILL.md",
       "description": "Check GitHub Actions workflow status after git push using gh CLI.",
       "triggers": [
-        "check CI",
         "CI status",
         "actions status",
-        "did CI pass"
+        "did CI pass",
+        "are tests passing",
+        "workflow status",
+        "check CI status"
       ],
       "category": "git-workflow",
       "force_route": true,
@@ -1301,10 +1302,16 @@
       "file": "skills/pr-sync/SKILL.md",
       "description": "Sync local changes to GitHub in one command: detect state, branch, commit, push, create PR.",
       "triggers": [
-        "push",
+        "push this",
         "push changes",
+        "commit and push",
+        "push to GitHub",
+        "sync to GitHub",
+        "create a PR",
         "create PR",
-        "sync to GitHub"
+        "open PR",
+        "open pull request",
+        "ship this"
       ],
       "category": "git-workflow",
       "force_route": true,
