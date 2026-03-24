@@ -29,6 +29,22 @@ TypeScript CLI that fingerprints projects and generates AI configs for Claude, C
 - Multi-platform config generation (Claude + Cursor + Codex writers). We're Claude Code focused.
 - Session event JSONL format for learning capture. Our SQLite + FTS5 approach serves better for search and graduation.
 
+### notque/consensuscode
+https://github.com/notque/consensuscode
+
+The toolkit author's prior agent system, built January 2026 when Claude Code agents first came out (before skills existed). A flat collective of 7 agents coordinating through a file-based consensus protocol.
+
+**Patterns adopted:**
+- Multi-agent consultation for architecture decisions (ADR: multi-agent-consultation). Their all-agent consultation model — every significant decision gets input from domain expert, contrarian, and user advocate before implementation proceeds — inspired our `adr-consultation` skill and the 3-lens review pattern.
+- File-based inter-agent communication. Agents write structured responses to `adr/{name}/` directories so later agents can read and respond to earlier agents' output. Replaces isolated agent dispatch.
+- Concern tracking with resolution gates. Blocking concerns must be resolved before implementation begins. Adapted into the GATE phase of `adr-consultation`.
+- Coordinator-as-facilitator, not manager. The consensus-coordinator had zero decision authority — it ensured all agents were consulted, it couldn't override. Reinforced our coordination layer pattern where /do routes but never implements.
+
+**Patterns noted but not adopted:**
+- Political philosophy agents (Chomsky, Graeber). Their governance analysis function was adapted into `reviewer-meta-process` (system health analysis) without the political framing.
+- Full consensus requirement (unanimous agreement). Too heavy for our pace. We use 3-agent consultation with blocking-concern gates instead.
+- CollectiveFlow CLI (Go tool for proposal management). Our ADR system + consultation directories serve the same function without a separate tool.
+
 ## Blog Posts
 
 ### vexjoy.com
@@ -46,7 +62,7 @@ The toolkit author's blog. Posts that crystallized design decisions:
 Patterns developed through trial and error in this toolkit, not derived from external sources.
 
 ### The /do Router and Specialist Selection
-Keyword-matching routing to domain-specific agents. The insight that "which agent has the right mental scaffolding" matters more than "which agent is smartest." Developed over months of observing inconsistent results from generalist prompts.
+Intent-based routing to domain-specific agents. Originally keyword-matching, evolved to intent-based descriptions after deterministic substring routing failed (PR #120). The insight that "which agent has the right mental scaffolding" matters more than "which agent is smartest." Developed over months of observing inconsistent results from generalist prompts.
 
 ### Anti-Rationalization as Infrastructure
 Auto-injected anti-rationalization tables that make it structurally difficult to skip verification. Not a policy doc that gets ignored. Infrastructure that fires on every code modification, review, and security task. Born from repeated incidents where "should work" turned out to be wrong.
