@@ -9,6 +9,7 @@ description: |
   anything beyond pure fact lookups or single read commands.
 version: 2.0.0
 user-invocable: true
+argument-hint: "<request>"
 allowed-tools:
   - Read
   - Bash

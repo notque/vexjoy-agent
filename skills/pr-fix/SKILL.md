@@ -8,6 +8,7 @@ description: |
   without fixing, or general debugging unrelated to PR comments.
 version: 2.0.0
 user-invocable: true
+argument-hint: "[<PR-number>]"
 allowed-tools:
   - Read
   - Edit

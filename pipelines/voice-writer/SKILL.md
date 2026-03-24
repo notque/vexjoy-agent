@@ -11,6 +11,7 @@ description: |
   (use voice-calibrator), or non-voiced documentation (use doc-pipeline).
 version: 1.0.0
 user-invocable: true
+argument-hint: "<topic or title>"
 command: /voice-writer
 allowed-tools:
   - Read

@@ -8,6 +8,7 @@ description: |
   bug reports, or work that should happen in the current session.
 version: 1.0.0
 user-invocable: true
+argument-hint: "<idea description>"
 command: /plant-seed
 allowed-tools:
   - Read

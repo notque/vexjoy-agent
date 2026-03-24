@@ -10,6 +10,7 @@ description: |
   those are Simple+ tier.
 version: 1.0.0
 user-invocable: true
+argument-hint: "[--discuss] [--research] [--full] <task>"
 allowed-tools:
   - Read
   - Write

@@ -7,6 +7,7 @@ description: |
   and dry-run modes.
 version: 1.0.0
 user-invocable: true
+argument-hint: "[--auto] [--dry-run]"
 agent: python-general-engineer
 allowed-tools:
   - Bash

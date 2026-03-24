@@ -8,6 +8,7 @@ description: |
   "research pipeline", "formal research", "research with artifacts".
 version: 1.0.0
 user-invocable: true
+argument-hint: "<research topic>"
 agent: research-coordinator-engineer
 allowed-tools:
   - Read

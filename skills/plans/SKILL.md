@@ -8,6 +8,7 @@ description: |
   need no tracking, feature implementation, or debugging workflows.
 version: 2.0.0
 user-invocable: true
+argument-hint: "[status|list|show|check|complete|abandon]"
 allowed-tools:
   - Read
   - Bash

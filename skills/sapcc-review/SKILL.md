@@ -10,6 +10,7 @@ description: |
   pass lead review?" assessment.
 version: 1.0.0
 user-invocable: true
+argument-hint: "[--fix]"
 command: /sapcc-review
 model: opus
 agent: golang-general-engineer

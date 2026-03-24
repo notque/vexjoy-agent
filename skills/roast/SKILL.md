@@ -10,6 +10,7 @@ description: |
   profiling without a specific critique request.
 version: 2.0.0
 user-invocable: true
+argument-hint: "<target to critique>"
 allowed-tools:
   - Read
   - Glob

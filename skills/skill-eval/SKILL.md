@@ -10,6 +10,7 @@ description: |
   (use skill-creator-engineer).
 version: 1.0.0
 user-invocable: true
+argument-hint: "<skill-name>"
 agent: skill-creator-engineer
 allowed-tools:
   - Read

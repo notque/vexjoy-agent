@@ -9,6 +9,7 @@ description: |
   hook), debugging live issues, or querying existing patterns.
 version: 2.0.0
 user-invocable: true
+argument-hint: '"error" -> "solution"'
 allowed-tools:
   - Read
   - Bash

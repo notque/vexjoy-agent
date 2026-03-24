@@ -9,6 +9,7 @@ description: |
   "agent upgrade", "fix agent quality", "align agent to template".
 version: 1.0.0
 user-invocable: true
+argument-hint: "<agent-or-skill-name>"
 agent: skill-creator-engineer
 allowed-tools:
   - Read

@@ -8,6 +8,7 @@ description: |
   feature work (use test-driven-development), or formatting-only (use code-linting).
 version: 2.0.0
 user-invocable: true
+argument-hint: "[<path-or-scope>]"
 allowed-tools:
   - Read
   - Write

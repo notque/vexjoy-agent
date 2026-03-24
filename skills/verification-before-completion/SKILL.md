@@ -10,6 +10,12 @@ description: |
   (use systematic-debugging) or code review (use systematic-code-review).
 version: 3.0.0
 user-invocable: false
+success-criteria:
+  - "All tests pass (full suite, not just changed files)"
+  - "Build succeeds without errors or warnings"
+  - "Changed files validated against task requirements"
+  - "No stub patterns (TODO, FIXME, pass, not implemented) in new code"
+  - "Artifacts exist at expected paths (4-level verification)"
 allowed-tools:
   - Read
   - Bash

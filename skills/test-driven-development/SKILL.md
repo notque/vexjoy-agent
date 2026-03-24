@@ -10,6 +10,11 @@ description: |
   Do NOT use for debugging existing failures (use systematic-debugging) or
   for refactoring without new tests (use systematic-refactoring).
 version: 2.0.0
+success-criteria:
+  - "Failing test written before implementation code"
+  - "All new tests pass after implementation"
+  - "No pre-existing tests broken"
+  - "Refactor phase completed without changing test outcomes"
 allowed-tools:
   - Read
   - Write

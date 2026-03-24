@@ -11,6 +11,7 @@ description: |
   full gate enforcement would be disproportionate overhead.
 version: 2.0.0
 user-invocable: true
+argument-hint: "<task>"
 allowed-tools:
   - Read
   - Write

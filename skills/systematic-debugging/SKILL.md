@@ -10,6 +10,11 @@ description: |
 version: 2.0.0
 user-invocable: false
 allowed-tools: [Read, Write, Bash, Grep, Glob, Edit, Task]
+success-criteria:
+  - "Bug is reproducible with a specific test or command"
+  - "Root cause identified with evidence (not speculation)"
+  - "Fix verified by running the reproduction step"
+  - "No regressions in related test suite"
 ---
 
 # Systematic Debugging Skill
