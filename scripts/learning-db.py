@@ -742,7 +742,7 @@ def main():
     p_record.add_argument(
         "--category",
         default="design",
-        choices=["error", "pivot", "review", "design", "debug", "gotcha", "effectiveness"],
+        choices=["error", "pivot", "review", "design", "debug", "gotcha", "effectiveness", "misroute"],
         help="Learning category",
     )
     p_record.add_argument("--confidence", type=float, default=None)

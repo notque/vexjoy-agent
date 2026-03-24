@@ -36,6 +36,7 @@ CATEGORY_DEFAULTS = {
     "debug": 0.60,
     "gotcha": 0.70,
     "effectiveness": 0.50,
+    "misroute": 0.80,
 }
 
 VALID_CATEGORIES = set(CATEGORY_DEFAULTS.keys())
