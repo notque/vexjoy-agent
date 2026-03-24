@@ -210,6 +210,30 @@ else
 fi
 ```
 
+### Step 6: Post-Merge ADR Status Update (conditional — ADR-095)
+
+**Skip if**: No `.adr-session.json` exists, or the PR was only created (not merged).
+
+After a PR is merged (confirmed via `gh pr view --json state`), update the ADR lifecycle:
+
+```bash
+# 1. Read active ADR path
+ADR_PATH=$(python3 -c "import json; print(json.load(open('.adr-session.json'))['adr_path'])")
+
+# 2. Update status to Accepted
+sed -i 's/^## Status$/&/' "$ADR_PATH"  # (use Edit tool in practice)
+
+# 3. Move to completed/
+mv "$ADR_PATH" adr/completed/
+
+# 4. Clear session
+rm .adr-session.json
+```
+
+Report: `ADR updated: {name} → Accepted, moved to completed/`
+
+This is local-only (ADR files are gitignored). No branch or PR needed.
+
 ### Decision Tree
 
 ```
