@@ -87,15 +87,38 @@ For each pair of problems, ask: "If I fix problem A, does it affect problem B?"
 - If NO for all pairs --> Independent, proceed to parallel dispatch
 - If YES or MAYBE for any pair --> Investigate those together first, parallelize the rest
 
-**Step 3: Verify no shared state**
+**Step 3: Check scope overlap (deterministic)**
+
+Before dispatching, infer file scopes from each task description, then run the overlap checker:
+
+```bash
+python3 scripts/check-scope-overlap.py --tasks '[
+  {"id": "task-1", "scope": ["handlers/auth.go", "middleware/"], "readonly": false},
+  {"id": "task-2", "scope": ["handlers/payment.go", "models/"], "readonly": false}
+]' --json
+```
+
+Scope inference rules:
+- Extract file paths and directories mentioned in the task description
+- If a task only reads files (investigation, analysis), set `"readonly": true`
+- If scope cannot be inferred, use the subsystem directory as a broad scope
+- When in doubt, over-scope — false positives (unnecessary serialization) are safe
+
+Interpret the output:
+- `"conflicts": []` → All tasks can run in parallel. Proceed to Phase 2.
+- `"conflicts": [...]` → Use `"parallel_groups"` to determine wave ordering. Tasks in the same group run together; groups run sequentially.
+- Display the grouping decision in the dispatch summary.
+
+**Step 4: Verify no shared state beyond files**
 
 Check that agents will not compete for:
-- Same source files
 - Same database tables or ports
 - Same configuration files
 - Same external services
 
-**Gate**: All dispatched problems confirmed independent with no shared state. Proceed only when gate passes.
+These are NOT caught by the scope overlap script and require manual verification.
+
+**Gate**: All dispatched problems confirmed independent via scope overlap check and shared state review. Proceed only when gate passes.
 
 ### Phase 2: DISPATCH
 
@@ -129,9 +152,16 @@ Return:
 - How to verify the fix
 ```
 
-**Step 2: Dispatch all agents in ONE message**
+**Step 2: Dispatch agents using scope overlap grouping**
 
-Use multiple Task tool calls in a single response. All agents run concurrently.
+- If Phase 1 scope check returned a single parallel group: dispatch all agents in ONE message. All run concurrently.
+- If Phase 1 scope check returned multiple groups: dispatch each group as a sequential wave. All agents within a wave run concurrently, but waves run sequentially. Wait for wave N to complete before dispatching wave N+1.
+
+```markdown
+## Dispatch Plan
+Wave 1 (parallel): [task-1, task-2] — no file overlap
+Wave 2 (after wave 1): [task-3] — overlaps with task-1 on handlers/auth.go
+```
 
 **Gate**: All agents dispatched with scoped prompts and constraints. Proceed only when all agents return.
 
@@ -145,7 +175,8 @@ Use multiple Task tool calls in a single response. All agents run concurrently.
 - Did the agent's local tests pass?
 
 **Step 2: Check for conflicts**
-- Did any two agents modify the same file?
+- Did any agent modify files outside its declared scope? (Compare actual files modified vs Phase 1 scope declarations)
+- Did any two agents modify the same file? (Should not happen if scope overlap check was clean, but verify)
 - Did any agent report the same root cause as another?
 - Did any agent report inability to reproduce?
 
