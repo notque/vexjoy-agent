@@ -1,0 +1,374 @@
+# Force-route coverage: regression tasks for force-routed skills
+# Tests that each force-routed skill is correctly matched by /do routing.
+# One task per skill, using regex_match to verify the correct skill name appears.
+
+tasks:
+  - task:
+      id: "force-route-go-testing-001"
+      name: "Force-route: go-testing skill for Go test requests"
+      description: |
+        Verify that a request to write Go tests routes to the go-testing skill.
+        Trigger keywords: Go test, _test.go, table-driven.
+      category: "routing"
+      type: "regression"
+
+      input:
+        prompt: "/do write Go tests for the auth package"
+        context_files: []
+        setup_commands: []
+
+      execution:
+        agent: null
+        skill: "do"
+        timeout_seconds: 60
+        trials: 1
+
+      graders:
+        - type: "regex_match"
+          config:
+            target: "transcript"
+            pattern: "go-testing"
+          weight: 1.0
+
+      metrics:
+        - turns
+        - tokens
+        - latency
+
+      reference:
+        solution_file: null
+        notes: |
+          Must invoke go-testing skill. "Go tests" is a primary trigger.
+
+  - task:
+      id: "force-route-go-concurrency-002"
+      name: "Force-route: go-concurrency skill for goroutine requests"
+      description: |
+        Verify that a request involving goroutines routes to the go-concurrency skill.
+        Trigger keywords: goroutine, channel, sync.Mutex.
+      category: "routing"
+      type: "regression"
+
+      input:
+        prompt: "/do add a goroutine worker pool for processing events"
+        context_files: []
+        setup_commands: []
+
+      execution:
+        agent: null
+        skill: "do"
+        timeout_seconds: 60
+        trials: 1
+
+      graders:
+        - type: "regex_match"
+          config:
+            target: "transcript"
+            pattern: "go-concurrency"
+          weight: 1.0
+
+      metrics:
+        - turns
+        - tokens
+        - latency
+
+      reference:
+        solution_file: null
+        notes: |
+          Must invoke go-concurrency skill. "goroutine" is a primary trigger.
+
+  - task:
+      id: "force-route-systematic-debugging-003"
+      name: "Force-route: systematic-debugging skill for broken function"
+      description: |
+        Verify that a request to fix a broken function routes to systematic-debugging.
+        Trigger keywords: debug, broken, failing.
+      category: "routing"
+      type: "regression"
+
+      input:
+        prompt: "/do this function is broken, help me fix it"
+        context_files: []
+        setup_commands: []
+
+      execution:
+        agent: null
+        skill: "do"
+        timeout_seconds: 60
+        trials: 1
+
+      graders:
+        - type: "regex_match"
+          config:
+            target: "transcript"
+            pattern: "systematic-debugging"
+          weight: 1.0
+
+      metrics:
+        - turns
+        - tokens
+        - latency
+
+      reference:
+        solution_file: null
+        notes: |
+          Must invoke systematic-debugging skill. "broken" + "fix" signals debugging.
+
+  - task:
+      id: "force-route-comprehensive-review-004"
+      name: "Force-route: comprehensive-review skill for code review"
+      description: |
+        Verify that a request for comprehensive code review routes to comprehensive-review.
+        Trigger keywords: comprehensive review, review all code.
+      category: "routing"
+      type: "regression"
+
+      input:
+        prompt: "/do do a comprehensive review of all the code"
+        context_files: []
+        setup_commands: []
+
+      execution:
+        agent: null
+        skill: "do"
+        timeout_seconds: 60
+        trials: 1
+
+      graders:
+        - type: "regex_match"
+          config:
+            target: "transcript"
+            pattern: "comprehensive-review"
+          weight: 1.0
+
+      metrics:
+        - turns
+        - tokens
+        - latency
+
+      reference:
+        solution_file: null
+        notes: |
+          Must invoke comprehensive-review skill. Explicit "comprehensive review" trigger.
+
+  - task:
+      id: "force-route-explore-pipeline-005"
+      name: "Force-route: explore-pipeline skill for codebase understanding"
+      description: |
+        Verify that a request to understand a codebase routes to explore-pipeline.
+        Trigger keywords: understand, explore, codebase.
+      category: "routing"
+      type: "regression"
+
+      input:
+        prompt: "/do help me understand this codebase"
+        context_files: []
+        setup_commands: []
+
+      execution:
+        agent: null
+        skill: "do"
+        timeout_seconds: 60
+        trials: 1
+
+      graders:
+        - type: "regex_match"
+          config:
+            target: "transcript"
+            pattern: "explore-pipeline"
+          weight: 1.0
+
+      metrics:
+        - turns
+        - tokens
+        - latency
+
+      reference:
+        solution_file: null
+        notes: |
+          Must invoke explore-pipeline skill. "understand this codebase" is a primary trigger.
+
+  - task:
+      id: "force-route-research-pipeline-006"
+      name: "Force-route: research-pipeline skill for research requests"
+      description: |
+        Verify that a request to research a topic routes to research-pipeline.
+        Trigger keywords: research, thoroughly, deep dive.
+      category: "routing"
+      type: "regression"
+
+      input:
+        prompt: "/do research this topic thoroughly"
+        context_files: []
+        setup_commands: []
+
+      execution:
+        agent: null
+        skill: "do"
+        timeout_seconds: 60
+        trials: 1
+
+      graders:
+        - type: "regex_match"
+          config:
+            target: "transcript"
+            pattern: "research-pipeline"
+          weight: 1.0
+
+      metrics:
+        - turns
+        - tokens
+        - latency
+
+      reference:
+        solution_file: null
+        notes: |
+          Must invoke research-pipeline skill. "research" + "thoroughly" is a primary trigger.
+
+  - task:
+      id: "force-route-pr-sync-007"
+      name: "Force-route: pr-sync skill for GitHub PR creation"
+      description: |
+        Verify that a request to push and create a PR routes to pr-sync.
+        Trigger keywords: push, GitHub, create PR.
+      category: "routing"
+      type: "regression"
+
+      input:
+        prompt: "/do push this to GitHub and create a PR"
+        context_files: []
+        setup_commands: []
+
+      execution:
+        agent: null
+        skill: "do"
+        timeout_seconds: 60
+        trials: 1
+
+      graders:
+        - type: "regex_match"
+          config:
+            target: "transcript"
+            pattern: "pr-sync"
+          weight: 1.0
+
+      metrics:
+        - turns
+        - tokens
+        - latency
+
+      reference:
+        solution_file: null
+        notes: |
+          Must invoke pr-sync skill. "push to GitHub" + "create a PR" is a primary trigger.
+
+  - task:
+      id: "force-route-git-commit-flow-008"
+      name: "Force-route: git-commit-flow skill for commit requests"
+      description: |
+        Verify that a request to commit changes routes to git-commit-flow.
+        Trigger keywords: commit, commit changes.
+      category: "routing"
+      type: "regression"
+
+      input:
+        prompt: "/do commit these changes"
+        context_files: []
+        setup_commands: []
+
+      execution:
+        agent: null
+        skill: "do"
+        timeout_seconds: 60
+        trials: 1
+
+      graders:
+        - type: "regex_match"
+          config:
+            target: "transcript"
+            pattern: "git-commit-flow"
+          weight: 1.0
+
+      metrics:
+        - turns
+        - tokens
+        - latency
+
+      reference:
+        solution_file: null
+        notes: |
+          Must invoke git-commit-flow skill. "commit" is a primary trigger.
+
+  - task:
+      id: "force-route-fast-009"
+      name: "Force-route: fast skill for quick fix requests"
+      description: |
+        Verify that a request for a quick fix routes to the fast skill.
+        Trigger keywords: quick, fast, simple fix.
+      category: "routing"
+      type: "regression"
+
+      input:
+        prompt: "/do quick fix the typo on line 42"
+        context_files: []
+        setup_commands: []
+
+      execution:
+        agent: null
+        skill: "do"
+        timeout_seconds: 60
+        trials: 1
+
+      graders:
+        - type: "regex_match"
+          config:
+            target: "transcript"
+            pattern: "fast"
+          weight: 1.0
+
+      metrics:
+        - turns
+        - tokens
+        - latency
+
+      reference:
+        solution_file: null
+        notes: |
+          Must invoke fast skill. "quick fix" is a primary trigger.
+
+  - task:
+      id: "force-route-feature-design-010"
+      name: "Force-route: feature-design skill for new feature design"
+      description: |
+        Verify that a request to design a new feature routes to feature-design.
+        Trigger keywords: design, new feature, feature design.
+      category: "routing"
+      type: "regression"
+
+      input:
+        prompt: "/do I want to design a new feature for user auth"
+        context_files: []
+        setup_commands: []
+
+      execution:
+        agent: null
+        skill: "do"
+        timeout_seconds: 60
+        trials: 1
+
+      graders:
+        - type: "regex_match"
+          config:
+            target: "transcript"
+            pattern: "feature-design"
+          weight: 1.0
+
+      metrics:
+        - turns
+        - tokens
+        - latency
+
+      reference:
+        solution_file: null
+        notes: |
+          Must invoke feature-design skill. "design a new feature" is a primary trigger.
