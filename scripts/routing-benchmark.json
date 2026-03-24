@@ -1,0 +1,307 @@
+{
+  "version": "1.0",
+  "description": "Canonical routing benchmark for /do router regression testing. Each test case pairs a natural-language request with its expected agent and/or skill. Used to detect silent routing regressions when models or routing tables change.",
+  "test_cases": [
+    {
+      "request": "push my changes to GitHub",
+      "expected_agent": null,
+      "expected_skill": "pr-sync",
+      "category": "git-operations",
+      "notes": "Git push intent — force-route to pr-sync"
+    },
+    {
+      "request": "push back on this approach",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "notes": "Disagreement, not git push — must NOT route to pr-sync"
+    },
+    {
+      "request": "commit these files",
+      "expected_agent": null,
+      "expected_skill": "git-commit-flow",
+      "category": "git-operations",
+      "notes": "Git commit intent — force-route to git-commit-flow"
+    },
+    {
+      "request": "commit to this approach and move forward",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "notes": "Decision/dedication, not git commit — must NOT route to git-commit-flow"
+    },
+    {
+      "request": "did CI pass on my PR?",
+      "expected_agent": null,
+      "expected_skill": "github-actions-check",
+      "category": "git-operations",
+      "notes": "CI status check — force-route to github-actions-check"
+    },
+    {
+      "request": "check my logic in this function",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "notes": "Code review, not CI check — must NOT route to github-actions-check"
+    },
+    {
+      "request": "submit a PR with full review gates",
+      "expected_agent": null,
+      "expected_skill": "pr-pipeline",
+      "category": "git-operations",
+      "notes": "Full PR workflow with gates"
+    },
+    {
+      "request": "clean up my merged branches",
+      "expected_agent": null,
+      "expected_skill": "pr-cleanup",
+      "category": "git-operations",
+      "notes": "Post-merge branch cleanup"
+    },
+    {
+      "request": "debug the goroutine leak in the worker pool",
+      "expected_agent": "golang-general-engineer",
+      "expected_skill": "systematic-debugging",
+      "category": "go-development",
+      "notes": "Go domain + debug verb — agent + skill pairing"
+    },
+    {
+      "request": "write table-driven tests for the parser",
+      "expected_agent": null,
+      "expected_skill": "go-testing",
+      "category": "go-development",
+      "notes": "Go tests — force-route to go-testing"
+    },
+    {
+      "request": "add a worker pool with goroutines",
+      "expected_agent": null,
+      "expected_skill": "go-concurrency",
+      "category": "go-development",
+      "notes": "Go concurrency — force-route to go-concurrency"
+    },
+    {
+      "request": "wrap errors with fmt.Errorf and %w",
+      "expected_agent": null,
+      "expected_skill": "go-error-handling",
+      "category": "go-development",
+      "notes": "Go error handling — force-route to go-error-handling"
+    },
+    {
+      "request": "review this Go PR for quality",
+      "expected_agent": null,
+      "expected_skill": "go-code-review",
+      "category": "go-development",
+      "notes": "Go code review — force-route to go-code-review"
+    },
+    {
+      "request": "work on the SAPCC Go repository go-bits",
+      "expected_agent": null,
+      "expected_skill": "go-sapcc-conventions",
+      "category": "go-development",
+      "notes": "SAPCC Go repo — force-route to go-sapcc-conventions"
+    },
+    {
+      "request": "add auth middleware to the Python Flask API",
+      "expected_agent": "python-general-engineer",
+      "expected_skill": null,
+      "category": "python-development",
+      "notes": "Python domain task — routes to Python agent"
+    },
+    {
+      "request": "run ruff and mypy on this Python project",
+      "expected_agent": null,
+      "expected_skill": "python-quality-gate",
+      "category": "python-development",
+      "notes": "Python quality checks — routes to python-quality-gate"
+    },
+    {
+      "request": "write pytest fixtures for the database layer",
+      "expected_agent": "python-general-engineer",
+      "expected_skill": null,
+      "category": "python-development",
+      "notes": "Python testing — routes to Python agent"
+    },
+    {
+      "request": "fix the React component rendering bug",
+      "expected_agent": "typescript-frontend-engineer",
+      "expected_skill": null,
+      "category": "frontend-development",
+      "notes": "React/frontend domain — routes to TS frontend agent"
+    },
+    {
+      "request": "debug the async race condition in TypeScript",
+      "expected_agent": "typescript-debugging-engineer",
+      "expected_skill": "systematic-debugging",
+      "category": "frontend-development",
+      "notes": "TypeScript debugging — specialized TS debug agent"
+    },
+    {
+      "request": "fix the typo in main.go",
+      "expected_agent": null,
+      "expected_skill": "fast",
+      "category": "trivial-operations",
+      "notes": "Mechanical one-character fix — force-route to fast"
+    },
+    {
+      "request": "rename this variable across the file",
+      "expected_agent": null,
+      "expected_skill": "fast",
+      "category": "trivial-operations",
+      "notes": "Trivial rename — force-route to fast"
+    },
+    {
+      "request": "add a --verbose flag to the CLI",
+      "expected_agent": null,
+      "expected_skill": "quick",
+      "category": "trivial-operations",
+      "notes": "Small self-contained change — force-route to quick"
+    },
+    {
+      "request": "extract this block into a helper function",
+      "expected_agent": null,
+      "expected_skill": "quick",
+      "category": "trivial-operations",
+      "notes": "Contained refactor — force-route to quick"
+    },
+    {
+      "request": "design a rate limiter feature for the API",
+      "expected_agent": null,
+      "expected_skill": "feature-design",
+      "category": "feature-lifecycle",
+      "notes": "New feature entry point — force-route to feature-design"
+    },
+    {
+      "request": "plan the implementation for this feature",
+      "expected_agent": null,
+      "expected_skill": "feature-plan",
+      "category": "feature-lifecycle",
+      "notes": "Feature plan phase — force-route to feature-plan"
+    },
+    {
+      "request": "build the feature from the plan",
+      "expected_agent": null,
+      "expected_skill": "feature-implement",
+      "category": "feature-lifecycle",
+      "notes": "Feature implementation — force-route to feature-implement"
+    },
+    {
+      "request": "run quality gates on the implemented feature",
+      "expected_agent": null,
+      "expected_skill": "feature-validate",
+      "category": "feature-lifecycle",
+      "notes": "Feature validation — force-route to feature-validate"
+    },
+    {
+      "request": "migrate our Grafana dashboards to Perses",
+      "expected_agent": null,
+      "expected_skill": "perses-grafana-migrate",
+      "category": "perses-domain",
+      "notes": "Grafana-to-Perses migration — force-route"
+    },
+    {
+      "request": "create a new Perses dashboard for API latency",
+      "expected_agent": "perses-dashboard-engineer",
+      "expected_skill": "perses-dashboard-create",
+      "category": "perses-domain",
+      "notes": "Perses dashboard creation — agent + skill pairing"
+    },
+    {
+      "request": "lint this Perses dashboard definition",
+      "expected_agent": null,
+      "expected_skill": "perses-lint",
+      "category": "perses-domain",
+      "notes": "Perses lint — force-route to perses-lint"
+    },
+    {
+      "request": "create a new Perses panel plugin",
+      "expected_agent": null,
+      "expected_skill": "perses-plugin-create",
+      "category": "perses-domain",
+      "notes": "Perses plugin creation — force-route"
+    },
+    {
+      "request": "comprehensive code review from multiple perspectives",
+      "expected_agent": null,
+      "expected_skill": "parallel-code-review",
+      "category": "code-review",
+      "notes": "Multi-reviewer parallel review"
+    },
+    {
+      "request": "roast this design doc",
+      "expected_agent": null,
+      "expected_skill": "roast",
+      "category": "code-review",
+      "notes": "Multi-persona critique via roast skill"
+    },
+    {
+      "request": "fix these 3 failing test files simultaneously",
+      "expected_agent": null,
+      "expected_skill": "dispatching-parallel-agents",
+      "category": "parallel-execution",
+      "notes": "Multiple independent failures — parallel dispatch"
+    },
+    {
+      "request": "execute the plan using subagents",
+      "expected_agent": null,
+      "expected_skill": "subagent-driven-development",
+      "category": "parallel-execution",
+      "notes": "Explicit subagent execution request"
+    },
+    {
+      "request": "research the topic thoroughly then write an article",
+      "expected_agent": null,
+      "expected_skill": "research-to-article",
+      "category": "content-creation",
+      "notes": "Research-backed article — pipeline skill"
+    },
+    {
+      "request": "remove AI patterns from this blog post",
+      "expected_agent": null,
+      "expected_skill": "anti-ai-editor",
+      "category": "content-creation",
+      "notes": "De-AI editing task"
+    },
+    {
+      "request": "deploy the app to Kubernetes with Helm",
+      "expected_agent": "kubernetes-helm-engineer",
+      "expected_skill": null,
+      "category": "infrastructure",
+      "notes": "K8s domain — routes to kubernetes-helm-engineer"
+    },
+    {
+      "request": "set up Prometheus alerting rules",
+      "expected_agent": "prometheus-grafana-engineer",
+      "expected_skill": null,
+      "category": "infrastructure",
+      "notes": "Monitoring domain — routes to prometheus-grafana-engineer"
+    },
+    {
+      "request": "moderate the subreddit modqueue",
+      "expected_agent": null,
+      "expected_skill": "reddit-moderate",
+      "category": "reddit",
+      "notes": "Reddit moderation task"
+    },
+    {
+      "request": "create a new Claude Code skill with quality gates",
+      "expected_agent": "skill-creator-engineer",
+      "expected_skill": "skill-creation-pipeline",
+      "category": "meta-tooling",
+      "notes": "Skill creation — agent + pipeline pairing"
+    },
+    {
+      "request": "create a new hook for PostToolUse events",
+      "expected_agent": "hook-development-engineer",
+      "expected_skill": "hook-development-pipeline",
+      "category": "meta-tooling",
+      "notes": "Hook creation — agent + pipeline pairing"
+    },
+    {
+      "request": "go ahead and fix the bug",
+      "expected_agent": null,
+      "expected_skill": null,
+      "category": "false-positive-guard",
+      "notes": "'go' as verb, not Go language — must NOT route to golang-general-engineer"
+    }
+  ]
+}
