@@ -303,10 +303,7 @@ def cmd_pipelines(args) -> int:
     cols = [("NAME", 26), ("PHASES", 7), ("DESCRIPTION", 55)]
 
     if args.markdown:
-        rows = [
-            [p.get("name", ""), str(len(p.get("phases", []))), p.get("description", "")]
-            for p in pipelines
-        ]
+        rows = [[p.get("name", ""), str(len(p.get("phases", []))), p.get("description", "")] for p in pipelines]
         print(_markdown_table(["NAME", "PHASES", "DESCRIPTION"], rows))
     else:
         print(_table_header(cols))
