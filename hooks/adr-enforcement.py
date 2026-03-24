@@ -14,6 +14,7 @@ Design Principles:
 """
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -239,9 +240,19 @@ def main() -> None:
 
         context_output(_EVENT_NAME, context).print_and_exit(0)
 
-    except (json.JSONDecodeError, KeyError, TypeError):
+    except (json.JSONDecodeError, KeyError, TypeError) as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            print(f"[adr-enforcement] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
         empty_output(_EVENT_NAME).print_and_exit(0)
-    except Exception:
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            print(f"[adr-enforcement] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
         empty_output(_EVENT_NAME).print_and_exit(0)
     finally:
         sys.exit(0)

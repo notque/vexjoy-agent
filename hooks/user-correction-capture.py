@@ -12,6 +12,7 @@ Records to learning.db via record_learning(). Silent on no match.
 
 import hashlib
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -102,8 +103,12 @@ def main():
         # No match — silent exit
         empty_output(EVENT_NAME).print_and_exit()
 
-    except Exception:
-        pass
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            print(f"[user-correction-capture] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
     finally:
         sys.exit(0)
 

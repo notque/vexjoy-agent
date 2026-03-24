@@ -525,7 +525,11 @@ def main() -> None:
         # Malformed input — don't block (non-blocking on internal errors)
         sys.exit(0)
     except Exception as e:
-        print(f"[subagent-guard] internal error: {type(e).__name__}: {e}", file=sys.stderr)
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            print(f"[subagent-completion-guard] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
         sys.exit(0)
 
 

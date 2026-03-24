@@ -20,6 +20,7 @@ CLAUDE.md backups are capped at 3; identical content skips backup.
 
 import filecmp
 import json
+import os
 import re
 import shutil
 import sys
@@ -476,6 +477,10 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        print(f"[sync] FATAL: {e}", file=sys.stderr)
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            print(f"[sync-to-user-claude] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
     finally:
         sys.exit(0)

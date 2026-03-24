@@ -302,6 +302,14 @@
       "expected_skill": null,
       "category": "false-positive-guard",
       "notes": "'go' as verb, not Go language — must NOT route to golang-general-engineer"
+    },
+    {
+      "request": "debug the goroutine leak causing memory issues",
+      "expected_agent": "golang-general-engineer",
+      "expected_skill": "systematic-debugging",
+      "expected_stacked": ["go-concurrency"],
+      "category": "force-route-stacking",
+      "notes": "Go debug + goroutine force-route — primary skill is systematic-debugging, go-concurrency should be stacked via force-route"
     }
   ]
 }

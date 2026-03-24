@@ -46,6 +46,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **github-profile-rules-engineer** | User wants to extract coding conventions, programming rules, or style guidelines from a GitHub profile's repositories. |
 | **react-portfolio-engineer** | User is building a React portfolio or gallery website, typically for creative professionals. |
 | **nextjs-ecommerce-engineer** | User is building an e-commerce site with Next.js: product pages, cart, checkout flows. |
+| **toolkit-governance-engineer** | User wants to maintain or modify the toolkit's own internal structure: editing skill/agent files, updating routing tables, managing ADRs, regenerating INDEX.json, or enforcing frontmatter compliance. NOT: creating brand-new agents (use skill-creator-engineer), writing application code (domain agents), or reviewing external PRs (reviewer agents). |
 
 ---
 
@@ -83,6 +84,19 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **sapcc-review** | User wants a SAPCC compliance review of a Go PR or repository for SAP Converged Cloud conventions. |
 | **sapcc-audit** | User wants a full SAPCC audit of an entire repository against SAP Converged Cloud standards. |
 | **fish-shell-config** | User is configuring fish shell: editing config.fish, writing fish functions, or fixing fish-specific syntax. |
+| **adr-consultation** | User wants multi-agent consultation before making an architectural decision: dispatch 3+ agents to stress-test a plan before committing. |
+| **forensics** | User wants to diagnose a failed or stuck workflow after the fact: what went wrong, why it failed, session crash post-mortem, or incident review. NOT: debugging live code (use systematic-debugging). |
+| **pause-work** | User wants to stop working on a task and create a handoff artifact for resumption later: save progress, session handoff, stopping for now. |
+| **resume-work** | User wants to pick up where they left off in a previous session: restore context, continue work, "what was I doing". |
+| **plan-checker** | User wants to validate a plan before execution begins: check against 10 verification dimensions, pre-execution review, "is this plan ready". |
+| **integration-checker** | User wants to verify that components are correctly wired together: exports are imported and used, data flows through connections, output shapes match inputs. |
+| **pre-planning-discussion** | User wants to resolve ambiguities before planning begins: clarify gray areas, surface assumptions, "before we plan". |
+| **pair-programming** | User wants collaborative coding with enforced micro-steps: announce each change, show diff, wait for confirmation before applying. |
+| **spec-writer** | User wants to write a structured specification with user stories, acceptance criteria, scope boundaries, and risks. |
+| **decision-helper** | User wants a weighted decision framework for architectural or technology choices: pros/cons, trade-off matrix, "which is better", "should I use X or Y". |
+| **socratic-debugging** | User wants to be guided to find the root cause themselves through questions rather than being given the answer directly: coaching mode, "teach me to find it". |
+| **plant-seed** | User wants to capture a forward-looking idea with trigger conditions so it surfaces automatically during future feature design. |
+| **install** | User wants to verify Claude Code Toolkit installation, diagnose setup issues, or check if the toolkit is correctly configured. |
 
 ---
 
@@ -95,10 +109,13 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **code-cleanup** | User wants to remove stale TODOs, unused code, dead imports, or generally clean up accumulated debt. |
 | **comment-quality** | User wants to audit code comments for accuracy, temporal references, or staleness. |
 | **agent-evaluation** | User wants to grade or evaluate a skill, agent, or pipeline for quality and standards compliance. NOT: evaluating code output or test results. |
-| **component-health-pipeline** | User wants a deterministic health score for an agent or skill component. |
-| **stale-learning-pruner** | User wants to prune outdated entries from learning.db or remove dead knowledge from the retro system. |
 | **agent-comparison** | User wants to A/B test two agents or compare their outputs on the same task. |
+| **agent-upgrade** | User wants to audit and systematically improve a specific agent to bring it up to current template standards. |
 | **testing-agents-with-subagents** | User wants to validate an agent by running it against real test cases in subagents. |
+| **skill-eval** | User wants to improve a skill through measured testing, optimize its description, or benchmark it against scenarios. |
+| **full-repo-review** | User wants a comprehensive 3-wave review of all source files in the entire repository. |
+| **repo-value-analysis** | User wants to systematically analyze an external repository to determine what ideas or patterns are worth adopting. |
+| **data-analysis** | User wants to analyze data: CSV files, metrics, A/B test results, cohort analysis, statistical distributions, KPIs, or funnel data. |
 | **pr-miner** | User wants to extract review comments or learnings from past GitHub PRs. |
 | **pr-mining-coordinator** | User wants to coordinate batch mining across multiple PRs. |
 | **skill-composer** | User wants to compose multiple skills into a multi-skill workflow. |
@@ -108,6 +125,8 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **do-parallel** | User wants parallel multi-angle extraction of insights from a document or codebase. |
 | **plans** | User wants to manage the plan lifecycle: create, track, or review plans. |
 | **learn** | User wants to teach Claude a new error pattern or record a reusable insight. |
+| **retro** | User wants to interact with the learning system: view stats, list accumulated knowledge, search learnings, or graduate mature entries into agents/skills. |
+| **generate-claudemd** | User wants to generate a project-specific CLAUDE.md by analyzing the current repository's structure and conventions. |
 | **professional-communication** | User needs to write a professional email or formal business communication. |
 | **workflow-help** | User wants an explanation of how a workflow, pipeline, or process works. |
 
@@ -157,7 +176,13 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **batch-editor** | User wants to apply edits across many content files in bulk. |
 | **taxonomy-manager** | User wants to manage content categories, tags, or taxonomy systems. |
 | **wordpress-uploader** | User wants to upload or create draft posts in WordPress programmatically. |
-| **search-engine-indexer** | User wants to submit a URL to search engines, ping IndexNow, or trigger indexing. |
+| **wordpress-live-validation** | User wants to validate WordPress posts live after upload: check rendering, canonical URLs, or publication status. |
+| **joy-check** | User wants to validate that content has positive, joy-centered framing — not negative or fear-based tone. |
+| **pptx-generator** | User wants to generate a PowerPoint presentation, slide deck, or pitch deck from content or research. |
+| **bluesky-reader** | User wants to read public Bluesky feeds, fetch posts, or interact with the AT Protocol API. |
+| **image-to-video** | User wants to combine a static image with audio to create a video file (album art video, podcast video, music visualization). |
+| **headless-cron-creator** | User wants to generate a headless Claude Code cron job that runs a task on a schedule. |
+| **nano-banana-builder** | User wants to build a Next.js web application using Google Gemini Nano Banana image generation APIs. |
 
 ---
 
@@ -311,6 +336,8 @@ Invoked via the roast skill or directly:
 | **reviewer-pragmatic-builder** | Reviewer focused on operational reality: production readiness, ops burden, deployment concerns. |
 | **reviewer-skeptical-senior** | Reviewer focused on long-term sustainability, maintenance cost, and technical debt. |
 | **reviewer-pedant** | Reviewer focused on technical precision, spec compliance, and terminology accuracy. |
+| **reviewer-meta-process** | Reviewer that analyzes the system design itself: single points of failure, inappropriate authority concentration, complexity vs. value, reversibility. Use for "architecture health", "meta-process review", "is this too centralized", "complexity audit". NOT: code quality, security, or premise challenges. |
+| **reviewer-user-advocate** | Reviewer that evaluates decisions from the end-user's perspective: complexity burden, confusing UX, benefit vs. cost. Use for user-facing design reviews, configuration complexity, or "is this worth it for users". |
 
 ---
 

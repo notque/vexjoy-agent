@@ -11,6 +11,7 @@ Filters: agents/*.md files only
 """
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -137,7 +138,11 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except Exception:
-        pass
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            print(f"[agent-grade] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
     finally:
         sys.exit(0)

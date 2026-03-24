@@ -790,6 +790,26 @@
       "complexity": "Medium",
       "category": "review"
     },
+    "reviewer-meta-process": {
+      "file": "reviewer-meta-process.md",
+      "short_description": "Meta-analysis of system design decisions \u2014 examines whether the SYSTEM ITSELF is creating\nproblems",
+      "triggers": [
+        "meta-process review",
+        "system design review",
+        "architecture health",
+        "single point of failure",
+        "indispensable component",
+        "complexity audit",
+        "authority concentration",
+        "reversibility check"
+      ],
+      "pairs_with": [
+        "reviewer-contrarian",
+        "reviewer-user-advocate"
+      ],
+      "complexity": "Simple",
+      "category": "meta"
+    },
     "reviewer-migration-safety": {
       "file": "reviewer-migration-safety.md",
       "short_description": "Use this agent for reviewing migration safety: reversible database migrations, API deprecation paths, feature flag lifecycle, backward-compatible schema changes, and safe rollback strategies",
@@ -1028,6 +1048,24 @@
       "complexity": "Medium-Complex",
       "category": "review"
     },
+    "reviewer-user-advocate": {
+      "file": "reviewer-user-advocate.md",
+      "short_description": "Evaluates architecture decisions and feature designs from the user's perspective",
+      "triggers": [
+        "user impact",
+        "user advocate",
+        "usability review",
+        "is this worth the complexity",
+        "user perspective",
+        "user experience"
+      ],
+      "pairs_with": [
+        "reviewer-contrarian",
+        "reviewer-meta-process"
+      ],
+      "complexity": "Simple",
+      "category": "meta"
+    },
     "skill-creator-engineer": {
       "file": "skill-creator-engineer.md",
       "short_description": "Use this agent when creating new Claude Code skills, designing workflow automation,\nor improving existing skill architecture",
@@ -1138,6 +1176,28 @@
       ],
       "complexity": "Medium-Complex",
       "category": "testing"
+    },
+    "toolkit-governance-engineer": {
+      "file": "toolkit-governance-engineer.md",
+      "short_description": "Maintain and govern the claude-code-toolkit's internal architecture: edit SKILL",
+      "triggers": [
+        "edit skill",
+        "update routing",
+        "ADR management",
+        "toolkit maintenance",
+        "update routing tables",
+        "check coverage",
+        "skill compliance",
+        "hook standardization",
+        "cross-component consistency"
+      ],
+      "pairs_with": [
+        "adr-consultation",
+        "routing-table-updater",
+        "docs-sync-checker"
+      ],
+      "complexity": "Medium",
+      "category": "meta"
     },
     "typescript-debugging-engineer": {
       "file": "typescript-debugging-engineer.md",

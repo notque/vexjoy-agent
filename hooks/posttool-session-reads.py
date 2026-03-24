@@ -17,6 +17,7 @@ Design Principles:
 """
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -90,7 +91,11 @@ def main() -> None:
         empty_output(EVENT_NAME).print_and_exit()
 
     except Exception as e:
-        print(f"[session-reads] error: {e}", file=sys.stderr)
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            print(f"[posttool-session-reads] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
     finally:
         sys.exit(0)  # Never block
 

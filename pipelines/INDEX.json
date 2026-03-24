@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-03-24T06:47:45Z",
+  "generated": "2026-03-24T22:20:54Z",
   "generated_by": "scripts/generate-skill-index.py",
   "pipelines": {
     "agent-upgrade": {

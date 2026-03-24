@@ -253,7 +253,10 @@ def main():
     except Exception as e:
         # Log to stderr if debug enabled, but never fail
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            print(f"[learning-archive] Error: {e}", file=sys.stderr)
+            import traceback
+
+            print(f"[precompact-archive] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
     finally:
         # CRITICAL: Always exit 0 to prevent blocking Claude Code
         sys.exit(0)

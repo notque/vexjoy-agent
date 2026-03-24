@@ -108,6 +108,9 @@ def main():
 
             print(f"[lint-hint] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
             traceback.print_exc(file=sys.stderr)
+    finally:
+        # CRITICAL: Always exit 0 to prevent blocking Claude Code
+        sys.exit(0)
 
 
 if __name__ == "__main__":

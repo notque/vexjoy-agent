@@ -1,8 +1,30 @@
 {
   "version": "2.0",
-  "generated": "2026-03-24T06:47:45Z",
+  "generated": "2026-03-24T22:20:54Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
+    "adr-consultation": {
+      "file": "skills/adr-consultation/SKILL.md",
+      "description": "Multi-agent consultation for architecture decisions.",
+      "triggers": [
+        "consult on ADR",
+        "challenge this design",
+        "review before implementing",
+        "multi-agent consultation",
+        "architecture consultation",
+        "should we proceed",
+        "adr consultation"
+      ],
+      "category": "meta",
+      "user_invocable": true,
+      "version": "1.0.0",
+      "pairs_with": [
+        "feature-design",
+        "feature-plan",
+        "feature-implement"
+      ],
+      "model": "sonnet"
+    },
     "agent-comparison": {
       "file": "skills/agent-comparison/SKILL.md",
       "description": "A/B test agent variants measuring quality and total session token cost across simple and complex benchmarks.",
@@ -352,7 +374,8 @@
         "one-line change",
         "trivial fix",
         "rename variable",
-        "update value"
+        "update value",
+        "fix import"
       ],
       "category": "process",
       "force_route": true,
@@ -570,9 +593,9 @@
       "file": "skills/git-commit-flow/SKILL.md",
       "description": "Phase-gated git commit workflow with validation, staging, and CLAUDE.md compliance enforcement.",
       "triggers": [
-        "commit this",
-        "commit changes",
-        "stage and commit"
+        "commit",
+        "stage and commit",
+        "commit changes"
       ],
       "category": "git-workflow",
       "force_route": true,
@@ -583,12 +606,10 @@
       "file": "skills/github-actions-check/SKILL.md",
       "description": "Check GitHub Actions workflow status after git push using gh CLI.",
       "triggers": [
+        "check CI",
         "CI status",
         "actions status",
-        "did CI pass",
-        "are tests passing",
-        "workflow status",
-        "check CI status"
+        "did CI pass"
       ],
       "category": "git-workflow",
       "force_route": true,
@@ -1302,16 +1323,10 @@
       "file": "skills/pr-sync/SKILL.md",
       "description": "Sync local changes to GitHub in one command: detect state, branch, commit, push, create PR.",
       "triggers": [
-        "push this",
+        "push",
         "push changes",
-        "commit and push",
-        "push to GitHub",
-        "sync to GitHub",
-        "create a PR",
         "create PR",
-        "open PR",
-        "open pull request",
-        "ship this"
+        "sync to GitHub"
       ],
       "category": "git-workflow",
       "force_route": true,
