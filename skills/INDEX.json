@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-03-24T06:47:45Z",
+  "generated": "2026-03-24T07:05:42Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "agent-comparison": {
@@ -1857,18 +1857,6 @@
         "TypeScript tests"
       ],
       "category": "testing",
-      "user_invocable": false,
-      "version": "2.0.0"
-    },
-    "voice-orchestrator": {
-      "file": "skills/voice-orchestrator/SKILL.md",
-      "description": "Multi-step voice content generation with deterministic validation.",
-      "triggers": [
-        "voice generation",
-        "multi-step voice",
-        "voice pipeline"
-      ],
-      "category": "voice",
       "user_invocable": false,
       "version": "2.0.0"
     },

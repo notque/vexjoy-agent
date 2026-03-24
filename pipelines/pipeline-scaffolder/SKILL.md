@@ -1,5 +1,6 @@
 ---
 name: pipeline-scaffolder
+internal: true
 description: |
   Scaffold pipeline components from a Pipeline Spec JSON: N subdomain skills,
   0-1 agents, reference files, scripts, hooks, and routing entries. Consumes

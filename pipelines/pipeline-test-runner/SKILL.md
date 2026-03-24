@@ -1,5 +1,6 @@
 ---
 name: pipeline-test-runner
+internal: true
 description: |
   Test generated pipeline skills against real targets. Discovers test targets
   (fixtures, codebase files, or synthetic inputs), runs each subdomain skill

@@ -6,15 +6,18 @@ Classifies the current git repository as 'protected-org' or 'personal' based on
 the GitHub remote URL. Protected-org repos (configured via PROTECTED_ORGS env var)
 get human-gated PR workflows. All others get automated review-fix loops.
 
+Also detects the primary language/domain of the repository for router skill gating.
+
 Configuration:
     Set PROTECTED_ORGS env var (comma-separated) to define protected organizations.
     Example: PROTECTED_ORGS="my-company,acme-corp"
     When PROTECTED_ORGS is not set, all repos classify as personal.
 
 Usage:
-    python3 scripts/classify-repo.py                # JSON output
+    python3 scripts/classify-repo.py                # JSON output (includes domain)
     python3 scripts/classify-repo.py --human        # Human-readable
     python3 scripts/classify-repo.py --type-only    # Just "protected-org" or "personal"
+    python3 scripts/classify-repo.py --domain       # Just the domain string
     python3 scripts/classify-repo.py --check-protected  # Exit 0 if protected, 1 if not
 
 Exit codes:
@@ -25,9 +28,30 @@ Exit codes:
 import argparse
 import json
 import os
+from pathlib import Path
 import re
 import subprocess
 import sys
+
+
+def _get_git_root() -> Path | None:
+    """Get the root directory of the current git repository.
+
+    Returns:
+        Path to the git root, or None if not in a git repo.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            return Path(result.stdout.strip())
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    return None
 
 
 def get_remote_url(remote: str = "origin") -> str | None:
@@ -104,28 +128,81 @@ def classify_repo(remote_url: str | None) -> dict[str, str | None]:
     return {"type": "personal", "org": org, "reason": f"Non-protected org: {org}"}
 
 
+def detect_domain(root: Path | None = None) -> dict:
+    """Detect the primary language/domain of a repository.
+
+    Checks for well-known project files at the repo root to determine
+    the primary language. Also detects if this is a claude-code-toolkit repo.
+
+    Args:
+        root: Repository root path. Auto-detected from git if None.
+
+    Returns:
+        Dict with keys:
+            domain: "go" | "typescript" | "javascript" | "python" | "hugo" | "general"
+            is_toolkit: True if skills/INDEX.json exists (claude-code-toolkit repo)
+    """
+    if root is None:
+        root = _get_git_root()
+    if root is None:
+        return {"domain": "general", "is_toolkit": False}
+
+    is_toolkit = (root / "skills" / "INDEX.json").is_file()
+
+    # Go
+    if (root / "go.mod").is_file():
+        return {"domain": "go", "is_toolkit": is_toolkit}
+
+    # Node.js / TypeScript / JavaScript
+    if (root / "package.json").is_file():
+        # Check for TypeScript indicators
+        if (root / "tsconfig.json").is_file():
+            return {"domain": "typescript", "is_toolkit": is_toolkit}
+        return {"domain": "javascript", "is_toolkit": is_toolkit}
+
+    # Python
+    if (root / "pyproject.toml").is_file() or (root / "setup.py").is_file():
+        return {"domain": "python", "is_toolkit": is_toolkit}
+
+    # Hugo
+    if (root / "hugo.toml").is_file() or (root / "hugo.yaml").is_file():
+        return {"domain": "hugo", "is_toolkit": is_toolkit}
+    if (root / "config.toml").is_file() and (root / "content").is_dir():
+        return {"domain": "hugo", "is_toolkit": is_toolkit}
+
+    return {"domain": "general", "is_toolkit": is_toolkit}
+
+
 def main() -> None:
     """Parse arguments and output repo classification."""
     parser = argparse.ArgumentParser(description="Classify git repo for PR workflow routing")
     parser.add_argument("--human", action="store_true", help="Human-readable output")
     parser.add_argument("--type-only", action="store_true", help="Print just the type")
+    parser.add_argument("--domain", action="store_true", help="Print just the domain string")
     parser.add_argument("--check-protected", action="store_true", help="Exit 0 if protected-org, 1 if not")
     parser.add_argument("--remote", default="origin", help="Git remote name (default: origin)")
     args = parser.parse_args()
 
     remote_url = get_remote_url(args.remote)
     result = classify_repo(remote_url)
+    domain_info = detect_domain()
 
     if args.check_protected:
         sys.exit(0 if result["type"] == "protected-org" else 1)
     elif args.type_only:
         print(result["type"])
+    elif args.domain:
+        print(domain_info["domain"])
     elif args.human:
         print(f"Repo Type: {result['type']}")
         if result["org"]:
             print(f"Org: {result['org']}")
+        print(f"Domain: {domain_info['domain']}")
+        print(f"Is Toolkit: {domain_info['is_toolkit']}")
         print(f"Reason: {result['reason']}")
     else:
+        result["domain"] = domain_info["domain"]
+        result["is_toolkit"] = domain_info["is_toolkit"]
         print(json.dumps(result, indent=2))
 
 

@@ -1,10 +1,12 @@
 {
-  "version": "1.0",
+  "version": "2.0",
+  "generated": "2026-03-24T07:05:42Z",
   "generated_by": "scripts/generate-agent-index.py",
   "agents": {
     "agent-creator-engineer": {
-      "file": "agent-creator-engineer.md",
-      "short_description": "**DEPRECATED**: Use skill-creator-engineer agent instead",
+      "file": "agents/agent-creator-engineer.md",
+      "description": "**DEPRECATED**: Use skill-creator-engineer agent instead",
+      "user_invocable": false,
       "triggers": [
         "create agent",
         "new agent",
@@ -21,8 +23,9 @@
       "category": "meta"
     },
     "ansible-automation-engineer": {
-      "file": "ansible-automation-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with Ansible automation for infrastructure management, configuration orchestration, and DevOps automation workflows",
+      "file": "agents/ansible-automation-engineer.md",
+      "description": "Use this agent when you need expert assistance with Ansible automation for infrastructure management, configuration orchestration, and DevOps automation workflows",
+      "user_invocable": false,
       "triggers": [
         "ansible",
         "playbook",
@@ -39,8 +42,9 @@
       "category": "infrastructure"
     },
     "data-engineer": {
-      "file": "data-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with data pipelines, ETL/ELT processes,\ndata warehouse design, dimensional modeling, stream processing, or data quality frameworks",
+      "file": "agents/data-engineer.md",
+      "description": "Use this agent when you need expert assistance with data pipelines, ETL/ELT processes,\ndata warehouse design, dimensional modeling, stream processing, or data quality frameworks",
+      "user_invocable": false,
       "triggers": [
         "data pipeline",
         "ETL",
@@ -77,8 +81,9 @@
       "category": "infrastructure"
     },
     "database-engineer": {
-      "file": "database-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with database design, optimization, and query performance",
+      "file": "agents/database-engineer.md",
+      "description": "Use this agent when you need expert assistance with database design, optimization, and query performance",
+      "user_invocable": false,
       "triggers": [
         "database",
         "schema",
@@ -97,8 +102,9 @@
       "category": "infrastructure"
     },
     "github-profile-rules-engineer": {
-      "file": "github-profile-rules-engineer.md",
-      "short_description": "Use this agent when extracting programming rules, coding conventions, or style\npreferences from a GitHub user's public profile",
+      "file": "agents/github-profile-rules-engineer.md",
+      "description": "Use this agent when extracting programming rules, coding conventions, or style\npreferences from a GitHub user's public profile",
+      "user_invocable": false,
       "triggers": [
         "github rules",
         "profile analysis",
@@ -116,8 +122,9 @@
       "category": "meta"
     },
     "golang-general-engineer-compact": {
-      "file": "golang-general-engineer-compact.md",
-      "short_description": "Use this agent for focused Go development with tight context budgets",
+      "file": "agents/golang-general-engineer-compact.md",
+      "description": "Use this agent for focused Go development with tight context budgets",
+      "user_invocable": false,
       "triggers": [
         "go",
         "golang",
@@ -133,8 +140,9 @@
       "category": "language"
     },
     "golang-general-engineer": {
-      "file": "golang-general-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with Go development, including implementing features,\ndebugging issues, reviewing code quality, optimizing performance, or answering technical questions\nabout Go codebases",
+      "file": "agents/golang-general-engineer.md",
+      "description": "Use this agent when you need expert assistance with Go development, including implementing features,\ndebugging issues, reviewing code quality, optimizing performance, or answering technical questions\nabout Go codebases",
+      "user_invocable": false,
       "triggers": [
         "go",
         "golang",
@@ -152,8 +160,9 @@
       "category": "language"
     },
     "hook-development-engineer": {
-      "file": "hook-development-engineer.md",
-      "short_description": "Use this agent when developing Python hooks for Claude Code's event-driven system",
+      "file": "agents/hook-development-engineer.md",
+      "description": "Use this agent when developing Python hooks for Claude Code's event-driven system",
+      "user_invocable": false,
       "triggers": [
         "create hook",
         "hook development",
@@ -172,8 +181,9 @@
       "category": "meta"
     },
     "kubernetes-helm-engineer": {
-      "file": "kubernetes-helm-engineer.md",
-      "short_description": "Use this agent for Kubernetes and Helm deployment management, troubleshooting, and cloud-native infrastructure",
+      "file": "agents/kubernetes-helm-engineer.md",
+      "description": "Use this agent for Kubernetes and Helm deployment management, troubleshooting, and cloud-native infrastructure",
+      "user_invocable": false,
       "triggers": [
         "kubernetes",
         "helm",
@@ -191,8 +201,9 @@
       "category": "infrastructure"
     },
     "mcp-local-docs-engineer": {
-      "file": "mcp-local-docs-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with building MCP (Model Context Protocol) servers for local documentation access",
+      "file": "agents/mcp-local-docs-engineer.md",
+      "description": "Use this agent when you need expert assistance with building MCP (Model Context Protocol) servers for local documentation access",
+      "user_invocable": false,
       "triggers": [
         "MCP",
         "docs server",
@@ -206,8 +217,9 @@
       "category": "devops"
     },
     "nextjs-ecommerce-engineer": {
-      "file": "nextjs-ecommerce-engineer.md",
-      "short_description": "Use this agent when building Next",
+      "file": "agents/nextjs-ecommerce-engineer.md",
+      "description": "Use this agent when building Next",
+      "user_invocable": false,
       "triggers": [
         "next.js e-commerce",
         "nextjs ecommerce",
@@ -225,8 +237,9 @@
       "category": "language"
     },
     "nodejs-api-engineer": {
-      "file": "nodejs-api-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with Node",
+      "file": "agents/nodejs-api-engineer.md",
+      "description": "Use this agent when you need expert assistance with Node",
+      "user_invocable": false,
       "triggers": [
         "node.js",
         "nodejs",
@@ -244,8 +257,9 @@
       "category": "language"
     },
     "opensearch-elasticsearch-engineer": {
-      "file": "opensearch-elasticsearch-engineer.md",
-      "short_description": "Use this agent for OpenSearch and Elasticsearch cluster management, performance tuning, index optimization, and search infrastructure operations",
+      "file": "agents/opensearch-elasticsearch-engineer.md",
+      "description": "Use this agent for OpenSearch and Elasticsearch cluster management, performance tuning, index optimization, and search infrastructure operations",
+      "user_invocable": false,
       "triggers": [
         "opensearch",
         "elasticsearch",
@@ -261,8 +275,9 @@
       "category": "infrastructure"
     },
     "performance-optimization-engineer": {
-      "file": "performance-optimization-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with web performance optimization, Core Web Vitals, and advanced performance monitoring for modern web applications",
+      "file": "agents/performance-optimization-engineer.md",
+      "description": "Use this agent when you need expert assistance with web performance optimization, Core Web Vitals, and advanced performance monitoring for modern web applications",
+      "user_invocable": false,
       "triggers": [
         "performance",
         "optimization",
@@ -276,8 +291,9 @@
       "category": "performance"
     },
     "perses-core-engineer": {
-      "file": "perses-core-engineer.md",
-      "short_description": "Use this agent for Perses core development and contribution: Go backend (API handlers,\nstorage, auth), React/TypeScript frontend (dashboard editor, panel rendering), CUE schemas,\nand the overall Perses architecture",
+      "file": "agents/perses-core-engineer.md",
+      "description": "Use this agent for Perses core development and contribution: Go backend (API handlers,\nstorage, auth), React/TypeScript frontend (dashboard editor, panel rendering), CUE schemas,\nand the overall Perses architecture",
+      "user_invocable": false,
       "triggers": [
         "perses core",
         "contribute perses",
@@ -295,8 +311,9 @@
       "category": "development"
     },
     "perses-dashboard-engineer": {
-      "file": "perses-dashboard-engineer.md",
-      "short_description": "Use this agent for Perses observability dashboard operations: creating/managing dashboards,\nconfiguring datasources, managing variables, writing PromQL/LogQL/TraceQL queries, deploying\nvia Dashboard-as-Code, and interacting with Perses API/MCP",
+      "file": "agents/perses-dashboard-engineer.md",
+      "description": "Use this agent for Perses observability dashboard operations: creating/managing dashboards,\nconfiguring datasources, managing variables, writing PromQL/LogQL/TraceQL queries, deploying\nvia Dashboard-as-Code, and interacting with Perses API/MCP",
+      "user_invocable": false,
       "triggers": [
         "perses",
         "percli",
@@ -317,8 +334,9 @@
       "category": "infrastructure"
     },
     "perses-operator-engineer": {
-      "file": "perses-operator-engineer.md",
-      "short_description": "Use this agent for Perses Kubernetes operator operations: deploying Perses via CRDs,\nmanaging PersesDashboard and PersesDatasource resources, Helm chart configuration, and\nK8s-native Perses management",
+      "file": "agents/perses-operator-engineer.md",
+      "description": "Use this agent for Perses Kubernetes operator operations: deploying Perses via CRDs,\nmanaging PersesDashboard and PersesDatasource resources, Helm chart configuration, and\nK8s-native Perses management",
+      "user_invocable": false,
       "triggers": [
         "perses operator",
         "perses kubernetes",
@@ -335,8 +353,9 @@
       "category": "infrastructure"
     },
     "perses-plugin-engineer": {
-      "file": "perses-plugin-engineer.md",
-      "short_description": "Use this agent for Perses plugin development: scaffolding plugins with percli plugin generate,\nCUE schema authoring, React component implementation, Module Federation integration, and the\nbuild/test/deploy workflow",
+      "file": "agents/perses-plugin-engineer.md",
+      "description": "Use this agent for Perses plugin development: scaffolding plugins with percli plugin generate,\nCUE schema authoring, React component implementation, Module Federation integration, and the\nbuild/test/deploy workflow",
+      "user_invocable": false,
       "triggers": [
         "perses plugin",
         "create plugin",
@@ -355,8 +374,9 @@
       "category": "development"
     },
     "pipeline-orchestrator-engineer": {
-      "file": "pipeline-orchestrator-engineer.md",
-      "short_description": "Use this agent when building new pipelines that require coordinated creation\nof agents, skills, and hooks",
+      "file": "agents/pipeline-orchestrator-engineer.md",
+      "description": "Use this agent when building new pipelines that require coordinated creation\nof agents, skills, and hooks",
+      "user_invocable": false,
       "triggers": [
         "create pipeline",
         "new pipeline",
@@ -377,8 +397,9 @@
       "category": "meta"
     },
     "project-coordinator-engineer": {
-      "file": "project-coordinator-engineer.md",
-      "short_description": "Use this agent when orchestrating multi-agent software development projects across\nspecialized agents",
+      "file": "agents/project-coordinator-engineer.md",
+      "description": "Use this agent when orchestrating multi-agent software development projects across\nspecialized agents",
+      "user_invocable": false,
       "triggers": [
         "coordinate",
         "multi-agent",
@@ -395,8 +416,9 @@
       "category": "meta"
     },
     "prometheus-grafana-engineer": {
-      "file": "prometheus-grafana-engineer.md",
-      "short_description": "Use this agent for Prometheus and Grafana monitoring infrastructure, alerting configuration, dashboard design, and observability optimization",
+      "file": "agents/prometheus-grafana-engineer.md",
+      "description": "Use this agent for Prometheus and Grafana monitoring infrastructure, alerting configuration, dashboard design, and observability optimization",
+      "user_invocable": false,
       "triggers": [
         "prometheus",
         "grafana",
@@ -414,8 +436,9 @@
       "category": "infrastructure"
     },
     "python-general-engineer": {
-      "file": "python-general-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with Python development, including implementing features,\ndebugging issues, reviewing code quality, optimizing performance, or answering technical questions about\nPython codebases",
+      "file": "agents/python-general-engineer.md",
+      "description": "Use this agent when you need expert assistance with Python development, including implementing features,\ndebugging issues, reviewing code quality, optimizing performance, or answering technical questions about\nPython codebases",
+      "user_invocable": false,
       "triggers": [
         "python",
         ".py files",
@@ -433,8 +456,9 @@
       "category": "language"
     },
     "python-openstack-engineer": {
-      "file": "python-openstack-engineer.md",
-      "short_description": "Use this agent when developing OpenStack services, plugins, or components in Python",
+      "file": "agents/python-openstack-engineer.md",
+      "description": "Use this agent when developing OpenStack services, plugins, or components in Python",
+      "user_invocable": false,
       "triggers": [
         "openstack",
         "oslo",
@@ -453,8 +477,9 @@
       "category": "language"
     },
     "rabbitmq-messaging-engineer": {
-      "file": "rabbitmq-messaging-engineer.md",
-      "short_description": "Use this agent for RabbitMQ message queue architecture, operations, clustering, and high-availability messaging systems",
+      "file": "agents/rabbitmq-messaging-engineer.md",
+      "description": "Use this agent for RabbitMQ message queue architecture, operations, clustering, and high-availability messaging systems",
+      "user_invocable": false,
       "triggers": [
         "rabbitmq",
         "messaging",
@@ -469,8 +494,9 @@
       "category": "infrastructure"
     },
     "react-portfolio-engineer": {
-      "file": "react-portfolio-engineer.md",
-      "short_description": "Use this agent when building React portfolio and gallery websites for artists, photographers,\nand creative professionals",
+      "file": "agents/react-portfolio-engineer.md",
+      "description": "Use this agent when building React portfolio and gallery websites for artists, photographers,\nand creative professionals",
+      "user_invocable": false,
       "triggers": [
         "portfolio",
         "gallery",
@@ -487,8 +513,9 @@
       "category": "language"
     },
     "research-coordinator-engineer": {
-      "file": "research-coordinator-engineer.md",
-      "short_description": "Use this agent when conducting complex research requiring systematic investigation,\nmulti-source analysis, and comprehensive synthesis",
+      "file": "agents/research-coordinator-engineer.md",
+      "description": "Use this agent when conducting complex research requiring systematic investigation,\nmulti-source analysis, and comprehensive synthesis",
+      "user_invocable": false,
       "triggers": [
         "research",
         "investigate",
@@ -506,8 +533,9 @@
       "category": "meta"
     },
     "research-subagent-executor": {
-      "file": "research-subagent-executor.md",
-      "short_description": "Use this agent when you need to execute individual research tasks as a subagent under research coordination",
+      "file": "agents/research-subagent-executor.md",
+      "description": "Use this agent when you need to execute individual research tasks as a subagent under research coordination",
+      "user_invocable": false,
       "triggers": [
         "research subtask",
         "delegated research"
@@ -519,8 +547,9 @@
       "category": "research"
     },
     "reviewer-adr-compliance": {
-      "file": "reviewer-adr-compliance.md",
-      "short_description": "Use this agent when reviewing implementations against Architecture Decision Records",
+      "file": "agents/reviewer-adr-compliance.md",
+      "description": "Use this agent when reviewing implementations against Architecture Decision Records",
+      "user_invocable": false,
       "triggers": [
         "adr compliance",
         "adr review",
@@ -538,8 +567,9 @@
       "category": "review"
     },
     "reviewer-api-contract": {
-      "file": "reviewer-api-contract.md",
-      "short_description": "Use this agent for detecting breaking API changes, backward compatibility issues, schema validation gaps, HTTP status code misuse, and API versioning problems",
+      "file": "agents/reviewer-api-contract.md",
+      "description": "Use this agent for detecting breaking API changes, backward compatibility issues, schema validation gaps, HTTP status code misuse, and API versioning problems",
+      "user_invocable": false,
       "triggers": [
         "API contract",
         "breaking changes",
@@ -558,8 +588,9 @@
       "category": "review"
     },
     "reviewer-business-logic": {
-      "file": "reviewer-business-logic.md",
-      "short_description": "Use this agent for domain correctness and business logic review",
+      "file": "agents/reviewer-business-logic.md",
+      "description": "Use this agent for domain correctness and business logic review",
+      "user_invocable": false,
       "triggers": [
         "business logic",
         "domain review",
@@ -576,8 +607,9 @@
       "category": "review"
     },
     "reviewer-code-quality": {
-      "file": "reviewer-code-quality.md",
-      "short_description": "Use this agent for code quality review against project conventions, style guides, and CLAUDE",
+      "file": "agents/reviewer-code-quality.md",
+      "description": "Use this agent for code quality review against project conventions, style guides, and CLAUDE",
+      "user_invocable": false,
       "triggers": [
         "code quality review",
         "style review",
@@ -596,8 +628,9 @@
       "category": "review"
     },
     "reviewer-code-simplifier": {
-      "file": "reviewer-code-simplifier.md",
-      "short_description": "Use this agent for simplifying recently modified code for clarity and maintainability",
+      "file": "agents/reviewer-code-simplifier.md",
+      "description": "Use this agent for simplifying recently modified code for clarity and maintainability",
+      "user_invocable": false,
       "triggers": [
         "simplify code",
         "code clarity",
@@ -615,8 +648,9 @@
       "category": "review"
     },
     "reviewer-comment-analyzer": {
-      "file": "reviewer-comment-analyzer.md",
-      "short_description": "Use this agent for analyzing code comments for accuracy, completeness, and long-term value",
+      "file": "agents/reviewer-comment-analyzer.md",
+      "description": "Use this agent for analyzing code comments for accuracy, completeness, and long-term value",
+      "user_invocable": false,
       "triggers": [
         "comment accuracy",
         "documentation review",
@@ -634,8 +668,9 @@
       "category": "review"
     },
     "reviewer-concurrency": {
-      "file": "reviewer-concurrency.md",
-      "short_description": "Use this agent for detecting concurrency bugs: race conditions, goroutine leaks, deadlocks, mutex misuse, channel lifecycle issues, and unsafe shared state",
+      "file": "agents/reviewer-concurrency.md",
+      "description": "Use this agent for detecting concurrency bugs: race conditions, goroutine leaks, deadlocks, mutex misuse, channel lifecycle issues, and unsafe shared state",
+      "user_invocable": false,
       "triggers": [
         "concurrency review",
         "race condition",
@@ -656,8 +691,9 @@
       "category": "review"
     },
     "reviewer-config-safety": {
-      "file": "reviewer-config-safety.md",
-      "short_description": "Use this agent for detecting configuration safety issues: hardcoded values that should be configurable, missing environment variable validation, secrets in source code, unsafe defaults, and configuration drift between environments",
+      "file": "agents/reviewer-config-safety.md",
+      "description": "Use this agent for detecting configuration safety issues: hardcoded values that should be configurable, missing environment variable validation, secrets in source code, unsafe defaults, and configuration drift between environments",
+      "user_invocable": false,
       "triggers": [
         "config safety",
         "hardcoded values",
@@ -676,8 +712,9 @@
       "category": "review"
     },
     "reviewer-contrarian": {
-      "file": "reviewer-contrarian.md",
-      "short_description": "Use this agent for professional skepticism that challenges fundamental assumptions and\nexplores alternatives through systematic critique",
+      "file": "agents/reviewer-contrarian.md",
+      "description": "Use this agent for professional skepticism that challenges fundamental assumptions and\nexplores alternatives through systematic critique",
+      "user_invocable": false,
       "triggers": [
         "contrarian",
         "alternatives",
@@ -692,8 +729,9 @@
       "category": "review"
     },
     "reviewer-dead-code": {
-      "file": "reviewer-dead-code.md",
-      "short_description": "Use this agent for detecting dead code: unreachable branches, unused exports, orphaned files, stale feature flags, commented-out code, and obsolete TODOs",
+      "file": "agents/reviewer-dead-code.md",
+      "description": "Use this agent for detecting dead code: unreachable branches, unused exports, orphaned files, stale feature flags, commented-out code, and obsolete TODOs",
+      "user_invocable": false,
       "triggers": [
         "dead code",
         "unused code",
@@ -712,8 +750,9 @@
       "category": "review"
     },
     "reviewer-dependency-audit": {
-      "file": "reviewer-dependency-audit.md",
-      "short_description": "Use this agent for auditing project dependencies: known CVEs, problematic licenses, deprecated packages, unnecessary transitive dependencies, version pinning issues, and supply chain risks",
+      "file": "agents/reviewer-dependency-audit.md",
+      "description": "Use this agent for auditing project dependencies: known CVEs, problematic licenses, deprecated packages, unnecessary transitive dependencies, version pinning issues, and supply chain risks",
+      "user_invocable": false,
       "triggers": [
         "dependency audit",
         "CVE check",
@@ -732,8 +771,9 @@
       "category": "review"
     },
     "reviewer-docs-validator": {
-      "file": "reviewer-docs-validator.md",
-      "short_description": "Use this agent for validating project documentation, configuration completeness, dependency health, CI/CD setup, and project metadata",
+      "file": "agents/reviewer-docs-validator.md",
+      "description": "Use this agent for validating project documentation, configuration completeness, dependency health, CI/CD setup, and project metadata",
+      "user_invocable": false,
       "triggers": [
         "documentation review",
         "README check",
@@ -751,8 +791,9 @@
       "category": "review"
     },
     "reviewer-error-messages": {
-      "file": "reviewer-error-messages.md",
-      "short_description": "Use this agent for reviewing error message quality: actionable messages, sufficient context (IDs, states, operation names), consistent formatting, user-facing vs internal distinction, and localization readiness",
+      "file": "agents/reviewer-error-messages.md",
+      "description": "Use this agent for reviewing error message quality: actionable messages, sufficient context (IDs, states, operation names), consistent formatting, user-facing vs internal distinction, and localization readiness",
+      "user_invocable": false,
       "triggers": [
         "error messages",
         "error text quality",
@@ -770,8 +811,9 @@
       "category": "review"
     },
     "reviewer-language-specialist": {
-      "file": "reviewer-language-specialist.md",
-      "short_description": "Use this agent for language-specific code review that adapts criteria based on the programming language",
+      "file": "agents/reviewer-language-specialist.md",
+      "description": "Use this agent for language-specific code review that adapts criteria based on the programming language",
+      "user_invocable": false,
       "triggers": [
         "language idioms",
         "modern stdlib",
@@ -791,8 +833,9 @@
       "category": "review"
     },
     "reviewer-migration-safety": {
-      "file": "reviewer-migration-safety.md",
-      "short_description": "Use this agent for reviewing migration safety: reversible database migrations, API deprecation paths, feature flag lifecycle, backward-compatible schema changes, and safe rollback strategies",
+      "file": "agents/reviewer-migration-safety.md",
+      "description": "Use this agent for reviewing migration safety: reversible database migrations, API deprecation paths, feature flag lifecycle, backward-compatible schema changes, and safe rollback strategies",
+      "user_invocable": false,
       "triggers": [
         "migration safety",
         "database migration",
@@ -812,8 +855,9 @@
       "category": "review"
     },
     "reviewer-naming-consistency": {
-      "file": "reviewer-naming-consistency.md",
-      "short_description": "Use this agent for detecting naming inconsistencies: convention drift (userID vs userId vs user_id), package naming violations, verb inconsistency (Get vs Fetch vs Retrieve), acronym casing violations, and file naming mismatches",
+      "file": "agents/reviewer-naming-consistency.md",
+      "description": "Use this agent for detecting naming inconsistencies: convention drift (userID vs userId vs user_id), package naming violations, verb inconsistency (Get vs Fetch vs Retrieve), acronym casing violations, and file naming mismatches",
+      "user_invocable": false,
       "triggers": [
         "naming consistency",
         "naming conventions",
@@ -832,8 +876,9 @@
       "category": "review"
     },
     "reviewer-newcomer": {
-      "file": "reviewer-newcomer.md",
-      "short_description": "Use this agent when you need code review from an enthusiastic newcomer perspective",
+      "file": "agents/reviewer-newcomer.md",
+      "description": "Use this agent when you need code review from an enthusiastic newcomer perspective",
+      "user_invocable": false,
       "triggers": [
         "newcomer perspective",
         "fresh eyes review",
@@ -846,8 +891,9 @@
       "category": "review"
     },
     "reviewer-observability": {
-      "file": "reviewer-observability.md",
-      "short_description": "Use this agent for reviewing observability: missing metrics, logging quality, trace propagation, health checks, structured logging, and alerting gaps",
+      "file": "agents/reviewer-observability.md",
+      "description": "Use this agent for reviewing observability: missing metrics, logging quality, trace propagation, health checks, structured logging, and alerting gaps",
+      "user_invocable": false,
       "triggers": [
         "observability review",
         "metrics",
@@ -866,8 +912,9 @@
       "category": "review"
     },
     "reviewer-pedant": {
-      "file": "reviewer-pedant.md",
-      "short_description": "Use this agent when you need code review from a technical pedant perspective",
+      "file": "agents/reviewer-pedant.md",
+      "description": "Use this agent when you need code review from a technical pedant perspective",
+      "user_invocable": false,
       "triggers": [
         "technical accuracy",
         "spec compliance",
@@ -880,8 +927,9 @@
       "category": "review"
     },
     "reviewer-performance": {
-      "file": "reviewer-performance.md",
-      "short_description": "Use this agent for detecting performance issues, hot paths, algorithmic complexity problems, unnecessary allocations, N+1 queries, missing caching opportunities, and index usage gaps",
+      "file": "agents/reviewer-performance.md",
+      "description": "Use this agent for detecting performance issues, hot paths, algorithmic complexity problems, unnecessary allocations, N+1 queries, missing caching opportunities, and index usage gaps",
+      "user_invocable": false,
       "triggers": [
         "performance review",
         "hot paths",
@@ -901,8 +949,9 @@
       "category": "review"
     },
     "reviewer-pragmatic-builder": {
-      "file": "reviewer-pragmatic-builder.md",
-      "short_description": "Use this agent when you need production-focused critique and operational reality checks for code, documentation, architecture, or deployment plans",
+      "file": "agents/reviewer-pragmatic-builder.md",
+      "description": "Use this agent when you need production-focused critique and operational reality checks for code, documentation, architecture, or deployment plans",
+      "user_invocable": false,
       "triggers": [
         "builder",
         "production",
@@ -916,8 +965,9 @@
       "category": "review"
     },
     "reviewer-sapcc-structural": {
-      "file": "reviewer-sapcc-structural.md",
-      "short_description": "Use this agent for reviewing Go code in SAP Converged Cloud repositories for structural and design concerns based on the project's established review standards",
+      "file": "agents/reviewer-sapcc-structural.md",
+      "description": "Use this agent for reviewing Go code in SAP Converged Cloud repositories for structural and design concerns based on the project's established review standards",
+      "user_invocable": false,
       "triggers": [
         "sapcc structural",
         "go-bits design",
@@ -936,8 +986,9 @@
       "category": "review"
     },
     "reviewer-security": {
-      "file": "reviewer-security.md",
-      "short_description": "Use this agent for security-focused code review",
+      "file": "agents/reviewer-security.md",
+      "description": "Use this agent for security-focused code review",
+      "user_invocable": false,
       "triggers": [
         "security review",
         "vulnerability",
@@ -956,8 +1007,9 @@
       "category": "review"
     },
     "reviewer-silent-failures": {
-      "file": "reviewer-silent-failures.md",
-      "short_description": "Use this agent for detecting silent failures, inadequate error handling, swallowed errors, and dangerous fallback behavior",
+      "file": "agents/reviewer-silent-failures.md",
+      "description": "Use this agent for detecting silent failures, inadequate error handling, swallowed errors, and dangerous fallback behavior",
+      "user_invocable": false,
       "triggers": [
         "silent failures",
         "error handling review",
@@ -976,8 +1028,9 @@
       "category": "review"
     },
     "reviewer-skeptical-senior": {
-      "file": "reviewer-skeptical-senior.md",
-      "short_description": "Use this agent when you need code review from a skeptical senior engineer perspective",
+      "file": "agents/reviewer-skeptical-senior.md",
+      "description": "Use this agent when you need code review from a skeptical senior engineer perspective",
+      "user_invocable": false,
       "triggers": [
         "production readiness",
         "senior review",
@@ -990,8 +1043,9 @@
       "category": "review"
     },
     "reviewer-test-analyzer": {
-      "file": "reviewer-test-analyzer.md",
-      "short_description": "Use this agent for reviewing test coverage quality, completeness, and resilience",
+      "file": "agents/reviewer-test-analyzer.md",
+      "description": "Use this agent for reviewing test coverage quality, completeness, and resilience",
+      "user_invocable": false,
       "triggers": [
         "test coverage",
         "test quality",
@@ -1010,8 +1064,9 @@
       "category": "review"
     },
     "reviewer-type-design": {
-      "file": "reviewer-type-design.md",
-      "short_description": "Use this agent for evaluating type design quality, invariant expression, encapsulation, and type safety",
+      "file": "agents/reviewer-type-design.md",
+      "description": "Use this agent for evaluating type design quality, invariant expression, encapsulation, and type safety",
+      "user_invocable": false,
       "triggers": [
         "type design",
         "type invariants",
@@ -1029,8 +1084,9 @@
       "category": "review"
     },
     "skill-creator-engineer": {
-      "file": "skill-creator-engineer.md",
-      "short_description": "Use this agent when creating new Claude Code skills, designing workflow automation,\nor improving existing skill architecture",
+      "file": "agents/skill-creator-engineer.md",
+      "description": "Use this agent when creating new Claude Code skills, designing workflow automation,\nor improving existing skill architecture",
+      "user_invocable": false,
       "triggers": [
         "create skill",
         "new skill",
@@ -1049,8 +1105,9 @@
       "category": "meta"
     },
     "sqlite-peewee-engineer": {
-      "file": "sqlite-peewee-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with SQLite database development using the Peewee ORM in Python",
+      "file": "agents/sqlite-peewee-engineer.md",
+      "description": "Use this agent when you need expert assistance with SQLite database development using the Peewee ORM in Python",
+      "user_invocable": false,
       "triggers": [
         "peewee",
         "sqlite",
@@ -1066,8 +1123,9 @@
       "category": "language"
     },
     "system-upgrade-engineer": {
-      "file": "system-upgrade-engineer.md",
-      "short_description": "Use this agent for systematic upgrades to the agent/skill/hook ecosystem when\nClaude Code ships updates, user goals change, or retro learnings accumulate",
+      "file": "agents/system-upgrade-engineer.md",
+      "description": "Use this agent for systematic upgrades to the agent/skill/hook ecosystem when\nClaude Code ships updates, user goals change, or retro learnings accumulate",
+      "user_invocable": false,
       "triggers": [
         "upgrade agents",
         "system upgrade",
@@ -1092,8 +1150,9 @@
       "category": "meta"
     },
     "technical-documentation-engineer": {
-      "file": "technical-documentation-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with creating, maintaining, and validating technical documentation for enterprise software systems",
+      "file": "agents/technical-documentation-engineer.md",
+      "description": "Use this agent when you need expert assistance with creating, maintaining, and validating technical documentation for enterprise software systems",
+      "user_invocable": false,
       "triggers": [
         "API documentation",
         "technical docs",
@@ -1107,8 +1166,9 @@
       "category": "documentation"
     },
     "technical-journalist-writer": {
-      "file": "technical-journalist-writer.md",
-      "short_description": "Use this agent when you need professional technical journalism and article writing",
+      "file": "agents/technical-journalist-writer.md",
+      "description": "Use this agent when you need professional technical journalism and article writing",
+      "user_invocable": false,
       "triggers": [
         "technical article",
         "technical writing",
@@ -1123,8 +1183,9 @@
       "category": "content"
     },
     "testing-automation-engineer": {
-      "file": "testing-automation-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with comprehensive testing strategy and automation for modern web applications",
+      "file": "agents/testing-automation-engineer.md",
+      "description": "Use this agent when you need expert assistance with comprehensive testing strategy and automation for modern web applications",
+      "user_invocable": false,
       "triggers": [
         "testing",
         "E2E",
@@ -1140,8 +1201,9 @@
       "category": "testing"
     },
     "typescript-debugging-engineer": {
-      "file": "typescript-debugging-engineer.md",
-      "short_description": "Use this agent when you need expert assistance debugging TypeScript applications",
+      "file": "agents/typescript-debugging-engineer.md",
+      "description": "Use this agent when you need expert assistance debugging TypeScript applications",
+      "user_invocable": false,
       "triggers": [
         "typescript debug",
         "async bug",
@@ -1158,8 +1220,9 @@
       "category": "language"
     },
     "typescript-frontend-engineer": {
-      "file": "typescript-frontend-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with TypeScript frontend architecture and optimization for modern web applications",
+      "file": "agents/typescript-frontend-engineer.md",
+      "description": "Use this agent when you need expert assistance with TypeScript frontend architecture and optimization for modern web applications",
+      "user_invocable": false,
       "triggers": [
         "typescript",
         "react",
@@ -1177,8 +1240,9 @@
       "category": "language"
     },
     "ui-design-engineer": {
-      "file": "ui-design-engineer.md",
-      "short_description": "Use this agent when designing and implementing UI/UX for modern web applications with\ndesign systems, responsive layouts, accessibility compliance, and animations",
+      "file": "agents/ui-design-engineer.md",
+      "description": "Use this agent when designing and implementing UI/UX for modern web applications with\ndesign systems, responsive layouts, accessibility compliance, and animations",
+      "user_invocable": false,
       "triggers": [
         "UI",
         "design",
@@ -1194,6 +1258,100 @@
       ],
       "complexity": "Medium",
       "category": "language"
+    },
+    "wrestlejoy-amy-writer-compact": {
+      "file": "agents/wrestlejoy-amy-writer-compact.md",
+      "description": "Use this agent when you need to write WrestleJoy content in Amy Nemmity's voice with context optimization",
+      "user_invocable": false,
+      "triggers": [
+        "WrestleJoy",
+        "Amy voice",
+        "Amy compact"
+      ],
+      "pairs_with": [
+        "voice-orchestrator",
+        "wrestlejoy-mmr-research"
+      ],
+      "complexity": "Comprehensive",
+      "category": "content"
+    },
+    "wrestlejoy-amy-writer-expanded": {
+      "file": "agents/wrestlejoy-amy-writer-expanded.md",
+      "description": "Use this agent when you need to write WrestleJoy content in Amy Nemmity's voice with maximum depth and extensive examples",
+      "user_invocable": false,
+      "triggers": [
+        "WrestleJoy",
+        "Amy voice",
+        "Amy expanded"
+      ],
+      "pairs_with": [
+        "voice-orchestrator",
+        "wrestlejoy-mmr-research"
+      ],
+      "complexity": "Comprehensive",
+      "category": "content"
+    },
+    "wrestlejoy-amy-writer": {
+      "file": "agents/wrestlejoy-amy-writer.md",
+      "description": "Use this agent when writing WrestleJoy content in Amy Nemmity's voice",
+      "user_invocable": false,
+      "triggers": [
+        "WrestleJoy",
+        "Amy voice",
+        "Amy's voice",
+        "Amy Nemmity",
+        "wrestling article",
+        "wrestling awards",
+        "Amy style"
+      ],
+      "pairs_with": [
+        "voice-orchestrator",
+        "wrestlejoy-mmr-research",
+        "wrestlejoy-research-transform"
+      ],
+      "complexity": "Comprehensive",
+      "category": "content"
+    },
+    "wrestlejoy-news-editor": {
+      "file": "agents/wrestlejoy-news-editor.md",
+      "description": "Editorial review agent for WrestleJoy automated news pipeline",
+      "user_invocable": false,
+      "triggers": [
+        "wrestlejoy edit",
+        "review article",
+        "editorial check",
+        "news review",
+        "check article tone",
+        "wrestlejoy quality check",
+        "pre-publish review"
+      ],
+      "pairs_with": [
+        "wrestlejoy-news-producer",
+        "wrestlejoy-news-pipeline",
+        "voice-andy-nemmity"
+      ],
+      "complexity": "Simple",
+      "category": "content"
+    },
+    "wrestlejoy-news-producer": {
+      "file": "agents/wrestlejoy-news-producer.md",
+      "description": "Orchestrator agent for the WrestleJoy automated news production pipeline",
+      "user_invocable": false,
+      "triggers": [
+        "wrestlejoy news",
+        "aew news",
+        "wrestling news pipeline",
+        "news automation"
+      ],
+      "pairs_with": [
+        "wrestlejoy-news-pipeline",
+        "wrestlejoy-news-editor",
+        "voice-andy-nemmity",
+        "wordpress-uploader",
+        "seo-optimizer"
+      ],
+      "complexity": "Complex",
+      "category": "content"
     }
   }
 }

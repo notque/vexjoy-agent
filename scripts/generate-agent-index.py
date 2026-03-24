@@ -14,6 +14,8 @@ Output:
 
 import json
 import re
+import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -110,7 +112,12 @@ def extract_short_description(description: str) -> str:
 
 def generate_index(agents_dir: Path) -> dict:
     """Generate routing index from all agent files."""
-    index = {"version": "1.0", "generated_by": "scripts/generate-agent-index.py", "agents": {}}
+    index = {
+        "version": "2.0",
+        "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "generated_by": "scripts/generate-agent-index.py",
+        "agents": {},
+    }
     errors = []
 
     for agent_file in sorted(agents_dir.glob("*.md")):
@@ -132,9 +139,13 @@ def generate_index(agents_dir: Path) -> dict:
         name = frontmatter.get("name", agent_file.stem)
 
         agent_entry = {
-            "file": agent_file.name,
-            "short_description": extract_short_description(frontmatter.get("description", "")),
+            "file": f"agents/{agent_file.name}",
+            "description": extract_short_description(frontmatter.get("description", "")),
         }
+
+        # User invocable: normalize kebab-case to snake_case, default false
+        user_invocable = frontmatter.get("user-invocable", False)
+        agent_entry["user_invocable"] = bool(user_invocable)
 
         # Add routing metadata if present
         if "routing" in frontmatter:
@@ -186,8 +197,7 @@ def main():
 
     # Write index file
     index_file = agents_dir / "INDEX.json"
-    with open(index_file, "w") as f:
-        json.dump(index, f, indent=2)
+    index_file.write_text(json.dumps(index, indent=2) + "\n", encoding="utf-8")
 
     # Summary
     print(f"Generated {index_file}")
@@ -202,4 +212,4 @@ def main():
 
 
 if __name__ == "__main__":
-    exit(main())
+    sys.exit(main())

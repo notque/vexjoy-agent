@@ -1,5 +1,6 @@
 ---
 name: pipeline-retro
+internal: true
 description: |
   Trace pipeline test failures to generator root causes and propose fixes using
   the Three-Layer Pattern: skip artifact fixes (Layer 1), propose generator fixes

@@ -76,19 +76,23 @@ SAMPLE_PIPELINES_INDEX = {
 }
 
 SAMPLE_AGENTS_INDEX = {
-    "version": "1.0",
+    "version": "2.0",
+    "generated": "2026-03-24T00:00:00Z",
+    "generated_by": "scripts/generate-agent-index.py",
     "agents": {
         "golang-general-engineer": {
-            "file": "golang-general-engineer.md",
-            "short_description": "Go development expert.",
+            "file": "agents/golang-general-engineer.md",
+            "description": "Go development expert.",
+            "user_invocable": False,
             "triggers": ["go", "golang", ".go files", "gofmt"],
             "pairs_with": ["go-pr-quality-gate"],
             "complexity": "Medium-Complex",
             "category": "language",
         },
         "python-general-engineer": {
-            "file": "python-general-engineer.md",
-            "short_description": "Python development expert.",
+            "file": "agents/python-general-engineer.md",
+            "description": "Python development expert.",
+            "user_invocable": False,
             "triggers": ["python", ".py", "pip", "pytest"],
             "pairs_with": ["python-quality-gate"],
             "complexity": "Medium-Complex",

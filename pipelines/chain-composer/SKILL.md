@@ -1,5 +1,6 @@
 ---
 name: chain-composer
+internal: true
 description: |
   Compose valid pipeline chains from the step menu for each subdomain in a
   Component Manifest. Validates type compatibility using artifact-utils.py.

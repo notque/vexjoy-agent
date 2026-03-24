@@ -268,7 +268,7 @@ def cmd_agents(args) -> int:
     cols = [("NAME", 30), ("TRIGGERS", 22), ("DESCRIPTION", 55)]
 
     if args.markdown:
-        rows = [[a.get("name", ""), ",".join(a.get("triggers", [])), a.get("short_description", "")] for a in agents]
+        rows = [[a.get("name", ""), ",".join(a.get("triggers", [])), a.get("description", "")] for a in agents]
         print(_markdown_table(["NAME", "TRIGGERS", "DESCRIPTION"], rows))
     else:
         print(_table_header(cols))
@@ -276,7 +276,7 @@ def cmd_agents(args) -> int:
             row = [
                 (a.get("name", ""), 30),
                 (_triggers_str(a.get("triggers", [])), 22),
-                (_trunc(a.get("short_description", "")), 55),
+                (_trunc(a.get("description", "")), 55),
             ]
             print(_table_row(row))
 
@@ -303,10 +303,7 @@ def cmd_pipelines(args) -> int:
     cols = [("NAME", 26), ("PHASES", 7), ("DESCRIPTION", 55)]
 
     if args.markdown:
-        rows = [
-            [p.get("name", ""), str(len(p.get("phases", []))), p.get("description", "")]
-            for p in pipelines
-        ]
+        rows = [[p.get("name", ""), str(len(p.get("phases", []))), p.get("description", "")] for p in pipelines]
         print(_markdown_table(["NAME", "PHASES", "DESCRIPTION"], rows))
     else:
         print(_table_header(cols))
@@ -374,14 +371,15 @@ def cmd_show(args) -> int:
         else:
             print("Type:           agent")
             print(f"Name:           {name}")
-            print(f"Description:    {agent_info.get('short_description', '')}")
+            print(f"Description:    {agent_info.get('description', '')}")
             print(f"Triggers:       {', '.join(agent_info.get('triggers', []))}")
             print(f"Complexity:     {agent_info.get('complexity', 'unknown')}")
             print(f"Category:       {agent_info.get('category', 'unknown')}")
+            print(f"User-invocable: {agent_info.get('user_invocable', True)}")
             pairs = agent_info.get("pairs_with", [])
             if pairs:
                 print(f"Pairs with:     {', '.join(pairs)}")
-            print(f"File:           agents/{agent_info.get('file', '')}")
+            print(f"File:           {agent_info.get('file', '')}")
         return 0
 
     print(f"ERROR: '{name}' not found in skills, pipelines, or agents index", file=sys.stderr)
@@ -403,7 +401,7 @@ def cmd_search(args) -> int:
 
     def _search_dict(d: dict, entry_type: str) -> None:
         for name, info in d.items():
-            desc = info.get("description", "") or info.get("short_description", "")
+            desc = info.get("description", "")
             triggers = info.get("triggers", [])
 
             if query in name.lower():
@@ -634,7 +632,7 @@ def cmd_catalog(args) -> int:
 
     catalog_skills = _catalog_entries(skills_dict)
     catalog_pipelines = _catalog_entries(pipelines_dict)
-    catalog_agents = _catalog_entries(agents_dict, "short_description")
+    catalog_agents = _catalog_entries(agents_dict, "description")
 
     catalog = {
         "skills": catalog_skills,

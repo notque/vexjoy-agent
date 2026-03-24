@@ -1,5 +1,6 @@
 ---
 name: domain-research
+internal: true
 description: |
   Discover and classify subdomains within a target domain for pipeline generation.
   Dispatches 4 parallel research agents (Rule 12 mandatory — validated by A/B test),
