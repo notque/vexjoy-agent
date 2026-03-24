@@ -91,3 +91,6 @@ private-voices/
 # Draft articles (work in progress, not committed)
 drafts/
 draft-*.md
+
+# Scratch notes (session working files, not committed)
+scratch/
