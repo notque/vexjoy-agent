@@ -53,9 +53,7 @@ def load_settings() -> dict:
 
 def save_settings(data: dict) -> None:
     """Save settings.json with trailing newline."""
-    SETTINGS_PATH.write_text(
-        json.dumps(data, indent=2) + "\n", encoding="utf-8"
-    )
+    SETTINGS_PATH.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
 def get_hooks_list(settings: dict, event: str) -> list[dict]:
