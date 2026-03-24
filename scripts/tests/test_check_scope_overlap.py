@@ -136,6 +136,30 @@ class TestDetectConflicts:
         conflicts = cso.detect_conflicts(tasks)
         assert len(conflicts) == 1
 
+    def test_overlap_reports_child_path(self) -> None:
+        """When a directory conflicts with a file inside it, report the more specific path."""
+        tasks = _make_tasks(
+            [
+                {"id": "task-1", "scope": ["handlers/"]},
+                {"id": "task-2", "scope": ["handlers/auth.go"]},
+            ]
+        )
+        conflicts = cso.detect_conflicts(tasks)
+        assert conflicts[0].overlap == ["handlers/auth.go"]
+
+    def test_overlap_dedup_no_duplicates(self) -> None:
+        """When scopes list both a directory and a file inside it, overlaps should not duplicate."""
+        tasks = _make_tasks(
+            [
+                {"id": "task-1", "scope": ["handlers/", "handlers/auth.go"]},
+                {"id": "task-2", "scope": ["handlers/auth.go"]},
+            ]
+        )
+        conflicts = cso.detect_conflicts(tasks)
+        assert len(conflicts) == 1
+        # No duplicate entries in overlap list
+        assert len(conflicts[0].overlap) == len(set(conflicts[0].overlap))
+
 
 # ---------------------------------------------------------------------------
 # Parallel grouping
@@ -205,6 +229,42 @@ class TestGenerateRecommendation:
         rec = cso.generate_recommendation([["a", "b"], ["c"]])
         assert "in parallel" in rec
         assert "after group" in rec
+
+    def test_later_group_multi_task(self) -> None:
+        """Wave 2 with multiple tasks should use 'Then run ... in parallel'."""
+        rec = cso.generate_recommendation([["a"], ["b", "c"]])
+        assert "Then run" in rec
+        assert "in parallel" in rec
+
+
+# ---------------------------------------------------------------------------
+# Human output formatting
+# ---------------------------------------------------------------------------
+
+
+class TestFormatHuman:
+    def test_conflicts_present(self) -> None:
+        result = cso.AnalysisResult(
+            conflicts=[cso.Conflict(tasks=["t1", "t2"], overlap=["shared.go"])],
+            parallel_groups=[["t1"], ["t2"]],
+            recommendation="Run t1. Run t2 after group 1 completes.",
+        )
+        output = cso.format_human(result)
+        assert "Conflicts found: 1" in output
+        assert "t1 <-> t2" in output
+        assert "shared.go" in output
+        assert "Group 1:" in output
+        assert "Group 2:" in output
+
+    def test_no_conflicts(self) -> None:
+        result = cso.AnalysisResult(
+            conflicts=[],
+            parallel_groups=[["t1", "t2"]],
+            recommendation="Run t1 and t2 in parallel.",
+        )
+        output = cso.format_human(result)
+        assert "No conflicts found" in output
+        assert "Group 1: t1, t2" in output
 
 
 # ---------------------------------------------------------------------------
@@ -313,9 +373,56 @@ class TestCLI:
             rc = cso.main()
         assert rc == 0
 
+    def test_human_mode(self) -> None:
+        """Test --human CLI mode produces human-readable output."""
+        import io
+        from contextlib import redirect_stdout
+        from unittest.mock import patch
+
+        buf = io.StringIO()
+        with (
+            patch(
+                "sys.argv",
+                [
+                    "check-scope-overlap",
+                    "--tasks",
+                    '[{"id":"a","scope":["x.go"]},{"id":"b","scope":["x.go"]}]',
+                    "--human",
+                ],
+            ),
+            redirect_stdout(buf),
+        ):
+            rc = cso.main()
+        assert rc == 0
+        output = buf.getvalue()
+        assert "Conflicts found: 1" in output
+        assert "a <-> b" in output
+        assert "Group" in output
+
     def test_tasks_file_not_found(self) -> None:
         from unittest.mock import patch
 
         with patch("sys.argv", ["check-scope-overlap", "--tasks-file", "/nonexistent/tasks.json"]):
             rc = cso.main()
         assert rc == 2
+
+
+# ---------------------------------------------------------------------------
+# Input validation edge cases
+# ---------------------------------------------------------------------------
+
+
+class TestParseTasksEdgeCases:
+    def test_non_dict_item(self) -> None:
+        """Array containing non-object items should fail cleanly."""
+        with pytest.raises(ValueError, match="not an object"):
+            cso.parse_tasks('["not-a-dict"]')
+
+    def test_whitespace_scope_entry(self) -> None:
+        """Whitespace-only scope entries should be rejected."""
+        with pytest.raises(ValueError, match="not a non-empty string"):
+            cso.parse_tasks('[{"id": "t1", "scope": [" "]}]')
+
+    def test_empty_string_scope_entry(self) -> None:
+        with pytest.raises(ValueError, match="not a non-empty string"):
+            cso.parse_tasks('[{"id": "t1", "scope": [""]}]')
