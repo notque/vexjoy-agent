@@ -407,7 +407,22 @@ For Trivial classification (file reads only):
 
 This banner MUST be the FIRST visible output for EVERY /do invocation — including Trivial. Display it immediately after classifying, BEFORE any work begins. No exceptions.
 
-**Gate**: Agent and skill selected. Banner displayed. Proceed to Phase 3.
+**Step 7: Record routing decision** (for Simple+ complexity ONLY — skip Trivial):
+
+After the routing banner is displayed, record the decision to learning.db:
+```bash
+python3 ~/.claude/scripts/learning-db.py record \
+    routing "{selected_agent}:{selected_skill}" \
+    "request: {first_200_chars} | complexity: {complexity} | phase0_force: {phase0_force_route_or_none} | phase0_score: {phase0_top_score} | force_used: {0|1} | llm_override: {0|1} | enhancements: {comma_separated_list}" \
+    --category routing-decision \
+    --tags "{applicable_flags}"
+```
+
+Tags to include (comma-separated): `force-route` (if force-route triggered), `llm-override` (if LLM overrode Phase 0), `auto-pipeline` (if auto-pipeline fallback activated).
+
+This call is **advisory** — if it fails, continue to Phase 3. The Phase 0 hook (`record-routing-phase0.py`) provides deterministic baseline data regardless.
+
+**Gate**: Agent and skill selected. Banner displayed. Routing decision recorded. Proceed to Phase 3.
 
 ### Phase 3: ENHANCE
 
@@ -552,12 +567,20 @@ When uncertain which route: **ROUTE ANYWAY.** Route to the most likely agent + s
 ───────────────────────────────────────────────────
 ```
 
-**Routing decision recording** (for Simple+ tasks):
-After task completion, record the routing decision to learning.db:
+**Routing outcome recording** (for Simple+ tasks):
+
+After task completion, update the routing record with **observable facts only** (no self-grading):
 ```bash
-python3 ~/.claude/scripts/learning-db.py learn --skill do "Routed '{request_summary}' to {agent}+{skill}. Outcome: {success|error|misroute}."
+python3 ~/.claude/scripts/learning-db.py record \
+    routing "{selected_agent}:{selected_skill}" \
+    "{existing_value} | tool_errors: {0|1} | user_rerouted: {0|1}" \
+    --category routing-decision
 ```
-This builds a queryable corpus of routing decisions for accuracy analysis.
+
+- `tool_errors`: Set to 1 if any tool invoked by the agent returned an error during execution. Observable fact.
+- `user_rerouted`: Set to 1 if the user explicitly asked for a different agent/skill. Observable fact.
+
+Do NOT record subjective outcomes like "success" or "misroute" — that is self-grading and creates a rationalization loophole. The Phase 0 hook (`record-routing-phase0.py`) already captures deterministic baseline data automatically.
 
 **Auto-capture** (hooks, zero LLM cost):
 - `error-learner.py` (PostToolUse) → captures tool errors + solutions

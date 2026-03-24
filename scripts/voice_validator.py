@@ -697,8 +697,13 @@ def check_concession_structure(
 
     # Generic adversative markers that AI defaults to
     generic_markers = {
-        "however", "nevertheless", "nonetheless", "on the other hand",
-        "conversely", "in contrast", "notwithstanding",
+        "however",
+        "nevertheless",
+        "nonetheless",
+        "on the other hand",
+        "conversely",
+        "in contrast",
+        "notwithstanding",
     }
     # Remove any generic markers that ARE in the voice's documented set
     undocumented_generic = generic_markers - set(markers)
@@ -884,7 +889,9 @@ def validate_content(
     passed = score >= DEFAULT_PASS_THRESHOLD
 
     # Estimate total checks (banned categories + rhythm + metrics + architectural + rhetorical_pivots)
-    total_checks = len(banned.categories) + 1 + 3 + 4 + 1  # categories + rhythm + metrics + 4 architectural + rhetorical_pivots
+    total_checks = (
+        len(banned.categories) + 1 + 3 + 4 + 1
+    )  # categories + rhythm + metrics + 4 architectural + rhetorical_pivots
 
     summary = calculate_summary(violations, total_checks)
 

@@ -24,6 +24,7 @@ Usage:
     python3 scripts/learning-db.py record-waste --session SESSION_ID --tokens 1500
     python3 scripts/learning-db.py record-session --session SESSION_ID --had-retro --failures 2 --waste-tokens 3000
     python3 scripts/learning-db.py roi [--json]
+    python3 scripts/learning-db.py route-stats --by agent|skill|force-route|errors|override [--json]
 """
 
 import argparse
@@ -547,6 +548,84 @@ def cmd_roi(args: argparse.Namespace) -> None:
         print()
 
 
+def cmd_route_stats(args: argparse.Namespace) -> None:
+    """Display routing decision statistics."""
+    init_db()
+    results = query_learnings(topic="routing", category="routing-decision", limit=10000, exclude_graduated=False)
+
+    if not results:
+        print("No routing data found. Run sessions with /do to capture routing decisions.")
+        return
+
+    # Parse pipe-delimited values into dicts
+    records: list[dict[str, str | int]] = []
+    for r in results:
+        parsed: dict[str, str | int] = {"key": r["key"], "observation_count": r.get("observation_count", 1)}
+        for pair in r["value"].split(" | "):
+            if ": " in pair:
+                k, v = pair.split(": ", 1)
+                parsed[k.strip()] = v.strip()
+        records.append(parsed)
+
+    dimension = args.by
+
+    if dimension == "agent":
+        _print_freq_table(
+            records, "Agent", lambda r: str(r["key"]).split(":")[0] if ":" in str(r["key"]) else str(r["key"])
+        )
+    elif dimension == "skill":
+        _print_freq_table(
+            records, "Skill", lambda r: str(r["key"]).split(":")[-1] if ":" in str(r["key"]) else str(r["key"])
+        )
+    elif dimension == "force-route":
+        total = len(records)
+        force = sum(1 for r in records if r.get("force_used") == "1" or "force-route" in str(r.get("key", "")))
+        print(f"Force-Route Stats ({total} total routes)")
+        print(f"{'─' * 40}")
+        if total:
+            print(f"  Force-routed:  {force:>4} ({force / total * 100:.0f}%)")
+            print(f"  Scored:        {total - force:>4} ({(total - force) / total * 100:.0f}%)")
+        else:
+            print("  No data")
+    elif dimension == "errors":
+        errored = [r for r in records if r.get("tool_errors") == "1"]
+        print(f"Routes with Tool Errors ({len(errored)} of {len(records)})")
+        print(f"{'─' * 50}")
+        for r in errored:
+            req = str(r.get("request", ""))[:60]
+            print(f"  {str(r['key']):40s} | {req}")
+        if not errored:
+            print("  No tool errors recorded.")
+    elif dimension == "override":
+        total = len(records)
+        overrides = sum(1 for r in records if r.get("llm_override") == "1")
+        print(f"LLM Override Stats ({total} total routes)")
+        print(f"{'─' * 40}")
+        if total:
+            print(f"  LLM overrode Phase 0: {overrides:>4} ({overrides / total * 100:.0f}%)")
+            print(f"  Used Phase 0 as-is:   {total - overrides:>4} ({(total - overrides) / total * 100:.0f}%)")
+        else:
+            print("  No data")
+
+    if args.json:
+        import json as json_mod
+
+        print(json_mod.dumps(records, indent=2, default=str))
+
+
+def _print_freq_table(records: list[dict[str, str | int]], label: str, key_fn: object) -> None:
+    """Print a frequency table sorted by count descending."""
+    from collections import Counter
+
+    counts = Counter(key_fn(r) for r in records)  # type: ignore[operator]
+    total = sum(counts.values())
+    print(f"{label} Frequency ({total} total routes)")
+    print(f"{'─' * 50}")
+    for name, count in counts.most_common(20):
+        bar = "█" * min(count, 30)
+        print(f"  {name:35s} {count:>4} {bar}")
+
+
 def cmd_learn(args):
     """Record a skill- or agent-scoped learning with minimal friction."""
     import hashlib
@@ -796,6 +875,17 @@ def main():
     p_roi = subparsers.add_parser("roi", help="Compute and display learning ROI report")
     p_roi.add_argument("--json", action="store_true", help="Output as JSON")
     p_roi.set_defaults(func=cmd_roi)
+
+    # route-stats
+    p_route_stats = subparsers.add_parser("route-stats", help="Show routing decision statistics")
+    p_route_stats.add_argument(
+        "--by",
+        required=True,
+        choices=["agent", "skill", "force-route", "errors", "override"],
+        help="Dimension to aggregate by",
+    )
+    p_route_stats.add_argument("--json", action="store_true", help="Also output raw JSON")
+    p_route_stats.set_defaults(func=cmd_route_stats)
 
     args = parser.parse_args()
     args.func(args)
