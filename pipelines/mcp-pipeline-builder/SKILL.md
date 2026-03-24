@@ -9,6 +9,7 @@ description: |
   server or building against a known API specification (use mcp-builder instead).
 version: 1.0.0
 user-invocable: true
+argument-hint: "<repo-url-or-path>"
 command: /mcp-pipeline
 agent: mcp-local-docs-engineer
 routing:

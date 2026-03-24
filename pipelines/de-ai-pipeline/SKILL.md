@@ -8,6 +8,7 @@ description: |
   "scan and fix docs", "remove ai tells from docs".
 version: 1.0.0
 user-invocable: true
+argument-hint: "[<path-or-glob>]"
 allowed-tools:
   - Read
   - Write

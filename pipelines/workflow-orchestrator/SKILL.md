@@ -9,6 +9,12 @@ description: |
   and execute", "break this down", or "multi-step implementation". Do NOT
   use for single-file edits or tasks completable in under 2 minutes.
 version: 3.0.0
+success-criteria:
+  - "Plan validated by plan-checker before execution"
+  - "All plan tasks completed and marked done"
+  - "Full test suite passes after execution"
+  - "No TODO/FIXME markers in new code"
+  - "Deliverables match stated goal in task plan"
 allowed-tools:
   - Read
   - Write

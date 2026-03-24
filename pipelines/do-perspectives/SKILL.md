@@ -9,6 +9,7 @@ description: |
   parallel analysis (use /do-parallel), or tasks without source material.
 version: 2.0.0
 user-invocable: true
+argument-hint: "<target-name> <source-path>"
 allowed-tools:
   - Read
   - Write

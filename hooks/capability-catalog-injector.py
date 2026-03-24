@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# hook-version: 1.0.0
 """UserPromptSubmit hook: inject full capability catalog into /do routing context.
 
 When /do is invoked, this hook runs `list-capabilities.py catalog --compact`

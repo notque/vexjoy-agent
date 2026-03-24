@@ -10,6 +10,7 @@ description: |
   design exploration (use feature-design) or for planning itself (use feature-plan).
 version: 1.0.0
 user-invocable: true
+argument-hint: "[--assumptions] <topic>"
 command: /pre-planning-discussion
 allowed-tools:
   - Read

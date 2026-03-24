@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# hook-version: 1.0.0
 """
 UserPromptSubmit Hook: Capture user corrections and capability gap signals.
 

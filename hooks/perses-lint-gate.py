@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# hook-version: 1.0.0
 """Perses Lint Gate Hook.
 
 Blocks raw `percli apply` commands and redirects to the perses-lint skill

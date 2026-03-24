@@ -11,6 +11,7 @@ description: |
   and style editing.
 version: 1.0.0
 user-invocable: true
+argument-hint: "[--fix] [--strict] <file>"
 command: /joy-check
 allowed-tools:
   - Read

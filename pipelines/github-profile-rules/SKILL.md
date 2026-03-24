@@ -8,6 +8,7 @@ description: |
   "github conventions", or "programming rules extraction".
 version: 1.0.0
 user-invocable: true
+argument-hint: "<github-username>"
 agent: github-profile-rules-engineer
 model: opus
 allowed-tools:

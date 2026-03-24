@@ -12,6 +12,7 @@ description: |
   comparing voices (use voice-calibrator compare mode).
 version: 1.0.0
 user-invocable: true
+argument-hint: "<voice-name> <sample-files...>"
 command: /create-voice
 allowed-tools:
   - Read

@@ -9,6 +9,7 @@ description: |
   redirect to /quick instead.
 version: 1.0.0
 user-invocable: true
+argument-hint: "<fix description>"
 allowed-tools:
   - Read
   - Write

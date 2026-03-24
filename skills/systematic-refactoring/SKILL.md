@@ -9,6 +9,12 @@ description: |
   Do NOT use for bug fixes or new feature implementation.
 version: 2.0.0
 user-invocable: false
+success-criteria:
+  - "Characterization tests pass before and after changes"
+  - "Zero references to old names remaining in codebase"
+  - "Full test suite passes after each incremental step"
+  - "No behavioral changes (only structural improvements)"
+  - "All import paths and cross-references updated"
 allowed-tools:
   - Read
   - Edit

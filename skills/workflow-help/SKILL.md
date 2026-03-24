@@ -10,6 +10,7 @@ description: |
   systematic-debugging).
 version: 2.0.0
 user-invocable: true
+argument-hint: "[<topic>]"
 allowed-tools:
   - Read
   - Grep

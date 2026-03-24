@@ -9,6 +9,7 @@ description: |
   Do NOT use for routine improvements or simple source material.
 version: 2.0.0
 user-invocable: true
+argument-hint: "<target-name> <source-path>"
 allowed-tools:
   - Read
   - Write

@@ -9,6 +9,7 @@ description: |
   general code analysis without an existing PR.
 version: 2.0.0
 user-invocable: true
+argument-hint: "[<PR-number>]"
 allowed-tools:
   - Read
   - Bash

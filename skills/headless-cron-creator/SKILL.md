@@ -8,6 +8,7 @@ description: |
   "run hourly", "run daily", "run weekly", or "schedule task".
 version: 1.0.0
 user-invocable: true
+argument-hint: "<name> <schedule> <prompt>"
 agent: python-general-engineer
 allowed-tools:
   - Read

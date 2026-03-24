@@ -8,6 +8,7 @@ description: |
   "knowledge health", "graduate knowledge".
 version: 2.0.0
 user-invocable: true
+argument-hint: "[status|list|search <term>|graduate]"
 allowed-tools:
   - Bash
   - Read
