@@ -35,58 +35,50 @@ from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "SYNTHESIS_GATE_BYPASS"
 
-# Paths exempt from the gate — infrastructure, not implementation.
-_EXEMPT_PREFIXES = (
-    "/hooks/",
-    "/scripts/",
-    "/adr/",
-    "/commands/",
-    "/docs/",
-    "/.claude/",
-    "/.feature/",
-    "/.github/",
+# Paths that ARE implementation code — only these get gated.
+# Everything else (docs, config, CI, plans, tests) passes through.
+_GATED_PREFIXES = (
+    "/agents/",
+    "/skills/",
+    "/pipelines/",
 )
 
-# File name patterns that are never implementation code.
-_EXEMPT_NAMES = (
-    "task_plan.md",
-    "CLAUDE.md",
-    "README.md",
-    "MEMORY.md",
-    "HANDOFF.json",
-    ".adr-session.json",
-    ".gitignore",
+# Source code extensions that are implementation code.
+_GATED_EXTENSIONS = frozenset(
+    {
+        ".py",
+        ".go",
+        ".ts",
+        ".tsx",
+        ".js",
+        ".jsx",
+        ".rs",
+        ".java",
+        ".rb",
+        ".c",
+        ".cpp",
+        ".cs",
+    }
 )
 
-# Test file patterns — always exempt.
-_TEST_PATTERNS: list[re.Pattern[str]] = [
-    re.compile(r"_test\.go$"),
-    re.compile(r"_test\.py$"),
-    re.compile(r"/test_[^/]+\.py$"),
-    re.compile(r"\.test\.ts$"),
-]
 
-
-def _is_exempt(file_path: str) -> bool:
-    """Return True if the target path is infrastructure or a test file."""
-    # Normalise to forward-slash for cross-platform safety.
+def _is_gated(file_path: str) -> bool:
+    """Return True if this is implementation code that requires consultation."""
     normalised = file_path.replace("\\", "/")
     basename = normalised.rsplit("/", 1)[-1] if "/" in normalised else normalised
+    ext = "." + basename.rsplit(".", 1)[-1] if "." in basename else ""
 
-    # Infrastructure directories
-    for prefix in _EXEMPT_PREFIXES:
-        if prefix in normalised:
-            return True
+    # Only gate source files in implementation directories
+    in_gated_dir = any(prefix in normalised for prefix in _GATED_PREFIXES)
+    is_source = ext.lower() in _GATED_EXTENSIONS
 
-    # Known non-implementation files
-    if basename in _EXEMPT_NAMES:
+    # Gate if it's a source file in an implementation directory
+    # OR if it's a SKILL.md or agent .md being created/modified
+    if in_gated_dir:
         return True
 
-    # Test files
-    for pattern in _TEST_PATTERNS:
-        if pattern.search(normalised):
-            return True
-
+    # Standalone source files at repo root (rare but possible)
+    # are NOT gated — they're scripts or utilities
     return False
 
 
@@ -146,10 +138,11 @@ def main() -> None:
     if not file_path:
         sys.exit(0)
 
-    # Exempt infrastructure and test paths — always allow.
-    if _is_exempt(file_path):
+    # Only gate implementation code (agents/, skills/, pipelines/).
+    # Everything else (docs, config, CI, plans, tests, scripts) passes through.
+    if not _is_gated(file_path):
         if debug:
-            print(f"[synthesis-gate] Exempt path: {file_path}", file=sys.stderr)
+            print(f"[synthesis-gate] Not implementation code, allowing: {file_path}", file=sys.stderr)
         sys.exit(0)
 
     # Resolve project root: prefer event["cwd"], then CLAUDE_PROJECT_DIR, then cwd.
