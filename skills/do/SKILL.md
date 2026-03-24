@@ -692,6 +692,11 @@ Solution:
 **Do instead**: Read the library source in GOMODCACHE. The question is never "how does the protocol work?" but "how does THIS library version implement THIS method?"
 *Graduated from incident — 40 agent reviews missed segmentio/kafka-go Reader offset behavior*
 
+### Anti-Pattern 14: Parallel Agents Creating Scattered Branches
+**What it looks like**: Dispatching 4 parallel agents, each creating its own feature branch (`feat/task-1`, `feat/task-2`, etc.), then manually cherry-picking or merging to combine their work.
+**Why wrong**: Cherry-picking is fragile, merge commits pollute history, and branch discovery is manual detective work. This was the actual outcome during ADR-083 implementation.
+**Do instead**: The orchestrator creates the target branch BEFORE dispatch. Each agent prompt includes `Work on branch: {name}. Do NOT create a new branch.` See ADR-093 and `dispatching-parallel-agents` skill Phase 2, Step 0.
+
 ---
 
 ## References
