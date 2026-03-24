@@ -564,9 +564,9 @@ def check_analogy_domains(
 ) -> list[Violation]:
     """Check that analogies draw from documented source domains (if profile specifies them).
 
-    This is the one architectural check that's deterministic enough for script-level
-    validation. Other architectural checks (argument direction, concession structure,
-    bookends) require AI-assisted analysis and belong in voice-orchestrator's validation.
+    One of four architectural conformance checks (alongside argument direction,
+    concession structure, and bookend patterns). Uses keyword matching on simile
+    markers to detect analogies from undocumented source domains.
 
     Profile key: architectural_patterns.analogy_domains (list of allowed domain keywords).
     """
@@ -607,6 +607,241 @@ def check_analogy_domains(
     return violations
 
 
+def check_argument_direction(
+    content: str,
+    profile: dict[str, Any] | None = None,
+) -> list[Violation]:
+    """Check that argument flow matches the profile's documented direction.
+
+    Heuristic: for 'inductive' profiles, assertive/claim-like sentences should
+    cluster toward the end of the piece. For 'deductive', they cluster at the start.
+    This is a coarse signal — Warning severity only.
+
+    Profile key: architectural_patterns.argument_direction ("inductive"|"deductive"|"mixed").
+    """
+    if not profile:
+        return []
+
+    arch = profile.get("architectural_patterns", {})
+    direction = arch.get("argument_direction", "").lower().strip()
+    if direction not in ("inductive", "deductive"):
+        return []  # "mixed" or absent — nothing to check
+
+    # Split content into paragraphs, ignore very short ones (headers, bullets)
+    paragraphs = [p.strip() for p in content.split("\n\n") if len(p.strip()) > 40]
+    if len(paragraphs) < 3:
+        return []  # Too short for structural analysis
+
+    # Heuristic: count assertive markers (claims, conclusions, imperatives)
+    claim_markers = re.compile(
+        r"\b(?:the (?:key|point|answer|truth|reality|problem|issue|reason) (?:is|was)|"
+        r"this (?:means|shows|proves|demonstrates)|"
+        r"in (?:short|summary|conclusion|other words)|"
+        r"the (?:bottom line|takeaway|upshot)|"
+        r"what (?:matters|counts) (?:is|here)|"
+        r"(?:clearly|obviously|fundamentally|ultimately|essentially),?\s)",
+        re.IGNORECASE,
+    )
+
+    first_third = paragraphs[: len(paragraphs) // 3] or paragraphs[:1]
+    last_third = paragraphs[-(len(paragraphs) // 3) :] or paragraphs[-1:]
+
+    early_claims = sum(len(claim_markers.findall(p)) for p in first_third)
+    late_claims = sum(len(claim_markers.findall(p)) for p in last_third)
+
+    violations: list[Violation] = []
+
+    if direction == "inductive" and early_claims > late_claims and early_claims >= 2:
+        violations.append(
+            Violation(
+                type="argument_direction",
+                severity="warning",
+                text=f"claims cluster early ({early_claims} early vs {late_claims} late)",
+                message="Profile specifies inductive (evidence\u2192claim) but claims appear early",
+                suggestion="Move main claims toward the end; lead with examples and evidence",
+            )
+        )
+    elif direction == "deductive" and late_claims > early_claims and late_claims >= 2:
+        violations.append(
+            Violation(
+                type="argument_direction",
+                severity="warning",
+                text=f"claims cluster late ({late_claims} late vs {early_claims} early)",
+                message="Profile specifies deductive (claim\u2192evidence) but claims appear late",
+                suggestion="Lead with the main claim; follow with supporting evidence",
+            )
+        )
+
+    return violations
+
+
+def check_concession_structure(
+    content: str,
+    profile: dict[str, Any] | None = None,
+) -> list[Violation]:
+    """Check that concessions use the profile's documented pivot markers.
+
+    Heuristic: when the content contains adversative conjunctions (but, however, yet...),
+    check whether it uses the specific pivot markers documented in the profile rather than
+    generic ones.
+
+    Profile key: architectural_patterns.concession_markers (list of strings).
+    """
+    if not profile:
+        return []
+
+    arch = profile.get("architectural_patterns", {})
+    markers = [m.strip().lower() for m in arch.get("concession_markers", []) if m.strip()]
+    if not markers:
+        return []
+
+    # Generic adversative markers that AI defaults to
+    generic_markers = {
+        "however", "nevertheless", "nonetheless", "on the other hand",
+        "conversely", "in contrast", "notwithstanding",
+    }
+    # Remove any generic markers that ARE in the voice's documented set
+    undocumented_generic = generic_markers - set(markers)
+
+    violations: list[Violation] = []
+    for generic in undocumented_generic:
+        # Use regex with word boundaries to avoid matching inside other words
+        matches = find_pattern_in_content(content, r"\b" + re.escape(generic) + r"\b", is_regex=True)
+        for line, col, matched_text in matches:
+            violations.append(
+                Violation(
+                    type="concession_structure",
+                    severity="warning",
+                    line=line,
+                    column=col,
+                    text=matched_text,
+                    message=f"Generic concession marker; documented markers: {', '.join(markers)}",
+                    suggestion=f"Use one of the voice's pivot markers instead: {', '.join(markers)}",
+                )
+            )
+
+    return violations
+
+
+def check_bookend_patterns(
+    content: str,
+    profile: dict[str, Any] | None = None,
+) -> list[Violation]:
+    """Check that opening and closing paragraphs match documented patterns.
+
+    Heuristic: classify the first and last paragraphs by move type (question,
+    claim, anecdote, etc.) and compare against the profile's documented patterns.
+
+    Profile keys: architectural_patterns.bookend_opening, bookend_closing.
+    """
+    if not profile:
+        return []
+
+    arch = profile.get("architectural_patterns", {})
+    expected_opening = arch.get("bookend_opening", "").lower().strip()
+    expected_closing = arch.get("bookend_closing", "").lower().strip()
+    if not expected_opening and not expected_closing:
+        return []
+
+    # Extract first and last non-trivial paragraphs
+    paragraphs = [p.strip() for p in content.split("\n\n") if len(p.strip()) > 20]
+    if not paragraphs:
+        return []
+
+    violations: list[Violation] = []
+
+    if expected_opening:
+        first = paragraphs[0]
+        detected_opening = _classify_paragraph_move(first)
+        if detected_opening and expected_opening and detected_opening != expected_opening:
+            violations.append(
+                Violation(
+                    type="bookend_pattern",
+                    severity="warning",
+                    line=1,
+                    text=first[:80] + ("..." if len(first) > 80 else ""),
+                    message=f"Opening detected as '{detected_opening}'; profile expects '{expected_opening}'",
+                    suggestion=f"Restructure opening to match documented pattern: {expected_opening}",
+                )
+            )
+
+    if expected_closing and len(paragraphs) >= 2:
+        last = paragraphs[-1]
+        # Estimate line number for last paragraph
+        last_pos = content.rfind(last[:40])
+        last_line = content[:last_pos].count("\n") + 1 if last_pos >= 0 else 0
+        detected_closing = _classify_paragraph_move(last)
+        if detected_closing and expected_closing and detected_closing != expected_closing:
+            violations.append(
+                Violation(
+                    type="bookend_pattern",
+                    severity="warning",
+                    line=last_line,
+                    text=last[:80] + ("..." if len(last) > 80 else ""),
+                    message=f"Closing detected as '{detected_closing}'; profile expects '{expected_closing}'",
+                    suggestion=f"Restructure closing to match documented pattern: {expected_closing}",
+                )
+            )
+
+    return violations
+
+
+def _classify_paragraph_move(text: str) -> str:
+    """Classify a paragraph's rhetorical move type.
+
+    Returns one of: question, claim, anecdote, provocation, fragment, call_to_action,
+    reframe, or empty string if uncertain.
+    """
+    text = text.strip()
+    if not text:
+        return ""
+
+    first_sentence = re.split(r"(?<=[.!?])\s+", text)[0] if text else ""
+
+    # Question: ends with ? or starts with interrogative
+    if first_sentence.rstrip().endswith("?"):
+        return "question"
+
+    # Fragment: very short first sentence (at most 6 words, no terminal punctuation)
+    words = first_sentence.split()
+    if len(words) <= 6 and not first_sentence.rstrip().endswith((".", "!", "?")):
+        return "fragment"
+
+    # Reframe: signals a perspective shift — checked before provocation because
+    # "the real question" is reframe, not provocation
+    if re.match(
+        r"^(?:what (?:this|that|it) (?:really|actually)|the (?:bigger|larger|real) (?:picture|question|point)|"
+        r"put (?:differently|another way)|in other words|(?:but )?(?:here'?s|there'?s) (?:the|what))\b",
+        text,
+        re.IGNORECASE,
+    ):
+        return "reframe"
+
+    # Provocation: strong assertion or challenge (checked before call_to_action
+    # because "stop pretending" is provocation, not imperative instruction)
+    if re.match(
+        r"^(?:nobody|everyone|most people|the (?:biggest|worst)|stop \w+ing|forget (?:everything|what))",
+        text,
+        re.IGNORECASE,
+    ):
+        return "provocation"
+
+    # Call to action: imperative mood indicators
+    if re.match(r"^(?:try|start|consider|imagine|think|look|go|read|check)\b", text, re.IGNORECASE):
+        return "call_to_action"
+
+    # Anecdote: starts with time/place/personal reference
+    if re.match(
+        r"^(?:last|when|i (?:was|remember|once|used)|one (?:day|time|morning)|years? ago|back (?:in|when))\b",
+        text,
+        re.IGNORECASE,
+    ):
+        return "anecdote"
+
+    # Default: claim (declarative statement)
+    return "claim"
+
+
 def validate_content(
     content: str,
     profile: dict[str, Any] | None = None,
@@ -632,8 +867,11 @@ def validate_content(
     # Check rhythm
     violations.extend(check_rhythm(content, profile))
 
-    # Check architectural patterns (analogy domains)
+    # Check architectural patterns
     violations.extend(check_analogy_domains(content, profile))
+    violations.extend(check_argument_direction(content, profile))
+    violations.extend(check_concession_structure(content, profile))
+    violations.extend(check_bookend_patterns(content, profile))
 
     # Check metrics if profile provided
     metrics: dict[str, float] = {}
@@ -645,8 +883,8 @@ def validate_content(
     score = calculate_score(violations)
     passed = score >= DEFAULT_PASS_THRESHOLD
 
-    # Estimate total checks (banned categories + rhythm + metrics + analogy domains)
-    total_checks = len(banned.categories) + 1 + 3 + 1 + 1  # categories + rhythm + metrics + analogy + rhetorical_pivots
+    # Estimate total checks (banned categories + rhythm + metrics + architectural + rhetorical_pivots)
+    total_checks = len(banned.categories) + 1 + 3 + 4 + 1  # categories + rhythm + metrics + 4 architectural + rhetorical_pivots
 
     summary = calculate_summary(violations, total_checks)
 
