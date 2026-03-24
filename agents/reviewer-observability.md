@@ -1,5 +1,6 @@
 ---
 name: reviewer-observability
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent for reviewing observability: missing metrics, logging quality, trace propagation, health checks, structured logging, and alerting gaps. Ensures code is debuggable and monitorable in production. Wave 2 agent that uses Wave 1 silent-failure and error-handling findings to identify observability gaps at failure points. Supports `--fix` mode.

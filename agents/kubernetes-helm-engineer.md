@@ -1,5 +1,6 @@
 ---
 name: kubernetes-helm-engineer
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent for Kubernetes and Helm deployment management, troubleshooting, and cloud-native infrastructure. This agent specializes in Helm chart development, Kubernetes operations, container orchestration, and production-ready deployments.

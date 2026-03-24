@@ -1,5 +1,6 @@
 ---
 name: reviewer-adr-compliance
+model: sonnet
 version: 1.0.0
 description: |
   Use this agent when reviewing implementations against Architecture Decision Records.

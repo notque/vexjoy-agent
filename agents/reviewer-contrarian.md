@@ -1,5 +1,6 @@
 ---
 name: reviewer-contrarian
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent for professional skepticism that challenges fundamental assumptions and

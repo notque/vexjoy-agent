@@ -1,5 +1,6 @@
 ---
 name: hook-development-engineer
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent when developing Python hooks for Claude Code's event-driven system.

@@ -1,5 +1,6 @@
 ---
 name: golang-general-engineer-compact
+model: sonnet
 version: 3.0.0
 description: |
   Use this agent for focused Go development with tight context budgets. Specializes in

@@ -1,5 +1,6 @@
 ---
 name: python-general-engineer
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent when you need expert assistance with Python development, including implementing features,

@@ -1,5 +1,6 @@
 ---
 name: perses-dashboard-engineer
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent for Perses observability dashboard operations: creating/managing dashboards,

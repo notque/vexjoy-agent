@@ -1,5 +1,6 @@
 ---
 name: github-profile-rules-engineer
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent when extracting programming rules, coding conventions, or style

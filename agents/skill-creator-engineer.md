@@ -1,5 +1,6 @@
 ---
 name: skill-creator-engineer
+model: sonnet
 version: 2.1.0
 description: |
   Use this agent when creating new Claude Code skills, designing workflow automation,

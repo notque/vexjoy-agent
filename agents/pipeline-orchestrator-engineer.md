@@ -1,5 +1,6 @@
 ---
 name: pipeline-orchestrator-engineer
+model: sonnet
 version: 3.0.0
 description: |
   Use this agent when building new pipelines that require coordinated creation

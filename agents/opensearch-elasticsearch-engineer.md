@@ -1,5 +1,6 @@
 ---
 name: opensearch-elasticsearch-engineer
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent for OpenSearch and Elasticsearch cluster management, performance tuning, index optimization, and search infrastructure operations. This agent specializes in distributed search systems, data ingestion pipelines, query optimization, and operational best practices for large-scale search deployments.

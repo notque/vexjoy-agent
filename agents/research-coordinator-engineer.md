@@ -1,5 +1,6 @@
 ---
 name: research-coordinator-engineer
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent when conducting complex research requiring systematic investigation,

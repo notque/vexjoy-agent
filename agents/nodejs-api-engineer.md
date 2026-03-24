@@ -1,5 +1,6 @@
 ---
 name: nodejs-api-engineer
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent when you need expert assistance with Node.js backend API development for web applications. This includes implementing RESTful APIs, authentication systems, file upload handling, email services, webhook processing, and server-side business logic. The agent specializes in Next.js API routes, Express.js patterns, middleware development, and secure backend architecture.

@@ -1,5 +1,6 @@
 ---
 name: reviewer-skeptical-senior
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent when you need code review from a skeptical senior engineer perspective. This persona provides experienced critique focusing on production readiness, edge cases, failure modes, and long-term maintenance. READ-ONLY review agent using Reviewer Schema with VERDICT.

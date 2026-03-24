@@ -1,5 +1,6 @@
 ---
 name: reviewer-performance
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent for detecting performance issues, hot paths, algorithmic complexity problems, unnecessary allocations, N+1 queries, missing caching opportunities, and index usage gaps. Analyzes code for runtime efficiency across Go, Python, and TypeScript with language-specific performance patterns. Wave 2 agent that receives Wave 1 findings as context to focus on architecturally significant paths. Supports `--fix` mode.

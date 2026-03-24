@@ -1,5 +1,6 @@
 ---
 name: research-subagent-executor
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent when you need to execute individual research tasks as a subagent under research coordination. This includes systematic investigation using OODA loop methodology, intelligent tool selection with budget management, source quality assessment, and delivering condensed findings to the lead researcher. The agent specializes in parallel tool execution, epistemic honesty, diminishing returns detection, and efficient information gathering within strict resource constraints.

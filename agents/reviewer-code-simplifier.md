@@ -1,5 +1,6 @@
 ---
 name: reviewer-code-simplifier
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent for simplifying recently modified code for clarity and maintainability. This includes reducing complexity, eliminating nested logic, improving readability, and ensuring standards compliance from CLAUDE.md. Unlike read-only reviewers, this agent IS allowed to modify code directly as its primary function is simplification.

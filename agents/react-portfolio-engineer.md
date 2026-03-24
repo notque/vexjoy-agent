@@ -1,5 +1,6 @@
 ---
 name: react-portfolio-engineer
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent when building React portfolio and gallery websites for artists, photographers,

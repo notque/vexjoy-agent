@@ -1,5 +1,6 @@
 ---
 name: python-openstack-engineer
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent when developing OpenStack services, plugins, or components in Python.

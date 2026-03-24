@@ -1,5 +1,6 @@
 ---
 name: perses-plugin-engineer
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent for Perses plugin development: scaffolding plugins with percli plugin generate,

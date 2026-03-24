@@ -1,5 +1,6 @@
 ---
 name: golang-general-engineer
+model: sonnet
 version: 3.0.0
 description: |
   Use this agent when you need expert assistance with Go development, including implementing features,

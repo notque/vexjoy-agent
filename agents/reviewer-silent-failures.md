@@ -1,5 +1,6 @@
 ---
 name: reviewer-silent-failures
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent for detecting silent failures, inadequate error handling, swallowed errors, and dangerous fallback behavior. This includes analyzing try-catch blocks, conditional error handling, fallback logic, error logging practices, and optional chaining risks. Zero tolerance for silent failures. Supports `--fix` mode to add proper error handling.

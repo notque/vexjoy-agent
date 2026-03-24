@@ -1,5 +1,6 @@
 ---
 name: reviewer-business-logic
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent for domain correctness and business logic review. This includes requirements coverage, edge case analysis, state machine verification, data validation rules, and failure mode analysis. The agent is READ-ONLY and reports findings without modifying code.
