@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# hook-version: 1.0.0
 """
 Claude Code hook: Grade agents when they are modified or created.
 

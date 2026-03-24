@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# hook-version: 1.0.0
 """
 PreToolUse Hook: Prompt Injection Scanner (self-filters to Write and Edit)
 

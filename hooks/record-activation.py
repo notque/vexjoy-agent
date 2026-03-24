@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# hook-version: 1.0.0
 """PostToolUse Hook: Record session-level retro knowledge activation for ROI tracking.
 
 Tracks whether sessions with retro knowledge injected produce successful

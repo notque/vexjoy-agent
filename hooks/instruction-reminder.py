@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# hook-version: 1.0.0
 """
 UserPromptSubmit hook to periodically re-inject instruction files.
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# hook-version: 1.0.0
 """PreToolUse hook: Block gh pr merge when CI checks haven't passed.
 
 Intercepts Bash tool calls containing 'gh pr merge' and checks GitHub

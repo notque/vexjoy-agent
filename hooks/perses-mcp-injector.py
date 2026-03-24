@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# hook-version: 1.0.0
 """Perses MCP Injector Hook.
 
 Detects perses-related prompts and injects MCP tool discovery

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# hook-version: 1.0.0
 """
 PreToolUse:Bash Hook: Dangerous Command Guard
 

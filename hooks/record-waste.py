@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# hook-version: 1.0.0
 """PostToolUse Hook: Record wasted tokens from tool failures for ROI tracking.
 
 Estimates token waste when tools fail and feeds learning-db.py record-waste
