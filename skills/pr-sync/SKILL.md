@@ -159,6 +159,18 @@ CLAUDE_GATE_BYPASS=1 git push -u origin "$CURRENT_BRANCH"
 
 **Protected-org repos**: Before executing the push, present the branch name, remote, and commits that will be pushed. Wait for explicit approval before pushing.
 
+### Step 4a: ADR Decision Coverage (conditional — ADR-094)
+
+**Skip if**: No `.adr-session.json` exists in the working directory.
+
+When an active ADR session exists, run the coverage check before the review loop:
+
+```bash
+python3 scripts/adr-decision-coverage.py --adr <active-adr-path> --diff-base main --human
+```
+
+If verdict is PARTIAL or FAIL, display uncovered decision points and ask whether to proceed or address gaps first. This runs once before the review loop, not on every iteration.
+
 ### Step 4b: Review-Fix Loop (personal repos only)
 
 Iteratively review and fix issues before creating the PR. Up to 3 iterations of: `/pr-review` → fix → amend → push.

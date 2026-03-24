@@ -147,6 +147,32 @@ Re-validate that no sensitive files ended up in the staging area.
 
 **Gate**: Files staged, no sensitive files in staging area, user confirmed plan.
 
+### Phase 2.5: ADR DECISION COVERAGE (conditional — ADR-094)
+
+**Goal**: Verify staged changes cover all ADR decision points.
+
+**Skip if**: No `.adr-session.json` exists in the working directory (no active ADR session).
+
+**Step 1: Run coverage check**
+
+```bash
+python3 scripts/adr-decision-coverage.py --adr <active-adr-path> --json
+```
+
+Read the active ADR path from `.adr-session.json` (`adr_file` field).
+
+**Step 2: Interpret results**
+
+| Verdict | Action |
+|---------|--------|
+| PASS (100%) | Proceed to Phase 3. Display coverage summary. |
+| PARTIAL (>0%) | Display uncovered decision points. Ask: "N decision points not covered. Proceed anyway, or address them first?" |
+| FAIL (0%) | Display warning. Ask: "No ADR decision points found in staged changes. This may mean the wrong files are staged, or implementation is incomplete." |
+
+This is advisory — the implementer can acknowledge uncovered points as intentionally deferred (e.g., "will be covered in a follow-up PR").
+
+**Gate**: Coverage reported. User acknowledged any gaps.
+
 ### Phase 3: COMMIT
 
 **Goal**: Create a validated commit with a compliant message.
