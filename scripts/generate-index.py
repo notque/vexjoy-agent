@@ -7,14 +7,17 @@ INDEX.json files matching the format of the existing per-type generators.
 
 Usage:
     python3 scripts/generate-index.py [--type agents|skills|pipelines|all] [--check]
+    python3 scripts/generate-index.py --coverage [--routing-tables PATH]
 
 Options:
-    --type TYPE   Component type to generate (default: all)
-    --check       Compare generated output vs current files, exit 1 if different
+    --type TYPE             Component type to generate (default: all)
+    --check                 Compare generated output vs current files, exit 1 if different
+    --coverage              Compare INDEX.json components against routing tables, report gaps
+    --routing-tables PATH   Path to routing-tables.md (default: ~/.claude/skills/do/references/routing-tables.md)
 
 Exit codes:
-    0 - Success (or --check with no differences)
-    1 - Error or --check found differences
+    0 - Success (or --check with no differences, or --coverage with full coverage)
+    1 - Error or --check found differences, or --coverage found gaps
     2 - Trigger collisions detected among force-routed entries
 """
 
@@ -352,6 +355,128 @@ def check_index(generated: dict, existing_path: Path, label: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# Coverage mode: compare INDEX.json entries against routing tables
+# ---------------------------------------------------------------------------
+
+# Matches the bold name in the first column of a markdown table row, e.g.:
+#   | **golang-general-engineer** | ... |
+#   | **fast (FORCE)** | ... |
+#   | **/pr-review command** | ... |
+ROUTING_TABLE_NAME_RE = re.compile(
+    r"^\|\s*\*\*"  # row start, bold open
+    r"(/?"  # optional leading slash (e.g. /pr-review)
+    r"[\w][\w-]*)"  # the component name
+    r"(?:\s*\(.*?\))?"  # optional parenthetical like (FORCE) or (pipeline-orchestrator-engineer)
+    r"\*\*"  # bold close
+    r".*\|",  # rest of the row
+)
+
+
+def parse_routing_table_names(routing_tables_path: Path) -> dict[str, set[str]]:
+    """Parse routing-tables.md and extract component names by type.
+
+    Returns a dict with keys 'agents', 'skills', 'pipelines' mapping to
+    sets of component names found in the routing table entries.
+    """
+    content = routing_tables_path.read_text(encoding="utf-8")
+
+    agents: set[str] = set()
+    skills: set[str] = set()
+    pipelines: set[str] = set()
+
+    current_section = ""
+    in_subsection = False
+
+    for line in content.splitlines():
+        # Track which section we're in via ## headers
+        if line.startswith("## "):
+            header = line.lstrip("# ").strip().lower()
+            if "agent" in header:
+                current_section = "agents"
+            elif "pipeline" in header:
+                current_section = "pipelines"
+            else:
+                current_section = "skills"
+            in_subsection = False
+            continue
+
+        # Skip ### subsections (companion maps, infrastructure refs, policies)
+        if line.startswith("### "):
+            in_subsection = True
+            continue
+
+        if in_subsection:
+            continue
+
+        m = ROUTING_TABLE_NAME_RE.match(line)
+        if not m:
+            continue
+
+        name = m.group(1).lstrip("/")
+
+        if current_section == "agents":
+            agents.add(name)
+        elif current_section == "pipelines":
+            pipelines.add(name)
+        else:
+            skills.add(name)
+
+    return {"agents": agents, "skills": skills, "pipelines": pipelines}
+
+
+def run_coverage_report(indexes: dict[str, tuple[dict, Path]], routing_tables_path: Path) -> int:
+    """Compare INDEX.json components against routing tables and report gaps.
+
+    Returns 0 if full coverage, 1 if gaps found.
+    """
+    if not routing_tables_path.exists():
+        print(f"Error: routing tables not found at {routing_tables_path}", file=sys.stderr)
+        return 1
+
+    routed = parse_routing_table_names(routing_tables_path)
+
+    has_gaps = False
+    missing_from_routing: dict[str, list[str]] = {}
+    stale_in_routing: dict[str, list[str]] = {}
+
+    print("Routing Coverage Report:")
+
+    for label, (idx, _path) in indexes.items():
+        collection_key = label.lower()
+        indexed_names = set(idx.get(collection_key, {}).keys())
+        routed_names = routed.get(collection_key, set())
+
+        missing = sorted(indexed_names - routed_names)
+        stale = sorted(routed_names - indexed_names)
+
+        in_routing_count = len(indexed_names & routed_names)
+        print(f"  {label}: {len(indexed_names)} indexed, {in_routing_count} in routing tables, {len(missing)} missing")
+
+        if missing:
+            missing_from_routing[collection_key] = missing
+            has_gaps = True
+        if stale:
+            stale_in_routing[collection_key] = stale
+            has_gaps = True
+
+    # Detail sections
+    if missing_from_routing:
+        print("\n  Missing from routing tables:")
+        for component_type, names in sorted(missing_from_routing.items()):
+            print(f"    {component_type}: {', '.join(names)}")
+
+    if stale_in_routing:
+        print("\n  Stale routing entries (not in INDEX):")
+        for component_type, names in sorted(stale_in_routing.items()):
+            print(f"    {component_type}: {', '.join(names)}")
+
+    if not missing_from_routing and not stale_in_routing:
+        print("\n  Full coverage — all components are routable.")
+
+    return 1 if has_gaps else 0
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -368,6 +493,17 @@ def main() -> int:
         "--check",
         action="store_true",
         help="Compare generated output vs current files, exit 1 if different",
+    )
+    parser.add_argument(
+        "--coverage",
+        action="store_true",
+        help="Compare INDEX.json components against routing tables, report gaps",
+    )
+    parser.add_argument(
+        "--routing-tables",
+        type=Path,
+        default=Path.home() / ".claude" / "skills" / "do" / "references" / "routing-tables.md",
+        help="Path to routing-tables.md (default: ~/.claude/skills/do/references/routing-tables.md)",
     )
     args = parser.parse_args()
 
@@ -398,6 +534,9 @@ def main() -> int:
         if pipelines_dir.exists():
             idx = generate_skill_or_pipeline_index(pipelines_dir, "pipelines", "pipelines", is_pipeline=True)
             indexes["Pipelines"] = (idx, pipelines_dir / "INDEX.json")
+
+    if args.coverage:
+        return run_coverage_report(indexes, args.routing_tables)
 
     if args.check:
         print("Checking INDEX.json files...")
