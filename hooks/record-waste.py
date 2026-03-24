@@ -16,6 +16,7 @@ Design:
 """
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -67,8 +68,12 @@ def main() -> None:
             timeout=5,
         )
 
-    except (json.JSONDecodeError, subprocess.TimeoutExpired, OSError, Exception):
-        pass  # Silent failure — never block the session
+    except (json.JSONDecodeError, subprocess.TimeoutExpired, OSError, Exception) as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            print(f"[record-waste] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
     finally:
         sys.exit(0)
 

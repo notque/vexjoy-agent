@@ -88,8 +88,12 @@ def main() -> None:
 
         subprocess.run(cmd, capture_output=True, timeout=5)
 
-    except (json.JSONDecodeError, subprocess.TimeoutExpired, OSError, Exception):
-        pass  # Silent failure — never block the session
+    except (json.JSONDecodeError, subprocess.TimeoutExpired, OSError, Exception) as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            print(f"[record-activation] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
     finally:
         sys.exit(0)
 

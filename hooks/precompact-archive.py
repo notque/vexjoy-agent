@@ -85,8 +85,12 @@ def inject_adr_anchor(event: dict) -> None:
         )
         print("[precompact-adr] ==========================================")
 
-    except Exception:
-        pass  # Silent failure — never block compaction
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            print(f"[precompact-archive] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
 
 
 def extract_error_resolutions(event: dict) -> list[dict]:
@@ -240,8 +244,12 @@ def main():
             if total > 0:
                 print(f"[learning-archive]   Total learnings: {high_conf}/{total} high-confidence")
 
-    except json.JSONDecodeError:
-        pass  # Silent failure - invalid JSON
+    except json.JSONDecodeError as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            print(f"[precompact-archive] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
     except Exception as e:
         # Log to stderr if debug enabled, but never fail
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):

@@ -14,6 +14,7 @@ Design Principles:
 """
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -74,8 +75,12 @@ def main():
                 isolation=isolation,
             )
 
-    except (json.JSONDecodeError, Exception):
-        pass  # Silent failure — never block Claude Code
+    except (json.JSONDecodeError, Exception) as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            print(f"[usage-tracker] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
     finally:
         sys.exit(0)  # ALWAYS exit 0
 

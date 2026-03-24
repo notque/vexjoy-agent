@@ -40,8 +40,12 @@ def get_seen_extensions() -> set:
     try:
         if SEEN_EXTENSIONS_FILE.exists():
             return set(SEEN_EXTENSIONS_FILE.read_text().strip().split("\n"))
-    except Exception:
-        pass  # Silent: state file issues shouldn't block hook execution
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            print(f"[lint-hint] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
     return set()
 
 
@@ -51,8 +55,12 @@ def mark_extension_seen(ext: str):
         seen = get_seen_extensions()
         seen.add(ext)
         SEEN_EXTENSIONS_FILE.write_text("\n".join(seen))
-    except Exception:
-        pass  # Silent: state file write errors shouldn't block hook execution
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            print(f"[lint-hint] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
 
 
 def main():
@@ -94,9 +102,12 @@ def main():
         filename = Path(file_path).name
         print(f"[lint-hint] {filename} modified. Consider: {linter}")
 
-    except (json.JSONDecodeError, Exception):
-        # Silent failure
-        pass
+    except (json.JSONDecodeError, Exception) as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            print(f"[lint-hint] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
 
 
 if __name__ == "__main__":

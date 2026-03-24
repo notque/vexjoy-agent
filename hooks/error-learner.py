@@ -16,6 +16,7 @@ Design Principles:
 """
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -235,8 +236,12 @@ def main():
                 fix_action=fix_action,
             )
 
-    except (json.JSONDecodeError, Exception):
-        pass  # Silent failure
+    except (json.JSONDecodeError, Exception) as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            print(f"[error-learner] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
     finally:
         sys.exit(0)  # Never block
 
