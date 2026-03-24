@@ -23,6 +23,7 @@ ADR: adr/018-post-edit-security-scan.md
 """
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -193,8 +194,12 @@ def main() -> None:
             if len(findings) > 3:
                 print(f"  ... and {len(findings) - 3} more security hints")
 
-    except (json.JSONDecodeError, Exception):
-        pass  # Silent failure — never interrupt workflow
+    except (json.JSONDecodeError, Exception) as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            print(f"[security-scan] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
 
 
 if __name__ == "__main__":

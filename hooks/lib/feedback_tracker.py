@@ -13,6 +13,8 @@ Design Principles:
 """
 
 import json
+import os
+import sys
 import time
 from pathlib import Path
 from typing import Optional
@@ -54,8 +56,12 @@ def _save_state(state: dict) -> None:
         _ensure_dir()
         state["timestamp"] = time.time()
         _STATE_FILE.write_text(json.dumps(state, indent=2))
-    except OSError:
-        pass  # Silent failure - don't block
+    except OSError as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            print(f"[feedback-tracker] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
 
 
 def set_pending_feedback(signature: str, error_type: str, fix_action: str, original_error: str) -> None:
@@ -136,8 +142,12 @@ def clear_pending() -> None:
     try:
         if _STATE_FILE.exists():
             _STATE_FILE.unlink()
-    except OSError:
-        pass  # Silent failure - don't block Claude Code
+    except OSError as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            print(f"[feedback-tracker] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
 
 
 def has_pending() -> bool:
