@@ -29,6 +29,8 @@ Before completing ANY task, verify you haven't rationalized:
 | "Tests are slow" | Slow tests > broken code | **Run them anyway** |
 | "I'm confident" | Confidence ≠ Correctness | **Verify regardless** |
 | "Edge case won't happen" | Edge cases always happen | **Handle it** |
+| "Need to un-ignore this path" | `.gitignore` defines safety boundaries | **NEVER modify `.gitignore` to un-ignore paths** |
+| "Just force-add this one file" | `git add -f` bypasses safety boundaries | **NEVER use `git add --force`; if git refuses, that's correct** |
 
 ## Assertive Language Reference
 

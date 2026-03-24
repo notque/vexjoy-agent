@@ -115,6 +115,8 @@ The solution: make specialist selection explicit using keyword-matching routing.
 
 This separation enables consistent methodology across domains without duplicating approaches or requiring per-task prompt engineering.
 
+> Agent-specific patterns (anti-patterns, MCP tool requirements, domain conventions) belong in the agent's own markdown file, not in the router. The router selects the agent; the agent carries its own domain knowledge. This keeps the router focused and prevents it from growing into a monolithic prompt that degrades routing quality.
+
 ## High-Context Agents, Not Big Agents
 
 Agents should be rich and detailed within their domain. Comprehensive Go version-by-version guidelines, specific anti-pattern tables with detection commands, concrete error catalogs with fix instructions.
@@ -132,6 +134,24 @@ Progressive disclosure enforces this: main file stays navigable (under 10k words
 The biggest risk is not malice but rationalization. "Already done" (assumption, not verification). "Code looks correct" (looking, not testing). "Should work" (should, not does).
 
 Anti-rationalization is not a nice-to-have. It's infrastructure, auto-injected into every code modification, review, security, and testing task. The toolkit makes it structurally difficult to skip verification, not just culturally discouraged.
+
+## Router as Orchestrator, Not Worker
+
+The `/do` router's only job is to classify requests and dispatch them to agents. It does not read code, edit files, run analysis, or handle tasks directly. The main thread is an orchestrator that manages agents — it never does work itself.
+
+**Division of responsibility:**
+- **Main thread (/do)**: Classify request → select agent+skill → dispatch → evaluate result → route again if needed → report to user
+- **Agents**: Execute tasks using their domain expertise, skills, MCP tools, and pipelines
+- **Skills**: Provide methodology (debugging phases, review waves, TDD cycles) that agents follow
+- **Pipelines**: Multi-phase workflows that agents run through
+
+**Why this matters:**
+- When the main thread does work directly, it bypasses the agent's domain knowledge, the skill's methodology, and the pipeline's phase gates
+- Every task that isn't routed to an agent is a missed opportunity: the agent can't improve, the skill can't be validated, the pipeline can't be refined
+- The main thread has no domain expertise — it only knows how to route. Agents have the expertise.
+
+**The test:**
+If the main thread is reading source code, editing files, running scripts for analysis, or doing any work beyond routing — something is wrong. Stop and dispatch an agent.
 
 ## Open Sharing Over Individual Ownership
 

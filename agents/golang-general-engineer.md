@@ -626,6 +626,12 @@ These are the most common AI-generated Go anti-patterns — using old patterns w
 **Why wrong**: Goroutine leaks, deadlocks, range loops never complete
 **Do instead**: Producer closes channel when done: `defer close(ch)`, use `for range` to consume
 
+### Protocol Reasoning Instead of Library Verification
+**What it looks like**: "Kafka consumer groups will rebalance after a member leaves, so this is safe."
+**Why wrong**: Protocol-level behavior and library-level behavior are not the same. LLMs reason from training data about protocols, not from reading the specific library version in go.mod.
+**Do instead**: Read the library source in GOMODCACHE. The question is never "how does the protocol work?" but "how does THIS library version implement THIS method?" Use: `cat $(go env GOMODCACHE)/path/to/lib@version/file.go`
+*Graduated from /do SKILL.md — incident: 40 agent reviews missed segmentio/kafka-go Reader offset behavior*
+
 ## Anti-Rationalization
 
 See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md) for universal patterns.

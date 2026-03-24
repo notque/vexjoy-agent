@@ -1219,6 +1219,18 @@ Solution:
 **Why wrong**: Max 10 agents per message. Exceeding this causes failures.
 **Do instead**: Batch Wave 0 agents in groups of 10. Wait for each batch before sending the next.
 
+### AP-9: "Acceptable" as a Review Disposition
+**What it looks like**: "This is a real issue but acceptable for now" / "valid but deferred" / "conservative, not a bug"
+**Why wrong**: "Acceptable" acknowledges a problem while avoiding the cost of addressing it. Creates the illusion of thoroughness without substance.
+**Do instead**: FIX NOW, FIX IN FOLLOW-UP (with tracked artifact), or NOT AN ISSUE (with evidence). No middle ground.
+*Graduated from /do SKILL.md — incident: Kafka PR shipped double-backoff classified as "conservative, not a bug"*
+
+### AP-10: Deferred Findings Without Tracking Artifacts
+**What it looks like**: "We'll address this in a follow-up" with no issue, TODO, or learning.db entry created.
+**Why wrong**: "Follow-up" without a tracking artifact is a polite way of saying "never."
+**Do instead**: Create a tracking artifact (GitHub issue, `TODO(follow-up):` in code, learning.db entry) before marking any finding as deferred.
+*Graduated from /do SKILL.md — incident: Kafka PR deferred findings lost between review rounds*
+
 ---
 
 ## Anti-Rationalization

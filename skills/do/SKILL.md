@@ -78,6 +78,27 @@ This skill operates as the primary routing operator for the Claude Code agent sy
 
 ## Instructions
 
+### Role: /do is a ROUTER, not a worker
+
+/do's ONLY job is to ROUTE requests to agents. It does NOT execute, implement, debug, review, or fix anything itself.
+
+**What the main thread does:**
+1. Classify the request
+2. Select the correct agent + skill
+3. Dispatch the agent via the Agent tool
+4. When the agent returns, evaluate if more work is needed
+5. If yes, route to ANOTHER agent — never do the work yourself
+6. Report results to the user
+
+**What the main thread NEVER does:**
+- Read code files to understand them (dispatch an Explore agent)
+- Edit files directly (dispatch a domain agent)
+- Run tests or lint (dispatch the agent with the appropriate skill)
+- Write documentation (dispatch technical-documentation-engineer)
+- Handle ANY Simple+ task directly
+
+The main thread is an **orchestrator**. Agents are workers. Skills are methodology. Pipelines are multi-phase workflows that agents run. If you find yourself reading source code, writing code, or doing analysis instead of dispatching an agent to do it — STOP. Route it.
+
 ### Phase Banners (MANDATORY)
 
 Every phase of the /do pipeline MUST display a visible banner to the user BEFORE executing that phase's work. The user should always know what stage they're in.
@@ -352,46 +373,7 @@ For pipeline skills — add the Pipeline: line with all phases in order:
 ===================================================================
 ```
 
-**Pipeline Phase Registry** — all pipelines live in `pipelines/` (synced to `~/.claude/skills/` at install):
-
-| Pipeline | Phases |
-|----------|--------|
-| `system-upgrade` | CHANGELOG → AUDIT → PLAN → IMPLEMENT → VALIDATE → DEPLOY |
-| `skill-creation-pipeline` | DISCOVER → DESIGN → SCAFFOLD → VALIDATE → INTEGRATE |
-| `hook-development-pipeline` | SPEC → IMPLEMENT → TEST → REGISTER → DOCUMENT |
-| `research-pipeline` | SCOPE → GATHER → SYNTHESIZE → VALIDATE → DELIVER |
-| `agent-upgrade` | AUDIT → DIFF → PLAN → IMPLEMENT → RE-EVALUATE |
-| `explore-pipeline` | SCAN → MAP → ANALYZE → REPORT |
-| `research-to-article` | RESEARCH → COMPILE → GROUND → GENERATE → VALIDATE → REFINE → OUTPUT |
-| `pr-pipeline` | CLASSIFY → STAGE → REVIEW → COMMIT → PUSH → CREATE → VERIFY → CLEANUP |
-| `voice-writer` | LOAD → GROUND → GENERATE → VALIDATE → REFINE → JOY-CHECK → OUTPUT → CLEANUP |
-| `github-profile-rules` | ADR → FETCH → RESEARCH → SAMPLE → COMPILE → GENERATE → VALIDATE → OUTPUT |
-| `doc-pipeline` | RESEARCH → OUTLINE → GENERATE → VERIFY → OUTPUT |
-| `workflow-orchestrator` | BRAINSTORM → WRITE-PLAN → EXECUTE-PLAN |
-| `de-ai-pipeline` | SCAN → FIX → VERIFY (loop max 3) → REPORT |
-| `comprehensive-review` | WAVE-0 → WAVE-1 → WAVE-2 → AGGREGATE → FIX |
-| `article-evaluation-pipeline` | FETCH → VALIDATE → ANALYZE → REPORT |
-| `mcp-pipeline-builder` | ANALYZE → DESIGN → GENERATE → VALIDATE → EVALUATE → REGISTER |
-| `do-perspectives` | VALIDATE → ANALYZE → SYNTHESIZE → APPLY → VERIFY |
-| `voice-calibrator` | VOICE-GROUNDING → VOICE-METRICS → THINKING-PATTERNS → VALIDATION |
-| `auto-pipeline` | DEDUP → CLASSIFY → SELECT → ADAPT → EXECUTE (ephemeral) or CRYSTALLIZE (permanent) |
-
-**Pipeline Companion Sequences** — common multi-pipeline workflows:
-
-| Workflow | Sequence |
-|----------|----------|
-| Pipeline creation | domain-research → chain-composer → pipeline-scaffolder → pipeline-test-runner → pipeline-retro |
-| Content creation | research-pipeline → voice-writer |
-| Feature delivery | explore-pipeline → workflow-orchestrator → pr-pipeline |
-| Code review + ship | comprehensive-review → pr-pipeline |
-| Voice development | voice-calibrator → voice-writer → article-evaluation-pipeline |
-| Debug-fix-ship | systematic-debugging → test-driven-development → pr-pipeline |
-| Content publication | research-to-article → de-ai-pipeline → wordpress-uploader → wordpress-live-validation |
-| Post-mortem to prevention | forensics → testing-anti-patterns → learn |
-| Documentation maintenance | docs-sync-checker → doc-pipeline → generate-claudemd |
-| Quality-gated refactoring | systematic-refactoring → code-linting → verification-before-completion |
-
-If a skill is not in this registry but has explicit phases in its SKILL.md, show those phases. If it's not a pipeline, omit the Pipeline: line entirely.
+Pipeline phases and composition chains are in `pipelines/INDEX.json` and `index-router.py` output. Do NOT duplicate them here. If the selected skill is a pipeline, read its phases from `pipelines/INDEX.json` for the banner.
 
 For Trivial classification (file reads only):
 ```
@@ -505,31 +487,9 @@ Create `task_plan.md` before execution. The `auto-plan-detector.py` hook auto-de
 
 The `retro-knowledge-injector` hook automatically queries learning.db and injects relevant knowledge into agent context via `<retro-knowledge>` blocks. No manual injection step is needed — the hook handles this on every `UserPromptSubmit`.
 
-**Step 2.5: Inject MCP tool discovery into agent dispatch prompt**
-
-MCP server instructions are injected into the main session but NOT propagated to subagents. Subagents have MCP tools available as deferred tools but don't know to use `ToolSearch` to activate them. When dispatching agents, include this block in the agent prompt:
-
-```
-MCP TOOL DISCOVERY (do this FIRST, before reading code):
-- Use ToolSearch("gopls") to check for Go analysis tools (go_file_context,
-  go_diagnostics, go_symbol_references, go_package_api). If found AND
-  working in a Go repo: use go_file_context after reading .go files,
-  go_diagnostics after edits, go_symbol_references before renaming.
-- Use ToolSearch("context7") to check for library documentation tools
-  (resolve-library-id, query-docs). If found: use for verifying library
-  API usage and looking up unfamiliar dependencies.
-- Use ToolSearch("chrome-devtools") to check for browser inspection tools
-  (list_pages, navigate_page, take_screenshot, lighthouse_audit,
-  list_console_messages, list_network_requests). If found: use for live
-  browser debugging, page inspection, and performance profiling tasks.
-- If ToolSearch returns no results for any of these, proceed without them.
-```
-
-**When to include**: Include gopls block when dispatching Go-related agents (`golang-general-engineer`, `golang-general-engineer-compact`, or any agent working on `.go` files). Include Context7 block for any agent that may encounter library/dependency questions. Include chrome-devtools block when dispatching agents that need to inspect live browser pages (performance-optimization-engineer, testing-automation-engineer, or any agent working on frontend debugging). Skip entirely for trivial tasks or non-code agents.
-
 **Step 3: Invoke agent with skill**
 
-Let the agent do the work. Do not intervene in agent execution.
+Dispatch the agent. MCP tool discovery is the agent's responsibility — each agent's markdown declares which MCP tools it needs. Do not inject MCP instructions from /do.
 
 **Step 4: Handle multi-part requests**
 
@@ -622,21 +582,6 @@ One cycle. Review finds it → fix it → record at 1.0 → graduate into agent 
 
 ---
 
-## MCP Auto-Invocation
-
-| MCP | Triggers | Rule |
-|-----|----------|------|
-| **Chrome DevTools** | inspect page, lighthouse, console errors, network requests, performance profile, debug in browser, check my site, what's on this page | **AUTO-USE for live browser debugging** — controls the user's real Chrome browser. Use for interactive inspection, profiling, and Lighthouse audits. Requires Chrome to be open. |
-| **Playwright** | validate page, test layout, automated check, screenshot test, responsive check, browser test | **AUTO-USE for automated browser validation** — spins up a headless browser instance. Use for deterministic testing workflows, screenshot comparisons, and repeatable validation. |
-| **Context7** | Library/API docs, unfamiliar library, setup steps, "how do I use X", **Claude Code hooks/settings/slash commands/API** | **AUTO-USE for documentation lookups** |
-| **gopls** | Go workspace, .go files, go.mod, Go symbols, Go diagnostics | **AUTO-USE for Go development** — use `go_workspace` at session start, `go_file_context` after reading .go files, `go_diagnostics` after edits, `go_symbol_references` before renaming. Scoped to Go agents/skills only. |
-
-Do not wait for explicit requests. If the task involves documentation or API reference, use Context7 proactively. This explicitly includes **Claude Code itself** — hooks schema, settings.json format, slash commands, CLAUDE.md syntax, MCP server setup, and SDK usage. If the task involves Go development in a Go workspace, use gopls MCP tools proactively.
-
-**IMPORTANT — Subagent propagation**: MCP server instructions are only injected into the main session's system prompt — subagents spawned via the Agent tool do NOT receive them. MCP tools appear as deferred tools in subagent contexts but agents won't use them unless told to call `ToolSearch`. Always include MCP tool discovery instructions in agent dispatch prompts (see Phase 4, Step 2.5).
-
----
-
 ## Error Handling
 
 ### Error: "No Agent Matches Request"
@@ -701,46 +646,7 @@ Solution:
 **Do instead**: Each trigger phrase must map to exactly one skill. Check for collisions before adding new force-routes.
 *Graduated from learning.db — routing/trigger-collision-causes-nondeterministic-routing*
 
-### Anti-Pattern 8: Agents Modifying .gitignore
-**What it looks like**: An agent edits `.gitignore` to un-ignore paths so it can commit gitignored files
-**Why wrong**: `.gitignore` defines repository safety boundaries. Agents bypassing it can commit ADRs, research, or local state.
-**Do instead**: NEVER allow agents to modify `.gitignore`. If a file is gitignored, it stays local.
-*Graduated from incident — agent modified .gitignore to un-ignore adr/ and research/*
-
-### Anti-Pattern 9: Agents Using git add --force
-**What it looks like**: An agent runs `git add -f` to force-add gitignored files
-**Why wrong**: Bypasses `.gitignore` safety boundaries.
-**Do instead**: NEVER use `git add -f` or `git add --force`. If git refuses to add a file, that's correct.
-*Graduated from incident — two worktree agents force-added gitignored files*
-
-### Anti-Pattern 10: Registering Hooks Before Deploying Files
-**What it looks like**: Adding a hook to `settings.json` before the script exists at `~/.claude/hooks/`
-**Why wrong**: Python file-not-found = exit code 2 = blocks ALL PreToolUse tools. Total session deadlock.
-**Do instead**: Deploy file first, verify it runs, THEN register. Never reverse this order.
-*Graduated from incident — hook-development-engineer bricked all PreToolUse*
-
-### Anti-Pattern 11: "Acceptable" as a Review Disposition
-**What it looks like**: "This is a real issue but acceptable for now" / "valid but deferred" / "conservative, not a bug"
-**Why wrong**: "Acceptable" acknowledges a problem while avoiding the cost of addressing it. Creates the illusion of thoroughness without substance.
-**Do instead**: FIX NOW, FIX IN FOLLOW-UP (with tracked artifact), or NOT AN ISSUE (with evidence). No middle ground.
-*Graduated from incident — Kafka PR shipped double-backoff classified as "conservative, not a bug"*
-
-### Anti-Pattern 12: Deferred Findings Without Tracking Artifacts
-**What it looks like**: "We'll address this in a follow-up" with no issue, TODO, or learning.db entry created.
-**Why wrong**: "Follow-up" without a tracking artifact is a polite way of saying "never."
-**Do instead**: Create a tracking artifact (GitHub issue, `TODO(follow-up):` in code, learning.db entry) before marking any finding as deferred.
-*Graduated from incident — Kafka PR deferred findings lost between review rounds*
-
-### Anti-Pattern 13: Protocol Reasoning Instead of Library Verification
-**What it looks like**: "Kafka consumer groups will rebalance after a member leaves, so this is safe."
-**Why wrong**: Protocol-level behavior and library-level behavior are not the same. LLMs reason from training data about protocols, not from reading the specific library version in go.mod.
-**Do instead**: Read the library source in GOMODCACHE. The question is never "how does the protocol work?" but "how does THIS library version implement THIS method?"
-*Graduated from incident — 40 agent reviews missed segmentio/kafka-go Reader offset behavior*
-
-### Anti-Pattern 14: Parallel Agents Creating Scattered Branches
-**What it looks like**: Dispatching 4 parallel agents, each creating its own feature branch (`feat/task-1`, `feat/task-2`, etc.), then manually cherry-picking or merging to combine their work.
-**Why wrong**: Cherry-picking is fragile, merge commits pollute history, and branch discovery is manual detective work. This was the actual outcome during ADR-083 implementation.
-**Do instead**: The orchestrator creates the target branch BEFORE dispatch. Each agent prompt includes `Work on branch: {name}. Do NOT create a new branch.` See ADR-093 and `dispatching-parallel-agents` skill Phase 2, Step 0.
+Anti-patterns 8-14 (agent/hook-specific patterns) are in CLAUDE.md and individual agent files, not here. The /do skill only tracks routing-specific anti-patterns.
 
 ---
 
