@@ -552,6 +552,13 @@ When uncertain which route: **ROUTE ANYWAY.** Route to the most likely agent + s
 ───────────────────────────────────────────────────
 ```
 
+**Routing decision recording** (for Simple+ tasks):
+After task completion, record the routing decision to learning.db:
+```bash
+python3 ~/.claude/scripts/learning-db.py learn --skill do "Routed '{request_summary}' to {agent}+{skill}. Outcome: {success|error|misroute}."
+```
+This builds a queryable corpus of routing decisions for accuracy analysis.
+
 **Auto-capture** (hooks, zero LLM cost):
 - `error-learner.py` (PostToolUse) → captures tool errors + solutions
 - `review-capture.py` (PostToolUse) → captures review agent findings

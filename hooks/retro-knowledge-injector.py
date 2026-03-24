@@ -65,6 +65,17 @@ WORK_INDICATORS = {
     "endpoint",
     "refactor",
     "architecture",
+    "debug",
+    "fix",
+    "test",
+    "review",
+    "deploy",
+    "migrate",
+    "upgrade",
+    "optimize",
+    "delete",
+    "remove",
+    "update",
 }
 
 # Prompts starting with these are trivial (skip retro)
