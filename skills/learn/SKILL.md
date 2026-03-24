@@ -13,6 +13,12 @@ argument-hint: '"error" -> "solution"'
 allowed-tools:
   - Read
   - Bash
+routing:
+  triggers:
+    - "teach pattern"
+    - "record learning"
+    - "manual learning entry"
+  category: meta-tooling
 ---
 
 # Learn Error Pattern Skill

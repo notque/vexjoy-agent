@@ -14,6 +14,12 @@ allowed-tools:
   - Bash
   - Grep
   - Glob
+routing:
+  triggers:
+    - "quality gate"
+    - "lint check"
+    - "multi-language lint"
+  category: code-quality
 ---
 
 # Universal Quality Gate Skill

@@ -14,6 +14,12 @@ allowed-tools:
   - Bash
   - Grep
   - Glob
+routing:
+  triggers:
+    - "run vitest"
+    - "JavaScript tests"
+    - "TypeScript tests"
+  category: testing
 ---
 
 # Vitest Test Runner Skill

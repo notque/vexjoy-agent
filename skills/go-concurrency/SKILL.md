@@ -24,6 +24,7 @@ allowed-tools:
 agent: golang-general-engineer
 command: /go-concurrency
 routing:
+  force_route: true
   triggers:
     - goroutine
     - channel

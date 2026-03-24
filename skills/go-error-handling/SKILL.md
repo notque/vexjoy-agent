@@ -22,6 +22,7 @@ allowed-tools:
 agent: golang-general-engineer
 command: /go-error-handling
 routing:
+  force_route: true
   triggers:
     - error handling
     - fmt.Errorf

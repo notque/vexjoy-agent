@@ -15,6 +15,12 @@ allowed-tools:
   - Write
   - Glob
   - Edit
+routing:
+  triggers:
+    - "validate endpoints"
+    - "smoke test API"
+    - "health check endpoints"
+  category: infrastructure
 ---
 
 # Endpoint Validator Skill

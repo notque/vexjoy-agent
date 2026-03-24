@@ -12,6 +12,12 @@ allowed-tools:
   - Grep
   - Glob
   - Bash
+routing:
+  triggers:
+    - "check status"
+    - "explore code"
+    - "read-only"
+  category: process
 ---
 
 # Read-Only Operations Skill

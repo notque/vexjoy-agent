@@ -16,6 +16,12 @@ allowed-tools:
   - Grep
   - Glob
   - Task
+routing:
+  triggers:
+    - "parallel review"
+    - "3-reviewer review"
+    - "security review"
+  category: code-review
 ---
 
 # Parallel Code Review Skill

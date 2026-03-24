@@ -18,6 +18,12 @@ allowed-tools:
   - Edit
   - Task
   - Skill
+routing:
+  triggers:
+    - "frontend design"
+    - "typography exploration"
+    - "anti-cliche design"
+  category: frontend
 ---
 
 # Distinctive Frontend Design Skill

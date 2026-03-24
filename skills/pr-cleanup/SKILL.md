@@ -11,6 +11,12 @@ user-invocable: true
 allowed-tools:
   - Bash
   - Read
+routing:
+  triggers:
+    - "cleanup branches"
+    - "delete merged branch"
+    - "prune branches"
+  category: git-workflow
 ---
 
 # PR Cleanup Skill

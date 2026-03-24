@@ -17,6 +17,12 @@ allowed-tools:
   - Glob
   - Edit
   - Task
+routing:
+  triggers:
+    - "batch edit posts"
+    - "bulk frontmatter update"
+    - "find replace across files"
+  category: content-publishing
 ---
 
 # Batch Editor Skill

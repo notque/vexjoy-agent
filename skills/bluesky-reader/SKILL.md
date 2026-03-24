@@ -10,6 +10,12 @@ agent: python-general-engineer
 allowed-tools:
   - Bash
   - Read
+routing:
+  triggers:
+    - "read Bluesky"
+    - "fetch Bluesky posts"
+    - "AT Protocol"
+  category: research
 ---
 
 # Bluesky Reader Skill

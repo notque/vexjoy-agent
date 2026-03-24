@@ -29,6 +29,14 @@ triggers:
   - "check python"
   - "quality gate"
   - "pre-commit check"
+routing:
+  force_route: true
+  triggers:
+    - "Python quality"
+    - "ruff check"
+    - "bandit scan"
+    - "mypy check"
+  category: code-quality
 ---
 
 # Python Quality Gate Skill

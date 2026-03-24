@@ -19,6 +19,12 @@ allowed-tools:
   - Edit
   - Task
   - Skill
+routing:
+  triggers:
+    - "validate voice"
+    - "check voice fidelity"
+    - "voice critique"
+  category: voice
 ---
 
 # Voice Validator Skill

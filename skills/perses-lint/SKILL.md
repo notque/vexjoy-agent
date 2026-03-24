@@ -15,6 +15,11 @@ allowed-tools:
   - Write
 agent: perses-dashboard-engineer
 version: 2.0.0
+routing:
+  triggers:
+    - "lint Perses"
+    - "validate Perses resources"
+  category: perses
 ---
 
 # Perses Lint

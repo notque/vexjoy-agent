@@ -20,6 +20,12 @@ allowed-tools:
   - Edit
   - Task
   - Skill
+routing:
+  triggers:
+    - "remove AI patterns"
+    - "de-AI content"
+    - "make it sound human"
+  category: content-creation
 ---
 
 # Anti-AI Editor

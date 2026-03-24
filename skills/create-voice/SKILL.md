@@ -24,6 +24,7 @@ allowed-tools:
   - Task
   - Skill
 routing:
+  force_route: true
   triggers:
     - create voice
     - new voice

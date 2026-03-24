@@ -22,6 +22,12 @@ allowed-tools:
   - Bash
   - Grep
   - Glob
+routing:
+  triggers:
+    - "refactor safely"
+    - "rename symbol"
+    - "extract function"
+  category: process
 ---
 
 # Systematic Refactoring Skill

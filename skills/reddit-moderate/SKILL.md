@@ -12,6 +12,12 @@ agent: python-general-engineer
 allowed-tools:
   - Bash
   - Read
+routing:
+  triggers:
+    - "moderate Reddit"
+    - "modqueue"
+    - "Reddit reports"
+  category: process
 ---
 
 # Reddit Moderate

@@ -18,6 +18,12 @@ allowed-tools:
   - Glob
   - Grep
   - Task
+routing:
+  triggers:
+    - "compare agents"
+    - "A/B test agents"
+    - "benchmark agents"
+  category: meta-tooling
 ---
 
 # Agent Comparison Skill

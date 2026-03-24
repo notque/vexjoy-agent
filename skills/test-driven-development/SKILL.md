@@ -20,6 +20,12 @@ allowed-tools:
   - Write
   - Bash
   - Grep
+routing:
+  triggers:
+    - "TDD"
+    - "test first"
+    - "red green refactor"
+  category: testing
 ---
 
 # Test-Driven Development (TDD) Skill

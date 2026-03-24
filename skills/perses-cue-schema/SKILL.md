@@ -17,6 +17,11 @@ allowed-tools:
   - Write
 agent: perses-plugin-engineer
 version: 2.0.0
+routing:
+  triggers:
+    - "Perses CUE schema"
+    - "plugin data model"
+  category: perses
 ---
 
 # Perses CUE Schema Authoring
