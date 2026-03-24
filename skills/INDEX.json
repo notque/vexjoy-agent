@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-03-24T04:57:19Z",
+  "generated": "2026-03-24T05:02:04Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "agent-comparison": {
@@ -1879,17 +1879,6 @@
       ],
       "category": "meta-tooling",
       "user_invocable": true,
-      "version": "2.0.0"
-    },
-    "workflow-orchestrator": {
-      "file": "skills/workflow-orchestrator/SKILL.md",
-      "description": "Three-phase task orchestration: BRAINSTORM requirements and approaches, WRITE-PLAN with atomic verifiable tasks, EXECUTE-PLAN with progress tracking.",
-      "triggers": [
-        "workflow orchestrator"
-      ],
-      "category": "uncategorized",
-      "force_route": true,
-      "user_invocable": false,
       "version": "2.0.0"
     }
   }
