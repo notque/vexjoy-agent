@@ -292,6 +292,12 @@ For each concern raised across all agents, record in `adr/{adr-name}/concerns.md
 - **Description**: [What's wrong or at risk]
 - **Resolution**: UNRESOLVED
 
+Resolution states (update as concerns are addressed):
+- UNRESOLVED — not yet addressed
+- RESOLVED: {description} — addressed in implementation
+- ACCEPTED: {description} — accepted as a known limitation
+- DEFERRED: {description} — will address in future work
+
 ## Concern 2: [Title]
 ...
 ```
@@ -411,6 +417,38 @@ is BLOCKED.
 ```
 
 **Gate**: Verdict issued, artifacts confirmed written to disk. Consultation is complete.
+
+---
+
+### Phase 5: LIFECYCLE (optional — run when consultation is no longer needed)
+
+**Goal**: Clean up consultation artifacts after an ADR's implementation is complete and merged.
+
+When an ADR's implementation is complete and merged:
+1. The consultation artifacts in `adr/{name}/` can be archived or deleted
+2. Update the ADR status to indicate consultation is complete
+3. The synthesis verdict and concerns are the permanent record — agent responses can be removed
+
+**Cleanup instructions:**
+
+To clean up after implementation is complete:
+1. **Keep**: `adr/{name}/synthesis.md` (permanent record of verdict)
+2. **Keep**: `adr/{name}/concerns.md` (permanent record of concerns + resolutions)
+3. **Delete**: `adr/{name}/reviewer-*.md` (agent responses — value extracted into synthesis)
+4. **Update**: ADR status to reflect implementation completion
+
+```bash
+# Remove agent response files (value already extracted into synthesis)
+rm adr/{name}/reviewer-*.md
+
+# Verify permanent records remain
+ls adr/{name}/synthesis.md adr/{name}/concerns.md
+```
+
+**Note**: The consultation directory is auto-created by Phase 1 (`mkdir -p adr/{adr-name}`).
+No `.gitkeep` is needed — the `adr/` directory is gitignored and the skill handles creation
+on demand. The lifecycle is: skill creates directory -> consultation runs -> implementation
+completes -> cleanup removes ephemeral agent responses -> permanent records remain.
 
 ---
 
