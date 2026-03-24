@@ -153,6 +153,27 @@ The `/do` router's only job is to classify requests and dispatch them to agents.
 **The test:**
 If the main thread is reading source code, editing files, running scripts for analysis, or doing any work beyond routing — something is wrong. Stop and dispatch an agent.
 
+## Hooks for Gates, LLMs for Judgment
+
+Instructions can be rationalized past. Exit codes cannot.
+
+When a skill says "check if synthesis.md exists before implementing," the LLM *can* construct an argument for why this specific case doesn't need it. When a PreToolUse hook checks the same condition and returns exit code 2, the tool physically does not execute. No argument gets past a blocked syscall.
+
+**The division:**
+
+| Mechanism | Best for | Why |
+|-----------|----------|-----|
+| Hooks (exit 2 = block) | Binary gates: does the file exist? Is the format valid? Is the bypass env var set? | Deterministic, unbypassable, sub-50ms |
+| LLM instructions | Judgment calls: is this the right approach? Is the code quality sufficient? Should we route here? | Contextual, nuanced, adaptable |
+
+**Hooks are fragile to deploy, robust in operation.** The deployment pain points are real — registration ordering (file must exist before settings.json entry), stdin format parsing, exit code semantics, stderr-only debugging. But once deployed, they work every time. Skill instructions are the opposite: easy to write, unreliable in enforcement.
+
+**The hookification test:** if a gate checks for a file, a status, or a structural property — and the answer is yes/no with no judgment required — it should be a hook. If it requires reading code and making a contextual decision, it stays in the skill.
+
+**Deployment discipline:**
+
+The correct order is always: deploy the file, verify it compiles, then register in settings.json. Never the reverse. A registered hook pointing to a nonexistent file causes Python's "file not found" exit code 2 — identical to an intentional block — on every single tool call. This deadlocks the entire session. The toolkit includes `scripts/register-hook.py` specifically to make this ordering mechanical rather than advisory, because advisory patterns fail exactly when you're moving fast and not thinking about them.
+
 ## Open Sharing Over Individual Ownership
 
 Ideas matter less than open sharing. In an AI-assisted world, provenance becomes invisible. The toolkit is open source because:

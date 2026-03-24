@@ -41,6 +41,7 @@ _EXEMPT_PREFIXES = (
     "/scripts/",
     "/adr/",
     "/commands/",
+    "/docs/",
     "/.claude/",
     "/.feature/",
 )
