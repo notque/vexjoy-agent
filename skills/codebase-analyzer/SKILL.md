@@ -19,6 +19,12 @@ allowed-tools:
   - Edit
   - Task
 context: fork
+routing:
+  triggers:
+    - "analyze codebase"
+    - "discover patterns"
+    - "style vector"
+  category: analysis
 ---
 
 # Codebase Analyzer Skill

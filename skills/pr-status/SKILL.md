@@ -11,6 +11,13 @@ user-invocable: true
 allowed-tools:
   - Bash
   - Read
+routing:
+  force_route: true
+  triggers:
+    - "PR status"
+    - "branch status"
+    - "merge readiness"
+  category: git-workflow
 ---
 
 # PR Status Skill

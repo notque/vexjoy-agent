@@ -11,6 +11,13 @@ allowed-tools:
   - Write
   - Edit
   - Agent
+routing:
+  force_route: true
+  triggers:
+    - "install toolkit"
+    - "verify installation"
+    - "health check toolkit"
+  category: meta-tooling
 ---
 
 # /install — Setup & Health Check

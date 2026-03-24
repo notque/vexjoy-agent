@@ -17,6 +17,11 @@ allowed-tools:
   - Agent
 agent: perses-dashboard-engineer
 version: 2.0.0
+routing:
+  triggers:
+    - "migrate Grafana"
+    - "Grafana to Perses"
+  category: perses
 ---
 
 # Perses Grafana Migration

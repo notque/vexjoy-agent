@@ -19,6 +19,7 @@ allowed-tools:
   - Edit
   - Agent
 routing:
+  force_route: true
   triggers:
     - feature design
     - design feature

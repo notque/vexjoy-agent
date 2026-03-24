@@ -14,6 +14,7 @@ allowed-tools:
   - Grep
   - Glob
 routing:
+  force_route: true
   triggers:
     - feature validate
     - validate feature

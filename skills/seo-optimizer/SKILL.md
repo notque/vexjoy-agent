@@ -16,6 +16,12 @@ allowed-tools:
   - Glob
   - Edit
   - Task
+routing:
+  triggers:
+    - "check SEO"
+    - "optimize SEO"
+    - "keyword analysis"
+  category: seo
 ---
 
 # SEO Optimizer Skill

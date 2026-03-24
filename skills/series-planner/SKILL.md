@@ -18,6 +18,12 @@ allowed-tools:
   - Edit
   - Task
 command: /series
+routing:
+  triggers:
+    - "plan series"
+    - "multi-part content"
+    - "content series"
+  category: content-creation
 ---
 
 # Series Planner Skill

@@ -16,6 +16,12 @@ allowed-tools:
   - Grep
   - Glob
   - Edit
+routing:
+  triggers:
+    - "content pipeline"
+    - "editorial calendar"
+    - "publishing schedule"
+  category: content-creation
 ---
 
 # Content Calendar Skill

@@ -17,6 +17,12 @@ allowed-tools:
   - Glob
   - Edit
   - Task
+routing:
+  triggers:
+    - "review comments"
+    - "fix temporal references"
+    - "comment quality"
+  category: code-quality
 ---
 
 # Comment Quality Skill

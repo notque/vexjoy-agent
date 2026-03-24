@@ -18,6 +18,12 @@ allowed-tools:
   - Edit
   - Task
   - Skill
+routing:
+  triggers:
+    - "write blog post"
+    - "draft article"
+    - "create content"
+  category: content-creation
 ---
 
 # Blog Post Writer Skill

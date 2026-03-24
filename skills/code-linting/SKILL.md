@@ -15,6 +15,13 @@ allowed-tools:
   - Edit
   - Write
 version: 2.0.0
+routing:
+  triggers:
+    - "lint code"
+    - "run ruff"
+    - "run biome"
+    - "format code"
+  category: code-quality
 ---
 
 # Code Linting Skill

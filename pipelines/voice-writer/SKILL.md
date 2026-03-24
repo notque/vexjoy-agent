@@ -23,6 +23,7 @@ allowed-tools:
   - Task
   - Skill
 routing:
+  force_route: true
   force_routing: true
   triggers:
     - write article

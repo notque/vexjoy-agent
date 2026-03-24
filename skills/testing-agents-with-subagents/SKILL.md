@@ -17,6 +17,12 @@ allowed-tools:
   - Glob
   - Edit
   - Task
+routing:
+  triggers:
+    - "test agents"
+    - "agent testing"
+    - "subagent testing"
+  category: testing
 ---
 
 # Testing Agents With Subagents

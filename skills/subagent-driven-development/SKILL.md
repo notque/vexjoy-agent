@@ -17,6 +17,12 @@ allowed-tools:
   - Glob
   - Edit
   - Task
+routing:
+  triggers:
+    - "subagent per task"
+    - "fresh context execution"
+    - "plan execution"
+  category: process
 ---
 
 # Subagent-Driven Development Skill

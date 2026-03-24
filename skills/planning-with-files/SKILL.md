@@ -16,6 +16,12 @@ allowed-tools:
   - Bash
   - Glob
   - Grep
+routing:
+  triggers:
+    - "create plan"
+    - "task plan"
+    - "working memory"
+  category: process
 ---
 
 # Planning with Files Skill

@@ -16,6 +16,11 @@ allowed-tools:
   - Grep
   - Glob
   - Edit
+routing:
+  triggers:
+    - "generate branch name"
+    - "validate branch name"
+  category: git-workflow
 ---
 
 # Branch Naming Skill

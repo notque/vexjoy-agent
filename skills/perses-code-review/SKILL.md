@@ -17,6 +17,11 @@ allowed-tools:
   - Agent
 agent: perses-core-engineer
 version: 2.0.0
+routing:
+  triggers:
+    - "review Perses code"
+    - "Perses PR review"
+  category: code-review
 ---
 
 # Perses Code Review

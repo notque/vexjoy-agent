@@ -18,6 +18,7 @@ allowed-tools:
   - Glob
   - Agent
 routing:
+  force_route: true
   triggers:
     - de-ai docs
     - clean ai patterns

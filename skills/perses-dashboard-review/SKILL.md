@@ -17,6 +17,11 @@ allowed-tools:
   - Agent
 agent: perses-dashboard-engineer
 version: 2.0.0
+routing:
+  triggers:
+    - "review Perses dashboard"
+    - "dashboard quality"
+  category: perses
 ---
 
 # Perses Dashboard Review

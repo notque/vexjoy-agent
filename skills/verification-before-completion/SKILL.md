@@ -21,6 +21,12 @@ allowed-tools:
   - Bash
   - Grep
   - Glob
+routing:
+  triggers:
+    - "verify completion"
+    - "run tests"
+    - "check build"
+  category: process
 ---
 
 # Verification Before Completion Skill

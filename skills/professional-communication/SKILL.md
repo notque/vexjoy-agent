@@ -14,6 +14,12 @@ user-invocable: false
 allowed-tools:
   - Read
   - Write
+routing:
+  triggers:
+    - "business communication"
+    - "structured format"
+    - "clear writing"
+  category: content-creation
 ---
 
 # Professional Communication Skill

@@ -18,6 +18,11 @@ allowed-tools:
   - Edit
   - Task
   - Skill
+routing:
+  triggers:
+    - "update routing"
+    - "sync routing tables"
+  category: meta-tooling
 ---
 
 # Routing Table Updater Skill

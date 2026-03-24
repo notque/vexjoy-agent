@@ -20,6 +20,7 @@ allowed-tools:
   - Edit
   - Write
 routing:
+  force_route: true
   triggers:
     - system upgrade
     - upgrade agents

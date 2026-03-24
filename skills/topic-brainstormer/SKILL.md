@@ -18,6 +18,12 @@ allowed-tools:
   - Edit
   - Task
 command: /brainstorm
+routing:
+  triggers:
+    - "brainstorm topics"
+    - "content ideas"
+    - "blog topic ideas"
+  category: content-creation
 ---
 
 # Topic Brainstormer

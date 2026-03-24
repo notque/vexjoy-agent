@@ -17,6 +17,12 @@ allowed-tools:
   - Glob
   - Edit
   - Task
+routing:
+  triggers:
+    - "outline post"
+    - "blog structure"
+    - "content blueprint"
+  category: content-creation
 ---
 
 # Post Outliner Skill

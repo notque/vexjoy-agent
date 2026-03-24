@@ -16,6 +16,11 @@ allowed-tools:
   - Write
 agent: perses-plugin-engineer
 version: 2.0.0
+routing:
+  triggers:
+    - "create Perses plugin"
+    - "scaffold plugin"
+  category: perses
 ---
 
 # Perses Plugin Create

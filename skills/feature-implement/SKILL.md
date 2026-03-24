@@ -17,6 +17,7 @@ allowed-tools:
   - Edit
   - Agent
 routing:
+  force_route: true
   triggers:
     - feature implement
     - implement feature

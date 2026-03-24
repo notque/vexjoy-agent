@@ -15,6 +15,12 @@ allowed-tools:
   - Grep
   - Glob
 agent: typescript-frontend-engineer
+routing:
+  triggers:
+    - "TypeScript check"
+    - "tsc noEmit"
+    - "type check TypeScript"
+  category: code-quality
 ---
 
 # TypeScript Type Check Skill

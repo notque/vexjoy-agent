@@ -16,6 +16,13 @@ allowed-tools:
   - Grep
   - Glob
   - Bash
+routing:
+  triggers:
+    - "evaluate agent"
+    - "audit agent"
+    - "score skill"
+    - "check quality"
+  category: meta-tooling
 ---
 
 # Agent Evaluation Skill

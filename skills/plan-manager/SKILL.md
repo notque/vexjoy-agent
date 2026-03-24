@@ -14,6 +14,13 @@ allowed-tools:
   - Bash
   - Grep
   - Glob
+routing:
+  triggers:
+    - "list plans"
+    - "show plan"
+    - "check plan"
+    - "complete plan"
+  category: process
 ---
 
 # Plan Manager Skill

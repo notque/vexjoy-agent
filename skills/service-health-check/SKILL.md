@@ -14,6 +14,12 @@ allowed-tools:
   - Read
   - Glob
   - Grep
+routing:
+  triggers:
+    - "service status"
+    - "process health"
+    - "uptime check"
+  category: infrastructure
 ---
 
 # Service Health Check Skill

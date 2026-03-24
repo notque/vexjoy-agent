@@ -15,6 +15,12 @@ success-criteria:
   - "Root cause identified with evidence (not speculation)"
   - "Fix verified by running the reproduction step"
   - "No regressions in related test suite"
+routing:
+  triggers:
+    - "debug"
+    - "find root cause"
+    - "reproduce bug"
+  category: process
 ---
 
 # Systematic Debugging Skill

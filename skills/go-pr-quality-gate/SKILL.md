@@ -18,6 +18,12 @@ allowed-tools:
   - Task
   - Skill
 agent: golang-general-engineer
+routing:
+  triggers:
+    - "Go quality"
+    - "make check"
+    - "Go lint"
+  category: code-quality
 ---
 
 # Go PR Quality Gate Skill

@@ -15,6 +15,12 @@ allowed-tools:
   - Edit
   - Grep
   - Glob
+routing:
+  triggers:
+    - "retro stats"
+    - "list learnings"
+    - "graduate knowledge"
+  category: meta-tooling
 ---
 
 # Retro Knowledge Skill

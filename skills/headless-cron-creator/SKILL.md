@@ -17,6 +17,12 @@ allowed-tools:
   - Edit
   - Glob
   - Grep
+routing:
+  triggers:
+    - "create cron job"
+    - "scheduled task"
+    - "headless agent"
+  category: process
 ---
 
 # Headless Cron Creator Skill

@@ -15,6 +15,12 @@ allowed-tools:
   - Read
   - Grep
   - Glob
+routing:
+  triggers:
+    - "how does routing work"
+    - "what skills exist"
+    - "system help"
+  category: meta-tooling
 ---
 
 # Workflow Help Skill

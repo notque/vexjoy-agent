@@ -17,6 +17,12 @@ allowed-tools:
   - Glob
   - Edit
   - Task
+routing:
+  triggers:
+    - "audit images"
+    - "check broken images"
+    - "image accessibility"
+  category: content-publishing
 ---
 
 # Image Auditor Skill

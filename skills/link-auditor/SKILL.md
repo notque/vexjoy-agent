@@ -16,6 +16,12 @@ allowed-tools:
   - Grep
   - Glob
   - Edit
+routing:
+  triggers:
+    - "audit links"
+    - "find broken links"
+    - "link health"
+  category: content-publishing
 ---
 
 # Link Auditor Skill

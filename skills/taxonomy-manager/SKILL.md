@@ -16,6 +16,12 @@ allowed-tools:
   - Grep
   - Glob
   - Edit
+routing:
+  triggers:
+    - "audit taxonomy"
+    - "fix tags"
+    - "merge categories"
+  category: seo
 ---
 
 # Taxonomy Manager Skill

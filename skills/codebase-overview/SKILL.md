@@ -19,6 +19,12 @@ allowed-tools:
   - Task
   - Skill
 context: fork
+routing:
+  triggers:
+    - "explore codebase"
+    - "onboard to codebase"
+    - "codebase structure"
+  category: analysis
 ---
 
 # Codebase Overview Skill

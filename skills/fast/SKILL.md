@@ -19,6 +19,7 @@ allowed-tools:
   - Glob
   - Skill
 routing:
+  force_route: true
   triggers:
     - quick fix
     - typo fix

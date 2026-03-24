@@ -18,6 +18,12 @@ allowed-tools:
   - Edit
   - Task
   - Skill
+routing:
+  triggers:
+    - "pre-publish check"
+    - "Hugo validation"
+    - "front matter check"
+  category: content-publishing
 ---
 
 # Pre-Publish Checker Skill

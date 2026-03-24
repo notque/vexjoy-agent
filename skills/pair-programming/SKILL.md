@@ -16,6 +16,12 @@ allowed-tools:
   - Bash
   - Grep
   - Glob
+routing:
+  triggers:
+    - "pair program"
+    - "collaborative coding"
+    - "micro-steps"
+  category: process
 ---
 
 # Pair Programming Skill

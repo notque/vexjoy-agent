@@ -17,6 +17,12 @@ allowed-tools:
   - Agent
 agent: perses-dashboard-engineer
 version: 2.0.0
+routing:
+  triggers:
+    - "build PromQL"
+    - "Perses query"
+    - "LogQL query"
+  category: perses
 ---
 
 # Perses Query Builder

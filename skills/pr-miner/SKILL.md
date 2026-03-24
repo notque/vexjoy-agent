@@ -19,6 +19,11 @@ allowed-tools:
   - Edit
   - Task
 context: fork
+routing:
+  triggers:
+    - "extract PR comments"
+    - "mine PR reviews"
+  category: git-workflow
 ---
 
 # PR Miner Skill

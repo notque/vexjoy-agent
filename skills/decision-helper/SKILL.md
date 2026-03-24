@@ -16,6 +16,12 @@ allowed-tools:
   - Grep
   - Glob
   - Edit
+routing:
+  triggers:
+    - "weigh options"
+    - "decision matrix"
+    - "compare approaches"
+  category: process
 ---
 
 # Decision Helper Skill

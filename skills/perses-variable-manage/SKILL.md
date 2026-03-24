@@ -17,6 +17,11 @@ allowed-tools:
   - Write
 agent: perses-dashboard-engineer
 version: 2.0.0
+routing:
+  triggers:
+    - "manage Perses variables"
+    - "dashboard variables"
+  category: perses
 ---
 
 # Perses Variable Management

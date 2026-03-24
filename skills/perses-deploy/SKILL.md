@@ -18,6 +18,11 @@ allowed-tools:
   - WebFetch
   - WebSearch
 version: 2.0.0
+routing:
+  triggers:
+    - "deploy Perses"
+    - "Perses server setup"
+  category: perses
 ---
 
 # Perses Deploy

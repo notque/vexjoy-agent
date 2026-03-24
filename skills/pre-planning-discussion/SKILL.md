@@ -20,6 +20,7 @@ allowed-tools:
   - Write
   - Edit
 routing:
+  force_route: true
   triggers:
     - discuss ambiguities
     - resolve gray areas

@@ -13,6 +13,11 @@ allowed-tools:
   - Read
   - Bash
   - Glob
+routing:
+  triggers:
+    - "manage plans"
+    - "plan lifecycle"
+  category: process
 ---
 
 # Plans - Plan Lifecycle Management

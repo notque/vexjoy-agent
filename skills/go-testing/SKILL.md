@@ -24,11 +24,10 @@ allowed-tools:
 agent: golang-general-engineer
 command: /go-testing
 routing:
+  force_route: true
   triggers:
     - go test
-    - Go test
     - "*_test.go"
-    - testing
     - table-driven
     - t.Run
     - t.Helper
@@ -39,7 +38,6 @@ routing:
   pairs_with:
     - golang-general-engineer
     - golang-general-engineer-compact
-  force_routing: true
 ---
 
 # Go Testing Skill

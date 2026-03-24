@@ -16,6 +16,11 @@ allowed-tools:
   - Write
 agent: perses-dashboard-engineer
 version: 2.0.0
+routing:
+  triggers:
+    - "manage Perses project"
+    - "Perses RBAC"
+  category: perses
 ---
 
 # Perses Project Management

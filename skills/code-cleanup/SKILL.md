@@ -27,6 +27,12 @@ triggers:
   - "stale comments"
   - "unused imports"
   - "technical debt scan"
+routing:
+  triggers:
+    - "find dead code"
+    - "stale TODOs"
+    - "unused imports"
+  category: code-quality
 ---
 
 # Code Cleanup Skill

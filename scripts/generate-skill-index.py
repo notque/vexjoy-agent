@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
 """
-Generate skill routing index from YAML frontmatter.
+Generate skill and pipeline routing indexes from YAML frontmatter.
 
-Reads all skills/*/SKILL.md files, extracts routing metadata from YAML frontmatter,
-and generates skills/INDEX.json for fast /do router lookups.
+Reads skills/*/SKILL.md and pipelines/*/SKILL.md, extracts routing metadata
+from YAML frontmatter, and generates two separate dict-keyed index files:
+  - skills/INDEX.json   (skills only, v2.0)
+  - pipelines/INDEX.json (pipelines only, v2.0 with phases)
 
 Usage:
     python scripts/generate-skill-index.py
 
 Output:
-    skills/INDEX.json - Routing index for /do router
+    skills/INDEX.json    - Skill routing index for /do router
+    pipelines/INDEX.json - Pipeline routing index for /do router
 
 Exit codes:
     0 - Success
     1 - Fatal error (directory not found, write failed)
-    2 - Completed with warnings (some skills failed to parse)
+    2 - Trigger collisions detected among force-routed entries
 """
 
 import json
@@ -25,13 +28,18 @@ from pathlib import Path
 
 import yaml
 
+# Phase header regex: matches "### Phase 1:", "### Phase 0.5:", "### Phase 4b:", etc.
+# Captures the NAME part after the colon, stopping before parenthetical or em-dash suffixes.
+PHASE_HEADER_RE = re.compile(r"^### Phase [\d]+[a-z.]?[\d]*:\s*(.+?)(?:\s*\(|\s*--|\s*\u2014|$)")
+
 
 def extract_frontmatter(content: str) -> tuple[dict | None, bool]:
     """Extract YAML frontmatter from markdown content.
 
     Attempts YAML parsing first, then falls back to regex extraction
-    for key fields (name, description, version, user-invocable, routing)
-    when YAML parsing fails due to malformed or edge-case frontmatter.
+    for key fields (name, description, version, user-invocable, routing,
+    agent, model) when YAML parsing fails due to malformed or edge-case
+    frontmatter.
 
     Returns:
         tuple: (frontmatter dict or None, used_fallback bool)
@@ -50,7 +58,7 @@ def extract_frontmatter(content: str) -> tuple[dict | None, bool]:
         print(f"  Warning: YAML parsing failed, using regex fallback: {e}", file=sys.stderr)
 
     # Fallback: extract key fields via regex when YAML parsing fails
-    frontmatter = {}
+    frontmatter: dict = {}
 
     name_match = re.search(r"^name:\s*(.+)$", yaml_content, re.MULTILINE)
     if name_match:
@@ -78,16 +86,29 @@ def extract_frontmatter(content: str) -> tuple[dict | None, bool]:
         val = user_invocable_match.group(1).strip().lower()
         frontmatter["user-invocable"] = val == "true"
 
+    # Top-level agent field
+    agent_match = re.search(r"^agent:\s*(.+)$", yaml_content, re.MULTILINE)
+    if agent_match:
+        frontmatter["agent"] = agent_match.group(1).strip()
+
+    # Top-level model field
+    model_match = re.search(r"^model:\s*(.+)$", yaml_content, re.MULTILINE)
+    if model_match:
+        frontmatter["model"] = model_match.group(1).strip()
+
     # Parse nested routing section structure:
     #   routing:
     #     triggers:
     #       - "trigger1"
     #       - trigger2
     #     category: category-name
+    #     force_route: true
+    #     pairs_with:
+    #       - agent-name
     routing_match = re.search(r"^routing:\s*\n((?:\s+.+\n?)+)", yaml_content, re.MULTILINE)
     if routing_match:
         routing_content = routing_match.group(1)
-        routing = {}
+        routing: dict = {}
 
         triggers_match = re.search(r"triggers:\s*\n((?:\s+-\s+.+\n?)+)", routing_content)
         if triggers_match:
@@ -97,6 +118,21 @@ def extract_frontmatter(content: str) -> tuple[dict | None, bool]:
         category_match = re.search(r"category:\s*(.+)$", routing_content, re.MULTILINE)
         if category_match:
             routing["category"] = category_match.group(1).strip()
+
+        force_route_match = re.search(r"force_route:\s*(.+)$", routing_content, re.MULTILINE)
+        if force_route_match:
+            val = force_route_match.group(1).strip().lower()
+            routing["force_route"] = val == "true"
+
+        pairs_match = re.search(r"pairs_with:\s*\n((?:\s+-\s+.+\n?)+)", routing_content)
+        if pairs_match:
+            pairs = re.findall(r'-\s+["\']?([^"\'\n]+)["\']?', pairs_match.group(1))
+            routing["pairs_with"] = [p.strip() for p in pairs]
+
+        # Also handle inline empty list: pairs_with: []
+        pairs_empty_match = re.search(r"pairs_with:\s*\[\]", routing_content)
+        if pairs_empty_match and "pairs_with" not in routing:
+            routing["pairs_with"] = []
 
         if routing:
             frontmatter["routing"] = routing
@@ -125,37 +161,137 @@ def extract_short_description(description: str) -> str:
     return desc
 
 
-def generate_index(skills_dir: Path, dir_prefix: str | None = None) -> tuple[dict, list[str]]:
-    """Generate routing index from all skill directories.
+def extract_phases(content: str) -> list[str]:
+    """Extract phase names from pipeline SKILL.md body.
 
-    Scans skills_dir for subdirectories containing SKILL.md files,
-    extracts frontmatter, and builds index entries with routing metadata.
+    Looks for ### Phase N: NAME headers and extracts the name part,
+    uppercased. Handles variants like Phase 0.5, Phase 4b, Phase 2a.
+    Strips parenthetical and em-dash suffixes from phase names.
 
     Args:
-        skills_dir: Directory to scan for skill subdirectories.
-        dir_prefix: Override for the file path prefix (e.g., "pipelines" instead of "skills").
-                    If None, uses the directory name.
+        content: Full SKILL.md file content.
 
     Returns:
-        tuple: (index dict with keys: version, generated, generated_by, skills[],
+        List of phase names in document order (e.g., ["CLASSIFY", "STAGE", "REVIEW"]).
+    """
+    phases = []
+    for line in content.splitlines():
+        m = PHASE_HEADER_RE.match(line)
+        if m:
+            phase_name = m.group(1).strip().upper()
+            # Remove trailing whitespace artifacts
+            phase_name = phase_name.strip()
+            if phase_name:
+                phases.append(phase_name)
+    return phases
+
+
+def build_entry(
+    frontmatter: dict,
+    skill_dir: Path,
+    dir_prefix: str,
+    content: str | None = None,
+    is_pipeline: bool = False,
+) -> dict:
+    """Build a single index entry from frontmatter and optional content.
+
+    Args:
+        frontmatter: Parsed YAML frontmatter dict.
+        skill_dir: Directory containing the SKILL.md file.
+        dir_prefix: Path prefix for file field (e.g., "skills" or "pipelines").
+        content: Full SKILL.md content (needed for pipeline phase extraction).
+        is_pipeline: Whether this entry is a pipeline (enables phase extraction).
+
+    Returns:
+        Dict representing the index entry for this skill/pipeline.
+    """
+    name = frontmatter.get("name", skill_dir.name)
+
+    entry: dict = {
+        "file": f"{dir_prefix}/{skill_dir.name}/SKILL.md",
+        "description": extract_short_description(frontmatter.get("description", "")),
+    }
+
+    # Triggers: from routing.triggers or auto-generated from name
+    routing = frontmatter.get("routing", {})
+    if isinstance(routing, dict) and "triggers" in routing:
+        entry["triggers"] = routing["triggers"]
+    else:
+        # Generate triggers from name as fallback
+        name_parts = name.replace("-", " ").split()
+        stop_words = {"skill", "pipeline", "the", "and", "for", "with"}
+        triggers = [p for p in name_parts if len(p) > 2 and p.lower() not in stop_words]
+        entry["triggers"] = [name] + triggers
+
+    # Category: from routing.category, omit if not present
+    if isinstance(routing, dict) and "category" in routing:
+        entry["category"] = routing["category"]
+
+    # Force route: from routing.force_route, only include when true
+    if isinstance(routing, dict) and routing.get("force_route") is True:
+        entry["force_route"] = True
+
+    # User invocable: normalize kebab-case to snake_case, default false
+    user_invocable = frontmatter.get("user-invocable", False)
+    entry["user_invocable"] = bool(user_invocable)
+
+    # Version: from frontmatter, omit if not present
+    if "version" in frontmatter:
+        entry["version"] = frontmatter["version"]
+
+    # Phases: pipelines only, extracted from body content
+    if is_pipeline and content:
+        phases = extract_phases(content)
+        if phases:
+            entry["phases"] = phases
+
+    # Pairs with: from routing.pairs_with, omit if not present
+    if isinstance(routing, dict) and "pairs_with" in routing:
+        entry["pairs_with"] = routing["pairs_with"]
+
+    # Agent: top-level frontmatter field, omit if not present
+    if "agent" in frontmatter:
+        entry["agent"] = frontmatter["agent"]
+
+    # Model: top-level frontmatter field, omit if not present
+    if "model" in frontmatter:
+        entry["model"] = frontmatter["model"]
+
+    return entry
+
+
+def generate_index(
+    source_dir: Path,
+    dir_prefix: str,
+    collection_key: str,
+    is_pipeline: bool = False,
+) -> tuple[dict, list[str]]:
+    """Generate a dict-keyed routing index from all SKILL.md files in a directory.
+
+    Args:
+        source_dir: Directory to scan for subdirectories containing SKILL.md.
+        dir_prefix: Path prefix for file field (e.g., "skills" or "pipelines").
+        collection_key: Top-level key name in the index (e.g., "skills" or "pipelines").
+        is_pipeline: Whether entries are pipelines (enables phase extraction).
+
+    Returns:
+        tuple: (index dict with version/generated/generated_by/collection,
                 list of warning messages)
     """
-    # Index format version - increment on breaking changes to schema
-    index = {
-        "version": "1.1",
+    index: dict = {
+        "version": "2.0",
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "generated_by": "scripts/generate-skill-index.py",
-        "skills": [],
+        collection_key: {},
     }
-    warnings = []
+    warnings: list[str] = []
 
-    for skill_dir in sorted(skills_dir.iterdir()):
+    for skill_dir in sorted(source_dir.iterdir()):
         if not skill_dir.is_dir():
             continue
 
         skill_file = skill_dir / "SKILL.md"
         if not skill_file.exists():
-            # Skip directories without SKILL.md
             continue
 
         try:
@@ -177,41 +313,79 @@ def generate_index(skills_dir: Path, dir_prefix: str | None = None) -> tuple[dic
             continue
 
         name = frontmatter.get("name", skill_dir.name)
-        description = frontmatter.get("description", "")
-
-        skill_entry = {
-            "name": name,
-            "description": extract_short_description(description),
-            "file": f"{dir_prefix or skills_dir.name}/{skill_dir.name}/SKILL.md",
-        }
-
-        # Add routing metadata if present
-        if "routing" in frontmatter:
-            routing = frontmatter["routing"]
-            if "triggers" in routing:
-                skill_entry["triggers"] = routing["triggers"]
-            if "category" in routing:
-                skill_entry["category"] = routing["category"]
-        else:
-            # Generate triggers from name as fallback
-            # Filter short words (articles, prepositions) that make poor search triggers
-            name_parts = name.replace("-", " ").split()
-            stop_words = {"skill", "pipeline", "the", "and", "for", "with"}
-            triggers = [p for p in name_parts if len(p) > 2 and p.lower() not in stop_words]
-            # Include the full skill name as first trigger for exact matching
-            skill_entry["triggers"] = [name] + triggers
-
-        # Add version if present
-        if "version" in frontmatter:
-            skill_entry["version"] = frontmatter["version"]
-
-        # Add user-invocable status (keep original kebab-case key name)
-        if "user-invocable" in frontmatter:
-            skill_entry["user-invocable"] = frontmatter["user-invocable"]
-
-        index["skills"].append(skill_entry)
+        entry = build_entry(
+            frontmatter=frontmatter,
+            skill_dir=skill_dir,
+            dir_prefix=dir_prefix,
+            content=content if is_pipeline else None,
+            is_pipeline=is_pipeline,
+        )
+        index[collection_key][name] = entry
 
     return index, warnings
+
+
+def check_trigger_collisions(
+    skills_index: dict,
+    pipelines_index: dict,
+) -> list[str]:
+    """Check for trigger collisions among force-routed entries.
+
+    Scans all entries across both indexes where force_route is true,
+    and reports any trigger phrase that appears in more than one
+    force-routed skill/pipeline.
+
+    Args:
+        skills_index: The skills index dict (keyed under "skills").
+        pipelines_index: The pipelines index dict (keyed under "pipelines").
+
+    Returns:
+        List of collision warning strings (empty if no collisions).
+    """
+    # Build map: trigger -> list of entry names that claim it
+    trigger_owners: dict[str, list[str]] = {}
+
+    for name, entry in skills_index.get("skills", {}).items():
+        if not entry.get("force_route"):
+            continue
+        for trigger in entry.get("triggers", []):
+            trigger_lower = trigger.lower()
+            trigger_owners.setdefault(trigger_lower, []).append(name)
+
+    for name, entry in pipelines_index.get("pipelines", {}).items():
+        if not entry.get("force_route"):
+            continue
+        for trigger in entry.get("triggers", []):
+            trigger_lower = trigger.lower()
+            trigger_owners.setdefault(trigger_lower, []).append(name)
+
+    collisions = []
+    for trigger, owners in sorted(trigger_owners.items()):
+        if len(owners) > 1:
+            collisions.append(f'  Trigger collision: "{trigger}" claimed by: {", ".join(owners)}')
+
+    return collisions
+
+
+def write_index(index: dict, output_path: Path) -> bool:
+    """Write an index dict to a JSON file.
+
+    Args:
+        index: The index dict to serialize.
+        output_path: File path to write to.
+
+    Returns:
+        True on success, False on error (error printed to stderr).
+    """
+    try:
+        output_path.write_text(json.dumps(index, indent=2) + "\n", encoding="utf-8")
+        return True
+    except PermissionError:
+        print(f"Error: Permission denied writing to {output_path}", file=sys.stderr)
+        return False
+    except OSError as e:
+        print(f"Error: Failed to write index file: {e}", file=sys.stderr)
+        return False
 
 
 def main() -> int:
@@ -219,82 +393,114 @@ def main() -> int:
     script_dir = Path(__file__).parent
     repo_root = script_dir.parent
     skills_dir = repo_root / "skills"
+    pipelines_dir = repo_root / "pipelines"
 
     if not skills_dir.exists():
         print(f"Error: skills directory not found at {skills_dir}", file=sys.stderr)
         return 1
 
-    # Generate index from public skills
-    index, warnings = generate_index(skills_dir)
+    # Generate skills index (skills only)
+    skills_index, skills_warnings = generate_index(
+        source_dir=skills_dir,
+        dir_prefix="skills",
+        collection_key="skills",
+        is_pipeline=False,
+    )
 
-    # Also scan pipelines directory (pipelines are skills with phases)
-    pipelines_dir = repo_root / "pipelines"
+    # Generate pipelines index (pipelines only)
+    pipelines_warnings: list[str] = []
     if pipelines_dir.exists() and any(pipelines_dir.iterdir()):
-        pipeline_index, pipeline_warnings = generate_index(pipelines_dir)
-        existing_names = {s["name"] for s in index["skills"]}
-        for skill in pipeline_index["skills"]:
-            if skill["name"] in existing_names:
-                index["skills"] = [s for s in index["skills"] if s["name"] != skill["name"]]
-            index["skills"].append(skill)
-        warnings.extend(pipeline_warnings)
+        pipelines_index, pipelines_warnings = generate_index(
+            source_dir=pipelines_dir,
+            dir_prefix="pipelines",
+            collection_key="pipelines",
+            is_pipeline=True,
+        )
+    else:
+        pipelines_index = {
+            "version": "2.0",
+            "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "generated_by": "scripts/generate-skill-index.py",
+            "pipelines": {},
+        }
 
-    # Also scan private skills if they exist (gitignored, user-specific)
-    private_skills_dir = repo_root / "private-skills"
-    if private_skills_dir.exists() and any(private_skills_dir.iterdir()):
-        private_index, private_warnings = generate_index(private_skills_dir)
-        existing_names = {s["name"] for s in index["skills"]}
-        for skill in private_index["skills"]:
-            if skill["name"] in existing_names:
-                index["skills"] = [s for s in index["skills"] if s["name"] != skill["name"]]
-            index["skills"].append(skill)
-        warnings.extend(private_warnings)
+    all_warnings = skills_warnings + pipelines_warnings
 
     # Report warnings if any
-    if warnings:
+    if all_warnings:
         print("Warnings during index generation:", file=sys.stderr)
-        for warning in warnings:
+        for warning in all_warnings:
             print(warning, file=sys.stderr)
 
-    # Validate index has content before writing
-    if not index["skills"]:
-        print("Error: No skills found. INDEX.json not written.", file=sys.stderr)
+    # Validate indexes have content before writing
+    if not skills_index["skills"] and not pipelines_index["pipelines"]:
+        print("Error: No skills or pipelines found. Index files not written.", file=sys.stderr)
         return 1
 
-    # Write index file
-    index_file = skills_dir / "INDEX.json"
-    try:
-        with open(index_file, "w", encoding="utf-8") as f:
-            json.dump(index, f, indent=2)
-    except PermissionError:
-        print(f"Error: Permission denied writing to {index_file}", file=sys.stderr)
+    # Write skills/INDEX.json
+    skills_index_path = skills_dir / "INDEX.json"
+    if not write_index(skills_index, skills_index_path):
         return 1
-    except OSError as e:
-        print(f"Error: Failed to write index file: {e}", file=sys.stderr)
-        return 1
+
+    # Write pipelines/INDEX.json (only if pipelines directory exists)
+    if pipelines_dir.exists():
+        pipelines_index_path = pipelines_dir / "INDEX.json"
+        if not write_index(pipelines_index, pipelines_index_path):
+            return 1
+    else:
+        pipelines_index_path = None
+
+    # Check for trigger collisions among force-routed entries
+    collisions = check_trigger_collisions(skills_index, pipelines_index)
+    if collisions:
+        print("\nTrigger collisions detected (force-routed entries):", file=sys.stderr)
+        for collision in collisions:
+            print(collision, file=sys.stderr)
 
     # Summary (to stdout)
-    print(f"Generated {index_file}")
-    print(f"  Total skills: {len(index['skills'])}")
+    skills_count = len(skills_index["skills"])
+    pipelines_count = len(pipelines_index["pipelines"])
 
-    # Show breakdown by category
-    categories: dict[str, int] = {}
-    for skill in index["skills"]:
-        cat = skill.get("category", "uncategorized")
-        categories[cat] = categories.get(cat, 0) + 1
+    print(f"Generated {skills_index_path}")
+    print(f"  Skills: {skills_count}")
 
-    print("  By category:")
-    for cat, count in sorted(categories.items()):
-        print(f"    {cat}: {count}")
+    # Show skills breakdown by category
+    skill_categories: dict[str, int] = {}
+    for entry in skills_index["skills"].values():
+        cat = entry.get("category", "uncategorized")
+        skill_categories[cat] = skill_categories.get(cat, 0) + 1
+    if skill_categories:
+        print("  By category:")
+        for cat, count in sorted(skill_categories.items()):
+            print(f"    {cat}: {count}")
 
-    # Show skills with/without triggers
-    with_explicit = sum(1 for s in index["skills"] if s.get("triggers", [None])[0] != s["name"])
-    print(f"  With explicit triggers: {with_explicit}")
-    print(f"  With auto-generated triggers: {len(index['skills']) - with_explicit}")
+    print(f"Generated {pipelines_index_path}")
+    print(f"  Pipelines: {pipelines_count}")
 
-    # Return warning exit code if there were issues
-    if warnings:
-        print(f"\nCompleted with {len(warnings)} warning(s)", file=sys.stderr)
+    # Show pipelines breakdown by category
+    pipeline_categories: dict[str, int] = {}
+    for entry in pipelines_index["pipelines"].values():
+        cat = entry.get("category", "uncategorized")
+        pipeline_categories[cat] = pipeline_categories.get(cat, 0) + 1
+    if pipeline_categories:
+        print("  By category:")
+        for cat, count in sorted(pipeline_categories.items()):
+            print(f"    {cat}: {count}")
+
+    # Trigger stats across both indexes
+    all_named = list(skills_index["skills"].items()) + list(pipelines_index["pipelines"].items())
+    with_explicit = sum(1 for name, e in all_named if e.get("triggers", [name])[0] != name)
+    force_routed = sum(1 for _, e in all_named if e.get("force_route"))
+    print(f"\nWith explicit triggers: {with_explicit}")
+    print(f"Force-routed: {force_routed}")
+
+    if collisions:
+        print(f"\nCompleted with {len(collisions)} trigger collision(s)", file=sys.stderr)
         return 2
+
+    # Return warning exit code if there were parse issues
+    if all_warnings:
+        print(f"\nCompleted with {len(all_warnings)} warning(s)", file=sys.stderr)
 
     return 0
 

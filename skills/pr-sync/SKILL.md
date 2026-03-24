@@ -14,6 +14,14 @@ allowed-tools:
   - Read
   - Grep
   - Glob
+routing:
+  force_route: true
+  triggers:
+    - "push"
+    - "push changes"
+    - "create PR"
+    - "sync to GitHub"
+  category: git-workflow
 ---
 
 # PR Sync Skill

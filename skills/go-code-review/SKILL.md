@@ -22,6 +22,7 @@ allowed-tools:
 agent: golang-general-engineer
 command: /go-code-review
 routing:
+  force_route: true
   triggers:
     - review Go
     - Go PR

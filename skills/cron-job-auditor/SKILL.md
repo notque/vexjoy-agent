@@ -14,6 +14,12 @@ allowed-tools:
   - Bash
   - Grep
   - Glob
+routing:
+  triggers:
+    - "audit cron jobs"
+    - "review scheduled scripts"
+    - "cron safety"
+  category: infrastructure
 ---
 
 # Cron Job Auditor Skill

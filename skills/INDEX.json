@@ -1,182 +1,181 @@
 {
-  "version": "1.1",
-  "generated": "2026-03-23T17:42:13Z",
+  "version": "2.0",
+  "generated": "2026-03-24T05:07:28Z",
   "generated_by": "scripts/generate-skill-index.py",
-  "skills": [
-    {
-      "name": "agent-comparison",
-      "description": "A/B test agent variants measuring quality and total session token cost across simple and complex benchmarks.",
+  "skills": {
+    "agent-comparison": {
       "file": "skills/agent-comparison/SKILL.md",
+      "description": "A/B test agent variants measuring quality and total session token cost across simple and complex benchmarks.",
       "triggers": [
-        "agent-comparison",
-        "agent",
-        "comparison"
+        "compare agents",
+        "A/B test agents",
+        "benchmark agents"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "meta-tooling",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "agent-evaluation",
-      "description": "Evaluate agents and skills for quality, completeness, and standards compliance using a 6-step rubric: Identify, Structural, Content, Code, Integration, Report.",
+    "agent-evaluation": {
       "file": "skills/agent-evaluation/SKILL.md",
+      "description": "Evaluate agents and skills for quality, completeness, and standards compliance using a 6-step rubric: Identify, Structural, Content, Code, Integration, Report.",
       "triggers": [
-        "agent-evaluation",
-        "agent",
-        "evaluation"
+        "evaluate agent",
+        "audit agent",
+        "score skill",
+        "check quality"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "meta-tooling",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "anti-ai-editor",
-      "description": "Review and revise content to remove AI-sounding patterns.",
+    "anti-ai-editor": {
       "file": "skills/anti-ai-editor/SKILL.md",
+      "description": "Review and revise content to remove AI-sounding patterns.",
       "triggers": [
-        "anti-ai-editor",
-        "anti",
-        "editor"
+        "remove AI patterns",
+        "de-AI content",
+        "make it sound human"
       ],
-      "version": "2.1.0",
-      "user-invocable": false
+      "category": "content-creation",
+      "user_invocable": false,
+      "version": "2.1.0"
     },
-    {
-      "name": "batch-editor",
-      "description": "Safe bulk editing across multiple Hugo markdown posts: find/replace, frontmatter updates, content transforms with mandatory preview before apply.",
+    "batch-editor": {
       "file": "skills/batch-editor/SKILL.md",
+      "description": "Safe bulk editing across multiple Hugo markdown posts: find/replace, frontmatter updates, content transforms with mandatory preview before apply.",
       "triggers": [
-        "batch-editor",
-        "batch",
-        "editor"
+        "batch edit posts",
+        "bulk frontmatter update",
+        "find replace across files"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "content-publishing",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "blog-post-writer",
-      "description": "Voice-integrated blog post creation with 4-phase workflow: Assess, Decide, Draft, Preview.",
+    "blog-post-writer": {
       "file": "skills/blog-post-writer/SKILL.md",
+      "description": "Voice-integrated blog post creation with 4-phase workflow: Assess, Decide, Draft, Preview.",
       "triggers": [
-        "blog-post-writer",
-        "blog",
-        "post",
-        "writer"
+        "write blog post",
+        "draft article",
+        "create content"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "content-creation",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "bluesky-reader",
-      "description": "Read public Bluesky feeds via the AT Protocol API.",
+    "bluesky-reader": {
       "file": "skills/bluesky-reader/SKILL.md",
+      "description": "Read public Bluesky feeds via the AT Protocol API.",
       "triggers": [
-        "bluesky-reader",
-        "bluesky",
-        "reader"
+        "read Bluesky",
+        "fetch Bluesky posts",
+        "AT Protocol"
       ],
+      "category": "research",
+      "user_invocable": false,
       "version": "1.0.0",
-      "user-invocable": false
+      "agent": "python-general-engineer"
     },
-    {
-      "name": "branch-naming",
-      "description": "Generate and validate Git branch names from commit messages or descriptions.",
+    "branch-naming": {
       "file": "skills/branch-naming/SKILL.md",
+      "description": "Generate and validate Git branch names from commit messages or descriptions.",
       "triggers": [
-        "branch-naming",
-        "branch",
-        "naming"
+        "generate branch name",
+        "validate branch name"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "git-workflow",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "code-cleanup",
-      "description": "Systematic detection and prioritization of neglected code quality issues: stale TODOs, unused imports, deprecated functions, high complexity, dead code.",
+    "code-cleanup": {
       "file": "skills/code-cleanup/SKILL.md",
+      "description": "Systematic detection and prioritization of neglected code quality issues: stale TODOs, unused imports, deprecated functions, high complexity, dead code.",
       "triggers": [
-        "code-cleanup",
-        "code",
-        "cleanup"
+        "find dead code",
+        "stale TODOs",
+        "unused imports"
       ],
-      "version": "2.0.0",
-      "user-invocable": true
+      "category": "code-quality",
+      "user_invocable": true,
+      "version": "2.0.0"
     },
-    {
-      "name": "code-linting",
-      "description": "Run Python (ruff) and JavaScript (Biome) linting, formatting, and code quality checks with auto-fix support.",
+    "code-linting": {
       "file": "skills/code-linting/SKILL.md",
+      "description": "Run Python (ruff) and JavaScript (Biome) linting, formatting, and code quality checks with auto-fix support.",
       "triggers": [
-        "code-linting",
-        "code",
-        "linting"
+        "lint code",
+        "run ruff",
+        "run biome",
+        "format code"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "code-quality",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "codebase-analyzer",
-      "description": "Statistical rule discovery through measurement of Go codebases: Count patterns, derive confidence-scored rules, produce Style Vector fingerprint.",
+    "codebase-analyzer": {
       "file": "skills/codebase-analyzer/SKILL.md",
+      "description": "Statistical rule discovery through measurement of Go codebases: Count patterns, derive confidence-scored rules, produce Style Vector fingerprint.",
       "triggers": [
-        "codebase-analyzer",
-        "codebase",
-        "analyzer"
+        "analyze codebase",
+        "discover patterns",
+        "style vector"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "analysis",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "codebase-overview",
-      "description": "Systematic 4-phase codebase exploration: Detect, Explore, Map, Summarize.",
+    "codebase-overview": {
       "file": "skills/codebase-overview/SKILL.md",
+      "description": "Systematic 4-phase codebase exploration: Detect, Explore, Map, Summarize.",
       "triggers": [
-        "codebase-overview",
-        "codebase",
-        "overview"
+        "explore codebase",
+        "onboard to codebase",
+        "codebase structure"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "analysis",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "comment-quality",
-      "description": "Review and fix comments containing temporal references, development-activity language, or relative comparisons.",
+    "comment-quality": {
       "file": "skills/comment-quality/SKILL.md",
+      "description": "Review and fix comments containing temporal references, development-activity language, or relative comparisons.",
       "triggers": [
-        "comment-quality",
-        "comment",
-        "quality"
+        "review comments",
+        "fix temporal references",
+        "comment quality"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "code-quality",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "condition-based-waiting",
-      "description": "Condition-based polling and retry patterns: exponential backoff, health checks, rate limit recovery, circuit breakers.",
+    "condition-based-waiting": {
       "file": "skills/condition-based-waiting/SKILL.md",
+      "description": "Condition-based polling and retry patterns: exponential backoff, health checks, rate limit recovery, circuit breakers.",
       "triggers": [
-        "condition-based-waiting",
-        "condition",
-        "based",
-        "waiting"
+        "exponential backoff",
+        "health check polling",
+        "retry pattern"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "process",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "content-calendar",
-      "description": "Manage editorial content pipeline through 6 stages: Ideas, Outlined, Drafted, Editing, Ready, Published.",
+    "content-calendar": {
       "file": "skills/content-calendar/SKILL.md",
+      "description": "Manage editorial content pipeline through 6 stages: Ideas, Outlined, Drafted, Editing, Ready, Published.",
       "triggers": [
-        "content-calendar",
-        "content",
-        "calendar"
+        "content pipeline",
+        "editorial calendar",
+        "publishing schedule"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "content-creation",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "create-voice",
-      "description": "Create a new voice profile from writing samples.",
+    "create-voice": {
       "file": "skills/create-voice/SKILL.md",
+      "description": "Create a new voice profile from writing samples.",
       "triggers": [
         "create voice",
         "new voice",
@@ -187,26 +186,29 @@
         "make a voice"
       ],
       "category": "content",
+      "force_route": true,
+      "user_invocable": true,
       "version": "1.0.0",
-      "user-invocable": true
+      "pairs_with": [
+        "voice-calibrator",
+        "voice-orchestrator"
+      ]
     },
-    {
-      "name": "cron-job-auditor",
-      "description": "Deterministic audit of cron/scheduled job scripts for reliability, error handling, logging, cleanup, and concurrency safety.",
+    "cron-job-auditor": {
       "file": "skills/cron-job-auditor/SKILL.md",
+      "description": "Deterministic audit of cron/scheduled job scripts for reliability, error handling, logging, cleanup, and concurrency safety.",
       "triggers": [
-        "cron-job-auditor",
-        "cron",
-        "job",
-        "auditor"
+        "audit cron jobs",
+        "review scheduled scripts",
+        "cron safety"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "infrastructure",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "data-analysis",
-      "description": "Decision-first data analysis with statistical rigor gates.",
+    "data-analysis": {
       "file": "skills/data-analysis/SKILL.md",
+      "description": "Decision-first data analysis with statistical rigor gates.",
       "triggers": [
         "analyze data",
         "data analysis",
@@ -224,97 +226,100 @@
         "experiment results"
       ],
       "category": "analysis",
+      "user_invocable": false,
       "version": "1.0.0",
-      "user-invocable": false
+      "pairs_with": [
+        "explore-pipeline",
+        "codebase-analyzer",
+        "research-to-article"
+      ]
     },
-    {
-      "name": "decision-helper",
-      "description": "Weighted decision scoring framework for architectural and technology choices.",
+    "decision-helper": {
       "file": "skills/decision-helper/SKILL.md",
+      "description": "Weighted decision scoring framework for architectural and technology choices.",
       "triggers": [
-        "decision-helper",
-        "decision",
-        "helper"
+        "weigh options",
+        "decision matrix",
+        "compare approaches"
       ],
-      "version": "1.0.0",
-      "user-invocable": false
+      "category": "process",
+      "user_invocable": false,
+      "version": "1.0.0"
     },
-    {
-      "name": "dispatching-parallel-agents",
-      "description": "Dispatch independent subagents in parallel for unrelated problems spanning different subsystems.",
+    "dispatching-parallel-agents": {
       "file": "skills/dispatching-parallel-agents/SKILL.md",
+      "description": "Dispatch independent subagents in parallel for unrelated problems spanning different subsystems.",
       "triggers": [
-        "dispatching-parallel-agents",
-        "dispatching",
-        "parallel",
-        "agents"
+        "parallel agents",
+        "independent failures",
+        "fan-out dispatch"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "process",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "distinctive-frontend-design",
-      "description": "Context-driven aesthetic exploration with anti-cliche validation: typography, color, animation, atmosphere.",
+    "distinctive-frontend-design": {
       "file": "skills/distinctive-frontend-design/SKILL.md",
+      "description": "Context-driven aesthetic exploration with anti-cliche validation: typography, color, animation, atmosphere.",
       "triggers": [
-        "distinctive-frontend-design",
-        "distinctive",
-        "frontend",
-        "design"
+        "frontend design",
+        "typography exploration",
+        "anti-cliche design"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "frontend",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "do",
-      "description": "Classify user requests and route to the correct agent + skill combination.",
+    "do": {
       "file": "skills/do/SKILL.md",
+      "description": "Classify user requests and route to the correct agent + skill combination.",
       "triggers": [
-        "do"
+        "route task",
+        "classify request"
       ],
-      "version": "2.0.0",
-      "user-invocable": true
+      "category": "meta-tooling",
+      "user_invocable": true,
+      "version": "2.0.0"
     },
-    {
-      "name": "do-parallel",
-      "description": "Spawn 10 independent parallel agents to analyze source material from distinct perspectives, synthesize findings, and apply improvements to a target agent or skill.",
+    "do-parallel": {
       "file": "skills/do-parallel/SKILL.md",
+      "description": "Spawn 10 independent parallel agents to analyze source material from distinct perspectives, synthesize findings, and apply improvements to a target agent or skill.",
       "triggers": [
-        "do-parallel",
-        "parallel"
+        "parallel analysis",
+        "multi-perspective",
+        "10 perspectives"
       ],
-      "version": "2.0.0",
-      "user-invocable": true
+      "category": "meta-tooling",
+      "user_invocable": true,
+      "version": "2.0.0"
     },
-    {
-      "name": "docs-sync-checker",
-      "description": "Deterministic 4-phase documentation drift detector: Scan, Cross-Reference, Detect, Report.",
+    "docs-sync-checker": {
       "file": "skills/docs-sync-checker/SKILL.md",
+      "description": "Deterministic 4-phase documentation drift detector: Scan, Cross-Reference, Detect, Report.",
       "triggers": [
-        "docs-sync-checker",
-        "docs",
-        "sync",
-        "checker"
+        "check doc drift",
+        "sync documentation",
+        "stale docs"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "documentation",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "endpoint-validator",
-      "description": "Deterministic API endpoint validation with structured pass/fail reporting.",
+    "endpoint-validator": {
       "file": "skills/endpoint-validator/SKILL.md",
+      "description": "Deterministic API endpoint validation with structured pass/fail reporting.",
       "triggers": [
-        "endpoint-validator",
-        "endpoint",
-        "validator"
+        "validate endpoints",
+        "smoke test API",
+        "health check endpoints"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "infrastructure",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "fast",
-      "description": "Zero-ceremony inline execution for tasks completable in 3 or fewer file edits.",
+    "fast": {
       "file": "skills/fast/SKILL.md",
+      "description": "Zero-ceremony inline execution for tasks completable in 3 or fewer file edits.",
       "triggers": [
         "quick fix",
         "typo fix",
@@ -325,13 +330,14 @@
         "fix import"
       ],
       "category": "process",
+      "force_route": true,
+      "user_invocable": true,
       "version": "1.0.0",
-      "user-invocable": true
+      "pairs_with": []
     },
-    {
-      "name": "feature-design",
-      "description": "Collaborative design phase for feature lifecycle: explore requirements, discuss trade-offs, produce design document.",
+    "feature-design": {
       "file": "skills/feature-design/SKILL.md",
+      "description": "Collaborative design phase for feature lifecycle: explore requirements, discuss trade-offs, produce design document.",
       "triggers": [
         "feature design",
         "design feature",
@@ -341,13 +347,17 @@
         "feature-design"
       ],
       "category": "process",
+      "force_route": true,
+      "user_invocable": true,
       "version": "2.0.0",
-      "user-invocable": true
+      "pairs_with": [
+        "feature-plan",
+        "workflow-orchestrator"
+      ]
     },
-    {
-      "name": "feature-implement",
-      "description": "Execute wave-ordered implementation plan by dispatching tasks to domain agents.",
+    "feature-implement": {
       "file": "skills/feature-implement/SKILL.md",
+      "description": "Execute wave-ordered implementation plan by dispatching tasks to domain agents.",
       "triggers": [
         "feature implement",
         "implement feature",
@@ -356,13 +366,18 @@
         "feature-implement"
       ],
       "category": "process",
+      "force_route": true,
+      "user_invocable": true,
       "version": "2.0.0",
-      "user-invocable": true
+      "pairs_with": [
+        "feature-plan",
+        "feature-validate",
+        "subagent-driven-development"
+      ]
     },
-    {
-      "name": "feature-plan",
-      "description": "Break a design document into wave-ordered implementation tasks with domain agent assignments.",
+    "feature-plan": {
       "file": "skills/feature-plan/SKILL.md",
+      "description": "Break a design document into wave-ordered implementation tasks with domain agent assignments.",
       "triggers": [
         "feature plan",
         "plan feature",
@@ -371,13 +386,18 @@
         "feature-plan"
       ],
       "category": "process",
+      "force_route": true,
+      "user_invocable": true,
       "version": "2.0.0",
-      "user-invocable": true
+      "pairs_with": [
+        "feature-design",
+        "feature-implement",
+        "workflow-orchestrator"
+      ]
     },
-    {
-      "name": "feature-release",
-      "description": "Merge validated feature to main via PR, tag release, cleanup worktree.",
+    "feature-release": {
       "file": "skills/feature-release/SKILL.md",
+      "description": "Merge validated feature to main via PR, tag release, cleanup worktree.",
       "triggers": [
         "feature release",
         "release feature",
@@ -386,13 +406,18 @@
         "feature-release"
       ],
       "category": "process",
+      "force_route": true,
+      "user_invocable": true,
       "version": "2.0.0",
-      "user-invocable": true
+      "pairs_with": [
+        "feature-validate",
+        "pr-pipeline",
+        "git-commit-flow"
+      ]
     },
-    {
-      "name": "feature-validate",
-      "description": "Run quality gates on implemented feature: tests, lint, type checks, and custom validation.",
+    "feature-validate": {
       "file": "skills/feature-validate/SKILL.md",
+      "description": "Run quality gates on implemented feature: tests, lint, type checks, and custom validation.",
       "triggers": [
         "feature validate",
         "validate feature",
@@ -401,13 +426,19 @@
         "feature-validate"
       ],
       "category": "process",
+      "force_route": true,
+      "user_invocable": true,
       "version": "2.0.0",
-      "user-invocable": true
+      "pairs_with": [
+        "feature-implement",
+        "feature-release",
+        "verification-before-completion",
+        "universal-quality-gate"
+      ]
     },
-    {
-      "name": "fish-shell-config",
-      "description": "Fish shell configuration: config.fish, functions, abbreviations, variable scoping, conf.d modules, and PATH management.",
+    "fish-shell-config": {
       "file": "skills/fish-shell-config/SKILL.md",
+      "description": "Fish shell configuration: config.fish, functions, abbreviations, variable scoping, conf.d modules, and PATH management.",
       "triggers": [
         "fish",
         "fish shell",
@@ -424,13 +455,13 @@
         ".fish file",
         "#!/usr/bin/env fish"
       ],
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "pairs_with": []
     },
-    {
-      "name": "forensics",
-      "description": "Post-mortem diagnostic analysis of failed or stuck workflows.",
+    "forensics": {
       "file": "skills/forensics/SKILL.md",
+      "description": "Post-mortem diagnostic analysis of failed or stuck workflows.",
       "triggers": [
         "forensics",
         "what went wrong",
@@ -444,13 +475,17 @@
         "investigate failure"
       ],
       "category": "process",
+      "user_invocable": true,
       "version": "1.0.0",
-      "user-invocable": true
+      "pairs_with": [
+        "systematic-debugging",
+        "workflow-orchestrator",
+        "plan-checker"
+      ]
     },
-    {
-      "name": "full-repo-review",
-      "description": "Run comprehensive 3-wave review against all source files in the repo, producing a prioritized issue backlog.",
+    "full-repo-review": {
       "file": "skills/full-repo-review/SKILL.md",
+      "description": "Run comprehensive 3-wave review against all source files in the repo, producing a prioritized issue backlog.",
       "triggers": [
         "full repo review",
         "review entire repo",
@@ -459,13 +494,16 @@
         "full codebase review"
       ],
       "category": "analysis",
+      "user_invocable": true,
       "version": "1.0.0",
-      "user-invocable": true
+      "pairs_with": [
+        "comprehensive-review"
+      ],
+      "model": "opus"
     },
-    {
-      "name": "gemini-image-generator",
-      "description": "CLI-based image generation from text prompts using Google Gemini APIs via Python.",
+    "gemini-image-generator": {
       "file": "skills/gemini-image-generator/SKILL.md",
+      "description": "CLI-based image generation from text prompts using Google Gemini APIs via Python.",
       "triggers": [
         "generate image",
         "create image with AI",
@@ -476,39 +514,61 @@
         "generate character art"
       ],
       "category": "image-generation",
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "pairs_with": [
+        "python-general-engineer",
+        "workflow-orchestrator"
+      ]
     },
-    {
-      "name": "git-commit-flow",
-      "description": "Phase-gated git commit workflow with validation, staging, and CLAUDE.md compliance enforcement.",
+    "generate-claudemd": {
+      "file": "skills/generate-claudemd/SKILL.md",
+      "description": "Generate a project-specific CLAUDE.md by analyzing the current repository's code, build system, and architecture.",
+      "triggers": [
+        "generate claude.md",
+        "create claude.md",
+        "init claude.md",
+        "bootstrap claude.md",
+        "make claude.md"
+      ],
+      "category": "documentation",
+      "user_invocable": true,
+      "version": "1.0.0",
+      "pairs_with": [
+        "go-sapcc-conventions",
+        "codebase-overview"
+      ]
+    },
+    "git-commit-flow": {
       "file": "skills/git-commit-flow/SKILL.md",
+      "description": "Phase-gated git commit workflow with validation, staging, and CLAUDE.md compliance enforcement.",
       "triggers": [
-        "git-commit-flow",
-        "git",
         "commit",
-        "flow"
+        "stage and commit",
+        "commit changes"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "git-workflow",
+      "force_route": true,
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "github-actions-check",
-      "description": "Check GitHub Actions workflow status after git push using gh CLI.",
+    "github-actions-check": {
       "file": "skills/github-actions-check/SKILL.md",
+      "description": "Check GitHub Actions workflow status after git push using gh CLI.",
       "triggers": [
-        "github-actions-check",
-        "github",
-        "actions",
-        "check"
+        "check CI",
+        "CI status",
+        "actions status",
+        "did CI pass"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "git-workflow",
+      "force_route": true,
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "go-anti-patterns",
-      "description": "Detect and remediate Go anti-patterns: premature interface abstraction, goroutine overkill, context soup, error wrapping mistakes, generic abuse, c...",
+    "go-anti-patterns": {
       "file": "skills/go-anti-patterns/SKILL.md",
+      "description": "Detect and remediate Go anti-patterns: premature interface abstraction, goroutine overkill, context soup, error wrapping mistakes, generic abuse, c...",
       "triggers": [
         "anti-pattern",
         "Go mistake",
@@ -519,13 +579,19 @@
         "over-engineering",
         "unnecessary complexity"
       ],
+      "force_route": true,
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "pairs_with": [
+        "golang-general-engineer",
+        "golang-general-engineer-compact",
+        "go-code-review"
+      ],
+      "agent": "golang-general-engineer"
     },
-    {
-      "name": "go-code-review",
-      "description": "Go-specific code review with 6-phase methodology: Context, Automated Checks, Quality Analysis, Specific Analysis, Line-by-Line, Documentation.",
+    "go-code-review": {
       "file": "skills/go-code-review/SKILL.md",
+      "description": "Go-specific code review with 6-phase methodology: Context, Automated Checks, Quality Analysis, Specific Analysis, Line-by-Line, Documentation.",
       "triggers": [
         "review Go",
         "Go PR",
@@ -534,13 +600,19 @@
         "check Go code",
         "Go quality"
       ],
+      "force_route": true,
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "pairs_with": [
+        "golang-general-engineer",
+        "golang-general-engineer-compact",
+        "systematic-code-review"
+      ],
+      "agent": "golang-general-engineer"
     },
-    {
-      "name": "go-concurrency",
-      "description": "Go concurrency patterns and primitives: goroutines, channels, sync primitives, worker pools, rate limiting, context propagation.",
+    "go-concurrency": {
       "file": "skills/go-concurrency/SKILL.md",
+      "description": "Go concurrency patterns and primitives: goroutines, channels, sync primitives, worker pools, rate limiting, context propagation.",
       "triggers": [
         "goroutine",
         "channel",
@@ -557,13 +629,18 @@
         "race condition",
         "deadlock"
       ],
+      "force_route": true,
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "pairs_with": [
+        "golang-general-engineer",
+        "golang-general-engineer-compact"
+      ],
+      "agent": "golang-general-engineer"
     },
-    {
-      "name": "go-error-handling",
-      "description": "Go error handling patterns: wrapping with context, sentinel errors, custom error types, errors.Is/As chains, and HTTP error mapping.",
+    "go-error-handling": {
       "file": "skills/go-error-handling/SKILL.md",
+      "description": "Go error handling patterns: wrapping with context, sentinel errors, custom error types, errors.Is/As chains, and HTTP error mapping.",
       "triggers": [
         "error handling",
         "fmt.Errorf",
@@ -575,25 +652,31 @@
         "custom error",
         "error context"
       ],
+      "force_route": true,
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
-    },
-    {
-      "name": "go-pr-quality-gate",
-      "description": "Run Go quality checks via make check with intelligent error categorization and actionable fix suggestions.",
-      "file": "skills/go-pr-quality-gate/SKILL.md",
-      "triggers": [
-        "go-pr-quality-gate",
-        "quality",
-        "gate"
+      "pairs_with": [
+        "golang-general-engineer",
+        "golang-general-engineer-compact"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "agent": "golang-general-engineer"
     },
-    {
-      "name": "go-sapcc-conventions",
-      "description": "SAP Converged Cloud Go coding conventions extracted from sapcc/keppel and sapcc/go-bits PR reviews.",
+    "go-pr-quality-gate": {
+      "file": "skills/go-pr-quality-gate/SKILL.md",
+      "description": "Run Go quality checks via make check with intelligent error categorization and actionable fix suggestions.",
+      "triggers": [
+        "Go quality",
+        "make check",
+        "Go lint"
+      ],
+      "category": "code-quality",
+      "user_invocable": false,
+      "version": "2.0.0",
+      "agent": "golang-general-engineer"
+    },
+    "go-sapcc-conventions": {
       "file": "skills/go-sapcc-conventions/SKILL.md",
+      "description": "SAP Converged Cloud Go coding conventions extracted from sapcc/keppel and sapcc/go-bits PR reviews.",
       "triggers": [
         "sapcc",
         "sap-cloud-infrastructure",
@@ -605,18 +688,23 @@
         "sap-cloud-infrastructure/go-bits"
       ],
       "category": "language",
+      "force_route": true,
+      "user_invocable": false,
       "version": "1.0.0",
-      "user-invocable": false
+      "pairs_with": [
+        "golang-general-engineer",
+        "golang-general-engineer-compact",
+        "go-testing",
+        "go-error-handling"
+      ],
+      "agent": "golang-general-engineer"
     },
-    {
-      "name": "go-testing",
-      "description": "Go testing patterns and methodology: table-driven tests, t.Run subtests, t.Helper helpers, mocking interfaces, benchmarks, race detection, and synctest.",
+    "go-testing": {
       "file": "skills/go-testing/SKILL.md",
+      "description": "Go testing patterns and methodology: table-driven tests, t.Run subtests, t.Helper helpers, mocking interfaces, benchmarks, race detection, and synctest.",
       "triggers": [
         "go test",
-        "Go test",
         "*_test.go",
-        "testing",
         "table-driven",
         "t.Run",
         "t.Helper",
@@ -625,38 +713,43 @@
         "test coverage",
         "race detection"
       ],
+      "force_route": true,
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "pairs_with": [
+        "golang-general-engineer",
+        "golang-general-engineer-compact"
+      ],
+      "agent": "golang-general-engineer"
     },
-    {
-      "name": "headless-cron-creator",
-      "description": "Generate headless Claude Code cron jobs from a task description and schedule.",
+    "headless-cron-creator": {
       "file": "skills/headless-cron-creator/SKILL.md",
+      "description": "Generate headless Claude Code cron jobs from a task description and schedule.",
       "triggers": [
-        "headless-cron-creator",
-        "headless",
-        "cron",
-        "creator"
+        "create cron job",
+        "scheduled task",
+        "headless agent"
       ],
+      "category": "process",
+      "user_invocable": true,
       "version": "1.0.0",
-      "user-invocable": true
+      "agent": "python-general-engineer"
     },
-    {
-      "name": "image-auditor",
-      "description": "Non-destructive 4-phase image validation: Discover, Validate, Analyze, Report.",
+    "image-auditor": {
       "file": "skills/image-auditor/SKILL.md",
+      "description": "Non-destructive 4-phase image validation: Discover, Validate, Analyze, Report.",
       "triggers": [
-        "image-auditor",
-        "image",
-        "auditor"
+        "audit images",
+        "check broken images",
+        "image accessibility"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "content-publishing",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "image-to-video",
-      "description": "FFmpeg-based 4-step video creation: Validate, Prepare, Encode, Verify.",
+    "image-to-video": {
       "file": "skills/image-to-video/SKILL.md",
+      "description": "FFmpeg-based 4-step video creation: Validate, Prepare, Encode, Verify.",
       "triggers": [
         "image to video",
         "audio visualization",
@@ -670,24 +763,29 @@
         "cover art video"
       ],
       "category": "video-creation",
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "pairs_with": [
+        "gemini-image-generator",
+        "workflow-orchestrator"
+      ]
     },
-    {
-      "name": "install",
-      "description": "Verify Claude Code Toolkit installation, diagnose issues, and guide new users through first-time setup",
+    "install": {
       "file": "skills/install/SKILL.md",
+      "description": "Verify Claude Code Toolkit installation, diagnose issues, and guide new users through first-time setup",
       "triggers": [
-        "install",
-        "install"
+        "install toolkit",
+        "verify installation",
+        "health check toolkit"
       ],
-      "version": "1.0.0",
-      "user-invocable": true
+      "category": "meta-tooling",
+      "force_route": true,
+      "user_invocable": true,
+      "version": "1.0.0"
     },
-    {
-      "name": "integration-checker",
-      "description": "Verify cross-component wiring: exports are imported AND used, real data flows through connections, output shapes match input expectations.",
+    "integration-checker": {
       "file": "skills/integration-checker/SKILL.md",
+      "description": "Verify cross-component wiring: exports are imported AND used, real data flows through connections, output shapes match input expectations.",
       "triggers": [
         "integration check",
         "check integration",
@@ -698,13 +796,17 @@
         "wiring check"
       ],
       "category": "process",
+      "user_invocable": true,
       "version": "1.0.0",
-      "user-invocable": true
+      "pairs_with": [
+        "feature-implement",
+        "feature-validate",
+        "comprehensive-review"
+      ]
     },
-    {
-      "name": "joy-check",
-      "description": "Validate content for joy-centered tonal framing.",
+    "joy-check": {
       "file": "skills/joy-check/SKILL.md",
+      "description": "Validate content for joy-centered tonal framing.",
       "triggers": [
         "joy check",
         "check framing",
@@ -715,36 +817,41 @@
         "reframe positively"
       ],
       "category": "content",
+      "user_invocable": true,
       "version": "1.0.0",
-      "user-invocable": true
+      "pairs_with": [
+        "voice-writer",
+        "anti-ai-editor",
+        "voice-validator"
+      ]
     },
-    {
-      "name": "learn",
-      "description": "Manually teach Claude Code an error pattern and its solution, storing it in the learning database with high confidence.",
+    "learn": {
       "file": "skills/learn/SKILL.md",
+      "description": "Manually teach Claude Code an error pattern and its solution, storing it in the learning database with high confidence.",
       "triggers": [
-        "learn",
-        "learn"
+        "teach pattern",
+        "record learning",
+        "manual learning entry"
       ],
-      "version": "2.0.0",
-      "user-invocable": true
+      "category": "meta-tooling",
+      "user_invocable": true,
+      "version": "2.0.0"
     },
-    {
-      "name": "link-auditor",
-      "description": "Hugo site link health analysis: scan markdown, build internal link graph, validate paths, and report issues.",
+    "link-auditor": {
       "file": "skills/link-auditor/SKILL.md",
+      "description": "Hugo site link health analysis: scan markdown, build internal link graph, validate paths, and report issues.",
       "triggers": [
-        "link-auditor",
-        "link",
-        "auditor"
+        "audit links",
+        "find broken links",
+        "link health"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "content-publishing",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "nano-banana-builder",
-      "description": "Build Next.js web applications with Google Gemini Nano Banana image generation APIs (gemini-2.5-flash-image, gemini-3-pro-image-preview).",
+    "nano-banana-builder": {
       "file": "skills/nano-banana-builder/SKILL.md",
+      "description": "Build Next.js web applications with Google Gemini Nano Banana image generation APIs (gemini-2.5-flash-image, gemini-3-pro-image-preview).",
       "triggers": [
         "nano banana",
         "gemini image generation",
@@ -754,38 +861,41 @@
         "gemini-3-pro-image-preview",
         "web image generator"
       ],
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "pairs_with": [
+        "typescript-frontend-engineer",
+        "nodejs-api-engineer",
+        "universal-quality-gate"
+      ]
     },
-    {
-      "name": "pair-programming",
-      "description": "Collaborative coding with enforced micro-steps: announce, show diff, wait for confirmation, apply, verify.",
+    "pair-programming": {
       "file": "skills/pair-programming/SKILL.md",
+      "description": "Collaborative coding with enforced micro-steps: announce, show diff, wait for confirmation, apply, verify.",
       "triggers": [
-        "pair-programming",
-        "pair",
-        "programming"
+        "pair program",
+        "collaborative coding",
+        "micro-steps"
       ],
-      "version": "1.0.0",
-      "user-invocable": false
+      "category": "process",
+      "user_invocable": false,
+      "version": "1.0.0"
     },
-    {
-      "name": "parallel-code-review",
-      "description": "Parallel 3-reviewer code review orchestration: launch Security, Business-Logic, and Architecture reviewers simultaneously, aggregate findings by se...",
+    "parallel-code-review": {
       "file": "skills/parallel-code-review/SKILL.md",
+      "description": "Parallel 3-reviewer code review orchestration: launch Security, Business-Logic, and Architecture reviewers simultaneously, aggregate findings by se...",
       "triggers": [
-        "parallel-code-review",
-        "parallel",
-        "code",
-        "review"
+        "parallel review",
+        "3-reviewer review",
+        "security review"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "code-review",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "pause-work",
-      "description": "Create session handoff artifacts (HANDOFF.json + .continue-here.md) that capture completed work, remaining tasks, decisions, uncommitted files, and...",
+    "pause-work": {
       "file": "skills/pause-work/SKILL.md",
+      "description": "Create session handoff artifacts (HANDOFF.json + .continue-here.md) that capture completed work, remaining tasks, decisions, uncommitted files, and...",
       "triggers": [
         "pause",
         "save progress",
@@ -797,192 +907,183 @@
         "wrap up session"
       ],
       "category": "process",
+      "user_invocable": true,
       "version": "1.0.0",
-      "user-invocable": true
+      "pairs_with": [
+        "resume-work"
+      ]
     },
-    {
-      "name": "perses-code-review",
-      "description": "Perses-aware code review: check Go backend against Perses patterns, React components against Perses UI conventions, CUE schemas against plugin spec, and dashboard definitions against best practices.",
+    "perses-code-review": {
       "file": "skills/perses-code-review/SKILL.md",
+      "description": "Perses-aware code review: check Go backend against Perses patterns, React components against Perses UI conventions, CUE schemas against plugin spec, and dashboard definitions against best practices.",
       "triggers": [
-        "perses-code-review",
-        "perses",
-        "code",
-        "review"
+        "review Perses code",
+        "Perses PR review"
       ],
+      "category": "code-review",
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "agent": "perses-core-engineer"
     },
-    {
-      "name": "perses-cue-schema",
-      "description": "CUE schema authoring for Perses plugins: define data models, write validation constraints, create JSON examples, implement Grafana migration schemas in migrate/migrate.cue.",
+    "perses-cue-schema": {
       "file": "skills/perses-cue-schema/SKILL.md",
+      "description": "CUE schema authoring for Perses plugins: define data models, write validation constraints, create JSON examples, implement Grafana migration schemas in migrate/migrate.cue.",
       "triggers": [
-        "perses-cue-schema",
-        "perses",
-        "cue",
-        "schema"
+        "Perses CUE schema",
+        "plugin data model"
       ],
+      "category": "perses",
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "agent": "perses-plugin-engineer"
     },
-    {
-      "name": "perses-dashboard-create",
-      "description": "Guided Perses dashboard creation: gather requirements (metrics, datasource, layout), generate CUE definition or JSON spec, validate with percli lin...",
+    "perses-dashboard-create": {
       "file": "skills/perses-dashboard-create/SKILL.md",
+      "description": "Guided Perses dashboard creation: gather requirements (metrics, datasource, layout), generate CUE definition or JSON spec, validate with percli lin...",
       "triggers": [
-        "perses-dashboard-create",
-        "perses",
-        "dashboard",
-        "create"
+        "create Perses dashboard",
+        "new dashboard"
       ],
+      "category": "perses",
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "agent": "perses-dashboard-engineer"
     },
-    {
-      "name": "perses-dashboard-review",
-      "description": "Review existing Perses dashboards for quality: fetch via MCP or API, analyze panel layout, query efficiency, variable usage, datasource configuration.",
+    "perses-dashboard-review": {
       "file": "skills/perses-dashboard-review/SKILL.md",
+      "description": "Review existing Perses dashboards for quality: fetch via MCP or API, analyze panel layout, query efficiency, variable usage, datasource configuration.",
       "triggers": [
-        "perses-dashboard-review",
-        "perses",
-        "dashboard",
-        "review"
+        "review Perses dashboard",
+        "dashboard quality"
       ],
+      "category": "perses",
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "agent": "perses-dashboard-engineer"
     },
-    {
-      "name": "perses-datasource-manage",
-      "description": "Perses datasource lifecycle management: create, update, delete datasources at global, project, or dashboard scope.",
+    "perses-datasource-manage": {
       "file": "skills/perses-datasource-manage/SKILL.md",
+      "description": "Perses datasource lifecycle management: create, update, delete datasources at global, project, or dashboard scope.",
       "triggers": [
-        "perses-datasource-manage",
-        "perses",
-        "datasource",
-        "manage"
+        "manage datasource",
+        "Perses datasource"
       ],
+      "category": "perses",
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "agent": "perses-dashboard-engineer"
     },
-    {
-      "name": "perses-deploy",
-      "description": "Deploy Perses server: Docker Compose for local dev, Helm chart for K8s, or binary for bare metal.",
+    "perses-deploy": {
       "file": "skills/perses-deploy/SKILL.md",
+      "description": "Deploy Perses server: Docker Compose for local dev, Helm chart for K8s, or binary for bare metal.",
       "triggers": [
-        "perses-deploy",
-        "perses",
-        "deploy"
+        "deploy Perses",
+        "Perses server setup"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "perses",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "perses-grafana-migrate",
-      "description": "Grafana-to-Perses dashboard migration: export Grafana dashboards, convert with percli migrate, validate converted output, fix incompatibilities, deploy to Perses.",
+    "perses-grafana-migrate": {
       "file": "skills/perses-grafana-migrate/SKILL.md",
+      "description": "Grafana-to-Perses dashboard migration: export Grafana dashboards, convert with percli migrate, validate converted output, fix incompatibilities, deploy to Perses.",
       "triggers": [
-        "perses-grafana-migrate",
-        "perses",
-        "grafana",
-        "migrate"
+        "migrate Grafana",
+        "Grafana to Perses"
       ],
+      "category": "perses",
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "agent": "perses-dashboard-engineer"
     },
-    {
-      "name": "perses-lint",
-      "description": "Validate Perses resources: run percli lint locally or with --online against a server.",
+    "perses-lint": {
       "file": "skills/perses-lint/SKILL.md",
+      "description": "Validate Perses resources: run percli lint locally or with --online against a server.",
       "triggers": [
-        "perses-lint",
-        "perses",
-        "lint"
+        "lint Perses",
+        "validate Perses resources"
       ],
+      "category": "perses",
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "agent": "perses-dashboard-engineer"
     },
-    {
-      "name": "perses-onboard",
-      "description": "First-time Perses setup pipeline: discover or deploy server, configure MCP connection, create initial project, add datasources, and verify connectivity.",
+    "perses-onboard": {
       "file": "skills/perses-onboard/SKILL.md",
+      "description": "First-time Perses setup pipeline: discover or deploy server, configure MCP connection, create initial project, add datasources, and verify connectivity.",
       "triggers": [
-        "perses-onboard",
-        "perses",
-        "onboard"
+        "onboard Perses",
+        "first-time Perses setup"
       ],
+      "category": "perses",
+      "user_invocable": true,
       "version": "2.0.0",
-      "user-invocable": true
+      "agent": "perses-dashboard-engineer"
     },
-    {
-      "name": "perses-plugin-create",
-      "description": "Perses plugin scaffolding and creation: select plugin type (Panel, Datasource, Query, Variable, Explore), generate with percli plugin generate, imp...",
+    "perses-plugin-create": {
       "file": "skills/perses-plugin-create/SKILL.md",
+      "description": "Perses plugin scaffolding and creation: select plugin type (Panel, Datasource, Query, Variable, Explore), generate with percli plugin generate, imp...",
       "triggers": [
-        "perses-plugin-create",
-        "perses",
-        "plugin",
-        "create"
+        "create Perses plugin",
+        "scaffold plugin"
       ],
+      "category": "perses",
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "agent": "perses-plugin-engineer"
     },
-    {
-      "name": "perses-plugin-test",
-      "description": "Perses plugin testing: CUE schema unit tests with percli plugin test-schemas, React component tests, integration testing with local Perses server, and Grafana migration compatibility testing.",
+    "perses-plugin-test": {
       "file": "skills/perses-plugin-test/SKILL.md",
+      "description": "Perses plugin testing: CUE schema unit tests with percli plugin test-schemas, React component tests, integration testing with local Perses server, and Grafana migration compatibility testing.",
       "triggers": [
-        "perses-plugin-test",
-        "perses",
-        "plugin",
-        "test"
+        "test Perses plugin",
+        "plugin testing"
       ],
+      "category": "perses",
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "agent": "perses-plugin-engineer"
     },
-    {
-      "name": "perses-project-manage",
-      "description": "Perses project lifecycle management: create, list, switch, and configure projects.",
+    "perses-project-manage": {
       "file": "skills/perses-project-manage/SKILL.md",
+      "description": "Perses project lifecycle management: create, list, switch, and configure projects.",
       "triggers": [
-        "perses-project-manage",
-        "perses",
-        "project",
-        "manage"
+        "manage Perses project",
+        "Perses RBAC"
       ],
+      "category": "perses",
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "agent": "perses-dashboard-engineer"
     },
-    {
-      "name": "perses-query-builder",
-      "description": "Build PromQL, LogQL, TraceQL queries for Perses panels.",
+    "perses-query-builder": {
       "file": "skills/perses-query-builder/SKILL.md",
+      "description": "Build PromQL, LogQL, TraceQL queries for Perses panels.",
       "triggers": [
-        "perses-query-builder",
-        "perses",
-        "query",
-        "builder"
+        "build PromQL",
+        "Perses query",
+        "LogQL query"
       ],
+      "category": "perses",
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "agent": "perses-dashboard-engineer"
     },
-    {
-      "name": "perses-variable-manage",
-      "description": "Perses variable lifecycle management: create Text and List variables at global, project, or dashboard scope.",
+    "perses-variable-manage": {
       "file": "skills/perses-variable-manage/SKILL.md",
+      "description": "Perses variable lifecycle management: create Text and List variables at global, project, or dashboard scope.",
       "triggers": [
-        "perses-variable-manage",
-        "perses",
-        "variable",
-        "manage"
+        "manage Perses variables",
+        "dashboard variables"
       ],
+      "category": "perses",
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "agent": "perses-dashboard-engineer"
     },
-    {
-      "name": "plan-checker",
-      "description": "Validate plans against 10 verification dimensions before execution begins.",
+    "plan-checker": {
       "file": "skills/plan-checker/SKILL.md",
+      "description": "Validate plans against 10 verification dimensions before execution begins.",
       "triggers": [
         "check plan",
         "validate plan",
@@ -993,48 +1094,54 @@
         "pre-execution check"
       ],
       "category": "process",
+      "user_invocable": true,
       "version": "1.0.0",
-      "user-invocable": true
+      "pairs_with": [
+        "feature-plan",
+        "feature-implement",
+        "workflow-orchestrator",
+        "plan-manager"
+      ]
     },
-    {
-      "name": "plan-manager",
-      "description": "Deterministic plan lifecycle management via scripts/plan-manager.py CLI.",
+    "plan-manager": {
       "file": "skills/plan-manager/SKILL.md",
+      "description": "Deterministic plan lifecycle management via scripts/plan-manager.py CLI.",
       "triggers": [
-        "plan-manager",
-        "plan",
-        "manager"
+        "list plans",
+        "show plan",
+        "check plan",
+        "complete plan"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "process",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "planning-with-files",
-      "description": "Persistent markdown files as working memory for complex tasks: plan, track progress, store findings.",
+    "planning-with-files": {
       "file": "skills/planning-with-files/SKILL.md",
+      "description": "Persistent markdown files as working memory for complex tasks: plan, track progress, store findings.",
       "triggers": [
-        "planning-with-files",
-        "planning",
-        "files"
+        "create plan",
+        "task plan",
+        "working memory"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "process",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "plans",
-      "description": "Deterministic plan lifecycle management via scripts/plan-manager.py: create, track, check, complete, and abandon task plans.",
+    "plans": {
       "file": "skills/plans/SKILL.md",
+      "description": "Deterministic plan lifecycle management via scripts/plan-manager.py: create, track, check, complete, and abandon task plans.",
       "triggers": [
-        "plans",
-        "plans"
+        "manage plans",
+        "plan lifecycle"
       ],
-      "version": "2.0.0",
-      "user-invocable": true
+      "category": "process",
+      "user_invocable": true,
+      "version": "2.0.0"
     },
-    {
-      "name": "plant-seed",
-      "description": "Capture a forward-looking idea as a seed with trigger conditions, scope, and rationale so it surfaces automatically during future feature design.",
+    "plant-seed": {
       "file": "skills/plant-seed/SKILL.md",
+      "description": "Capture a forward-looking idea as a seed with trigger conditions, scope, and rationale so it surfaces automatically during future feature design.",
       "triggers": [
         "plant seed",
         "save idea for later",
@@ -1044,25 +1151,27 @@
         "plant-seed"
       ],
       "category": "process",
+      "user_invocable": true,
       "version": "1.0.0",
-      "user-invocable": true
+      "pairs_with": [
+        "feature-design"
+      ]
     },
-    {
-      "name": "post-outliner",
-      "description": "Create structural blueprints for blog posts before writing.",
+    "post-outliner": {
       "file": "skills/post-outliner/SKILL.md",
+      "description": "Create structural blueprints for blog posts before writing.",
       "triggers": [
-        "post-outliner",
-        "post",
-        "outliner"
+        "outline post",
+        "blog structure",
+        "content blueprint"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "content-creation",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "pptx-generator",
-      "description": "6-phase PPTX presentation generation with visual QA: Gather, Design, Generate, Convert, QA, Output.",
+    "pptx-generator": {
       "file": "skills/pptx-generator/SKILL.md",
+      "description": "6-phase PPTX presentation generation with visual QA: Gather, Design, Generate, Convert, QA, Output.",
       "triggers": [
         "presentation",
         "powerpoint",
@@ -1076,93 +1185,100 @@
         "conference talk slides"
       ],
       "category": "content-generation",
+      "user_invocable": false,
       "version": "1.0.0",
-      "user-invocable": false
+      "pairs_with": [
+        "workflow-orchestrator",
+        "research-to-article",
+        "gemini-image-generator"
+      ]
     },
-    {
-      "name": "pr-cleanup",
-      "description": "Local branch cleanup after PR merge: identify, switch, delete, prune in 4 steps.",
+    "pr-cleanup": {
       "file": "skills/pr-cleanup/SKILL.md",
+      "description": "Local branch cleanup after PR merge: identify, switch, delete, prune in 4 steps.",
       "triggers": [
-        "pr-cleanup",
-        "cleanup"
+        "cleanup branches",
+        "delete merged branch",
+        "prune branches"
       ],
-      "version": "2.0.0",
-      "user-invocable": true
+      "category": "git-workflow",
+      "user_invocable": true,
+      "version": "2.0.0"
     },
-    {
-      "name": "pr-fix",
-      "description": "Validate-then-fix workflow for PR review comments: Fetch, Validate, Plan, Fix, Commit.",
+    "pr-fix": {
       "file": "skills/pr-fix/SKILL.md",
+      "description": "Validate-then-fix workflow for PR review comments: Fetch, Validate, Plan, Fix, Commit.",
       "triggers": [
-        "pr-fix",
-        "fix"
+        "fix PR feedback",
+        "address review comments"
       ],
-      "version": "2.0.0",
-      "user-invocable": true
+      "category": "git-workflow",
+      "user_invocable": true,
+      "version": "2.0.0"
     },
-    {
-      "name": "pr-miner",
-      "description": "Deterministic 3-phase GitHub PR review comment extraction: Authenticate, Mine, Validate.",
+    "pr-miner": {
       "file": "skills/pr-miner/SKILL.md",
+      "description": "Deterministic 3-phase GitHub PR review comment extraction: Authenticate, Mine, Validate.",
       "triggers": [
-        "pr-miner",
-        "miner"
+        "extract PR comments",
+        "mine PR reviews"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "git-workflow",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "pr-mining-coordinator",
-      "description": "Coordinate PR mining to extract tribal knowledge and coding standards from GitHub PR history.",
+    "pr-mining-coordinator": {
       "file": "skills/pr-mining-coordinator/SKILL.md",
+      "description": "Coordinate PR mining to extract tribal knowledge and coding standards from GitHub PR history.",
       "triggers": [
-        "pr-mining-coordinator",
-        "mining",
-        "coordinator"
+        "coordinate PR mining",
+        "extract tribal knowledge"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "git-workflow",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "pr-review-address-feedback",
-      "description": "Fetch PR feedback from all GitHub sources and validate every comment before acting.",
+    "pr-review-address-feedback": {
       "file": "skills/pr-review-address-feedback/SKILL.md",
+      "description": "Fetch PR feedback from all GitHub sources and validate every comment before acting.",
       "triggers": [
-        "pr-review-address-feedback",
-        "review",
-        "address",
-        "feedback"
+        "process PR feedback",
+        "address review comments"
       ],
-      "version": "2.0.0",
-      "user-invocable": true
+      "category": "git-workflow",
+      "user_invocable": true,
+      "version": "2.0.0"
     },
-    {
-      "name": "pr-status",
-      "description": "Quick status check for current branch and PR state showing local changes, CI results, reviews, and merge readiness.",
+    "pr-status": {
       "file": "skills/pr-status/SKILL.md",
+      "description": "Quick status check for current branch and PR state showing local changes, CI results, reviews, and merge readiness.",
       "triggers": [
-        "pr-status",
-        "status"
+        "PR status",
+        "branch status",
+        "merge readiness"
       ],
-      "version": "2.0.0",
-      "user-invocable": true
+      "category": "git-workflow",
+      "force_route": true,
+      "user_invocable": true,
+      "version": "2.0.0"
     },
-    {
-      "name": "pr-sync",
-      "description": "Sync local changes to GitHub in one command: detect state, branch, commit, push, create PR.",
+    "pr-sync": {
       "file": "skills/pr-sync/SKILL.md",
+      "description": "Sync local changes to GitHub in one command: detect state, branch, commit, push, create PR.",
       "triggers": [
-        "pr-sync",
-        "sync"
+        "push",
+        "push changes",
+        "create PR",
+        "sync to GitHub"
       ],
-      "version": "2.0.0",
-      "user-invocable": true
+      "category": "git-workflow",
+      "force_route": true,
+      "user_invocable": true,
+      "version": "2.0.0"
     },
-    {
-      "name": "pre-planning-discussion",
-      "description": "Resolve implementation ambiguities before planning begins.",
+    "pre-planning-discussion": {
       "file": "skills/pre-planning-discussion/SKILL.md",
+      "description": "Resolve implementation ambiguities before planning begins.",
       "triggers": [
         "discuss ambiguities",
         "resolve gray areas",
@@ -1173,51 +1289,61 @@
         "pre-planning discussion"
       ],
       "category": "process",
+      "force_route": true,
+      "user_invocable": true,
       "version": "1.0.0",
-      "user-invocable": true
+      "pairs_with": [
+        "feature-design",
+        "feature-plan",
+        "workflow-orchestrator"
+      ]
     },
-    {
-      "name": "pre-publish-checker",
-      "description": "Pre-publication validation for Hugo posts: front matter, SEO, links, images, draft status, and taxonomy.",
+    "pre-publish-checker": {
       "file": "skills/pre-publish-checker/SKILL.md",
+      "description": "Pre-publication validation for Hugo posts: front matter, SEO, links, images, draft status, and taxonomy.",
       "triggers": [
-        "pre-publish-checker",
-        "pre",
-        "publish",
-        "checker"
+        "pre-publish check",
+        "Hugo validation",
+        "front matter check"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "content-publishing",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "professional-communication",
-      "description": "Transform dense technical communication into clear, structured business formats using proposition extraction and deterministic templates.",
+    "professional-communication": {
       "file": "skills/professional-communication/SKILL.md",
+      "description": "Transform dense technical communication into clear, structured business formats using proposition extraction and deterministic templates.",
       "triggers": [
-        "professional-communication",
-        "professional",
-        "communication"
+        "business communication",
+        "structured format",
+        "clear writing"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "content-creation",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "python-quality-gate",
-      "description": "Run Python quality checks with ruff, pytest, mypy, and bandit in deterministic order.",
+    "python-quality-gate": {
       "file": "skills/python-quality-gate/SKILL.md",
+      "description": "Run Python quality checks with ruff, pytest, mypy, and bandit in deterministic order.",
       "triggers": [
-        "python-quality-gate",
-        "python",
-        "quality",
-        "gate"
+        "Python quality",
+        "ruff check",
+        "bandit scan",
+        "mypy check",
+        "python lint",
+        "quality gate",
+        "check python",
+        "pre-commit check"
       ],
+      "category": "code-quality",
+      "force_route": true,
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "agent": "python-general-engineer"
     },
-    {
-      "name": "quick",
-      "description": "Tracked lightweight execution with composable rigor flags for tasks between a typo fix and a full feature.",
+    "quick": {
       "file": "skills/quick/SKILL.md",
+      "description": "Tracked lightweight execution with composable rigor flags for tasks between a typo fix and a full feature.",
       "triggers": [
         "quick task",
         "small change",
@@ -1228,38 +1354,41 @@
         "targeted fix"
       ],
       "category": "process",
+      "force_route": true,
+      "user_invocable": true,
       "version": "1.0.0",
-      "user-invocable": true
+      "pairs_with": [
+        "fast"
+      ]
     },
-    {
-      "name": "read-only-ops",
-      "description": "Read-only exploration, status checks, and reporting without modifications.",
+    "read-only-ops": {
       "file": "skills/read-only-ops/SKILL.md",
+      "description": "Read-only exploration, status checks, and reporting without modifications.",
       "triggers": [
-        "read-only-ops",
-        "read",
-        "only",
-        "ops"
+        "check status",
+        "explore code",
+        "read-only"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "process",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "reddit-moderate",
-      "description": "Reddit community moderation via PRAW with LLM-powered report classification: fetch modqueue, classify reports against subreddit rules and author history, and take mod actions (approve, remove, lock).",
+    "reddit-moderate": {
       "file": "skills/reddit-moderate/SKILL.md",
+      "description": "Reddit community moderation via PRAW with LLM-powered report classification: fetch modqueue, classify reports against subreddit rules and author history, and take mod actions (approve, remove, lock).",
       "triggers": [
-        "reddit-moderate",
-        "reddit",
-        "moderate"
+        "moderate Reddit",
+        "modqueue",
+        "Reddit reports"
       ],
+      "category": "process",
+      "user_invocable": true,
       "version": "1.0.0",
-      "user-invocable": true
+      "agent": "python-general-engineer"
     },
-    {
-      "name": "repo-value-analysis",
-      "description": "Systematic 6-phase analysis of external repositories for ideas worth adopting: clone, parallel deep-read, self-inventory, synthesize gaps, targeted...",
+    "repo-value-analysis": {
       "file": "skills/repo-value-analysis/SKILL.md",
+      "description": "Systematic 6-phase analysis of external repositories for ideas worth adopting: clone, parallel deep-read, self-inventory, synthesize gaps, targeted...",
       "triggers": [
         "repo value analysis",
         "does repo add value",
@@ -1269,13 +1398,17 @@
         "read every file in repo"
       ],
       "category": "analysis",
+      "user_invocable": true,
       "version": "1.0.0",
-      "user-invocable": true
+      "pairs_with": [
+        "explore-pipeline"
+      ],
+      "agent": "research-coordinator-engineer",
+      "model": "opus"
     },
-    {
-      "name": "resume-work",
-      "description": "Restore session state from handoff artifacts and route to the next action.",
+    "resume-work": {
       "file": "skills/resume-work/SKILL.md",
+      "description": "Restore session state from handoff artifacts and route to the next action.",
       "triggers": [
         "resume",
         "continue",
@@ -1286,48 +1419,50 @@
         "what's next"
       ],
       "category": "process",
+      "user_invocable": true,
       "version": "1.0.0",
-      "user-invocable": true
+      "pairs_with": [
+        "pause-work"
+      ]
     },
-    {
-      "name": "retro",
-      "description": "Interact with the learning system: show stats, list/search accumulated knowledge, and graduate mature entries into agents/skills.",
+    "retro": {
       "file": "skills/retro/SKILL.md",
+      "description": "Interact with the learning system: show stats, list/search accumulated knowledge, and graduate mature entries into agents/skills.",
       "triggers": [
-        "retro",
-        "retro"
+        "retro stats",
+        "list learnings",
+        "graduate knowledge"
       ],
-      "version": "2.0.0",
-      "user-invocable": true
+      "category": "meta-tooling",
+      "user_invocable": true,
+      "version": "2.0.0"
     },
-    {
-      "name": "roast",
-      "description": "Constructive critique through 5 HackerNews commenter personas with evidence-based claim validation.",
+    "roast": {
       "file": "skills/roast/SKILL.md",
+      "description": "Constructive critique through 5 HackerNews commenter personas with evidence-based claim validation.",
       "triggers": [
-        "roast",
-        "roast"
+        "roast code",
+        "devil's advocate",
+        "stress test idea"
       ],
-      "version": "2.0.0",
-      "user-invocable": true
+      "category": "analysis",
+      "user_invocable": true,
+      "version": "2.0.0"
     },
-    {
-      "name": "routing-table-updater",
-      "description": "Maintain /do routing tables and command references when skills or agents are added, modified, or removed.",
+    "routing-table-updater": {
       "file": "skills/routing-table-updater/SKILL.md",
+      "description": "Maintain /do routing tables and command references when skills or agents are added, modified, or removed.",
       "triggers": [
-        "routing-table-updater",
-        "routing",
-        "table",
-        "updater"
+        "update routing",
+        "sync routing tables"
       ],
-      "version": "2.1.0",
-      "user-invocable": false
+      "category": "meta-tooling",
+      "user_invocable": false,
+      "version": "2.1.0"
     },
-    {
-      "name": "sapcc-audit",
-      "description": "Full-repo SAP Converged Cloud Go compliance audit.",
+    "sapcc-audit": {
       "file": "skills/sapcc-audit/SKILL.md",
+      "description": "Full-repo SAP Converged Cloud Go compliance audit.",
       "triggers": [
         "sapcc audit",
         "sapcc compliance",
@@ -1337,13 +1472,18 @@
         "sapcc standards check"
       ],
       "category": "language",
+      "user_invocable": true,
       "version": "2.0.0",
-      "user-invocable": true
+      "pairs_with": [
+        "golang-general-engineer",
+        "golang-general-engineer-compact",
+        "go-sapcc-conventions"
+      ],
+      "agent": "golang-general-engineer"
     },
-    {
-      "name": "sapcc-review",
-      "description": "Gold-standard code review for SAP CC Go repositories against the project's lead review standards.",
+    "sapcc-review": {
       "file": "skills/sapcc-review/SKILL.md",
+      "description": "Gold-standard code review for SAP CC Go repositories against the project's lead review standards.",
       "triggers": [
         "sapcc review",
         "sapcc lead review",
@@ -1353,61 +1493,67 @@
         "review sapcc standards"
       ],
       "category": "language",
+      "user_invocable": true,
       "version": "1.0.0",
-      "user-invocable": true
+      "pairs_with": [
+        "golang-general-engineer",
+        "go-sapcc-conventions",
+        "sapcc-audit"
+      ],
+      "agent": "golang-general-engineer",
+      "model": "opus"
     },
-    {
-      "name": "seo-optimizer",
-      "description": "Analyze and optimize blog post SEO: keywords, titles, meta descriptions, headers, and internal linking.",
+    "seo-optimizer": {
       "file": "skills/seo-optimizer/SKILL.md",
+      "description": "Analyze and optimize blog post SEO: keywords, titles, meta descriptions, headers, and internal linking.",
       "triggers": [
-        "seo-optimizer",
-        "seo",
-        "optimizer"
+        "check SEO",
+        "optimize SEO",
+        "keyword analysis"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "seo",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "series-planner",
-      "description": "Plan multi-part content series with structure, cross-linking, and publishing cadence.",
+    "series-planner": {
       "file": "skills/series-planner/SKILL.md",
+      "description": "Plan multi-part content series with structure, cross-linking, and publishing cadence.",
       "triggers": [
-        "series-planner",
-        "series",
-        "planner"
+        "plan series",
+        "multi-part content",
+        "content series"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "content-creation",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "service-health-check",
-      "description": "Deterministic 3-phase service health monitoring: Discover, Check, Report.",
+    "service-health-check": {
       "file": "skills/service-health-check/SKILL.md",
+      "description": "Deterministic 3-phase service health monitoring: Discover, Check, Report.",
       "triggers": [
-        "service-health-check",
-        "service",
-        "health",
-        "check"
+        "service status",
+        "process health",
+        "uptime check"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "infrastructure",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "skill-composer",
-      "description": "DAG-based multi-skill orchestration: Discover, Plan, Validate, Execute.",
+    "skill-composer": {
       "file": "skills/skill-composer/SKILL.md",
+      "description": "DAG-based multi-skill orchestration: Discover, Plan, Validate, Execute.",
       "triggers": [
-        "skill-composer",
-        "composer"
+        "compose skills",
+        "DAG orchestration",
+        "multi-skill chain"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "meta-tooling",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "skill-eval",
-      "description": "Evaluate and improve skills through measured testing.",
+    "skill-eval": {
       "file": "skills/skill-eval/SKILL.md",
+      "description": "Evaluate and improve skills through measured testing.",
       "triggers": [
         "improve skill",
         "test skill",
@@ -1418,25 +1564,29 @@
         "skill quality"
       ],
       "category": "meta",
+      "user_invocable": true,
       "version": "1.0.0",
-      "user-invocable": true
-    },
-    {
-      "name": "socratic-debugging",
-      "description": "Question-only debugging mode that guides users to find root causes themselves through structured questioning.",
-      "file": "skills/socratic-debugging/SKILL.md",
-      "triggers": [
-        "socratic-debugging",
-        "socratic",
-        "debugging"
+      "pairs_with": [
+        "agent-evaluation",
+        "verification-before-completion"
       ],
-      "version": "1.0.0",
-      "user-invocable": false
+      "agent": "skill-creator-engineer"
     },
-    {
-      "name": "spec-writer",
-      "description": "Structured specification with explicit scope boundaries: user stories, acceptance criteria, out-of-scope definition, risks, and estimation.",
+    "socratic-debugging": {
+      "file": "skills/socratic-debugging/SKILL.md",
+      "description": "Question-only debugging mode that guides users to find root causes themselves through structured questioning.",
+      "triggers": [
+        "guide debugging",
+        "question-based",
+        "teach debugging"
+      ],
+      "category": "process",
+      "user_invocable": false,
+      "version": "1.0.0"
+    },
+    "spec-writer": {
       "file": "skills/spec-writer/SKILL.md",
+      "description": "Structured specification with explicit scope boundaries: user stories, acceptance criteria, out-of-scope definition, risks, and estimation.",
       "triggers": [
         "write spec",
         "user stories",
@@ -1448,101 +1598,100 @@
         "spec out"
       ],
       "category": "process",
+      "user_invocable": false,
       "version": "1.0.0",
-      "user-invocable": false
+      "pairs_with": [
+        "feature-design",
+        "feature-plan",
+        "feature-validate"
+      ]
     },
-    {
-      "name": "subagent-driven-development",
-      "description": "Fresh-subagent-per-task execution with two-stage review (ADR compliance + code quality).",
+    "subagent-driven-development": {
       "file": "skills/subagent-driven-development/SKILL.md",
+      "description": "Fresh-subagent-per-task execution with two-stage review (ADR compliance + code quality).",
       "triggers": [
-        "subagent-driven-development",
-        "subagent",
-        "driven",
-        "development"
+        "subagent per task",
+        "fresh context execution",
+        "plan execution"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "process",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "systematic-code-review",
-      "description": "4-phase code review methodology: UNDERSTAND changes, VERIFY claims against code, ASSESS security/performance/architecture risks, DOCUMENT findings with severity classification.",
+    "systematic-code-review": {
       "file": "skills/systematic-code-review/SKILL.md",
+      "description": "4-phase code review methodology: UNDERSTAND changes, VERIFY claims against code, ASSESS security/performance/architecture risks, DOCUMENT findings with severity classification.",
       "triggers": [
-        "systematic-code-review",
-        "systematic",
-        "code",
-        "review"
+        "review code",
+        "code review methodology"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "code-review",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "systematic-debugging",
-      "description": "Evidence-based 4-phase root cause analysis: Reproduce, Isolate, Identify, Verify.",
+    "systematic-debugging": {
       "file": "skills/systematic-debugging/SKILL.md",
+      "description": "Evidence-based 4-phase root cause analysis: Reproduce, Isolate, Identify, Verify.",
       "triggers": [
-        "systematic-debugging",
-        "systematic",
-        "debugging"
+        "debug",
+        "find root cause",
+        "reproduce bug"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "process",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "systematic-refactoring",
-      "description": "Safe, phase-gated refactoring: CHARACTERIZE with tests, PLAN incremental steps, EXECUTE one change at a time, VALIDATE no regressions.",
+    "systematic-refactoring": {
       "file": "skills/systematic-refactoring/SKILL.md",
+      "description": "Safe, phase-gated refactoring: CHARACTERIZE with tests, PLAN incremental steps, EXECUTE one change at a time, VALIDATE no regressions.",
       "triggers": [
-        "systematic-refactoring",
-        "systematic",
-        "refactoring"
+        "refactor safely",
+        "rename symbol",
+        "extract function"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "process",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "taxonomy-manager",
-      "description": "Audit and maintain blog taxonomy (categories/tags) for consistency, SEO, and navigation: scan content, detect orphans and duplicates, merge and rename terms, verify builds.",
+    "taxonomy-manager": {
       "file": "skills/taxonomy-manager/SKILL.md",
+      "description": "Audit and maintain blog taxonomy (categories/tags) for consistency, SEO, and navigation: scan content, detect orphans and duplicates, merge and rename terms, verify builds.",
       "triggers": [
-        "taxonomy-manager",
-        "taxonomy",
-        "manager"
+        "audit taxonomy",
+        "fix tags",
+        "merge categories"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "seo",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "test-driven-development",
-      "description": "RED-GREEN-REFACTOR cycle with strict phase gates.",
+    "test-driven-development": {
       "file": "skills/test-driven-development/SKILL.md",
+      "description": "RED-GREEN-REFACTOR cycle with strict phase gates.",
       "triggers": [
-        "test-driven-development",
-        "test",
-        "driven",
-        "development"
+        "TDD",
+        "test first",
+        "red green refactor"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "testing",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "testing-agents-with-subagents",
-      "description": "RED-GREEN-REFACTOR testing for agents: dispatch subagents with known inputs, capture verbatim outputs, verify against expectations.",
+    "testing-agents-with-subagents": {
       "file": "skills/testing-agents-with-subagents/SKILL.md",
+      "description": "RED-GREEN-REFACTOR testing for agents: dispatch subagents with known inputs, capture verbatim outputs, verify against expectations.",
       "triggers": [
-        "testing-agents-with-subagents",
-        "testing",
-        "agents",
-        "subagents"
+        "test agents",
+        "agent testing",
+        "subagent testing"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "testing",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "testing-anti-patterns",
-      "description": "Identify and fix common testing mistakes across unit, integration, and E2E test suites.",
+    "testing-anti-patterns": {
       "file": "skills/testing-anti-patterns/SKILL.md",
+      "description": "Identify and fix common testing mistakes across unit, integration, and E2E test suites.",
       "triggers": [
         "flaky test",
         "brittle test",
@@ -1555,13 +1704,17 @@
         "fragile test",
         "testing implementation details"
       ],
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "pairs_with": [
+        "test-driven-development",
+        "go-testing",
+        "vitest-runner"
+      ]
     },
-    {
-      "name": "threejs-builder",
-      "description": "Scene-graph-driven 4-phase Three.js app builder: Design, Build, Animate, Polish.",
+    "threejs-builder": {
       "file": "skills/threejs-builder/SKILL.md",
+      "description": "Scene-graph-driven 4-phase Three.js app builder: Design, Build, Animate, Polish.",
       "triggers": [
         "threejs",
         "three.js",
@@ -1571,111 +1724,113 @@
         "3D animation",
         "3D graphics"
       ],
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "pairs_with": [
+        "typescript-frontend-engineer",
+        "distinctive-frontend-design"
+      ]
     },
-    {
-      "name": "topic-brainstormer",
-      "description": "Generate blog post topic ideas through problem mining, gap analysis, and technology expansion.",
+    "topic-brainstormer": {
       "file": "skills/topic-brainstormer/SKILL.md",
+      "description": "Generate blog post topic ideas through problem mining, gap analysis, and technology expansion.",
       "triggers": [
-        "topic-brainstormer",
-        "topic",
-        "brainstormer"
+        "brainstorm topics",
+        "content ideas",
+        "blog topic ideas"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "content-creation",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "typescript-check",
-      "description": "Run TypeScript type checking with tsc --noEmit and parse errors into actionable, file-grouped output.",
+    "typescript-check": {
       "file": "skills/typescript-check/SKILL.md",
+      "description": "Run TypeScript type checking with tsc --noEmit and parse errors into actionable, file-grouped output.",
       "triggers": [
-        "typescript-check",
-        "typescript",
-        "check"
+        "TypeScript check",
+        "tsc noEmit",
+        "type check TypeScript"
       ],
+      "category": "code-quality",
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "agent": "typescript-frontend-engineer"
     },
-    {
-      "name": "universal-quality-gate",
-      "description": "Multi-language code quality gate with auto-detection and language-specific linters.",
+    "universal-quality-gate": {
       "file": "skills/universal-quality-gate/SKILL.md",
+      "description": "Multi-language code quality gate with auto-detection and language-specific linters.",
       "triggers": [
-        "universal-quality-gate",
-        "universal",
-        "quality",
-        "gate"
+        "quality gate",
+        "lint check",
+        "multi-language lint"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "code-quality",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "verification-before-completion",
-      "description": "Defense-in-depth verification before declaring any task complete.",
+    "verification-before-completion": {
       "file": "skills/verification-before-completion/SKILL.md",
+      "description": "Defense-in-depth verification before declaring any task complete.",
       "triggers": [
-        "verification-before-completion",
-        "verification",
-        "before",
-        "completion"
+        "verify completion",
+        "run tests",
+        "check build"
       ],
-      "version": "3.0.0",
-      "user-invocable": false
+      "category": "process",
+      "user_invocable": false,
+      "version": "3.0.0"
     },
-    {
-      "name": "vitest-runner",
-      "description": "Run Vitest tests and parse results into actionable output.",
+    "vitest-runner": {
       "file": "skills/vitest-runner/SKILL.md",
+      "description": "Run Vitest tests and parse results into actionable output.",
       "triggers": [
-        "vitest-runner",
-        "vitest",
-        "runner"
+        "run vitest",
+        "JavaScript tests",
+        "TypeScript tests"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "testing",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "voice-orchestrator",
-      "description": "Multi-step voice content generation with deterministic validation.",
+    "voice-orchestrator": {
       "file": "skills/voice-orchestrator/SKILL.md",
+      "description": "Multi-step voice content generation with deterministic validation.",
       "triggers": [
-        "voice-orchestrator",
-        "voice",
-        "orchestrator"
+        "voice generation",
+        "multi-step voice",
+        "voice pipeline"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "voice",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "voice-validator",
-      "description": "Critique-and-rewrite enforcement loop for voice fidelity.",
+    "voice-validator": {
       "file": "skills/voice-validator/SKILL.md",
+      "description": "Critique-and-rewrite enforcement loop for voice fidelity.",
       "triggers": [
-        "voice-validator",
-        "voice",
-        "validator"
+        "validate voice",
+        "check voice fidelity",
+        "voice critique"
       ],
-      "version": "2.0.0",
-      "user-invocable": false
+      "category": "voice",
+      "user_invocable": false,
+      "version": "2.0.0"
     },
-    {
-      "name": "with-anti-rationalization",
-      "description": "Explicit anti-rationalization enforcement for maximum-rigor task execution.",
+    "with-anti-rationalization": {
       "file": "skills/with-anti-rationalization/SKILL.md",
+      "description": "Explicit anti-rationalization enforcement for maximum-rigor task execution.",
       "triggers": [
-        "with-anti-rationalization",
-        "anti",
-        "rationalization"
+        "maximum rigor",
+        "anti-rationalization",
+        "strict verification"
       ],
-      "version": "2.0.0",
-      "user-invocable": true
+      "category": "process",
+      "user_invocable": true,
+      "version": "2.0.0"
     },
-    {
-      "name": "wordpress-live-validation",
-      "description": "Validate a published or draft-preview WordPress post in a real browser using Playwright.",
+    "wordpress-live-validation": {
       "file": "skills/wordpress-live-validation/SKILL.md",
+      "description": "Validate a published or draft-preview WordPress post in a real browser using Playwright.",
       "triggers": [
         "validate wordpress post",
         "check live post",
@@ -1687,13 +1842,17 @@
         "live site validation"
       ],
       "category": "content-publishing",
+      "user_invocable": false,
       "version": "1.0.0",
-      "user-invocable": false
+      "pairs_with": [
+        "wordpress-uploader",
+        "pre-publish-checker",
+        "seo-optimizer"
+      ]
     },
-    {
-      "name": "wordpress-uploader",
-      "description": "WordPress REST API integration for posts and media via deterministic Python scripts.",
+    "wordpress-uploader": {
       "file": "skills/wordpress-uploader/SKILL.md",
+      "description": "WordPress REST API integration for posts and media via deterministic Python scripts.",
       "triggers": [
         "upload to wordpress",
         "create wordpress draft",
@@ -1707,391 +1866,24 @@
         "wordpress media"
       ],
       "category": "content-publishing",
+      "user_invocable": false,
       "version": "2.0.0",
-      "user-invocable": false
+      "pairs_with": [
+        "blog-post-writer",
+        "anti-ai-editor"
+      ]
     },
-    {
-      "name": "workflow-help",
-      "description": "Interactive guide to repository workflow system: agents, skills, routing, and execution patterns.",
+    "workflow-help": {
       "file": "skills/workflow-help/SKILL.md",
+      "description": "Interactive guide to repository workflow system: agents, skills, routing, and execution patterns.",
       "triggers": [
-        "workflow-help",
-        "workflow",
-        "help"
+        "how does routing work",
+        "what skills exist",
+        "system help"
       ],
-      "version": "2.0.0",
-      "user-invocable": true
-    },
-    {
-      "name": "agent-upgrade",
-      "description": "5-phase pipeline for systematically improving an existing agent or skill: AUDIT \u2192 DIFF \u2192 PLAN \u2192 IMPLEMENT \u2192 RE-EVALUATE.",
-      "file": "pipelines/agent-upgrade/SKILL.md",
-      "triggers": [
-        "agent-upgrade",
-        "agent",
-        "upgrade"
-      ],
-      "version": "1.0.0",
-      "user-invocable": true
-    },
-    {
-      "name": "article-evaluation-pipeline",
-      "description": "Wabi-sabi-aware 4-phase article evaluation: Fetch, Validate, Analyze, Report.",
-      "file": "pipelines/article-evaluation-pipeline/SKILL.md",
-      "triggers": [
-        "evaluate article",
-        "check article voice",
-        "is this authentic",
-        "review my article",
-        "voice evaluation",
-        "article evaluation",
-        "check my voice"
-      ],
-      "category": "content-validation",
-      "version": "2.0.0",
-      "user-invocable": false
-    },
-    {
-      "name": "auto-pipeline",
-      "description": "Automatic pipeline generation for unrouted tasks.",
-      "file": "pipelines/auto-pipeline/SKILL.md",
-      "triggers": [
-        "auto-pipeline",
-        "ephemeral pipeline",
-        "no route found",
-        "unrouted task"
-      ],
-      "category": "meta",
-      "version": "1.0.0",
-      "user-invocable": false
-    },
-    {
-      "name": "chain-composer",
-      "description": "Compose valid pipeline chains from the step menu for each subdomain in a Component Manifest.",
-      "file": "pipelines/chain-composer/SKILL.md",
-      "triggers": [
-        "compose chains",
-        "build pipeline chains",
-        "chain composition",
-        "pipeline spec",
-        "compose pipeline"
-      ],
-      "category": "meta",
-      "version": "1.0.0",
-      "user-invocable": false
-    },
-    {
-      "name": "comprehensive-review",
-      "description": "Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per package for deep per-package analysis.",
-      "file": "pipelines/comprehensive-review/SKILL.md",
-      "triggers": [
-        "comprehensive review",
-        "full review",
-        "review everything",
-        "review and fix",
-        "thorough review",
-        "multi-agent review",
-        "complete code review",
-        "20-agent review",
-        "per-package review",
-        "3-wave review"
-      ],
-      "category": "review",
-      "version": "3.2.0",
-      "user-invocable": true
-    },
-    {
-      "name": "de-ai-pipeline",
-      "description": "Scan-fix-verify loop for removing AI writing patterns from docs.",
-      "file": "pipelines/de-ai-pipeline/SKILL.md",
-      "triggers": [
-        "de-ai docs",
-        "clean ai patterns",
-        "fix ai writing",
-        "scan and fix docs",
-        "remove ai tells",
-        "de-ai pipeline"
-      ],
-      "category": "content",
-      "version": "1.0.0",
-      "user-invocable": true
-    },
-    {
-      "name": "do-perspectives",
-      "description": "Inline multi-perspective analysis: 10 analytical lenses applied sequentially in a single session to extract patterns and improve agents or skills.",
-      "file": "pipelines/do-perspectives/SKILL.md",
-      "triggers": [
-        "do-perspectives",
-        "perspectives"
-      ],
-      "version": "2.0.0",
-      "user-invocable": true
-    },
-    {
-      "name": "doc-pipeline",
-      "description": "Structured 5-phase documentation pipeline: Research, Outline, Generate, Verify, Output.",
-      "file": "pipelines/doc-pipeline/SKILL.md",
-      "triggers": [
-        "document this",
-        "create readme",
-        "write documentation",
-        "document codebase",
-        "generate docs",
-        "technical documentation"
-      ],
-      "category": "documentation",
-      "version": "2.0.0",
-      "user-invocable": false
-    },
-    {
-      "name": "domain-research",
-      "description": "Discover and classify subdomains within a target domain for pipeline generation.",
-      "file": "pipelines/domain-research/SKILL.md",
-      "triggers": [
-        "research domain",
-        "discover subdomains",
-        "domain decomposition",
-        "what pipelines",
-        "domain research"
-      ],
-      "category": "meta",
-      "version": "1.0.0",
-      "user-invocable": false
-    },
-    {
-      "name": "explore-pipeline",
-      "description": "Systematic codebase exploration pipeline with parallel subagents and tiered depth.",
-      "file": "pipelines/explore-pipeline/SKILL.md",
-      "triggers": [
-        "understand codebase",
-        "explore repo",
-        "how does this work",
-        "codebase exploration",
-        "understand this code",
-        "map architecture",
-        "analyze quality",
-        "assess consistency",
-        "evaluate patterns",
-        "analyze codebase"
-      ],
-      "category": "exploration",
-      "version": "2.0.0",
-      "user-invocable": false
-    },
-    {
-      "name": "github-profile-rules",
-      "description": "Extract programming rules and coding conventions from a GitHub user's public profile via API.",
-      "file": "pipelines/github-profile-rules/SKILL.md",
-      "triggers": [
-        "github-profile-rules",
-        "github",
-        "profile",
-        "rules"
-      ],
-      "version": "1.0.0",
-      "user-invocable": true
-    },
-    {
-      "name": "hook-development-pipeline",
-      "description": "Formal 5-phase pipeline for creating production-quality hooks with mandatory performance gates: SPEC \u2192 IMPLEMENT \u2192 TEST \u2192 REGISTER \u2192 DOCUMENT.",
-      "file": "pipelines/hook-development-pipeline/SKILL.md",
-      "triggers": [
-        "hook-development-pipeline",
-        "hook",
-        "development"
-      ],
-      "version": "1.0.0",
-      "user-invocable": true
-    },
-    {
-      "name": "mcp-pipeline-builder",
-      "description": "Convert any repository into a registered MCP server: ANALYZE \u2192 DESIGN \u2192 GENERATE \u2192 VALIDATE \u2192 EVALUATE \u2192 REGISTER.",
-      "file": "pipelines/mcp-pipeline-builder/SKILL.md",
-      "triggers": [
-        "mcp pipeline",
-        "repo to mcp",
-        "create mcp from repo",
-        "generate mcp",
-        "mcp builder",
-        "mcp from repo"
-      ],
-      "category": "pipeline",
-      "version": "1.0.0",
-      "user-invocable": true
-    },
-    {
-      "name": "perses-dac-pipeline",
-      "description": "Dashboard-as-Code pipeline: initialize CUE or Go module with percli dac setup, write dashboard definitions, build with percli dac build, validate, ...",
-      "file": "pipelines/perses-dac-pipeline/SKILL.md",
-      "triggers": [
-        "perses-dac-pipeline",
-        "perses",
-        "dac"
-      ],
-      "version": "2.0.0",
-      "user-invocable": false
-    },
-    {
-      "name": "perses-plugin-pipeline",
-      "description": "End-to-end Perses plugin development pipeline: SCAFFOLD, SCHEMA, IMPLEMENT, TEST, BUILD, DEPLOY.",
-      "file": "pipelines/perses-plugin-pipeline/SKILL.md",
-      "triggers": [
-        "perses-plugin-pipeline",
-        "perses",
-        "plugin"
-      ],
-      "version": "2.0.0",
-      "user-invocable": false
-    },
-    {
-      "name": "pipeline-retro",
-      "description": "Trace pipeline test failures to generator root causes and propose fixes using the Three-Layer Pattern: skip artifact fixes (Layer 1), propose gener...",
-      "file": "pipelines/pipeline-retro/SKILL.md",
-      "triggers": [
-        "pipeline retro",
-        "trace failures",
-        "generator improvement",
-        "three-layer fix",
-        "fix generator"
-      ],
-      "category": "meta",
-      "version": "1.0.0",
-      "user-invocable": false
-    },
-    {
-      "name": "pipeline-scaffolder",
-      "description": "Scaffold pipeline components from a Pipeline Spec JSON: N subdomain skills, 0-1 agents, reference files, scripts, hooks, and routing entries.",
-      "file": "pipelines/pipeline-scaffolder/SKILL.md",
-      "triggers": [
-        "pipeline-scaffolder",
-        "scaffolder"
-      ],
-      "version": "2.0.0",
-      "user-invocable": false
-    },
-    {
-      "name": "pipeline-test-runner",
-      "description": "Test generated pipeline skills against real targets.",
-      "file": "pipelines/pipeline-test-runner/SKILL.md",
-      "triggers": [
-        "test generated pipelines",
-        "run pipeline tests",
-        "validate scaffolded skills",
-        "pipeline test runner"
-      ],
-      "category": "meta",
-      "version": "1.0.0",
-      "user-invocable": false
-    },
-    {
-      "name": "pr-pipeline",
-      "description": "End-to-end pipeline for creating pull requests: Classify Repo, Stage, Review, Commit, Push, Review-Fix Loop (max 3), Create, Verify.",
-      "file": "pipelines/pr-pipeline/SKILL.md",
-      "triggers": [
-        "submit PR",
-        "create pull request",
-        "send for review",
-        "push and PR",
-        "submit changes",
-        "open PR"
-      ],
-      "category": "git-workflow",
-      "version": "2.0.0",
-      "user-invocable": false
-    },
-    {
-      "name": "research-pipeline",
-      "description": "Formal 5-phase research pipeline with artifact saving and source quality gates: SCOPE \u2192 GATHER \u2192 SYNTHESIZE \u2192 VALIDATE \u2192 DELIVER.",
-      "file": "pipelines/research-pipeline/SKILL.md",
-      "triggers": [
-        "research-pipeline",
-        "research"
-      ],
-      "version": "1.0.0",
-      "user-invocable": true
-    },
-    {
-      "name": "research-to-article",
-      "description": "Multi-agent research pipeline for voice content generation.",
-      "file": "pipelines/research-to-article/SKILL.md",
-      "triggers": [
-        "research then write",
-        "article with research",
-        "write about",
-        "research and article",
-        "full article pipeline",
-        "comprehensive article"
-      ],
-      "category": "content-pipeline",
-      "version": "2.0.0",
-      "user-invocable": false
-    },
-    {
-      "name": "skill-creation-pipeline",
-      "description": "Formal 5-phase pipeline for creating new skills with quality gates: DISCOVER \u2192 DESIGN \u2192 SCAFFOLD \u2192 VALIDATE \u2192 INTEGRATE.",
-      "file": "pipelines/skill-creation-pipeline/SKILL.md",
-      "triggers": [
-        "skill-creation-pipeline",
-        "creation"
-      ],
-      "version": "1.0.0",
-      "user-invocable": true
-    },
-    {
-      "name": "system-upgrade",
-      "description": "Systematic 6-phase pipeline for adapting agents, skills, hooks, and scripts to external changes: Claude Code releases, user goal shifts, or retro-driven upgrades.",
-      "file": "pipelines/system-upgrade/SKILL.md",
-      "triggers": [
-        "system-upgrade",
-        "system",
-        "upgrade"
-      ],
-      "version": "1.0.0",
-      "user-invocable": true
-    },
-    {
-      "name": "voice-calibrator",
-      "description": "Analyze writing samples and extract voice patterns to create or update voice skills with deterministic metrics and authorship-matching validation.",
-      "file": "pipelines/voice-calibrator/SKILL.md",
-      "triggers": [
-        "voice-calibrator",
-        "voice",
-        "calibrator"
-      ],
-      "version": "2.0.0",
-      "user-invocable": false
-    },
-    {
-      "name": "voice-writer",
-      "description": "Unified voice content generation pipeline with mandatory validation and joy-check.",
-      "file": "pipelines/voice-writer/SKILL.md",
-      "triggers": [
-        "write article",
-        "blog post",
-        "write in voice",
-        "generate voice content",
-        "voice workflow",
-        "draft article",
-        "write about",
-        "write post",
-        "blog about",
-        "create content"
-      ],
-      "category": "content",
-      "version": "1.0.0",
-      "user-invocable": true
-    },
-    {
-      "name": "workflow-orchestrator",
-      "description": "Three-phase task orchestration: BRAINSTORM requirements and approaches, WRITE-PLAN with atomic verifiable tasks, EXECUTE-PLAN with progress tracking.",
-      "file": "pipelines/workflow-orchestrator/SKILL.md",
-      "triggers": [
-        "workflow-orchestrator",
-        "workflow",
-        "orchestrator"
-      ],
-      "version": "3.0.0",
-      "user-invocable": false
+      "category": "meta-tooling",
+      "user_invocable": true,
+      "version": "2.0.0"
     }
-  ]
+  }
 }
