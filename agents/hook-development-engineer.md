@@ -334,6 +334,12 @@ Common hook development mistakes. See [references/anti-patterns.md](references/a
 **Why wrong**: Can corrupt database if interrupted
 **✅ Do instead**: Write to temp file, then atomic rename
 
+### ❌ Registering Hooks Before Deploying Files
+**What it looks like**: Adding a hook to `settings.json` before the script exists at `~/.claude/hooks/`
+**Why wrong**: Python file-not-found = exit code 2 = blocks ALL PreToolUse tools. Total session deadlock.
+**✅ Do instead**: Deploy file first, verify it runs, THEN register. Never reverse this order.
+*Graduated from /do SKILL.md — incident: hook-development-engineer bricked all PreToolUse*
+
 ## Anti-Rationalization
 
 See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md) for universal patterns.
