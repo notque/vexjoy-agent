@@ -70,6 +70,7 @@ Execute the implementation plan by dispatching tasks to domain agents wave by wa
 - Override domain agent selection from plan
 - Skip wave ordering
 - Handle Tier 3 (architectural) deviations without user input
+- Bypass the consultation gate for Medium+ features with an existing ADR
 
 ## Instructions
 
@@ -83,14 +84,24 @@ Execute the implementation plan by dispatching tasks to domain agents wave by wa
 
 2. Load plan artifact from `.feature/state/plan/`.
 
-3. Load design artifact from `.feature/state/design/` for reference.
+3. **Consultation Gate** (Medium+ complexity only):
+   - Extract the feature name and task complexity from the plan.
+   - If complexity is Simple or no ADR exists in `adr/` matching the feature name → skip this gate, proceed to step 4.
+   - If an ADR exists for this feature AND complexity is Medium or higher:
+     1. Check if `adr/{adr-name}/synthesis.md` exists.
+     2. If `synthesis.md` does not exist → **BLOCK**: Print "Consultation required for Medium+ feature. Run /adr-consultation first." and STOP. Do not proceed to implementation.
+     3. If `synthesis.md` exists, read it and check the verdict.
+        - If verdict is "PROCEED" → gate passes, continue.
+        - If verdict is "BLOCKED" → **BLOCK**: Print "Consultation blocked implementation. Resolve concerns in adr/{adr-name}/concerns.md before implementing." and STOP.
 
-4. Load L1 implement context:
+4. Load design artifact from `.feature/state/design/` for reference.
+
+5. Load L1 implement context:
    ```bash
    python3 ~/.claude/scripts/feature-state.py context-read FEATURE L1 --phase implement
    ```
 
-5. Capture BASE_SHA:
+6. Capture BASE_SHA:
    ```bash
    git rev-parse HEAD
    ```
@@ -184,6 +195,8 @@ Quick validation before formal validation phase:
 | Error | Cause | Solution |
 |-------|-------|----------|
 | No plan found | Plan phase not completed | Run /feature-plan first |
+| Consultation not completed | Medium+ feature has ADR but no synthesis | Run /adr-consultation first |
+| Consultation blocked | synthesis.md verdict is BLOCKED | Resolve concerns in adr/{name}/concerns.md |
 | Agent dispatch fails | Agent not available or task malformed | Retry with more context, escalate if 3 failures |
 | Wave test failure | Task broke existing tests | Route back to responsible agent for fix |
 | Tier 3 deviation | Architectural decision needed | Stop, present options to user |
