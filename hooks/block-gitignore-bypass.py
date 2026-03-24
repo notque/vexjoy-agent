@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# hook-version: 1.0.0
 """PreToolUse Hook: Block git add -f on gitignored paths and .gitignore edits.
 
 Prevents agents and subagents from:

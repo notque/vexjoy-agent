@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# hook-version: 1.0.0
 """
 PostToolUse Hook: Review Findings Capture
 
