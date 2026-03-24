@@ -31,9 +31,7 @@ import yaml
 # Shared helpers
 # ---------------------------------------------------------------------------
 
-PHASE_HEADER_RE = re.compile(
-    r"^### Phase [\d]+[a-z.]?[\d]*:\s*(.+?)(?:\s*\(|\s*--|\s*\u2014|$)"
-)
+PHASE_HEADER_RE = re.compile(r"^### Phase [\d]+[a-z.]?[\d]*:\s*(.+?)(?:\s*\(|\s*--|\s*\u2014|$)")
 
 
 def extract_frontmatter(content: str) -> dict | None:
@@ -99,9 +97,7 @@ def extract_frontmatter(content: str) -> dict | None:
 
         t_m = re.search(r"triggers:\s*\n((?:\s+-\s+.+\n?)+)", rc)
         if t_m:
-            routing["triggers"] = [
-                t.strip() for t in re.findall(r'-\s+["\']?([^"\'\n]+)["\']?', t_m.group(1))
-            ]
+            routing["triggers"] = [t.strip() for t in re.findall(r'-\s+["\']?([^"\'\n]+)["\']?', t_m.group(1))]
 
         cat_m = re.search(r"category:\s*(.+)$", rc, re.MULTILINE)
         if cat_m:
@@ -113,9 +109,7 @@ def extract_frontmatter(content: str) -> dict | None:
 
         pw_m = re.search(r"pairs_with:\s*\n((?:\s+-\s+.+\n?)+)", rc)
         if pw_m:
-            routing["pairs_with"] = [
-                p.strip() for p in re.findall(r'-\s+["\']?([^"\'\n]+)["\']?', pw_m.group(1))
-            ]
+            routing["pairs_with"] = [p.strip() for p in re.findall(r'-\s+["\']?([^"\'\n]+)["\']?', pw_m.group(1))]
 
         pw_empty = re.search(r"pairs_with:\s*\[\]", rc)
         if pw_empty and "pairs_with" not in routing:
@@ -193,9 +187,7 @@ def generate_agents_index(agents_dir: Path) -> dict:
                 entry["category"] = routing["category"]
         else:
             name_parts = name.replace("-", " ").split()
-            entry["triggers"] = [
-                p for p in name_parts if p not in ("general", "engineer", "compact")
-            ]
+            entry["triggers"] = [p for p in name_parts if p not in ("general", "engineer", "compact")]
 
         index["agents"][name] = entry
 
@@ -365,9 +357,7 @@ def check_index(generated: dict, existing_path: Path, label: str) -> bool:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Generate INDEX.json files for agents, skills, and pipelines."
-    )
+    parser = argparse.ArgumentParser(description="Generate INDEX.json files for agents, skills, and pipelines.")
     parser.add_argument(
         "--type",
         choices=["agents", "skills", "pipelines", "all"],
@@ -386,9 +376,7 @@ def main() -> int:
     skills_dir = repo_root / "skills"
     pipelines_dir = repo_root / "pipelines"
 
-    types = (
-        [args.type] if args.type != "all" else ["agents", "skills", "pipelines"]
-    )
+    types = [args.type] if args.type != "all" else ["agents", "skills", "pipelines"]
 
     indexes: dict[str, tuple[dict, Path]] = {}
 
@@ -408,9 +396,7 @@ def main() -> int:
 
     if "pipelines" in types:
         if pipelines_dir.exists():
-            idx = generate_skill_or_pipeline_index(
-                pipelines_dir, "pipelines", "pipelines", is_pipeline=True
-            )
+            idx = generate_skill_or_pipeline_index(pipelines_dir, "pipelines", "pipelines", is_pipeline=True)
             indexes["Pipelines"] = (idx, pipelines_dir / "INDEX.json")
 
     if args.check:
