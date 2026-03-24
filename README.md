@@ -33,3 +33,7 @@ More details in [start-here.md](docs/start-here.md).
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Links
+
+[![Hypercommit](https://img.shields.io/badge/Hypercommit-DB2475)](https://hypercommit.com/claude-code-toolkit)
