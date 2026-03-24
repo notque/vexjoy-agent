@@ -45,13 +45,6 @@
             "description": "Detect operator context (pipeline session, ADR session) and inject context",
             "timeout": 2000,
             "once": true
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/auto-graduation-scanner.py\"",
-            "description": "Surface high-confidence retro graduation candidates",
-            "timeout": 3000,
-            "once": true
           }
         ]
       }
@@ -96,6 +89,18 @@
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/pretool-unified-gate.py\"",
             "description": "Unified gate: gitignore-bypass, git-submission, dangerous-command, creation-gate, sensitive-file (ADR-068)",
+            "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/pretool-synthesis-gate.py\"",
+            "description": "Consultation synthesis gate: blocks implementation when ADR consultation is incomplete",
+            "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/pretool-branch-safety.py\"",
+            "description": "Branch safety: blocks git commit on main/master, forces feature branches",
             "timeout": 3000
           },
           {
