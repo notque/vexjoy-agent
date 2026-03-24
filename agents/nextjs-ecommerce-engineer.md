@@ -1,5 +1,6 @@
 ---
 name: nextjs-ecommerce-engineer
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent when building Next.js e-commerce applications with shopping cart, payment

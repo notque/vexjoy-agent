@@ -1,5 +1,6 @@
 ---
 name: perses-operator-engineer
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent for Perses Kubernetes operator operations: deploying Perses via CRDs,

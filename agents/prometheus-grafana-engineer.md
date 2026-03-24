@@ -1,5 +1,6 @@
 ---
 name: prometheus-grafana-engineer
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent for Prometheus and Grafana monitoring infrastructure, alerting configuration, dashboard design, and observability optimization. This agent specializes in metrics collection, time-series analysis, alerting strategies, and building comprehensive monitoring solutions for cloud-native applications.

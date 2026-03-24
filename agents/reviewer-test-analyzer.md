@@ -1,5 +1,6 @@
 ---
 name: reviewer-test-analyzer
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent for reviewing test coverage quality, completeness, and resilience. This includes identifying critical test gaps, evaluating behavioral coverage, assessing test resilience to refactoring, and checking negative case coverage. Uses a 1-10 scoring system with pragmatic focus on tests that actually catch bugs. Supports `--fix` mode to add missing tests or improve existing ones.

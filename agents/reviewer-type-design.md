@@ -1,5 +1,6 @@
 ---
 name: reviewer-type-design
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent for evaluating type design quality, invariant expression, encapsulation, and type safety. This includes analyzing constructor validation, immutability patterns, compile-time guarantees, and whether the type system prevents illegal states. Uses a 4-dimension rating system (1-10 each). Supports `--fix` mode to improve type designs.

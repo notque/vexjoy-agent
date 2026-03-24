@@ -1,5 +1,6 @@
 ---
 name: typescript-debugging-engineer
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent when you need expert assistance debugging TypeScript applications. This includes race conditions, async/await issues, type errors, runtime exceptions, and production reliability. Combines TypeScript expertise with systematic debugging methodology.

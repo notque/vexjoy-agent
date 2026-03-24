@@ -1,5 +1,6 @@
 ---
 name: reviewer-sapcc-structural
+model: sonnet
 version: 1.0.0
 description: |
   Use this agent for reviewing Go code in SAP Converged Cloud repositories for structural and design concerns based on the project's established review standards. This agent fills the gap between reviewer-language-specialist (syntax/idiom issues) and reviewer-code-quality (convention violations) by catching architectural decisions at the type, API surface, and dependency level. Checks 9 structural categories: type export decisions, unnecessary wrappers, Option resolution timing, dependency management, anti-over-engineering, forward-compatible naming, go-bits library usage, test structure, and contract cohesion (§36). Supports `--fix` mode.

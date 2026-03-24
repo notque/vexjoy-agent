@@ -1,5 +1,6 @@
 ---
 name: reviewer-concurrency
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent for detecting concurrency bugs: race conditions, goroutine leaks, deadlocks, mutex misuse, channel lifecycle issues, and unsafe shared state. Analyzes concurrent code across Go, Python, and TypeScript with language-specific concurrency patterns. Wave 2 agent that uses Wave 1 silent-failure and architecture findings to identify concurrent code paths. Supports `--fix` mode.

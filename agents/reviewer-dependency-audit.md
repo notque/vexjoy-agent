@@ -1,5 +1,6 @@
 ---
 name: reviewer-dependency-audit
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent for auditing project dependencies: known CVEs, problematic licenses, deprecated packages, unnecessary transitive dependencies, version pinning issues, and supply chain risks. Runs govulncheck for Go, npm audit for Node.js, pip-audit for Python. Wave 2 agent that uses Wave 1 docs-validator findings to identify dependency documentation gaps. Supports `--fix` mode.

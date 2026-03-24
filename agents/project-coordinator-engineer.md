@@ -1,5 +1,6 @@
 ---
 name: project-coordinator-engineer
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent when orchestrating multi-agent software development projects across

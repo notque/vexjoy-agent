@@ -1,5 +1,6 @@
 ---
 name: reviewer-config-safety
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent for detecting configuration safety issues: hardcoded values that should be configurable, missing environment variable validation, secrets in source code, unsafe defaults, and configuration drift between environments. Wave 2 agent that uses Wave 1 reviewer-security and docs-validator findings to identify config-related security gaps. Supports `--fix` mode.

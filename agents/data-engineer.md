@@ -1,5 +1,6 @@
 ---
 name: data-engineer
+model: sonnet
 version: 1.0.0
 description: |
   Use this agent when you need expert assistance with data pipelines, ETL/ELT processes,

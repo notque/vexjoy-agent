@@ -1,5 +1,6 @@
 ---
 name: ui-design-engineer
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent when designing and implementing UI/UX for modern web applications with

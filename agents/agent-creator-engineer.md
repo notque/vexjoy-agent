@@ -1,5 +1,6 @@
 ---
 name: agent-creator-engineer
+model: sonnet
 version: 2.0.0
 description: |
   **DEPRECATED**: Use skill-creator-engineer agent instead. This agent predates the

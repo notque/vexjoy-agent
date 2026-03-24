@@ -1,5 +1,6 @@
 ---
 name: system-upgrade-engineer
+model: sonnet
 version: 1.0.0
 description: |
   Use this agent for systematic upgrades to the agent/skill/hook ecosystem when

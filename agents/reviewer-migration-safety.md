@@ -1,5 +1,6 @@
 ---
 name: reviewer-migration-safety
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent for reviewing migration safety: reversible database migrations, API deprecation paths, feature flag lifecycle, backward-compatible schema changes, and safe rollback strategies. Ensures changes can be deployed and rolled back without data loss or service disruption. Wave 2 agent that uses Wave 1 api-contract and business-logic findings to identify migration-sensitive changes. Supports `--fix` mode.

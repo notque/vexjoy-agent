@@ -1,5 +1,6 @@
 ---
 name: testing-automation-engineer
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent when you need expert assistance with comprehensive testing strategy and automation for modern web applications. This includes implementing unit tests, integration tests, E2E testing, visual regression testing, and CI/CD pipeline automation. The agent specializes in Vitest, Playwright, React Testing Library, and modern testing best practices.

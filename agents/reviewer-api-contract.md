@@ -1,5 +1,6 @@
 ---
 name: reviewer-api-contract
+model: sonnet
 version: 2.0.0
 description: |
   Use this agent for detecting breaking API changes, backward compatibility issues, schema validation gaps, HTTP status code misuse, and API versioning problems. Analyzes REST, gRPC, and internal API contracts for correctness and stability. Wave 2 agent that uses Wave 1 business-logic and type-design findings to identify contract-sensitive code. Supports `--fix` mode.
