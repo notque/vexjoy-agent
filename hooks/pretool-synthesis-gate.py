@@ -44,6 +44,7 @@ _EXEMPT_PREFIXES = (
     "/docs/",
     "/.claude/",
     "/.feature/",
+    "/.github/",
 )
 
 # File name patterns that are never implementation code.
