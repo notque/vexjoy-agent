@@ -47,9 +47,7 @@ This skill operates as the primary routing operator, classifying requests and di
 ### Default Behaviors (ON unless disabled)
 - **Retro Knowledge Injection**: Auto-inject from learning.db (benchmark: +5.3 avg, 67% win rate). Relevance-gated by FTS5 keyword matching
 - **Enhancement Stacking**: Add verification-before-completion, TDD, or parallel reviewers when signals detected
-- **Dynamic Discovery**: Run `python3 ~/.claude/scripts/index-router.py --request "{request}" --json` for deterministic routing from all three INDEX files. Force-routes are binary matches (100% deterministic). Agent/skill selection uses trigger-overlap scoring. LLM tiebreaks only when top candidates score within 0.1 of each other
 - **Negative Enhancement Rules**: Check skill's `pairs_with` before stacking. Empty `pairs_with: []` = no stacking. Do NOT stack verification on skills with built-in verification gates. Do NOT stack TDD on `fast`
-- **Composition Chains**: When a matched skill is part of a known chain (returned by `index-router.py`), suggest the full sequence
 - **Local Agent Discovery**: Route to `.claude/agents/` local agents when `[cross-repo]` output is present
 - **Auto-Pipeline Fallback**: When no agent/skill matches, invoke auto-pipeline to classify and execute with phase gates
 - **Post-Task Learning**: After Simple+ tasks, extract reusable patterns and record via `retro-record-adhoc`
@@ -95,29 +93,6 @@ After Phase 2, display the full routing decision banner (`===` block). Phase ban
 
 ---
 
-### Phase 0: DETERMINISTIC PRE-CLASSIFICATION (Mandatory)
-
-**Goal**: Run the deterministic index router BEFORE any LLM-based routing. Mandatory for every `/do` invocation except Trivial.
-
-**Step 1**: Run the index router:
-```bash
-python3 ~/.claude/scripts/index-router.py --request "{user_request}" --json
-```
-
-**Step 2**: Interpret the JSON output:
-- `"force_route": {"skill": "X", "agent": "Y"}` — **Route directly.** Skip Phase 1-2, display banner, invoke.
-- `"force_route": null` + `"candidates": [...]` — **Use candidates in Phase 2.** Top score > 0.6: use it. Top-2 within 0.1: LLM tiebreaks.
-- `"composition_chains": [...]` — **Suggest the chain** after primary routing.
-- Script fails — **Proceed normally.** Phase 0 is advisory; fall back to LLM-based routing.
-
-**Step 3**: Include Phase 0 results in the routing decision banner.
-
-**Why Phase 0 exists**: The LLM will rationalize skipping structured routing ("this seems simple enough to handle directly"). The script doesn't rationalize — it classifies deterministically.
-
-**Anti-rationalization**: If Phase 0 classifies a task type and Phase 2 finds no matching agent, you MUST invoke auto-pipeline. "I can handle this directly" is not an option.
-
-**Gate**: Script output captured. Proceed to Phase 1.
-
 ### Phase 1: CLASSIFY
 
 **Goal**: Determine request complexity and whether routing is needed.
@@ -141,20 +116,17 @@ python3 ~/.claude/scripts/index-router.py --request "{user_request}" --json
 
 ### Phase 2: ROUTE
 
-**Goal**: Select the correct agent + skill combination using `index-router.py` output.
+**Goal**: Select the correct agent + skill combination from the INDEX files and routing tables.
 
 **Step 1: Check force-route triggers**
 
-Force-route triggers are in `skills/INDEX.json` (field: `force_route: true`). The `index-router.py` script checks them deterministically in Phase 0. If Phase 0 returned a `force_route` result, use it directly here. If a force-route trigger matches, invoke that skill BEFORE any other action.
+Force-route triggers are in `skills/INDEX.json` (field: `force_route: true`). If a force-route trigger matches the request, invoke that skill BEFORE any other action.
 
 **Critical**: "push", "commit", "create PR", "merge" are NOT trivial git commands. They MUST route through skills that run quality gates. Running raw `git push` or `gh pr create` bypasses all quality gates.
 
 **Step 2: Select agent + skill**
 
-Use the `index-router.py` output from Phase 0. The script scores candidates from all three INDEX files (`agents/INDEX.json`, `skills/INDEX.json`, `pipelines/INDEX.json`) using trigger-overlap matching.
-
-- **If Phase 0 returned candidates**: Use the top candidate. If top-2 scores are within 0.1, LLM tiebreaks.
-- **If Phase 0 failed**: Fall back to `references/routing-tables.md` for manual lookup.
+Read the routing tables in `references/routing-tables.md` and the INDEX files (`agents/INDEX.json`, `skills/INDEX.json`, `pipelines/INDEX.json`) to identify candidates by trigger-overlap. Select the best match; use LLM judgment to tiebreak when multiple candidates fit equally well.
 
 **Step 3: Apply skill override** (task verb overrides default skill)
 
@@ -166,7 +138,6 @@ When the request verb implies a specific methodology, override the agent's defau
 ===================================================================
  ROUTING: [brief summary]
 ===================================================================
- Phase 0: index-router | force_route: {skill or "none"} | top: {name} ({score})
  Selected:
    -> Agent: [name] - [why]
    -> Skill: [name] - [why]
@@ -185,7 +156,7 @@ This banner MUST be the FIRST visible output for EVERY /do invocation. Display B
 ```bash
 python3 ~/.claude/scripts/learning-db.py record \
     routing "{selected_agent}:{selected_skill}" \
-    "request: {first_200_chars} | complexity: {complexity} | phase0_force: {phase0_force_route_or_none} | phase0_score: {phase0_top_score} | force_used: {0|1} | llm_override: {0|1} | enhancements: {comma_separated_list}" \
+    "request: {first_200_chars} | complexity: {complexity} | force_used: {0|1} | llm_override: {0|1} | enhancements: {comma_separated_list}" \
     --category routing-decision \
     --tags "{applicable_flags}"
 ```
@@ -245,7 +216,7 @@ Detect: "first...then", "and also", numbered lists, semicolons. Sequential depen
 
 **Step 4: Auto-Pipeline Fallback** (when no agent/skill matches AND complexity >= Simple)
 
-Use Phase 0 output — do NOT re-run the script. If Phase 0 classified a task type, invoke `auto-pipeline` (MANDATORY — "handle directly" is not an option). If Phase 0 failed, fall back to closest agent + verification-before-completion.
+Invoke `auto-pipeline` (MANDATORY — "handle directly" is not an option). If no pipeline matches either, fall back to closest agent + verification-before-completion.
 
 When uncertain which route: **ROUTE ANYWAY.** Add verification-before-completion as safety net.
 
