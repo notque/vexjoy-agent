@@ -111,6 +111,12 @@
           },
           {
             "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/pretool-adr-creation-gate.py\"",
+            "description": "ADR creation gate: blocks new components without an ADR in adr/",
+            "timeout": 3000
+          },
+          {
+            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/pretool-learning-injector.py\"",
             "description": "Inject known error patterns before Bash/Edit tools run",
             "timeout": 3000
