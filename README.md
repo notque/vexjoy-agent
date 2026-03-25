@@ -6,6 +6,16 @@ Agents, skills, and hooks that make Claude Code behave like a team instead of a 
 
 You say `/do debug this Go test` and a router picks a Go specialist, loads a debugging methodology, and enforces gated phases. You get domain expertise and structured workflows without managing any of it yourself. Built over a year of daily use.
 
+<div align="center">
+
+### Built with the toolkit
+
+A game built entirely by Claude Code using these agents, skills, and pipelines — from design through implementation.
+
+<video src="https://github.com/user-attachments/assets/0e74abeb-dc7e-42ba-8239-a7a98cb1ab09" width="100%" autoplay loop muted playsinline></video>
+
+</div>
+
 ## Quick Install
 
 ```bash
