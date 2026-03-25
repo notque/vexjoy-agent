@@ -341,6 +341,34 @@ Common hook development mistakes. See [references/anti-patterns.md](references/a
 **✅ Do instead**: Deploy file first, verify it runs, THEN register. Never reverse this order.
 *Graduated from /do SKILL.md — incident: hook-development-engineer bricked all PreToolUse*
 
+### ❌ Unguarded main() — Letting Exceptions Propagate to Exit Code
+**What it looks like**: `main()` called at top level with no wrapping try/except, so an unhandled exception (file not found, malformed JSON, import error) exits with Python's default code 2 or 1.
+**Why wrong**: Python exit code 2 is the same code Claude Code uses to signal BLOCK. A single unhandled exception in any PreToolUse hook deadlocks ALL tools for the entire session — not just the hook's tool.
+**✅ Do instead**: Wrap the entry point unconditionally:
+```python
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:
+        debug_log(f"Fatal error: {e}")
+    finally:
+        sys.exit(0)  # ALWAYS exit 0 — no exception reaches the OS
+```
+The `finally` block guarantees exit 0 even if `debug_log` itself raises.
+*Graduated from retro — incident: unguarded import error bricked session*
+
+### ❌ Assuming Hook File Exists at Register Time
+**What it looks like**: Editing `settings.json` (or running `register-hook.py`) in the same step as writing the hook file, or before confirming the file is present at `~/.claude/hooks/`.
+**Why wrong**: If the file isn't at `~/.claude/hooks/` when Claude Code starts, every PreToolUse event triggers a Python "file not found" → exit 2 → tool blocked. The session is deadlocked before you can fix it.
+**✅ Do instead**: Strict deployment order — (1) write `hooks/my-hook.py` in the repo, (2) copy/sync to `~/.claude/hooks/`, (3) verify `python3 ~/.claude/hooks/my-hook.py < /dev/null` exits 0, (4) THEN register in `settings.json`. Use `scripts/register-hook.py` which enforces this order programmatically.
+*Graduated from retro — same root cause as deploy-before-register but triggered by race between write and register*
+
+### ❌ Injecting Agent Context in a UserPromptSubmit Hook
+**What it looks like**: A `UserPromptSubmit` hook that tries to inject agent-scoped context (e.g., "you are the go-engineer agent, apply TDD") into the session context file.
+**Why wrong**: `UserPromptSubmit` fires BEFORE `/do` selects an agent. The hook has no knowledge of which agent will be chosen, so any agent-scoped injection is either wrong (targets the wrong agent) or a no-op (overwritten by routing). Timing mismatch makes this pattern unreliable by design.
+**✅ Do instead**: Agent-scoped context injection belongs at routing time — inside the skill that the router invokes after selecting the agent. Hooks are for session-wide, agent-agnostic concerns (error detection, performance logging, global context).
+*Graduated from retro — hook-timing-vs-routing-timing incident*
+
 ## Anti-Rationalization
 
 See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md) for universal patterns.
