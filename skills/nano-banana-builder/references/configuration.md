@@ -93,7 +93,7 @@ Choose output format based on your use case:
 
 | Format | When to Use | Quality Setting | File Size |
 |--------|------------|-----------------|-----------|
-| **PNG** | Transparency needed (sprites, overlays), lossless master copies | N/A (lossless) | Larger |
+| **PNG** | Transparency needed (sprites, overlays), lossless master copies | `compressionLevel: 0-9` (lossless, affects size/speed) | Larger |
 | **JPEG** | Photos, card art, backgrounds — no transparency | `quality: 85-95` | Smaller |
 | **WebP** | Web delivery — best compression/quality ratio | `quality: 80-90` | Smallest |
 
@@ -117,7 +117,7 @@ export async function processAndStore(
       processed = await sharp(buffer).webp({ quality }).toBuffer()
       break
     default:
-      processed = await sharp(buffer).png({ compressionLevel: 6 }).toBuffer()
+      processed = await sharp(buffer).png({ compressionLevel: 6 }).toBuffer() // default (0-9, higher = smaller + slower)
   }
 
   const ext = format === 'jpeg' ? 'jpg' : format
@@ -141,12 +141,13 @@ pip install google-genai pillow
 ```
 
 ```python
+import os
 from google import genai
 from google.genai import types
 from PIL import Image
 import io
 
-client = genai.Client()  # reads GEMINI_API_KEY from env
+client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])  # or set GOOGLE_API_KEY for auto-detection
 
 response = client.models.generate_content(
     model="gemini-2.5-flash-image",  # or "gemini-3-pro-image-preview"
@@ -163,7 +164,7 @@ response = client.models.generate_content(
 for part in response.candidates[0].content.parts:
     if part.inline_data is not None:
         img = Image.open(io.BytesIO(part.inline_data.data))
-        img.save("output.png", quality=95)
+        img.save("output.png", optimize=True)
 ```
 
 **Reference image** for style matching (Python):

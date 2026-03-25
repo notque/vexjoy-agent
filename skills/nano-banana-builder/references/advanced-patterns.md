@@ -17,7 +17,7 @@ import { put } from '@vercel/blob'
 interface GenerateConfig {
   prompt: string
   model: 'nano' | 'pro'
-  aspectRatio?: '1:1' | '16:9' | '21:9'
+  aspectRatio?: '1:1' | '2:3' | '3:2' | '3:4' | '4:3' | '4:5' | '5:4' | '9:16' | '16:9' | '21:9'
   storeImage?: boolean
 }
 
@@ -141,8 +141,6 @@ export async function POST(req: Request) {
 
 import { google } from '@ai-sdk/google'
 import { generateText } from 'ai'
-import { readFile } from 'fs/promises'
-
 interface StyleTransferConfig {
   prompt: string
   referenceImageBase64: string
@@ -241,10 +239,7 @@ def save_original(img: Image.Image, item_id: str, originals_dir: Path) -> Path:
     originals_dir.mkdir(parents=True, exist_ok=True)
     original_path = originals_dir / f"{item_id}_original.png"
 
-    img_copy = img.copy()
-    if img_copy.mode != "RGB":
-        img_copy = img_copy.convert("RGB")
-    img_copy.save(original_path, "PNG")
+    img.save(original_path, "PNG")
 
     return original_path
 ```
@@ -261,7 +256,7 @@ interface CropConfig {
   targetWidth: number
   targetHeight: number
   bias?: 'center' | 'top' | 'bottom'
-  /** 0.0-1.0: how much crop comes from top. 0.35 = keep more top. Default 0.5 (center) */
+  /** Fraction of excess removed from top. 0.0 = anchor top (crop bottom only), 0.35 = keep more top, 0.5 = center, 1.0 = anchor bottom (crop top only) */
   topRatio?: number
 }
 
@@ -313,8 +308,9 @@ def smart_crop(
     Crop to target dimensions with configurable vertical bias.
 
     Args:
-        top_ratio: 0.5 = center, 0.35 = keep more top (good for characters),
-                   0.0 = crop only from top, 1.0 = crop only from bottom
+        top_ratio: Fraction of excess removed from top.
+                   0.0 = anchor top (crop bottom only), 0.35 = keep more top (good for characters),
+                   0.5 = center, 1.0 = anchor bottom (crop top only)
     """
     width, height = img.size
     target_ratio = target_width / target_height
@@ -333,9 +329,6 @@ def smart_crop(
         img = img.crop((0, top_crop, width, top_crop + new_height))
 
     img = img.resize((target_width, target_height), Image.Resampling.LANCZOS)
-
-    if img.mode != "RGB":
-        img = img.convert("RGB")
 
     return img
 ```
@@ -541,17 +534,38 @@ def process_image(
     crop_bias: float = 0.5,
     bg_color: tuple[int, int, int] | None = None,
     bg_tolerance: int = 30,
+    remove_watermarks: bool = False,
+    watermark_margin: int = 40,
     output_format: str = "png",
     jpeg_quality: int = 90,
 ) -> Image.Image:
     """
-    Full pipeline: background removal → smart crop → format-ready output.
+    Full pipeline: watermark removal → background removal → smart crop → format conversion.
 
     Args:
-        crop_bias: 0.5=center, 0.35=keep top (characters), 0.65=keep bottom
+        crop_bias: Fraction of excess removed from top.
+                   0.0=anchor top, 0.35=keep top (characters), 0.5=center, 1.0=anchor bottom
         bg_color: Background color to make transparent (None=skip)
+        remove_watermarks: Clear bright pixels in corner regions
         output_format: "png" (with alpha) or "jpeg" (no alpha, white fill)
     """
+    # Watermark removal (before background removal)
+    if remove_watermarks:
+        img = img.convert("RGBA")
+        pixels = img.load()
+        w, h = img.size
+        m = watermark_margin
+        corners = [(0, 0, m, m), (w - m, 0, w, m), (0, h - m, m, h), (w - m, h - m, w, h)]
+        for x1, y1, x2, y2 in corners:
+            for y in range(y1, y2):
+                for x in range(x1, x2):
+                    if 0 <= x < w and 0 <= y < h:
+                        r, g, b, a = pixels[x, y]
+                        if (r + g + b) / 3 > 180:
+                            pixels[x, y] = (bg_color[0] if bg_color else 58,
+                                            bg_color[1] if bg_color else 58,
+                                            bg_color[2] if bg_color else 58, 255)
+
     # Background removal (before crop to preserve edge detection)
     if bg_color is not None:
         img = img.convert("RGBA")
@@ -862,7 +876,7 @@ export async function generateBatch(config: BatchConfig) {
     for (let v = 1; v <= variants; v++) {
       const variantId = variants > 1 ? `${id}_v${v}` : id
 
-      // Skip if already exists
+      // Skip if already exists (single-variant mode only; multi-variant re-generates all)
       if (skipExisting && existingIds.has(id) && variants === 1) {
         skipped++
         onProgress?.(generated + skipped, total, `${id} (skipped)`)
@@ -872,7 +886,7 @@ export async function generateBatch(config: BatchConfig) {
       const result = await generateImage({
         prompt,
         model,
-        aspectRatio: aspectRatio as any,
+        aspectRatio,
         storeImage: true
       })
       results.push({ id: variantId, ...result })
@@ -987,7 +1001,6 @@ def batch_generate(
                 time.sleep(delay)
 
     return {"generated": generated, "skipped": skipped, "failed": failed}
-```
 ```
 
 ### Progressive Loading
