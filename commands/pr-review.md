@@ -69,7 +69,70 @@ Check if this is an organization-specific Go project using ANY of:
 
 If any check passes → **org domain**: add organization-specific reviewer to the agent list for Phase 4.
 
+**gopls MCP Integration** (MANDATORY when `.go` files are in the diff):
+
+When Go files are detected in the changed files, the review MUST use gopls MCP tools to provide type-aware context to all downstream review agents:
+
+1. Run `ToolSearch("gopls")` to fetch gopls tool schemas
+2. Call `go_workspace` to understand module structure, build configuration, and workspace layout
+3. Call `go_file_context` on EACH changed `.go` file to get intra-package dependency context (what other files in the same package this file depends on)
+4. Collect all type-aware context (module structure, package dependencies, symbol relationships) and pass it as structured input to every review agent dispatched in Phase 4
+
+This replaces text-only grep analysis with type-aware understanding — catching interface implementations, cross-package symbol usage, and dependency relationships that text search misses.
+
+If gopls MCP is unavailable (ToolSearch returns no results), fall back to Grep-based analysis but note the limitation in the review output.
+
 This determines which retro topics are relevant in Phase 8.
+
+### Phase 3.5: Caller Tracing (MANDATORY for Go signature/semantic changes)
+
+**Trigger**: This phase is MANDATORY for Go projects when the diff modifies any of:
+- Function or method signatures (parameters added/removed/retyped)
+- Parameter semantics (e.g., a parameter now accepts sentinel values like `"*"`)
+- Exported symbols (new exports, changed interfaces)
+- Sentinel or special values introduced (constants, magic strings, wildcard patterns)
+
+**Skip condition**: If the diff only modifies function bodies without changing signatures, parameter semantics, or exported symbols, skip to Phase 4.
+
+**Steps**:
+
+1. **Identify changed symbols**: Scan the diff for all functions/methods whose signatures or parameter semantics changed. List each with its file, old signature, and new signature.
+
+2. **Find ALL callers**: For each changed symbol:
+   - **Preferred**: Use gopls `go_symbol_references` (type-aware, catches interface implementations)
+   - **Fallback**: Grep with receiver syntax (e.g., `.GetEvents(` not just `GetEvents`) across the entire repo, excluding vendor/
+   - Document the total caller count per symbol
+
+3. **Verify each call site**: Read each caller and verify it has been updated for the new signature/semantics:
+   - Does it pass the correct number/type of arguments?
+   - Does it handle new return values or error conditions?
+   - For interface methods: do ALL implementations honor the new contract?
+
+4. **Trace security-sensitive parameters**: For parameters that control authorization, filtering, data access, or resource scoping:
+   - Classify each value source: **user-controlled** (query params, form values, request body, headers) vs **server-controlled** (auth tokens, UUIDs, constants, config)
+   - For user-controlled sources: verify validation exists BEFORE the value reaches the changed function
+   - Do NOT conclude a sentinel value (e.g., `"*"` meaning "unfiltered") is unreachable because no Go code constructs it — if the source is user input, the user constructs it
+
+5. **Document results** in structured format:
+   ```
+   CALLER TRACING RESULTS:
+
+   Symbol: [package.Function/Method]
+   Signature change: [old] → [new]
+   Total callers: [N]
+
+   Verified callers:
+     - [file:line] — updated: YES | parameter source: [server-controlled]
+     - [file:line] — updated: YES | parameter source: [user-controlled, validated at line N]
+
+   Unverified/problematic callers:
+     - [file:line] — ISSUE: [description]
+
+   Security-sensitive parameters:
+     - [param name]: [N] user-controlled sources, [M] validated, [K] UNVALIDATED
+   ```
+
+6. **Critical finding rule**: Any unvalidated caller passing user-controlled input to a security-sensitive parameter is a **Critical** finding. Feed all caller tracing results to review agents in Phase 4 as mandatory input context.
 
 ### Phase 4: Launch Review Agents
 
