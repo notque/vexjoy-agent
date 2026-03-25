@@ -15,17 +15,18 @@ State persisted to ~/.claude/mcp-health-cache.json (compatible with ECC format).
 Fail-open on any unexpected exception (exit 0).
 
 Bypass:
-  MCP_HEALTH_CHECK_BYPASS=1   — disable for a single invocation
-  ECC_MCP_HEALTH_FAIL_OPEN=1  — suppress blocking, emit warning instead
+  MCP_HEALTH_CHECK_BYPASS=1    — disable for a single invocation
+  MCP_HEALTH_FAIL_OPEN=1       — suppress blocking, emit warning instead
 
 Reconnect (optional):
-  ECC_MCP_RECONNECT_{SERVER}  — shell command to reconnect a named server
-  ECC_MCP_RECONNECT_COMMAND   — fallback reconnect command (all servers)
+  MCP_HEALTH_RECONNECT_{SERVER}  — shell command to reconnect a named server
+  MCP_HEALTH_RECONNECT_COMMAND   — fallback reconnect command (all servers)
 """
 
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 import time
@@ -41,7 +42,7 @@ from stdin_timeout import read_stdin
 
 STATE_FILE = Path.home() / ".claude" / "mcp-health-cache.json"
 
-# TTL for healthy cache entries (ms). Override via ECC_MCP_HEALTH_TTL_MS.
+# TTL for healthy cache entries (ms). Override via MCP_HEALTH_TTL_MS.
 DEFAULT_HEALTH_TTL_MS = 2 * 60 * 1000  # 2 minutes
 
 # Backoff configuration
@@ -74,7 +75,7 @@ _FAILURE_PATTERNS: list[re.Pattern[str]] = [
     # Service unavailable
     re.compile(r"\b503\b"),
     re.compile(r"service\s+unavailable", re.IGNORECASE),
-    re.compile(r"overloaded", re.IGNORECASE),
+    re.compile(r"server\s+overloaded|overloaded\s+server", re.IGNORECASE),
     # Transport errors
     re.compile(r"ECONNREFUSED", re.IGNORECASE),
     re.compile(r"ENOTFOUND", re.IGNORECASE),
@@ -127,7 +128,10 @@ def _get_server_entry(state: dict, server: str) -> dict:
 
 
 def _mark_healthy(state: dict, server: str) -> None:
-    ttl = int(os.environ.get("ECC_MCP_HEALTH_TTL_MS", DEFAULT_HEALTH_TTL_MS))
+    try:
+        ttl = int(os.environ.get("MCP_HEALTH_TTL_MS", DEFAULT_HEALTH_TTL_MS))
+    except (ValueError, TypeError):
+        ttl = DEFAULT_HEALTH_TTL_MS
     now = _now_ms()
     entry = state["servers"].get(server, {})
     entry.update(
@@ -254,8 +258,8 @@ def _probe_command(cmd: str) -> tuple[bool, str]:
     """
     try:
         proc = subprocess.Popen(
-            cmd,
-            shell=True,
+            shlex.split(cmd) if isinstance(cmd, str) else cmd,
+            shell=False,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -315,19 +319,19 @@ def probe_server(server: str, config: dict | None) -> tuple[bool, str]:
 
 def _attempt_reconnect(server: str) -> bool:
     """
-    Attempt reconnect via ECC_MCP_RECONNECT_{SERVER} or ECC_MCP_RECONNECT_COMMAND.
+    Attempt reconnect via MCP_HEALTH_RECONNECT_{SERVER} or MCP_HEALTH_RECONNECT_COMMAND.
     Returns True if reconnect command exited 0.
     """
     server_upper = server.upper().replace("-", "_")
-    cmd = os.environ.get(f"ECC_MCP_RECONNECT_{server_upper}") or os.environ.get(
-        "ECC_MCP_RECONNECT_COMMAND"
+    cmd = os.environ.get(f"MCP_HEALTH_RECONNECT_{server_upper}") or os.environ.get(
+        "MCP_HEALTH_RECONNECT_COMMAND"
     )
     if not cmd:
         return False
     try:
         result = subprocess.run(
-            cmd,
-            shell=True,
+            shlex.split(cmd) if isinstance(cmd, str) else cmd,
+            shell=False,
             timeout=30,
             capture_output=True,
         )
@@ -368,7 +372,7 @@ def handle_pretool(event: dict) -> None:
         next_retry = entry.get("nextRetryAt", 0)
         if now < next_retry:
             # Within backoff window — block or warn depending on fail-open mode
-            fail_open = os.environ.get("ECC_MCP_HEALTH_FAIL_OPEN") == "1"
+            fail_open = os.environ.get("MCP_HEALTH_FAIL_OPEN") == "1"
             failure_count = entry.get("failureCount", 0)
             last_error = entry.get("lastError", "unknown")
             retry_in_s = (next_retry - now) // 1000
@@ -408,7 +412,7 @@ def handle_pretool(event: dict) -> None:
         _mark_unhealthy(state, server, probe_msg)
         _save_state(state)
 
-        fail_open = os.environ.get("ECC_MCP_HEALTH_FAIL_OPEN") == "1"
+        fail_open = os.environ.get("MCP_HEALTH_FAIL_OPEN") == "1"
         failure_count = state["servers"][server].get("failureCount", 1)
         retry_in_s = BACKOFF_BASE_MS * (2 ** (failure_count - 1)) // 1000
         retry_in_s = min(retry_in_s, BACKOFF_CAP_MS // 1000)

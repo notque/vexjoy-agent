@@ -438,7 +438,7 @@ class TestHandlePreTool:
         event = _event("mcp__my-server__get_resource")
         with (
             patch.object(mod, "STATE_FILE", state_file),
-            patch.dict(os.environ, {"ECC_MCP_HEALTH_FAIL_OPEN": "1"}),
+            patch.dict(os.environ, {"MCP_HEALTH_FAIL_OPEN": "1"}),
         ):
             handle_pretool(event)  # Must not raise
 
@@ -494,7 +494,7 @@ class TestHandlePreTool:
         assert loaded["servers"]["bad-server"]["status"] == "unhealthy"
 
     def test_probe_fail_fail_open_passes(self, tmp_path):
-        """Probe failure with ECC_MCP_HEALTH_FAIL_OPEN=1 passes instead of blocking."""
+        """Probe failure with MCP_HEALTH_FAIL_OPEN=1 passes instead of blocking."""
         state_file = tmp_path / "health.json"
         state_file.write_text(json.dumps({"version": 1, "servers": {}}))
 
@@ -504,7 +504,7 @@ class TestHandlePreTool:
             patch.object(mod, "_discover_mcp_config", return_value={"url": "http://localhost:9999"}),
             patch.object(mod, "probe_server", return_value=(False, "connection refused")),
             patch.object(mod, "_attempt_reconnect", return_value=False),
-            patch.dict(os.environ, {"ECC_MCP_HEALTH_FAIL_OPEN": "1"}),
+            patch.dict(os.environ, {"MCP_HEALTH_FAIL_OPEN": "1"}),
         ):
             handle_pretool(event)  # Must not raise
 
