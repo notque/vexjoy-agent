@@ -12,8 +12,6 @@ description: |
 version: 1.0.0
 user-invocable: true
 agent: python-general-engineer
-pairs_with:
-  - typescript-frontend-engineer
 model: sonnet
 allowed-tools:
   - Read
@@ -37,6 +35,8 @@ routing:
     - make a clip
     - assemble clips
     - video editing
+  pairs_with:
+    - typescript-frontend-engineer
 ---
 
 # Video Editing Skill
@@ -80,29 +80,38 @@ mechanical execution deterministically.
 
 ## Preflight Check
 
-Run before Phase 1. Hard gate -- if any check fails, halt with the error message shown.
+Run before Phase 1.
+
+**Hard requirements** (BLOCK if missing — halt immediately):
+- `ffmpeg`: required for all phases
+- `node`: required for Remotion and npx tooling
+
+**Soft requirements** (WARN if missing — continue unless Layer 4 is needed):
+- `remotion`: only required for Phase 4 (Remotion composition)
 
 ```bash
+# Hard requirements — exit 1 if missing
 which ffmpeg >/dev/null 2>&1 || {
-  echo "ERROR: ffmpeg not found."
+  echo "ERROR: ffmpeg not found. Cannot continue."
   echo "Install: brew install ffmpeg  (macOS)  |  apt install ffmpeg  (Linux)"
   exit 1
 }
 which node >/dev/null 2>&1 || {
-  echo "ERROR: node not found."
+  echo "ERROR: node not found. Cannot continue."
   echo "Install: https://nodejs.org or via nvm"
   exit 1
 }
-npx remotion --version >/dev/null 2>&1 || {
-  echo "ERROR: remotion CLI not found."
-  echo "Install: npm install @remotion/cli  (in your project directory)"
-  exit 1
-}
-echo "Preflight passed: ffmpeg, node, remotion all available."
-```
 
-If `remotion` is not installed and Layer 4 (Remotion composition) is not needed for this job,
-the user may acknowledge and proceed. Layers 1-3 and 6 do not require Remotion.
+# Soft requirement — warn only; continue unless Phase 4 is needed
+npx remotion --version >/dev/null 2>&1 || {
+  echo "WARNING: remotion CLI not found."
+  echo "Layers 1-3 and 5-6 will proceed normally."
+  echo "Phase 4 (Remotion composition) will be unavailable."
+  echo "Install when needed: npm install @remotion/cli  (in your project directory)"
+}
+
+echo "Preflight: ffmpeg OK, node OK. (remotion optional — see above if warned)"
+```
 
 ---
 
