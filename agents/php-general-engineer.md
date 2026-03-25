@@ -696,9 +696,9 @@ This agent uses the **Implementation Schema**:
 
 Deep-dive material for common PHP patterns and security posture.
 
+> **Note**: Reference files below are planned for future implementation and do not exist yet.
+
 | Reference | Content |
 |-----------|---------|
-| `agents/references/php-security.md` | Prepared statement patterns, PDO/Doctrine/Eloquent examples, mass-assignment checklist, CSRF enforcement, session regeneration audit |
-| `agents/references/php-patterns.md` | Thin controller template, DTO/value object examples, constructor injection recipes, Symfony service configuration |
-
-> These reference files are planned companions to this agent. When they exist, read them before implementing security-sensitive features or complex architectural patterns.
+| `agents/references/php-security.md` (planned) | Prepared statement patterns, PDO/Doctrine/Eloquent examples, mass-assignment checklist, CSRF enforcement, session regeneration audit |
+| `agents/references/php-patterns.md` (planned) | Thin controller template, DTO/value object examples, constructor injection recipes, Symfony service configuration |
