@@ -105,6 +105,12 @@
           },
           {
             "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/pretool-plan-gate.py\"",
+            "description": "Plan gate: blocks implementation code without task_plan.md",
+            "timeout": 3000
+          },
+          {
+            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/pretool-learning-injector.py\"",
             "description": "Inject known error patterns before Bash/Edit tools run",
             "timeout": 3000
