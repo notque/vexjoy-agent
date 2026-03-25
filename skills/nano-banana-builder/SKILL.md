@@ -1,37 +1,35 @@
 ---
 name: nano-banana-builder
 description: |
-  Build Next.js web applications with Google Gemini Nano Banana image generation
-  APIs (gemini-2.5-flash-image, gemini-3-pro-image-preview). Use when creating
-  image generators, editors, galleries, or any app integrating conversational
-  image generation with server actions, API routes, and storage. Use for "image
-  generation app", "nano banana", "text to image", "AI image generator", or
-  "gemini image". Do NOT use for non-Gemini models, Python/Go backends, model
-  fine-tuning, or image classification/input tasks.
-version: 2.0.0
+  Generate and post-process images using Google Gemini Nano Banana APIs via
+  deterministic Python scripts. Covers single generation, batch generation,
+  style transfer with reference images, and post-processing (smart crop,
+  background removal, watermark cleanup, format conversion). Use for "nano
+  banana", "generate image", "gemini image", "batch image generation",
+  "sprite generation", "card art", or "image post-processing". Do NOT use
+  for non-Gemini models, model fine-tuning, or image classification tasks.
+version: 3.0.0
 user-invocable: false
 allowed-tools:
   - Read
-  - Write
   - Bash
   - Grep
   - Glob
-  - Edit
-  - Task
-  - Skill
 command: /nano-banana
 routing:
   triggers:
     - nano banana
     - gemini image generation
     - AI image generator
-    - image generation app
+    - generate image
     - gemini-2.5-flash-image
     - gemini-3-pro-image-preview
-    - web image generator
+    - batch image generation
+    - image post-processing
+    - sprite generation
+    - generate card art
   pairs_with:
-    - typescript-frontend-engineer
-    - nodejs-api-engineer
+    - python-general-engineer
     - universal-quality-gate
 ---
 
@@ -39,252 +37,298 @@ routing:
 
 ## Operator Context
 
-This skill operates as an operator for building production web applications powered by Google's Nano Banana image generation APIs. It implements the **Phased Build** architectural pattern -- Scaffold, Integrate, Polish, Verify -- with **Domain Intelligence** embedded in model selection, conversational editing, and production hardening.
+This skill orchestrates image generation and post-processing via two deterministic Python scripts. The LLM's job is **prompt crafting** (describing what to generate) and **flag selection** (choosing the right script options). The scripts handle all mechanical operations.
+
+### Architecture
+
+| Component | Path | Purpose |
+|-----------|------|---------|
+| `nano-banana-generate.py` | `scripts/` | Generate images via Gemini API |
+| `nano-banana-process.py` | `scripts/` | Post-process: crop, bg removal, watermarks, format |
+
+**Principle**: "LLMs orchestrate. Programs execute." The skill tells you *when* to call *which script* with *which flags*. The scripts do the work deterministically.
 
 ### Hardcoded Behaviors (Always Apply)
 
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before building
-- **Exact Model Names Only**: Use `gemini-2.5-flash-image` or `gemini-3-pro-image-preview` exclusively. Never invent model strings, add date suffixes, or guess names.
-- **Server-Side API Calls**: All Gemini API calls go through server actions or API routes. Never expose API keys client-side.
-- **Storage Over Base64**: Store generated images in object storage (Vercel Blob, S3/R2) and persist URLs, not raw base64 in databases.
-- **Rate Limit Handling**: Every production integration must include rate limiting with user-friendly feedback.
-- **Conversational Editing**: Leverage multi-turn history for iterative refinement rather than one-shot generation.
+- **Scripts Only**: ALL generation and processing goes through the Python scripts. Never write inline image processing code.
+- **Exact Model Names Only**: Only two models exist: `flash` (gemini-2.5-flash-image) and `pro` (gemini-3-pro-image-preview). The scripts enforce this.
+- **Save Originals**: For any batch or expensive generation, use `--save-original` or `--originals-dir` to preserve raw API output before processing. Re-generating costs money; re-processing a saved original is free.
+- **API Key Required**: Scripts read `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) from environment. Validate before running.
+- **Rate Limiting**: Use `--delay` for batch operations. Default 2s for flash, 3s for pro.
 
 ### Default Behaviors (ON unless disabled)
 
-- **Model Selection by Use Case**: Flash for speed/volume, Pro for quality/text rendering
-- **Loading State UX**: Show progress indicators during 5-30s generation time
-- **Error Boundaries**: Wrap generation components in error boundaries with retry
-- **Debounced Input**: Require explicit user action to generate, never on keystroke
-- **Unique Design Per App**: Vary UI style, color, layout, and interaction to fit purpose
-- **Environment Variable Validation**: Check for required keys at startup
-
-### Optional Behaviors (OFF unless enabled)
-
-- **Batch Generation**: Generate multiple images in parallel with queue management
-- **Image Composition**: Combine multiple generated images into composites
-- **Style Transfer**: Apply reference styles across generations
-- **Gallery Persistence**: Save generation history with browsing and search
-
-## What This Skill CAN Do
-
-- Build complete image generation web applications with Next.js
-- Implement server actions and API routes for both Gemini image models
-- Handle iterative, multi-turn image editing conversations via useChat
-- Configure object storage (Vercel Blob, S3/R2) for generated images
-- Implement rate limiting and quota management with Upstash Redis
-- Select the correct model based on speed, quality, and cost tradeoffs
-
-## What This Skill CANNOT Do
-
-- Use non-Gemini image models (DALL-E, Midjourney, Stable Diffusion)
-- Deploy to non-Node.js environments (Python, Go, etc.)
-- Implement custom model fine-tuning or training
-- Handle image input/classification (that is Gemini Vision, not Nano Banana)
-- Skip any of the 4 build phases
+- **Flash for iterations, Pro for finals**: Use `--model flash` for drafts and experimentation, `--model pro` for final output
+- **Skip existing in batch**: Use `--skip-existing` to avoid re-generating images that already exist
+- **Top-biased crop for characters**: Use `--bias 0.35` when cropping character/sprite art to preserve heads
 
 ---
 
-## Instructions
+## Scripts Reference
 
-### CRITICAL: Valid Model Names
+### nano-banana-generate.py
 
-Only two model strings exist for image generation. Use them exactly as written.
+**Dependencies**: `pip install google-genai pillow`
 
-| Model String (exact) | Alias | Best For |
-|----------------------|-------|----------|
-| `gemini-2.5-flash-image` | Nano Banana | Fast iterations, drafts, high volume (2-5s) |
-| `gemini-3-pro-image-preview` | Nano Banana Pro | Quality output, text rendering, 2K resolution |
-
-**Common wrong names**: `gemini-2.5-flash-preview-05-20` (text model suffix), `gemini-2.5-pro-image` (Pro does not generate images), `gemini-3-flash-image` (does not exist), `gemini-pro-vision` (image input, not generation).
-
-### Phase 1: SCAFFOLD
-
-**Goal**: Set up the Next.js project structure with dependencies and environment.
-
-**Step 1: Initialize project and install dependencies**
+#### generate — Single image
 
 ```bash
-npm install @ai-sdk/google ai @ai-sdk/react
-# Storage (pick one):
-npm install @vercel/blob    # Vercel Blob
-# or configure S3/R2 via aws-sdk
-# Rate limiting (optional):
-npm install @upstash/ratelimit @upstash/redis
+python3 ~/.claude/scripts/nano-banana-generate.py generate \
+    --prompt "PROMPT" \
+    --output OUTPUT_PATH \
+    --model flash|pro \
+    --aspect-ratio RATIO \
+    --save-original ORIGINAL_PATH
 ```
 
-**Step 2: Configure environment variables**
+| Flag | Required | Default | Description |
+|------|----------|---------|-------------|
+| `--prompt` | Yes | — | Text prompt for generation |
+| `--output` | Yes | — | Output file path (.png or .jpg) |
+| `--model` | No | flash | `flash` (fast, 2-5s) or `pro` (quality, ~30s) |
+| `--aspect-ratio` | No | model default | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+| `--reference` | No | — | Reference image for style matching |
+| `--save-original` | No | — | Save raw API output to this path |
+
+#### with-reference — Style transfer
 
 ```bash
-# .env.local
-GEMINI_API_KEY=your_api_key_here
-BLOB_READ_WRITE_TOKEN=your_vercel_token  # if using Vercel Blob
+python3 ~/.claude/scripts/nano-banana-generate.py with-reference \
+    --prompt "Recreate in this art style" \
+    --reference style_ref.png \
+    --output styled.png \
+    --model flash --aspect-ratio 16:9
 ```
 
-**Step 3: Define the application structure**
+Same flags as `generate` but `--reference` is required.
 
-```markdown
-## App Structure
-- app/actions/generate.ts    -- Server action for image generation
-- app/api/generate/route.ts  -- API route (if using useChat)
-- app/components/            -- React client components
-- lib/storage.ts             -- Storage abstraction
-- lib/rate-limit.ts          -- Rate limiting (if production)
+#### batch — Multiple images from manifest
+
+```bash
+python3 ~/.claude/scripts/nano-banana-generate.py batch \
+    --manifest items.json \
+    --output-dir staging/sprites/ \
+    --originals-dir staging/originals/ \
+    --model pro --aspect-ratio 1:1 \
+    --skip-existing --variants 3 --delay 3
 ```
 
-**Gate**: Project initializes, dependencies install, env vars configured. Proceed only when gate passes.
+| Flag | Required | Default | Description |
+|------|----------|---------|-------------|
+| `--manifest` | Yes | — | JSON file: `[{"id": "name", "prompt": "...", "reference": "optional.png"}]` |
+| `--output-dir` | Yes | — | Directory for generated images |
+| `--originals-dir` | No | — | Save raw API outputs here |
+| `--skip-existing` | No | off | Skip items with existing output files |
+| `--variants` | No | 1 | Number of variants per item (1-5) |
+| `--delay` | No | 2.0 | Seconds between API calls |
 
-### Phase 2: INTEGRATE
+### nano-banana-process.py
 
-**Goal**: Wire up Gemini image generation with server-side API calls and client components.
+**Dependencies**: `pip install pillow`
 
-**Step 1: Create server action or API route**
+#### crop — Smart crop to dimensions
 
-```typescript
-// app/actions/generate.ts
-'use server'
-import { google } from '@ai-sdk/google'
-import { generateText } from 'ai'
-
-export async function generateImage(prompt: string) {
-  const result = await generateText({
-    model: google('gemini-2.5-flash-image'),
-    prompt,
-    providerOptions: {
-      google: {
-        responseModalities: ['IMAGE'],
-        imageConfig: { aspectRatio: '16:9' }
-      }
-    }
-  })
-  return result.files[0] // { base64, uint8Array, mediaType }
-}
+```bash
+python3 ~/.claude/scripts/nano-banana-process.py crop \
+    --width 400 --height 218 --bias 0.35 \
+    input.png output.png
 ```
 
-**Step 2: Build client component with loading states**
+| Flag | Required | Default | Description |
+|------|----------|---------|-------------|
+| `--width` | Yes | — | Target width in pixels |
+| `--height` | Yes | — | Target height in pixels |
+| `--bias` | No | 0.5 | 0.0=anchor top, 0.35=keep top, 0.5=center, 1.0=anchor bottom |
 
-Use `useChat` for multi-turn editing or direct server action calls for single-shot generation. Always include loading indicators and error display.
+#### remove-bg — Background removal
 
-**Step 3: Connect storage**
+```bash
+python3 ~/.claude/scripts/nano-banana-process.py remove-bg \
+    --bg-color 3a3a3a --tolerance 30 \
+    sprite_raw.png sprite.png
+```
 
-Upload generated images to object storage immediately. Return persistent URLs, not base64.
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--bg-color` | 3a3a3a | Hex color to make transparent |
+| `--tolerance` | 30 | Color variance (0-255) |
 
-**Gate**: User can enter a prompt and receive a generated image displayed in the UI. Proceed only when gate passes.
+Common background colors for Gemini prompts:
+- `3a3a3a` — dark gray ("solid dark gray background")
+- `ffffff` — white ("solid white background")
+- `000000` — black ("solid black background")
 
-### Phase 3: POLISH
+#### remove-watermarks — Corner cleanup
 
-**Goal**: Harden for production with rate limiting, error handling, and design variation.
+```bash
+python3 ~/.claude/scripts/nano-banana-process.py remove-watermarks \
+    --margin 40 --threshold 180 \
+    input.png output.png
+```
 
-**Step 1: Add rate limiting**
+#### convert — Format conversion
 
-Implement per-user rate limits using Upstash Redis or in-memory fallback. Show friendly wait messages on 429 responses.
+```bash
+python3 ~/.claude/scripts/nano-banana-process.py convert \
+    --format jpeg --quality 90 \
+    input.png output.jpg
+```
 
-**Step 2: Implement error boundaries and retry**
+Formats: `png` (lossless, supports transparency), `jpeg` (smaller, no alpha), `webp` (best compression).
 
-Wrap generation in try/catch with specific handling for 429 (rate limit), 401 (bad key), 400 (content policy), and network timeout. Provide user-visible feedback for each case.
+#### pipeline — Full processing chain
 
-**Step 3: Apply unique design**
+Runs all steps in order: watermarks → background → crop → format.
 
-Match UI style to the application purpose. Avoid generic AI startup aesthetics. Vary color scheme, layout, typography, and interaction pattern intentionally.
+```bash
+# Single file
+python3 ~/.claude/scripts/nano-banana-process.py pipeline \
+    --remove-watermarks --remove-bg --bg-color 3a3a3a \
+    --width 256 --height 256 --bias 0.35 \
+    --format png \
+    input.png output.png
 
-**Gate**: App handles all error cases gracefully and has intentional visual design. Proceed only when gate passes.
+# Batch (input is a directory)
+python3 ~/.claude/scripts/nano-banana-process.py pipeline \
+    --width 400 --height 218 --bias 0.35 \
+    --format jpeg --quality 90 \
+    staging/originals/ output/cards/
+```
 
-### Phase 4: VERIFY
+---
 
-**Goal**: Confirm the application works end-to-end and meets production standards.
+## Intent-to-Script Mapping
 
-**Step 1**: Generate an image successfully with a test prompt
+The LLM's job is to translate user intent into the right script call. Here's the mapping:
 
-**Step 2**: Verify model name strings are exactly `gemini-2.5-flash-image` or `gemini-3-pro-image-preview`
+| User wants | Script + subcommand | Key flags |
+|------------|-------------------|-----------|
+| Generate a single image | `nano-banana-generate.py generate` | `--prompt`, `--model`, `--aspect-ratio` |
+| Generate a sprite/character | `nano-banana-generate.py generate` | `--model pro`, `--aspect-ratio 1:1` |
+| Generate card art | `nano-banana-generate.py generate` | `--model flash`, `--aspect-ratio 16:9` |
+| Generate backgrounds | `nano-banana-generate.py generate` | `--model flash`, `--aspect-ratio 9:16` (vertical) or `16:9` (landscape) |
+| Style-match a reference | `nano-banana-generate.py with-reference` | `--reference`, `--prompt` |
+| Batch generate enemies/items | `nano-banana-generate.py batch` | `--manifest`, `--skip-existing`, `--delay 3` |
+| Crop to exact dimensions | `nano-banana-process.py crop` | `--width`, `--height`, `--bias` |
+| Make background transparent | `nano-banana-process.py remove-bg` | `--bg-color`, `--tolerance` |
+| Clean up watermarks | `nano-banana-process.py remove-watermarks` | `--margin`, `--threshold` |
+| Convert format | `nano-banana-process.py convert` | `--format`, `--quality` |
+| Full sprite pipeline | `nano-banana-process.py pipeline` | `--remove-bg`, `--remove-watermarks`, crop flags |
+| Batch reprocess originals | `nano-banana-process.py pipeline` | directory input, crop + format flags |
 
-**Step 3**: Confirm no API keys are exposed in client-side code or bundles
+### Prompt Crafting Guidelines
 
-**Step 4**: Test error states (invalid prompt, rate limit simulation, missing env var)
+The LLM's unique contribution is writing effective prompts. Key patterns:
 
-**Step 5**: Verify images persist in storage with retrievable URLs
+**Sprites/Characters** (use with `--model pro`):
+- Always specify: "solid dark gray background color only" (for bg removal with `--bg-color 3a3a3a`)
+- Always specify: "ONE character only, full body visible from head to feet, centered in frame"
+- Always specify: "no text, no labels, no background details"
+- Describe art style explicitly: "Slay the Spire card game style, heavy ink outlines, golden glowing outline"
 
-**Step 6**: Run full test suite if tests exist, no regressions
+**Card Art** (use with `--model flash`):
+- Specify composition: "WIDE SHOT, full bodies with space around them"
+- Specify style: "sketchy rough painterly, muted desaturated sepia palette"
+- Include context: "wrestling ring ropes in background"
 
-**Gate**: All verification steps pass. Build is complete.
+**Backgrounds** (use with `--model flash`):
+- Specify darkness: "Very dark overall (UI elements need to be readable on top)"
+- Specify no characters: "NO text, NO labels, NO characters"
+- Match aspect ratio to use: 9:16 for vertical scrolling, 16:9 for landscape arenas
+
+---
+
+## Workflows
+
+### Generate + Process (single image)
+
+```bash
+# 1. Generate raw sprite
+python3 ~/.claude/scripts/nano-banana-generate.py generate \
+    --prompt "Full body warrior, Slay the Spire style, solid dark gray background..." \
+    --output staging/warrior_raw.png \
+    --model pro --aspect-ratio 1:1 \
+    --save-original staging/originals/warrior.png
+
+# 2. Process: remove watermarks, remove bg, crop, save as PNG
+python3 ~/.claude/scripts/nano-banana-process.py pipeline \
+    --remove-watermarks --remove-bg --bg-color 3a3a3a \
+    --width 256 --height 256 --bias 0.35 \
+    --format png \
+    staging/warrior_raw.png output/warrior.png
+```
+
+### Batch Generate + Batch Process
+
+```bash
+# 1. Create manifest
+cat > enemies.json << 'EOF'
+[
+    {"id": "goblin", "prompt": "Full body goblin warrior..."},
+    {"id": "skeleton", "prompt": "Full body skeleton archer..."}
+]
+EOF
+
+# 2. Batch generate (saves originals)
+python3 ~/.claude/scripts/nano-banana-generate.py batch \
+    --manifest enemies.json \
+    --output-dir staging/sprites/ \
+    --originals-dir staging/originals/ \
+    --model pro --skip-existing --delay 3
+
+# 3. Batch process all generated sprites
+python3 ~/.claude/scripts/nano-banana-process.py pipeline \
+    --remove-watermarks --remove-bg --bg-color 3a3a3a \
+    --width 256 --height 256 --bias 0.35 --format png \
+    staging/sprites/ output/sprites/
+```
+
+### Reprocess from originals (no regeneration cost)
+
+```bash
+# Try different crop dimensions without re-generating
+python3 ~/.claude/scripts/nano-banana-process.py pipeline \
+    --width 400 --height 167 --bias 0.35 --format jpeg --quality 90 \
+    staging/originals/ output/cards/
+```
 
 ---
 
 ## Error Handling
 
-### Error: "Rate Limit Exceeded (429)"
-Cause: Too many requests to Gemini API within quota window
-Solution:
-1. Implement rate limiting middleware (Upstash Redis or in-memory)
-2. Show user-friendly wait message with estimated retry time
-3. Queue requests if burst traffic is expected
+### Error: "GEMINI_API_KEY not set"
+Solution: `export GEMINI_API_KEY=your_key` or `export GOOGLE_API_KEY=your_key`
 
-### Error: "Invalid API Key (401)"
-Cause: Missing or incorrect GEMINI_API_KEY in environment
-Solution:
-1. Verify key exists in `.env.local` and is loaded server-side
-2. Check key has image generation permissions enabled
-3. Never expose key in client components or API responses
+### Error: "No image in response"
+Cause: Prompt may have triggered content safety filters, or API returned text-only
+Solution: Adjust prompt. Check for policy-violating content. Try a different phrasing.
 
-### Error: "Content Policy Violation (400)"
-Cause: Prompt triggers Gemini safety filters
-Solution:
-1. Display clear user guidance on acceptable content
-2. Do not retry the same prompt automatically
-3. Log violations for monitoring without storing prompt content
+### Error: "Missing dependency: google-genai"
+Solution: `pip install google-genai pillow`
 
-### Error: "Network Timeout or Generation Failure"
-Cause: Generation exceeding timeout or transient network issue
-Solution:
-1. Implement retry with exponential backoff (max 3 attempts)
-2. Show progress indicator during the 5-30s generation window
-3. Fall back to cached/placeholder image if all retries fail
+### Error: "Rate limit exceeded (429)"
+Solution: Increase `--delay` value. Default 2s may be too aggressive for free tier.
 
 ---
 
 ## Anti-Patterns
 
-### Anti-Pattern 1: Inventing Model Names
-**What it looks like**: Using `gemini-2.5-flash-preview-05-20` or `gemini-2.5-pro-image` for generation
-**Why wrong**: These model strings do not support image generation. Date suffixes belong to text models, and 2.5 Pro has no image output capability.
-**Do instead**: Use exactly `gemini-2.5-flash-image` or `gemini-3-pro-image-preview`. No variations.
+### Anti-Pattern 1: Writing Inline Image Processing
+**What it looks like**: Writing PIL/sharp code directly instead of calling the scripts
+**Why wrong**: Duplicates tested logic, introduces variance, bypasses the deterministic pipeline
+**Do instead**: Call `nano-banana-process.py` with the appropriate subcommand and flags
 
-### Anti-Pattern 2: Exposing API Keys Client-Side
-**What it looks like**: Calling Gemini directly from React components or embedding keys in client bundles
-**Why wrong**: Credentials are visible in browser DevTools, enabling abuse and billing attacks.
-**Do instead**: Route all API calls through server actions or API routes. Store keys in environment variables accessed only server-side.
+### Anti-Pattern 2: Inventing Model Names
+**What it looks like**: Using `gemini-2.5-flash-preview-05-20` or `gemini-2.5-pro-image`
+**Why wrong**: These strings don't support image generation. The scripts validate model names.
+**Do instead**: Use `--model flash` or `--model pro`. The scripts map to correct API strings.
 
-### Anti-Pattern 3: Storing Base64 in Database
-**What it looks like**: Saving raw base64 image data directly to PostgreSQL or MongoDB
-**Why wrong**: Bloats database size, increases query latency, and makes backups expensive.
-**Do instead**: Upload to object storage (Vercel Blob, S3, R2) immediately after generation. Persist only the URL.
+### Anti-Pattern 3: Not Saving Originals
+**What it looks like**: Generating and immediately processing without `--save-original`
+**Why wrong**: If the crop/processing is wrong, you must re-generate (costs money + quota)
+**Do instead**: Always use `--save-original` or `--originals-dir` for non-trivial generation
 
-### Anti-Pattern 4: Ignoring Multi-Turn Context
-**What it looks like**: Treating every generation as a fresh request with no conversation history
-**Why wrong**: Discards Nano Banana's strongest feature -- conversational editing and iterative refinement.
-**Do instead**: Track generation history as chat messages. Use `useChat` to enable natural language editing of previous results.
-
-### Anti-Pattern 5: No Loading States
-**What it looks like**: Submit button goes disabled with no visual feedback for 5-30 seconds
-**Why wrong**: Users assume the app is broken and spam-click, wasting quota and degrading UX.
-**Do instead**: Show skeleton loaders, progress bars, or estimated wait time during generation.
-
----
-
-## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "I know the model name" | Wrong model strings silently fail or error | Verify against exact list |
-| "Base64 is fine for now" | Technical debt compounds fast with image data | Use object storage from day one |
-| "Rate limiting can wait" | First production spike causes 429 cascade | Implement before deploying |
-| "Loading state is cosmetic" | 5-30s silence destroys user trust | Always show generation progress |
-
-### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/advanced-patterns.md`: Server actions, API routes, client components, multi-image composition
-- `${CLAUDE_SKILL_DIR}/references/configuration.md`: Provider options, storage setup, rate limiting, cost optimization
+### Anti-Pattern 4: Wrong Aspect Ratio for Use Case
+**What it looks like**: Generating a 1:1 image then cropping to 16:9 (loses 56% of pixels)
+**Why wrong**: Generates detail that gets cropped away. Wastes tokens and quality.
+**Do instead**: Match `--aspect-ratio` to the target shape. 16:9 for cards, 1:1 for sprites, 9:16 for vertical maps.
