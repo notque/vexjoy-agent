@@ -480,10 +480,19 @@ def main(argv: list[str] | None = None) -> int:
             print("\nNo informational notifications to clear.", file=sys.stderr)
         else:
             print(f"\nMarking {len(ids_to_clear)} informational notifications as read...", file=sys.stderr)
+            # Use concurrent workers for speed (10 parallel API calls)
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+
             failed = 0
-            for thread_id in ids_to_clear:
-                if not mark_thread_read(thread_id):
-                    failed += 1
+            done = 0
+            with ThreadPoolExecutor(max_workers=10) as pool:
+                futures = {pool.submit(mark_thread_read, tid): tid for tid in ids_to_clear}
+                for future in as_completed(futures):
+                    done += 1
+                    if not future.result():
+                        failed += 1
+                    if done % 100 == 0:
+                        print(f"  ...{done}/{len(ids_to_clear)} processed", file=sys.stderr)
             if failed:
                 print(f"WARNING: {failed}/{len(ids_to_clear)} threads could not be marked as read.", file=sys.stderr)
             else:
