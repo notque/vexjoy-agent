@@ -23,9 +23,7 @@ PATTERNS = [
         "[anti-rationalization] Task type: REFACTOR. Tests must pass before AND after. No behavior change allowed.",
     ),
     (
-        re.compile(
-            r"\b(?:add\s+feature|implement|create|build)\b", re.IGNORECASE
-        ),
+        re.compile(r"\b(?:add\s+feature|implement|create|build)\b", re.IGNORECASE),
         "[anti-rationalization] Task type: IMPLEMENT. Only build what was asked. YAGNI applies. No phantom features.",
     ),
     (
