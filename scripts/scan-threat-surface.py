@@ -167,9 +167,7 @@ def _scan_skill_frontmatter(skill_file: Path, verbose: bool) -> dict | None:
     }
 
 
-def _scan_files_for_pattern(
-    dirs: list[Path], pattern: re.Pattern, label: str, verbose: bool
-) -> list[dict]:
+def _scan_files_for_pattern(dirs: list[Path], pattern: re.Pattern, label: str, verbose: bool) -> list[dict]:
     """Scan files in dirs for a regex pattern. Returns list of matches."""
     findings = []
     extensions = {".py", ".md", ".json", ".yaml", ".yml"}
@@ -252,9 +250,7 @@ def build_report(repo_root: Path, verbose: bool) -> dict:
 
     # 4. ANTHROPIC_BASE_URL in hooks/, skills/, agents/
     scan_dirs = [repo_root / d for d in ("hooks", "skills", "agents")]
-    report["base_url_findings"] = _scan_files_for_pattern(
-        scan_dirs, _BASE_URL_PATTERN, "ANTHROPIC_BASE_URL", verbose
-    )
+    report["base_url_findings"] = _scan_files_for_pattern(scan_dirs, _BASE_URL_PATTERN, "ANTHROPIC_BASE_URL", verbose)
     if verbose:
         print(f"  [surface] ANTHROPIC_BASE_URL findings: {len(report['base_url_findings'])}", file=sys.stderr)
 
@@ -320,9 +316,7 @@ def main() -> None:
         default=".",
         help="Root of the toolkit repo to scan (default: current directory)",
     )
-    parser.add_argument(
-        "--verbose", action="store_true", help="Print progress to stderr"
-    )
+    parser.add_argument("--verbose", action="store_true", help="Print progress to stderr")
     args = parser.parse_args()
 
     repo_root = Path(args.repo_root).resolve()

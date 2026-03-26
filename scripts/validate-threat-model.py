@@ -42,7 +42,10 @@ REQUIRED_SECTIONS: list[tuple[str, re.Pattern]] = [
     ("## Attack Surface Inventory", re.compile(r"^##\s+Attack Surface Inventory\s*$", re.MULTILINE)),
     ("## Active Threats", re.compile(r"^##\s+Active Threats\b", re.MULTILINE)),
     ("## Mitigations In Place", re.compile(r"^##\s+Mitigations In Place\s*$", re.MULTILINE)),
-    ("## Gaps and Recommended Next Controls", re.compile(r"^##\s+Gaps and Recommended Next Controls\s*$", re.MULTILINE)),
+    (
+        "## Gaps and Recommended Next Controls",
+        re.compile(r"^##\s+Gaps and Recommended Next Controls\s*$", re.MULTILINE),
+    ),
     ("## Deny-List Status", re.compile(r"^##\s+Deny-List Status\s*$", re.MULTILINE)),
     ("## Supply-Chain Audit Summary", re.compile(r"^##\s+Supply-Chain Audit Summary\s*$", re.MULTILINE)),
     ("## Learning DB Sanitization Summary", re.compile(r"^##\s+Learning DB Sanitization Summary\s*$", re.MULTILINE)),
@@ -110,15 +113,11 @@ def validate_badge(path: Path) -> list[str]:
         elif not isinstance(data[field], expected_type):
             actual = type(data[field]).__name__
             errors.append(
-                f"audit-badge.json field '{field}' has wrong type: "
-                f"expected {expected_type.__name__}, got {actual}"
+                f"audit-badge.json field '{field}' has wrong type: expected {expected_type.__name__}, got {actual}"
             )
 
     if "status" in data and data["status"] not in VALID_STATUSES:
-        errors.append(
-            f"audit-badge.json 'status' must be one of {sorted(VALID_STATUSES)}, "
-            f"got: '{data['status']}'"
-        )
+        errors.append(f"audit-badge.json 'status' must be one of {sorted(VALID_STATUSES)}, got: '{data['status']}'")
 
     if "phases_completed" in data:
         phases = data["phases_completed"]

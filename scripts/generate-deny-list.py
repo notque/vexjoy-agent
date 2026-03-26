@@ -104,9 +104,7 @@ def build_deny_list(surface: dict) -> dict:
         "run_id": surface.get("run_id", "unknown"),
         "scanned_at": surface.get("scanned_at", ""),
         "derived_from": "surface-report.json",
-        "permissions": {
-            "deny": deny
-        },
+        "permissions": {"deny": deny},
         "metadata": {
             "baseline_count": len(_BASELINE_DENY),
             "derived_count": len(deny) - len(_BASELINE_DENY),

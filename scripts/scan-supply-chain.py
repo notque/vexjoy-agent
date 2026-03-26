@@ -32,11 +32,23 @@ from pathlib import Path
 # Invisible Unicode codepoints (same set as pretool-prompt-injection-scanner.py)
 _INVISIBLE_CODEPOINTS: frozenset[int] = frozenset(
     [
-        0x200B, 0x200C, 0x200D, 0x200E, 0x200F,
+        0x200B,
+        0x200C,
+        0x200D,
+        0x200E,
+        0x200F,
         0x00AD,
-        0x202A, 0x202B, 0x202C, 0x202D, 0x202E,
+        0x202A,
+        0x202B,
+        0x202C,
+        0x202D,
+        0x202E,
         0xFEFF,
-        0x2060, 0x2061, 0x2062, 0x2063, 0x2064,
+        0x2060,
+        0x2061,
+        0x2062,
+        0x2063,
+        0x2064,
     ]
 )
 
@@ -154,9 +166,7 @@ _REGEX_PATTERNS: list[tuple[re.Pattern, str, str, str]] = [
 ]
 
 # File extensions to scan
-_SCAN_EXTENSIONS: frozenset[str] = frozenset(
-    [".py", ".md", ".json", ".yaml", ".yml", ".sh"]
-)
+_SCAN_EXTENSIONS: frozenset[str] = frozenset([".py", ".md", ".json", ".yaml", ".yml", ".sh"])
 
 
 # ─── Scanning ──────────────────────────────────────────────────
@@ -287,9 +297,7 @@ def main() -> None:
         default=[],
         help="File paths or names to exclude from scanning",
     )
-    parser.add_argument(
-        "--verbose", action="store_true", help="Print per-file progress to stderr"
-    )
+    parser.add_argument("--verbose", action="store_true", help="Print per-file progress to stderr")
     args = parser.parse_args()
 
     dirs = [Path(d) for d in args.scan_dirs]

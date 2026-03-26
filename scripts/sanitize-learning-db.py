@@ -72,11 +72,23 @@ _INJECTION_PATTERNS: list[tuple[re.Pattern, str, str]] = [
 # Invisible Unicode codepoints
 _INVISIBLE_CODEPOINTS: frozenset[int] = frozenset(
     [
-        0x200B, 0x200C, 0x200D, 0x200E, 0x200F,
+        0x200B,
+        0x200C,
+        0x200D,
+        0x200E,
+        0x200F,
         0x00AD,
-        0x202A, 0x202B, 0x202C, 0x202D, 0x202E,
+        0x202A,
+        0x202B,
+        0x202C,
+        0x202D,
+        0x202E,
         0xFEFF,
-        0x2060, 0x2061, 0x2062, 0x2063, 0x2064,
+        0x2060,
+        0x2061,
+        0x2062,
+        0x2063,
+        0x2064,
     ]
 )
 
@@ -149,9 +161,7 @@ def _flag_row(row: sqlite3.Row) -> dict | None:
 
     # 5. Stale external entry
     if _is_stale_external(source, first_seen):
-        reasons.append(
-            f"[stale-external] entry older than {_STALE_DAYS} days from external source"
-        )
+        reasons.append(f"[stale-external] entry older than {_STALE_DAYS} days from external source")
         if severity == "INFO":
             severity = "WARNING"
 
@@ -199,9 +209,7 @@ def inspect_db(db_path: Path, verbose: bool) -> tuple[int, list[dict]]:
     total = 0
 
     try:
-        rows = conn.execute(
-            "SELECT id, topic, key, value, source, source_detail, first_seen FROM learnings"
-        ).fetchall()
+        rows = conn.execute("SELECT id, topic, key, value, source, source_detail, first_seen FROM learnings").fetchall()
         total = len(rows)
         for row in rows:
             entry = _flag_row(row)
@@ -247,6 +255,7 @@ def purge_flagged(db_path: Path, flagged: list[dict], verbose: bool) -> int:
 def _default_db_path() -> Path:
     env = Path(sys.argv[0]).parent  # just a sentinel
     import os
+
     env_dir = os.environ.get("CLAUDE_LEARNING_DIR")
     if env_dir:
         return Path(env_dir) / "learning.db"
@@ -274,9 +283,7 @@ def main() -> None:
         action="store_true",
         help="Actually delete rows flagged with action=purge (default: dry-run only)",
     )
-    parser.add_argument(
-        "--verbose", action="store_true", help="Print progress to stderr"
-    )
+    parser.add_argument("--verbose", action="store_true", help="Print progress to stderr")
     args = parser.parse_args()
 
     db_path = Path(args.db) if args.db else _default_db_path()
