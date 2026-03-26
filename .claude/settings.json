@@ -285,6 +285,12 @@
             "command": "python3 \"$HOME/.claude/hooks/knowledge-graduation-proposer.py\"",
             "description": "Propose graduation of high-confidence learnings into agent/skill files",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/rules-distill-trigger.py\"",
+            "description": "Auto-trigger rules distillation every 7 days",
+            "timeout": 5000
           }
         ]
       }
