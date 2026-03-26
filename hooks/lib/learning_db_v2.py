@@ -236,6 +236,25 @@ CREATE TRIGGER IF NOT EXISTS learnings_au AFTER UPDATE ON learnings BEGIN
     INSERT INTO learnings_fts(rowid, topic, key, value, tags)
     VALUES (new.id, new.topic, new.key, new.value, new.tags);
 END;
+
+CREATE TABLE IF NOT EXISTS governance_events (
+    id          TEXT PRIMARY KEY,
+    session_id  TEXT,
+    event_type  TEXT NOT NULL,
+    tool_name   TEXT,
+    hook_phase  TEXT,
+    severity    TEXT,
+    payload     TEXT,
+    blocked     INTEGER DEFAULT 0,
+    resolved_at TEXT,
+    resolution  TEXT,
+    created_at  TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_gov_session   ON governance_events(session_id);
+CREATE INDEX IF NOT EXISTS idx_gov_type      ON governance_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_gov_severity  ON governance_events(severity);
+CREATE INDEX IF NOT EXISTS idx_gov_created   ON governance_events(created_at);
 """
 
 
@@ -584,6 +603,177 @@ def mark_graduated(topic: str, key: str, target: str) -> None:
             (target, topic, key),
         )
         conn.commit()
+
+
+VALID_EVENT_TYPES = {
+    "secret_detected",
+    "approval_requested",
+    "policy_violation",
+    "security_finding",
+    "hook_blocked",
+}
+
+VALID_SEVERITIES = {"critical", "high", "medium", "warning"}
+
+VALID_RESOLUTIONS = {"dismissed", "false_positive", "remediated"}
+
+
+def record_governance_event(
+    event_type: str,
+    *,
+    session_id: str | None = None,
+    tool_name: str | None = None,
+    hook_phase: str | None = None,
+    severity: str | None = None,
+    payload: dict | None = None,
+    blocked: bool = False,
+    event_id: str | None = None,
+) -> str | None:
+    """Record a governance event to the governance_events table.
+
+    Recording failures are always silent — this function never raises and
+    never causes a hook to block. Returns the event id on success, None on failure.
+
+    Args:
+        event_type: One of secret_detected | approval_requested |
+                    policy_violation | security_finding | hook_blocked.
+        session_id: Claude Code session identifier.
+        tool_name: Tool that triggered the event (Bash, Write, Edit, ...).
+        hook_phase: 'pre' or 'post'.
+        severity: One of critical | high | medium | warning.
+        payload: Arbitrary dict serialised as JSON (command fingerprint,
+                 matched pattern, secret types, etc.).
+        blocked: True if the hook returned exit 2 to block the action.
+        event_id: Override auto-generated id (for testing / idempotency).
+    """
+    import json as _json
+    import time as _time
+
+    try:
+        init_db()
+
+        ts_ms = int(_time.time() * 1000)
+        suffix = hashlib.md5(f"{event_type}{session_id}{ts_ms}".encode()).hexdigest()[:6]
+        eid = event_id or f"gov-{ts_ms}-{suffix}"
+
+        payload_str = _json.dumps(payload) if payload else None
+        created_at = datetime.now().isoformat()
+
+        with get_connection() as conn:
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO governance_events
+                (id, session_id, event_type, tool_name, hook_phase,
+                 severity, payload, blocked, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    eid,
+                    session_id,
+                    event_type,
+                    tool_name,
+                    hook_phase,
+                    severity,
+                    payload_str,
+                    1 if blocked else 0,
+                    created_at,
+                ),
+            )
+            conn.commit()
+        return eid
+    except Exception:
+        return None
+
+
+def resolve_governance_event(
+    event_id: str,
+    resolution: str,
+) -> bool:
+    """Mark a governance event as resolved.
+
+    Args:
+        event_id: The event id to resolve.
+        resolution: One of dismissed | false_positive | remediated.
+
+    Returns:
+        True if the event was found and updated, False otherwise.
+    """
+    if resolution not in VALID_RESOLUTIONS:
+        return False
+
+    try:
+        init_db()
+        resolved_at = datetime.now().isoformat()
+        with get_connection() as conn:
+            result = conn.execute(
+                "UPDATE governance_events SET resolved_at = ?, resolution = ? WHERE id = ?",
+                (resolved_at, resolution, event_id),
+            )
+            conn.commit()
+            return result.rowcount > 0
+    except Exception:
+        return False
+
+
+def query_governance_events(
+    *,
+    days: int | None = None,
+    event_type: str | None = None,
+    severity: str | None = None,
+    unresolved_only: bool = False,
+    session_id: str | None = None,
+    limit: int = 200,
+) -> list[dict]:
+    """Query governance events with optional filters.
+
+    Args:
+        days: Restrict to events created within the last N days.
+        event_type: Filter by event type.
+        severity: Filter by severity level.
+        unresolved_only: If True, return only events with no resolution.
+        session_id: Filter by session.
+        limit: Maximum rows to return.
+
+    Returns:
+        List of event dicts ordered by created_at descending.
+    """
+    try:
+        init_db()
+
+        conditions: list[str] = []
+        params: list = []
+
+        if days is not None:
+            cutoff = (datetime.now() - timedelta(days=days)).isoformat()
+            conditions.append("created_at >= ?")
+            params.append(cutoff)
+
+        if event_type:
+            conditions.append("event_type = ?")
+            params.append(event_type)
+
+        if severity:
+            conditions.append("severity = ?")
+            params.append(severity)
+
+        if unresolved_only:
+            conditions.append("resolved_at IS NULL")
+
+        if session_id:
+            conditions.append("session_id = ?")
+            params.append(session_id)
+
+        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+        params.append(limit)
+
+        with get_connection() as conn:
+            rows = conn.execute(
+                f"SELECT * FROM governance_events {where} ORDER BY created_at DESC LIMIT ?",
+                params,
+            ).fetchall()
+            return [dict(row) for row in rows]
+    except Exception:
+        return []
 
 
 def record_session(
