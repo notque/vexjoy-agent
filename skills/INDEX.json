@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-03-24T22:20:54Z",
+  "generated": "2026-03-25T23:05:47Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -373,6 +373,29 @@
       "user_invocable": false,
       "version": "2.0.0"
     },
+    "e2e-testing": {
+      "file": "skills/e2e-testing/SKILL.md",
+      "description": "Playwright-based end-to-end testing workflow: Page Object Model structure, flaky test quarantine, CI/CD artifact management, and structured test reporting.",
+      "triggers": [
+        "playwright",
+        "E2E test",
+        "end-to-end",
+        "browser test",
+        "page object model",
+        "POM",
+        "test flakiness"
+      ],
+      "category": "testing",
+      "user_invocable": true,
+      "version": "1.0.0",
+      "agent": "testing-automation-engineer",
+      "model": "sonnet",
+      "pairs_with": [
+        "testing-automation-engineer",
+        "typescript-frontend-engineer",
+        "test-driven-development"
+      ]
+    },
     "endpoint-validator": {
       "file": "skills/endpoint-validator/SKILL.md",
       "description": "Deterministic API endpoint validation with structured pass/fail reporting.",
@@ -530,6 +553,32 @@
       "version": "2.0.0",
       "pairs_with": []
     },
+    "frontend-slides": {
+      "file": "skills/frontend-slides/SKILL.md",
+      "description": "Browser-based HTML presentation generation with viewport-fit enforcement, curated style presets, and deterministic overflow validation. Three paths: new build, PPTX-to-HTML conversion, or HTML deck enhancement.",
+      "triggers": [
+        "HTML slides",
+        "browser presentation",
+        "web deck",
+        "reveal-style",
+        "viewport presentation",
+        "convert PPTX to web",
+        "convert PPTX to HTML",
+        "slides for a browser",
+        "kiosk presentation",
+        "interactive presentation keyboard",
+        "projector browser"
+      ],
+      "category": "frontend",
+      "user_invocable": true,
+      "version": "1.0.0",
+      "agent": "typescript-frontend-engineer",
+      "model": "sonnet",
+      "pairs_with": [
+        "typescript-frontend-engineer",
+        "pptx-generator"
+      ]
+    },
     "forensics": {
       "file": "skills/forensics/SKILL.md",
       "description": "Post-mortem diagnostic analysis of failed or stuck workflows.",
@@ -638,6 +687,22 @@
       "force_route": true,
       "user_invocable": false,
       "version": "2.0.0"
+    },
+    "github-notification-triage": {
+      "file": "skills/github-notification-triage/SKILL.md",
+      "description": "Triage GitHub notifications \u2014 report actions needed, clear noise.",
+      "triggers": [
+        "github notifications",
+        "triage notifications",
+        "check notifications",
+        "notification cleanup",
+        "github inbox"
+      ],
+      "category": "github",
+      "user_invocable": true,
+      "version": "1.0.0",
+      "pairs_with": [],
+      "model": "sonnet"
     },
     "go-anti-patterns": {
       "file": "skills/go-anti-patterns/SKILL.md",
@@ -926,21 +991,23 @@
     },
     "nano-banana-builder": {
       "file": "skills/nano-banana-builder/SKILL.md",
-      "description": "Build Next.js web applications with Google Gemini Nano Banana image generation APIs (gemini-2.5-flash-image, gemini-3-pro-image-preview).",
+      "description": "Generate and post-process images using Google Gemini Nano Banana APIs via deterministic Python scripts.",
       "triggers": [
         "nano banana",
         "gemini image generation",
         "AI image generator",
-        "image generation app",
+        "generate image",
         "gemini-2.5-flash-image",
         "gemini-3-pro-image-preview",
-        "web image generator"
+        "batch image generation",
+        "image post-processing",
+        "sprite generation",
+        "generate card art"
       ],
       "user_invocable": false,
-      "version": "2.0.0",
+      "version": "3.0.0",
       "pairs_with": [
-        "typescript-frontend-engineer",
-        "nodejs-api-engineer",
+        "python-general-engineer",
         "universal-quality-gate"
       ]
     },
@@ -1893,6 +1960,30 @@
       "user_invocable": false,
       "version": "3.0.0"
     },
+    "video-editing": {
+      "file": "skills/video-editing/SKILL.md",
+      "description": "Video editing workflow: 6-layer pipeline for cutting footage, assembling demo videos, vlogs, screen recordings, and social media clips using FFmpeg and Remotion.",
+      "triggers": [
+        "edit video",
+        "cut footage",
+        "make vlog",
+        "screen recording",
+        "video workflow",
+        "ffmpeg",
+        "remotion",
+        "demo video",
+        "make a clip",
+        "assemble clips",
+        "video editing"
+      ],
+      "category": "media",
+      "user_invocable": true,
+      "version": "1.0.0",
+      "pairs_with": [
+        "typescript-frontend-engineer"
+      ],
+      "model": "sonnet"
+    },
     "vitest-runner": {
       "file": "skills/vitest-runner/SKILL.md",
       "description": "Run Vitest tests and parse results into actionable output.",
@@ -1997,6 +2088,32 @@
       "category": "meta-tooling",
       "user_invocable": true,
       "version": "2.0.0"
+    },
+    "x-api": {
+      "file": "skills/x-api/SKILL.md",
+      "description": "Post tweets, build threads, upload media, and read timelines via the X API with OAuth 1.0a/2.0 and a mandatory confirm gate before any write.",
+      "triggers": [
+        "post to X",
+        "post tweet",
+        "tweet this",
+        "build thread",
+        "post thread",
+        "twitter thread",
+        "x api",
+        "upload media to X",
+        "read timeline",
+        "search X",
+        "search twitter",
+        "publish to X",
+        "publish to twitter"
+      ],
+      "category": "content-publishing",
+      "user_invocable": true,
+      "version": "1.0.0",
+      "pairs_with": [
+        "content-engine",
+        "crosspost"
+      ]
     }
   }
 }
