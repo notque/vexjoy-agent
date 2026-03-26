@@ -1,18 +1,164 @@
 # Hooks
 
-Event-driven automation for Claude Code that learns, adapts, and improves over time.
+Event-driven automations that fire at Claude Code lifecycle boundaries. They enforce safety gates, inject context, record learnings, and automate quality checks — silent by default, only speaking when adding value.
+
+## How Hooks Work
+
+```
+User prompt → UserPromptSubmit → Claude picks tool → PreToolUse → Tool runs → PostToolUse → Response → Stop
+```
+
+- **PreToolUse** hooks run before a tool executes. They can **block** (exit 2) or **warn** (exit 0 with stderr).
+- **PostToolUse** hooks run after a tool completes. They observe output but never block.
+- **UserPromptSubmit** hooks inject context before Claude processes a prompt.
+- **SessionStart** hooks run once when a session begins.
+- **Stop** hooks run after each Claude response.
+- **SubagentStop** hooks fire when a spawned subagent finishes.
+- **PreCompact** hooks run before context compression.
 
 ---
 
-## What are Hooks?
+## SessionStart Hooks
 
-Hooks are **Python scripts** triggered by Claude Code lifecycle events. They run automatically, providing:
-- **Error learning** - Learn from mistakes, suggest fixes
-- **Skill evaluation** - Auto-suggest relevant skills and agents
-- **Session context** - Load learned patterns at startup
-- **Quality gates** - Enforce standards automatically
+| Hook | Description |
+|------|-------------|
+| `cross-repo-agents` | Discovers local `.claude/agents/` in the working directory and injects them for `/do` routing |
+| `fish-shell-detector` | Detects Fish shell users and injects the `fish-shell-config` skill |
+| `mcp-health-check` | Probes MCP servers before tool calls; blocks if a server is in backoff window |
+| `operator-context-detector` | Detects operator context (personal/work/ci/production) and injects behavioral profile |
+| `rules-distill-injector` | Injects pending rules-distillation candidates from `learning/rules-distill-pending.json` |
+| `sapcc-go-detector` | Detects SAP Converged Cloud Go projects and injects `go-sapcc-conventions` skill |
+| `session-context` | Loads high-confidence learned patterns (>0.7) from the learning DB into context |
+| `sync-to-user-claude` | Syncs agents, skills, hooks, commands, and scripts from the repo to `~/.claude/` |
 
-Hooks are **silent by default** - they only produce output when adding value.
+---
+
+## UserPromptSubmit Hooks
+
+| Hook | Description |
+|------|-------------|
+| `adr-context-injector` | Injects active ADR session context when `.adr-session.json` exists in the project |
+| `auto-plan-detector` | Detects complex tasks and injects Manus-style planning instructions |
+| `capability-catalog-injector` | Injects full skill/agent catalog into `/do` routing context |
+| `instruction-reminder` | Periodically re-injects CLAUDE.md, AGENTS.md, and RULES.md to combat context drift |
+| `perses-mcp-injector` | Detects Perses-related prompts and injects MCP tool discovery instructions |
+| `pipeline-context-detector` | Detects pipeline creation requests and injects an environmental state snapshot |
+| `retro-knowledge-injector` | Queries `learning.db` (FTS5) and injects relevant accumulated knowledge |
+| `skill-evaluator` | Discovers skills/agents and injects a targeted evaluation protocol |
+| `user-correction-capture` | Records user corrections and capability-gap signals to `learning.db` |
+
+---
+
+## PreToolUse Hooks
+
+### Safety Gates (exit 2 = block)
+
+| Hook | Matcher | Description |
+|------|---------|-------------|
+| `pretool-unified-gate` | Bash, Write, Edit | Consolidated gate: gitignore bypass, git submission, dangerous commands, creation gate, sensitive file guard |
+| `block-attribution` | Bash | Blocks AI attribution strings (`Co-Authored-By: Claude`, `Generated with Claude Code`) in git operations |
+| `ci-merge-gate` | Bash | Blocks `gh pr merge` when CI checks have not passed |
+| `pretool-adr-creation-gate` | Write | Blocks new agent/skill/pipeline creation when no corresponding ADR exists |
+| `pretool-branch-safety` | Bash | Blocks `git commit` when on `main` or `master` branch |
+| `pretool-config-protection` | Write, Edit, MultiEdit | Blocks modifications to linter/formatter config files (ESLint, Prettier, Biome, Ruff, golangci-lint, etc.) |
+| `pretool-creation-gate` | Write | Blocks direct creation of new agent/skill files that bypass the creation pipeline |
+| `pretool-dangerous-command-guard` | Bash | Blocks destructive shell commands (`rm -rf`, `DROP DATABASE`, `kubectl delete namespace`, etc.) |
+| `pretool-git-submission-gate` | Bash | Blocks raw `git push`, `gh pr create`, and `gh pr merge` to force routing through quality-gate skills |
+| `pretool-plan-gate` | Write, Edit | Blocks implementation in `agents/`, `skills/`, or `pipelines/` when `task_plan.md` does not exist |
+| `pretool-sensitive-file-guard` | Write, Edit | Blocks writes to `.env`, credential files, SSH keys, certificates, and token files |
+| `pretool-synthesis-gate` | Write, Edit | Blocks feature implementation when ADR consultation synthesis is missing or blocked |
+
+### Advisory Hooks (exit 0 = warn)
+
+| Hook | Matcher | Description |
+|------|---------|-------------|
+| `perses-lint-gate` | Bash | Redirects raw `percli apply` to the `perses-lint` skill for pre-deployment validation |
+| `pretool-file-backup` | Edit | Silently copies edited files to `/tmp/.claude-backups/{session_id}/` before each edit |
+| `pretool-learning-injector` | Bash, Edit | Injects high-confidence error patterns from `learning.db` before tools run |
+| `pretool-prompt-injection-scanner` | Write, Edit | Scans agent context files for LLM-level prompt injection patterns (advisory only) |
+| `pretool-subagent-warmstart` | Agent | Enriches subagent prompts with parent session context (files seen, plan status, key decisions) |
+| `suggest-compact` | Edit, Write | Suggests `/compact` after a configurable threshold of edit/write tool calls |
+
+---
+
+## PostToolUse Hooks
+
+| Hook | Matcher | Description |
+|------|---------|-------------|
+| `adr-enforcement` | Write, Edit | Runs ADR compliance check after pipeline component files are written |
+| `agent-grade-on-change` | Edit, Write | Automatically grades agent files when they are created or modified |
+| `error-learner` | Any | Detects tool errors, learns patterns, and injects fix suggestions via SQLite |
+| `mcp-health-check` | MCP tools | Records MCP failures and marks servers unhealthy for backoff management |
+| `post-tool-lint-hint` | Write, Edit | Suggests available linters after file writes (silent when no linter applies) |
+| `posttool-security-scan` | Write, Edit | Scans edited code for hardcoded credentials, injection risks, and path traversal |
+| `posttool-session-reads` | Read | Tracks files read during the session to `.claude/session-reads.txt` for subagent warmstart |
+| `record-activation` | Any | Records retro knowledge activation for ROI cohort tracking (batched, silent) |
+| `record-waste` | Any (failures) | Estimates token waste on tool failures and records to `learning.db` |
+| `retro-graduation-gate` | Bash | Warns after `gh pr create` if ungraduated retro entries exist in the toolkit repo |
+| `review-capture` | Agent | Captures severity-tagged review findings from subagent output to `learning.db` |
+| `routing-gap-recorder` | Any | Records `/do` routing gaps to `learning.db` when no agent matches a domain |
+| `usage-tracker` | Skill, Agent | Tracks Skill and Agent invocations to SQLite for usage analytics |
+
+---
+
+## Stop Hooks
+
+| Hook | Description |
+|------|-------------|
+| `confidence-decay` | Decays stale learning entries and prunes low-confidence dead entries from `learning.db` |
+| `session-learning-recorder` | Warns if a substantive session recorded zero learnings; summarizes captured count |
+| `session-summary` | Generates session summary and persists metrics to the unified learning database |
+| `task-completed-learner` | Captures subagent/task completion metadata for routing effectiveness tracking |
+
+---
+
+## SubagentStop Hooks
+
+| Hook | Description |
+|------|-------------|
+| `subagent-completion-guard` | Captures worktree metadata, blocks direct commits to main/master, enforces read-only mode for reviewer agents |
+
+---
+
+## PreCompact Hooks
+
+| Hook | Description |
+|------|-------------|
+| `precompact-archive` | Extracts and archives key learnings before context compression |
+
+---
+
+## Development
+
+Tests live in `hooks/tests/` and cover the major hooks:
+
+```
+hooks/tests/
+├── test_auto_plan_detector.py      test_record_activation.py
+├── test_config_protection.py       test_record_waste.py
+├── test_cross_repo_agents.py       test_settings_validator.py
+├── test_do_routing.py              test_skill_evaluator.py
+├── test_feedback_tracker.py        test_stale_pruner.py
+├── test_fts5_search.py             test_subagent_completion_guard.py
+├── test_integration.py             test_suggest_compact.py
+├── test_learning_system.py
+├── test_mcp_health_check.py
+├── test_post_tool_lint.py
+├── test_posttool_session_reads.py
+└── test_pretool_subagent_warmstart.py
+```
+
+Shared utilities in `hooks/lib/` include `hook_utils.py` (output formatting helpers `context_output()` / `empty_output()`), `stdin_timeout.py` (safe stdin reading), and the unified learning database interface (`learning_db_v2.py`).
+
+### Writing a New Hook
+
+All hooks read JSON from stdin, write JSON to stdout, and must exit 0 (advisory) or 2 (block). Performance target: **sub-50ms**. Use the `hook-development-pipeline` for new hooks with full quality gates.
+
+---
+
+## Legacy Documentation
+
+The sections below cover the learning system internals, shared library API, and permission patterns in depth.
 
 ---
 
