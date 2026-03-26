@@ -742,6 +742,99 @@
         "plan-checker",
         "research-pipeline"
       ]
+    },
+    "systematic-debugging": {
+      "file": "pipelines/systematic-debugging/SKILL.md",
+      "description": "Evidence-based 5-phase debugging pipeline with mandatory reproduction, testing, and learning gates: OBSERVE, HYPOTHESIZE, TEST, FIX, RECORD.",
+      "triggers": [
+        "debug",
+        "find root cause",
+        "reproduce bug",
+        "fix this bug",
+        "this is broken",
+        "not working",
+        "why is this broken",
+        "getting an error",
+        "unexpected behavior",
+        "investigate error"
+      ],
+      "category": "process",
+      "user_invocable": false,
+      "version": "2.0.0",
+      "phases": [
+        "OBSERVE",
+        "HYPOTHESIZE",
+        "TEST",
+        "FIX",
+        "RECORD"
+      ],
+      "pairs_with": [
+        "systematic-refactoring",
+        "workflow-orchestrator"
+      ],
+      "agent": "general-purpose"
+    },
+    "systematic-refactoring": {
+      "file": "pipelines/systematic-refactoring/SKILL.md",
+      "description": "Safe 5-phase refactoring pipeline with test characterization, incremental changes, and learning gates: CHARACTERIZE, PLAN, REFACTOR, VERIFY, RECORD.",
+      "triggers": [
+        "refactor safely",
+        "rename symbol",
+        "extract function",
+        "refactor",
+        "simplify this",
+        "restructure code",
+        "reduce complexity",
+        "split this file",
+        "restructure",
+        "move to separate file"
+      ],
+      "category": "process",
+      "user_invocable": false,
+      "version": "2.0.0",
+      "phases": [
+        "CHARACTERIZE",
+        "PLAN",
+        "REFACTOR",
+        "VERIFY",
+        "RECORD"
+      ],
+      "pairs_with": [
+        "systematic-debugging",
+        "workflow-orchestrator"
+      ],
+      "agent": "general-purpose"
+    },
+    "feature-pipeline": {
+      "file": "pipelines/feature-pipeline/SKILL.md",
+      "description": "End-to-end feature lifecycle pipeline coordinating design through release: DESIGN, PLAN, IMPLEMENT, VALIDATE, RELEASE, RECORD.",
+      "triggers": [
+        "build feature end to end",
+        "full feature lifecycle",
+        "feature from scratch",
+        "design to release",
+        "complete feature pipeline",
+        "feature pipeline"
+      ],
+      "category": "process",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "phases": [
+        "DESIGN",
+        "PLAN",
+        "IMPLEMENT",
+        "VALIDATE",
+        "RELEASE",
+        "RECORD"
+      ],
+      "pairs_with": [
+        "feature-design",
+        "feature-plan",
+        "feature-implement",
+        "feature-validate",
+        "feature-release"
+      ],
+      "agent": "general-purpose"
     }
   }
 }
