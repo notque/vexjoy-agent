@@ -1,17 +1,19 @@
 # Design Philosophy
 
+> **Audience:** This document is for contributors and developers who want to understand *why* the toolkit is built the way it is. If you're using the toolkit, start with [start-here.md](start-here.md). If you're building agents or skills, see [for-developers.md](for-developers.md).
+
 The principles behind the toolkit's architecture. These aren't aspirational. They're the decisions that shaped every agent, skill, hook, and pipeline in the system.
 
 ## Zero-Expertise Operation
 
 The system should require no specialized knowledge from the user. Say what you want done. The system handles the rest.
 
-A user who has never heard of agents, skills, hooks, pipelines, routing tables, or INDEX files should get the same quality output as someone who built them. The entire internal machinery — 69 agents, 136 skills, 50 hooks, 27 pipelines — exists to absorb complexity that would otherwise fall on the user.
+A user who has never heard of agents, skills, hooks, pipelines, routing tables, or INDEX files should get the same quality output as someone who built them. The entire internal machinery — agents, skills, hooks, and pipelines — exists to absorb complexity that would otherwise fall on the user.
 
 **What this means in practice:**
 
 - The user says "fix this bug." The system classifies it, selects a debugging agent, applies a systematic methodology, creates a branch, runs tests, reviews the fix, and presents a PR. The user never chooses an agent or invokes a skill by name.
-- The user says "review this PR." The system dispatches 20+ reviewers across 3 waves covering security, business logic, architecture, performance, naming, error handling, and test coverage. The user never configures which reviewers to run.
+- The user says "review this PR." The system dispatches specialized reviewers across multiple waves covering security, business logic, architecture, performance, naming, error handling, and test coverage. The user never configures which reviewers to run.
 - The user says "write a blog post about X." The system researches, drafts in a calibrated voice, validates against voice patterns, and presents the result. The user never loads a voice profile or runs a validation script.
 
 **The test for every feature we build:** does this require the user to know something internal? If yes, redesign it so it doesn't.
@@ -41,9 +43,9 @@ The question is never "Can the LLM do this?" It's "Should the LLM do this?" If a
 
 LLMs orchestrate. Programs execute.
 
-## The Handyman Principle
+## Load Only What You Need
 
-Context is a scarce resource, not a dumpster.
+A handyman brings tools for the specific job, not every tool they own. Context works the same way — it's a scarce resource, not a dumpster.
 
 The anti-pattern: stuffing thousands of lines of unfocused instructions into a single system prompt. It causes confusion and degrades AI performance.
 
@@ -51,7 +53,7 @@ The solution: only pull the relevant information for the specific task. This is 
 
 Three mechanisms enforce this:
 - **Agents**: specialized instruction files tailored to specific domains, loaded only when their triggers match
-- **Skills**: deterministic tools (actual programs) rather than text advice, invoked only when their workflow applies
+- **Skills**: workflow methodologies that invoke deterministic scripts (Python CLIs, validation tools) rather than relying on LLM judgment alone, activated only when their workflow applies
 - **Progressive Disclosure**: summary in the main file, details in `references/` subdirectory. Right context at the right time, not everything at once
 
 ## Tokens Are Cheap, Quality Is Expensive
@@ -61,13 +63,13 @@ Spending tokens to ensure correctness is economically superior to saving tokens 
 | Typical Mindset | This Toolkit's Mindset |
 |-----------------|----------------------|
 | Minimize tokens, maximize speed | Minimize bugs, accept token cost |
-| One review pass | 20+ agents in 3 waves |
+| One review pass | Multiple specialized agents in waves |
 | Skip if it looks right | Verify before claiming done |
 | YAGNI for verification | YAGNI for features, never for verification |
 
 This does NOT mean "stuff more context." It means: dispatch parallel review agents, run deterministic validation scripts, create plans before executing, and never skip quality gates to save tokens. The token spend goes toward **breadth of analysis**, not depth of prompt.
 
-The arithmetic: a bug found in production costs 10x more in debugging time than the tokens spent on a thorough pre-merge review.
+The arithmetic: for non-trivial production changes, thorough pre-merge review consistently pays for itself. The cost scales with the bug class — a concurrency issue in production costs orders of magnitude more than the tokens that would have caught it.
 
 ## Everything Should Be a Pipeline
 
@@ -126,7 +128,7 @@ The pipeline: **Deterministic first, fix failures, LLM evaluation, fix findings,
 
 Same Claude prompts produce different results on different days. Generalist improvisation is unreliable.
 
-The solution: make specialist selection explicit using keyword-matching routing. Choose "which agent has the right mental scaffolding" rather than "which agent is smartest."
+The solution: make specialist selection explicit using intent-based routing. The router reads agent descriptions and applies LLM judgment to match task intent — not keyword triggers. Choose "which agent has the right mental scaffolding" rather than "which agent is smartest."
 
 - **Agents** encode domain-specific patterns (Go idioms, Python conventions, Kubernetes knowledge)
 - **Skills** enforce process methodology (debugging phases, refactoring steps, review waves)
@@ -137,7 +139,7 @@ This separation enables consistent methodology across domains without duplicatin
 
 ## Agents Carry the Knowledge, Not the Model
 
-The base LLM is a generalist. It knows a little about everything and a lot about nothing specific. An agent's job is to close that gap — not by declaring "I am an expert in X" but by carrying the actual expert knowledge as structured context.
+The base LLM is a generalist. It knows a little about everything and nothing deeply about any specific domain. An agent's job is to close that gap — not by declaring "I am an expert in X" but by carrying the actual expert knowledge as structured context.
 
 A thin wrapper that says "You are a Go expert" adds nothing. The model already knows generic Go. What it doesn't know is: which go-bits helpers exist in this project, that `rows.Close()` silently discards errors, that sapcc structs should be unexported when only the interface is public, that Go 1.22 introduced `range-over-int` and `slices.SortFunc` should replace `sort.Slice`. That knowledge lives in the agent file, in its reference files, and in the retro learnings injected at session start.
 
@@ -146,7 +148,7 @@ A thin wrapper that says "You are a Go expert" adds nothing. The model already k
 **What high-context looks like:**
 - Version-specific idiom tables ("Go 1.22+: use `slices.SortFunc`, not `sort.Slice`")
 - Concrete anti-pattern catalogs with detection commands (`grep -r "interface{}" --include="*.go"`)
-- Error → fix mappings from real incidents ("PR #707 found that...")
+- Error → fix mappings from real incidents captured in retro learnings
 - Project-specific conventions extracted from PR review history
 
 **What thin wrappers look like:**
@@ -197,9 +199,21 @@ When a skill says "check if synthesis.md exists before implementing," the LLM *c
 
 **The hookification test:** if a gate checks for a file, a status, or a structural property — and the answer is yes/no with no judgment required — it should be a hook. If it requires reading code and making a contextual decision, it stays in the skill.
 
-**Deployment discipline:**
+**Deployment discipline:** Hooks must be deployed (file exists, compiles) before registration in settings.json. Out-of-order deployment deadlocks the session — see "When Things Go Wrong" for details. The toolkit includes `scripts/register-hook.py` to make this ordering mechanical rather than advisory.
 
-The correct order is always: deploy the file, verify it compiles, then register in settings.json. Never the reverse. A registered hook pointing to a nonexistent file causes Python's "file not found" exit code 2 — identical to an intentional block — on every single tool call. This deadlocks the entire session. The toolkit includes `scripts/register-hook.py` specifically to make this ordering mechanical rather than advisory, because advisory patterns fail exactly when you're moving fast and not thinking about them.
+## When Things Go Wrong
+
+The principles above describe what the system does when it works. Equally important is knowing what broken looks like.
+
+**Routing misclassification:** The router picks the wrong agent. The output looks plausible but applies the wrong domain expertise. Signal: unexpected agent in the routing banner, or output that doesn't match the domain of the request. Recovery: re-invoke with explicit domain context ("this is a Python issue, not Go").
+
+**Hook deadlock:** A registered hook points to a nonexistent file. Every tool call returns exit code 2 (block). The session appears frozen — nothing executes. Recovery: check `~/.claude/settings.json` for recently added hooks, verify the `.py` file exists at the registered path. Use `scripts/register-hook.py` to fix ordering.
+
+**Pipeline stall:** A phase gate blocks progress because a prerequisite artifact is missing or malformed. Signal: the same phase reruns without advancing. Recovery: check the artifact file the gate expects, fix or create it, then resume.
+
+**Learning compounding:** A misrouted request gets recorded in `learning.db`, which reinforces the wrong routing in future sessions via retro-knowledge injection. Signal: the same misroute happens repeatedly across sessions. Recovery: query routing decisions with `scripts/learning-db.py` and delete or reweight incorrect entries.
+
+**Stale INDEX files:** A new agent or skill was added but the INDEX wasn't regenerated. The router can't find the component. Signal: requests that should match a known agent get routed to the fallback. Recovery: run `scripts/generate-agent-index.py` and `scripts/generate-skill-index.py`.
 
 ## Open Sharing Over Individual Ownership
 
