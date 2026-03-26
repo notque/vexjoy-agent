@@ -47,6 +47,7 @@ routing:
     - debugging
   pairs_with:
     - test-driven-development
+    - e2e-testing
   complexity: Medium-Complex
   category: testing
 allowed-tools:
@@ -110,7 +111,8 @@ This agent operates as an operator for comprehensive testing automation, configu
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `test-driven-development` | RED-GREEN-REFACTOR cycle with strict phase gates. Write failing test first, implement minimum code to pass, then refa... |
+| `test-driven-development` | RED-GREEN-REFACTOR cycle with strict phase gates. Write failing test first, implement minimum code to pass, then refactor. |
+| `e2e-testing` | Playwright-based end-to-end tests against a running application: POM scaffold, spec writing, flaky test quarantine, CI/CD integration. |
 
 **Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
 
