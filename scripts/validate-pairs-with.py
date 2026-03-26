@@ -213,9 +213,7 @@ def validate_agents(agents_dir: Path, skills_dir: Path, pipelines_dir: Path) -> 
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Validate pairs_with references in agent frontmatter"
-    )
+    parser = argparse.ArgumentParser(description="Validate pairs_with references in agent frontmatter")
     parser.add_argument(
         "--agents-dir",
         default="agents",
