@@ -45,10 +45,7 @@ routing:
     - github conventions
     - programming rules
   pairs_with:
-    - github-profile-rules-repo-analysis
-    - github-profile-rules-pr-review
-    - github-profile-rules-synthesis
-    - github-profile-rules-validation
+    - github-profile-rules
   complexity: Medium
   category: meta
 allowed-tools:
