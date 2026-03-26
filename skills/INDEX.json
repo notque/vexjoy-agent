@@ -350,6 +350,29 @@
       "user_invocable": false,
       "version": "2.0.0"
     },
+    "e2e-testing": {
+      "file": "skills/e2e-testing/SKILL.md",
+      "description": "Playwright-based end-to-end testing workflow: Page Object Model structure, flaky test quarantine, CI/CD artifact management, and structured test reporting.",
+      "triggers": [
+        "playwright",
+        "E2E test",
+        "end-to-end",
+        "browser test",
+        "page object model",
+        "POM",
+        "test flakiness"
+      ],
+      "category": "testing",
+      "user_invocable": true,
+      "version": "1.0.0",
+      "agent": "testing-automation-engineer",
+      "model": "sonnet",
+      "pairs_with": [
+        "testing-automation-engineer",
+        "typescript-frontend-engineer",
+        "test-driven-development"
+      ]
+    },
     "endpoint-validator": {
       "file": "skills/endpoint-validator/SKILL.md",
       "description": "Deterministic API endpoint validation with structured pass/fail reporting.",
