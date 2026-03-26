@@ -602,6 +602,11 @@ These are the most common AI-generated Go anti-patterns — using old patterns w
 | `x := val; &x` for pointer | `new(val)` | Go 1.26 |
 | `var t *T; errors.As(err, &t)` | `errors.AsType[*T](err)` | Go 1.26 |
 
+### Silent Error from defer rows.Close()
+**What it looks like**: `defer rows.Close()` in SQL query loops
+**Why wrong**: `rows.Close()` returns an error that `defer` silently discards. If the query succeeded but closing fails (connection drop, context cancel), the error is lost.
+**Do instead**: Use a named return and deferred closure that merges the `rows.Close()` error only when no prior error exists: `defer func() { if closeErr := rows.Close(); err == nil { err = closeErr } }()`
+
 ### Ignoring Errors
 **What it looks like**: `result, _ := function()` or `function(); // ignore error`
 **Why wrong**: Silent failures, bugs in production, violates Go conventions

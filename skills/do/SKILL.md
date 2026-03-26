@@ -304,6 +304,11 @@ Solution: Stop execution. Create `task_plan.md`. Resume routing after plan is in
 **Why wrong**: The router cannot deterministically pick between them
 **Do instead**: Each trigger phrase must map to exactly one skill. Check for collisions before adding.
 
+### Anti-Pattern 8: Dispatching Agents Without Commit Instructions
+**What it looks like**: Dispatching an agent to modify files on a branch, but not telling the agent to commit its changes
+**Why wrong**: The agent completes file edits but the changes sit unstaged. The dispatching orchestrator assumes the work is committed and moves on. Changes are lost or require manual cleanup.
+**Do instead**: When dispatching agents for file modifications, explicitly include "commit your changes on the branch" in the agent prompt.
+
 ---
 
 ## References
