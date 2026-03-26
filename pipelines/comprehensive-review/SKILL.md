@@ -1,20 +1,24 @@
 ---
 name: comprehensive-review
 description: |
-  Unified 3-wave code review: Wave 0 auto-discovers packages/modules and
+  Unified 4-wave code review: Wave 0 auto-discovers packages/modules and
   dispatches one language-specialist agent per package for deep per-package
-  analysis. Wave 1 dispatches 11 foundation reviewers in parallel (with Wave 0
+  analysis. Wave 1 dispatches 12 foundation reviewers in parallel (with Wave 0
   context). Wave 2 dispatches 10 deep-dive reviewers that receive Wave 0+1
-  findings as context for targeted analysis. Aggregates all findings by severity,
-  then auto-fixes ALL issues. Covers per-package deep review, security, business
-  logic, architecture, error handling, test coverage, type design, code quality,
-  comment analysis, language idioms, docs validation, performance, concurrency,
-  API contracts, dependencies, error messages, dead code, naming, observability,
-  config safety, and migration safety.
+  findings as context for targeted analysis. Wave 3 dispatches 4-5 adversarial
+  reviewers that challenge Wave 1+2 consensus — contrarian, skeptical senior,
+  user advocate, meta-process, and conditionally SAPCC structural. Aggregates
+  all findings by severity with wave-agreement labels (unanimous, majority,
+  contested), then auto-fixes ALL issues. Covers per-package deep review,
+  security, business logic, architecture, error handling, test coverage, type
+  design, code quality, comment analysis, language idioms, docs validation,
+  newcomer perspective, performance, concurrency, API contracts, dependencies,
+  error messages, dead code, naming, observability, config safety, migration
+  safety, and adversarial challenge.
   Use for "comprehensive review", "full review", "review everything", "review
   and fix", or "thorough code review".
   Do NOT use for single-concern reviews (use individual agents instead).
-version: 3.2.0
+version: 4.0.0
 user-invocable: false
 command: /comprehensive-review
 model: opus
@@ -41,8 +45,11 @@ routing:
     - multi-agent review
     - complete code review
     - 20-agent review
+    - 25-agent review
     - per-package review
     - 3-wave review
+    - 4-wave review
+    - adversarial review
     - "full code review"
     - "review all packages"
   pairs_with:
@@ -54,13 +61,13 @@ routing:
   category: review
 ---
 
-# Comprehensive Code Review v3 — Three-Wave Hybrid Architecture
+# Comprehensive Code Review v4 — Four-Wave Hybrid Architecture
 
-Three-wave review with per-package deep analysis. Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per package to read ALL code in that package. Wave 1 (11 foundation agents) runs in parallel with Wave 0 context. Wave 2 (10 deep-dive agents) receives Wave 0+1 findings for targeted analysis. All findings are aggregated, deduplicated, and auto-fixed.
+Four-wave review with per-package deep analysis and adversarial challenge. Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per package to read ALL code in that package. Wave 1 (12 foundation agents, including newcomer perspective) runs in parallel with Wave 0 context. Wave 2 (10 deep-dive agents) receives Wave 0+1 findings for targeted analysis. Wave 3 (4-5 adversarial agents) challenges Wave 1+2 consensus — are findings actually important? Are tradeoffs justified? Should the PR be split? All findings are aggregated with wave-agreement labels, deduplicated, and auto-fixed.
 
 **How this differs from existing skills**:
 - `/parallel-code-review`: 3 agents (security, business, arch) — report only
-- `/comprehensive-review`: **20+ agents in 3 waves** — per-package + cross-cutting review AND fix everything
+- `/comprehensive-review`: **25+ agents in 4 waves** — per-package + cross-cutting + adversarial review AND fix everything
 
 ---
 
@@ -68,8 +75,8 @@ Three-wave review with per-package deep analysis. Wave 0 auto-discovers packages
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before dispatching reviewers
-- **Three-Wave Parallelism**: Wave 0 agents dispatched in batches of 10. Wave 1 agents MUST be dispatched in a SINGLE message. Wave 2 agents MUST be dispatched in a SINGLE message after Wave 1 completes.
-- **Context Cascading**: Wave 1 receives Wave 0 per-package findings. Wave 2 receives Wave 0+1 findings.
+- **Four-Wave Parallelism**: Wave 0 agents dispatched in batches of 10. Wave 1 agents MUST be dispatched in a SINGLE message. Wave 2 agents MUST be dispatched in a SINGLE message after Wave 1 completes. Wave 3 agents MUST be dispatched in a SINGLE message after Wave 2 completes.
+- **Context Cascading**: Wave 1 receives Wave 0 per-package findings. Wave 2 receives Wave 0+1 findings. Wave 3 receives Wave 0+1+2 findings and is instructed to CHALLENGE consensus, not reinforce it.
 - **Fix Everything, Defer Nothing**: After all waves complete, fix EVERY finding. No deferrals. No "out of scope." No "will fix later." The only exception is BLOCKED (fix + alternative both break tests, <10% of total).
 - **Worktree Isolation**: Fixes happen on a new branch, never on the current working branch directly
 - **Severity Aggregation**: Combine findings by severity before fixing
@@ -89,7 +96,7 @@ Three-wave review with per-package deep analysis. Wave 0 auto-discovers packages
 ### Optional Behaviors (OFF unless enabled)
 - **--review-only**: Skip fix phase, report only (like parallel-code-review)
 - **--skip-wave0**: Skip Wave 0 per-package review (faster, less thorough)
-- **--wave1-only**: Run only Wave 1 (11 agents), skip Wave 0 and Wave 2
+- **--wave1-only**: Run only Wave 1 (12 agents), skip Wave 0, Wave 2, and Wave 3
 - **--focus [files]**: Review only specified files instead of full diff
 - **--severity [critical|high|medium|all]**: Only report/fix findings at or above severity
 - **--org-conventions**: Pass organization-specific convention flags to reviewer-language-specialist. Configure organization detection in `scripts/classify-repo.py`.
@@ -181,7 +188,7 @@ If the repo belongs to a protected organization with custom conventions:
 - Wave 1 Agent 9 (`reviewer-language-specialist`) gets organization-specific flags appended
 - Log: "Organization conventions detected — reviewer-language-specialist will check org-specific patterns"
 
-**Step 3: Understand the three-wave agent roster**
+**Step 3: Understand the four-wave agent roster**
 
 #### Wave 0: Per-Package Deep Review (Auto-Discovered)
 
@@ -213,6 +220,7 @@ These agents run in parallel with Wave 0 per-package findings as context. They p
 | 9 | `reviewer-language-specialist` | Language Idioms | Modern stdlib, concurrency, LLM tells, org-specific rules |
 | 10 | `reviewer-docs-validator` | Project Health | README, CLAUDE.md, deps, CI, build system |
 | 11 | `reviewer-adr-compliance` | ADR Compliance | Implementation matches ADR decisions, no scope creep |
+| 12 | `reviewer-newcomer` | Newcomer Perspective | Documentation gaps, confusing code, implicit assumptions, onboarding friction |
 
 *Architecture reviewer selection by language:
 
@@ -240,6 +248,25 @@ These agents receive Wave 0+1 aggregated findings as input. They perform targete
 | 19 | `reviewer-config-safety` | Config Safety | Security + docs-validator findings → config security gaps |
 | 20 | `reviewer-migration-safety` | Migration Safety | API-contract + business-logic findings → migration-sensitive changes |
 
+#### Wave 3: Adversarial Perspectives (Consensus Challenge)
+
+These agents receive Wave 0+1+2 aggregated findings as input. Their job is to CHALLENGE the consensus — not reinforce it. Wave 3 agents push back on findings, question whether issues are real, and surface tradeoffs that earlier waves may have accepted uncritically.
+
+| # | Agent | Role | Challenge Focus |
+|---|-------|------|----------------|
+| 21 | `reviewer-contrarian` | Challenges findings | Are these findings actually important? Which are false positives? Which are over-severity? |
+| 22 | `reviewer-skeptical-senior` | Experience-based skepticism | "I've seen this before" — which findings are theoretical vs real-world issues? |
+| 23 | `reviewer-user-advocate` | User impact assessment | Does this change break users? Are UX tradeoffs justified? Are migration paths safe? |
+| 24 | `reviewer-meta-process` | Process/approach review | Is this the right approach? Should the PR be split? Is the review itself focused correctly? |
+
+**Conditional: SAPCC Structural Review**
+
+| # | Agent | Condition | Challenge Focus |
+|---|-------|-----------|----------------|
+| 25 | `reviewer-sapcc-structural` | Repo contains ANY of: `hybris/`, `core-customize/`, `config/localextensions.xml`, or `manifest.json` with `"commerceSuiteVersion"` | SAP Commerce Cloud structural integrity — extension wiring, build manifest, data model impacts |
+
+If the SAPCC condition is not met, skip `reviewer-sapcc-structural` silently (no warning, no log).
+
 **Step 3: Initialize findings directory**
 
 Create a temporary directory to persist findings across waves. This is critical — without it, context compaction between waves loses all prior findings.
@@ -257,8 +284,10 @@ All subsequent phases MUST write their findings to `$REVIEW_DIR/` and read prior
 | `$REVIEW_DIR/wave0-findings.md` | Phase 1c | Phase 2a, 2b |
 | `$REVIEW_DIR/wave1-findings.md` | Phase 2b | Phase 3a |
 | `$REVIEW_DIR/wave01-summary.md` | Phase 2b | Phase 3a |
-| `$REVIEW_DIR/wave2-findings.md` | Phase 3b | Phase 4 |
-| `$REVIEW_DIR/final-report.md` | Phase 3b | Phase 4, Phase 5 |
+| `$REVIEW_DIR/wave2-findings.md` | Phase 3b | Phase 3c |
+| `$REVIEW_DIR/wave012-summary.md` | Phase 3b | Phase 3c |
+| `$REVIEW_DIR/wave3-findings.md` | Phase 3d | Phase 4 |
+| `$REVIEW_DIR/final-report.md` | Phase 3d | Phase 4, Phase 5 |
 
 **Step 4: Create task_plan.md**
 
@@ -272,10 +301,12 @@ Three-wave review and auto-fix of [N] changed files across [N] packages.
 - [ ] Phase 1: Scope (identify files, discover packages)
 - [ ] Phase 1b: Wave 0 Dispatch (per-package deep review)
 - [ ] Phase 1c: Wave 0 Aggregate (per-package findings)
-- [ ] Phase 2a: Wave 1 Dispatch (11 foundation agents + Wave 0 context)
+- [ ] Phase 2a: Wave 1 Dispatch (12 foundation agents + Wave 0 context)
 - [ ] Phase 2b: Wave 1 Aggregate (collect and summarize Wave 0+1 findings)
 - [ ] Phase 3a: Wave 2 Dispatch (10 deep-dive agents with Wave 0+1 context)
-- [ ] Phase 3b: Wave 2 Aggregate (merge all agents' findings)
+- [ ] Phase 3b: Wave 2 Aggregate (merge Wave 0+1+2 findings)
+- [ ] Phase 3c: Wave 3 Dispatch (4-5 adversarial agents with Wave 0+1+2 context)
+- [ ] Phase 3d: Wave 3 Aggregate (merge adversarial challenges, label agreement)
 - [ ] Phase 4: Fix (auto-fix on branch)
 - [ ] Phase 5: Report (write report, verify)
 
@@ -283,8 +314,9 @@ Three-wave review and auto-fix of [N] changed files across [N] packages.
 - Files: [list]
 - Packages discovered: [N]
 - Wave 0 agents: [N] (one per package)
-- Wave 1 agents: 11
+- Wave 1 agents: 12
 - Wave 2 agents: 10
+- Wave 3 agents: 4-5 (adversarial; 5 if SAPCC detected)
 - Org conventions: [detected org or none]
 - Mode: [review+fix | review-only]
 
@@ -503,7 +535,7 @@ Save the Library Contract Report to `$REVIEW_DIR/library-contracts.md`. Include 
 
 ### Phase 2a: WAVE 1 DISPATCH
 
-**Goal**: Launch all foundation review agents in a SINGLE message for true parallel execution, with Wave 0 per-package context. This dispatches 11 agents.
+**Goal**: Launch all foundation review agents in a SINGLE message for true parallel execution, with Wave 0 per-package context. This dispatches 12 agents.
 
 **CRITICAL**: ALL Wave 1 agent dispatches MUST be in ONE message. Sequential dispatch defeats parallelism.
 
@@ -581,8 +613,9 @@ Return findings as:
 | `reviewer-language-specialist` | Detect language from files, check modern stdlib, idioms, concurrency, LLM tells. **MCP**: For Go files, use gopls `go_file_context` and `go_diagnostics` to detect non-idiomatic patterns with type awareness. If org conventions detected, append org-specific flags to prompt. |
 | `reviewer-docs-validator` | Check README.md, CLAUDE.md, deps, CI config, build system, LICENSE. Review the project, not the code. **MCP**: Use Context7 to verify documented library versions/APIs match actual usage |
 | `reviewer-adr-compliance` | Auto-discover ADRs from `adr/` and `.adr-session.json`. Check every decision point has implementation, no contradictions, no scope creep. Output ADR COMPLIANT or NOT ADR COMPLIANT. |
+| `reviewer-newcomer` | Review from a newcomer/fresh-eyes perspective. Focus on: documentation gaps that would confuse a new developer, implicit assumptions not explained in code or comments, confusing variable/function names, unclear control flow, missing "why" explanations. Flag anything where a developer unfamiliar with this codebase would be lost. |
 
-**Gate**: All Wave 1 agents dispatched in a single message (11 agents). Wait for all to complete. Proceed to Phase 2b.
+**Gate**: All Wave 1 agents dispatched in a single message (12 agents). Wait for all to complete. Proceed to Phase 2b.
 
 ---
 
@@ -661,6 +694,12 @@ Create a condensed summary combining Wave 0 per-package findings and Wave 1 cros
 - ADR contradictions: [list]
 - Scope creep: [list]
 
+### Newcomer Perspective (Agent 12): [N findings]
+- Documentation gaps: [list]
+- Confusing code: [list]
+- Implicit assumptions: [list]
+- Onboarding friction: [list]
+
 ```
 
 **Step 3: Quick-deduplicate Wave 0+1**
@@ -674,7 +713,7 @@ Write both raw Wave 1 findings AND the combined Wave 0+1 summary to disk:
 ```bash
 # Save raw Wave 1 findings (individual agent outputs)
 cat > "$REVIEW_DIR/wave1-findings.md" << 'WAVE1_EOF'
-[Paste ALL Wave 1 agent outputs — the raw findings from each of the 11 agents]
+[Paste ALL Wave 1 agent outputs — the raw findings from each of the 12 agents]
 WAVE1_EOF
 
 # Save the combined Wave 0+1 summary (the structured context for Wave 2)
@@ -779,9 +818,9 @@ Return findings as:
 
 ---
 
-### Phase 3b: FULL AGGREGATE
+### Phase 3b: WAVE 0+1+2 AGGREGATE
 
-**Goal**: Merge ALL agents' findings (Wave 0 + Wave 1 + Wave 2) into a unified, severity-classified, deduplicated report.
+**Goal**: Merge Wave 0+1+2 findings into a structured summary for Wave 3 adversarial review. This is NOT the final aggregate — Wave 3 will challenge these findings.
 
 **Step 0: Load all prior wave findings from disk**
 
@@ -798,7 +837,7 @@ echo "Loaded Wave 0: $(echo "$WAVE0" | wc -l) lines, Wave 1: $(echo "$WAVE1" | w
 
 Combine Wave 0 per-package (from `$REVIEW_DIR/wave0-findings.md`), Wave 1 cross-cutting (from `$REVIEW_DIR/wave1-findings.md`), and Wave 2 deep-dive findings (just returned from agents) into a single list.
 
-**Step 2: Deduplicate across all agents**
+**Step 2: Preliminary deduplication**
 
 If two or more agents flagged the same file:line:
 - Keep the highest severity classification
@@ -816,7 +855,7 @@ If two or more agents flagged the same file:line:
 | MEDIUM | Quality issue, missing test, comment rot, naming drift | Fix (auto) |
 | LOW | Style preference, minor simplification, documentation | Fix (auto) |
 
-**Step 4: Build full summary matrix**
+**Step 4: Build preliminary summary matrix**
 
 ```
 | Agent                    | Wave | CRITICAL | HIGH | MEDIUM | LOW |
@@ -836,6 +875,7 @@ If two or more agents flagged the same file:line:
 | Language Specialist      | 1    | N        | N    | N      | N   |
 | Docs & Config            | 1    | N        | N    | N      | N   |
 | ADR Compliance           | 1    | N        | N    | N      | N   |
+| Newcomer                 | 1    | N        | N    | N      | N   |
 | **Wave 1 Subtotal**      | **1**| **N**    | **N**| **N**  | **N**|
 | Performance              | 2    | N        | N    | N      | N   |
 | Concurrency              | 2    | N        | N    | N      | N   |
@@ -848,12 +888,12 @@ If two or more agents flagged the same file:line:
 | Config Safety            | 2    | N        | N    | N      | N   |
 | Migration Safety         | 2    | N        | N    | N      | N   |
 | **Wave 2 Subtotal**      | **2**| **N**    | **N**| **N**  | **N**|
-| **TOTAL**                |      | **N**    | **N**| **N**  | **N**|
+| **Wave 0+1+2 TOTAL**     |      | **N**    | **N**| **N**  | **N**|
 ```
 
-**Step 5: Save all findings to disk**
+**Step 5: Save Wave 2 findings and combined summary to disk**
 
-Write Wave 2 findings and the final aggregated report to disk:
+Write Wave 2 raw findings AND the combined Wave 0+1+2 summary to disk for Wave 3 context:
 
 ```bash
 # Save Wave 2 raw findings
@@ -861,11 +901,225 @@ cat > "$REVIEW_DIR/wave2-findings.md" << 'WAVE2_EOF'
 [Paste ALL Wave 2 agent outputs]
 WAVE2_EOF
 
-# Save the final deduplicated, severity-classified report
+# Save the combined Wave 0+1+2 summary (the structured context for Wave 3)
+cat > "$REVIEW_DIR/wave012-summary.md" << 'WAVE012_EOF'
+[Paste the preliminary summary matrix + all classified findings from Steps 2-4]
+WAVE012_EOF
+
+echo "Saved Wave 2 findings: $(wc -l < "$REVIEW_DIR/wave2-findings.md") lines"
+echo "Saved Wave 0+1+2 summary: $(wc -l < "$REVIEW_DIR/wave012-summary.md") lines"
+```
+
+**CRITICAL**: Do NOT skip this step. Wave 3 agents need the combined summary, and context compaction WILL fire between Wave 2 aggregate and Wave 3 dispatch on large reviews.
+
+**Gate**: Wave 0+1+2 summary built, saved to `$REVIEW_DIR/wave012-summary.md`. Proceed to Phase 3c.
+
+---
+
+### Phase 3c: WAVE 3 DISPATCH — Adversarial Perspectives
+
+**Goal**: Launch 4-5 adversarial agents in a SINGLE message. These agents CHALLENGE the Wave 1+2 consensus — they are not looking for new issues, they are questioning whether existing findings are real, correctly prioritized, and worth fixing.
+
+**CRITICAL**: ALL Wave 3 agent dispatches MUST be in ONE message.
+
+**Step 0: Load Wave 0+1+2 findings from disk**
+
+Before constructing agent prompts, reload the combined summary from disk (in case context compaction has occurred since Phase 3b):
+
+```bash
+WAVE012_SUMMARY=$(cat "$REVIEW_DIR/wave012-summary.md" 2>/dev/null || echo "ERROR: Wave 0+1+2 summary not found at $REVIEW_DIR/wave012-summary.md — cannot proceed with Wave 3")
+```
+
+If the file is missing, re-read `$REVIEW_DIR/wave0-findings.md`, `$REVIEW_DIR/wave1-findings.md`, and `$REVIEW_DIR/wave2-findings.md` and rebuild the summary before proceeding.
+
+**Step 1: Check SAPCC conditional**
+
+```bash
+# Check for SAP Commerce Cloud indicators
+SAPCC_DETECTED=false
+if [ -d "hybris" ] || [ -d "core-customize" ] || [ -f "config/localextensions.xml" ]; then
+    SAPCC_DETECTED=true
+fi
+if [ -f "manifest.json" ] && grep -q '"commerceSuiteVersion"' manifest.json 2>/dev/null; then
+    SAPCC_DETECTED=true
+fi
+echo "SAPCC detected: $SAPCC_DETECTED"
+```
+
+If `SAPCC_DETECTED=true`, include `reviewer-sapcc-structural` as a 5th Wave 3 agent. Otherwise dispatch only the 4 core adversarial agents.
+
+**Model**: Use `model: sonnet` for all Wave 3 agents. The orchestrator (this skill) runs on Opus; dispatched review agents run on Sonnet.
+
+**Step 2: Dispatch Wave 3 agents**
+
+Each Wave 3 agent prompt should include the standard review scope PLUS the full Wave 0+1+2 context, with explicit instructions to CHALLENGE rather than reinforce:
+
+```
+ADVERSARIAL REVIEW — Wave 3
+
+REVIEW SCOPE:
+- Files to review: [list of changed files]
+- Change context: [what was changed and why, if known]
+- Repository: [current directory]
+
+WAVE 0+1+2 FINDINGS (the consensus you are challenging):
+[Insert $WAVE012_SUMMARY — loaded from $REVIEW_DIR/wave012-summary.md]
+
+YOUR ROLE: You are an ADVERSARIAL reviewer. Your job is NOT to find new issues.
+Your job is to CHALLENGE the findings above. Push back. Question severity.
+Identify false positives. Flag overreactions. Surface tradeoffs that earlier
+waves accepted without scrutiny.
+
+INSTRUCTIONS:
+1. Read the CLAUDE.md file(s) in this repository first
+2. Read the code being reviewed
+3. Read the Wave 0+1+2 findings carefully
+4. For each finding from earlier waves, determine:
+   a. AGREE — the finding is real, correctly classified, and worth fixing
+   b. CHALLENGE — the finding is questionable (explain why)
+   c. DOWNGRADE — the finding is real but over-classified (suggest correct severity)
+   d. DISMISS — the finding is a false positive or not worth fixing (provide evidence)
+5. Surface any tradeoffs or second-order effects the earlier waves missed
+6. Be specific — vague disagreement is not useful
+
+OUTPUT FORMAT:
+### CHALLENGE: [One-line summary of what you're challenging]
+**Original finding**: [Wave N, Agent, Severity: summary]
+**Your verdict**: [AGREE | CHALLENGE | DOWNGRADE | DISMISS]
+**Reasoning**: [Why you disagree or agree]
+**Evidence**: [Code reference, real-world precedent, or logical argument]
+**Suggested action**: [Keep as-is | Reduce to MEDIUM | Drop | Needs human judgment]
+---
+```
+
+**Wave 3 agent-specific prompt additions:**
+
+| Agent | Extra Instructions |
+|-------|-------------------|
+| `reviewer-contrarian` | Challenge every HIGH and CRITICAL finding. Are they actually important? Which are false positives? Which are over-classified? Look for findings where Wave 1+2 agents reinforced each other's bias rather than independently verifying. Question whether suggested fixes introduce new problems. |
+| `reviewer-skeptical-senior` | Apply 10+ years of engineering experience. Which findings are theoretical risks that never manifest in practice? Which are textbook answers that don't apply to this codebase's scale/context? Flag "resume-driven" suggestions (over-engineering, premature optimization). Identify findings where the cure is worse than the disease. |
+| `reviewer-user-advocate` | Focus exclusively on user impact. Does this change break existing users? Are migration paths safe? Are UX tradeoffs justified? Challenge findings that improve code quality at the expense of user experience. Flag findings that ignore backward compatibility. Question whether "fixing" something makes it harder for users. |
+| `reviewer-meta-process` | Step back from individual findings. Is the overall approach correct? Should this PR be split into smaller PRs? Are the right problems being solved? Is the review itself focused on the right things? Flag cases where the review is bikeshedding on style while missing structural issues. Question whether the fix phase will create more churn than the findings are worth. |
+| `reviewer-sapcc-structural` | **(SAPCC repos only)** Challenge findings through SAP Commerce Cloud structural lens. Do findings account for hybris extension lifecycle? Are suggested fixes compatible with the SAP build system? Do architecture recommendations respect CCv2 manifest constraints? Flag findings that would break extension wiring or data model migrations. |
+
+**Gate**: All Wave 3 agents dispatched in a single message (4-5 agents). Wait for all to complete. Proceed to Phase 3d.
+
+---
+
+### Phase 3d: FULL AGGREGATE — Wave Agreement Synthesis
+
+**Goal**: Merge ALL agents' findings (Wave 0+1+2+3) into a final, severity-classified, deduplicated report WITH wave-agreement labels.
+
+**Step 0: Load all prior wave findings from disk**
+
+Reload all wave findings from disk before final aggregation (context compaction may have fired):
+
+```bash
+# Reload all wave findings from disk
+WAVE0=$(cat "$REVIEW_DIR/wave0-findings.md" 2>/dev/null || echo "")
+WAVE1=$(cat "$REVIEW_DIR/wave1-findings.md" 2>/dev/null || echo "")
+WAVE2=$(cat "$REVIEW_DIR/wave2-findings.md" 2>/dev/null || echo "")
+WAVE012=$(cat "$REVIEW_DIR/wave012-summary.md" 2>/dev/null || echo "")
+echo "Loaded Wave 0: $(echo "$WAVE0" | wc -l) lines"
+echo "Loaded Wave 1: $(echo "$WAVE1" | wc -l) lines"
+echo "Loaded Wave 2: $(echo "$WAVE2" | wc -l) lines"
+echo "Loaded Wave 0+1+2 summary: $(echo "$WAVE012" | wc -l) lines"
+```
+
+**Step 1: Process Wave 3 challenges**
+
+For each Wave 3 agent's output, categorize their verdicts:
+- **AGREE** verdicts: Reinforces the original finding (increases confidence)
+- **CHALLENGE** verdicts: Flags the finding for human review
+- **DOWNGRADE** verdicts: Suggests lower severity (adjust if multiple Wave 3 agents agree)
+- **DISMISS** verdicts: Suggests dropping the finding (only drop if 2+ Wave 3 agents dismiss AND no Wave 1+2 agent rated it CRITICAL)
+
+**Step 2: Label every finding with wave agreement level**
+
+Every finding from the final report MUST carry one of these labels:
+
+| Label | Meaning | Criteria | Action |
+|-------|---------|----------|--------|
+| **UNANIMOUS** | All waves agree | Wave 1+2 found it AND Wave 3 agrees (or does not challenge) | HIGH confidence — fix without hesitation |
+| **MAJORITY** | Most waves agree | Wave 1+2 found it AND 1-2 Wave 3 agents challenge but others agree | Fix, but note the challenge in the report |
+| **CONTESTED** | Wave 3 contradicts Wave 1+2 | Wave 1+2 found it BUT 3+ Wave 3 agents challenge or dismiss | Needs human judgment — present both arguments |
+
+**Step 3: Surface Wave 3 challenges that contradict consensus**
+
+Create a dedicated section listing all CONTESTED findings. For each:
+- The original Wave 1+2 finding and severity
+- The Wave 3 challenge(s) and reasoning
+- Both sides' evidence
+- Recommended disposition (fix / skip / needs human decision)
+
+**Step 4: Build final summary matrix**
+
+```
+| Agent                    | Wave | CRITICAL | HIGH | MEDIUM | LOW |
+|--------------------------|------|----------|------|--------|-----|
+| Per-Package: [pkg1]      | 0    | N        | N    | N      | N   |
+| Per-Package: [pkg2]      | 0    | N        | N    | N      | N   |
+| Per-Package: [...]       | 0    | N        | N    | N      | N   |
+| **Wave 0 Subtotal**      | **0**| **N**    | **N**| **N**  | **N**|
+| Security                 | 1    | N        | N    | N      | N   |
+| Business Logic           | 1    | N        | N    | N      | N   |
+| Architecture             | 1    | N        | N    | N      | N   |
+| Silent Failures          | 1    | N        | N    | N      | N   |
+| Test Coverage            | 1    | N        | N    | N      | N   |
+| Type Design              | 1    | N        | N    | N      | N   |
+| Code Quality             | 1    | N        | N    | N      | N   |
+| Comment Analyzer         | 1    | N        | N    | N      | N   |
+| Language Specialist      | 1    | N        | N    | N      | N   |
+| Docs & Config            | 1    | N        | N    | N      | N   |
+| ADR Compliance           | 1    | N        | N    | N      | N   |
+| Newcomer                 | 1    | N        | N    | N      | N   |
+| **Wave 1 Subtotal**      | **1**| **N**    | **N**| **N**  | **N**|
+| Performance              | 2    | N        | N    | N      | N   |
+| Concurrency              | 2    | N        | N    | N      | N   |
+| API Contract             | 2    | N        | N    | N      | N   |
+| Dependency Audit         | 2    | N        | N    | N      | N   |
+| Error Messages           | 2    | N        | N    | N      | N   |
+| Dead Code                | 2    | N        | N    | N      | N   |
+| Naming Consistency       | 2    | N        | N    | N      | N   |
+| Observability            | 2    | N        | N    | N      | N   |
+| Config Safety            | 2    | N        | N    | N      | N   |
+| Migration Safety         | 2    | N        | N    | N      | N   |
+| **Wave 2 Subtotal**      | **2**| **N**    | **N**| **N**  | **N**|
+| Contrarian               | 3    | — challenges — | — | — | — |
+| Skeptical Senior         | 3    | — challenges — | — | — | — |
+| User Advocate            | 3    | — challenges — | — | — | — |
+| Meta-Process             | 3    | — challenges — | — | — | — |
+| SAPCC Structural         | 3    | — challenges — | — | — | — |
+| **Wave 3 Summary**       | **3**| **N agreed** | **N challenged** | **N downgraded** | **N dismissed** |
+| **TOTAL (post-Wave 3)**  |      | **N**    | **N**| **N**  | **N**|
+```
+
+**Wave Agreement Summary:**
+
+```
+| Agreement Level | Count | Action |
+|-----------------|-------|--------|
+| UNANIMOUS       | N     | Fix immediately — high confidence |
+| MAJORITY        | N     | Fix, note challenge in report |
+| CONTESTED       | N     | Needs human judgment — present both sides |
+```
+
+**Step 5: Save all findings to disk**
+
+Write Wave 3 findings and the final aggregated report to disk:
+
+```bash
+# Save Wave 3 raw findings (adversarial challenge outputs)
+cat > "$REVIEW_DIR/wave3-findings.md" << 'WAVE3_EOF'
+[Paste ALL Wave 3 agent outputs — the raw challenge verdicts from each agent]
+WAVE3_EOF
+
+# Save the final deduplicated, severity-classified, agreement-labeled report
 cat > "$REVIEW_DIR/final-report.md" << 'REPORT_EOF'
-[Paste the full summary matrix + all classified findings from Steps 3-4]
+[Paste the full summary matrix + all classified findings + agreement labels + contested findings section]
 REPORT_EOF
 
+echo "Saved Wave 3 findings: $(wc -l < "$REVIEW_DIR/wave3-findings.md") lines"
 echo "Saved final report: $(wc -l < "$REVIEW_DIR/final-report.md") lines"
 echo "All findings persisted at: $REVIEW_DIR/"
 ls -la "$REVIEW_DIR/"
@@ -873,9 +1127,11 @@ ls -la "$REVIEW_DIR/"
 
 **Step 6: Present summary to user**
 
-Show the matrix and full findings list BEFORE proceeding to fixes. If `--review-only`, stop here.
+Show the matrix, agreement summary, and CONTESTED findings list BEFORE proceeding to fixes. If `--review-only`, stop here.
 
-**Gate**: All 20+ agents' findings classified, deduplicated, saved to `$REVIEW_DIR/final-report.md`, matrix built. User informed. Proceed to Phase 4.
+For CONTESTED findings, explicitly ask the user: "Wave 3 challenges these N findings. Fix them anyway, skip them, or decide individually?"
+
+**Gate**: All 25+ agents' findings classified, deduplicated, agreement-labeled, saved to `$REVIEW_DIR/final-report.md`, matrix built. User informed of contested findings. Proceed to Phase 4.
 
 ---
 
@@ -894,8 +1150,16 @@ cat "$REVIEW_DIR/final-report.md"
 
 If the file is missing, rebuild from individual wave files:
 ```bash
-cat "$REVIEW_DIR/wave0-findings.md" "$REVIEW_DIR/wave1-findings.md" "$REVIEW_DIR/wave2-findings.md"
+cat "$REVIEW_DIR/wave0-findings.md" "$REVIEW_DIR/wave1-findings.md" "$REVIEW_DIR/wave2-findings.md" "$REVIEW_DIR/wave3-findings.md"
 ```
+
+**Wave Agreement Handling in Fix Phase:**
+
+| Agreement Level | Fix Behavior |
+|-----------------|-------------|
+| **UNANIMOUS** | Fix without hesitation — all waves agree |
+| **MAJORITY** | Fix, but include Wave 3 challenge as code comment if the challenge has merit |
+| **CONTESTED** | Fix only if user approved during Phase 3d. If user said "skip", do not fix. If user said "decide individually", follow their per-finding decisions. |
 
 **CRITICAL RULE: NO DEFERRED FIXES.** Every finding from every wave MUST be fixed. The only acceptable reason to not fix a finding is if applying it breaks tests — and even then, try an alternative fix before giving up. "Deferred" is not a valid status. "Out of scope" is not a valid reason. If an agent found it, fix it.
 
@@ -985,7 +1249,7 @@ Write `comprehensive-review-report.md`:
 **Date**: [date]
 **Files reviewed**: [N]
 **Packages discovered**: [N]
-**Agents dispatched**: [N] (Wave 0: [N per-package], Wave 1: 11, Wave 2: 10)
+**Agents dispatched**: [N] (Wave 0: [N per-package], Wave 1: 12, Wave 2: 10, Wave 3: [4-5 adversarial])
 **Total findings**: [N]
 **Findings fixed**: [N]
 **Findings blocked**: [N] (ONLY if fix breaks tests after alternative attempt — must be <10%)
@@ -1006,9 +1270,18 @@ Is the codebase better after fixes?]
 | Wave | Agents | Findings | Fixed | Unique to Wave |
 |------|--------|----------|-------|----------------|
 | Wave 0 (Per-Package) | N | N | N | N |
-| Wave 1 (Foundation) | 11 | N | N | N |
+| Wave 1 (Foundation) | 12 | N | N | N |
 | Wave 2 (Deep-Dive) | 10 | N | N | N |
+| Wave 3 (Adversarial) | N | — | — | N challenges |
 | **TOTAL** | **N** | **N** | **N** | |
+
+## Wave Agreement Analysis
+
+| Agreement Level | Count | Fixed | Skipped | Human Decided |
+|-----------------|-------|-------|---------|---------------|
+| UNANIMOUS       | N     | N     | —       | —             |
+| MAJORITY        | N     | N     | —       | —             |
+| CONTESTED       | N     | N     | N       | N             |
 
 ## Wave 0: Per-Package Results
 
@@ -1036,6 +1309,7 @@ Is the codebase better after fixes?]
 | Language Specialist | 1 | N | N | N | [biggest] |
 | Docs & Config | 1 | N | N | N | [biggest] |
 | ADR Compliance | 1 | N | N | N | [biggest] |
+| Newcomer | 1 | N | N | N | [biggest] |
 | Performance | 2 | N | N | N | [biggest] |
 | Concurrency | 2 | N | N | N | [biggest] |
 | API Contract | 2 | N | N | N | [biggest] |
@@ -1046,6 +1320,11 @@ Is the codebase better after fixes?]
 | Observability | 2 | N | N | N | [biggest] |
 | Config Safety | 2 | N | N | N | [biggest] |
 | Migration Safety | 2 | N | N | N | [biggest] |
+| Contrarian | 3 | — | — | — | [key challenge] |
+| Skeptical Senior | 3 | — | — | — | [key challenge] |
+| User Advocate | 3 | — | — | — | [key challenge] |
+| Meta-Process | 3 | — | — | — | [key challenge] |
+| SAPCC Structural | 3 | — | — | — | [key challenge or N/A] |
 | **TOTAL** | | **N** | **N** | **N** | |
 
 ## Context Cascade Effectiveness
@@ -1057,6 +1336,18 @@ How each wave's context helped later waves find deeper issues:
 | Performance | Package complexity hotspots | Architecture hot paths | [N findings] |
 | Concurrency | Intra-package concurrent patterns | Silent failures + arch | [N findings] |
 | ... | ... | ... | ... |
+
+### Wave 3 Challenge Effectiveness
+
+How adversarial review changed the final outcome:
+
+| Wave 3 Agent | Findings Challenged | Downgraded | Dismissed | Key Insight |
+|-------------|--------------------|-----------|-----------|----|
+| Contrarian | N | N | N | [biggest challenge] |
+| Skeptical Senior | N | N | N | [biggest challenge] |
+| User Advocate | N | N | N | [biggest challenge] |
+| Meta-Process | N | N | N | [biggest challenge] |
+| SAPCC Structural | N or N/A | N | N | [biggest challenge or N/A] |
 
 ## Findings by Severity
 
@@ -1071,6 +1362,13 @@ How each wave's context helped later waves find deeper issues:
 
 ### LOW
 [Brief list]
+
+## Contested Findings (Wave 3 vs Wave 1+2)
+
+| Finding | Wave 1+2 Severity | Wave 3 Verdict | Resolution |
+|---------|-------------------|----------------|------------|
+| [summary] | HIGH | CHALLENGE: [reason] | [Fixed / Skipped / Human decided] |
+| ... | ... | ... | ... |
 
 ## Quick Wins Applied
 [List of easy fixes that improved quality]
@@ -1092,11 +1390,13 @@ Display the findings directory path so the user knows where raw data lives:
 
 ```
 Review findings persisted at: $REVIEW_DIR/
-  wave0-findings.md  — Per-package deep review results
-  wave1-findings.md  — Foundation agent results
-  wave01-summary.md  — Combined Wave 0+1 context for Wave 2
-  wave2-findings.md  — Deep-dive agent results
-  final-report.md    — Aggregated, deduplicated, severity-classified
+  wave0-findings.md   — Per-package deep review results
+  wave1-findings.md   — Foundation agent results (12 agents)
+  wave01-summary.md   — Combined Wave 0+1 context for Wave 2
+  wave2-findings.md   — Deep-dive agent results (10 agents)
+  wave012-summary.md  — Combined Wave 0+1+2 context for Wave 3
+  wave3-findings.md   — Adversarial challenge results (4-5 agents)
+  final-report.md     — Aggregated, deduplicated, agreement-labeled
 ```
 
 These files persist in `/tmp/` until next reboot. They can be re-read in future sessions if needed.
@@ -1111,9 +1411,9 @@ These files persist in `/tmp/` until next reboot. They can be re-read in future 
 
 | Situation | Use This |
 |-----------|----------|
-| Any PR, any language, full review+fix | `/comprehensive-review` (3 waves) |
-| Fast review, skip per-package | `/comprehensive-review --skip-wave0` (2 waves) |
-| Quick review, 11 agents only | `/comprehensive-review --wave1-only` |
+| Any PR, any language, full review+fix+challenge | `/comprehensive-review` (4 waves) |
+| Fast review, skip per-package | `/comprehensive-review --skip-wave0` (3 waves: 1+2+3) |
+| Quick review, 12 agents only | `/comprehensive-review --wave1-only` |
 | Quick 3-reviewer check, no fix | `/parallel-code-review` |
 | PR comment validation | `/pr-review-address-feedback` |
 | Sequential deep dive | `systematic-code-review` skill |
@@ -1219,13 +1519,23 @@ Solution:
 **Why wrong**: Max 10 agents per message. Exceeding this causes failures.
 **Do instead**: Batch Wave 0 agents in groups of 10. Wait for each batch before sending the next.
 
-### AP-9: "Acceptable" as a Review Disposition
+### AP-9: Skipping Wave 3
+**What it looks like**: "Wave 1+2 consensus is strong enough, no need for adversarial review."
+**Why wrong**: Consensus without challenge is groupthink. Wave 3 catches over-classified findings, false positives, and user-impact blind spots that reinforcing waves miss.
+**Do instead**: Always run Wave 3. Adversarial challenge improves signal-to-noise ratio.
+
+### AP-10: Wave 3 Agents Agreeing With Everything
+**What it looks like**: Wave 3 agents return "AGREE" on every finding without genuine challenge.
+**Why wrong**: The purpose of Wave 3 is adversarial pressure-testing. Universal agreement means the agents are not doing their job.
+**Do instead**: If Wave 3 returns >90% AGREE, note this in the report as "Wave 3 did not provide meaningful challenge — findings may benefit from human review."
+
+### AP-11: "Acceptable" as a Review Disposition
 **What it looks like**: "This is a real issue but acceptable for now" / "valid but deferred" / "conservative, not a bug"
 **Why wrong**: "Acceptable" acknowledges a problem while avoiding the cost of addressing it. Creates the illusion of thoroughness without substance.
 **Do instead**: FIX NOW, FIX IN FOLLOW-UP (with tracked artifact), or NOT AN ISSUE (with evidence). No middle ground.
 *Graduated from /do SKILL.md — incident: Kafka PR shipped double-backoff classified as "conservative, not a bug"*
 
-### AP-10: Deferred Findings Without Tracking Artifacts
+### AP-12: Deferred Findings Without Tracking Artifacts
 **What it looks like**: "We'll address this in a follow-up" with no issue, TODO, or learning.db entry created.
 **Why wrong**: "Follow-up" without a tracking artifact is a polite way of saying "never."
 **Do instead**: Create a tracking artifact (GitHub issue, `TODO(follow-up):` in code, learning.db entry) before marking any finding as deferred.
@@ -1237,7 +1547,7 @@ Solution:
 
 | Rationalization | Why It's Wrong | Required Action |
 |-----------------|----------------|-----------------|
-| "Small PR, skip comprehensive" | Small PRs hide big bugs | Run all 3 waves |
+| "Small PR, skip comprehensive" | Small PRs hide big bugs | Run all 4 waves |
 | "Tests pass, no review needed" | Tests don't catch all issues | Tests are necessary but not sufficient |
 | "Just a style fix" | Style issues compound into tech debt | Fix every finding |
 | "Fix phase takes too long" | Finding bugs in prod takes longer | Fix now or fix later at 10x cost |
@@ -1249,6 +1559,9 @@ Solution:
 | "Wave 1 is enough" | Wave 2 finds performance, concurrency, naming issues Wave 1 misses | Run all waves |
 | "Wave 0 is slow, skip it" | Per-package context catches issues cross-cutting agents miss | Run Wave 0 unless explicitly skipped |
 | "Too many packages, batch overhead" | Batching costs tokens, not accuracy | Batch all packages, even if it takes 3+ batches |
+| "Wave 3 is overkill" | Adversarial review catches groupthink and false positives | Run Wave 3 — it improves signal-to-noise |
+| "All waves agree, no need for Wave 3" | Agreement without challenge is untested consensus | Wave 3 validates consensus — agreement AFTER challenge is meaningful |
+| "Wave 3 challenges mean findings are wrong" | Challenges are data, not verdicts | Present both sides — let humans decide on CONTESTED findings |
 
 ---
 
@@ -1275,6 +1588,7 @@ This skill uses these shared patterns:
 - `reviewer-language-specialist` — Modern stdlib, idioms, LLM tells
 - `reviewer-docs-validator` — README, CLAUDE.md, deps, CI
 - `reviewer-adr-compliance` — ADR compliance, decision mapping, scope creep
+- `reviewer-newcomer` — Fresh-eyes perspective, documentation gaps, onboarding friction
 
 **Wave 2 Agents:**
 - `reviewer-performance` — Hot paths, N+1, allocations, caching
@@ -1287,6 +1601,13 @@ This skill uses these shared patterns:
 - `reviewer-observability` — Metrics, logging, traces, health checks
 - `reviewer-config-safety` — Hardcoded values, env vars, secrets
 - `reviewer-migration-safety` — Reversible migrations, deprecation paths
+
+**Wave 3 Agents (Adversarial):**
+- `reviewer-contrarian` — Challenges findings, identifies false positives and over-classification
+- `reviewer-skeptical-senior` — Experience-based skepticism, theoretical vs real-world risks
+- `reviewer-user-advocate` — User impact assessment, UX tradeoffs, backward compatibility
+- `reviewer-meta-process` — Process review, PR splitting, approach validation
+- `reviewer-sapcc-structural` — (conditional) SAP Commerce Cloud structural integrity
 
 **Related Skills:**
 - `parallel-code-review` — 3-agent subset (security, business, arch) without fix
