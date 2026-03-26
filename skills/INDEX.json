@@ -507,6 +507,32 @@
       "version": "2.0.0",
       "pairs_with": []
     },
+    "frontend-slides": {
+      "file": "skills/frontend-slides/SKILL.md",
+      "description": "Browser-based HTML presentation generation with viewport-fit enforcement, curated style presets, and deterministic overflow validation. Three paths: new build, PPTX-to-HTML conversion, or HTML deck enhancement.",
+      "triggers": [
+        "HTML slides",
+        "browser presentation",
+        "web deck",
+        "reveal-style",
+        "viewport presentation",
+        "convert PPTX to web",
+        "convert PPTX to HTML",
+        "slides for a browser",
+        "kiosk presentation",
+        "interactive presentation keyboard",
+        "projector browser"
+      ],
+      "category": "frontend",
+      "user_invocable": true,
+      "version": "1.0.0",
+      "agent": "typescript-frontend-engineer",
+      "model": "sonnet",
+      "pairs_with": [
+        "typescript-frontend-engineer",
+        "pptx-generator"
+      ]
+    },
     "forensics": {
       "file": "skills/forensics/SKILL.md",
       "description": "Post-mortem diagnostic analysis of failed or stuck workflows.",

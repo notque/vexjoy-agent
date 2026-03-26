@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<!--
+  overflow-fixture.html — Test fixture for validate-slides.py
+
+  Purpose:
+    Verify that validate-slides.py correctly detects overflow on .slide elements.
+    This file contains two slides:
+      Slide 0 (id="slide-pass"): fits in the viewport — scrollHeight == clientHeight
+      Slide 1 (id="slide-overflow"): forced overflow via 2000px inner div — scrollHeight > clientHeight
+
+  Expected validate-slides.py result:
+    Exit code 1 (overflow detected)
+    Report must name slide index 1 at every breakpoint where overflow occurs.
+
+  Do NOT use this file as a template for real decks — it intentionally violates
+  the viewport-fit constraint for testing purposes.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Overflow Detection Fixture</title>
+  <style>
+    /* === MANDATORY BASE — copy verbatim, theme on top === */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .deck {
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      scroll-snap-type: x mandatory;
+      display: flex;
+    }
+
+    .slide {
+      flex: 0 0 100%;
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      scroll-snap-align: start;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: clamp(1.5rem, 5vw, 4rem);
+      padding-top: max(clamp(1.5rem, 5vw, 4rem), env(safe-area-inset-top, 0px));
+      padding-bottom: max(clamp(1.5rem, 5vw, 4rem), env(safe-area-inset-bottom, 0px));
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+    /* === END MANDATORY BASE === */
+
+    /* Slide 0: correct — no overflow */
+    #slide-pass {
+      background: #1a1a2e;
+      color: #e0e0e0;
+    }
+
+    #slide-pass h1 {
+      font-family: system-ui, sans-serif;
+      font-size: clamp(1.5rem, 4vw, 3rem);
+      color: #00d4aa;
+    }
+
+    #slide-pass p {
+      font-family: system-ui, sans-serif;
+      font-size: clamp(0.9rem, 2vw, 1.2rem);
+      margin-top: 1rem;
+      max-width: 60ch;
+      text-align: center;
+    }
+
+    /* Slide 1: intentional overflow — inner content is 2000px tall */
+    #slide-overflow {
+      background: #2d1b1b;
+      color: #ffcccc;
+      /* Intentionally omit overflow: hidden on the slide itself to expose content.
+         The overflow:hidden on .slide is what normally prevents this.
+         We test the case where an author forgets the overflow rule. */
+      overflow: visible; /* INTENTIONAL VIOLATION — for testing only */
+    }
+
+    #slide-overflow h1 {
+      font-family: system-ui, sans-serif;
+      font-size: clamp(1.5rem, 4vw, 3rem);
+      color: #ff6b6b;
+    }
+
+    .overflow-content {
+      /* This block is 2000px tall — guarantees scrollHeight > clientHeight
+         at every viewport size tested by validate-slides.py */
+      height: 2000px;
+      width: 100%;
+      background: repeating-linear-gradient(
+        0deg,
+        #3d1f1f 0px,
+        #3d1f1f 20px,
+        #2d1b1b 20px,
+        #2d1b1b 40px
+      );
+      display: flex;
+      align-items: flex-start;
+      padding: 1rem;
+    }
+
+    .overflow-content p {
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      color: #ff9999;
+    }
+  </style>
+</head>
+<body>
+  <div class="deck">
+
+    <!-- Slide 0: passes overflow check — content fits within 100dvh -->
+    <section class="slide" id="slide-pass">
+      <h1>Slide 0: Viewport-Fit Pass</h1>
+      <p>
+        This slide correctly uses <code>height: 100dvh; overflow: hidden</code>.
+        The validation script should report no overflow here at any breakpoint.
+      </p>
+    </section>
+
+    <!-- Slide 1: intentionally overflows — used to verify detection logic -->
+    <section class="slide" id="slide-overflow">
+      <h1>Slide 1: Intentional Overflow</h1>
+      <div class="overflow-content">
+        <p>
+          FIXTURE: This inner div is 2000px tall.<br>
+          overflow: visible is set on the parent .slide.<br>
+          scrollHeight will exceed clientHeight at every breakpoint.<br>
+          validate-slides.py must report this slide as overflowing.<br>
+          Expected exit code: 1<br>
+          If validate-slides.py exits 0 on this file, the detection logic is broken.
+        </p>
+      </div>
+    </section>
+
+  </div>
+</body>
+</html>
