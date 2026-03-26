@@ -46,8 +46,8 @@ STATE_FILE = Path.home() / ".claude" / "mcp-health-cache.json"
 DEFAULT_HEALTH_TTL_MS = 2 * 60 * 1000  # 2 minutes
 
 # Backoff configuration
-BACKOFF_BASE_MS = 30 * 1000          # 30 seconds base
-BACKOFF_CAP_MS = 10 * 60 * 1000     # 10 minutes maximum
+BACKOFF_BASE_MS = 30 * 1000  # 30 seconds base
+BACKOFF_CAP_MS = 10 * 60 * 1000  # 10 minutes maximum
 
 # Probe timeout (ms)
 PROBE_TIMEOUT_S = 5
@@ -216,7 +216,7 @@ def extract_server_name(tool_name: str) -> str | None:
     if not tool_name.startswith(MCP_TOOL_PREFIX):
         return None
     # Strip leading "mcp__" and take the first segment
-    rest = tool_name[len(MCP_TOOL_PREFIX):]
+    rest = tool_name[len(MCP_TOOL_PREFIX) :]
     parts = rest.split("__", 1)
     if not parts or not parts[0]:
         return None
@@ -245,7 +245,7 @@ def _probe_http(url: str) -> tuple[bool, str]:
         if e.code == 405:
             return True, f"HTTP 405 (alive)"
         return False, f"HTTP error {e.code}"
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         return False, str(e)
 
 
@@ -279,7 +279,7 @@ def _probe_command(cmd: str) -> tuple[bool, str]:
                 proc.kill()
                 proc.wait()
             return True, "command accepted stdio (timeout=healthy)"
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         return False, str(e)
 
 
@@ -323,9 +323,7 @@ def _attempt_reconnect(server: str) -> bool:
     Returns True if reconnect command exited 0.
     """
     server_upper = server.upper().replace("-", "_")
-    cmd = os.environ.get(f"MCP_HEALTH_RECONNECT_{server_upper}") or os.environ.get(
-        "MCP_HEALTH_RECONNECT_COMMAND"
-    )
+    cmd = os.environ.get(f"MCP_HEALTH_RECONNECT_{server_upper}") or os.environ.get("MCP_HEALTH_RECONNECT_COMMAND")
     if not cmd:
         return False
     try:
@@ -336,7 +334,7 @@ def _attempt_reconnect(server: str) -> bool:
             capture_output=True,
         )
         return result.returncode == 0
-    except Exception:  # noqa: BLE001
+    except Exception:
         return False
 
 
@@ -417,10 +415,7 @@ def handle_pretool(event: dict) -> None:
         retry_in_s = BACKOFF_BASE_MS * (2 ** (failure_count - 1)) // 1000
         retry_in_s = min(retry_in_s, BACKOFF_CAP_MS // 1000)
 
-        msg = (
-            f"[mcp-health-check] MCP server '{server}' probe failed: {probe_msg} "
-            f"(backoff={retry_in_s}s)"
-        )
+        msg = f"[mcp-health-check] MCP server '{server}' probe failed: {probe_msg} (backoff={retry_in_s}s)"
         if fail_open:
             print(f"[mcp-health-check] WARNING (fail-open): {msg}", file=sys.stderr)
             return  # exit 0

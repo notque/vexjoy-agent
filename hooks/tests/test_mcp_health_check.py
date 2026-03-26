@@ -414,7 +414,7 @@ class TestHandlePreTool:
         with patch.object(mod, "STATE_FILE", state_file):
             try:
                 handle_pretool(event)
-                assert False, "Should have raised SystemExit(2)"
+                raise AssertionError("Should have raised SystemExit(2)")
             except SystemExit as e:
                 assert e.code == 2
 
@@ -485,7 +485,7 @@ class TestHandlePreTool:
         ):
             try:
                 handle_pretool(event)
-                assert False, "Should have raised SystemExit(2)"
+                raise AssertionError("Should have raised SystemExit(2)")
             except SystemExit as e:
                 assert e.code == 2
 
