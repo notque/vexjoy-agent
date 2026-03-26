@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # hook-version: 1.0.0
 """
-PreToolUse Hook: Config Protection (ADR-100)
+PreToolUse Hook: Config Protection (ADR-115)
 
 Blocks Write/Edit/MultiEdit calls that target linter and formatter config files.
 Claude tends to weaken linter rules rather than fixing the underlying source code.
