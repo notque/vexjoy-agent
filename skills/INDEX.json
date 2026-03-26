@@ -204,6 +204,29 @@
       "user_invocable": false,
       "version": "2.0.0"
     },
+    "content-engine": {
+      "file": "skills/content-engine/SKILL.md",
+      "description": "Repurpose a source asset into platform-native social content variants for X, LinkedIn, TikTok, YouTube, and newsletter. Produces content_ideas.md and content_drafts.md with a quality gate before delivery.",
+      "triggers": [
+        "repurpose this",
+        "adapt for social",
+        "turn this into posts",
+        "content from article",
+        "content from demo",
+        "write variants for",
+        "social content from",
+        "platform variants",
+        "repurpose for"
+      ],
+      "category": "content",
+      "user_invocable": true,
+      "version": "1.0.0",
+      "pairs_with": [
+        "x-api",
+        "crosspost"
+      ],
+      "disambiguate": "voice-writer"
+    },
     "create-voice": {
       "file": "skills/create-voice/SKILL.md",
       "description": "Create a new voice profile from writing samples.",
