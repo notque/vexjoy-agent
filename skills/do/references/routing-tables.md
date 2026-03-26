@@ -97,6 +97,8 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **socratic-debugging** | User wants to be guided to find the root cause themselves through questions rather than being given the answer directly: coaching mode, "teach me to find it". |
 | **plant-seed** | User wants to capture a forward-looking idea with trigger conditions so it surfaces automatically during future feature design. |
 | **install** | User wants to verify Claude Code Toolkit installation, diagnose setup issues, or check if the toolkit is correctly configured. |
+| **systematic-debugging** | User wants to diagnose why something is broken or not working as expected — root cause analysis, reproduce-isolate-identify-verify. Common phrasings: "why is this broken", "what's wrong with", "figure out why", "can't figure out", "not working", "slow", "performance", "taking too long", "optimize". NOT: debugging a past session (use forensics), guided self-discovery (use socratic-debugging). |
+| **systematic-refactoring** | User wants to improve existing code structure without changing behavior — extract, rename, simplify, restructure. Common phrasings: "clean this up", "improve this code", "make this better", "code quality". NOT: adding new features (use a domain agent), fixing a bug (use systematic-debugging). |
 
 ---
 
@@ -128,7 +130,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **retro** | User wants to interact with the learning system: view stats, list accumulated knowledge, search learnings, or graduate mature entries into agents/skills. |
 | **generate-claudemd** | User wants to generate a project-specific CLAUDE.md by analyzing the current repository's structure and conventions. |
 | **professional-communication** | User needs to write a professional email or formal business communication. |
-| **workflow-help** | User wants an explanation of how a workflow, pipeline, or process works. |
+| **workflow-help** | User wants an explanation of how a workflow, pipeline, or process works. Also when user is lost or stuck: "help", "I'm stuck", "what should I do", "I don't know how", "where do I start". |
 
 ---
 
@@ -137,8 +139,8 @@ Route to these agents based on the user's task domain. Each entry describes what
 | Skill | When to Route Here |
 |-------|-------------------|
 | **pr-pipeline** | User wants the full structured PR workflow: stage, review, commit, push, create PR, verify. Use when the user wants the complete pipeline with all gates. |
-| **pr-sync (FORCE)** | User wants to get local code changes onto GitHub — pushing a branch, creating a PR, or syncing local commits to the remote. NOT: "push back" (disagree with a decision), "push the boundaries" (explore limits), "push back on this" (resistance), "push my luck" (risk-taking). The intent must be about git/GitHub synchronization. |
-| **git-commit-flow (FORCE)** | User wants to stage files and create a git commit from local changes. NOT: "commit to this approach" (deciding), "commit to the team" (dedication), "I'm committed to finishing" (resolve). The intent must be about creating a git commit object. |
+| **pr-sync (FORCE)** | User wants to get local code changes onto GitHub — pushing a branch, creating a PR, or syncing local commits to the remote. Common phrasings: "open a pull request", "create a PR", "make a PR", "submit PR", "push and PR". NOT: "push back" (disagree with a decision), "push the boundaries" (explore limits), "push back on this" (resistance), "push my luck" (risk-taking). The intent must be about git/GitHub synchronization. |
+| **git-commit-flow (FORCE)** | User wants to stage files and create a git commit from local changes. Common phrasings: "save my work", "commit this", "save progress", "checkpoint", "commit these changes". NOT: "commit to this approach" (deciding), "commit to the team" (dedication), "I'm committed to finishing" (resolve). The intent must be about creating a git commit object. |
 | **github-actions-check (FORCE)** | User wants to know if CI passed or check GitHub Actions run status. NOT: "check this code" (review), "check my logic" (analysis), "double-check this" (verify), "check the docs" (read documentation). The intent must be about CI/CD pipeline status. |
 | **pr-cleanup** | User wants to delete merged branches or clean up stale PRs after merging. |
 | **pr-fix** | User wants to address specific PR review comments left by human reviewers. |
@@ -238,7 +240,7 @@ All pipelines live in the `pipelines/` directory (synced to `~/.claude/skills/` 
 | **article-evaluation-pipeline** | User wants to evaluate whether an article sounds authentic or has AI patterns. | FETCH → VALIDATE → ANALYZE → REPORT |
 | **mcp-pipeline-builder** (mcp-local-docs-engineer) | User wants to turn a repository into an MCP documentation server. | ANALYZE → DESIGN → GENERATE → VALIDATE → EVALUATE → REGISTER |
 | **voice-writer** | User wants to write content in a specific voice with multi-step generation and validation. | LOAD → GROUND → GENERATE → VALIDATE → REFINE → JOY-CHECK → OUTPUT → CLEANUP |
-| **comprehensive-review** | User wants a thorough review from multiple reviewer waves simultaneously. | WAVE-0 → WAVE-1 → WAVE-2 → AGGREGATE → FIX |
+| **comprehensive-review** | User wants a thorough review from multiple reviewer waves simultaneously. Common phrasings: "review this", "look at this code", "check this". | WAVE-0 → WAVE-1 → WAVE-2 → AGGREGATE → FIX |
 | **do-perspectives** | User wants multi-lens analysis of a problem from 10 different perspectives. | VALIDATE → ANALYZE → SYNTHESIZE → APPLY → VERIFY |
 | **github-profile-rules** (github-profile-rules-engineer) | User wants to extract programming rules or coding conventions from a GitHub user's repositories. | ADR → FETCH → RESEARCH → SAMPLE → COMPILE → GENERATE → VALIDATE → OUTPUT |
 | **voice-calibrator** | User wants to calibrate or refine a voice profile from samples. | VOICE-GROUNDING → VOICE-METRICS → THINKING-PATTERNS → VALIDATION |
@@ -387,3 +389,17 @@ Invoked via the roast skill or directly:
 | "work on sapcc Go code" | **go-sapcc-conventions (FORCE)** | SAPCC repo — auto-detected by hook |
 | "moderate reddit" | reddit-moderate | Reddit moderation |
 | "check my modqueue" | reddit-moderate | Reddit moderation |
+| "open a pull request" | **pr-sync (FORCE)** | Intent: create a PR on GitHub |
+| "make a PR" | **pr-sync (FORCE)** | Intent: create a PR on GitHub |
+| "save my work" | **git-commit-flow (FORCE)** | Intent: commit current changes |
+| "checkpoint" | **git-commit-flow (FORCE)** | Intent: save progress as a commit |
+| "I'm stuck" | workflow-help | User is lost — guide them |
+| "where do I start" | workflow-help | User needs orientation |
+| "why is this broken" | systematic-debugging | Diagnosis request — root cause analysis |
+| "figure out why" | systematic-debugging | Diagnosis request — root cause analysis |
+| "it's slow" | systematic-debugging | Performance issue — diagnosis needed |
+| "clean this up" | systematic-refactoring | Code improvement — refactoring |
+| "make this better" | systematic-refactoring | Code quality improvement |
+| "review this" | comprehensive-review | Multi-wave code review |
+| "look at this code" | comprehensive-review | Code review request |
+| "debug the goroutine leak" | golang-general-engineer + systematic-debugging | Go domain + diagnosis |

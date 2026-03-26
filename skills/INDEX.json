@@ -667,7 +667,11 @@
       "triggers": [
         "commit",
         "stage and commit",
-        "commit changes"
+        "commit changes",
+        "save my work",
+        "commit this",
+        "save progress",
+        "checkpoint"
       ],
       "category": "git-workflow",
       "force_route": true,
@@ -1416,7 +1420,11 @@
         "push",
         "push changes",
         "create PR",
-        "sync to GitHub"
+        "sync to GitHub",
+        "open a pull request",
+        "make a PR",
+        "submit PR",
+        "push and PR"
       ],
       "category": "git-workflow",
       "force_route": true,
