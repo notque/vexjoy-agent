@@ -78,6 +78,12 @@
             "command": "python3 \"$HOME/.claude/hooks/pipeline-context-detector.py\"",
             "description": "Detect pipeline creation requests and inject pipeline context",
             "timeout": 2000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/user-correction-capture.py\"",
+            "description": "Detect user corrections and record to learning DB",
+            "timeout": 3000
           }
         ]
       }
@@ -132,6 +138,18 @@
             "command": "python3 \"$HOME/.claude/hooks/pretool-subagent-warmstart.py\"",
             "description": "Inject parent session context into subagent prompts (ADR-088)",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/pretool-file-backup.py\"",
+            "description": "Backup files before Edit tool modifies them",
+            "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/ci-merge-gate.py\"",
+            "description": "Gate: block merge to main/master when CI checks are red",
+            "timeout": 3000
           }
         ]
       }
@@ -185,6 +203,24 @@
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/posttool-session-reads.py\"",
             "description": "Track files read this session for subagent warmstart (ADR-088)"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/posttool-security-scan.py\"",
+            "description": "Advisory scan for credentials and SQL injection in Write/Edit output",
+            "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/usage-tracker.py\"",
+            "description": "Record Skill and Agent invocation analytics",
+            "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/review-capture.py\"",
+            "description": "Capture CRITICAL/HIGH review findings to learning DB",
+            "timeout": 3000
           }
         ]
       }
@@ -236,6 +272,12 @@
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/confidence-decay.py\"",
             "description": "Decay stale learnings and prune dead entries",
+            "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/session-learning-recorder.py\"",
+            "description": "Record session learnings and warn on zero-learning sessions",
             "timeout": 3000
           }
         ]
