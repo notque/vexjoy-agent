@@ -63,23 +63,33 @@ class HookOutput:
     user_message: Optional[str] = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
+    # Events that support hookSpecificOutput per Claude Code's schema.
+    # All other events must emit top-level fields or an empty object.
+    _HOOK_SPECIFIC_OUTPUT_EVENTS = frozenset({"PreToolUse", "UserPromptSubmit", "PostToolUse"})
+
     def to_json(self) -> str:
-        """Convert to JSON string for hook output."""
-        output: dict[str, Any] = {
-            "hookSpecificOutput": {
-                "hookEventName": self.event_name,
-            }
-        }
+        """Convert to JSON string for hook output.
 
-        if self.user_message:
-            output["hookSpecificOutput"]["userMessage"] = self.user_message
+        Only PreToolUse, UserPromptSubmit, and PostToolUse support the
+        ``hookSpecificOutput`` wrapper.  All other events must emit
+        top-level fields or ``{}`` — wrapping them causes a JSON
+        validation error in Claude Code.
+        """
+        if self.event_name in self._HOOK_SPECIFIC_OUTPUT_EVENTS:
+            inner: dict[str, Any] = {"hookEventName": self.event_name}
 
-        if self.additional_context:
-            output["hookSpecificOutput"]["additionalContext"] = self.additional_context
+            if self.user_message:
+                inner["userMessage"] = self.user_message
 
-        # Add any extra metadata
-        output["hookSpecificOutput"].update(self.metadata)
+            if self.additional_context:
+                inner["additionalContext"] = self.additional_context
 
+            inner.update(self.metadata)
+            return json.dumps({"hookSpecificOutput": inner})
+
+        # Non-supported events: emit top-level fields or empty object.
+        output: dict[str, Any] = {}
+        output.update(self.metadata)
         return json.dumps(output)
 
     def print_and_exit(self, exit_code: int = 0) -> None:
