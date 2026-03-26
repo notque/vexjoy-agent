@@ -7,6 +7,7 @@ description: |
   "save work", "create commit", or internal skill invocation from PR
   workflows. Do NOT use for merge commits, rebases, amends, cherry-picks,
   or emergency rollbacks requiring raw git speed.
+effort: low
 version: 2.0.0
 user-invocable: false
 allowed-tools:

@@ -8,6 +8,7 @@ description: |
   "help me understand", or "show me the process". Do NOT use for actually
   executing workflows (use workflow-orchestrator) or debugging (use
   systematic-debugging).
+effort: low
 version: 2.0.0
 user-invocable: true
 argument-hint: "[<topic>]"

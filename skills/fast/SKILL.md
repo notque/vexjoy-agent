@@ -7,6 +7,7 @@ description: |
   this variable", "update this value", "fix this import". Do NOT use for tasks
   requiring research, planning, new dependencies, or more than 3 file edits —
   redirect to /quick instead.
+effort: low
 version: 1.0.0
 user-invocable: false
 argument-hint: "<fix description>"

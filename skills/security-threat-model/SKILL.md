@@ -10,6 +10,7 @@ description: |
   review, or running a point-in-time supply-chain audit.
   Triggers: threat model, security audit, supply chain scan, deny list,
   learning db sanitize, security posture, injection scan, surface scan.
+effort: high
 version: 1.0.0
 user-invocable: false
 model: opus

@@ -18,6 +18,7 @@ description: |
   Use for "comprehensive review", "full review", "review everything", "review
   and fix", or "thorough code review".
   Do NOT use for single-concern reviews (use individual agents instead).
+effort: high
 version: 4.0.0
 user-invocable: false
 command: /comprehensive-review
