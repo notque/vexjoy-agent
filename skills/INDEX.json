@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-03-24T22:20:54Z",
+  "generated": "2026-03-25T23:05:47Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -616,6 +616,22 @@
       "user_invocable": false,
       "version": "2.0.0"
     },
+    "github-notification-triage": {
+      "file": "skills/github-notification-triage/SKILL.md",
+      "description": "Triage GitHub notifications \u2014 report actions needed, clear noise.",
+      "triggers": [
+        "github notifications",
+        "triage notifications",
+        "check notifications",
+        "notification cleanup",
+        "github inbox"
+      ],
+      "category": "github",
+      "user_invocable": true,
+      "version": "1.0.0",
+      "pairs_with": [],
+      "model": "sonnet"
+    },
     "go-anti-patterns": {
       "file": "skills/go-anti-patterns/SKILL.md",
       "description": "Detect and remediate Go anti-patterns: premature interface abstraction, goroutine overkill, context soup, error wrapping mistakes, generic abuse, c...",
@@ -903,21 +919,23 @@
     },
     "nano-banana-builder": {
       "file": "skills/nano-banana-builder/SKILL.md",
-      "description": "Build Next.js web applications with Google Gemini Nano Banana image generation APIs (gemini-2.5-flash-image, gemini-3-pro-image-preview).",
+      "description": "Generate and post-process images using Google Gemini Nano Banana APIs via deterministic Python scripts.",
       "triggers": [
         "nano banana",
         "gemini image generation",
         "AI image generator",
-        "image generation app",
+        "generate image",
         "gemini-2.5-flash-image",
         "gemini-3-pro-image-preview",
-        "web image generator"
+        "batch image generation",
+        "image post-processing",
+        "sprite generation",
+        "generate card art"
       ],
       "user_invocable": false,
-      "version": "2.0.0",
+      "version": "3.0.0",
       "pairs_with": [
-        "typescript-frontend-engineer",
-        "nodejs-api-engineer",
+        "python-general-engineer",
         "universal-quality-gate"
       ]
     },
