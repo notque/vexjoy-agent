@@ -2,6 +2,24 @@
 
 The principles behind the toolkit's architecture. These aren't aspirational. They're the decisions that shaped every agent, skill, hook, and pipeline in the system.
 
+## Zero-Expertise Operation
+
+The system should require no specialized knowledge from the user. Say what you want done. The system handles the rest.
+
+A user who has never heard of agents, skills, hooks, pipelines, routing tables, or INDEX files should get the same quality output as someone who built them. The entire internal machinery — 69 agents, 136 skills, 50 hooks, 27 pipelines — exists to absorb complexity that would otherwise fall on the user.
+
+**What this means in practice:**
+
+- The user says "fix this bug." The system classifies it, selects a debugging agent, applies a systematic methodology, creates a branch, runs tests, reviews the fix, and presents a PR. The user never chooses an agent or invokes a skill by name.
+- The user says "review this PR." The system dispatches 20+ reviewers across 3 waves covering security, business logic, architecture, performance, naming, error handling, and test coverage. The user never configures which reviewers to run.
+- The user says "write a blog post about X." The system researches, drafts in a calibrated voice, validates against voice patterns, and presents the result. The user never loads a voice profile or runs a validation script.
+
+**The test for every feature we build:** does this require the user to know something internal? If yes, redesign it so it doesn't.
+
+This is not about hiding complexity. It's about absorbing it. The hooks, agents, and skills exist precisely so that expertise is encoded in the system rather than required from the person using it. A first-time user and a power user should both get production-quality results — the power user just understands *why* it works.
+
+**Automation corollary:** anything that can fire automatically, should. Gates enforce themselves via hooks. Context injects itself via SessionStart and UserPromptSubmit handlers. Quality checks run via CI. Learning happens via PostToolUse capture. The user's job is to describe intent. The system's job is everything else.
+
 ## Everything That Can Be Deterministic, Should Be
 
 The foundational principle. LLMs should orchestrate deterministic programs, not simulate them.
