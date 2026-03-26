@@ -241,6 +241,7 @@ def run_eval(
                 "trigger_rate": trigger_rate,
                 "triggers": sum(triggers),
                 "runs": len(triggers),
+                "run_vector": triggers,
                 "pass": did_pass,
             }
         )
