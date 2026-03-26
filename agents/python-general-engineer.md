@@ -244,6 +244,11 @@ Common Python errors and solutions. See [references/python-errors.md](references
 
 Common Python mistakes. See [references/python-anti-patterns.md](references/python-anti-patterns.md) for full catalog.
 
+### ❌ System Python/pip Mismatch
+**What it looks like**: Running `pip3 install` without a virtual environment, hitting version mismatches between Python and pip
+**Why wrong**: System pip may resolve to a different Python version (e.g., Python 3.14 but pip from 3.9), causing install failures or packages installed to wrong site-packages
+**✅ Do instead**: Always use pyenv + virtual environments. Create venv first: `python -m venv .venv && source .venv/bin/activate`. Never install packages with system pip.
+
 ### ❌ Over-Engineering with ABCs
 **What it looks like**: Creating abstract base classes before you have multiple implementations
 **Why wrong**: Adds complexity without proven benefit, makes code harder to navigate, violates YAGNI
