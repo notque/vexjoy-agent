@@ -9,7 +9,7 @@ description: |
   "bootstrap claude.md", "make claude.md". Do NOT use for improving an existing
   CLAUDE.md (use claude-md-improver instead).
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 command: /generate-claudemd
 allowed-tools:
   - Read

@@ -10,7 +10,7 @@ description: |
   Do NOT use for audio-only tasks (no video track), static image generation,
   or live streaming configuration.
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 agent: python-general-engineer
 model: sonnet
 allowed-tools:

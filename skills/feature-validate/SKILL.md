@@ -6,7 +6,7 @@ description: |
   feature", "run quality gates", "check feature", or "/feature-validate".
   Do NOT use for ad-hoc linting or debugging.
 version: 2.0.0
-user-invocable: true
+user-invocable: false
 command: /feature-validate
 allowed-tools:
   - Read

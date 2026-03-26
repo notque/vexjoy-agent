@@ -9,7 +9,7 @@ description: |
   skill", "eval skill", or "skill quality". Do NOT use for creating new skills
   (use skill-creator-engineer).
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 argument-hint: "<skill-name>"
 agent: skill-creator-engineer
 allowed-tools:

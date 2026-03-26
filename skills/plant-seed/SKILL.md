@@ -7,7 +7,7 @@ description: |
   for when", "seed", or "/plant-seed". Do NOT use for TODOs, immediate tasks,
   bug reports, or work that should happen in the current session.
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 argument-hint: "<idea description>"
 command: /plant-seed
 allowed-tools:

@@ -7,7 +7,7 @@ description: |
   "pr status", "what's the status", "is my PR ready", "check CI". Do NOT use
   for creating PRs, pushing changes, or fixing review comments.
 version: 2.0.0
-user-invocable: true
+user-invocable: false
 allowed-tools:
   - Bash
   - Read

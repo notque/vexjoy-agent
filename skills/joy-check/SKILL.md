@@ -10,7 +10,7 @@ description: |
   voice-validator), AI pattern detection (use anti-ai-editor), or grammar
   and style editing.
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 argument-hint: "[--fix] [--strict] <file>"
 command: /joy-check
 allowed-tools:

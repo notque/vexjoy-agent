@@ -10,7 +10,7 @@ description: |
   trivial lookups, documentation-only edits, or simple typo fixes where
   full gate enforcement would be disproportionate overhead.
 version: 2.0.0
-user-invocable: true
+user-invocable: false
 argument-hint: "<task>"
 allowed-tools:
   - Read

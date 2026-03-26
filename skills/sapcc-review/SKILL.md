@@ -9,7 +9,7 @@ description: |
   corrections on a worktree branch. This is the definitive "would this code
   pass lead review?" assessment.
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 argument-hint: "[--fix]"
 command: /sapcc-review
 model: opus

@@ -9,7 +9,7 @@ description: |
   embedding. Use for "upgrade agents", "system upgrade", "claude update",
   "upgrade skills", "adapt workflow", "apply claude update", "system health".
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 agent: system-upgrade-engineer
 allowed-tools:
   - Read

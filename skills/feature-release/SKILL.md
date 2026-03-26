@@ -6,7 +6,7 @@ description: |
   feature", "ship it", or "/feature-release". Do NOT use without passing
   validation or for hotfixes that skip the pipeline.
 version: 2.0.0
-user-invocable: true
+user-invocable: false
 command: /feature-release
 allowed-tools:
   - Read

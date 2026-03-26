@@ -7,7 +7,7 @@ description: |
   Use when creating new hooks or upgrading existing ones. Use for
   "create hook pipeline", "new hook formal", "hook with gates".
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 agent: hook-development-engineer
 allowed-tools:
   - Read

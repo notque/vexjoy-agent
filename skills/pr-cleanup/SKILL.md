@@ -7,7 +7,7 @@ description: |
   "delete merged branch", or "prune". Do NOT use for branch creation,
   PR review, or CI checks.
 version: 2.0.0
-user-invocable: true
+user-invocable: false
 allowed-tools:
   - Bash
   - Read

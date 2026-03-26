@@ -7,7 +7,7 @@ description: |
   Use when user says "schedule", "run every", "cron job", "run twice daily",
   "run hourly", "run daily", "run weekly", or "schedule task".
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 argument-hint: "<name> <schedule> <prompt>"
 agent: python-general-engineer
 allowed-tools:

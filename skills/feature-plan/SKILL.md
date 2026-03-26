@@ -6,7 +6,7 @@ description: |
   "plan feature", "break down design", "create tasks", or "/feature-plan".
   Do NOT use without a design doc or for simple single-task work.
 version: 2.0.0
-user-invocable: true
+user-invocable: false
 command: /feature-plan
 allowed-tools:
   - Read

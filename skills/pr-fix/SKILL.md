@@ -7,7 +7,7 @@ description: |
   "pr-fix", or "resolve feedback". Do NOT use for creating PRs, reviewing code
   without fixing, or general debugging unrelated to PR comments.
 version: 2.0.0
-user-invocable: true
+user-invocable: false
 argument-hint: "[<PR-number>]"
 allowed-tools:
   - Read

@@ -7,7 +7,7 @@ description: |
   think through", "explore approaches", or "/feature-design". Do NOT use for
   simple bug fixes or tasks that don't need design discussion.
 version: 2.0.0
-user-invocable: true
+user-invocable: false
 argument-hint: "<feature description>"
 command: /feature-design
 allowed-tools:

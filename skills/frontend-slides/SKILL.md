@@ -15,7 +15,7 @@ description: |
   (use pptx-generator instead). When the user says only "slides" or "deck"
   without a format, ask one disambiguation question before routing.
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 agent: typescript-frontend-engineer
 model: sonnet
 allowed-tools:

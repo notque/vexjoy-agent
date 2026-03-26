@@ -8,7 +8,7 @@ description: |
   docs, or code. Do NOT use for simple single-target improvements,
   parallel analysis (use /do-parallel), or tasks without source material.
 version: 2.0.0
-user-invocable: true
+user-invocable: false
 argument-hint: "<target-name> <source-path>"
 allowed-tools:
   - Read

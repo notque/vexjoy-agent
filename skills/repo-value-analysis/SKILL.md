@@ -8,7 +8,7 @@ description: |
   comparing approaches.
   Do NOT use for general codebase exploration (use explore-pipeline instead).
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 argument-hint: "<repo-url-or-path>"
 agent: research-coordinator-engineer
 model: opus

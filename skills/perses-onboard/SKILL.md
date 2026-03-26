@@ -1,6 +1,6 @@
 ---
 name: perses-onboard
-user-invocable: true
+user-invocable: false
 description: |
   First-time Perses setup pipeline: discover or deploy server, configure MCP connection,
   create initial project, add datasources, and verify connectivity. 4-phase pipeline:

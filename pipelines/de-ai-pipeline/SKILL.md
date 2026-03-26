@@ -7,7 +7,7 @@ description: |
   Use for "de-ai docs", "clean ai patterns", "fix ai writing",
   "scan and fix docs", "remove ai tells from docs".
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 argument-hint: "[<path-or-glob>]"
 allowed-tools:
   - Read

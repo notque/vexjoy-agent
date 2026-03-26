@@ -20,7 +20,7 @@ description: |
   content-calendar), scheduling or publishing posts (use x-api or
   crosspost downstream).
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 model: sonnet
 allowed-tools:
   - Read

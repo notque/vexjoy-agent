@@ -8,7 +8,7 @@ description: |
   say". Do NOT use for creating new PRs, code review of local changes, or
   general code analysis without an existing PR.
 version: 2.0.0
-user-invocable: true
+user-invocable: false
 argument-hint: "[<PR-number>]"
 allowed-tools:
   - Read

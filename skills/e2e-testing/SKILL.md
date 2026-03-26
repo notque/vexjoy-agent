@@ -10,7 +10,7 @@ description: |
   Triggered by "playwright", "E2E test", "end-to-end", "browser test",
   "page object model", "POM", "test flakiness".
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 agent: testing-automation-engineer
 model: sonnet
 allowed-tools:

@@ -7,7 +7,7 @@ description: |
   Use for "github rules", "profile analysis", "coding style extraction",
   "github conventions", or "programming rules extraction".
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 argument-hint: "<github-username>"
 agent: github-profile-rules-engineer
 model: opus

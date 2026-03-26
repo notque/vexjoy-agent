@@ -7,7 +7,7 @@ description: |
   (generate content) and crosspost (distribute to multiple platforms).
   Do NOT use for Instagram, LinkedIn, or other social platforms.
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 agent: python-general-engineer
 model: sonnet
 allowed-tools:

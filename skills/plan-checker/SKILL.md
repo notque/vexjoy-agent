@@ -9,7 +9,7 @@ description: |
   Do NOT use for plan creation (use feature-plan or workflow-orchestrator)
   or plan lifecycle management (use plan-manager).
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 command: /plan-checker
 allowed-tools:
   - Read

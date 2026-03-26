@@ -9,7 +9,7 @@ description: |
   changes, simple bug fixes, or decisions already in implementation.
 version: 1.0.0
 model: sonnet
-user-invocable: true
+user-invocable: false
 allowed-tools:
   - Read
   - Write

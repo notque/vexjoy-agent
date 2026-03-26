@@ -11,7 +11,7 @@ description: |
   voice-orchestrator), editing content (use anti-ai-editor), or
   comparing voices (use voice-calibrator compare mode).
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 argument-hint: "<voice-name> <sample-files...>"
 command: /create-voice
 allowed-tools:

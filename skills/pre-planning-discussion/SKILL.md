@@ -9,7 +9,7 @@ description: |
   mode", "what are the gray areas", "before we plan". Do NOT use for broad
   design exploration (use feature-design) or for planning itself (use feature-plan).
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 argument-hint: "[--assumptions] <topic>"
 command: /pre-planning-discussion
 allowed-tools:

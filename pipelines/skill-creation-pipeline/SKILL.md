@@ -7,7 +7,7 @@ description: |
   routing integration. Use when creating new skills for the agent system.
   Use for "create skill pipeline", "new skill formal", "skill with gates".
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 agent: skill-creator-engineer
 allowed-tools:
   - Read

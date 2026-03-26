@@ -8,7 +8,7 @@ description: |
   requiring research, planning, new dependencies, or more than 3 file edits —
   redirect to /quick instead.
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 argument-hint: "<fix description>"
 allowed-tools:
   - Read

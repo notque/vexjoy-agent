@@ -8,7 +8,7 @@ description: |
   retro knowledge graduation. Use for "upgrade agent", "improve agent",
   "agent upgrade", "fix agent quality", "align agent to template".
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 argument-hint: "<agent-or-skill-name>"
 agent: skill-creator-engineer
 allowed-tools:

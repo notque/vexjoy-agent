@@ -6,7 +6,7 @@ description: |
   plan", "start building", or "/feature-implement". Do NOT use without a plan
   or for ad-hoc coding tasks.
 version: 2.0.0
-user-invocable: true
+user-invocable: false
 command: /feature-implement
 allowed-tools:
   - Read

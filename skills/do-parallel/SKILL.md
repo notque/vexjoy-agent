@@ -8,7 +8,7 @@ description: |
   Use for "parallel analysis", "multi-perspective", or "deep extraction".
   Do NOT use for routine improvements or simple source material.
 version: 2.0.0
-user-invocable: true
+user-invocable: false
 argument-hint: "<target-name> <source-path>"
 allowed-tools:
   - Read

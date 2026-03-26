@@ -6,7 +6,7 @@ description: |
   and take mod actions (approve, remove, lock). Supports interactive, auto,
   and dry-run modes.
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 argument-hint: "[--auto] [--dry-run]"
 agent: python-general-engineer
 allowed-tools:

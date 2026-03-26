@@ -8,7 +8,7 @@ description: |
   Do NOT use for task planning (use task_plan.md), session summaries (use /retro),
   or committing work (use /commit or git directly).
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 allowed-tools:
   - Read
   - Write

@@ -11,7 +11,7 @@ description: |
   Triggers: threat model, security audit, supply chain scan, deny list,
   learning db sanitize, security posture, injection scan, surface scan.
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 model: opus
 allowed-tools:
   - Read

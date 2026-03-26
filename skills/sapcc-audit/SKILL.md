@@ -8,7 +8,7 @@ description: |
   group, each reading ALL sapcc rules. Produces code-level findings with
   actual before/after diffs. Invoked via "/sapcc-audit" or through /do.
 version: 2.0.0
-user-invocable: true
+user-invocable: false
 command: /sapcc-audit
 agent: golang-general-engineer
 allowed-tools:

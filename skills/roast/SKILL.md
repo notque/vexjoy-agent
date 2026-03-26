@@ -9,7 +9,7 @@ description: |
   (use systematic-code-review), implementation changes, or performance
   profiling without a specific critique request.
 version: 2.0.0
-user-invocable: true
+user-invocable: false
 argument-hint: "<target to critique>"
 allowed-tools:
   - Read

@@ -15,7 +15,7 @@ description: |
   and fix", or "thorough code review".
   Do NOT use for single-concern reviews (use individual agents instead).
 version: 3.2.0
-user-invocable: true
+user-invocable: false
 command: /comprehensive-review
 model: opus
 allowed-tools:

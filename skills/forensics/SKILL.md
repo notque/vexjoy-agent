@@ -11,7 +11,7 @@ description: |
   debugging code bugs (use systematic-debugging), reviewing code quality (use
   systematic-code-review), or fixing issues (forensics only diagnoses).
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 command: /forensics
 allowed-tools:
   - Read

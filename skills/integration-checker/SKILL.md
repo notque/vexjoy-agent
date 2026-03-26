@@ -8,7 +8,7 @@ description: |
   connected", "integration check", or "/integration-checker". Do NOT use
   for unit test failures, linting, or single-file correctness issues.
 version: 1.0.0
-user-invocable: true
+user-invocable: false
 command: /integration-checker
 allowed-tools:
   - Read

@@ -8,7 +8,7 @@ description: |
   this fix". Do NOT use for automatic error learning (that is the error-learner
   hook), debugging live issues, or querying existing patterns.
 version: 2.0.0
-user-invocable: true
+user-invocable: false
 argument-hint: '"error" -> "solution"'
 allowed-tools:
   - Read
