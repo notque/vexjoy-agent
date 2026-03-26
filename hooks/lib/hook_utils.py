@@ -65,15 +65,39 @@ class HookOutput:
 
     # Events that support hookSpecificOutput per Claude Code's schema.
     # All other events must emit top-level fields or an empty object.
-    _HOOK_SPECIFIC_OUTPUT_EVENTS = frozenset({"PreToolUse", "UserPromptSubmit", "PostToolUse"})
+    # Source: https://code.claude.com/docs/en/hooks (2026-03-26)
+    _HOOK_SPECIFIC_OUTPUT_EVENTS = frozenset(
+        {
+            "PreToolUse",
+            "PostToolUse",
+            "PostToolUseFailure",
+            "UserPromptSubmit",
+            "SessionStart",
+            "SubagentStart",
+            "Notification",
+            "CwdChanged",
+            "FileChanged",
+            "Elicitation",
+            "ElicitationResult",
+            "WorktreeCreate",
+            "PermissionRequest",
+        }
+    )
 
     def to_json(self) -> str:
         """Convert to JSON string for hook output.
 
-        Only PreToolUse, UserPromptSubmit, and PostToolUse support the
-        ``hookSpecificOutput`` wrapper.  All other events must emit
-        top-level fields or ``{}`` — wrapping them causes a JSON
-        validation error in Claude Code.
+        Events in ``_HOOK_SPECIFIC_OUTPUT_EVENTS`` support the
+        ``hookSpecificOutput`` wrapper (PreToolUse, PostToolUse,
+        PostToolUseFailure, UserPromptSubmit, SessionStart, SubagentStart,
+        Notification, CwdChanged, FileChanged, Elicitation,
+        ElicitationResult, WorktreeCreate, PermissionRequest).
+
+        All other events (Stop, SubagentStop, StopFailure, PreCompact,
+        PostCompact, TaskCreated, TaskCompleted, TeammateIdle, ConfigChange,
+        WorktreeRemove, SessionEnd, InstructionsLoaded) must emit top-level
+        fields or ``{}`` — wrapping them causes a JSON validation error in
+        Claude Code.
         """
         if self.event_name in self._HOOK_SPECIFIC_OUTPUT_EVENTS:
             inner: dict[str, Any] = {"hookEventName": self.event_name}
