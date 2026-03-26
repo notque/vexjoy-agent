@@ -59,10 +59,10 @@ _SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "warning": 3}
 
 _SEVERITY_LABELS = {
     "critical": "CRIT ",
-    "high":     "HIGH ",
-    "medium":   "MED  ",
-    "warning":  "WARN ",
-    None:       "     ",
+    "high": "HIGH ",
+    "medium": "MED  ",
+    "warning": "WARN ",
+    None: "     ",
 }
 
 
@@ -75,9 +75,7 @@ def _format_table(events: list[dict]) -> str:
         return "No governance events found."
 
     lines: list[str] = []
-    lines.append(
-        f"{'ID':<28}  {'SEV':<6}{'TYPE':<22}{'TOOL':<10}{'PHASE':<6}{'BLK':<5}{'RESOLVED':<12}  CREATED"
-    )
+    lines.append(f"{'ID':<28}  {'SEV':<6}{'TYPE':<22}{'TOOL':<10}{'PHASE':<6}{'BLK':<5}{'RESOLVED':<12}  CREATED")
     lines.append("-" * 110)
 
     for ev in events:
@@ -90,9 +88,7 @@ def _format_table(events: list[dict]) -> str:
         etype = (ev.get("event_type") or "")[:21]
         eid = (ev.get("id") or "")[:27]
 
-        lines.append(
-            f"{eid:<28}  {sev_label:<6}{etype:<22}{tool:<10}{phase:<6}{blocked:<5}{resolved:<12}  {created}"
-        )
+        lines.append(f"{eid:<28}  {sev_label:<6}{etype:<22}{tool:<10}{phase:<6}{blocked:<5}{resolved:<12}  {created}")
 
     unresolved = sum(1 for e in events if e.get("resolved_at") is None)
     blocked = sum(1 for e in events if e.get("blocked"))
@@ -137,8 +133,7 @@ def cmd_resolve(args: argparse.Namespace) -> int:
     resolution = args.resolution
     if resolution not in VALID_RESOLUTIONS:
         print(
-            f"error: invalid resolution '{resolution}'. "
-            f"Must be one of: {', '.join(sorted(VALID_RESOLUTIONS))}",
+            f"error: invalid resolution '{resolution}'. Must be one of: {', '.join(sorted(VALID_RESOLUTIONS))}",
             file=sys.stderr,
         )
         return 2

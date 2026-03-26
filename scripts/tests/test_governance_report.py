@@ -54,9 +54,7 @@ def test_governance_events_table_created(tmp_path: Path) -> None:
     """governance_events table should exist after init_db()."""
     ldb.init_db()
     with ldb.get_connection() as conn:
-        row = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='governance_events'"
-        ).fetchone()
+        row = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='governance_events'").fetchone()
     assert row is not None, "governance_events table was not created"
 
 
