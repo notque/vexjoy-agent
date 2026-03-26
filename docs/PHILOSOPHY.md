@@ -135,17 +135,26 @@ This separation enables consistent methodology across domains without duplicatin
 
 > Agent-specific patterns (anti-patterns, MCP tool requirements, domain conventions) belong in the agent's own markdown file, not in the router. The router selects the agent; the agent carries its own domain knowledge. This keeps the router focused and prevents it from growing into a monolithic prompt that degrades routing quality.
 
-## High-Context Agents, Not Big Agents
+## Agents Carry the Knowledge, Not the Model
 
-Agents should be rich and detailed within their domain. Comprehensive Go version-by-version guidelines, specific anti-pattern tables with detection commands, concrete error catalogs with fix instructions.
+The base LLM is a generalist. It knows a little about everything and a lot about nothing specific. An agent's job is to close that gap — not by declaring "I am an expert in X" but by carrying the actual expert knowledge as structured context.
 
-But they should NOT be big for the sake of being big.
+A thin wrapper that says "You are a Go expert" adds nothing. The model already knows generic Go. What it doesn't know is: which go-bits helpers exist in this project, that `rows.Close()` silently discards errors, that sapcc structs should be unexported when only the interface is public, that Go 1.22 introduced `range-over-int` and `slices.SortFunc` should replace `sort.Slice`. That knowledge lives in the agent file, in its reference files, and in the retro learnings injected at session start.
 
-**The difference:**
-- **High-context**: every line serves a purpose. Tables of version-specific idioms. Concrete forbidden patterns with `grep` commands to detect them. Error catalogs with exact fix instructions.
-- **Big**: verbose explanations of general concepts. Repeating what the LLM already knows. Padding to fill sections.
+**The principle:** agents and skills are knowledge transfer mechanisms. They inject domain-specific information that makes the LLM perform as if it has expertise it doesn't natively possess. The quality of output is proportional to the quality of knowledge attached to the prompt — not to the model's pre-training coverage of that domain.
 
-Progressive disclosure enforces this: main file stays navigable (under 10k words), reference files carry the deep material. The agent loads what it needs when it needs it.
+**What high-context looks like:**
+- Version-specific idiom tables ("Go 1.22+: use `slices.SortFunc`, not `sort.Slice`")
+- Concrete anti-pattern catalogs with detection commands (`grep -r "interface{}" --include="*.go"`)
+- Error → fix mappings from real incidents ("PR #707 found that...")
+- Project-specific conventions extracted from PR review history
+
+**What thin wrappers look like:**
+- "You are an expert Go developer" (adds zero information)
+- General best practices the model already knows
+- Padding to fill required sections
+
+**Progressive disclosure** enforces the balance: the main agent file stays navigable (under 10k words) with the concrete tables, anti-patterns, and decision rules. Deep reference material lives in `references/` subdirectories, loaded only when the task requires it. The agent carries exactly what's needed — no more, no less.
 
 ## Anti-Rationalization as Infrastructure
 
