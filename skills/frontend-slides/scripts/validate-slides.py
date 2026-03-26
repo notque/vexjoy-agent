@@ -25,14 +25,14 @@ from pathlib import Path
 # Format: (width, height, label)
 DEFAULT_BREAKPOINTS = [
     (1920, 1080, "1920x1080 desktop/projector"),
-    (1440, 900,  "1440x900 MacBook 15"),
-    (1280, 720,  "1280x720 HD projector"),
-    (1024, 768,  "1024x768 iPad landscape / older projector"),
-    (768,  1024, "768x1024 iPad portrait"),
-    (375,  667,  "375x667 iPhone SE"),
-    (414,  896,  "414x896 iPhone 11/XR"),
-    (667,  375,  "667x375 iPhone landscape"),
-    (896,  414,  "896x414 iPhone 11 landscape"),
+    (1440, 900, "1440x900 MacBook 15"),
+    (1280, 720, "1280x720 HD projector"),
+    (1024, 768, "1024x768 iPad landscape / older projector"),
+    (768, 1024, "768x1024 iPad portrait"),
+    (375, 667, "375x667 iPhone SE"),
+    (414, 896, "414x896 iPhone 11/XR"),
+    (667, 375, "667x375 iPhone landscape"),
+    (896, 414, "896x414 iPhone 11 landscape"),
 ]
 
 # JS snippet injected into each page to detect overflow on .slide elements.
@@ -70,7 +70,8 @@ def parse_breakpoints(spec: str) -> list[tuple[int, int, str]]:
 def check_playwright_available() -> bool:
     """Return True if playwright and its chromium browser are importable and installed."""
     try:
-        from playwright.sync_api import sync_playwright  # noqa: F401
+        from playwright.sync_api import sync_playwright
+
         return True
     except ImportError:
         return False
@@ -129,15 +130,17 @@ def run_validation(html_path: Path, breakpoints: list[tuple[int, int, str]]) -> 
 
                 for item in results:
                     if item["overflows"]:
-                        failures.append({
-                            "breakpoint": label,
-                            "width": width,
-                            "height": height,
-                            "slide_index": item["index"],
-                            "client_height": item["clientHeight"],
-                            "scroll_height": item["scrollHeight"],
-                            "overflow_px": item["scrollHeight"] - item["clientHeight"],
-                        })
+                        failures.append(
+                            {
+                                "breakpoint": label,
+                                "width": width,
+                                "height": height,
+                                "slide_index": item["index"],
+                                "client_height": item["clientHeight"],
+                                "scroll_height": item["scrollHeight"],
+                                "overflow_px": item["scrollHeight"] - item["clientHeight"],
+                            }
+                        )
 
                 context.close()
         finally:
@@ -179,8 +182,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Check HTML slide deck for viewport overflow across required breakpoints.",
         epilog=(
-            "Exit 0: all clear. Exit 1: overflow found. "
-            "Exit 2: Playwright unavailable (use manual checklist gate)."
+            "Exit 0: all clear. Exit 1: overflow found. Exit 2: Playwright unavailable (use manual checklist gate)."
         ),
     )
     parser.add_argument("html_file", help="Path to the HTML slide deck file.")
