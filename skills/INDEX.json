@@ -2065,6 +2065,32 @@
       "category": "meta-tooling",
       "user_invocable": true,
       "version": "2.0.0"
+    },
+    "x-api": {
+      "file": "skills/x-api/SKILL.md",
+      "description": "Post tweets, build threads, upload media, and read timelines via the X API with OAuth 1.0a/2.0 and a mandatory confirm gate before any write.",
+      "triggers": [
+        "post to X",
+        "post tweet",
+        "tweet this",
+        "build thread",
+        "post thread",
+        "twitter thread",
+        "x api",
+        "upload media to X",
+        "read timeline",
+        "search X",
+        "search twitter",
+        "publish to X",
+        "publish to twitter"
+      ],
+      "category": "content-publishing",
+      "user_invocable": true,
+      "version": "1.0.0",
+      "pairs_with": [
+        "content-engine",
+        "crosspost"
+      ]
     }
   }
 }
