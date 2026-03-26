@@ -1937,6 +1937,30 @@
       "user_invocable": false,
       "version": "3.0.0"
     },
+    "video-editing": {
+      "file": "skills/video-editing/SKILL.md",
+      "description": "Video editing workflow: 6-layer pipeline for cutting footage, assembling demo videos, vlogs, screen recordings, and social media clips using FFmpeg and Remotion.",
+      "triggers": [
+        "edit video",
+        "cut footage",
+        "make vlog",
+        "screen recording",
+        "video workflow",
+        "ffmpeg",
+        "remotion",
+        "demo video",
+        "make a clip",
+        "assemble clips",
+        "video editing"
+      ],
+      "category": "media",
+      "user_invocable": true,
+      "version": "1.0.0",
+      "pairs_with": [
+        "typescript-frontend-engineer"
+      ],
+      "model": "sonnet"
+    },
     "vitest-runner": {
       "file": "skills/vitest-runner/SKILL.md",
       "description": "Run Vitest tests and parse results into actionable output.",
