@@ -64,6 +64,35 @@ def calculate_stats(values: list[float]) -> dict:
     }
 
 
+def compute_passk_stats(run_vectors: list[list[bool]]) -> dict:
+    """Compute pass@k and pass^k rates from a list of per-query run vectors.
+
+    Args:
+        run_vectors: Each element is the run_vector for one query (list of bools).
+                     Missing or empty vectors are treated as [False].
+
+    Returns:
+        dict with keys: pass_at_k (fraction), pass_all_k (fraction), k (int)
+    """
+    if not run_vectors:
+        return {"pass_at_k": 0.0, "pass_all_k": 0.0, "k": 0}
+
+    # Backward compat: treat missing/empty vector as [False]
+    normalised = [v if v else [False] for v in run_vectors]
+
+    k = max(len(v) for v in normalised)
+
+    pass_at_count = sum(1 for v in normalised if any(v))
+    pass_all_count = sum(1 for v in normalised if all(v))
+    n = len(normalised)
+
+    return {
+        "pass_at_k": round(pass_at_count / n, 4),
+        "pass_all_k": round(pass_all_count / n, 4),
+        "k": k,
+    }
+
+
 def load_run_results(benchmark_dir: Path) -> dict:
     """
     Load all run results from a benchmark directory.
@@ -180,6 +209,7 @@ def aggregate_results(results: dict) -> dict:
     Aggregate run results into summary statistics.
 
     Returns run_summary with stats for each configuration and delta.
+    Includes pass@k and pass^k metrics derived from per-eval run vectors.
     """
     run_summary = {}
     configs = list(results.keys())
@@ -192,6 +222,9 @@ def aggregate_results(results: dict) -> dict:
                 "pass_rate": {"mean": 0.0, "stddev": 0.0, "min": 0.0, "max": 0.0},
                 "time_seconds": {"mean": 0.0, "stddev": 0.0, "min": 0.0, "max": 0.0},
                 "tokens": {"mean": 0, "stddev": 0, "min": 0, "max": 0},
+                "pass_at_k": 0.0,
+                "pass_all_k": 0.0,
+                "k": 0,
             }
             continue
 
@@ -199,10 +232,30 @@ def aggregate_results(results: dict) -> dict:
         times = [r["time_seconds"] for r in runs]
         tokens = [r.get("tokens", 0) for r in runs]
 
+        # Build per-eval run vectors: group run pass/fail booleans by eval_id.
+        # A run "passes" if its pass_rate >= 1.0 (all expectations met).
+        # run_vector may also be explicitly stored in the grading result.
+        eval_vectors: dict[int | str, list[bool]] = {}
+        for r in runs:
+            eid = r["eval_id"]
+            if eid not in eval_vectors:
+                eval_vectors[eid] = []
+            # Prefer explicit run_vector field when present (routing eval output)
+            rv = r.get("run_vector")
+            if rv is not None:
+                eval_vectors[eid].extend(rv)
+            else:
+                eval_vectors[eid].append(r["pass_rate"] >= 1.0)
+
+        passk = compute_passk_stats(list(eval_vectors.values()))
+
         run_summary[config] = {
             "pass_rate": calculate_stats(pass_rates),
             "time_seconds": calculate_stats(times),
             "tokens": calculate_stats(tokens),
+            "pass_at_k": passk["pass_at_k"],
+            "pass_all_k": passk["pass_all_k"],
+            "k": passk["k"],
         }
 
     # Calculate delta between the first two configs (if two exist)
@@ -216,11 +269,15 @@ def aggregate_results(results: dict) -> dict:
     delta_pass_rate = primary.get("pass_rate", {}).get("mean", 0) - baseline.get("pass_rate", {}).get("mean", 0)
     delta_time = primary.get("time_seconds", {}).get("mean", 0) - baseline.get("time_seconds", {}).get("mean", 0)
     delta_tokens = primary.get("tokens", {}).get("mean", 0) - baseline.get("tokens", {}).get("mean", 0)
+    delta_pass_at_k = primary.get("pass_at_k", 0.0) - baseline.get("pass_at_k", 0.0)
+    delta_pass_all_k = primary.get("pass_all_k", 0.0) - baseline.get("pass_all_k", 0.0)
 
     run_summary["delta"] = {
         "pass_rate": f"{delta_pass_rate:+.2f}",
         "time_seconds": f"{delta_time:+.1f}",
         "tokens": f"{delta_tokens:+.0f}",
+        "pass_at_k": f"{delta_pass_at_k:+.4f}",
+        "pass_all_k": f"{delta_pass_all_k:+.4f}",
     }
 
     return run_summary
@@ -327,6 +384,18 @@ def generate_markdown(benchmark: dict) -> str:
     lines.append(
         f"| Tokens | {a_tokens.get('mean', 0):.0f} ± {a_tokens.get('stddev', 0):.0f} | {b_tokens.get('mean', 0):.0f} ± {b_tokens.get('stddev', 0):.0f} | {delta.get('tokens', '—')} |"
     )
+
+    # Format pass@k / pass^k
+    a_k = a_summary.get("k", 0)
+    b_k = b_summary.get("k", 0)
+    k_label = a_k or b_k  # use whichever is non-zero
+    if k_label:
+        a_pat = a_summary.get("pass_at_k", 0.0)
+        b_pat = b_summary.get("pass_at_k", 0.0)
+        a_pak = a_summary.get("pass_all_k", 0.0)
+        b_pak = b_summary.get("pass_all_k", 0.0)
+        lines.append(f"| pass@{k_label} | {a_pat * 100:.1f}% | {b_pat * 100:.1f}% | {delta.get('pass_at_k', '—')} |")
+        lines.append(f"| pass^{k_label} | {a_pak * 100:.1f}% | {b_pak * 100:.1f}% | {delta.get('pass_all_k', '—')} |")
 
     # Notes section
     if benchmark.get("notes"):
