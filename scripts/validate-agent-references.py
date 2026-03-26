@@ -107,9 +107,7 @@ def validate_references(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Validate reference file links in agent markdown files"
-    )
+    parser = argparse.ArgumentParser(description="Validate reference file links in agent markdown files")
     parser.add_argument(
         "--agents-dir",
         default="agents",
@@ -131,11 +129,7 @@ def main() -> None:
     col_link = max(len(r[1]) for r in rows)
     col_status = 7  # len("MISSING")
 
-    header = (
-        f"{'Agent File':<{col_agent}}  "
-        f"{'Reference Link':<{col_link}}  "
-        f"{'Status':<{col_status}}"
-    )
+    header = f"{'Agent File':<{col_agent}}  {'Reference Link':<{col_link}}  {'Status':<{col_status}}"
     print(header)
     print("-" * len(header))
 
