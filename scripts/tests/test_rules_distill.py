@@ -142,48 +142,58 @@ class TestLayer1MultiSkill:
 
     def test_keeps_principle_in_two_skills(self):
         # Layer 1 groups by normalized exact text — both skills must use the same principle
-        candidates = self._make_candidates([
-            ("Always exit 0 from hooks regardless of errors", "skill-a"),
-            ("Always exit 0 from hooks regardless of errors", "skill-b"),
-        ])
+        candidates = self._make_candidates(
+            [
+                ("Always exit 0 from hooks regardless of errors", "skill-a"),
+                ("Always exit 0 from hooks regardless of errors", "skill-b"),
+            ]
+        )
         result = rules_distill.filter_layer1_multi_skill(candidates, min_skills=2)
         assert len(result) == 1
         assert result[0]["occurrence_count"] >= 2
 
     def test_discards_single_skill_principle(self):
-        candidates = self._make_candidates([
-            ("Use structured JSON output for all API responses", "skill-c"),
-        ])
+        candidates = self._make_candidates(
+            [
+                ("Use structured JSON output for all API responses", "skill-c"),
+            ]
+        )
         result = rules_distill.filter_layer1_multi_skill(candidates, min_skills=2)
         assert len(result) == 0
 
     def test_deduplicates_same_skill_repetition(self):
         # Same skill mentioning the same principle twice should count as 1 source
-        candidates = self._make_candidates([
-            ("Always verify output before completing", "skill-a"),
-            ("Always verify output before completing", "skill-a"),  # duplicate source
-            ("Always verify output before completing", "skill-b"),
-        ])
+        candidates = self._make_candidates(
+            [
+                ("Always verify output before completing", "skill-a"),
+                ("Always verify output before completing", "skill-a"),  # duplicate source
+                ("Always verify output before completing", "skill-b"),
+            ]
+        )
         result = rules_distill.filter_layer1_multi_skill(candidates, min_skills=2)
         assert len(result) == 1
         assert result[0]["occurrence_count"] == 2  # 2 unique sources
 
     def test_collects_skills_list(self):
         # Layer 1 groups by normalized exact text — use the same principle across skills
-        candidates = self._make_candidates([
-            ("Never auto-apply changes without explicit user approval", "skill-a"),
-            ("Never auto-apply changes without explicit user approval", "skill-b"),
-            ("Never auto-apply changes without explicit user approval", "skill-c"),
-        ])
+        candidates = self._make_candidates(
+            [
+                ("Never auto-apply changes without explicit user approval", "skill-a"),
+                ("Never auto-apply changes without explicit user approval", "skill-b"),
+                ("Never auto-apply changes without explicit user approval", "skill-c"),
+            ]
+        )
         result = rules_distill.filter_layer1_multi_skill(candidates, min_skills=2)
         assert len(result) == 1
         assert len(result[0]["skills"]) >= 2
 
     def test_case_insensitive_grouping(self):
-        candidates = self._make_candidates([
-            ("Always Exit 0 From Hooks", "skill-a"),
-            ("always exit 0 from hooks", "skill-b"),
-        ])
+        candidates = self._make_candidates(
+            [
+                ("Always Exit 0 From Hooks", "skill-a"),
+                ("always exit 0 from hooks", "skill-b"),
+            ]
+        )
         result = rules_distill.filter_layer1_multi_skill(candidates, min_skills=2)
         assert len(result) == 1
 
@@ -204,9 +214,7 @@ class TestLayer2Actionable:
         assert len(result) == 1
 
     def test_keeps_never_rule(self):
-        result = rules_distill.filter_layer2_actionable(
-            self._make_multi("Never auto-apply changes without approval")
-        )
+        result = rules_distill.filter_layer2_actionable(self._make_multi("Never auto-apply changes without approval"))
         assert len(result) == 1
 
     def test_keeps_must_rule(self):
@@ -216,9 +224,7 @@ class TestLayer2Actionable:
         assert len(result) == 1
 
     def test_keeps_avoid_rule(self):
-        result = rules_distill.filter_layer2_actionable(
-            self._make_multi("Avoid blocking the session hook pipeline")
-        )
+        result = rules_distill.filter_layer2_actionable(self._make_multi("Avoid blocking the session hook pipeline"))
         assert len(result) == 1
 
     def test_discards_descriptive_statement(self):
@@ -263,13 +269,10 @@ class TestLayer3ViolationRisk:
         principle = "Always verify output before completing a task"
         # Principle itself has no violation keyword, but skill body does
         skill_body = (
-            "Always verify output before completing a task. "
-            "Skipping this will break the pipeline and cause errors."
+            "Always verify output before completing a task. Skipping this will break the pipeline and cause errors."
         )
         candidates = [self._make_candidate(principle, "skill-a")]
-        result = rules_distill.filter_layer3_violation_risk(
-            candidates, {"skill-a": skill_body}
-        )
+        result = rules_distill.filter_layer3_violation_risk(candidates, {"skill-a": skill_body})
         assert len(result) == 1
 
     def test_discards_principle_with_no_risk_context(self):
@@ -316,9 +319,7 @@ class TestLayer4NotCovered:
 
     def test_keeps_novel_principle(self):
         shared = ["Always exit 0 from hooks regardless of errors."]
-        candidates = [
-            self._make_candidate("Never commit directly to main without explicit user authorization")
-        ]
+        candidates = [self._make_candidate("Never commit directly to main without explicit user authorization")]
         result = rules_distill.filter_layer4_not_covered(candidates, shared)
         assert len(result) == 1
 
@@ -490,9 +491,7 @@ class TestFullPipeline:
         (skills_dir / "shared-patterns").mkdir(parents=True)
         (skills_dir / "skill-a" / "SKILL.md").write_text(SKILL_A_CONTENT)
         (skills_dir / "skill-b" / "SKILL.md").write_text(SKILL_B_CONTENT)
-        (skills_dir / "shared-patterns" / "base.md").write_text(
-            "# Base Patterns\nSome existing patterns here."
-        )
+        (skills_dir / "shared-patterns" / "base.md").write_text("# Base Patterns\nSome existing patterns here.")
 
         # Patch the module's directory constants
         with (

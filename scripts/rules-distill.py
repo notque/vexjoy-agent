@@ -422,9 +422,7 @@ def merge_candidates(existing: list[dict], new_candidates: list[dict]) -> list[d
             continue
         # Check if this principle is already pending (avoid duplicates)
         already_pending = any(
-            _normalize_for_dedup(c.get("principle", "")) == norm
-            for c in merged
-            if c.get("status") == "pending"
+            _normalize_for_dedup(c.get("principle", "")) == norm for c in merged if c.get("status") == "pending"
         )
         if already_pending:
             continue
@@ -454,7 +452,7 @@ def _make_id(principle: str) -> str:
 
 
 def _compute_confidence(candidate: dict) -> float:
-    """Heuristic confidence score 0.0–1.0."""
+    """Heuristic confidence score 0.0-1.0."""
     score = 0.5
     count = candidate.get("occurrence_count", 1)
     if count >= 5:

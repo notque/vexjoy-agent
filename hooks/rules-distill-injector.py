@@ -132,6 +132,7 @@ def main() -> None:
     except Exception as e:
         if debug:
             import traceback
+
             traceback.print_exc(file=sys.stderr)
         else:
             print(f"[rules-distill-injector] Error: {type(e).__name__}: {e}", file=sys.stderr)
