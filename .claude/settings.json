@@ -84,6 +84,12 @@
             "command": "python3 \"$HOME/.claude/hooks/user-correction-capture.py\"",
             "description": "Detect user corrections and record to learning DB",
             "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/anti-rationalization-injector.py\"",
+            "description": "Inject anti-rationalization warnings based on task-type keywords",
+            "timeout": 1000
           }
         ]
       }
@@ -221,6 +227,12 @@
             "command": "python3 \"$HOME/.claude/hooks/review-capture.py\"",
             "description": "Capture CRITICAL/HIGH review findings to learning DB",
             "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/completion-evidence-check.py\"",
+            "description": "Advisory check for completion claims without test evidence",
+            "timeout": 2000
           }
         ]
       }
