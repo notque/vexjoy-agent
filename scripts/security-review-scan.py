@@ -25,9 +25,7 @@ from pathlib import Path
 
 # ─── Constants ────────────────────────────────────────────────
 
-SUPPORTED_EXTENSIONS = frozenset(
-    [".py", ".go", ".js", ".ts", ".rb", ".java", ".php", ".kt", ".swift"]
-)
+SUPPORTED_EXTENSIONS = frozenset([".py", ".go", ".js", ".ts", ".rb", ".java", ".php", ".kt", ".swift"])
 
 _TEST_FILE_PATTERNS = [
     re.compile(r"_test\.go$"),
@@ -135,9 +133,7 @@ def _build_rules() -> list[dict]:
         {
             "name": "hardcoded-ip",
             "severity": "CRITICAL",
-            "pattern": re.compile(
-                r"\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b"
-            ),
+            "pattern": re.compile(r"\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b"),
             "skip_test": True,
             "redact": False,
             "filter_fn": _filter_private_ip,
@@ -239,9 +235,7 @@ def _build_rules() -> list[dict]:
         {
             "name": "security-todo",
             "severity": "MEDIUM",
-            "pattern": re.compile(
-                r"(?:TODO.*security|FIXME.*auth|HACK:)", re.IGNORECASE
-            ),
+            "pattern": re.compile(r"(?:TODO.*security|FIXME.*auth|HACK:)", re.IGNORECASE),
             "skip_test": False,
             "redact": False,
         }
@@ -326,9 +320,7 @@ def _redact_secret(matched_text: str) -> str:
     # Handle AWS key patterns
     redacted = re.sub(r"AKIA[0-9A-Z]{16}", "AKIA[REDACTED]", redacted)
     # Handle PEM headers (keep header, note redaction)
-    redacted = re.sub(
-        r"(-----BEGIN.*PRIVATE KEY-----)", r"\1 [REDACTED]", redacted
-    )
+    redacted = re.sub(r"(-----BEGIN.*PRIVATE KEY-----)", r"\1 [REDACTED]", redacted)
     return redacted
 
 
@@ -360,11 +352,7 @@ def _scan_file(filepath: str, rules: list[dict]) -> list[dict]:
                     continue
 
                 # Redact secrets
-                display_text = (
-                    _redact_secret(matched_text)
-                    if rule.get("redact", False)
-                    else matched_text
-                )
+                display_text = _redact_secret(matched_text) if rule.get("redact", False) else matched_text
 
                 findings.append(
                     {
@@ -438,9 +426,7 @@ def _format_json(findings: list[dict], summary: dict) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Deterministic security review scanner"
-    )
+    parser = argparse.ArgumentParser(description="Deterministic security review scanner")
     parser.add_argument(
         "--files",
         nargs="+",
@@ -485,9 +471,7 @@ def main() -> int:
         "files_scanned": files_scanned,
         "files_skipped": files_skipped,
         "total": len(all_findings),
-        "critical": sum(
-            1 for f in all_findings if f["severity"] == "CRITICAL"
-        ),
+        "critical": sum(1 for f in all_findings if f["severity"] == "CRITICAL"),
         "high": sum(1 for f in all_findings if f["severity"] == "HIGH"),
         "medium": sum(1 for f in all_findings if f["severity"] == "MEDIUM"),
     }
