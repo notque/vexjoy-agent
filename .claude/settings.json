@@ -279,6 +279,12 @@
             "command": "python3 \"$HOME/.claude/hooks/session-learning-recorder.py\"",
             "description": "Record session learnings and warn on zero-learning sessions",
             "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/knowledge-graduation-proposer.py\"",
+            "description": "Propose graduation of high-confidence learnings into agent/skill files",
+            "timeout": 5000
           }
         ]
       }
