@@ -1,21 +1,16 @@
 ---
 name: systematic-refactoring
 description: |
-  Safe, phase-gated refactoring: CHARACTERIZE with tests, PLAN incremental
-  steps, EXECUTE one change at a time, VALIDATE no regressions. Use when
-  renaming functions/variables, extracting modules, changing signatures,
-  restructuring directories, or consolidating duplicate code. Use for
-  "refactor", "rename", "extract", "restructure", or "migrate pattern".
-  Do NOT use for bug fixes or new feature implementation.
+  Safe 5-phase refactoring pipeline with test characterization, incremental
+  changes, and learning gates: CHARACTERIZE, PLAN, REFACTOR, VERIFY, RECORD.
+  Use when renaming functions/variables, extracting modules, changing signatures,
+  restructuring directories, or consolidating duplicate code. Use for "refactor",
+  "rename", "extract", "restructure", or "migrate pattern". Do NOT use for bug
+  fixes or new feature implementation.
 version: 2.0.0
 user-invocable: false
-promoted_to: pipelines/systematic-refactoring
-success-criteria:
-  - "Characterization tests pass before and after changes"
-  - "Zero references to old names remaining in codebase"
-  - "Full test suite passes after each incremental step"
-  - "No behavioral changes (only structural improvements)"
-  - "All import paths and cross-references updated"
+context: fork
+agent: general-purpose
 allowed-tools:
   - Read
   - Edit
@@ -23,6 +18,13 @@ allowed-tools:
   - Bash
   - Grep
   - Glob
+success-criteria:
+  - "Characterization tests pass before and after changes"
+  - "Zero references to old names remaining in codebase"
+  - "Full test suite passes after each incremental step"
+  - "No behavioral changes (only structural improvements)"
+  - "All import paths and cross-references updated"
+  - "Refactoring pattern recorded to learning.db"
 routing:
   triggers:
     - "refactor safely"
@@ -38,17 +40,15 @@ routing:
   category: process
 ---
 
-> **Note**: This skill has been promoted to a pipeline. See `pipelines/systematic-refactoring/SKILL.md` for the phase-gated version.
+# Systematic Refactoring Pipeline
 
-# Systematic Refactoring Skill
+> **Promoted from**: `skills/systematic-refactoring/SKILL.md` (original 4-phase skill)
 
-## Purpose
-
-Perform safe, verifiable refactoring through explicit phases. Each phase has gates that prevent common refactoring mistakes: breaking behavior, incomplete migrations, or orphaned code.
+Safe, verifiable refactoring through 5 explicit phases with mandatory gates. Each phase has gates that prevent common refactoring mistakes: breaking behavior, incomplete migrations, or orphaned code.
 
 ## Operator Context
 
-This skill operates as an operator for safe code refactoring, configuring Claude's behavior for incremental, verifiable changes.
+This pipeline operates as an operator for safe code refactoring, configuring Claude's behavior for incremental, verifiable changes.
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before execution
@@ -57,6 +57,7 @@ This skill operates as an operator for safe code refactoring, configuring Claude
 - **NEVER make multiple changes at once**: One atomic change per commit
 - **NEVER skip validation**: Tests must pass after every change
 - **ALWAYS preserve external API**: Unless explicitly requested
+- **Phase Gates Enforced**: Each phase must pass its gate before the next begins
 
 ### Default Behaviors (ON unless disabled)
 - **Communication Style**: Report facts without self-congratulation. Show command output rather than describing it. Be concise but informative.
@@ -71,30 +72,35 @@ This skill operates as an operator for safe code refactoring, configuring Claude
 - **Documentation updates**: Auto-update docs for API changes
 - **Type migration**: Update type definitions across codebase
 
-## What This Skill CAN Do
+## What This Pipeline CAN Do
 - Safely rename functions, variables, files across a codebase
 - Extract code into new modules with caller migration
 - Change function signatures with incremental migration
 - Restructure directory layouts preserving all behavior
 - Consolidate duplicate code with test verification
+- Record refactoring patterns for future sessions
 
-## What This Skill CANNOT Do
+## What This Pipeline CANNOT Do
 - Fix bugs (use systematic-debugging instead)
 - Add new features (use workflow-orchestrator instead)
 - Make multiple changes simultaneously without testing between each
 - Skip characterization tests before modifying code
 - Leave incomplete migrations (old code alongside new)
 
-## Systematic Phases
+---
 
-### Phase 1: CHARACTERIZE (Do NOT proceed without test coverage)
+## Instructions
 
-**Gate**: Tests exist that verify current behavior.
+### Phase 1: CHARACTERIZE
+
+**Goal**: Document current behavior with tests before touching any code.
+
+**Artifact**: Characterization test suite (green).
 
 ```
-═══════════════════════════════════════════════════════════════
+===============================================================
  PHASE 1: CHARACTERIZE
-═══════════════════════════════════════════════════════════════
+===============================================================
 
  Target Code:
    - File: [path/to/file.ext]
@@ -122,7 +128,7 @@ This skill operates as an operator for safe code refactoring, configuring Claude
    Result: ALL PASS (required to proceed)
 
  CHARACTERIZE complete. Proceeding to PLAN...
-═══════════════════════════════════════════════════════════════
+===============================================================
 ```
 
 **Actions in this phase:**
@@ -132,14 +138,20 @@ This skill operates as an operator for safe code refactoring, configuring Claude
 4. Write characterization tests for uncovered behavior
 5. Verify all tests pass
 
-### Phase 2: PLAN (Do NOT proceed without incremental steps defined)
+**GATE**: Test suite exists that verifies current behavior. ALL tests GREEN. Proceed only when gate passes.
 
-**Gate**: Clear sequence of atomic changes with rollback points.
+---
+
+### Phase 2: PLAN
+
+**Goal**: Identify refactoring targets, define incremental steps with rollback points.
+
+**Artifact**: `refactor-plan.md`
 
 ```
-═══════════════════════════════════════════════════════════════
+===============================================================
  PHASE 2: PLAN
-═══════════════════════════════════════════════════════════════
+===============================================================
 
  Refactoring Type: [rename | extract | restructure | migrate]
 
@@ -168,8 +180,8 @@ This skill operates as an operator for safe code refactoring, configuring Claude
    - [Potential issue 1]: [mitigation]
    - [Potential issue 2]: [mitigation]
 
- PLAN complete. Proceeding to EXECUTE...
-═══════════════════════════════════════════════════════════════
+ PLAN complete. Proceeding to REFACTOR...
+===============================================================
 ```
 
 **Actions in this phase:**
@@ -178,15 +190,20 @@ This skill operates as an operator for safe code refactoring, configuring Claude
 3. Identify dependencies between steps
 4. Define rollback procedure for each step
 5. Estimate risk level for each step
+6. Write `refactor-plan.md` to project root
 
-### Phase 3: EXECUTE (One step at a time, tests between each)
+**GATE**: `refactor-plan.md` exists with clear sequence of atomic changes and rollback points for each step. Proceed only when gate passes.
 
-**Gate**: Tests pass after each atomic change.
+---
+
+### Phase 3: REFACTOR
+
+**Goal**: Apply changes incrementally, run tests after each step. Tests must stay green throughout.
 
 ```
-═══════════════════════════════════════════════════════════════
- PHASE 3: EXECUTE - Step [N] of [Total]
-═══════════════════════════════════════════════════════════════
+===============================================================
+ PHASE 3: REFACTOR - Step [N] of [Total]
+===============================================================
 
  Step [N]: [description]
 
@@ -208,7 +225,7 @@ This skill operates as an operator for safe code refactoring, configuring Claude
    Rolling back...
    Investigating failure before retry
 
-═══════════════════════════════════════════════════════════════
+===============================================================
 ```
 
 **Actions in this phase:**
@@ -218,14 +235,23 @@ This skill operates as an operator for safe code refactoring, configuring Claude
 4. If fail: rollback, investigate, fix, retry
 5. Repeat until all steps complete
 
-### Phase 4: VALIDATE (Do NOT mark complete until verified)
+**Error Recovery:**
+- **Test Failure During Execute**: Stop immediately, rollback current step, investigate root cause, fix and retry OR revise plan
+- **Incomplete Caller Migration**: Do not remove old code until ALL callers migrated. Use Grep to verify zero remaining references. Check for dynamic references (strings, reflection).
+- **Unexpected Dependencies**: Stop and return to PLAN phase. Add new dependencies to plan. May need to add intermediate steps.
 
-**Gate**: All original tests pass, no dead code, all callers updated.
+**GATE**: ALL planned steps executed. Tests GREEN after every step. No step skipped or combined. Proceed only when gate passes.
+
+---
+
+### Phase 4: VERIFY
+
+**Goal**: Full test suite, diff summary, confirm no behavior change.
 
 ```
-═══════════════════════════════════════════════════════════════
- PHASE 4: VALIDATE
-═══════════════════════════════════════════════════════════════
+===============================================================
+ PHASE 4: VERIFY
+===============================================================
 
  Full Test Suite:
    $ [comprehensive test command]
@@ -259,8 +285,43 @@ This skill operates as an operator for safe code refactoring, configuring Claude
    - Steps completed: [N/Total]
    - Tests: [X passed, Y total]
 
-═══════════════════════════════════════════════════════════════
+===============================================================
 ```
+
+**GATE**: Full test suite passes. Zero references to old names. No orphaned code. No behavior changes detected. Proceed only when gate passes.
+
+---
+
+### Phase 5: RECORD
+
+**Goal**: Log refactoring patterns to learning database for future sessions.
+
+**Step 1: Record refactoring pattern**
+
+```markdown
+## [Date] [Refactoring Type]: [Brief Description]
+**Pattern**: [rename | extract | inline | restructure | migrate]
+**Scope**: [N files, M callers]
+**Steps**: [N atomic steps]
+**Key Decision**: [Most important choice made and why]
+**Gotcha**: [What almost went wrong or required extra care]
+```
+
+**Step 2: Update learning.db**
+
+Record the refactoring pattern and outcome to the learning database for automated future lookup.
+
+**Step 3: Clean up**
+
+- Remove `refactor-plan.md` (plan executed)
+- Remove temporary test files or debug outputs
+- Keep characterization tests (they add permanent value)
+
+**Output**: `[learning] Refactoring pattern recorded.`
+
+**GATE**: Learning database entry exists with pattern type, scope, key decision, and gotcha. Temporary files cleaned up. Characterization tests retained.
+
+---
 
 ## Refactoring Patterns
 
@@ -271,6 +332,7 @@ Phase 1: Find all usages with Grep
 Phase 2: Plan order (definition first, then callers)
 Phase 3: Execute with replace_all where safe
 Phase 4: Verify no old name references remain
+Phase 5: Record pattern and any gotchas
 ```
 
 ### Pattern 2: Extract (Function, Module, Class)
@@ -283,6 +345,7 @@ Phase 3:
   - Step 2: Update callers one by one
   - Step 3: Remove old code
 Phase 4: Verify all callers use new location
+Phase 5: Record extraction pattern
 ```
 
 ### Pattern 3: Inline (Remove Abstraction)
@@ -295,6 +358,7 @@ Phase 3:
   - Step 2: Repeat for each call site
   - Step 3: Remove now-unused function
 Phase 4: Verify no remaining references
+Phase 5: Record inline pattern
 ```
 
 ### Pattern 4: Change Signature
@@ -307,35 +371,16 @@ Phase 3:
   - Step 2: Migrate callers one by one
   - Step 3: Remove old signature
 Phase 4: Verify all callers use new signature
+Phase 5: Record migration pattern
 ```
 
-## Error Handling
+---
 
-**Test Failure During Execute**:
-- Stop immediately
-- Rollback current step
-- Investigate root cause
-- Fix and retry OR revise plan
-
-**Incomplete Caller Migration**:
-- Do not remove old code until ALL callers migrated
-- Use Grep to verify zero remaining references
-- Check for dynamic references (strings, reflection)
-
-**Unexpected Dependencies**:
-- Stop and return to PLAN phase
-- Add new dependencies to plan
-- May need to add intermediate steps
-
-## Common Anti-Patterns
+## Anti-Patterns
 
 ### Anti-Pattern 1: Big Bang Refactoring
 
-**What it looks like:**
-```
-User: "Rename getUserData to fetchUserProfile across the entire codebase"
-Claude: *Changes 47 files in one commit, updating function name, all callers, tests, and docs*
-```
+**What it looks like:** Changing 47 files in one commit, updating function name, all callers, tests, and docs simultaneously.
 
 **Why it's wrong:**
 - One test failure breaks everything
@@ -344,18 +389,14 @@ Claude: *Changes 47 files in one commit, updating function name, all callers, te
 - Merge conflicts guaranteed in active codebases
 
 **Do this instead:**
-1. CHARACTERIZE: Write tests for current getUserData behavior
+1. CHARACTERIZE: Write tests for current behavior
 2. PLAN: Break into steps (add new function, migrate callers gradually, remove old)
-3. EXECUTE: Commit after each atomic change (5-10 callers at a time)
-4. VALIDATE: Tests pass after every step
+3. REFACTOR: Commit after each atomic change (5-10 callers at a time)
+4. VERIFY: Tests pass after every step
 
 ### Anti-Pattern 2: Refactoring Without Tests First
 
-**What it looks like:**
-```
-User: "Extract this logic into a new function"
-Claude: *Immediately creates new function and updates callers without writing tests*
-```
+**What it looks like:** Immediately creating new function and updating callers without writing tests.
 
 **Why it's wrong:**
 - No verification that behavior is preserved
@@ -372,11 +413,7 @@ Claude: *Immediately creates new function and updates callers without writing te
 
 ### Anti-Pattern 3: Incomplete Migration
 
-**What it looks like:**
-```
-User: "Move getUser from utils.js to user-service.js"
-Claude: *Creates new location, updates 80% of callers, leaves old function "for backward compatibility"*
-```
+**What it looks like:** Creating new location, updating 80% of callers, leaving old function "for backward compatibility".
 
 **Why it's wrong:**
 - Code exists in two places indefinitely
@@ -386,18 +423,13 @@ Claude: *Creates new location, updates 80% of callers, leaves old function "for 
 
 **Do this instead:**
 1. PLAN: Identify ALL callers upfront (use Grep exhaustively)
-2. EXECUTE: Update every single caller before removing old code
-3. VALIDATE: Grep confirms ZERO references to old location
+2. REFACTOR: Update every single caller before removing old code
+3. VERIFY: Grep confirms ZERO references to old location
 4. Clean up: Remove old code completely
-5. No half-migrated state allowed
 
 ### Anti-Pattern 4: Mixing Refactoring with Feature Work
 
-**What it looks like:**
-```
-User: "Rename calculateTotal and also fix the tax calculation bug"
-Claude: *Renames function AND changes logic in same refactoring*
-```
+**What it looks like:** Renaming function AND changing logic in same refactoring.
 
 **Why it's wrong:**
 - Can't tell if tests fail due to rename or logic change
@@ -411,14 +443,9 @@ Claude: *Renames function AND changes logic in same refactoring*
 3. Then fix bug: In separate phase with new tests for fixed behavior
 4. Two commits: One refactor (safe), one fix (behavior change)
 
-## References
+---
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-- [Gate Enforcement](../shared-patterns/gate-enforcement.md) - Phase transition rules
-
-### Domain-Specific Anti-Rationalization
+## Domain-Specific Anti-Rationalization
 
 | Rationalization | Why It's Wrong | Required Action |
 |-----------------|----------------|-----------------|
@@ -426,3 +453,13 @@ This skill uses these shared patterns:
 | "I'll update the remaining callers later" | Incomplete migrations rot forever | Migrate ALL callers before removing old code |
 | "Small rename, no need for full process" | Small renames break string refs and configs | Grep for all references including strings |
 | "I can fix this bug while refactoring" | Mixed concerns make failures undiagnosable | Separate commits: refactor then fix |
+| "No need to record, it was straightforward" | Future refactors benefit from past patterns | Complete Phase 5 |
+
+---
+
+## References
+
+This pipeline uses these shared patterns:
+- [Anti-Rationalization](../../skills/shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
+- [Verification Checklist](../../skills/shared-patterns/verification-checklist.md) - Pre-completion checks
+- [Gate Enforcement](../../skills/shared-patterns/gate-enforcement.md) - Phase transition rules

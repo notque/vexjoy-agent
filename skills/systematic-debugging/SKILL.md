@@ -9,6 +9,7 @@ description: |
   a specific bug symptom.
 version: 2.0.0
 user-invocable: false
+promoted_to: pipelines/systematic-debugging
 allowed-tools: [Read, Write, Bash, Grep, Glob, Edit, Task]
 success-criteria:
   - "Bug is reproducible with a specific test or command"
@@ -29,6 +30,8 @@ routing:
     - "investigate error"
   category: process
 ---
+
+> **Note**: This skill has been promoted to a pipeline. See `pipelines/systematic-debugging/SKILL.md` for the phase-gated version.
 
 # Systematic Debugging Skill
 
