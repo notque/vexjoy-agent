@@ -22,14 +22,7 @@ routing:
 
 # /install — Setup & Health Check
 
-Verify your Claude Code Toolkit installation, diagnose issues, and get oriented.
-
-## When to Use
-
-- After cloning the repo and running `install.sh`
-- When something seems broken (hooks not firing, missing commands)
-- First time using the toolkit — to see what's available
-- After a `git pull` to verify nothing broke
+Verify your Claude Code Toolkit installation, diagnose issues, and get oriented. Use after cloning the repo and running `install.sh`, when something seems broken (hooks not firing, missing commands), for first-time orientation, or after a `git pull` to verify nothing broke.
 
 ## Instructions
 
@@ -59,15 +52,13 @@ If the script is not found at `scripts/install-doctor.py`, try `~/.claude/script
 
 **Step 3: Display results clearly**
 
-Show the check output to the user with a clear pass/fail summary. Use the raw script output — do not paraphrase or reformat excessively.
+Show the check output to the user with a clear pass/fail summary. Display the raw script output without paraphrasing or reformatting, because the script already formats diagnostics for readability and rewriting them risks losing detail or misrepresenting status.
 
 **Gate**: Health check complete. If issues found, proceed to Phase 2. If clean, skip to Phase 3.
 
 ### Phase 2: FIX (only if issues found)
 
 **Goal**: Guide the user through fixing detected issues.
-
-**Important**: This phase is interactive. Show the user what needs fixing and let them choose.
 
 **Step 1: Determine if install.sh needs to run**
 
@@ -80,7 +71,7 @@ The toolkit hasn't been installed yet. Run this from the repo directory:
   ./install.sh --dry-run     # preview first
 ```
 
-Wait for the user to confirm they've run it, then re-run the health check.
+Wait for the user to confirm they've run it, then re-run the health check. This phase is interactive because installation changes system state -- always show the user what needs fixing and let them choose before acting.
 
 **Step 2: Fix individual issues**
 
@@ -95,7 +86,7 @@ find ~/.claude/scripts -name "*.py" -exec chmod 755 {} \;
 pip install -r requirements.txt
 ```
 
-Only run fixes the user approves.
+Only run fixes the user approves, because automated fixes to `~/.claude` can break an existing setup if assumptions about the environment are wrong.
 
 **Step 3: Re-check**
 
@@ -118,7 +109,7 @@ python3 ~/.claude/scripts/install-doctor.py inventory
 
 **Step 2: Display summary**
 
-Show the actual counts returned by `install-doctor.py inventory` — do not display hardcoded numbers. Present them as:
+Show the actual counts returned by `install-doctor.py inventory` -- never display hardcoded numbers, because component counts change with every install and stale numbers erode trust. Present them as:
 
 ```
 Your toolkit is ready. Here's what's installed:
@@ -161,13 +152,13 @@ MCP Servers:
       Install: claude mcp add context7 -- npx @anthropic-ai/mcp-context7@latest
 ```
 
-Use ✓ for connected MCPs and ✗ for missing ones. For missing MCPs, show the install command.
+Use checkmark for connected MCPs and X for missing ones. For missing MCPs, show the install command.
 
 **Gate**: MCP inventory displayed. Proceed to Phase 4.
 
 ### Phase 4: ORIENT
 
-**Goal**: Give the user their bearings — what to do first.
+**Goal**: Give the user their bearings -- what to do first.
 
 **Step 1: Show the three essential commands**
 

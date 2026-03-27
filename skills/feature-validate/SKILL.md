@@ -32,59 +32,28 @@ routing:
 
 # Feature Validate Skill
 
-## Purpose
-
 Run comprehensive quality gates on the implemented feature. Phase 4 of the feature lifecycle (design → plan → implement → **validate** → release).
-
-## Operator Context
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md
-- **Implementation Required**: CANNOT validate without implementation artifacts
-- **State Management via Script**: All state operations through `python3 ~/.claude/scripts/feature-state.py`
-- **Show Full Output**: NEVER summarize test results. Show actual command output.
-- **All Gates Must Pass**: Cannot proceed to release with any gate failing
-- **Existing Quality Gate Integration**: Use our existing quality gate skills (go-pr-quality-gate, python-quality-gate, universal-quality-gate)
-
-### Default Behaviors (ON unless disabled)
-- **Auto-detect Language**: Detect project language and run appropriate quality gate
-- **Context Loading**: Read L0, L1, and implementation artifact at prime
-- **Regression Check**: Verify existing tests still pass
-
-### Optional Behaviors (OFF unless enabled)
-- **Security scan**: Run security-focused review agent
-- **Performance check**: Run benchmarks against baseline
-
-## What This Skill CAN Do
-- Run language-specific quality gates (tests, lint, type checks)
-- Verify all planned files were created/modified
-- Check for regressions
-- Produce validation report
-
-## What This Skill CANNOT Do
-- Fix failing tests (route back to feature-implement)
-- Skip validation gates
-- Approve with failures
 
 ## Instructions
 
 ### Phase 0: PRIME
 
-1. Verify feature state is `validate` and `implement` is completed.
-2. Load implementation artifact from `.feature/state/implement/`.
-3. Load L1 validate context.
+1. Read and follow the repository CLAUDE.md before any other action — it may override defaults for linting, test commands, or gate criteria.
+2. Verify feature state is `validate` and `implement` is completed. All state operations go through `python3 ~/.claude/scripts/feature-state.py` — never modify state files directly.
+3. Load implementation artifact from `.feature/state/implement/`. Validation cannot proceed without implementation artifacts; if missing, stop and report.
+4. Load L0, L1, and implementation context so quality gates run against the correct scope.
 
-**Gate**: Implementation artifact loaded. Proceed.
+**Gate**: Implementation artifact loaded. Feature state confirms `implement` completed. Proceed.
 
 ### Phase 1: EXECUTE (Quality Gates)
 
 **Step 1: Language Detection**
 
-Detect project language(s) from file extensions, build files, and implementation artifact.
+Auto-detect project language(s) from file extensions, build files, and the implementation artifact. This detection drives which quality gate skill runs next.
 
 **Step 2: Run Quality Gates**
 
-For each detected language, run the appropriate quality gate:
+Use the repository's existing quality gate skills — do not re-implement linting or test runners inline. Route to the appropriate skill per language:
 
 | Language | Quality Gate | Command |
 |----------|-------------|---------|
@@ -93,21 +62,33 @@ For each detected language, run the appropriate quality gate:
 | TypeScript | universal-quality-gate | `npm run typecheck && npm run lint && npm test` |
 | Other | universal-quality-gate | Detect and run project-specific checks |
 
+Show the full, unedited command output for every gate — never summarize or truncate test results, because summaries hide the exact failure details needed for diagnosis.
+
 **Step 3: Regression Check**
 
-Run full test suite and compare against pre-implementation baseline:
+Run the full test suite and compare against pre-implementation baseline:
 - New test failures = regression
 - Missing tests for new code = coverage gap
+
+Existing tests must still pass; new failures here block advancement regardless of new-feature test results.
 
 **Step 4: Custom Gates**
 
 If the design document specified custom validation criteria, check those too.
 
-**Gate**: All quality gates pass. Proceed.
+**Step 5 (optional): Security and Performance**
+
+If explicitly enabled by the user:
+- **Security scan**: Run security-focused review agent
+- **Performance check**: Run benchmarks against baseline
+
+These are off by default — do not run them unless the user requests it.
+
+**Gate**: Every gate must pass. No gate may be skipped and no failure may be approved — a single failing gate blocks advancement to release. Proceed only when all results are green.
 
 ### Phase 2: VALIDATE (Report)
 
-Produce validation report:
+Produce the validation report:
 
 ```markdown
 # Validation Report: [Feature Name]
@@ -130,14 +111,16 @@ Produce validation report:
 ## Verdict: PASS / NEEDS_FIXES / BLOCK
 ```
 
-If `NEEDS_FIXES`: suggest running `/feature-implement` with specific fix tasks.
+The verdict must reflect actual gate results — never mark PASS if any gate failed.
+
+If `NEEDS_FIXES`: suggest running `/feature-implement` with specific fix tasks. This skill does not fix failing tests; it reports them and routes back.
 If `BLOCK`: explain blocking issues.
 
 **Gate**: Report produced. Proceed to Checkpoint.
 
 ### Phase 3: CHECKPOINT
 
-1. Save validation artifact:
+1. Save validation artifact (all state operations through the feature-state script):
    ```bash
    echo "VALIDATION_REPORT" | python3 ~/.claude/scripts/feature-state.py checkpoint FEATURE validate
    ```
@@ -167,6 +150,4 @@ If `BLOCK`: explain blocking issues.
 
 ## References
 
-- [Verification Checklist](../shared-patterns/verification-checklist.md)
-- [Retro Loop](../shared-patterns/retro-loop.md)
 - [State Conventions](../_feature-shared/state-conventions.md)

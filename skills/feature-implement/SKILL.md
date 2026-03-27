@@ -34,74 +34,40 @@ routing:
 
 # Feature Implement Skill
 
-## Purpose
-
-Execute the implementation plan by dispatching tasks to domain agents wave by wave. Phase 3 of the feature lifecycle (design → plan → **implement** → validate → release).
-
-## Operator Context
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md
-- **Plan Required**: CANNOT implement without a plan in `.feature/state/plan/`
-- **State Management via Script**: All state operations through `python3 ~/.claude/scripts/feature-state.py`
-- **Domain Agent Dispatch**: Every task dispatched to its assigned domain agent via Task tool
-- **Wave Order Enforcement**: Complete all tasks in Wave N before starting Wave N+1
-- **Wave Checkpoint**: Run relevant tests after each wave completes
-- **Deviation Handling**: Tier 1-2 auto-fix, Tier 3 stops for user
-
-### Default Behaviors (ON unless disabled)
-- **Context Loading**: Read L0, L1, plan artifact, and design artifact at prime
-- **Fresh Agent Per Task**: Each task gets a clean agent dispatch (no context pollution)
-- **Spec Compliance Check**: After each task, verify output matches plan specification
-- **Progress Reporting**: Report after each task and wave completion
-
-### Optional Behaviors (OFF unless enabled)
-- **Parallel within wave**: Dispatch parallel-safe tasks simultaneously
-- **Auto-fix Tier 2 deviations**: Handle missing dependencies automatically
-
-## What This Skill CAN Do
-- Dispatch tasks to domain agents (golang-general-engineer, typescript-frontend-engineer, etc.)
-- Execute wave-ordered plans with dependency tracking
-- Handle deviations with tiered escalation
-- Run wave checkpoints (tests) between waves
-
-## What This Skill CANNOT Do
-- Implement without a plan
-- Override domain agent selection from plan
-- Skip wave ordering
-- Handle Tier 3 (architectural) deviations without user input
-- Bypass the consultation gate for Medium+ features with an existing ADR
+Execute the implementation plan by dispatching tasks to domain agents wave by wave. Phase 3 of the feature lifecycle (design > plan > **implement** > validate > release).
 
 ## Instructions
 
 ### Phase 0: PRIME
 
-1. Verify feature state:
+1. Read and follow the repository CLAUDE.md before any implementation work begins.
+
+2. Verify feature state -- a plan must exist before implementation can start:
    ```bash
    python3 ~/.claude/scripts/feature-state.py status FEATURE
    ```
-   Verify current phase is `implement` and `plan` is completed.
+   Verify current phase is `implement` and `plan` is completed. All state operations throughout this skill go through `feature-state.py` because it is the single source of truth for lifecycle phase tracking.
 
-2. Load plan artifact from `.feature/state/plan/`.
+3. Load plan artifact from `.feature/state/plan/`.
 
-3. **Consultation Gate** (Medium+ complexity only):
+4. **Consultation Gate** (Medium+ complexity only):
    - Extract the feature name and task complexity from the plan.
-   - If complexity is Simple or no ADR exists in `adr/` matching the feature name → skip this gate, proceed to step 4.
+   - If complexity is Simple or no ADR exists in `adr/` matching the feature name, skip this gate and proceed to step 5. This gate cannot be bypassed for Medium+ features that have an existing ADR -- skipping it risks implementing against a design that has unresolved architectural concerns.
    - If an ADR exists for this feature AND complexity is Medium or higher:
      1. Check if `adr/{adr-name}/synthesis.md` exists.
-     2. If `synthesis.md` does not exist → **BLOCK**: Print "Consultation required for Medium+ feature. Run /adr-consultation first." and STOP. Do not proceed to implementation.
+     2. If `synthesis.md` does not exist, **BLOCK**: Print "Consultation required for Medium+ feature. Run /adr-consultation first." and STOP.
      3. If `synthesis.md` exists, read it and check the verdict.
-        - If verdict is "PROCEED" → gate passes, continue.
-        - If verdict is "BLOCKED" → **BLOCK**: Print "Consultation blocked implementation. Resolve concerns in adr/{adr-name}/concerns.md before implementing." and STOP.
+        - If verdict is "PROCEED", gate passes, continue.
+        - If verdict is "BLOCKED", **BLOCK**: Print "Consultation blocked implementation. Resolve concerns in adr/{adr-name}/concerns.md before implementing." and STOP.
 
-4. Load design artifact from `.feature/state/design/` for reference.
+5. Load design artifact from `.feature/state/design/` for reference.
 
-5. Load L1 implement context:
+6. Load L1 implement context (along with L0 and plan/design artifacts, this provides the full context needed for accurate implementation):
    ```bash
    python3 ~/.claude/scripts/feature-state.py context-read FEATURE L1 --phase implement
    ```
 
-6. Capture BASE_SHA:
+7. Capture BASE_SHA for later diff validation:
    ```bash
    git rev-parse HEAD
    ```
@@ -110,14 +76,15 @@ Execute the implementation plan by dispatching tasks to domain agents wave by wa
 
 ### Phase 1: EXECUTE (Wave Dispatch)
 
-**For each wave in the plan:**
+**For each wave in the plan, in strict order** -- complete every task in Wave N before starting Wave N+1, because later waves depend on artifacts produced by earlier ones and out-of-order execution causes missing-dependency failures:
 
 **Step 1: Dispatch Tasks**
 
 For each task in the wave:
 
-1. Check if task is parallel-safe and parallel mode is enabled
-2. Dispatch to assigned domain agent via Task tool:
+1. Check if task is marked parallel-safe in the plan AND parallel mode is enabled. Only dispatch parallel-safe tasks simultaneously -- dispatching all tasks in parallel causes file conflicts and data corruption when tasks touch overlapping files.
+
+2. Dispatch to the domain agent assigned in the plan via Task tool. Each task gets a fresh agent dispatch (no reusing agents across tasks) because shared context between tasks causes subtle pollution where fixes for one task leak assumptions into another:
 
 ```
 Agent(
@@ -127,9 +94,13 @@ Agent(
 )
 ```
 
-3. Verify task output matches plan specification
+Use the agent specified in the plan, never override it -- the plan assigns agents based on domain expertise alignment determined during planning.
+
+3. After each task completes, verify the output matches the plan specification (expected files, function signatures, behavior). Catching spec drift per-task is far cheaper than discovering it after the entire wave.
 
 **Step 2: Handle Deviations**
+
+Classify every deviation by tier and act accordingly. Ignoring small deviations lets them compound into architectural problems across waves:
 
 | Tier | Examples | Action |
 |------|----------|--------|
@@ -137,30 +108,34 @@ Agent(
 | Tier 2: Blocking | Missing dependency, config issue | Auto-fix if possible, record |
 | Tier 3: Architectural | Schema change, API change, scope expansion | **STOP**, present to user |
 
-Check gate for Tier 3: `python3 ~/.claude/scripts/feature-state.py gate FEATURE implement.architectural-deviation`
+Tier 3 deviations require user input because they represent scope or design changes that the plan did not authorize:
+```bash
+python3 ~/.claude/scripts/feature-state.py gate FEATURE implement.architectural-deviation
+```
 
 **Step 3: Wave Checkpoint**
 
-After all tasks in a wave complete:
-1. Run the project's test suite (or relevant subset)
-2. If tests fail: identify which task caused the failure, route back to that agent
+After all tasks in a wave complete, run the project's test suite (or relevant subset). Skipping this causes failures to compound silently across waves, making root-cause identification exponentially harder:
+
+1. Run tests
+2. If tests fail: identify which task caused the failure, route back to that agent for a fix
 3. If tests pass: proceed to next wave
 
 **Step 4: Progress Report**
 
-After each wave:
+After each wave, report status:
 ```
 Wave N complete: X/Y tasks passed
-  T1: [agent] ✓
-  T2: [agent] ✓
-  T3: [agent] ✗ (deviation: [description])
+  T1: [agent] pass
+  T2: [agent] pass
+  T3: [agent] fail (deviation: [description])
 ```
 
 **Gate**: All waves complete. All tasks verified. Proceed to Validate.
 
 ### Phase 2: VALIDATE (Implementation Review)
 
-Quick validation before formal validation phase:
+Quick validation before the formal validation phase:
 - [ ] All planned files were created/modified
 - [ ] All verification commands pass
 - [ ] No unplanned files were modified (check `git diff --name-only BASE_SHA..HEAD`)
@@ -175,7 +150,7 @@ Quick validation before formal validation phase:
    echo "IMPL_SUMMARY" | python3 ~/.claude/scripts/feature-state.py checkpoint FEATURE implement
    ```
 
-2. **Record learnings** — if this phase produced non-obvious insights, record them:
+2. **Record learnings** -- if this phase produced non-obvious insights, record them:
    ```bash
    python3 ~/.claude/scripts/learning-db.py record TOPIC KEY "VALUE" --category design
    ```
@@ -201,18 +176,7 @@ Quick validation before formal validation phase:
 | Wave test failure | Task broke existing tests | Route back to responsible agent for fix |
 | Tier 3 deviation | Architectural decision needed | Stop, present options to user |
 
-## Anti-Patterns
-
-| Anti-Pattern | Why Wrong | Do Instead |
-|--------------|-----------|------------|
-| Implement without dispatching to agents | Bypasses domain expertise | Use Task tool to dispatch |
-| Skip wave checkpoints | Failures compound across waves | Test after every wave |
-| Ignore deviations | Small deviations become big problems | Classify and handle per tier |
-| Dispatch all tasks in parallel | File conflicts cause corruption | Respect wave ordering and parallel-safe flags |
-
 ## References
 
-- [Gate Enforcement](../shared-patterns/gate-enforcement.md)
-- [Retro Loop](../shared-patterns/retro-loop.md)
 - [State Conventions](../_feature-shared/state-conventions.md)
 - [Subagent-Driven Development](../subagent-driven-development/SKILL.md)
