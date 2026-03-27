@@ -42,57 +42,10 @@ routing:
 
 # Go Testing Skill
 
-## Operator Context
-
-This skill operates as an operator for Go testing workflows, configuring Claude's behavior for idiomatic, thorough Go test development. It implements the **Pattern Library** architectural pattern -- applying canonical Go testing patterns (table-driven, subtests, helpers, mocking) with **Domain Intelligence** from the Go standard library's testing conventions.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before writing tests
-- **Over-Engineering Prevention**: Write only the tests needed. No speculative coverage, no "while I'm here" test additions
-- **Table-Driven Tests Required**: Multiple related cases MUST use table-driven pattern with `t.Run`
-- **t.Helper() Required**: Every test helper function MUST call `t.Helper()` as its first line
-- **Show Test Output**: Always show actual `go test` output. Never summarize as "tests pass"
-- **Race Detector**: Run `go test -race` when testing concurrent code
-- **Black-Box Testing**: Prefer `package_test` (external test package) over `package` (internal)
-- **Test Name Accuracy**: Test names must accurately describe the code path exercised. If a test simulates behavior rather than exercising the production code path, the name must reflect this (e.g., `TestConsumeLoop_CanBeReenteredAfterFailure` not `TestRestartLoop_RestartsAfterTransientFailure` when the test calls `consumeLoop` directly instead of `Start()`). "Pragmatic approximation" is not a valid reason for a misleading test name.
-
-### Default Behaviors (ON unless disabled)
-- **Parallel Execution**: Use `t.Parallel()` for independent tests by default
-- **t.Cleanup Over defer**: Prefer `t.Cleanup()` for resource management in test helpers
-- **t.Context()**: Use `t.Context()` (Go 1.24+) for context-aware tests
-- **b.Loop()**: Use `b.Loop()` (Go 1.24+) instead of `for i := 0; i < b.N; i++` for benchmarks
-- **gopls Diagnostics**: After editing test files, use `go_diagnostics` to catch errors before running tests
-- **Error Path Testing**: Test error conditions, not just happy paths
-- **Coverage Check**: Run `-coverprofile` and verify critical paths have >80% coverage
-- **Cleanup Verification**: Each test must clean up after itself (no test pollution)
-
-### Optional Behaviors (OFF unless enabled)
-- **synctest Usage**: Use `testing/synctest` (Go 1.25+) for deterministic concurrency testing
-- **Benchmark Comparison**: Use `benchstat` for before/after performance comparisons
-- **Coverage HTML Report**: Generate and open HTML coverage visualization
-- **Interface Deduplication**: Test multiple interface implementations with shared test functions
-
-## Available Scripts
-
-- **`scripts/gen-table-test.sh`** — Scaffold a table-driven test file for a Go function. Run `bash scripts/gen-table-test.sh --help` for options.
-- **`scripts/bench-compare.sh`** — Run Go benchmarks with optional benchstat comparison. Run `bash scripts/bench-compare.sh --help` for options.
-
-## What This Skill CAN Do
-- Write idiomatic table-driven tests with `t.Run` subtests
-- Create test helpers with proper `t.Helper()` marking
-- Build manual mock implementations for interfaces
-- Write benchmarks using modern `b.Loop()` pattern
-- Set up parallel tests with proper variable capture
-- Guide race detection and concurrent test patterns
-
-## What This Skill CANNOT Do
-- Debug failing tests (use `systematic-debugging` instead)
-- Write non-Go tests (use `test-driven-development` instead)
-- Perform general Go development (use `golang-general-engineer` directly)
-- Generate code from mocking frameworks (manual mocks preferred in Go)
-- Optimize performance without test focus (use performance profiling tools)
-
----
+Go testing follows a 4-phase workflow: understand what needs testing, write
+idiomatic tests, run and verify, review quality. Every function with multiple
+test cases uses table-driven pattern. Every helper calls t.Helper(). Every
+concurrent test runs with -race.
 
 ## Instructions
 
@@ -104,6 +57,9 @@ This skill operates as an operator for Go testing workflows, configuring Claude'
 - What function/method/package is being tested?
 - Is this a new test, modification, or coverage gap?
 - Are there existing tests to follow as patterns?
+
+Read and follow repository CLAUDE.md before writing tests — project conventions
+override these defaults.
 
 **Step 2: Choose test type**
 
@@ -118,7 +74,7 @@ This skill operates as an operator for Go testing workflows, configuring Claude'
 **Step 3: Verify test file structure**
 
 ```go
-package mypackage_test  // Black-box testing (preferred)
+package mypackage_test  // Black-box testing (preferred over internal)
 
 import (
     "testing"
@@ -128,6 +84,10 @@ import (
 // Order: Unit tests, Integration tests, Benchmarks, Examples
 ```
 
+Black-box testing (`package_test`) is preferred because it tests the public API the
+way consumers use it. Internal testing (`package`) is acceptable only when testing
+unexported behavior that can't be reached through the public API.
+
 **Gate**: Test scope, type, and file location identified. Proceed only when gate passes.
 
 ### Phase 2: WRITE Tests
@@ -136,7 +96,9 @@ import (
 
 **Step 1: Table-driven tests for multiple cases**
 
-Every function with more than one test case MUST use table-driven pattern:
+Multiple related cases MUST use table-driven pattern — this is the canonical Go
+testing idiom because it makes adding cases trivial and the input/output
+relationship explicit:
 
 ```go
 func TestParseConfig(t *testing.T) {
@@ -173,7 +135,14 @@ func TestParseConfig(t *testing.T) {
 }
 ```
 
+Write only the tests needed — no speculative coverage, no "while I'm here"
+additions. Each test should exercise a specific behavior, not pad a coverage number.
+
 **Step 2: Test helpers with t.Helper()**
+
+Every test helper MUST call `t.Helper()` as its first line — without it, test
+failure messages point to the helper's line instead of the caller's, which makes
+debugging failures slow and frustrating:
 
 ```go
 func assertEqual[T comparable](t *testing.T, got, want T) {
@@ -205,6 +174,9 @@ See `references/go-test-patterns.md` for complete mock patterns with call tracki
 
 **Step 4: Parallel tests**
 
+Use `t.Parallel()` for independent tests by default — it catches unintended
+shared state and runs faster:
+
 ```go
 for _, tt := range tests {
     t.Run(tt.name, func(t *testing.T) {
@@ -213,6 +185,11 @@ for _, tt := range tests {
     })
 }
 ```
+
+**Step 5: Test error paths too**
+
+Test error conditions, not just happy paths. If a function can return an error,
+write at least one test case that triggers that error and verifies the message.
 
 **Gate**: Tests follow table-driven pattern, helpers use `t.Helper()`, mocks use function fields. Proceed only when gate passes.
 
@@ -226,7 +203,8 @@ for _, tt := range tests {
 # Standard run with verbose output
 go test -v ./path/to/package/...
 
-# With race detector (REQUIRED for concurrent code)
+# With race detector (REQUIRED for concurrent code — race conditions
+# are silent until production; the -race flag catches them deterministically)
 go test -race -v ./path/to/package/...
 
 # With coverage
@@ -234,11 +212,17 @@ go test -coverprofile=coverage.out ./path/to/package/...
 go tool cover -func=coverage.out
 ```
 
+Always show actual `go test` output. Never summarize as "tests pass" — the user
+needs to see what ran, what passed, and what the output looks like.
+
 **Step 2: Verify results**
 - All tests pass (show actual output)
 - No race conditions detected
 - Critical paths have >80% coverage
 - Error paths are exercised
+
+After editing test files, use `go_diagnostics` (gopls MCP) to catch errors
+before running tests — faster feedback than a full `go test` cycle.
 
 **Step 3: Run full suite**
 
@@ -264,13 +248,19 @@ Verify no regressions in other packages.
 - [ ] No test interdependencies?
 - [ ] Race detector passes?
 
+Test names must accurately describe the code path exercised. If a test simulates
+behavior rather than exercising the production code path, the name must reflect
+this — "pragmatic approximation" is not a valid reason for a misleading test name.
+
 **Gate**: All checklist items satisfied. Tests are complete.
 
 ---
 
 ## Benchmark Guide
 
-**Use `b.Loop()` (Go 1.24+) for all new benchmarks.** It prevents dead code elimination, manages timers automatically, and produces more accurate results.
+Use `b.Loop()` (Go 1.24+) for all new benchmarks — it prevents dead code
+elimination, manages timers automatically, and produces more accurate results
+than the manual `for i := 0; i < b.N; i++` loop:
 
 ```go
 func BenchmarkProcess(b *testing.B) {
@@ -348,52 +338,14 @@ Solution:
 
 ---
 
-## Anti-Patterns
+## Available Scripts
 
-### Anti-Pattern 1: Separate Functions for Related Cases
-**What it looks like**: `TestParseValid`, `TestParseInvalid`, `TestParseEmpty` as separate functions
-**Why wrong**: Duplicates setup, obscures the input-output relationship, harder to add cases
-**Do instead**: One `TestParse` with table-driven cases and `t.Run` subtests
-
-### Anti-Pattern 2: Missing t.Helper()
-**What it looks like**: Test helper reports errors at the helper's line, not the caller's
-**Why wrong**: Makes debugging test failures slow because error location is misleading
-**Do instead**: Add `t.Helper()` as the first line of every test helper function
-
-### Anti-Pattern 3: Testing Implementation Instead of Behavior
-**What it looks like**: Asserting internal method calls, field values, or execution order
-**Why wrong**: Breaks on every refactor even when behavior is unchanged
-**Do instead**: Test observable behavior (return values, side effects, state changes)
-
-### Anti-Pattern 4: Test Pollution via Shared State
-**What it looks like**: Package-level variables modified by tests, test order matters
-**Why wrong**: Tests become flaky, pass individually but fail together
-**Do instead**: Create fresh state in each test. Use `t.Cleanup()` for teardown.
-
-### Anti-Pattern 5: Hardcoded File Paths
-**What it looks like**: `os.ReadFile("testdata/input.json")` without considering working directory
-**Why wrong**: Breaks when test runs from different directory or in CI
-**Do instead**: Use `t.TempDir()` for generated files, `os.Getwd()` + relative path for testdata
+- **`scripts/gen-table-test.sh`** — Scaffold a table-driven test file for a Go function
+- **`scripts/bench-compare.sh`** — Run Go benchmarks with optional benchstat comparison
 
 ---
 
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization Core](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Anti-Rationalization Testing](../shared-patterns/anti-rationalization-testing.md) - Testing-specific rationalization prevention
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "One test case, no need for table-driven" | Will grow to multiple cases | Set up table-driven from the start |
-| "t.Helper() is just cosmetic" | Wrong error location wastes debug time | Always add t.Helper() |
-| "Tests pass, no need for -race" | Race conditions are silent until production | Run with -race for concurrent code |
-| "Coverage is 80%, good enough" | What's in the uncovered 20%? | Check that critical paths are covered |
-| "Mock is too complex to build" | Complex ≠ optional | Build the mock, track calls |
-
-### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/go-test-patterns.md`: Full examples for table-driven tests, helpers, mocking, interface deduplication
 - `${CLAUDE_SKILL_DIR}/references/go-benchmark-and-concurrency.md`: b.Loop() benchmarks, benchstat, synctest, race detection patterns
