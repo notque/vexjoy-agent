@@ -36,68 +36,38 @@ routing:
 
 # Feature Design Skill
 
-## Purpose
-
-Transform a feature idea into a structured design document through collaborative dialogue. This is Phase 1 of the feature lifecycle pipeline (design → plan → implement → validate → release).
-
-## Operator Context
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before design
-- **Over-Engineering Prevention**: Design only what's requested. Don't add speculative requirements.
-- **State Management via Script**: All state operations go through `python3 ~/.claude/scripts/feature-state.py`
-- **Gate Enforcement**: Check gate status before proceeding past decision points
-- **Design Doc Required**: Phase CANNOT complete without a design document artifact in `.feature/state/design/`
-- **ADR for Design Decisions**: Write an ADR to `adr/{feature-name}.md` documenting architectural decisions made during design exploration. Register the ADR session (`python3 ~/.claude/scripts/adr-query.py register --adr adr/{name}.md`) so sub-phase skills (feature-plan, feature-implement) receive design context via hook injection.
-- **Branch Safety**: Create feature branch via worktree, never work on main
-
-### Default Behaviors (ON unless disabled)
-- **Collaborative Dialogue**: Ask clarifying questions before committing to an approach
-- **Multiple Approaches**: Generate 2-3 approaches with trade-offs before selecting
-- **Context Loading**: Read L0 and L1 context at phase start
-
-### Optional Behaviors (OFF unless enabled)
-- **Auto-approve gates**: Skip human approval for design gates (requires config)
-
-## What This Skill CAN Do
-- Facilitate design discussion with the user
-- Produce structured design documents
-- Initialize feature state and worktree
-- Load and update feature context hierarchy
-
-## What This Skill CANNOT Do
-- Skip design and go straight to code
-- Produce implementation plans (that's feature-plan)
-- Write code (that's feature-implement)
-- Modify published context directly (retro loop only)
+Transform a feature idea into a structured design document through collaborative dialogue. This is Phase 1 of the feature lifecycle pipeline (design > plan > implement > validate > release).
 
 ## Instructions
 
 ### Phase 0: PRIME
 
-**Goal**: Initialize feature state and load context.
+**Goal**: Initialize feature state, load context, and prepare the workspace.
 
-1. Initialize feature state:
+1. Read and follow the repository's CLAUDE.md before any design work begins -- design decisions must align with existing project conventions.
+
+2. Create a feature branch via worktree. Never work on main -- design artifacts on main block other contributors and bypass review.
    ```bash
    python3 ~/.claude/scripts/feature-state.py init "FEATURE_NAME"
    ```
+   All state operations throughout this skill go through `feature-state.py` -- direct file manipulation risks state corruption and breaks downstream skills (feature-plan, feature-implement) that depend on consistent state format.
 
-2. Load L0 context:
+3. Load L0 context -- skipping existing context discards previous learnings and causes redundant design work:
    ```bash
    python3 ~/.claude/scripts/feature-state.py context-read "" L0
    ```
 
-3. Load L1 design context:
+4. Load L1 design context:
    ```bash
    python3 ~/.claude/scripts/feature-state.py context-read "" L1 --phase design
    ```
 
-4. If existing L2 context is relevant, load on-demand:
+5. If existing L2 context is relevant, load on-demand:
    ```bash
    python3 ~/.claude/scripts/feature-state.py context-read "" L2 --phase design
    ```
 
-5. **Surface relevant seeds** (ADR-075): Check `.seeds/index.json` for dormant seeds whose trigger conditions match the current feature. Compare the feature name and description against each seed's `trigger` field using fuzzy keyword overlap. If matches are found, present them:
+6. **Surface relevant seeds** (ADR-075): Check `.seeds/index.json` for dormant seeds whose trigger conditions match the current feature. Compare the feature name and description against each seed's `trigger` field using fuzzy keyword overlap. If matches are found, present them:
 
    ```
    ## Relevant Seeds (N matched)
@@ -117,7 +87,7 @@ Transform a feature idea into a structured design document through collaborative
 
    If `.seeds/` does not exist or contains no dormant seeds, skip this step silently.
 
-**Gate**: Feature state initialized. Context loaded. Seeds surfaced (if any). Proceed to Execute.
+**Gate**: Feature state initialized. Context loaded. Seeds surfaced (if any). Check gate status before proceeding -- gates exist because downstream phases assume specific artifacts exist, so skipping them causes silent failures later.
 
 ### Phase 1: EXECUTE (Design Dialogue)
 
@@ -128,7 +98,7 @@ Transform a feature idea into a structured design document through collaborative
 Check gate: `python3 ~/.claude/scripts/feature-state.py gate FEATURE design.intent-discussion`
 
 If gate mode is `human`:
-- Ask clarifying questions about the feature, one at a time
+- Ask clarifying questions about the feature, one at a time -- committing to an approach before understanding requirements produces designs that need rework
 - Prefer multiple-choice when possible
 - Establish success criteria
 - Identify constraints
@@ -141,7 +111,8 @@ If gate mode is `auto`:
 
 Check gate: `python3 ~/.claude/scripts/feature-state.py gate FEATURE design.approach-selection`
 
-Generate 2-3 approaches:
+Generate 2-3 approaches with trade-offs before selecting one -- a single approach provides no basis for evaluating whether it is the right one. Design only what is requested in each approach; do not add speculative requirements or future-proofing -- unasked-for complexity increases review burden, slows implementation, and often gets removed later.
+
 ```markdown
 ## Approach 1: [Name]
 **Pros**: [advantages]
@@ -192,6 +163,8 @@ Create the design document:
 
 Check gate: `python3 ~/.claude/scripts/feature-state.py gate FEATURE design.design-approval`
 
+This phase cannot complete without a design document artifact in `.feature/state/design/` -- feature-plan reads from this path, so a missing document causes the next skill to fail silently or plan against stale data.
+
 Validation checklist:
 - [ ] Problem statement is clear
 - [ ] Requirements are enumerable (not vague)
@@ -207,29 +180,34 @@ If gate is `auto`: verify checklist passes.
 
 ### Phase 3: CHECKPOINT
 
-**Goal**: Save artifacts, run retro pipeline, advance.
+**Goal**: Save artifacts, record learnings, advance to next phase.
 
 1. Save design document:
    ```bash
    echo "DESIGN_CONTENT" | python3 ~/.claude/scripts/feature-state.py checkpoint FEATURE design
    ```
 
-2. **Record learnings** — if this phase produced non-obvious insights, record them:
+2. Write an ADR to `adr/{feature-name}.md` documenting the architectural decisions made during design exploration. Register the ADR so sub-phase skills (feature-plan, feature-implement) receive design context via hook injection -- without registration, downstream skills operate without awareness of the design rationale:
+   ```bash
+   python3 ~/.claude/scripts/adr-query.py register --adr adr/{name}.md
+   ```
+
+3. **Record learnings** -- if this phase produced non-obvious insights, record them:
    ```bash
    python3 ~/.claude/scripts/learning-db.py record TOPIC KEY "VALUE" --category design
    ```
 
-3. Advance to plan phase:
+4. Advance to plan phase:
    ```bash
    python3 ~/.claude/scripts/feature-state.py advance FEATURE
    ```
 
-4. Suggest next step:
+5. Suggest next step:
    ```
    Design complete. Run /feature-plan to break this into implementation tasks.
    ```
 
-**Gate**: Artifacts saved. Retro complete. Phase finished.
+**Gate**: Artifacts saved. Learnings recorded. Phase finished.
 
 ## Error Handling
 
@@ -239,18 +217,7 @@ If gate is `auto`: verify checklist passes.
 | Gate returns exit 2 | Human input required | Present decision to user, wait for response |
 | No design doc produced | Skipped design dialogue | Return to Phase 1, complete all steps |
 
-## Anti-Patterns
-
-| Anti-Pattern | Why Wrong | Do Instead |
-|--------------|-----------|------------|
-| Skip design, go straight to code | Undesigned features require rework | Complete design dialogue first |
-| Design everything at once | Over-engineering | Design only what's needed for this feature |
-| Ignore existing context | Loses previous learnings | Load L0/L1 at prime |
-
 ## References
 
-- [Gate Enforcement](../shared-patterns/gate-enforcement.md)
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md)
-- [Retro Loop](../shared-patterns/retro-loop.md)
 - [State Conventions](../_feature-shared/state-conventions.md)
-- [Plant Seed](../plant-seed/SKILL.md) — seed-based deferred work surfaced in Phase 0 (ADR-075)
+- [Plant Seed](../plant-seed/SKILL.md) -- seed-based deferred work surfaced in Phase 0 (ADR-075)

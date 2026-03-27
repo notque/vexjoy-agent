@@ -21,41 +21,9 @@ routing:
 
 # PR Cleanup Skill
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for post-merge branch cleanup, configuring Claude's behavior for safe, systematic removal of stale local branches. It implements a **Sequential Safety** pattern -- identify target, verify merge status, delete safely, confirm result.
-
-### Hardcoded Behaviors (Always Apply)
-- **Protected Branches**: NEVER delete main, master, or develop branches
-- **Safe Delete First**: Always use `git branch -d` before considering `-D`
-- **Identify Before Switch**: Capture branch name BEFORE switching to main
-- **Verify Merge Status**: Confirm branch was merged or remote-deleted before removing
-- **Report Results**: Always show what was deleted and what remains
-- **Worktree Cleanup First**: Before deleting any branch, check if a git worktree references it. Worktree branches block `git branch -d/-D` and `gh pr merge --delete-branch`. Run `git worktree remove` before branch deletion.
-
-### Default Behaviors (ON unless disabled)
-- **Prune Remote References**: Run `git remote prune origin` after cleanup
-- **Pull Latest**: Pull main/master with `--prune` after switching
-- **Show Remaining Branches**: List local branches after cleanup completes
-- **Squash-Merge Detection**: Check for `[gone]` upstream when `-d` fails
-
-### Optional Behaviors (OFF unless enabled)
-- **Batch Cleanup**: Delete all merged branches with `--all` flag
-- **Dry Run**: Show what would be deleted without acting, with `--dry-run` flag
-
-## What This Skill CAN Do
-- Delete local branches that have been merged into main/master
-- Detect squash-merged branches by checking upstream tracking status
-- Batch-delete all merged branches except protected ones
-- Prune stale remote-tracking references
-- Dry-run to preview cleanup actions
-
-## What This Skill CANNOT Do
-- Delete remote branches (local cleanup only)
-- Review or merge PRs (use /pr-review instead)
-- Run CI checks (use ci skill instead)
-- Create or rename branches
-- Force-delete unmerged branches without explicit user confirmation
+This skill provides safe, systematic cleanup of local branches after PR merge. It implements a **Sequential Safety** pattern: identify target, verify merge status, delete safely, confirm result. The workflow follows 5 sequential steps to prevent data loss and ensure reliable cleanup.
 
 ---
 
@@ -65,7 +33,7 @@ This skill operates as an operator for post-merge branch cleanup, configuring Cl
 
 **Goal**: Remove any git worktrees referencing the target branch before attempting deletion.
 
-Worktree agents (dispatched with `isolation: "worktree"`) create local branches that block both `git branch -d` and `gh pr merge --delete-branch`. Check and clean up worktrees first:
+Worktree agents (dispatched with `isolation: "worktree"`) create local branches that block both `git branch -d` and `gh pr merge --delete-branch`. Since worktree branches prevent deletion, check and clean up first:
 
 ```bash
 # List worktrees referencing any branch
@@ -75,7 +43,7 @@ git worktree list
 git worktree remove <worktree-path>
 ```
 
-If worktree removal fails (e.g., uncommitted changes), report the issue to the user. Do not force-remove without confirmation.
+If worktree removal fails (e.g., uncommitted changes), report the issue to the user rather than force-removing, to avoid data loss.
 
 **Gate**: No worktrees reference the target branch.
 
@@ -83,15 +51,15 @@ If worktree removal fails (e.g., uncommitted changes), report the issue to the u
 
 **Goal**: Determine which branch to clean up before any state changes.
 
-If user provides a branch name argument, use that. Otherwise capture the current branch:
+Capture the target branch *before* switching (switching state changes current branch and complicates recovery). If user provides a branch name, use that; otherwise:
 
 ```bash
 BRANCH_TO_DELETE=$(git branch --show-current)
 ```
 
-If already on main/master, ask the user which branch to clean up. Do not proceed without a target.
+If already on main/master, ask the user which branch to clean up — do not assume and prevent accidental deletion of the base branch.
 
-Detect the main branch name:
+Never delete protected branches (main, master, develop) — these are the foundation of the repo and accidentally deleting them causes widespread damage. Detect the main branch name for later use:
 
 ```bash
 MAIN_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "master")
@@ -103,6 +71,8 @@ MAIN_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^re
 
 **Goal**: Move to main branch and sync with remote.
 
+Must switch away from the target branch before deletion — git forbids deleting the current branch. Prune old remote-tracking references to keep the branch list clean:
+
 ```bash
 git checkout "$MAIN_BRANCH" && git pull --prune origin "$MAIN_BRANCH"
 ```
@@ -113,21 +83,25 @@ git checkout "$MAIN_BRANCH" && git pull --prune origin "$MAIN_BRANCH"
 
 **Goal**: Remove the target branch safely.
 
-Attempt safe delete first:
+Use `-d` (safe delete) before `-D` (force delete) to prevent destroying unmerged work. Git's `-d` will refuse to delete branches with unmerged commits — this is a guard rail:
 
 ```bash
 git branch -d "$BRANCH_TO_DELETE"
 ```
 
 If `-d` fails with "not fully merged":
-1. Check if branch was squash-merged by looking for gone upstream:
-   ```bash
-   git branch --format '%(refname:short) %(upstream:track)' | grep "$BRANCH_TO_DELETE"
-   ```
-2. If upstream shows `[gone]`, the remote branch was deleted (PR was merged). Inform user and offer `-D`.
-3. If upstream is NOT gone, warn user the branch may contain unmerged work. Only use `-D` with explicit user confirmation.
 
-Prune stale remote-tracking references:
+Squash-merged and rebase-merged branches have no merge commit, so git doesn't recognize them as merged. Check if the remote branch was deleted (indicating a completed PR):
+
+```bash
+git branch --format '%(refname:short) %(upstream:track)' | grep "$BRANCH_TO_DELETE"
+```
+
+If upstream shows `[gone]`, the remote branch was deleted after PR merge — evidence the work is safe. Inform user and offer `-D` for forced deletion.
+
+If upstream is NOT gone, the branch may contain unmerged work — warn user and ask for explicit confirmation before using `-D`. Never force-delete without user confirmation on unknown merge status.
+
+Prune stale remote-tracking references to keep the reference list accurate:
 
 ```bash
 git remote prune origin
@@ -139,7 +113,7 @@ git remote prune origin
 
 **Goal**: Confirm what happened and show current state.
 
-Report format:
+Always report results so the user has visibility into what was removed and the final state. This prevents silent failures and gives confidence the cleanup succeeded:
 
 ```
 PR Cleanup Complete
@@ -152,11 +126,13 @@ PR Cleanup Complete
 
 Run `git branch` to show remaining local branches.
 
----
-
 ## Extended Cleanup (--all)
 
-When user passes `--all`, first remove all stale worktrees, then delete branches:
+When user passes `--all`, batch-delete all merged branches except protected ones.
+
+**Safety first**: Preview the branch list before deleting. If more than 3 branches will be deleted, ask for explicit confirmation to prevent unexpected wholesale cleanup:
+
+First, remove all stale worktrees pointing at branches we're about to delete:
 
 ```bash
 # Step 0: Clean up worktrees pointing at branches we're about to delete
@@ -164,19 +140,19 @@ git worktree list --porcelain | grep -A2 'branch refs/heads/' | grep -v 'main\|m
 # For each stale worktree: git worktree remove <path>
 ```
 
-Then delete all branches merged into main except protected branches:
+Then delete all branches merged into main except protected branches (never delete main/master/develop):
 
 ```bash
 git branch --merged "$MAIN_BRANCH" | grep -v -E '^\*|main|master|develop' | xargs -r git branch -d
 ```
 
-Also find squash-merged branches with gone upstreams:
+Also find and delete squash-merged branches by detecting gone upstreams:
 
 ```bash
 git branch --format '%(refname:short) %(upstream:track)' | awk '$2 == "[gone]" { print $1 }'
 ```
 
-Show the full list before deleting and confirm with user if more than 3 branches.
+Show the full list before deleting and confirm with user if more than 3 branches to prevent accidental data loss.
 
 ---
 
@@ -229,30 +205,6 @@ Solution:
 1. Try `git remote set-head origin --auto` to set it
 2. Fall back to checking if `main` or `master` exists locally
 3. Ask user to specify if neither is found
-
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Force-Deleting Without Checking Merge Status
-**What it looks like**: Using `git branch -D` immediately without trying `-d` first
-**Why wrong**: May destroy unmerged work with no recovery path
-**Do instead**: Always try `-d` first, check merge/upstream status, then `-D` only with evidence
-
-### Anti-Pattern 2: Deleting Before Switching
-**What it looks like**: Trying to delete the current branch while still on it
-**Why wrong**: Git will refuse, causing a confusing error
-**Do instead**: Always switch to main/master before deleting the target branch
-
-### Anti-Pattern 3: Skipping the Report
-**What it looks like**: Deleting branches silently without showing what was removed
-**Why wrong**: User has no confirmation of what happened, no visibility into remaining state
-**Do instead**: Always list deleted branches and remaining local branches
-
-### Anti-Pattern 4: Batch Delete Without Preview
-**What it looks like**: Running `--all` and deleting everything without showing the list first
-**Why wrong**: May delete branches user intended to keep
-**Do instead**: Show the list of branches to be deleted and confirm before proceeding
 
 ---
 

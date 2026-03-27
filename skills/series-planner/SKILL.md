@@ -28,45 +28,9 @@ routing:
 
 # Series Planner Skill
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for multi-part content planning, configuring Claude's behavior for creating cohesive blog post series with proper cross-linking, standalone value, and publishing cadence. It implements the **Structured Analysis** pattern -- assess viability, decide structure, generate plan -- with **Domain Intelligence** embedded in series type selection and standalone value enforcement.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before planning
-- **Over-Engineering Prevention**: Plan the series requested. No bonus parts, no scope creep
-- **Standalone Value**: Every part MUST deliver value without requiring other parts
-- **Cross-Linking Structure**: Every series gets navigation plan (Part X of Y, prev/next)
-- **Part Count Bounds**: Minimum 3 parts, maximum 7 parts. No exceptions
-- **No Filler Parts**: Each part earns its place with substantial, unique content
-
-### Default Behaviors (ON unless disabled)
-- **Full Plan Display**: Show complete plan with all details, never summarize
-- **Word Count Estimates**: Every part includes word count range (800-1500 typical)
-- **Publishing Cadence**: Always recommend publication schedule with reasoning
-- **Series Type Auto-Detection**: Select best series type from topic signals
-- **Hugo Frontmatter**: Include frontmatter template for each part
-- **Standalone Value Check**: Verify each part passes standalone test before output
-
-### Optional Behaviors (OFF unless enabled)
-- **Minimal Mode**: Just part titles and scope, no detailed breakdown
-- **Landing Page**: Generate series index page plan (enable with "with landing page")
-- **Parallel Planning**: Plan multiple series at once for content calendar
-
-## What This Skill CAN Do
-- Plan 3-7 part blog post series with logical progression
-- Select appropriate series type (Progressive Depth, Chronological Build, Problem Exploration)
-- Ensure each part has standalone value while enhancing series context
-- Design cross-linking structure with navigation patterns
-- Recommend publishing cadence based on content complexity
-- Generate Hugo frontmatter templates for series posts
-
-## What This Skill CANNOT Do
-- Write actual post content (use blog-post-writer for writing)
-- Plan series fewer than 3 parts (use single post or post-outliner instead)
-- Plan series more than 7 parts (break into multiple series or narrow scope)
-- Skip standalone value check (each part must be complete on its own)
-- Create vague, padded series (no filler parts to hit a number)
+This skill plans multi-part content series with proper structure, cross-linking, and publishing cadence. It implements a three-phase workflow: **ASSESS** (determine viability), **DECIDE** (select structure), and **GENERATE** (produce plan). Each phase has gates to prevent scope creep, ensure standalone value, and maintain quality constraints.
 
 ---
 
@@ -98,10 +62,11 @@ Audience progression: [beginner to expert? single level?]
 
 **Step 2: Check viability**
 
-- [ ] Topic has natural divisions (3+ distinct subtopics)
-- [ ] Each division can stand alone
-- [ ] Logical progression exists between parts
-- [ ] Not artificially padded (each part earns its place)
+Verify these constraints before proceeding:
+- Topic has natural divisions (minimum 3 distinct subtopics required — this is non-negotiable)
+- Each division can stand alone as complete content (not dependent on reading other parts)
+- Logical progression exists between parts (reader can follow from one to the next)
+- Not artificially padded (each part must earn its place with substantial unique content, no filler)
 
 **Step 3: Detect series type**
 
@@ -125,36 +90,43 @@ Match topic signals to type. See `references/series-types.md` for full templates
 ## Series Decision
 Type: [Progressive Depth / Chronological Build / Problem Exploration]
 Justification: [why this type fits]
-Part Count: [3-7]
+Part Count: [3-7, enforced strictly]
 Total Estimated Words: [X,XXX - X,XXX]
 ```
+
+Enforce part count bounds strictly: minimum 3 parts, maximum 7 parts. No exceptions. The 3-7 constraint prevents both over-engineering (splitting one idea across 8+ parts) and under-engineering (calling 2 loosely related posts a "series").
 
 **Step 2: Draft part breakdown**
 
 For each part, define:
-- Title and scope (1 sentence)
-- Standalone value (what reader gets from this part alone)
-- Forward/backward links to adjacent parts
+- Title and scope (1 sentence describing what this part covers)
+- Standalone value (what reader learns from this part alone, without reading others)
+- Forward/backward links (references to adjacent parts, for context only)
 
 **Step 3: Validate standalone value**
 
-For EACH part, verify:
-- Reader learns something complete (not half a concept)
-- Working code/config/output is possible from this part alone
-- No critical information deferred to other parts
-- Someone landing on just this part gets something useful
+For EVERY part, verify it passes the standalone test:
+- Reader learns something complete and actionable (not a half-concept requiring other parts)
+- Working code/config/output is possible from this part alone (readers aren't blocked waiting for next part)
+- No critical information deferred to other parts (concepts explained fully in their own context)
+- Someone landing on just this part via search gets something useful (SEO and UX principle)
 
-Red flags that fail standalone test:
-- "To understand this, read Part 1 first" as mandatory
-- Part ends mid-implementation
+Red flags that fail standalone test — reject any part showing these:
+- "To understand this, read Part 1 first" as mandatory dependency
+- Part ends mid-implementation with "Part 2 will continue"
 - Core concepts explained only in earlier parts
-- "Part 2 will explain why this works"
+- "Part 2 will explain why this works" — Part 1 reader is stranded
+
+This is the anti-pattern prevention layer. Standalone value is non-negotiable because:
+1. Search traffic lands on any part randomly, not always on Part 1
+2. Readers expect complete value from the part they're reading
+3. Multi-part cliff-hangers frustrate readers and hurt SEO
 
 **Step 4: Select publishing cadence**
 
 See `references/cadence-guidelines.md` for detailed criteria. Default to weekly unless topic complexity or content depth suggests otherwise.
 
-**Gate**: All parts pass standalone value check. Part count is 3-7. Type selection justified. Proceed only when gate passes.
+**Gate**: All parts pass standalone value check. Part count is strictly 3-7. Type selection justified. Proceed only when gate passes.
 
 ### Phase 3: GENERATE
 
@@ -171,12 +143,13 @@ Output the complete plan including:
 
 **Step 2: Final validation**
 
-- [ ] Every part has standalone value described
-- [ ] Word counts are realistic (800-1500 per part)
-- [ ] Cross-linking is complete (prev/next for all parts)
-- [ ] No cliff-hangers that frustrate readers
-- [ ] No filler parts
-- [ ] Part count within 3-7 bounds
+Before outputting, verify all constraints one final time:
+- [ ] Every part has standalone value described (not deferred to other parts)
+- [ ] Word counts are realistic (800-1500 per part, within 20% variance across parts to avoid reader whiplash)
+- [ ] Cross-linking is complete (prev/next navigation for all parts)
+- [ ] No cliff-hangers that frustrate readers (each part delivers closure, even if it references others)
+- [ ] No filler parts (each part has substantial, non-redundant content)
+- [ ] Part count within 3-7 bounds (enforced strictly)
 
 **Step 3: Output plan**
 
@@ -191,13 +164,13 @@ Use the series plan format from `references/output-format.md`.
 Three primary types. Full templates and examples in `references/series-types.md`.
 
 ### Progressive Depth
-Shallow-to-deep mastery. Each level is complete; beginners stop at Part 1, advanced readers skip ahead.
+Shallow-to-deep mastery. Each level is complete; beginners stop at Part 1, advanced readers skip ahead. Enables flexible audience engagement.
 
 ### Chronological Build
-Step-by-step creation. Each part produces working output; reader can stop at any milestone.
+Step-by-step creation. Each part produces working output; reader can stop at any milestone and have a working artifact.
 
 ### Problem Exploration
-Journey from problem to solution. Even failed approaches are instructive; each part teaches something.
+Journey from problem to solution. Even failed approaches are instructive; each part teaches something about the journey, not just the destination.
 
 ---
 
@@ -205,34 +178,42 @@ Journey from problem to solution. Even failed approaches are instructive; each p
 
 ### Example 1: Standard Technical Series
 User says: "/series Go error handling"
+
 Actions:
-1. Assess: Topic has clear depth levels (basics, wrapping, custom types, patterns) (ASSESS)
-2. Decide: Progressive Depth, 4 parts, weekly cadence (DECIDE)
-3. Generate: Full plan with standalone value per part (GENERATE)
-Result: 4-part series where each part teaches complete error handling at its level
+1. ASSESS: Topic has clear depth levels (basics, wrapping, custom types, patterns)
+2. DECIDE: Progressive Depth, 4 parts, weekly cadence
+3. GENERATE: Full plan with standalone value per part
+
+Result: 4-part series where each part teaches complete error handling at its level (beginner can stop at Part 1 and be satisfied; advanced reader skips to patterns).
 
 ### Example 2: Project Tutorial Series
 User says: "/series building a CLI tool in Rust"
+
 Actions:
-1. Assess: Topic has build milestones (scaffold, commands, config, distribution) (ASSESS)
-2. Decide: Chronological Build, 4 parts, weekly cadence (DECIDE)
-3. Generate: Full plan with working output per milestone (GENERATE)
-Result: 4-part series where each part produces a functional artifact
+1. ASSESS: Topic has build milestones (scaffold, commands, config, distribution)
+2. DECIDE: Chronological Build, 4 parts, weekly cadence
+3. GENERATE: Full plan with working output per milestone
+
+Result: 4-part series where each part produces a functional artifact (Part 1: runs basic command; Part 2: parses flags; Part 3: config file support; Part 4: distributable binary).
 
 ### Example 3: Problem Exploration Series
 User says: "/series why we migrated from MongoDB to PostgreSQL"
+
 Actions:
-1. Assess: Topic has journey arc (problem, attempt, failure, solution) (ASSESS)
-2. Decide: Problem Exploration, 4 parts, bi-weekly cadence (DECIDE)
-3. Generate: Full plan where each part teaches standalone lessons (GENERATE)
-Result: 4-part series where even failed approaches deliver instructive value
+1. ASSESS: Topic has journey arc (problem, attempt, failure, solution)
+2. DECIDE: Problem Exploration, 4 parts, bi-weekly cadence
+3. GENERATE: Full plan where each part teaches standalone lessons
+
+Result: 4-part series where even failed approaches deliver instructive value (Part 1: why we needed to move; Part 2: why MongoDB stopped working for us; Part 3: why PostgreSQL migration was hard; Part 4: what we learned).
 
 ### Example 4: Topic Too Narrow
 User says: "/series Go defer statement"
+
 Actions:
-1. Assess: Topic has 1-2 natural divisions, not 3+ (ASSESS)
+1. ASSESS: Topic has 1-2 natural divisions, not 3+
 2. Gate fails: Recommend single post or expanding scope to "Go resource management"
-Result: Redirect to post-outliner or expanded topic suggestion
+
+Result: Redirect to post-outliner or expanded topic suggestion (post-outliner is better for focused single topics).
 
 ---
 
@@ -240,80 +221,58 @@ Result: Redirect to post-outliner or expanded topic suggestion
 
 ### Error: "Topic Too Narrow for Series"
 Cause: Topic doesn't naturally divide into 3+ parts
+
 Solution:
-1. Suggest post-outliner for single comprehensive post
-2. Propose scope expansion: "Consider covering [related aspect]"
-3. List what would need to be true for series to work
+1. Suggest post-outliner for single comprehensive post (single-post tool is more appropriate)
+2. Propose scope expansion: "Consider covering [related aspect] to reach 3+ parts"
+3. List what would need to be true for series to work: "A series works when you can answer: Part 1 [X], Part 2 [Y], Part 3 [Z]"
 
 ### Error: "Topic Too Broad for Series"
-Cause: Would require 8+ parts or scope is unmanageable
+Cause: Would require 8+ parts or scope is unmanageable (violates part count constraint)
+
 Solution:
-1. Identify natural breakpoints for multiple series
-2. Recommend first series to tackle
-3. Suggest narrowing to specific aspect
+1. Identify natural breakpoints for multiple series (e.g., "Kubernetes basics" series + "Kubernetes advanced" series)
+2. Recommend first series to tackle (smallest, highest value)
+3. Suggest narrowing to specific aspect (e.g., "Instead of 'Cloud Architecture', try 'Cloud Cost Optimization'")
 
 ### Error: "No Logical Progression"
 Cause: Parts don't build on each other meaningfully; just loosely related topics
+
 Solution:
-1. Determine if these are better as standalone posts
-2. Find the connecting thread that creates progression
-3. Consider if forcing series structure adds value vs. individual posts
+1. Determine if these are better as standalone posts (not a series at all)
+2. Find the connecting thread that creates progression (what makes this 3-part story instead of 3 separate posts?)
+3. Consider if forcing series structure adds value vs. individual posts (sometimes the answer is "these should be separate")
 
 ### Error: "Standalone Value Missing"
-Cause: One or more parts don't stand alone
+Cause: One or more parts don't stand alone (reader needs previous parts to understand this one)
+
 Solution:
-1. Identify which parts fail the standalone test
-2. Suggest content to add for completeness
-3. Or merge dependent parts into one
-
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: The Cliff-Hanger Series
-**What it looks like**: "...but the real solution is in Part 2!" -- content gates behind future parts
-**Why wrong**: Frustrates readers, SEO penalty for thin content, Part 2 visitors get nothing
-**Do instead**: Each part delivers complete value. Reference other parts for context, not content.
-
-### Anti-Pattern 2: The Padded Series
-**What it looks like**: "Part 1: Introduction", "Part 2: Getting Started", "Part 3: Basics" -- three parts that should be one
-**Why wrong**: Disrespects reader time, each part lacks substance
-**Do instead**: Combine until each part has substantial, unique value. 3 meaty parts beats 6 thin ones.
-
-### Anti-Pattern 3: The Prerequisite Spiral
-**What it looks like**: "Before we start, read these 5 posts..." -- hard dependency chains
-**Why wrong**: Creates barrier to entry, search traffic to later parts bounces immediately
-**Do instead**: Brief context inline. Link to prerequisites as optional. Make each part accessible.
-
-### Anti-Pattern 4: Inconsistent Scope
-**What it looks like**: Part 1 is 500 words, Part 2 is 3000 words, Part 3 is 400 words
-**Why wrong**: Reader expectations whiplash, suggests poor planning
-**Do instead**: Keep parts roughly similar in depth and length. 800-1200 words each is the target.
-
-### Anti-Pattern 5: Scope Creep Mid-Series
-**What it looks like**: Starting with 3 planned parts, ending with 7 because "one more thing"
-**Why wrong**: Breaks publishing cadence, dilutes series focus, reader fatigue
-**Do instead**: Plan the full series before publishing Part 1. If scope grows, split into a second series.
+1. Identify which parts fail the standalone test (list specific examples: "Part 2 assumes knowledge from Part 1")
+2. Suggest content to add for completeness (add summary section, explain prerequisite inline, restructure)
+3. Or merge dependent parts into one (e.g., "Part 1 and 2 should be one part; move non-essential details to Part 3")
 
 ---
 
 ## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "This needs 8 parts to be complete" | Scope creep; split into two series | Enforce 3-7 part limit |
-| "Part 1 is just setup, real value starts Part 2" | Part 1 fails standalone test | Ensure Part 1 delivers value |
-| "Readers will read them in order" | Search traffic lands anywhere | Each part must stand alone |
-| "One more part won't hurt" | Padding dilutes series quality | Every part must earn its place |
 
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/series-types.md`: Complete type templates with examples and selection criteria
 - `${CLAUDE_SKILL_DIR}/references/cross-linking.md`: Navigation patterns and Hugo implementation
 - `${CLAUDE_SKILL_DIR}/references/cadence-guidelines.md`: Publishing frequency recommendations and schedules
 - `${CLAUDE_SKILL_DIR}/references/output-format.md`: Series plan output format template
+
+### Key Constraints Summary
+
+These constraints are non-negotiable and enforced at every phase:
+
+1. **Part Count (3-7)**: Series must have minimum 3 parts, maximum 7 parts. This prevents both scope creep (forcing 8+ parts for one idea) and false series (2 loosely related posts).
+
+2. **Standalone Value**: Every part MUST deliver complete value to readers who land on it via search or reference. Red flags: cliff-hangers, deferred core concepts, mid-implementation endings.
+
+3. **No Filler**: Each part must earn its place with substantial unique content. No padding to hit a part count target.
+
+4. **Logical Progression**: Parts build meaningfully from one to the next. If they're just loosely related topics, they shouldn't be a series.
+
+5. **Over-Engineering Prevention**: Plan only what the user requests. No bonus parts, scope creep, or "one more thing" unless user asks.
+
+These are gates at each phase. If any constraint fails, the workflow stops and recommends alternative approaches (single post, expanded scope, reduced scope, etc.).

@@ -34,48 +34,11 @@ routing:
 
 # Three.js Builder Skill
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for Three.js web application creation, configuring Claude's behavior for structured, scene-graph-driven 3D development. It implements the **Phased Construction** architectural pattern -- Design, Build, Animate, Polish -- with **Domain Intelligence** embedded in modern Three.js (r150+) ES module patterns.
+This skill builds complete Three.js web applications using a **Phased Construction** pattern with four phases: Design, Build, Animate, Polish. It is designed for modern Three.js (r150+) ES module patterns and produces scene-graph-driven 3D visualizations.
 
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before building
-- **Over-Engineering Prevention**: Build only what the user asked for. No speculative features, no "while I'm here" additions
-- **ES Modules Only**: Always use modern ES module imports from CDN or npm. Never use legacy global `THREE` variable or CommonJS
-- **Scene Graph First**: Structure all objects through the scene graph hierarchy. Use `Group` for logical groupings
-- **Responsive by Default**: Every app must handle window resize and cap `devicePixelRatio` at 2
-- **Single HTML File**: Default output is one self-contained HTML file unless user specifies otherwise
-
-### Default Behaviors (ON unless disabled)
-- **Three-Point Lighting**: Set up ambient + directional + fill light for standard scenes
-- **OrbitControls**: Include orbit camera controls for interactive scenes
-- **Animation Loop via setAnimationLoop**: Use `renderer.setAnimationLoop()` over manual `requestAnimationFrame`
-- **Configuration Object**: Define visual constants (colors, speeds, sizes) in a top-level `CONFIG` object
-- **Modular Setup Functions**: Separate scene creation into `createScene()`, `createLights()`, `createMeshes()` functions
-
-### Optional Behaviors (OFF unless enabled)
-- **Post-Processing**: Bloom, depth of field via EffectComposer
-- **Model Loading**: GLTF/GLB loading with auto-center and scale
-- **Custom Shaders**: ShaderMaterial with GLSL vertex/fragment shaders
-- **Shadow Mapping**: PCFSoft shadows with configurable map resolution
-- **Physics Integration**: Cannon.js gravity and collision simulation
-- **Raycasting**: Mouse/touch picking of 3D objects
-
-## What This Skill CAN Do
-- Create complete Three.js web applications from a user description
-- Set up scenes with proper lighting, camera, renderer, and resize handling
-- Use built-in geometries (Box, Sphere, Cylinder, Torus, Plane, Cone, Icosahedron)
-- Apply PBR materials (Standard, Physical) and basic materials (Basic, Phong, Normal)
-- Implement animations: rotation, oscillation, wave motion, mouse tracking
-- Add OrbitControls, GLTF model loading, post-processing, raycasting
-- Vary visual style to match context (portfolio, game, data viz, background effect)
-
-## What This Skill CANNOT Do
-- Create complex game engines (use Unity, Unreal instead)
-- Generate or edit 3D model files (modeling is done in Blender, etc.)
-- Implement VR/AR experiences (specialized WebXR knowledge needed)
-- Replace dedicated CAD software for engineering drawings
-- Optimize scenes with 1M+ polygons (requires specialized LOD/culling strategies)
+**Scope**: Use for 3D web apps, interactive scenes, WebGL visualizations, and product viewers. Do NOT use for game engines, 3D model creation, VR/AR experiences, or CAD workflows.
 
 ---
 
@@ -84,6 +47,13 @@ This skill operates as an operator for Three.js web application creation, config
 ### Phase 1: DESIGN
 
 **Goal**: Understand what the user wants and select appropriate Three.js components.
+
+**Core Constraints**:
+- **Build only what the user asked for** — no speculative features or "while I'm here" additions
+- **Use modern Three.js (r150+) ES modules only** — always import from CDN (`https://unpkg.com/three@0.160.0/build/three.module.js`) or npm, never use legacy global `THREE` variable or CommonJS
+- **Structure through the scene graph** — use `Group` for logical groupings and maintain proper hierarchy
+- **Vary style by context** — portfolio/showcase use elegant muted palettes; games use bright colors; data viz uses clean lines; backgrounds use subtle slow movement; product viewers use realistic PBR lighting
+- **Read repository CLAUDE.md before building** — ensure compliance with local development standards
 
 **Step 1: Identify the core visual element**
 
@@ -105,21 +75,23 @@ Determine from the user request:
 - Extras: [post-processing / raycasting / particles]
 ```
 
-**Step 3: Choose visual style based on context**
+**Step 3: Document visual style**
 
-| Context | Style Guidance |
-|---------|---------------|
-| Portfolio/showcase | Elegant, smooth animations, muted palette |
-| Game/interactive | Bright colors, snappy controls, particle effects |
-| Data visualization | Clean lines, grid helpers, clear labels |
-| Background effect | Subtle, slow movement, dark gradients |
-| Product viewer | Realistic PBR lighting, smooth orbit, neutral backdrop |
+Record the visual direction for this scene (e.g., "elegant minimal portfolio style", "vibrant interactive game", "clean data visualization"). Use this to guide material colors, lighting warmth, and animation pacing.
 
 **Gate**: Scene plan documented with geometry, material, lighting, animation, and controls selected. Proceed only when gate passes.
 
 ### Phase 2: BUILD
 
 **Goal**: Construct the scene with proper structure and modern patterns.
+
+**Core Constraints**:
+- **Single HTML file output by default** unless user specifies otherwise
+- **Include resize handling** that caps `devicePixelRatio` at 2 and updates camera aspect on window change
+- **Use a top-level `CONFIG` object** for all visual constants (colors, speeds, sizes) — no magic numbers scattered through code
+- **Separate concerns into modular setup functions**: `createScene()`, `createLights()`, `createMeshes()` — this enables testing and reuse
+- **Include three-point lighting by default**: ambient light + directional light + fill light, unless user specifies a different lighting strategy
+- **Use `renderer.setAnimationLoop()` instead of manual `requestAnimationFrame()`** for cleaner animation setup
 
 **Step 1: Create HTML boilerplate**
 
@@ -149,6 +121,13 @@ Every app starts with this structure:
 **Step 2: Build scene infrastructure**
 
 ```javascript
+// CONFIG object at top level
+const CONFIG = {
+    colors: { /* color hex values */ },
+    speeds: { /* animation speeds */ },
+    sizes: { /* geometric dimensions */ }
+};
+
 // Scene, camera, renderer
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
@@ -169,13 +148,19 @@ window.addEventListener('resize', () => {
 
 **Step 3: Add lighting, geometry, and materials per scene plan**
 
-Build each component from the Phase 1 plan. Create geometry once, reuse where possible. Use `Group` for hierarchical transforms.
+Build each component from the Phase 1 plan. Create geometry once and reuse where possible (avoid allocating new geometries in animation loops). Use `Group` for hierarchical transforms and logical scene organization.
 
 **Gate**: Scene renders without errors. All planned geometry, materials, and lights are present. Proceed only when gate passes.
 
 ### Phase 3: ANIMATE
 
 **Goal**: Add motion, interaction, and life to the scene.
+
+**Core Constraints**:
+- **Never allocate geometry or materials inside the animation loop** — this causes garbage collection pauses and frame rate collapse
+- **Use the `time` parameter (in milliseconds) for time-based animation** — multiply by small factors (0.001, 0.0005) for smooth motion
+- **Include OrbitControls by default** for interactive scenes (unless user requests a specific control scheme)
+- **Transform only position, rotation, and scale per frame** — all geometry and materials are static
 
 **Step 1: Set up animation loop**
 
@@ -189,7 +174,10 @@ renderer.setAnimationLoop((time) => {
 
 **Step 2: Implement planned animations**
 
-Apply transforms per frame. Use `time` parameter (milliseconds) for time-based animation. Multiply by small factors (0.001, 0.0005) for smooth motion.
+Apply transforms per frame. Time-based animation should follow the pattern:
+```javascript
+mesh.rotation.x += CONFIG.speeds.rotation * (time * 0.001);
+```
 
 **Step 3: Add interaction handlers**
 
@@ -201,9 +189,17 @@ Wire up mouse/touch events, orbit controls, or raycasting per the scene plan.
 
 **Goal**: Ensure quality, performance, and completeness.
 
+**Core Constraints**:
+- **Remove all debug helpers** (AxesHelper, GridHelper, Stats) unless user explicitly requested them
+- **Remove all commented-out code and TODO markers**
+- **Every scene must handle window resize** and render correctly at all viewport sizes
+- **Lighting must produce visible surfaces** — no black screens from missing lights
+- **Colors and visual style must match the intended context** — this is non-negotiable quality bar
+
 **Step 1: Verify responsive behavior**
-- Resize browser window -- canvas fills viewport without distortion
+- Resize browser window — canvas fills viewport without distortion
 - `devicePixelRatio` capped at 2
+- Test at common mobile/tablet/desktop breakpoints
 
 **Step 2: Verify visual quality**
 - Lighting produces visible surfaces (no black screen from missing lights)
@@ -220,28 +216,6 @@ Wire up mouse/touch events, orbit controls, or raycasting per the scene plan.
 - Ensure no commented-out code or TODO markers remain
 
 **Gate**: All verification steps pass. Output is complete and ready to deliver.
-
----
-
-## Examples
-
-### Example 1: Simple Animated Scene
-User says: "Create a threejs scene with a rotating icosahedron"
-Actions:
-1. Design: low-poly icosahedron, standard material, three-point lighting, continuous rotation (DESIGN)
-2. Build: HTML boilerplate, scene setup, IcosahedronGeometry with flatShading, lighting (BUILD)
-3. Animate: rotation on x and y axes using time parameter (ANIMATE)
-4. Polish: verify resize, test in browser, remove debug helpers (POLISH)
-Result: Single HTML file with responsive, animated 3D scene
-
-### Example 2: Interactive Product Viewer
-User says: "Build a 3D product viewer that loads a GLB model"
-Actions:
-1. Design: GLTF loader, PBR material, realistic lighting, OrbitControls, neutral backdrop (DESIGN)
-2. Build: HTML with GLTFLoader import, auto-center/scale model, environment lighting (BUILD)
-3. Animate: orbit controls with damping, optional auto-rotate (ANIMATE)
-4. Polish: loading progress indicator, responsive, verify model renders (POLISH)
-Result: Interactive model viewer with orbit controls and proper lighting
 
 ---
 
@@ -271,49 +245,6 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Creating Geometry Inside the Animation Loop
-**What it looks like**: `new THREE.BoxGeometry(1,1,1)` called every frame
-**Why wrong**: Allocates memory every frame, causes GC pauses and frame rate collapse
-**Do instead**: Create all geometries and materials once during setup. Transform only position, rotation, and scale in the loop.
-
-### Anti-Pattern 2: Using Legacy Global THREE Patterns
-**What it looks like**: `<script src="three.js">` with `var scene = new THREE.Scene()`
-**Why wrong**: CommonJS/global patterns are deprecated. CDN bundles are outdated. Addons like OrbitControls are not available on the global namespace.
-**Do instead**: Always use `<script type="module">` with ES module imports from unpkg or npm.
-
-### Anti-Pattern 3: Skipping Pixel Ratio Cap
-**What it looks like**: `renderer.setPixelRatio(window.devicePixelRatio)` without cap
-**Why wrong**: Retina/HiDPI displays (3x, 4x) render at extreme resolutions, destroying performance on mobile
-**Do instead**: `renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))`
-
-### Anti-Pattern 4: Hardcoding Everything With No Configuration
-**What it looks like**: Magic numbers scattered throughout -- `0x44aa88`, `0.001`, `75`
-**Why wrong**: Impossible to tweak, experiment, or understand intent
-**Do instead**: Define a `CONFIG` object at the top with named constants: `CONFIG.color`, `CONFIG.rotationSpeed`, `CONFIG.fov`
-
-### Anti-Pattern 5: Identical Output Every Time
-**What it looks like**: Every scene uses green cube, camera at z=5, directional light at (1,1,1)
-**Why wrong**: Produces generic, cookie-cutter results that ignore the user's context
-**Do instead**: Vary geometry, color palette, camera angle, lighting setup, and animation style based on the scene's purpose (see Phase 1 style guidance).
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "It renders, must be done" | Rendering does not mean correct lighting, animation, or interaction | Complete Phase 4 verification |
-| "I'll skip OrbitControls, simpler" | User expects interactive scenes by default | Include controls unless explicitly static |
-| "BasicMaterial is fine" | BasicMaterial ignores lighting, looks flat and cheap | Use StandardMaterial unless unlit effect is intentional |
-| "Resize handler isn't needed" | Scene breaks on any window change, looks broken on mobile | Always include resize handling |
-
-### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/advanced-topics.md`: GLTF loading, post-processing, shaders, raycasting, physics, InstancedMesh, TypeScript support

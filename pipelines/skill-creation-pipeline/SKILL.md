@@ -36,66 +36,9 @@ routing:
 
 # Skill Creation Pipeline
 
-## Operator Context
+## Overview
 
-This pipeline wraps `skill-creator` with explicit discovery, design
-review, and validation gates. It is the **formal path** for creating new skills
-— as opposed to ad-hoc creation — and should be used whenever skill quality,
-uniqueness, or routing correctness is important. The pipeline does not replace
-the creator agent; it provides the scaffolding around it.
-
-### Hardcoded Behaviors (Always Apply)
-- **DISCOVER Before Any Files**: Phase 1 (DISCOVER) must complete before any
-  SKILL.md is written. No exceptions. This prevents duplicate skills from being
-  added to the repo.
-- **ADR Check in DISCOVER**: During Phase 1, check for active ADR session (`.adr-session.json`) and run `python3 ~/.claude/scripts/adr-query.py list` to find related ADRs. If an active session exists, read relevant sections via `adr-query.py context --role skill-creator`. If creating a new skill as part of a pipeline, verify the ADR hash before proceeding.
-- **Group-Prefix Naming**: New skills MUST use the same prefix as related existing skills. During DISCOVER, run `ls skills/ | grep {domain}` to find the group. Examples: voice skills start with `voice-`, Go skills with `go-`, PR skills with `pr-`, writing/content skills with `writing-`, review skills with `review-`. If no group exists, the new skill starts one. The directory name and the `name:` frontmatter field must match.
-- **Design Brief Before SCAFFOLD**: Phase 2 (DESIGN) must produce a saved design
-  brief before Phase 3 begins. Writing a skill without a tier decision and phase
-  list produces inconsistent results.
-- **Score Before INTEGRATE**: Phase 4 (VALIDATE) must call `agent-evaluation` on
-  the new SKILL.md and produce a numeric score before Phase 5 begins. Self-
-  assessment ("this looks good") does not satisfy this gate.
-- **Minimum Grade B**: A new skill must score 75+ to proceed to integration. If
-  it scores below 75, return to Phase 3 (SCAFFOLD) and fix before re-scoring. Max
-  3 iterations — after that, surface the scoring breakdown to the user.
-- **INDEX.json Update Is Non-Optional**: Phase 5 (INTEGRATE) must add the new
-  skill to `skills/INDEX.json`. A skill that exists on disk but not in the index
-  is invisible to routing.
-
-### Default Behaviors (ON unless disabled)
-- **Overlap Threshold at 70%**: In DISCOVER, if an existing skill covers ≥70%
-  of the requested domain, surface the overlap and recommend extending rather
-  than creating. Proceed only after a deliberate "create new" decision.
-- **Complexity Tier Confirmation**: If the tier is ambiguous (user's description
-  could fit Simple or Medium, or Medium vs. Complex), ask before proceeding to
-  SCAFFOLD. Tier errors are cheaper to fix in DESIGN than after SCAFFOLD.
-- **Save Design Brief to File**: Write the DESIGN output to
-  `skills/{name}/design-brief.md` before SCAFFOLD begins. This file is the
-  single source of truth for Phase 3.
-
-### Optional Behaviors (OFF unless enabled)
-- **Skip DISCOVER**: Skip the duplication check (enable with "skip discover" or
-  "I've already checked for duplicates"). Use only when the skill name is
-  intentionally novel and overlap checking is unnecessary.
-- **Skip VALIDATE**: Skip agent-evaluation scoring (enable with "skip validation"
-  or "quick creation"). Accepts the risk of lower quality at integration time.
-- **Auto-Approve Design Brief**: Proceed from DESIGN to SCAFFOLD without
-  confirming the tier (enable with "auto" or "no confirmation needed").
-
-## What This Skill CAN Do
-- Detect overlap with existing skills before any files are written
-- Select the appropriate complexity tier based on the skill's requirements
-- Generate a complete SKILL.md following AGENT_TEMPLATE_V2.md patterns
-- Score the result against the agent-evaluation rubric (100-point scale)
-- Wire the new skill into `skills/INDEX.json` and prompt routing updates
-
-## What This Skill CANNOT Do
-- Create agents — use `agent-creator-engineer` for new agents
-- Update routing tables autonomously — Phase 5 prompts the update, but
-  `routing-table-updater` or manual edits handle the actual changes
-- Guarantee an A-grade on first pass — iteration may be required
-- Modify existing skills — use direct editing or `system-upgrade` for that
+This pipeline wraps `skill-creator` with explicit discovery, design review, and validation gates. It is the **formal path** for creating new skills — as opposed to ad-hoc creation — and should be used whenever skill quality, uniqueness, or routing correctness is important. The pipeline does not replace the creator agent; it provides the scaffolding around it.
 
 ---
 
@@ -104,7 +47,8 @@ the creator agent; it provides the scaffolding around it.
 ### Phase 1: DISCOVER
 
 **Goal**: Prevent duplication by scanning the existing skill and agent indexes
-before any files are written.
+before any files are written. DISCOVER **must complete before any SKILL.md is
+written — no exceptions**.
 
 **Step 1**: Extract the domain keywords from the user's request. These are the
 terms that describe what the skill does (e.g., "code review", "branch naming",
@@ -121,13 +65,30 @@ grep -i "<keyword>" /path/to/skills/INDEX.json
 Also search `agents/INDEX.json` for agents that already handle this domain as
 part of their core capability.
 
-**Step 3**: For each potentially overlapping skill, read its SKILL.md description
+**Step 3**: Check for active ADR session. If `.adr-session.json` exists, run
+`python3 ~/.claude/scripts/adr-query.py list` to find related ADRs. If
+an active session exists, read relevant sections via
+`adr-query.py context --role skill-creator`. If creating a skill as part of
+a pipeline, verify the ADR hash before proceeding.
+
+**Step 4**: For each potentially overlapping skill, read its SKILL.md description
 and phase list. Estimate overlap percentage based on:
 - Same domain verbs (review, create, debug, deploy)
 - Same target artifact (Go files, PRs, branches, agents)
 - Same phase structure (does the existing skill already cover what's needed?)
 
-**Step 4**: Report findings.
+If an existing skill covers ≥70% of the requested domain, surface the overlap
+and recommend extending rather than creating. Proceed only after a deliberate
+"create new" decision (threshold is 70% overlap).
+
+**Step 5**: Identify the skill's group prefix. Run `ls skills/ | grep {domain}`
+to find the group. Examples: voice skills start with `voice-`, Go skills with
+`go-`, PR skills with `pr-`, writing/content skills with `writing-`, review
+skills with `review-`. New skills **must use the same prefix as related existing
+skills**. If no group exists, the new skill starts one. The directory name and
+the `name:` frontmatter field must match exactly.
+
+**Step 6**: Report findings.
 
 ```
 DISCOVER RESULTS
@@ -135,7 +96,8 @@ DISCOVER RESULTS
 
 Request: [user's skill description in one line]
 Keywords: [extracted keywords]
-
+Group/Prefix: [identified prefix, e.g., voice-, go-, pr-]
+ADRs checked: [Y/N, count if any found]
 Existing skills checked: [N]
 
 [If no overlap found:]
@@ -155,17 +117,21 @@ Existing skills checked: [N]
 
 **Gate**: If overlap ≥70% with any existing skill, present the recommendation
 and wait for the user's decision. If the user says "create new anyway" or
-"extend" the existing skill, act accordingly. If <70% overlap, proceed
-automatically to Phase 2.
+"extend" the existing skill, act accordingly. If <70% overlap or user confirms
+new creation, proceed to Phase 2. (To skip DISCOVER entirely, enable with
+"skip discover" or "I've already checked for duplicates" — use only when the
+skill name is intentionally novel.)
 
 ---
 
 ### Phase 2: DESIGN
 
 **Goal**: Choose the complexity tier and produce a complete design brief before
-any SKILL.md content is written.
+any SKILL.md content is written. **Design brief must be saved before Phase 3
+begins** — writing a skill without a tier decision and phase list produces
+inconsistent results.
 
-**Step 1**: Classify the skill's complexity tier.
+**Step 1**: Classify the skill's complexity tier using these characteristics.
 
 | Tier | Characteristics | Phase Count | Fan-Out |
 |------|----------------|-------------|---------|
@@ -200,18 +166,19 @@ Reference Files Needed:
 
 Key Behaviors (Hardcoded):
   - [behavior]
-
-Anti-Patterns to Prevent:
-  - [pattern]
 ```
 
-**Step 3**: If the tier is unambiguous given the request, auto-select and note
-the reason. If ambiguous (the request could reasonably fit two tiers), present
-both options and ask the user to choose before proceeding.
+**Step 3**: Tier confirmation logic. If the tier is unambiguous given the request,
+auto-select and note the reason in the brief. If ambiguous (the request could
+reasonably fit two tiers), present both options and ask the user to choose before
+proceeding. Tier errors are cheaper to fix in DESIGN than after SCAFFOLD —
+ask for confirmation on edge cases. (To skip confirmation, enable with "auto" or
+"no confirmation needed" — use only for intentional auto-approval.)
 
 **Step 4**: Save the design brief.
 
-Write to `skills/{name}/design-brief.md`.
+Write to `skills/{name}/design-brief.md`. This file is the single source of
+truth for Phase 3.
 
 **Gate**: Design brief saved. Tier confirmed (either auto-selected with rationale
 or user-confirmed). Proceed to Phase 3.
@@ -224,25 +191,28 @@ or user-confirmed). Proceed to Phase 3.
 
 **Step 1**: Read the saved design brief from `skills/{name}/design-brief.md`.
 
-**Step 2**: Generate the SKILL.md following these requirements. Every skill MUST
-have all of these sections — no exceptions:
+**Step 2**: Generate the SKILL.md following the structural patterns from
+AGENT_TEMPLATE_V2. Include these sections in this order:
 
-| Section | Requirement |
-|---------|-------------|
-| Frontmatter | `name`, `description`, `version`, `user-invocable`, `agent`, `allowed-tools` |
-| Operator Context | Hardcoded / Default / Optional behaviors (three subsections) |
-| Capabilities | "What This Skill CAN Do" and "What This Skill CANNOT Do" |
-| Instructions | One `### Phase N: NAME` section per phase in the design brief |
-| Error Handling | At least 2–3 named error cases with cause and solution |
-| Anti-Patterns | At least 2–3 named anti-patterns with what/why/do-instead |
-| Examples | At least 1 realistic example with user input and step trace |
+1. **Frontmatter** with `name`, `description`, `version`, `user-invocable`,
+   `agent`, `allowed-tools` (required fields)
+2. **Overview** (1–2 sentences on purpose and context)
+3. **Instructions** with one `### Phase N: PHASENAME` section per phase in the
+   design brief. Each phase must end with a **Gate** statement:
+   `**Gate**: [condition]. [action].`
+4. **Error Handling** with 2–3 named error cases (Cause, Solution pattern)
+5. **References** (links to related files, skills, agents)
 
-**Step 3**: Apply these structural patterns from AGENT_TEMPLATE_V2:
+Avoid these outdated sections — they are being removed from the template:
+- "Operator Context" (hardcoded/default/optional behaviors)
+- "What This Skill CAN/CANNOT Do"
+- "Anti-Patterns" and anti-rationalization tables
 
-- Phase headers: `### Phase N: PHASENAME`
-- Gates at end of each phase: `**Gate**: [condition]. [action].`
-- Operator Context subsections named exactly: `### Hardcoded Behaviors (Always Apply)`, `### Default Behaviors (ON unless disabled)`, `### Optional Behaviors (OFF unless enabled)`
-- Anti-patterns use: `**What it looks like**: ... **Why wrong**: ... **Do instead**: ...`
+**Step 3**: Integrate constraints inline with each phase's reasoning and gate
+logic rather than in separate subsections. For example:
+- In Phase 1, explain why DISCOVER must complete first and what checks to run
+- In Phase 2, note when tier confirmation is needed vs. auto-selected
+- In Phase 4, explain why agent-evaluation scores must be ≥75 before proceeding
 
 **Step 4**: Write to `skills/{name}/SKILL.md`.
 
@@ -252,23 +222,16 @@ have all of these sections — no exceptions:
 
 ### Phase 4: VALIDATE
 
-**Goal**: Score the new skill against the agent-evaluation rubric and enforce
-the minimum quality gate before integration.
+**Goal**: Score the new skill against the agent-evaluation rubric. **Score must
+be ≥75 (grade B or above) before proceeding to Phase 5.** Self-assessment
+("this looks good") does not satisfy this gate — agent-evaluation scoring is
+mandatory.
 
 **Step 1**: Run `agent-evaluation` on the new SKILL.md.
 
 Use the `agent-evaluation` skill, pointing it at `skills/{name}/SKILL.md`. This
-produces a score breakdown across:
-
-| Criterion | Points |
-|-----------|--------|
-| Structure (YAML, phases, gates) | 20 |
-| Operator Context (behaviors) | 15 |
-| Error Handling | 15 |
-| Reference Files | 10 |
-| Validation Scripts | 10 |
-| Content Depth | 30 |
-| **Total** | **100** |
+produces a score breakdown across six criteria (total 100 points). The skill
+must score ≥75 to proceed to integration.
 
 **Step 2**: Report the score.
 
@@ -282,10 +245,8 @@ Grade: [A (90+) | B (75–89) | C (60–74) | F (<60)]
 
 Breakdown:
   Structure:         [N]/20
-  Operator Context:  [N]/15
-  Error Handling:    [N]/15
   Reference Files:   [N]/10
-  Validation Scripts:[N]/10
+  Error Handling:    [N]/15
   Content Depth:     [N]/30
 
 [If grade A or B:]
@@ -301,17 +262,22 @@ Breakdown:
 - List the specific sections that are weak or missing
 - Return to Phase 3 with explicit instructions to fix those sections
 - Re-run Phase 4 after the fix
-- Track iterations. After 3 failed iterations, surface the full scoring
-  breakdown to the user and ask whether to continue or redesign from Phase 2.
+- Track iterations. Max 3 iterations — after 3 failed attempts to reach 75+,
+  surface the full scoring breakdown to the user and ask whether to continue
+  or redesign from Phase 2. Tier errors discovered late are expensive to fix.
 
-**Gate**: Score ≥ 75 (grade B or above). Proceed to Phase 5.
+(To skip validation entirely, enable with "skip validation" or "quick creation"
+— use only when accepting the risk of lower quality at integration time.)
+
+**Gate**: Score ≥75 (grade B or above). Proceed to Phase 5.
 
 ---
 
 ### Phase 5: INTEGRATE
 
-**Goal**: Wire the validated skill into the routing system so it is immediately
-usable.
+**Goal**: Wire the validated skill into the routing system. **INDEX.json update
+is non-optional** — a skill that exists on disk but not in the index is invisible
+to routing.
 
 **Step 1**: Add to `skills/INDEX.json`.
 
@@ -325,6 +291,11 @@ Read the current INDEX.json and append an entry for the new skill:
   "user-invocable": true,
   "agent": "skill-creator"
 }
+```
+
+Validate JSON syntax before proceeding:
+```bash
+python3 -c "import json; json.load(open('skills/INDEX.json'))"
 ```
 
 **Step 2**: Check whether the skill needs a routing entry in `/do`.
@@ -356,7 +327,7 @@ Score:  [N]/100
 New skill is ready to use.
 ```
 
-**Gate**: INDEX.json updated. Routing status reported. Phase 5 complete.
+**Gate**: INDEX.json updated and validated. Routing status reported. Phase 5 complete.
 
 ---
 
@@ -387,43 +358,6 @@ the manual score and proceed if ≥75. Flag that automated validation was skippe
 Cause: JSON edit introduced a syntax error.
 Solution: Run `python3 -c "import json; json.load(open('skills/INDEX.json'))"` to
 validate. Fix the syntax before completing Phase 5.
-
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Skipping DISCOVER to Save Time
-**What it looks like**: Jumping directly to DESIGN because "this skill is clearly
-new" without checking the INDEX
-**Why wrong**: The repo has 120+ skills. Near-duplicates exist under non-obvious
-names. A 30-second INDEX scan has caught duplicates in practice.
-**Do instead**: Always run Phase 1. If you're confident there's no overlap, the
-scan will confirm it in seconds.
-
-### Anti-Pattern 2: Writing SKILL.md Before the Design Brief
-**What it looks like**: Going straight from DISCOVER to writing SKILL.md content
-without a tier decision and phase list
-**Why wrong**: Tier errors discovered mid-SCAFFOLD require starting over. A 2-
-minute design brief prevents a 20-minute rewrite.
-**Do instead**: Complete Phase 2 and save the design brief before writing a single
-line of SKILL.md.
-
-### Anti-Pattern 3: Self-Certifying VALIDATE
-**What it looks like**: Saying "this skill looks complete, I'll give it a B" instead
-of running `agent-evaluation`
-**Why wrong**: Self-assessment of your own output is unreliable. The rubric has
-6 specific criteria with point values. Without scoring against them, gaps in Error
-Handling or Reference Files are routinely missed.
-**Do instead**: Always invoke `agent-evaluation`. Even if the result is an A, you'll
-have the breakdown to show the user.
-
-### Anti-Pattern 4: Silently Skipping INDEX Update
-**What it looks like**: Finishing SCAFFOLD and VALIDATE and declaring the skill
-"done" without updating INDEX.json
-**Why wrong**: A skill that isn't in the index is invisible to `/do` routing and
-to any tool that builds skill lists from INDEX.json. The skill exists on disk but
-is unreachable.
-**Do instead**: INDEX.json update is the first step of Phase 5. It is not optional.
 
 ---
 

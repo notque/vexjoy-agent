@@ -39,42 +39,11 @@ routing:
 
 # Joy Check
 
-## Operator Context
+Validate content for joy-centered tonal framing. Runs a two-pass pipeline -- regex pre-filter for obvious patterns, then LLM semantic analysis -- to evaluate whether content frames experiences through curiosity, generosity, and earned satisfaction rather than grievance, accusation, or victimhood.
 
-This skill operates as an operator for tonal framing validation, configuring Claude's behavior for evaluating whether content frames experiences through joy, curiosity, and generosity rather than grievance, accusation, or victimhood. It implements the **Two-Pass Validation** architectural pattern -- deterministic regex pre-filter followed by LLM semantic analysis -- to catch both obvious and subtle negative framing.
+By default the skill evaluates each paragraph independently, produces a joy score (0-100), and suggests reframes without modifying content. Optional flags change behavior: `--fix` rewrites flagged paragraphs in place and re-verifies; `--strict` fails on any paragraph below 60.
 
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before validating
-- **Joy is the lens**: Every paragraph should frame its subject through curiosity, wonder, generosity, or earned satisfaction -- because content that builds a case for grievance alienates readers and undermines the author's credibility, even when the underlying experience is legitimate
-- **No grievance framing**: Content should never build a case for being wronged -- because accumulating evidence of injustice reads as prosecution, not communication
-- **No accusation framing**: Content should never point fingers at specific people or imply bad faith -- because attributing motive to others is speculation wearing the mask of observation
-- **No victimhood framing**: Content should never position the author as a victim -- because it shifts agency from the author to external forces
-- **Reframe, don't suppress**: Negative experiences are valid topics. The skill checks *framing*, not *topic*. A difficult experience can be framed through what you learned, what you built, or what you now understand. Suppressing legitimate experiences would be dishonest; reframing them through curiosity is editorial craft.
-
-### Default Behaviors (ON unless disabled)
-- **Paragraph-level analysis**: Evaluate each paragraph independently against the Joy Framing Rubric
-- **Regex pre-filter**: Run `scan-negative-framing.py` first as a fast gate -- catches obvious patterns without spending LLM tokens
-- **Suggestion mode**: Flag and suggest reframes without modifying content
-- **Score output**: Produce a joy score (0-100) for the full piece
-
-### Optional Behaviors (OFF unless enabled)
-- **Fix mode** (--fix): Rewrite flagged paragraphs in place, then re-verify
-- **Strict mode** (--strict): Fail on any paragraph below 60 joy score
-
-## What This Skill CAN Do
-- Evaluate tonal framing at the paragraph level using the Joy Framing Rubric
-- Detect subtle grievance, accusation, and victimhood patterns that regex misses (passive-aggressive factuality, accumulative grievance, reluctant generosity)
-- Suggest positive reframes for negatively-framed paragraphs
-- Produce a joy score (0-100) for publication readiness
-- Rewrite flagged paragraphs in fix mode while preserving substance
-
-## What This Skill CANNOT Do
-- Evaluate voice authenticity (use voice-validator for that)
-- Detect AI writing patterns (use anti-ai-editor for that)
-- Change the topic or substance of content (only reframes the framing)
-- Evaluate factual accuracy or grammar (out of scope entirely)
-
----
+This skill checks *framing*, not *topic* and not *voice*. Difficult experiences are valid subjects. Voice fidelity belongs to voice-validator, AI pattern detection belongs to anti-ai-editor, and grammar/style editing is out of scope entirely.
 
 ## Instructions
 
@@ -106,6 +75,8 @@ Read the full file. Identify paragraph boundaries (blank-line separated blocks).
 
 **Step 2: Evaluate each paragraph against the Joy Framing Rubric**
 
+Every paragraph should frame its subject through curiosity, wonder, generosity, or earned satisfaction. Content that builds a case for grievance alienates readers and undermines the author's credibility, even when the underlying experience is legitimate.
+
 | Dimension | Joy-Centered (PASS) | Grievance-Centered (FAIL) |
 |-----------|-------------------|--------------------------|
 | **Subject position** | Author as explorer, builder, learner | Author as victim, wronged party, unrecognized genius |
@@ -115,6 +86,15 @@ Read the full file. Identify paragraph boundaries (blank-line separated blocks).
 | **Action framing** | "I decided to", "I realized", "I learned" | "I was forced to", "I had no choice", "they made me" |
 | **Closing energy** | Forward-looking, building, sharing, exploring | Cautionary, warning, demanding, lamenting |
 
+When evaluating, watch for these subtle patterns that the regex scanner cannot catch:
+
+- **Defensive disclaimers** ("I'm not accusing anyone", "This isn't about blame"): If the author has to disclaim, the framing is already grievance-adjacent. The disclaimer signals the content that follows is accusatory enough to need a shield. Flag the paragraph and recommend removing both the disclaimer and the accusatory content it shields.
+- **Accumulative grievance**: Each paragraph is individually mild, but together they build a case for being wronged. A reader who finishes the piece feeling "that person was wronged" has been led through a prosecution. Flag the accumulation pattern and recommend interspersing observations with what the author learned, built, or found interesting.
+- **Passive-aggressive factuality** ("The timeline shows X. The repo was created Y days later. I'll let you draw your own conclusions."): Presenting facts in prosecution order is framing, not neutrality. "I'll let you draw your own conclusions" deputizes the reader as jury. Flag and recommend including facts where relevant to the experience, not as evidence.
+- **Reluctant generosity** ("I'm not saying they did anything wrong, BUT..."): The "but" negates the generosity. This is grievance wearing a generous mask. Flag and recommend being generous without qualification, or acknowledging the complexity directly.
+
+Do not dismiss a paragraph as "fine because it's factual." Facts arranged as prosecution are framing, not neutrality -- evaluate the *arrangement* of facts, not just their accuracy. Similarly, do not excuse grievance framing because the author's feelings are justified. The skill checks framing, not whether the underlying feeling is earned.
+
 **Step 3: Score each paragraph**
 
 For each paragraph, assign one of:
@@ -123,7 +103,9 @@ For each paragraph, assign one of:
 - **CAUTION** (30-49): Leans toward grievance but recoverable with reframing
 - **GRIEVANCE** (0-29): Frames through accusation, victimhood, or bitterness
 
-For any paragraph scored CAUTION or GRIEVANCE, draft a specific reframe suggestion that preserves the substance while shifting the framing toward curiosity or generosity.
+For any paragraph scored CAUTION or GRIEVANCE, draft a specific reframe suggestion that preserves the substance while shifting the framing toward curiosity or generosity. Remember: reframing is editorial craft, not dishonesty. The substance stays the same; only the lens changes. A single GRIEVANCE paragraph poisons the tonal arc of the whole piece, so do not treat it as minor.
+
+If a paragraph seems "too subtle to flag," that is precisely when flagging matters most. Subtle grievance is what the regex scanner misses, making it the primary purpose of this LLM analysis phase.
 
 **GATE**: All paragraphs analyzed and scored. Reframe suggestions drafted for all CAUTION and GRIEVANCE paragraphs. Proceed to Phase 3.
 
@@ -158,7 +140,7 @@ Overall: [summary of tonal arc -- where the piece starts, how it moves, where it
 
 If `--fix` mode is active:
 1. Rewrite any CAUTION or GRIEVANCE paragraphs using the drafted reframe suggestions
-2. Preserve the substance -- change only the framing
+2. Preserve the substance -- change only the framing, not the topic or meaning
 3. Re-run Phase 2 analysis on the rewritten paragraphs to verify fixes landed
 4. If fixes introduce new CAUTION/GRIEVANCE scores, iterate (maximum 3 attempts)
 
@@ -166,7 +148,9 @@ If `--fix` mode is active:
 
 ---
 
-## The Joy Principle
+## Reference Material
+
+### The Joy Principle
 
 This is the editorial philosophy that drives the check.
 
@@ -180,13 +164,11 @@ Both describe the same events. The second frames it through the lens that define
 
 **Joy doesn't mean happiness.** It means engagement, curiosity, the energy of figuring things out. A joy-centered post about a frustrating debugging session isn't happy -- but it frames the frustration as the puzzle and the understanding as the reward. That's the lens.
 
----
-
-## Examples
+### Examples
 
 These examples show the same content reframed from grievance to joy. The substance is identical. Only the framing changes.
 
-### Example 1: Describing a Difficult Experience
+#### Example 1: Describing a Difficult Experience
 
 **GRIEVANCE (FAIL):**
 ```
@@ -206,7 +188,7 @@ Someone else got it.
 
 **Why the second works:** The author is an explorer who found something interesting, not a victim cataloguing injustice. "Mostly crickets" is honest without being bitter. "Someone else got it" is generous.
 
-### Example 2: Discovering Similarity
+#### Example 2: Discovering Similarity
 
 **GRIEVANCE (FAIL):**
 ```
@@ -224,7 +206,7 @@ architecture I'd spent months developing and writing about.
 
 **Why the second works:** "Excited to curious" is an explorer's arc. No accusation of copying. The observation is about what the author found interesting, not what was done to them.
 
-### Example 3: Discussing How Ideas Spread
+#### Example 3: Discussing How Ideas Spread
 
 **GRIEVANCE (FAIL):**
 ```
@@ -245,7 +227,7 @@ even better.
 
 **Why the second works:** The decision to release is framed as a positive realization, not a resignation. "Even better" at the end carries forward energy.
 
-### Example 4: Talking About Credit
+#### Example 4: Talking About Credit
 
 **GRIEVANCE (FAIL):**
 ```
@@ -263,7 +245,7 @@ it, and be understood.
 
 **Why the second works:** Locates the feeling in curiosity ("what made this interesting") not entitlement ("I deserve"). "Be understood" is a human need, not a demand.
 
-### Example 5: The Conclusion
+#### Example 5: The Conclusion
 
 **GRIEVANCE (FAIL):**
 ```
@@ -282,7 +264,7 @@ That's been the most enjoyable part of this whole process.
 
 **Why the second works:** Ends on what the author enjoys, not what they're defending against. "Seeing what sticks" carries the experimental energy. No timestamps-as-evidence framing.
 
-### Example 6: Addressing Uncertainty About Origins
+#### Example 6: Addressing Uncertainty About Origins
 
 **GRIEVANCE (FAIL):**
 ```
@@ -300,6 +282,18 @@ Claude drew on." That's true for everyone using these tools. Including me.
 ```
 
 **Why the second works:** Includes the author in the same uncertainty. "Including me" is the key phrase. It transforms from "I know and they should know" to "none of us fully know."
+
+### Integration
+
+This skill integrates with the content validation pipeline:
+
+```
+CONTENT --> voice-validator (deterministic) --> scan-ai-patterns (deterministic)
+        --> scan-negative-framing (regex pre-filter) --> joy-check (LLM analysis)
+        --> anti-ai-editor (LLM style fixes)
+```
+
+The joy-check can be invoked standalone via `/joy-check [file]` or as part of the content pipeline for any content where positive framing matters.
 
 ---
 
@@ -335,61 +329,8 @@ Claude drew on." That's true for everyone using these tools. Including me.
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Defensive Disclaimers
-**What it looks like**: "I'm not accusing anyone" / "This isn't about blame"
-**Why wrong**: If you have to disclaim, the framing is already grievance-adjacent. The disclaimer signals that the content that follows is accusatory enough to need a shield.
-**Do instead**: Remove the disclaimer AND reframe the content so the disclaimer isn't needed.
-
-### Anti-Pattern 2: Accumulative Grievance
-**What it looks like**: Each paragraph adds another piece of evidence for being wronged
-**Why wrong**: Even if each paragraph is mild, the accumulation builds a case. A reader who finishes the piece feeling "that person was wronged" has been led through a prosecution.
-**Do instead**: Intersperse observations with what you learned, built, or found interesting. Break the evidence chain.
-
-### Anti-Pattern 3: Passive-Aggressive Factuality
-**What it looks like**: "The timeline shows X. The repo was created Y days later. I'll let you draw your own conclusions."
-**Why wrong**: Presenting facts in prosecution order is framing, not neutrality. "I'll let you draw your own conclusions" is the most aggressive form of accusation -- it deputizes the reader.
-**Do instead**: Include facts where relevant to the experience, not as evidence. If the timeline is interesting, say why it's interesting, not why it's damning.
-
-### Anti-Pattern 4: Reluctant Generosity
-**What it looks like**: "I'm not saying they did anything wrong, BUT..."
-**Why wrong**: The "but" negates the generosity. This is grievance wearing a generous mask. Readers hear the "but" louder than the generosity.
-**Do instead**: Be generous without qualification, or acknowledge the complexity directly. "This is a complicated situation" is more honest than "They're great, BUT..."
-
----
-
-## Integration
-
-This skill integrates with the content validation pipeline:
-
-```
-CONTENT --> voice-validator (deterministic) --> scan-ai-patterns (deterministic)
-        --> scan-negative-framing (regex pre-filter) --> joy-check (LLM analysis)
-        --> anti-ai-editor (LLM style fixes)
-```
-
-The joy-check can be invoked standalone via `/joy-check [file]` or as part of the content pipeline for any content where positive framing matters.
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "The content is factual, so it's fine" | Facts arranged as prosecution are framing, not neutrality | Evaluate the *arrangement* of facts, not just their accuracy |
-| "The author earned the right to be upset" | Earned anger is still grievance framing | Check framing, not whether the feeling is justified |
-| "It's only one negative paragraph" | One GRIEVANCE paragraph poisons the tonal arc of the whole piece | Flag it. One grievance paragraph is a FAIL condition |
-| "The reframe would be dishonest" | Reframing is editorial craft, not dishonesty -- the substance stays the same | Preserve substance, change only the lens |
-| "This is too subtle to flag" | Subtle grievance is the hardest to catch and the most important -- it's what regex misses | If it reads as building a case, flag it |
-
-### Related Skills and Scripts
 - `scan-negative-framing.py` -- Regex pre-filter for obvious negative framing patterns (Phase 1)
 - `voice-validator` -- Voice fidelity validation (complementary, different concern)
 - `anti-ai-editor` -- AI pattern detection and removal (complementary, different concern)

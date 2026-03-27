@@ -38,53 +38,35 @@ routing:
 
 # /quick - Tracked Lightweight Execution
 
-## Operator Context
+Quick fills the gap between zero-ceremony `/fast` (1-3 edits, no plan) and full-ceremony Simple+ (task_plan.md, agent routing, quality gates). The key design principle is **composable rigor**: the base mode is minimal (plan + execute), and users add process incrementally via flags rather than getting all-or-nothing ceremony.
 
-This skill implements the Quick tier from the five-tier task hierarchy (Fast > Quick > Simple > Medium > Complex). It fills the gap between zero-ceremony `/fast` (1-3 edits, no plan) and full-ceremony Simple+ (task_plan.md, agent routing, quality gates). Quick tasks get a lightweight plan and tracking without the overhead of the full pipeline.
+**Flags** (all OFF by default):
 
-The key design principle is **composable rigor**: the base mode is minimal (plan + execute), and users add process incrementally via flags rather than getting all-or-nothing ceremony.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before execution.
-- **Task ID Assignment**: Every quick task gets a unique ID in YYMMDD-xxx format (Base36 sequence). This enables tracking and cross-referencing.
-- **Inline Plan**: Create a brief inline plan (not a full task_plan.md) before executing. The plan is 3-5 lines: what changes, which files, why. This is the minimum viable plan — enough to catch misunderstandings before editing.
-- **STATE.md Logging**: Log task ID, description, status, and commit hash to STATE.md.
-- **Branch Safety**: Create a feature branch if on main/master.
-- **Commit After Execute**: Every quick task ends with a commit.
-- **No Parallel Execution**: Quick tasks are single-threaded. If parallelism is needed, upgrade to Simple+.
-
-### Default Behaviors (ON unless disabled)
-- **Feature Branch Per Task**: Create `quick/<task-id>-<description>` branch for each task. This keeps quick work isolated and reviewable.
-- **Conventional Commits**: Use conventional commit format.
-- **Edit Tracking**: Count edits for scope awareness (warn at 10+, suggest upgrade at 15+).
-
-### Optional Behaviors (OFF unless enabled)
-- **`--discuss`**: Add a pre-planning discussion phase to resolve ambiguities before committing to a plan. Use when requirements are unclear or the user says "I'm not sure exactly what I want."
-- **`--research`**: Add a research phase before planning to understand existing code, read related files, and build context. Use when the change touches unfamiliar code.
-- **`--full`**: Add plan verification + full quality gates after execution. Use when the change is small but high-risk (auth, payments, data migration).
-- **`--no-branch`**: Skip feature branch creation, work on current branch. Use when contributing to an existing feature branch.
-- **`--no-commit`**: Skip the commit step. Use when batching multiple quick tasks into one commit.
-
-## What This Skill CAN Do
-- Plan and execute targeted code changes (4-15 file edits)
-- Track tasks with unique IDs for auditability
-- Compose rigor levels via flags (--discuss, --research, --full)
-- Create isolated feature branches per task
-- Escalate from /fast when scope is exceeded
-
-## What This Skill CANNOT Do
-- Spawn subagents or parallel workers (upgrade to Simple+)
-- Manage multi-component features (use feature lifecycle skills)
-- Run wave-based parallel execution (use dispatching-parallel-agents)
-- Replace full task_plan.md planning (that is Simple+ tier)
-
----
+| Flag | Effect |
+|------|--------|
+| `--discuss` | Add a pre-planning discussion phase to resolve ambiguities |
+| `--research` | Add a research phase before planning to build context on unfamiliar code |
+| `--full` | Add plan verification + full quality gates (tests, lint, diff review) |
+| `--no-branch` | Skip feature branch creation, work on current branch |
+| `--no-commit` | Skip the commit step (for batching multiple quick tasks) |
 
 ## Instructions
 
-### Phase 0: DISCUSS (only with --discuss flag)
+### Phase 0: SETUP
 
-**Goal**: Resolve ambiguities before planning.
+**Step 1: Read CLAUDE.md**
+
+Read and follow the repository's CLAUDE.md before doing anything else, because repo-specific conventions override defaults and skipping this causes style/tooling mismatches.
+
+**Step 2: Parse flags**
+
+Extract `--discuss`, `--research`, `--full`, `--no-branch`, and `--no-commit` from the invocation. Everything remaining after flag extraction is the task description.
+
+**Step 3: Scope check**
+
+If the task involves multiple components, architectural changes, or needs parallel execution, redirect to `/do` instead because quick tasks are single-threaded by design -- parallelism means the task has outgrown this tier.
+
+### Phase 1: DISCUSS (only with --discuss flag)
 
 This phase activates when the user passes `--discuss` or the request contains signals of uncertainty ("not sure", "maybe", "could be", "what do you think").
 
@@ -112,13 +94,11 @@ Read the request and list specific questions:
 
 Wait for user response. Do not proceed until ambiguities are resolved.
 
-**GATE**: All ambiguities resolved. Proceed to Phase 0.5 or Phase 1.
+**GATE**: All ambiguities resolved. Proceed to Phase 2 or Phase 3.
 
-### Phase 0.5: RESEARCH (only with --research flag)
+### Phase 2: RESEARCH (only with --research flag)
 
-**Goal**: Build understanding of the relevant code before planning.
-
-This phase activates when the user passes `--research` or the task touches code that needs investigation.
+This phase activates when the user passes `--research` or the task touches code that needs investigation. Use `--research` when touching unfamiliar code because confidence about code behavior is not the same as correctness -- `/fast` exists for when you truly know.
 
 **Step 1: Identify scope**
 
@@ -135,27 +115,28 @@ Read relevant source files, tests, and configuration. Build a mental model of:
 
 Present a brief (3-5 line) summary of what you learned and how it affects the plan.
 
-**GATE**: Sufficient understanding to plan the change. Proceed to Phase 1.
+**GATE**: Sufficient understanding to plan the change. Proceed to Phase 3.
 
-### Phase 1: PLAN
-
-**Goal**: Create a lightweight inline plan.
+### Phase 3: PLAN
 
 **Step 1: Generate task ID**
 
-Format: `YYMMDD-xxx` where xxx is Base36 sequential.
+Assign the task ID now, not later, because untracked tasks become invisible and "later" never comes.
 
-To determine the next sequence number:
+Format: `YYMMDD-xxx` where xxx is Base36 sequential (0-9, a-z).
+
 ```bash
 # Check STATE.md for today's tasks to determine next sequence
 date_prefix=$(date +%y%m%d)
 ```
 
-If STATE.md exists in the repo root, find the highest sequence number for today's date prefix and increment. If no tasks today, start at `001`. Use Base36 (0-9, a-z) for the sequence: 001, 002, ... 009, 00a, 00b, ... 00z, 010, ...
+If STATE.md exists in the repo root, find the highest sequence number for today's date prefix and increment. If no tasks today, start at `001`. Use Base36 for the sequence: 001, 002, ... 009, 00a, 00b, ... 00z, 010, ...
+
+If STATE.md is corrupted, scan git log for `Quick task YYMMDD-` patterns to find the true next ID. If a branch name collision occurs, increment the sequence number and try again.
 
 **Step 2: Create inline plan**
 
-Display the plan — do NOT write a task_plan.md file:
+Always display the inline plan, even for obvious tasks, because the plan catches misunderstandings before they become wrong edits and confirms alignment in 10 seconds that saves minutes. Do NOT write a task_plan.md file -- that is Simple+ tier, and using an inline plan here is the minimum viable ceremony.
 
 ```
 ===================================================================
@@ -173,33 +154,37 @@ Display the plan — do NOT write a task_plan.md file:
 ===================================================================
 ```
 
-If estimated edits exceed 15, suggest upgrading:
+If estimated edits exceed 15, suggest upgrading because edit count is a scope signal regardless of difficulty:
 ```
 This task estimates 15+ edits. Consider using /do for full planning
 and agent routing. Proceed with /quick anyway? [Y/n]
 ```
 
+If the task involves security, payments, or data migration, recommend `--full` because a one-line auth change can be catastrophic and risk is about impact, not size.
+
 **Step 3: Create feature branch** (unless --no-branch)
+
+Create a feature branch because small changes on main break the same as big ones:
 
 ```bash
 git checkout -b quick/<task-id>-<brief-kebab-description>
 ```
 
-**GATE**: Task ID assigned, plan displayed, branch created. Proceed to Phase 2.
+If already on a non-main feature branch and `--no-branch` is set, stay on the current branch.
 
-### Phase 2: EXECUTE
+**GATE**: Task ID assigned, plan displayed, branch created. Proceed to Phase 4.
 
-**Goal**: Implement the plan.
+### Phase 4: EXECUTE
 
 **Step 1: Make edits**
 
-Execute the changes described in the plan. Track edit count.
+Execute the changes described in the plan. Track edit count throughout.
 
 **Step 2: Scope monitoring**
 
-- At 10 edits: display a warning — "10 edits reached. Quick tasks typically stay under 15."
-- At 15 edits: suggest upgrade — "15 edits reached. This may benefit from /do with full planning. Continue? [Y/n]"
-- No hard cap — the user decides. Quick's scope is advisory, not enforced like Fast's 3-edit gate.
+- At 10 edits: display a warning -- "10 edits reached. Quick tasks typically stay under 15."
+- At 15 edits: suggest upgrade -- "15 edits reached. This may benefit from /do with full planning. Continue? [Y/n]"
+- No hard cap -- the user decides. Quick's scope is advisory, not enforced like Fast's 3-edit gate.
 
 **Step 3: Verify changes** (base mode)
 
@@ -209,13 +194,11 @@ Run a quick sanity check:
 # e.g., python3 -m py_compile file.py, go build ./..., tsc --noEmit
 ```
 
-If `--full` flag is set, run the full quality gate instead (see Phase 2.5).
+If `--full` flag is set, run the full quality gate instead (see Phase 5).
 
 **GATE**: All planned edits complete. Sanity check passes.
 
-### Phase 2.5: VERIFY (only with --full flag)
-
-**Goal**: Run full quality gates on the changes.
+### Phase 5: VERIFY (only with --full flag)
 
 **Step 1: Run tests**
 
@@ -239,11 +222,9 @@ Review the diff for:
 - Missing error handling
 - Broken imports
 
-**GATE**: Tests pass, lint clean, diff reviewed. Proceed to Phase 3.
+**GATE**: Tests pass, lint clean, diff reviewed. Proceed to Phase 6.
 
-### Phase 3: COMMIT
-
-**Goal**: Commit with a clean message.
+### Phase 6: COMMIT (skip with --no-commit)
 
 **Step 1: Stage changes**
 
@@ -251,7 +232,11 @@ Review the diff for:
 git add <specific-files>
 ```
 
+Stage specific files, not `git add .`, to avoid accidental inclusions.
+
 **Step 2: Commit**
+
+Use conventional commit format because it enables automated changelogs and consistent history:
 
 ```bash
 git commit -m "$(cat <<'EOF'
@@ -266,11 +251,11 @@ Include the task ID in the commit body for traceability.
 
 **GATE**: Commit succeeded. Verify with `git log -1 --oneline`.
 
-### Phase 4: LOG
-
-**Goal**: Record the task in STATE.md.
+### Phase 7: LOG
 
 **Step 1: Update STATE.md**
+
+Log the task to STATE.md because this is how tasks stay visible and cross-referenceable.
 
 If STATE.md does not exist in the repo root, create it:
 
@@ -312,37 +297,45 @@ If the task was escalated from `/fast`, note the tier as `fast->quick`.
 ===================================================================
 ```
 
----
+## Reference Material
 
-## Examples
+### Examples
 
-### Example 1: Base Mode
+**Example 1: Base Mode**
+
 User says: `/quick add --verbose flag to the CLI`
 1. Generate ID: 260322-001
 2. Plan: add flag definition, wire to handler, update help text (3 edits)
 3. Create branch: `quick/260322-001-add-verbose-flag`
 4. Execute edits, commit, log to STATE.md
 
-### Example 2: With Research
+**Example 2: With Research**
+
 User says: `/quick --research fix the timeout bug in auth middleware`
 1. RESEARCH: Read auth middleware, identify timeout source, trace call path
 2. PLAN: change timeout value in config, update middleware to use it (2 edits)
 3. EXECUTE, COMMIT, LOG
 
-### Example 3: Escalated from Fast
+**Example 3: Escalated from Fast**
+
 `/fast` hit 3-edit limit while fixing a bug across 5 files.
-1. Quick picks up with context: "Continuing from /fast — 3 files already edited"
+1. Quick picks up with context: "Continuing from /fast -- 3 files already edited"
 2. PLAN: remaining 2 files to edit
 3. EXECUTE remaining edits, COMMIT all changes, LOG as tier `fast->quick`
 
-### Example 4: Full Rigor
+**Example 4: Full Rigor**
+
 User says: `/quick --full update payment amount rounding logic`
 1. PLAN: identify rounding function, change to banker's rounding
 2. EXECUTE the edit
 3. VERIFY: run payment tests, lint, review diff
 4. COMMIT, LOG
 
----
+### Task ID Format
+
+Base36 sequence: `001, 002, ... 009, 00a, 00b, ... 00z, 010, ...`
+
+Full ID: `YYMMDD-xxx` (e.g., `260322-001`, `260322-00a`)
 
 ## Error Handling
 
@@ -361,40 +354,3 @@ User says: `/quick --full update payment amount rounding logic`
 ### Error: Branch Conflict
 **Cause**: Branch `quick/<task-id>-...` already exists
 **Solution**: Increment the task ID sequence number and try again.
-
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Skipping the Plan
-**What it looks like**: Jumping straight to edits without displaying the inline plan
-**Why wrong**: The plan catches misunderstandings before they become wrong edits. It takes 10 seconds and saves minutes.
-**Do instead**: Always display the inline plan. Even for obvious tasks — it confirms alignment.
-
-### Anti-Pattern 2: Using Quick for Features
-**What it looks like**: Building a multi-component feature as a series of `/quick` tasks
-**Why wrong**: Features need design docs, coordinated implementation, and integration testing. Quick tasks are isolated units.
-**Do instead**: Use the feature lifecycle (`/feature-design` -> `/feature-plan` -> `/feature-implement`).
-
-### Anti-Pattern 3: Never Using Flags
-**What it looks like**: Always running base `/quick` even when research or verification is clearly needed
-**Why wrong**: Base mode assumes you know exactly what to change. When you don't, you make wrong changes faster.
-**Do instead**: Use `--research` when touching unfamiliar code, `--discuss` when requirements are unclear, `--full` when the change is high-risk.
-
-### Anti-Pattern 4: Using Quick to Avoid Planning
-**What it looks like**: Classifying a Simple+ task as "quick" to skip task_plan.md
-**Why wrong**: The inline plan is not a substitute for full planning. Complex tasks need full plans.
-**Do instead**: If the task genuinely needs a full plan, use `/do` and let the router classify properly.
-
----
-
-## Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "This is quick, no need for a plan" | Quick's inline plan IS the minimum — skipping it means no plan at all | Display the inline plan |
-| "15 edits but it's all simple stuff" | Edit count is a scope signal, not a difficulty signal | Show the upgrade suggestion at 15 |
-| "I'll add the task ID later" | Later never comes; untracked tasks are invisible | Assign ID in Phase 1 |
-| "No need for a branch, it's small" | Small changes on main break the same as big ones | Create feature branch (or use --no-branch explicitly) |
-| "Skip --research, I know this code" | Confidence != correctness; /fast exists for when you truly know | Use --research when touching unfamiliar code |
-| "Don't need --full for this" | Risk is about impact, not size; a one-line auth change can be catastrophic | Use --full for any security/payment/data change |

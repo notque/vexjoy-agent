@@ -34,41 +34,129 @@ routing:
 
 6-phase pipeline for complete Perses plugin development: from scaffold through deploy.
 
-## Operator Context
+## Instructions
 
-This skill operates as an end-to-end plugin development guide, enforcing phase gates between SCAFFOLD, SCHEMA, IMPLEMENT, TEST, BUILD, and DEPLOY.
+### Phase 1: SCAFFOLD
 
-### Hardcoded Behaviors (Always Apply)
-- **Phase gates enforced**: Do not proceed to next phase until current phase passes its gate criteria
-- **Test before build**: `percli plugin test-schemas` must pass before running `percli plugin build`
-- **Schema + component required**: Both CUE schema and React component must be implemented before BUILD
-- **Verify archive contents**: After build, confirm archive contains package.json, mf-manifest.json, schemas/, and __mf/
-- **Use percli for all scaffolding**: Never manually create plugin directory structures — always use `percli plugin generate`
+**Goal**: Generate plugin scaffold with correct structure.
 
-### Default Behaviors (ON unless disabled)
-- **CUE before React**: Author and validate schemas before implementing React components
-- **JSON example creation**: Generate a JSON example alongside every CUE schema for validation
-- **Hot-reload development**: Use `percli plugin start` during IMPLEMENT phase for live preview
-- **Archive format**: Default to .tar.gz for distribution archives
+**Why this phase first**: Always use `percli plugin generate` for scaffolding — never manually create directory structures. Manual approaches miss module federation config, package.json structure, and rsbuild setup.
 
-### Optional Behaviors (OFF unless enabled)
-- **Grafana migration schema**: Write `migrate/migrate.cue` for Grafana panel/datasource migration
-- **Multiple plugin types**: Scaffold multiple plugins in a single module (e.g., Panel + Datasource)
-- **CI pipeline generation**: Create GitHub Actions or GitLab CI config for automated build/test
+1. Determine plugin parameters:
+   - `--module.org`: Organization name (e.g., `my-org`)
+   - `--module.name`: Module name (e.g., `my-plugin-module`)
+   - `--plugin.type`: One of Panel, Datasource, TimeSeriesQuery, TraceQuery, ProfileQuery, LogQuery, Variable, Explore
+   - `--plugin.name`: Plugin name (e.g., `MyCustomPanel`)
 
-## What This Skill CAN Do
-- Scaffold new Perses plugins via `percli plugin generate` for all plugin types
-- Author CUE schemas defining plugin data models and validation rules
-- Implement React components using `@perses-dev/plugin-system` hooks and patterns
-- Run schema validation via `percli plugin test-schemas`
-- Build distribution archives via `percli plugin build`
-- Deploy plugin archives to a running Perses server
+2. Run scaffold:
+```bash
+percli plugin generate \
+  --module.org=<org> \
+  --module.name=<module> \
+  --plugin.type=<type> \
+  --plugin.name=<name>
+```
 
-## What This Skill CANNOT Do
-- Deploy or configure Perses servers (use perses-deploy)
-- Create or manage dashboards (use perses-dashboard-create)
-- Manage Kubernetes infrastructure (use kubernetes-helm-engineer)
-- Debug Perses server-side issues (use perses-deploy or systematic-debugging)
+3. Verify generated structure: package.json, rsbuild.config.ts, src/, schemas/ directories exist.
+
+**Gate**: Scaffold generated, directory structure verified. Phase gates enforced — do not proceed to Phase 2 until this gate passes.
+
+### Phase 2: SCHEMA
+
+**Goal**: Author CUE schema defining the plugin's data model.
+
+**Why this phase before React**: CUE before React always — author and validate schemas before implementing React components. Components lack type safety and validation contracts if schema comes later. Schema errors surface late during build if skipped.
+
+1. Create CUE schema at `schemas/<type>/<name>/<name>.cue`
+   - Declare correct package: `package model` (mandatory — Perses requires this in all plugin schemas)
+   - Define the plugin's spec structure with CUE types and constraints
+   - Import common Perses schema packages as needed
+
+2. Create JSON example at `schemas/<type>/<name>/<name>.json`
+   - Generate JSON examples alongside every CUE schema for validation
+   - Must validate against the CUE schema
+   - Serves as documentation and test fixture
+
+3. Optional: Write Grafana migration schema at `schemas/<type>/<name>/migrate/migrate.cue`
+
+4. Validate: `percli plugin test-schemas`
+   - Visual inspection misses CUE's subtle type rules — always run test-schemas
+   - Re-run after every schema change, no matter how small
+
+**Gate**: `percli plugin test-schemas` passes with zero errors. Do not proceed to Phase 3 until this gate passes.
+
+### Phase 3: IMPLEMENT
+
+**Goal**: Build React component implementing the plugin UI.
+
+**Why this phase after SCHEMA**: Schema validation gates this phase — you have type safety and a validation contract before writing React code.
+
+1. Implement component in `src/<type>/<name>/`
+   - Use `@perses-dev/plugin-system` hooks (e.g., `useDataQueries`, `useTimeRange`)
+   - Use `@perses-dev/components` for shared UI elements
+   - Never import from `@perses-dev/internal` — use only public API packages
+   - Follow Perses component patterns from existing plugins
+
+2. Register plugin in module's plugin registration file
+
+3. Use `percli plugin start` for hot-reload development against a running Perses server
+   - Default behavior: hot-reload development is ON
+
+**Gate**: Component renders correctly in dev mode. Do not proceed to Phase 4 until this gate passes.
+
+### Phase 4: TEST
+
+**Goal**: Validate schemas and component behavior.
+
+**Constraint**: Test before build always — `percli plugin test-schemas` must pass before running `percli plugin build`. Build success does not guarantee complete archive contents.
+
+1. Run `percli plugin test-schemas` — must pass (re-validate after any IMPLEMENT changes)
+   - Build exit code 0 does not guarantee complete archive contents — validation catches what exit codes miss
+2. Run component unit tests if present (`npm test` or framework-specific runner)
+3. Test with `percli plugin start` against a running Perses server — verify plugin appears and functions
+
+**Gate**: All schema tests pass, component renders and functions correctly. Do not proceed to Phase 5 until this gate passes.
+
+### Phase 5: BUILD
+
+**Goal**: Create distribution archive.
+
+**Why this phase gated on TEST**: Test before build ensures schema validity. Build without test validation produces archives with invalid schemas that fail silently in Perses server.
+
+1. Run `percli plugin build`
+   - Never manually construct plugin archives (zip/tar) — always use `percli plugin build`
+   - Default format: .tar.gz for distribution archives
+
+2. Verify archive contents include:
+   - `package.json` — plugin metadata
+   - `mf-manifest.json` — module federation manifest
+   - `schemas/` — compiled CUE schemas as JSON
+   - `__mf/` — module federation runtime chunks
+
+```bash
+# Verify archive contents (adjust filename)
+tar -tzf <archive>.tar.gz | head -20
+# Always list and verify archive contents — don't trust exit code 0
+```
+
+**Gate**: Archive built, contents verified with all required files present. Do not proceed to Phase 6 until this gate passes.
+
+### Phase 6: DEPLOY
+
+**Goal**: Install plugin in Perses server and verify.
+
+**Constraint**: Test the actual deployed plugin — hot-reload dev mode bypasses plugin loading path; deploy uses archive loading.
+
+1. Copy archive to Perses server's `plugins-archive/` directory
+2. Restart Perses (or wait for hot-reload if enabled in server config)
+3. Verify plugin loaded:
+```bash
+percli get plugin
+# Or via MCP tool: perses_list_plugins
+```
+4. Create a test dashboard using the new plugin to confirm end-to-end functionality
+
+**Gate**: Plugin loaded in Perses server, functional in a dashboard. Pipeline complete.
 
 ---
 
@@ -121,146 +209,6 @@ This skill operates as an end-to-end plugin development guide, enforcing phase g
 ### Error: Build archive incomplete
 **Cause**: `percli plugin build` succeeded but archive is missing `mf-manifest.json`, `schemas/`, or `__mf/` directory
 **Solution**: Re-run `percli plugin build` and check for build errors in output. Ensure `percli plugin test-schemas` passes before building. Always use `percli plugin build` — never manually construct archives. List archive contents with `tar -tzf <archive>.tar.gz` to verify.
-
----
-
-## Anti-Patterns
-
-| Anti-Pattern | Why It Fails | Correct Approach |
-|--------------|-------------|------------------|
-| **Skipping SCHEMA phase** — jumping from scaffold to React implementation | Components lack type safety; no validation contract; schema errors surface late during build | Always complete SCHEMA and validate with `percli plugin test-schemas` before writing React code |
-| **Building without testing schemas** — running `percli plugin build` before `percli plugin test-schemas` | Build may succeed but produce invalid schemas that fail at runtime in Perses server | Run `percli plugin test-schemas` and fix all CUE errors before building |
-| **Not verifying archive contents** — trusting build output without inspection | Archive may be missing mf-manifest.json or schemas, causing silent failures on deploy | After every build, list archive contents and confirm required files exist |
-| **Manually creating directory structure** — instead of using `percli plugin generate` | Missing module federation config, incorrect package.json, no rsbuild setup | Always start with `percli plugin generate` even if you plan to customize later |
-
-## Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|---------------|-----------------|
-| "The CUE schema looks correct, skip test-schemas" | CUE has subtle type rules; visual inspection misses constraint errors | **Run `percli plugin test-schemas`** — it catches what reading cannot |
-| "Build succeeded so the archive is fine" | Build exit code 0 does not guarantee complete archive contents | **List and verify archive contents** — check for mf-manifest.json, schemas/, __mf/ |
-| "Schema changes are small, no need to re-test" | Small CUE changes can cascade into type mismatches across the schema | **Re-run test-schemas after every schema change**, no matter how small |
-| "The component renders in dev, skip deploy verification" | Hot-reload dev mode bypasses plugin loading path; deploy uses archive loading | **Test the actual deployed plugin** in a Perses server instance |
-
-## FORBIDDEN Patterns
-- **NEVER** modify percli-generated rsbuild.config.ts module federation settings — this breaks plugin loading
-- **NEVER** manually construct plugin archives (zip/tar) — always use `percli plugin build`
-- **NEVER** skip CUE package declaration — every plugin .cue schema file must declare `package model`
-- **NEVER** import from `@perses-dev/internal` — use only public API packages (`@perses-dev/plugin-system`, `@perses-dev/components`)
-- **NEVER** hardcode Perses server URLs in plugin source — plugins receive context via the plugin system
-
-## Blocker Criteria
-
-Stop and ask the user before proceeding if:
-- Plugin type is ambiguous (e.g., could be Panel or Variable)
-- Target Perses server version is unknown (schema compatibility varies)
-- No Perses server is available for DEPLOY phase testing
-- Required `@perses-dev/*` package versions conflict with existing node_modules
-- CUE schema requires imports from packages not present in the module
-
----
-
-## Instructions
-
-### Phase 1: SCAFFOLD
-
-**Goal**: Generate plugin scaffold with correct structure.
-
-1. Determine plugin parameters:
-   - `--module.org`: Organization name (e.g., `my-org`)
-   - `--module.name`: Module name (e.g., `my-plugin-module`)
-   - `--plugin.type`: One of Panel, Datasource, TimeSeriesQuery, TraceQuery, ProfileQuery, LogQuery, Variable, Explore
-   - `--plugin.name`: Plugin name (e.g., `MyCustomPanel`)
-
-2. Run scaffold:
-```bash
-percli plugin generate \
-  --module.org=<org> \
-  --module.name=<module> \
-  --plugin.type=<type> \
-  --plugin.name=<name>
-```
-
-3. Verify generated structure: package.json, rsbuild.config.ts, src/, schemas/ directories exist.
-
-**Gate**: Scaffold generated, directory structure verified. Proceed to Phase 2.
-
-### Phase 2: SCHEMA
-
-**Goal**: Author CUE schema defining the plugin's data model.
-
-1. Create CUE schema at `schemas/<type>/<name>/<name>.cue`
-   - Declare correct package: `package model`
-   - Define the plugin's spec structure with CUE types and constraints
-   - Import common Perses schema packages as needed
-
-2. Create JSON example at `schemas/<type>/<name>/<name>.json`
-   - Must validate against the CUE schema
-   - Serves as documentation and test fixture
-
-3. Optional: Write Grafana migration schema at `schemas/<type>/<name>/migrate/migrate.cue`
-
-4. Validate: `percli plugin test-schemas`
-
-**Gate**: `percli plugin test-schemas` passes with zero errors. Proceed to Phase 3.
-
-### Phase 3: IMPLEMENT
-
-**Goal**: Build React component implementing the plugin UI.
-
-1. Implement component in `src/<type>/<name>/`
-   - Use `@perses-dev/plugin-system` hooks (e.g., `useDataQueries`, `useTimeRange`)
-   - Use `@perses-dev/components` for shared UI elements
-   - Follow Perses component patterns from existing plugins
-
-2. Register plugin in module's plugin registration file
-
-3. Use `percli plugin start` for hot-reload development against a running Perses server
-
-**Gate**: Component renders correctly in dev mode. Proceed to Phase 4.
-
-### Phase 4: TEST
-
-**Goal**: Validate schemas and component behavior.
-
-1. Run `percli plugin test-schemas` — must pass (re-validate after any IMPLEMENT changes)
-2. Run component unit tests if present (`npm test` or framework-specific runner)
-3. Test with `percli plugin start` against a running Perses server — verify plugin appears and functions
-
-**Gate**: All schema tests pass, component renders and functions correctly. Proceed to Phase 5.
-
-### Phase 5: BUILD
-
-**Goal**: Create distribution archive.
-
-1. Run `percli plugin build`
-2. Verify archive contents include:
-   - `package.json` — plugin metadata
-   - `mf-manifest.json` — module federation manifest
-   - `schemas/` — compiled CUE schemas as JSON
-   - `__mf/` — module federation runtime chunks
-
-```bash
-# Verify archive contents (adjust filename)
-tar -tzf <archive>.tar.gz | head -20
-```
-
-**Gate**: Archive built, contents verified with all required files present. Proceed to Phase 6.
-
-### Phase 6: DEPLOY
-
-**Goal**: Install plugin in Perses server and verify.
-
-1. Copy archive to Perses server's `plugins-archive/` directory
-2. Restart Perses (or wait for hot-reload if enabled in server config)
-3. Verify plugin loaded:
-```bash
-percli get plugin
-# Or via MCP tool: perses_list_plugins
-```
-4. Create a test dashboard using the new plugin to confirm end-to-end functionality
-
-**Gate**: Plugin loaded in Perses server, functional in a dashboard. Pipeline complete.
 
 ---
 

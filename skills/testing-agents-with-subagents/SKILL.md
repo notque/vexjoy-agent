@@ -27,45 +27,15 @@ routing:
 
 # Testing Agents With Subagents
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for agent testing workflows, configuring Claude's behavior for systematic agent validation. It applies **TDD methodology to agent development** — RED (observe failures), GREEN (fix agent definition), REFACTOR (edge cases and robustness) — with subagent dispatch as the execution mechanism.
+This skill applies **TDD methodology to agent development** — RED (observe failures), GREEN (fix agent definition), REFACTOR (edge cases and robustness) — with subagent dispatch as the execution mechanism.
 
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before testing
-- **Over-Engineering Prevention**: Only test what's directly needed. No elaborate test harnesses or infrastructure. Keep test cases focused and minimal.
-- **Verbatim Output Capture**: Document exact agent outputs. NEVER summarize or paraphrase.
-- **Isolated Execution**: Each test runs in a fresh subagent to avoid context pollution
-- **Evidence-Based Claims**: Every claim about agent behavior MUST be backed by actual test execution
-- **No Self-Exemption**: You cannot decide an agent doesn't need testing. Human partner must confirm exemptions.
+Test what the agent DOES, not what the prompt SAYS. Evidence-based verification only: capture exact outputs from subagent dispatch, never assume a prompt change will work without testing. Always test via the Task tool, never substitute reading a prompt for running the agent.
 
-### Default Behaviors (ON unless disabled)
-- **Multi-Case Testing**: Run at least 3 test cases per agent (success, failure, edge case)
-- **Output Schema Validation**: Verify agent output matches expected structure and required sections
-- **Consistency Testing**: Run same input 2+ times to verify deterministic behavior
-- **Regression Testing**: After fixes, re-run ALL previous test cases before declaring green
-- **Temporary File Cleanup**: Remove test files and artifacts at completion. Keep only files needed for documentation.
-- **Document Findings**: Log all observations, hypotheses, and test results in structured format
+Minimum test counts vary by agent type: Reviewer agents need 6 cases (2 real issues, 2 clean, 1 edge, 1 ambiguous), Implementation agents 5 cases (2 typical, 1 complex, 1 minimal, 1 error), Analysis agents 4 cases (2 standard, 1 edge, 1 malformed), Routing/orchestration 4 cases (2 correct route, 1 ambiguous, 1 invalid). No agent is simple enough to skip testing — get human confirmation before exempting any agent.
 
-### Optional Behaviors (OFF unless enabled)
-- **A/B Testing**: Compare agent variants using agent-comparison skill
-- **Performance Benchmarking**: Measure response time and token usage
-- **Stress Testing**: Test with large inputs, many iterations, concurrent requests
-- **Eval Harness Integration**: Use `evals/harness.py skill-test` for YAML-based automated testing
-
-## What This Skill CAN Do
-- Systematically validate agents through RED-GREEN-REFACTOR test cycles
-- Dispatch subagents with controlled inputs and capture verbatim outputs
-- Distinguish between output structure issues and behavioral correctness issues
-- Verify fixes don't introduce regressions across the full test suite
-- Test routing logic, skill invocation, and multi-agent workflows
-
-## What This Skill CANNOT Do
-- Deploy agents without completing all three test phases
-- Substitute reading agent prompts for executing actual test runs
-- Make claims about agent behavior without evidence from subagent dispatch
-- Evaluate agent quality structurally (use agent-evaluation instead)
-- Skip the RED phase even when "the fix is obvious"
+Each test runs in a fresh subagent to avoid context pollution. After any fix, re-run ALL test cases to catch regressions. One fix at a time — you cannot determine what changed the outcome with multiple simultaneous fixes.
 
 ---
 
@@ -146,7 +116,11 @@ Task(
 )
 ```
 
+Each test runs in a fresh subagent — this prevents context pollution from earlier tests affecting later ones.
+
 **Step 3: Capture results verbatim**
+
+Document exact agent outputs. NEVER summarize or paraphrase:
 
 ```markdown
 ## Test T1: Happy Path
@@ -201,7 +175,7 @@ Triage failures by severity:
 
 Change one thing in the agent definition. Re-run ALL test cases. Document which tests now pass/fail.
 
-Never make multiple fixes simultaneously — you cannot determine which change was effective. This is the same principle as debugging: one variable at a time.
+Never make multiple fixes simultaneously — you cannot determine which change was effective. Same debugging principle: one variable at a time.
 
 **Step 4: Iterate until green**
 
@@ -266,37 +240,6 @@ READY FOR DEPLOYMENT / NEEDS FIXES / REQUIRES REVIEW
 
 ---
 
-## Examples
-
-### Example 1: Testing a New Reviewer Agent
-User says: "Test the new reviewer-security agent"
-Actions:
-1. Define 6 test cases: 2 real issues, 2 clean code, 1 edge case, 1 ambiguous (RED)
-2. Dispatch subagent for each, capture verbatim outputs (RED)
-3. Fix agent definition for any failures, re-run all tests (GREEN)
-4. Add edge cases (empty input, malformed code), verify consistency (REFACTOR)
-Result: Agent passes all tests, report documents pass rate and verdict
-
-### Example 2: Testing After Agent Modification
-User says: "I updated the golang-general-engineer, make sure it still works"
-Actions:
-1. Run existing test cases against modified agent (RED)
-2. Compare outputs to previous baseline (RED)
-3. Fix any regressions introduced by the modification (GREEN)
-4. Test edge cases to verify robustness not degraded (REFACTOR)
-Result: Agent modification validated, no regressions confirmed
-
-### Example 3: Testing Routing Logic
-User says: "Verify the /do router sends Go requests to the right agent"
-Actions:
-1. Define test cases: "Review this Go code", "Fix this .go file", "Write a goroutine" (RED)
-2. Dispatch each through router, verify correct agent handles it (RED)
-3. Fix routing triggers if wrong agent selected (GREEN)
-4. Test ambiguous inputs like "Review this code" with mixed-language context (REFACTOR)
-Result: Routing validated for all trigger phrases, ambiguous cases documented
-
----
-
 ## Error Handling
 
 ### Error: "Agent type not found"
@@ -331,51 +274,38 @@ Solution:
 
 ---
 
-## Anti-Patterns
+## Examples
 
-### Anti-Pattern 1: Testing Without Capturing Exact Output
-**What it looks like**: "Tested the agent, it looks good."
-**Why wrong**: No evidence of what was tested. Cannot reproduce or verify results. Subjective assessment instead of objective evidence.
-**Do instead**: Capture verbatim output for every test case. Document input, expected, actual, and result.
+### Example 1: Testing a New Reviewer Agent
+User says: "Test the new reviewer-security agent"
+Actions:
+1. Define 6 test cases: 2 real issues, 2 clean code, 1 edge case, 1 ambiguous (RED)
+2. Dispatch subagent for each, capture verbatim outputs (RED)
+3. Fix agent definition for any failures, re-run all tests (GREEN)
+4. Add edge cases (empty input, malformed code), verify consistency (REFACTOR)
+Result: Agent passes all tests, report documents pass rate and verdict
 
-### Anti-Pattern 2: Testing Only Happy Path
-**What it looks like**: "Tested with one example, it worked."
-**Why wrong**: Agents fail on edge cases most often. One test proves almost nothing. False confidence in agent quality.
-**Do instead**: Minimum 3-6 test cases per agent covering success, failure, edge, and ambiguous inputs.
+### Example 2: Testing After Agent Modification
+User says: "I updated the golang-general-engineer, make sure it still works"
+Actions:
+1. Run existing test cases against modified agent (RED)
+2. Compare outputs to previous baseline (RED)
+3. Fix any regressions introduced by the modification (GREEN)
+4. Test edge cases to verify robustness not degraded (REFACTOR)
+Result: Agent modification validated, no regressions confirmed
 
-### Anti-Pattern 3: Skipping Re-test After Fixes
-**What it looks like**: "Fixed the issue, should work now."
-**Why wrong**: Fix might have broken other tests. No verification fix actually works. Regression bugs slip through.
-**Do instead**: Re-run ALL test cases after any change. Only mark green when full suite passes.
-
-### Anti-Pattern 4: Reading Prompts Instead of Running Agents
-**What it looks like**: "Checked that agent prompt has the right sections."
-**Why wrong**: Reading a prompt is not executing an agent. Prompt structure does not guarantee behavior. Must verify actual output.
-**Do instead**: Test what the agent DOES, not what the prompt SAYS. Execute with real inputs via Task tool.
-
-### Anti-Pattern 5: Self-Exempting from Testing
-**What it looks like**: "This agent is simple, doesn't need testing." or "Simple change, no need to re-test."
-**Why wrong**: Simple agents can still fail. Small changes can break behavior. You cannot self-determine exemptions from testing.
-**Do instead**: Get human partner confirmation for exemptions. When in doubt, test. Document why testing was skipped if approved.
+### Example 3: Testing Routing Logic
+User says: "Verify the /do router sends Go requests to the right agent"
+Actions:
+1. Define test cases: "Review this Go code", "Fix this .go file", "Write a goroutine" (RED)
+2. Dispatch each through router, verify correct agent handles it (RED)
+3. Fix routing triggers if wrong agent selected (GREEN)
+4. Test ambiguous inputs like "Review this code" with mixed-language context (REFACTOR)
+Result: Routing validated for all trigger phrases, ambiguous cases documented
 
 ---
 
 ## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) — Prevents shortcut rationalizations
-- [Anti-Rationalization: Testing](../shared-patterns/anti-rationalization-testing.md) — Testing-specific rationalization blocks
-- [Verification Checklist](../shared-patterns/verification-checklist.md) — Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Agent prompt looks correct" | Reading prompt ≠ executing agent | Dispatch subagent and capture output |
-| "Tested manually in conversation" | Not reproducible, no baseline | Use Task tool for formal dispatch |
-| "Only a small change" | Small changes can break agent behavior | Run full test suite |
-| "Will monitor in production" | Production monitoring ≠ pre-deployment testing | Complete RED-GREEN-REFACTOR first |
-| "Based on working template" | Template correctness ≠ instance correctness | Test this specific agent |
 
 ### Integration
 - `agent-comparison`: A/B test agent variants

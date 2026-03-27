@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-03-24T22:20:54Z",
+  "generated": "2026-03-27T19:00:36Z",
   "generated_by": "scripts/generate-skill-index.py",
   "pipelines": {
     "agent-upgrade": {
@@ -14,7 +14,7 @@
         "align agent to template"
       ],
       "category": "meta",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "phases": [
         "AUDIT",
@@ -108,7 +108,7 @@
     },
     "comprehensive-review": {
       "file": "pipelines/comprehensive-review/SKILL.md",
-      "description": "Unified 3-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per package for deep per-package analysis.",
+      "description": "Unified 4-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per package for deep per-package analysis.",
       "triggers": [
         "comprehensive review",
         "full review",
@@ -118,28 +118,18 @@
         "multi-agent review",
         "complete code review",
         "20-agent review",
+        "25-agent review",
         "per-package review",
         "3-wave review",
+        "4-wave review",
+        "adversarial review",
         "full code review",
         "review all packages"
       ],
       "category": "review",
       "force_route": true,
-      "user_invocable": true,
-      "version": "3.2.0",
-      "phases": [
-        "STATIC ANALYSIS",
-        "SCOPE",
-        "WAVE 0 DISPATCH",
-        "WAVE 0 AGGREGATE",
-        "LIBRARY CONTRACT VERIFICATION",
-        "WAVE 1 DISPATCH",
-        "WAVE 0+1 AGGREGATE",
-        "WAVE 2 DISPATCH",
-        "FULL AGGREGATE",
-        "FIX",
-        "REPORT"
-      ],
+      "user_invocable": false,
+      "version": "4.0.0",
       "pairs_with": [
         "systematic-code-review",
         "parallel-code-review",
@@ -160,7 +150,7 @@
       ],
       "category": "content",
       "force_route": true,
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "phases": [
         "SCAN",
@@ -182,7 +172,7 @@
         "analyze from multiple angles"
       ],
       "category": "content",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "2.0.0",
       "phases": [
         "VALIDATE INPUTS",
@@ -292,6 +282,30 @@
         "technical-documentation-engineer"
       ]
     },
+    "feature-pipeline": {
+      "file": "pipelines/feature-pipeline/SKILL.md",
+      "description": "End-to-end feature lifecycle pipeline coordinating design through release: DESIGN, PLAN, IMPLEMENT, VALIDATE, RELEASE, RECORD.",
+      "triggers": [
+        "build feature end to end",
+        "full feature lifecycle",
+        "feature from scratch",
+        "design to release",
+        "complete feature pipeline",
+        "feature pipeline"
+      ],
+      "category": "process",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "phases": [
+        "DESIGN",
+        "PLAN",
+        "IMPLEMENT",
+        "VALIDATE",
+        "RELEASE",
+        "RECORD"
+      ],
+      "agent": "general-purpose"
+    },
     "github-profile-rules": {
       "file": "pipelines/github-profile-rules/SKILL.md",
       "description": "Extract programming rules and coding conventions from a GitHub user's public profile via API.",
@@ -302,7 +316,7 @@
         "github conventions"
       ],
       "category": "meta",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "phases": [
         "ADR",
@@ -329,7 +343,7 @@
         "hook with gates"
       ],
       "category": "infrastructure",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "phases": [
         "SPEC",
@@ -356,7 +370,7 @@
         "mcp from repo"
       ],
       "category": "meta",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "phases": [
         "ANALYZE",
@@ -613,7 +627,7 @@
       ],
       "category": "meta",
       "force_route": true,
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "phases": [
         "DISCOVER",
@@ -641,7 +655,7 @@
       ],
       "category": "meta",
       "force_route": true,
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "phases": [
         "CHANGELOG",
@@ -657,6 +671,60 @@
       ],
       "agent": "system-upgrade-engineer"
     },
+    "systematic-debugging": {
+      "file": "pipelines/systematic-debugging/SKILL.md",
+      "description": "Evidence-based 5-phase debugging pipeline with mandatory reproduction, testing, and learning gates: OBSERVE, HYPOTHESIZE, TEST, FIX, RECORD.",
+      "triggers": [
+        "debug",
+        "find root cause",
+        "reproduce bug",
+        "fix this bug",
+        "this is broken",
+        "not working",
+        "why is this broken",
+        "getting an error",
+        "unexpected behavior",
+        "investigate error"
+      ],
+      "category": "process",
+      "user_invocable": false,
+      "version": "2.0.0",
+      "phases": [
+        "OBSERVE",
+        "HYPOTHESIZE",
+        "TEST",
+        "FIX",
+        "RECORD"
+      ],
+      "agent": "general-purpose"
+    },
+    "systematic-refactoring": {
+      "file": "pipelines/systematic-refactoring/SKILL.md",
+      "description": "Safe 5-phase refactoring pipeline with test characterization, incremental changes, and learning gates: CHARACTERIZE, PLAN, REFACTOR, VERIFY, RECORD.",
+      "triggers": [
+        "refactor safely",
+        "rename symbol",
+        "extract function",
+        "refactor",
+        "simplify this",
+        "restructure code",
+        "reduce complexity",
+        "split this file",
+        "restructure",
+        "move to separate file"
+      ],
+      "category": "process",
+      "user_invocable": false,
+      "version": "2.0.0",
+      "phases": [
+        "CHARACTERIZE",
+        "PLAN",
+        "REFACTOR",
+        "VERIFY",
+        "RECORD"
+      ],
+      "agent": "general-purpose"
+    },
     "voice-calibrator": {
       "file": "pipelines/voice-calibrator/SKILL.md",
       "description": "Analyze writing samples and extract voice patterns to create or update voice skills with deterministic metrics and authorship-matching validation.",
@@ -670,11 +738,6 @@
       "category": "content",
       "user_invocable": false,
       "version": "2.0.0",
-      "phases": [
-        "VOICE GROUNDING",
-        "VOICE METRICS",
-        "THINKING PATTERNS"
-      ],
       "pairs_with": [
         "voice-orchestrator",
         "voice-validator"
@@ -742,99 +805,6 @@
         "plan-checker",
         "research-pipeline"
       ]
-    },
-    "systematic-debugging": {
-      "file": "pipelines/systematic-debugging/SKILL.md",
-      "description": "Evidence-based 5-phase debugging pipeline with mandatory reproduction, testing, and learning gates: OBSERVE, HYPOTHESIZE, TEST, FIX, RECORD.",
-      "triggers": [
-        "debug",
-        "find root cause",
-        "reproduce bug",
-        "fix this bug",
-        "this is broken",
-        "not working",
-        "why is this broken",
-        "getting an error",
-        "unexpected behavior",
-        "investigate error"
-      ],
-      "category": "process",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "phases": [
-        "OBSERVE",
-        "HYPOTHESIZE",
-        "TEST",
-        "FIX",
-        "RECORD"
-      ],
-      "pairs_with": [
-        "systematic-refactoring",
-        "workflow-orchestrator"
-      ],
-      "agent": "general-purpose"
-    },
-    "systematic-refactoring": {
-      "file": "pipelines/systematic-refactoring/SKILL.md",
-      "description": "Safe 5-phase refactoring pipeline with test characterization, incremental changes, and learning gates: CHARACTERIZE, PLAN, REFACTOR, VERIFY, RECORD.",
-      "triggers": [
-        "refactor safely",
-        "rename symbol",
-        "extract function",
-        "refactor",
-        "simplify this",
-        "restructure code",
-        "reduce complexity",
-        "split this file",
-        "restructure",
-        "move to separate file"
-      ],
-      "category": "process",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "phases": [
-        "CHARACTERIZE",
-        "PLAN",
-        "REFACTOR",
-        "VERIFY",
-        "RECORD"
-      ],
-      "pairs_with": [
-        "systematic-debugging",
-        "workflow-orchestrator"
-      ],
-      "agent": "general-purpose"
-    },
-    "feature-pipeline": {
-      "file": "pipelines/feature-pipeline/SKILL.md",
-      "description": "End-to-end feature lifecycle pipeline coordinating design through release: DESIGN, PLAN, IMPLEMENT, VALIDATE, RELEASE, RECORD.",
-      "triggers": [
-        "build feature end to end",
-        "full feature lifecycle",
-        "feature from scratch",
-        "design to release",
-        "complete feature pipeline",
-        "feature pipeline"
-      ],
-      "category": "process",
-      "user_invocable": false,
-      "version": "1.0.0",
-      "phases": [
-        "DESIGN",
-        "PLAN",
-        "IMPLEMENT",
-        "VALIDATE",
-        "RELEASE",
-        "RECORD"
-      ],
-      "pairs_with": [
-        "feature-design",
-        "feature-plan",
-        "feature-implement",
-        "feature-validate",
-        "feature-release"
-      ],
-      "agent": "general-purpose"
     }
   }
 }

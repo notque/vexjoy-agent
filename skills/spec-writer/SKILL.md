@@ -33,24 +33,6 @@ routing:
 
 Produce a structured SPEC.md before any design or implementation begins. This is Phase 0 of the feature lifecycle pipeline (spec --> design --> plan --> implement --> validate --> release). The spec defines WHAT to build and WHERE the boundaries are. It says nothing about HOW.
 
-## Operator Context
-
-### Hardcoded Behaviors (Always Apply)
-- **Phase 3 (Out of Scope) is MANDATORY** -- never skip it. Without explicit exclusions, scope creep is invisible until it's too late. Every "while we're at it" addition started as an unwritten assumption.
-- **Minimum 3 out-of-scope items** -- if you cannot list 3 things this feature does NOT do, the scope is not yet defined. This forces real boundary thinking rather than a rubber-stamp section.
-- **Max 7 user stories** -- more than 7 means the feature is too broad. Decompose into multiple specs first. This constraint forces prioritization: which stories are essential vs. nice-to-have?
-- **Acceptance criteria must be testable** -- no subjective language ("should feel fast", "user-friendly", "intuitive"). Every criterion must have a verifiable assertion. WHY: untestable criteria become opinion debates during review.
-- **Spec says WHAT, not HOW** -- no code, no architecture, no database schemas, no implementation details. Those belong in feature-design.
-
-### Default Behaviors (ON unless disabled)
-- **Save output as SPEC.md** in project root, or `.feature/SPEC.md` if worktree is active
-- **Include all 5 sections** in order (stories, criteria, out-of-scope, risks, estimation)
-- **Use GIVEN/WHEN/THEN format** for acceptance criteria
-
-### Optional Behaviors (OFF unless enabled)
-- **Skip estimation** -- omit Section 5 for exploratory or research-phase work
-- **Test stub generation** -- render acceptance criteria as pseudocode test stubs
-
 ## Instructions
 
 ### Step 1: Gather Context
@@ -64,7 +46,15 @@ Produce a structured SPEC.md before any design or implementation begins. This is
 
 ### Step 2: Write SPEC.md
 
-Produce the spec with all 5 sections. Use this structure:
+Produce the spec with all 5 sections in order. Out-of-scope is MANDATORY and must contain minimum 3 items—without explicit exclusions, scope creep is invisible until too late. Every "while we're at it" addition started as an unwritten assumption.
+
+**Max 7 user stories**. More than 7 means the feature is too broad. Decompose into multiple specs first. This constraint forces prioritization: which stories are essential vs. nice-to-have?
+
+**Acceptance criteria must be testable**—no subjective language ("should feel fast", "user-friendly", "intuitive"). Every criterion must have a verifiable assertion. WHY: untestable criteria become opinion debates during review.
+
+**Spec says WHAT, not HOW**—no code, no architecture, no database schemas, no implementation details. Those belong in feature-design.
+
+Use this structure:
 
 ```markdown
 # Spec: [Feature Name]
@@ -116,9 +106,9 @@ This feature does NOT:
 
 ### Step 3: Validate and Save
 
-1. Review each acceptance criterion -- flag any that use subjective language
-2. Review out-of-scope -- flag if fewer than 3 items
-3. Review story count -- flag if more than 7
+1. Review each acceptance criterion—flag any that use subjective language. Replace with measurable assertion: latency threshold, click count, error rate.
+2. Review out-of-scope—flag if fewer than 3 items. Brainstorm adjacent features, related capabilities, and future enhancements that are NOT part of this work to reach minimum 3.
+3. Review story count—flag if more than 7. If scope is too broad to list 3 things this feature does NOT do, the scope is not yet defined. Decompose into multiple specs, one per coherent capability.
 4. Save the spec:
    - If `.feature/` directory exists: save to `.feature/SPEC.md`
    - Otherwise: save to `SPEC.md` in project root
@@ -126,6 +116,12 @@ This feature does NOT:
    ```
    Spec saved to [path]. Run /feature-design to begin design exploration.
    ```
+
+### Step 4: Optional Behaviors
+
+- **Skip estimation** (Section 5)—omit for exploratory or research-phase work
+- **Test stub generation**—render acceptance criteria as pseudocode test stubs
+- **Save output location**—defaults to `SPEC.md` in project root, or `.feature/SPEC.md` if worktree is active
 
 ## Error Handling
 
@@ -136,29 +132,14 @@ This feature does NOT:
 | Cannot list 3 out-of-scope items | Scope not yet defined | Brainstorm adjacent features, related capabilities, and future enhancements that are NOT part of this work |
 | Acceptance criteria use subjective language | "fast", "easy", "intuitive" | Replace with measurable assertion: latency threshold, click count, error rate |
 
-## Anti-Patterns
-
-| Anti-Pattern | Why Wrong | Do Instead |
-|--------------|-----------|------------|
-| Kitchen sink spec (>7 stories) | Scope is too broad to implement or validate coherently | Decompose into multiple specs, prioritize |
-| Empty out-of-scope | If nothing is excluded, everything is included -- that is a scope problem | Force 3+ exclusions with reasoning |
-| Untestable criteria | "Should be user-friendly" becomes an opinion debate during review | Use measurable assertions: "<3 clicks", "<200ms", "zero data loss" |
-| Spec as implementation | Spec says WHAT, not HOW. Code and schemas belong in feature-design | Remove implementation details, keep behavioral descriptions |
-
-## Integration
-
-This skill produces the input artifact for the feature lifecycle:
-
-```
-spec-writer (SPEC.md)
-  --> feature-design (reads stories + scope boundaries)
-    --> feature-plan (reads acceptance criteria for test requirements)
-      --> feature-implement
-        --> feature-validate (checks acceptance criteria as quality gates)
-          --> feature-release
-```
-
 ## References
 
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md)
-- [Gate Enforcement](../shared-patterns/gate-enforcement.md)
+- Spec Writer Integration: This skill produces the input artifact for the feature lifecycle pipeline:
+  ```
+  spec-writer (SPEC.md)
+    --> feature-design (reads stories + scope boundaries)
+      --> feature-plan (reads acceptance criteria for test requirements)
+        --> feature-implement
+          --> feature-validate (checks acceptance criteria as quality gates)
+            --> feature-release
+  ```

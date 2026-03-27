@@ -42,54 +42,21 @@ routing:
 
 # Systematic Refactoring Skill
 
-## Purpose
-
 Perform safe, verifiable refactoring through explicit phases. Each phase has gates that prevent common refactoring mistakes: breaking behavior, incomplete migrations, or orphaned code.
 
-## Operator Context
+## Instructions
 
-This skill operates as an operator for safe code refactoring, configuring Claude's behavior for incremental, verifiable changes.
+Before starting any refactoring work, read and follow the repository's CLAUDE.md because it may contain project-specific conventions that affect how refactoring should be done (e.g., import ordering, naming conventions, test commands).
 
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before execution
-- **Over-Engineering Prevention**: Only refactor what's directly requested. Keep changes minimal and focused. No speculative improvements or "while we're here" changes without explicit request.
-- **NEVER change behavior without tests**: Characterization tests required before changes
-- **NEVER make multiple changes at once**: One atomic change per commit
-- **NEVER skip validation**: Tests must pass after every change
-- **ALWAYS preserve external API**: Unless explicitly requested
+Only refactor what is directly requested. Do not add speculative improvements or "while we're here" changes because scope creep during refactoring makes failures harder to diagnose and rollbacks harder to execute. If a bug is discovered during refactoring, finish the refactoring first and address the bug in a separate commit because mixing structural changes with behavioral changes makes it impossible to tell which caused a test failure.
 
-### Default Behaviors (ON unless disabled)
-- **Communication Style**: Report facts without self-congratulation. Show command output rather than describing it. Be concise but informative.
-- **Temporary File Cleanup**: Remove temporary test files, debug outputs, or backup files created during refactoring at task completion. Keep only files explicitly needed.
-- **Write characterization tests first**: Capture current behavior before changing
-- **Incremental commits**: Commit at each stable point
-- **Update all callers**: Find and update every reference
-- **Remove dead code**: Clean up orphaned code after migration
+### Phase 1: CHARACTERIZE
 
-### Optional Behaviors (OFF unless enabled)
-- **Performance benchmarks**: Compare before/after performance
-- **Documentation updates**: Auto-update docs for API changes
-- **Type migration**: Update type definitions across codebase
+**Goal**: Establish a test safety net that proves current behavior before any code is touched.
 
-## What This Skill CAN Do
-- Safely rename functions, variables, files across a codebase
-- Extract code into new modules with caller migration
-- Change function signatures with incremental migration
-- Restructure directory layouts preserving all behavior
-- Consolidate duplicate code with test verification
+**Gate**: Tests exist that verify current behavior. Do not proceed to Phase 2 until all characterization tests pass.
 
-## What This Skill CANNOT Do
-- Fix bugs (use systematic-debugging instead)
-- Add new features (use workflow-orchestrator instead)
-- Make multiple changes simultaneously without testing between each
-- Skip characterization tests before modifying code
-- Leave incomplete migrations (old code alongside new)
-
-## Systematic Phases
-
-### Phase 1: CHARACTERIZE (Do NOT proceed without test coverage)
-
-**Gate**: Tests exist that verify current behavior.
+Write characterization tests before making any changes because refactoring without tests is flying blind -- you have no proof that behavior was preserved. Even for a "small rename," grep for all references including string literals, config files, and dynamic lookups because small renames break string refs and configs that static analysis misses.
 
 ```
 ═══════════════════════════════════════════════════════════════
@@ -127,14 +94,18 @@ This skill operates as an operator for safe code refactoring, configuring Claude
 
 **Actions in this phase:**
 1. Read the code to be refactored completely
-2. Find all callers with Grep
+2. Find all callers with Grep -- check string literals, config files, and reflection-based references in addition to direct code references
 3. Run existing tests, note coverage gaps
 4. Write characterization tests for uncovered behavior
 5. Verify all tests pass
 
-### Phase 2: PLAN (Do NOT proceed without incremental steps defined)
+### Phase 2: PLAN
 
-**Gate**: Clear sequence of atomic changes with rollback points.
+**Goal**: Define a sequence of atomic changes, each independently testable, with rollback points.
+
+**Gate**: Clear sequence of atomic changes with rollback points defined. Do not proceed to Phase 3 until every step is small enough to be a single commit.
+
+Break the work into the smallest possible atomic changes because one large commit touching many files makes it impossible to bisect which change caused an issue and guarantees merge conflicts in active codebases. Every step must preserve the external API unless the user explicitly requested an API change, because callers outside the codebase may depend on the current interface.
 
 ```
 ═══════════════════════════════════════════════════════════════
@@ -179,9 +150,15 @@ This skill operates as an operator for safe code refactoring, configuring Claude
 4. Define rollback procedure for each step
 5. Estimate risk level for each step
 
-### Phase 3: EXECUTE (One step at a time, tests between each)
+### Phase 3: EXECUTE
 
-**Gate**: Tests pass after each atomic change.
+**Goal**: Apply each planned change one at a time, running the full test suite after every step.
+
+**Gate**: Tests pass after each atomic change. If any test fails, stop, rollback, and investigate before proceeding.
+
+Make exactly one atomic change per step because multiple simultaneous changes make it impossible to isolate which change broke a test. Run the full test suite after each step, not just the tests you think are relevant, because refactoring should never change behavior and the full suite is your proof. Commit at each stable point so that every commit represents a working state and you can bisect or rollback to any intermediate point.
+
+When updating callers, migrate every single reference before removing old code because leaving old code alongside new "for backward compatibility" means code exists in two places indefinitely, future changes require double updates, and the old code becomes stale and buggy. Use Grep exhaustively to confirm zero remaining references at each migration step.
 
 ```
 ═══════════════════════════════════════════════════════════════
@@ -218,9 +195,15 @@ This skill operates as an operator for safe code refactoring, configuring Claude
 4. If fail: rollback, investigate, fix, retry
 5. Repeat until all steps complete
 
-### Phase 4: VALIDATE (Do NOT mark complete until verified)
+### Phase 4: VALIDATE
 
-**Gate**: All original tests pass, no dead code, all callers updated.
+**Goal**: Confirm the entire refactoring preserved behavior, left no dead code, and updated all references.
+
+**Gate**: All original tests pass, no dead code remains, all callers are updated. Do not mark complete until every check passes.
+
+Show command output directly rather than describing results because evidence is more trustworthy than summary. Grep for old names across the entire codebase including strings, comments, and config files to confirm zero remaining references. Check for dynamic references such as reflection and string-based lookups that static analysis may miss.
+
+Remove any temporary test files, debug outputs, or backup files created during refactoring because they are noise that obscures the actual changes.
 
 ```
 ═══════════════════════════════════════════════════════════════
@@ -241,6 +224,7 @@ This skill operates as an operator for safe code refactoring, configuring Claude
    - [ ] No unused imports
    - [ ] No dead references
    - [ ] Old names completely removed
+   - [ ] Temporary files removed
 
  Caller Verification:
    $ grep -r "[old_name]" --include="*.ext"
@@ -262,9 +246,9 @@ This skill operates as an operator for safe code refactoring, configuring Claude
 ═══════════════════════════════════════════════════════════════
 ```
 
-## Refactoring Patterns
+## Reference Material
 
-### Pattern 1: Rename (Function, Variable, File)
+### Pattern: Rename (Function, Variable, File)
 
 ```
 Phase 1: Find all usages with Grep
@@ -273,7 +257,7 @@ Phase 3: Execute with replace_all where safe
 Phase 4: Verify no old name references remain
 ```
 
-### Pattern 2: Extract (Function, Module, Class)
+### Pattern: Extract (Function, Module, Class)
 
 ```
 Phase 1: Identify code to extract, write tests
@@ -285,7 +269,7 @@ Phase 3:
 Phase 4: Verify all callers use new location
 ```
 
-### Pattern 3: Inline (Remove Abstraction)
+### Pattern: Inline (Remove Abstraction)
 
 ```
 Phase 1: Find all usages, understand all variations
@@ -297,7 +281,7 @@ Phase 3:
 Phase 4: Verify no remaining references
 ```
 
-### Pattern 4: Change Signature
+### Pattern: Change Signature
 
 ```
 Phase 1: Find all callers, understand usage patterns
@@ -327,102 +311,6 @@ Phase 4: Verify all callers use new signature
 - Add new dependencies to plan
 - May need to add intermediate steps
 
-## Common Anti-Patterns
-
-### Anti-Pattern 1: Big Bang Refactoring
-
-**What it looks like:**
-```
-User: "Rename getUserData to fetchUserProfile across the entire codebase"
-Claude: *Changes 47 files in one commit, updating function name, all callers, tests, and docs*
-```
-
-**Why it's wrong:**
-- One test failure breaks everything
-- Impossible to bisect which change caused issues
-- No rollback points if problems discovered later
-- Merge conflicts guaranteed in active codebases
-
-**Do this instead:**
-1. CHARACTERIZE: Write tests for current getUserData behavior
-2. PLAN: Break into steps (add new function, migrate callers gradually, remove old)
-3. EXECUTE: Commit after each atomic change (5-10 callers at a time)
-4. VALIDATE: Tests pass after every step
-
-### Anti-Pattern 2: Refactoring Without Tests First
-
-**What it looks like:**
-```
-User: "Extract this logic into a new function"
-Claude: *Immediately creates new function and updates callers without writing tests*
-```
-
-**Why it's wrong:**
-- No verification that behavior is preserved
-- Silent bugs introduced during extraction
-- Can't prove refactoring was safe
-- No baseline to compare against
-
-**Do this instead:**
-1. CHARACTERIZE: Write tests for current behavior BEFORE touching code
-2. Run tests: Verify they pass with current implementation
-3. Make change: Extract function
-4. Run tests again: Verify same results
-5. Tests are your proof of correctness
-
-### Anti-Pattern 3: Incomplete Migration
-
-**What it looks like:**
-```
-User: "Move getUser from utils.js to user-service.js"
-Claude: *Creates new location, updates 80% of callers, leaves old function "for backward compatibility"*
-```
-
-**Why it's wrong:**
-- Code exists in two places indefinitely
-- Future changes need double updates
-- Confusion about which to use
-- Old code becomes stale and buggy
-
-**Do this instead:**
-1. PLAN: Identify ALL callers upfront (use Grep exhaustively)
-2. EXECUTE: Update every single caller before removing old code
-3. VALIDATE: Grep confirms ZERO references to old location
-4. Clean up: Remove old code completely
-5. No half-migrated state allowed
-
-### Anti-Pattern 4: Mixing Refactoring with Feature Work
-
-**What it looks like:**
-```
-User: "Rename calculateTotal and also fix the tax calculation bug"
-Claude: *Renames function AND changes logic in same refactoring*
-```
-
-**Why it's wrong:**
-- Can't tell if tests fail due to rename or logic change
-- Violates "preserve behavior" principle
-- Impossible to review as pure refactoring
-- Rollback becomes unclear
-
-**Do this instead:**
-1. Separate concerns: "This is ONLY refactoring, behavior unchanged"
-2. Complete refactoring first: Rename with tests proving no behavior change
-3. Then fix bug: In separate phase with new tests for fixed behavior
-4. Two commits: One refactor (safe), one fix (behavior change)
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-- [Gate Enforcement](../shared-patterns/gate-enforcement.md) - Phase transition rules
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "This refactoring is safe, no tests needed" | Refactoring without tests is flying blind | Write characterization tests first |
-| "I'll update the remaining callers later" | Incomplete migrations rot forever | Migrate ALL callers before removing old code |
-| "Small rename, no need for full process" | Small renames break string refs and configs | Grep for all references including strings |
-| "I can fix this bug while refactoring" | Mixed concerns make failures undiagnosable | Separate commits: refactor then fix |
+- `pipelines/systematic-refactoring/SKILL.md` - Phase-gated pipeline version

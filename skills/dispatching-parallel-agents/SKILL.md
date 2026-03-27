@@ -35,47 +35,7 @@ routing:
 
 # Dispatching Parallel Agents
 
-## Operator Context
-
-This skill operates as an operator for parallel dispatch workflows, configuring Claude's behavior for concurrent investigation of independent problems. It implements the **Fan-Out / Fan-In** architectural pattern -- dispatch isolated agents, collect results, integrate -- with **Domain Separation** ensuring agents never interfere with each other.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before dispatching agents
-- **Over-Engineering Prevention**: Fix only what is broken. No speculative improvements across domains
-- **Independence Verification**: MUST confirm problems are independent before parallel dispatch
-- **Branch Convergence (ADR-093)**: Orchestrator MUST create the target branch BEFORE dispatching agents. Each agent prompt MUST include the branch name with explicit instructions to commit there — NOT create a new branch. This overrides the default "always create a branch" rule for parallel-dispatched agents.
-- **Single Message Dispatch**: MUST launch all parallel agents in ONE message for true concurrency
-- **Scoped Prompts**: Each agent MUST receive explicit scope, constraints, and expected output
-- **Post-Integration Verification**: MUST run full test suite after all agents return
-
-### Default Behaviors (ON unless disabled)
-- **Conflict Detection**: Check if agents modified overlapping files after completion
-- **Prompt Template**: Use structured prompt with scope, goal, constraints, and output format
-- **Summary Collection**: Require each agent to return root cause and files modified
-- **Maximum Parallelism**: Cap at 10 concurrent agents to avoid coordination overhead
-- **Result Spot-Check**: Verify at least one agent's fix manually before declaring done
-- **Sequential Fallback**: If agents report same root cause, stop and investigate holistically
-
-### Optional Behaviors (OFF unless enabled)
-- **Dependency Graph**: Map subsystem dependencies before dispatching
-- **Resource Isolation**: Assign exclusive file/port ranges to each agent
-- **Retry on Failure**: Re-dispatch failed agents with additional context
-
-## What This Skill CAN Do
-- Dispatch multiple agents to work on independent problems concurrently
-- Reduce total investigation time proportional to number of independent problems
-- Detect conflicts between agent fixes during integration
-- Provide structured prompts that keep agents focused on their domain
-- Integrate results and verify the combined fix
-
-## What This Skill CANNOT Do
-- Parallelize problems that share state or root cause
-- Guarantee agents will not edit overlapping files
-- Replace systematic debugging for single complex bugs (use systematic-debugging instead)
-- Plan implementation work (use workflow-orchestrator instead)
-- Execute sequential dependent tasks (use subagent-driven-development instead)
-
----
+Fan-Out / Fan-In pattern for concurrent investigation of independent problems. Dispatch isolated agents with domain separation so they never interfere with each other, collect results, integrate, verify.
 
 ## Instructions
 
@@ -85,6 +45,8 @@ This skill operates as an operator for parallel dispatch workflows, configuring 
 
 **Step 1: List all problems**
 
+Read and follow the repository CLAUDE.md before proceeding. Then enumerate every problem:
+
 ```markdown
 ## Problems Identified
 1. [Problem A] - [Subsystem] - [Error summary]
@@ -92,11 +54,15 @@ This skill operates as an operator for parallel dispatch workflows, configuring 
 3. [Problem C] - [Subsystem] - [Error summary]
 ```
 
+Fix only what is broken -- do not add speculative improvements across domains.
+
 **Step 2: Test independence**
 
 For each pair of problems, ask: "If I fix problem A, does it affect problem B?"
 - If NO for all pairs --> Independent, proceed to parallel dispatch
 - If YES or MAYBE for any pair --> Investigate those together first, parallelize the rest
+
+Do not skip this step regardless of how obvious independence appears. "These problems look independent" is an assumption, not a verification -- test each pair explicitly. If there are many problems, classify all of them before dispatching any.
 
 **Step 3: Check scope overlap (deterministic)**
 
@@ -113,11 +79,11 @@ Scope inference rules:
 - Extract file paths and directories mentioned in the task description
 - If a task only reads files (investigation, analysis), set `"readonly": true`
 - If scope cannot be inferred, use the subsystem directory as a broad scope
-- When in doubt, over-scope — false positives (unnecessary serialization) are safe
+- When in doubt, over-scope -- false positives (unnecessary serialization) are safe
 
 Interpret the output:
-- `"conflicts": []` → All tasks can run in parallel. Proceed to Phase 2.
-- `"conflicts": [...]` → Use `"parallel_groups"` to determine wave ordering. Tasks in the same group run together; groups run sequentially.
+- `"conflicts": []` --> All tasks can run in parallel. Proceed to Phase 2.
+- `"conflicts": [...]` --> Use `"parallel_groups"` to determine wave ordering. Tasks in the same group run together; groups run sequentially.
 - Display the grouping decision in the dispatch summary.
 
 **Step 4: Verify no shared state beyond files**
@@ -135,7 +101,7 @@ These are NOT caught by the scope overlap script and require manual verification
 
 **Goal**: Launch focused agents with clear scope on a single shared branch.
 
-**Step 0: Create target branch (ADR-093 — Branch Convergence)**
+**Step 0: Create target branch (ADR-093 -- Branch Convergence)**
 
 Before dispatching any agents, the orchestrator creates and checks out the target branch:
 
@@ -143,13 +109,11 @@ Before dispatching any agents, the orchestrator creates and checks out the targe
 git checkout -b feat/{descriptive-name}
 ```
 
-This branch is the single convergence point for all parallel agents. Individual agents MUST NOT create their own branches.
-
-**Why**: Without this step, N agents create N branches (the "scattered branches" problem). Cherry-picking and branch discovery after the fact is fragile and error-prone. Creating the branch before dispatch is simple and deterministic.
+This branch is the single convergence point for all parallel agents. Individual agents MUST NOT create their own branches. Without this step, N agents create N branches (the "scattered branches" problem) -- cherry-picking and branch discovery after the fact is fragile and error-prone. Creating the branch before dispatch is simple and deterministic.
 
 **Step 1: Create agent prompts**
 
-Each agent prompt MUST include:
+Each agent receives an explicit prompt with scope, goal, constraints, and expected output format. Vague prompts like "Fix the failing tests" cause agents to wander, modify out-of-scope files, and take too long. Use this template:
 
 ```markdown
 Fix [N] failing tests in [FILE/SUBSYSTEM]:
@@ -182,15 +146,21 @@ Return:
 - How to verify the fix
 ```
 
+The branch name must appear in every agent prompt -- agents will not "figure out the branch" on their own, and merging scattered branches after the fact creates conflicts and pollutes history.
+
 **Step 2: Dispatch agents using scope overlap grouping**
+
+All agents in a wave MUST be dispatched in a single message for true concurrency. Dispatching them one at a time serializes the work and defeats the purpose.
 
 - If Phase 1 scope check returned a single parallel group: dispatch all agents in ONE message. All run concurrently.
 - If Phase 1 scope check returned multiple groups: dispatch each group as a sequential wave. All agents within a wave run concurrently, but waves run sequentially. Wait for wave N to complete before dispatching wave N+1.
 
+Cap at 10 concurrent agents per wave to avoid coordination overhead.
+
 ```markdown
 ## Dispatch Plan
-Wave 1 (parallel): [task-1, task-2] — no file overlap
-Wave 2 (after wave 1): [task-3] — overlaps with task-1 on handlers/auth.go
+Wave 1 (parallel): [task-1, task-2] -- no file overlap
+Wave 2 (after wave 1): [task-3] -- overlaps with task-1 on handlers/auth.go
 ```
 
 **Gate**: All agents dispatched with scoped prompts and constraints. Proceed only when all agents return.
@@ -213,7 +183,7 @@ If an agent created a rogue branch:
 2. Cherry-pick its commits to the target branch: `git cherry-pick <commit-hash>`
 3. Delete the rogue branch: `git branch -d <rogue-branch>`
 
-If an agent used a worktree, its commits are on a separate branch by design — cherry-pick them to the target branch.
+If an agent used a worktree, its commits are on a separate branch by design -- cherry-pick them to the target branch.
 
 **Step 2: Read each agent summary**
 - What was the root cause?
@@ -221,17 +191,20 @@ If an agent used a worktree, its commits are on a separate branch by design — 
 - Did the agent's local tests pass?
 - Did the agent confirm the correct branch?
 
+If agents report the same root cause, stop integration immediately. The problems were not actually independent -- consolidate into a single investigation.
+
 **Step 3: Check for conflicts**
 - Did any agent modify files outside its declared scope? (Compare actual files modified vs Phase 1 scope declarations)
 - Did any two agents modify the same file? (Should not happen if scope overlap check was clean, but verify)
-- Did any agent report the same root cause as another?
 - Did any agent report inability to reproduce?
+
+"No conflicts in the file list" does not mean no conflicts in logic -- spot-check actual code changes, not just file names.
 
 If conflicts detected: Do NOT auto-merge. Understand which fix is correct. May need sequential re-investigation.
 
 **Step 4: Run full test suite**
 
-Execute the complete test suite to verify all fixes work together without regressions.
+Execute the complete test suite to verify all fixes work together without regressions. An agent reporting "it's fixed" is not the same as integrated verification -- the full suite catches cross-subsystem regressions that individual agents cannot see.
 
 **Step 5: Spot-check at least one fix**
 
@@ -280,59 +253,19 @@ Solution: Provide additional context. If still cannot reproduce, the problem may
 
 ### Error: "Agent Commits to Wrong Branch"
 Cause: Agent creates its own branch (ignoring convergence protocol) or worktree diverges from target.
-Solution (ADR-093 — Branch Convergence):
+Solution (ADR-093 -- Branch Convergence):
 1. Orchestrator creates the target branch BEFORE dispatching agents (Phase 2, Step 0)
 2. Each agent prompt explicitly states `Work on branch: {name}. Do NOT create a new branch.`
 3. Each agent runs `git branch --show-current` as first step to verify correct branch
 4. After all agents return, Phase 3 Step 1 verifies convergence
 5. If a commit landed on the wrong branch, cherry-pick to the target and delete the rogue branch
-*Graduated from learning.db — multi-agent-coordination/worktree-branch-confusion. Superseded by ADR-093.*
-
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Parallelizing Related Problems
-**What it looks like**: Dispatching agents for failures that share a root cause
-**Why wrong**: Multiple agents fix the same thing differently, creating conflicts
-**Do instead**: Test independence first. If unsure, investigate sequentially.
-
-### Anti-Pattern 2: Vague Agent Prompts
-**What it looks like**: "Fix the failing tests" with no scope or constraints
-**Why wrong**: Agent wanders, modifies out-of-scope files, takes too long
-**Do instead**: Use the structured prompt template with explicit scope and constraints.
-
-### Anti-Pattern 3: Skipping Integration Verification
-**What it looks like**: "All agents reported success, we're done!"
-**Why wrong**: Individual fixes may conflict or introduce cross-subsystem regressions
-**Do instead**: Run full test suite after all agents return. Spot-check at least one fix.
-
-### Anti-Pattern 4: Dispatching Before Understanding
-**What it looks like**: Immediately parallelizing without confirming independence
-**Why wrong**: Wastes agent effort; conflicting fixes require rework
-**Do instead**: Complete Phase 1 classification. Independence verification is not optional.
-
-### Anti-Pattern 5: Scattered Branches (ADR-093)
-**What it looks like**: Each parallel agent creates its own feature branch, producing N branches for N agents
-**Why wrong**: Orchestrator must detective-work through cherry-picks, branch discovery, and manual integration. Merge commits pollute history. Conflicts emerge during integration that could have been prevented.
-**Do instead**: Orchestrator creates the target branch BEFORE dispatch. Each agent prompt includes `Work on branch: {name}. Do NOT create a new branch.` All changes converge on a single branch.
-*Graduated from ADR-093 and learning.db — multi-agent-coordination/parallel-agents-scatter-branches*
+*Graduated from learning.db -- multi-agent-coordination/worktree-branch-confusion. Superseded by ADR-093.*
 
 ---
 
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "These problems look independent" | Looking ≠ verified independence | Test each pair explicitly |
-| "Agent said it's fixed" | Agent report ≠ integrated verification | Run full test suite |
-| "No conflicts in file list" | File-level ≠ logic-level conflict | Spot-check actual changes |
-| "Too many problems to classify" | Skipping classification causes rework | Classify all before dispatch |
-| "Agents will figure out the branch" | Without explicit branch, each agent creates its own | Pass branch name in every prompt (ADR-093) |
-| "I'll merge the branches after" | Post-hoc merge creates conflicts and pollutes history | Create branch before dispatch, not after |
+- `scripts/check-scope-overlap.py` -- Deterministic scope overlap checker for parallel task dispatch
+- `skills/systematic-debugging/SKILL.md` -- Use instead for single complex bugs or related failures
+- `skills/workflow-orchestrator/SKILL.md` -- Use instead for planning implementation work
+- `skills/subagent-driven-development/SKILL.md` -- Use instead for sequential dependent tasks

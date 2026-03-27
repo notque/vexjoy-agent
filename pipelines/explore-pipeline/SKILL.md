@@ -48,47 +48,16 @@ routing:
 
 # Exploration Pipeline
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for systematic codebase exploration, configuring Claude's behavior for structured, read-only investigation. It implements the **Pipeline Architecture** pattern — parallel scan, structured mapping, deep analysis, artifact-based reporting — with **Domain Intelligence** embedded in the exploration methodology.
+This skill performs systematic codebase exploration using parallel subagents and tiered depth selection. It is read-only (never modifies files) and saves structured artifacts at every phase. Depth is determined by the query type: **Quick** (single question, Phase 1 only), **Standard** (subsystem understanding, 4 phases), or **Deep** (full quality assessment with recommendations, 8 phases).
 
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before exploring
-- **Over-Engineering Prevention**: Explore what was asked. No speculative scope expansion, no "while I'm here" tangents into unrelated subsystems
-- **Read-Only**: This pipeline NEVER modifies source code, configs, or tests
-- **Artifacts at Every Phase**: Save findings to files; context is ephemeral
-- **Structured Output**: Always produce a structured exploration report
-- **Scope Discipline**: Answer the exploration question; do not generate improvement recommendations unless explicitly asked
+The pipeline implements three core constraints:
+1. **Scope discipline**: Answer the question asked, do not tangent into unrelated subsystems or generate unsolicited recommendations
+2. **Artifact-first**: Save findings to files at each phase; context is ephemeral
+3. **Gate enforcement**: Do not skip phases within the selected tier. Each phase has defined exit criteria and cannot be omitted
 
-### Default Behaviors (ON unless disabled)
-- **Parallel Scanning**: Launch 3 parallel subagents for initial scan
-- **Architecture Mapping**: Map component relationships and data flow
-- **Save Report**: Save findings to `exploration-report.md`
-- **Entry Point Tracing**: Identify main executables, CLI entry points, API routes
-- **Pattern Detection**: Identify naming conventions, directory organization, error handling patterns
-- **Dependency Mapping**: Trace component relationships and dependency graphs
-
-### Optional Behaviors (OFF unless enabled)
-- **Deep Dive**: Use `--deep` for comprehensive multi-layer analysis
-- **Quick Mode**: Use `--quick` for high-level overview only (skip Phase 3)
-- **Specific Focus**: Use `--focus [area]` to constrain exploration to a single component
-- **Explicit Tier Selection**: Use `--tier quick|standard|deep` to set exploration depth (see Tiered Depth Model below)
-
-## What This Skill CAN Do
-- Systematically scan repository structure using parallel subagents
-- Map architecture layers, component relationships, and data flow
-- Identify patterns, conventions, and key abstractions
-- Produce structured, reusable exploration reports saved as artifacts
-- Trace entry points and execution paths through the codebase
-
-## What This Skill CANNOT Do
-- Modify any files in the repository (read-only)
-- Debug or fix bugs (use systematic-debugging instead)
-- Refactor code (use systematic-refactoring instead)
-- Generate documentation (use technical-documentation-engineer instead)
-- Skip phases within the selected tier (Quick: Phase 1; Standard: 1-3,8; Deep: all 8)
-
----
+Optional behaviors are disabled by default: use `--deep` for comprehensive analysis, `--quick` for overview, `--focus [area]` for targeted exploration, or `--tier quick|standard|deep` for explicit depth selection.
 
 ## Instructions
 
@@ -293,7 +262,7 @@ Solution:
 ### Error: "Scanner Subagent Timed Out"
 Cause: Subagent stuck on large directory traversal or slow file reads
 Solution:
-1. Proceed with results from completed scanners (minimum 2 of 3)
+1. Proceed with results from completed scanners (minimum 2 of 3). Do not wait for all three to complete; minimum 2 is the gate.
 2. Fill gaps with targeted manual investigation in Phase 3
 3. Note incomplete coverage in the final report
 
@@ -306,92 +275,49 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Random File Reading
-**What it looks like**: Opening files without a plan, hoping to stumble on understanding
-**Why wrong**: Produces incomplete, biased picture weighted toward whatever was read first
-**Do instead**: Systematic parallel scan with defined focus areas
-
-### Anti-Pattern 2: No Saved Artifacts
-**What it looks like**: Exploring entirely in context without saving findings to files
-**Why wrong**: Knowledge lost when context compresses; cannot be reused across sessions
-**Do instead**: Save architecture map and report to files at each phase
-
-### Anti-Pattern 3: Skipping the Map Phase
-**What it looks like**: Jumping from scanning straight to analysis
-**Why wrong**: Misses component relationships; analysis lacks structural context
-**Do instead**: Always create architecture map before deep analysis
-
-### Anti-Pattern 4: Generating Recommendations Unsolicited
-**What it looks like**: "Here are 10 things I would improve about this codebase"
-**Why wrong**: User asked to understand, not to change. Scope creep wastes time and adds noise.
-**Do instead**: Report what exists. Only recommend if user explicitly asks.
-
-### Anti-Pattern 5: Same Depth for Every Question
-**What it looks like**: Running all 4 phases with parallel scanners when the user just wants to know "what ORM does this use?"
-**Why wrong**: Wastes time and tokens. A 15-minute pipeline for a 2-minute question erodes trust in the tool.
-**Do instead**: Match depth to the question. Use the Tiered Depth Model below to select the right scope.
-
----
-
 ## Tiered Depth Model
 
-Not every exploration question needs the same depth. Running a full pipeline for a quick fact-check wastes time; running a shallow scan for onboarding misses critical context. The tier is determined by the caller, not guessed. If depth is unspecified, default to **Standard**.
+The tier is determined by query type, not guessed. Matching depth to question scope prevents waste (not spending 30 minutes on a 2-minute fact-check) while ensuring completeness (not running a shallow scan when full understanding is needed). **Default to Standard if depth is unspecified.** All phases within the selected tier must run; phases cannot be skipped or reordered.
 
 ### Quick Verify (2-5 minutes)
 
 **Purpose**: Confirm a specific fact about the codebase.
 
-**Scope**: Answer one question. Read only the files necessary to answer it. No document generation -- the answer IS the output.
+**Scope**: Answer one question. Read only the files necessary to answer it. No document generation — the answer IS the output. Avoid tangenting into adjacent subsystems: stay focused on the specific fact.
 
-**Phases used**: Phase 1 (SCAN) only -- single targeted scanner, not parallel.
+**Phases used**: Phase 1 (SCAN) only — single targeted scanner, not parallel.
 
 **Exit criteria**: Question answered with file path evidence, or "could not determine" with a list of what was checked.
 
-**Examples**:
-- "Does this project use dependency injection?"
-- "What ORM does the API use?"
-- "Is there a CI pipeline configured?"
-- "What version of React is this using?"
+**Examples**: "Does this project use dependency injection?" "What ORM does the API use?" "Is there a CI pipeline configured?" "What version of React is this using?"
 
 **Output format**: Direct answer in conversation (no saved report file).
 
 ### Standard (15-30 minutes)
 
-**Purpose**: Understand a subsystem or map one area of the codebase.
+**Purpose**: Understand a subsystem or map one area of the codebase. This is the default tier when the user hasn't specified a depth preference.
 
-**Scope**: All 4 phases execute. Parallel scanners in Phase 1. Produce a single structured document covering the targeted area.
+**Scope**: All 4 phases execute. Parallel scanners in Phase 1 (minimum 2 of 3 must complete). Produce a single structured document covering the targeted area. Do not jump to analysis without creating an architecture map in Phase 2.
 
-**Phases used**: All 4 phases (SCAN, MAP, ANALYZE, REPORT).
+**Phases used**: All 4 phases (SCAN, MAP, ANALYZE, REPORT). Phases cannot be skipped.
 
 **Exit criteria**: Report covers the subsystem's boundaries, key patterns, and integration points. Saved as `exploration-report.md`.
 
-**Examples**:
-- "How does authentication work in this app?"
-- "Map the payment processing flow."
-- "Explain how the event system works."
-- "What's the testing strategy for this repo?"
+**Examples**: "How does authentication work in this app?" "Map the payment processing flow." "Explain how the event system works." "What's the testing strategy for this repo?"
 
 **Output format**: Saved `exploration-report.md` with all sections.
 
 ### Deep Dive (1+ hour)
 
-**Purpose**: Full analysis — architectural understanding PLUS quality evaluation, consistency assessment, and pattern analysis.
+**Purpose**: Full analysis — architectural understanding PLUS quality evaluation, consistency assessment, and pattern analysis. Use this tier when the user asks to "analyze quality of", "assess consistency of", or "evaluate patterns in" the codebase.
 
-**Scope**: All 8 phases. Phases 1-3 explore the codebase. Phases 4-7 compile findings, assess quality, synthesize recommendations, and verify against source. Phase 8 produces a comprehensive report.
+**Scope**: All 8 phases. Phases 1-3 explore the codebase. Phases 4-7 compile findings, assess quality, synthesize recommendations, and verify against source code to remove false positives. Phase 8 produces a comprehensive report. Do not generate improvement recommendations unless findings have been verified against actual source code in Phase 7.
 
-**Phases used**: All 8 phases: SCAN → MAP → ANALYZE → COMPILE → ASSESS → SYNTHESIZE → REFINE → REPORT.
+**Phases used**: All 8 phases: SCAN → MAP → ANALYZE → COMPILE → ASSESS → SYNTHESIZE → REFINE → REPORT. All phases are mandatory; none can be skipped.
 
-**Exit criteria**: Comprehensive report covers full architecture, quality assessment with scores, consistency evaluation, pattern analysis, and ranked recommendations. Multiple artifact files produced.
+**Exit criteria**: Comprehensive report covers full architecture, quality assessment with scores, consistency evaluation, pattern analysis, and ranked recommendations. Multiple artifact files produced. Top 5 findings verified against source in Phase 7 to confirm accuracy.
 
-**Examples**:
-- "I'm new to this codebase, give me the full picture."
-- "We're considering a major refactor -- what do we need to know?"
-- "Analyze the quality and consistency of our error handling."
-- "Assess which patterns are used consistently vs inconsistently."
-- "Full architectural review before we plan next quarter."
-- "Evaluate the test coverage patterns across all modules."
+**Examples**: "I'm new to this codebase, give me the full picture." "We're considering a major refactor — what do we need to know?" "Analyze the quality and consistency of our error handling." "Assess which patterns are used consistently vs inconsistently." "Full architectural review before we plan next quarter." "Evaluate the test coverage patterns across all modules."
 
 **Output format**: Saved `exploration-report.md` plus supplementary files (`architecture-map.md`, `analysis-compilation.md`, component-specific documents as needed).
 
@@ -403,7 +329,7 @@ If user specifies --tier or --quick or --deep:
 Else if user asks a single specific question (what/which/does/is):
   Use Quick Verify.
 Else if user asks to analyze/assess/evaluate/audit quality or patterns:
-  Use Deep Dive (needs COMPILE + ASSESS + SYNTHESIZE + REFINE phases).
+  Use Deep Dive (requires all 8 phases including COMPILE, ASSESS, SYNTHESIZE, REFINE for verification).
 Else if user asks about a specific subsystem or flow:
   Use Standard.
 Else if user asks for full picture / onboarding / comprehensive:
@@ -435,17 +361,4 @@ When exploration requires looking up external information (framework conventions
 
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-- [Gate Enforcement](../shared-patterns/gate-enforcement.md) - Phase transition rules
-- [Pipeline Architecture](../shared-patterns/pipeline-architecture.md) - Pipeline design principles
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "I read enough files to understand" | Sampling bias skews understanding | Complete all 3 parallel scans |
-| "Architecture is obvious, skip mapping" | Obvious to whom? Document it. | Save architecture-map.md |
-| "Quick overview is good enough" | Quick overviews miss relationships | Complete all 4 phases unless --quick |
-| "I'll remember the structure" | Context compresses; memory is unreliable | Save artifacts to files |
+This skill follows the **Pipeline Architecture** pattern with artifact-based reporting and gate enforcement. Context is ephemeral; all findings must be saved to files at each phase to survive context compression and enable reuse across sessions.

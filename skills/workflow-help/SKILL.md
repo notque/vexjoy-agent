@@ -26,45 +26,9 @@ routing:
 
 # Workflow Help Skill
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for workflow education and guidance, configuring Claude's behavior for clear, accurate explanation of the repository's agent/skill/routing architecture. It implements the **Knowledge Transfer** pattern -- understand the user's question, locate the relevant component, explain with concrete examples.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before answering
-- **Over-Engineering Prevention**: Answer only what was asked. Do not dump the entire system architecture when the user asks about one skill
-- **Accuracy Over Speed**: Read actual SKILL.md and agent files before explaining them; never describe from memory
-- **Show Real Examples**: Reference actual skill names, commands, and file paths from this repository
-- **No Fabrication**: If a skill or agent does not exist, say so rather than inventing capabilities
-- **Route When Appropriate**: If user actually wants to execute a workflow, route to the correct skill instead of explaining it
-
-### Default Behaviors (ON unless disabled)
-- **Scope to Question**: Answer the specific topic asked about, then offer to explain related concepts
-- **Use Tables for Lists**: Present available skills, agents, and commands in table format
-- **Include Invocation Syntax**: Show how to invoke each skill or command mentioned
-- **Progressive Disclosure**: Start with overview, offer deeper detail on request
-- **Cross-Reference**: Link related skills and agents when explaining one component
-- **Verify Before Citing**: Read the actual SKILL.md file before quoting its description or capabilities
-
-### Optional Behaviors (OFF unless enabled)
-- **Full Architecture Dump**: Explain the entire Router -> Agent -> Skill -> Script pipeline
-- **Comparison Mode**: Compare two skills or agents side-by-side
-- **Troubleshooting Guide**: Help diagnose why a skill or route isn't working as expected
-
-## What This Skill CAN Do
-- Explain how the /do router classifies and routes requests
-- Describe what any specific skill or agent does (by reading its file)
-- Show the brainstorm -> plan -> execute workflow phases
-- List available skills, agents, hooks, and their purposes
-- Explain execution modes (direct vs subagent-driven)
-- Clarify when to use which skill for a given task
-
-## What This Skill CANNOT Do
-- Execute workflows (use workflow-orchestrator)
-- Debug code (use systematic-debugging)
-- Create or modify skills (use skill-creator)
-- Run tests or validate code (use verification-before-completion)
-- Make decisions about which approach to take for the user's actual task
+This skill operates as an educational guide for repository workflows. It answers questions about how the agent/skill/routing architecture works, what tools and components are available, and when to use each workflow phase (brainstorm, plan, execute). The skill prioritizes accuracy over speed by reading actual SKILL.md and agent files rather than relying on memory.
 
 ---
 
@@ -74,12 +38,14 @@ This skill operates as an operator for workflow education and guidance, configur
 
 **Goal**: Determine exactly what the user wants to know about.
 
-$ARGUMENTS - Parse the user's topic. Common categories:
+Parse the user's topic and $ARGUMENTS. Common categories:
 - `brainstorm` / `plan` / `execute` - Workflow phases
 - `skills` / `agents` / `hooks` - Component types
 - `routing` / `do` - How routing works
 - `subagent` - Subagent-driven execution
 - No argument - Provide system overview
+
+**Constraint (Over-Engineering Prevention)**: Answer only what was asked. Do not dump the entire system architecture when the user asks about one skill. Scope your response to the question asked, then offer to explain related concepts.
 
 **Gate**: Topic identified. Proceed only when you know what to explain.
 
@@ -89,31 +55,20 @@ $ARGUMENTS - Parse the user's topic. Common categories:
 
 **Step 1: Read relevant files**
 
-If explaining a specific skill:
-```
-Read skills/{skill-name}/SKILL.md
-```
+This constraint (Accuracy Over Speed) is non-negotiable. Never describe components from memory. Always read the actual SKILL.md or agent files:
 
-If explaining a specific agent:
-```
-Read agents/{agent-name}.md
-```
-
-If explaining routing:
-```
-Read the /do router configuration
-```
-
-If providing overview:
-```
-Glob for skills/*/SKILL.md and agents/*.md to get current counts
-```
+- For a specific skill: `Read skills/{skill-name}/SKILL.md`
+- For a specific agent: `Read agents/{agent-name}.md`
+- For routing overview: Check the /do router configuration
+- For system overview: `Glob for skills/*/SKILL.md and agents/*.md` to get current counts
 
 **Step 2: Extract key information**
 - Name, description, version
 - What it CAN and CANNOT do
 - How to invoke it
 - Related skills or agents
+
+**Constraint (No Fabrication)**: If a skill or agent does not exist, say so rather than inventing capabilities. If a skill or agent was recently deleted or merged, search with Glob for similar names and suggest the closest match.
 
 **Gate**: Information gathered from actual files, not memory. Proceed only when gate passes.
 
@@ -154,12 +109,16 @@ Then show key workflow:
 | Execute an existing plan | `skill: subagent-driven-development` |
 | Create a PR | `/pr-sync` |
 
+**Constraint (Show Real Examples)**: Reference actual skill names, commands, and file paths from this repository. Use tables for lists when presenting available skills, agents, and commands. Include invocation syntax for each component mentioned. Apply progressive disclosure: start with overview, offer deeper detail on request. Cross-reference related skills and agents when explaining one component.
+
 **Step: Offer next steps**
 
 After explaining, ask if the user wants to:
 - Learn about a related component
 - Actually execute a workflow (route to appropriate skill)
 - See more detail on a specific aspect
+
+**Constraint (Route When Appropriate)**: If user actually wants to execute a workflow, detect the execution intent and route to the correct skill instead of explaining it. For example, if user asks "how do I debug X" meaning "debug X for me", recognize the intent is execution and route to systematic-debugging, not an explanation of the debugging process.
 
 **Gate**: User's question answered with information from actual files.
 
@@ -190,41 +149,27 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Explaining From Memory
-**What it looks like**: Describing a skill's capabilities without reading its SKILL.md
-**Why wrong**: Skills change. Memory drifts. Fabricated capabilities erode trust.
-**Do instead**: Read the actual file before every explanation.
-
-### Anti-Pattern 2: Information Dump
-**What it looks like**: Listing all 120 skills when user asked about one
-**Why wrong**: Overwhelms the user. Buries the relevant answer.
-**Do instead**: Answer the specific question. Offer to expand if requested.
-
-### Anti-Pattern 3: Explaining Instead of Routing
-**What it looks like**: Spending 500 words explaining how debugging works when user wants their bug fixed
-**Why wrong**: User wants action, not education. Wastes time.
-**Do instead**: Detect execution intent and route to the correct skill.
-
-### Anti-Pattern 4: Inventing Capabilities
-**What it looks like**: "This skill can also do X" when X is not in the SKILL.md
-**Why wrong**: Creates false expectations. User tries X and it fails.
-**Do instead**: Only cite capabilities listed in the actual file.
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
+### Core Constraints Embedded in Workflow
 
-### Domain-Specific Anti-Rationalization
+This skill is built on five hardcoded constraints that must always apply:
 
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "I remember what that skill does" | Memory drifts; files change | Read the actual SKILL.md file |
-| "User just needs a quick overview" | Quick overview with wrong info is worse than slow accuracy | Verify against source files |
-| "Listing everything is more helpful" | Information overload reduces comprehension | Scope to the question asked |
-| "They probably mean execution" | Assuming intent leads to wrong action | Ask if unclear, check $ARGUMENTS |
+1. **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before answering any question
+2. **Accuracy Over Speed**: Read actual SKILL.md and agent files before explaining them; never describe from memory
+3. **Show Real Examples**: Reference actual skill names, commands, and file paths from this repository
+4. **No Fabrication**: If a skill or agent does not exist, say so rather than inventing capabilities
+5. **Route When Appropriate**: If user actually wants to execute a workflow, route to the correct skill instead of explaining it
+
+The skill's default behaviors reinforce accuracy:
+- Scope to the specific question asked (over-engineering prevention)
+- Use tables for presenting lists of skills, agents, and commands
+- Include invocation syntax for every component mentioned
+- Apply progressive disclosure: start with overview, deepen on request
+- Cross-reference related components when explaining one
+
+Optional advanced modes (disabled by default):
+- Full Architecture Dump: Explain the entire Router → Agent → Skill → Script pipeline
+- Comparison Mode: Compare two skills or agents side-by-side
+- Troubleshooting Guide: Help diagnose why a skill or route isn't working as expected
+

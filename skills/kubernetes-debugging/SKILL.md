@@ -9,24 +9,15 @@ agent: kubernetes-helm-engineer
 
 # Kubernetes Debugging Skill
 
-## Operator Context
-
-This skill operates as an operator for Kubernetes debugging workflows, configuring Claude's behavior for systematic diagnosis of pod failures, networking issues, and resource problems. It encodes a structured triage flow -- describe, logs, events, exec -- as the default approach rather than guesswork.
-
-### Hardcoded Behaviors (Always Apply)
-- **Systematic Triage**: Always follow the describe -> logs -> events -> exec flow before proposing a fix
-- **Evidence Before Action**: Gather diagnostic output first; never suggest changes based on assumptions
-- **Non-Destructive First**: Use read-only commands (describe, logs, get) before any modifications
-- **Check Previous Logs**: Always check `--previous` logs for crashed containers before current logs
-- **Namespace Awareness**: Always specify `-n <namespace>` explicitly; never rely on the default context namespace
-
----
+Systematic diagnosis of pod failures, networking issues, and resource problems using a structured triage flow: describe, logs, events, exec.
 
 ## Instructions
 
 ### Step 1: Systematic Debugging Flow
 
-Follow this sequence for every pod or workload issue. Do not skip steps.
+Follow this sequence for every pod or workload issue. Do not skip steps -- many failures (scheduling, image pull, volume mount) are only visible in events and describe output, not in logs, so jumping straight to logs misses them.
+
+Always specify `-n <namespace>` explicitly in every command; never rely on the default context namespace, because the wrong namespace silently returns empty or misleading results.
 
 ```bash
 # 1. Get an overview of the resource state
@@ -39,6 +30,8 @@ kubectl describe pod <pod-name> -n <namespace>
 kubectl logs <pod-name> -n <namespace> -c <container-name>
 
 # 4. Check previous container logs (critical for CrashLoopBackOff)
+# Always check --previous before current logs for crashed containers,
+# because deleting or restarting the pod destroys these logs permanently.
 kubectl logs <pod-name> -n <namespace> -c <container-name> --previous
 
 # 5. Check namespace events sorted by time
@@ -48,11 +41,11 @@ kubectl get events -n <namespace> --sort-by='.lastTimestamp'
 kubectl exec -it <pod-name> -n <namespace> -c <container-name> -- /bin/sh
 ```
 
+Use read-only commands (describe, logs, get) to gather evidence before proposing any modifications. Never suggest changes based on assumptions -- gather diagnostic output first.
+
 ### Step 2: CrashLoopBackOff Diagnosis
 
-CrashLoopBackOff means the container starts, exits, and Kubernetes restarts it with exponential backoff.
-
-**Common causes and diagnosis:**
+CrashLoopBackOff means the container starts, exits, and Kubernetes restarts it with exponential backoff. Do not `kubectl delete pod` to "fix" this -- the replacement pod will crash the same way, and you lose the previous container's logs. Read `--previous` logs and describe events first.
 
 **OOMKilled** -- container exceeded memory limit:
 
@@ -65,7 +58,7 @@ kubectl describe pod <pod-name> -n <namespace> | grep -A 5 "Last State"
 kubectl top pod <pod-name> -n <namespace>
 ```
 
-Fix: Increase `resources.limits.memory` or fix the memory leak in the application.
+Fix: Increase `resources.limits.memory` or fix the memory leak in the application. Do not blindly increase limits without checking actual usage first -- over-provisioning wastes cluster resources, and a memory leak will eventually exceed any limit you set. Run `kubectl top pod` under realistic load, then set limits to 1.5-2x observed peak.
 
 **Application configuration error** -- missing env vars, bad config file, wrong DB host:
 
@@ -140,6 +133,8 @@ kubectl get pod <pod-name> -n <namespace> -o jsonpath='{.spec.containers[0].imag
 # Test pulling manually on a node or locally
 docker pull <image-reference>
 ```
+
+Do not trust `:latest` tags -- they are mutable, so the image you tested locally may differ from what the node pulled. Always use image digests or immutable tags, and verify the exact image reference with the jsonpath command above.
 
 **Network issues** -- node cannot reach the registry:
 
@@ -346,42 +341,6 @@ Solution: Check cluster version with `kubectl version`. For older clusters, crea
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Deleting and Recreating Instead of Diagnosing
-**What it looks like**: `kubectl delete pod <pod>` to "fix" CrashLoopBackOff without reading logs.
-**Why wrong**: The replacement pod will crash the same way. You lose the previous container's logs.
-**Do instead**: Read `--previous` logs and describe events before any destructive action.
-
-### Anti-Pattern 2: Guessing Resource Limits
-**What it looks like**: Setting memory limit to 2Gi "just in case" without checking actual usage.
-**Why wrong**: Over-provisioning wastes cluster resources; under-provisioning causes OOMKills.
-**Do instead**: Run `kubectl top pod` under realistic load, then set limits to 1.5-2x observed peak.
-
-### Anti-Pattern 3: Ignoring Events
-**What it looks like**: Jumping straight to logs without checking `kubectl describe` or events.
-**Why wrong**: Many failures (scheduling, image pull, volume mount) are only visible in events, not logs.
-**Do instead**: Always run `kubectl describe` and `kubectl get events` as part of the triage flow.
-
-### Anti-Pattern 4: Using Latest Tag in Debugging
-**What it looks like**: "It works locally with :latest" -- but the cluster pulled a different :latest.
-**Why wrong**: Tags are mutable; the image you tested locally may not match what the node pulled.
-**Do instead**: Always use image digests or immutable tags. Check the exact image with `kubectl get pod -o jsonpath='{.spec.containers[0].image}'`.
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Just restart the pod" | Masks root cause; same crash will recur | Read logs and events first |
-| "Works on my machine" | Local Docker != cluster (networking, RBAC, resources) | Reproduce in cluster context |
-| "Logs show nothing" | Did you check --previous? Events? Init containers? | Exhaust all diagnostic sources |
-| "Must be a cluster problem" | 90% of issues are in the workload spec, not the cluster | Check the pod spec first |
-| "I'll increase limits to fix OOM" | May mask a memory leak that gets worse over time | Profile the application first |
+- [kubernetes-security skill](../kubernetes-security/SKILL.md) -- NetworkPolicy patterns and RBAC debugging

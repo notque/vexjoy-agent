@@ -30,48 +30,7 @@ routing:
 
 # Anti-AI Editor
 
-## Operator Context
-
-This skill operates as an operator for content editing, detecting and removing AI-generated writing patterns. It implements the **Targeted Revision** architectural pattern -- scan for patterns, propose minimal fixes, preserve meaning -- with **Wabi-Sabi Authenticity** ensuring human imperfections are features, not bugs.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before editing
-- **Over-Engineering Prevention**: Make minimal fixes only. No rewrites, no "while I'm here" improvements
-- **Preserve Meaning**: NEVER change actual meaning or intent while fixing style
-- **Show All Changes**: Display before/after for every modification with reason
-- **Context Awareness**: Some flagged words are appropriate in technical contexts
-- **Wabi-Sabi Enforcement**: Human imperfections (run-ons, fragments, loose punctuation) are features -- do NOT "fix" them
-
-### Default Behaviors (ON unless disabled)
-- **Full Preview**: Show complete edited content before saving
-- **Categorized Reporting**: Group issues by type (cliches, passive, structural, meta)
-- **Actionable Fixes**: Every detected issue includes a specific replacement
-- **Frontmatter Skip**: Skip YAML frontmatter, code blocks, and inline code
-- **Voice Integration**: If voice specified, check voice-specific anti-patterns
-
-### Optional Behaviors (OFF unless enabled)
-- **Auto-Apply**: Apply changes without preview confirmation
-- **Aggressive Mode**: Flag borderline cases (use for marketing content)
-- **Stats Only**: Report issues without suggesting fixes
-
-## What This Skill CAN Do
-- Detect AI cliches and suggest natural replacements
-- Identify passive voice overuse and suggest active alternatives
-- Flag structural issues (monotonous sentence length, list overuse)
-- Remove meta-commentary that adds no value
-- Handle Hugo frontmatter correctly (skip YAML, edit content only)
-- Preserve code blocks and technical terminology
-- Show before/after comparisons for all changes
-
-## What This Skill CANNOT Do
-- Rewrite content entirely (use targeted fixes only)
-- Change technical accuracy for stylistic reasons (meaning is sacred)
-- Remove domain-specific jargon that is appropriate in context
-- Fix factual errors (style-only skill, not a fact-checker)
-- Generate new content (use voice skills instead)
-- Polish away authentic imperfections (see [Wabi-Sabi](../shared-patterns/wabi-sabi-authenticity.md))
-
----
+Detect and remove AI-generated writing patterns through targeted, minimal edits. This skill scans for cliches, passive voice, structural monotony, and meta-commentary, then proposes specific replacements -- never wholesale rewrites. Human imperfections (run-ons, fragments, loose punctuation) are features, not bugs; do not "fix" them.
 
 ## Instructions
 
@@ -81,7 +40,9 @@ This skill operates as an operator for content editing, detecting and removing A
 
 **Step 1: Read and classify the file**
 
-Read the target file. Identify file type (blog post, docs, README). Skip frontmatter (YAML between `---` markers), code blocks, inline code, and blockquotes.
+Read the target file. Identify file type (blog post, docs, README). Skip frontmatter (YAML between `---` markers), code blocks, inline code, and blockquotes -- edits to these zones corrupt structure and are never appropriate.
+
+If a voice profile is specified, also check voice-specific anti-patterns alongside the standard categories.
 
 **Step 2: Scan for issues by category**
 
@@ -97,6 +58,8 @@ Read the target file. Identify file type (blog post, docs, README). Skip frontma
 | Puffery/Legacy | "testament to", "indelible mark", "enduring legacy" | `references/detection-patterns.md` |
 | Generic Closers | "future looks bright", "continues to evolve" | `references/detection-patterns.md` |
 | Curly Quotes | \u201C \u201D \u2018 \u2019 (ChatGPT-specific) | `references/detection-patterns.md` |
+
+Some flagged words are appropriate in technical contexts. "Leverage" in "Use a lever to leverage mechanical advantage" is correct -- only flag words when used as corporate-speak, not in their literal or technical sense.
 
 **Step 3: Count and classify issues**
 
@@ -137,6 +100,8 @@ Record each issue with line number, category, and severity weight:
 3. **Meta-commentary** (usually removable)
 4. **Passive Voice** (case-by-case judgment)
 
+Every fix must be the minimum change needed. Multiple small edits beat one big rewrite because rewrites lose author voice and may introduce new AI patterns. Every detected issue must include a specific replacement -- reporting "Contains AI-sounding language" without a concrete fix is useless.
+
 **Step 3: Wabi-sabi check**
 
 Before proposing any fix, ask: "Would removing this imperfection make it sound MORE robotic?" If yes, do NOT flag it. Preserve:
@@ -145,6 +110,8 @@ Before proposing any fix, ask: "Would removing this imperfection make it sound M
 - Loose punctuation that matches conversational flow
 - Self-corrections mid-thought ("well, actually...")
 
+Natural informal language like "So basically" in a casual blog post is spoken rhythm, not an AI pattern. Only remove patterns that are AI-generated, not patterns that are merely informal.
+
 **Gate**: Approach selected. Fixes prioritized. Wabi-sabi exceptions noted. Proceed only when gate passes.
 
 ### Phase 3: EDIT
@@ -152,6 +119,8 @@ Before proposing any fix, ask: "Would removing this imperfection make it sound M
 **Goal**: Generate edit report, get confirmation, apply changes.
 
 **Step 1: Generate the edit report**
+
+Show before/after for every modification with the reason -- never apply silent changes.
 
 ```
 =================================================================
@@ -182,6 +151,8 @@ Before proposing any fix, ask: "Would removing this imperfection make it sound M
  Apply changes? [Waiting for confirmation]
 =================================================================
 ```
+
+Style edits must never change what the content says. When fixing "This solution robustly handles edge cases", write "This solution handles edge cases reliably" -- fix the style word, keep the technical meaning intact. If removing a flagged word would lose meaningful information, rephrase rather than delete.
 
 **Step 2: Apply changes after confirmation**
 
@@ -214,11 +185,11 @@ Meaning Preserved: Yes/No
 
 **Gate**: All verification steps pass. Edit is complete.
 
----
+## Reference Material
 
-## Examples
+### Examples
 
-### Example 1: Blog Post (Heavy Editing)
+#### Example 1: Blog Post (Heavy Editing)
 User says: "De-AI this blog post"
 Actions:
 1. Read file, skip frontmatter, scan all categories (ASSESS)
@@ -227,7 +198,7 @@ Actions:
 4. Re-read, verify meaning preserved, no new AI patterns (VERIFY)
 Result: 67% shorter intro, all AI cliches removed, voice preserved
 
-### Example 2: Technical Docs (Light Editing)
+#### Example 2: Technical Docs (Light Editing)
 User says: "Check this for AI patterns"
 Actions:
 1. Read file, identify technical context, scan for patterns (ASSESS)
@@ -235,8 +206,6 @@ Actions:
 3. Replace "utilizes" with "uses", remove throat-clearing, show preview (EDIT)
 4. Verify technical accuracy unchanged (VERIFY)
 Result: Clearer prose, same information, technical terms untouched
-
----
 
 ## Error Handling
 
@@ -261,55 +230,8 @@ Solution:
 2. Re-read file to verify YAML integrity
 3. If corrupted, restore from git: `git checkout -- [file]`
 
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Changing Meaning While Fixing Style
-**What it looks like**: Removing "edge cases" from "This solution robustly handles edge cases" -- losing meaningful technical information
-**Why wrong**: Style edits must never change what the content says
-**Do instead**: "This solution handles edge cases reliably" -- fix style, keep meaning
-
-### Anti-Pattern 2: Over-Correcting Natural Informal Language
-**What it looks like**: Removing "So basically" from a casual blog post because it sounds informal
-**Why wrong**: "So basically" is natural spoken rhythm. Blog posts can be conversational.
-**Do instead**: Leave natural voice markers alone. Only remove AI-generated patterns.
-
-### Anti-Pattern 3: Ignoring Technical Context
-**What it looks like**: Flagging "leverage" in "Use a lever to leverage mechanical advantage"
-**Why wrong**: "Leverage" is technically correct when discussing actual mechanics
-**Do instead**: Only flag words when used as corporate-speak, not in their literal or technical sense
-
-### Anti-Pattern 4: Wholesale Rewrites Instead of Targeted Edits
-**What it looks like**: Completely rewriting a paragraph instead of fixing specific patterns
-**Why wrong**: Loses author voice, may introduce new AI patterns, harder to review
-**Do instead**: Make the minimum changes needed. Multiple small edits beat one big rewrite.
-
-### Anti-Pattern 5: Reporting Without Actionable Fixes
-**What it looks like**: "Line 15: Contains AI-sounding language" with no specific fix
-**Why wrong**: Useless feedback -- the user needs to know WHAT to change and HOW
-**Do instead**: Show exact original text, exact replacement, and reason for the change
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-- [Wabi-Sabi Authenticity](../shared-patterns/wabi-sabi-authenticity.md) - Preserves human imperfections
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "It's just a style word, keep it" | AI cliches are the most obvious tells | Check against cliche list, replace if matched |
-| "Fixing this would lose the flow" | Flow from AI patterns is synthetic flow | Remove and let natural rhythm emerge |
-| "Technical content needs formal language" | Formal does not mean AI-sounding | Keep technical terms, remove corporate-speak |
-| "The author probably wrote it that way" | If 5+ AI patterns cluster, it's generated | Apply systematic editing regardless |
-| "Minor issues, not worth fixing" | Minor issues accumulate into AI tells | Fix all detected patterns |
-
-### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/cliche-replacements.md`: Complete list of 80+ AI phrases with replacements
 - `${CLAUDE_SKILL_DIR}/references/detection-patterns.md`: Regex patterns for automated detection
 - `${CLAUDE_SKILL_DIR}/references/detection-rules.md`: Inline detection rules and structural checks

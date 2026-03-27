@@ -39,43 +39,13 @@ routing:
 
 # Testing Anti-Patterns Skill
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for test quality assessment, configuring Claude's behavior for identifying and fixing common testing mistakes. It provides "negative knowledge" -- patterns to AVOID. It complements `test-driven-development` by focusing on what goes wrong, not just what to do right.
+This skill identifies and fixes common testing mistakes across unit, integration, and E2E test suites. Tests should verify behavior, be reliable, run fast, and fail for the right reasons.
 
-**Core principle:** Tests should verify behavior, be reliable, run fast, and fail for the right reasons.
+**Scope:** This skill focuses on improving test quality and reliability. It complements `test-driven-development` by addressing what goes wrong with tests, not just how to write them correctly from scratch.
 
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files
-- **Over-Engineering Prevention**: Fix the specific anti-pattern; do not rewrite the entire test suite
-- **Preserve Test Intent**: When fixing anti-patterns, maintain what the test was trying to verify
-- **Show Real Examples**: Point to actual code when identifying anti-patterns, not abstract descriptions
-- **Behavior Over Implementation**: Always guide toward testing observable behavior, not internals
-
-### Default Behaviors (ON unless disabled)
-- **Communication**: Report anti-patterns with specific file:line references and concrete fixes
-- **Severity Classification**: Distinguish critical (flaky, order-dependent) from minor (naming) issues
-- **Quick Wins First**: Suggest fixes that improve reliability immediately
-- **One Pattern at a Time**: Address each anti-pattern individually with before/after
-
-### Optional Behaviors (OFF unless enabled)
-- **Full Suite Audit**: Scan entire test suite for anti-patterns (can be slow)
-- **Refactoring Mode**: Apply fixes automatically rather than just identifying them
-- **Metrics Collection**: Count anti-patterns by category for reporting
-
-## What This Skill CAN Do
-- Identify specific anti-patterns in test code with file:line references
-- Provide concrete before/after examples for fixes
-- Prioritize fixes by impact (flaky > order-dependent > slow > naming)
-- Explain WHY a pattern is problematic
-- Suggest incremental improvements without rewriting suites
-
-## What This Skill CANNOT Do
-- Fix fundamental architectural issues (use `systematic-refactoring`)
-- Write new tests from scratch (use `test-driven-development`)
-- Profile test performance (use actual profilers)
-- Guarantee test correctness (anti-patterns can exist in "working" tests)
-- Skip identification and jump straight to rewriting
+**Not in scope:** Writing new tests from scratch (use `test-driven-development`), fixing fundamental architectural issues (use `systematic-refactoring`), or profiling test performance with external tools.
 
 ---
 
@@ -94,7 +64,7 @@ Use Grep/Glob to find test files in the relevant area. If user pointed to specif
 
 **Step 2: Read CLAUDE.md**
 
-Check for project-specific testing conventions before flagging anti-patterns. Some projects intentionally deviate from general best practices.
+Check for project-specific testing conventions before flagging anti-patterns. Some projects intentionally deviate from general best practices. This prevents false positives based on organizational standards.
 
 **Step 3: Classify anti-patterns**
 
@@ -135,6 +105,12 @@ For each test file, scan for these 10 categories (detailed examples in `referenc
 2. **MEDIUM** - Over-mocking, incomplete assertions, missing edge cases (false confidence)
 3. **LOW** - Poor naming, over-specification, slow suites (maintenance burden)
 
+**Constraint: Fix one pattern at a time.** Mechanical bulk fixes (applying the same pattern to 50 tests without running them) miss context-specific nuances and cause regressions. Fix one, verify it works, then move to the next.
+
+**Constraint: Preserve test intent.** When fixing anti-patterns, maintain what the test was originally trying to verify. Do not silently change test coverage.
+
+**Constraint: Prevent over-engineering.** Fix the specific anti-pattern identified; do not rewrite the entire test suite or delete tests and write new ones from scratch. Institutional knowledge lives in the existing tests.
+
 **Gate**: Findings ranked. User agrees on scope of fixes. Proceed only when gate passes.
 
 ### Phase 3: FIX
@@ -159,15 +135,21 @@ Priority: [HIGH/MEDIUM/LOW]
 ```
 
 **Step 2: Apply fix**
-- Change only what is needed to fix the anti-pattern
-- Preserve the original test's intent and coverage
-- One anti-pattern fix at a time
-- Consult `references/fix-strategies.md` for language-specific patterns
+
+**Constraint: Show real examples.** Point to actual code when identifying anti-patterns, not abstract descriptions. Avoid rationalization — if a test breaks during refactoring, that test was relying on buggy behavior. Investigate and fix the root cause, do not just adjust the assertion.
+
+**Constraint: Guide toward behavior testing.** Always recommend testing observable behavior, not implementation internals. For example:
+- ANTI-PATTERN: Test asserts on private fields → FIX: Test the public behavior that those fields enable
+- ANTI-PATTERN: Test spies on `_getUser()` → FIX: Test what happens when a user exists or doesn't exist
+- ANTI-PATTERN: Test checks exact regex → FIX: Test that validation succeeds/fails for representative inputs
+
+Change only what is needed to fix the anti-pattern. Consult `references/fix-strategies.md` for language-specific patterns.
 
 **Step 3: Run tests after each fix**
+
 - Run the specific fixed test first to confirm it passes
 - Run the full file or package to check for interactions
-- If a fix makes a previously-passing test fail, the test was likely depending on buggy behavior -- investigate before proceeding
+- If a fix makes a previously-passing test fail, the test was likely depending on buggy behavior — investigate before proceeding
 
 **Gate**: Each fix verified individually. Tests pass after each change.
 
@@ -175,7 +157,7 @@ Priority: [HIGH/MEDIUM/LOW]
 
 **Goal**: Confirm all fixes work together and suite is healthier.
 
-**Step 1**: Run full test suite -- all pass
+**Step 1**: Run full test suite — all pass
 
 **Step 2**: Verify previously-flaky tests are now deterministic (run 3x if applicable)
 - Go: `go test -count=3 -run TestFixed ./...`
@@ -201,59 +183,172 @@ Remaining issues: [any deferred items]
 
 ---
 
-## Examples
+## Anti-Pattern Catalog
 
-### Example 1: Flaky Test Investigation
-User says: "This test passes locally but fails randomly in CI"
-Actions:
-1. Scan test for timing dependencies -- find `sleep(500)` (SCAN)
-2. Classify as Anti-Pattern 10: Flaky Test, severity HIGH (PRIORITIZE)
-3. Replace `sleep()` with `waitFor()` or inject fake clock (FIX)
-4. Run test 10x to confirm determinism, run full suite (VERIFY)
-Result: Flaky test replaced with deterministic wait
+This section documents the domain-specific anti-patterns this skill detects and fixes.
 
-### Example 2: Over-Mocked Test Suite
-User says: "Every small refactor breaks dozens of tests"
-Actions:
-1. Scan for mock density -- find tests with 5+ mocks each (SCAN)
-2. Classify as Anti-Pattern 2: Over-mocking, severity MEDIUM (PRIORITIZE)
-3. Replace mocks with real implementations at I/O boundaries (FIX)
-4. Verify suite passes, confirm refactoring no longer breaks tests (VERIFY)
-Result: Tests verify behavior instead of mock wiring
+### Anti-Pattern 1: Testing Implementation Details
 
-### Example 3: False Confidence
-User says: "Tests all pass but we keep finding bugs in production"
-Actions:
-1. Scan for incomplete assertions (`!= nil`, `toBeTruthy`) and missing edge cases (SCAN)
-2. Classify as Anti-Patterns 4+8, severity MEDIUM (PRIORITIZE)
-3. Add specific value assertions, add edge case tests (FIX)
-4. Verify new assertions catch known production bugs (VERIFY)
-Result: Tests now catch real issues before deployment
+**What it looks like:** Tests assert on private fields, internal regex patterns, or spy on private methods.
 
-### Example 4: Order-Dependent Suite
-User says: "Tests pass in sequence but fail when run in parallel or random order"
-Actions:
-1. Scan for shared mutable state, class-level variables, global DB mutations (SCAN)
-2. Classify as Anti-Pattern 3: Order Dependence, severity HIGH (PRIORITIZE)
-3. Give each test its own setup/teardown, remove shared state (FIX)
-4. Run suite with randomized order 3x, confirm all pass (VERIFY)
-Result: Tests are self-contained and parallelizable
+**Why it's problematic:** Tests coupled to implementation details break whenever the implementation changes, even if public behavior is identical. This creates brittle tests that don't reflect real-world usage.
 
-### Example 5: Skipped Test Audit
-User says: "We have 40 skipped tests, are any still relevant?"
-Actions:
-1. Grep for `@skip`, `.skip`, `xit`, `@pytest.mark.skip` across suite (SCAN)
-2. Classify each: outdated (delete), still relevant (fix), environment-specific (document) (PRIORITIZE)
-3. Delete dead tests, unskip and fix relevant ones, add reason annotations (FIX)
-4. Verify suite passes with formerly-skipped tests re-enabled (VERIFY)
-Result: No unexplained skips remain; suite coverage restored
+**Example signals:**
+- Test accesses `obj._privateField`
+- Test mocks or spies on `_internalMethod()`
+- Test asserts the exact regex used internally
+
+**Fix:** Test the public behavior that those implementation details enable. If private fields matter, they matter because they affect what users see or experience.
+
+### Anti-Pattern 2: Over-Mocking / Brittle Selectors
+
+**What it looks like:** Mock setup spans more than 50% of the test code. CSS selectors use nth-child or rely on brittle DOM structure.
+
+**Why it's problematic:** Over-mocked tests verify mock wiring, not actual behavior. They don't catch real integration issues and break whenever the mocking structure changes.
+
+**Example signals:**
+- Test has 15 lines of setup and 5 lines of assertion
+- Test uses `.querySelector('div:nth-child(3) > span')`
+- Test mocks every dependency instead of using real implementations at I/O boundaries
+
+**Fix:** Mock only at architectural boundaries (HTTP, DB, external services). Use real implementations for internal logic. For UI tests, select by semantic attributes (data-testid, role) instead of DOM structure.
+
+### Anti-Pattern 3: Order-Dependent Tests
+
+**What it looks like:** Tests share mutable state, use class-level variables, or have numbered test names (test1, test2) suggesting sequence dependency.
+
+**Why it's problematic:** Tests that pass in sequence but fail in parallel or random order hide bugs. The suite becomes unreliable — developers can't trust "all tests pass" locally if they fail in CI.
+
+**Example signals:**
+- Multiple tests modify a shared class-level variable
+- Database is populated by test1, test2 depends on that state
+- Test names: `test1_setup`, `test2_verify`, `test3_cleanup`
+
+**Fix:** Each test owns its data. Use setup/teardown or test fixtures to isolate state. Run suite with `--shuffle` or `-random-order` to catch dependencies.
+
+### Anti-Pattern 4: Incomplete Assertions
+
+**What it looks like:** Tests use assertions like `!= nil`, `> 0`, `toBeTruthy()` without checking specific values.
+
+**Why it's problematic:** Incomplete assertions pass for many wrong reasons. A function that returns 999 (wrong) passes an `> 0` assertion. This gives false confidence — tests pass but don't catch bugs.
+
+**Example signals:**
+- `assert result != nil` (passes for any non-nil value)
+- `assert response.status > 0` (passes for 404, 500, etc.)
+- `expect(user).toBeTruthy()` (passes for any truthy user, even with wrong name)
+
+**Fix:** Assert specific expected values:
+- `assert.equal(result.name, "Alice")`
+- `assert.equal(response.status, 200)`
+- `expect(user.name).toBe("Alice")`
+
+### Anti-Pattern 5: Over-Specification
+
+**What it looks like:** Tests assert on default values, exact timestamps, hardcoded IDs, or every field in a response.
+
+**Why it's problematic:** Over-specified tests are fragile. When a default changes (legitimately), dozens of tests break even though behavior didn't change. Tests should specify only what matters for this test case.
+
+**Example signals:**
+- `assert.equal(user.createdAt, "2024-01-15T10:30:00Z")` (timestamp brittle to test time)
+- `assert.equal(post.id, "uuid-1234-5678")` (hardcoded ID specific to this test)
+- Test asserts `status`, `message`, `timestamp`, `userId`, `metadata` when only `status` matters
+
+**Fix:** Assert only what matters. Use flexible matchers for timestamps and IDs:
+- `expect(user.createdAt).toBeDefined()` or `toBeWithin(now, 1000ms)`
+- `assert.truthy(post.id)` (just verify it exists)
+
+### Anti-Pattern 6: Ignored Failures
+
+**What it looks like:** Tests use `@skip`, `.skip`, `xit`, empty catch blocks, or `_ = err` (ignore error).
+
+**Why it's problematic:** Skipped tests become permanent blind spots. Nobody remembers why they were skipped. Empty catch blocks hide real errors.
+
+**Example signals:**
+- `@skip` or `.skip()` with no expiration date
+- `try { ...test code... } catch (e) {}` (silently ignore errors)
+- `err := doSomething(); _ = err` (acknowledge but ignore)
+
+**Fix:** Delete the test if no longer relevant, or unskip and fix it. Add a reason annotation with a date if skipping is truly necessary:
+```go
+t.Skip("TODO: fix timing issue (2024-01-15)")
+```
+
+### Anti-Pattern 7: Poor Naming
+
+**What it looks like:** Test names use sequential numbers (`test1`, `test2`), vague names (`testFunc`, `test_new`), or generic descriptions (`it('works')`, `it('handles case')`).
+
+**Why it's problematic:** Poor names hide intent. Developers reading test output see `test1 failed` but have no idea what behavior broke. Good test names document expected behavior.
+
+**Example signals:**
+- `TestCreateUser1`, `TestCreateUser2`
+- `test_new`, `testFunc`, `test_handle`
+- `it('works')`, `it('handles case')`, `it('does something')`
+
+**Fix:** Use descriptive names that describe the scenario and expected outcome:
+- Go: `Test_CreateUser_WithValidEmail_ReturnsNewUser`
+- Python: `test_create_user_with_valid_email_returns_new_user`
+- JS: `it('creates a user when given a valid email')`
+
+### Anti-Pattern 8: Missing Edge Cases
+
+**What it looks like:** Test suite covers only the happy path. No tests for empty inputs, null values, boundary conditions, errors, or large datasets.
+
+**Why it's problematic:** Missing edge cases cause production bugs. The happy path works, but the code crashes on empty input, null reference, or boundary values.
+
+**Example signals:**
+- Only tests with valid input; no tests with empty/null
+- No tests for negative numbers, zero, or max values
+- No tests for error conditions (timeout, connection failure)
+
+**Fix:** Add tests for:
+- **Empty**: empty string, empty array, empty object
+- **Null**: null input, missing required field
+- **Boundary**: zero, max value, min value, off-by-one
+- **Error**: timeout, network failure, permission denied
+- **Large**: very large arrays, deep nesting
+
+### Anti-Pattern 9: Slow Test Suites
+
+**What it looks like:** Full database reset between every test. No parallelization. Fixture data shared instead of created per-test. Tests wait on actual time.
+
+**Why it's problematic:** Slow tests discourage running locally. Developers skip tests before committing, bugs slip through. CI builds take hours, slowing iteration.
+
+**Example signals:**
+- Each test: `DROP TABLE users; INSERT INTO users ...` (30s per test)
+- Sequential execution with no parallelization
+- Tests use `time.Sleep(1000)` to wait for something
+
+**Fix:**
+- Use transactions that rollback instead of dropping tables
+- Run tests in parallel: `go test -parallel 8`, `pytest -n auto`
+- Create fixtures once, reference per-test: fixture factories, test-specific data builders
+- Replace waits with condition checks: `waitFor(() => element.textContent)` instead of `sleep(1000)`
+
+### Anti-Pattern 10: Flaky Tests
+
+**What it looks like:** Tests use `sleep()`, `time.Sleep()`, `setTimeout()` or unsynchronized goroutines. Tests pass locally but fail randomly in CI.
+
+**Why it's problematic:** Flaky tests erode trust in the test suite. Developers don't know if a failure is real or just timing. Teams start ignoring test failures — the worst outcome.
+
+**Example signals:**
+- `time.Sleep(100 * time.Millisecond)` to wait for goroutine
+- `setTimeout(() => { ...assert... }, 500)` hoping it's ready
+- Tests pass locally but fail in CI (slower machines, resource contention)
+
+**Fix:**
+- Replace `sleep()` with explicit waits: `waitFor()`, `sync.WaitGroup`, channels
+- Inject fake clocks or time control: `time.Now()` should be mockable
+- Synchronize goroutines with channels or `sync.WaitGroup`, not timing
+- Tests must be deterministic: same input → same output, regardless of machine speed
 
 ---
 
 ## Error Handling
 
 ### Error: "Cannot Determine if Pattern is Anti-Pattern"
-Cause: Context-dependent -- pattern may be valid in specific situations
+
+Cause: Context-dependent — pattern may be valid in specific situations
+
 Solution:
 1. Check if the test has a comment explaining the unusual approach
 2. Consider the testing layer (unit vs integration vs E2E)
@@ -261,7 +356,9 @@ Solution:
 4. When in doubt, flag as MEDIUM and explain trade-offs
 
 ### Error: "Fix Changes Test Behavior"
+
 Cause: Anti-pattern was masking an actual test gap or testing wrong thing
+
 Solution:
 1. Identify what the test was originally trying to verify
 2. Write the correct assertion for that behavior
@@ -269,36 +366,14 @@ Solution:
 4. Do not silently change what a test covers
 
 ### Error: "Suite Has Hundreds of Anti-Patterns"
+
 Cause: Systemic test quality issues, not individual mistakes
+
 Solution:
 1. Do NOT attempt to fix everything at once
 2. Focus on HIGH severity items only (flaky, order-dependent)
 3. Recommend adopting TDD going forward to prevent new anti-patterns
 4. Suggest incremental cleanup strategy (fix on touch, not bulk rewrite)
-
----
-
-## Anti-Patterns (Meta)
-
-### Anti-Pattern 1: Rewriting Instead of Fixing
-**What it looks like**: Deleting the entire test and writing a new one from scratch
-**Why wrong**: Loses institutional knowledge of what was being tested; may reduce coverage
-**Do instead**: Preserve intent, fix the specific anti-pattern, keep test focused
-
-### Anti-Pattern 2: Fixing Style Without Fixing Substance
-**What it looks like**: Renaming `test1` to `test_creates_user` but not fixing the incomplete assertion inside
-**Why wrong**: Cosmetic improvement without reliability gain
-**Do instead**: Fix reliability issues first (assertions, flakiness), then naming
-
-### Anti-Pattern 3: Adding Tests Without Removing Anti-Patterns
-**What it looks like**: Writing new good tests alongside existing bad ones
-**Why wrong**: Bad tests still produce false confidence and maintenance burden
-**Do instead**: Fix or delete the anti-pattern test, then add proper coverage if needed
-
-### Anti-Pattern 4: Bulk Fixing Without Verification
-**What it looks like**: Applying the same fix pattern to 50 tests without running them
-**Why wrong**: Mechanical fixes miss context-specific nuances; may break tests
-**Do instead**: Fix one, verify, fix next. Batch only after pattern is proven safe.
 
 ---
 
@@ -320,6 +395,7 @@ Solution:
 | Flaky tests | Random failures | Control time, synchronize, no sleep |
 
 ### Red Flags During Review
+
 - `@skip`, `@ignore`, `xit`, `.skip` without expiration date
 - `time.sleep()`, `setTimeout()` in test code
 - Test names with sequential numbers (`test1`, `test2`)
@@ -329,6 +405,7 @@ Solution:
 - Assertions like `!= nil`, `> 0`, `toBeTruthy()` without value checks
 
 ### TDD Relationship
+
 Strict TDD prevents most anti-patterns:
 1. **RED phase** catches incomplete assertions (test must fail first)
 2. **GREEN phase minimum** prevents over-specification
@@ -338,17 +415,8 @@ Strict TDD prevents most anti-patterns:
 
 If you find anti-patterns in a codebase, check if TDD discipline slipped.
 
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "The test passes, so it's fine" | Passing with anti-patterns gives false confidence | Evaluate assertion quality, not just pass/fail |
-| "We can fix test quality later" | Anti-patterns compound; flaky tests erode trust daily | Fix HIGH severity items now, defer LOW |
-| "Just skip the flaky test for now" | Skipped tests become permanent blind spots | Diagnose root cause, fix or delete |
-| "Mocking everything is faster" | Over-mocking tests mock wiring, not behavior | Mock only at architectural boundaries |
-| "One big test covers everything" | Monolithic tests are fragile and hard to debug | Split into focused, independent tests |
-
 ### Reference Files
+
 - `${CLAUDE_SKILL_DIR}/references/anti-pattern-catalog.md`: Detailed code examples for all 10 anti-patterns (Go, Python, JavaScript)
 - `${CLAUDE_SKILL_DIR}/references/fix-strategies.md`: Language-specific fix patterns and tooling
 - `${CLAUDE_SKILL_DIR}/references/blind-spot-taxonomy.md`: 6-category taxonomy of what high-coverage test suites commonly miss (concurrency, state, boundaries, security, integration, resilience)

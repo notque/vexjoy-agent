@@ -43,56 +43,6 @@ routing:
 
 A structured pipeline for creating high-quality pull requests with proper staging, meaningful commits, parallel review, and CI verification.
 
-**Core Principle**: Quality gates at every phase. Never submit a PR that hasn't been reviewed and verified.
-
----
-
-## Operator Context
-
-This skill operates as an operator for the PR submission workflow, configuring Claude's behavior for structured, gate-enforced pull request creation. It implements the **Pipeline Architecture** pattern -- Classify Repo, Stage, Review, Commit, Push, Review-Fix Loop, Create, Verify -- with repo-aware gating and parallel review as dedicated gate-enforced phases.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md commit and branch rules
-- **No Attribution**: Never add "Generated with Claude Code", "Co-Authored-By: Claude", or similar
-- **Sensitive File Blocking**: Block staging of .env, credentials.json, secrets.*, *.pem, *.key files
-- **Verify CI**: Always check CI status before marking pipeline complete
-- **Review Before Commit**: Run parallel code review before creating the commit
-- **Branch Protection**: Never push directly to main/master without explicit authorization
-- **Repo-Aware Review Gate**: Classify repo in Phase 0 using `scripts/classify-repo.py`. For personal repos, run up to 3 iterations of `/pr-review` → fix before creating the PR. For protected-org repos, create the PR but NEVER auto-merge — their CI gates and human reviewers handle quality.
-- **Organization-Gated Workflow**: Repos under protected organizations (configured in `scripts/classify-repo.py`) require user confirmation before EACH step: commit message approval, push approval, and PR creation approval. Never auto-execute any of these steps in protected-org repos. Present the proposed action and wait for user approval. After PR creation, STOP — no CI waiting, no merge attempts.
-
-### Default Behaviors (ON unless disabled)
-- **Parallel Review**: Launch 3 reviewers (security, business logic, code quality) via Task calls
-- **Branch Naming**: Use branch-naming skill for compliant branch names
-- **CI Wait**: Wait for CI to complete and report status (timeout 10 minutes)
-- **Conventional Commits**: Use conventional commit format focusing on WHAT and WHY
-- **Upstream Tracking**: Push with -u flag for new branches
-
-### Optional Behaviors (OFF unless enabled)
-- **Skip Parallel Review**: Use `--skip-review` to skip Phase 2 (parallel subagent review) for trivial changes (typos, formatting). Phase 4b (comprehensive `/pr-review` loop) still runs — it cannot be skipped.
-- **Draft PR**: Use `--draft` to create draft instead of ready PR
-- **No CI Wait**: Use `--no-wait` to skip CI verification phase
-- **Custom Title**: Use `--title "..."` to override generated PR title
-- **File Filter**: Use `--files "pattern"` to stage only matching files
-
-## What This Skill CAN Do
-- Stage, commit, push, and create PRs in a single pipeline execution
-- Run parallel code review with 3 independent reviewers before submission
-- Block sensitive files from being staged or committed
-- Generate meaningful PR titles and bodies from commit history and diff
-- Wait for and report CI status after PR creation
-
-## What This Skill CANNOT Do
-- Push to main/master without explicit user authorization
-- Skip Phase 2 (parallel subagent review) unless `--skip-review` is explicitly passed. Phase 4b review-fix loop always runs for personal repos.
-- Create PRs without any staged changes
-- Fix CI failures (report them, then stop)
-- Merge PRs (creation and verification only)
-
-### Worktree Agent Awareness
-
-When this pipeline runs inside a worktree agent (dispatched with `isolation: "worktree"`), the worktree creates a local branch that persists after the agent completes. This branch blocks `gh pr merge --delete-branch` and `git branch -d`. The dispatching agent or cleanup skill must run `git worktree remove <path>` before merging the PR or deleting the branch. If you are creating a PR from a worktree, note this in the PR body so the caller knows cleanup is required.
-
 ---
 
 ## Instructions
@@ -109,71 +59,21 @@ REPO_TYPE=$(python3 ~/.claude/scripts/classify-repo.py --type-only)
 | Repo Type | Review Policy | Merge Policy | Step Execution |
 |-----------|--------------|--------------|----------------|
 | `protected-org` | Phase 2 parallel review only (their reviewers handle comprehensive review) | **NEVER auto-merge**. Create PR, report URL, stop. | **Human-gated**: confirm commit message, push, and PR creation with user before each step |
-| `personal` | Phase 2 parallel review + Phase 4b review-fix loop (max 3 iterations of `/pr-review` → fix) | Create PR after review passes | Auto-execute steps normally |
+| `personal` | Phase 2 parallel review + Phase 4b review-fix loop (max 3 iterations of `/pr-review` -> fix) | Create PR after review passes | Auto-execute steps normally |
+
+Protected-org repos require user confirmation before EACH step (commit message approval, push approval, PR creation approval) because unauthorized actions in shared org repos can trigger CI storms, notify entire teams, or violate org policies. Never auto-execute any of these steps -- present the proposed action and wait for user approval.
 
 **Gate**: Repo type classified. Policy determined.
 
 ### Phase 0.5: PREFLIGHT CHECKLIST
 
-**Goal**: Fail fast on environment issues before attempting PR creation. Every check produces a specific, actionable error message — not a generic "preflight failed." This checklist runs in seconds and prevents the far more expensive failure of a half-created PR.
+**Goal**: Fail fast on environment issues before attempting PR creation. Every check produces a specific, actionable error message -- not a generic "preflight failed."
 
-**Why this exists**: PR creation can fail mid-way because the working tree is dirty, the branch is main, or `gh` isn't authenticated — all discoverable before starting the pipeline. Catching these upfront avoids partial state (e.g., a commit pushed but no PR created).
+PR creation can fail mid-way because the working tree is dirty, the branch is main, or `gh` isn't authenticated -- all discoverable before starting the pipeline. Catching these upfront avoids partial state (e.g., a commit pushed but no PR created).
 
-Run all checks sequentially. Abort on the first failure.
+Run 5 checks sequentially (verification status, clean working tree, correct branch, remote configured, `gh` authenticated). Abort on the first failure with a specific error message.
 
-| # | Check | Command | Failure Action |
-|---|-------|---------|---------------|
-| 1 | Verification status (did quality gates pass?) | Check for recent test/build output or verification artifacts | Abort: "Run verification first — no evidence that quality gates passed." |
-| 2 | Clean working tree (no uncommitted changes) | `git status --porcelain` | Abort: "Working tree is dirty. Uncommitted files:\n{list}. Stage or stash before running PR pipeline." |
-| 3 | Correct branch (not main/master) | `git branch --show-current` | Abort: "Currently on {branch}. Create a feature branch first: `git checkout -b type/description`" |
-| 4 | Remote configured for current branch | `git config --get branch.$(git branch --show-current).remote` | Abort: "No remote configured for branch. Push with: `git push -u origin $(git branch --show-current)`" |
-| 5 | `gh` CLI authenticated | `gh auth status 2>&1` | Abort: "GitHub CLI not authenticated. Run: `gh auth login`" |
-
-```bash
-# Preflight check sequence
-echo "Running preflight checklist..."
-
-# Check 1: Verification status
-# Look for verification artifacts (test output, build logs) — if the project
-# has a test suite and no recent verification evidence exists, warn.
-# This is a soft gate: skip if no test infrastructure is detected.
-
-# Check 2: Clean working tree
-DIRTY=$(git status --porcelain)
-if [ -n "$DIRTY" ]; then
-    echo "PREFLIGHT FAIL: Working tree is dirty."
-    echo "$DIRTY"
-    echo "Stage or stash uncommitted changes before running PR pipeline."
-    exit 1
-fi
-
-# Check 3: Not on main/master
-BRANCH=$(git branch --show-current)
-if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
-    echo "PREFLIGHT FAIL: On branch '$BRANCH'."
-    echo "Create a feature branch: git checkout -b type/description"
-    exit 1
-fi
-
-# Check 4: Remote configured
-REMOTE=$(git config --get "branch.$BRANCH.remote" 2>/dev/null)
-if [ -z "$REMOTE" ]; then
-    echo "PREFLIGHT FAIL: No remote configured for branch '$BRANCH'."
-    echo "Push with: git push -u origin $BRANCH"
-    exit 1
-fi
-
-# Check 5: gh CLI authenticated
-if ! gh auth status >/dev/null 2>&1; then
-    echo "PREFLIGHT FAIL: GitHub CLI not authenticated."
-    echo "Run: gh auth login"
-    exit 1
-fi
-
-echo "Preflight checklist PASSED."
-```
-
-**Note on Check 1 (Verification status)**: This is context-dependent. If the project has a test suite (`go test`, `npm test`, `pytest`, etc.), look for evidence that tests were run recently (e.g., verification report files, recent test output in the session). If no test infrastructure exists, this check passes by default. The goal is to prevent submitting code that was never tested, not to block projects without tests.
+See `references/preflight-checklist.md` for the full check table, bash script, and note on Check 1 (verification status).
 
 **Gate**: All preflight checks pass. Environment is ready for PR creation. Proceed to Phase 1.
 
@@ -181,7 +81,11 @@ echo "Preflight checklist PASSED."
 
 **Goal**: Analyze working tree and stage appropriate changes.
 
-**Step 1: Inspect changes**
+**Step 1: Read and follow CLAUDE.md**
+
+Before staging, read the repository's CLAUDE.md for commit and branch rules. These rules override defaults because each repo has its own conventions for branch naming, commit format, and file organization.
+
+**Step 2: Inspect changes**
 
 ```bash
 # See what's changed
@@ -192,9 +96,11 @@ git diff
 git diff --cached
 ```
 
-**Step 2: Block sensitive files**
+**Step 3: Block sensitive files**
 
-Check every changed file against the blocklist:
+Check every changed file against the blocklist. Sensitive files must be blocked here, before staging, because once committed they enter git history permanently -- removing them later requires history rewriting which is disruptive for all collaborators.
+
+Blocklist:
 - `.env`, `.env.*`
 - `credentials.json`, `secrets.*`
 - `*.pem`, `*.key`, `*.p12`
@@ -202,18 +108,24 @@ Check every changed file against the blocklist:
 
 If sensitive files are detected, STOP and report to user. Do not stage them.
 
-**Step 3: Stage changes**
+**Step 4: Stage changes**
+
+Stage specific files by name -- never run `git add -A` or `git add .` because blind staging captures unrelated changes, build artifacts, and debug logs that obscure review and pollute history.
 
 ```bash
 # Stage specific files (never git add -A blindly)
 git add [files]
 ```
 
+If the changeset spans 30+ files or multiple unrelated features, suggest the user split into focused PRs. Monolithic PRs are impossible to review effectively, carry high regression risk, and block other work.
+
 **Gate**: Changes staged. No sensitive files included. Staged diff makes sense as a cohesive unit.
 
 ### Phase 2: REVIEW (Comprehensive Multi-Agent Review)
 
-**Goal**: Catch ALL issues before they reach the commit. This is the full 3-wave, 20+ agent comprehensive review, not a lightweight pass.
+**Goal**: Catch ALL issues before they reach the commit. Run the review loop before creating the commit because post-merge fixes cost 2 PRs instead of 1.
+
+**Skip condition**: Only if user explicitly passes `--skip-review`. One-line changes can still introduce security vulnerabilities or break business logic, so the default is always to review.
 
 **Invoke the comprehensive-review skill:**
 
@@ -250,6 +162,8 @@ Map changes to conventional commit type: feat, fix, refactor, docs, test, chore,
 
 **Step 3: Create commit**
 
+Write the commit message now with full context -- "I'll fix the commit message later" never happens, and git history is permanent.
+
 ```bash
 git commit -m "$(cat <<'EOF'
 type(scope): concise description of WHAT changed
@@ -260,7 +174,7 @@ EOF
 )"
 ```
 
-Follow CLAUDE.md rules for commit messages. No attribution lines.
+Follow CLAUDE.md rules for commit messages. Never add "Generated with Claude Code", "Co-Authored-By: Claude", or similar attribution lines because they add noise and violate most project commit conventions.
 
 **Protected-org repos**: Before executing the commit, present the proposed commit message to the user and wait for explicit approval. Show the full message and list of files that will be committed.
 
@@ -271,6 +185,8 @@ Follow CLAUDE.md rules for commit messages. No attribution lines.
 **Goal**: Push changes to remote with proper branch setup.
 
 **Step 1: Ensure correct branch**
+
+Never push directly to main/master without explicit authorization -- this bypasses all review gates and can break the build for everyone.
 
 ```bash
 # Check current branch
@@ -283,6 +199,8 @@ git checkout -b type/descriptive-branch-name
 Use branch-naming skill if available for compliant names.
 
 **Step 2: Push with tracking**
+
+Push with `-u` flag for new branches so subsequent pushes and PR creation can find the upstream automatically.
 
 ```bash
 # CLAUDE_GATE_BYPASS=1 bypasses the git-submission-gate hook (this skill IS the gate)
@@ -301,60 +219,11 @@ Confirm push succeeded by checking output. If push fails (e.g., rejected), repor
 
 **Goal**: Iteratively review and fix issues until clean or max 3 iterations reached.
 
-**Skip condition**: If `REPO_TYPE == "protected-org"`, skip this phase entirely. Protected-org repos have their own PR gates.
+**Skip condition**: If `REPO_TYPE == "protected-org"`, skip this phase entirely. Protected-org repos have their own PR gates. This phase cannot be skipped for personal repos -- even with `--skip-review` (which only skips Phase 2), this loop always runs because it is the final quality gate before PR creation.
 
-**Loop**: Up to 3 iterations of `/pr-review` → fix → amend commit → push.
+**Loop**: Up to 3 iterations of `/pr-review` -> fix -> amend commit -> push. After iteration 3, exit and document remaining issues in the PR body.
 
-```
-ITERATION = 0
-MAX_ITERATIONS = 3
-
-while ITERATION < MAX_ITERATIONS:
-    ITERATION += 1
-
-    Step 1: Run /pr-review
-    Step 2: If no issues found → EXIT LOOP (proceed to Phase 5)
-    Step 3: Fix all reported issues
-    Step 4: Stage fixes, amend commit, force push to branch
-    Step 5: Report iteration results
-```
-
-**Step 1: Run `/pr-review`**
-
-Invoke the `/pr-review` command, which launches specialized review agents (code-reviewer, silent-failure-hunter, comment-analyzer, etc.) and captures retro learnings.
-
-**Step 2: Evaluate results**
-
-| Result | Action |
-|--------|--------|
-| No issues found | **Exit loop**. Proceed to Phase 5 (CREATE PR). |
-| Issues found (iteration < 3) | Fix issues in Step 3, then re-review. |
-| Issues remaining after iteration 3 | **Exit loop**. Include remaining issues in PR body as known items. Proceed to Phase 5. |
-
-**Step 3: Fix reported issues**
-
-Address each issue found by the review. This includes:
-- Code quality fixes (naming, style, error handling)
-- Documentation updates (stale references, missing README entries)
-- Test gaps (if flagged)
-
-**Step 4: Amend and push**
-
-```bash
-git add [fixed files]
-git commit --amend --no-edit
-CLAUDE_GATE_BYPASS=1 git push --force-with-lease
-```
-
-**Step 5: Report iteration**
-
-```
-REVIEW-FIX ITERATION [N/3]
-  Found: [X issues]
-  Fixed: [Y issues]
-  Remaining: [Z issues]
-  Status: [CLEAN | FIXING | MAX ITERATIONS REACHED]
-```
+See `references/review-fix-loop.md` for the full loop logic, steps 1-5 with code blocks, result table, and iteration report format.
 
 **Gate**: Review-fix loop complete. Either clean (0 issues) or max 3 iterations reached with remaining issues documented.
 
@@ -364,76 +233,9 @@ REVIEW-FIX ITERATION [N/3]
 
 **Skip condition**: If the repo is NOT the claude-code-toolkit repo, skip this phase entirely. Detection: check if both `agents/` and `skills/` directories exist at the project root. If either is missing, skip directly to Phase 5.
 
-```bash
-# Detect toolkit repo
-if [ -d "agents" ] && [ -d "skills" ]; then
-    echo "Toolkit repo detected — RETRO phase required"
-else
-    echo "Not toolkit repo — skipping RETRO phase"
-    # Skip to Phase 5
-fi
-```
+Five steps: collect findings from Phases 2 and 4b, record per-component learnings, boost to 1.0 and graduate immediately, embed graduated patterns in the responsible agent/skill files, and stage the updated files.
 
-**Step 1: Collect review findings**
-
-Gather all findings from Phase 2 (REVIEW) and Phase 4b (REVIEW-FIX LOOP) that were identified and fixed. Include:
-- Security findings that were addressed
-- Code quality issues that were corrected
-- Business logic errors that were fixed
-- Methodology gaps that were exposed
-
-For each finding, identify the **responsible agent or skill** — the component whose instructions should have prevented the issue.
-
-**Step 2: Record learnings**
-
-For each finding, record a retro entry scoped to the responsible agent or skill:
-
-```bash
-# For agent-scoped findings (e.g., python-general-engineer produced bad code)
-python3 ~/.claude/scripts/learning-db.py learn --agent {agent-name} "pattern description from review finding"
-
-# For skill-scoped findings (e.g., reddit-moderate missed a test requirement)
-python3 ~/.claude/scripts/learning-db.py learn --skill {skill-name} "pattern description from review finding"
-```
-
-**Step 3: Immediate graduation**
-
-Per /do Phase 5 policy, boost each entry to 1.0 confidence and graduate immediately. This is NOT a slow-burn learning — review findings in this repo are structural fixes.
-
-```bash
-# Boost confidence to 1.0 (run boost 3x — each boost applies a multiplier)
-python3 ~/.claude/scripts/learning-db.py boost "agent:{agent-name}" "{key}"
-python3 ~/.claude/scripts/learning-db.py boost "agent:{agent-name}" "{key}"
-python3 ~/.claude/scripts/learning-db.py boost "agent:{agent-name}" "{key}"
-
-# Graduate — marks as embedded, excludes from future prompt injection
-python3 ~/.claude/scripts/learning-db.py graduate "agent:{agent-name}" "{key}" "agents/{agent-name}.md"
-# Or for skills:
-python3 ~/.claude/scripts/learning-db.py graduate "skill:{skill-name}" "{key}" "skills/{skill-name}/SKILL.md"
-```
-
-**Step 4: Embed in agent/skill**
-
-Update the responsible agent or skill file with the graduated pattern:
-
-| Finding Target | Update Location | Section to Modify |
-|---------------|----------------|-------------------|
-| Agent produced bad code | `agents/{name}.md` | FORBIDDEN patterns or Anti-Patterns |
-| Skill methodology gap | `skills/{name}/SKILL.md` | Instructions or Anti-Patterns |
-| Router missed a pattern | `skills/do/SKILL.md` | Routing tables or Force-Routes |
-| Hook failed to catch | `hooks/{name}.py` | Detection logic |
-
-Write the pattern at the right abstraction level — generalize from the specific bug to the class of bug (e.g., "validate all CLI inputs" not "validate subreddit names in _cmd_classify").
-
-**Step 5: Stage retro changes**
-
-```bash
-# Stage updated agent/skill files alongside the code changes
-git add agents/{updated-agent}.md
-git add skills/{updated-skill}/SKILL.md
-```
-
-These changes will be included in the existing commit (amend in next push cycle) or in a new commit if Phase 4b already completed cleanly.
+See `references/retro-adr-phases.md` for full steps, bash commands, and the finding-target table.
 
 **Gate**: All review findings recorded in learning.db, graduated to 1.0, and embedded in the responsible agent/skill files. Updated files staged for commit.
 
@@ -441,26 +243,11 @@ These changes will be included in the existing commit (amend in next push cycle)
 
 **Goal**: Verify that all ADRs in the `adr/` directory have consistent format and valid status fields before the PR is created.
 
-**Skip condition**: Same as Phase 4c — only runs in the toolkit repo (both `agents/` and `skills/` directories exist at root).
+**Skip condition**: Same as Phase 4c -- only runs in the toolkit repo (both `agents/` and `skills/` directories exist at root).
 
-**Step 1: Run ADR format check**
+Run `python3 ~/.claude/scripts/adr-status.py check`; fix any warnings and stage changes. Run `python3 ~/.claude/scripts/adr-status.py status` and include the summary in the PR body if the PR touches `adr/*.md` files.
 
-```bash
-python3 ~/.claude/scripts/adr-status.py check
-```
-
-If exit code 1 (warnings found):
-- Review each warning (missing headings, empty status)
-- Fix formatting issues in the ADR files
-- Stage the fixes: `git add adr/`
-
-**Step 2: Run ADR status report**
-
-```bash
-python3 ~/.claude/scripts/adr-status.py status
-```
-
-Include the status summary in the PR body if the PR touches any `adr/*.md` files. This gives reviewers an at-a-glance view of ADR state.
+See `references/retro-adr-phases.md` for full ADR commands and fix workflow.
 
 **Gate**: `python3 ~/.claude/scripts/adr-status.py check` exits 0. All ADRs have valid format.
 
@@ -476,50 +263,13 @@ Analyze the full diff against the base branch and all commit messages to draft:
 
 **Step 1.5: Artifact-Driven PR Body Generation**
 
-When planning artifacts exist, generate the PR body from them rather than writing freeform. Artifacts capture *intent* (why the change was made), which is more valuable to reviewers than a mechanical diff summary.
+When planning artifacts exist (`task_plan.md`, verification reports, review summaries, deviation logs), generate the PR body from them rather than writing freeform. Artifacts capture *intent*, which is more valuable to reviewers than a mechanical diff summary. Fall back to diff-based generation when no artifacts exist.
 
-Check for artifacts in this order and build the PR body from what's available:
-
-| Artifact | PR Section Generated | How to Extract |
-|----------|---------------------|----------------|
-| `task_plan.md` | **Summary** (from Goal section) and **Changes** (from completed tasks) | Read the Goal and Phases sections; list completed items as change bullets |
-| Verification reports (`*-verification.md`, test output) | **Test Plan** (from verification output) | Extract pass/fail counts and key assertions verified |
-| Review summaries (Phase 2 / Phase 4b output) | **Review Findings** (from reviewer results) | Summarize security/logic/quality verdicts |
-| Deviation logs (ADR-076 repair actions) | **Deviations** section | List repair actions taken and why the original plan changed |
-
-```markdown
-## PR Body Template (artifact-driven)
-
-## Summary
-<!-- From task_plan.md Goal section, or from commit messages if no plan -->
-- [Goal statement]
-- [Key change 1 from completed tasks]
-- [Key change 2 from completed tasks]
-
-## Changes
-<!-- From task_plan.md completed phases/tasks -->
-- [Completed task description]
-- [Completed task description]
-
-## Test Plan
-<!-- From verification reports, or manual checklist if no reports -->
-- [ ] [Verification result 1]
-- [ ] [Verification result 2]
-
-## Review Findings
-<!-- From Phase 2 / Phase 4b review output -->
-Security: PASS
-Business Logic: PASS
-Code Quality: PASS
-
-## Deviations
-<!-- From deviation logs, omit section if none -->
-- [Deviation description and rationale]
-```
-
-**Fallback**: If no artifacts exist, fall back to diff-based generation — summarize changes from the diff and commit messages. This is the existing behavior and remains the default for ad-hoc PRs without planning artifacts.
+See `references/pr-templates.md` for the full artifact table, PR body template, and fallback guidance.
 
 **Step 2: Create PR**
+
+This pipeline cannot create PRs without staged changes -- if nothing is staged, the earlier phases would have caught this.
 
 ```bash
 CLAUDE_GATE_BYPASS=1 gh pr create --title "type(scope): description" --body "$(cat <<'EOF'
@@ -539,7 +289,7 @@ EOF
 )"
 ```
 
-Add `--draft` flag if draft mode was requested.
+Add `--draft` flag if draft mode was requested via `--draft`.
 
 **Protected-org repos**: Before creating the PR, present the title, body, and target branch to the user. Wait for explicit approval before executing `gh pr create`.
 
@@ -553,7 +303,7 @@ Record and report the PR URL to the user.
 ```
 PR PIPELINE COMPLETE (protected-org repo)
 
-Protected-org repo detected — PR created for human review.
+Protected-org repo detected -- PR created for human review.
 PR: https://github.com/your-org/your-repo/pull/123
 
 Next steps are handled by org CI gates and human reviewers.
@@ -562,7 +312,7 @@ This pipeline will NOT auto-merge protected-org PRs.
 
 ### Phase 6: VERIFY (personal repos only)
 
-**Goal**: Wait for CI and report final status.
+**Goal**: Wait for CI and report final status. Always check CI status before marking the pipeline complete because merging without CI confirmation risks shipping broken code.
 
 ```bash
 # Get the latest workflow run for this branch
@@ -572,16 +322,16 @@ gh run list --branch $(git branch --show-current) --limit 1
 gh run watch [run-id] --exit-status
 ```
 
-If CI fails, report which checks failed and the PR URL. Do NOT merge. Do NOT proceed to cleanup.
+If CI fails, report which checks failed and the PR URL. Do NOT merge. Do NOT proceed to cleanup. This pipeline reports CI failures but does not fix them -- diagnosing CI requires different context than PR creation.
 
 If CI passes and user requested merge:
 ```bash
 CLAUDE_GATE_BYPASS=1 gh pr merge --merge --delete-branch
 ```
 
-**HARD RULE**: Never merge a PR with failing or pending CI. CI must pass first. The `ci-merge-gate.py` hook enforces this mechanically — it blocks `gh pr merge` when checks are failing or pending. Do NOT use `--admin` or any bypass to circumvent this. If CI fails on an "unrelated" test, investigate the root cause (date-dependent fixtures, flaky tests) rather than force-merging.
+**HARD RULE**: Never merge a PR with failing or pending CI. CI must pass first. The `ci-merge-gate.py` hook enforces this mechanically -- it blocks `gh pr merge` when checks are failing or pending. Do NOT use `--admin` or any bypass to circumvent this. If CI fails on an "unrelated" test, investigate the root cause (date-dependent fixtures, flaky tests) rather than force-merging -- assuming CI is "probably flaky" masks real failures and normalizes broken builds.
 
-*Graduated from learning.db — skill:pr-sync/17fed1ab26c7 (PR #55 merged with failing CI, led to broken main)*
+*Graduated from learning.db -- skill:pr-sync/17fed1ab26c7 (PR #55 merged with failing CI, led to broken main)*
 
 If `--no-wait` was passed, skip this phase and report the PR URL immediately.
 
@@ -616,73 +366,19 @@ For protected-org repos: skip cleanup (their processes handle branch lifecycle).
 2. Update status from "Proposed" to "Accepted" in the ADR file
 3. Move the ADR file to `adr/completed/`
 4. Clear `.adr-session.json`
-5. Report: `ADR updated: {name} → Accepted, moved to completed/`
+5. Report: `ADR updated: {name} -> Accepted, moved to completed/`
 
 ADRs are gitignored (local-only), so this is a local file operation, not a git operation.
 
 **Gate**: Branch cleaned up (or skipped if PR is still open). Pipeline complete.
 
----
+### Worktree Agent Awareness
 
-## Examples
+When this pipeline runs inside a worktree agent (dispatched with `isolation: "worktree"`), the worktree creates a local branch that persists after the agent completes. This branch blocks `gh pr merge --delete-branch` and `git branch -d`. The dispatching agent or cleanup skill must run `git worktree remove <path>` before merging the PR or deleting the branch. If you are creating a PR from a worktree, note this in the PR body so the caller knows cleanup is required.
 
-### Example 1: Standard PR Submission (personal repo)
-User says: "Submit a PR for these changes"
-Actions:
-1. Classify repo from remote URL (CLASSIFY REPO)
-2. `git status`, review changes, stage files (STAGE)
-3. Launch 3 parallel reviewers on staged diff (REVIEW)
-4. Create conventional commit from staged changes (COMMIT)
-5. Push branch to remote with tracking (PUSH)
-6. Run review-fix loop: `/pr-review` → fix → re-review, up to 3 iterations (REVIEW-FIX LOOP)
-7. Record and graduate review findings, embed in responsible agents/skills (RETRO, toolkit repo only)
-8. Validate ADR format consistency (ADR VALIDATION, toolkit repo only)
-9. Create PR with summary and review findings (CREATE PR)
-10. Wait for CI, report status (VERIFY)
-Result: PR URL with CI status and review-fix iteration count
+### Options Reference and Examples
 
-### Example 2: Draft PR for Work in Progress (personal repo)
-User says: "Open a draft PR for what I have so far"
-Actions:
-1. Classify repo (CLASSIFY REPO)
-2. Stage current changes, skip incomplete files if noted (STAGE)
-3. Run parallel review (REVIEW)
-4. Commit with `wip:` or appropriate prefix (COMMIT)
-5. Push to feature branch (PUSH)
-6. Run review-fix loop (REVIEW-FIX LOOP)
-7. Record and graduate review findings (RETRO, toolkit repo only)
-8. Validate ADR format consistency (ADR VALIDATION, toolkit repo only)
-9. Create PR with `--draft` flag (CREATE PR)
-10. Report PR URL, skip CI wait if `--no-wait` (VERIFY)
-Result: Draft PR URL
-
-### Example 3: Trivial Change with Skip Parallel Review (personal repo)
-User says: "Quick PR for this typo fix, skip review"
-Actions:
-1. Classify repo (CLASSIFY REPO)
-2. Stage the single file change (STAGE)
-3. Skip Phase 2 parallel review (--skip-review)
-4. Commit: `fix(docs): correct typo in README` (COMMIT)
-5. Push to branch (PUSH)
-6. Run review-fix loop — Phase 4b still runs even with --skip-review (REVIEW-FIX LOOP)
-7. Record and graduate review findings (RETRO, toolkit repo only)
-8. Validate ADR format consistency (ADR VALIDATION, toolkit repo only)
-9. Create PR with minimal body (CREATE PR)
-10. Wait for CI (VERIFY)
-Result: PR URL for typo fix
-
-### Example 4: Protected-Org Repo (human-gated workflow)
-User says: "Submit a PR for these changes" (in a protected-org repo)
-Actions:
-1. Classify repo → protected-org detected (CLASSIFY REPO)
-2. Stage files (STAGE)
-3. Run parallel review (REVIEW)
-4. Present commit message → user confirms → create commit (COMMIT, human-gated)
-5. Present push details → user confirms → push to remote (PUSH, human-gated)
-6. Skip Phase 4b (protected-org repos use their own review gates)
-7. Present PR title/body → user confirms → create PR (CREATE PR, human-gated)
-8. **STOP**. No CI wait, no merge. Report PR URL.
-Result: PR URL. Next steps handled by org CI gates and human reviewers.
+See `references/pr-templates.md` for the full options reference table and all 4 usage examples (Standard PR, Draft PR, Trivial Change, Protected-Org).
 
 ---
 
@@ -719,51 +415,3 @@ Solution:
 2. Provide the PR URL so user can monitor manually
 3. Suggest: `gh run watch [run-id]` for manual monitoring
 4. Mark pipeline as complete with "CI pending" status
-
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Staging Everything Blindly
-**What it looks like**: Running `git add -A` or `git add .` without reviewing changes
-**Why wrong**: Captures sensitive files, unrelated changes, build artifacts, and debug logs
-**Do instead**: Review `git status`, stage specific files by name
-
-### Anti-Pattern 2: Skipping Review for "Simple" Changes
-**What it looks like**: "This is just a one-line fix, no need for review"
-**Why wrong**: One-line changes can introduce security vulnerabilities or break business logic
-**Do instead**: Run review unless user explicitly passes `--skip-review`
-
-### Anti-Pattern 3: Vague Commit Messages
-**What it looks like**: `git commit -m "updates"` or `git commit -m "fix stuff"`
-**Why wrong**: Provides no context for reviewers, breaks blame history, makes rollback decisions harder
-**Do instead**: Conventional format with WHAT and WHY: `fix(auth): prevent token expiry race condition`
-
-### Anti-Pattern 4: Giant Monolithic PRs
-**What it looks like**: 30+ files changed, multiple unrelated features in one PR
-**Why wrong**: Impossible to review effectively, high regression risk, blocks other work
-**Do instead**: Split into focused PRs. If changes are entangled, suggest user restructure first.
-
-### Anti-Pattern 5: Ignoring CI Failures
-**What it looks like**: "CI failed but it's probably flaky, let's merge anyway"
-**Why wrong**: Flaky tests mask real failures. Merging broken CI normalizes broken builds.
-**Do instead**: Report failure details. Let user decide whether to investigate or retry.
-
----
-
-## References
-
-This skill uses these shared patterns:
-- [Pipeline Architecture](../shared-patterns/pipeline-architecture.md) - Phase sequencing and artifact flow
-- [Gate Enforcement](../shared-patterns/gate-enforcement.md) - Phase transition rules
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Just a small change, skip review" | Small changes cause big bugs | Run review unless --skip-review |
-| "CI is probably flaky" | Flaky assumption masks real failures | Report failure, let user decide |
-| "I'll fix the commit message later" | Later never comes, history is permanent | Write proper message now |
-| "These files belong together" | Unrelated changes obscure review | Split into separate PRs |

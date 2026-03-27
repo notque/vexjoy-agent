@@ -41,50 +41,15 @@ routing:
 
 # Documentation Pipeline Skill
 
-## Operator Context
-
-This skill operates as an operator for structured documentation creation, configuring Claude's behavior for thorough, research-backed technical writing. It implements the **Pipeline** architectural pattern -- Research, Outline, Generate, Verify, Output -- with **Artifact Persistence** at each phase ensuring no work is lost to context decay.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before any documentation work
-- **Research Before Writing**: NEVER draft documentation without completing research phase first
-- **Verify All Examples**: Every code example must be executed and proven to work
-- **Artifact Persistence**: Each phase produces a saved file, not just context
-- **Scope Discipline**: Document what exists. Do not document aspirational features or planned work.
-
-### Default Behaviors (ON unless disabled)
-- **Parallel Research**: Launch subagents for code analysis, usage patterns, and context gathering simultaneously
-- **Save Phase Artifacts**: Write `doc-research.md`, `doc-outline.md`, `doc-draft.md` at each phase
-- **Run Code Examples**: Execute all code snippets to confirm correctness before including them
-- **Natural Voice**: Use clear, direct prose. Avoid corporate jargon and sterile technical writing.
-- **Audience Awareness**: Identify target audience in research phase and write at their level
-
-### Optional Behaviors (OFF unless enabled)
-- **Skip Research**: Use `--skip-research` for trivial docs where subject is already well-understood
-- **Draft Only**: Use `--draft` to produce documentation without verification phase
-- **Voice Override**: Use `--voice [name]` to apply a specific voice profile instead of default
-
-## What This Skill CAN Do
-- Create documentation from scratch through structured research and generation
-- Run parallel subagents to gather code analysis, usage patterns, and context simultaneously
-- Verify code examples, installation steps, and API signatures against actual code
-- Produce phased artifacts so work survives context limits
-- Generate READMEs, API docs, usage guides, and technical reference material
-
-## What This Skill CANNOT Do
-- Edit or update existing documentation in place (use manual editing instead)
-- Write blog posts or marketing content (use research-to-article instead)
-- Generate documentation without researching the subject first
-- Skip verification of code examples (broken examples are worse than no examples)
-- Produce documentation for code that does not yet exist
-
----
-
 ## Instructions
+
+This skill implements a **5-phase pipeline** for structured documentation creation with artifact persistence at each phase. Every phase produces a saved file to prevent work loss to context decay. Follow CLAUDE.md before starting: read and follow repository CLAUDE.md before any documentation work.
 
 ### Phase 1: RESEARCH
 
 **Goal**: Gather comprehensive understanding of the subject before writing a single line of documentation.
+
+**Why research first**: Jumping straight to generating prose based on a quick glance at the code produces shallow documentation that misses edge cases, prerequisites, and actual usage patterns. Users will not trust docs that omit critical details. Aspirational docs rot faster than any other kind of documentation.
 
 **Step 1: Launch parallel subagents**
 
@@ -95,6 +60,11 @@ Three subagents run simultaneously with a 5-minute timeout:
 | Code Analysis | Components, public APIs, dependencies, configuration | Structured findings |
 | Usage Patterns | Test examples, common patterns, edge cases, error scenarios | Examples with context |
 | Context Gathering | Problem solved, audience, prerequisites, related docs | Context summary |
+
+If a subagent times out (subject is too broad or codebase is very large):
+1. Narrow the research scope to a specific module or component
+2. Re-launch only the timed-out subagent with a more focused prompt
+3. If still timing out, run research sequentially instead of in parallel
 
 **Step 2: Compile research**
 
@@ -109,6 +79,8 @@ Write compiled research to `doc-research.md` in the working directory.
 ### Phase 2: OUTLINE
 
 **Goal**: Structure documentation based on research findings before generating prose.
+
+**Why outline first**: Outlining forces you to identify gaps where research is insufficient before you invest time in prose. It also prevents over-documentation where every private method and implementation detail makes readers unable to find what they actually need.
 
 **Step 1: Identify sections**
 
@@ -127,7 +99,7 @@ Standard documentation structure (adapt based on subject):
 
 **Step 2: Assign research to sections**
 
-Map each research finding to the section where it belongs. Identify gaps where research is insufficient and gather additional information.
+Map each research finding to the section where it belongs. Identify gaps where research is insufficient and gather additional information. Document only public APIs, common tasks, and what users actually need to accomplish — not internal constants or every private method.
 
 **Step 3: Save artifact**
 
@@ -138,6 +110,8 @@ Write outline to `doc-outline.md` in the working directory.
 ### Phase 3: GENERATE
 
 **Goal**: Write documentation that is clear, accurate, and useful to the target audience.
+
+**Why verify before publishing**: Documentation that sounds like a press release ("The system leverages enterprise-grade functionality...") drives readers away. Write like you're explaining to a colleague. Be direct. Be specific. Cut filler.
 
 **Step 1: Load context**
 
@@ -161,9 +135,17 @@ Write complete draft to `doc-draft.md` in the working directory.
 
 **Goal**: Prove every claim and example in the documentation is accurate.
 
+**Why verification is mandatory**: Unverified docs erode trust over time. Broken examples destroy documentation credibility — one bad example makes users distrust all examples. If examples were derived from outdated patterns, test mocks, or incomplete context, execution will reveal the problem. Never document code that does not yet exist or features that are aspirational.
+
 **Step 1: Execute code examples**
 
 Run every code snippet in the documentation. Capture output. Compare against documented expectations.
+
+If an example fails:
+1. Re-read the actual source code for the function being demonstrated
+2. Check if the function requires specific setup or environment
+3. Rewrite the example based on working test cases in the codebase
+4. If the function itself is broken, document the limitation rather than a broken example
 
 **Step 2: Validate API signatures**
 
@@ -181,6 +163,12 @@ For each verification failure:
 3. Re-verify the fixed section
 
 Maximum 3 fix-and-verify iterations. If still failing after 3 attempts, flag the section with a `<!-- NEEDS REVIEW -->` comment and proceed.
+
+**Special case — No Usage Patterns**: If research finds no usage patterns (code is new, untested, or internal-only with no existing consumers):
+1. Check git history for how the author used the code in commits
+2. Look for related test files that exercise the code paths
+3. Read the code directly and construct examples from the API surface
+4. Flag the documentation as "based on API analysis, not observed usage"
 
 **Gate**: All code examples execute. API signatures match source. Installation steps work. Proceed only when gate passes.
 
@@ -240,47 +228,6 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Writing Without Research
-**What it looks like**: Jumping straight to generating prose based on a quick glance at the code
-**Why wrong**: Produces shallow documentation that misses edge cases, prerequisites, and actual usage patterns. Users will not trust docs that omit critical details.
-**Do instead**: Complete Phase 1 fully. Save the research artifact. Only then proceed to outlining.
-
-### Anti-Pattern 2: Documenting Aspirational Features
-**What it looks like**: "This module will support clustering in the future" or documenting planned APIs
-**Why wrong**: Users try to use documented features and fail. Aspirational docs rot faster than any other kind.
-**Do instead**: Document only what exists and works today. Use a roadmap file for future plans.
-
-### Anti-Pattern 3: Unverified Code Examples
-**What it looks like**: Including code snippets that "should work" without executing them
-**Why wrong**: Broken examples destroy documentation credibility. One bad example makes users distrust all examples.
-**Do instead**: Execute every example in Phase 4. If it fails, fix it or remove it.
-
-### Anti-Pattern 4: Over-Documentation
-**What it looks like**: Documenting every private method, internal constant, and implementation detail
-**Why wrong**: Readers cannot find what they need in a wall of irrelevant detail. Signal-to-noise ratio collapses.
-**Do instead**: Focus on public APIs, common tasks, and what users actually need to accomplish.
-
-### Anti-Pattern 5: Sterile Corporate Voice
-**What it looks like**: "The system leverages enterprise-grade functionality to facilitate documentation workflows"
-**Why wrong**: Nobody reads documentation that sounds like a press release. Users skim past corporate filler.
-**Do instead**: Write like you are explaining to a colleague. Be direct. Be specific. Cut filler.
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations during research and verification
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks before declaring documentation done
-- [Pipeline Architecture](../shared-patterns/pipeline-architecture.md) - Standard pipeline phase structure and artifact management
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "I know this code well enough to skip research" | Familiarity breeds blind spots | Complete Phase 1, save artifact |
-| "Examples are obvious, no need to run them" | Obvious examples break in surprising ways | Execute every example in Phase 4 |
-| "Draft is good enough, skip verification" | Unverified docs erode trust over time | Complete Phase 4 fully |
-| "Nobody reads this section anyway" | You don't know what users read | Document all outlined sections |
+This skill follows CLAUDE.md requirements for artifact persistence, verification gates, and scope discipline. Every claim must be verified against source code before publication. Code examples must be executed. Installation steps must be tested end-to-end. Documentation must represent what exists today, not aspirational features.

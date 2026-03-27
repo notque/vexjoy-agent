@@ -35,42 +35,13 @@ routing:
 
 # Chain Composer Skill
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for pipeline chain composition, configuring Claude's behavior for selecting, ordering, and validating pipeline steps into coherent chains. It implements a **Type-Safe Composition** pattern: read the step menu, select steps by task type, apply operator profile gates, validate type compatibility with a deterministic script, and produce a machine-readable Pipeline Spec.
+This skill composes valid pipeline chains for each subdomain in a Component Manifest. It reads the step menu, selects and orders steps by task type, applies operator profile gates (personal, work, CI, production), validates type compatibility using a deterministic script (`artifact-utils.py validate-chain`), and produces a machine-readable Pipeline Spec JSON consumed by `pipeline-scaffolder`.
 
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before execution. Project instructions override default skill behaviors.
-- **Over-Engineering Prevention**: Compose the simplest chain that satisfies the task type. Do not add steps "for completeness" or "in case they need it." Every step in a chain must have a concrete reason to be there. If a subdomain's task type maps to a 5-step canonical chain, don't pad it to 8 steps.
-- **Deterministic Validation**: Chain correctness is verified by `python3 ~/.claude/scripts/artifact-utils.py validate-chain`, not by LLM self-assessment. The script checks type compatibility, composition rules, ADR-first, and terminal steps. If the script says INVALID, the chain is invalid regardless of how logical it looks.
-- **No Duplication**: The step menu lives in `pipelines/pipeline-scaffolder/references/step-menu.md`. The pipeline spec format lives in `pipelines/pipeline-scaffolder/references/pipeline-spec-format.md`. Reference them; do not copy their content into the Pipeline Spec or into this skill's output.
-- **Operator Profile Enforcement**: Every chain must be modified by the operator profile from the Component Manifest. Personal chains are lean. Production chains have maximum gates. Skipping profile application produces chains that are unsafe (production) or bloated (personal).
+**Core pattern**: template-then-adapt. Start from a canonical chain template for the task type (which encodes correct type flow), then inject domain-specific steps and operator profile gates. This is more reliable than composing from scratch because the type compatibility matrix has 18 families with specific consumption rules, and the canonical templates already encode the correct flow.
 
-### Default Behaviors (ON unless disabled)
-- **Communication Style**: Report composition decisions concisely. Show chain visualizations (step arrows) rather than describing them in prose.
-- **Temporary File Cleanup**: Remove `/tmp/pipeline-{run-id}/chain-*.json` validation fragments after Phase 3 completes. Keep only the final Pipeline Spec.
-- **Canonical Chain Starting Point**: Always start from the canonical chain template for the task type (see `references/canonical-chains.md`), then adapt. Do not compose chains from scratch -- the canonical templates encode hard-won composition patterns.
-- **Chain Visualization**: When reporting chains, use the arrow format: `ADR -> RESEARCH -> COMPILE -> GENERATE -> VALIDATE -> OUTPUT`.
-
-### Optional Behaviors (OFF unless enabled)
-- **Verbose Composition Log**: Show step-by-step reasoning for each composition decision (step selection, profile gate application, domain-specific additions)
-- **Alternative Chain Generation**: Produce 2-3 alternative chains per subdomain with tradeoff analysis
-
-## What This Skill CAN Do
-
-- Compose valid pipeline chains for any task type in the step menu (generation, review, debugging, operations, configuration, analysis, migration, testing)
-- Apply operator profile gates (personal, work, CI, production) to modify chains
-- Add domain-specific steps (LINT, CONFORM, TEMPLATE, DELEGATE) when the subdomain requires them
-- Validate all chains using `scripts/artifact-utils.py validate-chain` deterministically
-- Produce a complete Pipeline Spec JSON following `pipeline-spec-format.md`
-- Iterate on failed chains (max 3 attempts per chain) to fix type incompatibilities
-
-## What This Skill CANNOT Do
-
-- **Scaffold pipeline components**: That is `pipeline-scaffolder`. This skill only produces the Pipeline Spec; it does not create agents, skills, hooks, or scripts.
-- **Discover subdomains**: That is `domain-research`. This skill consumes the Component Manifest; it does not research the domain.
-- **Validate domain-specific content**: The type compatibility check is structural. Domain correctness (e.g., whether a PromQL pattern is valid) is the generated pipeline's responsibility, not this skill's.
-- **Override the step menu**: All steps must come from `step-menu.md`. This skill composes from the menu; it does not invent new steps.
+---
 
 ## Instructions
 
@@ -109,7 +80,7 @@ This skill operates as an operator for pipeline chain composition, configuring C
 
 **Goal**: For each subdomain in the Component Manifest, compose a complete, valid pipeline chain by starting from the canonical template and adapting it.
 
-**Why composition follows a template-then-adapt pattern**: Composing chains from scratch is error-prone -- the type compatibility matrix has 18 families with specific consumption rules, and getting the flow wrong is easy. The canonical templates encode the correct type flow for each task type. Starting from a template and adapting is more reliable than assembling step-by-step.
+**Why composition follows a template-then-adapt pattern**: Composing chains from scratch is error-prone. The canonical templates encode the correct type flow for each task type. Starting from a template and adapting is more reliable than assembling step-by-step. *Constraint: Always start from the canonical chain template for the task type, then adapt. Do not compose chains from scratch.*
 
 For each subdomain in the Component Manifest, execute Steps 1-5:
 
@@ -128,41 +99,49 @@ Use the subdomain's `task_type` to select the starting template from `references
 | `migration` | ADR -> CHARACTERIZE -> PLAN -> GUARD -> SNAPSHOT -> EXECUTE -> VALIDATE -> OUTPUT |
 | `testing` | ADR -> RESEARCH -> CHARACTERIZE -> GENERATE -> VALIDATE -> REPORT |
 
+**Constraint: Unknown task_type is a blocker.** If the Component Manifest contains a `task_type` that does not map to any canonical chain template, STOP and ask the user to classify it. Valid task types are the 8 listed above. Do not invent a new task type.
+
 **Step 2: Apply domain-specific adaptations**
 
 Examine the subdomain's description, references_needed, and scripts_needed to determine if the canonical chain needs domain-specific steps:
 
-- **If generating artifacts with checkable syntax** (e.g., PromQL, HCL, SQL): Insert `LINT` after `GENERATE` and before `VALIDATE`
-- **If output must match an external spec** (e.g., OpenAPI, JSON Schema): Insert `CONFORM` after `GENERATE` (or after `LINT` if both apply)
-- **If cross-domain expertise is needed**: Insert `DELEGATE` at the point where the other domain's pipeline is invoked
-- **If the subdomain has a validation script** in `scripts_needed`: Ensure a `VALIDATE` step exists with `params.script` referencing that script
-- **If a template/boilerplate is referenced** in `references_needed`: Consider replacing `GENERATE` with `TEMPLATE` or inserting `TEMPLATE` before `GENERATE`
-- **If refinement is expected** (validation may fail iteratively): Insert `REFINE` after `VALIDATE` with `params.max_refine_cycles: 3`
+- **If generating artifacts with checkable syntax** (e.g., PromQL, HCL, SQL): Insert `LINT` after `GENERATE` and before `VALIDATE`. *Reason: syntax errors must be caught before validation.*
+- **If output must match an external spec** (e.g., OpenAPI, JSON Schema): Insert `CONFORM` after `GENERATE` (or after `LINT` if both apply). *Reason: conformance to spec is a prerequisite to validation.*
+- **If cross-domain expertise is needed**: Insert `DELEGATE` at the point where the other domain's pipeline is invoked. *Reason: enables sequential execution across domain boundaries.*
+- **If the subdomain has a validation script** in `scripts_needed`: Ensure a `VALIDATE` step exists with `params.script` referencing that script. *Reason: ties generated artifacts to deterministic validation.*
+- **If a template/boilerplate is referenced** in `references_needed`: Consider replacing `GENERATE` with `TEMPLATE` or inserting `TEMPLATE` before `GENERATE`. *Reason: templates encode domain knowledge that should run before generation.*
+- **If refinement is expected** (validation may fail iteratively): Insert `REFINE` after `VALIDATE` with `params.max_refine_cycles: 3`. *Reason: limits iteration cost while permitting recovery from validation failures.*
+
+*Constraint: Compose the simplest chain that satisfies the task type. Do not add steps "for completeness" or "in case they need it." Every step in a chain must have a concrete reason to be there.* If the subdomain doesn't explicitly require a step, don't add it.
 
 **Step 3: Apply operator profile gates**
 
 Modify the chain based on the operator profile from the Component Manifest. These rules come from `step-menu.md` Operator Profiles section:
 
-**Personal profile**:
+**Personal profile** (most permissive, fewest gates):
 - Remove `APPROVE` and `PROMPT` steps (full autonomy)
 - Reduce `GUARD` to `params.checks: ["branch-not-main"]` only
 - `SIMULATE` and `SNAPSHOT` are available but not mandatory -- only include if the subdomain explicitly needs them
 
-**Work profile**:
+**Work profile** (moderate gates):
 - Add `CONFORM` after `GENERATE` for convention checking (if not already present from domain adaptation)
 - Full `GUARD -> SNAPSHOT -> EXECUTE -> VALIDATE` for any chain that modifies state
 - Add `APPROVE` for production-affecting changes
 
-**CI profile**:
+**CI profile** (automated, no interaction):
 - Remove all interaction steps (`PROMPT`, `APPROVE`, `PRESENT`)
 - Add `NOTIFY` before `OUTPUT`/`REPORT` to send results to PR/Slack
 - `GUARD` checks dependencies/tools exist, not permissions
 
-**Production profile**:
+**Production profile** (maximum gates):
 - Add `GUARD -> SNAPSHOT` before every `EXECUTE`
 - Add `SIMULATE` before `EXECUTE` for large-scale changes
 - Add `APPROVE` before any dangerous operation
 - Add `PRESENT` before and after `EXECUTE` for visibility
+
+*Constraint: Apply exactly the gates specified by the operator profile. Personal = minimal gates. Production = maximum gates. No more, no less. Do NOT add production-grade gates to personal chains or vice versa.*
+
+**Constraint: Operator profile must come from Component Manifest or user.** If the Component Manifest does not specify an operator_profile, default to `personal` profile (most permissive, fewest gates) and log a warning that profile was defaulted.
 
 **Step 4: Construct Step objects**
 
@@ -182,7 +161,7 @@ For each step in the composed chain, construct the Step object per `pipeline-spe
 Rules for constructing Step objects:
 - `family`: Look up the step in the Step Name enum in `pipeline-spec-format.md`
 - `output_schema`: Look up the family in the Step Family table to find what it produces
-- `consumes`: The first step (ADR) has `null`. Every other step's `consumes` is the `output_schema` of the previous substantive step. For steps after transparent steps (safety, interaction, validation), `consumes` references the last non-transparent step's output
+- `consumes`: The first step (ADR) has `null`. Every other step's `consumes` is the `output_schema` of the previous substantive step. *Constraint: For steps after transparent steps (safety, interaction, validation), `consumes` references the last non-transparent step's output.* This is because transparent steps pass through the primary data flow.
 - `params`: Populate based on the subdomain's references_needed and scripts_needed
 - `profile_gate`: Set to the minimum profile required for this step (e.g., `"work"` for CONFORM added by work profile). Set to `null` for unconditional steps
 
@@ -199,6 +178,8 @@ Before moving to the next subdomain, verify the chain satisfies the composition 
 - [ ] Pipeline Summary is terminal (nothing after OUTPUT/REPORT)
 - [ ] No duplicate steps (except VALIDATE, VERIFY, CHECKPOINT)
 
+*Constraint: Chain correctness is verified by `python3 ~/.claude/scripts/artifact-utils.py validate-chain`, not by LLM self-assessment. The script checks type compatibility, composition rules, ADR-first, and terminal steps. If the script says INVALID, the chain is invalid regardless of how logical it looks.*
+
 **Gate**: Every subdomain has a complete chain. All chains follow composition rules. All Step objects have valid family, output_schema, and consumes fields. Proceed to Phase 3.
 
 ---
@@ -207,7 +188,7 @@ Before moving to the next subdomain, verify the chain satisfies the composition 
 
 **Goal**: Validate all chains using `scripts/artifact-utils.py validate-chain`. This is the critical quality gate -- it catches type incompatibilities that visual inspection misses.
 
-**Why deterministic validation is mandatory**: The type compatibility matrix has complex rules: transparent steps pass through primary data flow, safety steps wrap rather than replace, and some steps appear in multiple families with different semantics (e.g., EXECUTE is in git-release, LINT is in both validation and domain-extension). The script handles all these edge cases correctly. LLM judgment is not sufficient -- it will rationalize subtle type mismatches as "close enough."
+**Why deterministic validation is mandatory**: The type compatibility matrix has complex rules: transparent steps pass through primary data flow, safety steps wrap rather than replace, and some steps appear in multiple families with different semantics (e.g., EXECUTE is in git-release, LINT is in both validation and domain-extension). The script handles all these edge cases correctly. *Constraint: LLM judgment is not sufficient. The script is the source of truth. Trust the script over visual inspection.*
 
 **Step 1**: Create a temporary directory for validation artifacts:
 ```bash
@@ -245,7 +226,7 @@ python3 ~/.claude/scripts/artifact-utils.py validate-chain /tmp/pipeline-{run-id
 
 **Step 5**: If any chain fails validation, fix the composition error in Phase 2 and re-validate. Track the iteration count per chain.
 
-- **Maximum 3 iterations per chain**. If a chain fails validation 3 times, STOP and report the persistent failure to the user with the specific type incompatibility. Do not guess at fixes beyond 3 attempts -- the chain template may need human review.
+*Constraint: Maximum 3 iterations per chain.* If a chain fails validation 3 times, STOP and report the persistent failure to the user with the specific type incompatibility. Do not guess at fixes beyond 3 attempts -- the chain template may need human review.
 
 **Step 6**: After all chains pass, clean up temporary validation fragments:
 ```bash
@@ -260,7 +241,7 @@ rm -f /tmp/pipeline-{run-id}/chain-*.json
 
 **Goal**: Produce the complete Pipeline Spec JSON and a human-readable summary. The Pipeline Spec is the contract that `pipeline-scaffolder` consumes.
 
-**Why the Pipeline Spec is JSON, not markdown**: The scaffolder needs machine-readable data to derive build targets (skills, references, scripts, agents, routing). JSON is the contract format defined in `pipeline-spec-format.md`. The human-readable summary is a companion, not a replacement.
+**Why the Pipeline Spec is JSON, not markdown**: *Constraint: The scaffolder needs machine-readable data to derive build targets (skills, references, scripts, agents, routing). JSON is the contract format defined in `pipeline-spec-format.md`.* The human-readable summary is a companion, not a replacement. *Constraint: Do NOT produce markdown instead of JSON. The scaffolder consumes JSON. It parses field names, iterates subdomain arrays, and extracts step objects programmatically.*
 
 **Step 1**: Load `pipelines/pipeline-scaffolder/references/pipeline-spec-format.md` for the exact format contract. Verify every field requirement against what you will produce.
 
@@ -307,7 +288,7 @@ Naming rules:
 ```
 
 Top-level validation:
-- Exactly one of `new_agent` or `reuse_agent` is non-null
+- Exactly one of `new_agent` or `reuse_agent` is non-null. *Constraint: Whether to create a new agent vs. reuse must come from Component Manifest or user. Do NOT guess.*
 - `operator_profile` is a valid profile enum value
 - `subdomains` is non-empty
 
@@ -368,6 +349,8 @@ Total steps across all chains: {total}
 
 **Gate**: Pipeline Spec JSON exists at `/tmp/pipeline-{run-id}/pipeline-spec.json`. All chains pass final `validate-chain`. Content summary generated. Handoff to `pipeline-scaffolder`.
 
+---
+
 ## Error Handling
 
 ### Error: Type Incompatibility in Chain
@@ -390,57 +373,10 @@ Total steps across all chains: {total}
 **Cause**: The Component Manifest does not specify an operator_profile.
 **Solution**: Default to `personal` profile (most permissive, fewest gates). Log a warning that profile was defaulted. This avoids blocking the pipeline but may produce under-gated chains for work/production environments.
 
-## Anti-Patterns
-
-### Hardcoding Chains Instead of Composing
-**What it looks like**: Writing a fixed chain for a subdomain without consulting the canonical template or step menu.
-**Why wrong**: Hardcoded chains bypass the type compatibility system. They work by coincidence until the step menu evolves and the hardcoded types no longer align. They also miss operator profile gates.
-**Do instead**: Always start from the canonical chain template for the task type, then adapt with domain-specific steps and profile gates. The template encodes the correct type flow.
-
-### Skipping Deterministic Validation
-**What it looks like**: Composing chains in Phase 2 and proceeding directly to Phase 4 output without running `validate-chain`.
-**Why wrong**: The type compatibility matrix has 18 families with specific rules. Transparent steps, primary data flow pass-through, and multi-family steps (LINT, EXECUTE, TEMPLATE) create subtle edge cases. LLM self-assessment will rationalize type mismatches as acceptable.
-**Do instead**: Always run `python3 ~/.claude/scripts/artifact-utils.py validate-chain` for every chain. The script is the source of truth.
-
-### Padding Chains with Unnecessary Steps
-**What it looks like**: A personal-profile `generation` chain that includes GUARD, SNAPSHOT, APPROVE, PRESENT, and CONFORM "for safety."
-**Why wrong**: Over-gated chains waste execution time and context. Operator profiles exist precisely to prevent this -- personal profiles are lean by design. Adding production-grade gates to personal chains violates the profile contract.
-**Do instead**: Apply exactly the gates specified by the operator profile. Personal = minimal gates. Production = maximum gates. No more, no less.
-
-### Producing Markdown Instead of JSON
-**What it looks like**: Writing the Pipeline Spec as a markdown document with chain visualizations but no JSON.
-**Why wrong**: The scaffolder consumes JSON. It parses field names, iterates subdomain arrays, and extracts step objects programmatically. Markdown is for humans; JSON is the machine contract.
-**Do instead**: Always produce `pipeline-spec.json` following `pipeline-spec-format.md` exactly. The `content.md` companion is for human readability, not for the scaffolder.
-
-## Anti-Rationalization
-
-| Rationalization Attempt | Why It's Wrong | Required Action |
-|------------------------|----------------|-----------------|
-| "The chain looks correct, no need to run validate-chain" | Visual inspection misses transparent step pass-through and multi-family step resolution | Run `validate-chain` for every chain, no exceptions |
-| "This subdomain is simple, I can compose from scratch" | Even simple chains need correct type flow; canonical templates guarantee it | Start from canonical template, then adapt |
-| "Adding extra safety steps won't hurt" | Extra steps bloat execution, waste context, and violate profile contracts | Apply only the gates specified by the operator profile |
-| "The type mismatch is minor, the scaffolder can handle it" | The scaffolder rejects invalid specs; it does not fix them | Fix all type incompatibilities before producing the spec |
-| "I'll fix the Pipeline Spec format later" | The spec is a contract; partial compliance means the scaffolder rejects it | Follow `pipeline-spec-format.md` exactly from the start |
-| "Three validation failures means the template is wrong" | Three failures means your adaptation broke the type flow; re-examine your domain-specific insertions | Review each insertion point for type compatibility before retrying |
-
-## Blocker Criteria
-
-STOP and ask the user (do NOT proceed autonomously) when:
-
-| Situation | Why Stop | Ask This |
-|-----------|----------|----------|
-| Component Manifest has fewer than 2 subdomains | Minimum subdomain count not met; domain-research may be incomplete | "The manifest has only {N} subdomain(s). Re-run domain-research or proceed with {N}?" |
-| A subdomain's task_type has no canonical template | Cannot compose without a starting point | "Subdomain '{name}' has task_type '{type}' which has no canonical chain. How should I classify it?" |
-| A chain fails validate-chain 3 times | Structural issue beyond iterative fixing | "Chain for '{subdomain}' fails validation after 3 attempts. Error: {error}. How should I restructure it?" |
-| Operator profile conflicts with subdomain requirements | E.g., production subdomain under personal profile | "Subdomain '{name}' involves production state changes but profile is 'personal'. Override to 'work' or 'production'?" |
-
-### Never Guess On
-- Which operator profile to apply (must come from Component Manifest or user)
-- Whether to create a new agent vs. reuse (must come from Component Manifest)
-- The correct task_type for an ambiguous subdomain (ask the user)
-- Whether a validation failure is a false positive (trust the script)
-
 ## References
 
 - **Canonical Chains**: [references/canonical-chains.md](references/canonical-chains.md) -- 8 task-type templates with variants
 - **Artifact Utils Script**: `scripts/artifact-utils.py validate-chain` -- Deterministic chain validator
+- **Step Menu**: [../pipeline-scaffolder/references/step-menu.md](../pipeline-scaffolder/references/step-menu.md) -- Step families, type compatibility matrix, composition rules, operator profiles
+- **Pipeline Spec Format**: [../pipeline-scaffolder/references/pipeline-spec-format.md](../pipeline-scaffolder/references/pipeline-spec-format.md) -- Machine-readable contract format
+- **Domain Research**: [../domain-research/SKILL.md](../domain-research/SKILL.md) -- Input skill that produces Component Manifest

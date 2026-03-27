@@ -27,63 +27,11 @@ routing:
 
 # Routing Table Updater Skill
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for routing table maintenance workflows, configuring Claude's behavior for automated /do command routing configuration. It implements a **Phase-Gated Pipeline** -- scan, extract, generate, update, verify -- with deterministic script execution at each phase.
+This skill maintains /do routing tables and command references when skills or agents are added, modified, or removed. It implements a **Phase-Gated Pipeline** -- scan, extract, generate, update, verify -- with deterministic script execution at each phase.
 
-### Hardcoded Behaviors (Always Apply)
-
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before execution. Project instructions override default skill behaviors.
-- **Over-Engineering Prevention**: Only update routing tables that need changes. Keep routing entries concise and pattern-focused. No speculative patterns or flexibility that was not requested. Generate exactly what /do needs -- no additional features.
-- **Preserve Manual Entries**: Detect and skip hand-written routing entries in do.md. Never overwrite entries without `[AUTO-GENERATED]` markers.
-- **Backup Before Modification**: Always create timestamped backup of commands/do.md before any changes. Rollback on validation failure.
-- **Markdown Syntax Validation**: Verify table syntax after updates. Ensure pipe alignment and proper header separation.
-- **Deterministic Generation**: Same skill/agent metadata always produces same routing entry. No randomness in pattern extraction or table formatting.
-
-### Default Behaviors (ON unless disabled)
-
-- **Communication Style**: Report facts without self-congratulation. Show diff of routing changes rather than describing them.
-- **Temporary File Cleanup**: Remove temporary metadata JSON files and diff files at completion. Keep only backups and updated do.md.
-- **Interactive Confirmation**: Show diff and ask for confirmation before updating do.md (unless --auto-commit flag provided).
-- **Progress Reporting**: Stream updates as scanning, extracting, generating, and updating phases execute.
-- **Conflict Detection**: Warn when multiple routes match the same pattern with suggestions for resolution.
-- **Alphabetical Ordering**: Maintain alphabetical order within routing tables.
-
-### Optional Behaviors (OFF unless enabled)
-
-- **Auto-Commit Mode**: `--auto-commit` flag to skip confirmation and automatically commit changes.
-- **Dry-Run Mode**: `--dry-run` to show changes without modifying do.md.
-- **Verbose Debug**: `--verbose` for detailed parsing and generation logs.
-
-## What This Skill CAN Do
-
-- Scan all skills (skills/*/SKILL.md) and agents (agents/*.md) for metadata
-- Extract YAML frontmatter (name, description, version) and trigger patterns
-- Generate routing table entries following /do format specification
-- Detect routing conflicts (same trigger mapped to multiple routes)
-- Safely update commands/do.md with atomic backup/restore
-- Update command files (commands/*.md) with skill/agent references
-- Preserve all hand-written manual routing entries
-- Validate markdown table syntax after updates
-- **Batch mode**: Process N skills at once from a Pipeline Spec or component list (used by pipeline-scaffolder Phase 4)
-- **INDEX.json updates**: Add/update agent entries in `agents/INDEX.json` alongside routing tables
-
-## What This Skill CANNOT Do
-
-- Infer trigger patterns from vague descriptions (requires explicit phrases)
-- Create new routing table sections (only updates existing tables)
-- Resolve high-severity conflicts automatically (requires manual priority decisions)
-- Modify skill/agent metadata (read-only access to capabilities)
-- Handle non-standard markdown table formats
-
----
-
-## Prerequisites
-
-- Must be in agents repository root (has commands/do.md)
-- Skills must have valid YAML frontmatter in SKILL.md files
-- Agents must have valid YAML frontmatter in agents/*.md files
-- commands/do.md must have routing table sections with standard headers
+The skill reads metadata from all skills and agents (never modifies them) and safely updates `skills/do/SKILL.md`, `skills/do/references/routing-tables.md`, `agents/INDEX.json`, and `commands/*.md` files. All changes are backed up before modification, and markdown syntax is validated before commit.
 
 ---
 
@@ -92,6 +40,12 @@ This skill operates as an operator for routing table maintenance workflows, conf
 ### Phase 1: SCAN -- Discover All Skills and Agents
 
 **Goal**: Find every skill and agent file in the repository.
+
+**Constraints applied in this phase**:
+- Repository must be at agents toolkit root (requires `commands/do.md`)
+- Only scan skills/ directories matching `skills/*/SKILL.md` format
+- Only scan agent files matching `agents/*.md` format
+- File permissions must allow reading all discovered files
 
 **Step 1: Run scan script**
 
@@ -121,9 +75,18 @@ If gate fails:
 - "No skills found": Check skills/ directory exists and has subdirectories
 - "Permission denied": Verify file read permissions
 
+---
+
 ### Phase 2: EXTRACT -- Parse Metadata
 
 **Goal**: Extract YAML frontmatter, trigger patterns, complexity, and routing table targets from every discovered file.
+
+**Constraints applied in this phase**:
+- YAML frontmatter must be valid (no syntax errors; malformed YAML blocks extraction)
+- Required fields (`name`, `description`, `version`) must be present
+- Trigger patterns for skills extracted from description text (specify patterns, don't infer from vague text)
+- Domain keywords for agents extracted from description text (explicit phrases required)
+- Complexity inference must follow established rules (`references/extraction-patterns.md`)
 
 **Step 1: Run extraction script**
 
@@ -144,10 +107,10 @@ For each capability, confirm these fields were extracted:
 
 **Step 3: Validate trigger pattern quality**
 
-Review extracted patterns against `references/extraction-patterns.md`. Patterns should be:
-- Specific enough to avoid false matches
-- Broad enough to catch common phrasings
-- Free of generic terms that match too many routes
+Review extracted patterns against `references/extraction-patterns.md`. Patterns must be:
+- Specific enough to avoid false matches (too broad = user confusion)
+- Broad enough to catch common phrasings (too narrow = missed activations)
+- Free of generic terms that match too many routes (prevents routing ambiguity)
 
 **Gate**: All YAML parsed successfully, required fields present (name, description, version), trigger patterns extracted for skills, domain keywords extracted for agents. Do NOT proceed to Phase 3 until gate passes.
 
@@ -156,20 +119,36 @@ If gate fails:
 - "Missing description field": Add description to YAML frontmatter
 - "No trigger patterns found": Update description to include clear trigger phrases
 
+---
+
 ### Phase 3: GENERATE -- Create Routing Table Entries
 
 **Goal**: Map extracted metadata to routing entries and detect conflicts.
+
+**Constraints applied in this phase**:
+- Same skill/agent metadata always produces the same routing entry (deterministic generation, no randomness)
+- Entries follow exact /do format specification (`references/routing-format.md`)
+- Pattern conflicts detected immediately (same trigger maps to multiple incompatible routes)
+- Entries sorted alphabetically within tables
+- Duplicate entries within same table prevent gate passage
+
+**Step 1: Run generation script**
 
 ```bash
 python3 ~/.claude/skills/routing-table-updater/scripts/generate_routes.py --input metadata.json --output routing_entries.json
 ```
 
-Generation process:
+**Step 2: Understand the generation process**
+
 1. Load routing format specification from `references/routing-format.md`
 2. Map each capability to appropriate routing table
 3. Format entries according to /do table structure
 4. Detect pattern conflicts (see `references/conflict-resolution.md`)
 5. Sort entries alphabetically within tables
+
+**Step 3: Review conflict detection output**
+
+The script logs all conflicts with severity levels. For low-severity conflicts (both routes reasonable), the script applies specificity rules automatically. For high-severity conflicts (incompatible routes), the script blocks gate passage and requires manual resolution.
 
 **Gate**: All capabilities mapped to entries, entries follow /do format, conflicts detected and documented, no duplicates within same table. Do NOT proceed to Phase 4 until gate passes.
 
@@ -177,9 +156,18 @@ If gate fails:
 - "Unknown routing table target": Update routing table mapping logic
 - "High-severity conflict": Review conflicting patterns manually before proceeding
 
+---
+
 ### Phase 4A: UPDATE -- Safely Modify commands/do.md
 
 **Goal**: Apply generated routing entries to do.md with backup and validation.
+
+**Constraints applied in this phase**:
+- Always create timestamped backup before any modification (mandatory backup gate)
+- Detect and preserve all hand-written entries (entries without `[AUTO-GENERATED]` marker are never overwritten)
+- Manual entries are intentional curation — overwriting them causes data loss
+- Markdown table syntax must validate after updates (pipe alignment, header rows, column consistency)
+- Atomic backup/restore: if validation fails, automatic restore from backup
 
 **Step 1: Run update script with backup**
 
@@ -218,15 +206,26 @@ On validation failure: automatic restore from backup. Report error details.
 
 **Gate**: Backup created, all manual entries preserved, markdown validated, diff confirmed. If gate fails, RESTORE from backup.
 
+---
+
 ### Phase 4B: UPDATE -- Update Command Files
 
 **Goal**: Update command files with current skill/agent references.
+
+**Constraints applied in this phase**:
+- Command files updated only if they reference outdated or invalid skills
+- Backups created for all modified files before any changes
+- All referenced skills must exist (missing skills cause gate failure)
+- Markdown syntax validated after updates (prevents publishing broken tables)
+
+**Step 1: Run update script with backup**
 
 ```bash
 python3 ~/.claude/skills/routing-table-updater/scripts/update_commands.py --commands-dir $HOME/claude-code-toolkit/commands --metadata metadata.json --backup
 ```
 
-Update process:
+**Step 2: Understand the update process**
+
 1. Scan command files for skill invocations and references
 2. Identify outdated or invalid references (renamed/removed skills)
 3. Update references to match current metadata
@@ -235,15 +234,27 @@ Update process:
 
 **Gate**: Backups created for all modified files, all referenced skills exist, markdown validated.
 
+---
+
 ### Phase 5: VERIFY -- Validate Routing Correctness
 
 **Goal**: Final validation of all routing tables.
+
+**Constraints applied in this phase**:
+- All auto-generated entries must have `[AUTO-GENERATED]` markers (validation gate checks this)
+- No duplicate patterns within the same routing table
+- All referenced skills/agents must exist as actual files
+- Complexity values must match defined levels (Simple, Medium, Complex)
+- Overlapping patterns documented with priority rules applied
+
+**Step 1: Run validation script**
 
 ```bash
 python3 ~/.claude/skills/routing-table-updater/scripts/validate.py --target $HOME/claude-code-toolkit/commands/do.md
 ```
 
-Verification checks:
+**Step 2: Understand verification checks**
+
 1. **Structural**: All routing tables present, headers formatted, pipes aligned
 2. **Content**: All auto-generated entries marked, no duplicates, all referenced skills/agents exist
 3. **Conflicts**: Overlapping patterns documented, priority rules applied
@@ -286,6 +297,8 @@ Generated routing entry:
 
 Result: New skill is discoverable via /do command
 
+---
+
 ### Example 2: Agent Description Updated
 
 User updates golang-general-engineer description to add "concurrency" keyword.
@@ -305,6 +318,8 @@ Updated routing entry:
 
 Result: Domain routing expanded to cover new keyword
 
+---
+
 ### Example 3: Conflict Detection
 
 Two skills both match "test API" pattern.
@@ -322,6 +337,8 @@ Resolution applied:
 ```
 
 Result: Unambiguous routing with longest-match precedence
+
+---
 
 ### Example 4: Manual Entry Preserved
 
@@ -418,45 +435,7 @@ Solution: Restore from backup, fix table generation logic, re-run. Do not commit
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Fixing Without Backup
-**What it looks like**: Running update_routing.py with --no-backup
-**Why wrong**: No recovery path if manual entries are lost or markdown is corrupted
-**Do instead**: Always use --backup flag. Verify backup exists before proceeding.
-
-### Anti-Pattern 2: Skipping Phase Gates
-**What it looks like**: Running UPDATE before EXTRACT completes
-**Why wrong**: Missing metadata produces empty or incorrect routing tables. Phase gates prevent incomplete data from corrupting do.md.
-**Do instead**: Verify each gate passes before proceeding. Follow SCAN -> EXTRACT -> GENERATE -> UPDATE -> VERIFY sequence.
-
-### Anti-Pattern 3: Ignoring Conflict Warnings
-**What it looks like**: Proceeding with high-severity conflicts unresolved
-**Why wrong**: Ambiguous routing confuses /do command. Users get wrong tool for their context.
-**Do instead**: Review severity. High-severity conflicts MUST be resolved. Add domain context to make patterns specific.
-
-### Anti-Pattern 4: Overwriting Manual Entries
-**What it looks like**: Replacing all matching rows without checking for AUTO-GENERATED marker
-**Why wrong**: Manual entries contain curated routing decisions and hand-tuned combinations
-**Do instead**: Only update rows with `[AUTO-GENERATED]` marker. Preserve everything else.
-
----
-
 ## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-- [Gate Enforcement](../shared-patterns/gate-enforcement.md) - Phase transition rules
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Routes look correct, no need to validate" | Visual inspection misses duplicate patterns and conflicts | Run validate.py against updated do.md |
-| "Small routing change, skip backup" | One corrupt table makes /do unusable | Always create backup before modification |
-| "Manual entries are outdated, replace them" | Manual entries contain intentional curation | Preserve all non-AUTO-GENERATED entries |
-| "Conflict is low severity, ignore it" | Low severity today becomes user confusion tomorrow | Document all conflicts with resolution strategy |
 
 ### Reference Files
 

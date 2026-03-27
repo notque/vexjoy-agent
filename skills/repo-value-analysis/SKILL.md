@@ -35,44 +35,11 @@ routing:
 
 # Repo Competitive Analysis Pipeline
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for systematic repo value analysis of external repositories against our toolkit. It implements a **6-phase Pipeline Architecture** — clone, parallel deep-read, self-inventory, synthesis, targeted audit, reality-grounded report — with parallel subagents dispatched via the Agent tool.
+This skill conducts systematic 6-phase analysis of external repositories to assess their value for adoption. You dispatch parallel subagents to read and catalog every file in an external repo, inventory your own toolkit in parallel, identify genuine capability gaps, audit those gaps against your actual codebase, and produce a reality-grounded comparison report with adoption recommendations.
 
-### Hardcoded Behaviors (Always Apply)
-- **Full File Reading**: Agents MUST read every file in their assigned zone, not sample or skim
-- **Artifacts at Every Phase**: Save findings to files; context is ephemeral
-- **Reality-Grounding**: Every recommendation MUST be audited against our actual codebase before inclusion in the final report
-- **Read-Only on External Repo**: Never modify the cloned repository
-- **Comparison Focus**: All analysis is relative — "what do they have that we lack?" not "what do they have?"
-- **Structured Output**: Final report follows the prescribed table format
-
-### Default Behaviors (ON unless disabled)
-- **Parallel Deep-Read**: Dispatch 1 agent per analysis zone (up to 8 zones)
-- **Self-Inventory**: 1 agent catalogs our own system in parallel with deep-read
-- **Zone Capping**: Cap each analysis zone at ~100 files; split larger zones
-- **Draft-Then-Final**: Phase 4 saves a draft; Phase 6 overwrites with the audited final report
-- **ADR Suggestion**: If HIGH-value items found, suggest creating an adoption ADR
-
-### Optional Behaviors (OFF unless enabled)
-- **Skip Clone**: Use `--local [path]` if the repo is already cloned or is a local directory
-- **Focus Zone**: Use `--zone [name]` to analyze only a specific zone (e.g., skills, hooks)
-- **Quick Mode**: Use `--quick` to skip Phase 5 audit (produces unverified recommendations)
-
-## What This Skill CAN Do
-- Clone and systematically analyze an external repository using parallel subagents
-- Read every file across categorized analysis zones
-- Inventory our own toolkit for accurate comparison
-- Produce a reality-grounded comparison report with effort estimates
-- Identify genuine gaps (things they have, we lack) vs superficial differences
-- Suggest ADR creation for high-value adoption candidates
-
-## What This Skill CANNOT Do
-- Modify files in either repository (read-only analysis)
-- Implement recommended changes (use feature-implement or systematic-refactoring)
-- Analyze private repos without proper authentication configured
-- Replace domain-expert judgment on adoption decisions
-- Guarantee completeness for repos with 10,000+ files (zone capping applies)
+The pipeline enforces **full file reading** (not sampling), **parallel execution** (up to 8 agent zones simultaneously), and **mandatory audit** (every recommendation verified before reporting). Optional flags allow local analysis (`--local`), zone focus (`--zone`), and quick comparison (`--quick` skips audit).
 
 ---
 
@@ -89,7 +56,7 @@ Set `REPO_NAME` and `REPO_PATH` variables for use throughout the pipeline.
 
 ### Phase 1: CLONE
 
-**Goal**: Obtain the repository and categorize its contents into analysis zones.
+**Goal**: Obtain the repository and categorize its contents into zones for parallel deep-read.
 
 **Step 1: Clone the repository**
 
@@ -97,7 +64,7 @@ Set `REPO_NAME` and `REPO_PATH` variables for use throughout the pipeline.
 git clone --depth 1 <url> /tmp/<REPO_NAME>
 ```
 
-If `--local` flag was provided, skip cloning and use the provided path.
+If `--local` flag was provided, skip cloning and use the provided path instead. This allows re-analysis of already-cloned repos without redundant network calls.
 
 **Step 2: Count and categorize files**
 
@@ -105,9 +72,11 @@ Survey the repository structure:
 - Count total files (excluding `.git/`)
 - List top-level directories with file counts
 
+This gives you a baseline for zone complexity and helps identify sub-repo patterns.
+
 **Step 3: Define analysis zones**
 
-Categorize files into zones based on directory names and file patterns:
+Categorize files into zones based on directory names and file patterns. Zones organize the repo into digestible chunks:
 
 | Zone | Typical directories/patterns | Purpose |
 |------|------------------------------|---------|
@@ -120,23 +89,25 @@ Categorize files into zones based on directory names and file patterns:
 | code | `scripts/`, `src/`, `lib/`, `pkg/`, `*.py`, `*.go`, `*.ts` | Source code |
 | other | Everything else | Uncategorized files |
 
-**Step 4: Cap zones**
+**Step 4: Cap zones for parallel feasibility**
 
-If any zone exceeds ~100 files:
-1. Split it into sub-zones by subdirectory
-2. Each sub-zone gets its own agent in Phase 2
-3. Log the split in the analysis notes
+If any zone exceeds ~100 files, split it into sub-zones by subdirectory. Each sub-zone gets its own agent in Phase 2. Cap at ~100 files per agent because:
+- Agents MUST read **every file** in their zone, not sample or skim (sampling introduces bias and misses distinguishing components)
+- ~100 files is feasible for a single agent within budget and timeout
+- Larger zones are split, so no single agent is overwhelmed
+
+Log the split decisions in the analysis notes for transparency.
 
 **Gate**: Repository cloned (or local path validated). All files categorized into zones. Zone file counts recorded. No zone exceeds ~100 files (split if needed). Proceed only when gate passes.
 
 ### Phase 2: DEEP-READ (Parallel)
 
-**Goal**: Read every file in every zone of the external repository.
+**Goal**: Read every file in every zone of the external repository to extract techniques, patterns, and potential capability gaps.
 
 Dispatch 1 Agent per analysis zone (background). Each agent receives:
 - The zone name and file list
-- Instructions to read EVERY file (not sample, not skim)
-- A structured output template
+- Instructions to read EVERY file (not sample, not skim) to avoid sampling bias
+- A structured output template that captures what they have, not just what they are
 
 **Agent instructions template** (replace ALL bracketed placeholders with actual values before dispatching):
 
@@ -172,15 +143,15 @@ After reading ALL files, produce a structured summary:
 Save your findings to /tmp/[REPO_NAME]-zone-[zone].md
 ```
 
-Dispatch up to 8 agents in parallel. If more than 8 zones exist, batch them (first 8, wait, then remaining).
+Dispatch up to 8 agents in parallel for speed. If more than 8 zones exist, batch them (first 8, wait 5 minutes, then remaining) rather than serializing — parallel dispatch is default unless `--quick` flag requests otherwise.
 
-**Gate**: All zone agents have completed (or timed out after 5 minutes each). At least 75% of agents returned results. Zone finding files exist in `/tmp/`. Proceed only when gate passes.
+**Gate**: All zone agents have completed (or timed out after 5 minutes each). At least 75% of agents returned results (tolerance for individual agent failure). Zone finding files exist in `/tmp/`. Proceed only when gate passes.
 
 ### Phase 3: INVENTORY (Parallel with Phase 2)
 
-**Goal**: Catalog our own toolkit for accurate comparison.
+**Goal**: Catalog our own toolkit simultaneously with Phase 2 deep-read for faster wall-clock time.
 
-Dispatch 1 Agent (in background, concurrent with Phase 2) to inventory our system:
+Dispatch 1 Agent (in background, concurrent with Phase 2 zone agents) to inventory our system. Running this in parallel is safe because inventory is a read-only catalog of our codebase:
 
 ```
 You are cataloging the claude-code-toolkit repository for comparison purposes.
@@ -199,33 +170,39 @@ For each category, note:
 Save your inventory to /tmp/self-inventory.md
 ```
 
+Running this in parallel (not waiting for Phase 2 to finish) reduces total pipeline time from `Phase1 + Phase2 + Phase3` to roughly `Phase1 + max(Phase2, Phase3)`.
+
 **Gate**: Self-inventory agent completed (or timed out after 5 minutes). `/tmp/self-inventory.md` exists and contains counts for all 4 component types. Proceed only when gate passes.
 
 ### Phase 4: SYNTHESIZE
 
-**Goal**: Merge findings from Phase 2 and Phase 3 into a comparison with candidate recommendations.
+**Goal**: Merge Phase 2 and Phase 3 findings into a draft comparison with candidate adoption recommendations.
 
-**Step 1: Read all zone findings**
+**Step 1: Read all zone findings and inventory**
 
-Read every `/tmp/[REPO_NAME]-zone-*.md` file and `/tmp/self-inventory.md`.
+Read every `/tmp/[REPO_NAME]-zone-*.md` file and `/tmp/self-inventory.md` to build a unified picture.
 
 **Step 2: Build comparison table**
 
-For each capability area discovered in the external repo:
+For each capability area discovered in the external repo, document what we have vs what they have:
 
 | Capability | Their Approach | Our Approach | Gap? |
 |------------|---------------|--------------|------|
 | ... | ... | ... | Yes/No/Partial |
+
+This table is relative: "what do they have that we lack?" not "what do they have?"
 
 **Step 3: Identify candidate recommendations**
 
 For each genuine gap (not just a different approach to the same thing):
 - Describe what they have
 - Describe what we lack
-- Rate value: HIGH / MEDIUM / LOW
-- HIGH = addresses a real pain point or enables new capability
-- MEDIUM = nice to have, improves existing workflow
-- LOW = marginal improvement, different but not better
+- Rate value honestly: HIGH / MEDIUM / LOW
+  - HIGH = addresses a real pain point or enables new capability
+  - MEDIUM = nice to have, improves existing workflow
+  - LOW = marginal improvement, different but not better
+
+Resist the temptation to over-count differences as gaps. A different naming convention is not a gap worth addressing.
 
 **Step 4: Save draft report**
 
@@ -233,15 +210,17 @@ Save to `research-[REPO_NAME]-comparison.md` with:
 - Executive summary
 - Comparison table
 - Candidate recommendations with ratings
-- Clear "DRAFT — pending audit" watermark
+- Clear "DRAFT — pending Phase 5 audit" watermark
+
+This draft is intentionally unaudited so you can bail out early if findings look weak.
 
 **Gate**: Draft report saved. At least 1 candidate recommendation identified (or explicit "no gaps found" conclusion). All recommendations have value ratings. Proceed only when gate passes.
 
 ### Phase 5: AUDIT (Parallel)
 
-**Goal**: Reality-check each HIGH and MEDIUM recommendation against our actual codebase.
+**Goal**: Reality-check each HIGH and MEDIUM recommendation against our actual codebase to catch "we already have this" false positives.
 
-For each HIGH or MEDIUM recommendation, dispatch 1 Agent (in background):
+For each HIGH or MEDIUM recommendation, dispatch 1 Agent (in background). Audit is what separates superficial analysis from rigorous analysis — skipping it produces unverified recommendations that erode trust:
 
 ```
 You are auditing whether recommendation "[recommendation]" is already
@@ -267,22 +246,26 @@ Save findings to /tmp/audit-[recommendation-slug].md with:
 [1-2 sentence conclusion]
 ```
 
+Dispatch audit agents in parallel for speed. If `--quick` flag was used in the initial call, skip Phase 5 entirely and proceed directly to Phase 6 with unaudited recommendations (noted in final report as unverified).
+
 **Gate**: All audit agents completed (or timed out after 5 minutes). At least 75% returned results. Audit files exist in `/tmp/`. Proceed only when gate passes.
 
 ### Phase 6: REPORT
 
-**Goal**: Produce the final reality-grounded report.
+**Goal**: Produce the final, reality-grounded report with recommendations verified by Phase 5 audit.
 
-**Step 1: Read all audit findings**
+**Step 1: Read all audit findings (unless --quick was used)**
 
-Read every `/tmp/audit-*.md` file.
+Read every `/tmp/audit-*.md` file. If `--quick` flag was used, skip this step and note in the report that recommendations are unaudited.
 
-**Step 2: Adjust recommendations**
+**Step 2: Adjust recommendations based on audit coverage**
 
 For each recommendation:
-- If audit found ALREADY EXISTS: remove from recommendations, note in "already covered" section
-- If audit found PARTIAL: adjust description to focus on what's actually missing
+- If audit found ALREADY EXISTS: remove from recommendations, note in "Already Covered" section with the exact files
+- If audit found PARTIAL: adjust description to focus on what's actually missing, cite the partial files
 - If audit found MISSING: keep as-is, add the affected files from audit
+
+This adjustment step catches the false positive anti-pattern: "we should adopt X" when we already have X.
 
 **Step 3: Build final report**
 
@@ -329,9 +312,9 @@ Overwrite `research-[REPO_NAME]-comparison.md` with the final report:
 
 **Step 4: Cleanup**
 
-Remove temporary zone and audit files from `/tmp/` (keep the cloned repo for reference).
+Remove temporary zone and audit files from `/tmp/` (keep the cloned repo for reference if further investigation is needed).
 
-**Gate**: Final report saved to `research-[REPO_NAME]-comparison.md`. Report contains comparison table, adjusted recommendations, and verdict. No "DRAFT" watermark remains. All recommendations have been reality-checked against audit findings. Proceed only when gate passes.
+**Gate**: Final report saved to `research-[REPO_NAME]-comparison.md`. Report contains comparison table, adjusted recommendations based on audit findings, and verdict. No "DRAFT" watermark remains. All recommendations have been reality-checked against Phase 5 audit findings (or marked as unaudited if --quick was used). Proceed only when gate passes.
 
 ---
 
@@ -377,55 +360,6 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Shallow Reading (Skimming Instead of Reading Every File)
-**What it looks like**: Agent reads 10 of 50 files in a zone, claims to understand the zone
-**Why wrong**: Misses the components that distinguish the repo; surface-level analysis produces surface-level recommendations
-**Do instead**: Each agent MUST read every file in its zone. The zone capping in Phase 1 ensures this is feasible.
-
-### Anti-Pattern 2: Recommending Things We Already Have
-**What it looks like**: "They have a debugging skill; we should add one" (when we already have systematic-debugging)
-**Why wrong**: Wastes effort on false gaps; undermines report credibility
-**Do instead**: Phase 5 audit exists specifically to catch this. Never skip it. Every recommendation must survive audit.
-
-### Anti-Pattern 3: Over-Counting Differences as Gaps
-**What it looks like**: Listing every difference as a recommendation regardless of value
-**Why wrong**: Different is not better. A different naming convention is not a gap worth addressing.
-**Do instead**: Only flag genuine capability gaps — things they can do that we cannot. Rate honestly: most differences are LOW or not gaps at all.
-
-### Anti-Pattern 4: Skipping the Audit Phase
-**What it looks like**: Producing the report directly from Phase 4 synthesis without verifying
-**Why wrong**: Unverified recommendations erode trust. The whole point of this pipeline is reality-grounding.
-**Do instead**: Always run Phase 5 unless `--quick` was explicitly requested. Audit is what separates this from a superficial comparison.
-
-### Anti-Pattern 5: Anchoring on Repository Size or Star Count
-**What it looks like**: "This repo has 5,000 stars so it must have good ideas"
-**Why wrong**: Popularity does not equal relevance to our specific toolkit
-**Do instead**: Evaluate every component on its merits relative to our needs. A 10-star repo with one brilliant pattern is more valuable than a 10,000-star repo that duplicates what we have.
-
-### Anti-Pattern 6: Generating Adoption Recommendations Without Effort Estimates
-**What it looks like**: "We should adopt X" without saying how much work it would take
-**Why wrong**: A HIGH-value recommendation that takes 3 weeks may be lower priority than a MEDIUM-value one that takes 30 minutes
-**Do instead**: Every recommendation in the final table MUST include an effort estimate (S/M/L).
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-- [Gate Enforcement](../shared-patterns/gate-enforcement.md) - Phase transition rules
-- [Pipeline Architecture](../shared-patterns/pipeline-architecture.md) - Pipeline design principles
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "I read enough files to get the picture" | Sampling bias misses distinguishing components | Read every file in the zone |
-| "Our system obviously has this" | Obvious to whom? Prove it with file paths. | Run audit agent, cite exact files |
-| "This difference is clearly valuable" | Clearly to whom? Different is not better. | Rate honestly, audit against reality |
-| "Audit would just confirm what I know" | Confidence is not correctness | Run audit; let evidence decide |
-| "The repo is too big to read fully" | Zone capping exists for this reason | Split zones, read all files in each |
-| "Quick comparison is good enough" | Quick comparisons miss nuance and produce false positives | Complete all 6 phases |
+None. This skill is self-contained and does not reference shared patterns or external documentation.

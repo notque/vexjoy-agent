@@ -39,7 +39,9 @@ repository, not just changed files. Delegates the actual review to the
 auto-fixes.
 
 **When to use**: Quarterly health checks, after major refactors, onboarding to
-a new codebase, or any time you want a systemic view of codebase quality.
+a new codebase, or any time you want a systemic view of codebase quality. This
+is expensive (all files through all waves) -- use `comprehensive-review` for
+PR-scoped work.
 
 **How it differs from comprehensive-review**: This skill changes the SCOPE
 phase to scan all source files instead of git diff, and changes the output from
@@ -48,45 +50,15 @@ identical.
 
 ---
 
-## Operator Context
+## Instructions
 
-### Hardcoded Behaviors (Always Apply)
-- **Full-Scope, Not Diff-Scope**: Always review ALL source files. Never fall back to git diff. The entire point of this skill is codebase-wide coverage.
-- **Report, Don't Auto-Fix**: Output is a prioritized backlog (`full-repo-review-report.md`), not auto-applied fixes. Full-repo auto-fix is impractical and risky -- the user triages and batches fixes.
-- **Deterministic Pre-Check First**: Run `score-component.py` before the LLM review. Deterministic checks are cheap and catch structural issues (missing frontmatter, no error handling section) that LLM reviewers shouldn't waste tokens on.
-- **Delegate to comprehensive-review**: This skill orchestrates scope and output. The actual 3-wave review is performed by `comprehensive-review` with `--review-only` mode.
+### Options
 
-### Default Behaviors (ON unless disabled)
-- **Score Pre-Check**: Run `score-component.py --all-agents --all-skills` and include scores in the report
-- **Severity Aggregation**: Group findings by CRITICAL/HIGH/MEDIUM/LOW
-- **Systemic Pattern Detection**: Identify patterns that appear across multiple files/directories
-- **Report Artifact**: Write `full-repo-review-report.md` to repo root
-
-### Optional Behaviors (OFF unless enabled)
 - **--directory [dir]**: Review only a single directory (e.g., `scripts/`) instead of the full repo. Useful for splitting a large repo into manageable chunks.
 - **--skip-precheck**: Skip the `score-component.py` deterministic pre-check. Only use if the script is unavailable or you need faster iteration.
 - **--min-severity [level]**: Only include findings at or above a severity threshold (CRITICAL, HIGH, MEDIUM) in the report. Default: include all.
 
 ---
-
-## Capabilities
-
-### What This Skill CAN Do
-- Discover all source files across scripts/, hooks/, skills/, agents/, docs/
-- Run deterministic health scoring on all agents and skills via `score-component.py`
-- Invoke comprehensive-review in `--review-only` mode with the full file list
-- Aggregate findings by severity into a prioritized backlog report
-- Identify systemic patterns that appear across multiple files
-
-### What This Skill CANNOT Do
-- Auto-fix findings (by design -- output is a report for human triage)
-- Review non-source files (images, binaries, config files without .py/.md extension)
-- Replace PR-scoped comprehensive-review (different use case, different frequency)
-- Run individual review agents directly (delegates to comprehensive-review for wave orchestration)
-
----
-
-## Instructions
 
 ### Phase 1: DISCOVER AND PRE-CHECK
 
@@ -94,7 +66,10 @@ identical.
 
 **Step 1: Discover source files**
 
-Build the complete file list by scanning these directories:
+Build the complete file list by scanning these directories. Always scan ALL
+source files -- never fall back to git diff. The entire point of this skill is
+codebase-wide coverage. If a specific `--directory` was provided, scope the
+scan to that directory only.
 
 ```bash
 # Python scripts (exclude test files and __pycache__)
@@ -115,7 +90,15 @@ find docs/ -name "*.md" 2>/dev/null
 
 Log the total file count. If zero files found, STOP and report: "No source files discovered. Verify you are in the correct repository root."
 
+If the file count is too large for a single session, split by directory
+(`scripts/`, `hooks/`, `agents/`, `skills/` separately) rather than
+cherry-picking "important" files -- selective review defeats the purpose.
+
 **Step 2: Run deterministic pre-check**
+
+Run scoring before the LLM review. Deterministic checks are cheap and catch
+structural issues (missing frontmatter, no error handling section) that LLM
+reviewers should not waste tokens rediscovering.
 
 ```bash
 python3 ~/.claude/scripts/score-component.py --all-agents --all-skills --json
@@ -138,12 +121,15 @@ skip the review phase.
 
 **Goal**: Run the comprehensive-review pipeline against all discovered files.
 
+This skill orchestrates scope and output only. The actual 3-wave review is
+performed by `comprehensive-review` with `--review-only` mode.
+
 **Step 1: Invoke comprehensive-review**
 
 Invoke the `comprehensive-review` skill with these overrides:
 - **Scope**: Pass the full file list from Phase 1 (use `--focus [files]` mode)
-- **Mode**: Use `--review-only` to skip auto-fix (this skill produces a report, not patches)
-- **All waves**: Do NOT use `--skip-wave0` or `--wave1-only`. Full-repo review needs maximum coverage.
+- **Mode**: Use `--review-only` to skip auto-fix. Output is a prioritized backlog for human triage, not patches -- full-repo auto-fix touches too many files at once and risks cascading breakage.
+- **All waves**: Do NOT use `--skip-wave0` or `--wave1-only`. Full-repo review needs maximum coverage. Wave 0 per-package context is what makes full-repo review valuable; deterministic checks catch structure, but only the full 3-wave review catches logic and design issues.
 
 The comprehensive-review skill handles Wave 0 (per-package), Wave 1 (foundation agents), and Wave 2 (deep-dive agents) internally.
 
@@ -223,6 +209,9 @@ Write `full-repo-review-report.md` to the repo root with this structure:
 - Score pre-check: {pass/warn/fail}
 ```
 
+The report is the final output. Do not auto-apply any fixes -- the user triages
+findings and batches corrections into manageable PRs.
+
 **GATE**: Report file exists at `full-repo-review-report.md` and contains at
 least the severity sections and deterministic scores.
 
@@ -236,36 +225,6 @@ least the severity sections and deterministic scores.
 | score-component.py fails | Missing script or dependency | Proceed with warning; the LLM review still runs. Note gap in report. |
 | comprehensive-review times out | Too many files for single session | Split into directory-scoped runs: scripts/, hooks/, agents/, skills/ separately |
 | Report write fails | Permission or path issue | Try writing to `/tmp/full-repo-review-report.md` as fallback |
-
----
-
-## Anti-Patterns
-
-### Do NOT auto-fix findings
-**Why**: Full-repo auto-fix touches too many files at once. Risk of cascading
-breakage is high and review of the fixes themselves would be a massive PR.
-Report findings for human triage.
-
-### Do NOT skip the deterministic pre-check
-**Why**: score-component.py catches structural issues (missing YAML fields,
-no error handling section) cheaply. Skipping it wastes LLM tokens on issues
-a script can find in milliseconds.
-
-### Do NOT run on every PR
-**Why**: This is expensive (all files through all waves). Use
-comprehensive-review for PR-scoped work. This skill is for periodic health
-checks.
-
----
-
-## Anti-Rationalization
-
-| Rationalization | Why Wrong | Required Action |
-|-----------------|-----------|-----------------|
-| "Too many files, let's just review the important ones" | Cherry-picking defeats the purpose of full-repo review | Review ALL discovered files. If it's too large, split by directory -- don't skip. |
-| "The score pre-check already found the issues" | Deterministic checks catch structure, not logic | Always run the full 3-wave review after pre-check |
-| "We can auto-fix the obvious ones" | This skill produces a report, not patches | Write findings to the report. User decides what to fix and when. |
-| "Wave 0 is slow, let's skip it" | Wave 0 per-package context is what makes full-repo review valuable | Run all three waves. No shortcuts on coverage. |
 
 ---
 

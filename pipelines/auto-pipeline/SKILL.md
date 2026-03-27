@@ -37,40 +37,11 @@ routing:
 
 # Auto-Pipeline
 
-## Operator Context
+## Overview
 
 This pipeline operates as the automatic fallback for `/do` when no existing route matches a non-trivial request. It classifies the task type, selects and adapts a canonical chain, executes it with phase gates, and optionally crystallizes the pattern into a permanent pipeline.
 
-### Hardcoded Behaviors (Always Apply)
-- **Dedup Gate**: ALWAYS check pipeline catalog before creating anything. If existing pipeline covers 70%+ of request, route to it instead.
-- **8-12 Step Preference**: Prefer longer chains over minimal ones. More steps = more phase gates = higher quality. A 6-step chain that could be 10 steps is under-utilizing the infrastructure.
-- **Phase Gates**: Every step must complete before the next begins. No skipping, no parallel steps unless the step explicitly supports parallelism (RESEARCH, REVIEW).
-- **Artifact Persistence**: Save intermediate output at each phase to session-local files. Context is ephemeral; files are not.
-- **Rule 12 Compliance**: RESEARCH steps MUST use parallel multi-agent dispatch (3-4 agents). Sequential grep-based research is banned.
-- **Immediate Crystallization in Toolkit Repo**: If running in this repo (detected by `pipelines/auto-pipeline/` existing in CWD), crystallize on first encounter — don't wait for 3+ runs.
-- **No Duplicate Pipelines**: The dedup gate is a HARD BLOCK. If an existing pipeline matches, route to it. Do not rationalize "this is slightly different."
-
-### Default Behaviors (ON unless disabled)
-- **Chain Adaptation**: Extend canonical chains with domain-appropriate steps from the step menu (EXTRACT, COMPILE, ASSESS, SYNTHESIZE, REFINE, COMPARE, LINT, CONFORM, MONITOR).
-- **Operator Profile Gates**: Apply personal/work/CI/production gates per the step menu's profile rules.
-- **Learning Recording**: After every ephemeral execution, record to learning.db for crystallization tracking.
-
-### Optional Behaviors (OFF unless enabled)
-- **Dry Run**: Show the proposed chain without executing it.
-- **Force Ephemeral**: Skip crystallization even in toolkit repo (for testing).
-
-## What This Pipeline CAN Do
-- Classify any user request into one of 8 canonical task types
-- Select and adapt canonical chains to 8-12 steps
-- Execute chains inline with phase gates
-- Auto-crystallize into permanent pipelines (toolkit repo: immediate; others: 3+ runs)
-- Dedup against existing pipeline catalog
-
-## What This Pipeline CANNOT Do
-- Override existing pipeline routing (dedup gate prevents this)
-- Create agents (crystallization uses existing agents or creates via pipeline-scaffolder)
-- Bypass the creation gate hook (new pipelines go through proper creation flow)
-- Execute without phase gates (every step is gated)
+**Key principle**: ALWAYS check the pipeline catalog first. If an existing pipeline covers 70%+ of the request, route to it instead of creating a new one. This prevents duplicate pipeline fragmentation and maintenance burden.
 
 ---
 
@@ -79,6 +50,8 @@ This pipeline operates as the automatic fallback for `/do` when no existing rout
 ### Phase 0: DEDUP CHECK
 
 **Goal**: Ensure we're not duplicating an existing pipeline.
+
+**Why this matters**: ALWAYS check the pipeline catalog first. If an existing pipeline covers 70%+ of the request, route to it instead. Duplicate pipelines fragment routing, create maintenance burden, and confuse discovery. The dedup gate is a HARD BLOCK — do not rationalize "this is slightly different."
 
 **Step 1**: Run task type classification:
 ```bash
@@ -107,6 +80,10 @@ python3 ~/.claude/scripts/task-type-classifier.py --request "{user_request}" --c
 
 **Goal**: Select the best canonical chain variant and extend to 8-12 steps.
 
+**Why 8-12 steps?** Fewer than 8 steps means under-utilizing phase gates, which reduces verification points and quality. Each additional step adds a gate — a mandatory quality checkpoint. A 6-step chain that could be 10 is leaving opportunities for validation on the table. Extend all chains to this range.
+
+**Why sequential?** Every step must complete before the next begins. No skipping, no parallel steps unless the step explicitly supports parallelism (RESEARCH, REVIEW). Phase gates enforce ordering and prevent state leakage between phases.
+
 **Step 1**: Read `pipelines/chain-composer/references/canonical-chains.md` for the full canonical chain and its variants.
 
 **Step 2**: Select the best variant based on request analysis:
@@ -125,7 +102,7 @@ python3 ~/.claude/scripts/task-type-classifier.py --request "{user_request}" --c
 - Add REFINE after validation
 - Add SYNTHESIZE before reporting
 
-**Step 4**: Apply operator profile gates:
+**Step 4**: Apply operator profile gates. Chain behavior shifts based on execution context:
 - Personal: remove APPROVE, PROMPT; reduce GUARD to branch-check only
 - Work: add CONFORM after GENERATE; full GUARD
 - CI: skip interaction steps; add NOTIFY
@@ -136,6 +113,10 @@ python3 ~/.claude/scripts/task-type-classifier.py --request "{user_request}" --c
 ### Phase 2: CONTEXT CHECK (Toolkit Repo Detection)
 
 **Goal**: Determine whether to crystallize immediately or run ephemeral.
+
+**Toolkit repo rule**: If running in this repo (detected by `pipelines/auto-pipeline/SKILL.md` existing in CWD), crystallize on first encounter. This repo IS the pipeline system — every pattern we extract becomes part of the toolkit. Don't wait for 3 runs; capture the pattern immediately.
+
+**Outside toolkit repo rule**: Wait for 3+ ephemeral executions in the same domain before crystallizing. This ensures the pattern is stable and not a one-off.
 
 **Step 1**: Check if `pipelines/auto-pipeline/SKILL.md` exists in CWD (indicates toolkit repo).
 
@@ -155,13 +136,15 @@ python3 ~/.claude/scripts/task-type-classifier.py --request "{user_request}" --c
 
 **Goal**: Create a permanent pipeline from the adapted chain and wire it into routing.
 
-This phase IS a pipeline itself (10 steps):
+**Why parallel research in CRYSTALLIZE?** Rule 12 is validated by A/B testing — parallel research agents produce 1.40-point quality gap over sequential grep-based research. Dispatch 3-4 parallel agents instead of running searches sequentially. Sequential research is banned in RESEARCH steps.
+
+**Why 10 steps?** This phase itself is a full pipeline: DETECT → GATHER → RESEARCH (parallel) → COMPOSE → VALIDATE → SCAFFOLD → INTEGRATE → VERIFY → REGISTER → EXECUTE. Every step gates the next. If any step fails, we roll back to ephemeral for the current request and record the failure for investigation.
 
 **Step 1 — DETECT**: Confirm crystallization threshold is met (toolkit repo = always; other = 3+ prior runs).
 
 **Step 2 — GATHER**: If prior ephemeral runs exist, collect their chain descriptions and outcomes from learning.db.
 
-**Step 3 — RESEARCH**: Use accumulated evidence to inform pipeline design. Dispatch 3 parallel research agents:
+**Step 3 — RESEARCH**: Use accumulated evidence to inform pipeline design. Dispatch 3 parallel research agents (never sequential — Rule 12):
 - Agent 1: Analyze what steps worked in prior ephemeral runs
 - Agent 2: Find similar existing pipelines to learn from
 - Agent 3: Identify domain-specific references/scripts needed
@@ -172,7 +155,7 @@ This phase IS a pipeline itself (10 steps):
 - Ensure 8-12 steps
 - Validate type compatibility
 
-**Step 5 — VALIDATE**: Run `python3 ~/.claude/scripts/artifact-utils.py validate-chain` against the composed chain.
+**Step 5 — VALIDATE**: Run `python3 ~/.claude/scripts/artifact-utils.py validate-chain` against the composed chain. If validation fails, fall back to unmodified canonical chain and log the adaptation failure.
 
 **Step 6 — SCAFFOLD**: Create the pipeline skill:
 - Create `pipelines/{pipeline-name}/SKILL.md` with full operator context
@@ -193,11 +176,13 @@ This phase IS a pipeline itself (10 steps):
 
 **Step 10 — EXECUTE**: Route the original request through the newly created permanent pipeline.
 
-**Gate**: Pipeline created, integrated, verified. Original request executing through permanent pipeline.
+**Gate**: Pipeline created, integrated, verified. Original request executing through permanent pipeline. If any earlier step fails, fall back to ephemeral execution for this request and record the failure.
 
 ### Phase 4: EPHEMERAL EXECUTE
 
 **Goal**: Execute the adapted chain inline with phase gates, without persistence.
+
+**Why save intermediate artifacts?** Context is ephemeral; files are not. Save intermediate output at each phase to session-local files so work survives context compression and session boundaries.
 
 **Step 1**: Display the ephemeral pipeline banner:
 ```
@@ -215,28 +200,32 @@ This phase IS a pipeline itself (10 steps):
 ===================================================================
 ```
 
-**Step 2**: Execute each step in sequence:
+**Step 2**: Execute each step in sequence with gating:
 - For each step in the chain:
   1. Announce: `[Phase {N}/{total}: {STEP_NAME}]`
   2. Execute the step's action (research, compile, generate, validate, etc.)
   3. Save output to session-local file: `/tmp/ephemeral-pipeline/{step_name}.md`
-  4. Verify gate condition is met
-  5. Proceed to next step
+  4. Verify gate condition is met (step must complete, output must exist)
+  5. Proceed to next step only after gate passes
 
-**Step 3**: For RESEARCH steps (Rule 12): dispatch 3-4 parallel agents:
+**Step 3**: For RESEARCH steps (Rule 12 mandatory): dispatch 3-4 parallel agents. Never run grep/search commands sequentially — that is the banned pattern. Instead:
 - Agent 1: Code/content analysis
 - Agent 2: Usage patterns / ecosystem context
 - Agent 3: Examples and reference material
 - Agent 4 (optional): External documentation / API references
 
-**Step 4**: For REVIEW steps: dispatch 3+ parallel reviewers with different lenses.
+Collect all results in parallel, then synthesize.
 
-**Step 5**: For REFINE steps: iterate up to 3 times until validation passes.
+**Step 4**: For REVIEW steps: dispatch 3+ parallel reviewers with different lenses (contrarian, skeptical, user advocate, etc.).
 
-**Step 6**: On completion, record learning:
+**Step 5**: For REFINE steps: iterate up to 3 times until validation passes. After 3 iterations, proceed with best effort output and log what remains unresolved.
+
+**Step 6**: On completion, record learning for crystallization tracking:
 ```bash
 python3 ~/.claude/scripts/learning-db.py learn --skill auto-pipeline "ephemeral {task_type} for {domain}: {chain_description}"
 ```
+
+This enables the 3+ run threshold for crystallization outside the toolkit repo.
 
 **Gate**: All steps executed. Output delivered. Learning recorded.
 
@@ -245,44 +234,20 @@ python3 ~/.claude/scripts/learning-db.py learn --skill auto-pipeline "ephemeral 
 ## Error Handling
 
 ### Error: "Classification returns no matches"
-Cause: Request doesn't match any task type keywords.
-Solution: Default to `analysis` type (broadest applicability). Log a learning about the unclassifiable request.
+**Cause**: Request doesn't match any task type keywords.
+**Solution**: Default to `analysis` type (broadest applicability). Log a learning about the unclassifiable request.
 
 ### Error: "Dedup gate blocks but user insists"
-Cause: Existing pipeline matches 70%+ but user says it doesn't serve their needs.
-Solution: User can say "create new pipeline for X, existing one doesn't cover Y." The explicit override bypasses dedup.
+**Cause**: Existing pipeline matches 70%+ but user says it doesn't serve their needs.
+**Solution**: User can say "create new pipeline for X, existing one doesn't cover Y." The explicit override bypasses dedup.
 
 ### Error: "Chain validation fails"
-Cause: Type compatibility error in adapted chain.
-Solution: Fall back to the unmodified canonical chain for that task type. Log the adaptation that failed.
+**Cause**: Type compatibility error in adapted chain.
+**Solution**: Fall back to the unmodified canonical chain for that task type. Log the adaptation that failed.
 
 ### Error: "Crystallization fails mid-scaffold"
-Cause: Pipeline creation blocked by creation gate or ADR enforcement.
-Solution: Fall back to ephemeral execution for the current request. Record the failure for investigation.
-
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Creating Duplicate Pipelines
-**What it looks like**: Auto-pipeline creates a new pipeline when an existing one covers the same domain.
-**Why wrong**: Fragments routing, creates maintenance burden, confuses discovery.
-**Do instead**: ALWAYS check the pipeline catalog first. 70%+ coverage = route to existing.
-
-### Anti-Pattern 2: Minimal Chains
-**What it looks like**: Creating a 4-5 step chain when 8-10 steps would be appropriate.
-**Why wrong**: Fewer steps = fewer phase gates = fewer verification points = lower quality.
-**Do instead**: Extend chains to 8-12 steps using the step menu. Add ASSESS, COMPILE, SYNTHESIZE, REFINE where appropriate.
-
-### Anti-Pattern 3: Skipping Crystallization in Toolkit Repo
-**What it looks like**: Running ephemeral in the toolkit repo instead of creating a permanent pipeline.
-**Why wrong**: This repo IS the pipeline system. Every pipeline we create for ourselves becomes part of the toolkit.
-**Do instead**: ALWAYS crystallize in the toolkit repo. Immediate, first encounter.
-
-### Anti-Pattern 4: Sequential Research
-**What it looks like**: Running grep/search commands one at a time in a RESEARCH step.
-**Why wrong**: Rule 12 (validated by A/B test) — sequential research produces 1.40-point quality gap.
-**Do instead**: Dispatch 3-4 parallel research agents. Always.
+**Cause**: Pipeline creation blocked by creation gate or ADR enforcement.
+**Solution**: Fall back to ephemeral execution for the current request. Record the failure for investigation.
 
 ---
 

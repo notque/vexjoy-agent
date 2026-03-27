@@ -36,49 +36,13 @@ routing:
 
 # Plan Checker Skill
 
-## Purpose
+## Overview
 
-Validate plans before execution using goal-backward analysis. Start from the stated goal, verify every requirement has a complete path through the plan to completion. Catch plan-level defects before they waste an entire execution cycle.
+Validate plans before execution using goal-backward analysis. Start from the stated goal and verify every requirement has a complete path through the plan to completion. This catches plan-level defects before they waste an entire execution cycle.
 
-**Key principle**: Plan completeness does not equal goal achievement. A plan can have all tasks filled in, each well-specified, and still miss the goal. The checker works backward from the goal through every requirement to verify complete coverage -- not just that each task looks reasonable in isolation.
+**Key principle**: Plan completeness does not equal goal achievement. A plan can have all tasks filled in, each well-specified, and still miss the goal entirely. The checker validates by working backward from the goal through every requirement to verify complete coverage -- not just that each task looks reasonable in isolation.
 
-## Operator Context
-
-This skill operates as a gate between planning and execution. It validates plan quality across 10 dimensions, produces structured findings, and issues a PASS/BLOCK verdict. If issues are found, a bounded revision loop allows up to 3 iterations before proceeding with documented risks.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before validation. Repository rules inform dimension 9 (CLAUDE.md compliance).
-- **Goal-Backward Analysis**: Always start from the stated goal and trace backward through the plan. Never validate tasks in isolation -- a task is only valid if it contributes to a path from goal to completion.
-- **Structured Findings Format**: Every issue uses the standard format (plan, dimension, severity, description, fix_hint). Unstructured feedback is not actionable and gets lost.
-- **Bounded Revision Loop**: Maximum 3 revision iterations. After 3, remaining issues are documented as known risks. This prevents infinite planning loops -- the cost of one more revision iteration is never zero, and at some point execution with known risks beats continued planning.
-- **Codebase Verification for Dependencies**: Dimension 3 (dependency correctness) and dimension 9 (CLAUDE.md compliance) require reading actual files. Do not validate file paths or import references from memory -- verify against the codebase.
-- **BLOCK on Any Blocker**: A single blocker-severity finding means BLOCK verdict. Blockers are non-negotiable because they predict execution failure, not just suboptimal execution.
-
-### Default Behaviors (ON unless disabled)
-- **Communication Style**: Report findings factually with severity and fix hints. No self-congratulation. Show evidence (file paths, missing requirements) rather than assertions.
-- **Full Dimension Scan**: Run all 10 dimensions on every check. Skipping dimensions creates false confidence -- a plan that passes 7 of 10 dimensions is not "mostly good," it has 3 unchecked risk areas.
-- **Severity-Ordered Output**: Report blockers before warnings. The reader needs to know immediately whether execution is blocked.
-- **Fix Hints Required**: Every finding must include a fix_hint. A finding without a fix is a complaint, not actionable feedback.
-
-### Optional Behaviors (OFF unless enabled)
-- **Auto-revise mode**: Automatically revise the plan to fix findings instead of just reporting them (OFF by default -- human review of revisions is safer)
-- **Cross-plan validation**: When multiple plans exist for the same feature, validate data contracts between them (OFF by default -- enable for multi-plan features)
-
-## What This Skill CAN Do
-- Validate plans against 10 verification dimensions
-- Verify file paths and imports against the actual codebase
-- Check CLAUDE.md compliance for the target repository
-- Produce structured findings with severity and fix hints
-- Issue PASS/BLOCK verdicts
-- Run bounded revision loops (max 3 iterations)
-- Validate plans from any source (feature-plan, workflow-orchestrator, manual)
-
-## What This Skill CANNOT Do
-- Create plans (use feature-plan or workflow-orchestrator)
-- Execute plans (use feature-implement)
-- Manage plan lifecycle (use plan-manager)
-- Fix plans automatically without user review (unless auto-revise is enabled)
-- Validate plans without a stated goal (goal-backward analysis requires a goal)
+The skill operates as a gate between planning and execution, validating across 10 dimensions and issuing a PASS/BLOCK verdict. If issues are found, a bounded revision loop allows up to 3 iterations before proceeding with documented risks (because the cost of continued planning is not zero -- it consumes context, delays execution, and each revision may introduce new issues).
 
 ## Instructions
 
@@ -102,7 +66,7 @@ workflow-orchestrator to create one first.
 
 **Step 2: Extract the goal**
 
-The goal is the anchor for goal-backward analysis. Find it in:
+The goal is the anchor for goal-backward analysis (because analysis requires knowing what success looks like). Find it in:
 - The plan's own `## Goal` or `## Success Criteria` section
 - The parent design document (for feature plans: `.feature/state/design/`)
 - The user's original request (for workflow-orchestrator plans)
@@ -115,7 +79,7 @@ analysis requires a goal. Add a ## Goal section to the plan.
 
 **Step 3: Load repository context**
 
-Read the target repository's CLAUDE.md (if it exists) for dimension 9 validation:
+Read the target repository's CLAUDE.md (if it exists) for dimension 9 validation (because repository rules inform which constraints the plan must comply with):
 ```bash
 find . -maxdepth 2 -name "CLAUDE.md" -type f 2>/dev/null | head -5
 ```
@@ -138,7 +102,7 @@ Run goal-backward analysis across all 10 verification dimensions. For each dimen
 **Severity**: Blocker
 **Check**: Every extracted requirement appears in at least one task.
 
-Trace backward from each requirement:
+Trace backward from each requirement (because missing requirements directly predict execution failure):
 - Which task(s) address this requirement?
 - Is the coverage complete (full path to implementation) or partial?
 
@@ -160,7 +124,7 @@ Any UNCOVERED requirement is a blocker finding.
 **Severity**: Warning
 **Check**: Each task has concrete actions, not vague descriptions.
 
-Scan every task for vague verbs that signal incomplete thinking:
+Scan every task for vague verbs that signal incomplete thinking (because vague tasks fail at execution time when the executor realizes "implement feature" has dozens of possible interpretations):
 
 | Vague (reject) | Concrete (accept) |
 |-----------------|-------------------|
@@ -177,7 +141,7 @@ A task that uses vague verbs without specifying the concrete action is a warning
 **Severity**: Blocker
 **Check**: Tasks reference the right files and imports, verified against the actual codebase.
 
-For each task that references files:
+For each task that references files, verify using the filesystem (because file paths and imports validated from memory are unreliable -- the codebase is the source of truth):
 ```bash
 # Verify each referenced file exists
 ls -la /path/to/referenced/file
@@ -193,7 +157,7 @@ A task referencing a nonexistent file or wrong import path is a blocker finding.
 **Severity**: Blocker
 **Check**: Cross-component wiring is explicitly tasked.
 
-For any plan that adds new components, verify that the wiring between components is an explicit task. Common wiring that gets forgotten:
+For any plan that adds new components, verify that the wiring between components is an explicit task (because unwired components are the most common post-execution discovery -- the feature "works" in isolation but is never reachable):
 
 | New Component | Required Wiring |
 |---------------|----------------|
@@ -206,7 +170,7 @@ For any plan that adds new components, verify that the wiring between components
 | New agent | INDEX.json entry |
 | New skill | INDEX.json entry, routing table |
 
-If the plan adds a component but has no task for its wiring, that is a blocker finding. WHY: Unwired components are the most common post-execution discovery -- the feature "works" in the new file but is never reachable because nobody registered the route or loaded the config.
+If the plan adds a component but has no task for its wiring, that is a blocker finding.
 
 #### Dimension 5: Scope Sanity
 **Severity**: Warning at 4 tasks, Blocker at 5+
@@ -218,7 +182,7 @@ Count the tasks in the plan:
 |------------|---------|-----------|
 | 1-3 | Good | Right-sized for focused execution |
 | 4 | Warning | Approaching limit; review if any tasks can merge |
-| 5+ | Blocker | Split required -- too many tasks for reliable single-context execution. WHY: context windows are finite, and each task adds execution state. Past 5 tasks, the executor loses track of earlier context, makes inconsistent decisions, or runs out of room for error recovery. |
+| 5+ | Blocker | Split required -- context windows are finite, and each task adds execution state. Past 5 tasks, the executor loses track of earlier context, makes inconsistent decisions, or runs out of room for error recovery. |
 
 For blocker: suggest how to split (by wave, by component, by dependency boundary).
 
@@ -226,7 +190,7 @@ For blocker: suggest how to split (by wave, by component, by dependency boundary
 **Severity**: Warning
 **Check**: How to verify the plan's goal is achieved must be explicit.
 
-Look for a `## Verification` or `## Success Criteria` section. Check that it specifies:
+Look for a `## Verification` or `## Success Criteria` section. Check that it specifies (because "run tests" is not verification -- expected outcomes and observable behaviors are):
 - Concrete commands to run (not just "run tests")
 - Expected outcomes (not just "tests pass")
 - Observable behaviors (not implementation tasks)
@@ -245,7 +209,7 @@ A plan with no verification section or only vague verification is a warning find
 
 If the plan is part of a feature lifecycle (design -> plan -> implement):
 - Read the design document decisions
-- Verify the plan doesn't contradict them
+- Verify the plan doesn't contradict them (because contradictions with prior decisions create rework)
 - Check that architectural choices from design are reflected in task details
 
 If the plan is standalone (workflow-orchestrator):
@@ -258,7 +222,7 @@ A plan that contradicts prior-phase decisions is a blocker finding.
 **Severity**: Blocker
 **Check**: One plan's transformations don't conflict with another's.
 
-This dimension only applies when multiple plans exist for the same feature. Check:
+This dimension only applies when multiple plans exist for the same feature. Check (because data contract conflicts cause silent failures -- code runs but produces wrong output):
 - Do two plans modify the same files? If so, are the modifications compatible?
 - Do two plans expect different shapes for shared data structures?
 - Does Plan B depend on output from Plan A that Plan A doesn't actually produce?
@@ -269,7 +233,7 @@ If not applicable (single plan), mark as PASS with note "single plan -- no cross
 **Severity**: Blocker
 **Check**: Plan doesn't violate repository rules.
 
-Cross-reference the plan against CLAUDE.md rules loaded in Phase 1. Common violations:
+Cross-reference the plan against CLAUDE.md rules loaded in Phase 1 (because repository rules enforce architecture and safety patterns). Common violations:
 
 | Rule Category | What to Check |
 |---------------|--------------|
@@ -287,7 +251,7 @@ If no CLAUDE.md was found in Phase 1, mark as PASS with note "no CLAUDE.md found
 **Severity**: Warning
 **Check**: Plan is completable within approximately 50% of a fresh context window.
 
-Estimate the execution cost:
+Estimate the execution cost (because execution always takes more than planned):
 - Number of tasks x average task complexity
 - Number of files to read for context
 - Number of verification commands to run
@@ -295,7 +259,7 @@ Estimate the execution cost:
 
 If the plan looks like it would consume more than 50% of a context window:
 - Warning finding with suggestion to split or simplify
-- WHY 50%: execution always takes more than planned. Errors happen, context is needed for debugging, and verification adds overhead. A plan that fits in 50% leaves room for reality.
+- Rationale: A plan that fits in 50% leaves room for reality. Execution always has errors, context is needed for debugging, and verification adds overhead.
 
 **GATE**: All 10 dimensions checked. Findings collected. Proceed to VERDICT.
 
@@ -369,7 +333,7 @@ If verdict is BLOCK, proceed to Phase 4 (Revision Loop).
 
 ### Phase 4: REVISION LOOP (only if BLOCK)
 
-Bounded revision loop: fix blocker findings, re-check, max 3 iterations. This loop exists because most blocker findings are fixable in minutes -- a missing task, a wrong file path, an uncovered requirement. But it's bounded because infinite revision is worse than executing with known risks.
+Bounded revision loop: fix blocker findings, re-check, max 3 iterations. After 3 good-faith attempts, remaining issues are either genuinely hard (and better discovered during execution with real code) or low-probability (and not worth further planning time).
 
 **Iteration tracking**:
 ```
@@ -416,8 +380,6 @@ Run Phase 2 again on the revised plan. Only re-check dimensions that had finding
 ================================================================
 ```
 
-WHY proceed after 3 iterations: The cost of continued planning is not zero -- it consumes context, delays execution, and each revision may introduce new issues. After 3 good-faith attempts, the remaining issues are either genuinely hard (and better discovered during execution with real code) or low-probability (and not worth further planning time).
-
 ## Error Handling
 
 | Error | Cause | Solution |
@@ -429,29 +391,6 @@ WHY proceed after 3 iterations: The cost of continued planning is not zero -- it
 | Revision loop exhausted | 3 iterations couldn't resolve all blockers | Proceed with known risks documented |
 | Plan is inline text | User pasted plan instead of file path | Parse inline text; warn that revisions won't persist to file |
 
-## Anti-Patterns
-
-| Anti-Pattern | Why Wrong | Do Instead |
-|--------------|-----------|------------|
-| Validate tasks in isolation | A task can look perfect in isolation while missing the goal entirely. Goal-backward analysis catches what task-forward review misses. | Always trace from goal backward through requirements to tasks |
-| Skip dimension because "it looks fine" | "Looks fine" is not validation. Every skipped dimension is an unchecked risk area. | Run all 10 dimensions; mark explicit PASS for clean dimensions |
-| Soft-pass on blockers | "It's probably fine" on a blocker means the executor hits the wall you saw coming. Blockers predict execution failure. | BLOCK on any blocker, no exceptions |
-| Revise without re-checking | A revision that fixes one blocker can introduce another. Untested revisions give false confidence. | Always re-check after every revision |
-| Unlimited revision iterations | Infinite planning is worse than executing with known risks. Each iteration has diminishing returns and non-zero cost. | Hard limit of 3 iterations, then proceed with documented risks |
-| Validate without reading codebase | File paths and imports validated from memory are unreliable. The codebase is the source of truth, not the plan's claims. | Use Read/Grep/Glob to verify dimension 3 against actual files |
-| Accept plan without goal | Goal-backward analysis requires a goal. Without one, you're checking form (do tasks look good?) not substance (do tasks achieve something?). | Require a stated goal before starting validation |
-
-## Anti-Rationalization
-
-| Rationalization Attempt | Why It's Wrong | Required Action |
-|------------------------|----------------|-----------------|
-| "The plan is detailed enough, no need to check" | Detail is not correctness. A detailed plan with a wrong file path still fails at execution. | Run all 10 dimensions regardless of plan quality appearance |
-| "Only 1 blocker, we can work around it" | Workarounds during execution consume more context than fixing the plan. A known blocker is cheaper to fix pre-execution. | BLOCK verdict, enter revision loop |
-| "This dimension doesn't apply to this plan" | Mark it PASS with a note explaining why. Skipping silently creates an audit gap. | Explicitly mark non-applicable dimensions as PASS with rationale |
-| "The user wants to move fast, skip validation" | Fast execution of a broken plan wastes the entire execution cycle. 2 minutes of validation saves 20 minutes of failed execution. | Run the full check. Speed comes from not re-executing, not from skipping validation |
-| "3 iterations wasn't enough, let me try one more" | The bounded loop exists for a reason. Iteration 4 has even lower probability of success and higher context cost. | Document remaining risks, proceed. The bound is the bound. |
-| "File probably exists, I don't need to check" | "Probably" is not verified. Dimension 3 requires codebase verification. | Read the filesystem. Verify. |
-
 ## References
 
 - [ADR-074: Plan Checker Pre-Execution Validation](/adr/074-plan-checker-pre-execution-validation.md)
@@ -459,4 +398,3 @@ WHY proceed after 3 iterations: The cost of continued planning is not zero -- it
 - [Feature Implement Skill](/skills/feature-implement/SKILL.md) -- executes plans after this skill validates
 - [Workflow Orchestrator](/pipelines/workflow-orchestrator/SKILL.md) -- PLAN phase produces plans this skill can validate
 - [Verification Before Completion](/skills/verification-before-completion/SKILL.md) -- post-execution counterpart (validates results, not plans)
-- [Gate Enforcement](../shared-patterns/gate-enforcement.md)

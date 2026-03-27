@@ -41,58 +41,16 @@ routing:
 
 # Security Threat Model Skill
 
-## Operator Context
+## Overview
 
-This skill configures Claude as a security-focused analyst executing a structured,
-phase-gated threat model workflow. It follows the toolkit's four-layer architecture:
-**deterministic scripts execute checks; LLM interprets findings and generates mitigations**.
-Phase 5 (synthesis) is the only LLM step. All earlier phases are deterministic Python
-scripts that produce JSON artifacts.
+This skill executes a structured, phase-gated security threat model workflow that scans
+the toolkit installation for attack surface exposure, supply-chain injection patterns,
+and learning DB contamination. It follows the toolkit's four-layer architecture:
+deterministic Python scripts perform all checks and produce JSON artifacts; Phase 5
+(synthesis only) is the LLM step. Each phase gates on artifact validation before proceeding.
 
-### Hardcoded Behaviors (Always Apply)
-
-- **Artifacts over memory**: Every phase writes output to `security/` before proceeding
-- **Gate enforcement**: Each phase gate must pass before the next phase starts
-- **Dry-run by default**: No mutations to the learning DB without explicit `--purge` flag
-- **No automated settings mutation**: deny-list is produced for human review; never merged automatically
-- **Human approval required**: Phase 2 gate blocks until deny-list is reviewed and approved
-- **CRITICAL findings block Phase 4**: Any CRITICAL supply-chain finding halts forward progress
-
-### Default Behaviors (ON unless disabled)
-
-- **security/ directory creation**: Created at Phase 1 start if not present
-- **JSON validation**: All artifact JSON is validated before phase gate passes
-- **Timestamped run ID**: All artifacts include a shared `run_id` for correlation
-- **Summary to stderr**: Each script prints a one-line summary to stderr on completion
-
-### Optional Behaviors (OFF unless enabled)
-
-- **--purge**: Actually delete flagged learning DB rows (dry-run by default)
-- **--include-user-claude**: Extend scans to `~/.claude/` paths in addition to local repo
-- **--ci-mode**: Suppress interactive approval gates; CRITICAL findings exit non-zero
-
-## Available Scripts
-
-- **`scripts/scan-threat-surface.py`** -- Enumerate hooks, MCP servers, skills, and env vars. Output: `security/surface-report.json`
-- **`scripts/generate-deny-list.py`** -- Produce deny-list config from surface scan findings. Output: `security/deny-list.json`
-- **`scripts/scan-supply-chain.py`** -- Scan hooks/skills/agents for injection patterns, hidden chars, outbound commands. Output: `security/supply-chain-findings.json`
-- **`scripts/sanitize-learning-db.py`** -- Inspect learning DB for poisoned entries. Output: `security/learning-db-report.json`
-- **`scripts/validate-threat-model.py`** -- Verify required sections exist in `security/threat-model.md`
-
-## What This Skill CAN Do
-
-- Enumerate the active attack surface of the current toolkit installation
-- Generate a ready-to-merge deny-list config for `settings.json`
-- Detect zero-width Unicode, instruction-override phrases, and outbound commands in installed artifacts
-- Flag learning DB entries with external origins or injection content
-- Synthesize all findings into a structured threat model document with ranked mitigations
-
-## What This Skill CANNOT Do
-
-- Provide real-time hook monitoring (point-in-time audit only)
-- Automatically purge learning DB rows (requires `--purge` flag and human review)
-- Automatically merge deny-list into `settings.json` (human review required)
-- Replace network-level egress controls (Docker no-egress is out of scope)
+Outputs are saved to `security/` with a shared `run_id` for correlation across phases.
+Phase 5 produces an actionable threat model document.
 
 ---
 
@@ -102,15 +60,10 @@ scripts that produce JSON artifacts.
 
 **Goal**: Enumerate the active attack surface of the current installation.
 
-**Step 1: Ensure output directory exists**
+Create the `security/` output directory and run the surface scan script:
 
 ```bash
 mkdir -p security
-```
-
-**Step 2: Run the surface scan script**
-
-```bash
 python3 scripts/scan-threat-surface.py --output security/surface-report.json
 ```
 
@@ -120,13 +73,12 @@ This script enumerates:
 - Installed skills (from `skills/`) with `allowed-tools` entries
 - Any file in `hooks/`, `skills/`, or `agents/` containing `ANTHROPIC_BASE_URL`
 
-**Step 3: Verify output**
-
+**Validate output**:
 ```bash
 python3 -c "import json; d=json.load(open('security/surface-report.json')); print('hooks:', len(d.get('hooks',[])), '| skills:', len(d.get('skills',[])), '| mcp_servers:', len(d.get('mcp_servers',[])))"
 ```
 
-**Gate**: `security/surface-report.json` must exist and parse as valid JSON with `hooks`, `skills`, and `mcp_servers` keys. Do not proceed to Phase 2 until this passes.
+**Gate (ARTIFACT VALIDATION)**: `security/surface-report.json` must exist, parse as valid JSON, and contain `hooks`, `skills`, and `mcp_servers` keys. A missing directory is handled gracefully with empty arrays. All artifacts are written to `security/` before gating. Do not proceed to Phase 2 until this gate passes.
 
 ---
 
@@ -134,7 +86,7 @@ python3 -c "import json; d=json.load(open('security/surface-report.json')); prin
 
 **Goal**: Produce a concrete deny-list config derived from Phase 1 findings.
 
-**Step 1: Generate deny-list**
+Generate the deny-list from the surface report:
 
 ```bash
 python3 scripts/generate-deny-list.py \
@@ -143,12 +95,12 @@ python3 scripts/generate-deny-list.py \
 ```
 
 The script applies these mappings from surface findings to deny rules:
-- Hook uses `curl` or `wget` -> append `"Bash(curl *)"` and `"Bash(wget *)"`
-- Hook uses `ssh` or `scp` -> append `"Bash(ssh *)"` and `"Bash(scp *)"`
-- Skill `allowed-tools` contains unscoped `Read(*)` or `Write(*)` -> add path-scoped deny entries
-- Any file contains `ANTHROPIC_BASE_URL` override -> append `"Bash(* ANTHROPIC_BASE_URL=*)"`
+- Hook uses `curl` or `wget` → append `"Bash(curl *)"` and `"Bash(wget *)"`
+- Hook uses `ssh` or `scp` → append `"Bash(ssh *)"` and `"Bash(scp *)"`
+- Skill `allowed-tools` contains unscoped `Read(*)` or `Write(*)` → add path-scoped deny entries
+- Any file contains `ANTHROPIC_BASE_URL` override → append `"Bash(* ANTHROPIC_BASE_URL=*)"`
 
-Always includes the static baseline:
+Always includes static baseline deny rules for credentials and privileged operations:
 ```json
 ["Read(~/.ssh/**)", "Read(~/.aws/**)", "Read(**/.env*)",
  "Write(~/.ssh/**)", "Write(~/.aws/**)",
@@ -156,8 +108,7 @@ Always includes the static baseline:
  "Bash(* ANTHROPIC_BASE_URL=*)"]
 ```
 
-**Step 2: Display diff for human review**
-
+**Display deny-list for human review**:
 ```bash
 python3 -c "
 import json
@@ -170,7 +121,7 @@ print('Review security/deny-list.json before merging.')
 "
 ```
 
-**Gate (HUMAN APPROVAL REQUIRED)**: Display the deny-list diff and block until the operator confirms they have reviewed it. In `--ci-mode`, skip approval and proceed. Do not proceed to Phase 3 without this gate passing.
+**Gate (HUMAN APPROVAL REQUIRED)**: The deny-list is produced for human review only — it is never merged automatically. Display the diff and block until the operator confirms review. This gate is the highest-ROI control in the workflow. In `--ci-mode`, skip this gate and proceed to Phase 3. Do not proceed without explicit acknowledgment.
 
 ---
 
@@ -178,7 +129,7 @@ print('Review security/deny-list.json before merging.')
 
 **Goal**: Scan all installed hooks, skills, and agents for injection patterns and hidden characters.
 
-**Step 1: Run supply-chain audit**
+Run the supply-chain audit:
 
 ```bash
 python3 scripts/scan-supply-chain.py \
@@ -186,19 +137,18 @@ python3 scripts/scan-supply-chain.py \
     --output security/supply-chain-findings.json
 ```
 
-Detection patterns (see `scripts/scan-supply-chain.py` source for full regex details):
-| Pattern Category | Severity |
-|-----------------|----------|
+Detection patterns (full regex details in `scripts/scan-supply-chain.py` source):
+| Pattern | Severity |
+|---------|----------|
 | Zero-width + bidi Unicode characters | CRITICAL |
 | HTML comments and hidden payload blocks | CRITICAL |
 | `ANTHROPIC_BASE_URL` override in any file | CRITICAL |
+| Instruction-override and role-hijacking phrases | CRITICAL |
 | Outbound network commands in hooks/skills | WARNING |
 | `enableAllProjectMcpServers` setting | WARNING |
 | Broad permission grants without path scoping | WARNING |
-| Instruction-override and role-hijacking phrases | CRITICAL |
 
-**Step 2: Check for CRITICAL findings**
-
+**Check for CRITICAL findings**:
 ```bash
 python3 -c "
 import json, sys
@@ -213,7 +163,7 @@ if crits:
 "
 ```
 
-**Gate**: Any CRITICAL finding blocks Phase 4. All CRITICAL findings must be remediated or explicitly acknowledged before continuing. WARNING findings are logged but do not block.
+**Gate (BLOCKING CRITICAL FINDINGS)**: Any CRITICAL finding halts forward progress. All CRITICAL findings must be remediated or explicitly acknowledged before Phase 4 can start. This includes zero-width Unicode, ANTHROPIC_BASE_URL overrides, hidden payloads, and instruction-override phrases. WARNING findings are logged but do not block. Log warnings in the threat model under "Gaps and Recommended Next Controls" with acceptance rationale.
 
 ---
 
@@ -221,23 +171,20 @@ if crits:
 
 **Goal**: Inspect the learning DB for entries that may contain injected content from external sources.
 
-**Step 1: Run sanitization check (dry-run)**
+Run the sanitization check in dry-run mode (never mutates without explicit `--purge`):
 
 ```bash
 python3 scripts/sanitize-learning-db.py \
     --output security/learning-db-report.json
 ```
 
-Add `--purge` only if the operator explicitly requests it after reviewing the report.
-
 Flags entries where:
-- `key` or `value` fields contain known instruction-override or role-hijacking phrases
-- `source` is `pr_review`, `url`, or `external` (high-risk origin)
+- `key` or `value` contain instruction-override or role-hijacking phrases
+- `source` is `pr_review`, `url`, or `external` (high-risk origins)
 - `value` contains zero-width Unicode or base64 blobs
 - `first_seen` is older than 90 days and `source` indicates external origin
 
-**Step 2: Review flagged entries**
-
+**Review flagged entries**:
 ```bash
 python3 -c "
 import json
@@ -251,27 +198,23 @@ if len(flagged) > 10:
 "
 ```
 
-**Gate**: Report must be presented to the operator. If purge is desired, re-run with `--purge`. Proceed to Phase 5 when operator acknowledges the report (or when no entries are flagged).
+**Gate (DRY-RUN BY DEFAULT)**: The script operates in dry-run mode by default. No rows are deleted without explicit operator request and `--purge` flag. Present the report to the operator. If purge is desired after review, re-run with `--purge`. Learning DB is not found gracefully — script produces an empty report (`total_entries: 0`, `flagged_entries: []`). Proceed to Phase 5 when operator acknowledges the report or when no entries are flagged.
 
 ---
 
 ### Phase 5: THREAT MODEL SYNTHESIS
 
-**Goal**: Synthesize Phases 1-4 into an actionable threat model document.
+**Goal**: Synthesize Phases 1-4 findings into an actionable threat model document. This is the only LLM-driven phase.
 
-**Step 1: Load all phase artifacts**
-
-Read and internalize:
+Load all phase artifacts:
 - `security/surface-report.json`
 - `security/deny-list.json`
 - `security/supply-chain-findings.json`
 - `security/learning-db-report.json`
 
-**Step 2: Write threat-model.md**
+Write `security/threat-model.md` with these required sections (validator checks for exact headings):
 
-Write `security/threat-model.md` containing these required sections (the validator checks for these exact headings):
-
-```
+```markdown
 # Threat Model
 
 ## Run Metadata
@@ -291,8 +234,6 @@ Write `security/threat-model.md` containing these required sections (the validat
 ## Learning DB Sanitization Summary
 ```
 
-**Step 3: Write audit-badge.json**
-
 Write `security/audit-badge.json`:
 ```json
 {
@@ -305,72 +246,45 @@ Write `security/audit-badge.json`:
 }
 ```
 
-Status is `fail` if `critical_count > 0` or if any phase gate did not pass.
+Status is `fail` if any CRITICAL finding was not remediated or if any phase gate did not pass.
 
-**Step 4: Validate outputs**
-
+**Validate outputs**:
 ```bash
 python3 scripts/validate-threat-model.py \
     --threat-model security/threat-model.md \
     --badge security/audit-badge.json
 ```
 
-**Gate**: `validate-threat-model.py` must exit 0. If it reports missing sections, add them and re-run. Maximum 3 fix iterations before escalating to operator.
+**Gate (ARTIFACT VALIDATION WITH RETRY LIMIT)**: `validate-threat-model.py` must exit 0. If validation fails, add the missing sections and re-run. Maximum 3 fix iterations before escalating to operator for review.
 
 ---
 
 ## Error Handling
 
-### Error: `surface-report.json` missing required keys
-**Cause**: Script ran against a directory without Claude Code config.
-**Solution**: `~/.claude/settings.json` absence is handled gracefully -- surface-report produces empty arrays. Re-run with `--verbose` for detail.
+### Supply-chain audit CRITICAL finding blocks progress
+**Cause**: A hook, skill, or agent contains zero-width Unicode, ANTHROPIC_BASE_URL override, or known injection phrase.
 
-### Error: Supply-chain audit CRITICAL finding blocks progress
-**Cause**: A hook, skill, or agent contains zero-width Unicode, an ANTHROPIC_BASE_URL override, or a known injection phrase.
-**Solution**:
-1. Open the flagged file at the reported line
-2. Determine if it is a legitimate false positive (e.g., a security doc discussing injection patterns)
-3. If false positive: add the file to `--exclude` and re-run
-4. If genuine: remediate the file before continuing
+**Resolution**:
+1. Open the flagged file at the reported line number
+2. Determine if it is a legitimate false positive (e.g., documentation discussing injection patterns)
+3. If false positive: add the file to `--exclude` list and re-run `scan-supply-chain.py`
+4. If genuine: remediate the file (remove hidden payloads, instruction-override phrases) before continuing to Phase 4
 
-### Error: Learning DB not found
-**Cause**: No sessions have run or the DB path has been moved.
-**Solution**: Script handles this gracefully -- produces a report with `total_entries: 0` and `flagged_entries: []`. Not an error condition.
+### Validation fails with missing sections
+**Cause**: Phase 5 synthesis omitted a required section heading.
 
-### Error: `validate-threat-model.py` reports missing sections
-**Cause**: Phase 5 synthesis omitted a required section.
-**Solution**: Read the validator output for the exact missing section name. Add the section to `security/threat-model.md` and re-run validation.
+**Resolution**: Read the validator output for the exact missing section name. Add the section to `security/threat-model.md` with content synthesized from the phase artifacts and re-run `validate-threat-model.py`. Maximum 3 fix iterations before escalating to operator.
 
----
+### Missing configuration or databases
+**Cause**: `~/.claude/settings.json` or learning DB doesn't exist.
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Skipping Phase Gates
-**What it looks like**: Moving to Phase 3 before deny-list is reviewed.
-**Why wrong**: The gate exists because deny-list review is the highest-ROI control. Skip it and the entire audit is advisory-only.
-**Do instead**: Always surface the diff and wait for acknowledgment before Phase 3.
-
-### Anti-Pattern 2: Running `--purge` without reviewing the report
-**What it looks like**: `python3 scripts/sanitize-learning-db.py --purge` as a one-liner.
-**Why wrong**: Bulk-deleting learning DB rows without review can erase legitimate session context.
-**Do instead**: Dry-run first, review `learning-db-report.json`, then re-run with `--purge` only for rows you intend to delete.
-
-### Anti-Pattern 3: Treating this skill as a real-time monitor
-**What it looks like**: Running the skill on every commit or session start.
-**Why wrong**: This is a point-in-time installation audit. Use `pretool-prompt-injection-scanner.py` for session-time scanning.
-**Do instead**: Run on onboarding, after batch PR merges to hooks/ or skills/, or on a scheduled cadence.
-
-### Anti-Pattern 4: Dismissing WARNING findings
-**What it looks like**: Noting warnings but not logging them anywhere.
-**Why wrong**: Warnings accumulate. An outbound network call in a hook may be legitimate today and exploitable after a patch.
-**Do instead**: Log all WARNING findings in `security/threat-model.md` under "Gaps and Recommended Next Controls" with acceptance rationale.
-
-### Anti-Pattern 5: Auto-committing security/ artifacts
-**What it looks like**: Adding `security/` to the commit in the same step as running the skill.
-**Why wrong**: `security/learning-db-report.json` may contain sensitive entry values from the learning DB.
-**Do instead**: Review all `security/` artifacts before committing. Only `security/threat-model.md` and `security/audit-badge.json` are commit candidates.
+**Resolution**: These are handled gracefully by the scripts:
+- Missing `settings.json` → surface-report produces empty arrays for hooks
+- Missing learning DB → sanitization report returns `total_entries: 0` and `flagged_entries: []`
+These are not error conditions. Re-run with `--verbose` for detail on missing paths.
 
 ---
+
 
 ## References
 

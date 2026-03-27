@@ -28,45 +28,11 @@ routing:
 
 # Pre-Publish Checker Skill
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for Hugo blog post validation, configuring Claude's behavior for rigorous pre-publication quality assurance. It implements a **Sequential Validation** architectural pattern — assess structure, validate fields, check assets, report — with **Domain Intelligence** embedded in Hugo-specific rules and SEO best practices.
+This skill performs rigorous pre-publication validation for Hugo blog posts using a **Sequential Validation** workflow: assess structure, validate fields, check assets, and report results. It embeds Hugo-specific rules and SEO best practices to catch publication blockers before they reach production.
 
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before validation
-- **Non-Destructive**: Never modify post files without explicit user request
-- **Complete Output**: Show all validation results; never summarize or skip categories
-- **Blocker Classification**: Clearly distinguish BLOCKER from SUGGESTION severity
-- **Reproduce Findings**: Every reported issue must reference the exact line or field
-
-### Default Behaviors (ON unless disabled)
-- **Full Validation**: Run all check categories (front matter, SEO, content, links, images, draft)
-- **Taxonomy Suggestions**: Suggest tags/categories based on existing site taxonomy
-- **Reading Time Calculation**: Calculate at 200 WPM for prose, 50% weight for code blocks
-- **Skip External Links**: Do not validate external URLs (use `--check-external` to enable)
-- **Severity Separation**: Count blockers and suggestions independently in final report
-
-### Optional Behaviors (OFF unless enabled)
-- **External Link Validation**: Check that external URLs are reachable (`--check-external`)
-- **Auto-Fix**: Offer to fix suggestion-level issues automatically (`--auto-fix`)
-- **Strict Mode**: Treat all suggestions as blockers (`--strict`)
-
-## What This Skill CAN Do
-- Parse Hugo TOML (+++) and YAML (---) front matter and validate required fields
-- Calculate word count and reading time with code block weighting
-- Analyze header structure (H2/H3 hierarchy) for logical organization
-- Detect draft status, TODO/FIXME comments, and placeholder text
-- Verify internal links point to existing content in content/ or static/
-- Verify image files exist and have alt text
-- Suggest tags/categories from existing site taxonomy
-- Generate structured validation report with clear pass/fail/skip status
-
-## What This Skill CANNOT Do
-- Validate external URLs by default (network latency, rate limiting concerns)
-- Judge content quality beyond structural and metadata checks
-- Automatically publish posts or change draft status
-- Modify files without explicit user consent
-- Replace editorial review for prose quality or accuracy
+The skill is **non-destructive** (never modifies files without explicit user request), **complete** (shows all validation results—never summarizes), and **severity-aware** (distinguishes BLOCKER from SUGGESTION throughout the workflow).
 
 ---
 
@@ -114,60 +80,62 @@ Everything after front matter closing delimiter. Inventory:
 
 **Step 1: Front matter validation**
 
-| Field | Requirement | Severity |
-|-------|-------------|----------|
-| title | Present, non-empty | BLOCKER |
-| date | Present, valid format | BLOCKER |
-| draft | Must be `false` | BLOCKER |
-| description | Present, 150-160 chars | SUGGESTION |
-| tags | Present, 3-5 items | SUGGESTION |
-| categories | Present, 1-2 items | SUGGESTION |
+| Field | Requirement | Severity | Reasoning |
+|-------|-------------|----------|-----------|
+| title | Present, non-empty | BLOCKER | Hugo build fails without title |
+| date | Present, valid format | BLOCKER | Publishing requires valid timestamp |
+| draft | Must be `false` | BLOCKER | Hugo excludes draft posts; this is a non-negotiable check |
+| description | Present, 150-160 chars | SUGGESTION | SEO optimization; user may omit intentionally |
+| tags | Present, 3-5 items | SUGGESTION | Recommendation for taxonomy consistency; not required |
+| categories | Present, 1-2 items | SUGGESTION | Recommendation for site organization; not required |
+
+Always validate draft field first. Treat as highest-priority blocker—draft posts are excluded from production builds entirely.
 
 **Step 2: SEO validation**
 
-| Check | Optimal Range | Severity |
-|-------|---------------|----------|
-| Title length | 50-60 characters | SUGGESTION |
-| Description length | 150-160 characters | SUGGESTION |
-| Slug format | URL-friendly, no special chars | SUGGESTION |
+| Check | Optimal Range | Severity | Reasoning |
+|-------|---------------|----------|-----------|
+| Title length | 50-60 characters | SUGGESTION | Search engine display optimization |
+| Description length | 150-160 characters | SUGGESTION | Meta description window sizing |
+| Slug format | URL-friendly, no special chars | SUGGESTION | Internal naming convention |
 
 Derive slug from filename: `2025-01-my-post.md` becomes `my-post`.
 
 **Step 3: Content quality validation**
 
-| Check | Requirement | Severity |
-|-------|-------------|----------|
-| Word count | Minimum 500 words | SUGGESTION |
-| Reading time | Calculate at 200 WPM | INFO |
-| Header structure | H2/H3 present, logical hierarchy | SUGGESTION |
-| Opening paragraph | No preamble phrases | SUGGESTION |
+| Check | Requirement | Severity | Reasoning |
+|-------|-------------|----------|-----------|
+| Word count | Minimum 500 words | SUGGESTION | Depth indicator; user retains discretion |
+| Reading time | Calculate at 200 WPM | INFO | Report only, not a blocker |
+| Header structure | H2/H3 present, logical hierarchy | SUGGESTION | Readability and scannability |
+| Opening paragraph | No preamble phrases | SUGGESTION | Content quality; user may override |
 
 Preamble detection phrases: "In this post, I will...", "Today I'm going to...", "Let me explain...", "Welcome to...", "First of all...", "Before we begin..."
 
 **Step 4: Link validation**
 
-- **Internal links**: Pattern `](/posts/...)` or `](/images/...)`. Verify target exists. Severity: BLOCKER if missing.
-- **External links**: Pattern `](https://...)`. Skip by default. Severity: WARNING if unreachable (when enabled).
-- **Image links**: Pattern `![alt](path)` or Hugo shortcodes. Verify file exists in static/. Severity: BLOCKER if missing.
+- **Internal links**: Pattern `](/posts/...)` or `](/images/...)`. Verify target exists. Severity: BLOCKER if missing (broken links prevent navigation).
+- **External links**: Pattern `](https://...)`. Skip by default. Severity: WARNING if unreachable (when enabled). Rationale: External validation adds network latency and rate-limiting concerns; skip unless user opts in with `--check-external`.
+- **Image links**: Pattern `![alt](path)` or Hugo shortcodes. Verify file exists in static/. Severity: BLOCKER if missing (reader sees broken image).
 
 **Step 5: Image validation**
 
-| Check | Requirement | Severity |
-|-------|-------------|----------|
-| Alt text | All images must have non-empty alt | SUGGESTION |
-| File existence | All referenced images exist in static/ | BLOCKER |
-| Path format | Correct Hugo static path convention | SUGGESTION |
+| Check | Requirement | Severity | Reasoning |
+|-------|-------------|----------|-----------|
+| Alt text | All images must have non-empty alt | SUGGESTION | Accessibility best practice |
+| File existence | All referenced images exist in static/ | BLOCKER | Missing images break page rendering |
+| Path format | Correct Hugo static path convention | SUGGESTION | Consistency with site standards |
 
 Hugo image path patterns: `/images/filename.png` (absolute from static/), `images/filename.png` (relative), `{{< figure src="..." >}}` (shortcode).
 
 **Step 6: Draft status validation**
 
-| Check | Requirement | Severity |
-|-------|-------------|----------|
-| draft field | Must be `false` | BLOCKER |
-| TODO comments | None present | WARNING |
-| FIXME comments | None present | WARNING |
-| Placeholder text | None present | BLOCKER |
+| Check | Requirement | Severity | Reasoning |
+|-------|-------------|----------|-----------|
+| draft field | Must be `false` | BLOCKER | Hugo build filter; non-negotiable |
+| TODO comments | None present | WARNING | Development artifact—likely unintentional in published post |
+| FIXME comments | None present | WARNING | Development artifact—likely unintentional in published post |
+| Placeholder text | None present | BLOCKER | Content is incomplete if placeholders remain |
 
 Placeholder patterns: `[insert X here]`, `[TBD]`, `[TODO]`, `XXX`, `PLACEHOLDER`, `Lorem ipsum`.
 
@@ -179,7 +147,7 @@ Placeholder patterns: `[insert X here]`, `[TBD]`, `[TODO]`, `XXX`, `PLACEHOLDER`
 
 **Step 1: Build taxonomy index**
 
-Read existing posts to collect all tags and categories currently in use.
+Read existing posts to collect all tags and categories currently in use. Rationale: Always read existing posts before suggesting. Inventing generic tags like "programming" or "tech" without checking the site creates inconsistent taxonomy and fragments content organization.
 
 **Step 2: Analyze content**
 
@@ -187,7 +155,7 @@ Match current post content against existing taxonomy terms. Prefer established t
 
 **Step 3: Generate suggestions**
 
-Suggest 3-5 tags and 1-2 categories. Avoid over-suggesting popular tags; distribute evenly across the taxonomy.
+Suggest 3-5 tags and 1-2 categories. Avoid over-suggesting popular tags; distribute evenly across the taxonomy. Report suggestions even if tags/categories are already present—they validate against site conventions.
 
 **Gate**: Taxonomy suggestions generated from existing site data (not invented). Proceed only when gate passes.
 
@@ -230,6 +198,8 @@ Format the report as:
 **Result classification**:
 - READY FOR PUBLISH: Zero blockers (suggestions and warnings are acceptable)
 - NOT READY: One or more blockers present; list all blockers after result
+
+Ensure accurate blocker count. Count blockers and suggestions independently in the final result—never mix them.
 
 **Gate**: Report generated with accurate blocker count. Result matches blocker tally.
 
@@ -285,51 +255,8 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Blocking on Optional Fields
-**What it looks like**: Marking post as NOT READY because tags are missing
-**Why wrong**: Tags are recommendations, not requirements. Users may have valid reasons to omit them.
-**Do instead**: Classify as SUGGESTION, count separately from blockers in the final result.
-
-### Anti-Pattern 2: Inventing Taxonomy Instead of Reading
-**What it looks like**: Suggesting generic tags like "programming" or "tech" without checking the site
-**Why wrong**: Creates inconsistent taxonomy, fragments content organization, ignores established patterns.
-**Do instead**: Always read existing posts first. Suggest from established taxonomy when possible.
-
-### Anti-Pattern 3: Skipping Draft Status Check
-**What it looks like**: Reporting READY FOR PUBLISH when `draft: true`
-**Why wrong**: Hugo excludes draft posts from production builds. This is the highest-priority blocker.
-**Do instead**: Check draft field first. Treat as a non-negotiable blocker.
-
-### Anti-Pattern 4: Modifying Files Without Consent
-**What it looks like**: Automatically adding missing description or fixing tags during validation
-**Why wrong**: Validation is read-only. User must approve all changes to their content.
-**Do instead**: Report findings, suggest fixes, wait for explicit user request before modifying.
-
-### Anti-Pattern 5: Silent Skip Without Reporting
-**What it looks like**: Not reporting when a check could not be performed (directory not found, parse error)
-**Why wrong**: User assumes check passed when it was actually skipped. False confidence.
-**Do instead**: Always report `[SKIP]` with a reason when any check cannot complete.
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Front matter looks fine" | Looking ≠ validating each field | Parse and check every required field |
-| "Images are probably there" | Probably ≠ file system check | Verify each path exists on disk |
-| "No need to check taxonomy" | Missing context creates bad suggestions | Read existing posts before suggesting |
-| "Draft is obvious, skip it" | Obvious checks prevent obvious mistakes | Always validate draft field explicitly |
-
-### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/seo-guidelines.md`: SEO length requirements and best practices
 - `${CLAUDE_SKILL_DIR}/references/hugo-frontmatter.md`: Hugo front matter fields and formats
 - `${CLAUDE_SKILL_DIR}/references/checklist.md`: Complete validation checklist reference

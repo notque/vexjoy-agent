@@ -30,44 +30,11 @@ routing:
 
 # Anti-Rationalization Enforcement Skill
 
-## Operator Context
+## Overview
 
-This skill operates as a composable modifier that wraps any task with explicit anti-rationalization enforcement. It implements the **Gate Enforcement** architectural pattern -- every phase transition requires evidence, every completion claim requires proof -- with **Pressure Resistance** embedded to prevent quality erosion under time or social pressure.
+This skill operates as a composable modifier that wraps any task with explicit anti-rationalization enforcement. It implements the **Gate Enforcement** architectural pattern—every phase transition requires evidence, every completion claim requires proof—with **Pressure Resistance** embedded to prevent quality erosion under time or social pressure.
 
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before starting any work
-- **Full Pattern Loading**: Load ALL anti-rationalization patterns, not just a relevant subset
-- **Gate Enforcement**: Every phase transition requires explicit evidence before proceeding
-- **Pressure Resistance**: Cannot skip verification even when user pressures for speed
-- **Evidence-Based Completion**: "Done" requires proof, not claims or confidence
-- **Self-Check Protocol**: Run the anti-rationalization self-check before marking any task complete
-
-### Default Behaviors (ON unless disabled)
-- **Verbose Check Output**: Log each gate check and its pass/fail result visibly
-- **Domain Pattern Loading**: Load domain-specific anti-rationalization patterns (security, testing, review) when relevant to the task
-- **Escalation on Ambiguity**: Stop and ask user when requirements are unclear rather than guessing
-- **Rationalization Logging**: Document any detected rationalization attempts during execution
-- **Completion Checklist**: Run full verification checklist before declaring done
-
-### Optional Behaviors (OFF unless enabled)
-- **Audit Trail**: Write detailed execution log of all gate checks to a file
-- **Strict Mode**: Treat warnings as failures at gate checks
-- **Regression Verification**: Run full test suite at every phase transition, not just at completion
-
-## What This Skill CAN Do
-- Wrap any task with explicit anti-rationalization enforcement
-- Load all shared anti-rationalization patterns (core, security, testing, review)
-- Enforce phase gates with evidence requirements at every transition
-- Resist pressure to skip steps while remaining professional
-- Detect and surface rationalization attempts during execution
-- Require proof of completion rather than accepting claims
-
-## What This Skill CANNOT Do
-- Replace domain-specific skills (debugging, refactoring, testing have their own methodologies)
-- Make tasks faster -- this adds overhead deliberately for safety
-- Override explicit user decisions about scope or technical approach
-- Guarantee zero defects -- rigor reduces risk, it does not eliminate it
-- Operate without an underlying task -- this is a modifier, not a standalone workflow
+This skill is not a substitute for domain-specific methodologies (debugging, refactoring, testing have their own skills). Instead, it layers anti-rationalization checks on top of whatever task you're executing. It adds intentional overhead for safety on critical work where shortcuts cause harm.
 
 ---
 
@@ -76,6 +43,8 @@ This skill operates as a composable modifier that wraps any task with explicit a
 ### Phase 1: LOAD PATTERNS
 
 **Goal**: Load all anti-rationalization patterns relevant to the task before starting work.
+
+**Constraint**: Full pattern loading is mandatory—do not skip domain-specific patterns. Loading only core patterns misses domain-specific rationalizations that domain patterns catch.
 
 **Step 1: Identify task domain**
 
@@ -93,29 +62,45 @@ Classify the task to determine which domain-specific patterns apply:
 
 **Step 2: Load and acknowledge patterns**
 
-Read the identified shared-pattern files. Internalize the rationalization tables and enforcement rules. State which patterns were loaded and why -- this creates accountability.
+Read the identified shared-pattern files. Internalize the rationalization tables and enforcement rules. **Constraint**: State explicitly which patterns were loaded and why—this creates accountability and prevents performative checking.
 
-**Gate**: All relevant patterns loaded and acknowledged. Proceed only when gate passes.
+**Gate**: All relevant patterns loaded and acknowledged. Proceed only when you can articulate why each pattern applies. Do NOT rubber-stamp gate checks—if you cannot explain WHY a pattern is relevant, reconsider whether it applies.
 
 ### Phase 2: EXECUTE WITH ENFORCEMENT
 
 **Goal**: Run the underlying task with anti-rationalization checks at every transition.
 
+**Constraint**: This skill wraps other skills. If the task involves debugging, follow systematic-debugging methodology. If refactoring, follow systematic-refactoring. The anti-rationalization layer adds checks on top, not instead of.
+
 **Step 1: Delegate to appropriate methodology**
 
-This skill wraps other skills. If the task involves debugging, follow systematic-debugging methodology. If refactoring, follow systematic-refactoring. The anti-rationalization layer adds checks on top.
+Identify what kind of work this is. If it fits an existing methodology (debugging, refactoring, testing, code review), use that skill. Anti-rationalization enforcement amplifies what they do, it does not replace it.
 
 **Step 2: At each phase transition, run gate check**
 
-For each transition, verify: (1) all exit criteria met, (2) evidence documented not just claimed, (3) anti-rationalization table reviewed, (4) no rationalization detected. Then run a rationalization scan -- am I assuming without verifying? Skipping because it "looks right"? Rushing from perceived pressure? If any answer is YES: STOP and address the rationalization before proceeding.
+For each transition, verify:
+1. All exit criteria met
+2. Evidence documented (not just claimed)
+3. Anti-rationalization table reviewed against patterns
+4. No rationalization detected
 
-**Step 3: Handle pressure resistance**
-
-If the user requests skipping a step:
+**Constraint - Pressure Resistance**: If the user requests skipping a step:
 1. Acknowledge the request
 2. Explain why the step matters (one sentence)
 3. Proceed with the step
 4. If user insists on a non-security matter, note the risk and comply
+5. **Never skip security-sensitive steps**—security shortcuts are non-negotiable. Document refusal and reasoning.
+
+Then run a rationalization scan:
+- Am I assuming without verifying?
+- Skipping because it "looks right"?
+- Rushing from perceived pressure?
+- Calling something "not applicable" when really skipping?
+- Treating "basically passes" as "passes"?
+
+If any answer is YES: STOP and address the rationalization before proceeding.
+
+**Constraint - Proportionate Rigor**: Scale check depth to task risk. Critical production changes get full ceremony. A three-file refactor gets lighter gates. Never zero—apply at least proportionate rigor.
 
 **Gate**: Task phases executed with all gate checks passing. Proceed only when gate passes.
 
@@ -134,6 +119,8 @@ If the user requests skipping a step:
 | Code compiles/lints | [ ] | [build output] |
 | Anti-rationalization table reviewed | [ ] | [self-check completed] |
 
+**Constraint**: Every check requires actual evidence, not claims. "Code looks right" is not evidence. "Tests should pass" is not evidence. Test output screenshot is evidence.
+
 **Step 2: Run completion self-check**
 
 ```markdown
@@ -146,7 +133,7 @@ If the user requests skipping a step:
 5. [ ] Can I show evidence (output, test results)?
 ```
 
-If ANY answer is uncertain, return to Phase 2 and address the gap.
+If ANY answer is uncertain, return to Phase 2 and address the gap. Do NOT weaken gate criteria to force a pass.
 
 **Step 3: Document completion evidence**
 
@@ -159,22 +146,70 @@ Summarize: task description, patterns loaded, gate checks passed, rationalizatio
 ## Examples
 
 ### Example 1: Critical Production Change
+
 User says: "/with-anti-rationalization deploy the payment processor update"
+
 Actions:
 1. Load core + security anti-rationalization patterns (LOAD)
 2. Execute deployment with gate checks at each phase (EXECUTE)
 3. Resist any "just ship it" pressure with evidence requirements
 4. Full verification checklist before declaring done (VERIFY)
+
 Result: Deployment verified with evidence at every step
 
 ### Example 2: Security-Sensitive Code Review
+
 User says: "/with-anti-rationalization review the authentication module"
+
 Actions:
 1. Load core + security + review anti-rationalization patterns (LOAD)
 2. Review with explicit checks against "internal only" and "low risk" rationalizations (EXECUTE)
 3. Every finding documented with evidence, not dismissed
 4. Completion self-check confirms no findings were skipped (VERIFY)
+
 Result: Thorough review with no rationalized dismissals
+
+---
+
+## Reference Material: Anti-Rationalization Patterns
+
+This section catalogs the rationalization patterns this skill detects and prevents. Use these as reference when reviewing gates and completing self-checks.
+
+### Domain-Specific Anti-Rationalization
+
+| Rationalization | Why It's Wrong | Required Action |
+|-----------------|----------------|-----------------|
+| "I loaded the patterns, that's enough" | Loading is not applying | Actively check against patterns at each gate |
+| "This task is simple, full rigor is overkill" | Simplicity assessment is itself a rationalization risk | Apply proportionate rigor, but never zero |
+| "User seems frustrated, I'll ease up" | Frustration does not change correctness requirements | Acknowledge frustration, maintain standards |
+| "The gate basically passes" | Basically is not actually | Either it passes with evidence or it does not |
+
+### Anti-Pattern Checklist: What NOT To Do
+
+#### Anti-Pattern 1: Performative Checking
+**What it looks like**: Running gate checks but rubber-stamping them all as PASS without reading evidence
+**Why wrong**: Gate checks that always pass provide zero value. The check is the evidence review, not the checkbox.
+**Do instead**: Read the evidence for each criterion. If you cannot articulate WHY it passes, it does not pass.
+
+#### Anti-Pattern 2: Rationalization Laundering
+**What it looks like**: Reframing a skipped step as "not applicable" rather than "skipped"
+**Why wrong**: "Not applicable" is sometimes legitimate, but it is also the most common way to rationalize skipping steps.
+**Do instead**: For every "N/A" judgment, state WHY it does not apply. If the reason is weak, do the step.
+
+#### Anti-Pattern 3: Selective Pattern Loading
+**What it looks like**: Loading only anti-rationalization-core and skipping domain-specific patterns
+**Why wrong**: Domain-specific patterns catch domain-specific rationalizations that the core misses.
+**Do instead**: Classify the task domain in Phase 1 and load ALL matching patterns.
+
+#### Anti-Pattern 4: Pressure Capitulation
+**What it looks like**: Immediately dropping verification when user says "just do it"
+**Why wrong**: The entire purpose of this skill is to resist shortcuts. Immediate capitulation defeats the purpose.
+**Do instead**: Follow the pressure resistance framework: acknowledge, explain, proceed. Comply only after explaining risk.
+
+#### Anti-Pattern 5: Anti-Rationalization Theater
+**What it looks like**: Spending more time on the checking framework than on the actual task
+**Why wrong**: The goal is correct output, not elaborate process documentation. Checks should be proportionate.
+**Do instead**: Scale check depth to task risk. Critical production changes get full ceremony. A three-file refactor gets lighter gates.
 
 ---
 
@@ -191,7 +226,7 @@ Solution:
 ### Error: "Gate Check Fails Repeatedly"
 Cause: Task requirements unclear, or task is fundamentally blocked
 Solution:
-1. Re-read the gate criteria -- are they appropriate for this task?
+1. Re-read the gate criteria—are they appropriate for this task?
 2. If requirements are unclear, escalate to user for clarification
 3. If technically blocked, document the blocker and ask user how to proceed
 4. Do NOT weaken the gate criteria to force a pass
@@ -201,37 +236,8 @@ Cause: Time pressure, frustration, or genuine scope reduction
 Solution:
 1. Distinguish quality skip (resist) from scope preference (respect)
 2. If quality: explain risk once, note risk in output, comply if user insists again
-3. If security: refuse and explain -- security shortcuts are non-negotiable
+3. If security: refuse and explain—security shortcuts are non-negotiable
 4. Document that verification was skipped at user request
-
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Performative Checking
-**What it looks like**: Running gate checks but rubber-stamping them all as PASS without reading evidence
-**Why wrong**: Gate checks that always pass provide zero value. The check is the evidence review, not the checkbox.
-**Do instead**: Read the evidence for each criterion. If you cannot articulate WHY it passes, it does not pass.
-
-### Anti-Pattern 2: Rationalization Laundering
-**What it looks like**: Reframing a skipped step as "not applicable" rather than "skipped"
-**Why wrong**: "Not applicable" is sometimes legitimate, but it is also the most common way to rationalize skipping steps.
-**Do instead**: For every "N/A" judgment, state WHY it does not apply. If the reason is weak, do the step.
-
-### Anti-Pattern 3: Selective Pattern Loading
-**What it looks like**: Loading only anti-rationalization-core and skipping domain-specific patterns
-**Why wrong**: Domain-specific patterns catch domain-specific rationalizations that the core misses.
-**Do instead**: Classify the task domain in Phase 1 and load ALL matching patterns.
-
-### Anti-Pattern 4: Pressure Capitulation
-**What it looks like**: Immediately dropping verification when user says "just do it"
-**Why wrong**: The entire purpose of this skill is to resist shortcuts. Immediate capitulation defeats the purpose.
-**Do instead**: Follow the pressure resistance framework: acknowledge, explain, proceed. Comply only after explaining risk.
-
-### Anti-Pattern 5: Anti-Rationalization Theater
-**What it looks like**: Spending more time on the checking framework than on the actual task
-**Why wrong**: The goal is correct output, not elaborate process documentation. Checks should be proportionate.
-**Do instead**: Scale check depth to task risk. Critical production changes get full ceremony. A three-file refactor gets lighter gates.
 
 ---
 
@@ -245,12 +251,3 @@ This skill composes these shared patterns:
 - [Gate Enforcement](../shared-patterns/gate-enforcement.md) - Phase transition enforcement
 - [Pressure Resistance](../shared-patterns/pressure-resistance.md) - Handling pushback professionally
 - [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion verification
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "I loaded the patterns, that's enough" | Loading is not applying | Actively check against patterns at each gate |
-| "This task is simple, full rigor is overkill" | Simplicity assessment is itself a rationalization risk | Apply proportionate rigor, but never zero |
-| "User seems frustrated, I'll ease up" | Frustration does not change correctness requirements | Acknowledge frustration, maintain standards |
-| "The gate basically passes" | Basically is not actually | Either it passes with evidence or it does not |

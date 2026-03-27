@@ -32,45 +32,19 @@ routing:
 
 # Roast: Devil's Advocate Analysis
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for critical analysis workflows, configuring Claude's behavior for systematic, evidence-based critique through 5 specialized personas. It implements a **Parallel Analysis + Validation** pattern -- spawn multiple critical perspectives, then validate every claim against actual evidence.
+This skill produces evidence-based constructive critique through 5 specialized HackerNews commenter personas: Skeptical Senior, Well-Actually Pedant, Enthusiastic Newcomer, Contrarian Provocateur, and Pragmatic Builder. The workflow spawns these personas in parallel, validates all claims against actual files and lines, and synthesizes findings into an improvement-focused report.
 
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before analysis
-- **Over-Engineering Prevention**: Analysis must be direct and focused. No elaborate frameworks beyond the 5-persona + validation workflow
-- **Read-Only Enforcement**: NEVER use Write, Edit, or destructive Bash commands. Only Read, Glob, Grep, and read-only Bash operations allowed
-- **Evidence-Based Claims**: Every critique must reference specific files, lines, or concrete artifacts. No vague criticisms
-- **Validation Required**: All claims must be validated against actual evidence before appearing in final report
-
-### Default Behaviors (ON unless disabled)
-- **Five Persona Coverage**: All 5 personas analyze the target for comprehensive perspective coverage
-- **Claim Validation**: Coordinator validates all claims and categorizes as VALID, PARTIAL, UNFOUNDED, or SUBJECTIVE
-- **Prioritized Reporting**: Final report prioritizes VALID and PARTIAL findings, shows dismissed claims for transparency
-- **Strength Inclusion**: Report includes validated strengths, not just problems
-- **Constructive Tone**: Agent outputs are synthesized into improvement-oriented language
-
-### Optional Behaviors (OFF unless enabled)
-- **Focused Persona Analysis**: User can request specific personas only (e.g., "Just the Senior Engineer perspective")
-- **Shallow Review**: Quick critique without full validation for rapid feedback
-- **Critique-Only Focus**: Skip strengths section, focus exclusively on issues
-
-## What This Skill CAN Do
-- Critique documentation, code, architecture, or ideas through 5 distinct critical perspectives
-- Generate specific, evidence-based claims referencing actual files and lines
-- Validate all claims against repository contents to separate valid from unfounded critiques
-- Produce prioritized, actionable findings backed by concrete evidence
-- Identify both weaknesses and validated strengths
-- Operate in strict read-only mode without modifying any files
-- Surface assumptions, edge cases, operational concerns, and accessibility issues
-
-## What This Skill CANNOT Do
-- Make modifications -- strictly read-only analysis, cannot fix issues found
-- Execute code or run tests to validate runtime behavior
-- Access external resources, APIs, or documentation outside the repository
-- Resolve subjective disputes -- can identify style differences but not declare winners
-- Replace domain expertise like security auditing or performance profiling
-- Skip validation phase -- all claims must be checked against evidence
+**Key constraints baked into the workflow:**
+- CLAUDE.md must be read and followed before analysis begins
+- Read-only mode (no Write, Edit, destructive Bash) is mandatory — enforced via `read-only-ops` skill invocation
+- Every claim must reference specific file:line locations and be validated against actual evidence before appearing in the final report
+- All 5 personas must complete before validation begins — no partial analysis
+- Final report must include both validated strengths and problems, prioritized by impact
+- Unvalidated claims are dismissed; unfounded critiques are shown with evidence explaining why
+- Analysis must be direct and focused — no elaborate frameworks beyond the 5-persona + validation pattern
+- Sarcasm and mockery are stripped during synthesis; technical accuracy and file references are preserved
 
 ---
 
@@ -98,6 +72,8 @@ This ensures no modifications can occur during the analysis workflow.
 - `Write` tool -- no file creation
 - `Edit` tool -- no file modification
 - Bash: `rm`, `mv`, `cp`, `mkdir`, `touch`, `git add`, `git commit`, `git push`
+
+If read-only mode cannot be activated, stop immediately. Never proceed with unguarded analysis.
 
 **Gate**: Read-only mode active. Proceed only when gate passes.
 
@@ -130,13 +106,15 @@ Use Grep to find: specific claims to verify, usage patterns, dependency referenc
 
 **Step 5: Ground verbal descriptions**
 
-If user describes a concept rather than pointing to a file, search the repo for existing implementation. Critique grounded in actual code beats critique of a strawman every time.
+If user describes a concept rather than pointing to a file, search the repo for existing implementation. Critique grounded in actual code beats critique of a strawman every time. Never analyze a verbal description without confirming the code exists.
 
 **Gate**: Target identified and sufficient context gathered. Proceed only when gate passes.
 
 ### Phase 3: SPAWN ROASTER AGENTS (Parallel)
 
-Launch 5 general-purpose agents in parallel via Task tool, each embodying a roaster persona. Load the full persona specification from the corresponding agent file into each prompt.
+**Goal**: Launch 5 agents in parallel, each embodying a roaster persona, analyzing the target with full evidence-gathering discipline.
+
+Launch 5 general-purpose agents in parallel via Task tool. Load the full persona specification from the corresponding agent file into each prompt.
 
 **The 5 parallel tasks:**
 
@@ -155,19 +133,22 @@ Launch 5 general-purpose agents in parallel via Task tool, each embodying a roas
 5. **Pragmatic Builder** (`agents/reviewer-pragmatic-builder.md`)
    Focus: Production readiness, operational concerns
 
-Each agent must:
-- Invoke `read-only-ops` skill first
+**Each agent must:**
+- Invoke `read-only-ops` skill first to enforce no-modification guardrails
 - Follow their systematic 5-step review process
-- Tag ALL claims as `[CLAIM-N]` with `file:line` references
-- Provide specific evidence for every claim
+- Tag ALL claims as `[CLAIM-N]` with specific `file:line` references
+- Provide concrete evidence for every claim — vague critiques are worthless and must be rejected during validation
+- Search for actual implementation details rather than analyzing verbal descriptions
 
 See `references/personas.md` for full prompt template and claim format.
 
-**CRITICAL**: Wait for all 5 agents to complete before proceeding to Phase 4. Do not begin validation on partial results -- all perspectives must be collected first.
+**CRITICAL**: Wait for all 5 agents to complete before proceeding to Phase 4. Do not begin validation on partial results. Every persona must contribute before synthesis can happen.
 
 **Gate**: All 5 agents complete with tagged claims. Proceed only when gate passes.
 
 ### Phase 4: COORDINATE (Validate Claims)
+
+**Goal**: Verify every `[CLAIM-N]` against actual evidence before including in the report.
 
 Collect and validate every `[CLAIM-N]` from all 5 agents.
 
@@ -189,9 +170,11 @@ For each `[CLAIM-N]`, read the referenced file/line using Read tool and assign a
 | UNFOUNDED | Not supported | Evidence contradicts or doesn't exist |
 | SUBJECTIVE | Opinion, can't verify | Matter of preference/style |
 
+**Critical: You must read the file and check the line.** Visual inspection misses nuance. "Obviously valid" is a rationalization word. Do not accept a claim because it sounds right or all personas agree on it — consensus is not the same as correctness.
+
 **Step 3: Cross-reference**
 
-Note claims found independently by multiple agents -- these carry higher confidence. If 3+ personas independently identify the same issue, escalate to HIGH priority regardless of individual severity.
+Note claims found independently by multiple agents. If 3+ personas independently identify the same issue, escalate to HIGH priority regardless of individual severity.
 
 **Step 4: Prioritize**
 
@@ -209,11 +192,13 @@ Sort VALID and PARTIAL findings by impact:
 Follow the full template in `references/report-template.md`. Key synthesis rules:
 
 1. **Filter by verdict**: Only VALID and PARTIAL claims appear in improvement opportunities
-2. **Dismissed section**: UNFOUNDED claims go in dismissed section with evidence showing why
-3. **Subjective section**: SUBJECTIVE claims noted as opinion-based, user decides
-4. **Strengths required**: Coordinator validates what works well -- not just problems
+2. **Dismissed section**: UNFOUNDED claims go in dismissed section with evidence showing why. Transparency matters — users need to understand why certain critiques don't hold up.
+3. **Subjective section**: SUBJECTIVE claims noted as opinion-based. User decides.
+4. **Strengths required**: Coordinator validates what works well. Not just problems. Include "Validated Strengths" section.
 5. **Constructive tone**: Strip sarcasm, mockery, dismissive language from agent outputs. Preserve technical accuracy and file references.
 6. **Implementation roadmap**: Group actions by immediacy (immediate / short-term / long-term)
+
+**Validation Summary Table** (include in report):
 
 ```markdown
 ## Claim Validation Summary
@@ -276,7 +261,7 @@ Result: Critique anchored in actual implementation, not a strawman
 ### Error: "Agent Returns Claims Without File References"
 Cause: Persona agent skipped evidence-gathering or analyzed verbally
 Solution:
-1. Dismiss ungrounded claims as UNFOUNDED
+1. Dismiss ungrounded claims as UNFOUNDED — they cannot be validated
 2. If majority of claims lack references, re-run that specific agent with explicit instruction to cite file:line
 3. Never promote ungrounded claims to the validated findings section
 
@@ -303,49 +288,7 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Vague, Unsupported Claims
-**What it looks like**: `[CLAIM-1] The error handling seems insufficient`
-**Why wrong**: No file/line reference, cannot be validated, not actionable
-**Do instead**: `[CLAIM-1] No error handling in process_request() (server.py:45-67)`
-
-### Anti-Pattern 2: Skipping Validation Phase
-**What it looks like**: Generating 5 persona critiques then jumping straight to action items
-**Why wrong**: Persona critiques may be incorrect or overstated. Unfounded claims pollute findings.
-**Do instead**: Validate every claim against actual evidence before including in report
-
-### Anti-Pattern 3: All-Negative Critique
-**What it looks like**: 5 personas list problems, report ends with 15 prioritized issues, no strengths
-**Why wrong**: Demotivating, ignores what works, unbalanced perspective
-**Do instead**: Coordinator validates strengths too. Include "Validated Strengths" section.
-
-### Anti-Pattern 4: Fixing Instead of Reporting
-**What it looks like**: Builder agent finds missing error handling, uses Edit tool to add it
-**Why wrong**: Violates read-only constraint. User didn't ask for changes.
-**Do instead**: Report the finding with evidence and suggested action. User decides.
-
-### Anti-Pattern 5: Analyzing Without Context
-**What it looks like**: User says "roast this approach", agent critiques verbal description without checking repo
-**Why wrong**: Misses existing implementation, may critique a strawman
-**Do instead**: Search repo for related code first. Ground critique in actual evidence.
-
----
-
 ## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "I can see the issue, no need to validate" | Visual inspection misses nuance | Validate every claim against evidence |
-| "All 5 agents agree, must be true" | Consensus doesn't mean correct | Still verify against actual files |
-| "User just wants a quick roast" | Quick doesn't mean unvalidated | Run validation, skip only if shallow mode |
-| "This claim is obviously valid" | Obviously is a rationalization word | Read the file, check the line |
 
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/report-template.md`: Full report output template with tone transformation rules

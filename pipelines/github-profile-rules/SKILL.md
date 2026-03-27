@@ -33,41 +33,9 @@ routing:
 
 # GitHub Profile Rules Extraction
 
-## Operator Context
+## Overview
 
-This skill operates as the main orchestration pipeline for extracting programming rules from a GitHub user's public profile. It implements a 7-phase pipeline that fetches data exclusively via the GitHub API (no git clone), analyzes code patterns across repos, extracts PR review comments for preference signals, compiles findings into deduplicated confidence-scored rules, and outputs actionable CLAUDE.md-compatible entries.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before execution.
-- **API-Only Data Fetching**: All GitHub data must be fetched via `scripts/github-api-fetcher.py`. No git clone, no subprocess git calls. This is a non-negotiable constraint.
-- **Rate Limit Awareness**: Before each batch of API calls, check remaining quota. If `--token` is not provided, the unauthenticated limit is 60 req/hr.
-- **Evidence-Based Rules Only**: Every generated rule must cite at least one repo or review where the pattern was observed. No generic advice.
-- **Confidence Scoring**: Every rule gets a confidence level: high (3+ repos), medium (2 repos), low (1 repo).
-
-### Default Behaviors (ON unless disabled)
-- **Communication Style**: Report progress by phase with counts (repos fetched, files sampled, patterns found, rules generated).
-- **Top-N Repos**: Analyze the top 10 repos by stars/recent activity unless overridden by `--max-repos`.
-- **Review Priority**: PR reviews given carry 2x weight vs code authored for preference signals.
-- **Output Dual Format**: Always produce both CLAUDE.md markdown and JSON with confidence scores.
-
-### Optional Behaviors (OFF unless enabled)
-- **Verbose Mode**: Show each API call and response
-- **Raw Data Preservation**: Keep intermediate files alongside final output
-- **Org-Wide Analysis**: Extend analysis to all repos in a GitHub organization
-
-## What This Skill CAN Do
-- Fetch public repos, file contents, commit messages, and PR reviews via GitHub API (rest endpoints)
-- Sample N files per repo across a user's top repositories
-- Identify naming conventions, code style patterns, architectural preferences, and testing habits
-- Deduplicate and rank patterns by frequency across repos
-- Output actionable rules in CLAUDE.md-compatible markdown and structured JSON
-- Handle API rate limiting with backoff and user notification
-
-## What This Skill CANNOT Do
-- **Clone repositories**: All analysis is API-based
-- **Access private data**: Only public repos and reviews are analyzed
-- **Run code**: Patterns are extracted from source text, not by executing code
-- **Guarantee exhaustive coverage**: API rate limits and sampling mean not every file is analyzed
+This pipeline extracts programming rules from a GitHub user's public profile by analyzing repositories, code files, commit messages, and PR reviews via the GitHub API. It produces confidence-scored rules formatted for CLAUDE.md-compatible markdown or JSON output. All data fetching is API-only (no git clone). Every extracted rule must have evidence from at least one repo or PR review, scored by confidence: high (3+ repos or 2+ repos + review signal), medium (2 repos), low (1 repo).
 
 ---
 
@@ -93,7 +61,7 @@ This skill operates as the main orchestration pipeline for extracting programmin
 
 **Goal**: Fetch the user's repo list, language statistics, and README samples via GitHub API.
 
-**Step 1**: Run the API fetcher to get repo metadata:
+**Step 1**: Run the API fetcher to get repo metadata. Enforce API-only constraint — never use git clone:
 ```bash
 python3 ~/.claude/scripts/github-api-fetcher.py repos \
   --username {username} \
@@ -131,7 +99,7 @@ python3 ~/.claude/scripts/github-api-fetcher.py repos \
 - **Agent 4: Documentation Patterns** -- README structure, inline comments, docstring style, documentation quality
 
 Each agent:
-- Uses `python3 ~/.claude/scripts/github-api-fetcher.py sample-files` to fetch file contents
+- Uses `python3 ~/.claude/scripts/github-api-fetcher.py sample-files` to fetch file contents (API-only, never clone)
 - Saves findings to `/tmp/github-rules-{username}/research-{aspect}.md`
 - Has a 5-minute timeout
 - Operates independently
@@ -144,9 +112,9 @@ Each agent:
 
 ### Phase 3: SAMPLE
 
-**Goal**: Fetch PR reviews the user has given to extract preference signals.
+**Goal**: Fetch PR reviews the user has given to extract preference signals. PR reviews carry 2x weight versus code authored when scoring confidence.
 
-**Step 1**: Run the API fetcher to get PR reviews:
+**Step 1**: Run the API fetcher to get PR reviews. Check rate limits before each batch (60 req/hr unauthenticated, 5000 req/hr with token):
 ```bash
 python3 ~/.claude/scripts/github-api-fetcher.py pr-reviews \
   --username {username} \
@@ -175,7 +143,7 @@ python3 ~/.claude/scripts/github-api-fetcher.py pr-reviews \
 
 **Step 2**: For each identified pattern:
 - Count how many repos it appears in
-- Check if it's reinforced by review comments
+- Check if it's reinforced by review comments (adds 2x weight)
 - Assign confidence: high (3+ repos OR 2+ repos + review signal), medium (2 repos), low (1 repo)
 - Categorize using the taxonomy from `references/rule-categories.md`
 
@@ -199,7 +167,7 @@ python3 ~/.claude/scripts/rules-compiler.py \
 
 ### Phase 5: GENERATE
 
-**Goal**: Format compiled patterns as CLAUDE.md-compatible rule entries.
+**Goal**: Format compiled patterns as CLAUDE.md-compatible rule entries with evidence.
 
 **Step 1**: For each rule, generate a CLAUDE.md entry following this format:
 ```markdown
@@ -303,7 +271,7 @@ mkdir -p rules/{username}
 
 ### Error: API Rate Limit Exceeded
 **Cause**: Too many requests without authentication token.
-**Solution**: Check `X-RateLimit-Remaining`. Suggest `--token` flag. For unauthenticated: 60/hr. With token: 5000/hr.
+**Solution**: Check `X-RateLimit-Remaining`. Suggest `--token` flag. For unauthenticated: 60/hr. With token: 5000/hr. Implement backoff and check remaining quota before each batch of API calls.
 
 ### Error: No Public Repos or Reviews
 **Cause**: User has no public GitHub activity.
@@ -311,24 +279,15 @@ mkdir -p rules/{username}
 
 ### Error: Insufficient Data for Confident Rules
 **Cause**: Too few repos or files to establish patterns.
-**Solution**: Lower confidence thresholds and flag all rules as preliminary. Report data limitations.
+**Solution**: Lower confidence thresholds and flag all rules as preliminary. Report data limitations. Only extract rules with evidence from the available data.
 
-## Anti-Patterns
+### Error: Generic or Unauthenticated Rules
+**Constraint**: Every generated rule must cite at least one repo or review where the pattern was observed. No generic advice. Avoid patterns that look like "Follow clean code principles" without specific evidence — extract only patterns with specific evidence from the user's code.
 
-### Anti-Pattern 1: Cloning Repos
-**What it looks like**: Using git clone to access code.
-**Why wrong**: Violates API-only constraint. Unnecessary for pattern extraction.
-**Do instead**: Use `scripts/github-api-fetcher.py sample-files` for file content.
+### Error: Clone Attempts
+**Constraint**: All GitHub data must be fetched via `scripts/github-api-fetcher.py`. No git clone, no subprocess git calls. This is a non-negotiable constraint. Pattern extraction happens via API-based file content sampling, never by cloning repositories.
 
-### Anti-Pattern 2: Generic Rules
-**What it looks like**: "Follow clean code principles" without specific evidence.
-**Why wrong**: Adds no value over generic best practices.
-**Do instead**: Extract only patterns with specific evidence from the user's code.
-
-### Anti-Pattern 3: Single-Repo Overfitting
-**What it looks like**: 20 rules from one project.
-**Why wrong**: May reflect project conventions, not personal preferences.
-**Do instead**: Cross-reference across 3+ repos for high confidence.
+---
 
 ## References
 

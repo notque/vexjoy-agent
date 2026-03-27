@@ -27,49 +27,6 @@ routing:
 
 # Subagent-Driven Development Skill
 
-## Operator Context
-
-This skill operates as an operator for plan execution workflows, configuring Claude's behavior for disciplined task dispatch with mandatory quality gates. It implements the **Controller-Worker** architectural pattern -- controller extracts context, workers execute in isolation, reviewers verify -- with **Two-Stage Review** ensuring both ADR compliance and code quality.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before executing any task
-- **Over-Engineering Prevention**: Implement only what the ADR requires. No speculative improvements, no "while I'm here" changes
-- **ADR Compliance Before Quality**: NEVER run code quality review before ADR compliance passes
-- **Full Context Injection**: NEVER make a subagent read the plan file; provide full task text in the dispatch
-- **Review Gates Mandatory**: NEVER mark a task complete until both reviews pass
-- **Sequential Tasks Only**: NEVER dispatch multiple implementation subagents in parallel (causes file conflicts)
-- **BASE_SHA Capture**: Run `git rev-parse HEAD` BEFORE dispatching the first implementer
-
-### Default Behaviors (ON unless disabled)
-- **Fresh Subagent Per Task**: Each task gets a clean subagent with no cross-task context pollution
-- **Scene-Setting Context**: Gather branch status, code patterns, and conventions before dispatch
-- **Q&A Before Implementation**: Answer subagent questions before they start coding
-- **Review Fix Loops**: When reviewer finds issues, implementer fixes and reviewer re-reviews
-- **Max 3 Review Retries**: Escalate to user after 3 failed review cycles per stage
-- **Final Integration Review**: After all tasks, dispatch a holistic reviewer for the full changeset
-- **TodoWrite Tracking**: Create TodoWrite with all tasks upfront for progress visibility
-
-### Optional Behaviors (OFF unless enabled)
-- **Parallel Research**: Pre-gather codebase context for all tasks in parallel before execution
-- **Auto PR Creation**: Run pr-sync automatically after final review passes
-- **Custom Reviewer Prompts**: Override default reviewer prompt templates
-
-## What This Skill CAN Do
-- Execute multi-task plans with quality gates between each task
-- Dispatch fresh subagents that implement, test, and commit independently
-- Enforce ADR compliance before allowing code quality review
-- Escalate to user when review loops exceed retry limits
-- Track progress across tasks with TodoWrite
-
-## What This Skill CANNOT Do
-- Execute without an existing implementation plan (use workflow-orchestrator first)
-- Run tasks in parallel (file conflicts make this unsafe)
-- Skip either stage of the two-stage review
-- Fix review issues itself (the implementer subagent must fix)
-- Replace user judgment on ADR ambiguity (escalates instead)
-
----
-
 ## Instructions
 
 ### Phase 1: SETUP
@@ -92,6 +49,8 @@ Verification: [How to verify this task]
 ...
 ```
 
+**Why**: Providing complete task text inline prevents subagents from burning tokens reading files and pollutes their context if they need to refer back to the plan. This isolation is critical for clean review cycles.
+
 **Step 2: Create TodoWrite**
 
 Create TodoWrite with ALL tasks:
@@ -101,14 +60,20 @@ Create TodoWrite with ALL tasks:
 3. [pending] Task 3: [Title]
 ```
 
+**Why**: TodoWrite gives the operator visibility and prevents task slip.
+
 **Step 3: Gather scene-setting context**
+
+Before dispatching any implementer, capture:
 - Current branch status (`git status`)
-- Capture BASE_SHA: `git rev-parse HEAD`
-- Relevant existing code patterns
+- Capture BASE_SHA: `git rev-parse HEAD` -- required for final integration review
+- Relevant existing code patterns (naming conventions, error handling style)
 - Project conventions from CLAUDE.md
 - Dependencies and setup requirements
 
-This context gets passed to EVERY subagent.
+This context gets passed to EVERY subagent to prevent repeated discovery and question loops.
+
+**Why**: Early context capture answers 80% of subagent questions before they ask, unblocks implementation immediately, and must be collected once (not rediscovered per task). BASE_SHA must be captured BEFORE the first implementer runs because subsequent edits will move HEAD forward.
 
 **Gate**: All tasks extracted with full text. BASE_SHA captured. Scene-setting context gathered. Proceed only when gate passes.
 
@@ -123,20 +88,23 @@ Update TodoWrite status for the current task.
 **Step 2: Dispatch implementer subagent**
 
 Use the Task tool with the prompt template from `./implementer-prompt.md`. Include:
-- Full task text (NEVER say "see plan")
+- Full task text (NEVER say "see plan" -- subagents must have complete context)
 - Scene-setting context
 - Clear deliverables
 - Permission to ask questions
 
-If the implementer asks questions: answer clearly and completely. Provide additional context. Re-dispatch with answers. Do NOT rush them into implementation.
+**Implementation constraints** (enforced inline):
+- Implementer must understand task fully before coding begins. If they ask questions: answer clearly and completely, provide additional context, re-dispatch with answers. Do NOT rush them into implementation.
+- Tasks must run sequentially. NEVER dispatch multiple implementers in parallel because overlapping file edits cause conflicts that are expensive to resolve.
+- Implementer MUST follow these steps in order:
+  1. Understand the task fully
+  2. Ask questions if unclear (BEFORE implementing)
+  3. Implement following TDD where appropriate
+  4. Run tests
+  5. Self-review code
+  6. Commit changes
 
-The implementer MUST:
-1. Understand the task fully
-2. Ask questions if unclear (BEFORE implementing)
-3. Implement following TDD where appropriate
-4. Run tests
-5. Self-review code
-6. Commit changes
+**Why sequential execution**: Each task's output becomes the next task's input. Parallel execution breaks file locking semantics and requires complex merge handling. Sequential is simpler, safer, and conflicts are rare when each subagent gets full context.
 
 **Step 3: Dispatch ADR compliance reviewer subagent**
 
@@ -145,10 +113,14 @@ Use the prompt template from `./adr-reviewer-prompt.md`. The ADR compliance revi
 - Is anything MISSING from requirements?
 - Is anything EXTRA that was not requested?
 
+**Two-stage review constraint** (enforced inline): NEVER run code quality review before ADR compliance passes. ADR compliance gates code quality because code that doesn't match requirements is wrong, regardless of how well-written. Reviewing code quality on functionally wrong code wastes the quality reviewer's effort.
+
 If ADR compliance reviewer finds issues: dispatch new implementer subagent with fix instructions. ADR compliance reviewer reviews again. Repeat until ADR compliance passes.
 
 **Max retries: 3** -- After 3 failed ADR compliance reviews, STOP and escalate:
 > "ADR compliance failing after 3 attempts. Issues: [list]. Need human decision."
+
+**Why escalation after 3 retries**: 3 retries = ~15-20 min of subagent time. If unresolved by then, the problem is structural (ADR is ambiguous, requirements conflict, or subagent fundamentally misunderstood something). Continuing loops wastes tokens. Human needs to decide: clarify ADR, adjust requirements, or accept the implementation as-is.
 
 **Step 4: Dispatch code quality reviewer subagent**
 
@@ -158,10 +130,14 @@ Use the prompt template from `./code-quality-reviewer-prompt.md`. The code quali
 - Error handling is appropriate
 - No obvious bugs
 
+**Quality review sequencing** (enforced inline): Only dispatch quality reviewer AFTER ADR compliance passes. Code quality review focuses on how well requirements are met, not whether wrong things were built.
+
 If quality reviewer finds issues: implementer fixes Critical and Important issues (Minor issues are optional). Quality reviewer reviews again.
 
 **Max retries: 3** -- After 3 failed quality reviews, STOP and escalate:
 > "Quality review failing after 3 attempts. Issues: [list]. Need human decision."
+
+**Why different retry limits for both stages**: Both stages can get stuck. Both deserve a fair number of attempts (3 each = up to 60 min total per task). Both hitting the limit means something is wrong with the process or the task definition itself.
 
 **Step 5: Mark task complete**
 
@@ -187,6 +163,8 @@ Dispatch a reviewer subagent for the entire changeset (diff from BASE_SHA to HEA
 - No integration issues between tasks
 - No conflicting patterns or redundant code
 
+**Why final integration review after all tasks**: Per-task reviews ensure each task is correct in isolation. Final integration review catches cross-task problems: Task 1 and Task 3 both define the same utility, tests pass individually but conflict when run together, or Task 2 introduced a breaking change that Task 4 didn't account for. This catch-all review is why BASE_SHA was captured upfront.
+
 **Step 2: Complete development workflow**
 
 Use the appropriate completion path:
@@ -207,6 +185,8 @@ Solution:
 2. Add the missing context to the scene-setting for future tasks
 3. Re-dispatch implementer with answers included
 
+**Prevention**: The answer-questions-first constraint prevents this by design. If a subagent still asks questions after full context, they're asking for clarification on the ADR itself, which is valuable signal that requirements are ambiguous.
+
 ### Error: "Review Loop Exceeds 3 Retries"
 Cause: ADR ambiguity, fundamental misunderstanding, or unreasonable review criteria
 Solution:
@@ -215,6 +195,8 @@ Solution:
 3. Ask user to clarify ADR or adjust requirements
 4. Resume only after user provides direction
 
+**Why hard limit**: Review loops that don't converge are expensive and signal a deeper problem. Continuing them burns tokens without progress. Human judgment is needed to decide whether to clarify, change, or accept.
+
 ### Error: "Subagent File Conflicts"
 Cause: Multiple subagents modifying overlapping files (usually from parallel dispatch)
 Solution:
@@ -222,47 +204,11 @@ Solution:
 2. Re-run the affected review stage
 3. Enforce sequential dispatch going forward -- NEVER parallelize implementers
 
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Skipping ADR Compliance Review for "Obvious" Tasks
-**What it looks like**: "This task is straightforward, code quality review is enough"
-**Why wrong**: Even simple tasks can miss requirements or add unrequested scope
-**Do instead**: Run both review stages for every task. No exceptions.
-
-### Anti-Pattern 2: Controller Fixing Issues Directly
-**What it looks like**: Controller edits code instead of dispatching a fix subagent
-**Why wrong**: Pollutes controller context. Controller should orchestrate, not implement.
-**Do instead**: Dispatch a new implementer subagent with specific fix instructions.
-
-### Anti-Pattern 3: Bundling Multiple Tasks Into One Subagent
-**What it looks like**: "Tasks 2 and 3 are related, I'll combine them"
-**Why wrong**: Defeats isolation. Review becomes unclear. Rollback is impossible.
-**Do instead**: One task per subagent. Always.
-
-### Anti-Pattern 4: Proceeding With Unresolved Questions
-**What it looks like**: "The subagent will figure it out from the code"
-**Why wrong**: Subagent builds the wrong thing. Review catches it late. Wasted cycles.
-**Do instead**: Answer every question before implementation begins.
+**Why this happens**: The sequential constraint exists to prevent this. If it occurs anyway, it means the constraint was violated. Reassert it.
 
 ---
 
 ## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "This task is simple, skip ADR review" | Simple tasks still miss requirements | Run both review stages |
-| "Subagent can read the plan itself" | File reading wastes tokens, context pollution | Provide full task text in dispatch |
-| "Reviews passed, skip final integration check" | Per-task reviews miss cross-task issues | Run final integration review |
-| "I'll fix this small issue myself instead of dispatching" | Controller context pollution breaks orchestration | Dispatch fix subagent |
-| "Tasks 2 and 3 are related, combine them" | Combined tasks break isolation and review clarity | One task per subagent, always |
 
 ### Prompt Templates
 - `implementer-prompt.md`: Dispatch template for implementation subagents

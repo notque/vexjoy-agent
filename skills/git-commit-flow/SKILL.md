@@ -30,45 +30,13 @@ routing:
 
 # Git Commit Flow Skill
 
-## Operator Context
+Create validated, compliant git commits through a 4-phase gate pattern: VALIDATE, STAGE, COMMIT, VERIFY. Every phase must pass its gate before the next phase begins -- no partial commits, no skipped phases. Only implement the requested commit workflow; do not add speculative improvements or "while I'm here" changes.
 
-This skill operates as an operator for git commit workflows, configuring Claude's behavior for standardized commit creation with quality enforcement. It implements a **4-phase gate** pattern: VALIDATE, STAGE, COMMIT, VERIFY.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before execution. Enforce banned patterns ("Generated with Claude Code", "Co-Authored-By: Claude") in all commit messages
-- **Sensitive File Blocking**: NEVER commit `.env`, `*credentials*`, `*secret*`, `*.pem`, `*.key`, `.npmrc`, `.pypirc`. Hard fail if detected in staging area
-- **Over-Engineering Prevention**: Only implement the requested commit workflow. No speculative features, no "while I'm here" improvements
-- **Atomic Operations**: Each phase gate must pass before proceeding. No partial commits
-- **Branch Protection**: Warn and require confirmation before committing to main/master
-- **No Skipped Phases**: Execute all 4 phases sequentially. Never skip validation
-
-### Default Behaviors (ON unless disabled)
-- **Interactive Confirmation**: Show staging plan and commit message for user approval before executing
-- **Conventional Commit Enforcement**: Validate message follows `<type>[scope]: <description>` format
-- **Working Tree Validation**: Check for clean state (no merge/rebase in progress) before starting
-- **Smart File Staging**: Group files by type (docs, code, config, tests, CI) for logical commits
-- **Post-Commit Verification**: Confirm commit exists in log and working tree is clean after commit
-- **Temporary File Cleanup**: Remove validation artifacts created during workflow
-
-### Optional Behaviors (OFF unless enabled)
-- **Auto-Stage All**: Stage all modified files without confirmation (`--auto-stage`)
-- **Skip Validation**: Bypass conventional commit format checks (`--skip-validation`)
-- **Dry Run Mode**: Show what would be committed without executing (`--dry-run`)
-- **Push After Commit**: Automatically push to remote after success (`--push`)
-
-## What This Skill CAN Do
-- Detect sensitive files before they are committed (regex pattern matching)
-- Validate commit messages against conventional commit format and CLAUDE.md banned patterns
-- Smart-group files by type for logical, atomic commits
-- Generate compliant commit messages from staged changes
-- Verify commits succeeded and working tree is clean post-commit
-
-## What This Skill CANNOT Do
-- Resolve merge conflicts (requires contextual code judgment)
-- Perform interactive rebases (incompatible with deterministic workflow)
-- Amend previous commits (use `git commit --amend` directly)
-- Judge code quality (use systematic-code-review skill instead)
-- Auto-resolve conflicting CLAUDE.md rules (requires human judgment)
+**Flags** (all OFF by default):
+- `--auto-stage`: Stage all modified files without confirmation
+- `--skip-validation`: Bypass conventional commit format checks
+- `--dry-run`: Show what would be committed without executing
+- `--push`: Automatically push to remote after success
 
 ---
 
@@ -76,9 +44,11 @@ This skill operates as an operator for git commit workflows, configuring Claude'
 
 ### Phase 1: VALIDATE
 
-**Goal**: Confirm environment is safe for committing.
+**Goal**: Confirm the environment is safe for committing.
 
 **Step 1: Check working tree state**
+
+Verify clean state before starting because committing during a merge or rebase produces broken history that is painful to untangle.
 
 ```bash
 git status --porcelain
@@ -89,18 +59,24 @@ Verify:
 - Not in merge or rebase state (check for `.git/MERGE_HEAD` or `.git/rebase-merge/`)
 - Not in detached HEAD (if so, warn user to create branch first)
 - Identify current branch name
+- No stash/pop operations across branch merges are in progress, because stashed changes based on a pre-merge state can silently apply to the wrong base when popped after a merge, causing branch drift. If stash is detected, verify the working tree diff after pop with `git diff` to confirm changes still make sense against the new base.
 
 **Step 2: Scan for sensitive files**
 
-Check all changed files against sensitive patterns. See `references/banned-patterns.md` for the full pattern list.
+NEVER allow `.env`, `*credentials*`, `*secret*`, `*.pem`, `*.key`, `.npmrc`, or `.pypirc` into a commit because credentials in git history are permanent -- removing them requires a full history rewrite and credential rotation. This is a hard fail, not a warning.
+
+Check all changed files against sensitive patterns:
 
 ```bash
-# TODO: scripts/validate_state.py not yet implemented
-# Manual alternative: check for sensitive files in staged changes
 git diff --cached --name-only | grep -iE '\.(env|pem|key)$|credentials|secret|\.npmrc|\.pypirc'
 ```
 
-If sensitive files detected: display them, suggest `.gitignore` additions, and HARD STOP until resolved.
+If sensitive files detected:
+1. Display them
+2. Suggest `.gitignore` additions
+3. HARD STOP until resolved -- do not proceed regardless of user urgency
+
+This scan applies to every commit, including documentation-only changes, because doc commits can accidentally include `.env` files staged alongside them.
 
 **Step 3: Load CLAUDE.md rules**
 
@@ -111,11 +87,13 @@ Read repository CLAUDE.md to extract:
 
 If no CLAUDE.md exists, use defaults: ban "Generated with Claude Code" and "Co-Authored-By: Claude".
 
+These banned patterns are enforced because they add noise instead of meaningful context and violate repository standards. They will be checked again in Phase 3 during message validation.
+
 **Step 4: Check branch state**
 
-If on `main` or `master`: warn user and require explicit confirmation before proceeding.
+If on `main` or `master`: warn user and require explicit confirmation before proceeding, because direct commits to main bypass code review and CI, risk breaking production, and make rollback difficult. Even small changes belong on a feature branch.
 
-**Gate**: All checks pass. No sensitive files, no merge/rebase state, CLAUDE.md loaded.
+**Gate**: All checks pass. No sensitive files, no merge/rebase state, CLAUDE.md loaded, branch confirmed.
 
 ### Phase 2: STAGE
 
@@ -131,6 +109,8 @@ Parse file statuses: Modified (`M`), Added (`A`), Deleted (`D`), Untracked (`??`
 
 **Step 2: Group files by type**
 
+Group files into logical categories because massive commits with unrelated changes make review overwhelming, break `git bisect`, and are difficult to revert. Each commit should represent one logical change that is independently reviewable.
+
 Apply staging rules (see `references/staging-rules.md` for full rules):
 
 | Category | Patterns | Commit Prefix |
@@ -143,19 +123,23 @@ Apply staging rules (see `references/staging-rules.md` for full rules):
 
 **Step 3: Present staging plan and get confirmation**
 
-Show the user which files will be staged and in how many commits. Wait for approval.
+Show the user which files will be staged and in how many commits. Wait for approval before executing, because showing the plan first catches mistakes like accidentally staging generated files or mixing unrelated changes.
+
+If `--auto-stage` flag is set, skip confirmation and stage all modified files.
 
 **Step 4: Execute staging**
+
+Stage files explicitly by name -- never use `git add .` or `git add -A` because blind bulk staging bypasses sensitive file detection and groups unrelated changes together.
 
 ```bash
 git add <files>
 ```
 
-Re-validate that no sensitive files ended up in the staging area.
+Re-validate that no sensitive files ended up in the staging area, because files can be added between the initial scan and staging.
 
 **Gate**: Files staged, no sensitive files in staging area, user confirmed plan.
 
-### Phase 2.5: ADR DECISION COVERAGE (conditional — ADR-094)
+### Phase 2.5: ADR DECISION COVERAGE (conditional -- ADR-094)
 
 **Goal**: Verify staged changes cover all ADR decision points.
 
@@ -177,7 +161,7 @@ Read the active ADR path from `.adr-session.json` (`adr_file` field).
 | PARTIAL (>0%) | Display uncovered decision points. Ask: "N decision points not covered. Proceed anyway, or address them first?" |
 | FAIL (0%) | Display warning. Ask: "No ADR decision points found in staged changes. This may mean the wrong files are staged, or implementation is incomplete." |
 
-This is advisory — the implementer can acknowledge uncovered points as intentionally deferred (e.g., "will be covered in a follow-up PR").
+This is advisory -- the implementer can acknowledge uncovered points as intentionally deferred (e.g., "will be covered in a follow-up PR").
 
 **Gate**: Coverage reported. User acknowledged any gaps.
 
@@ -187,9 +171,11 @@ This is advisory — the implementer can acknowledge uncovered points as intenti
 
 **Step 1: Get commit message**
 
-Either accept user-provided message or generate one from staged changes.
+Either accept user-provided message or generate one from staged changes. Show the message to the user for approval before executing, because commit messages are permanent history and worth getting right the first time.
 
 **Step 2: Validate message**
+
+Validate now, not later, because git history is permanent and "I'll fix the message later" never happens in practice.
 
 ```bash
 # TODO: scripts/validate_message.py not yet implemented
@@ -198,10 +184,11 @@ Either accept user-provided message or generate one from staged changes.
 ```
 
 Check:
-- Conventional commit format: `<type>[scope]: <description>` (see `references/conventional-commits.md`)
-- No banned patterns (see `references/banned-patterns.md`)
+- Conventional commit format: `<type>[scope]: <description>` (see `references/conventional-commits.md`). Skip this check if `--skip-validation` flag is set.
+- No banned patterns from CLAUDE.md (see `references/banned-patterns.md`). Never skip this check -- banned pattern enforcement applies even with `--skip-validation` because these patterns violate repository-level standards, not just formatting preferences.
 - Subject line: lowercase after type, no trailing period, max 72 chars, imperative mood
 - Body: separated by blank line, wrapped at 72 chars
+- Focus on WHAT changed and WHY -- no attribution, no emoji unless repo style requires it
 
 If validation fails with CRITICAL (banned pattern): block commit, show suggested revision.
 If validation fails with WARNING (line length): show warning, allow user to proceed or revise.
@@ -220,6 +207,8 @@ EOF
 ```
 
 Capture commit hash from output for verification.
+
+If `--dry-run` flag is set, display the commit command and message without executing, then stop.
 
 **Gate**: Commit message validated and commit executed successfully.
 
@@ -249,11 +238,15 @@ No staged files should remain (unless user had additional unstaged changes).
 git log -1 --format="%B"
 ```
 
-Confirm no banned patterns and format preserved (hooks may modify messages).
+Confirm no banned patterns and format preserved. Pre-commit hooks may modify messages, so re-check the persisted version rather than trusting the input.
 
-**Step 4: Display summary**
+**Step 4: Clean up and display summary**
+
+Remove any validation artifacts created during the workflow.
 
 Report: commit hash, branch, files changed, validation results, and suggested next steps (push, create PR).
+
+If `--push` flag is set, push to remote after displaying the summary.
 
 **Gate**: All verification passes. Workflow complete.
 
@@ -305,7 +298,7 @@ Runs VALIDATE and STAGE phases, shows commit message preview, but does not execu
 1. Read hook output to identify the issue
 2. Fix the issue (run formatter, fix lint errors)
 3. Re-stage fixed files: `git add -u`
-4. Create a NEW commit (do not amend - the previous commit did not happen)
+4. Create a NEW commit (do not amend -- the previous commit did not happen)
 
 ### Error: Merge/Rebase in Progress
 **Cause**: Working tree is in an incomplete merge or rebase state.
@@ -313,55 +306,7 @@ Runs VALIDATE and STAGE phases, shows commit message preview, but does not execu
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Committing Without Validation
-**What it looks like**: `git add . && git commit -m "update files"`
-**Why wrong**: Skips sensitive file detection, CLAUDE.md compliance, conventional format checks. Risk of leaking credentials or creating inconsistent history.
-**Do instead**: Use this skill to validate all changes before manual commits.
-
-### Anti-Pattern 2: Using Banned Commit Patterns
-**What it looks like**: Adding "Generated with Claude Code" or "Co-Authored-By: Claude" to messages.
-**Why wrong**: Violates CLAUDE.md standards, adds noise instead of meaningful context.
-**Do instead**: Focus on WHAT changed and WHY. No attribution, no emoji unless repo style requires it.
-
-### Anti-Pattern 3: Massive Commits with Unrelated Changes
-**What it looks like**: Staging 15 files across 5 features with `git add .` and message "update".
-**Why wrong**: Makes review overwhelming, breaks `git bisect`, unclear purpose, difficult to revert.
-**Do instead**: Use staging groups. One logical change per commit. Each commit independently reviewable.
-
-### Anti-Pattern 4: Committing Directly to Main/Master
-**What it looks like**: Making changes on `main` and pushing directly.
-**Why wrong**: Bypasses code review, risks breaking production, makes rollback difficult.
-**Do instead**: Create feature branch, commit there, push, create PR.
-
-### Anti-Pattern 5: Ignoring Sensitive File Warnings
-**What it looks like**: Dismissing warnings about `.env` or credential files and committing anyway.
-**Why wrong**: Credentials in git history are permanent. Requires history rewrite and credential rotation to fix.
-**Do instead**: IMMEDIATELY add to `.gitignore`, unstage, and rotate any exposed credentials.
-
-### Anti-Pattern 6: Stash/Pop Across Branch Merges
-**What it looks like**: Running `git stash`, switching branches to merge or rebase, then `git stash pop` back on the original branch.
-**Why wrong**: Stashed changes were based on the pre-merge state. Popping after a merge can silently apply changes to the wrong base, causing branch drift.
-**Do instead**: Commit changes before switching branches. If stash is unavoidable, verify the working tree diff after pop with `git diff` to confirm changes still make sense against the new base.
-*Graduated from learning.db — multi-agent-coordination/stash-pop-branch-drift*
-
----
-
 ## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Quick commit, no need to validate" | Quick commits leak credentials | Run all 4 phases |
-| "It's just docs, skip sensitive scan" | Docs commits can include `.env` files | Validate every commit |
-| "I'll fix the message later" | Later never comes; history is permanent | Validate message now |
-| "Main branch is fine for this small change" | Small changes cause big problems | Create feature branch |
 
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/conventional-commits.md`: Type definitions, format rules, examples, flowchart

@@ -39,49 +39,11 @@ routing:
 
 # WordPress Uploader Skill
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for WordPress content publishing, configuring Claude's behavior for secure, deterministic REST API operations. It wraps three Python scripts that handle post creation, media uploads, and post editing. **LLMs orchestrate. Scripts execute.** All WordPress operations go through scripts, never raw API calls.
+This skill provides WordPress REST API integration for posts and media uploads using deterministic Python scripts. **LJMs orchestrate. Scripts execute.** All WordPress operations go through the three provided Python scripts (`wordpress-upload.py`, `wordpress-media-upload.py`, `wordpress-edit-post.py`), never via curl or raw API calls. This approach ensures credential security, deterministic behavior, and proper markdown-to-Gutenberg conversion.
 
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before any upload
-- **Draft by Default**: Always create posts as drafts unless explicitly told to publish
-- **Credential Security**: Never log, display, or echo the Application Password
-- **HTTPS Required**: Only connect to WordPress sites over HTTPS
-- **Script Execution Only**: All WordPress API calls go through the Python scripts, never via curl or raw requests
-- **Show Full Output**: Display complete script output; never summarize or truncate results
-
-### Default Behaviors (ON unless disabled)
-- **Confirm Before Publish**: Ask for user confirmation before setting status to publish
-- **Title Extraction**: Extract title from markdown H1 if `--title` is not provided
-- **Human-Readable Mode**: Use `--human` flag for all script invocations
-- **Post-Upload Verification**: Confirm success by checking the returned URL and post ID
-
-### Optional Behaviors (OFF unless enabled)
-- **Direct Publish**: Publish immediately instead of draft (requires explicit user request)
-- **Batch Upload**: Upload multiple files in sequence
-- **Featured Image Workflow**: Upload image then attach to post in a single workflow
-
-## What This Skill CAN Do
-- Create new WordPress posts from markdown files
-- Upload images and media to the WordPress media library
-- Edit existing posts (title, content, status, featured image, categories, tags)
-- Convert markdown to HTML automatically during upload
-- Generate Gutenberg blocks for: headings, paragraphs, lists (ordered and unordered), blockquotes, images, separators, fenced code blocks, and button links
-- Validate Gutenberg block HTML for structural correctness (`--validate` flag)
-- Set post status: draft, publish, pending, private
-- Assign categories and tags by NAME (script looks up IDs via REST API)
-- Create tags on the fly if they don't exist in WordPress
-- Auto-parse YAML frontmatter for title, categories, tags, slug, excerpt
-- Delete old drafts after replacement upload (`--delete` flag)
-- List existing drafts (`--list-drafts` flag)
-- Retrieve existing post details for inspection before editing
-
-## What This Skill CANNOT Do
-- Work without Application Password authentication configured in `~/.env`
-- Connect to non-HTTPS WordPress sites
-- Write or edit article prose (use blog-post-writer or anti-ai-editor)
-- Upload to any CMS other than WordPress
+**Scope**: Create new posts, upload media, edit existing posts, manage featured images, handle categories/tags. Does not write article prose (use blog-post-writer) or edit prose style (use anti-ai-editor). Requires HTTPS-only connections and Application Password authentication configured in `~/.env`.
 
 ---
 
@@ -91,9 +53,11 @@ This skill operates as an operator for WordPress content publishing, configuring
 
 **Goal**: Confirm credentials and target file exist before any API call.
 
+Before executing any script, always complete these validation steps.
+
 **Step 1: Check credentials**
 
-Verify `~/.env` contains the required WordPress variables:
+Verify `~/.env` contains all required WordPress variables:
 
 ```bash
 python3 -c "
@@ -106,15 +70,21 @@ print('OK' if not missing else f'MISSING: {missing}')
 "
 ```
 
+This check is mandatory — the most common upload failures stem from missing or misconfigured credentials. Never assume credentials are fine. Never log, display, or echo the Application Password value.
+
 **Step 2: Verify source file**
 
-If uploading content, confirm the markdown file exists and is non-empty.
+If uploading content, confirm the markdown file exists and is non-empty using `ls -la <path>`. Check for typos in paths and verify file is not zero bytes.
 
-**Gate**: All environment variables present, source file exists. Proceed only when gate passes.
+**HTTPS Requirement**: Confirm `WORDPRESS_SITE` in `~/.env` uses HTTPS, not HTTP. The REST API will reject non-HTTPS connections.
+
+**Gate**: All environment variables present AND non-empty, source file exists and has content, site URL is HTTPS. Proceed only when gate passes.
 
 ### Phase 2: UPLOAD / EXECUTE
 
 **Goal**: Run the appropriate script for the requested operation.
+
+Always use `--human` flag for all script invocations to get human-readable output. Always create posts as drafts unless explicitly told to publish. If publishing, ask for user confirmation before setting status to publish (confirm-before-publish default behavior).
 
 **For new posts:**
 
@@ -125,6 +95,8 @@ python3 ~/.claude/scripts/wordpress-upload.py \
   --human
 ```
 
+The `--title` flag is optional. If omitted, the script extracts the title from markdown H1. If both `--title` AND H1 exist, this creates a duplicate title rendering in WordPress (anti-pattern). Use one or the other, not both.
+
 **For media uploads:**
 
 ```bash
@@ -133,6 +105,8 @@ python3 ~/.claude/scripts/wordpress-media-upload.py \
   --alt "Descriptive alt text" \
   --human
 ```
+
+Always provide descriptive alt text for accessibility.
 
 **For editing existing posts:**
 
@@ -155,24 +129,38 @@ python3 ~/.claude/scripts/wordpress-edit-post.py \
   --human
 ```
 
-**Gate**: Script returns `"status": "success"` with a valid post/media ID. Proceed only when gate passes.
+Use `--get` to retrieve post details for review before making edits.
+
+**Always execute scripts through these deterministic Python wrappers.** Never use curl or raw API calls. The scripts handle credential injection, error formatting, and markdown-to-Gutenberg conversion that manual requests would lose.
+
+**Display complete script output**. Never summarize, truncate, or hide results. The full JSON response contains post IDs, URLs, and validation details the user needs.
+
+**Gate**: Script returns `"status": "success"` with a valid post_id or media_id. Proceed only when gate passes.
 
 ### Phase 3: VERIFY
 
 **Goal**: Confirm the operation succeeded and report results to the user.
 
-**Step 1**: Parse script output for post_id, post_url, or media_id
-**Step 2**: Report the result with all relevant URLs (post URL, edit URL, media URL)
-**Step 3**: If this was a publish operation, confirm the post is accessible
-**Step 4**: If part of a multi-step workflow (e.g., image + post + featured image), confirm all steps completed
+**Step 1**: Parse script output for post_id, post_url, or media_id. Verify the returned ID is numeric and non-zero.
 
-**Gate**: User has received confirmation with URLs and IDs. Operation is complete.
+**Step 2**: Report the complete result with all relevant URLs. Include:
+  - Post URL (for posts)
+  - WordPress edit URL (`https://<site>/wp-admin/post.php?post=<id>&action=edit`)
+  - Media URL (for media uploads)
 
-### Phase 4: POST-UPLOAD (Optional)
+**Step 3**: Post-upload verification. Confirm success by checking the returned URL and post ID — these prove the script succeeded. If this was a publish operation (not draft), verify the post is accessible at its public URL.
+
+**Step 4**: Multi-step workflow confirmation. If part of a workflow (e.g., image upload + post creation + featured image attachment), confirm ALL steps completed. If any step failed, the workflow is incomplete.
+
+**No partial success**. If a multi-step operation fails at step N, report which steps succeeded and which failed. Do not claim completion.
+
+**Gate**: User has received confirmation with URLs and IDs, all steps in workflow completed (or explicit failure report). Operation is complete.
+
+### Phase 4: POST-UPLOAD WORKFLOWS (Optional)
 
 **Goal**: Handle multi-step workflows that combine operations.
 
-**Full article with featured image workflow:**
+**Featured Image Workflow** (upload image then attach to post):
 
 ```bash
 # 1. Upload the featured image
@@ -198,7 +186,11 @@ python3 ~/.claude/scripts/wordpress-edit-post.py \
   --human
 ```
 
-**Draft cleanup workflow (delete old drafts after replacement upload):**
+**Batch upload** (multiple files in sequence):
+
+Upload multiple files sequentially, confirming each completes before proceeding to the next. Do not assume concurrent uploads are safe — wait for each script to return.
+
+**Draft cleanup workflow** (delete old drafts after replacement upload):
 
 ```bash
 # 1. List existing drafts to find old version
@@ -211,7 +203,7 @@ python3 ~/.claude/scripts/wordpress-edit-post.py \
   --human
 ```
 
-**Important**: Always delete old drafts after uploading a replacement. Multiple drafts of the same article accumulate in WordPress and cause confusion.
+**Always delete old drafts after uploading a replacement.** Multiple drafts of the same article accumulate in WordPress and cause confusion. This is mandatory cleanup, not optional.
 
 ---
 
@@ -363,48 +355,18 @@ Solution:
 2. Confirm the file has content (not zero bytes)
 3. Check for typos in the path, especially the content/ directory structure
 
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Publishing Without Confirmation
-**What it looks like**: Setting `--status publish` without asking the user first
-**Why wrong**: Published posts are immediately visible to readers. Mistakes are public.
-**Do instead**: Always create as draft. Ask for explicit confirmation before publishing.
-
-### Anti-Pattern 2: Skipping Environment Validation
-**What it looks like**: Running the upload script without checking credentials first
-**Why wrong**: Produces confusing errors. Wastes time debugging API failures that are just config issues.
-**Do instead**: Complete Phase 1 validation before any script execution.
-
-### Anti-Pattern 3: Raw API Calls Instead of Scripts
-**What it looks like**: Using curl or Python requests directly against the WordPress REST API
-**Why wrong**: Bypasses credential handling, error formatting, and markdown conversion built into the scripts.
-**Do instead**: Always use the three provided Python scripts for all WordPress operations.
-
-### Anti-Pattern 4: Including Title in Article Body
-**What it looks like**: Markdown file starts with `# Article Title` and `--title` is also set
-**Why wrong**: Creates duplicate title in WordPress. The H1 renders inside the post body AND as the post title.
-**Do instead**: Either use `--title` flag OR include H1 in markdown, never both.
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
+**Script Files**:
+- `~/.claude/scripts/wordpress-upload.py`: Create new posts from markdown
+- `~/.claude/scripts/wordpress-media-upload.py`: Upload images/media to library
+- `~/.claude/scripts/wordpress-edit-post.py`: Edit existing posts (title, content, status, featured image)
 
-### Domain-Specific Anti-Rationalization
+**Environment Configuration**:
+- File: `~/.env`
+- Required variables: `WORDPRESS_SITE`, `WORDPRESS_USER`, `WORDPRESS_APP_PASSWORD`
+- Must use HTTPS for the site URL
 
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Credentials are probably fine" | Config issues cause most upload failures | Run Phase 1 validation |
-| "Draft is close enough to publish" | Draft and publish are different states | Confirm desired status explicitly |
-| "I'll just curl the API directly" | Scripts handle auth, conversion, errors | Use the provided scripts |
-| "Title in body is fine" | Creates duplicate rendering in WordPress | Use --title flag OR H1, not both |
-
-### Script Files
-- `scripts/wordpress-upload.py`: Create new posts from markdown
-- `scripts/wordpress-media-upload.py`: Upload images/media to library
-- `scripts/wordpress-edit-post.py`: Edit existing posts (title, content, status, featured image)
+**Related Skills**:
+- `blog-post-writer`: Use for writing articles (not uploading them)
+- `anti-ai-editor`: Use for editing prose style (not publishing to WordPress)

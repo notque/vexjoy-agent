@@ -33,62 +33,32 @@ routing:
 
 # Feature Plan Skill
 
-## Purpose
-
-Transform a design document into a wave-ordered implementation plan with tasks assigned to domain agents. Phase 2 of the feature lifecycle (design → **plan** → implement → validate → release).
-
-## Operator Context
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md
-- **Design Doc Required**: CANNOT plan without a design document in `.feature/state/design/`
-- **State Management via Script**: All state operations through `python3 ~/.claude/scripts/feature-state.py`
-- **Wave Ordering**: Tasks grouped by dependency wave; Wave N must complete before Wave N+1
-- **Domain Agent Assignment**: Every implementation task MUST specify which domain agent handles it
-- **Parallel Safety Analysis**: Flag which tasks in the same wave can run in parallel
-
-### Default Behaviors (ON unless disabled)
-- **Context Loading**: Read L0, L1, and design artifact at prime
-- **Task Duration Targeting**: Each task scoped to 2-5 minutes of agent work
-- **File Conflict Detection**: Detect tasks that modify the same files and sequence them
-
-### Optional Behaviors (OFF unless enabled)
-- **Auto-approve plan**: Skip human approval gate
-
-## What This Skill CAN Do
-- Read design documents and decompose into tasks
-- Assign domain agents from our system to each task
-- Detect file conflicts and resequence waves
-- Produce structured plan artifacts
-
-## What This Skill CANNOT Do
-- Create plans without a design document
-- Implement code (that's feature-implement)
-- Skip plan approval gate without configuration
-- Override domain agent routing
+Transform a design document into a wave-ordered implementation plan with tasks assigned to domain agents. Phase 2 of the feature lifecycle (design → **plan** → implement → validate → release). This skill decomposes only — it never implements code. Implementation is the responsibility of feature-implement.
 
 ## Instructions
 
 ### Phase 0: PRIME
 
-1. Check feature state:
+1. Read and follow the repository CLAUDE.md before any other work.
+
+2. Check feature state:
    ```bash
    python3 ~/.claude/scripts/feature-state.py status FEATURE
    ```
-   Verify current phase is `plan` and `design` is in completed phases.
+   Verify current phase is `plan` and `design` is in completed phases. A design document must exist before planning can begin — there are no requirements to decompose without one, and skipping design guarantees a plan built on assumptions.
 
-2. Load design artifact:
+3. Load design artifact:
    ```bash
    ls .feature/state/design/*-FEATURE.md
    ```
    Read the design document.
 
-3. Load L1 plan context:
+4. Load L0, L1, and plan-phase context:
    ```bash
    python3 ~/.claude/scripts/feature-state.py context-read FEATURE L1 --phase plan
    ```
 
-**Gate**: Design doc loaded. Feature in plan phase. Proceed.
+**Gate**: Design doc loaded. Feature in plan phase. All state operations use `python3 ~/.claude/scripts/feature-state.py` — never manipulate state files directly.
 
 ### Phase 1: EXECUTE (Task Decomposition)
 
@@ -101,7 +71,7 @@ From the design document, extract:
 
 **Step 2: Create Wave-Ordered Tasks**
 
-Group tasks by dependency wave:
+Group tasks by dependency wave — Wave N must complete before Wave N+1 begins. Scope each task to 2-5 minutes of agent work; larger tasks get split, smaller tasks get merged. Do not collapse all tasks into a single wave — that loses parallelization opportunities and masks true dependencies.
 
 ```markdown
 # Implementation Plan: [Feature Name]
@@ -136,13 +106,16 @@ Group tasks by dependency wave:
 
 **Step 3: File Conflict Analysis**
 
-For each wave, check if any two tasks modify the same files:
+For each wave, check if any two tasks modify the same files. This analysis is not optional — skipping it causes parallel execution to corrupt files when two agents write to the same path.
+
 - If yes: mark `Parallel-safe: false` and add ordering constraint
 - If no: mark `Parallel-safe: true`
 
 **Step 4: Agent Routing Verification**
 
-For each task, verify the assigned agent exists in our system:
+Every implementation task must specify which domain agent handles it. The agent assignment is authoritative — do not override domain agent routing after assignment.
+
+For each task, verify the assigned agent exists:
 - Check against known agent triggers
 - If uncertain, default to the closest domain agent
 - Log routing decisions
@@ -190,7 +163,7 @@ No vague verbs ("align," "ensure," "handle," "improve") without specifying what 
 
 **Rule 2: Self-Contained Execution**
 
-The executor should be able to complete the task from the action text alone, without needing to ask clarifying questions. If a task requires context not present in the task description, that context must be added.
+The executor should be able to complete the task from the action text alone, without needing to ask clarifying questions. Never reference external context ("as discussed," "per the meeting," "as mentioned") — the agent has no access to that context. If a task requires context not present in the task description, that context must be added inline.
 
 Test: Can a domain agent with no prior conversation context execute this task? If not, add the missing context.
 
@@ -212,7 +185,7 @@ Check gate: `python3 ~/.claude/scripts/feature-state.py gate FEATURE plan.plan-a
 
 **Step 1: Requirements Coverage Gate**
 
-Before running the rest of validation, verify that every stated requirement is covered by at least one task. An uncovered requirement is a **blocker**, not a warning — partial coverage guarantees partial delivery.
+Before running the rest of validation, verify that every stated requirement is covered by at least one task. An uncovered requirement is a **blocker**, not a warning — partial coverage guarantees partial delivery. A plan that covers 8 of 10 requirements looks "mostly done" but delivers an incomplete feature. Catching gaps here costs minutes; catching them later costs hours or days.
 
 The coverage check works as follows:
 
@@ -234,8 +207,6 @@ The coverage check works as follows:
 - Add tasks to cover the missing requirement, OR
 - Explicitly document why the requirement is deferred (with a follow-up ticket reference)
 - Do NOT proceed to approval with uncovered requirements
-
-**Why 100% is non-negotiable**: A plan that covers 8 of 10 requirements looks "mostly done" but delivers an incomplete feature. The missing requirements are discovered during implementation or — worse — after release. Catching gaps here costs minutes; catching them later costs hours or days.
 
 **Step 2: Structural Validation Checklist**
 
@@ -263,7 +234,7 @@ Scan every task in the plan against the three deep work rules:
 
 If any task fails a rule, rewrite it before proceeding. Do not approve plans with vague tasks — they create execution debt that compounds across waves.
 
-If gate is `human`: present plan to user for approval.
+If gate is `human`: present plan to user for approval. Plan approval cannot be skipped unless explicitly configured with auto-approve.
 If gate is `auto`: verify all checklist items pass.
 
 **Gate**: Requirements 100% covered. All tasks pass deep work rules. Plan approved. Proceed to Checkpoint.
@@ -298,22 +269,6 @@ If gate is `auto`: verify all checklist items pass.
 | Feature not in plan phase | Phase mismatch | Check status, advance if needed |
 | Agent not found | Invalid agent assignment | Check agents/INDEX.json, use closest match |
 
-## Anti-Patterns
-
-| Anti-Pattern | Why Wrong | Do Instead |
-|--------------|-----------|------------|
-| Plan without design | No requirements to decompose | Complete /feature-design first |
-| Vague task descriptions | Can't be executed by subagent | Specify exact files, operations, verification |
-| All tasks in one wave | Loses parallelization opportunity | Group by actual dependencies |
-| Skip file conflict analysis | Parallel execution causes corruption | Analyze every wave for conflicts |
-| Uncovered requirements | Guarantees partial delivery — gaps discovered during implementation or after release | Run requirements coverage matrix; 100% coverage before approval |
-| Implementation-focused success criteria | "All tasks done" can diverge from "goal achieved" — tasks might be wrong | Define success as observable behaviors, not task completion |
-| Vague verbs in tasks ("align," "ensure," "handle") | Executor guesses what to do, builds wrong thing or blocks asking questions | Rewrite with concrete actions: what exactly changes, where, how to verify |
-| Tasks that reference external context | "As discussed" or "per the meeting" — agent has no access to that context | Make every task self-contained with all needed context inline |
-
 ## References
 
-- [Gate Enforcement](../shared-patterns/gate-enforcement.md)
-- [Retro Loop](../shared-patterns/retro-loop.md)
 - [State Conventions](../_feature-shared/state-conventions.md)
-- [Pipeline Architecture](../shared-patterns/pipeline-architecture.md)

@@ -26,45 +26,11 @@ routing:
 
 # Service Health Check Skill
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for service health monitoring workflows, configuring Claude's behavior for structured, read-only health assessment. It implements the **Discover-Check-Report** pattern — find services, gather health signals, produce actionable output — with deterministic process and health file evaluation.
+This skill provides deterministic service health monitoring using the **Discover-Check-Report** pattern. It finds services, gathers health signals from multiple sources (process table, health files, port binding), and produces actionable reports identifying degraded or failed services.
 
-### Hardcoded Behaviors (Always Apply)
-- **Read-Only**: NEVER restart, stop, or modify services — report only
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before checking
-- **No Side Effects**: Only read process tables, health files, and ports — no writes
-- **Structured Output**: Always produce machine-parseable health report
-- **Evidence-Based Status**: Every status determination requires at least one concrete signal (process check, health file, or port probe)
-
-### Default Behaviors (ON unless disabled)
-- **Process Verification**: Check process existence via pgrep/ps before anything else
-- **Staleness Detection**: Flag health files older than configured threshold (default 300s)
-- **Port Listening Check**: Verify expected ports are bound when port is configured
-- **Actionable Recommendations**: Provide specific commands to resolve issues
-- **Staleness Threshold Enforcement**: Default 300s, configurable per service
-
-### Optional Behaviors (OFF unless enabled)
-- **Auto-Restart Execution**: Run restart commands (requires explicit user flag)
-- **Metrics Collection**: Gather detailed performance metrics from health files
-- **Alert Integration**: Format output for monitoring system ingestion
-- **Historical Comparison**: Compare against previous health snapshots
-
-## What This Skill CAN Do
-- Check if processes are running via pgrep/ps
-- Parse JSON health files for status, connection state, and metrics
-- Detect stale health data based on configurable thresholds
-- Verify ports are listening with ss/netstat
-- Produce structured health reports with actionable restart recommendations
-- Evaluate service degradation (disconnected, reconnecting states)
-
-## What This Skill CANNOT Do
-- Restart, stop, or modify services (report-only by design)
-- Perform deep log analysis (use systematic-debugging instead)
-- Probe remote health endpoints over HTTP (use endpoint-validator instead)
-- Inspect container internals (basic host-level process checks only)
-- Authenticate against secured health endpoints
-- Skip the Discover phase — services must be identified before checking
+**Core principle**: Health assessment is evidence-based. Never report a service healthy without verifying process status independently of health file content. Never assume a running process is functional — always cross-check against health files and port binding.
 
 ---
 
@@ -95,16 +61,21 @@ For each service, establish:
 | cache | redis-server | - | 6379 | - |
 ```
 
+**Validation constraints**:
+- Each process pattern must be specific enough to avoid false matches (e.g., "python" matches all Python processes—use full paths or arguments instead)
+- Health file paths must be absolute
+- Port numbers must be valid (1-65535)
+- Pattern specificity matters: narrow patterns with full command paths, distinguishing arguments, or specific binary names
+
 **Step 3: Validate manifest**
-- Confirm each process pattern is specific enough to avoid false matches
-- Verify health file paths are absolute
-- Ensure port numbers are within valid range (1-65535)
+
+Confirm each entry passes the constraints above. If a pattern is too broad, use `ps aux | grep` to identify distinguishing arguments, then update the pattern.
 
 **Gate**: Service manifest complete with at least one service. Proceed only when gate passes.
 
 ### Phase 2: CHECK
 
-**Goal**: Gather health signals for every service in the manifest.
+**Goal**: Gather health signals for every service in the manifest. Always check process status independently of health file content—a running process and a healthy health file are separate signals.
 
 **Step 1: Check process status**
 
@@ -114,14 +85,21 @@ pgrep -f "<process_pattern>"
 ```
 Record: running (true/false), PIDs, process count.
 
+**Rationale**: Process existence is the primary signal. A missing process always means the service is DOWN. A running process alone is insufficient—the service may have crashed or failed to bind to its port.
+
 **Step 2: Parse health files (if configured)**
 
 Read and parse JSON health files. Evaluate:
 - Does the file exist?
 - Does it parse as valid JSON?
-- How old is the timestamp (staleness)?
+- How old is the timestamp (staleness)? Default stale threshold is 300 seconds.
 - What status does the service self-report?
 - What is the connection state?
+
+**Critical constraint**: Never trust health file content alone. The file could be stale from before a process crash. Always verify:
+1. Process is still running
+2. Health file timestamp is fresh (within configured threshold)
+3. Status field matches evidence (e.g., "error" requires restart)
 
 **Step 3: Probe ports (if configured)**
 
@@ -129,25 +107,28 @@ Check if expected ports are listening:
 ```bash
 ss -tlnp "sport = :<port>"
 ```
-Flag processes that are running but not listening on expected ports.
+
+**Rationale**: Verify ports are actually bound. A process can start but fail to bind to its configured port—that is effectively a DOWN state, not HEALTHY.
 
 **Step 4: Evaluate health per service**
 
-Apply this decision tree:
-1. Process not running → **DOWN**
-2. Process running + health file missing → **WARNING**
-3. Process running + health file stale → **WARNING** (restart recommended)
-4. Process running + status=error → **ERROR** (restart recommended)
-5. Process running + disconnected > 30min → **WARNING** (restart recommended)
-6. Process running + disconnected < 30min → **DEGRADED** (allow reconnection)
-7. Process running + healthy → **HEALTHY**
-8. Process running + no health file configured → **RUNNING** (limited visibility)
+Apply this decision tree (constraints embedded in logic):
 
-**Gate**: All services evaluated with evidence-based status. Proceed only when gate passes.
+1. **Process not running** → **DOWN** (definitive)
+2. **Process running + health file missing** → **WARNING** (limited visibility, but process is alive)
+3. **Process running + health file stale** (> threshold) → **WARNING** (file hasn't updated in configured time, suggests no activity or crash recovery in progress)
+4. **Process running + status=error** → **ERROR** (restart recommended immediately)
+5. **Process running + disconnected > 30 minutes** → **WARNING** (long disconnect suggests stuck state, restart recommended)
+6. **Process running + disconnected < 30 minutes** → **DEGRADED** (allow reconnection window, monitor)
+7. **Process running + port not listening** (when port is configured) → **ERROR** (process running but failed to bind port)
+8. **Process running + healthy** → **HEALTHY** (all checks pass)
+9. **Process running + no health file configured** → **RUNNING** (limited visibility, process verified only)
+
+**Gate**: All services evaluated with evidence-based status. No status is determined without concrete signal (process check, health file, or port probe). Proceed only when gate passes.
 
 ### Phase 3: REPORT
 
-**Goal**: Produce structured, actionable health report.
+**Goal**: Produce structured, actionable health report with specific remediation commands.
 
 **Step 1: Generate summary**
 
@@ -179,7 +160,7 @@ SUGGESTED ACTIONS:
 - Lead with the summary line (X/N healthy)
 - Highlight any services needing action
 - Provide copy-pasteable commands for remediation
-- If user has auto-restart enabled, confirm before executing
+- Never auto-restart without explicit user flag. Always report findings first, let user decide.
 
 **Gate**: Report delivered with actionable recommendations for all non-healthy services.
 
@@ -199,7 +180,7 @@ Result: Clean report, no action needed
 User says: "The background worker seems stuck"
 Actions:
 1. Identify worker service from config (DISCOVER)
-2. Find process running but health file 20 minutes stale (CHECK)
+2. Find process running but health file 20 minutes stale (CHECK) — triggers WARNING decision in tree
 3. Report WARNING with restart recommendation (REPORT)
 Result: Specific diagnosis with actionable command
 
@@ -220,6 +201,7 @@ Solution:
 1. Narrow pattern with full command path or arguments
 2. Use `ps aux | grep` to identify distinguishing arguments
 3. Update manifest with more specific pattern
+4. Rationale: False positives hide real failures. Specificity is required to avoid misdiagnosis.
 
 ### Error: "Health File Exists But Cannot Parse"
 Cause: Malformed JSON, permissions issue, or file being written during read
@@ -231,44 +213,7 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Restarting Without Diagnosing
-**What it looks like**: Service shows WARNING, immediately run `systemctl restart`
-**Why wrong**: Masks root cause. Service may crash again immediately.
-**Do instead**: Report finding, let user decide. Never auto-restart without explicit flag.
-
-### Anti-Pattern 2: Trusting Health File Alone
-**What it looks like**: Health file says "healthy" so skip process check
-**Why wrong**: Process could be zombie, health file could be stale from before crash.
-**Do instead**: Always check process status independently of health file content.
-
-### Anti-Pattern 3: Ignoring Port Mismatch
-**What it looks like**: Process running, skip port check, report HEALTHY
-**Why wrong**: Process may have started but failed to bind port — effectively down.
-**Do instead**: When port is configured, always verify it is listening.
-
-### Anti-Pattern 4: Broad Process Patterns
-**What it looks like**: Using "python" as process pattern for a Flask app
-**Why wrong**: Matches every Python process on the system, giving false positives.
-**Do instead**: Use specific patterns like `gunicorn.*myapp:app` or full command paths.
-
----
-
 ## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Process is running, must be healthy" | Running ≠ functional | Check health file and port |
-| "Health file looks fine" | File could be stale from before crash | Verify timestamp freshness |
-| "Just restart it" | Restart masks root cause | Report first, restart only if flagged |
-| "No config, skip the check" | User still needs an answer | Ask user for service details |
 
 ### Health File Format Reference
 
@@ -284,3 +229,14 @@ Services should write health files as:
     "metrics": {}
 }
 ```
+
+### Key Constraints Summary
+
+| Constraint | Rationale | Application |
+|-----------|-----------|-------------|
+| Process status verified independently of health file | Running process ≠ functional service | Always check process before trusting health file |
+| Health file staleness detected by timestamp freshness | File could be stale from before crash | Check timestamp against 300s (configurable) threshold |
+| Port binding verified when configured | Process running doesn't mean port is bound | Always verify expected port listening when port specified |
+| No auto-restart without explicit flag | Restart masks root cause | Report findings first; only execute restart if user flags it |
+| Narrow process patterns required | "python" matches all processes, giving false matches | Use full paths or specific args; validate with `ps aux \| grep` |
+| Evidence-based status only | Status must have supporting signal | No status without concrete evidence (process, health file, or port) |

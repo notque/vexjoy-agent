@@ -37,43 +37,11 @@ routing:
 
 # System Upgrade Pipeline
 
-## Operator Context
+## Overview
 
-This skill orchestrates systematic upgrades to the agent/skill/hook/script ecosystem
-when external changes warrant adaptation. It is a **top-down** upgrade mechanism —
-triggered by Claude Code releases, user goal changes, or accumulated retro learnings —
-complementing the **bottom-up** retro-knowledge-injector.
+This skill orchestrates systematic upgrades to the agent/skill/hook/script ecosystem when external changes warrant adaptation. It is a **top-down** upgrade mechanism—triggered by Claude Code releases, user goal changes, or accumulated retro learnings—complementing the **bottom-up** retro-knowledge-injector.
 
-### Hardcoded Behaviors (Always Apply)
-- **Show Plan Before Implementing**: Phase 3 output (ranked upgrade list) MUST be presented to the user and approved before Phase 4 begins. Never silently execute upgrades.
-- **Reuse Domain Agents**: Phase 4 (IMPLEMENT) dispatches to existing domain agents (skill-creator, agent-creator-engineer, hook-development-engineer, golang-general-engineer, etc.). The upgrade engineer orchestrates; specialists execute.
-- **Parallel Fan-Out**: When 3+ components need the same type of upgrade, dispatch in parallel using multiple Agent tool calls in a single message.
-- **Score Delta Required**: Phase 5 (VALIDATE) must produce before/after evaluation delta, not just "looks good." Use `agent-evaluation` skill.
-- **Trigger Type Determines Input**: The three trigger types (claude-release, goal-change, retro-driven) require different input parsing in Phase 1.
-
-### Default Behaviors (ON unless disabled)
-- **Scope Limiting**: Default audit depth = 10 most-recently-modified agents + all hooks. Full audit only if user says "comprehensive" or "all".
-- **Dry Run Presentation**: Show Phase 3 output as a formatted table with Tier (critical/important/minor) and effort estimate.
-- **Branch Creation**: Create a branch before Phase 4 (e.g., `chore/system-upgrade-YYYY-MM-DD`).
-
-### Optional Behaviors (OFF unless enabled)
-- **Comprehensive Audit**: Audit all agents and skills (slow; enable with "comprehensive audit")
-- **Full Upgrade Diff**: Force a full component scan instead of incremental diff (enable with `python3 ~/.claude/scripts/upgrade-diff.py --full` or "full upgrade")
-- **Auto-Approve**: Skip user approval gate between Phase 3 and Phase 4 (enable with "auto-apply")
-- **Skip Validate**: Skip agent-evaluation scoring (enable with "skip validation")
-
-## What This Skill CAN Do
-- Parse Claude Code release notes and map changes to affected component types
-- Audit agents, skills, hooks, and scripts for patterns that need updating
-- Produce a ranked upgrade plan with tier classification and estimated effort
-- Dispatch parallel upgrade agents for independent changes
-- Score components before/after with agent-evaluation
-- Create branch, commit, sync to ~/.claude, and create PR
-
-## What This Skill CANNOT Do
-- Make architectural decisions without user approval (Phase 3 gate is mandatory)
-- Modify core scripts (feature-state.py, plan-manager.py) — those require explicit user direction
-- Guarantee correctness of generated upgrades — validation phase catches regressions
+The pipeline enforces a mandatory approval gate: Phase 3 output (ranked upgrade list) MUST be presented to the user and approved before Phase 4 begins. Never silently execute upgrades.
 
 ---
 
@@ -109,7 +77,7 @@ python3 ~/.claude/scripts/learning-db.py query --category design --category gotc
 ```
 Evaluate entries for actionability and specificity. These are the upgrade signals.
 
-**Output**: A structured "Change Manifest" — a list of change signals with type, description, and likely affected component types.
+**Output**: A structured "Change Manifest"—a list of change signals with type, description, and likely affected component types.
 
 **Gate**: Change Manifest has at least 1 actionable signal. If zero signals found, report to user and stop.
 
@@ -127,12 +95,12 @@ python3 ~/.claude/scripts/upgrade-diff.py
 
 Evaluate the JSON output:
 - If `mode` is `"incremental"` and `total_changed > 0`: scope the audit to only the files listed in `changed`. Skip Step 1 (audit depth) and proceed directly to Step 2 using only these components.
-- If `mode` is `"incremental"` and `total_changed == 0`: report "No components changed since last upgrade" to the user and **stop**. No further phases are needed.
+- If `mode` is `"incremental"` and `total_changed == 0`: report "No components changed since last upgrade" to the user and **stop**. No further phases are needed. (This prevents wasted effort when nothing has changed since the last upgrade.)
 - If `mode` is `"full"` (first run or `--full` flag): proceed with existing full audit behavior starting at Step 1.
 
 **Step 1**: Determine audit depth.
-- Default: 10 most-recently-modified agents + all hooks + all relevant skills
-- Comprehensive: all agents + all skills + all hooks
+- **Default**: 10 most-recently-modified agents + all hooks + all relevant skills. This balances thoroughness with speed, focusing on components most likely to need changes.
+- **Comprehensive**: all agents + all skills + all hooks. (Enable only if user says "comprehensive" or "all"; full audits are slower but ensure complete coverage.)
 
 ```bash
 # Get most recently modified agents
@@ -161,10 +129,10 @@ grep -l "goroutine\|concurrency" agents/*.md skills/*/SKILL.md
 |------------|-------------|--------|
 | `deprecate` | Component is now obsolete or superseded | Low |
 | `upgrade` | Component needs modification to use new capability | Medium |
-| `create-new` | Gap identified — new component needed | High |
+| `create-new` | Gap identified—new component needed | High |
 | `inject-pattern` | Add a new hardcoded behavior or rule | Low-Medium |
 
-**Step 4**: Produce the **Audit Report** — a list of affected components with their change type and rationale.
+**Step 4**: Produce the **Audit Report**—a list of affected components with their change type and rationale.
 
 **Gate**: Audit Report produced. Proceed to Phase 3.
 
@@ -172,7 +140,7 @@ grep -l "goroutine\|concurrency" agents/*.md skills/*/SKILL.md
 
 ### Phase 3: PLAN
 
-**Goal**: Produce a ranked upgrade plan and get user approval before any changes.
+**Goal**: Produce a ranked upgrade plan and get user approval before any changes. (The approval gate is mandatory; this prevents mass edits without visibility and ensures the user controls what changes are made to their system.)
 
 **Step 1**: Sort the Audit Report by priority:
 
@@ -225,7 +193,7 @@ git checkout -b chore/system-upgrade-$(date +%Y-%m-%d)
 
 ### Phase 4: IMPLEMENT
 
-**Goal**: Execute the approved plan by dispatching domain agents for each change.
+**Goal**: Execute the approved plan by dispatching domain agents for each change. (Reuse domain agents; the upgrade engineer orchestrates while specialists execute. Parallel fan-out when 3+ changes target the same domain.)
 
 **Step 1**: Group changes by domain agent that should handle them:
 
@@ -245,7 +213,7 @@ For each dispatched agent, provide:
 - The rationale (from the Change Manifest)
 - The relevant context (surrounding code, other files that reference this component)
 
-**Step 3**: For low-effort changes (inject-pattern, Minor tier), make direct edits rather than dispatching agents. Batch these into one pass.
+**Step 3**: For low-effort changes (inject-pattern, Minor tier), make direct edits rather than dispatching agents. Batch these into one pass. (This avoids overhead for simple changes while reserving agents for complex work.)
 
 **Step 4**: Track completion. Mark each planned item as done as agents complete.
 
@@ -255,7 +223,7 @@ For each dispatched agent, provide:
 
 ### Phase 5: VALIDATE
 
-**Goal**: Score changed components before/after to quantify upgrade quality.
+**Goal**: Score changed components before/after to quantify upgrade quality. (Produce before/after evaluation delta, not just "looks good." Use `agent-evaluation` skill.)
 
 **Step 1**: For each modified agent or skill, run evaluation:
 
@@ -275,7 +243,7 @@ VALIDATION REPORT
 **Step 2**: Flag any regressions (after < before). For regressions:
 - Report to user
 - Suggest fix or revert
-- Do NOT auto-revert — user decides
+- Do NOT auto-revert—user decides
 
 **Step 3**: For hook modifications, run syntax check:
 ```bash
@@ -353,46 +321,6 @@ Solution: Show diff of changes to user. Offer to revert the specific component. 
 ### Error: "Sync script not found"
 Cause: `hooks/sync-to-user-claude.py` missing or broken.
 Solution: Manually copy modified files to `~/.claude/` equivalent directories. Report the broken sync script for future fixing.
-
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Skipping the Plan Approval Gate
-**What it looks like**: Moving from AUDIT directly to IMPLEMENT without showing the user what will change
-**Why wrong**: Mass edits without visibility can break the system in hard-to-trace ways
-**Do instead**: Always present the ranked plan and wait for explicit approval
-
-### Anti-Pattern 2: Handling All Changes Directly Instead of Dispatching
-**What it looks like**: Making all edits inline rather than routing to domain agents
-**Why wrong**: Domain agents (skill-creator, hook-development-engineer) know the templates and anti-patterns for their domain
-**Do instead**: Dispatch to domain agents for anything beyond simple pattern injection
-
-### Anti-Pattern 3: Auditing Everything Every Time
-**What it looks like**: Full audit of all 120+ skills on every trigger
-**Why wrong**: Most changes affect a subset of components; full audits waste time and dilute focus
-**Do instead**: Target the audit to the change signals. Comprehensive mode is opt-in.
-
-### Anti-Pattern 4: Skipping VALIDATE for "Simple" Changes
-**What it looks like**: Deploying without agent-evaluation scores because "it's just a comment injection"
-**Why wrong**: Even small changes can break an agent's Operator Context or scoring criteria
-**Do instead**: Always score — even a 1-minute validation catches regressions before they reach production
-
----
-
-## Examples
-
-### Example 1: Claude Code release with new hook event
-User: "Claude Code just shipped with a Notification event type for hooks. Upgrade the system."
-Actions: Phase 1 parses "Notification event type". Phase 2 scans all hooks for event handling. Phase 3 shows plan (3 hooks need updating, 2 agents need docs update). User approves. Phase 4 dispatches hook-development-engineer. Phase 5 validates. Phase 6 deploys.
-
-### Example 2: Goal change — new domain focus
-User: "I'm now working heavily with Rust. Update the system to handle Rust projects."
-Actions: Phase 1 extracts "Rust as new domain". Phase 2 audits hooks (no Rust file patterns), `/do` routing (no Rust triggers), error-learner (no Rust tags). Phase 3 proposes: 1 new agent (rust-general-engineer), 2 hook updates (learning injector + retro injector), 1 routing update. User approves. Phase 4 dispatches agent-creator-engineer + hook-development-engineer in parallel. Phases 5–6 validate and deploy.
-
-### Example 3: Retro-driven upgrade
-User: "/retro graduate" shows 7 ready candidates.
-Actions: Phase 1 queries learning.db for design/gotcha candidates as the Change Manifest. Phase 2 maps candidates to target agents. Phase 3 proposes injecting 7 patterns into 5 agents. User approves with "skip 3 and 6". Phase 4 injects 5 patterns directly (Low effort, no domain agent needed). Phase 5 scores the 5 modified agents. Phase 6 deploys.
 
 ---
 

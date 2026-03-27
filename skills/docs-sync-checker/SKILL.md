@@ -27,52 +27,11 @@ routing:
 
 # Documentation Sync Checker Skill
 
-## Operator Context
+Deterministic 4-phase drift detector that compares the filesystem against README entries. Each phase (Scan, Cross-Reference, Detect, Report) has a gate that must pass before proceeding. The skill produces a sync score (percentage of tools properly documented) and actionable fix suggestions for every detected issue.
 
-This skill operates as an operator for documentation synchronization workflows, configuring Claude's behavior for automated drift detection between filesystem tools and their README entries. It implements deterministic scanning and comparison -- no AI judgment on content quality, only presence/absence/version verification.
+This skill checks presence, absence, and version alignment only -- it does not judge description quality, generate documentation content, resolve merge conflicts, validate cross-references, or track when drift occurred. Suggested fixes use YAML descriptions verbatim; content generation and quality assessment require different skills.
 
-The 4-phase workflow (Scan, Cross-Reference, Detect, Report) ensures systematic coverage. Each phase has a gate that must pass before proceeding. The skill produces a sync score (percentage of tools properly documented) and actionable fix suggestions for every detected issue.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before execution
-- **Over-Engineering Prevention**: Only scan, compare, and report. No speculative features
-- **Deterministic Scanning**: File existence, YAML parsing, and markdown extraction must be deterministic
-- **Documentation File Locations**: Check specific files: skills/README.md, agents/README.md, commands/README.md, README.md, docs/REFERENCE.md
-- **Sync Rules**: Skills in skills/README.md, agents in agents/README.md, commands in commands/README.md
-
-### Default Behaviors (ON unless disabled)
-- **Concise Reporting**: Report facts without self-congratulation; show data, not descriptions
-- **Temporary File Cleanup**: Remove helper scripts and debug outputs at task completion
-- **Stale Entry Detection**: Flag documented tools that no longer exist in the filesystem
-- **Version Mismatch Detection**: Compare YAML frontmatter versions with documented versions
-- **Severity Assignment**: HIGH for missing entries, MEDIUM for stale entries, LOW for version mismatches
-
-### Optional Behaviors (OFF unless enabled)
-- **Auto-Fix Mode**: Automatically add missing documentation entries (--auto-fix)
-- **Strict Mode**: Exit with error code if sync issues found (--strict)
-- **JSON Output**: Machine-readable report for CI/CD pipelines (--format json)
-
-## What This Skill CAN Do
-- Discover all skills (skills/*/SKILL.md), agents (agents/*.md), and commands (commands/**/*.md)
-- Parse YAML frontmatter and extract name, description, version fields
-- Parse markdown tables and lists from README files using deterministic parsing
-- Detect missing entries (tool exists in filesystem, not documented in README)
-- Detect stale entries (documented in README, tool no longer in filesystem)
-- Detect version mismatches (YAML version differs from documented version)
-- Generate actionable sync reports with exact suggested fixes (markdown rows to add/remove)
-- Handle namespaced commands (commands/code/cleanup.md -> /code cleanup)
-- Calculate sync score as percentage of tools properly documented
-- Support strict mode for CI/CD integration (exit code 1 on issues)
-
-## What This Skill CANNOT Do
-- Judge whether descriptions are accurate or helpful (presence only, not quality)
-- Generate or improve documentation content (uses YAML description verbatim)
-- Resolve markdown merge conflicts in documentation files
-- Validate cross-references or internal links between documents
-- Track when documentation drift occurred (point-in-time snapshot only)
-- Fix semantic inconsistencies between descriptions in different files
-- Automatically fix documentation without human review (auto-fix is experimental, requires explicit opt-in)
-- **Reason**: This skill is deterministic scanning and comparison. Content generation and quality assessment require different skills.
+Optional flags: `--auto-fix` (experimental, requires explicit opt-in), `--strict` (exit code 1 on issues), `--format json` (machine-readable output for CI/CD).
 
 ---
 
@@ -80,7 +39,7 @@ The 4-phase workflow (Scan, Cross-Reference, Detect, Report) ensures systematic 
 
 ### Phase 1: SCAN
 
-**Goal**: Discover all skills, agents, and commands in the repository filesystem.
+**Goal**: Discover all skills, agents, and commands in the repository filesystem. All discovery (file existence checks, YAML parsing, markdown extraction) must be deterministic -- no AI judgment on content quality.
 
 **Step 1: Run the scan script**
 
@@ -119,7 +78,7 @@ YAML errors: [N] (must be 0 to proceed)
 
 ### Phase 2: CROSS-REFERENCE
 
-**Goal**: Extract documented tools from README files and compare with discovered tools.
+**Goal**: Extract documented tools from README files and compare with discovered tools. Each tool type has a primary documentation file: skills belong in `skills/README.md`, agents in `agents/README.md`, commands in `commands/README.md`.
 
 **Step 1: Run the documentation parser**
 
@@ -128,6 +87,8 @@ python3 skills/docs-sync-checker/scripts/parse_docs.py --repo-root $HOME/claude-
 ```
 
 **Step 2: Parse each documentation file**
+
+These are the five documentation files to check -- no others:
 
 | File | Format | What to Extract |
 |------|--------|-----------------|
@@ -151,13 +112,13 @@ For each documentation file, collect the set of tool names found. This creates a
 
 ### Phase 3: DETECT
 
-**Goal**: Compare discovered tools with documented tools to identify drift.
+**Goal**: Compare discovered tools with documented tools to identify drift. This is a point-in-time snapshot -- it cannot tell you when drift occurred, only that it exists now.
 
 **Step 1: Compute set differences**
 
 For each tool type and its primary documentation file:
 - `missing = filesystem_tools - documented_tools` (tools that exist but are not documented)
-- `stale = documented_tools - filesystem_tools` (documented tools that no longer exist)
+- `stale = documented_tools - filesystem_tools` (documented tools that no longer exist -- users waste time trying to invoke non-existent tools, so always flag these)
 
 **Step 2: Check version consistency**
 
@@ -166,6 +127,8 @@ For tools that appear in both sets, compare:
 - Flag mismatches where YAML is authoritative source of truth
 
 **Step 3: Categorize and assign severity**
+
+Severity reflects user impact: missing entries mean tools are undiscoverable, stale entries waste time, version mismatches cause confusion.
 
 | Category | Condition | Severity |
 |----------|-----------|----------|
@@ -182,7 +145,7 @@ For each issue, capture: tool type, tool name, tool path, affected documentation
 
 ### Phase 4: REPORT
 
-**Goal**: Generate human-readable report with actionable fix suggestions.
+**Goal**: Generate human-readable report with actionable fix suggestions. Report facts concisely -- show data, not self-congratulatory descriptions. Target 100% sync score; even one missing entry erodes trust in all documentation.
 
 **Step 1: Run the report generator**
 
@@ -209,7 +172,7 @@ Report must include these sections:
 
 **Step 3: Validate actionability**
 
-Every issue in the report must have a concrete suggested fix. No issue should say "review manually" without specifying what to review and where.
+Every issue in the report must have a concrete suggested fix. No issue should say "review manually" without specifying what to review and where. The fix should enable a single-commit resolution -- tool files and documentation entries should be added/removed together.
 
 **Step 4: Report format for missing entries**
 
@@ -228,13 +191,15 @@ For each missing command, generate a suggested list item:
 - `/command-name` - Description from command file
 ```
 
+**Step 5: Cleanup**
+
+Remove any helper scripts and debug outputs created during execution.
+
 **Gate**: Report generated with actionable suggestions for every issue.
 
----
+### Examples
 
-## Examples
-
-### Example 1: New Skill Missing from README
+#### Example 1: New Skill Missing from README
 User created `skills/my-new-skill/SKILL.md` but forgot to update `skills/README.md`.
 Actions:
 1. SCAN discovers `my-new-skill` in filesystem
@@ -242,7 +207,7 @@ Actions:
 3. DETECT flags as HIGH severity missing entry
 4. REPORT suggests exact table row to add to skills/README.md
 
-### Example 2: Removed Agent Still Documented
+#### Example 2: Removed Agent Still Documented
 User deleted `agents/old-agent.md` but `agents/README.md` still lists it.
 Actions:
 1. SCAN does not find `old-agent` in filesystem
@@ -250,7 +215,7 @@ Actions:
 3. DETECT flags as MEDIUM severity stale entry
 4. REPORT suggests removing the row from agents/README.md
 
-### Example 3: Version Bump Without Doc Update
+#### Example 3: Version Bump Without Doc Update
 User updated `version: 2.0.0` in `skills/code-linting/SKILL.md` but `docs/REFERENCE.md` still shows `Version: 1.5.0`.
 Actions:
 1. SCAN reads YAML version as 2.0.0
@@ -258,15 +223,13 @@ Actions:
 3. DETECT flags as LOW severity version mismatch
 4. REPORT suggests updating version line in docs/REFERENCE.md to 2.0.0
 
-### Example 4: Batch Changes After Refactor
+#### Example 4: Batch Changes After Refactor
 User created 3 new skills and deleted 2 old ones in a refactoring PR.
 Actions:
 1. SCAN discovers 3 new skills in filesystem, does not find 2 removed skills
 2. CROSS-REFERENCE finds 2 stale entries and 3 absent entries in skills/README.md
 3. DETECT flags 3 HIGH (missing) + 2 MEDIUM (stale) issues
 4. REPORT provides exact table rows to add and identifies rows to remove
-
----
 
 ## Error Handling
 
@@ -304,51 +267,7 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Creating Tools Without Documentation
-**What it looks like**: `git commit -m "Add new skill"` without updating skills/README.md
-**Why wrong**: Documentation drifts from reality; users cannot discover the tool
-**Do instead**: Run docs-sync-checker before committing; add tool AND documentation in same commit
-
-### Anti-Pattern 2: Removing Tools, Leaving Documentation
-**What it looks like**: `rm -rf skills/old-skill` followed by commit, but README still lists it
-**Why wrong**: Users waste time trying to invoke non-existent tools; erodes trust in docs
-**Do instead**: Remove tool files AND documentation entries together in one commit
-
-### Anti-Pattern 3: Manual Edits Without Validation
-**What it looks like**: Hand-editing README tables without running sync checker afterward
-**Why wrong**: Typos in tool names create phantom entries (documented but non-existent)
-**Do instead**: Always validate with docs-sync-checker after manual documentation edits
-
-### Anti-Pattern 4: Ignoring Sync Failures in CI
-**What it looks like**: `continue-on-error: true` on the sync check step in GitHub Actions
-**Why wrong**: Documentation drift accumulates; the check becomes meaningless
-**Do instead**: Run with --strict and let the build fail; fix docs before merging
-
-### Anti-Pattern 5: Updating Version Without Syncing Documentation
-**What it looks like**: Bumping `version: 2.0.0` in YAML frontmatter, committing without checking docs
-**Why wrong**: Version mismatch creates confusion about which version is deployed; users reference wrong version
-**Do instead**: Update YAML version, run sync checker, update all documentation locations in one commit
-
----
-
 ## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "I'll update the README later" | Later never comes; drift accumulates | Update docs in the same commit |
-| "It's just one missing entry" | One missing entry erodes trust in all docs | Fix immediately |
-| "The sync score is still 90%" | 90% means 1 in 10 tools is undocumented | Target 100% |
-| "CI will catch it" | Only if CI is configured and not ignored | Verify locally first |
-
-### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/documentation-structure.md`: Documentation file matrix, required fields per location, cross-reference requirements
 - `${CLAUDE_SKILL_DIR}/references/markdown-formats.md`: Expected table/list formats for each README file, parsing rules, common formatting errors
 - `${CLAUDE_SKILL_DIR}/references/sync-rules.md`: Synchronization rules, severity levels, deprecation handling, namespace rules

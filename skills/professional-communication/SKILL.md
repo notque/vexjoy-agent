@@ -29,44 +29,11 @@ routing:
 
 # Professional Communication Skill
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for technical communication transformation, configuring Claude's behavior for structured information extraction and business formatting. It implements the **Deterministic Template** architectural pattern -- extract all propositions, categorize by type, apply structured template -- with **Domain Intelligence** embedded in the status classification and tone transformation methodology.
+This skill transforms dense technical communication into clear, structured business formats using **proposition extraction** (identify all facts and relationships) and **deterministic templates** (apply consistent structure). It extracts every detail without loss, categorizes by business relevance, applies a standard template with professional tone, and verifies completeness before delivery.
 
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before transformation
-- **Over-Engineering Prevention**: Only transform what's directly requested. No speculative sections, no "nice to have" formatting not asked for
-- **Complete Proposition Extraction**: NEVER lose technical details during transformation
-- **Status Indicators**: Always use GREEN/YELLOW/RED in output (non-negotiable for executive readability)
-- **Template Structure**: Always follow "Status -> Key Point -> Summary -> Technical Details -> Next Steps" format
-- **Four-Phase Process**: PARSE -> STRUCTURE -> TRANSFORM -> VERIFY (mandatory workflow)
-
-### Default Behaviors (ON unless disabled)
-- **Communication Style**: Report transformation results factually without self-congratulation
-- **Executive Summary**: Include executive-friendly overview by default
-- **Action Item Extraction**: Extract and list next steps with ownership implications
-- **Context Bridging**: Make implicit knowledge explicit for non-technical audiences
-- **Professional Tone**: Transform casual/defensive language into neutral business language
-- **Temporary File Cleanup**: Remove intermediate analysis files at completion
-
-### Optional Behaviors (OFF unless enabled)
-- **Technical Deep Dive**: Include extended technical details beyond 2-3 sentence summary
-- **Comparative Analysis**: Add historical comparison sections
-- **Multi-Stakeholder Variants**: Generate multiple versions for different audiences
-
-## What This Skill CAN Do
-- Extract all propositions from dense technical communication without information loss
-- Apply deterministic templates that produce consistent business-formatted output
-- Classify status indicators (GREEN/YELLOW/RED) based on objective severity criteria
-- Transform defensive or emotional language into neutral business language
-- Generate specific, actionable next steps with ownership and timeline markers
-
-## What This Skill CANNOT Do
-- Write new content from scratch (use appropriate writing skill instead)
-- Generate documentation that doesn't transform an existing input
-- Skip proposition extraction and jump straight to formatting
-- Create multi-stakeholder variants by default (enable optional behavior first)
-- Transform without verifying information completeness in Phase 4
+**Core principle**: Transformation ≠ creation. Never write new content; always extract from existing input and restructure it for executive clarity with preserved technical accuracy.
 
 ---
 
@@ -74,11 +41,11 @@ This skill operates as an operator for technical communication transformation, c
 
 ### Phase 1: PARSE
 
-**Goal**: Extract every proposition from the input before structuring anything.
+**Goal**: Extract every proposition from the input before structuring anything. This prevents information loss and ensures technical accuracy is preserved.
 
 **Step 1: Classify input type**
 
-Identify the communication type:
+Identify the communication type (this determines categorization strategy in Phase 2):
 - Technical update (progress report with embedded facts)
 - Debugging narrative (stream-of-consciousness problem-solving)
 - Status report (project state with blockers/dependencies)
@@ -86,17 +53,18 @@ Identify the communication type:
 
 **Step 2: Extract all propositions**
 
-Parse each sentence systematically:
+Parse each sentence systematically. Never summarize before extracting — summarizing skips propositions and loses facts:
+
 1. **Facts**: All distinct statements of truth
 2. **Implications**: Cause-effect relationships
 3. **Temporal markers**: Past/present/future actions
 4. **System references**: All mentioned components
 5. **Blockers**: Hidden dependencies and constraints
-6. **Emotional context**: Frustration/satisfaction/urgency indicators
+6. **Emotional context**: Frustration/satisfaction/urgency indicators (needed to transform defensive language)
 
 **Step 3: Document implicit context**
 
-Surface assumptions the author takes for granted but the audience needs stated:
+Surface assumptions the author takes for granted but the audience needs stated. Non-technical audiences cannot act without this:
 - Technical acronyms or project names the audience may not know
 - Timeline context (when things happened relative to milestones)
 - Organizational context (team relationships, reporting structures)
@@ -123,9 +91,11 @@ Implicit Context:
 
 ### Phase 2: STRUCTURE
 
-**Goal**: Categorize and prioritize all extracted propositions.
+**Goal**: Categorize and prioritize all extracted propositions by business relevance. This prevents unsolicited sections and keeps output focused on what matters most.
 
 **Step 1: Categorize propositions**
+
+Organize by type (categorization determines template section placement):
 
 ```markdown
 Status:   [items with current state]
@@ -137,26 +107,32 @@ Next:     [required actions]
 
 **Step 2: Priority order**
 
+Rank by impact to executive decision-making, not completeness:
+
 1. Business Impact (revenue, customer, strategic)
 2. Technical Functionality (core operation)
 3. Project Timeline (schedule implications)
 4. Resource Requirements (personnel, infrastructure)
 5. Risk Management (potential issues)
 
+Only the highest-priority categories go into the output. Lower-priority items are preserved in Technical Details but not emphasized.
+
 **Step 3: Identify information gaps**
 
-Flag any propositions that need clarification before transformation:
-- Ambiguous severity (could be GREEN or YELLOW)
-- Missing ownership for action items
-- Undefined technical terms critical to business impact
+Flag any propositions that need clarification before transformation. Ask for specifics only when severity classification is ambiguous:
+- Ambiguous severity (could be GREEN or YELLOW — default to YELLOW if unclear)
+- Missing ownership for action items (block on clarity, don't infer)
+- Undefined technical terms critical to business impact (ask for definition)
 
 **Gate**: All propositions categorized and prioritized. Proceed only when gate passes.
 
 ### Phase 3: TRANSFORM
 
-**Goal**: Apply output template with professional tone.
+**Goal**: Apply standard template with professional tone. This ensures consistent, executive-ready formatting without speculative sections.
 
 **Step 1: Apply standard template**
+
+Never add unsolicited sections (Risk Assessment, Historical Context, Mitigation Strategies). Use ONLY this structure:
 
 ```markdown
 **STATUS**: [GREEN|YELLOW|RED]
@@ -178,43 +154,48 @@ Flag any propositions that need clarification before transformation:
 
 **Step 2: Tone adjustment**
 
-- Strip hedging, defensive language, and filler
-- Preserve urgency markers and severity indicators
-- Keep technical terms intact (do NOT oversimplify)
-- Maintain causal chains and specific metrics
+The transformation rules are deterministic (apply all):
+- Strip hedging language: "I think we might need to..." → "Deploy X to address Y"
+- Transform defensive tone: "We had to rollback because..." → "Rolled back to [previous version] due to [root cause]"
+- Preserve urgency markers and severity indicators (needed for status classification)
+- Keep technical terms intact (oversimplification loses information; non-technical audiences still need accuracy)
+- Maintain causal chains and specific metrics (specific > generic)
 
 **Step 3: Status classification**
+
+Apply criteria consistently (inconsistency confuses stakeholders and erodes trust):
 
 - **GREEN**: Fully complete with no follow-up, all verification done
 - **YELLOW**: Resolved with follow-up needed, blocked on dependencies, partial completion
 - **RED**: Active critical issues, production impact, urgent intervention needed
-- Document reasoning: "Status: YELLOW (deployment successful but monitoring pending)"
+
+Always document reasoning: "Status: YELLOW (deployment successful but monitoring pending)" not just "Status: YELLOW"
 
 **Step 4: Action item specificity**
 
-Every next step MUST include:
-- Specific action verb (investigate, deploy, coordinate, document)
-- Clear scope (what exactly needs doing)
-- Ownership implication (who or which team)
-- Timeline marker when available (IMMEDIATE, by EOW, this sprint)
+Vague action items cannot be executed. Every next step MUST include:
+- Specific action verb (investigate, deploy, coordinate, document) — "fix" is too vague
+- Clear scope (what exactly needs doing) — define the boundary
+- Ownership implication (who or which team) — someone must be accountable
+- Timeline marker when available (IMMEDIATE, by EOW, this sprint) — explicit > implied
 
-**Gate**: Output follows template structure with professional tone. Proceed only when gate passes.
+**Gate**: Output follows template structure with professional tone and all specificity rules applied. Proceed only when gate passes.
 
 ### Phase 4: VERIFY
 
-**Goal**: Confirm transformation quality before delivery.
+**Goal**: Confirm transformation quality before delivery. All gates must pass; proceed only when complete.
 
-**Step 1**: Compare output against extracted propositions -- NO information loss
+**Step 1**: Compare output against extracted propositions — NO information loss allowed. If a fact from Phase 1 doesn't appear in output, it belongs in Technical Details.
 
-**Step 2**: Verify technical accuracy -- terms, metrics, causal chains preserved
+**Step 2**: Verify technical accuracy — terms, metrics, causal chains preserved exactly. Never substitute synonyms ("database issues" for "Redis cluster failover") — specificity is required.
 
-**Step 3**: Confirm status indicator matches actual severity
+**Step 3**: Confirm status indicator matches actual severity. Check reasoning against actual criteria (GREEN ≠ YELLOW vs YELLOW ≠ RED boundaries).
 
-**Step 4**: Validate action items are specific (who, what, when) not vague
+**Step 4**: Validate action items are specific — check each next step for (verb, scope, owner, timeline). "Fix the issue" fails; "Complete Redis failover testing in staging (DevOps, by EOW)" passes.
 
-**Step 5**: Check appropriate detail level for target audience
+**Step 5**: Check appropriate detail level for target audience. If audience is non-technical, Technical Details should bridge jargon with plain explanations without losing precision.
 
-**Step 6**: Document transformation summary
+**Step 6**: Document transformation summary to prove gate passage:
 
 ```markdown
 ## Transformation Summary
@@ -222,10 +203,10 @@ Input type: [type]
 Propositions extracted: [N]
 Status assigned: [GREEN|YELLOW|RED] ([reasoning])
 Information loss: None
-Template applied: [standard | executive | technical manager]
+Template applied: standard
 ```
 
-**Gate**: All verification checks pass. Transformation is complete.
+**Gate**: All verification checks pass. Transformation is complete. Do not proceed to delivery without all 6 steps passing.
 
 ---
 
@@ -263,73 +244,44 @@ Result: RED status report with tiered emergency response actions
 ## Error Handling
 
 ### Error: "Missing Context in Input"
-Cause: Technical terms or acronyms critical to business impact are undefined
-Solution:
-1. Ask user for clarification on terms critical to status classification
-2. Make reasonable inferences for minor details
-3. Note all assumptions explicitly in Technical Details section
+**Cause**: Technical terms or acronyms critical to business impact are undefined.
+
+**Solution**:
+1. Ask user for clarification on terms critical to status classification — speculation causes wrong status assignments
+2. Make reasonable inferences only for minor details; flag all assumptions explicitly in Technical Details section
+3. Don't skip transformation while waiting — provide output with a note: "Status classification assumed X because Y was undefined"
 
 ### Error: "Ambiguous Status Classification"
-Cause: Input contains mixed signals (e.g., issue resolved but monitoring incomplete)
-Solution:
-1. Default to YELLOW when unclear between GREEN/YELLOW
-2. Default to RED only with clear critical indicators (production impact, data loss)
-3. Document reasoning in parenthetical after status indicator
+**Cause**: Input contains mixed signals (e.g., issue resolved but monitoring incomplete).
+
+**Solution**:
+1. Default to YELLOW when unclear between GREEN/YELLOW — YELLOW preserves urgency for follow-up without false reassurance
+2. Default to RED only with clear critical indicators: production impact (users affected), data loss (unrecoverable), or ongoing crisis (not yet mitigated)
+3. Document reasoning in parenthetical: "Status: YELLOW (deployment successful but monitoring pending)" — transparency prevents misinterpretation
 
 ### Error: "Multi-Thread Update Contamination"
-Cause: Input contains multiple unrelated topics that could cross-contaminate
-Solution:
-1. Process each thread as separate proposition set
-2. Apply template independently to each thread
-3. Combine with clear thread identification in final output
-4. Ensure status indicators are thread-specific
+**Cause**: Input contains multiple unrelated topics that could cross-contaminate status classifications.
+
+**Solution**:
+1. Process each thread as separate proposition set (Phase 1 extraction per thread)
+2. Apply template independently to each thread (Phase 2-3 per thread)
+3. Combine with clear thread identification in final output (use headers: "Thread A: Deployment", "Thread B: Data Recovery")
+4. Ensure status indicators are thread-specific (Thread A may be GREEN while Thread B is RED) — separate outcomes, separate classifications
 
 ---
 
-## Anti-Patterns
+## Error Handling Principles
 
-### Anti-Pattern 1: Skipping Proposition Extraction
-**What it looks like**: Jumping straight to template formatting without parsing all embedded facts
-**Why wrong**: Loses technical details, misses causal relationships, assigns wrong status
-**Do instead**: Complete Phase 1 fully. Extract ALL propositions before any formatting.
-
-### Anti-Pattern 2: Adding Unsolicited Sections
-**What it looks like**: Adding "Risk Assessment", "Mitigation Strategies", "Historical Context" not in the original
-**Why wrong**: Over-engineering that changes meaning, increases length, violates hardcoded behavior
-**Do instead**: Apply ONLY the standard template. Let user request additional analysis.
-
-### Anti-Pattern 3: Losing Technical Accuracy for Simplicity
-**What it looks like**: "Redis cluster failover with 15-second timeout" becomes "database problems caused delays"
-**Why wrong**: Strips specificity needed for technical teams to act. Violates complete proposition extraction.
-**Do instead**: Keep technical terms, preserve metrics, maintain causal chains in Technical Details section.
-
-### Anti-Pattern 4: Vague Action Items
-**What it looks like**: "Fix the issue", "Follow up on dependencies", "Improve the system"
-**Why wrong**: No ownership, no timeline, no scope. Stakeholders cannot act on vague items.
-**Do instead**: "Complete Redis failover testing in staging (DevOps team, by EOW)"
-
-### Anti-Pattern 5: Inconsistent Status Indicators
-**What it looks like**: 2-hour outage marked GREEN, successful deploy with incomplete monitoring marked GREEN
-**Why wrong**: Inconsistency confuses stakeholders and erodes trust in the status system
-**Do instead**: Apply status criteria consistently. Document reasoning in parenthetical.
+**Constraint distribution in error handling**:
+- **Summarizing before extracting** = loses facts. Complete Phase 1 fully before proceeding.
+- **Status is "obvious"** = assumption. Apply classification criteria consistently, document reasoning.
+- **Technical details not needed for non-technical audience** = false. Always include Technical Details; bridge jargon with explanation.
+- **Action items are implied** = stakeholders cannot execute implied work. Write explicit (verb, scope, owner, timeline) for every next step.
+- **Professional tone is "close enough"** = defensive language still embedded. Apply ALL transformation rules: hedging → direct, emotional → neutral, vague → specific.
 
 ---
 
 ## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "I can summarize without extracting first" | Summarizing skips propositions, loses facts | Complete Phase 1 extraction |
-| "Status is obviously GREEN" | Obvious ≠ verified against criteria | Apply status classification rules |
-| "Technical details aren't needed here" | Non-technical audience ≠ no technical section | Include Technical Details section always |
-| "Action items are implied" | Implied ≠ actionable for stakeholders | Write explicit next steps with ownership |
-| "Close enough tone" | Professional tone requires specific transformations | Apply defensive->neutral, casual->professional rules |
 
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/templates.md`: Status-specific templates, section formats, phrase transformations

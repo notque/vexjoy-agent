@@ -39,53 +39,11 @@ routing:
 
 # PPTX Presentation Generator
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for programmatic presentation generation, configuring Claude's behavior for a 6-phase pipeline that transforms content into polished PowerPoint decks. It uses `python-pptx` (pure Python, MIT licensed) for deterministic slide construction and a visual QA subagent loop for quality control.
+This skill generates polished PowerPoint decks through a 6-phase pipeline that separates content decisions (LLM) from slide construction (deterministic script) from visual validation (fresh-eyes subagent). The core principle: **"Slides are visual documents, not text dumps. Generate mechanically, validate visually."**
 
-Core thesis: **"Slides are visual documents, not text dumps. Generate mechanically, validate visually."**
-
-The pipeline separates content decisions (LLM) from slide construction (Python script) from visual validation (subagent). This separation prevents the common failure mode where the generator rationalizes away visual defects it introduced.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before execution. Project instructions override default behaviors.
-- **Over-Engineering Prevention**: Build the deck the user asked for. No speculative slides, no "bonus" content, no unsolicited animations or transitions.
-- **Anti-AI Slide Rules**: Every generated deck MUST avoid the 10 anti-AI patterns defined in `references/anti-ai-slide-rules.md`. Why: AI-generated slides have a distinctive "template pack" aesthetic that undermines credibility. The QA subagent checks for all violations.
-- **Deterministic Generation**: Slide construction happens via `scripts/generate_pptx.py`, not inline python-pptx code. Why: scripts are testable, reproducible, and save tokens. The LLM decides WHAT goes on slides; the script decides HOW.
-- **Blank Layout Only**: Always use `slide_layouts[6]` (blank) as the base layout. Why: using template-specific layouts (title, content) inherits unpredictable formatting from whatever default template python-pptx ships. Blank gives us full control.
-- **Safe Fonts Only**: Use Calibri and Arial exclusively. Why: presentations are shared documents. Custom fonts cause rendering failures on machines that lack them. Portability trumps aesthetics.
-- **Slide Map Approval**: Always present the slide map to the user for approval before generating the PPTX. Why: content rework after generation wastes QA iteration budget.
-
-### Default Behaviors (ON unless disabled)
-- **Communication Style**: Fact-based progress. "Generated 10 slides, Corporate palette, QA passed" -- not "I've crafted a stunning presentation."
-- **Palette Selection**: Auto-select palette based on presentation type and audience using the heuristic in `references/design-system.md`. Default to **Minimal** when uncertain.
-- **Widescreen Format**: 16:9 (13.333 x 7.5 inches). This is the universal modern presentation format.
-- **Visual QA Loop**: When LibreOffice is available, convert to images and run a QA subagent. Max 3 fix iterations. When LibreOffice is unavailable, fall back to structural validation only and note the skip.
-- **Cleanup**: Remove intermediate files (PDFs, PNGs, temp JSON) after final output.
-- **Absolute Paths**: Always use absolute paths for all file arguments to scripts.
-
-### Optional Behaviors (OFF unless enabled)
-- **Template-Based Generation**: Use an existing .pptx file as a template instead of blank. Enable when user provides a branded template.
-- **Image Embedding**: Embed user-provided images into slides. Enable when user provides image files or paths.
-- **Speaker Notes**: Add speaker notes to slides. Enable when user explicitly requests notes.
-- **Dark Theme**: Use the Midnight palette with inverted contrast. Enable when user requests dark slides or keynote-style dark decks.
-
-## What This Skill CAN Do
-- Generate complete .pptx slide decks from content outlines, documents, or freeform descriptions
-- Apply 8 curated color palettes with consistent typography and spacing
-- Build 8 layout types: title, section divider, content/bullets, two-column, image+text, quote/callout, table, closing
-- Validate generated slides structurally (slide count, titles, content presence)
-- Run visual QA via LibreOffice conversion and subagent inspection (when LibreOffice is available)
-- Use existing .pptx files as templates for branded decks
-- Embed user-provided images into slides
-
-## What This Skill CANNOT Do
-- **Google Slides or Keynote export**: Generates .pptx only. Users convert manually.
-- **Live editing or preview**: Produces a file; there is no interactive editing capability.
-- **Custom fonts**: Only Calibri and Arial for portability. Custom font embedding is not supported.
-- **Animations or transitions**: No animations by default. Python-pptx has limited animation support; even if requested, results are unreliable.
-- **Auto-generate images**: Does not create diagrams, charts, or illustrations. Pair with `gemini-image-generator` for image assets.
-- **Speaker notes generation**: Deferred to future version. The skill generates slides, not presenter scripts.
+This separation prevents the common failure mode where the generator rationalizes away visual defects it introduced. The visual QA subagent has zero generation context and sees slides as viewers would.
 
 ---
 
@@ -170,7 +128,7 @@ Select layout types for each slide. Use at least 2-3 distinct layout types to av
 Available layouts: `title`, `section` (divider), `content` (bullets), `two_column`, `image_text`, `quote` (callout), `table`, `closing`
 
 Layout rhythm rules:
-- Never use the same layout more than 3 times in a row
+- Never use the same layout more than 3 times in a row. (Reason: Identical layouts are the most obvious AI-slide tell. Real presentations have visual rhythm with varied layouts.)
 - For 10+ slide decks, use at least 3 distinct layout types
 - Insert a different layout type (quote, two-column, section divider) to break repetition
 
@@ -220,7 +178,7 @@ Create a JSON array where each element represents one slide:
 Before presenting to the user, check:
 - [ ] At least 2-3 distinct layout types used (not all `content`)
 - [ ] No more than 3 consecutive slides with the same layout
-- [ ] Max 6 bullets per content slide, max 10 words per bullet
+- [ ] Max 6 bullets per content slide, max 10 words per bullet (Reason: 9 bullets is a document paragraph, not a slide. Readability degrades sharply past 6.)
 - [ ] Title slide is first, closing slide is last (if appropriate)
 - [ ] Section dividers placed before new sections (for 8+ slide decks)
 
@@ -254,7 +212,7 @@ Approve this structure, or suggest changes?
 
 **Goal**: Execute the deterministic Python script to produce the .pptx file.
 
-**Why this phase exists**: Slide construction is mechanical work -- given a slide map and design config, the output is deterministic. This belongs in a script, not in LLM-generated inline code. Scripts are testable, reproducible, and consistent.
+**Why this phase exists**: Slide construction is mechanical work -- given a slide map and design config, the output is deterministic. This belongs in a script, not in LLM-generated inline code. Scripts are testable, reproducible, and consistent. (Reason: Inline code is not testable, wastes tokens on boilerplate, and risks inconsistency. The script encapsulates palette application, layout selection, font sizing, spacing rules, and all design system constraints.)
 
 **Step 1: Check dependencies**
 
@@ -269,7 +227,7 @@ pip install python-pptx Pillow
 
 **Step 2: Write the slide map and design config to JSON files**
 
-Save the approved slide map and design config to temporary files:
+Save the approved slide map and design config to temporary files (use absolute paths for all file arguments):
 
 ```bash
 # Write slide map JSON to temp file
@@ -299,6 +257,11 @@ python3 /path/to/skills/pptx-generator/scripts/generate_pptx.py \
 ```
 
 Exit codes: 0 = success, 1 = missing python-pptx, 2 = invalid input, 3 = generation failed.
+
+**Constraints applied during generation**:
+- **Blank Layout Only**: Always use `slide_layouts[6]` (blank) as the base layout. Why: using template-specific layouts (title, content) inherits unpredictable formatting from whatever default template python-pptx ships. Blank gives us full control.
+- **Safe Fonts Only**: Use Calibri and Arial exclusively. Why: presentations are shared documents. Custom fonts cause rendering failures on machines that lack them. Portability trumps aesthetics.
+- **Widescreen Format**: 16:9 (13.333 x 7.5 inches). This is the universal modern presentation format.
 
 **Step 4: Run structural validation**
 
@@ -356,7 +319,7 @@ Check that one PNG exists per slide. If fewer PNGs than slides, some slides may 
 
 **Why a subagent**: The generating agent has context bias -- it "knows" what the slide should look like and will rationalize visual problems. A fresh-eyes subagent with zero generation context sees the slide as a viewer would. This is the same anti-bias pattern as the voice-validator: the generator and the validator must be separate.
 
-**Why max 3 iterations**: If visual issues persist after 3 fix cycles, the design is wrong, not the implementation. Looping further produces diminishing returns and wastes context.
+**Why max 3 iterations**: If visual issues persist after 3 fix cycles, the design is wrong, not the implementation. Looping further produces diminishing returns and wastes context. (Reason: Do NOT continue iterating beyond 3. This signals that the design approach is wrong, not the implementation. More iterations burn context without convergence.)
 
 **Step 1: Dispatch QA subagent**
 
@@ -371,7 +334,7 @@ The subagent checks each slide against these categories:
 2. **Layout and Alignment**: Consistent margins, aligned elements, visual balance
 3. **Color Usage**: Palette consistency, max 3 colors per slide, adequate contrast
 4. **Content Accuracy**: Titles and bullets match the slide map
-5. **Anti-AI Violations**: All 10 rules from `references/anti-ai-slide-rules.md`
+5. **Anti-AI Violations**: All 10 rules from `references/anti-ai-slide-rules.md` (avoid accent lines under titles, gradient backgrounds, identical layouts, shadows on everything, rounded rectangles everywhere, clip art icons, gradient text)
 6. **Structural Checks**: Slide count, title slide present, closing slide present
 
 Subagent prompt structure:
@@ -421,7 +384,7 @@ Track iteration count:
 ```
 QA Iteration 1/3: 2 issues found (1 Blocker, 1 Major)
 QA Iteration 2/3: 1 issue found (1 Minor)
-QA Iteration 2/3: PASS (0 Blocker, 0 Major)
+QA Iteration 3/3: PASS (0 Blocker, 0 Major)
 ```
 
 **GATE**: QA subagent returns PASS, OR 3 iterations exhausted. If iterations exhausted with remaining issues, include them in the output report. Do not loop beyond 3.
@@ -478,7 +441,7 @@ Remove:
 - `/tmp/design_config.json`
 - `/tmp/pptx_qa_images/` directory (PNG renders and PDFs)
 
-Keep only the final .pptx file.
+Keep only the final .pptx file. (Reason: Cleanup is a default behavior to remove intermediate files after final output.)
 
 ---
 
@@ -553,54 +516,6 @@ Install with: `apt install libreoffice-impress` (Debian/Ubuntu) or `brew install
 
 ---
 
-## Anti-Patterns
-
-### Inline python-pptx Code Instead of Script
-**What it looks like**: Writing python-pptx code directly in a Bash tool call instead of using `scripts/generate_pptx.py`.
-**Why wrong**: Inline code is not testable, wastes tokens on boilerplate, and risks inconsistency. The script encapsulates palette application, layout selection, font sizing, spacing rules, and all design system constraints.
-**Do instead**: Always use `generate_pptx.py`. If the script lacks a feature, extend the script.
-
-### Skipping Slide Map Review
-**What it looks like**: Generating the .pptx immediately after gathering content, without showing the user the planned structure.
-**Why wrong**: Content changes after generation waste QA iteration budget. If the user wanted different emphasis or ordering, you lose fix cycles to structural rework instead of visual fixes.
-**Do instead**: Present the slide map in Phase 2 and wait for approval. This is a gate, not a suggestion.
-
-### Same Layout for Every Slide
-**What it looks like**: Every content slide uses the `content` (bullets) layout.
-**Why wrong**: Identical layouts are the most obvious AI-slide tell. Real presentations have visual rhythm with varied layouts.
-**Do instead**: Use at least 2-3 distinct layout types. Insert quote, two-column, or section divider slides to break repetition.
-
-### Looping QA Beyond 3 Iterations
-**What it looks like**: "Just one more fix cycle" after iteration 3 because there is one remaining minor issue.
-**Why wrong**: If 3 iterations could not fix the issue, the design approach is wrong. More iterations burn context without convergence.
-**Do instead**: Stop at 3. Report remaining issues. Deliver with caveats.
-
-### Adding Decorative Elements "For Polish"
-**What it looks like**: Adding accent lines under titles, shadows on every shape, rounded rectangles as bullet containers.
-**Why wrong**: These are the exact patterns that mark a presentation as AI-generated. See `references/anti-ai-slide-rules.md`.
-**Do instead**: Keep slides clean. Use typography (size, weight, spacing) for visual hierarchy, not decorative shapes.
-
----
-
-## Anti-Rationalization
-
-See [shared-patterns/anti-rationalization-core.md](../shared-patterns/anti-rationalization-core.md) for universal patterns.
-
-### Domain-Specific Rationalizations
-
-| Rationalization Attempt | Why It's Wrong | Required Action |
-|------------------------|----------------|-----------------|
-| "The slide map is obvious, skip user review" | Content rework after generation costs QA iterations | Present the slide map and wait for approval |
-| "One more QA iteration will fix it" (after 3) | 3 failed iterations means the design approach is wrong, not the implementation | Stop, report issues, deliver with caveats |
-| "LibreOffice is slow, skip visual QA" | Structural validation catches data errors but not visual ones (clipped text, contrast, alignment) | Run visual QA when LibreOffice is available; note when it is skipped |
-| "Inline code is faster than the script" | Faster for one run, inconsistent across many; wastes tokens on boilerplate | Use `generate_pptx.py` always; extend it if features are missing |
-| "Adding a decorative line makes it look polished" | This is the single most recognizable AI-slide tell | Never add decorative lines under titles |
-| "The user won't notice identical layouts" | Audiences do notice visual monotony, even subconsciously | Use 2-3+ distinct layout types per deck |
-| "9 bullets is close enough to 6" | 9 bullets is a document paragraph, not a slide. Readability degrades sharply past 6 | Enforce the 6-bullet max; split into multiple slides |
-| "Custom fonts would look better" | Custom fonts break on machines that lack them | Calibri/Arial only; portability trumps aesthetics |
-
----
-
 ## Blocker Criteria
 
 STOP and ask the user (do NOT proceed autonomously) when:
@@ -618,18 +533,18 @@ STOP and ask the user (do NOT proceed autonomously) when:
 - Whether to use dark theme (Midnight palette) -- strong aesthetic choice
 - Whether to include images (user must provide assets or explicitly request generation)
 - Slide count when user is vague ("a few slides" -- ask for a number)
-- Content that the user hasn't provided (do not invent slide content)
+- Content that the user hasn't provided (do not invent slide content). Reason: Build the deck the user asked for. No speculative slides, no "bonus" content, no unsolicited animations or transitions.
 
 ---
 
-## Death Loop Prevention
+## Retry Limits and Recovery
 
-### Retry Limits
+**Retry Limits**:
 - Phase 3 (GENERATE): Max 2 retries for script failures before escalating to user
 - Phase 5 (QA): Max 3 iterations of the fix-and-recheck cycle
 - Slide map revision: Max 2 rounds of user feedback before freezing the map
 
-### Recovery Protocol
+**Recovery Protocol**:
 1. **Detection**: Same QA issue reappearing after a fix attempt, generation script failing on the same input repeatedly, or slide map revisions not converging
 2. **Intervention**: Simplify the deck. Reduce slide count, use only `content` and `title` layouts, drop complex layouts (table, two-column) that may be causing issues
 3. **Prevention**: Validate the slide map JSON against the schema before generation. Check that bullet counts are within limits. Verify image paths exist before including `image_text` slides.
@@ -722,8 +637,3 @@ For detailed information:
 - [research-to-article](../research-to-article/SKILL.md) -- research output can feed slide content
 - [gemini-image-generator](../gemini-image-generator/SKILL.md) -- generate images for slides
 - [workflow-orchestrator](../workflow-orchestrator/SKILL.md) -- orchestrate multi-step pipelines
-
-### Shared Patterns
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) -- prevents shortcut rationalizations
-- [Gate Enforcement](../shared-patterns/gate-enforcement.md) -- phase transition rules
-- [Verification Checklist](../shared-patterns/verification-checklist.md) -- pre-completion checks

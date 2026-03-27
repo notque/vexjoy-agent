@@ -64,51 +64,27 @@ routing:
 
 # Comprehensive Code Review v4 — Four-Wave Hybrid Architecture
 
-Four-wave review with per-package deep analysis and adversarial challenge. Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per package to read ALL code in that package. Wave 1 (12 foundation agents, including newcomer perspective) runs in parallel with Wave 0 context. Wave 2 (10 deep-dive agents) receives Wave 0+1 findings for targeted analysis. Wave 3 (4-5 adversarial agents) challenges Wave 1+2 consensus — are findings actually important? Are tradeoffs justified? Should the PR be split? All findings are aggregated with wave-agreement labels, deduplicated, and auto-fixed.
+Four-wave review with per-package deep analysis and adversarial challenge. Wave 0 auto-discovers packages and dispatches one language-specialist agent per package to read ALL code in that package. Wave 1 (12 foundation agents) runs in parallel with Wave 0 context. Wave 2 (10 deep-dive agents) receives Wave 0+1 findings for targeted analysis. Wave 3 (4-5 adversarial agents) challenges Wave 1+2 consensus. All findings are aggregated with wave-agreement labels, deduplicated, and auto-fixed.
 
-**How this differs from existing skills**:
-- `/parallel-code-review`: 3 agents (security, business, arch) — report only
-- `/comprehensive-review`: **25+ agents in 4 waves** — per-package + cross-cutting + adversarial review AND fix everything
+**vs `/parallel-code-review`**: 3 agents (security, business, arch) — report only
+**vs `/comprehensive-review`**: 25+ agents in 4 waves — per-package + cross-cutting + adversarial AND fix everything
 
 ---
 
-## Operator Context
+## Flags
 
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before dispatching reviewers
-- **Four-Wave Parallelism**: Wave 0 agents dispatched in batches of 10. Wave 1 agents MUST be dispatched in a SINGLE message. Wave 2 agents MUST be dispatched in a SINGLE message after Wave 1 completes. Wave 3 agents MUST be dispatched in a SINGLE message after Wave 2 completes.
-- **Context Cascading**: Wave 1 receives Wave 0 per-package findings. Wave 2 receives Wave 0+1 findings. Wave 3 receives Wave 0+1+2 findings and is instructed to CHALLENGE consensus, not reinforce it.
-- **Fix Everything, Defer Nothing**: After all waves complete, fix EVERY finding. No deferrals. No "out of scope." No "will fix later." The only exception is BLOCKED (fix + alternative both break tests, <10% of total).
-- **Worktree Isolation**: Fixes happen on a new branch, never on the current working branch directly
-- **Severity Aggregation**: Combine findings by severity before fixing
-- **Phase Gates Enforced**: Each phase must complete before the next begins
-- **No Skipping Agents**: All agents run even for "simple" changes
-- **No "Acceptable" Disposition**: The only valid review dispositions are FIX NOW, FIX IN FOLLOW-UP (with mandatory tracking artifact — see Deferred Finding Tracking below), or NOT AN ISSUE (with evidence). "Acceptable", "valid but deferred", "real but not blocking", and "conservative" are NOT valid dispositions. If an issue is real, it gets tracked. If it's not real, provide evidence. Include this rule in every Wave 1 and Wave 2 agent dispatch prompt.
-- **Deferred Finding Tracking**: Before marking any finding as FIX IN FOLLOW-UP, create a tracking artifact (GitHub issue, `TODO(follow-up):` in code, or learning.db entry). The review cannot proceed past the aggregation phase until all FIX IN FOLLOW-UP findings have a tracking artifact. Report artifact locations in the review summary under a "Deferred Findings" table.
-
-### Default Behaviors (ON unless disabled)
-- **Wave 0 Per-Package Review**: Auto-discover packages/modules and dispatch one agent per package. Adds deep per-package context that cross-cutting agents miss.
-- **Smart Agent Selection**: Detect file types and PR context to choose relevant agents
-- **Deduplication**: Merge overlapping findings from multiple agents, keep highest severity
-- **Fix Verification**: Run tests/linters after each fix batch to catch regressions
-- **Report Generation**: Write `comprehensive-review-report.md` to repo root
-- **Quick Wins First**: Fix lowest-risk issues first to build momentum
-
-### Optional Behaviors (OFF unless enabled)
-- **--review-only**: Skip fix phase, report only (like parallel-code-review)
+- **--review-only**: Skip fix phase, report only
 - **--skip-wave0**: Skip Wave 0 per-package review (faster, less thorough)
 - **--wave1-only**: Run only Wave 1 (12 agents), skip Wave 0, Wave 2, and Wave 3
 - **--focus [files]**: Review only specified files instead of full diff
 - **--severity [critical|high|medium|all]**: Only report/fix findings at or above severity
-- **--org-conventions**: Pass organization-specific convention flags to reviewer-language-specialist. Configure organization detection in `scripts/classify-repo.py`.
+- **--org-conventions**: Pass organization-specific convention flags to reviewer-language-specialist
 
 ---
 
-## Instructions
+## Phase 0.5: STATIC ANALYSIS (Mandatory Prerequisite)
 
-### Phase 0.5: STATIC ANALYSIS (Mandatory Prerequisite)
-
-**Goal**: Run deterministic static analysis BEFORE dispatching any review agents. Linters catch syntactic issues that LLM agents miss. Findings feed into Wave 1 as input context.
+Run deterministic static analysis BEFORE dispatching any review agents. Linters catch syntactic issues that LLM agents miss. Findings feed into Wave 1 as input context.
 
 **Step 1: Detect language and run linters**
 
@@ -135,7 +111,7 @@ fi
 
 **Step 2: Auto-fix trivial findings**
 
-Auto-fixable findings (gofmt, goimports, ruff format) should be fixed BEFORE agent review begins. This prevents agents from wasting time on formatting issues.
+Auto-fixable findings (gofmt, goimports, ruff format) should be fixed BEFORE agent review begins — prevents agents from wasting time on formatting.
 
 ```bash
 # Go: auto-fix formatting
@@ -157,9 +133,9 @@ Save non-auto-fixable lint findings to pass as context to all Wave 1 agents. Inc
 
 ---
 
-### Phase 1: SCOPE
+## Phase 1: SCOPE
 
-**Goal**: Determine what to review and which agents to dispatch.
+**Goal**: Determine what to review, discover packages, initialize findings directory.
 
 **Step 1: Identify changed files**
 
@@ -180,97 +156,12 @@ git diff --name-only HEAD~1
 **Step 2: Detect organization conventions**
 
 ```bash
-# Auto-detect repo type (deterministic — no LLM judgment needed)
 REPO_TYPE=$(python3 ~/.claude/scripts/classify-repo.py --type-only 2>/dev/null || echo "personal")
 ```
 
-If the repo belongs to a protected organization with custom conventions:
-- Set convention flags for the rest of this review
-- Wave 1 Agent 9 (`reviewer-language-specialist`) gets organization-specific flags appended
-- Log: "Organization conventions detected — reviewer-language-specialist will check org-specific patterns"
+If the repo belongs to a protected organization: set convention flags for the rest of this review. Wave 1 Agent 9 (`reviewer-language-specialist`) gets organization-specific flags appended. Log: "Organization conventions detected."
 
-**Step 3: Understand the four-wave agent roster**
-
-#### Wave 0: Per-Package Deep Review (Auto-Discovered)
-
-One language-specialist agent per discovered package reads ALL code in that package. This wave discovers issues that cross-cutting agents miss because they have full package context.
-
-| Language | Discovery Command | Agent Type | Min Package Size |
-|----------|-------------------|------------|-----------------|
-| Go | `find . -name "*.go" -path "*/internal/*" \| xargs dirname \| sort -u` | `golang-general-engineer-compact` | 1 file |
-| Go (also) | `find . -name "*.go" -not -path "*/internal/*" -not -path "*/vendor/*" \| xargs dirname \| sort -u` | `golang-general-engineer-compact` | 1 file |
-| Python | `find . -name "__init__.py" \| xargs dirname \| sort -u` | `python-general-engineer` | 1 file |
-| TypeScript | `find . -name "index.ts" -o -name "index.tsx" \| xargs dirname \| sort -u` | `typescript-frontend-engineer` | 1 file |
-
-**Wave 0 produces**: Per-package findings with full context (every file in the package was read). These findings inform Wave 1+2 about package-level patterns, internal APIs, and local code quality.
-
-#### Wave 1: Foundation Agents (Independent Analysis)
-
-These agents run in parallel with Wave 0 per-package findings as context. They perform cross-cutting analysis that spans packages and establish the foundation for Wave 2.
-
-| # | Agent | Focus Area | Key Catches |
-|---|-------|------------|-------------|
-| 1 | `reviewer-security` | Security | OWASP Top 10, auth, injection, secrets |
-| 2 | `reviewer-business-logic` | Domain | Edge cases, state transitions, requirement gaps |
-| 3 | Architecture reviewer* | Architecture | Patterns, naming, structure, idioms |
-| 4 | `reviewer-silent-failures` | Error Handling | Swallowed errors, empty catches, bad fallbacks |
-| 5 | `reviewer-test-analyzer` | Test Coverage | Coverage gaps, fragile tests, missing negative cases |
-| 6 | `reviewer-type-design` | Type Design | Weak invariants, leaky encapsulation |
-| 7 | `reviewer-code-quality` | Quality/Style | CLAUDE.md violations, convention drift |
-| 8 | `reviewer-comment-analyzer` | Documentation | Comment rot, misleading docs, stale TODOs |
-| 9 | `reviewer-language-specialist` | Language Idioms | Modern stdlib, concurrency, LLM tells, org-specific rules |
-| 10 | `reviewer-docs-validator` | Project Health | README, CLAUDE.md, deps, CI, build system |
-| 11 | `reviewer-adr-compliance` | ADR Compliance | Implementation matches ADR decisions, no scope creep |
-| 12 | `reviewer-newcomer` | Newcomer Perspective | Documentation gaps, confusing code, implicit assumptions, onboarding friction |
-
-*Architecture reviewer selection by language:
-
-| File Types | Agent |
-|-----------|-------|
-| `.go` files | `golang-general-engineer` or `golang-general-engineer-compact` |
-| `.py` files | `python-general-engineer` |
-| `.ts`/`.tsx` files | `typescript-frontend-engineer` |
-| Mixed or other | `Explore` |
-
-#### Wave 2: Deep-Dive Agents (Context-Aware Analysis)
-
-These agents receive Wave 0+1 aggregated findings as input. They perform targeted deep-dives informed by per-package analysis (Wave 0) and cross-cutting analysis (Wave 1).
-
-| # | Agent | Focus Area | Wave 1 Context Used |
-|---|-------|------------|---------------------|
-| 11 | `reviewer-performance` | Performance | Architecture findings → focus on hot paths |
-| 12 | `reviewer-concurrency` | Concurrency | Silent-failure + architecture findings → concurrent paths |
-| 13 | `reviewer-api-contract` | API Contracts | Business-logic + type-design findings → contract-sensitive code |
-| 14 | `reviewer-dependency-audit` | Dependencies | Docs-validator findings → dependency documentation gaps |
-| 15 | `reviewer-error-messages` | Error Messages | Silent-failure + code-quality findings → error paths |
-| 16 | `reviewer-dead-code` | Dead Code | Code-quality + docs-validator findings → abandoned artifacts |
-| 17 | `reviewer-naming-consistency` | Naming | Code-quality + language-specialist findings → convention baselines |
-| 18 | `reviewer-observability` | Observability | Silent-failure findings → observability gaps at failure points |
-| 19 | `reviewer-config-safety` | Config Safety | Security + docs-validator findings → config security gaps |
-| 20 | `reviewer-migration-safety` | Migration Safety | API-contract + business-logic findings → migration-sensitive changes |
-
-#### Wave 3: Adversarial Perspectives (Consensus Challenge)
-
-These agents receive Wave 0+1+2 aggregated findings as input. Their job is to CHALLENGE the consensus — not reinforce it. Wave 3 agents push back on findings, question whether issues are real, and surface tradeoffs that earlier waves may have accepted uncritically.
-
-| # | Agent | Role | Challenge Focus |
-|---|-------|------|----------------|
-| 21 | `reviewer-contrarian` | Challenges findings | Are these findings actually important? Which are false positives? Which are over-severity? |
-| 22 | `reviewer-skeptical-senior` | Experience-based skepticism | "I've seen this before" — which findings are theoretical vs real-world issues? |
-| 23 | `reviewer-user-advocate` | User impact assessment | Does this change break users? Are UX tradeoffs justified? Are migration paths safe? |
-| 24 | `reviewer-meta-process` | Process/approach review | Is this the right approach? Should the PR be split? Is the review itself focused correctly? |
-
-**Conditional: SAPCC Structural Review**
-
-| # | Agent | Condition | Challenge Focus |
-|---|-------|-----------|----------------|
-| 25 | `reviewer-sapcc-structural` | Repo contains ANY of: `hybris/`, `core-customize/`, `config/localextensions.xml`, or `manifest.json` with `"commerceSuiteVersion"` | SAP Commerce Cloud structural integrity — extension wiring, build manifest, data model impacts |
-
-If the SAPCC condition is not met, skip `reviewer-sapcc-structural` silently (no warning, no log).
-
-**Step 3: Initialize findings directory**
-
-Create a temporary directory to persist findings across waves. This is critical — without it, context compaction between waves loses all prior findings.
+**Step 3: Initialize findings directory** — critical for surviving context compaction between waves
 
 ```bash
 REVIEW_DIR="/tmp/claude-review/$(date +%Y%m%d-%H%M%S)"
@@ -278,236 +169,66 @@ mkdir -p "$REVIEW_DIR"
 echo "Review findings directory: $REVIEW_DIR"
 ```
 
-All subsequent phases MUST write their findings to `$REVIEW_DIR/` and read prior wave findings from there. This ensures findings survive context compaction between waves.
-
-| File | Written By | Read By |
-|------|-----------|---------|
-| `$REVIEW_DIR/wave0-findings.md` | Phase 1c | Phase 2a, 2b |
-| `$REVIEW_DIR/wave1-findings.md` | Phase 2b | Phase 3a |
-| `$REVIEW_DIR/wave01-summary.md` | Phase 2b | Phase 3a |
-| `$REVIEW_DIR/wave2-findings.md` | Phase 3b | Phase 3c |
-| `$REVIEW_DIR/wave012-summary.md` | Phase 3b | Phase 3c |
-| `$REVIEW_DIR/wave3-findings.md` | Phase 3d | Phase 4 |
-| `$REVIEW_DIR/final-report.md` | Phase 3d | Phase 4, Phase 5 |
+All subsequent phases MUST write their findings to `$REVIEW_DIR/` and read prior wave findings from there.
 
 **Step 4: Create task_plan.md**
 
-```markdown
-# Task Plan: Comprehensive Review v3
-
-## Goal
-Three-wave review and auto-fix of [N] changed files across [N] packages.
-
-## Phases
-- [ ] Phase 1: Scope (identify files, discover packages)
-- [ ] Phase 1b: Wave 0 Dispatch (per-package deep review)
-- [ ] Phase 1c: Wave 0 Aggregate (per-package findings)
-- [ ] Phase 2a: Wave 1 Dispatch (12 foundation agents + Wave 0 context)
-- [ ] Phase 2b: Wave 1 Aggregate (collect and summarize Wave 0+1 findings)
-- [ ] Phase 3a: Wave 2 Dispatch (10 deep-dive agents with Wave 0+1 context)
-- [ ] Phase 3b: Wave 2 Aggregate (merge Wave 0+1+2 findings)
-- [ ] Phase 3c: Wave 3 Dispatch (4-5 adversarial agents with Wave 0+1+2 context)
-- [ ] Phase 3d: Wave 3 Aggregate (merge adversarial challenges, label agreement)
-- [ ] Phase 4: Fix (auto-fix on branch)
-- [ ] Phase 5: Report (write report, verify)
-
-## Review Profile
-- Files: [list]
-- Packages discovered: [N]
-- Wave 0 agents: [N] (one per package)
-- Wave 1 agents: 12
-- Wave 2 agents: 10
-- Wave 3 agents: 4-5 (adversarial; 5 if SAPCC detected)
-- Org conventions: [detected org or none]
-- Mode: [review+fix | review-only]
-
-## Findings Directory
-$REVIEW_DIR = [path from Step 3]
-
-## Status
-**Currently in Phase 1** - Discovering packages
-```
+Read `${CLAUDE_SKILL_DIR}/references/output-templates.md` for the task_plan.md template. Fill it in with actual file count, package count, detected org, and mode.
 
 **Gate**: Files identified, packages discovered, findings directory created, plan created. Proceed to Phase 1b.
 
 ---
 
-### Phase 1b: WAVE 0 DISPATCH — Per-Package Deep Review
+## Phase 1b: WAVE 0 DISPATCH — Per-Package Deep Review
 
-**Goal**: Dispatch one language-specialist agent per discovered package. Each agent reads ALL files in its package for deep, contextual review.
+**Skip if**: `--skip-wave0` or `--wave1-only` flag is set.
 
-**Skip if**: `--skip-wave0` flag is set or `--wave1-only` flag is set.
+Read `${CLAUDE_SKILL_DIR}/references/wave-0-per-package.md` for:
+- Package discovery commands by language
+- Agent selection table
+- The complete per-package agent dispatch prompt
+- Batch size rules (max 10 agents per message)
+- Wave 0 aggregate output format
 
-**Step 1: Discover packages**
-
-```bash
-# Go packages (internal/ and top-level)
-find . -name "*.go" -not -path "*/vendor/*" -not -path "*/.git/*" | xargs dirname | sort -u
-
-# Python packages
-find . -name "__init__.py" -not -path "*/venv/*" -not -path "*/.git/*" | xargs dirname | sort -u
-
-# TypeScript modules (directories with index.ts/tsx)
-find . -name "index.ts" -o -name "index.tsx" | grep -v node_modules | xargs dirname | sort -u
-```
-
-**Step 2: Select agent type per language**
-
-| Language | Agent |
-|----------|-------|
-| Go | `golang-general-engineer-compact` |
-| Python | `python-general-engineer` |
-| TypeScript | `typescript-frontend-engineer` |
-| Mixed | Use language of majority files in that package |
-
-**Step 3: Dispatch agents in batches of 10**
-
-Each per-package agent gets this prompt:
-
-```
-PER-PACKAGE DEEP REVIEW — Wave 0
-
-PACKAGE: [package path]
-LANGUAGE: [Go/Python/TypeScript]
-
-MCP TOOL DISCOVERY (do this FIRST, before reading package files):
-- Use ToolSearch to check for available MCP tools that can enhance your analysis:
-  a. Run ToolSearch("gopls") — if this is a Go package, loads type-aware analysis
-     tools (go_file_context, go_diagnostics, go_symbol_references, etc.)
-  b. Run ToolSearch("context7") — loads library documentation lookup tools
-- If gopls tools are available AND LANGUAGE is Go:
-  * Use go_file_context after reading each .go file for intra-package dependency context
-  * Use go_diagnostics on the package to detect build/analysis errors
-  * Use go_symbol_references to check for unused or misused exported symbols
-- If Context7 tools are available:
-  * Use resolve-library-id + query-docs for unfamiliar library APIs in this package
-
-INSTRUCTIONS:
-1. Read the CLAUDE.md file(s) in this repository first
-2. Run MCP TOOL DISCOVERY steps above
-3. Read EVERY file in this package directory: [package path]/
-4. Understand the package's purpose, internal APIs, and relationships
-5. Review ALL code for issues — you have full package context
-6. Use MCP tools (gopls, Context7) as you review for type-aware precision
-7. Focus on issues that require understanding the WHOLE package:
-   - Internal API misuse between files in this package
-   - Inconsistent error handling patterns within the package
-   - Missing or redundant functionality
-   - Package-level design issues (cohesion, coupling)
-   - Test coverage relative to package complexity
-8. Use structured output format with severity classification
-9. Include file:line references for every finding
-
-CONTEXT: This is Wave 0 of a comprehensive review. Your per-package findings
-will be passed to 20 cross-cutting review agents in Waves 1 and 2. Focus on
-issues that require full package context to detect — cross-cutting agents will
-handle file-level and project-level concerns.
-
-OUTPUT FORMAT:
-### PACKAGE: [package path]
-**Files reviewed**: [list all files read]
-**Package purpose**: [1-sentence summary]
-**Package health**: [HEALTHY | MINOR_ISSUES | NEEDS_ATTENTION | CRITICAL]
-
-Findings:
-### [CRITICAL|HIGH|MEDIUM|LOW]: [One-line summary]
-**File**: `path/to/file:LINE`
-**Issue**: [Description]
-**Impact**: [Why this matters]
-**Fix**: [Concrete code fix]
-**Requires package context**: [Why a single-file reviewer would miss this]
----
-```
-
-**CRITICAL**: Dispatch up to 10 agents per message. If more than 10 packages are discovered, use multiple batches:
-- Batch 1: packages 1-10 (dispatch in ONE message)
-- Batch 2: packages 11-20 (dispatch in ONE message after batch 1 completes)
-- Continue until all packages are covered
-
-Use `model: sonnet` for ALL per-package agents. Never use haiku for code review. The orchestrator runs on Opus; dispatched agents run on Sonnet for cost efficiency (40% savings, minimal quality tradeoff).
+**Dispatch**: One language-specialist agent per discovered package. Each reads ALL files in its package. Batches of up to 10 agents per message.
 
 **Gate**: All per-package agents dispatched and completed. Proceed to Phase 1c.
 
 ---
 
-### Phase 1c: WAVE 0 AGGREGATE — Per-Package Summary
+## Phase 1c: WAVE 0 AGGREGATE
 
-**Goal**: Collect Wave 0 findings into a per-package summary for Wave 1+2 context injection.
+Collect Wave 0 findings into a per-package summary. Read `${CLAUDE_SKILL_DIR}/references/wave-0-per-package.md` for the aggregate output format.
 
-**Step 1: Collect all Wave 0 findings**
+**Step 1**: Collect all per-package agent outputs. Extract: package path, health rating, findings with severity.
 
-Read each per-package agent's output. Extract: package path, health rating, findings with severity.
+**Step 2**: Identify cross-package patterns (e.g., "5 packages have inconsistent error handling"). These are especially valuable for Wave 1+2 agents.
 
-**Step 2: Build Wave 0 Summary**
-
-```markdown
-## Wave 0 Per-Package Findings Summary (for Wave 1+2 context)
-
-### Packages Reviewed: [N]
-### Packages Healthy: [N] | Minor Issues: [N] | Needs Attention: [N] | Critical: [N]
-
-### Per-Package Results
-
-#### [package/path1] — [HEALTHY|MINOR_ISSUES|NEEDS_ATTENTION|CRITICAL]
-- Purpose: [1-sentence]
-- Files: [N]
-- Findings: [N] (CRITICAL: N, HIGH: N, MEDIUM: N, LOW: N)
-- Key issues:
-  - [SEVERITY]: [summary] at [file:line]
-  - ...
-
-#### [package/path2] — [STATUS]
-- ...
-
-### Cross-Package Patterns Detected
-- [Pattern 1]: Seen in packages [list] — suggests systemic issue
-- [Pattern 2]: ...
-
-### Wave 0 Hotspots (packages with most findings)
-1. [package] — [N findings, N critical]
-2. [package] — [N findings, N high]
-3. ...
-```
-
-**Step 3: Identify cross-package patterns**
-
-Look across all per-package results for recurring themes (e.g., "5 packages have inconsistent error handling" or "3 packages missing test files"). These cross-package patterns are especially valuable for Wave 1+2 agents.
-
-**Step 4: Save Wave 0 findings to disk**
-
-Write the complete Wave 0 summary to disk so it survives context compaction:
+**Step 3: Save Wave 0 findings to disk** — do NOT skip this step
 
 ```bash
-# Write Wave 0 findings — this is the source of truth for Wave 1+2
 cat > "$REVIEW_DIR/wave0-findings.md" << 'WAVE0_EOF'
 [Paste the complete Wave 0 Per-Package Findings Summary here]
 WAVE0_EOF
 echo "Saved Wave 0 findings: $(wc -l < "$REVIEW_DIR/wave0-findings.md") lines"
 ```
 
-**CRITICAL**: Do NOT skip this step. If compaction fires before Wave 1 dispatch, Wave 0 findings are gone forever without this file.
-
 **Gate**: Wave 0 summary built, saved to `$REVIEW_DIR/wave0-findings.md`. Proceed to Phase 1.5.
 
 ---
 
-### Phase 1.5: LIBRARY CONTRACT VERIFICATION (Go repos only)
+## Phase 1.5: LIBRARY CONTRACT VERIFICATION (Go repos only)
 
-**Goal**: Before Wave 1 dispatches, verify that code assumptions about imported library behavior are actually true. This catches the systemic LLM blind spot where agents reason from protocol knowledge instead of reading library source.
+**Skip for non-Go repos** (no `go.mod`).
 
-**When to run**: Only for Go repos (check for `go.mod`). Skip for Python/TypeScript repos.
+**Goal**: Before Wave 1, verify that code assumptions about imported library behavior are actually true. Catches the LLM blind spot where agents reason from protocol knowledge instead of reading library source.
 
-**Step 1: Scan changed code for library assumptions**
-
-In the diff (from Phase 1), identify:
-- Comments claiming library behavior ("X will retry", "Y returns error on Z", "will rebalance")
+**Step 1: Scan changed code for library assumptions** — look for:
+- Comments claiming library behavior ("X will retry", "Y returns error on Z")
 - Error handling that assumes specific error types from imported libraries
-- Control flow that depends on library lifecycle (reconnect, rebalance, retry, redeliver)
-- Log messages describing expected library behavior
+- Control flow that depends on library lifecycle (reconnect, rebalance, retry)
 
-**Step 2: Dispatch a verification agent**
-
-Dispatch a single `golang-general-engineer-compact` agent (model: sonnet) with this prompt structure:
+**Step 2: Dispatch a single `golang-general-engineer-compact` agent** (model: sonnet):
 
 ```
 You are a library contract verifier. Your job is to read library source code
@@ -526,328 +247,99 @@ Output a Library Contract Report as a markdown table:
 | Assumption | Location | Verified? | Evidence |
 ```
 
-**Step 3: Save report and pass to Wave 1**
+**Step 3**: Save to `$REVIEW_DIR/library-contracts.md`. Include in every Wave 1 agent dispatch prompt alongside Wave 0 findings.
 
-Save the Library Contract Report to `$REVIEW_DIR/library-contracts.md`. Include it in every Wave 1 agent dispatch prompt alongside Wave 0 findings and static analysis findings.
-
-**Gate**: Library contract verification complete (or skipped for non-Go repos). Proceed to Phase 2a.
+**Gate**: Library contract verification complete (or skipped). Proceed to Phase 2a.
 
 ---
 
-### Phase 2a: WAVE 1 DISPATCH
+## Phase 2a: WAVE 1 DISPATCH
 
-**Goal**: Launch all foundation review agents in a SINGLE message for true parallel execution, with Wave 0 per-package context. This dispatches 12 agents.
+**ALL 12 Wave 1 agent dispatches MUST be in ONE message for true parallelism.**
 
-**CRITICAL**: ALL Wave 1 agent dispatches MUST be in ONE message. Sequential dispatch defeats parallelism.
+Read `${CLAUDE_SKILL_DIR}/references/wave-1-foundation.md` for:
+- Complete agent roster (12 agents with focus areas)
+- Architecture reviewer selection by language
+- Standard agent prompt template (with Wave 0 context injection)
+- Agent-specific prompt additions (mandatory caller tracing, assertion depth checks, etc.)
 
-**Step 0: Load Wave 0 findings from disk**
-
-Before constructing agent prompts, read Wave 0 findings from disk (in case context compaction has occurred):
+**Step 0: Load Wave 0 findings from disk** (guards against context compaction):
 
 ```bash
 WAVE0_CONTEXT=$(cat "$REVIEW_DIR/wave0-findings.md" 2>/dev/null || echo "Wave 0 skipped — no per-package context available")
 ```
 
-Use `$WAVE0_CONTEXT` in each agent prompt below.
+Inject `$WAVE0_CONTEXT` into each agent prompt. Also inject static analysis findings and library contract report (if Go repo).
 
-**Model**: Use `model: sonnet` for all Wave 1 agents. The orchestrator (this skill) runs on Opus; dispatched review agents run on Sonnet.
+Include in every Wave 1 and Wave 2 agent dispatch prompt: "The only valid review dispositions are FIX NOW, FIX IN FOLLOW-UP (with mandatory tracking artifact), or NOT AN ISSUE (with evidence). 'Acceptable', 'valid but deferred', and 'conservative' are NOT valid dispositions."
 
-Each agent prompt should include:
-
-```
-REVIEW SCOPE:
-- Files to review: [list of changed files]
-- Change context: [what was changed and why, if known]
-- Repository: [current directory]
-
-WAVE 0 PER-PACKAGE CONTEXT (deep per-package review results):
-[Insert $WAVE0_CONTEXT — loaded from $REVIEW_DIR/wave0-findings.md]
-
-MCP TOOL DISCOVERY (do this FIRST, before any file reads):
-- Use ToolSearch to check for available MCP tools that can enhance your analysis:
-  a. Run ToolSearch("gopls") — if Go files are in scope, this loads type-aware
-     analysis tools (go_file_context, go_diagnostics, go_symbol_references, etc.)
-  b. Run ToolSearch("context7") — loads library documentation lookup tools for
-     verifying dependency usage and API correctness
-- If gopls tools are available AND this is a Go repository:
-  * Use go_file_context after reading any .go file to understand intra-package dependencies
-  * Use go_symbol_references before flagging unused or misused symbols
-  * Use go_diagnostics on files you flag to confirm real vs false-positive issues
-- If Context7 tools are available:
-  * Use resolve-library-id + query-docs to verify library API usage in flagged code
-
-INSTRUCTIONS:
-1. Read the CLAUDE.md file(s) in this repository first
-2. Run MCP TOOL DISCOVERY steps above
-3. Review the Wave 0 per-package context to understand package-level findings
-4. Review the specified files for issues in your domain
-5. Use Wave 0 findings to AVOID duplicating per-package issues already found
-6. Focus on CROSS-CUTTING concerns that span multiple packages
-7. Use MCP tools (gopls, Context7) during analysis where they add precision
-8. Use structured output format with severity classification
-9. Include file:line references for every finding
-10. For each finding, provide a concrete fix recommendation
-
-OUTPUT FORMAT:
-Return findings as:
-### [CRITICAL|HIGH|MEDIUM|LOW]: [One-line summary]
-**File**: `path/to/file:LINE`
-**Issue**: [Description]
-**Impact**: [Why this matters]
-**Fix**: [Concrete code fix]
-**Wave 0 Cross-Ref**: [Which Wave 0 package finding this relates to, if any]
----
-```
-
-**Agent-specific prompt additions:**
-
-| Agent | Extra Instructions |
-|-------|-------------------|
-| `reviewer-security` | Focus on OWASP Top 10, auth, input validation, secrets. **MCP**: For Go, use gopls `go_symbol_references` to trace tainted input flows. **CALLER TRACING (mandatory)**: When the diff modifies functions with security-sensitive parameters (auth tokens, filter flags, sentinel values like `"*"`), grep for ALL callers across the repo and verify each validates the parameter. Do NOT trust PR descriptions — verify independently. |
-| `reviewer-business-logic` | Focus on requirements coverage, edge cases, state transitions. **CALLER TRACING (mandatory)**: When the diff changes interface semantics or introduces sentinel values, grep for ALL callers (`.MethodName(`) across the repo and verify each honors the contract. Do NOT claim "no caller passes X" without searching. |
-| Architecture reviewer | Focus on patterns, naming, structure, maintainability. **MCP**: For Go, use gopls `go_file_context` to understand cross-file dependencies |
-| `reviewer-silent-failures` | Focus on catch blocks, error swallowing, fallback behavior. **MCP**: For Go, use gopls `go_diagnostics` to verify error handling correctness |
-| `reviewer-test-analyzer` | Focus on coverage gaps, missing edge case tests, test quality. **ASSERTION DEPTH CHECK (mandatory)**: For security-sensitive code, flag presence-only assertions (NotEmpty, NotNil, hasKey). Tests MUST verify actual values, not just existence. |
-| `reviewer-type-design` | Focus on invariants, encapsulation, type safety. **MCP**: For Go, use gopls `go_package_api` to understand type surface area |
-| `reviewer-code-quality` | Focus on CLAUDE.md compliance, conventions, style |
-| `reviewer-comment-analyzer` | Focus on comment accuracy, rot, misleading docs |
-| `reviewer-language-specialist` | Detect language from files, check modern stdlib, idioms, concurrency, LLM tells. **MCP**: For Go files, use gopls `go_file_context` and `go_diagnostics` to detect non-idiomatic patterns with type awareness. If org conventions detected, append org-specific flags to prompt. |
-| `reviewer-docs-validator` | Check README.md, CLAUDE.md, deps, CI config, build system, LICENSE. Review the project, not the code. **MCP**: Use Context7 to verify documented library versions/APIs match actual usage |
-| `reviewer-adr-compliance` | Auto-discover ADRs from `adr/` and `.adr-session.json`. Check every decision point has implementation, no contradictions, no scope creep. Output ADR COMPLIANT or NOT ADR COMPLIANT. |
-| `reviewer-newcomer` | Review from a newcomer/fresh-eyes perspective. Focus on: documentation gaps that would confuse a new developer, implicit assumptions not explained in code or comments, confusing variable/function names, unclear control flow, missing "why" explanations. Flag anything where a developer unfamiliar with this codebase would be lost. |
-
-**Gate**: All Wave 1 agents dispatched in a single message (12 agents). Wait for all to complete. Proceed to Phase 2b.
+**Gate**: All 12 Wave 1 agents dispatched in a single message. Wait for all to complete. Proceed to Phase 2b.
 
 ---
 
-### Phase 2b: WAVE 0+1 AGGREGATE
+## Phase 2b: WAVE 0+1 AGGREGATE
 
-**Goal**: Collect Wave 0 and Wave 1 findings into a structured summary that becomes Wave 2's input context.
+Read `${CLAUDE_SKILL_DIR}/references/wave-1-foundation.md` for the Wave 0+1 combined summary format.
 
-**Step 1: Collect all Wave 1 findings**
+**Step 1**: Collect all Wave 1 agent outputs. Extract findings with severity, file, description, fix.
 
-Read each Wave 1 agent's output. Extract findings with severity, file, description, and fix.
+**Step 2**: Build combined Wave 0+1 summary (Wave 0 per-package findings + Wave 1 cross-cutting findings). Identify overlapping findings between waves — duplicates validate both agents' analysis.
 
-**Step 2: Build Wave 0+1 Summary**
-
-Create a condensed summary combining Wave 0 per-package findings and Wave 1 cross-cutting findings. This combined summary becomes the context injected into every Wave 2 agent.
-
-```markdown
-## Wave 0+1 Findings Summary (for Wave 2 context)
-
-### Wave 0 Per-Package Summary: [N packages reviewed]
-- Packages with issues: [list with health status]
-- Cross-package patterns: [list]
-- Hotspot packages: [top 3 by finding count]
-- Key per-package findings:
-  - [package]: [SEVERITY] [summary]
-  - ...
-
-### Security (Agent 1): [N findings]
-- CRITICAL: [list if any]
-- HIGH: [list]
-- Files with security issues: [list]
-
-### Business Logic (Agent 2): [N findings]
-- State transitions identified: [list]
-- Edge cases flagged: [list]
-- Files with domain issues: [list]
-
-### Architecture (Agent 3): [N findings]
-- Architectural patterns noted: [list]
-- Hot paths identified: [list]
-- Files with structural issues: [list]
-
-### Silent Failures (Agent 4): [N findings]
-- Swallowed errors at: [file:line list]
-- Error paths without handling: [list]
-- Files with error handling gaps: [list]
-
-### Test Coverage (Agent 5): [N findings]
-- Coverage gaps: [list]
-- Untested paths: [list]
-
-### Type Design (Agent 6): [N findings]
-- Weak types identified: [list]
-- Type safety issues at: [file:line list]
-
-### Code Quality (Agent 7): [N findings]
-- Convention baseline established: [patterns]
-- Convention violations: [list]
-- CLAUDE.md compliance issues: [list]
-
-### Comments (Agent 8): [N findings]
-- Comment rot at: [file:line list]
-- Stale TODOs: [list]
-
-### Language Specialist (Agent 9): [N findings]
-- Language-specific issues: [list]
-- Modern stdlib opportunities: [list]
-- LLM code tells: [list]
-
-### Docs & Config (Agent 10): [N findings]
-- Documentation gaps: [list]
-- Dependency issues: [list]
-- CI/build issues: [list]
-
-### ADR Compliance (Agent 11): [N findings]
-- ADR decisions not implemented: [list]
-- ADR contradictions: [list]
-- Scope creep: [list]
-
-### Newcomer Perspective (Agent 12): [N findings]
-- Documentation gaps: [list]
-- Confusing code: [list]
-- Implicit assumptions: [list]
-- Onboarding friction: [list]
-
-```
-
-**Step 3: Quick-deduplicate Wave 0+1**
-
-Identify overlapping findings between Wave 0 per-package agents and Wave 1 cross-cutting agents. Note duplicates for final aggregation but keep all findings in the context — Wave 2 agents benefit from seeing the raw data. Wave 0 findings that were also caught by Wave 1 validate both agents' analysis.
-
-**Step 4: Save Wave 1 findings and combined summary to disk**
-
-Write both raw Wave 1 findings AND the combined Wave 0+1 summary to disk:
+**Step 3: Save to disk** — do NOT skip:
 
 ```bash
-# Save raw Wave 1 findings (individual agent outputs)
 cat > "$REVIEW_DIR/wave1-findings.md" << 'WAVE1_EOF'
-[Paste ALL Wave 1 agent outputs — the raw findings from each of the 12 agents]
+[Paste ALL Wave 1 agent outputs]
 WAVE1_EOF
 
-# Save the combined Wave 0+1 summary (the structured context for Wave 2)
 cat > "$REVIEW_DIR/wave01-summary.md" << 'WAVE01_EOF'
-[Paste the Wave 0+1 Findings Summary built in Step 2 above]
+[Paste the Wave 0+1 Findings Summary]
 WAVE01_EOF
 
 echo "Saved Wave 1 findings: $(wc -l < "$REVIEW_DIR/wave1-findings.md") lines"
 echo "Saved Wave 0+1 summary: $(wc -l < "$REVIEW_DIR/wave01-summary.md") lines"
 ```
 
-**CRITICAL**: Do NOT skip this step. Wave 2 agents need the combined summary, and context compaction WILL fire between Wave 1 aggregate and Wave 2 dispatch on large reviews.
-
 **Gate**: Wave 0+1 summary built, saved to `$REVIEW_DIR/wave01-summary.md`. Proceed to Phase 3a.
 
 ---
 
-### Phase 3a: WAVE 2 DISPATCH
+## Phase 3a: WAVE 2 DISPATCH
 
-**Goal**: Launch all 10 deep-dive agents in a SINGLE message, each receiving Wave 0+1 findings summary as context.
+**ALL 10 Wave 2 agent dispatches MUST be in ONE message.**
 
-**CRITICAL**: ALL 10 Wave 2 agent dispatches MUST be in ONE message.
+Read `${CLAUDE_SKILL_DIR}/references/wave-2-deep-dive.md` for:
+- Complete agent roster (10 agents with focus areas and Wave 1 context used)
+- Standard agent prompt template (with Wave 0+1 context injection)
+- Agent-specific context instructions
 
-**Step 0: Load Wave 0+1 findings from disk**
-
-Before constructing agent prompts, reload the combined summary from disk (in case context compaction has occurred since Phase 2b):
+**Step 0: Load Wave 0+1 findings from disk**:
 
 ```bash
-WAVE01_SUMMARY=$(cat "$REVIEW_DIR/wave01-summary.md" 2>/dev/null || echo "ERROR: Wave 0+1 summary not found at $REVIEW_DIR/wave01-summary.md — cannot proceed with Wave 2")
+WAVE01_SUMMARY=$(cat "$REVIEW_DIR/wave01-summary.md" 2>/dev/null || echo "ERROR: Wave 0+1 summary not found — cannot proceed with Wave 2")
 ```
 
-If the file is missing, something went wrong in Phase 2b. Re-read `$REVIEW_DIR/wave0-findings.md` and `$REVIEW_DIR/wave1-findings.md` and rebuild the summary before proceeding.
-
-**Model**: Use `model: sonnet` for all Wave 2 agents. The orchestrator (this skill) runs on Opus; dispatched review agents run on Sonnet.
-
-Each Wave 2 agent prompt should include the standard review scope PLUS the Wave 0+1 context:
-
-```
-REVIEW SCOPE:
-- Files to review: [list of changed files]
-- Change context: [what was changed and why, if known]
-- Repository: [current directory]
-
-WAVE 0+1 CONTEXT (use this to focus your analysis):
-[Insert $WAVE01_SUMMARY — loaded from $REVIEW_DIR/wave01-summary.md]
-
-MCP TOOL DISCOVERY (do this FIRST, before any file reads):
-- Use ToolSearch to check for available MCP tools that can enhance your analysis:
-  a. Run ToolSearch("gopls") — if Go files are in scope, this loads type-aware
-     analysis tools (go_file_context, go_diagnostics, go_symbol_references, etc.)
-  b. Run ToolSearch("context7") — loads library documentation lookup tools for
-     verifying dependency usage and API correctness
-- If gopls tools are available AND this is a Go repository:
-  * Use go_file_context after reading any .go file to understand intra-package dependencies
-  * Use go_symbol_references before flagging unused or misused symbols
-  * Use go_diagnostics on files you flag to confirm real vs false-positive issues
-- If Context7 tools are available:
-  * Use resolve-library-id + query-docs to verify library API usage in flagged code
-
-INSTRUCTIONS:
-1. Read the CLAUDE.md file(s) in this repository first
-2. Run MCP TOOL DISCOVERY steps above
-3. Review the Wave 0 per-package context for package-level issues already found
-4. Review the Wave 1 cross-cutting context for foundation issues already found
-5. Use Wave 0+1 findings to FOCUS your deep-dive analysis:
-   - Prioritize packages flagged as NEEDS_ATTENTION or CRITICAL by Wave 0
-   - Prioritize files and paths flagged by Wave 1
-   - Look for issues in YOUR domain that neither Wave 0 nor Wave 1 would catch
-   - Cross-reference your findings with both waves to add depth
-6. Do NOT simply repeat Wave 0 or Wave 1 findings — add NEW insights
-7. Use MCP tools (gopls, Context7) during analysis where they add precision
-8. Use structured output format with severity classification
-9. Include file:line references for every finding
-
-OUTPUT FORMAT:
-Return findings as:
-### [CRITICAL|HIGH|MEDIUM|LOW]: [One-line summary]
-**File**: `path/to/file:LINE`
-**Issue**: [Description]
-**Impact**: [Why this matters]
-**Fix**: [Concrete code fix]
-**Wave 0+1 Cross-Ref**: [Which earlier finding this relates to, if any]
----
-```
-
-**Wave 2 agent-specific prompt additions:**
-
-| Agent | Extra Context Instructions |
-|-------|--------------------------|
-| `reviewer-performance` | Use Wave 0 per-package findings to identify packages with complexity issues. Use Wave 1 architecture findings to identify hot paths. Focus on algorithmic complexity, N+1 queries, allocation waste. **MCP**: For Go, use gopls `go_symbol_references` to trace hot path call chains |
-| `reviewer-concurrency` | Use Wave 0 per-package findings for concurrent patterns within packages. Use Wave 1 silent-failure + architecture findings for cross-package concurrent paths. Focus on races, goroutine leaks, deadlocks. **MCP**: For Go, use gopls `go_diagnostics` to detect race condition warnings |
-| `reviewer-api-contract` | Use Wave 0 per-package findings to understand internal API surfaces. Use Wave 1 business-logic + type-design findings for contract-sensitive endpoints. Focus on breaking changes, status codes. **MCP**: Use Context7 to verify API contract claims against library docs |
-| `reviewer-dependency-audit` | Use Wave 1 docs-validator findings to cross-reference documented vs actual dependencies. Run govulncheck/npm audit/pip-audit. Focus on CVEs, licenses, deprecated packages. **MCP**: Use Context7 `resolve-library-id` + `query-docs` to verify dependency API usage. For Go, use gopls `go_vulncheck` for vulnerability scanning |
-| `reviewer-error-messages` | Use Wave 0 per-package error handling patterns. Use Wave 1 silent-failure + code-quality findings. Focus on error message quality, actionability, consistency. |
-| `reviewer-dead-code` | Use Wave 0 per-package findings to identify unused internal APIs between files. Use Wave 1 code-quality + docs-validator findings. Focus on unreachable code, unused exports. |
-| `reviewer-naming-consistency` | Use Wave 0 per-package naming patterns to detect intra-package drift. Use Wave 1 code-quality + language-specialist findings. Focus on cross-package naming consistency. |
-| `reviewer-observability` | Use Wave 0 per-package findings for packages missing instrumentation. Use Wave 1 silent-failure findings for error paths missing observability. Focus on RED metrics gaps. |
-| `reviewer-config-safety` | Use Wave 0 per-package findings for hardcoded values within packages. Use Wave 1 security + docs-validator findings. Focus on secrets, missing env var validation. |
-| `reviewer-migration-safety` | Use Wave 1 api-contract + business-logic findings to identify migration-sensitive changes. Focus on reversible migrations, deprecation paths, rollback safety. |
+If the file is missing, re-read `$REVIEW_DIR/wave0-findings.md` and `$REVIEW_DIR/wave1-findings.md` and rebuild the summary before proceeding.
 
 **Gate**: All 10 Wave 2 agents dispatched in a single message. Wait for all to complete. Proceed to Phase 3b.
 
 ---
 
-### Phase 3b: WAVE 0+1+2 AGGREGATE
+## Phase 3b: WAVE 0+1+2 AGGREGATE
 
-**Goal**: Merge Wave 0+1+2 findings into a structured summary for Wave 3 adversarial review. This is NOT the final aggregate — Wave 3 will challenge these findings.
-
-**Step 0: Load all prior wave findings from disk**
-
-Reload all wave findings from disk before aggregating (context compaction may have fired):
+**Step 0: Reload all prior wave findings from disk**:
 
 ```bash
-# Reload all wave findings from disk
 WAVE0=$(cat "$REVIEW_DIR/wave0-findings.md" 2>/dev/null || echo "")
 WAVE1=$(cat "$REVIEW_DIR/wave1-findings.md" 2>/dev/null || echo "")
 echo "Loaded Wave 0: $(echo "$WAVE0" | wc -l) lines, Wave 1: $(echo "$WAVE1" | wc -l) lines"
 ```
 
-**Step 1: Collect all findings**
+**Step 1**: Combine Wave 0 per-package, Wave 1 cross-cutting, and Wave 2 deep-dive findings.
 
-Combine Wave 0 per-package (from `$REVIEW_DIR/wave0-findings.md`), Wave 1 cross-cutting (from `$REVIEW_DIR/wave1-findings.md`), and Wave 2 deep-dive findings (just returned from agents) into a single list.
+**Step 2: Deduplicate** — if two or more agents flagged the same file:line, keep the highest severity, merge fix recommendations, note which agents found it (reinforces importance). Prefer Wave 2 fixes when they add Wave 0+1 context.
 
-**Step 2: Preliminary deduplication**
-
-If two or more agents flagged the same file:line:
-- Keep the highest severity classification
-- Merge fix recommendations (later waves may have more targeted fixes)
-- Note which agents found it (reinforces importance)
-- Prefer Wave 2 fixes when they add Wave 0+1 context (deepest understanding)
-- Wave 0 per-package findings confirmed by Wave 1+2 are high-confidence
-
-**Step 3: Classify by severity**
+**Step 3: Classify by severity**:
 
 | Severity | Meaning | Action |
 |----------|---------|--------|
@@ -856,332 +348,122 @@ If two or more agents flagged the same file:line:
 | MEDIUM | Quality issue, missing test, comment rot, naming drift | Fix (auto) |
 | LOW | Style preference, minor simplification, documentation | Fix (auto) |
 
-**Step 4: Build preliminary summary matrix**
+**Step 4**: Build preliminary summary matrix. Read `${CLAUDE_SKILL_DIR}/references/output-templates.md` for the full matrix format.
 
-```
-| Agent                    | Wave | CRITICAL | HIGH | MEDIUM | LOW |
-|--------------------------|------|----------|------|--------|-----|
-| Per-Package: [pkg1]      | 0    | N        | N    | N      | N   |
-| Per-Package: [pkg2]      | 0    | N        | N    | N      | N   |
-| Per-Package: [...]       | 0    | N        | N    | N      | N   |
-| **Wave 0 Subtotal**      | **0**| **N**    | **N**| **N**  | **N**|
-| Security                 | 1    | N        | N    | N      | N   |
-| Business Logic           | 1    | N        | N    | N      | N   |
-| Architecture             | 1    | N        | N    | N      | N   |
-| Silent Failures          | 1    | N        | N    | N      | N   |
-| Test Coverage            | 1    | N        | N    | N      | N   |
-| Type Design              | 1    | N        | N    | N      | N   |
-| Code Quality             | 1    | N        | N    | N      | N   |
-| Comment Analyzer         | 1    | N        | N    | N      | N   |
-| Language Specialist      | 1    | N        | N    | N      | N   |
-| Docs & Config            | 1    | N        | N    | N      | N   |
-| ADR Compliance           | 1    | N        | N    | N      | N   |
-| Newcomer                 | 1    | N        | N    | N      | N   |
-| **Wave 1 Subtotal**      | **1**| **N**    | **N**| **N**  | **N**|
-| Performance              | 2    | N        | N    | N      | N   |
-| Concurrency              | 2    | N        | N    | N      | N   |
-| API Contract             | 2    | N        | N    | N      | N   |
-| Dependency Audit         | 2    | N        | N    | N      | N   |
-| Error Messages           | 2    | N        | N    | N      | N   |
-| Dead Code                | 2    | N        | N    | N      | N   |
-| Naming Consistency       | 2    | N        | N    | N      | N   |
-| Observability            | 2    | N        | N    | N      | N   |
-| Config Safety            | 2    | N        | N    | N      | N   |
-| Migration Safety         | 2    | N        | N    | N      | N   |
-| **Wave 2 Subtotal**      | **2**| **N**    | **N**| **N**  | **N**|
-| **Wave 0+1+2 TOTAL**     |      | **N**    | **N**| **N**  | **N**|
-```
-
-**Step 5: Save Wave 2 findings and combined summary to disk**
-
-Write Wave 2 raw findings AND the combined Wave 0+1+2 summary to disk for Wave 3 context:
+**Step 5: Save to disk** — do NOT skip:
 
 ```bash
-# Save Wave 2 raw findings
 cat > "$REVIEW_DIR/wave2-findings.md" << 'WAVE2_EOF'
 [Paste ALL Wave 2 agent outputs]
 WAVE2_EOF
 
-# Save the combined Wave 0+1+2 summary (the structured context for Wave 3)
 cat > "$REVIEW_DIR/wave012-summary.md" << 'WAVE012_EOF'
-[Paste the preliminary summary matrix + all classified findings from Steps 2-4]
+[Paste the preliminary summary matrix + all classified findings]
 WAVE012_EOF
 
 echo "Saved Wave 2 findings: $(wc -l < "$REVIEW_DIR/wave2-findings.md") lines"
 echo "Saved Wave 0+1+2 summary: $(wc -l < "$REVIEW_DIR/wave012-summary.md") lines"
 ```
 
-**CRITICAL**: Do NOT skip this step. Wave 3 agents need the combined summary, and context compaction WILL fire between Wave 2 aggregate and Wave 3 dispatch on large reviews.
-
 **Gate**: Wave 0+1+2 summary built, saved to `$REVIEW_DIR/wave012-summary.md`. Proceed to Phase 3c.
 
 ---
 
-### Phase 3c: WAVE 3 DISPATCH — Adversarial Perspectives
+## Phase 3c: WAVE 3 DISPATCH — Adversarial Perspectives
 
-**Goal**: Launch 4-5 adversarial agents in a SINGLE message. These agents CHALLENGE the Wave 1+2 consensus — they are not looking for new issues, they are questioning whether existing findings are real, correctly prioritized, and worth fixing.
+**ALL Wave 3 agent dispatches MUST be in ONE message.**
 
-**CRITICAL**: ALL Wave 3 agent dispatches MUST be in ONE message.
+Read `${CLAUDE_SKILL_DIR}/references/wave-3-adversarial.md` for:
+- Complete agent roster (4-5 agents with adversarial roles)
+- SAPCC conditional detection script
+- Standard adversarial prompt template (with Wave 0+1+2 context injection)
+- Agent-specific challenge focus instructions
+- Wave agreement label definitions (UNANIMOUS / MAJORITY / CONTESTED)
 
-**Step 0: Load Wave 0+1+2 findings from disk**
-
-Before constructing agent prompts, reload the combined summary from disk (in case context compaction has occurred since Phase 3b):
-
-```bash
-WAVE012_SUMMARY=$(cat "$REVIEW_DIR/wave012-summary.md" 2>/dev/null || echo "ERROR: Wave 0+1+2 summary not found at $REVIEW_DIR/wave012-summary.md — cannot proceed with Wave 3")
-```
-
-If the file is missing, re-read `$REVIEW_DIR/wave0-findings.md`, `$REVIEW_DIR/wave1-findings.md`, and `$REVIEW_DIR/wave2-findings.md` and rebuild the summary before proceeding.
-
-**Step 1: Check SAPCC conditional**
+**Step 0: Load Wave 0+1+2 findings from disk**:
 
 ```bash
-# Check for SAP Commerce Cloud indicators
-SAPCC_DETECTED=false
-if [ -d "hybris" ] || [ -d "core-customize" ] || [ -f "config/localextensions.xml" ]; then
-    SAPCC_DETECTED=true
-fi
-if [ -f "manifest.json" ] && grep -q '"commerceSuiteVersion"' manifest.json 2>/dev/null; then
-    SAPCC_DETECTED=true
-fi
-echo "SAPCC detected: $SAPCC_DETECTED"
+WAVE012_SUMMARY=$(cat "$REVIEW_DIR/wave012-summary.md" 2>/dev/null || echo "ERROR: Wave 0+1+2 summary not found — cannot proceed with Wave 3")
 ```
 
-If `SAPCC_DETECTED=true`, include `reviewer-sapcc-structural` as a 5th Wave 3 agent. Otherwise dispatch only the 4 core adversarial agents.
-
-**Model**: Use `model: sonnet` for all Wave 3 agents. The orchestrator (this skill) runs on Opus; dispatched review agents run on Sonnet.
-
-**Step 2: Dispatch Wave 3 agents**
-
-Each Wave 3 agent prompt should include the standard review scope PLUS the full Wave 0+1+2 context, with explicit instructions to CHALLENGE rather than reinforce:
-
-```
-ADVERSARIAL REVIEW — Wave 3
-
-REVIEW SCOPE:
-- Files to review: [list of changed files]
-- Change context: [what was changed and why, if known]
-- Repository: [current directory]
-
-WAVE 0+1+2 FINDINGS (the consensus you are challenging):
-[Insert $WAVE012_SUMMARY — loaded from $REVIEW_DIR/wave012-summary.md]
-
-YOUR ROLE: You are an ADVERSARIAL reviewer. Your job is NOT to find new issues.
-Your job is to CHALLENGE the findings above. Push back. Question severity.
-Identify false positives. Flag overreactions. Surface tradeoffs that earlier
-waves accepted without scrutiny.
-
-INSTRUCTIONS:
-1. Read the CLAUDE.md file(s) in this repository first
-2. Read the code being reviewed
-3. Read the Wave 0+1+2 findings carefully
-4. For each finding from earlier waves, determine:
-   a. AGREE — the finding is real, correctly classified, and worth fixing
-   b. CHALLENGE — the finding is questionable (explain why)
-   c. DOWNGRADE — the finding is real but over-classified (suggest correct severity)
-   d. DISMISS — the finding is a false positive or not worth fixing (provide evidence)
-5. Surface any tradeoffs or second-order effects the earlier waves missed
-6. Be specific — vague disagreement is not useful
-
-OUTPUT FORMAT:
-### CHALLENGE: [One-line summary of what you're challenging]
-**Original finding**: [Wave N, Agent, Severity: summary]
-**Your verdict**: [AGREE | CHALLENGE | DOWNGRADE | DISMISS]
-**Reasoning**: [Why you disagree or agree]
-**Evidence**: [Code reference, real-world precedent, or logical argument]
-**Suggested action**: [Keep as-is | Reduce to MEDIUM | Drop | Needs human judgment]
----
-```
-
-**Wave 3 agent-specific prompt additions:**
-
-| Agent | Extra Instructions |
-|-------|-------------------|
-| `reviewer-contrarian` | Challenge every HIGH and CRITICAL finding. Are they actually important? Which are false positives? Which are over-classified? Look for findings where Wave 1+2 agents reinforced each other's bias rather than independently verifying. Question whether suggested fixes introduce new problems. |
-| `reviewer-skeptical-senior` | Apply 10+ years of engineering experience. Which findings are theoretical risks that never manifest in practice? Which are textbook answers that don't apply to this codebase's scale/context? Flag "resume-driven" suggestions (over-engineering, premature optimization). Identify findings where the cure is worse than the disease. |
-| `reviewer-user-advocate` | Focus exclusively on user impact. Does this change break existing users? Are migration paths safe? Are UX tradeoffs justified? Challenge findings that improve code quality at the expense of user experience. Flag findings that ignore backward compatibility. Question whether "fixing" something makes it harder for users. |
-| `reviewer-meta-process` | Step back from individual findings. Is the overall approach correct? Should this PR be split into smaller PRs? Are the right problems being solved? Is the review itself focused on the right things? Flag cases where the review is bikeshedding on style while missing structural issues. Question whether the fix phase will create more churn than the findings are worth. |
-| `reviewer-sapcc-structural` | **(SAPCC repos only)** Challenge findings through SAP Commerce Cloud structural lens. Do findings account for hybris extension lifecycle? Are suggested fixes compatible with the SAP build system? Do architecture recommendations respect CCv2 manifest constraints? Flag findings that would break extension wiring or data model migrations. |
+If the file is missing, rebuild from `$REVIEW_DIR/wave0-findings.md`, `$REVIEW_DIR/wave1-findings.md`, and `$REVIEW_DIR/wave2-findings.md` before proceeding.
 
 **Gate**: All Wave 3 agents dispatched in a single message (4-5 agents). Wait for all to complete. Proceed to Phase 3d.
 
 ---
 
-### Phase 3d: FULL AGGREGATE — Wave Agreement Synthesis
+## Phase 3d: FULL AGGREGATE — Wave Agreement Synthesis
 
-**Goal**: Merge ALL agents' findings (Wave 0+1+2+3) into a final, severity-classified, deduplicated report WITH wave-agreement labels.
-
-**Step 0: Load all prior wave findings from disk**
-
-Reload all wave findings from disk before final aggregation (context compaction may have fired):
+**Step 0: Reload all prior wave findings from disk**:
 
 ```bash
-# Reload all wave findings from disk
 WAVE0=$(cat "$REVIEW_DIR/wave0-findings.md" 2>/dev/null || echo "")
 WAVE1=$(cat "$REVIEW_DIR/wave1-findings.md" 2>/dev/null || echo "")
 WAVE2=$(cat "$REVIEW_DIR/wave2-findings.md" 2>/dev/null || echo "")
 WAVE012=$(cat "$REVIEW_DIR/wave012-summary.md" 2>/dev/null || echo "")
-echo "Loaded Wave 0: $(echo "$WAVE0" | wc -l) lines"
-echo "Loaded Wave 1: $(echo "$WAVE1" | wc -l) lines"
-echo "Loaded Wave 2: $(echo "$WAVE2" | wc -l) lines"
-echo "Loaded Wave 0+1+2 summary: $(echo "$WAVE012" | wc -l) lines"
 ```
 
-**Step 1: Process Wave 3 challenges**
+**Step 1: Process Wave 3 challenges** (from `${CLAUDE_SKILL_DIR}/references/wave-3-adversarial.md`):
+- AGREE → reinforces finding
+- CHALLENGE → flag for human review
+- DOWNGRADE → reduce severity if multiple Wave 3 agents agree
+- DISMISS → drop if 2+ Wave 3 agents dismiss AND no Wave 1+2 agent rated CRITICAL
 
-For each Wave 3 agent's output, categorize their verdicts:
-- **AGREE** verdicts: Reinforces the original finding (increases confidence)
-- **CHALLENGE** verdicts: Flags the finding for human review
-- **DOWNGRADE** verdicts: Suggests lower severity (adjust if multiple Wave 3 agents agree)
-- **DISMISS** verdicts: Suggests dropping the finding (only drop if 2+ Wave 3 agents dismiss AND no Wave 1+2 agent rated it CRITICAL)
+**Step 2**: Label every finding UNANIMOUS / MAJORITY / CONTESTED. Read `${CLAUDE_SKILL_DIR}/references/wave-3-adversarial.md` for the label criteria.
 
-**Step 2: Label every finding with wave agreement level**
+**Step 3**: Create a "Contested Findings" section listing each CONTESTED finding with both sides' evidence and recommended disposition.
 
-Every finding from the final report MUST carry one of these labels:
+**Step 4**: Build final summary matrix. Read `${CLAUDE_SKILL_DIR}/references/output-templates.md` for the full matrix format.
 
-| Label | Meaning | Criteria | Action |
-|-------|---------|----------|--------|
-| **UNANIMOUS** | All waves agree | Wave 1+2 found it AND Wave 3 agrees (or does not challenge) | HIGH confidence — fix without hesitation |
-| **MAJORITY** | Most waves agree | Wave 1+2 found it AND 1-2 Wave 3 agents challenge but others agree | Fix, but note the challenge in the report |
-| **CONTESTED** | Wave 3 contradicts Wave 1+2 | Wave 1+2 found it BUT 3+ Wave 3 agents challenge or dismiss | Needs human judgment — present both arguments |
-
-**Step 3: Surface Wave 3 challenges that contradict consensus**
-
-Create a dedicated section listing all CONTESTED findings. For each:
-- The original Wave 1+2 finding and severity
-- The Wave 3 challenge(s) and reasoning
-- Both sides' evidence
-- Recommended disposition (fix / skip / needs human decision)
-
-**Step 4: Build final summary matrix**
-
-```
-| Agent                    | Wave | CRITICAL | HIGH | MEDIUM | LOW |
-|--------------------------|------|----------|------|--------|-----|
-| Per-Package: [pkg1]      | 0    | N        | N    | N      | N   |
-| Per-Package: [pkg2]      | 0    | N        | N    | N      | N   |
-| Per-Package: [...]       | 0    | N        | N    | N      | N   |
-| **Wave 0 Subtotal**      | **0**| **N**    | **N**| **N**  | **N**|
-| Security                 | 1    | N        | N    | N      | N   |
-| Business Logic           | 1    | N        | N    | N      | N   |
-| Architecture             | 1    | N        | N    | N      | N   |
-| Silent Failures          | 1    | N        | N    | N      | N   |
-| Test Coverage            | 1    | N        | N    | N      | N   |
-| Type Design              | 1    | N        | N    | N      | N   |
-| Code Quality             | 1    | N        | N    | N      | N   |
-| Comment Analyzer         | 1    | N        | N    | N      | N   |
-| Language Specialist      | 1    | N        | N    | N      | N   |
-| Docs & Config            | 1    | N        | N    | N      | N   |
-| ADR Compliance           | 1    | N        | N    | N      | N   |
-| Newcomer                 | 1    | N        | N    | N      | N   |
-| **Wave 1 Subtotal**      | **1**| **N**    | **N**| **N**  | **N**|
-| Performance              | 2    | N        | N    | N      | N   |
-| Concurrency              | 2    | N        | N    | N      | N   |
-| API Contract             | 2    | N        | N    | N      | N   |
-| Dependency Audit         | 2    | N        | N    | N      | N   |
-| Error Messages           | 2    | N        | N    | N      | N   |
-| Dead Code                | 2    | N        | N    | N      | N   |
-| Naming Consistency       | 2    | N        | N    | N      | N   |
-| Observability            | 2    | N        | N    | N      | N   |
-| Config Safety            | 2    | N        | N    | N      | N   |
-| Migration Safety         | 2    | N        | N    | N      | N   |
-| **Wave 2 Subtotal**      | **2**| **N**    | **N**| **N**  | **N**|
-| Contrarian               | 3    | — challenges — | — | — | — |
-| Skeptical Senior         | 3    | — challenges — | — | — | — |
-| User Advocate            | 3    | — challenges — | — | — | — |
-| Meta-Process             | 3    | — challenges — | — | — | — |
-| SAPCC Structural         | 3    | — challenges — | — | — | — |
-| **Wave 3 Summary**       | **3**| **N agreed** | **N challenged** | **N downgraded** | **N dismissed** |
-| **TOTAL (post-Wave 3)**  |      | **N**    | **N**| **N**  | **N**|
-```
-
-**Wave Agreement Summary:**
-
-```
-| Agreement Level | Count | Action |
-|-----------------|-------|--------|
-| UNANIMOUS       | N     | Fix immediately — high confidence |
-| MAJORITY        | N     | Fix, note challenge in report |
-| CONTESTED       | N     | Needs human judgment — present both sides |
-```
-
-**Step 5: Save all findings to disk**
-
-Write Wave 3 findings and the final aggregated report to disk:
+**Step 5: Save all findings to disk**:
 
 ```bash
-# Save Wave 3 raw findings (adversarial challenge outputs)
 cat > "$REVIEW_DIR/wave3-findings.md" << 'WAVE3_EOF'
-[Paste ALL Wave 3 agent outputs — the raw challenge verdicts from each agent]
+[Paste ALL Wave 3 agent outputs]
 WAVE3_EOF
 
-# Save the final deduplicated, severity-classified, agreement-labeled report
 cat > "$REVIEW_DIR/final-report.md" << 'REPORT_EOF'
-[Paste the full summary matrix + all classified findings + agreement labels + contested findings section]
+[Paste the full summary matrix + all classified findings + agreement labels + contested section]
 REPORT_EOF
 
 echo "Saved Wave 3 findings: $(wc -l < "$REVIEW_DIR/wave3-findings.md") lines"
 echo "Saved final report: $(wc -l < "$REVIEW_DIR/final-report.md") lines"
-echo "All findings persisted at: $REVIEW_DIR/"
 ls -la "$REVIEW_DIR/"
 ```
 
-**Step 6: Present summary to user**
+**Step 6**: Show the matrix, agreement summary, and CONTESTED findings BEFORE proceeding to fixes. If `--review-only`, stop here.
 
-Show the matrix, agreement summary, and CONTESTED findings list BEFORE proceeding to fixes. If `--review-only`, stop here.
+For CONTESTED findings: "Wave 3 challenges these N findings. Fix them anyway, skip them, or decide individually?"
 
-For CONTESTED findings, explicitly ask the user: "Wave 3 challenges these N findings. Fix them anyway, skip them, or decide individually?"
-
-**Gate**: All 25+ agents' findings classified, deduplicated, agreement-labeled, saved to `$REVIEW_DIR/final-report.md`, matrix built. User informed of contested findings. Proceed to Phase 4.
+**Gate**: All findings classified, deduplicated, agreement-labeled, saved to `$REVIEW_DIR/final-report.md`. User informed of contested findings. Proceed to Phase 4.
 
 ---
 
-### Phase 4: FIX
+## Phase 4: FIX
 
-**Goal**: Fix EVERY finding. Zero deferred. Zero "out of scope." Zero "will fix later."
+**NO DEFERRED FIXES. Fix EVERY finding. Zero "out of scope." Zero "will fix later."**
 
-**Step 0: Load findings from disk**
+The only acceptable reason not to fix a finding: applying it breaks tests AND an alternative fix also breaks tests. Even then, BLOCKED items must be fewer than 10% of total findings.
 
-Reload the final report from disk before fixing (context compaction almost certainly fired during the 20+ agent dispatch/aggregate cycle):
+**Step 0: Load findings from disk**:
 
 ```bash
-# This is your source of truth for what to fix
 cat "$REVIEW_DIR/final-report.md"
 ```
 
-If the file is missing, rebuild from individual wave files:
-```bash
-cat "$REVIEW_DIR/wave0-findings.md" "$REVIEW_DIR/wave1-findings.md" "$REVIEW_DIR/wave2-findings.md" "$REVIEW_DIR/wave3-findings.md"
-```
+If missing, rebuild: `cat "$REVIEW_DIR/wave0-findings.md" "$REVIEW_DIR/wave1-findings.md" "$REVIEW_DIR/wave2-findings.md" "$REVIEW_DIR/wave3-findings.md"`
 
-**Wave Agreement Handling in Fix Phase:**
+**Wave Agreement Handling**:
 
 | Agreement Level | Fix Behavior |
 |-----------------|-------------|
-| **UNANIMOUS** | Fix without hesitation — all waves agree |
-| **MAJORITY** | Fix, but include Wave 3 challenge as code comment if the challenge has merit |
-| **CONTESTED** | Fix only if user approved during Phase 3d. If user said "skip", do not fix. If user said "decide individually", follow their per-finding decisions. |
-
-**CRITICAL RULE: NO DEFERRED FIXES.** Every finding from every wave MUST be fixed. The only acceptable reason to not fix a finding is if applying it breaks tests — and even then, try an alternative fix before giving up. "Deferred" is not a valid status. "Out of scope" is not a valid reason. If an agent found it, fix it.
-
-**Common deferral rationalizations to REJECT:**
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Pre-existing, not modified by this PR" | The review found it. It's a real issue. Fix it. | Fix it in the same branch — pre-existing bugs are still bugs |
-| "Needs follow-up PR" | Follow-up PRs don't happen. Fix it now. | Fix it now — one PR with all fixes |
-| "Architectural change required" | If you can describe the fix, you can implement it | Implement the fix, even if it touches multiple files |
-| "Needs design decision" | The agent already suggested a fix — use it | Apply the suggested fix or a reasonable alternative |
-| "Acceptable risk / low impact" | If it was worth reporting, it's worth fixing | Fix it — the agent wouldn't flag it if it didn't matter |
-| "Test-only code, doesn't matter" | Test code quality affects reliability | Fix test code to the same standard as production code |
-| "Documentation task / maintenance task" | Docs and maintenance are code. Fix them. | Update the docs, bump the dependency, fix the README |
-| "Standard pattern / convention choice" | If an agent flagged it as an issue, the pattern is wrong here | Fix it or explicitly justify in a code comment why it's intentional |
-| "Optimization, not a bug" | Performance issues ARE bugs to your users | Apply the optimization |
+| UNANIMOUS | Fix without hesitation |
+| MAJORITY | Fix, include Wave 3 challenge as code comment if challenge has merit |
+| CONTESTED | Fix only if user approved during Phase 3d. Follow per-finding decisions. |
 
 **Step 1: Create branch**
 
 ```bash
-# Create fix branch from current HEAD
 git checkout -b review-fixes/$(date +%Y%m%d-%H%M%S)
 ```
 
@@ -1189,18 +471,12 @@ Or use `EnterWorktree` for full isolation.
 
 **Step 2: Fix ALL findings by severity (CRITICAL first)**
 
-Order:
-1. CRITICAL — fix immediately, test after each
-2. HIGH — fix in batch, test after batch
-3. MEDIUM — fix in batch, test after batch
-4. LOW — fix in batch, test after batch
-
-**Every severity level gets fixed.** LOW findings are not optional. MEDIUM findings are not "nice to have." Fix them all.
+Order: CRITICAL → HIGH → MEDIUM → LOW. Every level gets fixed — LOW is not optional.
 
 For each fix:
 1. State which finding is being addressed (wave, agent, severity, file:line)
 2. Apply the fix
-3. Verify the fix compiles/parses
+3. Verify it compiles/parses
 4. Run relevant tests
 
 ```bash
@@ -1215,17 +491,16 @@ npx tsc --noEmit && npx vitest run
 make check 2>/dev/null || make test 2>/dev/null
 ```
 
-**Step 3: Apply simplifications and docs fixes LAST**
+**Step 3**: Apply simplifications (run `reviewer-code-simplifier` on already-fixed files) and docs fixes LAST — docs should reflect final code state.
 
-Run `reviewer-code-simplifier` on already-fixed files (final code polish). Apply `reviewer-docs-validator` fixes after code is finalized (docs should reflect final state). Simplification and docs should be the last changes.
-
-**Step 4: If a fix breaks tests**
-
+**Step 4: If a fix breaks tests**:
 1. Revert the specific fix
-2. Try an ALTERNATIVE fix that addresses the same finding differently
-3. If the alternative also breaks tests, note as "BLOCKED — breaks tests, alternative also failed"
+2. Try an ALTERNATIVE fix for the same finding
+3. If alternative also fails: mark "BLOCKED — breaks tests, alternative also failed"
 4. Continue with remaining fixes
-5. "BLOCKED" items must be fewer than 10% of total findings. If more than 10% are blocked, something is wrong with the fix approach — reassess.
+5. BLOCKED items must be <10% of total
+
+**Reject all deferral rationalizations**: "pre-existing bug", "needs follow-up PR", "architectural change required", "acceptable risk", "test-only code", "standard pattern" — if an agent found it, fix it.
 
 **Step 5: Commit**
 
@@ -1238,156 +513,11 @@ git commit -m "fix: apply comprehensive review findings (N fixes across M files)
 
 ---
 
-### Phase 5: REPORT
+## Phase 5: REPORT
 
-**Goal**: Generate comprehensive report documenting everything.
+Write `comprehensive-review-report.md`. Read `${CLAUDE_SKILL_DIR}/references/output-templates.md` for the full report template.
 
-Write `comprehensive-review-report.md`:
-
-```markdown
-# Comprehensive Code Review Report v3
-
-**Date**: [date]
-**Files reviewed**: [N]
-**Packages discovered**: [N]
-**Agents dispatched**: [N] (Wave 0: [N per-package], Wave 1: 12, Wave 2: 10, Wave 3: [4-5 adversarial])
-**Total findings**: [N]
-**Findings fixed**: [N]
-**Findings blocked**: [N] (ONLY if fix breaks tests after alternative attempt — must be <10%)
-
----
-
-## Verdict: [CLEAN | ALL_FIXED | BLOCKED_ITEMS]
-
-- CLEAN: No findings (rare)
-- ALL_FIXED: Every finding was fixed (expected outcome)
-- BLOCKED_ITEMS: Some fixes break tests even after alternative attempts (<10%)
-
-[2-3 sentences: Overall assessment. What systemic patterns emerged?
-Is the codebase better after fixes?]
-
-## Wave Summary
-
-| Wave | Agents | Findings | Fixed | Unique to Wave |
-|------|--------|----------|-------|----------------|
-| Wave 0 (Per-Package) | N | N | N | N |
-| Wave 1 (Foundation) | 12 | N | N | N |
-| Wave 2 (Deep-Dive) | 10 | N | N | N |
-| Wave 3 (Adversarial) | N | — | — | N challenges |
-| **TOTAL** | **N** | **N** | **N** | |
-
-## Wave Agreement Analysis
-
-| Agreement Level | Count | Fixed | Skipped | Human Decided |
-|-----------------|-------|-------|---------|---------------|
-| UNANIMOUS       | N     | N     | —       | —             |
-| MAJORITY        | N     | N     | —       | —             |
-| CONTESTED       | N     | N     | N       | N             |
-
-## Wave 0: Per-Package Results
-
-| Package | Health | Files | Findings | Key Issue |
-|---------|--------|-------|----------|-----------|
-| [pkg/path1] | HEALTHY | N | N | — |
-| [pkg/path2] | NEEDS_ATTENTION | N | N | [biggest] |
-| ... | ... | ... | ... | ... |
-
-**Cross-Package Patterns**: [List of patterns seen across multiple packages]
-
-## Agent Summary
-
-| Agent | Wave | Findings | Fixed | Blocked | Key Issue |
-|-------|------|----------|-------|---------|-----------|
-| Per-Package (total) | 0 | N | N | N | [biggest] |
-| Security | 1 | N | N | N | [biggest] |
-| Business Logic | 1 | N | N | N | [biggest] |
-| Architecture | 1 | N | N | N | [biggest] |
-| Silent Failures | 1 | N | N | N | [biggest] |
-| Test Coverage | 1 | N | N | N | [biggest] |
-| Type Design | 1 | N | N | N | [biggest] |
-| Code Quality | 1 | N | N | N | [biggest] |
-| Comment Analyzer | 1 | N | N | N | [biggest] |
-| Language Specialist | 1 | N | N | N | [biggest] |
-| Docs & Config | 1 | N | N | N | [biggest] |
-| ADR Compliance | 1 | N | N | N | [biggest] |
-| Newcomer | 1 | N | N | N | [biggest] |
-| Performance | 2 | N | N | N | [biggest] |
-| Concurrency | 2 | N | N | N | [biggest] |
-| API Contract | 2 | N | N | N | [biggest] |
-| Dependency Audit | 2 | N | N | N | [biggest] |
-| Error Messages | 2 | N | N | N | [biggest] |
-| Dead Code | 2 | N | N | N | [biggest] |
-| Naming Consistency | 2 | N | N | N | [biggest] |
-| Observability | 2 | N | N | N | [biggest] |
-| Config Safety | 2 | N | N | N | [biggest] |
-| Migration Safety | 2 | N | N | N | [biggest] |
-| Contrarian | 3 | — | — | — | [key challenge] |
-| Skeptical Senior | 3 | — | — | — | [key challenge] |
-| User Advocate | 3 | — | — | — | [key challenge] |
-| Meta-Process | 3 | — | — | — | [key challenge] |
-| SAPCC Structural | 3 | — | — | — | [key challenge or N/A] |
-| **TOTAL** | | **N** | **N** | **N** | |
-
-## Context Cascade Effectiveness
-
-How each wave's context helped later waves find deeper issues:
-
-| Wave 2 Agent | Wave 0 Context Used | Wave 1 Context Used | Additional Findings Due to Context |
-|-------------|--------------------|--------------------|-------------------------------------|
-| Performance | Package complexity hotspots | Architecture hot paths | [N findings] |
-| Concurrency | Intra-package concurrent patterns | Silent failures + arch | [N findings] |
-| ... | ... | ... | ... |
-
-### Wave 3 Challenge Effectiveness
-
-How adversarial review changed the final outcome:
-
-| Wave 3 Agent | Findings Challenged | Downgraded | Dismissed | Key Insight |
-|-------------|--------------------|-----------|-----------|----|
-| Contrarian | N | N | N | [biggest challenge] |
-| Skeptical Senior | N | N | N | [biggest challenge] |
-| User Advocate | N | N | N | [biggest challenge] |
-| Meta-Process | N | N | N | [biggest challenge] |
-| SAPCC Structural | N or N/A | N | N | [biggest challenge or N/A] |
-
-## Findings by Severity
-
-### CRITICAL
-[Each finding with before/after code]
-
-### HIGH
-[Each finding with before/after code]
-
-### MEDIUM
-[Summary with file references]
-
-### LOW
-[Brief list]
-
-## Contested Findings (Wave 3 vs Wave 1+2)
-
-| Finding | Wave 1+2 Severity | Wave 3 Verdict | Resolution |
-|---------|-------------------|----------------|------------|
-| [summary] | HIGH | CHALLENGE: [reason] | [Fixed / Skipped / Human decided] |
-| ... | ... | ... | ... |
-
-## Quick Wins Applied
-[List of easy fixes that improved quality]
-
-## Blocked Items (if any — must be <10% of total)
-[List of findings where fix AND alternative fix both break tests]
-[Each must include: what was tried, why it failed, suggested manual approach]
-
-## What's Done Well
-[Genuine positives found during review]
-
-## Systemic Recommendations
-[2-3 big-picture patterns observed across findings]
-```
-
-**Step 2: Note findings location**
-
-Display the findings directory path so the user knows where raw data lives:
+Display findings directory path to user:
 
 ```
 Review findings persisted at: $REVIEW_DIR/
@@ -1400,15 +530,29 @@ Review findings persisted at: $REVIEW_DIR/
   final-report.md     — Aggregated, deduplicated, agreement-labeled
 ```
 
-These files persist in `/tmp/` until next reboot. They can be re-read in future sessions if needed.
-
-**Gate**: Report written, findings persisted to disk. Display summary to user. Review complete.
+**Gate**: Report written, findings persisted. Display summary to user. Review complete.
 
 ---
 
-## Combining with Existing Skills
+## Error Handling
 
-### When to use which
+**Agent Times Out**: Report findings from completed agents immediately. Note which timed out. Offer to re-run separately. Proceed with partial results — do not block the entire wave.
+
+**Fix Breaks Tests**: Revert the specific fix. Try an ALTERNATIVE approach for the same finding. If alternative also fails, mark BLOCKED. Continue. BLOCKED must be <10%.
+
+**Conflicting Fixes**: Prefer security fix over style. Prefer correctness over simplification. Wave 2 fixes with Wave 0+1 context generally have better understanding. Apply higher-severity agent's fix — never skip.
+
+**No Changed Files**: Ask user "Which files would you like reviewed?" If "everything", scan all source files. Warn about scope.
+
+**No Packages Discovered**: Skip Wave 0 silently. Proceed to Wave 1 with note: "Wave 0 skipped — no package structure detected." Wave 1 and Wave 2 still run normally.
+
+**Too Many Packages (>30)**: Report count and batch requirement. Proceed with batching — quality matters more than speed. Consider filtering to packages containing changed files if reviewing a PR.
+
+**Wave Finds No Findings**: Good news. Still dispatch subsequent waves with note: "Wave [N] found no issues. Perform independent analysis." Empty findings confirm quality.
+
+---
+
+## When to Use Which
 
 | Situation | Use This |
 |-----------|----------|
@@ -1418,199 +562,3 @@ These files persist in `/tmp/` until next reboot. They can be re-read in future 
 | Quick 3-reviewer check, no fix | `/parallel-code-review` |
 | PR comment validation | `/pr-review-address-feedback` |
 | Sequential deep dive | `systematic-code-review` skill |
-
----
-
-## Error Handling
-
-### Error: "Agent Times Out"
-Cause: One or more agents exceed execution time.
-Solution:
-1. Report findings from completed agents immediately
-2. Note which agent(s) timed out
-3. Offer to re-run failed agent separately
-4. Proceed with partial results — do not block the entire wave
-
-### Error: "Fix Breaks Tests"
-Cause: Applied fix introduces a regression.
-Solution:
-1. Revert the specific fix immediately
-2. Try an ALTERNATIVE fix approach for the same finding
-3. If alternative also fails, mark as "BLOCKED — both approaches break tests"
-4. Continue with remaining fixes
-5. Blocked items must be <10% of total — if higher, reassess fix strategy
-
-### Error: "Conflicting Fixes"
-Cause: Two agents suggest contradictory fixes for same code.
-Solution:
-1. Prefer security fix over style fix (security wins)
-2. Prefer correctness over simplification
-3. Wave 2 fixes with Wave 0+1 context generally have better understanding
-4. If genuinely ambiguous, apply the higher-severity agent's fix — never skip
-
-### Error: "No Changed Files Found"
-Cause: No git diff, no PR context, no changes to review.
-Solution:
-1. Ask user: "Which files would you like reviewed?"
-2. If user says "everything", scan all source files
-3. Warn about review scope and time for large repos
-
-### Error: "No Packages Discovered"
-Cause: Wave 0 package discovery finds no packages (no internal/ dirs, no __init__.py, no index.ts).
-Solution:
-1. Skip Wave 0 entirely — this is not an error
-2. Proceed to Wave 1 with note: "Wave 0 skipped — no package structure detected"
-3. Wave 1 and Wave 2 still run normally without Wave 0 context
-
-### Error: "Too Many Packages (>30)"
-Cause: Large monorepo with many packages discovered.
-Solution:
-1. Report: "Discovered [N] packages. Wave 0 will require [ceil(N/10)] batches."
-2. Proceed with batching — quality matters more than speed
-3. Consider filtering to packages containing changed files if reviewing a PR
-
-### Error: "Wave 0/1 Produces No Findings"
-Cause: A wave finds nothing to report.
-Solution:
-1. This is good news — code passed that wave's review
-2. Still dispatch subsequent waves with note: "Wave [N] found no issues. Perform independent analysis."
-3. Empty findings from early waves are still useful context — they confirm code quality
-
----
-
-## Anti-Patterns
-
-### AP-1: Sequential Agent Dispatch
-**What it looks like**: Sending one Agent call, waiting, then sending the next.
-**Why wrong**: Multiplies review time. Agents within a wave are independent.
-**Do instead**: ALL Agent dispatches within a wave in ONE message.
-
-### AP-2: Fixing Without Full Review
-**What it looks like**: Fixing Wave 1 findings while Wave 2 is still running.
-**Why wrong**: Wave 2 may find conflicting or deeper issues. Deduplication requires all results.
-**Do instead**: Complete Phase 3b full aggregation before ANY fixes.
-
-### AP-3: Skipping "Trivial" Agents
-**What it looks like**: "No new types, skip type-design-analyzer"
-**Why wrong**: Existing types in changed files may have issues. Let agents find nothing.
-**Do instead**: Run all agents. Empty results are fast and confirm quality.
-
-### AP-4: Fixing on Main Branch
-**What it looks like**: Applying fixes directly on the user's current branch.
-**Why wrong**: Review fixes should be isolated for easy revert.
-**Do instead**: Always create a fix branch or use worktree.
-
-### AP-5: Deferring Fixes
-**What it looks like**: Marking findings as "deferred", "out of scope", or "will fix later."
-**Why wrong**: Deferred fixes never get fixed. The whole point of comprehensive review is fixing everything now.
-**Do instead**: Fix every finding. If a fix breaks tests, try an alternative approach. Only "BLOCKED" (fix + alternative both break tests) is acceptable, and must be <10%.
-
-### AP-6: Skipping Wave 2
-**What it looks like**: "Wave 1 found enough, no need for Wave 2."
-**Why wrong**: Wave 2 agents find categories of issues Wave 1 cannot (performance, concurrency, naming, etc.).
-**Do instead**: Always run all waves unless `--wave1-only` or `--skip-wave0` is explicitly passed.
-
-### AP-7: Not Passing Context Between Waves
-**What it looks like**: Dispatching Wave 1 without Wave 0 context, or Wave 2 without Wave 0+1 context.
-**Why wrong**: The entire value of multi-wave architecture is context-aware analysis. Each wave enriches the next.
-**Do instead**: Always include prior wave findings summaries in every subsequent wave agent prompt.
-
-### AP-8: Dispatching Too Many Per-Package Agents at Once
-**What it looks like**: Sending 25 per-package agents in one message.
-**Why wrong**: Max 10 agents per message. Exceeding this causes failures.
-**Do instead**: Batch Wave 0 agents in groups of 10. Wait for each batch before sending the next.
-
-### AP-9: Skipping Wave 3
-**What it looks like**: "Wave 1+2 consensus is strong enough, no need for adversarial review."
-**Why wrong**: Consensus without challenge is groupthink. Wave 3 catches over-classified findings, false positives, and user-impact blind spots that reinforcing waves miss.
-**Do instead**: Always run Wave 3. Adversarial challenge improves signal-to-noise ratio.
-
-### AP-10: Wave 3 Agents Agreeing With Everything
-**What it looks like**: Wave 3 agents return "AGREE" on every finding without genuine challenge.
-**Why wrong**: The purpose of Wave 3 is adversarial pressure-testing. Universal agreement means the agents are not doing their job.
-**Do instead**: If Wave 3 returns >90% AGREE, note this in the report as "Wave 3 did not provide meaningful challenge — findings may benefit from human review."
-
-### AP-11: "Acceptable" as a Review Disposition
-**What it looks like**: "This is a real issue but acceptable for now" / "valid but deferred" / "conservative, not a bug"
-**Why wrong**: "Acceptable" acknowledges a problem while avoiding the cost of addressing it. Creates the illusion of thoroughness without substance.
-**Do instead**: FIX NOW, FIX IN FOLLOW-UP (with tracked artifact), or NOT AN ISSUE (with evidence). No middle ground.
-*Graduated from /do SKILL.md — incident: Kafka PR shipped double-backoff classified as "conservative, not a bug"*
-
-### AP-12: Deferred Findings Without Tracking Artifacts
-**What it looks like**: "We'll address this in a follow-up" with no issue, TODO, or learning.db entry created.
-**Why wrong**: "Follow-up" without a tracking artifact is a polite way of saying "never."
-**Do instead**: Create a tracking artifact (GitHub issue, `TODO(follow-up):` in code, learning.db entry) before marking any finding as deferred.
-*Graduated from /do SKILL.md — incident: Kafka PR deferred findings lost between review rounds*
-
----
-
-## Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Small PR, skip comprehensive" | Small PRs hide big bugs | Run all 4 waves |
-| "Tests pass, no review needed" | Tests don't catch all issues | Tests are necessary but not sufficient |
-| "Just a style fix" | Style issues compound into tech debt | Fix every finding |
-| "Fix phase takes too long" | Finding bugs in prod takes longer | Fix now or fix later at 10x cost |
-| "Agent found nothing, wasted" | Confirming quality is valuable | No finding = confidence |
-| "I'll fix the LOWs manually later" | Later never comes | Auto-fix everything now |
-| "This finding is out of scope" | If an agent found it, it's in scope | Fix it — scope is everything agents report |
-| "32 findings deferred" | Deferred = not fixed = failed review | Fix all 32. Zero deferred. |
-| "Only actionable findings fixed" | ALL findings are actionable — agents don't report non-actionable things | Fix every finding |
-| "Wave 1 is enough" | Wave 2 finds performance, concurrency, naming issues Wave 1 misses | Run all waves |
-| "Wave 0 is slow, skip it" | Per-package context catches issues cross-cutting agents miss | Run Wave 0 unless explicitly skipped |
-| "Too many packages, batch overhead" | Batching costs tokens, not accuracy | Batch all packages, even if it takes 3+ batches |
-| "Wave 3 is overkill" | Adversarial review catches groupthink and false positives | Run Wave 3 — it improves signal-to-noise |
-| "All waves agree, no need for Wave 3" | Agreement without challenge is untested consensus | Wave 3 validates consensus — agreement AFTER challenge is meaningful |
-| "Wave 3 challenges mean findings are wrong" | Challenges are data, not verdicts | Present both sides — let humans decide on CONTESTED findings |
-
----
-
-## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization Core](../shared-patterns/anti-rationalization-core.md)
-- [Anti-Rationalization Review](../shared-patterns/anti-rationalization-review.md)
-- [Severity Classification](../shared-patterns/severity-classification.md)
-- [Gate Enforcement](../shared-patterns/gate-enforcement.md)
-- [Verification Checklist](../shared-patterns/verification-checklist.md)
-
-### Related Skills & Agents
-
-**Wave 1 Agents:**
-- `reviewer-security` — OWASP Top 10, auth, injection, secrets
-- `reviewer-business-logic` — Edge cases, state transitions, requirements
-- Architecture reviewer — Patterns, structure (language-specific agent)
-- `reviewer-silent-failures` — Swallowed errors, empty catches
-- `reviewer-test-analyzer` — Coverage gaps, test quality
-- `reviewer-type-design` — Invariants, encapsulation
-- `reviewer-code-quality` — CLAUDE.md compliance, conventions
-- `reviewer-comment-analyzer` — Comment accuracy, rot
-- `reviewer-language-specialist` — Modern stdlib, idioms, LLM tells
-- `reviewer-docs-validator` — README, CLAUDE.md, deps, CI
-- `reviewer-adr-compliance` — ADR compliance, decision mapping, scope creep
-- `reviewer-newcomer` — Fresh-eyes perspective, documentation gaps, onboarding friction
-
-**Wave 2 Agents:**
-- `reviewer-performance` — Hot paths, N+1, allocations, caching
-- `reviewer-concurrency` — Races, goroutine leaks, deadlocks
-- `reviewer-api-contract` — Breaking changes, status codes, schemas
-- `reviewer-dependency-audit` — CVEs, licenses, deprecated packages
-- `reviewer-error-messages` — Actionable errors, context, consistency
-- `reviewer-dead-code` — Unreachable code, unused exports, stale flags
-- `reviewer-naming-consistency` — Convention drift, acronym casing
-- `reviewer-observability` — Metrics, logging, traces, health checks
-- `reviewer-config-safety` — Hardcoded values, env vars, secrets
-- `reviewer-migration-safety` — Reversible migrations, deprecation paths
-
-**Wave 3 Agents (Adversarial):**
-- `reviewer-contrarian` — Challenges findings, identifies false positives and over-classification
-- `reviewer-skeptical-senior` — Experience-based skepticism, theoretical vs real-world risks
-- `reviewer-user-advocate` — User impact assessment, UX tradeoffs, backward compatibility
-- `reviewer-meta-process` — Process review, PR splitting, approach validation
-- `reviewer-sapcc-structural` — (conditional) SAP Commerce Cloud structural integrity
-
-**Related Skills:**
-- `parallel-code-review` — 3-agent subset (security, business, arch) without fix
-- `systematic-code-review` — Sequential 4-phase methodology
-- `pr-review-address-feedback` — PR comment validation and triage

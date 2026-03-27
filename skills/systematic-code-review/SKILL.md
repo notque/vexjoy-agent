@@ -23,48 +23,7 @@ routing:
 
 # Systematic Code Review Skill
 
-## Operator Context
-
-This skill operates as an operator for systematic code review, configuring Claude's behavior for thorough, verifiable review processes. It implements the **Iterative Refinement** architectural pattern — understand context, verify claims, assess risks, document findings — with **Domain Intelligence** embedded in severity classification and Go-specific review patterns.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before executing review
-- **Over-Engineering Prevention**: Don't suggest features outside PR scope, but DO flag all issues IN the changed code even if fixing them requires touching other files. No speculative improvements.
-- **Strict Severity Classification**: Use the Severity Classification Rules below. When in doubt, classify UP not down.
-- **NEVER approve without running tests**: Review must include test execution
-- **NEVER trust comments without verification**: All claims must be verified against code
-- **NEVER skip security assessment**: Security implications must be explicitly evaluated
-- **Complete phase gates**: Each phase must complete before proceeding
-
-### Default Behaviors (ON unless disabled)
-- **Communication Style**: Report facts without self-congratulation. Show command output rather than describing it. Be concise but informative
-- **Temporary File Cleanup**: Remove any temporary analysis files, notes, or debug outputs created during review at task completion. Keep only the final review document
-- **Read all changed files**: Don't review summaries, read actual code
-- **Check affected dependencies**: Identify ripple effects
-- **Verify test coverage**: Confirm tests exist for changes
-- **Document all findings**: Create structured review output
-
-### Optional Behaviors (OFF unless enabled)
-- **Performance profiling**: Benchmark affected code paths
-- **Historical analysis**: Check for similar past issues
-- **Extended security audit**: Deep security analysis beyond standard checks
-
-## What This Skill CAN Do
-- Systematic phase-gated reviews with explicit gates between phases
-- Severity classification (BLOCKING / SHOULD FIX / SUGGESTION) with decision tree
-- Security, performance, and architecture risk assessment
-- Go-specific pattern detection (concurrency, resource management, type exports)
-- Go ecosystem pattern validation
-- Receiving review feedback patterns (when acting as code author)
-
-## What This Skill CANNOT Do
-- Write implementation code or implement features
-- Skip phases or bypass phase gates
-- Approve without running tests
-- Review without reading all changed files
-- Make speculative improvements outside PR scope
-
----
+Systematic 4-phase code review: UNDERSTAND changes, VERIFY claims against actual behavior, ASSESS security/performance/architecture risks, DOCUMENT findings with severity classification. Each phase has an explicit gate that must pass before proceeding because skipping phases causes missed context, incorrect conclusions, and incomplete risk assessment.
 
 ## Instructions
 
@@ -72,15 +31,19 @@ This skill operates as an operator for systematic code review, configuring Claud
 
 **Goal**: Map all changes and their relationships before forming any opinions.
 
-**Step 1: Read every changed file**
-- Use Read tool on EVERY changed file completely
-- Map what each file does and how changes affect it
+**Step 1: Read CLAUDE.md**
+- Read and follow repository CLAUDE.md files first because project conventions override default review criteria and may define custom severity rules, approved patterns, or scope constraints.
 
-**Step 2: Identify dependencies**
-- Use Grep to find all callers/consumers of changed code
-- Note any comments that make claims about behavior
+**Step 2: Read every changed file**
+- Use Read tool on EVERY changed file completely because reviewing summaries or reading partial files misses dependencies between changes and leads to incorrect conclusions.
+- Map what each file does and how changes affect it.
+- Check affected dependencies and identify ripple effects because changes in one file can break consumers that aren't in the diff.
 
-**Step 2a: Caller Tracing** (mandatory when diff modifies function signatures, parameter semantics, or introduces sentinel/special values)
+**Step 3: Identify dependencies**
+- Use Grep to find all callers/consumers of changed code.
+- Note any comments that make claims about behavior (these are claims to verify in Phase 2, not facts to trust).
+
+**Step 3a: Caller Tracing** (mandatory when diff modifies function signatures, parameter semantics, or introduces sentinel/special values)
 
 When the change modifies how a function/method is called or what parameters mean:
 
@@ -99,7 +62,7 @@ This step catches:
 - Callers the PR author forgot about or didn't mention
 - Interface implementations that don't enforce the same preconditions
 
-**Step 3: Document scope**
+**Step 4: Document scope**
 
 ```
 PHASE 1: UNDERSTAND
@@ -125,20 +88,21 @@ Questions for Author:
   - [Any unclear aspects that need clarification]
 ```
 
-**Gate**: All changed files read, scope fully mapped, callers traced (if applicable). Proceed only when gate passes.
+**Gate**: All changed files read (not just some — reading 2 of 5 files and saying "I get the gist" fails this gate), scope fully mapped, callers traced (if applicable). Proceed only when gate passes.
 
 ### Phase 2: VERIFY
 
 **Goal**: Validate all assertions in code, comments, and PR description against actual behavior.
 
 **Step 1: Run tests**
-- Execute existing tests for changed files
-- Capture complete test output
+- Execute existing tests for changed files because review cannot approve without test execution — visual inspection misses runtime issues that tests catch.
+- Capture complete test output. Show the output rather than describing it because facts outweigh narrative.
+- Verify test coverage: confirm tests exist for the changed code paths because untested code paths are a SHOULD FIX finding.
 
 **Step 2: Verify claims**
-- Check every comment claim against code behavior
-- Verify edge cases mentioned are actually handled
-- Trace through critical code paths manually
+- Check every comment claim against code behavior because comments frequently become outdated and developers may not understand what "thread-safe" actually means — never accept a comment as truth without inspecting the code that backs it.
+- Verify edge cases mentioned are actually handled.
+- Trace through critical code paths manually.
 
 **Step 3: Document verification**
 
@@ -160,30 +124,33 @@ Behavior Verification:
   - Match: YES | NO | PARTIAL
 ```
 
-**Gate**: All assertions in code/comments verified against actual behavior. Proceed only when gate passes.
+**Gate**: All assertions in code/comments verified against actual behavior. Tests executed with output captured. Proceed only when gate passes.
 
 ### Phase 3: ASSESS
 
 **Goal**: Evaluate security, performance, and architectural risks specific to these changes.
 
 **Step 1: Security assessment**
-- Evaluate OWASP top 10 against changes
-- Explain HOW each vulnerability was ruled out (not just checkboxes)
+- Never skip this step because security implications must be explicitly evaluated for every review, even when changes appear benign.
+- Evaluate OWASP top 10 against changes.
+- Explain HOW each vulnerability was ruled out (not just checkboxes) because a checkbox approach misses context-specific vulnerabilities and gives false confidence.
+- If optionally enabled: perform extended deep security analysis beyond standard checks.
 
 **Step 2: Performance assessment**
-- Identify performance-critical paths and evaluate impact
-- Check for N+1 queries, unbounded loops, unnecessary allocations
+- Identify performance-critical paths and evaluate impact.
+- Check for N+1 queries, unbounded loops, unnecessary allocations.
+- If optionally enabled: benchmark affected code paths with profiling.
 
 **Step 3: Architectural assessment**
-- Compare patterns to existing codebase conventions
-- Assess breaking change potential
+- Compare patterns to existing codebase conventions.
+- Assess breaking change potential.
+- If optionally enabled: check for similar past issues via historical analysis.
 
 **Step 4: Extraction severity escalation**
-- If the diff extracts inline code into named helper functions, re-evaluate all defensive guards
-- A missing check rated LOW as inline code (1 caller, "upstream validates") becomes MEDIUM as a reusable function (N potential callers)
-- See `skills/shared-patterns/severity-classification.md` for the full rule
+- If the diff extracts inline code into named helper functions, re-evaluate all defensive guards.
+- A missing check rated LOW as inline code (1 caller, "upstream validates") becomes MEDIUM as a reusable function (N potential callers).
 
-**Step 4: Document assessment**
+**Step 5: Document assessment**
 
 ```
 PHASE 3: ASSESS
@@ -205,11 +172,17 @@ Architectural Assessment:
 Risk Level: LOW | MEDIUM | HIGH | CRITICAL
 ```
 
-**Gate**: Security, performance, and architectural risks explicitly evaluated. Proceed only when gate passes.
+**Gate**: Security, performance, and architectural risks explicitly evaluated (not skipped or hand-waved). Proceed only when gate passes.
 
 ### Phase 4: DOCUMENT
 
 **Goal**: Produce structured review output with clear verdict and rationale.
+
+Report facts without self-congratulation. Show command output rather than describing it. Be concise but informative because the review consumer needs actionable findings, not commentary.
+
+Only flag issues within the scope of the changed code because suggesting features outside PR scope is over-engineering — but DO flag all issues IN the changed code even if fixing them requires touching other files. No speculative improvements.
+
+When classifying severity, use the Severity Classification Rules below and classify UP when in doubt because it is better to require a fix and have the author push back than to let a real issue slip through as "optional."
 
 ```
 PHASE 4: DOCUMENT
@@ -239,11 +212,15 @@ Verdict: APPROVE | REQUEST-CHANGES | NEEDS-DISCUSSION
 Rationale: [1-2 sentences explaining verdict]
 ```
 
+After producing the review, remove any temporary analysis files, notes, or debug outputs created during review because only the final review document should persist.
+
 **Gate**: Structured review output with clear verdict. Review is complete.
 
 ---
 
-## Trust Hierarchy
+## Reference Material
+
+### Trust Hierarchy
 
 When conflicting information exists, trust in this order:
 
@@ -254,93 +231,25 @@ When conflicting information exists, trust in this order:
 5. **Comments/docs** - Claims that need verification
 6. **PR description** (lowest) - May be outdated or incomplete
 
-## Severity Classification Rules
+### Severity Classification Rules
 
-**Guiding principle**: When in doubt, classify UP. It's better to require a fix and have the author push back than to let a real issue slip through as "optional."
+Three tiers: BLOCKING (cannot merge — security, correctness, reliability), SHOULD FIX (fix unless urgent — patterns, tests, debugging), SUGGESTIONS (genuinely optional — style, naming, micro-optimizations). When in doubt, classify UP.
 
-### BLOCKING (cannot merge without fixing)
+See `references/severity-classification.md` for full classification tables, the decision tree, and common misclassification examples.
 
-These issues MUST be fixed. Never mark these as "needs discussion" or "optional":
+### Go-Specific Review Patterns
 
-| Category | Examples |
-|----------|----------|
-| **Security vulnerabilities** | Authentication bypass, injection (SQL/XSS/command), data exposure, secrets in code, missing authorization checks |
-| **Test failures** | Any failing test, including pre-existing failures touched by the change |
-| **Breaking changes** | API breaking without migration, backward incompatible changes without versioning |
-| **Missing error handling** | Unhandled errors on network/filesystem/database operations, panics in production paths |
-| **Race conditions** | Concurrent access without synchronization, data races |
-| **Resource leaks** | Unclosed file handles, database connections, memory leaks in hot paths |
-| **Logic errors** | Off-by-one errors, incorrect conditionals, wrong return values |
+Watch for patterns that linters miss: type export design, concurrency patterns (batch+callback, loop variable capture, commit callbacks), resource management (defer placement, connection pool reuse), metrics pre-initialization, testing deduplication, and unnecessary function extraction.
 
-### SHOULD FIX (merge only if urgent, otherwise fix)
+For projects using shared organization libraries: check for manual SQL row iteration instead of helpers, incorrect assertion depth, raw `sql.Open()` in tests, dead migration files, and database-specific naming violations.
 
-These issues should be fixed unless there's time pressure. Never mark as "suggestion":
+See `references/go-review-patterns.md` for full checklists and red flags.
 
-| Category | Examples |
-|----------|----------|
-| **Missing tests** | New code paths without test coverage, untested error conditions |
-| **Unhelpful error messages** | Errors that don't include context for debugging (missing IDs, states, inputs) |
-| **Pattern violations** | Inconsistent with established codebase patterns (but still functional) |
-| **Performance in hot paths** | N+1 queries, unnecessary allocations in loops, missing indexes for frequent queries |
-| **Deprecated API usage** | Using APIs marked for removal, outdated patterns with better alternatives |
-| **Poor encapsulation** | Exposing internal state unnecessarily, breaking abstraction boundaries |
+### Receiving Review Feedback
 
-### SUGGESTIONS (author's choice)
+When receiving feedback: read completely, restate requirement to confirm understanding, verify against codebase, evaluate technical soundness, respond with reasoning or just fix it. Never performative agreement. Apply YAGNI check before implementing "proper" features. Stop and clarify before implementing anything unclear — items may be related.
 
-These are genuinely optional - author can reasonably decline:
-
-| Category | Examples |
-|----------|----------|
-| **Naming preferences** | Variable/function names that are adequate but could be clearer |
-| **Comment additions** | Places where a comment would help but code is understandable |
-| **Alternative approaches** | Different implementation that isn't clearly better |
-| **Style not in CLAUDE.md** | Formatting preferences not codified in project standards |
-| **Micro-optimizations** | Performance improvements in cold paths with no measurable impact |
-
-### Classification Decision Tree
-
-```
-Is there a security, correctness, or reliability risk?
-|- YES -> BLOCKING
-|- NO -> Does it violate established patterns or create maintenance burden?
-          |- YES -> SHOULD FIX
-          |- NO -> Is this purely stylistic or preferential?
-                   |- YES -> SUGGESTION (or don't mention)
-                   |- NO -> Re-evaluate: probably SHOULD FIX
-```
-
-### Common Misclassifications to Avoid
-
-| Issue | Wrong | Correct | Why |
-|-------|-------|---------|-----|
-| Missing error check on `os.Open()` | SUGGESTION | BLOCKING | Resource leak + potential panic |
-| No test for new endpoint | SUGGESTION | SHOULD FIX | Untested code is liability |
-| Race condition in cache | NEEDS DISCUSSION | BLOCKING | Data corruption risk |
-| Inconsistent naming | BLOCKING | SUGGESTION | No functional impact |
-| Missing context in error | SUGGESTION | SHOULD FIX | Debugging nightmare |
-| Unused import | BLOCKING | SHOULD FIX | Linter will catch, low impact |
-
----
-
-## Examples
-
-### Example 1: Pull Request Review
-User says: "Review this PR"
-Actions:
-1. Read all changed files, map scope and dependencies (UNDERSTAND)
-2. Run tests, verify claims in comments and PR description (VERIFY)
-3. Evaluate security/performance/architecture risks (ASSESS)
-4. Produce structured findings with severity and verdict (DOCUMENT)
-Result: Structured review with clear verdict and rationale
-
-### Example 2: Pre-Merge Verification
-User says: "Check this before we merge"
-Actions:
-1. Read all changes, identify breaking change potential (UNDERSTAND)
-2. Run full test suite, verify backward compatibility claims (VERIFY)
-3. Assess risk level for production deployment (ASSESS)
-4. Document findings with APPROVE/REQUEST-CHANGES verdict (DOCUMENT)
-Result: Go/no-go decision with evidence
+See `references/receiving-feedback.md` for the full reception pattern, pushback examples, implementation order, and external vs internal reviewer handling.
 
 ---
 
@@ -369,238 +278,24 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Reviewing Without Running Tests
-
-**What it looks like**: "I reviewed the code and it looks good. The logic seems correct."
-**Why wrong**: Comments and code may not match actual behavior. Tests reveal edge cases not visible in code reading. Cannot verify claims without execution.
-**Do instead**: Run tests in Phase 2. Show complete test output. Verify behavior matches claims.
-
-### Anti-Pattern 2: Accepting Comments as Truth
-
-**What it looks like**: Marking claims as verified just because a comment says so.
-**Why wrong**: Comments frequently become outdated. Developers may not understand what "thread-safe" actually means. Claims need verification against actual code.
-**Do instead**: Inspect code for every claim. Verify "thread-safe" means mutexes exist. Mark INVALID when comments lie.
-
-### Anti-Pattern 3: Skipping Phase Gates
-
-**What it looks like**: Reading 2 of 5 changed files and saying "I get the gist, moving to VERIFY..."
-**Why wrong**: Missing context leads to incorrect conclusions. Dependencies between files may be missed. Cannot assess full impact without complete understanding.
-**Do instead**: Read ALL changed files. Complete every gate before proceeding.
-
-### Anti-Pattern 4: Generic Security Checklist Without Context
-
-**What it looks like**: Checking all security boxes without explaining how vulnerabilities were ruled out.
-**Why wrong**: Checkbox approach misses context-specific vulnerabilities. Gives false confidence without actual analysis.
-**Do instead**: Explain HOW each vulnerability was ruled out. Mark N/A for irrelevant checks. Show evidence for findings.
-
----
-
-## Go-Specific Review Patterns
-
-When reviewing Go code, watch for these patterns that linters miss:
-
-### Type Export Design
-- [ ] Are implementation types unnecessarily exported?
-- [ ] Should types be unexported with only constructors exported?
-- **Red flag**: `type FooStore struct{}` exported but only implements an interface
-
-### Concurrency Patterns
-- [ ] Does batch+callback pattern protect against concurrent writes?
-- [ ] Does `commit()` only remove specific items, not clear all?
-- [ ] Are loop variables using outdated patterns? (Go 1.22+ doesn't need cloning)
-  - [ ] No `i := i` reassignment inside loops
-  - [ ] No closure arguments for loop variables: `go func(id int) { }(i)`
-- **Red flag**: `s.events = nil` in commit callback
-- **Red flag**: `go func(x int) { ... }(loopVar)` - closure argument unnecessary since Go 1.22
-
-### Resource Management
-- [ ] Is `defer f.Close()` placed AFTER error check?
-- [ ] Are database connection pools shared, not duplicated?
-- [ ] Is file traversal done once, not repeated for size calculation?
-- **Red flag**: `defer f.Close()` immediately after `os.OpenFile()`
-
-### Metrics & Observability
-- [ ] Are Prometheus counter metrics pre-initialized with `.Add(0)`?
-- [ ] Are all known label combinations initialized at startup?
-- **Red flag**: CounterVec registered but not initialized
-
-### Testing Patterns
-- [ ] Are interface implementation tests deduplicated?
-- [ ] Do tests use `assert.Equal` (no reflection) for comparable types?
-- [ ] Does test setup use `prometheus.NewPedanticRegistry()`?
-- **Red flag**: Copy-pasted tests for FileStore, MemoryStore, SQLStore
-
-### Code Organization
-- [ ] Is function extraction justified (reuse or complexity hiding)?
-- [ ] Are unnecessary helper functions wrapping stdlib calls?
-- **Red flag**: Helper that just calls through to another function
-
-## Organization Library Ecosystem Patterns
-
-When reviewing projects that use shared organization libraries, apply these additional checks:
-
-### Library Usage
-- [ ] Are optional fields using the organization's preferred option type?
-- [ ] Is SQL iteration using helper functions instead of manual `rows.Next()` loops?
-- [ ] Are tests using the organization's assertion helpers?
-- **Red flag**: Manual SQL row iteration with defer/Next/Scan/Err pattern when helpers exist
-
-### Test Assertions
-- [ ] Is the correct assertion function used for the type being compared?
-- [ ] Is deep comparison only used for non-comparable types (slices, maps, structs)?
-- **Red flag**: Deep comparison used for simple types like int, string, bool
-
-### Test Infrastructure
-- [ ] Are DB tests using the organization's test database helpers?
-- [ ] Are Prometheus tests using `NewPedanticRegistry()`?
-- **Red flag**: Raw `sql.Open()` in test setup instead of test helpers
-
-### Dead Code
-- [ ] Are there leftover `*_migration.sql` files without usage?
-- [ ] Are there helper functions that just wrap single stdlib calls?
-- [ ] Are there redundant checks (e.g., empty string check before regex)?
-- **Red flag**: Wrapper functions that add no value over the underlying call
-
-### Database Naming
-- [ ] Do functions using database-specific syntax indicate this in names?
-- **Red flag**: Generic `SQLStoreFactory` that uses database-specific syntax
-
----
-
-## Receiving Review Feedback
-
-When YOU are the one receiving code review feedback (not giving it), apply these patterns:
-
-### The Reception Pattern
-
-```
-WHEN receiving code review feedback:
-
-1. READ: Complete feedback without reacting
-2. UNDERSTAND: Restate requirement in own words (or ask)
-3. VERIFY: Check against codebase reality
-4. EVALUATE: Technically sound for THIS codebase?
-5. RESPOND: Technical acknowledgment or reasoned pushback
-6. IMPLEMENT: One item at a time, test each
-```
-
-### No Performative Agreement
-
-**NEVER:**
-- "You're absolutely right!"
-- "Great point!" / "Excellent feedback!"
-- "Thanks for catching that!"
-
-**INSTEAD:**
-- Restate the technical requirement
-- Ask clarifying questions
-- Push back with technical reasoning if wrong
-- Just start working (actions > words)
-
-**When feedback IS correct:**
-```
-"Fixed. [Brief description of what changed]"
-"Good catch - [specific issue]. Fixed in [location]."
-[Just fix it and show in the code]
-```
-
-### YAGNI Check for "Professional" Features
-
-```
-IF reviewer suggests "implementing properly":
-  grep codebase for actual usage
-
-  IF unused: "This endpoint isn't called. Remove it (YAGNI)?"
-  IF used: Then implement properly
-```
-
-### Handling Unclear Feedback
-
-```
-IF any item is unclear:
-  STOP - do not implement anything yet
-  ASK for clarification on unclear items
-
-WHY: Items may be related. Partial understanding = wrong implementation.
-```
-
-**Example:**
-```
-Reviewer: "Fix items 1-6"
-You understand 1,2,3,6. Unclear on 4,5.
-
-WRONG: Implement 1,2,3,6 now, ask about 4,5 later
-RIGHT: "I understand items 1,2,3,6. Need clarification on 4 and 5 before proceeding."
-```
-
-### When to Push Back
-
-Push back when:
-- Suggestion breaks existing functionality
-- Reviewer lacks full context
-- Violates YAGNI (unused feature)
-- Technically incorrect for this stack
-- Legacy/compatibility reasons exist
-
-**How to push back:**
-- Use technical reasoning, not defensiveness
-- Ask specific questions
-- Reference working tests/code
-
-**Example:**
-```
-Reviewer: "Remove legacy code"
-WRONG: "You're absolutely right! Let me remove that..."
-RIGHT: "Checking... build target is 10.15+, this API needs 13+. Need legacy for backward compat. Fix bundle ID or drop pre-13 support?"
-```
-
-### Implementation Order
-
-```
-FOR multi-item feedback:
-  1. Clarify anything unclear FIRST
-  2. Then implement in this order:
-     - Blocking issues (breaks, security)
-     - Simple fixes (typos, imports)
-     - Complex fixes (refactoring, logic)
-  3. Test each fix individually
-  4. Verify no regressions
-```
-
-### External vs Internal Reviewers
-
-**From external reviewers:**
-```
-BEFORE implementing:
-  1. Check: Technically correct for THIS codebase?
-  2. Check: Breaks existing functionality?
-  3. Check: Reason for current implementation?
-  4. Check: Does reviewer understand full context?
-
-IF suggestion seems wrong:
-  Push back with technical reasoning
-
-IF can't easily verify:
-  Say so: "I can't verify this without [X]. Should I investigate/proceed?"
-```
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Anti-Rationalization (Review)](../shared-patterns/anti-rationalization-review.md) - Review-specific rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-- [Severity Classification](../shared-patterns/severity-classification.md) - Issue severity definitions
+### Examples
 
-### Domain-Specific Anti-Rationalization
+#### Example 1: Pull Request Review
+User says: "Review this PR"
+Actions:
+1. Read CLAUDE.md, then read all changed files, map scope and dependencies (UNDERSTAND)
+2. Run tests, verify claims in comments and PR description (VERIFY)
+3. Evaluate security/performance/architecture risks (ASSESS)
+4. Produce structured findings with severity and verdict (DOCUMENT)
+Result: Structured review with clear verdict and rationale
 
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Code looks correct to me" | Visual inspection misses runtime issues | Run tests in Phase 2 |
-| "Comment says it's thread-safe" | Comments can be wrong or outdated | Verify claims against code |
-| "Only a small change" | Small changes cause large regressions | Complete all 4 phases |
-| "Tests pass, ship it" | Tests may not cover the changed paths | Verify coverage of changes |
+#### Example 2: Pre-Merge Verification
+User says: "Check this before we merge"
+Actions:
+1. Read CLAUDE.md, then read all changes, identify breaking change potential (UNDERSTAND)
+2. Run full test suite, verify backward compatibility claims (VERIFY)
+3. Assess risk level for production deployment (ASSESS)
+4. Document findings with APPROVE/REQUEST-CHANGES verdict (DOCUMENT)
+Result: Go/no-go decision with evidence

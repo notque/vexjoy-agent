@@ -30,69 +30,48 @@ routing:
 
 # Perses Dashboard Create
 
-Guided workflow for creating Perses dashboards with validation and deployment.
+Guided workflow for creating Perses dashboards from requirements through validation and deployment.
 
-## Operator Context
+## Overview
 
-This skill operates as a guided workflow for Perses dashboard creation, from requirements gathering through validation and deployment.
+This workflow guides you through four phases: gathering requirements, generating a dashboard definition, validating it, and deploying to Perses. The skill applies sensible defaults at each phase to minimize configuration while remaining flexible for advanced scenarios.
 
-### Hardcoded Behaviors (Always Apply)
-- **Validate before deploy**: Always run `percli lint` on generated dashboard definitions before applying
-- **MCP-first**: Use Perses MCP tools when available, percli CLI as fallback
-- **Scope-aware**: Ask which project the dashboard belongs to. Create the project first if it doesn't exist
-- **Plugin-aware**: Only use panel/query/variable plugin kinds from the official 27 plugins
-
-### Default Behaviors (ON unless disabled)
-- **CUE output**: Generate CUE definitions by default (can switch to JSON/YAML if requested)
-- **Prometheus datasource**: Default to Prometheus datasource if no datasource type specified
-- **Grid layout**: Use Grid layout with collapsible rows by default
-- **Variable templating**: Add common variables (job, instance, namespace) based on query patterns
-
-### Optional Behaviors (OFF unless enabled)
-- **Go SDK output**: Generate Go SDK code instead of CUE
-- **Ephemeral mode**: Create EphemeralDashboard with TTL for preview/CI
-- **Bulk creation**: Generate multiple dashboards from a specification
-
-## What This Skill CAN Do
-- Create complete dashboard definitions in CUE, Go, JSON, or YAML format
-- Configure datasources (Prometheus, Tempo, Loki, Pyroscope, ClickHouse, VictoriaLogs)
-- Set up variables with proper chains and interpolation formats
-- Validate definitions with percli lint
-- Deploy to Perses via percli apply or MCP tools
-- Generate CI/CD config for Dashboard-as-Code workflows
-
-## What This Skill CANNOT Do
-- Migrate Grafana dashboards (use perses-grafana-migrate)
-- Create custom panel plugins (use perses-plugin-create)
-- Deploy/configure Perses server itself (use perses-deploy)
-
----
+**Key workflow principle**: Requirements → Definition → Validation → Deployment. Never skip validation, even for simple dashboards, because percli lint catches structural errors early.
 
 ## Instructions
 
 ### Phase 1: GATHER Requirements
 
-**Goal**: Understand what the dashboard should display.
+Understand what the dashboard should display.
 
 1. **Identify metrics/data**: What should the dashboard show? (CPU, memory, request rates, traces, logs)
-2. **Identify datasource**: Which backend? (Prometheus, Tempo, Loki, Pyroscope, ClickHouse, VictoriaLogs)
-3. **Identify project**: Which Perses project does this belong to?
-4. **Identify layout**: How many panels? How should they be organized?
-5. **Identify variables**: What filters should be available? (cluster, namespace, pod, job, instance)
+2. **Identify datasource**: Which backend? (Prometheus, Tempo, Loki, Pyroscope, ClickHouse, VictoriaLogs). Defaults to Prometheus unless a datasource type is explicitly specified because Prometheus is the most common monitoring backend.
+3. **Identify project**: Which Perses project does this belong to? Always ask — if the project does not exist, create it first before proceeding, because dashboards cannot exist without a project.
+4. **Identify layout**: How many panels? How should they be organized? Defaults to Grid layout with collapsible rows using a 12-column width because this layout accommodates responsive rendering and flexible panel sizing.
+5. **Identify variables**: What filters should be available? (cluster, namespace, pod, job, instance). Automatically add job, instance, and namespace variables when query patterns suggest common labels, because these are the most frequently queried labels in monitoring scenarios.
 
-If the user provides minimal info, make reasonable defaults:
-- Default datasource: Prometheus
-- Default variables: job, instance
-- Default layout: Grid with collapsible rows, 12-column width
-- Default panels: TimeSeriesChart for time series, StatChart for single values, Table for lists
+**Application of defaults**: When the user provides minimal information, apply these defaults to reduce friction:
+- **Output format**: CUE definition by default because CUE provides strong type checking and modularity. Switch to JSON, YAML, or Go SDK only when explicitly requested.
+- **Datasource**: Prometheus (default) unless another type is specified
+- **Variables**: job, instance (minimum set for filtering)
+- **Layout**: Grid with collapsible rows, 12-column width
+- **Panels**: TimeSeriesChart for time series, StatChart for single values, Table for lists
+
+**Optional modes** (activate only when explicitly requested to keep the primary path simple):
+- **Go SDK output**: Generate Go SDK code instead of CUE
+- **Ephemeral mode**: Create EphemeralDashboard with TTL for preview/CI use
+- **Bulk creation**: Generate multiple dashboards from a specification
 
 **Gate**: Requirements gathered. Proceed to Phase 2.
 
 ### Phase 2: GENERATE Definition
 
-**Goal**: Create the dashboard definition.
+Create the dashboard definition.
 
 **Step 1: Check for Perses MCP tools**
+
+Use MCP tools as the primary interface because they provide direct API integration and better error context. Fall back to percli CLI only when MCP is unavailable.
+
 ```
 Use ToolSearch("perses") to discover available MCP tools.
 If perses_list_projects is available, use it to verify the target project exists.
@@ -101,7 +80,9 @@ If not, use percli get project to check.
 
 **Step 2: Generate dashboard definition**
 
-Generate a CUE definition by default. The structure follows:
+Generate a CUE definition by default, because CUE provides strong validation and modularity over JSON. Only use plugin kinds from the official set below — no invented or third-party kinds, because the Perses API only recognizes these standard plugins.
+
+The structure follows:
 
 ```yaml
 kind: Dashboard
@@ -179,9 +160,8 @@ spec:
 
 ### Phase 3: VALIDATE
 
-**Goal**: Ensure the dashboard definition is valid.
+Always validate before deploying — never skip this phase even for simple dashboards, because percli lint catches structural errors that prevent deployment and schema mismatches early.
 
-Run validation:
 ```bash
 percli lint -f <file>
 # OR with online validation against running server:
@@ -194,12 +174,12 @@ If validation fails, fix the issues and re-validate.
 
 ### Phase 4: DEPLOY
 
-**Goal**: Deploy the dashboard to Perses.
+Deploy the dashboard to Perses.
 
-**Option A: MCP tools** (preferred if available)
+**Option A: MCP tools** (preferred — use when available because MCP provides better error handling and atomicity)
 Use `perses_create_dashboard` MCP tool to create the dashboard directly.
 
-**Option B: percli CLI**
+**Option B: percli CLI** (fallback when MCP is unavailable)
 ```bash
 percli apply -f <file>
 ```
@@ -218,3 +198,21 @@ perses_get_dashboard_by_name(project=<project>, dashboard=<name>)
 ```
 
 **Gate**: Dashboard deployed and verified. Task complete.
+
+## Error Handling
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `percli lint` fails with unknown plugin kind | Used a plugin kind not in the official set | Replace with one of the 16 panel or 4 variable plugin kinds listed in Phase 2 |
+| Project does not exist | Dashboard targets a non-existent project | Create the project first with `percli apply` or `perses_create_project` MCP tool |
+| MCP tool not found | Perses MCP server not connected | Fall back to percli CLI commands |
+| `percli apply` auth error | Missing or expired credentials | Run `percli login` or check `~/.perses/config.yaml` |
+| Online lint fails but offline passes | Server-side schema stricter than local | Fix the server-reported issues — online validation is authoritative |
+
+## References
+
+- Perses dashboard spec: https://perses.dev/docs/api/dashboard/
+- percli CLI: https://perses.dev/docs/tooling/percli/
+- Plugin catalog: https://perses.dev/docs/plugins/
+- Dashboard-as-Code: https://perses.dev/docs/tooling/dac/
+- Variable interpolation: https://perses.dev/docs/user-guides/variables/

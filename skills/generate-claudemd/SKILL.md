@@ -34,47 +34,19 @@ routing:
 
 # Generate CLAUDE.md Skill
 
-## Operator Context
+Produce a project-specific CLAUDE.md through a 4-phase pipeline: SCAN repo facts, DETECT domain enrichment, GENERATE from template, VALIDATE output. The goal is a CLAUDE.md that makes new Claude sessions immediately productive by documenting only verified, project-specific facts.
 
-This skill operates as an operator for CLAUDE.md generation, configuring Claude's behavior for systematic repository analysis and project-specific documentation creation. It implements a **4-phase pipeline** -- SCAN repo facts, DETECT domain enrichment, GENERATE from template, VALIDATE output -- producing a CLAUDE.md that makes new Claude sessions immediately productive.
+This skill generates new CLAUDE.md files. It cannot improve an existing one (use `claude-md-improver` for that), cannot document private dependencies or encrypted configs it cannot read, cannot infer runtime behavior from static files, and cannot replace deep domain expertise -- enrichment patterns are templates, not knowledge.
 
-### Hardcoded Behaviors (Always Apply)
-- **Analyze Before Writing**: Every section MUST be derived from actual repo analysis (reading files, parsing configs, checking paths). Why: guessed content wastes the context window and teaches Claude wrong patterns for the project. Never fill a section from assumptions.
-- **Template Conformance**: Output follows `${CLAUDE_SKILL_DIR}/references/CLAUDEMD_TEMPLATE.md` structure. Why: consistent structure means Claude sessions can parse CLAUDE.md predictably across projects.
-- **Path Verification**: Every path mentioned in the output MUST exist. Every command MUST be runnable. Why: a CLAUDE.md with broken paths is worse than no CLAUDE.md -- it teaches Claude to trust wrong information.
-- **No Generic Advice**: Phrases like "use meaningful variable names", "write clean code", or "follow best practices" are banned. Why: generic advice wastes tokens and provides zero signal. Only project-specific facts belong in CLAUDE.md.
-- **No Overwrite Without Confirmation**: If CLAUDE.md already exists, write to `CLAUDE.md.generated` and show a diff. Why: overwriting an existing, potentially hand-tuned CLAUDE.md destroys work.
-
-### Default Behaviors (ON unless disabled)
-- **Domain Enrichment**: Auto-detect repo domain in Phase 2 and load domain-specific patterns (sapcc Go conventions, OpenStack patterns, etc.)
-- **Makefile Analysis**: Parse Makefile targets for build commands rather than guessing. Why: the Makefile IS the source of truth for build commands in most repos.
-- **License Header Detection**: Note SPDX conventions if present in source files
-
-### Why No `context: fork`
-This skill requires interactive user gates (confirmation when CLAUDE.md already exists, review of generated output). Running in a forked context would bypass these safety checks.
-
-### Optional Behaviors (OFF unless enabled)
-- **Subdirectory CLAUDE.md**: Generate per-package CLAUDE.md files for monorepos (on explicit request)
-- **Minimal Mode**: Only 3 sections -- Overview, Commands, Architecture (on explicit request: "minimal claude.md")
-
-## What This Skill CAN Do
-- Analyze a repository and produce a complete, project-specific CLAUDE.md
-- Detect language, framework, build system, and test infrastructure from config files
-- Load domain-specific enrichment (sapcc Go conventions, OpenStack patterns, etc.)
-- Verify every path and command in the generated output
-- Safely handle repos that already have a CLAUDE.md
-
-## What This Skill CANNOT Do
-- Improve an existing CLAUDE.md (use `claude-md-improver` for that)
-- Generate documentation for code it cannot read (private dependencies, encrypted configs)
-- Understand runtime behavior (it reads static files, does not execute the project)
-- Replace domain expertise (enrichment patterns are templates, not deep knowledge)
-
----
+This skill does not use `context: fork` because it requires interactive user gates (confirmation when CLAUDE.md already exists, review of generated output), which a forked context would bypass.
 
 ## Instructions
 
 Execute all phases sequentially. Verify each gate before advancing. Load the template from `${CLAUDE_SKILL_DIR}/references/CLAUDEMD_TEMPLATE.md` before Phase 3.
+
+On explicit user request, two optional modes are available:
+- **Subdirectory CLAUDE.md**: Generate per-package CLAUDE.md files for monorepos.
+- **Minimal Mode** ("minimal claude.md"): Only 3 sections -- Overview, Commands, Architecture.
 
 ### Phase 1: SCAN
 
@@ -86,13 +58,9 @@ Execute all phases sequentially. Verify each gate before advancing. Load the tem
 ls -la CLAUDE.md .claude/CLAUDE.md 2>/dev/null
 ```
 
-If a CLAUDE.md already exists:
-- Inform the user: "CLAUDE.md already exists. Output will be written to CLAUDE.md.generated so you can compare."
-- Set output path to `CLAUDE.md.generated`
-- Continue with all phases (the generated file is still useful for comparison)
+If a CLAUDE.md already exists, write output to `CLAUDE.md.generated` and show a diff, because overwriting a hand-tuned CLAUDE.md destroys work. Inform the user: "CLAUDE.md already exists. Output will be written to CLAUDE.md.generated so you can compare." Continue with all phases -- the generated file is still useful for comparison.
 
-If no CLAUDE.md exists:
-- Set output path to `CLAUDE.md`
+If no CLAUDE.md exists, set output path to `CLAUDE.md`.
 
 **Step 2: Detect language and framework**
 
@@ -108,7 +76,7 @@ Check root directory for language indicators:
 | `Gemfile` | Ruby |
 | `mix.exs` | Elixir |
 
-Read the detected config file to extract: project name, dependencies, language version.
+Read the detected config file to extract: project name, dependencies, language version. Do not assume standard language patterns apply to this project -- read actual source files before writing any section, because conventions vary even within the same language ecosystem.
 
 For Go projects, also check:
 ```bash
@@ -124,7 +92,7 @@ cat package.json | head -30
 
 **Step 3: Parse build system**
 
-Check for build tools and extract commands:
+Parse the Makefile (or equivalent) for actual build targets rather than guessing commands, because the Makefile IS the source of truth for build commands in most repos and may wrap tools with flags, coverage, or race detection that raw invocations would miss.
 
 ```bash
 # Check for Makefile
@@ -140,7 +108,7 @@ Also check for:
 - `justfile`
 - CI config (`.github/workflows/`, `.gitlab-ci.yml`)
 
-Record: build command, test command, lint command, "check everything" command.
+Record: build command, test command, lint command, "check everything" command. If no build system is found at all, document the gap rather than inventing commands.
 
 **Step 4: Map directory structure**
 
@@ -208,7 +176,7 @@ If found, note the license type and header convention.
 
 ### Phase 2: DETECT
 
-**Goal**: Identify domain-specific enrichment sources based on repo characteristics.
+**Goal**: Identify domain-specific enrichment sources based on repo characteristics. Auto-detect the repo domain and load domain-specific patterns (sapcc Go conventions, OpenStack patterns, etc.) because generic language knowledge is insufficient for project-specific CLAUDE.md generation.
 
 **Step 1: Check for sapcc domain (Go repos)**
 
@@ -283,23 +251,23 @@ Enrichment Plan:
 
 ### Phase 3: GENERATE
 
-**Goal**: Load template, fill sections from scan results and enrichment, write CLAUDE.md.
+**Goal**: Load template, fill sections from scan results and enrichment, write CLAUDE.md. Every section must be derived from actual repo analysis (reading files, parsing configs, checking paths) because guessed content wastes the context window and teaches Claude wrong patterns.
 
 **Step 1: Load template**
 
-Read `${CLAUDE_SKILL_DIR}/references/CLAUDEMD_TEMPLATE.md` for the output structure.
+Read `${CLAUDE_SKILL_DIR}/references/CLAUDEMD_TEMPLATE.md` for the output structure. Follow its structure exactly because consistent structure means Claude sessions can parse CLAUDE.md predictably across projects.
 
 **Step 2: Fill required sections**
 
 Fill all 6 required sections from Phase 1 scan results:
 
-**Section 1 -- Project Overview**: Use project name from config file and a description derived from README.md (first paragraph), go.mod module path, or package.json description. List 3-5 key concepts extracted from directory names and core module names.
+**Section 1 -- Project Overview**: Use project name from config file and a description derived from README.md (first paragraph), go.mod module path, or package.json description. List 3-5 key concepts extracted from directory names and core module names. Extract relevant facts from README (project purpose, key concepts) but reframe for Claude's needs -- README is for GitHub visitors (humans browsing the repo), CLAUDE.md is for Claude sessions (AI working in the codebase), so skip installation guides, badges, and user-facing documentation.
 
-**Section 2 -- Build and Test Commands**: Use ONLY commands found in Makefile, package.json scripts, or equivalent. Format as table. Include "check everything" command prominently. Include single-test and package-test commands.
+**Section 2 -- Build and Test Commands**: Use ONLY commands found in Makefile, package.json scripts, or equivalent. Format as table. Include "check everything" command prominently. Include single-test and package-test commands. Never write `go test ./...` without checking the Makefile first because the project's canonical command may include flags, coverage, or race detection.
 
 **Section 3 -- Architecture**: Map directory structure from Phase 1 Step 4. Identify key components by reading entry points and core modules. Use absolute directory descriptions, not guesses.
 
-**Section 4 -- Code Style**: Document linter config findings, import ordering (from reading actual source files), naming conventions (from actual code patterns), and tooling that enforces style.
+**Section 4 -- Code Style**: Document linter config findings, import ordering (from reading actual source files), naming conventions (from actual code patterns), and tooling that enforces style. Document CLI commands for linting and formatting because those are what Claude actually uses -- do not include IDE/editor setup (VS Code extensions, launch configs) because CLAUDE.md is read by Claude, not by editors.
 
 **Section 5 -- Testing Conventions**: Document test framework, assertion library, mocking approach, file naming pattern, and integration test requirements from Phase 1 Step 5.
 
@@ -309,11 +277,23 @@ Fill all 6 required sections from Phase 1 scan results:
 - Test requirements (e.g., "integration tests require PostgreSQL running locally")
 - Config requirements (e.g., "OS_AUTH_URL must be set for any OpenStack operation")
 
-Do NOT invent pitfalls. If nothing notable was found, include 1-2 based on the build system (e.g., "run make check before committing").
+Do NOT invent pitfalls because fabricated warnings erode trust. If nothing notable was found, include 1-2 based on the build system (e.g., "run make check before committing").
+
+Ban these generic phrases -- they waste tokens and provide zero project-specific signal:
+- "use meaningful variable names"
+- "write clean code"
+- "follow best practices"
+- "ensure code quality"
+- "maintain consistency"
+- "keep it simple"
+- "write tests"
+- "handle errors properly"
+
+If you find yourself writing generic advice, remove it entirely because leaving a section out is better than filling it with filler.
 
 **Step 3: Fill optional sections**
 
-Based on the Phase 2 enrichment plan, fill applicable optional sections:
+Based on the Phase 2 enrichment plan, fill applicable optional sections. If an optional section is included, it must be backed by evidence from repo analysis because optional sections without evidence are worse than omitted sections:
 
 - **Error Handling**: For Go repos, document wrapping conventions found in source. For sapcc repos, include `fmt.Errorf("...: %w", err)` pattern and note error checking tools from linter config.
 - **Database Patterns**: Document the driver/ORM, migration tool, and key query patterns found in source.
@@ -339,7 +319,7 @@ In Common Pitfalls, add:
 
 **Step 5: Write output**
 
-Write the completed CLAUDE.md (or CLAUDE.md.generated) to the output path determined in Phase 1 Step 1.
+Write the completed CLAUDE.md (or CLAUDE.md.generated) to the output path determined in Phase 1 Step 1. Verify every path mentioned in the output exists and every command is runnable before writing, because a CLAUDE.md with broken paths is worse than no CLAUDE.md -- it teaches Claude to trust wrong information.
 
 If writing to `CLAUDE.md.generated`, also show the user a summary diff:
 ```bash
@@ -356,7 +336,7 @@ diff CLAUDE.md CLAUDE.md.generated 2>/dev/null || echo "New file created"
 
 **Step 1: Verify all paths exist**
 
-Extract every file path and directory path mentioned in the generated CLAUDE.md. Check each one:
+Extract every file path and directory path mentioned in the generated CLAUDE.md. Check each one with `test -e` because "probably exists" is not verified -- one broken path undermines the entire document:
 
 ```bash
 # For each path mentioned in the output
@@ -481,49 +461,7 @@ Result: CLAUDE.md.generated alongside existing file, with diff for comparison
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Generic Filler Content
-**What it looks like**: "Write clean, maintainable code" or "Follow best practices for error handling" in the generated CLAUDE.md.
-**Why wrong**: Generic advice wastes context tokens and provides zero project-specific signal. Claude already knows generic best practices.
-**Do instead**: Only include facts derived from actual repo analysis. "Error wrapping uses `fmt.Errorf('during %s: %w', action, err)` pattern (see `internal/api/handler.go`)" is useful. "Handle errors properly" is not.
-
-### Anti-Pattern 2: Guessing Commands
-**What it looks like**: Writing `go test ./...` without checking the Makefile, or `npm test` without reading package.json scripts.
-**Why wrong**: The Makefile may wrap `go test` with flags, coverage, or race detection. Using the wrong command teaches Claude to skip project-specific tooling.
-**Do instead**: Read the Makefile (or equivalent) first. Use the project's canonical commands. If `make check` exists, document `make check`, not the raw tool invocations.
-
-### Anti-Pattern 3: Copying README Verbatim
-**What it looks like**: Pasting the README's project description, installation steps, or usage examples into CLAUDE.md.
-**Why wrong**: README is for GitHub visitors (humans browsing the repo). CLAUDE.md is for Claude sessions (AI working in the codebase). Different audiences need different information. README covers "what is this and how to install it." CLAUDE.md covers "how to work effectively in this codebase."
-**Do instead**: Extract relevant facts from README (project purpose, key concepts) but reframe for Claude's needs. Skip installation guides, badges, and user-facing documentation.
-
-### Anti-Pattern 4: Including IDE Setup
-**What it looks like**: Adding VS Code extensions, editor config, or debugging launch configurations to CLAUDE.md.
-**Why wrong**: CLAUDE.md is read by Claude, not by editors. IDE setup belongs in README or CONTRIBUTING.md.
-**Do instead**: Document CLI commands for linting, formatting, and testing. These are what Claude actually uses.
-
----
-
-## Anti-Rationalization
-
-### Domain-Specific Rationalizations
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "I know this is a Go project, I can fill in standard Go patterns" | Standard patterns may not match this project's conventions | Read actual source files before writing any section |
-| "The README has a good description, I'll use that" | README is for humans, CLAUDE.md is for Claude sessions | Extract facts, reframe for Claude's context |
-| "No Makefile, but `go build` is obvious" | The project may use a custom build script or task runner | Document the gap, don't guess commands |
-| "This section is optional, I'll skip the analysis" | Optional sections still require evidence if included | Either analyze properly or omit the section entirely |
-| "The paths probably exist, no need to check each one" | Probably != verified. One broken path undermines trust | Check every path with `test -e` |
-| "Generic advice is better than nothing" | Generic advice is worse than nothing -- it wastes tokens | Leave section out rather than fill with filler |
-
----
-
 ## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
 
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/CLAUDEMD_TEMPLATE.md`: Template structure for generated CLAUDE.md files with required and optional sections
