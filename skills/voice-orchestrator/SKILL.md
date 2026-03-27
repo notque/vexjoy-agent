@@ -30,57 +30,17 @@ routing:
 
 # Voice Orchestrator Skill
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for voice content generation, configuring Claude's behavior for high-fidelity voice impersonation with measurable quality gates. It implements the **Pipeline** architectural pattern — LOAD, GROUND, GENERATE, VALIDATE, REFINE, OUTPUT, CLEANUP — with **Deterministic Validation** via Python scripts at the quality gate.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before generating
-- **Over-Engineering Prevention**: Generate content that matches the voice, not perfect prose. Do not add features, modes, or structure the user did not request
-- **Deterministic Validation**: ALWAYS use `scripts/voice_validator.py` for validation, NEVER self-assess voice quality
-- **Iteration Limits**: Maximum 3 refinement iterations, then output best attempt with report
-- **Em-Dash Prohibition**: NEVER generate em-dashes in any voice output. Use commas, periods, or restructure
-- **Wabi-Sabi Authenticity**: Natural imperfections (run-ons, fragments, loose punctuation) are FEATURES of human writing. Sterile grammatical perfection is an AI tell. See `skills/shared-patterns/wabi-sabi-authenticity.md`
-- **Voice Required**: Every generation MUST target a specific voice. No voiceless generation
-- **Artifacts Over Memory**: Write content to files at each phase, not just context
-
-### Default Behaviors (ON unless disabled)
-- **Full Pipeline**: Run all 7 phases (LOAD, GROUND, GENERATE, VALIDATE, REFINE, OUTPUT, CLEANUP)
-- **Validation Report**: Always include validation metrics in output
-- **Sample Loading**: Load 1-2 reference samples as few-shot examples when available
-- **Temp File Cleanup**: Remove generated temp files after completion
-- **One Fix at a Time**: Address violations individually during refinement, not all at once
-- **Document Findings**: Log validation scores and iteration results
-
-### Optional Behaviors (OFF unless enabled)
-- **Skip Validation**: Draft mode, bypasses validation step (`--skip-validation`)
-- **Validate Only**: Check existing content without generation (`--validate`)
-- **Verbose Output**: Show full validation JSON including all metrics (`--verbose`)
-- **Custom Threshold**: Override default pass score from config.json
-
-## What This Skill CAN Do
-- Load voice skills with associated profile.json and config.json
-- Generate content matching voice patterns, metrics, and signature phrases
-- Run deterministic validation against voice profiles using Python scripts
-- Refine content iteratively based on violation feedback (max 3 iterations)
-- Produce validation reports with pass/fail status and metrics comparison
-- Validate existing content against voice profiles without generation
-
-## What This Skill CANNOT Do
-- Create new voices (use `voice-calibrator` skill instead)
-- Modify voice profiles (profiles are read-only during generation)
-- Analyze writing samples (use `scripts/voice_analyzer.py` directly)
-- Guarantee 100% pass rate (some content may fail after max iterations)
-- Generate without a voice target (a `--voice` parameter is ALWAYS required)
-- Self-assess voice quality (MUST use deterministic validator script)
-
----
+This skill generates content in a specific voice through a 7-phase pipeline with mandatory deterministic validation. It enforces high-fidelity voice impersonation via Python scripts rather than self-assessment, iterates up to 3 times on violations, and produces validation reports at output. Use when you need to write content matching a voice profile, validate existing content, or generate persona-driven text.
 
 ## Instructions
 
 ### Phase 1: LOAD
 
 **Goal**: Load all voice infrastructure files and verify they exist.
+
+**Constraints**: All required files must exist and be valid before proceeding — missing infrastructure causes validation failures downstream (reason: deterministic validation requires profile.json and config.json to establish thresholds).
 
 **Step 1: Locate voice directory**
 
@@ -96,13 +56,13 @@ ls $HOME/claude-code-toolkit/skills/voice-{name}/
 | `skills/voice-{name}/profile.json` | Quantitative metrics targets |
 | `skills/voice-{name}/config.json` | Validation settings, modes, thresholds |
 
-**Step 3: Load optional files**
+**Step 3: Load optional files for accuracy**
 
-- `skills/voice-{name}/references/samples/` — Few-shot examples (load 1-2 if available)
+- `skills/voice-{name}/references/samples/` — Load 1-2 few-shot examples if available (reason: samples improve fidelity without adding work; skip only if missing).
 
 **Step 4: Parse thresholds from config.json**
 
-Extract `thresholds.pass_score`, `thresholds.error_max`, `thresholds.warning_max`, and available `modes`.
+Extract `thresholds.pass_score`, `thresholds.error_max`, `thresholds.warning_max`, and available `modes` (reason: thresholds determine pass/fail logic in Phase 4).
 
 See `references/voice-infrastructure.md` for full schema details.
 
@@ -120,7 +80,9 @@ If any required file is missing, STOP and report the error. Do not proceed with 
 
 ### Phase 2: GROUND
 
-**Goal**: Establish emotional and relational context before generation.
+**Goal**: Establish emotional and relational context before generation, because voice without emotional grounding sounds mechanical (reason: metrics match but content feels hollow).
+
+**Constraint**: Always complete this phase, even briefly (reason: skipping creates sterile output that violates wabi-sabi authenticity principle).
 
 **Step 1: Emotional anchoring**
 
@@ -142,32 +104,34 @@ Answer these three questions before generating:
 
 **Step 3: Mode selection**
 
-Select content mode from the voice's `config.json` modes list. Each voice defines modes that shape structure and tone (e.g., "awards" mode produces celebratory recognition pieces, "technical" mode produces systems explanations).
+Select content mode from the voice's `config.json` modes list (reason: modes shape structure and tone, e.g., "awards" mode produces celebratory recognition, "technical" mode produces systems explanations). If user does not specify a mode, infer the best match from subject matter and available modes.
 
 See `references/voice-infrastructure.md` for available modes per voice.
-
-If user does not specify a mode, infer the best match from the subject matter and available modes.
 
 **Gate**: Emotion, audience, and mode are established. Proceed only when gate passes.
 
 ### Phase 3: GENERATE
 
-**Goal**: Produce content matching voice patterns from profile and SKILL.md.
+**Goal**: Produce content matching voice patterns, metrics, and architectural structure.
+
+**Constraint**: NEVER generate em-dashes — use commas, periods, or restructure instead (reason: em-dash is the most reliable AI marker; avoiding it is non-negotiable).
+
+**Constraint**: Natural imperfections are FEATURES, not bugs — run-ons, fragments, and loose punctuation match human writing; sterile perfection is an AI tell (reason: wabi-sabi authenticity principle prevents over-engineering).
 
 **Step 1: Apply voice rules from SKILL.md** — patterns, anti-patterns, signature phrases
 
 **Step 2: Target profile.json metrics** — sentence length distribution, contraction rate, punctuation patterns, transition words
 
-**Step 3: Include few-shot samples** if loaded in Phase 1
+**Step 3: Include few-shot samples** if loaded in Phase 1 (reason: samples improve fidelity through example grounding).
 
 **Step 4: Apply mode-specific patterns** based on selected mode
 
 **Step 4b: Apply architectural patterns** from the voice skill's `## Architectural Patterns` section (if present):
 
-- **Argument flow**: Build the piece using the documented direction (inductive/deductive/mixed). If inductive, lead with evidence and land the claim late. If deductive, open with the claim.
-- **Concessions**: When handling disagreement, follow the documented concession structure and use the documented pivot markers — not generic "however" or "on the other hand."
-- **Analogy domains**: Draw analogies ONLY from the documented source domains. Do NOT use generic analogies from undocumented domains.
-- **Bookends**: Open with the documented opening move, close with the documented closing move.
+- **Argument flow**: Build using documented direction (inductive/deductive/mixed). If inductive, lead with evidence and land claim late. If deductive, open with claim.
+- **Concessions**: Follow documented concession structure and pivot markers — not generic "however" or "on the other hand."
+- **Analogy domains**: Draw ONLY from documented source domains (reason: undocumented analogies break voice consistency).
+- **Bookends**: Open with documented opening move, close with documented closing move.
 
 If the voice skill has no `## Architectural Patterns` section, skip this step.
 
@@ -196,7 +160,9 @@ CONTENT
 
 ### Phase 4: VALIDATE (Deterministic)
 
-**Goal**: Run the voice validator script against generated content. No self-assessment.
+**Goal**: Run the voice validator script against generated content — never self-assess.
+
+**Constraint**: ALWAYS use `scripts/voice_validator.py` for validation, NEVER self-assess voice quality (reason: LLMs cannot reliably self-assess stylistic accuracy; deterministic validator catches patterns humans miss).
 
 **Step 1: Execute validation**
 
@@ -222,7 +188,13 @@ See `references/validation-scripts.md` for full command reference and output sch
 
 ### Phase 5: REFINE (if needed)
 
-**Goal**: Fix violations identified by the validator. Maximum 3 iterations.
+**Goal**: Fix violations identified by validator. Maximum 3 iterations.
+
+**Constraint**: Maximum 3 iterations total (reason: over-iteration creates sterile output that violates wabi-sabi; warnings are informational, errors are blockers).
+
+**Constraint**: One targeted fix per violation — do not rewrite sections (reason: unrelated changes introduce new violations and destabilize passing characteristics).
+
+**Constraint**: Fix errors before warnings (reason: errors block pass, warnings inform but don't block).
 
 **Step 1: Process violations in severity order** (errors first, then warnings)
 
@@ -235,17 +207,15 @@ For each violation:
 
 **Step 3: Re-validate** by returning to Phase 4
 
-**Refinement rules:**
-- Fix errors before warnings
-- One targeted fix per violation
-- Do not rewrite entire sections — fix the specific issue
-- After 3 iterations, stop and output best attempt
+**Step 4: After 3 iterations, stop** and proceed to Phase 6 with best attempt (reason: diminishing returns on iteration; user can manually refine if needed).
 
 **Gate**: Content re-validated. Score improved or max iterations reached. Proceed only when gate passes.
 
 ### Phase 6: OUTPUT
 
-**Goal**: Format and display final content with validation report.
+**Goal**: Format and display final content with validation metrics (reason: validation report documents which patterns passed and why, enabling user trust and future refinement).
+
+**Constraint**: Always include validation metrics in output — do not skip report even on failure (reason: violations report informs user of gaps between intent and voice fidelity).
 
 **Output format:**
 
@@ -286,7 +256,9 @@ For each violation:
 
 ### Phase 7: CLEANUP
 
-**Goal**: Remove temporary files created during the pipeline.
+**Goal**: Remove temporary files and report completion.
+
+**Constraint**: Always cleanup temp files after completion (reason: orphaned temp files accumulate and pollute /tmp; temp files exist only to support iteration, not final output).
 
 **Step 1**: Remove `/tmp/voice-content-draft.md` and any iteration drafts
 
@@ -372,54 +344,7 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Skipping Validation for "Good Enough"
-**What it looks like**: "The content sounds fine to me, I'll skip validation."
-**Why wrong**: Human perception drifts. Deterministic validation catches patterns you miss. Self-assessment is not validation.
-**Do instead**: ALWAYS validate. Use `--skip-validation` only for true drafts the user explicitly requests as drafts.
-
-### Anti-Pattern 2: Self-Assessing Voice Quality
-**What it looks like**: "I read the content and it matches the voice profile."
-**Why wrong**: LLMs cannot reliably self-assess stylistic accuracy. That is why the deterministic validator exists.
-**Do instead**: Run `voice_validator.py`. Trust the script output, not your assessment.
-
-### Anti-Pattern 3: Skipping the Grounding Step
-**What it looks like**: Jumping straight from LOAD to GENERATE without establishing context.
-**Why wrong**: Voice without emotional grounding sounds mechanical. Metrics match but the content feels hollow.
-**Do instead**: Complete Phase 2 GROUND, even briefly. Establish emotion, audience, and mode before generating.
-
-### Anti-Pattern 4: Over-Iterating on Warnings
-**What it looks like**: Spending 5+ iterations trying to eliminate all warnings.
-**Why wrong**: Warnings are informational. Errors are blockers. Over-polishing creates sterile output that violates wabi-sabi.
-**Do instead**: Fix all errors, address warnings if easy, ship when score >= threshold. Maximum 3 iterations.
-
-### Anti-Pattern 5: Rewriting Entire Sections During Refinement
-**What it looks like**: Rewriting paragraphs to fix a single banned phrase violation.
-**Why wrong**: Introduces new violations. Changes voice characteristics that were passing.
-**Do instead**: Apply targeted, surgical fixes. Change only the violating text.
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-- [Gate Enforcement](../shared-patterns/gate-enforcement.md) - Phase transitions
-- [Wabi-Sabi Authenticity](../shared-patterns/wabi-sabi-authenticity.md) - Natural imperfections as features
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "The validator is too strict" | Validator catches real AI patterns humans miss | Fix violations or adjust profile through calibration |
-| "This voice doesn't need validation" | All voices drift without measurement | ALWAYS validate with script |
-| "The metrics don't matter for this piece" | Metrics ensure consistency across outputs | Address deviations |
-| "Manual review is sufficient" | Humans miss patterns deterministic checks catch | Use script validation |
-| "One em-dash won't hurt" | Em-dash is the most reliable AI marker | NEVER use em-dashes |
-| "Content sounds right to me" | Self-assessment is not validation | Run voice_validator.py |
-
-### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/validation-scripts.md`: Full validation command reference and output schema
 - `${CLAUDE_SKILL_DIR}/references/voice-infrastructure.md`: Voice file structure, config/profile schemas, modes, fix strategies
