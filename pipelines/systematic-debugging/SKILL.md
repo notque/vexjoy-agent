@@ -40,50 +40,6 @@ routing:
 
 Evidence-based 5-phase debugging pipeline with mandatory gates between each phase. No phase may be skipped. Each phase produces artifacts that survive context resets.
 
-## Operator Context
-
-This pipeline operates as an operator for systematic debugging workflows, configuring Claude's behavior for rigorous, evidence-based root cause analysis. It implements the **Iterative Refinement** architectural pattern -- form hypothesis, test, refine, verify -- with **Domain Intelligence** embedded in the debugging methodology.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before debugging
-- **Over-Engineering Prevention**: Fix only the bug. No speculative improvements, no "while I'm here" changes
-- **Reproduce First**: NEVER attempt fixes before creating reliable reproduction
-- **No Random Changes**: Every modification must be based on evidence from isolation
-- **Evidence Required**: Every hypothesis must be tested with concrete evidence
-- **Verify Fixes**: Confirm fix works AND doesn't introduce regressions
-- **Phase Gates Enforced**: Each phase must pass its gate before the next begins
-
-### Default Behaviors (ON unless disabled)
-- **Minimal Reproduction**: Create smallest possible test case that shows bug
-- **Bisection Strategy**: Use binary search to narrow down failure point
-- **One Change at a Time**: Never make multiple changes simultaneously
-- **Document Findings**: Log all observations, hypotheses, and test results
-- **Related Issues Check**: Search for similar bugs in codebase and git history
-- **Temporary File Cleanup**: Remove debug logs and profiling output at completion
-- **Persistent Debug File**: Maintain `.debug-session.md` for context-reset resilience
-
-### Optional Behaviors (OFF unless enabled)
-- **Regression Test Creation**: Write automated test for this specific bug
-- **Git Bisect**: Use `git bisect` to find breaking commit
-- **Performance Profiling**: Run profiler to identify bottlenecks
-- **Database Query Analysis**: Use EXPLAIN for slow query debugging
-- **Network Tracing**: Capture traffic for API debugging
-
-## What This Pipeline CAN Do
-- Systematically find root causes through evidence-based investigation
-- Create minimal reproductions that isolate the exact failure
-- Distinguish between symptoms and root causes
-- Verify fixes don't introduce regressions
-- Document findings for future reference
-- Record patterns to learning.db for future sessions
-
-## What This Pipeline CANNOT Do
-- Fix bugs without first reproducing them
-- Make speculative changes without evidence
-- Optimize performance (use performance-optimization-engineer instead)
-- Refactor code (use systematic-refactoring instead)
-- Skip any of the 5 phases
-
 ---
 
 ## Instructions
@@ -93,6 +49,8 @@ This pipeline operates as an operator for systematic debugging workflows, config
 **Goal**: Reproduce the bug, collect error messages, stack traces, and environmental context.
 
 **Artifact**: `debug-observations.md`
+
+**Core Principle**: Reproduce first, always. NEVER attempt fixes before creating a reliable reproduction. This prevents you from chasing the wrong problem and ensures you can verify any fix actually works.
 
 **Step 1: Document the bug**
 
@@ -104,17 +62,19 @@ Environment: [OS, language version, dependencies]
 ```
 
 **Step 2: Create minimal reproduction**
+
 - Strip to essentials -- remove unrelated code
 - Use smallest dataset that shows the bug
 - Isolate from external services where possible
 
 **Step 3: Verify consistency**
 
-Run reproduction **3 times**. If inconsistent, identify variables (timing, randomness, concurrency) and add controls to make it deterministic.
+Run reproduction **3 times**. If inconsistent, identify variables (timing, randomness, concurrency) and add controls to make it deterministic. Consistency is not optional -- if you can't reproduce it reliably, you cannot verify a fix.
 
 **Step 4: Check knowledge base**
 
 At the start of every new debug investigation, before forming any hypotheses:
+
 1. Check if `.debug-knowledge-base.md` exists in the project root
 2. If it exists, search for keyword matches against the current symptom signature
 3. Matches are **hypothesis candidates**, not confirmed diagnoses
@@ -139,6 +99,8 @@ Create `.debug-session.md` with immutable Symptoms and Reproduction Steps sectio
 **Goal**: Generate 3-5 candidate root causes ranked by likelihood.
 
 **Artifact**: Updated `debug-observations.md` with hypotheses section.
+
+**Core Principle**: Form evidence-based hypotheses, not random guesses. Each hypothesis must have concrete evidence supporting it, and each must be testable. One change at a time -- multiple simultaneous changes hide which one fixed it.
 
 **Step 1: List components involved in the failure**
 
@@ -178,7 +140,9 @@ Generate 3-5 hypotheses. Rank by likelihood based on evidence gathered so far.
 
 **Step 5: Update persistent debug file**
 
-Write current top hypothesis and next action to `.debug-session.md` BEFORE taking any debugging action.
+Write current top hypothesis and next action to `.debug-session.md` BEFORE taking any debugging action. This creates an audit trail that survives context resets.
+
+**Anti-Pattern Trap**: Do not make changes based on visual inspection alone. "I can see the bug" misses edge cases and is not evidence. Form a hypothesis, test it with data, then decide.
 
 **GATE**: At least 3 hypotheses documented with supporting evidence and test plans. Identified smallest code path and input that reproduces the bug. Proceed only when gate passes.
 
@@ -187,6 +151,10 @@ Write current top hypothesis and next action to `.debug-session.md` BEFORE takin
 ### Phase 3: TEST
 
 **Goal**: Write the minimal reproduction test, verify it fails (red).
+
+**Artifact**: Reproduction test + test results
+
+**Core Principle**: Verify the bug with a test before attempting any fix. The test is the oracle that tells you when the bug is truly fixed. If 5+ consecutive Read/Grep/Glob calls occur without an Edit/Write/Bash action, STOP and explain what you're looking for and why before proceeding. Document the justification in `.debug-session.md` under Current Hypothesis -- this creates an audit trail of investigation decisions.
 
 **Step 1: Write reproduction test**
 
@@ -229,7 +197,11 @@ For the confirmed hypothesis area:
 
 ### Phase 4: FIX
 
-**Goal**: Implement fix, verify test turns green.
+**Goal**: Implement fix, verify test turns green. Ensure no regressions.
+
+**Artifact**: Green test + passing full suite
+
+**Core Principle**: Fix only the confirmed root cause. No speculative improvements, no "while I'm here" changes. Simple changes cause complex regressions -- complete all verification steps. If a specific test passes but the full suite fails, you have introduced regressions. Run the full suite every time.
 
 **Step 1: Make the smallest possible fix**
 
@@ -237,19 +209,19 @@ Address only the confirmed root cause. No speculative improvements.
 
 **Step 2: Verify reproduction test passes**
 
-Run the reproduction test. It must turn GREEN.
+Run the reproduction test. It must turn GREEN. If it doesn't, the fix didn't work and you need to return to Phase 2 with new hypotheses.
 
 **Step 3: Test edge cases**
 
-Test boundary values, empty input, null, maximum values.
+Test boundary values, empty input, null, maximum values. Don't assume the fix works beyond the exact reproduction case.
 
 **Step 4: Run full test suite**
 
-Verify no regressions. ALL tests must pass.
+Verify no regressions. ALL tests must pass. Tests relied on buggy behavior, or fix changed API contract? If tests expected buggy behavior -> update tests. If fix exposed other bugs -> apply 5-phase process to each.
 
 **Step 5: Test related functionality**
 
-Check similar patterns that might share the same root cause.
+Check similar patterns that might share the same root cause. A root cause can appear in multiple places.
 
 **Step 6: Document fix summary**
 
@@ -269,6 +241,8 @@ Testing: reproduction passes, edge cases pass, full suite passes
 ### Phase 5: RECORD
 
 **Goal**: Update learning database with pattern and fix for future sessions.
+
+**Artifact**: Updated `.debug-knowledge-base.md` and learning.db entry
 
 **Step 1: Record to knowledge base**
 
@@ -326,61 +300,7 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Fixing Without Reproducing
-**What it looks like**: "Let me add better error handling" before seeing the actual error
-**Why wrong**: Can't verify fix works, may fix wrong issue
-**Do instead**: Complete Phase 1 first. Always.
-
-### Anti-Pattern 2: Random Changes Without Evidence
-**What it looks like**: "Maybe if I change this timeout..." without data
-**Why wrong**: May mask symptom while leaving root cause. Can't explain why it works.
-**Do instead**: Form hypothesis -> test -> confirm/refute -> iterate
-
-### Anti-Pattern 3: Multiple Changes at Once
-**What it looks like**: Adding null check + fixing loop + wrapping in try/catch simultaneously
-**Why wrong**: Can't determine which change fixed it. Introduces unnecessary code.
-**Do instead**: One change, one test. Repeat until fixed.
-
-### Anti-Pattern 4: Insufficient Verification
-**What it looks like**: "Specific test passes, ship it!" without running full suite
-**Why wrong**: May have introduced regressions or missed edge cases
-**Do instead**: Complete all Phase 4 steps before declaring done.
-
-### Anti-Pattern 5: Undocumented Root Cause
-**What it looks like**: `git commit -m "Fixed bug"` with no explanation
-**Why wrong**: Bug will reappear. No institutional knowledge preserved.
-**Do instead**: Document root cause, fix, and create regression test. Complete Phase 5.
-
----
-
-## Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "I can see the bug, no need to reproduce" | Visual inspection misses edge cases | Run reproduction 3 times |
-| "This is probably the fix" | Probably != proven | Form hypothesis, test with evidence |
-| "Tests pass, must be fixed" | Specific test != full suite | Run full test suite |
-| "Simple change, no need to verify" | Simple changes cause complex regressions | Complete Phase 4 |
-| "No need to record, I'll remember" | Context resets lose everything | Complete Phase 5 |
-
----
-
-## Analysis Paralysis Guard
-
-If 5+ consecutive Read/Grep/Glob calls occur without an Edit/Write/Bash action,
-STOP and explain what you are looking for and why before proceeding.
-
-After explaining, justification for continued reading MUST be recorded in `.debug-session.md` under the Current Hypothesis section -- not just stated verbally. This creates an audit trail of investigation decisions that survives context resets.
-
----
-
 ## References
-
-This pipeline uses these shared patterns:
-- [Anti-Rationalization](../../skills/shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../../skills/shared-patterns/verification-checklist.md) - Pre-completion checks
 
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/debugging-patterns.md`: Common bug patterns by category

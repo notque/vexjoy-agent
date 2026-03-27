@@ -49,63 +49,7 @@ routing:
 
 # Voice Writer Skill
 
-## Operator Context
-
-This skill operates as an operator for all voiced content generation, configuring Claude's behavior for high-fidelity voice impersonation with measurable quality gates and mandatory joy-check. It implements the **Pipeline** architectural pattern -- LOAD, GROUND, GENERATE, VALIDATE, REFINE, JOY-CHECK, OUTPUT, CLEANUP -- with **Deterministic Validation** via Python scripts at quality gates and **Joy Framing** validation before output.
-
-This skill replaces `voice-orchestrator` and absorbs `blog-post-writer`. It is the single entry point for all voiced content generation.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before generating
-- **Over-Engineering Prevention**: Generate content that matches the voice, not perfect prose. Do not add features, modes, or structure the user did not request
-- **Deterministic Validation**: ALWAYS use `scripts/voice_validator.py` for validation, NEVER self-assess voice quality
-- **Iteration Limits**: Maximum 3 refinement iterations, then output best attempt with report
-- **Em-Dash Prohibition**: NEVER generate em-dashes in any voice output. Use commas, periods, or restructure
-- **Wabi-Sabi Authenticity**: Natural imperfections (run-ons, fragments, loose punctuation) are FEATURES of human writing. Sterile grammatical perfection is an AI tell. See `skills/shared-patterns/wabi-sabi-authenticity.md`
-- **Voice Required**: Every generation MUST target a specific voice. No voiceless generation
-- **Artifacts Over Memory**: Write content to files at each phase, not just context
-- **Joy Framing**: All output MUST pass joy-check before delivery. No grievance-framed content ships
-- **Banned Words Enforcement**: NEVER use words from `references/banned-words.md`. Scan every draft before finalizing
-
-### Default Behaviors (ON unless disabled)
-- **Full Pipeline**: Run all 8 phases (LOAD, GROUND, GENERATE, VALIDATE, REFINE, JOY-CHECK, OUTPUT, CLEANUP)
-- **Validation Report**: Always include validation metrics in output
-- **Sample Loading**: Load 1-2 reference samples as few-shot examples when available
-- **Temp File Cleanup**: Remove generated temp files after completion
-- **One Fix at a Time**: Address violations individually during refinement, not all at once
-- **Document Findings**: Log validation scores and iteration results
-- **Preview Before Write**: Display full draft for approval before writing to file
-- **Post-Draft Banned Word Scan**: Verify zero banned words before finalizing
-
-### Optional Behaviors (OFF unless enabled)
-- **Skip Validation**: Draft mode, bypasses validation step (`--skip-validation`)
-- **Validate Only**: Check existing content without generation (`--validate`)
-- **Verbose Output**: Show full validation JSON including all metrics (`--verbose`)
-- **Custom Threshold**: Override default pass score from config.json
-- **Direct Write Mode**: Skip preview and write directly to file
-- **Outline Only**: Generate structure without full draft
-
-## What This Skill CAN Do
-- Load voice skills with associated profile.json and config.json
-- Generate content matching voice patterns, metrics, and signature phrases
-- Run deterministic validation against voice profiles using Python scripts
-- Refine content iteratively based on violation feedback (max 3 iterations)
-- Produce validation reports with pass/fail status and metrics comparison
-- Validate existing content against voice profiles without generation
-- Write complete blog posts with proper Hugo frontmatter
-- Apply voice-specific patterns (metaphors, rhythm, structure, tone)
-- Run joy-check to catch grievance, accusation, and victimhood framing
-- Reframe negatively-framed paragraphs while preserving substance
-
-## What This Skill CANNOT Do
-- Create new voices (use `create-voice` skill instead)
-- Modify voice profiles (profiles are read-only during generation)
-- Analyze writing samples (use `scripts/voice_analyzer.py` directly)
-- Guarantee 100% pass rate (some content may fail after max iterations)
-- Generate without a voice target (a `--voice` parameter is ALWAYS required)
-- Self-assess voice quality (MUST use deterministic validator script)
-- Use banned words under any circumstances (see `references/banned-words.md`)
-- Skip the joy-check phase (it is mandatory, not optional)
+This skill operates as the unified entry point for all voiced content generation. It implements an 8-phase pipeline architecture with deterministic validation at quality gates, joy-check enforcement before output, and strict iteration limits.
 
 ---
 
@@ -114,6 +58,8 @@ This skill replaces `voice-orchestrator` and absorbs `blog-post-writer`. It is t
 ### Phase 1: LOAD
 
 **Goal**: Load all voice infrastructure files and verify they exist.
+
+Before loading, understand that this skill **requires a voice target** — content cannot be generated without a voice. If the user has not specified a voice, default to the repository's configured voice skill or ask the user which voice to use.
 
 **Step 1: Locate voice directory**
 
@@ -149,11 +95,15 @@ test -f skills/voice-{name}/config.json && echo "config.json: OK"
 
 If any required file is missing, STOP and report the error. Do not proceed with partial infrastructure.
 
+**Important constraint**: This phase is mandatory. Skipping Phase 1 will result in generation without voice infrastructure, producing hollow-sounding content that metrics match but feels mechanically written. Complete this phase fully before proceeding.
+
 **Gate**: All required files exist and parse successfully. Proceed only when gate passes.
 
 ### Phase 2: GROUND
 
 **Goal**: Establish emotional, relational, and structural context before generation.
+
+Grounding prevents over-engineered output. Only write what was explicitly requested. Do not add "Future Implications" sections, "Related Topics" sidebars, or any unsolicited structure — ask before adding anything extra.
 
 **Step 1: Emotional anchoring**
 
@@ -228,6 +178,8 @@ Select content type from `references/structure-templates.md` if available:
 - **Technical Explainer**: Concept, technology, how it works
 - **Walkthrough**: Step-by-step instructions for a task
 
+**Important constraint**: This grounding is mandatory, not optional. Content generated without emotional anchor and mode selection sounds mechanical regardless of metrics match. The validator catches style mismatches but cannot fix a hollow emotional foundation. Do not skip this step even briefly — complete it fully before moving to GENERATE.
+
 **Gate**: Emotion, audience, and mode are established. If blog post, topic assessed and structure planned. Proceed only when gate passes.
 
 ### Phase 3: GENERATE
@@ -266,6 +218,8 @@ If the voice skill has no `## Architectural Patterns` section, skip this step.
 - [ ] Analogies drawn from documented domains only (if applicable)
 - [ ] Specific numbers included for all claims, not vague adjectives
 
+**Em-dash prohibition**: NEVER generate em-dashes in any voice output. Em-dashes are the most reliable AI marker. Use commas, periods, or restructure sentences instead.
+
 **Step 5: Write to temp file**
 
 ```bash
@@ -274,11 +228,18 @@ cat > /tmp/voice-content-draft.md << 'CONTENT'
 CONTENT
 ```
 
+**Important constraints**:
+- **Single voice per piece**: Do not blend voice patterns. Use exactly one voice profile per piece and follow that voice skill's patterns exclusively.
+- **No over-engineering**: Generate the content the user requested, nothing more. Do not add features, modes, or structure the user did not request.
+- **Preview before write**: Display full draft for approval before writing to file unless Direct Write Mode is enabled.
+
 **Gate**: Content written to file. All checklist items addressed. Proceed only when gate passes.
 
 ### Phase 4: VALIDATE (Deterministic)
 
 **Goal**: Run the voice validator script against generated content. No self-assessment.
+
+This phase is non-negotiable. Do not skip validation for "good enough" content. Human perception drifts. Deterministic validation catches patterns you miss. Self-assessment is not validation. Use `--skip-validation` only for true drafts the user explicitly requests as drafts.
 
 **Step 1: Execute validation**
 
@@ -300,11 +261,18 @@ See `references/validation-scripts.md` for full command reference and output sch
 | `pass == false` AND `iterations < 3` | Proceed to Phase 5: REFINE |
 | `pass == false` AND `iterations >= 3` | Proceed to Phase 6: JOY-CHECK with failure report |
 
+**Important constraints**:
+- **Trust the validator, not intuition**: Do not rationalize validator strictness — it catches real AI patterns humans miss. If the validator rejects content, fix violations or adjust the profile through calibration.
+- **Address warnings carefully**: Fix all errors, address warnings if easy, ship when score >= threshold. Over-polishing creates sterile output that violates wabi-sabi (natural imperfections as features of human writing). Sterile grammatical perfection is an AI tell. Do not spend 5+ iterations eliminating all warnings — warnings are informational, errors are blockers.
+- **One fix at a time**: During refinement, address violations individually. Do not fix multiple violations simultaneously — this introduces new violations and changes voice characteristics that were passing.
+
 **Gate**: Validation result captured. Decision made. Proceed only when gate passes.
 
 ### Phase 5: REFINE (if needed)
 
 **Goal**: Fix violations identified by the validator. Maximum 3 iterations.
+
+Refinement is targeted, surgical fixing — not wholesale rewriting. Each iteration should fix one specific violation, not rewrite entire sections. Rewriting sections introduces new violations and changes voice characteristics.
 
 **Step 1: Process violations in severity order** (errors first, then warnings)
 
@@ -329,6 +297,8 @@ For each violation:
 
 **Goal**: Validate content for joy-centered tonal framing. No grievance-framed content ships.
 
+Joy-check is not optional, not even if validation passed. Voice validation checks stylistic fidelity. Joy-check checks tonal framing. Content can match a voice perfectly while framing through grievance, bitterness, accusation, or victimhood. Grievance framing slips in subtly — regex + rubric catch what visual scanning misses.
+
 **Step 1: Run regex pre-filter**
 
 ```bash
@@ -336,6 +306,8 @@ python3 $HOME/claude-code-toolkit/scripts/scan-negative-framing.py /tmp/voice-co
 ```
 
 If regex hits are found, fix them before proceeding. These are high-confidence negative framing patterns (victimhood, accusation, bitterness, passive aggression). Apply the scanner's suggested reframes and re-run until clean.
+
+If the script is unavailable, skip the regex pre-filter and proceed directly to LLM-based joy-check analysis — the regex pre-filter is an optimization, not a requirement.
 
 **Step 2: Evaluate each paragraph against the Joy Framing Rubric**
 
@@ -364,10 +336,12 @@ If any paragraph scores GRIEVANCE:
 4. Maximum 3 joy-check iterations
 
 **Joy-check rules:**
-- Reframe, don't suppress -- negative experiences are valid topics, only the framing changes
+- Reframe, don't suppress -- negative experiences are valid topics, only the framing changes. This is editorial craft, not dishonesty — substance stays the same.
 - Preserve substance -- change the lens, not the facts
 - One GRIEVANCE paragraph is a FAIL condition for the whole piece
 - CAUTION paragraphs are acceptable if the overall piece passes
+
+**Important constraint**: Do not rationalize that "the content is factual, so the framing is fine." Facts arranged as prosecution are framing, not neutrality. Evaluate the arrangement of facts, not just their accuracy. The reframe would not be dishonest — it is how we choose to tell the truth.
 
 **Gate**: No GRIEVANCE paragraphs remain. Joy-check passes. Proceed only when gate passes.
 
@@ -416,6 +390,8 @@ If any paragraph scores GRIEVANCE:
 **Status indicators**: `[check]` = passed, `[warn]` = warning, `[fail]` = error, `[ok]` = within threshold
 
 Show target file path if writing to a file. Await user approval before writing unless Direct Write Mode is enabled.
+
+**Important constraint**: Always include validation metrics in output. Do not ship content without showing the measurements that prove it passes.
 
 **Gate**: Output displayed with validation report. Proceed only when gate passes.
 
@@ -552,81 +528,8 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Skipping Validation for "Good Enough"
-**What it looks like**: "The content sounds fine to me, I'll skip validation."
-**Why wrong**: Human perception drifts. Deterministic validation catches patterns you miss. Self-assessment is not validation.
-**Do instead**: ALWAYS validate. Use `--skip-validation` only for true drafts the user explicitly requests as drafts.
-
-### Anti-Pattern 2: Self-Assessing Voice Quality
-**What it looks like**: "I read the content and it matches the voice profile."
-**Why wrong**: LLMs cannot reliably self-assess stylistic accuracy. That is why the deterministic validator exists.
-**Do instead**: Run `voice_validator.py`. Trust the script output, not your assessment.
-
-### Anti-Pattern 3: Skipping the Grounding Step
-**What it looks like**: Jumping straight from LOAD to GENERATE without establishing context.
-**Why wrong**: Voice without emotional grounding sounds mechanical. Metrics match but the content feels hollow.
-**Do instead**: Complete Phase 2 GROUND, even briefly. Establish emotion, audience, and mode before generating.
-
-### Anti-Pattern 4: Over-Iterating on Warnings
-**What it looks like**: Spending 5+ iterations trying to eliminate all warnings.
-**Why wrong**: Warnings are informational. Errors are blockers. Over-polishing creates sterile output that violates wabi-sabi.
-**Do instead**: Fix all errors, address warnings if easy, ship when score >= threshold. Maximum 3 iterations.
-
-### Anti-Pattern 5: Rewriting Entire Sections During Refinement
-**What it looks like**: Rewriting paragraphs to fix a single banned phrase violation.
-**Why wrong**: Introduces new violations. Changes voice characteristics that were passing.
-**Do instead**: Apply targeted, surgical fixes. Change only the violating text.
-
-### Anti-Pattern 6: Skipping Joy-Check Because Validation Passed
-**What it looks like**: "Voice validator passed, so the content is ready to ship."
-**Why wrong**: Voice validation checks stylistic fidelity. Joy-check checks tonal framing. Content can match a voice perfectly while framing through grievance.
-**Do instead**: ALWAYS run joy-check after validation. They check different things.
-
-### Anti-Pattern 7: Writing Without Voice Skill Loaded
-**What it looks like**: Starting to draft before reading the voice skill's patterns.
-**Why wrong**: Content will not match the voice profile. Retrofitting voice is harder than starting with it.
-**Do instead**: Complete Phase 1 fully. Load and read the voice skill before writing any content.
-
-### Anti-Pattern 8: Adding Unsolicited Sections
-**What it looks like**: Adding "Future Implications" or "Related Topics" sections the user did not request.
-**Why wrong**: Over-engineering the content. User asked for a specific piece, not a content hub.
-**Do instead**: Write exactly what was requested. Ask before adding anything extra.
-
-### Anti-Pattern 9: Blending Voice Patterns
-**What it looks like**: Mixing one voice's extended metaphors with another voice's community warmth in one post.
-**Why wrong**: Each voice has distinct patterns. Mixing creates an inconsistent, inauthentic voice.
-**Do instead**: Use exactly one voice profile per piece. Follow that voice skill's patterns exclusively.
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-- [Gate Enforcement](../shared-patterns/gate-enforcement.md) - Phase transitions
-- [Wabi-Sabi Authenticity](../shared-patterns/wabi-sabi-authenticity.md) - Natural imperfections as features
-- [Voice-First Writing](../shared-patterns/voice-first-writing.md) - Voice-driven content patterns
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "The validator is too strict" | Validator catches real AI patterns humans miss | Fix violations or adjust profile through calibration |
-| "This voice doesn't need validation" | All voices drift without measurement | ALWAYS validate with script |
-| "The metrics don't matter for this piece" | Metrics ensure consistency across outputs | Address deviations |
-| "Manual review is sufficient" | Humans miss patterns deterministic checks catch | Use script validation |
-| "One em-dash won't hurt" | Em-dash is the most reliable AI marker | NEVER use em-dashes |
-| "Content sounds right to me" | Self-assessment is not validation | Run voice_validator.py |
-| "No banned words jumped out at me" | Visual scan misses words in context | Run systematic scan against full banned list |
-| "Close enough to the voice" | Close is not matching the voice profile | Re-read voice skill, verify each pattern |
-| "Joy-check is overkill for this piece" | Grievance framing slips in subtly -- regex + rubric catch what you miss | ALWAYS run joy-check |
-| "The content is factual, so the framing is fine" | Facts arranged as prosecution are framing, not neutrality | Evaluate arrangement of facts, not just accuracy |
-| "The reframe would be dishonest" | Reframing is editorial craft, not dishonesty -- substance stays the same | Preserve substance, change only the lens |
-
-### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/validation-scripts.md`: Full validation command reference and output schema
 - `${CLAUDE_SKILL_DIR}/references/voice-infrastructure.md`: Voice file structure, config/profile schemas, modes, fix strategies
 - `${CLAUDE_SKILL_DIR}/references/banned-words.md`: Words and phrases that signal AI-generated content

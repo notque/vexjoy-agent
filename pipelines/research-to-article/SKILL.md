@@ -37,48 +37,11 @@ routing:
 
 # Research-to-Article Pipeline
 
-## Operator Context
+## Overview
 
-This skill orchestrates the complete content pipeline: parallel research gathering, structured compilation, voice generation, validation, and output. It implements the **Pipeline Architecture** pattern — gather, compile, ground, generate, validate — with **Domain Intelligence** embedded in voice-first content methodology.
+This skill orchestrates a complete content pipeline from research to publication. The pipeline operates in six distinct phases, each with defined inputs and gate criteria that must pass before proceeding to the next phase. Each phase produces persistent artifacts (files saved to disk) because context is ephemeral but files remain.
 
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before starting pipeline
-- **Over-Engineering Prevention**: Generate the article requested. No speculative additions, no "while I'm here" improvements to other content
-- **Parallel Research**: Launch 5 parallel research agents for comprehensive coverage
-- **Research-Voice Separation**: Research informs but NEVER dominates narrative. Raw data must be transformed to story
-- **Deterministic Validation**: Always validate final output with `voice_validator.py`
-- **Wabi-Sabi Authenticity**: Natural imperfections are features, not bugs. Do not over-polish
-- **Artifact Persistence**: Save research doc AND article to disk. Context is ephemeral, files persist
-
-### Default Behaviors (ON unless disabled)
-- **5 Research Agents**: Primary domain, narrative arcs, external context, community reaction, business context
-- **Research Compilation**: Structure findings with Story Arc first, key facts second
-- **Voice Mode Selection**: Auto-select mode based on content type (profile, awards, journey, etc.)
-- **Article Voice Notes**: Include voice-specific notes in compiled research doc
-- **Full Validation**: Run `voice_validator.py` before declaring output complete
-- **Timeout Enforcement**: 5-minute per-agent hard timeout, proceed with available data
-
-### Optional Behaviors (OFF unless enabled)
-- **Skip Research**: Use provided research data (`--skip-research`)
-- **Skip Validation**: Draft mode without deterministic validation (`--skip-validation`)
-- **Single Agent Research**: Faster but less thorough (`--quick`)
-- **Custom Agent Count**: Override default 5 agents for simpler topics
-
-## What This Skill CAN Do
-- Orchestrate end-to-end research-to-article pipeline with parallel agents
-- Compile multi-source research into structured documents with story arcs
-- Generate voice-authentic articles using voice skills and profiles
-- Validate output deterministically with `voice_validator.py`
-- Gracefully degrade when research agents timeout or return incomplete data
-
-## What This Skill CANNOT Do
-- Generate articles without researching first (use voice-orchestrator instead)
-- Edit existing articles (use the appropriate voice skill directly)
-- Optimize article performance or SEO (not a content optimization tool)
-- Skip validation phases (use `--skip-validation` flag explicitly if draft mode needed)
-- Upload to WordPress (use wordpress-uploader skill after pipeline completes)
-
----
+The core principle: research informs the article but NEVER dominates the narrative. Raw data transforms into story before reaching the final output. Always run deterministic validation with `voice_validator.py` at the end because self-assessment is unreliable.
 
 ## Instructions
 
@@ -88,7 +51,7 @@ This skill orchestrates the complete content pipeline: parallel research gatheri
 
 **Step 1: Define research scope**
 
-Identify the subject, timeframe, and 6 research dimensions:
+Identify the subject, timeframe, and 6 research dimensions. The current news dimension (Agent 6) is mandatory for profile articles because articles must feel timely — timely journalism captures where the story is RIGHT NOW, not a historical summary from months ago.
 
 ```markdown
 ## Research Scope
@@ -103,14 +66,14 @@ Agents:
 6. [Current news] - Last 1-2 weeks: upcoming events, recent developments, announcements
 ```
 
-**MANDATORY: Agent 6 (Current News) cannot be skipped for profile articles.** The article must feel timely. Search for:
+Search for these in current news research:
 - Upcoming events involving the subject
 - Recent developments from the last 2-3 weeks
 - Significant changes or announcements
 - Media coverage, press conferences, official statements
 - Social media announcements or reactions
 
-**Important**: Raw analytics, ratings, or database numbers are for research context only. NEVER surface raw data in the final article. Use data to understand trajectory, then transform to narrative.
+**Important**: Raw analytics, ratings, or database numbers serve research context only — NEVER surface raw data in the final article because readers don't know or care about database numbers like "1771.7 in the ratings and 8.40 community rating". Use data during research to understand trajectory, then transform to narrative in the article: "having the best stretch of their career right now".
 
 **Step 2: Launch 5 parallel agents**
 
@@ -126,15 +89,17 @@ Timeline:
   5:00  - HARD TIMEOUT: Proceed with available data
 ```
 
+Enforce a 5-minute hard timeout on research agents because diminishing returns set in after 3-4 agents provide sufficient data. Waiting indefinitely wastes time without improving quality.
+
 **Gate**: At least 3 of 5 agents have returned data. If fewer than 3, supplement with direct WebSearch. Proceed only when gate passes.
 
 ### Phase 2: COMPILE (Structure Research)
 
-**Goal**: Merge agent outputs into a single structured research document.
+**Goal**: Merge agent outputs into a single structured research document with story arc as the primary organizing principle.
 
 **Step 1: Identify the story arc**
 
-Before organizing facts, determine: What is the STORY here? The story arc is the most important element — it frames every fact, quote, and detail.
+Before organizing facts, determine: What is the STORY here? The story arc is the most important element — it frames every fact, quote, and detail. A fact dump (no story arc) becomes a list, not an article. Complete this phase with a clear story arc before moving to GENERATE.
 
 **Step 2: Compile research document**
 
@@ -178,10 +143,10 @@ Invoke the appropriate voice skill (e.g., `voice-{name}`) via the Skill tool. Se
 **Step 2: Generate with research context**
 
 Key constraints for ALL voices:
-- NEVER expose analytics, ratings, or raw data — transform to narrative
+- NEVER expose analytics, ratings, or raw data — transform to narrative because readers want stories, not reports
 - Reference the compiled research document by path
-- Apply wabi-sabi: natural imperfections are features
-- End with forward momentum — point ahead, not backward
+- Apply wabi-sabi: natural imperfections are features, not bugs. Do not over-polish
+- End with forward momentum — point ahead, not backward. Voice-authentic writing never summarizes. Summary paragraphs are an AI tell
 
 **Step 3: Save draft**
 
@@ -205,6 +170,8 @@ python3 $HOME/claude-code-toolkit/scripts/voice_validator.py validate \
   --format json
 ```
 
+Run `voice_validator.py` every time because self-assessment is unreliable — validation is mandatory, not optional.
+
 **Step 2: Check pass criteria**
 
 | Metric | Requirement |
@@ -220,6 +187,11 @@ If validation fails:
 2. Address warnings (rhythm, metrics)
 3. Re-validate
 4. Maximum 3 iterations — if still failing after 3, output with validation report and note issues
+
+Common fixes:
+- Check for research language ("metrics show", "data indicates") and replace with narrative
+- Check for banned patterns and remove
+- Re-read voice profile and adjust tone
 
 **Gate**: Validation passes OR 3 refinement iterations exhausted. Proceed only when gate passes.
 
@@ -252,7 +224,7 @@ If validation fails:
 
 **Step 2: Verify artifacts exist**
 
-Confirm both files are saved:
+Confirm both files are saved — this is non-optional verification because files persist when context vanishes:
 - Research document at `content/[site]/test/[subject]-research.md`
 - Article at `content/[site]/test/[subject]-article.md`
 
@@ -321,65 +293,7 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Research Language in Article
-**What it looks like**: "Data shows that fan engagement increased 40% during Q3"
-**Why wrong**: Exposes raw analytics. Readers want stories, not reports. Voice authenticity destroyed.
-**Do instead**: Transform data to narrative — "the audience grew every week, and by summer the momentum was undeniable"
-
-### Anti-Pattern 2: Skipping Research Compilation
-**What it looks like**: Passing raw agent outputs directly to voice generation
-**Why wrong**: No story arc means no throughline. Article becomes a list of facts, not a narrative.
-**Do instead**: Complete Phase 2 COMPILE. Identify the story arc FIRST, then organize facts around it.
-
-### Anti-Pattern 3: Over-Polishing the Output
-**What it looks like**: Fixing every run-on sentence, removing all fragments, standardizing punctuation
-**Why wrong**: Wabi-sabi violation. Natural imperfections are voice fingerprints. Sterile perfection is an AI tell.
-**Do instead**: Fix errors (banned patterns, factual mistakes). Keep warnings (rhythm, fragments, run-ons). These are features.
-
-### Anti-Pattern 4: Waiting Indefinitely for Research Agents
-**What it looks like**: "Still waiting for Agent 4... it's been 15 minutes..."
-**Why wrong**: Diminishing returns. 3-4 agents provide sufficient data. Waiting wastes time without improving quality.
-**Do instead**: Enforce 5-minute hard timeout. Proceed with available data. Supplement with targeted WebSearch if needed.
-
-### Anti-Pattern 5: Summarizing at the End
-**What it looks like**: "In conclusion, [subject]'s 2025 was defined by three key themes..."
-**Why wrong**: Voice-authentic writing never summarizes. Summary paragraphs are an AI tell.
-**Do instead**: Point forward. End with momentum -- what comes next, what to watch for, why you should care tomorrow.
-
-### Anti-Pattern 6: Citing Raw Stats in Articles
-**What it looks like**: "At 1771.7 in the ratings and climbing, with a community rating of 8.40"
-**Why wrong**: Readers don't know or care about raw database numbers. This reads like a stats dump, not a story.
-**Do instead**: Use data during research to understand trajectory. In the article, transform to narrative: "having the best stretch of their career right now"
-
-### Anti-Pattern 7: Missing Current News
-**What it looks like**: A profile piece about a subject who has a major event tomorrow, but the article doesn't mention it
-**Why wrong**: Makes the article feel like a Wikipedia summary rather than timely journalism. Misses the entire reason to read NOW.
-**Do instead**: Always search for upcoming events, recent developments, and announcements. The closing sections should reflect where the story is RIGHT NOW.
-
----
-
 ## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-- [Pipeline Architecture](../shared-patterns/pipeline-architecture.md) - Pipeline design principles
-- [Voice-First Writing](../shared-patterns/voice-first-writing.md) - Voice generation methodology
-- [Wabi-Sabi Authenticity](../shared-patterns/wabi-sabi-authenticity.md) - Natural imperfection principle
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Research is good enough with 2 agents" | Missing dimensions lead to shallow articles | Launch all 6, proceed with 4+ after timeout |
-| "I can write without compiling first" | No story arc = fact dump, not article | Complete COMPILE phase with story arc |
-| "Validation is optional for good writers" | Self-assessment is unreliable | Run `voice_validator.py`, every time |
-| "This sounds natural, skip wabi-sabi check" | Over-polished = AI tell | Verify imperfections preserved |
-| "Readers won't notice research language" | "Data indicates" kills voice authenticity | Transform ALL data to narrative |
-| "Raw data adds credibility" | Readers don't know or care about database numbers | Use data for context, never cite raw numbers in article |
-| "Historical facts are enough" | Missing current news makes article feel stale | Search last 1-2 weeks of news, upcoming events |
 
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/research-agents.md`: Agent configuration, prompts, and timeout management
