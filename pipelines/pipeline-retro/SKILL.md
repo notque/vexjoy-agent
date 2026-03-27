@@ -57,44 +57,6 @@ Layer 3: VALIDATION -- Regenerate the affected skills + re-test
 
 The critical discipline: we NEVER patch a generated skill directly. Every fix goes through the generator so all future pipelines benefit. This is what makes the system self-improving rather than self-patching.
 
-## Operator Context
-
-### Hardcoded Behaviors (Always Apply)
-
-- **Three-Layer Discipline**: NEVER edit a generated skill file to fix a test failure. WHY: Artifact fixes teach the system nothing -- the same bug will appear in every future pipeline the generator creates. Fix the generator, not the output.
-- **Evidence-Required Rules**: NEVER add a rule to `architecture-rules.md` without citing the specific test failure that proved it necessary. WHY: The ADR mandates "Rules earn their place through data. No rule is added based on 'best practice' or 'should'." Rules without evidence accumulate into bloat that slows every future generation.
-- **Trace Before Fix**: NEVER propose a generator fix without first tracing the failure to a specific link in the generation chain. WHY: Fixing the wrong link wastes a regeneration cycle and may introduce new problems. The 5-link chain analysis ensures you fix the root cause, not a symptom.
-- **Prove Before Ship**: NEVER mark a generator fix as complete without regenerating the affected skill and re-testing. WHY: A fix that doesn't improve test results isn't a fix -- it's a guess. Layer 3 is what distinguishes this from wishful thinking.
-
-### Default Behaviors (ON unless disabled)
-
-- **Communication Style**: Report root causes and proposed fixes with evidence. Show the chain link analysis, not just the conclusion.
-- **Temporary File Cleanup**: Clean up intermediate analysis files after the retro report is produced.
-- **Batch Processing**: When multiple failures share the same root cause, propose one fix that addresses all of them rather than N separate fixes.
-- **Conservative Application**: For complex fixes (new step types, restructured chains), present for review rather than auto-applying. For trivial fixes (template typos, missing rules with clear evidence), apply directly.
-
-### Optional Behaviors (OFF unless enabled)
-
-- **Verbose Trace**: Include the full content of each generation chain link examined (increases context cost but aids debugging).
-- **Cross-Domain Analysis**: When multiple domains have been generated, look for patterns across domains (e.g., the same chain-error appearing in Prometheus and RabbitMQ pipelines).
-
-## What This Skill CAN Do
-
-- Load and parse pipeline-test-runner reports (manifest.json + content.md)
-- Trace failures through the 5-link generation chain (research, composition, template, rules, step menu)
-- Propose specific fixes to generator components with evidence citations
-- Apply trivial fixes directly to generator files
-- Re-invoke chain-composer, pipeline-scaffolder, and pipeline-test-runner for affected subdomains
-- Compare before/after test results to validate fixes
-- Produce a structured retro report as a dual-layer artifact
-
-## What This Skill CANNOT Do
-
-- **Fix generated skills directly**: This is Layer 1 -- explicitly forbidden by the Three-Layer Pattern
-- **Add rules without evidence**: Architecture rules require empirical justification
-- **Modify the step menu type system**: Step menu changes affect all pipeline composition and require separate review
-- **Run against arbitrary skill failures**: This skill only processes pipeline-test-runner output, not general test failures
-
 ---
 
 ## Instructions
@@ -111,6 +73,8 @@ These are provided by `pipeline-orchestrator-engineer` when invoking Phase 6 (RE
 ### Phase 1: INGEST (Load Test Results)
 
 **Goal**: Load the test runner report and build a failure inventory.
+
+**Hardcoded Constraint**: If all results are PASS, produce a minimal report and exit—do not proceed to Phase 2.
 
 **Step 1**: Read the test runner `manifest.json`. Extract:
 - `status`: overall pipeline test status
@@ -144,6 +108,8 @@ Save the failure inventory to `/tmp/pipeline-retro-{domain}/failure-inventory.md
 ### Phase 2: TRACE (Root Cause Analysis)
 
 **Goal**: For each failure, trace it to a specific link in the 5-link generation chain.
+
+**Hardcoded Constraint**: NEVER propose a generator fix without first tracing the failure to a specific link. Fixing the wrong link wastes a regeneration cycle. The 5-link chain analysis ensures you fix the root cause, not a symptom.
 
 The generation chain has 5 links. Each link is a component of the pipeline generator that contributed to the final output. The failure was introduced at one of these links -- the goal is to identify which one.
 
@@ -181,7 +147,7 @@ skills/{skill_name}/SKILL.md
 | 2. Chain Composition | Did the chain have the wrong steps or wrong step order for this task type? | `chain-error` |
 | 1. Domain Research | Did domain research misclassify the subdomain or miss critical information? | `research-miss` |
 
-Walk from Link 5 backward to Link 1. The FIRST link whose output introduced the problem is the root cause. WHY: Fixing upstream links is more impactful (affects more future pipelines) but also riskier. We want the most specific fix possible -- the link closest to the failure that can resolve it.
+Walk from Link 5 backward to Link 1. The FIRST link whose output introduced the problem is the root cause. Why: Fixing upstream links is more impactful (affects more future pipelines) but also riskier. We want the most specific fix possible -- the link closest to the failure that can resolve it.
 
 **Step 5**: If the failure cannot be attributed to any of the 5 links, classify it as `test-target-issue`. This means the test target was insufficient, not the generator. Examples:
 - Test target was too domain-specific for the generated pipeline to handle
@@ -195,6 +161,10 @@ Save the trace analysis to `/tmp/pipeline-retro-{domain}/trace-analysis.md`.
 ### Phase 3: PROPOSE (Generator Fixes -- Layer 2)
 
 **Goal**: For each root cause, propose a specific fix to the generator component.
+
+**Hardcoded Constraint**: NEVER add a rule to `architecture-rules.md` without citing the specific test failure that proved it necessary. Rules earn their place through data. Rules without evidence accumulate into bloat that slows every future generation.
+
+**Hardcoded Constraint**: For complex fixes (new step types, restructured chains), present for review rather than auto-applying. For trivial fixes (template typos, missing rules with clear evidence), apply directly.
 
 **Fix Proposals by Classification**:
 
@@ -222,7 +192,7 @@ Save the trace analysis to `/tmp/pipeline-retro-{domain}/trace-analysis.md`.
 - Target: `pipelines/pipeline-scaffolder/references/step-menu.md`
 - Propose: A new step entry with: name, output schema, consumes, parallel flag, when-to-use description
 - Evidence required: Show the gap in the chain that a new step type would fill, and why existing steps cannot cover it
-- NOTE: Step menu changes are always presented for review, never auto-applied. WHY: Step menu changes affect the type system of ALL pipeline composition. A bad step type is worse than a missing one.
+- NOTE: Step menu changes are always presented for review, never auto-applied. Step menu changes affect the type system of ALL pipeline composition. A bad step type is worse than a missing one.
 
 **`test-target-issue`** -- The test target was inadequate.
 - Target: The test runner configuration, not the generator
@@ -245,6 +215,8 @@ Save proposed fixes to `/tmp/pipeline-retro-{domain}/proposed-fixes.md`.
 ### Phase 4: REGENERATE (Layer 3 -- Prove the Fix)
 
 **Goal**: Apply generator fixes and regenerate affected pipelines to prove the fixes work.
+
+**Hardcoded Constraint**: NEVER mark a generator fix as complete without regenerating the affected skill and re-testing. A fix that doesn't improve test results isn't a fix -- it's a guess. Layer 3 is what distinguishes this from wishful thinking.
 
 **Step 1: Classify and apply fixes**
 
@@ -302,6 +274,10 @@ If the fix must be reverted:
 ### Phase 5: REPORT
 
 **Goal**: Produce the retro report as a dual-layer artifact.
+
+**Default Behavior**: Clean up intermediate analysis files after the retro report is produced.
+
+**Default Behavior**: When multiple failures share the same root cause, propose one fix that addresses all of them rather than N separate fixes.
 
 **Step 1: Create manifest.json**
 
@@ -446,65 +422,11 @@ Save the report to the pipeline run directory alongside the test runner output.
 
 ---
 
-## Anti-Patterns
-
-### Layer 1 Temptation
-**What it looks like**: Opening a generated skill file and editing it to fix the test failure. "I'll just add a missing step to this one skill."
-**Why wrong**: The fix dies with this one pipeline. The next time the generator runs, it produces the same bug. You've spent effort that doesn't compound.
-**Do instead**: Trace the failure to the generator component (template, rules, chain, step menu) and fix it there. The fix then propagates to ALL future pipelines.
-
-### Rules Without Evidence
-**What it looks like**: Adding a rule to architecture-rules.md because it "seems like a good idea" or is "best practice".
-**Why wrong**: The ADR explicitly forbids this: "Rules earn their place through data. No rule is added based on 'best practice' or 'should'." Evidence-free rules accumulate into bloat that slows generation without proven benefit.
-**Do instead**: Every rule MUST cite the specific test failure (with evidence ID) that proved it necessary. If you can't point to a failure, you don't have a rule -- you have an opinion.
-
-### Premature Regeneration
-**What it looks like**: Applying a fix and immediately regenerating without tracing the root cause. "Let me just try this change and see if it helps."
-**Why wrong**: Trial-and-error wastes regeneration cycles and can introduce new issues. Each regeneration cycle involves chain-composer, scaffolder, and test-runner -- it's expensive.
-**Do instead**: Complete the full trace analysis (Phase 2) before proposing any fix (Phase 3). Understand the root cause before attempting a remedy.
-
-### Ignoring test-target-issue Classification
-**What it looks like**: Forcing a generator fix when the real problem is the test target. "The test said FAIL, so something in the generator must be wrong."
-**Why wrong**: Not all failures are generator failures. Some test targets are ambiguous, too narrow, or require capabilities outside the generated pipeline's scope. Fixing the generator for a bad test target introduces unnecessary rules.
-**Do instead**: Honestly classify `test-target-issue` when appropriate. Report it in the retro, suggest better test targets, and move on.
-
-### Fixing Multiple Links Simultaneously
-**What it looks like**: "The chain composition was wrong AND the template has a bug AND we need a new rule." Proposing fixes to 3 links at once.
-**Why wrong**: When you change multiple variables, you can't attribute the improvement (or regression) to any specific fix. Layer 3 validation becomes meaningless.
-**Do instead**: Fix one link at a time. Regenerate and re-test after each fix. If the first fix resolves the failure, stop. Only move to the next link if the first fix didn't help.
-
----
-
-## Anti-Rationalization
-
-| Rationalization Attempt | Why It's Wrong | Required Action |
-|------------------------|----------------|-----------------|
-| "Just this once, I'll fix the generated skill directly" | Layer 1 NEVER compounds. Every direct fix is effort that dies with one pipeline. | Trace to generator. Fix at Layer 2. Prove at Layer 3. |
-| "This rule is obviously needed, no evidence required" | The ADR exists because obvious rules accumulate into un-obvious bloat. | Cite the specific test failure or don't add the rule. |
-| "I know the root cause without reading the chain" | Skipping trace analysis leads to fixing symptoms. | Walk all 5 links. The first link that introduced the problem is the root cause. |
-| "The fix is too complex to regenerate and test" | Untested fixes are guesses, not improvements. | If you can't prove it, don't ship it. Add to open items. |
-| "All these failures are test target problems" | Blanket test-target-issue classification avoids accountability. | Trace each failure individually. Some may be test issues, but batch-dismissal is a rationalization. |
-| "Let me fix multiple links to be thorough" | Multi-variable changes prevent causal attribution. | One link per regeneration cycle. Isolate the variable. |
-
-## Blocker Criteria
-
-STOP and ask the user (do NOT proceed autonomously) when:
-
-| Situation | Why Stop | Ask This |
-|-----------|----------|----------|
-| Proposed fix modifies the step menu type system | Type system changes affect ALL pipeline composition across ALL domains | "This fix requires a new step type / modified type compatibility. Review before applying?" |
-| Proposed fix would invalidate existing validated chains | Existing pipelines may break | "This fix changes chain composition rules. N existing chains may need re-validation. Proceed?" |
-| All failures classify as the same root cause | May indicate a systematic issue requiring architectural discussion | "All N failures trace to {classification}. This suggests a deeper issue. Discuss approach?" |
-| Regeneration produced regressions | The fix made things worse somewhere | "Regeneration improved {N} subdomains but regressed {M}. Revert all, keep partial, or investigate?" |
-
-### Never Guess On
-- Whether a failure is a generator issue or a test-target issue (trace it)
-- Which link in the generation chain is the root cause (walk all 5)
-- Whether a step menu change is safe (always present for review)
-- Whether to revert or keep a fix that produced mixed results (ask the user)
-
----
-
 ## References
 
 - **Pipeline Orchestrator**: [agents/pipeline-orchestrator-engineer.md](../../agents/pipeline-orchestrator-engineer.md) -- The agent that invokes this skill as Phase 6
+- **Three-Layer Pattern ADR**: [adr/self-improving-pipeline-generator.md](../../adr/self-improving-pipeline-generator.md) -- Design rationale for Layer 1/2/3 discipline
+- **Chain Composer**: [pipelines/chain-composer/SKILL.md](../chain-composer/SKILL.md) -- Creates Pipeline Spec from domain research
+- **Pipeline Scaffolder**: [pipelines/pipeline-scaffolder/SKILL.md](../pipeline-scaffolder/SKILL.md) -- Generates skills from Pipeline Spec
+- **Pipeline Test Runner**: [pipelines/pipeline-test-runner/SKILL.md](../pipeline-test-runner/SKILL.md) -- Tests generated pipelines and produces retro input
+- **Domain Research**: [pipelines/domain-research/SKILL.md](../domain-research/SKILL.md) -- Link 1 in the generation chain

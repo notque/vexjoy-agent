@@ -39,40 +39,15 @@ routing:
 
 # Research Pipeline
 
-## Operator Context
+## Overview
 
 This skill formalizes the research-coordinator-engineer's parallel research workflow into
 a 5-phase pipeline with artifact saving at each phase. It is the go-to path when research
 needs to produce a citable, resumable output — not just an in-session answer.
 
-### Hardcoded Behaviors (Always Apply)
-- **Parallel dispatch mandatory**: Phase 2 (GATHER) MUST dispatch minimum 3 parallel `research-subagent-executor` agents in a single message. Sequential research is forbidden. This is validated by A/B testing (Rule 12, pipeline-orchestrator): sequential research loses quality vs. parallel.
-- **Artifact saving at every phase**: Each phase writes to `research/{topic}/` before proceeding. Context-only storage is not acceptable — context is ephemeral, files are not.
-- **Scope before gather**: Phase 1 (SCOPE) must produce `scope.md` before any research agents are dispatched. Gathering without a defined question produces unfocused findings.
-- **Report is the canonical output**: `research/{topic}/report.md` is the artifact reported to the user. Inline chat is supplementary.
-
-### Default Behaviors (ON unless disabled)
-- **Save raw findings per agent**: Each parallel agent in Phase 2 writes its own `raw-{angle}.md` file, not a shared file. This preserves distinct perspectives for synthesis.
-- **Evidence quality ratings**: Phase 3 labels each finding Strong/Moderate/Weak based on source specificity.
-- **Gap check**: Phase 4 explicitly checks whether the synthesis answers every sub-question from scope.md.
-- **Standard depth**: ~10 tool calls per research agent unless user specifies "quick" or "deep".
-
-### Optional Behaviors (OFF unless enabled)
-- **Deep mode**: ~20 tool calls per research agent. Enable with "deep research" or "thorough research".
-- **Quick mode**: ~5 tool calls per research agent. Enable with "quick research" or "brief research".
-- **Extra agents**: Dispatch more than 3 parallel agents for broad topics. Enable with "comprehensive" or when primary question has 5+ distinct angles.
-
-## What This Skill CAN Do
-- Define a precise research scope with primary question and 2-5 sub-questions
-- Dispatch 3+ parallel `research-subagent-executor` agents, each assigned a distinct angle
-- Compile raw findings into a synthesis with evidence quality ratings per claim
-- Check the synthesis against the original scope for gaps and bias
-- Produce a structured final report saved to `research/{topic}/report.md`
-
-## What This Skill CANNOT Do
-- Guarantee factual accuracy — it surfaces evidence quality but cannot verify all claims
-- Replace domain-specific research workflows (e.g., `go-code-review` for Go code analysis)
-- Produce audio, images, or non-text artifacts
+The pipeline enforces mandatory parallel research (minimum 3 independent agents), artifact
+persistence at every phase, and structured validation before delivery. Context-only storage
+is forbidden; all outputs must persist to `research/{topic}/` for resumability and long-term reference.
 
 ---
 
@@ -135,6 +110,8 @@ Write `research/{topic}/scope.md`:
 
 **Goal**: Execute parallel research with mandatory multi-agent dispatch.
 
+**Critical Constraint**: You MUST dispatch minimum 3 parallel `research-subagent-executor` agents in a single message. Sequential research is forbidden — it produces lower quality output and takes 3–5x longer than parallel dispatch (validated by A/B testing). Each agent must be assigned a distinct angle and receive identical dispatch instructions in the same message; do NOT dispatch agents one at a time waiting for completion between each.
+
 **Step 1**: Assign a distinct angle to each agent. Angles should cover the scope without overlapping. Good angle patterns for most research topics:
 
 | Angle | Focus |
@@ -149,13 +126,15 @@ Write `research/{topic}/scope.md`:
 
 Choose 3–5 angles that are relevant to the primary question and sub-questions from scope.md.
 
-**Step 2**: Dispatch minimum 3 parallel `research-subagent-executor` agents in a single message. Each agent receives:
+**Step 2**: Dispatch all agents in a single message. Each agent receives:
 - Its assigned angle
 - The primary question from scope.md
 - The sub-questions relevant to its angle
 - The source types from scope.md
 - The depth setting (number of tool calls)
 - Its output file: `research/{topic}/raw-{angle}.md`
+
+Each agent writes its findings to its own `raw-{angle}.md` file, not a shared file. This preserves distinct perspectives for synthesis and prevents shared bias between agents.
 
 Example dispatch instruction for one agent:
 ```
@@ -214,6 +193,8 @@ If an agent times out or fails to write its file:
 | **Strong** | Backed by specific sources, data, or multiple independent agents |
 | **Moderate** | Supported by one source or general practitioner consensus |
 | **Weak** | Inferred, speculative, or from a single low-authority source |
+
+Distinguish between "Strong" findings backed by specific named sources and findings where "Strong" just means "multiple agents said it" — the latter can hide shared bias. Only mark as Strong if evidence is independent and specific.
 
 **Step 4**: Write `research/{topic}/synthesis.md`:
 
@@ -282,7 +263,7 @@ If an agent times out or fails to write its file:
 
 **Goal**: Produce the final formatted report.
 
-**Step 1**: Write `research/{topic}/report.md` — the canonical output artifact.
+**Step 1**: Write `research/{topic}/report.md` — the canonical output artifact. This is what you report to the user. Inline chat is supplementary.
 
 Structure:
 
@@ -382,51 +363,6 @@ Solution: Report this to the user with specifics: which angles failed and why. O
 ### Error: "research/{topic}/ directory conflict — prior research exists"
 Cause: A previous run left artifacts at the same path.
 Solution: Check if prior `report.md` exists. If it does, ask the user: re-run (overwrite) or resume from existing scope.md? Resuming from scope.md is faster if the primary question is unchanged.
-
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Sequential Research
-**What it looks like**: Dispatching one research agent, waiting, dispatching the next, waiting, etc.
-**Why wrong**: Sequential research takes 3–5x longer and produces lower quality output than parallel dispatch (A/B validated, Rule 12). Each agent also lacks awareness of the other angles, producing redundant findings.
-**Do instead**: Dispatch all agents in a single message with distinct angles. Wait once for all to complete.
-
-### Anti-Pattern 2: Not Saving Artifacts
-**What it looks like**: Reading all raw files and synthesizing in context without writing synthesis.md or report.md to disk.
-**Why wrong**: Context is ephemeral. If the session ends or context compresses, all synthesis work is lost. The user cannot reference findings later.
-**Do instead**: Write synthesis.md after Phase 3 and report.md after Phase 5, always. These are the persistent record.
-
-### Anti-Pattern 3: Treating Synthesis as Delivery
-**What it looks like**: Skipping Phase 4 (VALIDATE) and Phase 5 (DELIVER), sending synthesis.md content directly to the user.
-**Why wrong**: Synthesis is an intermediate artifact. It lacks quality assessment, bias check, and the formatted structure of a final report. Gaps are not yet surfaced for the user.
-**Do instead**: Always run VALIDATE before DELIVER. Quality assessment is what distinguishes research from note-taking.
-
-### Anti-Pattern 4: Single-Agent Research
-**What it looks like**: Dispatching one agent with instructions to "research everything" about the topic.
-**Why wrong**: A single agent pursues one thread of inquiry and cannot cover multiple angles in parallel. It also hits depth limits faster.
-**Do instead**: Assign distinct angles to distinct agents. Minimum 3.
-
-### Anti-Pattern 5: Vague Scope
-**What it looks like**: Skipping Phase 1 and dispatching agents with the user's raw query as the research question.
-**Why wrong**: Raw queries like "research Kubernetes" produce unfocused findings across too many angles with no synthesis structure.
-**Do instead**: Always write scope.md first. A 2-minute scoping step saves significant synthesis effort.
-
----
-
-## Examples
-
-### Example 1: Technical tradeoff research
-User: "Research the tradeoffs of CRDTs vs. operational transforms for collaborative editing"
-Actions: Phase 1 defines primary question ("What are the tradeoffs between CRDTs and OT for real-time collaborative editing at scale?"), 4 sub-questions (conflict resolution model, performance, implementation complexity, production adoption). Phase 2 dispatches 4 agents: current-state, tradeoffs, technical-details, real-world-usage. Phase 3 synthesizes 8 key findings with evidence ratings. Phase 4 identifies 1 weak finding (performance at very large scale — limited data). Phase 5 delivers `research/crdt-vs-ot/report.md`.
-
-### Example 2: Quick competitive landscape research
-User: "Quick research on vector database options for a new project"
-Actions: Phase 1 sets depth=quick (~5 calls per agent), 3 sub-questions. Phase 2 dispatches 3 agents: current-state (mainstream options), tradeoffs (when to use each), real-world-usage (adoption and maturity). Phase 5 delivers `research/vector-databases/report.md` with executive summary that directly answers "which to pick for a new project."
-
-### Example 3: Resuming interrupted research
-User: "Continue the research on distributed consensus algorithms"
-Actions: Check if `research/distributed-consensus/` exists. If scope.md and some raw-*.md files exist, read scope.md to re-establish context, check which angles are missing, and resume from Phase 3 (SYNTHESIZE) if all raw files are present, or re-dispatch missing angles if some are absent.
 
 ---
 

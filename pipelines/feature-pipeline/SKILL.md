@@ -36,39 +36,18 @@ routing:
 
 End-to-end feature lifecycle pipeline that coordinates the five existing feature skills (feature-design, feature-plan, feature-implement, feature-validate, feature-release) into a single phase-gated workflow with a final RECORD phase for learning.
 
-## Operator Context
+## Overview
 
-This pipeline orchestrates the full feature lifecycle. Each phase invokes the corresponding feature-* skill and enforces gates before transitions.
+This pipeline orchestrates the full feature lifecycle by invoking feature-* skills in sequence: DESIGN, PLAN, IMPLEMENT, VALIDATE, RELEASE, RECORD. Each phase must pass its gate before the next begins (enforced because skipping design or plan steps causes rework, and testing without validation creates merged bugs).
 
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before starting
-- **Sequential Phases**: Phases execute in order. No skipping.
-- **Phase Gates Enforced**: Each phase must pass its gate before the next begins
-- **Artifact Persistence**: Each phase produces artifacts that subsequent phases depend on
-- **Branch Isolation**: All work happens on a feature branch, never on main
+**Before starting**: Read and follow your repository's CLAUDE.md because it contains essential context and conventions.
 
-### Default Behaviors (ON unless disabled)
-- **Design-First**: Always start with design, even for "obvious" features
-- **Plan Before Code**: Never write implementation code without an approved plan
-- **Test Before Ship**: Validation must pass before release
-- **Record Learnings**: Always complete the RECORD phase
+**Scope**: Use for end-to-end feature work only. For single-phase work (e.g., "just validate this feature"), use the individual feature-* skills instead.
 
-### Optional Behaviors (OFF unless enabled)
-- **--skip-design**: Skip Phase 1 if design document already exists
-- **--skip-release**: Stop after validation (useful for draft features)
-- **--parallel-implement**: Dispatch implementation tasks in parallel via agents
-
-## What This Pipeline CAN Do
-- Coordinate an entire feature from initial design through release
-- Ensure proper sequencing of design, planning, implementation, validation, and release
-- Prevent common lifecycle mistakes (coding before design, shipping before tests)
-- Record patterns for future feature development
-
-## What This Pipeline CANNOT Do
-- Replace individual feature-* skills for single-phase work
-- Debug bugs (use systematic-debugging instead)
-- Refactor existing code (use systematic-refactoring instead)
-- Skip phases without explicit opt-in flags
+**Optional flags** (OFF by default):
+- `--skip-design` — Skip Phase 1 if design document already exists
+- `--skip-release` — Stop after validation (useful for draft features)
+- `--parallel-implement` — Dispatch implementation tasks in parallel via agents
 
 ---
 
@@ -202,40 +181,27 @@ Document what went well, what could improve, and any process adjustments for nex
 
 ### Error: "Design Phase Stalls"
 Cause: Requirements unclear or stakeholder alignment missing
-Solution: Time-box design to 2 iterations. If no convergence, document open questions and proceed with best-available design, flagging assumptions.
+Solution: Time-box design to 2 iterations because unbounded design exploration delays implementation without creating clarity. If no convergence, document open questions and proceed with best-available design, flagging assumptions. Re-validate during Phase 4 if assumptions prove incorrect.
 
 ### Error: "Implementation Diverges from Plan"
 Cause: Discovered complexity not anticipated in design/plan
-Solution: Return to Phase 2 (PLAN). Update plan with new understanding. Do NOT continue implementing against an outdated plan.
+Solution: Return to Phase 2 (PLAN) to update the plan with new understanding because continuing with an outdated plan causes wasted implementation effort and integration rework. Do NOT continue implementing against an outdated plan.
 
 ### Error: "Validation Fails"
 Cause: Implementation bugs or missing requirements
-Solution: Return to Phase 3 (IMPLEMENT) to fix. Do NOT proceed to RELEASE with failing validation. Re-run full validation after fixes.
+Solution: Return to Phase 3 (IMPLEMENT) to fix because proceeding to release with failing tests ships defects to end users. Do NOT proceed to RELEASE with failing validation. Re-run full validation after fixes to catch any regressions.
 
 ### Error: "Release Blocked"
 Cause: Merge conflicts, CI failures, or review feedback
-Solution: Address each blocker. Return to Phase 4 (VALIDATE) if code changes were needed.
+Solution: Address each blocker. Return to Phase 4 (VALIDATE) if code changes were needed because changes risk introducing new failures.
 
 ---
 
-## Anti-Patterns
+## References
 
-### Anti-Pattern 1: Skipping Design
-**What it looks like**: "This feature is simple, let me just code it"
-**Why wrong**: Simple features become complex. Without design, scope creeps and rework follows.
-**Do instead**: Complete Phase 1 even if brief. A one-paragraph design doc is still a design doc.
-
-### Anti-Pattern 2: Implementing Without a Plan
-**What it looks like**: Starting to code after design, without breaking into tasks
-**Why wrong**: Leads to unordered work, missed dependencies, and integration pain.
-**Do instead**: Complete Phase 2. Even 3 ordered tasks is better than ad-hoc coding.
-
-### Anti-Pattern 3: Shipping Without Validation
-**What it looks like**: "Tests pass locally, let's merge"
-**Why wrong**: Local passes != CI passes. Regressions hide in untested paths.
-**Do instead**: Complete Phase 4 with full quality gates before Phase 5.
-
-### Anti-Pattern 4: Not Recording Learnings
-**What it looks like**: Shipping and moving on without retrospective
-**Why wrong**: Same mistakes repeat. Process never improves.
-**Do instead**: Complete Phase 6. Five minutes of recording saves hours on the next feature.
+This pipeline coordinates:
+- `/feature-design` — Explore requirements, discuss trade-offs, produce design document
+- `/feature-plan` — Break design into wave-ordered tasks with domain agent assignments
+- `/feature-implement` — Execute plan by dispatching tasks to domain agents
+- `/feature-validate` — Run quality gates (tests, lint, type checks, custom validation)
+- `/feature-release` — Merge via PR, tag release, clean up branch
