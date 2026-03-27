@@ -27,47 +27,14 @@ routing:
 
 # Post Outliner Skill
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for blog post planning, configuring Claude's behavior for creating structural blueprints that ensure posts have logical flow and appropriate scope. It implements the **Structured Analysis** pattern -- assess topic, select template, generate outline, validate structure.
+This skill creates structural blueprints for blog posts by analyzing topic briefs, selecting appropriate structure templates, and generating outlines with word counts and section summaries. Posts should be technical, deep, problem-solving focused—no fluff or filler. The workflow follows a four-phase process: assess the topic for core value proposition, decide on the right template and scope, generate the outline with all required elements, then validate against quality standards.
 
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before outlining
-- **Over-Engineering Prevention**: Outline only what was asked. No speculative series planning, no "while I'm here let me plan 5 more posts"
-- **Structure First**: ALWAYS select a structure template before generating content
-- **Word Count Estimates**: Every section MUST include estimated word counts
-- **your blog Identity**: Posts are technical, deep, problem-solving focused -- no fluff or filler
-- **Alternative Structures**: Always offer at least one alternative structure type
-- **Assess Before Outline**: NEVER generate an outline without understanding the topic's core problem or value proposition first
+The skill operates under two core constraints:
 
-### Default Behaviors (ON unless disabled)
-- **Section Summaries**: Include 2-3 sentence summaries per section
-- **Reading Time**: Calculate and display estimated reading time (~250 wpm)
-- **Complete Output**: Show full outline in formatted report block
-- **Template Matching**: Auto-detect best structure from topic description
-- **Hugo Frontmatter**: Include title, date, tags, summary planning
-- **Logical Flow Validation**: Verify each section builds on the previous
-
-### Optional Behaviors (OFF unless enabled)
-- **Minimal Mode**: Just section headers, no summaries
-- **Deep Mode**: Expand to sub-section level with bullet points
-- **Series Mode**: Plan multi-part post series with dependencies
-
-## What This Skill CAN Do
-- Analyze topic briefs and identify the core "vex" or value proposition
-- Select the most appropriate structure template for the content
-- Generate structured outlines with section summaries and word counts
-- Estimate reading time and validate scope
-- Suggest alternative structures for the same topic
-- Handle Hugo frontmatter planning (title, tags, summary)
-- Validate logical flow between sections
-
-## What This Skill CANNOT Do
-- Write actual post content (use `blog-post-writer` for that)
-- Edit existing posts (use `anti-ai-editor` for style fixes)
-- Guarantee SEO optimization (focus is structure, not keywords)
-- Plan non-blog content like documentation or README files
-- Create outlines without understanding the topic first -- always assess
+1. **Structure First**: Always select a structure template before generating content. Never output an outline without understanding the topic's core problem or value proposition first.
+2. **No Over-Engineering**: Outline only what was asked. Do not speculate on series planning, suggest related posts, or generate more outlines than requested.
 
 ---
 
@@ -86,6 +53,13 @@ Identify these elements:
 
 **Step 2: Ask key questions**
 
+If the topic brief is too vague to answer these, ask clarifying questions BEFORE proceeding:
+- "What specific problem did you encounter?"
+- "What did you learn?"
+- "Who is the audience?"
+
+Document your assessment:
+
 ```markdown
 ## Topic Assessment
 Problem: [What problem does this solve?]
@@ -94,12 +68,9 @@ Insight: [What's the key insight or solution?]
 Scope: [Single post or potential series?]
 ```
 
-If the topic brief is too vague to answer these, ask clarifying questions BEFORE proceeding:
-- "What specific problem did you encounter?"
-- "What did you learn?"
-- "Who is the audience?"
+**Gate**: Core problem/value identified. Topic is specific enough to outline. Do not proceed with outline generation without this.
 
-**Gate**: Core problem/value identified. Topic is specific enough to outline. Proceed only when gate passes.
+**Why This Phase**: Vague topics produce generic outlines. Section names should communicate content at a glance. Generic names (e.g., "Introduction", "Main Content", "Details", "Conclusion") reveal nothing about reader value and indicate shallow thinking about the topic. Always complete assessment with specific, content-descriptive section names in mind.
 
 ### Phase 2: DECIDE
 
@@ -127,7 +98,9 @@ See `references/structure-templates.md` for full template details with section b
 | Tutorial | 1,200-2,000 | 5-6 |
 | Series part | 800-1,200 | 3-4 |
 
-**Gate**: Template selected, scope defined. Proceed only when gate passes.
+**Why Scope Matters**: Section bloat dilutes impact. Your blog cuts to the chase. Too many thin sections (8+) at 100 words each pad length without adding value. Merge related sections. Aim for 3-7 substantive sections with specific names. Do not justify every section's existence against the core insight: cut sections that don't serve the core message. Word count estimates must be verified to add up to the overall total—rough estimates undermine scope validation.
+
+**Gate**: Template selected, scope defined. Do not proceed without this.
 
 ### Phase 3: GENERATE
 
@@ -170,7 +143,9 @@ Generate the outline in this exact format:
 ===============================================================
 ```
 
-**Gate**: Outline complete with all required elements. Proceed only when gate passes.
+**Why Each Element**: Every section must have estimated word counts so you can validate scope and identify sections that are too heavy or too light. Calculating reading time (~250 wpm) helps authors understand audience engagement expectations. Include Hugo frontmatter planning (title, date, tags, summary) to reduce friction at the publication phase. Always offer at least one alternative structure so the author can choose from options rather than being locked into one approach.
+
+**Gate**: Outline complete with all required elements.
 
 ### Phase 4: VALIDATE
 
@@ -186,9 +161,11 @@ Run through this checklist:
 - [ ] **Word counts present**: Every section has estimates
 - [ ] **Word counts add up**: Section totals match overall estimate
 - [ ] **Alternative structures**: At least one alternative offered
-- [ ] **your blog identity**: Technical, direct, problem-solving
+- [ ] **Blog identity**: Technical, direct, problem-solving
 
 If any check fails, revise the outline before presenting.
+
+**Why This Validation**: Word counts are not rough—they must be precise. Section totals must match the overall estimate. Do not tolerate arithmetic drift. Generic section names are a red flag that you haven't thought deeply about the content and what readers gain from each part.
 
 **Gate**: All validation checks pass. Outline is complete.
 
@@ -250,45 +227,7 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Outline Without Understanding
-**What it looks like**: Generating a generic outline immediately after receiving a broad topic like "Kubernetes"
-**Why wrong**: No specific value proposition, no your blog identity. Produces hollow structure without substance.
-**Do instead**: Complete Phase 1 ASSESS first. Ask clarifying questions. Identify the specific problem and insight before touching structure.
-
-### Anti-Pattern 2: Too Many Thin Sections
-**What it looks like**: 8+ sections with Introduction, Background, Context, Problem Statement each at 100 words
-**Why wrong**: your blog cuts to the chase. Multiple thin sections dilute impact and pad length without adding value.
-**Do instead**: Merge related sections. Start with the vex. Aim for 3-7 substantive sections.
-
-### Anti-Pattern 3: Generic Section Names
-**What it looks like**: "Introduction", "Main Content", "Details", "Conclusion"
-**Why wrong**: Section names should communicate content at a glance. Generic names reveal nothing about what the reader gains.
-**Do instead**: Use specific, descriptive names like "Hugo Builds Fail on Cloudflare" instead of "The Problem".
-
-### Anti-Pattern 4: Missing Word Counts
-**What it looks like**: Sections listed without any size estimates
-**Why wrong**: Cannot validate scope, cannot estimate reading time, cannot identify sections that are too heavy or too light.
-**Do instead**: Every section gets a word count range. Totals must add up to overall estimate.
-
----
-
 ## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Topic is clear enough, skip assessment" | Vague topics produce generic outlines | Complete Phase 1 ASSESS with key questions |
-| "One structure is fine, no need for alternatives" | Author should choose from options | Always include ALTERNATIVE STRUCTURES section |
-| "Word counts are rough, close enough" | Section totals must match overall estimate | Verify arithmetic before presenting |
-| "Generic section names work for now" | Names reveal outline quality and thinking depth | Use specific, content-descriptive names |
-| "Just one more section won't hurt" | Section bloat dilutes impact | Justify every section's existence against core insight |
 
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/structure-templates.md`: Complete template library with section breakdowns and signal words

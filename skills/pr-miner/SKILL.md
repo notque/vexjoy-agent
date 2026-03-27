@@ -28,46 +28,19 @@ routing:
 
 # PR Miner Skill
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for deterministic GitHub data extraction, configuring Claude's behavior for mining PR review comments. It implements the **Pipeline** architectural pattern — authenticate, mine, validate — with strict separation between extraction (this skill) and analysis (Code Archaeologist agent).
+This skill extracts raw review comment data from GitHub pull requests in three deterministic phases: AUTHENTICATE (verify token and repo access), MINE (extract raw JSON with code context), and VALIDATE (confirm output quality).
 
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before execution
-- **Over-Engineering Prevention**: Extract only requested data. No analysis, interpretation, or pattern detection — that is the Code Archaeologist agent's job
-- **Deterministic Extraction Only**: Output raw JSON. Never analyze patterns, generate rules, or interpret comments
-- **Authenticate First**: Verify GitHub token before starting any mining operation
-- **Rate Limit Respect**: Honor GitHub API rate limits with exponential backoff
+The skill operates with strict separation of concerns:
+- **This skill**: Extracts raw data only. No analysis, interpretation, or pattern detection.
+- **Code Archaeologist agent**: Analyzes patterns, generates rules, interprets comments.
 
-### Default Behaviors (ON unless disabled)
-- **Merged PRs Only**: Focus on merged PRs representing accepted standards
-- **Imperative Filtering**: Filter for imperative language keywords (should, must, avoid, prefer)
-- **Progress Reporting**: Display mining progress during long operations
-- **Temporary File Cleanup**: Remove partial JSON and temp files at completion; keep only final output
-- **Summary Output**: Report interaction count and reviewer distribution after mining
-
-### Optional Behaviors (OFF unless enabled)
-- **All Comments Mode**: Capture every review comment regardless of language (`--all-comments`)
-- **Reviewer Filter**: Focus on comments from particular reviewers (`--reviewer`)
-- **Date Range**: Limit mining to specific time periods (`--since`/`--until`)
-- **Multi-Repo**: Mine across multiple repositories in single operation
-
-## What This Skill CAN Do
-- Extract review comments with code context (before/after) from merged PRs
-- Track resolution status per comment (changed, resolved, dismissed, unresolved)
-- Filter by imperative language keywords or capture all comments
-- Mine multiple repositories in a single operation
-- Respect GitHub API rate limits with retry logic
-- Generate structured JSON output for downstream analysis
-- Validate GitHub authentication before mining
-
-## What This Skill CANNOT Do
-- Analyze patterns or generate rules (Code Archaeologist agent's job)
-- Interpret comment meaning or intent (pure extraction only)
-- Create enforcement rules (no Semgrep/golangci-lint generation)
-- Mine private repos without proper token permissions (requires `repo` scope)
-- Process non-GitHub platforms (GitHub-specific implementation)
-- Monitor PRs in real-time (snapshot-based mining only)
+Key principles:
+- **Over-engineering prevention**: Extract only what was requested. Do not analyze, interpret, or detect patterns.
+- **Deterministic extraction only**: Output raw JSON. No speculation about intent or meaning.
+- **Authenticate first**: Verify GitHub token before any mining operation.
+- **Rate limit respect**: Honor GitHub API rate limits with exponential backoff and monitoring.
 
 ---
 
@@ -85,6 +58,8 @@ python3 ~/.claude/scripts/miner.py --check-auth
 
 Confirm output shows valid authentication with `repo` scope.
 
+Constraint: This token will be reused across sessions. Verify it every run because tokens expire and permissions change. Do not assume "it worked last time."
+
 **Step 2: Validate target repositories**
 
 Confirm each target repository:
@@ -98,13 +73,19 @@ Confirm each target repository:
 gh api rate_limit --jq '.resources.core | "Remaining: \(.remaining)/\(.limit), Resets: \(.reset)"'
 ```
 
-Ensure sufficient API calls remain for the planned mining scope (estimate 3-5 calls per PR).
+Ensure sufficient API calls remain for the planned mining scope (estimate 3-5 calls per PR). If approaching limit, wait for reset or reduce scope.
 
 **Gate**: Token is valid, repositories are accessible, rate limits are sufficient. Proceed only when gate passes.
 
 ### Phase 2: MINE
 
 **Goal**: Extract raw review comment data with code context.
+
+**Constraints during mining**:
+- Focus on merged PRs only. Merged PRs represent accepted standards; drafts and abandoned work are noise.
+- Apply imperative filtering by default. Filter for keywords like "should", "must", "avoid", "prefer" because they signal actionable feedback. This reduces noise from discussion and off-topic comments.
+- Display mining progress during long operations so you know the process is running and can estimate completion time.
+- Never analyze patterns, generate rules, or interpret comments during mining. Your job is extraction only.
 
 **Step 1: Determine scope**
 
@@ -113,7 +94,7 @@ Choose mining parameters based on the task:
 - **Multi-repo**: `python3 ~/.claude/scripts/miner.py org/repo-a,org/repo-b output.json --limit 50`
 - **Filtered**: Add `--reviewer name`, `--since date`, or `--all-comments`
 
-Start with 50 PRs. Expand only after validating output quality.
+Start with 50 PRs. Expand only after validating output quality. Large limits (1000+) burn rate limits, return outdated standards, and produce unwieldy files.
 
 **Step 2: Execute mining**
 
@@ -122,9 +103,9 @@ python3 ~/.claude/scripts/miner.py <repos> mined_data/<output>.json --limit <N>
 ```
 
 Monitor progress output. Watch for:
-- Rate limit warnings
-- Authentication errors
-- Empty PR responses (may indicate bot-only reviews)
+- Rate limit warnings (adjust scope if needed)
+- Authentication errors (re-verify token)
+- Empty PR responses (may indicate bot-only reviews; consider adjusting repo or time range)
 
 **Step 3: Verify extraction**
 
@@ -169,7 +150,7 @@ Verify:
 
 **Step 4: Clean up temporary files**
 
-Remove any partial JSON, debug logs, or temp files created during mining. Keep only the final output in `mined_data/`.
+Remove any partial JSON, debug logs, or temp files created during mining. Keep only the final output in `mined_data/`. This prevents stale data from being accidentally reused.
 
 **Gate**: Validation passes. Data quality is sufficient for downstream analysis. Mining is complete.
 
@@ -277,44 +258,7 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Analyzing During Mining
-**What it looks like**: "I mined the data and found 5 key patterns: always use errors.Is()..."
-**Why wrong**: This skill extracts raw data. Pattern analysis is the Code Archaeologist agent's job. Mixing extraction with interpretation creates unreliable, non-deterministic output.
-**Do instead**: Mine data, validate output, hand off JSON to Code Archaeologist.
-
-### Anti-Pattern 2: Mining Without Authentication Check
-**What it looks like**: Running `miner.py` immediately, failing 10 minutes later on "Bad credentials"
-**Why wrong**: Wastes time and API rate limits. No early validation of token permissions.
-**Do instead**: Complete Phase 1 (AUTHENTICATE) before any mining.
-
-### Anti-Pattern 3: Mining Entire Repository History
-**What it looks like**: `--limit 10000` to get "everything"
-**Why wrong**: Extremely slow, burns rate limits, old PRs reflect outdated standards, massive output files are hard to process.
-**Do instead**: Start with `--limit 50 --since <6-months-ago>`. Expand only after validating output quality.
-
-### Anti-Pattern 4: Skipping Output Validation
-**What it looks like**: Mining completes, immediately passing output to Code Archaeologist without checking
-**Why wrong**: May contain zero useful interactions, incomplete data from API errors, or bot-generated noise. Garbage in, garbage out.
-**Do instead**: Complete Phase 3 (VALIDATE). Spot-check interactions, verify counts, review distribution.
-
----
-
 ## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Token worked last time" | Tokens expire, permissions change | Run `--check-auth` every session |
-| "50 PRs is enough" | Depends on review density | Validate interaction count before proceeding |
-| "I can summarize the patterns" | Extraction skill, not analysis skill | Output raw JSON only |
-| "All comments mode wastes time" | Imperative filter may miss valuable feedback | Consider `--all-comments` for first run |
 
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/imperative-keywords.txt`: Full list of detected imperative keywords
