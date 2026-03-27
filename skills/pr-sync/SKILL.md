@@ -26,57 +26,9 @@ routing:
 
 # PR Sync Skill
 
-## Purpose
+Sync local changes to GitHub in a single command. Detects current state (main vs feature branch, staged vs unstaged changes, existing PRs), then executes the minimum steps needed: branch, commit, push, and create PR. Execute only the steps needed for the current state -- do not add extra commits, rebase, or reorganize history beyond what is required to sync.
 
-Sync local changes to GitHub in a single command. Detects current state (main vs feature branch, staged vs unstaged changes, existing PRs), then executes the minimum steps needed: branch, commit, push, and create PR.
-
-## Operator Context
-
-This skill operates as an operator for GitHub sync workflows, configuring Claude's behavior for safe, predictable git operations that get local work onto GitHub with a PR.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before any git operations
-- **Over-Engineering Prevention**: Execute only the steps needed for the current state. Do not add extra commits, rebase, or reorganize history beyond what is required to sync.
-- **Never force push**: All pushes use standard `git push`, never `--force`. Exception: the review-fix loop (Step 4b) uses `--force-with-lease` after amending the tip commit, which is safe because the branch was just pushed by us.
-- **Never modify pushed commits**: Commits already on remote are immutable. Exception: the review-fix loop amends only the tip commit it just created, before any external review.
-- **Never commit sensitive files**: Block `.env`, credentials, secrets, API keys
-- **Conventional commit format**: All commit messages follow conventional commits
-- **Branch protection**: Never commit directly to main/master
-- **Repo-Aware Review Gate**: Classify repo before creating PR. For personal repos, run up to 3 iterations of `/pr-review` → fix before PR creation. For protected-org repos, every step requires explicit user confirmation.
-- **Organization-Gated Workflow**: Repos under protected organizations (configured in `scripts/classify-repo.py`) require user confirmation before EACH step: commit message review, push, and PR creation. Never auto-execute any of these steps. Present the proposed action and wait for user approval.
-
-### Default Behaviors (ON unless disabled)
-- **Auto-detect branch name**: Generate from commit message or changed files when not provided
-- **Auto-detect PR title**: Derive from branch name or first commit when not provided
-- **Stage selectively**: Prefer staging specific files over `git add -A`
-- **Check for unpushed commits**: Include existing unpushed commits in the push
-- **Warn if behind remote**: Alert user if branch is behind main before pushing
-- **Show PR URL**: Display the PR URL after creation for easy access
-
-### Optional Behaviors (OFF unless enabled)
-- **Draft PR**: Create PR as draft instead of ready for review
-- **Auto-assign reviewers**: Assign reviewers based on CODEOWNERS
-- **Rebase before push**: Rebase on main before pushing to avoid merge conflicts
-
-## What This Skill CAN Do
-- Detect current git state and choose the right workflow
-- Create feature branches from main/master with conventional naming
-- Stage, commit, and push changes in sequence
-- Create GitHub PRs with summary and test plan
-- Update existing PRs by pushing new commits
-
-## What This Skill CANNOT Do
-- Force push to shared/upstream branches (force-with-lease on own feature branches during review-fix loop is permitted)
-- Review PRs (use /pr-review instead)
-- Clean up merged branches (use pr-cleanup instead)
-- Run CI checks (use ci instead)
-- Commit directly to main/master
-
----
-
-## Instructions
-
-### Usage
+## Usage
 
 ```
 /pr-sync                           # Auto-detect everything
@@ -84,21 +36,25 @@ This skill operates as an operator for GitHub sync workflows, configuring Claude
 /pr-sync fix/bug-123 "Fix login"   # Specify branch and PR title
 ```
 
-### Step 0: Classify Repo
+## Instructions
 
-Determine repo type before any git operations.
+### Step 0: Read CLAUDE.md and Classify Repo
+
+Read and follow the repository CLAUDE.md before any git operations, because repo-specific branch conventions, commit formats, or CI requirements override defaults in this skill.
+
+Then determine repo type:
 
 ```bash
 REPO_TYPE=$(python3 ~/.claude/scripts/classify-repo.py --type-only)
 ```
 
-**Protected-org repos**: Every subsequent step (commit, push, PR creation) requires **explicit user confirmation**. Present the proposed action, show what will happen, and wait for approval before executing. Never auto-execute.
+**Protected-org repos**: Every subsequent step (commit, push, PR creation) requires **explicit user confirmation**. Present the proposed action, show what will happen, and wait for approval before executing. Never auto-execute, because protected-org repos have CI gates and review policies that assume human oversight at each stage.
 
 **Personal repos**: Run `/pr-review` comprehensive review before creating the PR. Auto-execute steps normally.
 
 ### Step 1: Detect Current State
 
-Determine the starting point before taking any action.
+Always detect state before taking any action, because skipping detection risks creating nested branches, committing to the wrong branch, or duplicating work already done.
 
 ```bash
 # Get current branch
@@ -110,7 +66,7 @@ MAIN_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^re
 # Check for uncommitted changes
 HAS_CHANGES=$(git status --porcelain)
 
-# Check for unpushed commits
+# Check for unpushed commits (include these in the push so nothing is left behind)
 UNPUSHED=$(git log origin/$CURRENT_BRANCH..$CURRENT_BRANCH --oneline 2>/dev/null)
 
 # Determine if on main/master
@@ -120,9 +76,13 @@ if [[ "$CURRENT_BRANCH" == "main" || "$CURRENT_BRANCH" == "master" ]]; then
 fi
 ```
 
+If the branch is behind remote, warn the user before pushing so they can pull or rebase first and avoid a rejected push.
+
 ### Step 2: Create Branch (if on main)
 
-If on main/master with changes, create a feature branch first.
+Never commit directly to main/master -- always create a feature branch first, because direct main commits skip code review, make rollback harder, and can break CI for everyone.
+
+If on main/master with changes, create a feature branch. If no branch name was provided, generate one from the changes or commit message.
 
 Branch naming conventions:
 
@@ -135,8 +95,6 @@ Branch naming conventions:
 | Chore/maintenance | `chore/` | `chore/update-deps` |
 
 ```bash
-# If no branch name provided, generate from changes or commit message
-# Create and switch to new branch
 git checkout -b "$BRANCH_NAME"
 ```
 
@@ -144,10 +102,14 @@ If already on a feature branch, skip this step.
 
 ### Step 3: Stage and Commit
 
-Stage changes selectively and create a conventional commit.
+Stage files selectively by name rather than using `git add -A`, because blind staging catches unintended files -- build artifacts, `.env` files, editor configs, large binaries -- that pollute the repository and may leak secrets. Review `git status`, stage specific files, and verify with `git diff --cached` before committing.
+
+Never commit `.env`, credentials, secrets, or API keys. Block these files and warn the user if they appear in the staging area.
+
+All commit messages use conventional commit format (`type(scope): description`).
 
 ```bash
-# Stage specific files (prefer over git add -A)
+# Stage specific files (not git add -A)
 git add path/to/changed/files
 
 # Create commit with conventional format
@@ -160,14 +122,18 @@ If no uncommitted changes exist, skip to Step 4.
 
 ### Step 4: Push to Remote
 
+All pushes use standard `git push`, never `--force`, because force pushing destroys remote history and teammates lose work. If push is rejected due to the branch being behind remote, pull with rebase and resolve conflicts rather than forcing.
+
 ```bash
 # Push with upstream tracking (CLAUDE_GATE_BYPASS=1 bypasses the git-submission-gate hook)
 CLAUDE_GATE_BYPASS=1 git push -u origin "$CURRENT_BRANCH"
 ```
 
+If the user requested a rebase before push, run `git pull --rebase origin $MAIN_BRANCH` first, but this is off by default.
+
 **Protected-org repos**: Before executing the push, present the branch name, remote, and commits that will be pushed. Wait for explicit approval before pushing.
 
-### Step 4a: ADR Decision Coverage (conditional — ADR-094)
+### Step 4a: ADR Decision Coverage (conditional -- ADR-094)
 
 **Skip if**: No `.adr-session.json` exists in the working directory.
 
@@ -181,13 +147,15 @@ If verdict is PARTIAL or FAIL, display uncovered decision points and ask whether
 
 ### Step 4b: Review-Fix Loop (personal repos only)
 
-Iteratively review and fix issues before creating the PR. Up to 3 iterations of: `/pr-review` → fix → amend → push.
-
 **Skip if**: `REPO_TYPE == "protected-org"` (protected-org repos use their own review gates).
+
+Iteratively review and fix issues before creating the PR. Up to 3 iterations of: `/pr-review` -> fix -> amend -> push.
+
+Never modify commits already on the remote except the tip commit just pushed by this workflow. The review-fix loop amends only the tip commit it just created, before any external review, and uses `--force-with-lease` (not `--force`) because lease-checking confirms no one else has pushed to the branch in the meantime.
 
 **Loop (max 3 iterations):**
 1. Run `/pr-review` comprehensive review
-2. If clean → exit loop, proceed to Step 5
+2. If clean -> exit loop, proceed to Step 5
 3. Fix all reported issues
 4. `git add [fixes] && git commit --amend --no-edit && CLAUDE_GATE_BYPASS=1 git push --force-with-lease`
 5. Report iteration: `REVIEW-FIX [N/3]: X found, Y fixed, Z remaining`
@@ -195,6 +163,8 @@ Iteratively review and fix issues before creating the PR. Up to 3 iterations of:
 After 3 iterations, proceed to Step 5 with any remaining issues documented in the PR body.
 
 ### Step 5: Create or Update PR
+
+Generate the PR title from the branch name or first commit when not provided by the user. Never create a PR with an empty description, because reviewers need context to understand the changes and a missing test plan signals incomplete work.
 
 ```bash
 # Check if PR already exists for this branch
@@ -218,7 +188,13 @@ else
 fi
 ```
 
-### Step 6: Post-Merge ADR Status Update (conditional — ADR-095)
+If the user requested a draft PR, add `--draft` to `gh pr create`. If auto-assign reviewers was requested, assign based on CODEOWNERS.
+
+Always show the PR URL after creation for easy access.
+
+**Protected-org repos**: Before executing PR creation, present the PR title, body, and target branch. Wait for explicit approval. Do not run the review-fix loop -- protected-org repos rely on their own CI gates and human reviewers.
+
+### Step 6: Post-Merge ADR Status Update (conditional -- ADR-095)
 
 **Skip if**: No `.adr-session.json` exists, or the PR was only created (not merged).
 
@@ -238,7 +214,7 @@ mv "$ADR_PATH" adr/completed/
 rm .adr-session.json
 ```
 
-Report: `ADR updated: {name} → Accepted, moved to completed/`
+Report: `ADR updated: {name} -> Accepted, moved to completed/`
 
 This is local-only (ADR files are gitignored). No branch or PR needed.
 
@@ -248,7 +224,7 @@ This is local-only (ADR files are gitignored). No branch or PR needed.
 /pr-sync invoked
        |
        v
-  Classify repo (Step 0)
+  Read CLAUDE.md + Classify repo (Step 0)
        |
        v
   Has changes?
@@ -392,50 +368,13 @@ Solution:
 1. Always push the current branch: `git push -u origin $(git branch --show-current)`
 2. Never hardcode branch names in push commands
 3. Verify after push: `git log origin/$(git branch --show-current)..HEAD` should show 0 commits
-*Graduated from learning.db — multi-agent-coordination/worktree-push-from-wrong-branch*
-
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Committing Everything with git add -A
-**What it looks like**: Running `git add -A` without checking what will be staged.
-**Why wrong**: Catches unintended files -- build artifacts, `.env` files, editor configs, large binaries. These pollute the repository and may leak secrets.
-**Do instead**: Review `git status`, stage specific files by name, verify with `git diff --cached` before committing.
-
-### Anti-Pattern 2: Force Pushing to Resolve Conflicts
-**What it looks like**: Push fails, so running `git push --force` to override.
-**Why wrong**: Destroys remote history. Teammates lose work. PRs become inconsistent.
-**Do instead**: Pull with rebase, resolve conflicts, push normally. If the situation is complex, inform the user rather than forcing.
-
-### Anti-Pattern 3: Creating PR with Empty Description
-**What it looks like**: `gh pr create --title "Updates" --body ""`
-**Why wrong**: Reviewers have no context. PR purpose is unclear. Test plan is missing.
-**Do instead**: Generate a summary from the diff and commit messages. Include a test plan section. Even a brief description is better than none.
-
-### Anti-Pattern 4: Skipping State Detection
-**What it looks like**: Immediately creating a branch and committing without checking current state.
-**Why wrong**: May create nested branches, commit to wrong branch, or duplicate work already done.
-**Do instead**: Always run Step 1 first. Detect branch, changes, and PR state before taking any action.
-
-### Anti-Pattern 5: Committing Directly to Main
-**What it looks like**: Staging and committing on main/master instead of creating a feature branch.
-**Why wrong**: Violates branch protection conventions. Makes rollback harder. Skips code review.
-**Do instead**: Always create a feature branch from main before committing. The only exception is if the user explicitly authorizes a direct commit.
+*Graduated from learning.db -- multi-agent-coordination/worktree-push-from-wrong-branch*
 
 ---
 
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Quick push to main, I'll branch later" | Main commits skip review and break CI | Create branch first, always |
-| "git add -A is fine, nothing sensitive" | Assumption without checking | Review status, stage selectively |
-| "PR description can wait" | Reviewers need context now, not later | Write summary before creating PR |
-| "Force push fixes the conflict" | Destroys teammate work on remote | Pull, rebase, resolve, push normally |
+- `/pr-review` -- Comprehensive PR review (used in the review-fix loop)
+- `/pr-cleanup` -- Post-merge branch cleanup
+- `scripts/classify-repo.py` -- Repo classification for workflow gating
+- `scripts/adr-decision-coverage.py` -- ADR decision coverage checker
