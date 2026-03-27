@@ -22,67 +22,37 @@ routing:
 
 # PR Status Skill
 
-## Operator Context
-
-This skill operates as an operator for PR status checks, configuring Claude's behavior for fast, accurate branch and PR state reporting. It implements a **Sequential Gather** pattern -- collect git state, PR metadata, CI status, reviews, and merge readiness in ordered steps, then present a unified status report.
-
-### Hardcoded Behaviors (Always Apply)
-- **Read-Only**: Never modify files, branches, or PR state during status checks
-- **Fetch Before Report**: Always `git fetch` before comparing local/remote state
-- **gh CLI Required**: Verify `gh` is installed and authenticated before PR queries
-- **Complete Report**: Show all available sections; never skip sections silently
-- **Current Branch Context**: Always report which branch is being checked
-
-### Default Behaviors (ON unless disabled)
-- **CI Detail**: Show individual check names with pass/fail status
-- **Review Summary**: Show reviewer names with their review state
-- **Merge Readiness**: Report conflicts, required approvals, and blocking checks
-- **Behind-Main Count**: Show how many commits behind the base branch
-- **Claude Review Detection**: Check for Claude Code review comments on the PR
-
-### Optional Behaviors (OFF unless enabled)
-- **Recent PRs on Main**: When on main branch, list recent PRs
-- **Verbose CI Output**: Show full CI log URLs for failed checks
-- **Cross-Repository Status**: Check PRs across multiple remotes
-
-## What This Skill CAN Do
-- Report current branch name and its relationship to base branch
-- Show local working tree state (clean, modified files, ahead/behind)
-- Display PR metadata (number, title, state, URL)
-- List CI check results with pass/fail per check
-- Summarize review states per reviewer
-- Report merge readiness (conflicts, approvals needed)
-- Detect Claude Code review activity
-
-## What This Skill CANNOT Do
-- Create or update pull requests (use pr-sync instead)
-- Fix review comments or CI failures (use pr-fix instead)
-- Push commits or modify git state
-- Perform code review (use /pr-review instead)
+Collect git state, PR metadata, CI status, reviews, and merge readiness in ordered steps, then present a unified status report. This is a **read-only** skill -- it never modifies files, branches, or PR state because status checks that mutate state create surprising side effects and belong to other skills (pr-sync, pr-fix).
 
 ---
 
 ## Instructions
 
-### Step 0: Check Prerequisites
+### Phase 1: Prerequisites
 
-Verify `gh` CLI is available and authenticated. If not, report the missing prerequisite and stop.
+Verify `gh` CLI is available and authenticated before any PR queries. Without `gh`, PR metadata, CI checks, and review data are all inaccessible, so there is no point proceeding with a partial report.
 
 ```bash
 command -v gh &> /dev/null || { echo "GitHub CLI (gh) not installed. Install: https://cli.github.com/"; exit 1; }
 gh auth status &> /dev/null || { echo "GitHub CLI not authenticated. Run: gh auth login"; exit 1; }
 ```
 
-### Step 1: Get Branch Info
+> **Gate**: If either check fails, report the specific missing prerequisite with the installation/auth URL and stop. Do not attempt partial status without `gh`.
+
+### Phase 2: Branch Identification
+
+Always report which branch is being checked -- users often forget what branch they are on, and every subsequent step depends on correct branch context.
 
 ```bash
 CURRENT_BRANCH=$(git branch --show-current)
 MAIN_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "master")
 ```
 
-If on the main branch, report that and optionally list recent PRs. No further steps needed.
+If on the main branch, report that and optionally list recent PRs. No further phases needed.
 
-### Step 2: Check Local State
+### Phase 3: Local State
+
+Fetch before comparing local and remote state. Stale local refs produce inaccurate ahead/behind counts that mislead the user into thinking their branch is up to date when it is not.
 
 ```bash
 # Working tree status
@@ -94,14 +64,18 @@ else
     echo "$FILE_COUNT files modified"
 fi
 
-# Fetch and compare
+# Fetch first -- comparing against stale refs gives wrong counts
 git fetch origin --quiet
 AHEAD=$(git rev-list origin/$CURRENT_BRANCH..$CURRENT_BRANCH --count 2>/dev/null || echo "0")
 BEHIND=$(git rev-list $CURRENT_BRANCH..origin/$CURRENT_BRANCH --count 2>/dev/null || echo "0")
 BEHIND_MAIN=$(git rev-list $CURRENT_BRANCH..origin/$MAIN_BRANCH --count 2>/dev/null || echo "0")
 ```
 
-### Step 3: Check PR Status
+Show how many commits the branch is behind the base branch -- this surfaces rebase needs early.
+
+> **Constraint**: If the branch has never been pushed, there will be no remote tracking branch. In that case, report local branch state (modified files, commits) and suggest pushing with `git push -u origin [branch]`.
+
+### Phase 4: PR Metadata
 
 ```bash
 PR_JSON=$(gh pr view --json number,title,state,url,reviewDecision,statusCheckRollup,mergeable,reviews 2>/dev/null)
@@ -116,15 +90,23 @@ else
 fi
 ```
 
-If no PR exists, report the branch state and suggest creating one. Skip Steps 4-7.
+If no PR exists, report the branch state and suggest creating one. Skip Phases 5-7.
 
-### Step 4: Check CI Status
+> **Constraint**: If `gh pr view` fails, distinguish "no pull requests found" from a network/auth error. For network/auth errors, report the error and suggest `gh auth status`. Never invent a status when a command fails -- false status is worse than no status.
+
+### Phase 5: CI Status
+
+Show individual check names with pass/fail status so the user can see exactly which checks need attention.
 
 ```bash
 gh pr checks --json name,state,conclusion 2>/dev/null | jq -r '.[] | "\(.conclusion // .state) \(.name)"'
 ```
 
-### Step 5: Check Claude Review
+> **Constraint**: If this command fails, report that CI data is unavailable rather than guessing. Saying "CI passing" when the command returned an error destroys trust in the report.
+
+### Phase 6: Claude Review
+
+Check for Claude Code review comments on the PR -- these automated reviews often contain actionable feedback that human reviewers may not catch.
 
 ```bash
 CLAUDE_COMMENTS=$(gh pr view --json comments --jq '[.comments[] | select(
@@ -145,22 +127,24 @@ else
 fi
 ```
 
-### Step 6: Check Reviews
+### Phase 7: Human Reviews
+
+Show reviewer names with their review state so the user knows who has reviewed and what the outcome was.
 
 ```bash
 gh pr view --json reviews --jq '.reviews[] | "\(.author.login): \(.state)"'
 gh pr view --json reviewDecision --jq '.reviewDecision'
 ```
 
-### Step 7: Check Merge Status
+Report conflicts, required approvals, and blocking checks to give a complete merge readiness picture:
 
 ```bash
 gh pr view --json mergeable --jq '.mergeable'
 ```
 
-### Step 8: Present Status Report
+### Phase 8: Status Report
 
-Format the collected information into a structured report:
+Format all collected information into a structured report. Show every section that was gathered; if a section failed to load, say so explicitly rather than silently omitting it -- a partial report without explanation hides problems the user needs to know about.
 
 ```
 PR STATUS
@@ -189,11 +173,15 @@ PR #[N]: "[title]"
     [mergeable/conflicts/approvals needed]
 ```
 
+> **Gate**: The report must include all sections. If any data-gathering phase returned an error, the report must state what information is unavailable and why, not silently drop the section.
+
 ---
 
-## Examples
+## Reference Material
 
-### Example 1: Feature Branch with Open PR
+### Examples
+
+**Feature Branch with Open PR**
 User says: "/pr-status"
 Actions:
 1. Verify gh CLI available, fetch latest
@@ -202,7 +190,7 @@ Actions:
 4. Report ready to merge
 Result: Complete status showing merge-ready PR
 
-### Example 2: No PR Exists
+**No PR Exists**
 User says: "/pr-status"
 Actions:
 1. Verify gh CLI, identify branch `fix/typo`
@@ -210,11 +198,11 @@ Actions:
 3. Report no PR exists for this branch
 Result: Branch state shown, suggest creating PR
 
-### Example 3: On Main Branch
+**On Main Branch**
 User says: "/pr-status"
 Actions:
 1. Detect current branch is main
-2. List recent PRs if optional behavior enabled
+2. List recent PRs if requested
 3. Suggest switching to a feature branch
 Result: Brief report noting user is on main
 
@@ -245,31 +233,8 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Modifying State During Status Check
-**What it looks like**: Pushing commits, creating PRs, or fixing issues during a status check
-**Why wrong**: Status is read-only. Modifications belong to other skills.
-**Do instead**: Report status only. Suggest appropriate skills for actions.
-
-### Anti-Pattern 2: Skipping Fetch Before Reporting
-**What it looks like**: Reporting ahead/behind counts from stale local refs
-**Why wrong**: Produces inaccurate status that misleads the user
-**Do instead**: Always `git fetch origin --quiet` before comparing
-
-### Anti-Pattern 3: Partial Report Without Explanation
-**What it looks like**: Showing only CI status, omitting reviews and merge state
-**Why wrong**: User expects complete picture. Missing sections hide problems.
-**Do instead**: Show all sections. If a section fails to load, say so explicitly.
-
-### Anti-Pattern 4: Inventing Status When Commands Fail
-**What it looks like**: Reporting "CI passing" when `gh pr checks` returned an error
-**Why wrong**: False status is worse than no status
-**Do instead**: Report the command failure and what information is unavailable
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
+- PR creation and push: use `pr-sync` skill
+- Fixing review comments: use `pr-fix` skill
+- Code review: use `/pr-review` skill
