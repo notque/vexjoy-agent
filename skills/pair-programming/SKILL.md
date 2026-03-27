@@ -31,48 +31,29 @@ routing:
 
 # Pair Programming Skill
 
-## Operator Context
+Collaborative coding through the **Announce-Show-Wait-Apply-Verify** micro-step protocol. The user controls pace, sees every planned change as a diff, and confirms before any file is modified. Works with any domain agent as executor.
 
-This skill operates as an operator for collaborative coding sessions, configuring Claude's behavior for micro-step code changes where the user controls pace and approves every modification. It implements the **Announce-Show-Wait-Apply-Verify** protocol -- no file is ever modified without the user seeing the planned change and confirming it.
-
-This skill does NOT use `context: fork` because every step requires an interactive user gate. Forking would execute autonomously, breaking the entire confirmation protocol.
-
-### Hardcoded Behaviors (Always Apply)
-- **Never Modify Files Silently**: Every change must go through the 5-step micro-step protocol (announce, show, wait, apply, verify). Silent edits defeat the purpose of pair programming -- the user must see and approve each change so they understand and own the code.
-- **Always Show the Diff First**: Display the planned change as a code block or diff before applying. The user cannot make informed decisions about changes they have not seen.
-- **Always Wait for Confirmation**: Do not apply a change until the user responds with a control command. Proceeding without confirmation turns pair programming into autonomous mode with extra output.
-- **Run Verification After Each Step**: After applying a change, run relevant checks (lint, type check, test). Catching errors immediately keeps the codebase green and prevents error accumulation across steps.
-- **Respect Step Size Limits**: Never exceed 50 lines in a single step regardless of speed setting. Large steps undermine the micro-step discipline that makes pair programming effective.
-- **Track Session State**: Maintain step count, current speed setting, and remaining plan. The user needs orientation ("Step 3 of ~12") to stay engaged.
-
-### Default Behaviors (ON unless disabled)
-- **Start at 15 Lines Per Step**: Default step size balances progress with reviewability. Adjust via `faster`/`slower` commands.
-- **Show Step Progress**: Display "Step N of ~M" with each announcement so the user knows where they are in the plan.
-- **Brief Post-Apply Summary**: After applying, state what was done in one sentence. Keeps context without monologuing.
-- **Plan Overview at Session Start**: After creating the plan, show the numbered step list before starting the first micro-step.
-
-### Optional Behaviors (OFF unless enabled)
-- **Auto-Verify Mode**: Run lint/test after every step without asking whether to verify. Useful for projects with fast test suites.
-
----
+This skill runs in the main session (not `context: fork`) because every step requires an interactive user gate — forking would execute autonomously and break the confirmation protocol.
 
 ## Instructions
 
 ### Session Setup
 
 1. **User describes what they want to build.** Read relevant code to understand the starting point.
-2. **Create a high-level plan.** Break the task into numbered steps, each representing one logical change. Show the plan to the user.
+2. **Create a high-level plan.** Break the task into numbered steps, each representing one logical change. Show the numbered step list to the user before starting any micro-steps.
 3. **Confirm the plan.** Wait for user acknowledgment before starting Step 1. The user may reorder, remove, or add steps.
+
+Maintain step count, current speed setting, and remaining plan throughout the session so you can display "Step N of ~M" with each announcement. The user needs this orientation to stay engaged with the collaborative flow.
 
 ### Micro-Step Protocol (Per Change)
 
 For each step in the plan, execute this 5-step protocol:
 
-**1. Announce** -- Describe the next change in 1-2 sentences: what will change and why.
+**1. Announce** — Describe the next change in 1-2 sentences: what will change and why. Keep announcements brief (1-2 sentences) before showing code immediately because the user came to code together, not to read an essay. Long explanations break flow and reduce collaborative momentum.
 
-**2. Show** -- Display the planned code as a diff or code block. Never exceed the current step size limit.
+**2. Show** — Display the planned code as a diff or code block. The current step size limit (default 15 lines, max 50 lines) exists because users cannot make informed decisions about changes they have not seen. Every change gets shown—even trivial ones, which are fast to approve—so you and the user stay synchronized. Never exceed the limit: split large changes into sub-steps instead.
 
-**3. Wait** -- Stop and let the user respond with a control command:
+**3. Wait** — Stop and let the user respond with a control command. Do not proceed until you receive an explicit command—assuming the user will say "ok" and applying preemptively turns this into autonomous mode with a running commentary, violating the micro-step protocol.
 
 | Command | Action |
 |---------|--------|
@@ -84,13 +65,15 @@ For each step in the plan, execute this 5-step protocol:
 | `plan` | Show remaining steps overview |
 | `done` | End pair session, run final verification |
 
-**4. Apply** -- Execute the change only after receiving `ok`/`yes`/`y`.
+**4. Apply** — Execute the change only after receiving `ok`/`yes`/`y`. Never apply changes without explicit confirmation—doing so turns collaborative pair programming into autonomous mode with a running commentary.
 
-**5. Verify** -- Run relevant checks (lint, type check, test). Report results briefly.
+**5. Verify** — Run relevant checks (lint, type check, test) and report results in one sentence. Catching errors immediately keeps the codebase green and prevents error accumulation across steps, ensuring every change is validated before moving forward.
 
-If a step exceeds the current size limit, split it into sub-steps. Never bundle multiple logical changes into one step to avoid splitting -- each logical change is its own step.
+If a step exceeds the current size limit, split it into sub-steps (Step 3a, 3b, 3c). Announce the split: "This change is ~40 lines. I will split it into 3 sub-steps." This splitting exists because the user must be able to approve or reject individual logical changes—bundling multiple logical changes into one step to avoid splitting defeats the purpose of the micro-step protocol.
 
 ### Speed Adjustment
+
+Sessions start at 15 lines per step, balancing progress with reviewability. Apply speed changes immediately when the user requests them and acknowledge the new setting because ignoring pace signals breaks trust and the user's sense of control. The user must feel they are the one steering the session.
 
 | Setting | Lines Per Step | Trigger |
 |---------|---------------|---------|
@@ -104,86 +87,41 @@ When the user says `faster` or `slower`, acknowledge the change: "Speed adjusted
 
 ### Session End
 
-When the user says `done` or all steps are complete: run final verification (lint, type check, full test suite), show a summary (steps completed, steps skipped, files modified), and report verification results.
+When the user says `done` or all steps are complete: run final verification (lint, type check, full test suite), show a summary (steps completed, steps skipped, files modified), and report verification results. This end-of-session gate ensures the codebase is left in a valid state.
 
----
+### Examples
 
-## Examples
-
-### Example 1: Standard Session
-User says: "Pair program a function that parses CSV lines in Go"
-Actions:
+**Standard Session** — User says: "Pair program a function that parses CSV lines in Go"
 1. Read existing code, create 5-step plan (struct, parser func, error handling, tests, integration)
 2. Show plan, wait for confirmation
-3. Step 1: Announce "Define a CSVRecord struct" -- show 8-line struct -- wait -- user says `ok` -- apply -- verify
-4. Step 2: Announce "Add ParseLine function" -- show 12-line function -- wait -- user says `ok` -- apply -- verify
+3. Step 1: Announce "Define a CSVRecord struct" — show 8-line struct — wait — user says `ok` — apply — verify
+4. Step 2: Announce "Add ParseLine function" — show 12-line function — wait — user says `ok` — apply — verify
 5. Continue through remaining steps
 
-### Example 2: Speed Adjustment
-User says `faster` after Step 2
-Actions:
+**Speed Adjustment** — User says `faster` after Step 2
 1. Acknowledge: "Speed adjusted to ~30 lines per step."
 2. Next step shows up to 30 lines instead of 15
 3. If user says `slower` later, drop to ~15
 
-### Example 3: Session End
-User says `done` after Step 4 of 6
-Actions:
+**Session End** — User says `done` after Step 4 of 6
 1. Run `go vet`, `go test ./...`
 2. Report: "4 of 6 steps completed, 0 skipped. Modified: parser.go, parser_test.go. Tests: all passing."
-
----
 
 ## Error Handling
 
 ### User Says "Just Do It" / Wants Autonomous Mode
-Cause: User wants speed, not collaboration
+Cause: User wants speed, not collaboration.
 Solution: Acknowledge the preference and offer to switch. Say: "Would you like to switch to autonomous mode? I can implement the remaining steps without confirmation." If they accept, drop the micro-step protocol and implement normally.
 
 ### Verification Fails After a Step
-Cause: Applied change introduces a lint error, type error, or test failure
-Solution: Announce the fix as the next micro-step. Show the fix diff, wait for confirmation, apply, re-verify. Do not silently fix verification failures.
+Cause: Applied change introduces a lint error, type error, or test failure.
+Solution: Announce the fix as the next micro-step. Show the fix diff, wait for confirmation, apply, re-verify. Do not silently fix verification failures regardless of cause—silent fixes violate the protocol.
 
 ### Step Too Large to Fit Size Limit
-Cause: A logical change requires more lines than the current limit
+Cause: A logical change requires more lines than the current limit.
 Solution: Split into sub-steps (Step 3a, 3b, 3c). Each sub-step stays within the limit. Announce the split: "This change is ~40 lines. I will split it into 3 sub-steps."
-
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Silent Edits
-**What it looks like**: Applying changes without showing the diff first
-**Why wrong**: The user must see what will change. Silent edits turn pair programming into autonomous mode with a running commentary.
-**Do instead**: Always show the planned diff and wait for confirmation.
-
-### Anti-Pattern 2: Monologue Mode
-**What it looks like**: Five paragraphs of explanation before showing any code
-**Why wrong**: The user came to code together, not to read an essay. Long explanations break flow and waste the user's attention.
-**Do instead**: Announce in 1-2 sentences, then show the code immediately.
-
-### Anti-Pattern 3: Ignoring Pace Signals
-**What it looks like**: User said `slower` but steps are still 30 lines
-**Why wrong**: Disrespecting speed changes breaks trust and the user's sense of control.
-**Do instead**: Apply speed changes immediately. Acknowledge the new setting.
-
-### Anti-Pattern 4: Bundling Steps
-**What it looks like**: Combining 3 logical changes into one step to avoid splitting
-**Why wrong**: Defeats micro-step discipline. The user cannot approve or reject individual changes.
-**Do instead**: One logical change per step. Split large changes into sub-steps.
-
----
 
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "This change is trivial, no need to show it" | Every change gets shown -- trivial changes are fast to approve | Show diff, wait for confirmation |
-| "User is clearly going to say ok, I'll just apply" | Assuming consent is not consent | Wait for explicit command |
-| "Splitting this into 3 sub-steps is tedious" | Tedium for the agent is discipline for the user | Split and show each sub-step |
-| "I'll fix this lint error silently since it's my fault" | Silent fixes violate the protocol regardless of cause | Announce the fix as the next micro-step |
+- [Micro-step protocol control commands](#micro-step-protocol-per-change) — user command table
+- [Speed adjustment table](#speed-adjustment) — lines-per-step settings

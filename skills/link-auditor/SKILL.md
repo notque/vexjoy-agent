@@ -26,58 +26,19 @@ routing:
 
 # Link Auditor Skill
 
-## Operator Context
+Hugo site link health analysis through a 4-phase pipeline: Scan, Analyze, Validate, Report. Extracts internal, external, and image links from Hugo markdown content; builds an adjacency matrix of internal link relationships; identifies orphan pages, under-linked pages, link sinks, and hub pages; validates that link targets resolve to real files; and generates audit reports with actionable fix suggestions.
 
-This skill operates as an operator for link health analysis on Hugo static sites, configuring Claude's behavior for comprehensive, non-destructive link auditing. It implements the **Pipeline** architectural pattern -- Scan, Analyze, Validate, Report -- with **Domain Intelligence** embedded in Hugo path resolution and SEO link graph metrics.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before auditing
-- **Non-Destructive**: Never modify content files without explicit user request
-- **Complete Output**: Show all findings; never summarize or abbreviate issue lists
-- **Issue Classification**: Clearly distinguish critical issues (orphans, broken links) from suggestions (under-linked)
-- **Hugo Path Awareness**: Try multiple path resolutions before reporting a link as broken
-
-### Default Behaviors (ON unless disabled)
-- **Full Scan**: Analyze all markdown files in content/
-- **Graph Analysis**: Build and analyze internal link adjacency graph
-- **Image Validation**: Check all image paths exist in static/
-- **Skip External Validation**: Do not HTTP-check external URLs (enable with --check-external)
-- **Issues-Only Output**: Show only problems, not all valid links
-
-### Optional Behaviors (OFF unless enabled)
-- **External Link Validation**: HTTP HEAD check on external URLs (--check-external)
-- **Verbose Mode**: Show all links including valid ones (--verbose)
-- **Custom Inbound Threshold**: Flag pages with fewer than N inbound links (--min-inbound N)
-
-## What This Skill CAN Do
-- Extract internal, external, and image links from Hugo markdown content
-- Build adjacency matrix of internal link relationships
-- Identify orphan pages (0 inbound internal links) and under-linked pages
-- Detect link sinks (receive links, no outbound) and hub pages (many outbound)
-- Validate internal link paths resolve to real content files
-- Validate image files exist in static/
-- Optionally validate external URLs via HTTP HEAD requests
-- Handle known false positives (LinkedIn, Twitter block bot requests)
-- Generate audit reports with actionable fix suggestions
-
-## What This Skill CANNOT Do
-- Validate external URLs by default (network latency, rate limiting concerns)
-- Guarantee external link accuracy (social media sites block bots)
-- Automatically fix broken links or add missing links
-- Analyze JavaScript-rendered content or Hugo shortcodes beyond standard patterns
-- Replace pre-publish-checker for single-post validation
-
----
+Read and follow the repository CLAUDE.md before starting any audit.
 
 ## Instructions
 
 ### Phase 1: SCAN
 
-**Goal**: Extract all links from markdown files and classify them by type.
+**Goal**: Extract all links from every markdown file and classify them by type.
 
 **Step 1: Identify content root**
 
-Locate the Hugo content directory and enumerate all markdown files:
+Scan all markdown files in `content/` because even small sites with 10 posts can have orphan pages, and partial scans miss graph-level issues. Locate the Hugo content directory and enumerate all markdown files:
 
 ```bash
 # TODO: scripts/link_scanner.py not yet implemented
@@ -87,7 +48,7 @@ grep -rn '\[.*\](.*' ~/your-blog/content/ --include="*.md"
 
 **Step 2: Extract links by type**
 
-Parse each markdown file for three link categories:
+Parse each markdown file for three link categories. Classify by type to understand link distribution:
 
 Internal Links:
 - `[text](/posts/slug/)` -- absolute internal path
@@ -116,7 +77,7 @@ Record total internal, external, and image links per file for the summary.
 
 **Step 1: Build adjacency matrix**
 
-Map every internal link to its source and target:
+Always build the adjacency matrix and compute inbound link counts because orphan pages are invisible to search crawlers and this is often the highest-impact finding an audit produces. Map every internal link to its source and target:
 
 ```
 Page A -> Page B (A links to B)
@@ -131,11 +92,13 @@ Page E -> (no outbound, no inbound = orphan)
 | Metric | Definition | SEO Impact |
 |--------|------------|------------|
 | Orphan Pages | 0 inbound internal links | Critical -- invisible to crawlers |
-| Under-Linked | < N inbound links (default 2) | Missed SEO opportunity |
+| Under-Linked | < N inbound links (default 2, adjustable with --min-inbound N) | Missed SEO opportunity |
 | Link Sinks | Receives links, no outbound | May indicate incomplete content |
 | Hub Pages | Many outbound links | Good for navigation |
 
 **Step 3: Classify findings by severity**
+
+Clearly distinguish critical issues from suggestions because they require different urgency levels. Organize all findings by impact:
 
 - **Critical**: Orphan pages, broken internal links, missing images
 - **Warning**: Under-linked pages, link sinks
@@ -149,7 +112,8 @@ Page E -> (no outbound, no inbound = orphan)
 
 **Step 1: Validate internal links**
 
-For each internal link target:
+For each internal link target, try all Hugo path resolutions before reporting a link as broken because Hugo resolves paths through multiple conventions. Check these resolutions in order:
+
 1. Parse the link target path
 2. Try Hugo path resolutions: `content/posts/slug.md`, `content/posts/slug/index.md`, `content/posts/slug/_index.md`
 3. Mark as broken only if ALL resolutions fail
@@ -157,27 +121,31 @@ For each internal link target:
 
 **Step 2: Validate image paths**
 
-For each image reference:
+Check all image paths against `static/` because missing images are critical issues. Validate both absolute and relative interpretations:
+
 1. Parse image source path (absolute or relative)
-2. Map to static/ directory
+2. Map to static/ directory, checking both absolute and relative interpretations
 3. Check file exists
 4. Record source file and line number for missing images
 
 **Step 3: Validate external links (optional)**
 
-Only when `--check-external` is enabled:
+Skip external URL validation by default because network latency, rate limiting, and bot-blocking make results unreliable. Only run validation when explicitly enabled with `--check-external` flag. When enabled, follow these steps:
+
 1. HTTP HEAD request to URL
 2. Follow redirects (up to 3)
 3. Check response status code
-4. Mark known false positives as "blocked (expected)" not broken
+4. Report known bot-blocked sites as "blocked (expected)" not broken because LinkedIn (403), Twitter/X (403/999), and Facebook actively block automated requests while links work fine in browsers
 
-Known false positives: LinkedIn (403), Twitter/X (403/999), Facebook (varies).
+Use `--verbose` to include valid links in the output (default: issues only).
 
 **Gate**: All link targets checked. Broken links have file and line numbers. External results (if enabled) distinguish real failures from false positives. Proceed only when gate passes.
 
 ### Phase 4: REPORT
 
 **Goal**: Present findings in a structured, actionable audit report.
+
+Never modify content files during this phase because users must approve all content changes. Report findings with specific suggestions and let the user decide which fixes to apply.
 
 **Step 1: Generate summary header**
 
@@ -195,7 +163,7 @@ Known false positives: LinkedIn (403), Twitter/X (403/999), Facebook (varies).
 
 **Step 2: Report by severity**
 
-List critical issues first (orphans, broken links, missing images), then warnings (under-linked, sinks), then info (hubs, valid external counts).
+List critical issues first (orphans, broken links, missing images), then warnings (under-linked, sinks), then info (hubs, valid external counts). Show all findings without summarizing or abbreviating because partial issue lists hide problems.
 
 Each issue must include:
 - File path
@@ -215,6 +183,8 @@ Conclude with numbered, actionable recommendations ordered by impact:
    4. Add missing image or fix path in /posts/images.md line 12
 ===============================================================
 ```
+
+Always run the full 4-phase audit regardless of how few issues appear because link rot is progressive and orphan pages are invisible without graph analysis.
 
 **Gate**: Report generated with all findings. Every issue has a file path and actionable suggestion. Audit is complete.
 
@@ -245,46 +215,8 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Treating Bot-Blocked Sites as Broken
-**What it looks like**: Reporting LinkedIn/Twitter links as broken when they return 403/999.
-**Why wrong**: These sites actively block bot requests. Links work fine in browsers.
-**Do instead**: Maintain false-positives list. Report as "blocked (expected)" not broken.
-
-### Anti-Pattern 2: Skipping Graph Analysis
-**What it looks like**: Only checking for broken links without analyzing the link graph.
-**Why wrong**: Orphan pages are invisible to search crawlers. This is often the highest-impact finding.
-**Do instead**: Always build the adjacency matrix and compute inbound link counts.
-
-### Anti-Pattern 3: Literal Path Matching Without Hugo Resolution
-**What it looks like**: Treating `/posts/slug/` as a literal file path and reporting it broken.
-**Why wrong**: Hugo resolves paths through multiple conventions (slug.md, slug/index.md, slug/_index.md).
-**Do instead**: Try all Hugo path resolutions before reporting a link as broken.
-
-### Anti-Pattern 4: Modifying Content Without User Consent
-**What it looks like**: Automatically adding links to orphan pages or fixing broken paths.
-**Why wrong**: This skill is non-destructive. Users must approve all content changes.
-**Do instead**: Report findings with specific suggestions. Let the user decide which fixes to apply.
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Only 3 broken links, not worth a full audit" | Orphan pages are invisible without graph analysis | Run full 4-phase audit |
-| "External links probably still work" | Link rot is progressive and silent | Validate with --check-external periodically |
-| "Hugo will resolve it somehow" | Hugo path resolution has specific rules | Test all resolution patterns explicitly |
-| "Small site doesn't need link auditing" | Even 10 posts can have orphans | Run audit regardless of site size |
-
-### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/link-graph-metrics.md`: Graph metrics definitions and SEO impact
 - `${CLAUDE_SKILL_DIR}/references/false-positives.md`: Sites known to block validation requests
 - `${CLAUDE_SKILL_DIR}/references/fix-strategies.md`: Resolution strategies for each issue type
