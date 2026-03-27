@@ -48,7 +48,7 @@ Read project context and reference files before writing any code. Project conven
 
 **1c. Detect Go version from go.mod** because sapcc projects typically target Go 1.22+. Use version-appropriate features: `t.Context()` (1.24+), `b.Loop()` (1.24+), `strings.SplitSeq` (1.24+), `wg.Go()` (1.25+), `errors.AsType[T]` (1.26+).
 
-**1d. Load reference files** in this order because each builds on the previous:
+**1d. Load reference files** — this is NON-NEGOTIABLE. Do NOT rely on training data for sapcc conventions; read the actual references because they contain real rules from actual PR reviews. Load in this order because each builds on the previous:
 1. **[references/sapcc-code-patterns.md](${CLAUDE_SKILL_DIR}/references/sapcc-code-patterns.md)** -- actual function signatures, constructors, interfaces, HTTP handlers, error handling, DB access, testing, package organization
 2. **[references/library-reference.md](${CLAUDE_SKILL_DIR}/references/library-reference.md)** -- complete library table: 30 approved, 10+ forbidden, with versions and usage counts
 3. **[references/architecture-patterns.md](${CLAUDE_SKILL_DIR}/references/architecture-patterns.md)** -- full 102-rule architecture specification (when working on architecture, handlers, or DB access)
@@ -659,6 +659,21 @@ Use `ForeachOptionTypeInLIQUID[T any](action func(any) T) []T` instead of `var L
 **Rule 11: Graceful Deprecation** -- `assert.HTTPRequest` is deprecated but not removed. The deprecation notice includes a complete migration guide. No forced migration.
 
 **Rule 12: Defense in Depth with Documentation** -- handle theoretically impossible cases with branches that behave the same, and document the invariant reasoning.
+
+## SAP CC Rationalization Traps
+
+These are reasoning patterns that sound correct but lead to rejected PRs in sapcc repos:
+
+| Rationalization | Why It's Wrong | Required Action |
+|---|---|---|
+| "Tests pass, the error wrapping is fine" | Lead review checks error message quality, not just pass/fail | Verify error context matches project standards |
+| "Copilot suggested this approach" | Lead review frequently rejects Copilot suggestions | Evaluate on merit, simplify where possible |
+| "I need a struct for this JSON" | One-off JSON can use `fmt.Sprintf` + `json.Marshal` | Only create types if reused or complex |
+| "Better safe than sorry" (re: error handling) | "Irrelevant contrivance" — over-handling is an anti-pattern | Ask "concrete scenario where this fails?" |
+| "Standard library X works fine here" | SAP CC has go-bits equivalents that are expected | Use go-bits equivalents |
+| "testify is the Go standard" | SAP CC uses go-bits/assert exclusively | Never introduce testify in sapcc repos |
+| "I'll add comprehensive error wrapping" | Trust well-designed functions' error messages | Check if called function already provides context |
+| "This needs a config file" | SAP CC uses env vars only | Use `osext.MustGetenv` / `GetenvOrDefault` / `GetenvBool` |
 
 ## Error Handling
 
