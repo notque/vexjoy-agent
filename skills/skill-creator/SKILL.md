@@ -353,6 +353,76 @@ the best description by test-set score to avoid overfitting.
 
 ---
 
+## Enriching existing skills
+
+Use this mode when a skill already exists but produces shallow, generic output — it
+has thin `references/`, no `scripts/`, and passes an eval by luck rather than
+by containing domain knowledge that changes behavior.
+
+Indicators this mode is appropriate:
+- `references/` has fewer than 2 files, or none at all
+- No `scripts/` directory
+- Eval outputs look plausible but lack domain idioms, concrete examples, or
+  checklists specific to the skill's domain
+- The skill passes a test because the model already knows the domain, not because
+  the skill contributes anything
+
+### The enrichment loop
+
+Six phases, max 3 iterations before escalating to the user:
+
+**AUDIT** — measure the skill's current depth before changing anything.
+Count `references/`, `scripts/`, `agents/` files. Run the skill against 2-3
+realistic prompts. Save outputs to `enrichment-workspace/baseline/`.
+See `references/enrichment-workflow.md` → AUDIT phase for the exact checklist.
+
+**RESEARCH** — find domain knowledge the skill is missing.
+Read the skill's SKILL.md and existing references to identify gaps. Search for
+best practices, pattern catalogs with before/after examples, common mistakes,
+and validation criteria. Where to look depends on the skill's domain — consult
+`references/domain-research-targets.md` for a lookup table of primary and
+secondary sources per domain.
+
+**ENRICH** — add the research as reference content.
+Create new files in the skill's `references/` directory. Add deterministic
+`scripts/` where operations are repeatable. Update SKILL.md only with one-line
+pointers to the new references — keep the orchestrator lean. Focus on content
+that changes behavior: concrete examples beat abstract advice.
+See `references/enrichment-workflow.md` → ENRICH phase for structuring guidance.
+
+**TEST** — A/B test the enriched skill against baseline.
+Write 2-3 realistic prompts that exercise the skill's domain. Use
+`scripts/run_eval.py` to run enriched vs baseline on the same prompts. Both
+runs use identical inputs. Save outputs to `enrichment-workspace/iteration-N/`.
+
+**EVALUATE** — dispatch blind comparators on each test prompt.
+Use `agents/comparator.md` (already bundled in this skill). Comparator scores on
+depth, accuracy, actionability, and domain idioms without knowing which version
+is which. If enriched wins 2/3 or better → PUBLISH. If tie or loss → run
+`agents/analyzer.md` to understand why, then RETRY with a different research angle.
+See `references/enrichment-workflow.md` → EVALUATE phase for scoring details.
+
+**PUBLISH** — commit validated improvements.
+Create branch `feat/enrich-{skill-name}`, commit references + scripts + SKILL.md
+pointer updates, push, create PR. See `references/enrichment-workflow.md` →
+PUBLISH phase for the exact commit/PR flow.
+
+### Retry logic
+
+Each retry uses a different research angle to avoid retreading the same ground:
+
+| Iteration | Research angle |
+|-----------|---------------|
+| 1 | Official docs + canonical best practices |
+| 2 | Common mistakes + anti-patterns (what goes wrong) |
+| 3 | Advanced patterns + edge cases (what experts know) |
+
+After 3 failed iterations, report to the user: summarize what was tried, what the
+evaluator found lacking, and ask whether to try a different approach or accept the
+current state.
+
+---
+
 ## Bundled agents
 
 The `agents/` directory contains prompts for specialized subagents used by this
@@ -384,6 +454,11 @@ skill. Read them when you need to spawn the relevant subagent.
 - `references/complexity-tiers.md` — Skill examples by complexity tier
 - `references/workflow-patterns.md` — Reusable phase structures and gate patterns
 - `references/error-catalog.md` — Common skill creation errors with solutions
+- `references/enrichment-workflow.md` — Deep reference for the enrichment loop:
+  AUDIT checklist, RESEARCH strategy, ENRICH structuring, TEST/EVALUATE/PUBLISH phases,
+  and retry logic in detail
+- `references/domain-research-targets.md` — Lookup table: given a skill's domain,
+  which primary sources, secondary sources, and extraction targets to use during RESEARCH
 
 ---
 
