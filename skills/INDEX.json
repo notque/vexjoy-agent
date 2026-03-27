@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-03-25T23:05:47Z",
+  "generated": "2026-03-27T03:14:10Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -16,7 +16,7 @@
         "adr consultation"
       ],
       "category": "meta",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
         "feature-design",
@@ -121,7 +121,7 @@
         "find unused"
       ],
       "category": "code-quality",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "2.0.0"
     },
     "code-linting": {
@@ -206,26 +206,27 @@
     },
     "content-engine": {
       "file": "skills/content-engine/SKILL.md",
-      "description": "Repurpose a source asset into platform-native social content variants for X, LinkedIn, TikTok, YouTube, and newsletter. Produces content_ideas.md and content_drafts.md with a quality gate before delivery.",
+      "description": "Repurpose a source asset (article, demo, launch note, insight) into platform-native social content variants.",
       "triggers": [
         "repurpose this",
         "adapt for social",
         "turn this into posts",
         "content from article",
         "content from demo",
+        "content from doc",
         "write variants for",
         "social content from",
         "platform variants",
         "repurpose for"
       ],
       "category": "content",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
         "x-api",
         "crosspost"
       ],
-      "disambiguate": "voice-writer"
+      "model": "sonnet"
     },
     "create-voice": {
       "file": "skills/create-voice/SKILL.md",
@@ -241,7 +242,7 @@
       ],
       "category": "content",
       "force_route": true,
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
         "voice-calibrator",
@@ -358,7 +359,7 @@
         "10 perspectives"
       ],
       "category": "meta-tooling",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "2.0.0"
     },
     "docs-sync-checker": {
@@ -385,16 +386,15 @@
         "POM",
         "test flakiness"
       ],
-      "category": "testing",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
-      "agent": "testing-automation-engineer",
-      "model": "sonnet",
       "pairs_with": [
         "testing-automation-engineer",
         "typescript-frontend-engineer",
         "test-driven-development"
-      ]
+      ],
+      "agent": "testing-automation-engineer",
+      "model": "sonnet"
     },
     "endpoint-validator": {
       "file": "skills/endpoint-validator/SKILL.md",
@@ -425,7 +425,7 @@
       ],
       "category": "process",
       "force_route": true,
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": []
     },
@@ -442,7 +442,7 @@
       ],
       "category": "process",
       "force_route": true,
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "2.0.0",
       "pairs_with": [
         "feature-plan",
@@ -461,7 +461,7 @@
       ],
       "category": "process",
       "force_route": true,
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "2.0.0",
       "pairs_with": [
         "feature-plan",
@@ -481,7 +481,7 @@
       ],
       "category": "process",
       "force_route": true,
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "2.0.0",
       "pairs_with": [
         "feature-design",
@@ -501,7 +501,7 @@
       ],
       "category": "process",
       "force_route": true,
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "2.0.0",
       "pairs_with": [
         "feature-validate",
@@ -521,7 +521,7 @@
       ],
       "category": "process",
       "force_route": true,
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "2.0.0",
       "pairs_with": [
         "feature-implement",
@@ -553,32 +553,6 @@
       "version": "2.0.0",
       "pairs_with": []
     },
-    "frontend-slides": {
-      "file": "skills/frontend-slides/SKILL.md",
-      "description": "Browser-based HTML presentation generation with viewport-fit enforcement, curated style presets, and deterministic overflow validation. Three paths: new build, PPTX-to-HTML conversion, or HTML deck enhancement.",
-      "triggers": [
-        "HTML slides",
-        "browser presentation",
-        "web deck",
-        "reveal-style",
-        "viewport presentation",
-        "convert PPTX to web",
-        "convert PPTX to HTML",
-        "slides for a browser",
-        "kiosk presentation",
-        "interactive presentation keyboard",
-        "projector browser"
-      ],
-      "category": "frontend",
-      "user_invocable": true,
-      "version": "1.0.0",
-      "agent": "typescript-frontend-engineer",
-      "model": "sonnet",
-      "pairs_with": [
-        "typescript-frontend-engineer",
-        "pptx-generator"
-      ]
-    },
     "forensics": {
       "file": "skills/forensics/SKILL.md",
       "description": "Post-mortem diagnostic analysis of failed or stuck workflows.",
@@ -597,13 +571,39 @@
         "incident review"
       ],
       "category": "process",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
         "systematic-debugging",
         "workflow-orchestrator",
         "plan-checker"
       ]
+    },
+    "frontend-slides": {
+      "file": "skills/frontend-slides/SKILL.md",
+      "description": "Browser-based HTML presentation generation with viewport-fit enforcement.",
+      "triggers": [
+        "HTML slides",
+        "browser presentation",
+        "web deck",
+        "reveal-style",
+        "viewport presentation",
+        "convert PPTX to web",
+        "convert PPTX to HTML",
+        "slides for a browser",
+        "kiosk presentation",
+        "interactive presentation keyboard",
+        "projector browser"
+      ],
+      "category": "frontend",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "pairs_with": [
+        "typescript-frontend-engineer",
+        "pptx-generator"
+      ],
+      "agent": "typescript-frontend-engineer",
+      "model": "sonnet"
     },
     "full-repo-review": {
       "file": "skills/full-repo-review/SKILL.md",
@@ -654,7 +654,7 @@
         "make claude.md"
       ],
       "category": "documentation",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
         "go-sapcc-conventions",
@@ -667,11 +667,7 @@
       "triggers": [
         "commit",
         "stage and commit",
-        "commit changes",
-        "save my work",
-        "commit this",
-        "save progress",
-        "checkpoint"
+        "commit changes"
       ],
       "category": "git-workflow",
       "force_route": true,
@@ -703,7 +699,7 @@
         "github inbox"
       ],
       "category": "github",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [],
       "model": "sonnet"
@@ -875,7 +871,7 @@
         "headless agent"
       ],
       "category": "process",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "agent": "python-general-engineer"
     },
@@ -940,7 +936,7 @@
         "wiring check"
       ],
       "category": "process",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
         "feature-implement",
@@ -961,13 +957,61 @@
         "reframe positively"
       ],
       "category": "content",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
         "voice-writer",
         "anti-ai-editor",
         "voice-validator"
       ]
+    },
+    "kotlin-coroutines": {
+      "file": "skills/kotlin-coroutines/SKILL.md",
+      "description": "Kotlin structured concurrency, Flow, Channel, and cancellation patterns",
+      "triggers": [
+        "kotlin-coroutines",
+        "kotlin",
+        "coroutines"
+      ],
+      "user_invocable": false,
+      "version": "1.0.0",
+      "agent": "general-purpose"
+    },
+    "kotlin-testing": {
+      "file": "skills/kotlin-testing/SKILL.md",
+      "description": "Kotlin testing patterns with JUnit 5, Kotest, and coroutine test dispatchers",
+      "triggers": [
+        "kotlin-testing",
+        "kotlin",
+        "testing"
+      ],
+      "user_invocable": false,
+      "version": "1.0.0",
+      "agent": "general-purpose"
+    },
+    "kubernetes-debugging": {
+      "file": "skills/kubernetes-debugging/SKILL.md",
+      "description": "Kubernetes debugging methodology for pod failures, networking issues, and resource problems",
+      "triggers": [
+        "kubernetes-debugging",
+        "kubernetes",
+        "debugging"
+      ],
+      "user_invocable": false,
+      "version": "1.0.0",
+      "agent": "kubernetes-helm-engineer"
+    },
+    "kubernetes-security": {
+      "file": "skills/kubernetes-security/SKILL.md",
+      "description": "Kubernetes security patterns including RBAC, PodSecurityStandards, network policies, and secret management",
+      "triggers": [
+        "kubernetes-security",
+        "kubernetes",
+        "security"
+      ],
+      "user_invocable": false,
+      "version": "1.0.0",
+      "agent": "kubernetes-helm-engineer"
     },
     "learn": {
       "file": "skills/learn/SKILL.md",
@@ -978,7 +1022,7 @@
         "manual learning entry"
       ],
       "category": "meta-tooling",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "2.0.0"
     },
     "link-auditor": {
@@ -1058,7 +1102,7 @@
         "wrap up session"
       ],
       "category": "process",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
         "resume-work"
@@ -1167,7 +1211,7 @@
         "first-time Perses setup"
       ],
       "category": "perses",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "2.0.0",
       "agent": "perses-dashboard-engineer"
     },
@@ -1232,6 +1276,30 @@
       "version": "2.0.0",
       "agent": "perses-dashboard-engineer"
     },
+    "php-quality": {
+      "file": "skills/php-quality/SKILL.md",
+      "description": "PHP code quality patterns including PSR standards, strict types, and framework idioms",
+      "triggers": [
+        "php-quality",
+        "php",
+        "quality"
+      ],
+      "user_invocable": false,
+      "version": "1.0.0",
+      "agent": "general-purpose"
+    },
+    "php-testing": {
+      "file": "skills/php-testing/SKILL.md",
+      "description": "PHP testing patterns with PHPUnit, test doubles, and database testing",
+      "triggers": [
+        "php-testing",
+        "php",
+        "testing"
+      ],
+      "user_invocable": false,
+      "version": "1.0.0",
+      "agent": "general-purpose"
+    },
     "plan-checker": {
       "file": "skills/plan-checker/SKILL.md",
       "description": "Validate plans against 10 verification dimensions before execution begins.",
@@ -1245,7 +1313,7 @@
         "pre-execution check"
       ],
       "category": "process",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
         "feature-plan",
@@ -1301,7 +1369,7 @@
         "plant-seed"
       ],
       "category": "process",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
         "feature-design"
@@ -1352,7 +1420,7 @@
         "prune branches"
       ],
       "category": "git-workflow",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "2.0.0"
     },
     "pr-fix": {
@@ -1364,7 +1432,7 @@
         "pr-fix"
       ],
       "category": "git-workflow",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "2.0.0"
     },
     "pr-miner": {
@@ -1397,7 +1465,7 @@
         "address review comments"
       ],
       "category": "git-workflow",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "2.0.0"
     },
     "pr-status": {
@@ -1410,7 +1478,7 @@
       ],
       "category": "git-workflow",
       "force_route": true,
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "2.0.0"
     },
     "pr-sync": {
@@ -1420,11 +1488,7 @@
         "push",
         "push changes",
         "create PR",
-        "sync to GitHub",
-        "open a pull request",
-        "make a PR",
-        "submit PR",
-        "push and PR"
+        "sync to GitHub"
       ],
       "category": "git-workflow",
       "force_route": true,
@@ -1445,7 +1509,7 @@
       ],
       "category": "process",
       "force_route": true,
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
         "feature-design",
@@ -1542,7 +1606,7 @@
         "Reddit reports"
       ],
       "category": "process",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "agent": "python-general-engineer"
     },
@@ -1558,7 +1622,7 @@
         "read every file in repo"
       ],
       "category": "analysis",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
         "explore-pipeline"
@@ -1609,7 +1673,7 @@
         "poke holes in this"
       ],
       "category": "analysis",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "2.0.0"
     },
     "routing-table-updater": {
@@ -1635,7 +1699,7 @@
         "sapcc standards check"
       ],
       "category": "language",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "2.0.0",
       "pairs_with": [
         "golang-general-engineer",
@@ -1656,7 +1720,7 @@
         "review sapcc standards"
       ],
       "category": "language",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
         "golang-general-engineer",
@@ -1664,6 +1728,29 @@
         "sapcc-audit"
       ],
       "agent": "golang-general-engineer",
+      "model": "opus"
+    },
+    "security-threat-model": {
+      "file": "skills/security-threat-model/SKILL.md",
+      "description": "Phase-gated security threat model skill.",
+      "triggers": [
+        "threat model",
+        "security audit",
+        "supply chain scan",
+        "deny list",
+        "learning db sanitize",
+        "security posture",
+        "injection scan",
+        "surface scan",
+        "audit hooks",
+        "audit skills"
+      ],
+      "category": "security",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "pairs_with": [
+        "python-general-engineer"
+      ],
       "model": "opus"
     },
     "seo-optimizer": {
@@ -1716,6 +1803,27 @@
       "user_invocable": false,
       "version": "2.0.0"
     },
+    "skill-creator": {
+      "file": "skills/skill-creator/SKILL.md",
+      "description": "Create new skills and iteratively improve them through eval-driven validation.",
+      "triggers": [
+        "create skill",
+        "new skill",
+        "skill template",
+        "skill design",
+        "test skill",
+        "improve skill",
+        "optimize description",
+        "skill eval"
+      ],
+      "category": "meta",
+      "user_invocable": false,
+      "version": "2.0.0",
+      "pairs_with": [
+        "agent-evaluation",
+        "verification-before-completion"
+      ]
+    },
     "skill-eval": {
       "file": "skills/skill-eval/SKILL.md",
       "description": "Evaluate and improve skills through measured testing.",
@@ -1729,13 +1837,13 @@
         "skill quality"
       ],
       "category": "meta",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
         "agent-evaluation",
         "verification-before-completion"
       ],
-      "agent": "skill-creator-engineer"
+      "agent": "skill-creator"
     },
     "socratic-debugging": {
       "file": "skills/socratic-debugging/SKILL.md",
@@ -1787,6 +1895,30 @@
       "category": "process",
       "user_invocable": false,
       "version": "2.0.0"
+    },
+    "swift-concurrency": {
+      "file": "skills/swift-concurrency/SKILL.md",
+      "description": "Swift structured concurrency with async/await, Actor, Task, and Sendable patterns",
+      "triggers": [
+        "swift-concurrency",
+        "swift",
+        "concurrency"
+      ],
+      "user_invocable": false,
+      "version": "1.0.0",
+      "agent": "general-purpose"
+    },
+    "swift-testing": {
+      "file": "skills/swift-testing/SKILL.md",
+      "description": "Swift testing patterns with XCTest, Swift Testing framework, and async test patterns",
+      "triggers": [
+        "swift-testing",
+        "swift",
+        "testing"
+      ],
+      "user_invocable": false,
+      "version": "1.0.0",
+      "agent": "general-purpose"
     },
     "systematic-code-review": {
       "file": "skills/systematic-code-review/SKILL.md",
@@ -1984,12 +2116,12 @@
         "assemble clips",
         "video editing"
       ],
-      "category": "media",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
         "typescript-frontend-engineer"
       ],
+      "agent": "python-general-engineer",
       "model": "sonnet"
     },
     "vitest-runner": {
@@ -2037,7 +2169,7 @@
         "strict verification"
       ],
       "category": "process",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "2.0.0"
     },
     "wordpress-live-validation": {
@@ -2099,7 +2231,7 @@
     },
     "x-api": {
       "file": "skills/x-api/SKILL.md",
-      "description": "Post tweets, build threads, upload media, and read timelines via the X API with OAuth 1.0a/2.0 and a mandatory confirm gate before any write.",
+      "description": "Post tweets, build threads, upload media, and read timelines via the X API.",
       "triggers": [
         "post to X",
         "post tweet",
@@ -2116,12 +2248,14 @@
         "publish to twitter"
       ],
       "category": "content-publishing",
-      "user_invocable": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
         "content-engine",
         "crosspost"
-      ]
+      ],
+      "agent": "python-general-engineer",
+      "model": "sonnet"
     }
   }
 }

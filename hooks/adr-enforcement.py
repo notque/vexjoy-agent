@@ -180,17 +180,8 @@ def main() -> None:
 
         event = json.loads(raw)
 
-        # Only process PostToolUse events
-        event_type = event.get("hook_event_name") or event.get("type", "")
-        if event_type != _EVENT_NAME:
-            empty_output(_EVENT_NAME).print_and_exit(0)
-            return
-
-        # Only act on Write or Edit tool calls
-        tool_name = event.get("tool_name", "")
-        if tool_name not in ("Write", "Edit"):
-            empty_output(_EVENT_NAME).print_and_exit(0)
-            return
+        # tool_name/event_type filters removed — matcher "Write|Edit" in settings.json
+        # prevents this hook from spawning for non-matching tools.
 
         # Extract file path from tool input
         tool_input = event.get("tool_input", {})

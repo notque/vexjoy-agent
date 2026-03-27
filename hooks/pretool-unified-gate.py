@@ -295,9 +295,9 @@ def check_creation_gate(file_path: str) -> None:
 
     component_type = "agent" if is_agent else "skill"
     _block(
-        f"[creation-gate] BLOCKED: New {component_type} must be created via skill-creator-engineer or skill-creation-pipeline.\n"
+        f"[creation-gate] BLOCKED: New {component_type} must be created via skill-creator or skill-creation-pipeline.\n"
         f"[creation-gate] Path: {file_path}\n"
-        f"[fix-with-agent] skill-creator-engineer"
+        f"[fix-with-agent] skill-creator"
     )
 
 

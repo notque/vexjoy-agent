@@ -90,10 +90,8 @@ def main():
     if not hook_input:
         return
 
-    # Check if this is a relevant tool call
-    tool_name = hook_input.get("tool_name", "")
-    if tool_name not in ("Edit", "Write"):
-        return
+    # tool_name filter removed — matcher "Write|Edit" in settings.json prevents
+    # this hook from spawning for non-matching tools.
 
     # Extract file path from tool input
     tool_input_data = hook_input.get("tool_input", {})

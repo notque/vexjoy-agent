@@ -60,7 +60,7 @@ This skill operates as an operator for agent/skill quality assurance, configurin
 - Batch-evaluate entire collections with summary statistics
 
 ## What This Skill CANNOT Do
-- Modify or fix agents/skills (use skill-creator-engineer instead)
+- Modify or fix agents/skills (use skill-creator instead)
 - Evaluate external repositories or non-agent/skill files
 - Replace human judgment on content accuracy or domain correctness
 - Skip rubric categories — all must be scored

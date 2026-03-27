@@ -51,30 +51,23 @@ def run_hook(event: dict) -> tuple[str, str, int]:
 class TestToolNameFiltering:
     """Only Read tool events should be processed."""
 
-    def test_ignores_write_tool(self, tmp_path, monkeypatch):
-        """Write tool events should produce no output and no file."""
-        monkeypatch.chdir(tmp_path)
-        event = {
-            "tool_name": "Write",
-            "tool_input": {"file_path": "/some/file.py"},
-        }
-        stdout, stderr, code = run_hook(event)
-        assert code == 0
-        # No session-reads.txt should be created
-        assert not (tmp_path / ".claude" / "session-reads.txt").exists()
+    def test_nonread_tool_exits_zero(self, tmp_path, monkeypatch):
+        """Non-Read tool filtering is now handled by matcher 'Read' in settings.json.
 
-    def test_ignores_edit_tool(self, tmp_path, monkeypatch):
-        """Edit tool events should be ignored."""
+        When called directly (without matcher), the hook processes any tool_name.
+        This test verifies the hook still exits 0 (non-blocking) for any input.
+        """
         monkeypatch.chdir(tmp_path)
-        event = {
-            "tool_name": "Edit",
-            "tool_input": {"file_path": "/some/file.py"},
-        }
-        stdout, stderr, code = run_hook(event)
-        assert code == 0
+        for tool in ("Write", "Edit", "Bash"):
+            event = {
+                "tool_name": tool,
+                "tool_input": {"file_path": "/some/file.py"} if tool != "Bash" else {"command": "ls"},
+            }
+            stdout, stderr, code = run_hook(event)
+            assert code == 0
 
     def test_ignores_bash_tool(self, tmp_path, monkeypatch):
-        """Bash tool events should be ignored."""
+        """Bash tool events should be ignored (no file_path to extract)."""
         monkeypatch.chdir(tmp_path)
         event = {
             "tool_name": "Bash",

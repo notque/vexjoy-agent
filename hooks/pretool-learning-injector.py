@@ -31,9 +31,6 @@ from stdin_timeout import read_stdin
 
 EVENT_NAME = "PreToolUse"
 
-# Tools that benefit from proactive learning injection
-TARGET_TOOLS = {"Bash", "Edit"}
-
 # Max characters in the injected context to stay lightweight
 MAX_CONTEXT_CHARS = 500
 
@@ -160,11 +157,9 @@ def main():
 
         event = json.loads(event_data)
 
-        # Early exit for non-target tools
+        # tool_name filter removed — matcher "Bash|Edit" in settings.json prevents
+        # this hook from spawning for non-matching tools.
         tool_name = event.get("tool_name", "")
-        if tool_name not in TARGET_TOOLS:
-            empty_output(EVENT_NAME).print_and_exit()
-
         tool_input = event.get("tool_input", {})
 
         # Extract tags based on tool type

@@ -251,10 +251,8 @@ def main() -> None:
 
         event = json.loads(event_data)
 
-        # Only process Agent tool invocations
-        tool_name = event.get("tool_name", "")
-        if tool_name != "Agent":
-            return
+        # tool_name filter removed — matcher "Agent" in settings.json prevents
+        # this hook from spawning for non-Agent tools.
 
         # Gather context from various sources
         files = load_recent_reads(Path(SESSION_READS_FILE))

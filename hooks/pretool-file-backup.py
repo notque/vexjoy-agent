@@ -49,9 +49,8 @@ def main() -> None:
     except (json.JSONDecodeError, ValueError):
         sys.exit(0)
 
-    tool_name = event.get("tool_name", "")
-    if tool_name != "Edit":
-        sys.exit(0)
+    # tool_name filter removed — matcher "Edit" in settings.json prevents
+    # this hook from spawning for non-Edit tools.
 
     tool_input = event.get("tool_input", {})
     file_path = tool_input.get("file_path", "")

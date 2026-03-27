@@ -116,7 +116,7 @@ Request deep expertise: *"Use the [name] agent"*
 | `technical-documentation-engineer` | Docs, API references |
 | `technical-journalist-writer` | Technical journalism |
 | `agent-creator-engineer` | Create new agents |
-| `skill-creator-engineer` | Create new skills |
+| `skill-creator` | Create new skills |
 | `hook-development-engineer` | Claude Code hooks |
 | `project-coordinator-engineer` | Multi-agent orchestration |
 | `research-coordinator-engineer` | Research coordination |

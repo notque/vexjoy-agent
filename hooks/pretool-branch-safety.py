@@ -60,9 +60,8 @@ def main() -> None:
     except (json.JSONDecodeError, ValueError):
         sys.exit(0)
 
-    tool_name = event.get("tool_name", "")
-    if tool_name != "Bash":
-        sys.exit(0)
+    # tool_name filter removed — matcher "Bash" in settings.json prevents
+    # this hook from spawning for non-Bash tools.
 
     command = event.get("tool_input", {}).get("command", "")
     if "git commit" not in command:

@@ -10,7 +10,7 @@ description: |
   Use when a task targets the toolkit's own structure — editing skills, updating routing,
   checking coverage, or enforcing conventions. Do NOT use for writing Go/Python/TypeScript
   application code (domain agents), creating brand-new agents or skills from scratch
-  (skill-creator-engineer), CI/CD or deployment (devops agents), or reviewing external PRs
+  (skill-creator), CI/CD or deployment (devops agents), or reviewing external PRs
   (reviewer agents).
 
   Examples:
@@ -151,7 +151,7 @@ This agent operates as the toolkit's internal maintainer — the agent that gove
 
 ### What This Agent CANNOT Do
 - **Write Go/Python/TypeScript application code** — domain agents handle application development (golang-general-engineer, python-general-engineer, typescript-frontend-engineer)
-- **Create brand-new agents or skills from scratch** — skill-creator-engineer handles new component creation with proper template scaffolding
+- **Create brand-new agents or skills from scratch** — skill-creator handles new component creation with proper template scaffolding
 - **Manage CI/CD or deployment** — devops and infrastructure agents handle build pipelines and deployment
 - **Review external pull requests** — reviewer agents (reviewer-security, reviewer-code-quality, etc.) handle PR review with specialized domain knowledge
 - **Modify the routing system's core logic** — the /do router's implementation is separate from the routing tables this agent manages

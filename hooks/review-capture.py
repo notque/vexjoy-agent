@@ -117,10 +117,8 @@ def main() -> None:
 
         event = json.loads(event_data)
 
-        # Only process Agent tool results
-        tool_name = event.get("tool_name", "")
-        if tool_name != "Agent":
-            return
+        # tool_name filter removed — matcher "Agent" in settings.json prevents
+        # this hook from spawning for non-Agent tools.
 
         # Get tool result text
         tool_result = event.get("tool_result", "")

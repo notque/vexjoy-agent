@@ -30,16 +30,8 @@ def main() -> None:
         empty_output(EVENT).print_and_exit(0)
         return
 
-    # Event type guard (defensive — matches peer hook pattern)
-    event_type = data.get("hook_event_name") or data.get("type", "")
-    if event_type and event_type != EVENT:
-        empty_output(EVENT).print_and_exit(0)
-        return
-
-    # Early-exit: only care about Bash tool (PostToolUse schema: tool_name)
-    if data.get("tool_name") != "Bash":
-        empty_output(EVENT).print_and_exit(0)
-        return
+    # tool_name/event_type filters removed — matcher "Bash" in settings.json
+    # prevents this hook from spawning for non-Bash tools.
 
     # Early-exit: check if output indicates a PR was created (PostToolUse schema: tool_result.output)
     tool_result = data.get("tool_result", {})
