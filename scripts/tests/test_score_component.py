@@ -136,12 +136,12 @@ class TestCheckLogic:
         assert checks["Valid YAML frontmatter"]["status"] == "PASS"
         assert checks["Valid YAML frontmatter"]["earned"] == 10
 
-    def test_operator_context_check(self) -> None:
-        """Operator Context check detects subsections in /do skill."""
+    def test_workflow_instructions_check(self) -> None:
+        """Workflow instructions check detects phases/gates in /do skill."""
         result = run_script("skills/do/SKILL.md", "--json")
         data = json.loads(result.stdout)
         checks = {c["name"]: c for c in data["results"][0]["checks"]}
-        assert checks["Operator Context"]["status"] == "PASS"
+        assert checks["Workflow instructions"]["status"] == "PASS"
 
     def test_secret_detection_clean_agent(self) -> None:
         """No secrets in a standard agent."""
