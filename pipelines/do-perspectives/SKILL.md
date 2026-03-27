@@ -32,54 +32,17 @@ routing:
 
 # Multi-Perspective Analysis Skill
 
-## Operator Context
-
-This skill operates as an operator for inline multi-perspective analysis, configuring Claude's behavior for comprehensive, cost-effective pattern extraction from source material. It implements the **Pipeline** architectural pattern -- Analyze, Synthesize, Apply, Verify -- with **Domain Intelligence** embedded across 10 analytical frameworks.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before starting analysis
-- **Over-Engineering Prevention**: Extract actionable patterns only. No speculative rules, no "might be useful" additions
-- **Source Material Required**: NEVER begin analysis without valid source material loaded and verified
-- **All 10 Perspectives**: Complete all 10 analytical lenses. No skipping perspectives because "enough patterns found"
-- **Sequential Integrity**: Each perspective produces documented output before moving to the next
-- **Synthesis Before Application**: NEVER apply improvements without completing the synthesis phase first
-
-### Default Behaviors (ON unless disabled)
-- **Cross-Reference Tracking**: Note when multiple perspectives surface the same pattern
-- **Priority Ranking**: Rank extracted rules by how many perspectives support them
-- **Concrete Examples**: Include specific quotes or references from source material for each rule
-- **Token Budget Awareness**: Target 10,000-15,000 tokens total; flag if source material will exceed budget
-- **Completion Report**: Generate structured report showing all phases, findings, and changes
-- **Git Commit**: Create commit documenting improvements after successful application
-
-### Optional Behaviors (OFF unless enabled)
-- **Parallel Comparison**: Run /do-parallel afterward to compare sequential vs parallel findings
-- **Deep Dive Mode**: Spend 500-800 words per perspective instead of 200-500
-- **Multi-Target**: Apply findings to multiple related agents or skills in one session
-
-## What This Skill CAN Do
-- Analyze source material through 10 distinct analytical frameworks sequentially
-- Extract actionable patterns and rules from articles, documentation, and code
-- Synthesize findings across perspectives into priority-ranked recommendations
-- Apply synthesized improvements to a target agent or skill
-- Generate completion reports documenting all analysis and changes
-
-## What This Skill CANNOT Do
-- Replace true parallel analysis (use /do-parallel for zero cross-contamination)
-- Improve targets without source material to analyze
-- Skip perspectives or phases to save tokens
-- Make improvements without the synthesis step
-- Guarantee independence between perspectives (sequential analysis has inherent anchoring)
-
----
+This skill extracts actionable patterns from source material through sequential analysis of 10 analytical frameworks. It operates as a **Pipeline** with four gates: VALIDATE INPUTS → MULTI-PERSPECTIVE ANALYSIS → SYNTHESIZE → APPLY.
 
 ## Instructions
 
-$ARGUMENTS - Target agent/skill name + source material path (file path or inline text)
+**$ARGUMENTS** - Target agent/skill name + source material path (file path or inline text)
 
 ### Phase 1: VALIDATE INPUTS
 
 **Goal**: Confirm target exists and source material is loaded before any analysis.
+
+**Hardcoded requirement** (always apply): Source material must be loaded and verified before proceeding. This prevents wasted analysis cycles on empty or invalid input.
 
 **Step 1: Parse arguments**
 - First argument: target agent or skill name
@@ -92,13 +55,17 @@ $ARGUMENTS - Target agent/skill name + source material path (file path or inline
 **Step 3: Load source material**
 - If file path: read and verify file is non-empty
 - If inline text: confirm sufficient content for analysis (minimum ~500 words)
-- Estimate token budget based on source material length
+- Estimate token budget based on source material length (target: 10,000-15,000 tokens total; flag if source material will exceed budget)
 
 **Gate**: Target exists and is readable. Source material is loaded and non-trivial. Proceed only when gate passes.
 
 ### Phase 2: MULTI-PERSPECTIVE ANALYSIS
 
 **Goal**: Analyze source material through all 10 analytical lenses, producing documented findings for each.
+
+**Hardcoded requirement** (always apply): Complete all 10 perspectives. No skipping perspectives because "enough patterns found." Later perspectives often surface non-obvious patterns that earlier ones miss. The value of 10 lenses is comprehensiveness. If a perspective yields low signal, mark it as such in the report, but still complete the analysis.
+
+**Default behavior** (ON unless disabled): For each perspective, include cross-reference tracking — note when multiple perspectives surface the same pattern. This reveals high-confidence rules.
 
 For each perspective, produce output in this format:
 
@@ -131,10 +98,10 @@ For each perspective, produce output in this format:
 9. **Complexity Management** -- Approach to difficult topics, gradual escalation, when to be thorough vs concise
 10. **Limitation and Nuance Handling** -- Caveats, edge cases, uncertainty acknowledgment, trade-off presentation
 
-**Constraints**:
-- 200-500 words per perspective (focused, not padded)
+**Constraints on analysis output**:
+- 200-500 words per perspective (focused, not padded): Over-engineering prevention applies here. Extract actionable patterns only. No speculative rules, no "might be useful" additions.
 - 3-5 extracted rules per perspective
-- Each perspective MUST reference specific content from the source material
+- Each perspective MUST reference specific content from the source material, not generic observations that could apply anywhere. Generic rules add no value. The purpose is extracting patterns specific to the source material.
 - Cross-references to other perspectives are encouraged but optional
 
 **Gate**: All 10 perspectives documented with observations, rules, and source references. Proceed only when gate passes.
@@ -143,8 +110,10 @@ For each perspective, produce output in this format:
 
 **Goal**: Unify findings across all perspectives into priority-ranked recommendations.
 
+**Hardcoded requirement** (always apply): Synthesis before application. NEVER apply improvements without completing the synthesis phase first. Without synthesis, you apply every extracted rule equally. Priority ranking prevents over-engineering and focuses on high-signal patterns.
+
 **Step 1: Identify common themes**
-- Patterns that appeared in 4+ perspectives are high-signal
+- Patterns that appeared in 4+ perspectives are high-signal (supported by multiple lenses)
 - Note convergence and reinforcement across lenses
 
 **Step 2: Extract unique insights**
@@ -180,6 +149,8 @@ Rules supported by 1-3 perspectives or moderate impact
 
 **Goal**: Improve the target agent or skill using synthesized recommendations.
 
+**Hardcoded requirement** (always apply): Do NOT remove existing working patterns. Existing patterns were validated through prior use. New patterns should augment, not replace. Only modify existing content when source material provides a strictly better approach.
+
 **Step 1: Read current target**
 - Load the current agent or skill file
 - Identify which sections map to Priority 1 and 2 recommendations
@@ -200,6 +171,8 @@ Rules supported by 1-3 perspectives or moderate impact
 ### Phase 5: VERIFY AND REPORT
 
 **Goal**: Confirm changes are valid and generate completion report.
+
+**Default behavior** (ON unless disabled): Generate structured completion report showing all phases, findings, and changes. This artifact serves as a reference for future improvements.
 
 **Step 1: Verify file**
 - Re-read the modified file to confirm it is well-formed
@@ -297,42 +270,8 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Skipping Perspectives
-**What it looks like**: "5 perspectives found enough patterns, skipping the rest"
-**Why wrong**: Later perspectives often surface non-obvious patterns that earlier ones miss. The value of 10 lenses is comprehensiveness.
-**Do instead**: Complete all 10 perspectives. Mark low-yield ones as such in the report.
-
-### Anti-Pattern 2: Applying Without Synthesizing
-**What it looks like**: Jumping from analysis directly to editing the target file
-**Why wrong**: Without synthesis, you apply every extracted rule equally. Priority ranking prevents over-engineering and focuses on high-signal patterns.
-**Do instead**: Complete Phase 3 synthesis. Apply only Priority 1 and 2 rules.
-
-### Anti-Pattern 3: Generic Rules Without Source References
-**What it looks like**: Extracted rules that could apply to any source material
-**Why wrong**: Generic rules add no value. The purpose is extracting patterns specific to the source material.
-**Do instead**: Every rule MUST reference a specific passage, example, or technique from the source.
-
-### Anti-Pattern 4: Removing Existing Content
-**What it looks like**: Replacing working patterns in the target with new patterns from analysis
-**Why wrong**: Existing patterns were validated through prior use. New patterns should augment, not replace.
-**Do instead**: ADD depth and new sections. Modify existing content only when source material provides a strictly better approach.
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-- [Pipeline Architecture](../shared-patterns/pipeline-architecture.md) - Phase-based execution patterns
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "5 perspectives is enough" | Comprehensiveness is the value proposition | Complete all 10 lenses |
-| "I can see the patterns already" | Seeing patterns is not the same as systematic extraction | Follow the full analysis framework |
-| "Synthesis is just overhead" | Without ranking, all rules get equal weight | Complete Priority 1/2/3 ranking |
-| "Source material is obvious" | Obvious material still has non-obvious structural patterns | Analyze through all lenses regardless |
+- [CLAUDE.md Compliance](../../../CLAUDE.md) - Verification over assumption, artifacts over memory, authentic over polished
+- Pipeline Architecture pattern - Phase-based execution with gates
+- Sequential analysis constraints - Cross-contamination inherent in sequential analysis (see /do-parallel for zero cross-contamination alternative)
