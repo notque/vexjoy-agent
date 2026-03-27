@@ -27,69 +27,26 @@ routing:
 
 # Headless Cron Creator Skill
 
-## Operator Context
-
-This skill operates as an operator for creating headless Claude Code cron jobs,
-configuring Claude's behavior for safe, templated cron job generation. It
-implements the **Scaffold → Validate → Install** pattern with deterministic
-Python scripts handling all crontab mutations.
-
-### Hardcoded Behaviors (Always Apply)
-- **Never pipe to `crontab -`** — all crontab mutations go through `scripts/crontab-manager.py`
-- **Backup before mutate** — every crontab change creates a timestamped backup in `~/.claude/crontab-backups/`
-- **Dry-run default** — generated scripts do nothing destructive without `--execute`
-- **Budget cap** — every generated script has `--max-budget-usd` (default $2.00)
-- **Lockfile** — every generated script uses `flock` to prevent concurrent runs
-- **No `--bare`** — breaks OAuth/keychain auth
-- **No `--dangerously-skip-permissions`** — `--permission-mode auto` is sufficient
-- **No `CronCreate` tool** — session-scoped, not persistent
-- **Off-minute scheduling** — never use `:00` or `:30` minutes; spread load with odd minutes (7, 23, 47)
-- **Tag all entries** — every crontab entry gets a `# claude-cron: <tag>` marker for safe identification
-- **Full absolute paths in crontab** — cron has minimal PATH; all commands use absolute paths
-
-### Default Behaviors (ON unless disabled)
-- **Auto-validate with cron-job-auditor** — run the auditor on every generated script
-- **Show next-steps** — print the exact commands to test and install
-- **Heredoc prompts** — embed prompt text via bash heredoc to avoid escaping issues
-- **Per-run log files** — `tee` output to timestamped log files
-
-### Optional Behaviors (OFF unless enabled)
-- **Auto-install** — install the crontab entry (requires explicit user confirmation)
-- **Custom allowed-tools** — override the default `Bash Read` tool set
-- **Custom budget** — override the default $2.00 per-run budget
-
-## What This Skill CAN Do
-- Generate wrapper scripts from task descriptions
-- Install/remove/verify crontab entries safely
-- List all Claude Code cron jobs
-- Validate generated scripts against cron best practices
-
-## What This Skill CANNOT Do
-- Execute the generated cron jobs (that's cron's job)
-- Modify existing wrapper scripts (regenerate with `--force` instead)
-- Manage non-Claude crontab entries (only touches `# claude-cron:` tagged entries)
-- Install crontab entries without user confirmation
-
----
+Generate headless Claude Code cron jobs from a task description and schedule. Creates a wrapper script with safety mechanisms (lockfile, budget cap, dry-run default, logging) and installs crontab entries. All crontab mutations go through `scripts/crontab-manager.py`, which writes to temp files and creates timestamped backups in `~/.claude/crontab-backups/` before every change -- never pipe directly to `crontab -` because a mid-stream pipe failure wipes the entire crontab.
 
 ## Instructions
 
 ### Phase 1: PARSE
 
-**Goal**: Extract job parameters from the user's request.
+Extract job parameters from the user's request.
 
 **Required parameters**:
-- **name** — short kebab-case identifier (e.g., `reddit-automod`, `feed-health-check`)
-- **prompt** — what Claude should do each run (natural language)
-- **schedule** — cron expression or human-readable interval
+- **name** -- short kebab-case identifier (e.g., `reddit-automod`, `feed-health-check`)
+- **prompt** -- what Claude should do each run (natural language)
+- **schedule** -- cron expression or human-readable interval
 
 **Optional parameters** (with defaults):
-- **workdir** — where to `cd` before running (default: current repo root)
-- **budget** — max USD per run (default: `2.00`)
-- **allowed-tools** — which tools the headless session can use (default: `Bash Read`)
-- **logdir** — where to store logs (default: `{workdir}/cron-logs/{name}`)
+- **workdir** -- where to `cd` before running (default: current repo root)
+- **budget** -- max USD per run (default: `2.00`; user may override)
+- **allowed-tools** -- which tools the headless session can use (default: `Bash Read`; user may override)
+- **logdir** -- where to store logs (default: `{workdir}/cron-logs/{name}`)
 
-**Human-readable schedule conversion**:
+**Human-readable schedule conversion** -- use off-minutes (7, 23, 47) instead of `:00`/`:30` because every cron job on the system fires at round minutes, creating load spikes:
 
 | Human Input | Cron Expression |
 |-------------|----------------|
@@ -100,13 +57,11 @@ Python scripts handling all crontab mutations.
 | weekly on sunday | `7 9 * * 0` |
 | every 30 minutes | `*/30 * * * *` |
 
-Always use off-minutes (7, 23, 47) instead of :00/:30 to spread load.
-
 **Gate**: All required parameters extracted. Proceed to Phase 2.
 
 ### Phase 2: GENERATE
 
-**Goal**: Create the wrapper script using `crontab-manager.py generate-wrapper`.
+Create the wrapper script using `crontab-manager.py generate-wrapper`. Embed the prompt via bash heredoc to avoid escaping issues.
 
 ```bash
 python3 ~/.claude/scripts/crontab-manager.py generate-wrapper \
@@ -120,39 +75,41 @@ python3 ~/.claude/scripts/crontab-manager.py generate-wrapper \
 
 Review the generated script. Verify it contains:
 - [ ] `set -euo pipefail`
-- [ ] `flock` lockfile
-- [ ] `--permission-mode auto`
-- [ ] `--max-budget-usd`
+- [ ] `flock` lockfile -- prevents concurrent runs of the same job
+- [ ] `--permission-mode auto` -- never use `--dangerously-skip-permissions` (auto is sufficient) or `--bare` (breaks OAuth/keychain auth)
+- [ ] `--max-budget-usd` -- caps spend per run (default $2.00)
 - [ ] `--no-session-persistence`
 - [ ] `--allowedTools`
-- [ ] `tee` to per-run log file
-- [ ] Dry-run/execute toggle
+- [ ] `tee` to per-run timestamped log file
+- [ ] Dry-run/execute toggle -- scripts do nothing destructive without `--execute`
 - [ ] Exit code propagation via `PIPESTATUS[0]`
+
+Do not use the `CronCreate` tool -- it is session-scoped (dies when the session ends, auto-expires after 7 days). Use system `crontab` via `crontab-manager.py` instead.
 
 **Gate**: Script generated and reviewed. Proceed to Phase 3.
 
 ### Phase 3: VALIDATE
 
-**Goal**: Verify the generated script meets cron best practices.
+Verify the generated script meets cron best practices.
 
 1. Run the script in dry-run mode:
    ```bash
    bash -n scripts/{name}-cron.sh  # syntax check
    ```
 
-2. Run `cron-job-auditor` checks manually:
+2. Run `cron-job-auditor` checks:
    - [ ] Error handling (`set -e`)
    - [ ] Lock file (`flock`)
    - [ ] Logging (`tee`, `LOG_DIR`)
    - [ ] Working directory (absolute `cd`)
-   - [ ] PATH awareness (absolute `claude` path)
+   - [ ] PATH awareness (absolute path to `claude` -- cron has minimal PATH, so all commands must use absolute paths)
    - [ ] Cleanup on exit (lock release)
 
 **Gate**: All checks pass. Proceed to Phase 4.
 
 ### Phase 4: INSTALL
 
-**Goal**: Install the crontab entry with user confirmation.
+Install the crontab entry. Every entry gets a `# claude-cron: <tag>` marker so `crontab-manager.py` can identify and manage only its own entries without touching non-Claude crontab lines. All paths in the crontab entry must be absolute because cron has minimal PATH.
 
 1. Show the proposed entry:
    ```bash
@@ -163,7 +120,7 @@ Review the generated script. Verify it contains:
      --dry-run
    ```
 
-2. **Ask the user for confirmation** before installing.
+2. **Ask the user for confirmation** before installing. Never install without explicit approval.
 
 3. If confirmed:
    ```bash
@@ -182,7 +139,7 @@ Review the generated script. Verify it contains:
 
 ### Phase 5: REPORT
 
-**Goal**: Summarize the created cron job.
+Summarize the created cron job and print the exact commands to test and manage it.
 
 Output:
 - Script path
@@ -197,7 +154,7 @@ Output:
   python3 ~/.claude/scripts/crontab-manager.py remove --tag {name}   # uninstall
   ```
 
----
+To modify an existing wrapper script, regenerate it with `--force` rather than editing in place.
 
 ## Error Handling
 
@@ -214,21 +171,7 @@ If the path changes, regenerate the wrapper with `--force`.
 Cause: System crontab service issue.
 Solution: Check `crontab -l` manually. Restore from `~/.claude/crontab-backups/`.
 
----
+## References
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Piping to crontab
-**What it looks like**: `crontab -l | { cat; echo "new entry"; } | crontab -`
-**Why wrong**: If the pipe fails mid-stream, the entire crontab is wiped.
-**Do instead**: Always use `crontab-manager.py` which writes to temp files.
-
-### Anti-Pattern 2: Using CronCreate tool
-**What it looks like**: Calling the `CronCreate` tool to schedule jobs.
-**Why wrong**: Session-scoped only — dies when session ends, auto-expires after 7 days.
-**Do instead**: Use system `crontab` via `crontab-manager.py`.
-
-### Anti-Pattern 3: Round-number scheduling
-**What it looks like**: `0 */6 * * *` or `30 * * * *`
-**Why wrong**: Every cron job on the system fires at :00/:30, creating load spikes.
-**Do instead**: Use off-minutes like `7`, `23`, `47`.
+- `scripts/crontab-manager.py` -- all crontab mutations (add, remove, list, verify, generate-wrapper)
+- `skills/cron-job-auditor/SKILL.md` -- validation checks for generated scripts
