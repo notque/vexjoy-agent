@@ -137,10 +137,34 @@ Explain the reasoning behind constraints rather than issuing bare imperatives.
 effective than "ALWAYS run with -race" because the model can generalize the
 reasoning to situations the skill author didn't anticipate.
 
-**Progressive disclosure** — keep SKILL.md navigable:
-- Summary in frontmatter, workflow in body, deep reference in `references/`
-- If SKILL.md exceeds ~500 lines, move detailed catalogs to reference files
-- Reference files clearly linked from SKILL.md with guidance on when to read them
+**Progressive disclosure** — SKILL.md is the routing target, not the reference
+library. It stays lean so it loads fast when Claude considers invoking it, then
+reads `references/` on demand as phases execute. See
+`references/progressive-disclosure.md` for the full model, economics, and
+extraction decision tree.
+
+Key rules:
+- SKILL.md: brief overview, phase structure with gates, one-line pointers to
+  reference files, error handling
+- `references/`: checklists, rubrics, agent dispatch prompts, report templates,
+  pattern catalogs, example collections — anything only needed at execution time
+- If SKILL.md exceeds **500 lines** after writing, extract detailed content to
+  `references/` before proceeding
+- If SKILL.md exceeds **700 lines**, extraction is mandatory — it is carrying
+  reference content that should not be loaded on every routing decision
+
+**Maximizing skill effectiveness:**
+
+| More of this → better skill | Why |
+|-----------------------------|-----|
+| Rich `references/` content | Depth available at execution; zero cost at routing time |
+| Deterministic `scripts/` | Consistency, token savings, independent testability |
+| Bundled `agents/` prompts | Specialized dispatch without routing system overhead |
+
+The most effective complex skills in this toolkit (`comprehensive-review`,
+`sapcc-review`, `voice-writer`) have SKILL.md under 600 lines and put all
+operational depth in `references/` and `agents/`. See
+`references/progressive-disclosure.md` for the real numbers.
 
 ### Bundled scripts
 
@@ -352,9 +376,11 @@ skill. Read them when you need to spawn the relevant subagent.
 
 ## Reference files
 
+- `references/progressive-disclosure.md` — The disclosure model: economics, size
+  gates, what to extract, real examples from the toolkit, script and agent patterns
+- `references/skill-template.md` — Complete SKILL.md template with all sections
 - `references/artifact-schemas.md` — JSON schemas for eval artifacts (evals.json,
   grading.json, benchmark.json, comparison.json, timing.json, metrics.json)
-- `references/skill-template.md` — Complete SKILL.md template with all sections
 - `references/complexity-tiers.md` — Skill examples by complexity tier
 - `references/workflow-patterns.md` — Reusable phase structures and gate patterns
 - `references/error-catalog.md` — Common skill creation errors with solutions
