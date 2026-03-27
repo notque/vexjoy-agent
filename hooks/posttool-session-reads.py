@@ -48,10 +48,8 @@ def main() -> None:
 
         event = json.loads(event_data)
 
-        # Only process Read tool results
-        tool_name = event.get("tool_name", "")
-        if tool_name != "Read":
-            return
+        # tool_name filter removed — matcher "Read" in settings.json prevents
+        # this hook from spawning for non-Read tools.
 
         # Extract file_path from tool_input
         tool_input = event.get("tool_input", {})

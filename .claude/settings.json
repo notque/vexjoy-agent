@@ -96,23 +96,51 @@
     ],
     "PreToolUse": [
       {
+        "matcher": "Bash|Write|Edit",
         "hooks": [
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/pretool-unified-gate.py\"",
             "description": "Unified gate: gitignore-bypass, git-submission, dangerous-command, creation-gate, sensitive-file (ADR-068)",
             "timeout": 3000
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/pretool-synthesis-gate.py\"",
-            "description": "Consultation synthesis gate: blocks implementation when ADR consultation is incomplete",
-            "timeout": 3000
-          },
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/pretool-branch-safety.py\"",
             "description": "Branch safety: blocks git commit on main/master, forces feature branches",
+            "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/ci-merge-gate.py\"",
+            "description": "Gate: block merge to main/master when CI checks are red",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/pretool-learning-injector.py\"",
+            "description": "Inject known error patterns before Bash/Edit tools run",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/pretool-synthesis-gate.py\"",
+            "description": "Consultation synthesis gate: blocks implementation when ADR consultation is incomplete",
             "timeout": 3000
           },
           {
@@ -123,54 +151,54 @@
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/pretool-adr-creation-gate.py\"",
-            "description": "ADR creation gate: blocks new components without an ADR in adr/",
-            "timeout": 3000
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/pretool-learning-injector.py\"",
-            "description": "Inject known error patterns before Bash/Edit tools run",
-            "timeout": 3000
-          },
-          {
-            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/pretool-prompt-injection-scanner.py\"",
             "description": "Advisory scan for prompt injection patterns in agent context files (ADR-070)",
             "timeout": 3000
-          },
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/pretool-subagent-warmstart.py\"",
-            "description": "Inject parent session context into subagent prompts (ADR-088)",
-            "timeout": 5000
-          },
+            "command": "python3 \"$HOME/.claude/hooks/pretool-adr-creation-gate.py\"",
+            "description": "ADR creation gate: blocks new components without an ADR in adr/",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/pretool-file-backup.py\"",
             "description": "Backup files before Edit tool modifies them",
             "timeout": 3000
-          },
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/ci-merge-gate.py\"",
-            "description": "Gate: block merge to main/master when CI checks are red",
-            "timeout": 3000
+            "command": "python3 \"$HOME/.claude/hooks/pretool-subagent-warmstart.py\"",
+            "description": "Inject parent session context into subagent prompts (ADR-088)",
+            "timeout": 5000
           }
         ]
       }
     ],
     "PostToolUse": [
       {
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/post-tool-lint-hint.py\""
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/error-learner.py\"",
-            "description": "Learn from tool errors and suggest solutions"
+            "command": "python3 \"$HOME/.claude/hooks/post-tool-lint-hint.py\"",
+            "description": "Gentle lint reminder after file modifications"
           },
           {
             "type": "command",
@@ -185,48 +213,82 @@
           },
           {
             "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/posttool-security-scan.py\"",
+            "description": "Advisory scan for credentials and SQL injection in Write/Edit output",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/retro-graduation-gate.py\"",
+            "description": "Warn about ungraduated retro entries when creating PRs in toolkit repo",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/record-activation.py\"",
+            "description": "Record session activation stats for ROI tracking (ADR-032)"
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/posttool-session-reads.py\"",
+            "description": "Track files read this session for subagent warmstart (ADR-088)"
+          }
+        ]
+      },
+      {
+        "matcher": "Skill|Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/usage-tracker.py\"",
+            "description": "Record Skill and Agent invocation analytics",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/review-capture.py\"",
+            "description": "Capture CRITICAL/HIGH review findings to learning DB",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/error-learner.py\"",
+            "description": "Learn from tool errors and suggest solutions"
+          },
+          {
+            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/routing-gap-recorder.py\"",
             "description": "Record /do routing gaps to learning DB for pattern tracking",
             "timeout": 2000
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/retro-graduation-gate.py\"",
-            "description": "Warn about ungraduated retro entries when creating PRs in toolkit repo",
-            "timeout": 3000
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/record-activation.py\"",
-            "description": "Record session activation stats for ROI tracking (ADR-032)"
-          },
-          {
-            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/record-waste.py\"",
             "description": "Record wasted tokens from tool failures for ROI tracking (ADR-032)"
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/posttool-session-reads.py\"",
-            "description": "Track files read this session for subagent warmstart (ADR-088)"
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/posttool-security-scan.py\"",
-            "description": "Advisory scan for credentials and SQL injection in Write/Edit output",
-            "timeout": 3000
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/usage-tracker.py\"",
-            "description": "Record Skill and Agent invocation analytics",
-            "timeout": 3000
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/review-capture.py\"",
-            "description": "Capture CRITICAL/HIGH review findings to learning DB",
-            "timeout": 3000
           },
           {
             "type": "command",

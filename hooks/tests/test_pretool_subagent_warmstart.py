@@ -58,28 +58,19 @@ def run_hook(event: dict) -> tuple[str, str, int]:
 class TestToolNameFiltering:
     """Only Agent tool events should be processed."""
 
-    def test_ignores_read_tool(self):
-        """Read tool events should produce no context output."""
-        event = {"tool_name": "Read", "tool_input": {"file_path": "/x"}}
-        stdout, stderr, code = run_hook(event)
-        assert code == 0
-        # Should be empty or empty hook output (no warmstart context)
-        if stdout.strip():
-            output = json.loads(stdout)
-            hook_out = output.get("hookSpecificOutput", {})
-            assert "additionalContext" not in hook_out or "[warmstart]" not in hook_out.get("additionalContext", "")
+    def test_nonagent_tools_exit_zero(self):
+        """Non-Agent tool filtering is now handled by matcher 'Agent' in settings.json.
 
-    def test_ignores_write_tool(self):
-        """Write tool events should be ignored."""
-        event = {"tool_name": "Write", "tool_input": {"file_path": "/x"}}
-        stdout, stderr, code = run_hook(event)
-        assert code == 0
-
-    def test_ignores_bash_tool(self):
-        """Bash tool events should be ignored."""
-        event = {"tool_name": "Bash", "tool_input": {"command": "ls"}}
-        stdout, stderr, code = run_hook(event)
-        assert code == 0
+        When called directly (without matcher), the hook processes any tool_name.
+        This test verifies the hook still exits 0 (non-blocking) for any input.
+        """
+        for tool, tool_input in [
+            ("Read", {"file_path": "/x"}),
+            ("Write", {"file_path": "/x"}),
+            ("Bash", {"command": "ls"}),
+        ]:
+            stdout, stderr, code = run_hook({"tool_name": tool, "tool_input": tool_input})
+            assert code == 0
 
     def test_processes_agent_tool(self, tmp_path, monkeypatch):
         """Agent tool events should produce warmstart context."""

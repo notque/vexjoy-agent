@@ -19,9 +19,8 @@ from stdin_timeout import read_stdin
 def main() -> None:
     data = json.loads(read_stdin(timeout=2))
 
-    tool = data.get("tool_name", "")
-    if tool != "Bash":
-        return
+    # tool_name filter removed — matcher "Bash" in settings.json prevents
+    # this hook from spawning for non-Bash tools.
 
     command = data.get("tool_input", {}).get("command", "")
 

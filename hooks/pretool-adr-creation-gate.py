@@ -70,10 +70,8 @@ def main() -> None:
     except (json.JSONDecodeError, ValueError):
         sys.exit(0)
 
-    # Only gate Write — edits to existing files are fine.
-    tool_name = event.get("tool_name", "")
-    if tool_name != "Write":
-        sys.exit(0)
+    # tool_name filter removed — matcher "Write" in settings.json prevents
+    # this hook from spawning for non-Write tools.
 
     # Bypass env var.
     if os.environ.get(_BYPASS_ENV) == "1":

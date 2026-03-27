@@ -54,9 +54,8 @@ def main() -> None:
     except (json.JSONDecodeError, ValueError):
         sys.exit(0)
 
-    tool_name = event.get("tool_name", "")
-    if tool_name not in ("Write", "Edit"):
-        sys.exit(0)
+    # tool_name filter removed — matcher "Write|Edit" in settings.json prevents
+    # this hook from spawning for non-matching tools.
 
     # Bypass env var — set by the plans skill itself.
     if os.environ.get(_BYPASS_ENV) == "1":

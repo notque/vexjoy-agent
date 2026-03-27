@@ -268,11 +268,9 @@ def main() -> None:
         print(f"[injection-scanner] JSON parse failed: {e}", file=sys.stderr)
         empty_output(EVENT_NAME).print_and_exit()
 
-    # Field name compatibility: try new names first, fall back to old
+    # tool_name filter removed — matcher "Write|Edit" in settings.json prevents
+    # this hook from spawning for non-matching tools.
     tool = event.get("tool_name") or event.get("tool", "")
-    if tool not in ("Write", "Edit"):
-        empty_output(EVENT_NAME).print_and_exit()
-
     tool_input = event.get("tool_input", event.get("input", {}))
     file_path = tool_input.get("file_path", "")
     if not file_path:

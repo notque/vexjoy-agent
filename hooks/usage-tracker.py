@@ -32,16 +32,9 @@ def main():
 
         event = json.loads(event_data)
 
-        # Only process PostToolUse events
-        event_type = event.get("hook_event_name") or event.get("type", "")
-        if event_type != "PostToolUse":
-            return
-
+        # tool_name/event_type filters removed — matcher "Skill|Agent" in settings.json
+        # prevents this hook from spawning for non-matching tools.
         tool_name = event.get("tool_name", "")
-
-        # Only track Skill and Agent tools — exit silently for everything else
-        if tool_name not in ("Skill", "Agent"):
-            return
 
         # Lazy import — only loaded when we actually need to record
         from hook_utils import get_project_dir, get_session_id

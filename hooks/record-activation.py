@@ -28,18 +28,14 @@ sys.path.insert(0, str(Path(__file__).parent / "lib"))
 from hook_utils import get_session_id
 from stdin_timeout import read_stdin
 
-# Tools that represent meaningful work completing successfully
-TRACKED_TOOLS = {"Edit", "Write", "Bash"}
-
 
 def main() -> None:
     """Record session activation stats on successful tool completions."""
     try:
         hook_input = json.loads(read_stdin(timeout=2))
 
-        tool_name = hook_input.get("tool_name", "")
-        if tool_name not in TRACKED_TOOLS:
-            return
+        # tool_name filter removed — matcher "Edit|Write|Bash" in settings.json
+        # prevents this hook from spawning for non-matching tools.
 
         tool_result = hook_input.get("tool_result", {})
         if tool_result.get("is_error", False):
