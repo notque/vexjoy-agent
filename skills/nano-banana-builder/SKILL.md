@@ -35,171 +35,17 @@ routing:
 
 # Nano Banana Builder
 
-## Operator Context
+Image generation and post-processing via two deterministic Python scripts (`nano-banana-generate.py` and `nano-banana-process.py`). Your job is prompt crafting and flag selection; the scripts handle all mechanical operations.
 
-This skill orchestrates image generation and post-processing via two deterministic Python scripts. The LLM's job is **prompt crafting** (describing what to generate) and **flag selection** (choosing the right script options). The scripts handle all mechanical operations.
+## Instructions
 
-### Architecture
+### 1. Validate the environment
 
-| Component | Path | Purpose |
-|-----------|------|---------|
-| `nano-banana-generate.py` | `scripts/` | Generate images via Gemini API |
-| `nano-banana-process.py` | `scripts/` | Post-process: crop, bg removal, watermarks, format |
+Before any generation call, confirm the API key is set. The scripts read `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) from the environment and will fail without it. Checking this first avoids wasted time on API calls that will error immediately.
 
-**Principle**: "LLMs orchestrate. Programs execute." The skill tells you *when* to call *which script* with *which flags*. The scripts do the work deterministically.
+### 2. Choose the right script and subcommand
 
-### Hardcoded Behaviors (Always Apply)
-
-- **Scripts Only**: ALL generation and processing goes through the Python scripts. Never write inline image processing code.
-- **Exact Model Names Only**: Only two models exist: `flash` (gemini-2.5-flash-image) and `pro` (gemini-3-pro-image-preview). The scripts enforce this.
-- **Save Originals**: For any batch or expensive generation, use `--save-original` or `--originals-dir` to preserve raw API output before processing. Re-generating costs money; re-processing a saved original is free.
-- **API Key Required**: Scripts read `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) from environment. Validate before running.
-- **Rate Limiting**: Use `--delay` for batch operations. Default 2s for flash, 3s for pro.
-
-### Default Behaviors (ON unless disabled)
-
-- **Flash for iterations, Pro for finals**: Use `--model flash` for drafts and experimentation, `--model pro` for final output
-- **Skip existing in batch**: Use `--skip-existing` to avoid re-generating images that already exist
-- **Top-biased crop for characters**: Use `--bias 0.35` when cropping character/sprite art to preserve heads
-
----
-
-## Scripts Reference
-
-### nano-banana-generate.py
-
-**Dependencies**: `pip install google-genai pillow`
-
-#### generate — Single image
-
-```bash
-python3 ~/.claude/scripts/nano-banana-generate.py generate \
-    --prompt "PROMPT" \
-    --output OUTPUT_PATH \
-    --model flash|pro \
-    --aspect-ratio RATIO \
-    --save-original ORIGINAL_PATH
-```
-
-| Flag | Required | Default | Description |
-|------|----------|---------|-------------|
-| `--prompt` | Yes | — | Text prompt for generation |
-| `--output` | Yes | — | Output file path (.png or .jpg) |
-| `--model` | No | flash | `flash` (fast, 2-5s) or `pro` (quality, ~30s) |
-| `--aspect-ratio` | No | model default | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
-| `--reference` | No | — | Reference image for style matching |
-| `--save-original` | No | — | Save raw API output to this path |
-
-#### with-reference — Style transfer
-
-```bash
-python3 ~/.claude/scripts/nano-banana-generate.py with-reference \
-    --prompt "Recreate in this art style" \
-    --reference style_ref.png \
-    --output styled.png \
-    --model flash --aspect-ratio 16:9
-```
-
-Same flags as `generate` but `--reference` is required.
-
-#### batch — Multiple images from manifest
-
-```bash
-python3 ~/.claude/scripts/nano-banana-generate.py batch \
-    --manifest items.json \
-    --output-dir staging/sprites/ \
-    --originals-dir staging/originals/ \
-    --model pro --aspect-ratio 1:1 \
-    --skip-existing --variants 3 --delay 3
-```
-
-| Flag | Required | Default | Description |
-|------|----------|---------|-------------|
-| `--manifest` | Yes | — | JSON file: `[{"id": "name", "prompt": "...", "reference": "optional.png"}]` |
-| `--output-dir` | Yes | — | Directory for generated images |
-| `--originals-dir` | No | — | Save raw API outputs here |
-| `--skip-existing` | No | off | Skip items with existing output files |
-| `--variants` | No | 1 | Number of variants per item (1-5) |
-| `--delay` | No | 2.0 | Seconds between API calls |
-
-### nano-banana-process.py
-
-**Dependencies**: `pip install pillow`
-
-#### crop — Smart crop to dimensions
-
-```bash
-python3 ~/.claude/scripts/nano-banana-process.py crop \
-    --width 400 --height 218 --bias 0.35 \
-    input.png output.png
-```
-
-| Flag | Required | Default | Description |
-|------|----------|---------|-------------|
-| `--width` | Yes | — | Target width in pixels |
-| `--height` | Yes | — | Target height in pixels |
-| `--bias` | No | 0.5 | 0.0=anchor top, 0.35=keep top, 0.5=center, 1.0=anchor bottom |
-
-#### remove-bg — Background removal
-
-```bash
-python3 ~/.claude/scripts/nano-banana-process.py remove-bg \
-    --bg-color 3a3a3a --tolerance 30 \
-    sprite_raw.png sprite.png
-```
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--bg-color` | 3a3a3a | Hex color to make transparent |
-| `--tolerance` | 30 | Color variance (0-255) |
-
-Common background colors for Gemini prompts:
-- `3a3a3a` — dark gray ("solid dark gray background")
-- `ffffff` — white ("solid white background")
-- `000000` — black ("solid black background")
-
-#### remove-watermarks — Corner cleanup
-
-```bash
-python3 ~/.claude/scripts/nano-banana-process.py remove-watermarks \
-    --margin 40 --threshold 180 \
-    input.png output.png
-```
-
-#### convert — Format conversion
-
-```bash
-python3 ~/.claude/scripts/nano-banana-process.py convert \
-    --format jpeg --quality 90 \
-    input.png output.jpg
-```
-
-Formats: `png` (lossless, supports transparency), `jpeg` (smaller, no alpha), `webp` (best compression).
-
-#### pipeline — Full processing chain
-
-Runs all steps in order: watermarks → background → crop → format.
-
-```bash
-# Single file
-python3 ~/.claude/scripts/nano-banana-process.py pipeline \
-    --remove-watermarks --remove-bg --bg-color 3a3a3a \
-    --width 256 --height 256 --bias 0.35 \
-    --format png \
-    input.png output.png
-
-# Batch (input is a directory)
-python3 ~/.claude/scripts/nano-banana-process.py pipeline \
-    --width 400 --height 218 --bias 0.35 \
-    --format jpeg --quality 90 \
-    staging/originals/ output/cards/
-```
-
----
-
-## Intent-to-Script Mapping
-
-The LLM's job is to translate user intent into the right script call. Here's the mapping:
+Translate user intent into the correct script call. Always call the scripts — never write inline PIL/sharp/image-processing code, because that duplicates tested logic and bypasses the deterministic pipeline.
 
 | User wants | Script + subcommand | Key flags |
 |------------|-------------------|-----------|
@@ -216,12 +62,29 @@ The LLM's job is to translate user intent into the right script call. Here's the
 | Full sprite pipeline | `nano-banana-process.py pipeline` | `--remove-bg`, `--remove-watermarks`, crop flags |
 | Batch reprocess originals | `nano-banana-process.py pipeline` | directory input, crop + format flags |
 
-### Prompt Crafting Guidelines
+### 3. Select the model
 
-The LLM's unique contribution is writing effective prompts. Key patterns:
+Only two model aliases exist: `flash` (gemini-2.5-flash-image) and `pro` (gemini-3-pro-image-preview). The scripts enforce this — never pass raw Gemini model strings like `gemini-2.5-flash-preview-05-20`, because they don't support image generation and the call will fail. Use `--model flash` for drafts and iteration (fast, 2-5s). Use `--model pro` for final output (higher quality, ~30s).
+
+### 4. Match aspect ratio to target shape
+
+Set `--aspect-ratio` to match the final use so the generated image fills the frame. Generating 1:1 then cropping to 16:9 loses 56% of pixels and wastes quality. Valid ratios: 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9.
+
+- **Sprites/characters**: 1:1
+- **Card art**: 16:9
+- **Vertical maps/backgrounds**: 9:16
+- **Landscape arenas**: 16:9
+
+### 5. Save originals
+
+For any batch or expensive generation, use `--save-original` (single) or `--originals-dir` (batch) to preserve raw API output before processing. Re-generating costs money and quota; re-processing a saved original is free. This enables experimentation with different crop/bg-removal settings without re-invoking the API.
+
+### 6. Craft the prompt
+
+Your unique contribution is writing effective prompts for the Gemini API.
 
 **Sprites/Characters** (use with `--model pro`):
-- Always specify: "solid dark gray background color only" (for bg removal with `--bg-color 3a3a3a`)
+- Always specify: "solid dark gray background color only" (enables bg removal with `--bg-color 3a3a3a`)
 - Always specify: "ONE character only, full body visible from head to feet, centered in frame"
 - Always specify: "no text, no labels, no background details"
 - Describe art style explicitly: "Slay the Spire card game style, heavy ink outlines, golden glowing outline"
@@ -234,13 +97,141 @@ The LLM's unique contribution is writing effective prompts. Key patterns:
 **Backgrounds** (use with `--model flash`):
 - Specify darkness: "Very dark overall (UI elements need to be readable on top)"
 - Specify no characters: "NO text, NO labels, NO characters"
-- Match aspect ratio to use: 9:16 for vertical scrolling, 16:9 for landscape arenas
 
----
+### 7. Generate
 
-## Workflows
+#### Single image
 
-### Generate + Process (single image)
+```bash
+python3 ~/.claude/scripts/nano-banana-generate.py generate \
+    --prompt "PROMPT" \
+    --output OUTPUT_PATH \
+    --model flash|pro \
+    --aspect-ratio RATIO \
+    --save-original ORIGINAL_PATH
+```
+
+| Flag | Required | Default | Description |
+|------|----------|---------|-------------|
+| `--prompt` | Yes | -- | Text prompt for generation |
+| `--output` | Yes | -- | Output file path (.png or .jpg) |
+| `--model` | No | flash | `flash` (fast, 2-5s) or `pro` (quality, ~30s) |
+| `--aspect-ratio` | No | model default | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+| `--reference` | No | -- | Reference image for style matching |
+| `--save-original` | No | -- | Save raw API output to this path |
+
+#### Style transfer (with-reference)
+
+```bash
+python3 ~/.claude/scripts/nano-banana-generate.py with-reference \
+    --prompt "Recreate in this art style" \
+    --reference style_ref.png \
+    --output styled.png \
+    --model flash --aspect-ratio 16:9
+```
+
+Same flags as `generate` but `--reference` is required.
+
+#### Batch generation
+
+Use `--delay` to stay within rate limits (default 2s for flash, 3s for pro). Use `--skip-existing` to avoid re-generating images that already exist.
+
+```bash
+python3 ~/.claude/scripts/nano-banana-generate.py batch \
+    --manifest items.json \
+    --output-dir staging/sprites/ \
+    --originals-dir staging/originals/ \
+    --model pro --aspect-ratio 1:1 \
+    --skip-existing --variants 3 --delay 3
+```
+
+| Flag | Required | Default | Description |
+|------|----------|---------|-------------|
+| `--manifest` | Yes | -- | JSON file: `[{"id": "name", "prompt": "...", "reference": "optional.png"}]` |
+| `--output-dir` | Yes | -- | Directory for generated images |
+| `--originals-dir` | No | -- | Save raw API outputs here |
+| `--skip-existing` | No | off | Skip items with existing output files |
+| `--variants` | No | 1 | Number of variants per item (1-5) |
+| `--delay` | No | 2.0 | Seconds between API calls |
+
+### 8. Post-process
+
+Dependencies: `pip install pillow` (generation also needs `pip install google-genai pillow`).
+
+#### Crop
+
+Use `--bias 0.35` when cropping character/sprite art to preserve heads (default 0.5 centers the crop).
+
+```bash
+python3 ~/.claude/scripts/nano-banana-process.py crop \
+    --width 400 --height 218 --bias 0.35 \
+    input.png output.png
+```
+
+| Flag | Required | Default | Description |
+|------|----------|---------|-------------|
+| `--width` | Yes | -- | Target width in pixels |
+| `--height` | Yes | -- | Target height in pixels |
+| `--bias` | No | 0.5 | 0.0=anchor top, 0.35=keep top, 0.5=center, 1.0=anchor bottom |
+
+#### Background removal
+
+```bash
+python3 ~/.claude/scripts/nano-banana-process.py remove-bg \
+    --bg-color 3a3a3a --tolerance 30 \
+    sprite_raw.png sprite.png
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--bg-color` | 3a3a3a | Hex color to make transparent |
+| `--tolerance` | 30 | Color variance (0-255) |
+
+Common background colors for Gemini prompts:
+- `3a3a3a` -- dark gray ("solid dark gray background")
+- `ffffff` -- white ("solid white background")
+- `000000` -- black ("solid black background")
+
+#### Watermark removal
+
+```bash
+python3 ~/.claude/scripts/nano-banana-process.py remove-watermarks \
+    --margin 40 --threshold 180 \
+    input.png output.png
+```
+
+#### Format conversion
+
+```bash
+python3 ~/.claude/scripts/nano-banana-process.py convert \
+    --format jpeg --quality 90 \
+    input.png output.jpg
+```
+
+Formats: `png` (lossless, supports transparency), `jpeg` (smaller, no alpha), `webp` (best compression).
+
+#### Full pipeline (chained processing)
+
+Runs all steps in order: watermarks -> background -> crop -> format.
+
+```bash
+# Single file
+python3 ~/.claude/scripts/nano-banana-process.py pipeline \
+    --remove-watermarks --remove-bg --bg-color 3a3a3a \
+    --width 256 --height 256 --bias 0.35 \
+    --format png \
+    input.png output.png
+
+# Batch (input is a directory)
+python3 ~/.claude/scripts/nano-banana-process.py pipeline \
+    --width 400 --height 218 --bias 0.35 \
+    --format jpeg --quality 90 \
+    staging/originals/ output/cards/
+```
+
+### 9. End-to-end workflow examples
+
+#### Generate + Process (single image)
 
 ```bash
 # 1. Generate raw sprite
@@ -258,7 +249,7 @@ python3 ~/.claude/scripts/nano-banana-process.py pipeline \
     staging/warrior_raw.png output/warrior.png
 ```
 
-### Batch Generate + Batch Process
+#### Batch Generate + Batch Process
 
 ```bash
 # 1. Create manifest
@@ -283,7 +274,7 @@ python3 ~/.claude/scripts/nano-banana-process.py pipeline \
     staging/sprites/ output/sprites/
 ```
 
-### Reprocess from originals (no regeneration cost)
+#### Reprocess from originals (no regeneration cost)
 
 ```bash
 # Try different crop dimensions without re-generating
@@ -292,15 +283,13 @@ python3 ~/.claude/scripts/nano-banana-process.py pipeline \
     staging/originals/ output/cards/
 ```
 
----
-
 ## Error Handling
 
 ### Error: "GEMINI_API_KEY not set"
 Solution: `export GEMINI_API_KEY=your_key` or `export GOOGLE_API_KEY=your_key`
 
 ### Error: "No image in response"
-Cause: Prompt may have triggered content safety filters, or API returned text-only
+Cause: Prompt may have triggered content safety filters, or API returned text-only.
 Solution: Adjust prompt. Check for policy-violating content. Try a different phrasing.
 
 ### Error: "Missing dependency: google-genai"
@@ -309,26 +298,9 @@ Solution: `pip install google-genai pillow`
 ### Error: "Rate limit exceeded (429)"
 Solution: Increase `--delay` value. Default 2s may be too aggressive for free tier.
 
----
+## References
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Writing Inline Image Processing
-**What it looks like**: Writing PIL/sharp code directly instead of calling the scripts
-**Why wrong**: Duplicates tested logic, introduces variance, bypasses the deterministic pipeline
-**Do instead**: Call `nano-banana-process.py` with the appropriate subcommand and flags
-
-### Anti-Pattern 2: Inventing Model Names
-**What it looks like**: Using `gemini-2.5-flash-preview-05-20` or `gemini-2.5-pro-image`
-**Why wrong**: These strings don't support image generation. The scripts validate model names.
-**Do instead**: Use `--model flash` or `--model pro`. The scripts map to correct API strings.
-
-### Anti-Pattern 3: Not Saving Originals
-**What it looks like**: Generating and immediately processing without `--save-original`
-**Why wrong**: If the crop/processing is wrong, you must re-generate (costs money + quota)
-**Do instead**: Always use `--save-original` or `--originals-dir` for non-trivial generation
-
-### Anti-Pattern 4: Wrong Aspect Ratio for Use Case
-**What it looks like**: Generating a 1:1 image then cropping to 16:9 (loses 56% of pixels)
-**Why wrong**: Generates detail that gets cropped away. Wastes tokens and quality.
-**Do instead**: Match `--aspect-ratio` to the target shape. 16:9 for cards, 1:1 for sprites, 9:16 for vertical maps.
+| Script | Path | Dependencies |
+|--------|------|-------------|
+| `nano-banana-generate.py` | `~/.claude/scripts/nano-banana-generate.py` | `google-genai`, `pillow` |
+| `nano-banana-process.py` | `~/.claude/scripts/nano-banana-process.py` | `pillow` |

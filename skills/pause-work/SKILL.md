@@ -34,45 +34,13 @@ routing:
 
 # /pause - Session Handoff
 
-## Operator Context
+Capture ephemeral session reasoning into durable artifacts so the next session can resume without wasting time on context reconstruction. `task_plan.md` records WHAT tasks exist; this skill captures WHY the current session chose a particular approach, what it rejected, and what it planned to do next.
 
-This skill captures ephemeral session reasoning into durable artifacts so the next session can resume without wasting time on context reconstruction. It solves a specific gap: `task_plan.md` records WHAT tasks exist, but not WHY the current session chose a particular approach, what it rejected, or what it planned to do next.
+Two output files serve different audiences because each addresses a distinct use case:
+- `HANDOFF.json` — machine-readable, consumed by `/resume` for automated state reconstruction. Must always be produced to enable `/resume` routing.
+- `.continue-here.md` — human-readable, for users who want to understand session state without starting a new session. Must always be produced to support human-only resumption paths.
 
-The two output files serve different audiences:
-- `HANDOFF.json` — machine-readable, consumed by `/resume` for automated state reconstruction
-- `.continue-here.md` — human-readable, for users who want to understand session state without starting a new session
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before execution
-- **Dual-Format Output**: Always produce BOTH `HANDOFF.json` and `.continue-here.md`. The machine format enables automated resume; the human format enables manual inspection. Skipping either breaks half the use case.
-- **Uncommitted Work Detection**: Always run `git status` and `git diff --stat` to identify uncommitted changes. Uncommitted work is the highest-risk information to lose across sessions.
-- **False Completion Detection**: Grep for placeholder markers (TODO, FIXME, PLACEHOLDER, TBD, XXX, HACK, stub, not yet implemented) in uncommitted files. These indicate work that looks done but is not — the most dangerous handoff failure mode.
-- **Project Root Placement**: Write both files to the project root (where `.git/` lives), not the current working directory if different. This ensures `/resume` can find them reliably.
-- **No Destructive Operations**: This skill only creates files. It never deletes, modifies existing code, or runs destructive git commands.
-
-### Default Behaviors (ON unless disabled)
-- **WIP Commit Suggestion**: If uncommitted changes exist, suggest a WIP commit before pausing. Uncommitted work can be lost if the worktree is cleaned up. Do not auto-commit — suggest and let the user decide.
-- **task_plan.md Integration**: If `task_plan.md` exists, read it and incorporate its phase status into the handoff. The handoff supplements the plan, it does not replace it.
-- **Timestamp in ISO 8601**: All timestamps use UTC ISO 8601 format for unambiguous parsing.
-
-### Optional Behaviors (OFF unless enabled)
-- **Auto-Commit Handoff** (`--commit`): Commit the handoff files on the current branch. Default is to leave them uncommitted so the user can review first.
-- **Quiet Mode** (`--quiet`): Skip the confirmation summary. For automated/scripted usage.
-
-## What This Skill CAN Do
-- Capture completed tasks, remaining work, blockers, and decisions into structured handoff files
-- Detect uncommitted work and suggest WIP commits
-- Detect false completions (placeholder markers in modified files)
-- Synthesize the session's reasoning context (approach chosen, alternatives rejected, mental model)
-- Optionally commit handoff artifacts to the current branch
-
-## What This Skill CANNOT Do
-- Replace `task_plan.md` — handoffs capture session reasoning, plans capture task structure
-- Auto-commit code changes — it only suggests WIP commits, never executes them without user consent
-- Guarantee reasoning accuracy — handoff quality depends on the session's self-awareness (same limitation as any self-assessment)
-- Resume from handoff files — that is the `resume-work` skill
-
----
+Skipping either file breaks half the use case: without the JSON, `/resume` cannot detect handoff state automatically; without the markdown, users cannot quickly grok where things stand.
 
 ## Instructions
 
@@ -80,18 +48,22 @@ The two output files serve different audiences:
 
 **Goal**: Collect all state needed for the handoff.
 
-**Step 1: Identify project root**
+**Step 1: Read CLAUDE.md**
+
+Read and follow the repository CLAUDE.md before any other operations because it establishes conventions for the current project that may differ from defaults.
+
+**Step 2: Identify project root**
 
 Find the git root directory:
 ```bash
 git rev-parse --show-toplevel
 ```
 
-All subsequent paths and file writes are relative to this root.
+All subsequent paths and file writes target this root, not the current working directory because writing to the project root ensures `/resume` can find the files reliably across different shell invocation contexts.
 
-**Step 2: Collect git state**
+**Step 3: Collect git state**
 
-Run these commands to capture the current state:
+Uncommitted work is the highest-risk information to lose across sessions because a new shell or worktree cleanup can destroy changes the user intended to save. Run these commands to capture the current state:
 
 ```bash
 # Current branch
@@ -108,9 +80,9 @@ git diff --cached --stat
 git log --oneline -10
 ```
 
-**Step 3: Check for false completions**
+**Step 4: Check for false completions**
 
-Search uncommitted/modified files for placeholder markers:
+Search uncommitted/modified files for placeholder markers because they indicate work that looks done but is not — this is the most dangerous handoff failure mode. These markers are easily missed during context loss and become invisible in the next session.
 
 ```bash
 # Get list of modified files
@@ -122,17 +94,17 @@ Use the Grep tool to search those files for these patterns: `TODO`, `FIXME`, `PL
 
 Record any findings — these are items that look complete but are not.
 
-**Step 4: Read task_plan.md if present**
+**Step 5: Read task_plan.md if present**
 
-If `task_plan.md` exists in the project root, read it to extract:
+If `task_plan.md` exists in the project root, read it and incorporate its phase status into the handoff because the plan captures WHAT phases and tasks exist while the handoff captures WHY and the session's mental model. The handoff supplements the plan (capturing session reasoning), it does not replace it. Extract:
 - Which phases are complete (marked `[x]`)
 - Which phases remain (marked `[ ]`)
 - Current status line
 - Decisions and errors logged
 
-**Step 5: Read .adr-session.json if present**
+**Step 6: Read .adr-session.json if present**
 
-If `.adr-session.json` exists, note the active ADR for context in the handoff.
+If `.adr-session.json` exists, note the active ADR for context in the handoff because ADRs record architectural decisions that influence remaining work.
 
 **GATE**: Git state collected. Modified file list available. Placeholder scan complete. Ready to synthesize.
 
@@ -142,37 +114,39 @@ If `.adr-session.json` exists, note the active ADR for context in the handoff.
 
 **Step 1: Construct completed_tasks**
 
-List what was accomplished this session. Draw from:
+List what was accomplished this session with specificity because the next session needs to know what NOT to repeat. Draw from:
 - Git commits made during the session
 - Phases marked complete in task_plan.md
 - Work the session performed (files created, edited, reviewed)
 
-Be specific: "Implemented scoring module in scripts/quality-score.py" not "Did some work on scoring."
+Be specific: "Implemented scoring module in scripts/quality-score.py" not "Did some work on scoring" because vague entries waste the next session's time reconstructing what was done.
 
 **Step 2: Construct remaining_tasks**
 
-List what still needs to be done. Draw from:
+List what still needs to be done because this is the primary input to the next session's context. Draw from:
 - Unchecked phases in task_plan.md
-- Placeholder markers found in Phase 1 Step 3
+- Placeholder markers found in Phase 1 Step 4
 - Known incomplete work from session context
 
 **Step 3: Construct decisions**
 
-Record key decisions made during the session and WHY. This is the highest-value handoff content because it prevents the next session from re-exploring dead ends.
+Record key decisions made during the session and WHY because this is the highest-value handoff content. Git log shows WHAT changed but not WHY or what was rejected — decisions fill that gap and prevent the next session from re-exploring dead ends or reconsidering options that were already deliberated.
 
 Format: `{"decision description": "reasoning for the decision"}`
 
 **Step 4: Construct next_action**
 
-Write a specific, actionable description of what the next session should do first. Include:
+Write a specific, actionable description of what the next session should do first because what seems obvious now becomes opaque after context loss. Include:
 - The exact action (not vague "continue working")
 - Relevant file paths and function names
 - Integration points or dependencies
 - Why this is the right next step
 
+Example: `"Wire quality-score.py into pr-pipeline Phase 3. The function signature is score_package(path) -> ScoreResult. Integration point is the gate check between STAGE and REVIEW phases."`
+
 **Step 5: Construct context_notes**
 
-Capture the session's mental model — the reasoning context that is NOT captured in code or commits:
+Capture the session's mental model — the reasoning context that is NOT captured in code or commits because this information is the most likely to be lost and most expensive to reconstruct. Always include at least: what approach was chosen, what was rejected, and any gotchas discovered. This information prevents thrashing in the next session. Record:
 - Approaches tried and rejected (and why)
 - Assumptions being made
 - Gotchas discovered
@@ -182,11 +156,11 @@ Capture the session's mental model — the reasoning context that is NOT capture
 
 ### Phase 3: WRITE
 
-**Goal**: Write both handoff files to the project root.
+**Goal**: Write both handoff files to the project root. This skill only creates files — it never deletes, modifies existing code, or runs destructive git commands because it must be safe to invoke repeatedly without side effects.
 
 **Step 1: Write HANDOFF.json**
 
-Write to `{project_root}/HANDOFF.json`:
+Write to `{project_root}/HANDOFF.json` with UTC ISO 8601 timestamps for unambiguous parsing across time zones and system clocks:
 
 ```json
 {
@@ -223,7 +197,7 @@ Write to `{project_root}/HANDOFF.json`:
 
 **Step 2: Write .continue-here.md**
 
-Write to `{project_root}/.continue-here.md`:
+Write to `{project_root}/.continue-here.md` because humans need prose-form state before committing to `/resume`:
 
 ```markdown
 # Continue Here
@@ -253,7 +227,7 @@ Write to `{project_root}/.continue-here.md`:
 
 **Step 3: Suggest WIP commit if needed**
 
-If there are uncommitted changes (from Phase 1 Step 2), display:
+If there are uncommitted changes (from Phase 1 Step 3), display a warning because uncommitted work can be lost if the worktree is cleaned up. However, do NOT auto-commit because auto-committing removes the user's ability to decide — changes may be experimental, broken, or intentionally staged for review.
 
 ```
 WARNING: Uncommitted changes detected in N file(s):
@@ -265,8 +239,6 @@ Consider a WIP commit before ending the session:
 
 Uncommitted work can be lost if the worktree is cleaned up.
 ```
-
-Do NOT auto-commit. The user decides.
 
 **Step 4: Optional commit of handoff files**
 
@@ -280,7 +252,7 @@ git commit -m "chore: session handoff artifacts"
 
 ### Phase 4: CONFIRM
 
-**Goal**: Display summary and confirm handoff was captured.
+**Goal**: Display summary and confirm handoff was captured. Skip this phase if `--quiet` flag was provided (for automated/scripted usage).
 
 Display the handoff summary:
 
@@ -305,8 +277,6 @@ Display the handoff summary:
 ===================================================================
 ```
 
----
-
 ## Error Handling
 
 ### Error: Not in a Git Repository
@@ -321,48 +291,7 @@ Display the handoff summary:
 **Cause**: A previous `/pause` created handoff files that were never consumed by `/resume`
 **Solution**: Warn the user that stale handoff files exist. Offer to overwrite (default) or append. Overwriting is almost always correct — stale handoffs from abandoned sessions should not block new ones.
 
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Vague Next Actions
-**What it looks like**: `"next_action": "Continue working on the feature"`
-**Why wrong**: The entire point of handoff is to avoid reconstruction. Vague next actions force the next session to re-discover what "continue working" means.
-**Do instead**: Be specific: `"next_action": "Wire quality-score.py into pr-pipeline Phase 3. The function signature is score_package(path) -> ScoreResult. Integration point is the gate check between STAGE and REVIEW phases."`
-
-### Anti-Pattern 2: Skipping context_notes
-**What it looks like**: `"context_notes": ""` or omitting the field
-**Why wrong**: Context notes capture WHY the session chose its approach — the information most likely to be lost and most expensive to reconstruct.
-**Do instead**: Always include at least: what approach was chosen, what was rejected, and any gotchas discovered.
-
-### Anti-Pattern 3: Using Handoff as Task Plan
-**What it looks like**: Creating detailed phase breakdowns in HANDOFF.json instead of task_plan.md
-**Why wrong**: Handoff files are one-shot artifacts deleted after resume. Task plans persist as the task record of truth. Putting plan content in handoff means it vanishes after the next `/resume`.
-**Do instead**: Keep task_plan.md for task structure. Use handoff for session-specific reasoning that supplements the plan.
-
-### Anti-Pattern 4: Auto-Committing Code Changes
-**What it looks like**: Committing uncommitted work as part of the pause flow without user consent
-**Why wrong**: Uncommitted changes may be experimental, broken, or intentionally staged for review. Auto-committing removes the user's ability to decide.
-**Do instead**: Suggest a WIP commit. Show the files. Let the user decide.
-
----
-
-## Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "The task plan captures everything" | task_plan.md captures task state, not session reasoning (approach, rejections, mental model) | Create handoff files with context_notes |
-| "Next session can figure it out from git log" | Git log shows WHAT changed, not WHY or what was rejected | Include decisions and context_notes |
-| "No need for .continue-here.md, JSON is enough" | Humans read prose faster than JSON; .continue-here.md is for manual inspection | Always write both files |
-| "The changes are obvious, no need for detailed next_action" | What's obvious now is opaque after context loss | Write specific next_action with file paths |
-| "I'll just quickly commit the code too" | Auto-committing code without user consent risks committing broken/experimental work | Suggest WIP commit, never auto-commit code |
-
----
-
 ## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
 
 ### Related Skills
 - `resume-work` — Consumes handoff artifacts to restore session state
