@@ -54,7 +54,7 @@ The solution: only pull the relevant information for the specific task. This is 
 Three mechanisms enforce this:
 - **Agents**: specialized instruction files tailored to specific domains, loaded only when their triggers match
 - **Skills**: workflow methodologies that invoke deterministic scripts (Python CLIs, validation tools) rather than relying on LLM judgment alone, activated only when their workflow applies
-- **Progressive Disclosure**: summary in the main file, details in `references/` subdirectory. Right context at the right time, not everything at once
+- **Progressive Disclosure**: SKILL.md contains the workflow orchestration and tells the model *when* to load deep context. Detailed catalogs, agent rosters, specification tables, and output templates live in `references/` and are loaded only when the current workflow phase needs them. A skill with 26 chart types keeps the selection logic in SKILL.md and each chart's parameter spec in its own reference file — the model loads only the spec for the chart it selected. A review skill with 4 waves keeps the orchestration in SKILL.md and each wave's agent roster in a separate reference file — Wave 2 agents don't consume tokens during Wave 1
 
 ## Tokens Are Cheap, Quality Is Expensive
 
@@ -221,12 +221,26 @@ Everything a skill needs lives inside the skill directory. Scripts, viewer templ
 
 ```
 skills/my-skill/
-├── SKILL.md              # The workflow
+├── SKILL.md              # The orchestrator — workflow + when to load references
 ├── agents/               # Subagent prompts used only by this skill
 ├── scripts/              # Deterministic CLI tools this skill invokes
 ├── assets/               # Templates, HTML viewers, static files
 └── references/           # Deep context loaded on demand
 ```
+
+**The orchestrator pattern:** SKILL.md is a thin workflow orchestrator, not a monolithic document. It tells the model *what to do* (phases, gates, decisions) and *when to load deep context* (reference files). The heavy content — detailed catalogs, agent dispatch prompts, output templates, specification tables — lives in `references/` and gets loaded only when the current phase needs it.
+
+This is the difference between a skill that works and a skill that works *efficiently*:
+
+| Approach | Token Cost | Quality |
+|----------|-----------|---------|
+| Everything in SKILL.md | High — full content loaded on every invocation | Good but wasteful |
+| Thin SKILL.md, no references | Low — but missing context | Degraded — lost domain knowledge |
+| **Orchestrator + references** | **Proportional to task** — load what the phase needs | **Best — full knowledge, minimal waste** |
+
+Making a skill shorter by deleting content is not progressive disclosure — it's content loss. Progressive disclosure means the content still exists, organized so only the relevant slice enters the context window at any given phase.
+
+**Example:** A review skill with 4 waves of agents keeps the wave orchestration logic in SKILL.md (~500 lines) and puts each wave's agent roster and dispatch prompts in separate reference files (`references/wave-1-foundation.md`, `references/wave-2-deep-dive.md`). When executing Wave 1, only the Wave 1 reference is loaded. Wave 2's agents don't consume tokens until Wave 2 begins.
 
 **Why this matters:** A skill that depends on scripts scattered across the repo is fragile to move, hard to test, and impossible to evaluate in isolation. When everything is bundled, the skill can be:
 - Copied to another project and it works
@@ -234,13 +248,11 @@ skills/my-skill/
 - Reviewed as a single unit — all the tooling is visible in one tree
 - Deleted without orphaning dependencies elsewhere
 
-**The exception:** Shared patterns (`shared-patterns/anti-rationalization-core.md`) are referenced across skills. These stay shared. But skill-specific scripts, assets, and agents are always bundled.
-
 **Repo-level `scripts/`** is reserved for toolkit-wide operations (learning-db.py, sync-to-user-claude.py, INDEX generation) — tools that operate on the system as a whole, not on a single skill's workflow.
 
 ## Workflow First, Constraints Inline
 
-Skill documents place the workflow (Instructions/Phases) immediately after the frontmatter. Constraints appear inline within the phases they govern, not in a separate upfront section.
+Skill documents place the workflow (Instructions/Phases) immediately after the frontmatter. Constraints appear inline within the phases they govern, with reasoning attached ("because X"), not in a separate upfront section.
 
 **Measured result:** A/B/C testing on Go code generation showed workflow-first ordering (C) swept constraints-first ordering (B) 3-0 across simple, medium, and complex prompts. Agent blind reviewers consistently scored workflow-first higher on testing depth, Go idioms, and benchmark coverage.
 
@@ -249,18 +261,19 @@ Skill documents place the workflow (Instructions/Phases) immediately after the f
 ```
 1. YAML frontmatter           (What + When)
 2. Brief overview              (How — one paragraph)
-3. Instructions/Phases         (The actual workflow, with inline constraints)
-4. Benchmark/Commands Guide    (Reference material)
+3. Instructions/Phases         (The workflow, constraints inline with reasoning)
+4. Reference Material          (Commands, guides — or pointers to references/)
 5. Error Handling              (Failure context)
-6. Anti-Patterns               (What went wrong before)
-7. References                  (Pointers to deep context)
+6. References                  (Pointers to bundled files)
 ```
 
-**Why it works:** The model encounters the task structure before the constraint framework. Constraints appear at the decision point where they apply — "use table-driven tests because they make adding cases trivial" inside the testing phase, not in a separate Hardcoded Behaviors section 200 lines earlier. The model spends attention on understanding the task, not parsing a constraint taxonomy.
+**Why it works:** The model encounters the task structure before any constraint framework. Constraints appear at the decision point where they apply — "use table-driven tests because they make adding cases trivial" inside the testing phase, not in a separate Hardcoded Behaviors section 200 lines earlier. Attaching reasoning ("because X") lets the model generalize constraints to situations the skill author didn't anticipate.
 
-**What moves:** The Operator Context section (Hardcoded/Default/Optional behaviors) decomposes. Each constraint migrates to the phase where it applies. "Run with -race for concurrent code" belongs in Phase 3 (RUN), not in a behavior table.
+**What was removed:** Operator Context sections (Hardcoded/Default/Optional taxonomy), standalone Anti-Patterns sections, Anti-Rationalization tables, and Capabilities & Limitations boilerplate. These were structural overhead that separated constraints from the workflow steps where they apply.
 
-**What stays:** Error Handling, Anti-Patterns, and References remain at the end as context that's consulted when things go wrong — not before the model has understood what "going right" looks like.
+**Where the content went:** Every constraint was distributed inline to the workflow step where it matters. Anti-pattern wisdom became reasoning attached to the relevant instruction. Nothing was deleted — it was reorganized to be at point-of-use.
+
+**Progressive disclosure completes the picture:** Workflow-first ordering keeps SKILL.md navigable. For skills exceeding ~500 lines, detailed catalogs, agent rosters, and specification tables move to `references/` files. The SKILL.md workflow tells the model when to load each reference — "Read `references/wave-1-foundation.md` for the agent list and dispatch prompts." The model gets the orchestration logic upfront and loads deep context only when the current phase needs it.
 
 ## Open Sharing Over Individual Ownership
 
