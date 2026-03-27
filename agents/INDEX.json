@@ -4,7 +4,7 @@
   "agents": {
     "agent-creator-engineer": {
       "file": "agent-creator-engineer.md",
-      "short_description": "**DEPRECATED**: Use skill-creator-engineer agent instead",
+      "short_description": "**DEPRECATED**: Use skill-creator skill instead",
       "triggers": [
         "create agent",
         "new agent",
@@ -14,7 +14,7 @@
         "legacy agent creation"
       ],
       "pairs_with": [
-        "skill-creator-engineer",
+        "skill-creator",
         "agent-evaluation"
       ],
       "complexity": "Simple",
@@ -1064,26 +1064,6 @@
         "reviewer-meta-process"
       ],
       "complexity": "Simple",
-      "category": "meta"
-    },
-    "skill-creator-engineer": {
-      "file": "skill-creator-engineer.md",
-      "short_description": "Use this agent when creating new Claude Code skills, designing workflow automation,\nor improving existing skill architecture",
-      "triggers": [
-        "create skill",
-        "new skill",
-        "skill template",
-        "skill design",
-        "workflow automation",
-        "skill improvement",
-        "refactor skill"
-      ],
-      "pairs_with": [
-        "agent-evaluation",
-        "verification-before-completion",
-        "workflow-orchestrator"
-      ],
-      "complexity": "Medium-Complex",
       "category": "meta"
     },
     "sqlite-peewee-engineer": {

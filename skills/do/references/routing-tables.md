@@ -33,7 +33,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **project-coordinator-engineer** | User needs multi-agent coordination for a large project: spawning parallel agents, tracking cross-cutting tasks, or orchestrating a multi-phase effort. |
 | **pipeline-orchestrator-engineer** | User wants to create a new pipeline, scaffold a new structured workflow, or compose pipeline phases. |
 | **hook-development-engineer** | User wants to create or modify Python hooks for Claude Code's event-driven system (SessionStart, PostToolUse, etc.). |
-| **skill-creator-engineer** | User wants to create or improve a Claude Code skill, workflow automation, or agent configuration. |
+| **skill-creator** | User wants to create or improve a Claude Code skill, workflow automation, or agent configuration. |
 | **system-upgrade-engineer** | User wants to upgrade the agent/skill/hook ecosystem after a Claude model update or system-wide change. |
 | **technical-documentation-engineer** | User needs technical documentation created, maintained, or validated — API docs, READMEs, architecture guides. |
 | **technical-journalist-writer** | User needs professional technical writing in a journalism style — articles, posts, or content with a specific authored voice. |
@@ -46,7 +46,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **github-profile-rules-engineer** | User wants to extract coding conventions, programming rules, or style guidelines from a GitHub profile's repositories. |
 | **react-portfolio-engineer** | User is building a React portfolio or gallery website, typically for creative professionals. |
 | **nextjs-ecommerce-engineer** | User is building an e-commerce site with Next.js: product pages, cart, checkout flows. |
-| **toolkit-governance-engineer** | User wants to maintain or modify the toolkit's own internal structure: editing skill/agent files, updating routing tables, managing ADRs, regenerating INDEX.json, or enforcing frontmatter compliance. NOT: creating brand-new agents (use skill-creator-engineer), writing application code (domain agents), or reviewing external PRs (reviewer agents). |
+| **toolkit-governance-engineer** | User wants to maintain or modify the toolkit's own internal structure: editing skill/agent files, updating routing tables, managing ADRs, regenerating INDEX.json, or enforcing frontmatter compliance. NOT: creating brand-new agents (use skill-creator), writing application code (domain agents), or reviewing external PRs (reviewer agents). |
 
 ---
 
@@ -229,10 +229,10 @@ All pipelines live in the `pipelines/` directory (synced to `~/.claude/skills/` 
 |----------|--------------------|--------|
 | **pipeline-scaffolder** (pipeline-orchestrator-engineer) | User wants to create a new pipeline, scaffold a new structured workflow from a spec. | LOAD → SCAFFOLD → INTEGRATE → REPORT |
 | **system-upgrade** (system-upgrade-engineer) | User wants to upgrade the Claude Code toolkit after a model update, apply system-wide changes, or roll out agent improvements. NOT: upgrading a specific library dependency in user code. | CHANGELOG → AUDIT → PLAN → IMPLEMENT → VALIDATE → DEPLOY |
-| **skill-creation-pipeline** (skill-creator-engineer) | User wants to create a new skill with formal quality gates, phase structure, and integration. | DISCOVER → DESIGN → SCAFFOLD → VALIDATE → INTEGRATE |
+| **skill-creation-pipeline** (skill-creator) | User wants to create a new skill with formal quality gates, phase structure, and integration. | DISCOVER → DESIGN → SCAFFOLD → VALIDATE → INTEGRATE |
 | **hook-development-pipeline** (hook-development-engineer) | User wants to create a new hook with formal spec, performance testing, and registration. | SPEC → IMPLEMENT → TEST → REGISTER → DOCUMENT |
 | **research-pipeline** (research-coordinator-engineer) | User wants formal research with saved artifacts, multiple sources, and a synthesized deliverable. NOT: a quick lookup or single-source check. | SCOPE → GATHER → SYNTHESIZE → VALIDATE → DELIVER |
-| **agent-upgrade** (skill-creator-engineer) | User wants to audit and improve a specific agent to bring it up to current template standards. | AUDIT → DIFF → PLAN → IMPLEMENT → RE-EVALUATE |
+| **agent-upgrade** (skill-creator) | User wants to audit and improve a specific agent to bring it up to current template standards. | AUDIT → DIFF → PLAN → IMPLEMENT → RE-EVALUATE |
 | **research-to-article** | User wants to research a topic and turn the findings into a written article. | RESEARCH → COMPILE → GROUND → GENERATE → VALIDATE → REFINE → OUTPUT |
 | **doc-pipeline** | User wants to generate documentation for a codebase, create a README, or write technical docs from scratch. | RESEARCH → OUTLINE → GENERATE → VERIFY → OUTPUT |
 | **pr-pipeline** | User wants the full structured PR workflow with review gates. | CLASSIFY → STAGE → REVIEW → COMMIT → PUSH → CREATE → VERIFY → CLEANUP |
@@ -376,10 +376,10 @@ Invoked via the roast skill or directly:
 | "research then write article" | research-to-article pipeline | Research-backed content creation |
 | "create a pipeline for X" | pipeline-orchestrator-engineer + pipeline-scaffolder | Pipeline creation |
 | "upgrade system for new Claude version" | system-upgrade-engineer + system-upgrade | System-wide upgrade |
-| "create skill with quality gates" | skill-creator-engineer + skill-creation-pipeline | Formal skill creation |
+| "create skill with quality gates" | skill-creator + skill-creation-pipeline | Formal skill creation |
 | "create hook (formal, with perf test)" | hook-development-engineer + hook-development-pipeline | Formal hook creation |
 | "research with saved artifacts" | research-coordinator-engineer + research-pipeline | Formal research pipeline |
-| "upgrade this specific agent" | skill-creator-engineer + agent-upgrade | Single agent improvement |
+| "upgrade this specific agent" | skill-creator + agent-upgrade | Single agent improvement |
 | "create a 3D scene" | typescript-frontend-engineer + threejs-builder | Frontend domain, 3D task |
 | "generate image with Python" | python-general-engineer + gemini-image-generator | Python domain, image generation |
 | "extract coding rules from github user X" | github-profile-rules-engineer + github-profile-rules | Profile analysis |

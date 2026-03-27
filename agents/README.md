@@ -96,12 +96,12 @@ Each agent is defined in `agents/*.md` with YAML frontmatter specifying model, v
 
 | Agent | Description |
 |-------|-------------|
-| `skill-creator-engineer` | Create Claude Code skills: progressive disclosure, SKILL.md structure, complexity tier selection |
+| `skill-creator` | Create Claude Code skills: progressive disclosure, SKILL.md structure, complexity tier selection |
 | `hook-development-engineer` | Python hooks: PostToolUse/PreToolUse/SessionStart handlers, sub-50ms performance, learning DB |
 | `pipeline-orchestrator-engineer` | Build pipelines: multi-component scaffolding, fan-out/fan-in patterns, routing integration |
 | `system-upgrade-engineer` | Ecosystem upgrades: 6-phase pipeline for adapting to Claude Code releases or goal shifts |
 | `toolkit-governance-engineer` | Toolkit internal architecture: SKILL.md edits, routing tables, ADR lifecycle, INDEX.json, hook compliance |
-| `agent-creator-engineer` | **DEPRECATED** — use `skill-creator-engineer` instead |
+| `agent-creator-engineer` | **DEPRECATED** — use `skill-creator` instead |
 
 ---
 

@@ -10,7 +10,7 @@ description: |
 version: 1.0.0
 user-invocable: false
 argument-hint: "<agent-or-skill-name>"
-agent: skill-creator-engineer
+agent: skill-creator
 allowed-tools:
   - Read
   - Bash

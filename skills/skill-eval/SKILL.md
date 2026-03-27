@@ -7,11 +7,11 @@ description: |
   with A/B comparisons, and validate skill structure. Use when user says
   "improve skill", "test skill triggers", "optimize description", "benchmark
   skill", "eval skill", or "skill quality". Do NOT use for creating new skills
-  (use skill-creator-engineer).
+  (use skill-creator).
 version: 1.0.0
 user-invocable: false
 argument-hint: "<skill-name>"
-agent: skill-creator-engineer
+agent: skill-creator
 allowed-tools:
   - Read
   - Write
@@ -66,7 +66,7 @@ This skill operates as the eval-driven improvement pipeline for Claude Code skil
 - Generate HTML reports for visual review
 
 ## What This Skill CANNOT Do
-- Create new skills from scratch (use skill-creator-engineer)
+- Create new skills from scratch (use skill-creator)
 - Modify skill instructions automatically (human reviews changes)
 - Test skills that require specific MCP servers or external services
 - Run evals without the `claude` CLI available

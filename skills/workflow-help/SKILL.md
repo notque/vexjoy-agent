@@ -62,7 +62,7 @@ This skill operates as an operator for workflow education and guidance, configur
 ## What This Skill CANNOT Do
 - Execute workflows (use workflow-orchestrator)
 - Debug code (use systematic-debugging)
-- Create or modify skills (use skill-creator-engineer)
+- Create or modify skills (use skill-creator)
 - Run tests or validate code (use verification-before-completion)
 - Make decisions about which approach to take for the user's actual task
 

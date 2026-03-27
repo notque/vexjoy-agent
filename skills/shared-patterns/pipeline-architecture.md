@@ -215,7 +215,7 @@ Define Requirements
     Add to Routing
 ```
 
-**Skill**: `agent-creator-engineer` or `skill-creator-engineer`
+**Skill**: `agent-creator-engineer` or `skill-creator`
 
 ---
 

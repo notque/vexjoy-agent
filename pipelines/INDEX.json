@@ -27,7 +27,7 @@
         "agent-evaluation",
         "system-upgrade"
       ],
-      "agent": "skill-creator-engineer"
+      "agent": "skill-creator"
     },
     "article-evaluation-pipeline": {
       "file": "pipelines/article-evaluation-pipeline/SKILL.md",
@@ -626,7 +626,7 @@
         "agent-evaluation",
         "routing-table-updater"
       ],
-      "agent": "skill-creator-engineer"
+      "agent": "skill-creator"
     },
     "system-upgrade": {
       "file": "pipelines/system-upgrade/SKILL.md",

@@ -3,7 +3,7 @@ name: routing-table-updater
 description: |
   Maintain /do routing tables and command references when skills or agents
   are added, modified, or removed. Use when skill/agent metadata changes,
-  after skill-creator-engineer or agent-creator-engineer runs, or when
+  after skill-creator or agent-creator-engineer runs, or when
   routing tables need synchronization. Use for "update routes", "sync
   routing", "routing table", or "refresh /do". Do NOT use for creating
   new skills/agents, modifying skill logic, or manual /do table edits.
@@ -262,7 +262,7 @@ If gate fails:
 
 ### Example 1: New Skill Created
 
-User creates `skills/api-integration-helper/SKILL.md` via skill-creator-engineer:
+User creates `skills/api-integration-helper/SKILL.md` via skill-creator:
 
 ```yaml
 ---
@@ -375,7 +375,7 @@ The scaffolder provides a component list (from the Pipeline Spec):
 | Scan | All skills/* and agents/* | Only listed components |
 | Conflict check | Against existing entries | Against existing AND within batch |
 | OUTPUT | One entry at a time | N entries in one pass |
-| Invoked by | skill-creator-engineer, agent-creator-engineer | pipeline-scaffolder Phase 4 |
+| Invoked by | skill-creator, agent-creator-engineer | pipeline-scaffolder Phase 4 |
 
 ---
 
@@ -383,7 +383,7 @@ The scaffolder provides a component list (from the Pipeline Spec):
 
 This skill is typically invoked after other creation skills complete:
 
-- **After skill-creator-engineer**: New skill created, routing tables need updated entry
+- **After skill-creator**: New skill created, routing tables need updated entry
 - **After agent-creator-engineer**: New agent created, domain routing needs expansion
 - **After skill/agent modification**: Description or trigger changes require routing refresh
 - **During repository maintenance**: Periodic sync to catch manual drift
