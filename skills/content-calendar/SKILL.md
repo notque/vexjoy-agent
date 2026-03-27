@@ -26,45 +26,7 @@ routing:
 
 # Content Calendar Skill
 
-## Operator Context
-
-This skill operates as an operator for editorial content pipeline management, configuring Claude's behavior for tracking blog posts through ideation, drafting, editing, and publication stages. It implements the **State Machine** architectural pattern -- content moves through defined stages with recorded transitions -- with **Pipeline Intelligence** embedded in the stage enforcement.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before any pipeline operation
-- **Over-Engineering Prevention**: Only perform the requested pipeline operation. No speculative reorganization, no "while I'm here" reformatting of unrelated sections
-- **Single Source of Truth**: All pipeline state lives in a single `content-calendar.md` file -- never store state elsewhere
-- **Stage Integrity**: Content moves forward through defined stages only; no skipping stages
-- **Date Tracking**: Every stage transition records a timestamp in YYYY-MM-DD format
-- **File Preservation**: Read the full calendar file before writing; never truncate or lose existing entries
-
-### Default Behaviors (ON unless disabled)
-- **Visual Dashboard**: Show pipeline overview with progress indicators on view
-- **Upcoming Awareness**: Highlight scheduled content in next 14 days
-- **In-Progress Focus**: Emphasize content actively being worked on (Outlined, Drafted, Editing)
-- **Recent History**: Show publications from last 30 days
-- **Duplicate Warning**: Warn when adding topics with titles matching existing entries
-
-### Optional Behaviors (OFF unless enabled)
-- **Stale Detection**: Flag content stuck in a stage for 14+ days
-- **Velocity Metrics**: Show publishing rate and stage throughput statistics
-- **Auto-Archive**: Move published content older than current month to Historical section
-
-## What This Skill CAN Do
-- View current pipeline state across all stages with dashboard formatting
-- Add new ideas to the pipeline with duplicate detection
-- Move content between adjacent stages with timestamp recording
-- Schedule ready content for publication dates
-- Archive published content to monthly historical sections
-- Parse and update the content-calendar.md file structure
-
-## What This Skill CANNOT Do
-- Create or modify actual Hugo content files (use content creation skills)
-- Publish or deploy posts (use deploy skill)
-- Skip stages when moving content forward
-- Send notifications or reminders about scheduled content
-
----
+Manage editorial content through 6 pipeline stages: Ideas, Outlined, Drafted, Editing, Ready, Published. All pipeline state lives in a single `content-calendar.md` file -- this is the sole source of truth, never store state elsewhere.
 
 ## Instructions
 
@@ -72,44 +34,47 @@ This skill operates as an operator for editorial content pipeline management, co
 
 **Goal**: Load and validate the current calendar state before any mutation.
 
-**Step 1**: Read the content calendar file from the project root
+Memory of pipeline state is unreliable -- always read the actual file, because assumed state leads to overwrites of changes made by other processes or manual edits.
 
-**Step 2**: Parse pipeline sections -- extract entries from Ideas, Outlined, Drafted, Editing, Ready, Published, and Historical sections.
-
-**Step 3**: Validate file structure -- all required sections exist, counts match actual entries.
+1. Read `content-calendar.md` from the project root. Also read the repository CLAUDE.md to ensure compliance with project-specific rules.
+2. Parse pipeline sections -- extract entries from Ideas, Outlined, Drafted, Editing, Ready, Published, and Historical sections.
+3. Validate file structure -- all required sections exist, counts match actual entries.
 
 **Gate**: Calendar file loaded and parsed successfully. All sections accounted for. Proceed only when gate passes.
 
 ### Phase 2: EXECUTE OPERATION
 
-**Goal**: Perform the requested pipeline operation with proper validation.
+**Goal**: Perform the requested pipeline operation -- only the operation requested. No speculative reorganization, no "while I'm here" reformatting of unrelated sections.
 
 #### Operation: View Pipeline
 
 1. Count entries in each stage
 2. Identify upcoming scheduled content (next 14 days)
-3. Identify in-progress content (Outlined, Drafted, Editing)
+3. Identify in-progress content (Outlined, Drafted, Editing) -- emphasize these as actively being worked on
 4. Gather recent publications (last 30 days)
 5. Display dashboard with progress indicators
+6. Optionally flag content stuck in a stage for 14+ days or show velocity metrics if requested
 
 #### Operation: Add Idea
 
 1. Validate topic name is non-empty
-2. Search all sections for duplicate titles; warn if found
+2. Search all sections for duplicate titles (case-insensitive); warn if a matching title exists because duplicates clutter the pipeline
 3. Append `- [ ] [Topic name]` to Ideas section
 4. Update pipeline count in overview table
 
 #### Operation: Move Content
 
+Content moves forward through defined stages only -- each transition represents real editorial work completed, so skipping stages misrepresents progress.
+
 1. Find topic in its current section (search all sections)
 2. Validate target stage is the next sequential stage:
    - Ideas -> Outlined -> Drafted -> Editing -> Ready -> Published
 3. Remove entry from current section
-4. Add to target section with timestamp metadata:
+4. Add to target section with timestamp metadata (every transition records YYYY-MM-DD):
    - outlined: `(outline: YYYY-MM-DD)`
    - drafted: `(draft: YYYY-MM-DD)`
    - editing: `(editing: YYYY-MM-DD)`
-   - ready: `(ready: YYYY-MM-DD)` -- requires scheduled publication date
+   - ready: `(ready: YYYY-MM-DD)` -- prompt for a scheduled publication date because content without a date clogs the pipeline and goes stale
    - published: `(published: YYYY-MM-DD)`
 5. Update pipeline counts
 
@@ -122,6 +87,8 @@ This skill operates as an operator for editorial content pipeline management, co
 
 #### Operation: Archive Published
 
+Archive prevents the Published section from growing unbounded, which makes the dashboard cluttered and counts misleading.
+
 1. Find Published entries older than current month
 2. Move to appropriate `### YYYY-MM` section in Historical
 3. Update pipeline counts
@@ -132,15 +99,13 @@ This skill operates as an operator for editorial content pipeline management, co
 
 **Goal**: Persist changes and verify the write succeeded.
 
-**Step 1**: Write the updated calendar file back to disk.
+Read the full calendar file before writing -- never truncate or lose existing entries.
 
-**Step 2**: Re-read the file and verify the change is present.
-
-**Step 3**: Display confirmation with relevant dashboard section showing the change.
+1. Write the updated calendar file back to disk.
+2. Re-read the file and verify the change is present. Looking correct is not the same as being correct; the re-read proves it.
+3. Display confirmation with relevant dashboard section showing the change.
 
 **Gate**: File written, re-read confirms changes persisted. Operation complete.
-
----
 
 ## Error Handling
 
@@ -165,48 +130,8 @@ Solution:
 2. Show the topic's current stage and the next valid stage
 3. Ask user to confirm sequential move or move to adjacent stage
 
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Skipping Stages
-**What it looks like**: Moving content directly from Ideas to Ready or Drafted to Published
-**Why wrong**: Skips essential phases of work; stage transitions represent real editorial progress
-**Do instead**: Move through each stage sequentially; each transition records that actual work occurred
-
-### Anti-Pattern 2: No Scheduled Dates on Ready Content
-**What it looks like**: Content sits in Ready indefinitely without a publication date
-**Why wrong**: Pipeline clogs with "ready" items that never publish; content goes stale
-**Do instead**: Always prompt for a scheduled date when moving to Ready
-
-### Anti-Pattern 3: Ignoring Historical Archive
-**What it looks like**: Published section grows unbounded month after month
-**Why wrong**: Makes pipeline overview cluttered and dashboard counts misleading
-**Do instead**: Archive published content monthly to Historical section
-
-### Anti-Pattern 4: Mutating Without Reading First
-**What it looks like**: Writing calendar file based on assumed state rather than reading first
-**Why wrong**: Overwrites changes made by other processes or manual edits
-**Do instead**: Always read the full file before any write operation (Phase 1 is mandatory)
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "I know the current state" | Memory of state ≠ actual file state | Read the calendar file first |
-| "Skipping one stage is fine" | Stage transitions track real work | Enforce sequential movement |
-| "The file format looks right" | Looking ≠ verifying | Re-read after write to confirm |
-| "No one will notice stale entries" | Stale content degrades pipeline trust | Flag or archive old entries |
-
-### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/pipeline-stages.md`: Detailed stage definitions and transition criteria
 - `${CLAUDE_SKILL_DIR}/references/calendar-format.md`: Complete file format specification with examples
 - `${CLAUDE_SKILL_DIR}/references/operations.md`: Detailed command reference with edge cases

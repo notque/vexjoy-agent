@@ -32,73 +32,38 @@ routing:
 
 # Codebase Overview Skill
 
-## Operator Context
-
-This skill operates as an operator for systematic codebase exploration, configuring Claude's behavior for rigorous, evidence-based discovery. It implements the **Phased Discovery** architectural pattern -- Detect project type, Explore key files, Map architecture, Summarize findings -- with **Domain Intelligence** embedded in language-specific exploration strategies.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before exploration
-- **Over-Engineering Prevention**: Explore only what's needed for the overview. No speculative deep-dives, no "while I'm here" tangents
-- **Read-Only Operations**: NEVER modify, create, or delete project files
-- **Evidence Required**: Every architectural claim MUST cite an examined file and path
-- **Systematic Phases**: Follow DETECT -> EXPLORE -> MAP -> SUMMARIZE in order
-- **Project Agnostic**: Work across any language, framework, or build system
-- **Absolute Paths**: All file references in output MUST use absolute paths
-- **Forbidden-Files Guardrail**: NEVER read or quote files matching sensitive patterns. Secrets leaked into exploration output are hard to retract and easy to miss. Check every file path against the forbidden list BEFORE reading. Skip silently -- do not log the file contents or path contents in output.
-
-  ```
-  # Secrets and credentials
-  .env, .env.*, *.pem, *.key, credentials.json, secrets.*, *secret*, *credential*, *password*
-
-  # Authentication tokens
-  token.json, .npmrc, .pypirc
-
-  # Cloud provider credentials
-  .aws/credentials, .gcloud/, service-account*.json
-  ```
-
-### Default Behaviors (ON unless disabled)
-- Report facts without self-congratulation; show evidence, not descriptions
-- Start from current working directory
-- Examine up to 20 key files per category
-- Include recent commit themes (last 10 commits)
-- Generate structured markdown report to stdout
-- Exclude noise directories: `node_modules/`, `venv/`, `vendor/`, `dist/`, `build/`, `__pycache__/`
-- Remove any temporary files created during exploration at completion
-- Show absolute file paths in all output
-
-### Optional Behaviors (OFF unless enabled)
-- Deep dive into specific subsystems (on explicit request)
-- Generate architecture diagrams (requires explicit request)
-- Include full file contents in report (vs summaries)
-- Export findings to separate file (vs stdout)
-- Analyze dependency vulnerability status
-
-## What This Skill CAN Do
-- Systematically discover project type, tech stack, and architecture
-- Identify entry points, core modules, data models, and API surfaces
-- Map design patterns and key abstractions with file-level evidence
-- Produce actionable onboarding documentation for new contributors
-- Work across any language and framework without prior knowledge
-
-## What This Skill CANNOT Do
-- Modify, create, or delete any files in the target project
-- Run the application or execute its test suite
-- Provide deep domain expertise (use specialized agent instead)
-- Replace reading the codebase (this accelerates, not replaces)
-- Skip any of the 4 phases
-
----
+Systematic 4-phase codebase exploration that produces an evidence-backed onboarding report. Phases run in strict order -- DETECT, EXPLORE, MAP, SUMMARIZE -- because later phases depend on context established by earlier ones. This skill accelerates reading the codebase but does not replace it.
 
 ## Instructions
 
 Execute all phases autonomously. Verify each gate before advancing. Consult `references/exploration-strategies.md` for language-specific discovery commands.
+
+Before starting any exploration, read and follow any `.claude/CLAUDE.md` or `CLAUDE.md` in the repository root because project-specific instructions override default behavior.
+
+This is a **read-only** skill -- never modify, create, or delete project files because the goal is observation, not mutation. Likewise, never run the application or execute its test suite because those are execution concerns outside this skill's scope. For deep domain analysis, route to a specialized agent instead.
+
+### Forbidden-Files Guardrail
+
+Check every file path against this list BEFORE reading because secrets leaked into exploration output are hard to retract and easy to miss. Skip silently -- do not log the file contents or path in output.
+
+```
+# Secrets and credentials
+.env, .env.*, *.pem, *.key, credentials.json, secrets.*, *secret*, *credential*, *password*
+
+# Authentication tokens
+token.json, .npmrc, .pypirc
+
+# Cloud provider credentials
+.aws/credentials, .gcloud/, service-account*.json
+```
 
 ### Phase 1: DETECT
 
 **Goal**: Determine project type, language, framework, and tech stack.
 
 **Step 1: Examine root directory**
+
+Start from the current working directory because that is the project the user is asking about.
 
 ```bash
 ls -la
@@ -111,6 +76,8 @@ Identify configuration files that indicate project type:
 - `pom.xml`, `build.gradle` -> Java
 - `Cargo.toml` -> Rust
 - See `references/exploration-strategies.md` for complete indicator table
+
+Always detect project type before reading source files because framework context changes how you interpret code (e.g., a `models/` directory means something different in Django vs. Express).
 
 **Step 2: Read primary configuration**
 
@@ -150,11 +117,15 @@ Read any `.claude/CLAUDE.md` or `CLAUDE.md` in the repository root. Follow its i
 - Test command: [from scripts/Makefile]
 ```
 
-**Gate**: Project type identified (language + framework). Tech stack documented. Build/run commands known. Proceed ONLY when gate passes.
+**Gate**: Project type identified (language + framework). Tech stack documented. Build/run commands known. Proceed ONLY when gate passes -- skipping this gate leads to wrong architectural assumptions downstream.
 
 ### Phase 2: EXPLORE
 
 **Goal**: Discover entry points, core modules, data models, API surfaces, configuration, and tests.
+
+Explore only what is needed for the overview because speculative deep-dives waste tokens without proportional value. Limit to 20 files per category because representative samples are more useful than exhaustive coverage. If a category has more than 20 files, note the total count and state that you examined a representative sample.
+
+On explicit user request, deep-dive into specific subsystems, generate architecture diagrams, include full file contents, export findings to a separate file, or analyze dependency vulnerability status. These are off by default because the standard overview does not require them.
 
 **Step 1: Find entry points**
 
@@ -164,6 +135,8 @@ For any language, look for:
 - `main` functions or `__main__` modules
 - Server/app initialization files
 - CLI entry points declared in config
+
+Config files alone are not enough to understand a project because they show dependencies, not architecture -- always read entry points and core modules too.
 
 **Step 2: Map directory structure**
 
@@ -177,6 +150,8 @@ find . -type d \
   -not -path '*/build/*' \
   | head -50
 ```
+
+Exclude noise directories (`node_modules/`, `venv/`, `vendor/`, `dist/`, `build/`, `__pycache__/`) because they contain generated or third-party code that obscures the project's own structure.
 
 Categorize directories by layer:
 
@@ -256,7 +231,7 @@ Document: testing framework, test organization (co-located vs separate directory
 
 **Step 1: Identify design patterns**
 
-Based on examined files, identify and document with evidence:
+Based on examined files, identify and document with evidence. Every architectural claim must cite an examined file and path because uncited claims cannot be verified and mislead readers.
 
 ```markdown
 ## Design Patterns
@@ -266,6 +241,8 @@ Based on examined files, identify and document with evidence:
 - Async patterns: [promises/async-await/goroutines/callbacks] (evidence: [file paths])
 - DI approach: [manual/framework/none] (evidence: [file paths])
 ```
+
+Do not infer architecture from the README alone because READMEs may be outdated or incomplete -- always verify against actual source files.
 
 **Step 2: Map key abstractions**
 
@@ -294,13 +271,15 @@ Trace a typical request from entry point through the full stack:
 6. Response flows back through handler
 ```
 
+All file paths in output must be absolute because relative paths are ambiguous when the report is read outside the project directory.
+
 **Step 4: Analyze recent activity**
 
 ```bash
 git log --oneline --no-decorate -10
 ```
 
-Categorize commits into themes:
+Include recent commit themes (last 10 commits). Categorize commits into themes:
 - Feature development (new capabilities)
 - Bug fixes (corrections)
 - Refactoring (structural changes)
@@ -322,6 +301,8 @@ Use the template in `references/report-template.md`. Fill every section with evi
 - All commands MUST come from actual config files (package.json, Makefile, etc.)
 - Empty sections MUST note why information is unavailable
 
+Report facts without self-congratulation -- show evidence, not descriptions of how thorough the exploration was. Every claim must have file-backed evidence because "report looks complete" is not the same as "report is complete."
+
 **Step 2: Quality check**
 
 Before outputting, verify:
@@ -330,6 +311,8 @@ Before outputting, verify:
 - [ ] Every claim backed by file evidence
 - [ ] Paths are absolute, not relative
 - [ ] Commands are real, not guessed
+
+Adjust the 20-files-per-category limit if a specific area needs deeper sampling -- some projects concentrate complexity in one layer. Note any such adjustments in the report.
 
 **Step 3: Generate "Where to Add New Code" section**
 
@@ -362,7 +345,9 @@ If any matches are found:
 
 **Step 5: Output report**
 
-Display complete markdown report to stdout. If export behavior is enabled, also write to file.
+Display complete markdown report to stdout. Generate the report to stdout by default because most users need inline context, not a separate file. If export behavior is explicitly requested, also write to file.
+
+Remove any temporary files created during exploration because they are intermediate artifacts, not deliverables.
 
 **Gate**: Report has all sections filled. All paths are absolute. All claims cite evidence. "Where to Add New Code" section populated with real file references. Secret scan passed (no unredacted secrets in output). Report is actionable for onboarding. Quality check passes. Total files examined count is accurate.
 
@@ -378,7 +363,7 @@ Use parallel mapping when the exploration goal is broad and open-ended -- full o
 
 ### Agent Domains
 
-Launch 4 parallel agents using Task, each focused on a specific domain. Each agent follows the forbidden-files guardrail and writes a structured document.
+Launch 4 parallel agents using Task, each focused on a specific domain. Each agent follows the forbidden-files guardrail and writes a structured document. This skill works across any language, framework, or build system because the agent instructions are project-agnostic.
 
 | Agent | Focus | Output File |
 |-------|-------|-------------|
@@ -479,49 +464,7 @@ Solution: Skip the inaccessible file. Note in the "Files Examined" section which
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Exploring Without Detecting Project Type
-**What it looks like**: Reading random source files before checking config files
-**Why wrong**: Wastes time, misinterprets code without framework context, produces inaccurate conclusions
-**Do instead**: Complete Phase 1 (DETECT) first. Always read config before code.
-
-### Anti-Pattern 2: Claims Without File Evidence
-**What it looks like**: "This appears to use microservices" without citing any examined file
-**Why wrong**: Violates evidence-required hardcoded behavior. Misleads readers. Cannot be verified.
-**Do instead**: Every claim cites a file. Example: "Uses PostgreSQL (confirmed in `/abs/path/config/database.py`: `postgresql://...`)"
-
-### Anti-Pattern 3: Exhaustive File Reading
-**What it looks like**: Reading all 50+ files in `models/` directory instead of 3-5 representatives
-**Why wrong**: Token bloat without proportional value. Violates over-engineering prevention.
-**Do instead**: Limit to 20 files per category. Read representative samples. Note coverage in report.
-
-### Anti-Pattern 4: Skipping Phase Gates
-**What it looks like**: Jumping to MAP before finishing EXPLORE, or generating report with missing sections
-**Why wrong**: Incomplete overview with critical gaps. Wrong architectural assumptions.
-**Do instead**: Verify every gate condition before proceeding. Return to previous phase if information is missing.
-
-### Anti-Pattern 5: Generic Report Output
-**What it looks like**: Report with "This module handles business logic" and no file paths or specifics
-**Why wrong**: Not actionable for onboarding. No better than reading a README.
-**Do instead**: Include specific paths, line references, and exact commands from config files.
-
----
-
 ## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "I can infer the architecture from the README" | README may be outdated or incomplete | Examine actual source files |
-| "Config files are enough to understand the project" | Config shows dependencies, not architecture | Read entry points and core modules |
-| "20 files is enough for any project" | Some areas need deeper sampling | Adjust per category, note limitations |
-| "Report looks complete" | Looking complete != being complete | Verify every section has file-backed evidence |
 
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/report-template.md`: Standard markdown report template with all sections

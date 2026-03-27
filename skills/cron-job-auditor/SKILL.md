@@ -24,48 +24,7 @@ routing:
 
 # Cron Job Auditor Skill
 
-## Operator Context
-
-This skill operates as an operator for cron script auditing workflows, configuring Claude's behavior for deterministic, checklist-driven static analysis. It implements the **Systematic Inspection** architectural pattern -- discover scripts, audit against best practices, report findings -- with **Domain Intelligence** embedded in cron-specific reliability patterns.
-
-### Hardcoded Behaviors (Always Apply)
-- **Read-Only**: Only read and analyze script files; never execute them
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before auditing
-- **Pattern-Based Detection**: Use regex for reliable, reproducible checks
-- **Structured Output**: Produce machine-parseable PASS/FAIL/WARN results
-- **Severity Classification**: Every finding gets CRITICAL, HIGH, MEDIUM, or LOW
-- **No Auto-Fix**: Report problems with recommendations; do not modify scripts
-
-### Default Behaviors (ON unless disabled)
-- **Full Checklist**: Run all 9 best-practice checks on every script
-- **Actionable Recommendations**: Provide specific code fixes for every failure
-- **Score Calculation**: Report pass/total as percentage
-- **Recursive Discovery**: Search `scripts/`, `cron/`, `jobs/` directories for `.sh` files
-- **Shebang Validation**: Verify scripts start with `#!/bin/bash` or equivalent
-
-### Optional Behaviors (OFF unless enabled)
-- **Strict Mode**: Treat MEDIUM/LOW findings as failures (raise exit code)
-- **Custom Patterns**: Add project-specific checks beyond the standard 9
-- **Crontab Schedule Analysis**: Parse crontab entries for scheduling conflicts
-- **JSON Output**: Emit results as JSON instead of human-readable report
-
-## What This Skill CAN Do
-- Detect missing error handling, logging, lock files, and cleanup traps
-- Check for explicit PATH/environment setup (cron has minimal defaults)
-- Identify scripts vulnerable to concurrent execution
-- Verify log rotation prevents unbounded disk growth
-- Provide copy-paste code snippets to fix every finding
-- Audit multiple scripts in a single pass with aggregate scoring
-
-## What This Skill CANNOT Do
-- Execute scripts or validate runtime behavior
-- Parse crontab scheduling syntax (focus is script content)
-- Check external dependencies or verify services are running
-- Test notification delivery (email, webhook, Slack)
-- Analyze complex control flow beyond pattern matching
-- Replace a full shell linter (shellcheck) for syntax issues
-
----
+Static analysis of cron and scheduled job scripts against a 9-point reliability checklist. Produces structured PASS/FAIL/WARN results with severity classification (CRITICAL, HIGH, MEDIUM, LOW) and paste-ready code fixes for every finding. Audits are read-only and pattern-based -- scripts are never executed, because cron scripts may delete data, send emails, or modify production state.
 
 ## Instructions
 
@@ -73,23 +32,25 @@ This skill operates as an operator for cron script auditing workflows, configuri
 
 **Goal**: Locate all cron/scheduled scripts to audit.
 
-**Step 1: Identify target scripts**
+**Step 1: Read repository CLAUDE.md** (if present) to understand project conventions before auditing.
 
-If the user provides specific paths, use those. Otherwise search:
+**Step 2: Identify target scripts**
+
+If the user provides specific paths, use those. Otherwise search these directories recursively:
 ```
 scripts/*.sh, cron/*.sh, jobs/*.sh, bin/*.sh
 ```
 
 Also check for scripts referenced in crontab files, Makefiles, or CI configs.
 
-**Step 2: Validate targets**
+**Step 3: Validate targets**
 
 For each discovered file:
 - Confirm it exists and is readable
 - Check it has a shell shebang (`#!/bin/bash`, `#!/bin/sh`, `#!/usr/bin/env bash`)
-- Skip non-shell files (Python cron jobs, etc.) with a note
+- Skip non-shell files (Python cron jobs, etc.) with a note -- this skill audits shell scripts only; it cannot replace shellcheck for syntax issues or analyze complex control flow beyond pattern matching
 
-**Step 3: Log discovery results**
+**Step 4: Log discovery results**
 
 ```markdown
 ## Scripts Found
@@ -102,13 +63,15 @@ For each discovered file:
 
 ### Phase 2: AUDIT
 
-**Goal**: Run every check against every script. No shortcuts.
+**Goal**: Run every check against every script. Run all 9 checks regardless of script size or apparent simplicity -- small scripts grow, and missing basics cause production incidents.
 
 **Step 1: Read each script fully**
 
-Read the entire file content. Do not sample or skip sections.
+Read the entire file content. Do not sample or skip sections. If the script sources a common library file (`source ...` or `. ...`), read the sourced file too -- patterns provided by sourced libraries count as PASS (with a note indicating the source).
 
 **Step 2: Run the 9-point checklist**
+
+Use regex pattern matching for reliable, reproducible detection. Verify matches are not inside comments (`# ...`) before counting them -- when a match appears in a comment or string, note reduced confidence rather than silently accepting it.
 
 | # | Check | Patterns | Severity |
 |---|-------|----------|----------|
@@ -124,7 +87,7 @@ Read the entire file content. Do not sample or skip sections.
 
 For each check, record:
 - PASS with line number where pattern found, OR
-- FAIL/WARN with specific recommendation
+- FAIL/WARN with specific recommendation including a paste-ready code snippet (findings without fixes create work without guidance)
 
 **Step 3: Calculate score**
 
@@ -138,7 +101,7 @@ Classify scripts: 90-100% Excellent, 70-89% Good, 50-69% Needs Work, <50% Critic
 
 ### Phase 3: REPORT
 
-**Goal**: Produce structured, actionable audit output.
+**Goal**: Produce structured, actionable audit output. Do not modify any scripts -- report problems with recommendations only.
 
 **Step 1: Format per-script results**
 
@@ -155,7 +118,7 @@ SCORE: 7/9 (78%) - Good
 
 **Step 2: Provide recommendations**
 
-For every FAIL and WARN, provide a specific code snippet the user can paste:
+Every FAIL and WARN must include a specific code snippet the user can paste. Keep recommendations proportional to the script's scope -- suggest lock files, not monitoring frameworks.
 
 ```bash
 # Recommendation: Add lock file
@@ -179,28 +142,6 @@ Most common gap: Lock files (3/4 scripts missing)
 ```
 
 **Gate**: Every finding has a recommendation. Report is complete. Audit is done.
-
----
-
-## Examples
-
-### Example 1: Single Script Audit
-User says: "Audit the backup cron script"
-Actions:
-1. Read `scripts/backup.sh`, verify shebang (DISCOVER)
-2. Run 9-point checklist, record PASS/FAIL per check (AUDIT)
-3. Format report with score and recommendations (REPORT)
-Result: Structured report with actionable fixes
-
-### Example 2: Repository-Wide Audit
-User says: "Check all our cron jobs for best practices"
-Actions:
-1. Glob for `.sh` files in `scripts/`, `cron/`, `jobs/` (DISCOVER)
-2. Audit each script against full checklist (AUDIT)
-3. Per-script reports plus aggregate summary (REPORT)
-Result: Comprehensive audit with prioritized remediation list
-
----
 
 ## Error Handling
 
@@ -232,51 +173,7 @@ Solution:
 2. Read the sourced file for the missing patterns
 3. If patterns exist in sourced libraries, mark as PASS with note
 
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Executing Scripts to Test Them
-**What it looks like**: Running the cron script to see if it "works"
-**Why wrong**: Cron scripts may delete data, send emails, or modify production state
-**Do instead**: Static analysis only. Read the file, match patterns, report.
-
-### Anti-Pattern 2: Skipping Checks Because Script Is "Simple"
-**What it looks like**: "This is just a 5-line script, no need for lock files"
-**Why wrong**: Simple scripts grow. Missing basics cause production incidents.
-**Do instead**: Run all 9 checks regardless of script size.
-
-### Anti-Pattern 3: Recommending Over-Engineering
-**What it looks like**: Suggesting Prometheus alerting for a log cleanup script
-**Why wrong**: Recommendations should match script scope and complexity
-**Do instead**: Provide proportional fixes. Lock file yes, monitoring framework no.
-
-### Anti-Pattern 4: Ignoring Sourced Dependencies
-**What it looks like**: Marking FAIL because `set -e` is in a sourced common.sh
-**Why wrong**: Many teams use shared library files sourced at script start
-**Do instead**: Check `source` and `.` commands, read sourced files for patterns.
-
-### Anti-Pattern 5: Reporting Without Recommendations
-**What it looks like**: "FAIL: No error handling" with no suggested fix
-**Why wrong**: Findings without fixes create work without guidance
-**Do instead**: Every FAIL/WARN must include a paste-ready code snippet.
-
----
-
 ## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Script is too simple to audit" | Simple scripts cause outages too | Run full 9-point checklist |
-| "It works in production already" | Working ≠ reliable under failure | Audit for failure-mode handling |
-| "Lock files are overkill" | Concurrent cron runs cause data corruption | Always check for concurrency safety |
-| "Logging slows things down" | Debugging blind cron failures wastes hours | Verify logging with timestamps |
 
 ### Best Practices Reference
 

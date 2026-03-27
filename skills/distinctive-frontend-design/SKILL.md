@@ -28,59 +28,9 @@ routing:
 
 # Distinctive Frontend Design Skill
 
-## Operator Context
+Systematic aesthetic exploration that produces contextual, validated design specifications. Every design choice flows from project context -- purpose, audience, emotion -- not from defaults or convenience. The workflow enforces exploration before implementation: you cannot write CSS until you have a validated aesthetic direction, typography selection, color palette, animation strategy, and atmospheric background.
 
-This skill operates as an operator for frontend design workflows, configuring Claude's behavior for creative aesthetic development that systematically avoids generic outputs. It implements the **Exploration-First** architectural pattern -- full context analysis and aesthetic exploration before any implementation.
-
-### Hardcoded Behaviors (Always Apply)
-
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before execution
-- **Over-Engineering Prevention**: Only implement what is directly requested; keep solutions focused on distinctive aesthetics, not unnecessary abstractions or design system scaffolding
-- **Exploration-First Workflow**: ALWAYS complete aesthetic exploration (Phase 1) before any implementation; never jump to code with first-instinct choices
-- **Anti-Pattern Prevention**: NEVER use banned fonts (Inter, Roboto, Arial, Helvetica, system fonts, Space Grotesk), purple gradients on white, or other cliches from `references/anti-patterns.json`
-- **Context-Driven Decisions**: ALL design choices must be justified by project context, not convenience or defaults
-- **Validation Required**: MUST run validation scripts before finalizing design specifications
-- **Variety Enforcement**: NEVER reuse the same aesthetic choices across different projects; check project history
-
-### Default Behaviors (ON unless disabled)
-
-- **Concise Reporting**: Show validation results rather than describing them; be specific about aesthetic choices with hex values and font names
-- **Temporary File Cleanup**: Remove exploration artifacts at completion; keep only final specifications and validation reports
-- **Diverse Options**: Provide 3-5 distinct aesthetic directions during exploration phase
-- **Cultural Research**: Research and incorporate cultural/thematic inspiration relevant to project context
-- **Typography Excellence**: Prioritize beautiful, unexpected font combinations from curated catalog
-- **Animation Orchestration**: Plan choreographed sequences for high-impact moments only; resist animating everything
-- **Atmospheric Backgrounds**: Create depth through layered effects; never use flat solid colors
-
-### Optional Behaviors (OFF unless enabled)
-
-- **Design System Generation**: Create comprehensive design tokens and component library
-- **Accessibility Auditing**: Full WCAG compliance checking beyond basic contrast
-- **Performance Profiling**: Detailed animation performance analysis and optimization
-- **Dark Mode Variants**: Automatic dark theme generation with adjusted glow/pattern opacities
-
-## What This Skill CAN Do
-
-- Guide systematic aesthetic exploration before implementation
-- Validate design choices against anti-pattern database
-- Generate diverse font recommendations by aesthetic category
-- Create context-driven color palettes from cultural/thematic sources
-- Plan high-impact animation choreography with easing curves
-- Design atmospheric backgrounds with layered gradient/pattern/texture effects
-- Audit existing designs for generic patterns and "AI slop" signals
-- Provide concrete CSS/React/Tailwind implementation guidance
-- Score designs on distinctiveness metrics with actionable feedback
-
-## What This Skill CANNOT Do
-
-- Generate pixel-perfect mockups (provides specifications and code, not visual design files)
-- Replace human creativity (guides and validates, but requires creative direction from user)
-- Guarantee uniqueness against all existing designs on the internet
-- Auto-generate complete design systems (focuses on aesthetic distinctiveness, not comprehensive systems)
-- Handle backend, API, or data visualization concerns
-- Validate against specific brand guidelines without those guidelines provided
-
----
+Optional capabilities (off unless explicitly enabled by the user): design system generation, full WCAG accessibility auditing, animation performance profiling, dark mode variant generation.
 
 ## Instructions
 
@@ -88,7 +38,7 @@ This skill operates as an operator for frontend design workflows, configuring Cl
 
 **Goal**: Understand the project deeply before making any aesthetic decisions.
 
-**Step 1: Gather context** by asking (adapt based on what is already known):
+**Step 1: Read and follow the repository CLAUDE.md**, then gather context by asking (adapt based on what is already known):
 
 1. **Purpose**: What is this frontend for? (portfolio, SaaS product, creative showcase, documentation, landing page)
 2. **Audience**: Who will use it? (developers, artists, enterprise users, general public, specific demographics)
@@ -96,9 +46,9 @@ This skill operates as an operator for frontend design workflows, configuring Cl
 4. **Cultural context**: Any geographic, cultural, or thematic associations? (Japanese minimalism, industrial, retro, academic)
 5. **Constraints**: Accessibility requirements, performance budgets, existing brand elements to preserve?
 6. **Tech stack**: React, Vue, vanilla HTML/CSS, Next.js, framework preferences?
-7. **Previous projects**: Any recent frontend work? (to ensure variety across projects)
+7. **Previous projects**: Any recent frontend work? (to avoid reusing the same aesthetic choices -- variety across projects is mandatory)
 
-**Step 2: Define 2-3 aesthetic directions** using `references/color-inspirations.json` and `references/font-catalog.json` as starting points.
+**Step 2: Define 3-5 distinct aesthetic directions** using `references/color-inspirations.json` and `references/font-catalog.json` as starting points. Providing multiple directions prevents anchoring on a first instinct, which is the primary source of generic "AI slop" output.
 
 Example directions and what they mean:
 - **Neo-Brutalist Technical**: Bold typography, harsh contrasts, geometric precision, industrial textures
@@ -107,7 +57,7 @@ Example directions and what they mean:
 - **Botanical Minimal**: Natural greens, generous whitespace, serif elegance, organic shapes
 - **Arctic Technical**: Cool blues, sharp geometry, monospace accents, clean precision
 
-**Step 3: Output** `aesthetic_direction.json` with chosen direction(s) and contextual justification. See `references/implementation-examples.md` for template.
+**Step 3: Output** `aesthetic_direction.json` with chosen direction(s) and contextual justification. Every direction must link back to project purpose, audience, and emotion -- context-driven justification is what separates distinctive design from arbitrary choices. See `references/implementation-examples.md` for template.
 
 **Gate**: Aesthetic direction defined with contextual justification linking project purpose, audience, and emotion to chosen direction. Do NOT proceed without this gate passing.
 
@@ -115,14 +65,14 @@ Example directions and what they mean:
 
 **Goal**: Select distinctive, contextual font pairings that define the design's personality.
 
-**Step 1: Load** `references/font-catalog.json`. All fonts in catalog are pre-approved; banned fonts (Inter, Roboto, Arial, Helvetica, system fonts, Space Grotesk) are excluded from catalog.
+**Step 1: Load** `references/font-catalog.json`. All fonts in the catalog are pre-approved. The following fonts are banned because they are overused to the point of invisibility and signal generic output: Inter, Roboto, Arial, Helvetica, system fonts (e.g., `-apple-system, BlinkMacSystemFont, 'Segoe UI'`), Space Grotesk. Do not use them in selections or fallback stacks.
 
 **Step 2: Select font pairing** using this process:
 1. Identify 3-5 candidate fonts from the appropriate aesthetic category
-2. Eliminate any that feel "obvious" or overused for this context
+2. Eliminate any that feel "obvious" or overused for this context -- resist the first instinct and explore deeper in the catalog, because beautiful unexpected combinations are the goal
 3. Test combinations: Display font + Body font, or single font family with weight variation
 4. Verify the pairing creates clear visual hierarchy
-5. Check against project history for variety
+5. Check against project history to confirm you are not reusing recent choices
 
 Selection criteria:
 - Matches aesthetic direction from Phase 1
@@ -138,9 +88,9 @@ Selection criteria:
 # Banned: Inter, Roboto, Arial, Helvetica, system fonts, Space Grotesk
 ```
 
-Manually verify: no banned fonts in selection, pairing not recently used, aesthetic match with direction.
+Manually verify: no banned fonts in selection or fallback stacks (`sans-serif` alone counts as a banned system font), pairing not recently used, aesthetic match with direction.
 
-**Step 4: Document** typography specification with font families, weights, usage roles, and rationale for each selection. See `references/implementation-examples.md` for template.
+**Step 4: Document** typography specification with font families, weights, usage roles, and rationale for each selection. Be specific -- include exact font names and weights, not vague descriptions. See `references/implementation-examples.md` for template.
 
 **Gate**: Font validation passes (no banned fonts, no recent reuse, aesthetic match confirmed). Do NOT proceed until gate passes.
 
@@ -155,7 +105,7 @@ Manually verify: no banned fonts in selection, pairing not recently used, aesthe
 - **Historical periods**: Art Deco, Mid-century modern, Victorian industrial
 - **Artistic movements**: Bauhaus, De Stijl, Impressionism
 
-Select an inspiration source that resonates with the project context from Phase 1.
+Select an inspiration source that resonates with the project context from Phase 1. The palette must trace back to that context -- convenience or personal preference is not a valid reason for a color choice.
 
 **Step 2: Build palette** with strict dominance structure:
 - **Dominant** (60-70%): Base background and major surfaces -- this sets the mood
@@ -163,8 +113,10 @@ Select an inspiration source that resonates with the project context from Phase 
 - **Accent** (5-10%): High-impact moments, CTAs, highlights -- demands attention sparingly
 - **Functional**: Success, warning, error, info states -- consistent across all designs
 
+Colors distributed evenly without a clear dominant create visual chaos. The 60/30/10 ratio is non-negotiable because without it, no coherent aesthetic emerges.
+
 **Step 3: Check against anti-patterns** in `references/anti-patterns.json`:
-- No purple (#8B5CF6, #A855F7) as accent on white background
+- No purple (#8B5CF6, #A855F7) as accent on white background -- the most cliched color scheme in modern web design, signaling generic SaaS template
 - No evenly distributed colors without clear dominance
 - No generic blue (#3B82F6) as primary on white
 - No pastels without saturation variation
@@ -177,13 +129,13 @@ Select an inspiration source that resonates with the project context from Phase 
 # Manual alternative: check palette against anti-patterns in references/anti-patterns.json
 ```
 
-Manually verify: no cliche patterns (purple on white, generic blue), clear 60/30/10 dominance ratio, sufficient contrast for accessibility.
+Manually verify: no cliche patterns, clear 60/30/10 dominance ratio, sufficient contrast for accessibility. Report results with specific hex values rather than describing colors abstractly.
 
 **Gate**: Palette passes cliche detection and demonstrates clear 60/30/10 dominance ratio. Do NOT proceed until gate passes.
 
 ### Phase 4: Animation Strategy
 
-**Goal**: Design choreography for high-impact moments only. Restraint is a feature.
+**Goal**: Design choreography for high-impact moments only. Restraint is a feature -- animating everything dilutes impact and signals lack of intentionality.
 
 **Step 1: Identify high-impact moments** worth investing animation effort:
 - Initial page load (hero section reveal)
@@ -223,7 +175,7 @@ Duration by scope:
 
 ### Phase 5: Background & Atmosphere
 
-**Goal**: Create depth and mood through layered effects. Never use flat solid colors as backgrounds.
+**Goal**: Create depth and mood through layered effects. Flat solid-color backgrounds fail this phase because they produce no atmospheric depth -- every surface needs at least two layers.
 
 **Step 1: Choose technique** from `references/background-techniques.md` based on aesthetic direction:
 - **Layered radial gradients**: Atmospheric depth with soft colored glows (sophisticated, landing pages)
@@ -243,7 +195,7 @@ Duration by scope:
 
 ### Phase 6: Validation & Scoring
 
-**Goal**: Objective quality assessment through validation scripts before any finalization.
+**Goal**: Objective quality assessment before any finalization. Validation must run before delivering specifications -- skipping it means flaws compound through every downstream implementation decision.
 
 **Step 1: Run comprehensive validation**
 
@@ -271,7 +223,7 @@ Duration by scope:
 
 ### Phase 7: Design Specification Output
 
-**Goal**: Deliver a complete, implementable design specification.
+**Goal**: Deliver a complete, implementable design specification. Only implement what was directly requested -- focus on distinctive aesthetics, not unnecessary abstractions or design system scaffolding unless the user explicitly asked for it.
 
 **Step 1: Generate CSS custom properties** (design tokens) covering typography, colors, spacing, shadows, and animation values. Reference `references/implementation-examples.md` for comprehensive token template.
 
@@ -290,13 +242,13 @@ Duration by scope:
 
 **Step 4: If implementation is requested**, provide framework-specific starter code. Reference `references/implementation-examples.md` for React+Tailwind config, HTML+CSS templates, and design system templates.
 
+**Step 5: Clean up** temporary exploration artifacts (intermediate JSON files, draft palettes). Keep only the final specification and validation report.
+
 **Gate**: Design specification document delivered with all sections complete and validation score included.
 
----
+### Examples
 
-## Examples
-
-### Example 1: New Landing Page
+#### Example 1: New Landing Page
 User says: "Create a distinctive design for a developer tool landing page"
 Actions:
 1. Gather context: developer audience, technical but approachable emotion (PHASE 1)
@@ -309,7 +261,7 @@ Actions:
 8. Output design specification with CSS tokens (PHASE 7)
 Result: Contextual, validated design specification ready for implementation
 
-### Example 2: Design Audit
+#### Example 2: Design Audit
 User says: "This site looks too generic, review it for AI slop"
 Actions:
 1. Read existing CSS/design files to inventory current choices (PHASE 1)
@@ -321,7 +273,19 @@ Actions:
 7. Deliver report with specific replacement recommendations (PHASE 7)
 Result: Actionable audit with specific fixes for each detected issue
 
----
+## Reference Material
+
+### Design Catalogs
+
+These reference files contain the curated domain knowledge that drives design decisions:
+
+- `${CLAUDE_SKILL_DIR}/references/font-catalog.json`: Curated fonts by aesthetic category (banned fonts excluded)
+- `${CLAUDE_SKILL_DIR}/references/color-inspirations.json`: Cultural/contextual color palette sources
+- `${CLAUDE_SKILL_DIR}/references/animation-patterns.md`: High-impact animation choreography patterns with CSS and React examples
+- `${CLAUDE_SKILL_DIR}/references/background-techniques.md`: Atmospheric background creation methods with code snippets
+- `${CLAUDE_SKILL_DIR}/references/anti-patterns.json`: Banned fonts, cliche colors, layout and component cliches
+- `${CLAUDE_SKILL_DIR}/references/implementation-examples.md`: CSS tokens, base styles, framework templates, specification document templates
+- `${CLAUDE_SKILL_DIR}/references/project-history.json`: Aesthetic choices across projects (auto-generated by validation)
 
 ## Error Handling
 
@@ -348,58 +312,12 @@ Solution:
 3. Check if font + color + background form a cohesive story or feel disconnected
 4. Iterate and re-validate -- max 3 attempts before reconsidering the aesthetic direction
 
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Skipping Aesthetic Exploration
-**What it looks like**: Jumping to CSS/React implementation with first-instinct font and color choices
-**Why wrong**: Produces generic, unconsidered design with no contextual justification; most "AI slop" originates here
-**Do instead**: Complete Phase 1 context discovery and direction selection before touching implementation
-
-### Anti-Pattern 2: Using Banned Fonts
-**What it looks like**: `font-family: 'Inter', sans-serif` or `font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI'`
-**Why wrong**: Overused to the point of invisibility; instant "AI slop" aesthetic signal; fails validation immediately
-**Do instead**: Select from `references/font-catalog.json`, run font validator, choose unexpected pairings
-
-### Anti-Pattern 3: Purple Gradients on White
-**What it looks like**: `background: linear-gradient(135deg, #667eea, #764ba2)` with white surfaces and purple accents
-**Why wrong**: Most cliched color scheme in modern web design; signals generic SaaS template; no contextual justification possible
-**Do instead**: Research cultural/contextual color inspiration, create palette with 60/30/10 dominance structure
-
-### Anti-Pattern 4: Evenly Distributed Colors
-**What it looks like**: Five accent colors used in roughly equal proportion across the design
-**Why wrong**: Creates visual chaos without hierarchy; no dominant aesthetic emerges; looks like color picker experimentation
-**Do instead**: Follow 60/30/10 rule strictly (dominant/secondary/accent), validate dominance ratio
-
-### Anti-Pattern 5: Implementing Without Validation
-**What it looks like**: Writing CSS/React implementation without ever running design validation
-**Why wrong**: May build entire frontend on flawed design foundations; wastes time on rework; no objective quality measure
-**Do instead**: Run validation in Phase 6, ensure score >= 80 before proceeding to specification output
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Inter is clean and readable" | Clean = invisible; readable != distinctive | Select from curated catalog |
-| "Purple gradient looks modern" | Modern = cliched; every SaaS uses this | Research contextual inspiration |
-| "I'll validate later" | Later = never; flaws compound through phases | Validate at each phase gate |
-| "Simple solid background is fine" | Solid = flat; depth creates atmosphere | Add at least 2 background layers |
-| "Same fonts worked last time" | Worked != distinctive; variety is required | Check project history, choose new |
-
-### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/font-catalog.json`: Curated fonts by aesthetic category (banned fonts excluded)
-- `${CLAUDE_SKILL_DIR}/references/color-inspirations.json`: Cultural/contextual color palette sources
-- `${CLAUDE_SKILL_DIR}/references/animation-patterns.md`: High-impact animation choreography patterns with CSS and React examples
-- `${CLAUDE_SKILL_DIR}/references/background-techniques.md`: Atmospheric background creation methods with code snippets
-- `${CLAUDE_SKILL_DIR}/references/anti-patterns.json`: Banned fonts, cliche colors, layout and component cliches
-- `${CLAUDE_SKILL_DIR}/references/implementation-examples.md`: CSS tokens, base styles, framework templates, specification document templates
-- `${CLAUDE_SKILL_DIR}/references/project-history.json`: Aesthetic choices across projects (auto-generated by validation)
+- `${CLAUDE_SKILL_DIR}/references/font-catalog.json`
+- `${CLAUDE_SKILL_DIR}/references/color-inspirations.json`
+- `${CLAUDE_SKILL_DIR}/references/animation-patterns.md`
+- `${CLAUDE_SKILL_DIR}/references/background-techniques.md`
+- `${CLAUDE_SKILL_DIR}/references/anti-patterns.json`
+- `${CLAUDE_SKILL_DIR}/references/implementation-examples.md`
+- `${CLAUDE_SKILL_DIR}/references/project-history.json`

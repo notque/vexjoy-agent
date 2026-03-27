@@ -32,27 +32,7 @@ routing:
 
 # Decision Helper Skill
 
-## Operator Context
-
-This skill operates as an operator for structured decision-making, configuring Claude's behavior for weighted scoring of architectural and technology choices. Runs inline (no context fork) because users adjust criteria and weights interactively.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before execution
-- **Option Limit**: Maximum 4 options. More than 4 = decompose into sub-decisions first
-- **Close-Call Detection**: Always flag when top two options differ by <0.5 weighted score
-- **No Gut Overrides**: If the matrix contradicts intuition, fix the criteria -- never override the math
-
-### Default Behaviors (ON unless disabled)
-- **Default Criteria**: Use the standard criteria table unless the user provides custom criteria
-- **ADR Persistence**: Check `.adr-session.json` and append decision there; fall back to task plan
-- **Score Justification**: Brief (1 sentence) justification for each score
-
-### Optional Behaviors (OFF unless enabled)
-- **Custom Criteria**: User replaces or supplements default criteria and weights
-- **Sensitivity Analysis**: Re-score with adjusted weights to test recommendation stability
-- **Skip Persistence**: Don't record the decision (for informal exploration)
-
----
+Structured weighted scoring for architectural and technology choices. Runs inline (no context fork) because users adjust criteria and weights interactively.
 
 ## Instructions
 
@@ -61,10 +41,10 @@ This skill operates as an operator for structured decision-making, configuring C
 **Goal**: Turn the user's question into a clear, scorable decision.
 
 - State the decision in one sentence (e.g., "Which HTTP router should we use for the API service?")
-- List 2-4 concrete options. If the user provides more than 4, help them eliminate or group options before proceeding
+- List 2-4 concrete options. If the user provides more than 4, help them eliminate or group options before proceeding -- never score more than 4 at once because larger matrices dilute focus and invite analysis paralysis
 - Identify hard constraints that eliminate options immediately (e.g., "must be MIT licensed" eliminates Option C)
 
-If the user's request is too vague to frame, ask clarifying questions. Do not guess at options.
+If the user's request is too vague to frame, ask clarifying questions. Do not guess at options. If someone invoked this skill, the decision is not obvious -- run the full framework even when a quick answer feels tempting.
 
 **Gate**: Decision statement defined, 2-4 options listed, hard constraints applied.
 
@@ -72,7 +52,7 @@ If the user's request is too vague to frame, ask clarifying questions. Do not gu
 
 **Goal**: Establish what matters for this decision and how much.
 
-Present the default criteria table. Ask the user if they want to adjust weights or add/remove criteria.
+Present the default criteria table unless the user provides custom criteria. Ask if they want to adjust weights or add/remove criteria.
 
 | Criterion | Weight | What It Measures |
 |-----------|--------|-----------------|
@@ -86,15 +66,21 @@ Present the default criteria table. Ask the user if they want to adjust weights 
 
 WHY these defaults: Correctness dominates because a wrong solution has zero value regardless of other factors. Complexity/Maintainability/Risk form a middle tier because they determine long-term cost. Effort/Familiarity are lower because they're temporary (teams learn, effort is one-time). Ecosystem is lowest because it rarely decides between otherwise-equal options.
 
+Use defaults unless the user has a strong reason to change them. Agonizing over whether Complexity should be weight 3 or 4 rarely changes the outcome -- the framework exists to make decisions faster, not slower. Set weights before scoring; adjusting weights after seeing results to make a preferred option win is confirmation bias with extra steps.
+
+If the user wants sensitivity analysis, re-score with adjusted weights after the initial pass to test recommendation stability.
+
 **Gate**: Criteria and weights confirmed (default or custom).
 
 ### Step 3: Score Each Option
 
 **Goal**: Rate each option against each criterion with justification.
 
-Score every criterion 1-10 (1-3 poor, 4-6 adequate, 7-9 strong, 10 exceptional). Provide a one-sentence justification per score to prevent arbitrary numbers.
+Score every criterion 1-10 (1-3 poor, 4-6 adequate, 7-9 strong, 10 exceptional). Provide a one-sentence justification per score -- this prevents arbitrary numbers and makes disagreements productive.
 
 Calculate weighted score: `sum(score * weight) / sum(weights)`
+
+Treat scores as subjective estimates, not measurements. A difference of 0.03 between two options is noise, not signal -- the close-call detection in Step 4 handles this.
 
 **Gate**: All options scored, all scores justified, weighted scores calculated.
 
@@ -105,9 +91,11 @@ Calculate weighted score: `sum(score * weight) / sum(weights)`
 Apply these rules in order:
 
 1. **No Good Option** (all weighted scores <6.0): Flag that none of the options are strong. Suggest the user explore alternatives or revisit constraints
-2. **Close Call** (top two within 0.5): Flag as "close call -- additional factors should decide." Identify which criteria drive the difference and ask the user what matters most
+2. **Close Call** (top two within 0.5): Always flag as "close call -- additional factors should decide." Identify which criteria drive the difference and ask the user what matters most. Never hand-wave a close call with "close enough, just pick one" -- these deserve explicit acknowledgment
 3. **Clear Winner** (top option leads by >0.5): Recommend the winner. Note which high-weight criteria drove the result
 4. **Dominant Option** (top option leads on ALL weight-5 criteria): Note the dominance -- this is a high-confidence recommendation
+
+If the matrix contradicts the user's intuition, do not override the math. Instead, ask which criterion is missing or mis-weighted. Add it, re-score, and see if the matrix now agrees. If it does, you found the hidden factor. If it still disagrees, trust the matrix -- it surfaces the reasoning that gut feelings obscure.
 
 Present the output table:
 
@@ -145,6 +133,8 @@ cat .adr-session.json 2>/dev/null
 
 **If no ADR**: Note the decision in the active task plan (`plan/active/*.md`). If neither exists, present the record to the user for manual recording.
 
+The user can skip persistence for informal exploration by requesting it.
+
 **Gate**: Decision recorded or presented. Workflow complete.
 
 ---
@@ -165,35 +155,6 @@ cat .adr-session.json 2>/dev/null
 
 ---
 
-## Anti-Patterns
-
-### Analysis Paralysis
-**What it looks like**: User agonizes over whether Complexity should be weight 3 or 4
-**Why wrong**: Weight differences of 1 rarely change the outcome. The framework exists to make decisions faster, not slower.
-**Do instead**: Use defaults. Only customize weights when the user has a strong reason.
-
-### False Precision
-**What it looks like**: "Option A scores 7.21 vs Option B at 7.18, so A wins"
-**Why wrong**: A 0.03 difference is noise. Scores are subjective estimates, not measurements.
-**Do instead**: Close-call detection handles this. Scores within 0.5 are flagged as ties needing additional context.
-
-### Gut Override
-**What it looks like**: "The matrix says B, but I just feel like A is right"
-**Why wrong**: If the matrix contradicts your intuition, the criteria or scores are wrong -- not the math. Overriding teaches you nothing about WHY your gut disagrees.
-**Do instead**: Ask which criterion is missing or mis-weighted. Add it, re-score, and see if the matrix now agrees with intuition. If it does, you found the hidden factor. If it doesn't, trust the matrix.
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "The answer is obvious, no need to score" | Obvious answers don't need a skill; if you're here, it's not obvious | Run the full framework |
-| "Close enough, just pick one" | Close calls deserve explicit acknowledgment, not hand-waving | Flag the close call, identify differentiating factors |
-| "I'll adjust weights until my preferred option wins" | That's confirmation bias with extra steps | Set weights BEFORE scoring, don't adjust to fit a desired outcome |
-| "This decision is too small for a matrix" | Then don't invoke the skill -- but if you did, commit to the process | Either skip the skill or run it fully |
+- Repository CLAUDE.md files (read before execution for project-specific constraints)
