@@ -27,45 +27,9 @@ routing:
 
 # PR Mining Coordinator Skill
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for PR mining coordination workflows, configuring Claude's behavior for background job management and tribal knowledge extraction. It implements the **Pipeline** architectural pattern -- Validate, Mine, Verify, Generate, Report -- with **Domain Intelligence** embedded in the mining methodology.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before execution
-- **Over-Engineering Prevention**: Only implement what's directly requested. No speculative features
-- **Background Execution**: Mining jobs always run in background with `&`
-- **GitHub Token from Keychain**: Uses `security find-internet-password -s github.com -w`
-- **Process Tracking**: Always store and monitor background job PIDs
-- **Sequential by Default**: Run mining jobs one at a time to avoid API rate limits
-
-### Default Behaviors (ON unless disabled)
-- **Communication Style**: Report facts without self-congratulation. Show command output, not descriptions
-- **Temporary File Cleanup**: Remove coordination files and debug outputs at completion. Keep only mining results (JSON) and generated rules (markdown)
-- **Progress Reporting**: Show mining job progress every 30-60 seconds
-- **Auto Rules Generation**: Generate categorized markdown rules after successful mining
-- **Error Detection**: Monitor for API rate limits, auth failures, empty results
-- **Confidence Scoring**: Calculate HIGH/MEDIUM/LOW confidence for patterns
-
-### Optional Behaviors (OFF unless enabled)
-- **Concurrent Mining**: Run multiple repos simultaneously (risk: rate limits)
-- **Historical Analysis**: Mine specific date ranges with --since/--until flags
-- **All Comments Mode**: Use --all-comments for senior reviewers (default: imperative only)
-- **Cross-Repo Merging**: Combine patterns from multiple mining results into unified rules
-
-## What This Skill CAN Do
-- Coordinate background PR mining jobs with the pr-miner tool
-- Track running jobs and report progress to user
-- Generate categorized coding rules documents from mined data
-- Calculate pattern confidence from occurrence frequency
-- Handle API rate limits, auth failures, and empty result sets
-
-## What This Skill CANNOT Do
-- Mine without a valid GitHub token
-- Run multiple mining jobs in parallel (sequential by default)
-- Perform code review (use code-review skill instead)
-- Write coding standards from scratch without PR data
-- Skip prerequisite validation or result verification
+This skill coordinates PR mining workflows to extract tribal knowledge and coding standards from GitHub PR review history. It implements a five-phase pipeline (Validate, Mine, Verify, Generate, Report) that manages background mining jobs, generates confidence-scored coding rules, and prevents common pitfalls like username errors and API rate limiting.
 
 ---
 
@@ -73,7 +37,7 @@ This skill operates as an operator for PR mining coordination workflows, configu
 
 ### Phase 1: VALIDATE
 
-**Goal**: Confirm prerequisites before starting any mining operation.
+**Goal**: Confirm all prerequisites before starting mining.
 
 **Step 1: Check miner script exists**
 
@@ -83,6 +47,8 @@ fish -c "ls ~/.claude/skills/pr-miner/scripts/miner.py"
 
 Expected: File exists at path.
 
+**Constraint**: Never skip this step. Miner script must exist before mining can run.
+
 **Step 2: Verify GitHub token**
 
 ```bash
@@ -90,6 +56,8 @@ fish -c "security find-internet-password -s github.com -w 2>/dev/null"
 ```
 
 Expected: Token printed (ghp_...).
+
+**Constraint**: Always extract token from keychain using `security find-internet-password -s github.com -w`. Never hardcode or accept tokens from user input. If empty, user must add token with `security add-internet-password`.
 
 **Step 3: Verify reviewer username (if filtering by reviewer)**
 
@@ -99,11 +67,13 @@ fish -c "gh pr list --repo {org/repo} --search 'reviewed-by:{username}' --limit 
 
 Expected: PR results confirm username is valid and active.
 
-**Gate**: Miner script exists, token available, reviewer verified. Proceed only when gate passes.
+**Constraint**: Username verification is MANDATORY when user specifies --reviewer flag. Silently wrong usernames cause 0 interactions after 5+ minutes of wasted API quota. Verify before mining, not after. (Anti-pattern #1)
+
+**Gate**: Miner script exists, token available, reviewer verified if applicable. Proceed only when gate passes.
 
 ### Phase 2: MINE
 
-**Goal**: Execute mining job in background and track progress.
+**Goal**: Execute mining job in background, track progress, avoid rate limit exhaustion.
 
 **Step 1: Start mining job**
 
@@ -117,19 +87,27 @@ fish -c "set -x GITHUB_TOKEN (security find-internet-password -s github.com -w 2
 
 See `references/mining-commands.md` for full command patterns and flag reference.
 
+**Constraint - Background Execution**: Always run mining with `&` (ampersand suffix) to background the job. Never block on mining operations. Capture and store the background job PID for tracking.
+
+**Constraint - GitHub Token Source**: Always extract token from keychain inline with `security find-internet-password -s github.com -w`. Export as GITHUB_TOKEN environment variable before calling miner.py. No other token sources are acceptable.
+
 **Step 2: Track progress**
 
-Monitor background job with BashOutput tool. Check every 30-60 seconds. Report progress to user.
+Monitor background job with BashOutput tool. Check every 30-60 seconds. Report progress to user showing: repos scanned, PRs processed, interactions extracted so far.
+
+**Constraint - Progress Reporting**: Show command output, not marketing descriptions. Real numbers (e.g., "150 PRs scanned, 42 interactions extracted") beat "Mining is progressing nicely."
 
 **Step 3: Handle multiple repos**
 
-Run jobs sequentially. Wait for each to complete before starting next.
+Run jobs sequentially. Wait for each to complete before starting next. Never start new job until previous finishes.
 
-**Gate**: Mining job completes with non-zero interaction count. Proceed only when gate passes.
+**Constraint - Sequential by Default**: Running multiple mining jobs in parallel exhausts the 5000 requests/hour API quota faster than you can track which job caused the failure. Sequential mining prevents rate limit cascades and makes attribution clear. (Anti-pattern #2) Only enable concurrency if explicitly requested AND user understands rate limit risk.
+
+**Gate**: Mining job completes with non-zero interaction count. If job exits with 0 interactions, see Error Handling "0 interactions found" section.
 
 ### Phase 3: VERIFY
 
-**Goal**: Confirm mining output is valid and contains usable data.
+**Goal**: Confirm mining output is valid, contains interactions with usable data, and failed mining exits cleanly.
 
 **Step 1: Check output file exists and has content**
 
@@ -162,40 +140,46 @@ Confirm JSON matches expected schema:
 }
 ```
 
-If `interaction_count` is 0, do not proceed -- see Error Handling for "0 interactions found".
+**Constraint**: If `interaction_count` is 0, do NOT proceed to Phase 4. Instead, check Error Handling section "0 interactions found" for diagnosis. Common causes: wrong reviewer username (should have caught in Phase 1), no PR activity in date range, or repo has no review comments (only approvals).
 
 **Step 3: Check interaction quality**
 
-Verify interactions have: pr_number, pr_title, comment text, and ideally code_before/code_after pairs. Interactions without code pairs can still produce rules but lack concrete examples.
+Verify interactions have: pr_number, pr_title, comment text. Code pairs (code_before/code_after) are strongly preferred but not mandatory. Interactions without code pairs can still produce rules but are lower value.
 
-**Gate**: Output JSON is valid, contains interactions with usable data. Proceed only when gate passes.
+**Constraint - Prevent Flat Dumps**: Do not proceed to Phase 4 without checking that `interaction_count > 0`. Attempting to generate rules from empty results wastes time and produces nothing usable. Empty results signal a problem to diagnose, not a success to report.
+
+**Gate**: Output JSON is valid, interaction_count > 0, interactions have required fields. Proceed only when gate passes.
 
 ### Phase 4: GENERATE
 
-**Goal**: Produce categorized coding rules document from mined data.
+**Goal**: Produce categorized, confidence-scored markdown rules from mined data.
 
 **Step 1: Load and categorize patterns**
 
-Read mined JSON. Categorize interactions by topic using standard categories from `references/pattern-categories.md`.
+Read mined JSON. Group interactions by topic using standard categories from `references/pattern-categories.md`. Example categories: Error Handling, Testing, API Design, Concurrency, Performance, Naming, Documentation, Security, Refactoring, Tooling.
+
+**Constraint - Mandatory Categorization**: Do NOT generate a flat numbered list of 50 patterns. Flat lists are overwhelming, unscannable, and lose priority context. Organize by topic, then by confidence within topic. (Anti-pattern #3)
 
 **Step 2: Score confidence**
 
+Calculate confidence from occurrence frequency and reviewer seniority:
+
 | Level | Criteria | Action |
 |-------|----------|--------|
-| HIGH | 5+ occurrences from senior reviewers | Include as standard practice |
+| HIGH | 5+ occurrences (especially from senior reviewers) | Include as standard practice |
 | MEDIUM | 2-4 occurrences | Include with context caveats |
-| LOW | Single occurrence | Place in "Additional Observations" |
+| LOW | Single occurrence | Place in "Additional Observations" section |
 
 **Step 3: Generate markdown rules document**
 
-Follow this structure for each pattern entry:
+Follow this structure for each pattern:
 
 ```markdown
 ## {Category Name}
 
 ### {Pattern Name} ({CONFIDENCE} confidence)
 
-**Pattern**: {Brief description}
+**Pattern**: {Brief description of the rule}
 
 **Good**:
 \`\`\`{lang}
@@ -211,7 +195,7 @@ Follow this structure for each pattern entry:
 "{comment_text}"
 ```
 
-Order categories by total pattern count (most patterns first). Within each category, sort HIGH before MEDIUM before LOW.
+**Constraint - Ordering for Usability**: Sort categories by pattern count (descending: most patterns first). Within each category, sort patterns HIGH → MEDIUM → LOW confidence. Users scan from top, so high-confidence patterns must come first to maximize scanning efficiency.
 
 **Step 4: Save rules**
 
@@ -219,44 +203,27 @@ Order categories by total pattern count (most patterns first). Within each categ
 fish -c "cat > ~/.claude/skills/pr-miner/rules/{repos}_coding_rules.md"
 ```
 
-**Gate**: Rules document is categorized, confidence-scored, and saved to disk.
+**Constraint - Cleanup Behavior**: After saving rules to disk, remove temporary coordination files (PIDs, debug logs, intermediate JSON). Keep ONLY the final mining result JSON (for future reference) and generated rules markdown (for user consumption).
+
+**Gate**: Rules document is categorized, confidence-scored, saved to disk, and temporary files cleaned.
 
 ### Phase 5: REPORT
 
-**Goal**: Deliver comprehensive results to user.
+**Goal**: Deliver actionable results with all necessary context.
 
 Provide:
 - PRs analyzed count
 - Interactions extracted count
-- File paths for mined data and generated rules
-- Top HIGH confidence patterns with occurrence counts
-- Summary of MEDIUM and LOW confidence pattern counts
+- File path to mined data JSON
+- File path to generated rules markdown
+- List of top 3-5 HIGH confidence patterns with occurrence counts
+- Summary of MEDIUM and LOW confidence pattern distribution
 
-**Gate**: User has all information needed to act on mining results.
+**Constraint - Report Clarity**: Show actual numbers and paths, not generic summaries. Example good report: "Analyzed 150 PRs, extracted 42 interactions. HIGH confidence (12 patterns): Error handling (5), Testing (4), Naming (3). MEDIUM confidence: 18 patterns. LOW confidence: 12 patterns. Rules: ~/.claude/skills/pr-miner/rules/myrepo_coding_rules.md"
 
----
+**Constraint - Communication Style**: Report facts without self-congratulation. Show what happened and where the output is. Avoid "Mining went great!" — instead say "Mined 42 interactions from 150 PRs."
 
-## Examples
-
-### Example 1: Mine Specific Reviewer
-User says: "Mine senior-reviewer's patterns from go-libs"
-Actions:
-1. Verify miner, token, and reviewer username (VALIDATE)
-2. Run mining with --reviewer and --all-comments flags (MINE)
-3. Check output JSON for valid interactions (VERIFY)
-4. Categorize patterns and generate rules markdown (GENERATE)
-5. Report top patterns and file locations (REPORT)
-Result: Categorized coding rules with confidence scores
-
-### Example 2: Team Standards Extraction
-User says: "Get coding standards from service-a and service-b"
-Actions:
-1. Verify miner and token, no reviewer to verify (VALIDATE)
-2. Run mining without --reviewer to capture all reviewers (MINE)
-3. Confirm output has interactions from multiple reviewers (VERIFY)
-4. Generate team-wide rules document (GENERATE)
-5. Report findings with reviewer distribution (REPORT)
-Result: Team-wide coding rules across both repositories
+**Gate**: User has file paths, pattern counts, and top patterns. They can immediately act on the rules markdown.
 
 ---
 
@@ -294,34 +261,20 @@ Solution:
 3. If stuck: check for network issues or API downtime
 4. For future runs: reduce --limit to smaller batches
 
----
+### Error: "Senior reviewer returns 0-2 interactions"
+Cause: Missing --all-comments flag when mining senior reviewers
+Solution:
+1. Senior reviewers often use questions and suggestions instead of imperative statements
+2. Default mining mode captures only imperative comments
+3. Re-run with `--all-comments` flag to capture all comment types
+4. For future runs: always use `--all-comments` when mining experienced reviewers (Anti-pattern #4)
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Mining Without Verifying Reviewer Username
-**What it looks like**: Running `--reviewer senior-reviewer` without checking the actual GitHub username
-**Why wrong**: Job completes successfully with 0 interactions. Wastes API quota and 5-10 minutes. Username errors are silent.
-**Do instead**: Verify username with `gh pr list --search 'reviewed-by:{username}'` before mining.
-
-### Anti-Pattern 2: Running Multiple Mining Jobs in Parallel
-**What it looks like**: Starting 3+ mining jobs simultaneously to save time
-**Why wrong**: Exhausts 5000 requests/hour rate limit across all jobs. Later jobs fail mid-execution. Cannot track which job consumed quota.
-**Do instead**: Run jobs sequentially. Wait for each to complete before starting the next.
-
-### Anti-Pattern 3: Generating Flat Rules Without Categorization
-**What it looks like**: A numbered list of 50 patterns with no organization or confidence scoring
-**Why wrong**: Overwhelming to read. No way to find relevant patterns. Loses priority context.
-**Do instead**: Categorize by topic (Error Handling, Testing, API Design, etc.) and sort by confidence level within each category. See `references/pattern-categories.md`.
-
-### Anti-Pattern 4: Skipping --all-comments for Senior Reviewers
-**What it looks like**: Mining a senior reviewer without the --all-comments flag and getting 0-2 interactions
-**Why wrong**: Senior reviewers use questions ("Why not use errors.Is here?") and suggestions instead of imperatives. Default mode misses the majority of their feedback.
-**Do instead**: Always use `--all-comments` when mining senior or experienced reviewers.
-
-### Anti-Pattern 5: Testing Multi-Repo Mining Without Single-Repo Validation
-**What it looks like**: Mining 5 repos at once on the first attempt without verifying any individually
-**Why wrong**: If any repo has access issues, entire job fails after minutes of wasted time. Cannot determine which repo caused failure.
-**Do instead**: Test with a single repo and `--limit 10` first. Expand incrementally after confirming access.
+### Error: "Multi-repo mining fails partway through"
+Cause: Running 5+ repos in parallel, early jobs exhaust rate limits, later jobs fail
+Solution:
+1. Check remaining rate quota with `gh rate-limit`
+2. If critically low (<150 remaining): wait for reset before retrying
+3. For future runs: test with a single repo and `--limit 10` first. Expand incrementally after confirming access works. (Anti-pattern #5)
 
 ---
 
@@ -331,12 +284,3 @@ This skill uses these reference files:
 - `${CLAUDE_SKILL_DIR}/references/mining-commands.md`: Command patterns, flag reference, output naming conventions
 - `${CLAUDE_SKILL_DIR}/references/pattern-categories.md`: Standard categories for coding rules (10 categories with examples)
 - `${CLAUDE_SKILL_DIR}/references/reviewer-usernames.md`: Known GitHub usernames and verification methods
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Username is probably right" | Probably = 0 interactions after 5 min | Verify with gh pr list first |
-| "Parallel mining saves time" | Saves nothing when rate limit kills jobs | Run sequentially |
-| "Just dump all patterns" | Flat lists are unusable at 50+ items | Categorize and score confidence |
-| "Low limit is enough" | Small samples produce low-confidence rules | Use --limit 100+ for meaningful patterns |

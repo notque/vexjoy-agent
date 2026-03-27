@@ -33,40 +33,11 @@ routing:
 
 # Plant Seed Skill
 
-## Purpose
+## Overview
 
-Capture forward-looking ideas with trigger conditions so they resurface at the right time. Seeds carry WHY (rationale) and WHEN (trigger), making them far more valuable than bare TODO comments. Seeds are stored locally in `.seeds/` and automatically surfaced during feature-design when their trigger conditions match.
+Capture forward-looking ideas with trigger conditions so they resurface at the right time. Seeds carry WHY (rationale) and WHEN (trigger), making them far more valuable than bare TODO comments.
 
-## Operator Context
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before execution
-- **Local Storage Only**: Seeds go in `.seeds/` which is gitignored -- seeds are personal, not shared via version control. WHY: Different developers have different ideas and different trigger conditions; committing seeds pollutes the shared repo with personal notes.
-- **No Immediate Work**: Seeds are for deferred ideas. If the user describes something that should happen now, suggest creating a task or issue instead. WHY: Planting a seed for current-session work means it never gets surfaced -- it just gets forgotten in a different way.
-- **Breadcrumb Discovery**: Always grep for related files at capture time. WHY: Breadcrumbs preserve code references from capture time. Even if the codebase evolves, these paths help the user re-orient when the seed surfaces months later.
-- **Unique IDs**: Seed IDs follow the format `seed-YYYY-MM-DD-slug` to ensure uniqueness and chronological sorting.
-
-### Default Behaviors (ON unless disabled)
-- **Interactive Capture**: Ask clarifying questions about trigger condition and scope if not provided
-- **Breadcrumb Grep**: Search the codebase for files related to the seed's topic
-- **Confirmation Before Write**: Show the complete seed to the user before saving
-
-### Optional Behaviors (OFF unless enabled)
-- **Batch Planting**: Capture multiple seeds in one session (enable with "plant several seeds")
-- **Seed Review**: List and manage existing seeds (enable with "review seeds" or "list seeds")
-
-## What This Skill CAN Do
-- Capture a deferred idea with structured metadata (trigger, scope, rationale, action, breadcrumbs)
-- Search the codebase for related files to attach as breadcrumbs
-- Store seeds in `.seeds/index.json` with consistent structure
-- List existing seeds and their status
-- Archive seeds that have been harvested or dismissed
-
-## What This Skill CANNOT Do
-- Execute the deferred work (that happens during feature-design when the seed is surfaced)
-- Automatically detect when a trigger condition is met (feature-design does fuzzy matching)
-- Share seeds across machines or developers (seeds are local by design)
-- Create TODOs, issues, or tasks (use appropriate tools for immediate work)
+Seeds are stored locally in `.seeds/` (gitignored) and automatically surfaced during feature-design when their trigger conditions match. This workflow is designed for deferred ideas only — if the user describes work that should happen now, suggest creating a task or issue instead.
 
 ---
 
@@ -75,6 +46,8 @@ Capture forward-looking ideas with trigger conditions so they resurface at the r
 ### Phase 1: CAPTURE
 
 **Goal**: Gather the idea, trigger condition, scope, and rationale from the user.
+
+**Key Constraint**: This skill captures deferred ideas only. If the user describes something that should happen in the current session, suggest creating a task or issue instead. Planting a seed for immediate work means it never gets surfaced — it just gets forgotten in a different way.
 
 **Step 1: Understand the idea**
 
@@ -105,11 +78,15 @@ Format: `seed-YYYY-MM-DD-slug`
 
 Example: `seed-2026-03-22-cache-layer`
 
+Seeds use this consistent ID format to ensure uniqueness and chronological sorting. If two seeds are planted the same day with the same slug, append `-2`, `-3` to the slug.
+
 **Step 3: Discover breadcrumbs**
+
+**Key Constraint**: Breadcrumbs preserve code references from capture time. Even if the codebase evolves, these paths help the user re-orient when the seed surfaces months later. Always grep for related files at capture time.
 
 Search the codebase for files related to the seed's topic. Use the Grep tool with 2-3 key terms from the seed's action and rationale. Collect up to 10 file paths as breadcrumbs.
 
-If no files match, breadcrumbs can be empty -- the seed is still valuable without them.
+If no files match, breadcrumbs can be empty — the seed is still valuable without them.
 
 **Gate**: Idea captured with all required fields (action, trigger, scope, rationale). Breadcrumbs discovered. Proceed to Confirm.
 
@@ -140,6 +117,8 @@ Handle response:
 ### Phase 3: WRITE
 
 **Goal**: Persist the seed to `.seeds/index.json`.
+
+**Key Constraint**: Seeds go in `.seeds/` which is gitignored — seeds are personal, not shared via version control. Different developers have different ideas and different trigger conditions; committing seeds pollutes the shared repo with personal notes.
 
 **Step 1: Ensure directory exists**
 
@@ -232,32 +211,11 @@ To archive: remove the seed from `index.json` and write it as a standalone file 
 | Duplicate seed ID | Two seeds planted same day with same slug | Append `-2`, `-3` to slug |
 | No breadcrumbs found | Idea is forward-looking, no related code yet | Plant with empty breadcrumbs -- still valuable |
 | User describes immediate work | Seed system is for deferred work | Suggest creating a task or doing the work now |
-
-## Anti-Patterns
-
-| Anti-Pattern | Why Wrong | Do Instead |
-|--------------|-----------|------------|
-| Planting seeds for current-session work | Seeds are for deferred ideas, not TODOs | Create a task or do the work now |
 | Vague trigger like "someday" or "eventually" | Cannot be matched during feature-design | Ask for a specific, observable condition |
 | Missing rationale ("it would be nice") | Without WHY, the seed loses value when surfaced months later | Capture the specific insight or observation |
-| Planting too many seeds at once | Seed fatigue -- too many dormant seeds become noise | Keep seeds focused and high-signal |
-| Storing seeds in version control | Seeds are personal/local; committing pollutes shared repo | Keep in gitignored `.seeds/` directory |
 
-## Anti-Rationalization
-
-See [core patterns](../shared-patterns/anti-rationalization-core.md).
-
-Domain-specific for plant-seed:
-
-| Rationalization | Why Wrong | Action |
-|-----------------|-----------|--------|
-| "I'll remember this idea" | You won't -- context is ephemeral | Plant the seed now |
-| "A TODO comment is enough" | TODOs lack trigger conditions and rationale | Use seed for deferred work, TODO for next-session work |
-| "The trigger is obvious" | Obvious to you now, opaque in 3 months | Write an explicit, human-readable trigger condition |
-| "Breadcrumbs aren't important" | Code references ground the seed in the codebase | Always grep, even if results are sparse |
-| "This seed is too small to bother" | Small seeds with good triggers have the best signal-to-noise | Plant it -- small seeds are low cost, high value |
+---
 
 ## References
 
 - [Feature Design](../feature-design/SKILL.md) - Seeds are surfaced during feature-design Phase 0
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Core rationalization prevention
