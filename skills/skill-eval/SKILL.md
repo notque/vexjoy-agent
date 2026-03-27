@@ -39,40 +39,6 @@ routing:
 
 Measure and improve skill quality through empirical testing — because structure doesn't guarantee behavior, and measurement beats assumption.
 
-## Operator Context
-
-This skill operates as the eval-driven improvement pipeline for Claude Code skills. It provides four capabilities: trigger evaluation, description optimization, output benchmarking, and structural validation.
-
-### Hardcoded Behaviors (Always Apply)
-- **Measure before changing**: Always run baseline eval before making improvements
-- **Train/test split**: Use 60/40 holdout to prevent overfitting descriptions
-- **Generalize, don't overfit**: Improvements should help across many prompts, not just test cases
-- **Report results**: Always show before/after metrics
-
-### Default Behaviors (ON unless disabled)
-- **HTML reports**: Generate visual reports for description optimization
-- **Verbose output**: Show per-query pass/fail during eval runs
-- **3 runs per query**: Run each trigger test 3 times for reliability
-
-### Optional Behaviors (OFF unless enabled)
-- **Blind A/B comparison**: Use comparator agent for unbiased output comparison
-- **Full benchmark suite**: Run aggregate benchmarks with timing and token metrics
-
-## What This Skill CAN Do
-- Test whether a skill's description triggers correctly for a set of queries
-- Optimize descriptions via automated eval+improve loop (train/test split)
-- Benchmark skill output quality (with-skill vs without-skill)
-- Validate skill structure (frontmatter, naming, description length)
-- Generate HTML reports for visual review
-
-## What This Skill CANNOT Do
-- Create new skills from scratch (use skill-creator)
-- Modify skill instructions automatically (human reviews changes)
-- Test skills that require specific MCP servers or external services
-- Run evals without the `claude` CLI available
-
----
-
 ## Instructions
 
 ### Phase 1: ASSESS — Determine what to evaluate
@@ -84,10 +50,12 @@ This skill operates as the eval-driven improvement pipeline for Claude Code skil
 python3 -m scripts.skill_eval.quick_validate <path/to/skill>
 ```
 
-**Step 2: Choose evaluation mode**
+This checks: SKILL.md exists, valid frontmatter, required fields (name, description), kebab-case naming, description under 1024 chars, no angle brackets.
 
-| User Intent | Mode | Script |
-|------------|------|--------|
+**Step 2: Choose evaluation mode based on user intent**
+
+| Intent | Mode | Script |
+|--------|------|--------|
 | "Test if description triggers correctly" | Trigger eval | `run_eval.py` |
 | "Optimize/improve the description" | Description optimization | `run_loop.py` |
 | "Compare skill vs no-skill output" | Output benchmark | Manual + `aggregate_benchmark.py` |
@@ -103,15 +71,17 @@ Test whether a skill's description causes Claude to invoke it for the right quer
 
 **Step 1: Create eval set** (or use existing)
 
-Create a JSON file with 8-20 test queries:
+Create a JSON file with 8-20 test queries. **Eval set quality matters** — use realistic prompts with detail (file paths, context, casual phrasing), not abstract one-liners. Focus on edge cases where the skill competes with adjacent skills.
+
+Example of good eval queries:
 ```json
 [
-  {"query": "realistic user prompt that should trigger", "should_trigger": true},
-  {"query": "similar but different domain prompt", "should_trigger": false}
+  {"query": "ok so my boss sent me this xlsx file (Q4 sales final FINAL v2.xlsx) and she wants profit margin as a percentage", "should_trigger": true},
+  {"query": "Format this data", "should_trigger": false}
 ]
 ```
 
-**Eval set quality matters** — use realistic prompts with detail (file paths, context, casual phrasing), not abstract one-liners. Focus on edge cases where the skill competes with adjacent skills.
+**Why**: Real users write detailed, specific prompts. Abstract queries don't test real triggering behavior. Overfitting descriptions to abstract test cases bloats the description and fails on real usage.
 
 **Step 2: Run evaluation**
 
@@ -123,13 +93,18 @@ python3 -m scripts.skill_eval.run_eval \
   --verbose
 ```
 
-This spawns `claude -p` for each query, checking whether it invokes the skill. Output includes pass/fail per query with trigger rates.
+This spawns `claude -p` for each query, checking whether it invokes the skill. Runs each query 3 times for reliability. Output includes pass/fail per query with trigger rates. Default 30s timeout; increase with `--timeout 60` if needed for complex queries.
+
+**Constraints applied**:
+- Always run baseline eval before making improvements
+- 3 runs per query ensures statistical reliability
+- Verbose output shows per-query pass/fail during eval runs
 
 **GATE**: Eval results available. Proceed to improvement if failures found.
 
 #### Mode B: Description Optimization
 
-Automated loop that tests, improves, and re-tests descriptions.
+Automated loop that tests, improves, and re-tests descriptions using Claude with extended thinking.
 
 ```bash
 python3 -m scripts.skill_eval.run_loop \
@@ -141,13 +116,17 @@ python3 -m scripts.skill_eval.run_loop \
 ```
 
 This will:
-1. Split eval set 60/40 train/test (stratified by should_trigger)
-2. Evaluate current description on all queries (3 runs each)
-3. Use Claude with extended thinking to propose improvements based on failures
+1. Split eval set 60/40 train/test (stratified by should_trigger) — prevents overfitting to test cases
+2. Evaluate current description on all queries (3 runs each for reliability)
+3. Use Claude with extended thinking to propose improvements based on training failures
 4. Re-evaluate the new description
 5. Repeat until all pass or max iterations reached
-6. Select best description by **test** score (prevents overfitting)
+6. Select best description by **test** score (not train score — prevents overfitting)
 7. Open an HTML report in the browser
+
+**Why 60/40 split**: Improvements should help across many prompts, not just test cases. Training on failures, validating on holdout ensures generalization.
+
+**Why report HTML**: Visual reports enable quick review of which queries improved, which regressed, and what the new description looks like.
 
 **GATE**: Loop complete. Best description identified.
 
@@ -163,9 +142,11 @@ For each test prompt, spawn two agents:
 - **With skill**: Load the skill, run the prompt, save outputs
 - **Without skill** (baseline): Same prompt, no skill, save outputs
 
+**Why baseline matters**: Can't prove the skill adds value without a baseline. Maybe Claude handles it fine without the skill. The delta is what matters.
+
 **Step 3: Grade outputs**
 
-Spawn a grader subagent using the prompt in `agents/grader.md`. It evaluates assertions against the outputs.
+Spawn a grader subagent using `agents/grader.md`. It evaluates assertions against the outputs.
 
 **Step 4: Aggregate**
 
@@ -211,6 +192,8 @@ If description optimization found a better description:
 3. Update the skill's SKILL.md frontmatter
 4. Re-run quick_validate to confirm the update is valid
 
+**Constraint**: Always show results before/after with metrics. This enables informed decisions.
+
 **GATE**: Changes applied and validated, or user chose to keep original.
 
 ---
@@ -239,25 +222,6 @@ If description optimization found a better description:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Abstract Eval Queries
-**What it looks like**: `"Format this data"`, `"Create a chart"`
-**Why wrong**: Real users write detailed, specific prompts. Abstract queries don't test real triggering behavior.
-**Do instead**: `"ok so my boss sent me this xlsx file (Q4 sales final FINAL v2.xlsx) and she wants profit margin as a percentage"`
-
-### Anti-Pattern 2: Overfitting to Test Cases
-**What it looks like**: Adding specific query text to the description to force triggers
-**Why wrong**: Works for test set, fails on real usage. Bloats the description.
-**Do instead**: Generalize from failures to broader categories of user intent.
-
-### Anti-Pattern 3: Skipping Baseline
-**What it looks like**: Running with-skill only, no without-skill comparison
-**Why wrong**: Can't prove the skill adds value without a baseline. Maybe Claude handles it fine without the skill.
-**Do instead**: Always run both configurations. The delta is what matters.
-
----
-
 ## References
 
 ### Scripts (in `scripts/skill_eval/`)
@@ -275,7 +239,3 @@ If description optimization found a better description:
 
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/schemas.md` — JSON schemas for evals.json, grading.json, benchmark.json
-
-### Shared Patterns
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md)
-- [Verification Checklist](../shared-patterns/verification-checklist.md)

@@ -30,52 +30,11 @@ routing:
 
 # Skill Composer
 
-## Purpose
+## Overview
 
-Orchestrate complex workflows by chaining multiple skills into validated execution DAGs. Discovers applicable skills, resolves dependencies, validates compatibility, presents execution plans, and manages skill-to-skill context passing.
+Orchestrate complex workflows by chaining multiple skills into validated execution DAGs. This skill discovers applicable skills, resolves dependencies, validates compatibility, presents execution plans, and manages skill-to-skill context passing. Use when a task requires 2+ skills chained together, parallel skill execution, or conditional branching between skills. Do NOT use when a single skill can handle the request alone, or for simple sequential invocation that needs no dependency management.
 
-## Operator Context
-
-This skill operates as an operator for multi-skill orchestration, configuring Claude's behavior for DAG-based workflow composition with dependency resolution and context passing between skills.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before composing any workflow
-- **Over-Engineering Prevention**: Only compose skills that are directly requested. Prefer simple 2-3 skill chains over complex orchestrations. Do not add speculative skills or "nice to have" additions without explicit user request
-- **Dry Run First**: ALWAYS show execution plan and get user confirmation before running skills
-- **DAG Validation**: ALWAYS validate execution graph is acyclic before execution
-- **Context Validation**: ALWAYS verify output/input compatibility between chained skills
-- **Error Isolation**: ALWAYS catch skill failures and determine if remaining chain can continue
-- **Skill Discovery**: Scan skills/*/SKILL.md for available skills before building any DAG
-
-### Default Behaviors (ON unless disabled)
-- **Communication Style**: Report facts without self-congratulation. Show command output rather than describing it. Be concise but informative.
-- **Temporary File Cleanup**: Remove temporary files (skill index, DAG files, intermediate outputs) at task completion. Keep only files explicitly needed for final output.
-- **Parallel Optimization**: Execute independent skills concurrently when no shared resources or dependencies exist
-- **Verbose Logging**: Show skill selection reasoning and execution progress for each phase
-- **Compatibility Checks**: Validate skill input/output formats match before execution using `references/compatibility-matrix.md`
-- **Pattern Recognition**: Suggest known composition patterns from `references/composition-patterns.md` when applicable
-
-### Optional Behaviors (OFF unless enabled)
-- **Auto-retry Failed Skills**: Retry failed skills with adjusted parameters (max 2 retries)
-- **Adaptive Composition**: Modify execution plan based on intermediate results
-- **Skill Suggestion**: Proactively suggest additional skills that might help
-
-## What This Skill CAN Do
-- Discover available skills and build execution DAGs with dependency resolution
-- Chain skills sequentially, in parallel, or with conditional branching
-- Validate composition compatibility (acyclic, type-safe, ordered)
-- Pass context between skills with output/input transformation
-- Handle partial failures with isolation and recovery options
-- Present dry-run execution plans before committing to execution
-
-## What This Skill CANNOT Do
-- Execute skills without showing the plan first (dry run is mandatory)
-- Compose workflows with circular dependencies
-- Chain skills with incompatible input/output types without transformation
-- Replace single-skill invocation (if one skill suffices, use it directly)
-- Skip DAG validation to save time
-
----
+**Core principle**: Minimize composition overhead. Prefer simple 2-3 skill chains. Do not add speculative skills or "nice to have" additions without explicit user request.
 
 ## Instructions
 
@@ -93,6 +52,8 @@ Identify:
 
 **Step 2: Discover available skills**
 
+Before building any DAG, scan skills/*/SKILL.md for available skills:
+
 ```bash
 # TODO: scripts/discover_skills.py not yet implemented
 # Manual alternative: scan skills directory for SKILL.md files
@@ -101,9 +62,9 @@ find ./skills -name "SKILL.md" -exec grep -l "^name:" {} \; | sort
 
 Review the discovered skills. Categorize by type (workflow, testing, quality, documentation, code-analysis, debugging) with dependency metadata.
 
-**Step 3: Select skills**
+**Step 3: Select skills (Apply minimum-skills principle)**
 
-Choose only skills directly needed for the stated goals. Apply the minimum-skills principle:
+Choose only skills directly needed for the stated goals. This prevents over-composition and unnecessary failure points:
 
 - Can a single skill handle this? If yes, do NOT compose. Invoke it directly.
 - Can 2 skills handle this? Prefer that over 3+.
@@ -119,24 +80,19 @@ Cross-reference selections against `references/compatibility-matrix.md` to confi
 
 **Step 1: Build the DAG**
 
+Construct the execution DAG as a JSON structure with nodes (skills) and edges (dependencies) based on the task analysis:
+
 ```bash
 # TODO: scripts/build_dag.py not yet implemented
-# Manual alternative: construct the execution DAG as a JSON structure
-# with nodes (skills) and edges (dependencies) based on the task analysis
+# Manual alternative: structure the DAG in your reasoning before presenting it
 ```
 
-**Step 2: Validate the DAG**
+**Step 2: Validate the DAG (MANDATORY before execution)**
 
-Validate the execution DAG manually by checking:
-- No circular dependencies exist between skills
-- Output types from each skill match input requirements of downstream skills
-- All referenced skills exist in the skill index
-- Dependencies satisfy topological ordering
-
-Validation checks:
-- **Acyclic**: No circular dependencies
-- **Compatibility**: Output types match input requirements (consult `references/compatibility-matrix.md`)
-- **Availability**: All referenced skills exist in the index
+ALWAYS validate the execution graph is acyclic before moving to execution. Validation checks:
+- **Acyclic**: No circular dependencies exist between skills
+- **Compatibility**: Output types from each skill match input requirements of downstream skills (consult `references/compatibility-matrix.md`)
+- **Availability**: All referenced skills exist in the skill index
 - **Ordering**: Dependencies satisfy topological ordering
 
 If validation fails, fix the issue and re-validate. Common fixes:
@@ -145,7 +101,9 @@ If validation fails, fix the issue and re-validate. Common fixes:
 - Missing skill: Check spelling, re-run discovery
 - Ordering violation: Reorder phases to satisfy dependencies
 
-**Step 3: Present the execution plan**
+**Step 3: Present the execution plan (Dry run is MANDATORY)**
+
+ALWAYS show the execution plan and get user confirmation before running skills. This prevents wasting time on composition errors:
 
 ```
 === Execution Plan ===
@@ -184,19 +142,20 @@ Proceed? [Y/n]
 For sequential phases:
 1. Invoke skill with context from previous phases
 2. Capture output
-3. Verify output matches expected type
+3. Verify output/input compatibility between chained skills
 4. Proceed to next phase
 
 For parallel phases:
-1. Launch all independent skills using Task tool
+1. Launch all independent skills using Task tool (execute independent skills concurrently when no shared resources or dependencies exist)
 2. Wait for all to complete
 3. Aggregate results for next phase
 
 **Step 2: Pass context between skills**
 
-For each skill transition:
+ALWAYS verify output/input compatibility between chained skills before passing context:
+
 1. Capture output from completed skill
-2. Transform to format expected by next skill
+2. Transform to format expected by next skill (validate using `references/compatibility-matrix.md`)
 3. Inject as context when invoking next skill
 4. Verify transformation succeeded
 
@@ -207,9 +166,11 @@ After each phase completes, report:
 - Output summary
 - Overall progress (e.g., "Phase 2/3 complete")
 
+Show command output rather than describing it. Be concise but informative.
+
 **Step 4: Handle failures during execution**
 
-If a skill fails mid-chain:
+ALWAYS catch skill failures and determine if remaining chain can continue. If a skill fails mid-chain:
 
 1. **Assess impact**: Does this block downstream skills?
    - Critical (blocks all downstream): Stop chain, report what completed
@@ -262,40 +223,12 @@ Final Output:
 
 **Step 2: Clean up temporary files**
 
-Remove: `/tmp/skill-index.json`, `/tmp/execution-dag.json`, and any intermediate output files created during composition.
+Remove temporary files at task completion. Keep only files explicitly needed for final output:
+- `/tmp/skill-index.json`
+- `/tmp/execution-dag.json`
+- Any intermediate output files created during composition
 
 **Gate**: Results reported. Temporary files cleaned up. Composition complete.
-
----
-
-## Examples
-
-### Example 1: Feature with Tests
-User says: "Add rate limiting middleware with comprehensive tests"
-Actions:
-1. DISCOVER: Identify implementation + testing goals. Select workflow-orchestrator, test-driven-development, verification-before-completion
-2. PLAN: Build 3-phase sequential DAG. Validate compatibility. Show plan.
-3. EXECUTE: Phase 1 creates subtasks, Phase 2 implements with TDD, Phase 3 verifies
-4. REPORT: All phases complete, 24 tests pass, 94% coverage
-Result: 3-skill chain, 32 minutes, no failures
-
-### Example 2: Parallel Quality Checks
-User says: "Check code quality and documentation before PR"
-Actions:
-1. DISCOVER: Identify quality + documentation goals. Select code-linting, comment-quality, verification-before-completion
-2. PLAN: Phase 1 runs code-linting and comment-quality in parallel (no shared resources). Phase 2 runs verification sequentially.
-3. EXECUTE: Parallel phase completes in ~6 seconds (vs 10 sequential). Verification merges results.
-4. REPORT: 33% time savings from parallelization, all checks pass
-Result: 3-skill chain with 1 parallel phase, 8 minutes
-
-### Example 3: Research Before Implementation
-User says: "Implement pagination following existing patterns"
-Actions:
-1. DISCOVER: Identify research + implementation goals. Select pr-miner, codebase-analyzer, workflow-orchestrator, test-driven-development
-2. PLAN: Phase 1 runs pr-miner and codebase-analyzer in parallel. Phase 2 plans with orchestrator. Phase 3 implements with TDD.
-3. EXECUTE: Research discovers cursor-based pagination convention. Plan follows it. Implementation matches.
-4. REPORT: Pattern compliance 100%, all tests pass
-Result: 4-skill chain with 1 parallel phase, 42 minutes
 
 ---
 
@@ -333,54 +266,8 @@ Solution:
 3. Verify the skill directory exists under skills/
 4. Use the suggested alternative from the discovery output if the name was close
 
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Over-Composition
-**What it looks like**: User asks "Add a login feature" and response chains 6 skills: workflow-orchestrator, TDD, code-linting, comment-quality, code-review, verification
-**Why wrong**: Adds unnecessary overhead. Most skills don't add value for a simple feature request. 2-3 skills would suffice.
-**Do instead**: Use test-driven-development directly. Only compose multiple skills when the task explicitly requires orchestration.
-
-### Anti-Pattern 2: Skipping the Dry Run
-**What it looks like**: Immediately executing skills without showing the plan
-**Why wrong**: User cannot catch composition errors early. No opportunity to adjust before wasting time. Violates the "Dry Run First" hardcoded behavior.
-**Do instead**: Always present the execution plan and wait for confirmation before proceeding.
-
-### Anti-Pattern 3: Sequential When Parallel Is Safe
-**What it looks like**: Running code-linting, then comment-quality, then go-pr-quality-gate in sequence when all three are independent
-**Why wrong**: Forces ~15 minutes of sequential execution when ~5 minutes parallel would work. No dependencies exist between them.
-**Do instead**: Analyze dependencies carefully. Independent skills with no shared resources run in parallel.
-
-### Anti-Pattern 4: Incompatible Skill Chaining
-**What it looks like**: Chaining test-driven-development (outputs: Go source files) into pr-miner (expects: Git repository URL)
-**Why wrong**: Output type does not match input type. Will fail at runtime with a compatibility error.
-**Do instead**: Consult `references/compatibility-matrix.md` during planning. Only chain skills with compatible interfaces.
-
-### Anti-Pattern 5: Forgetting Cleanup
-**What it looks like**: After composition completes, /tmp/ contains skill-index.json, execution-dag.json, and multiple intermediate output files
-**Why wrong**: Temporary files accumulate across sessions, may contain sensitive data, and clutter the filesystem.
-**Do instead**: Always execute cleanup in the REPORT phase. Remove all temporary files created during composition. Keep only files explicitly needed for the final output.
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "One skill can probably handle all of this" | Complex tasks need specialized skills | Discover applicable skills, compose what's needed |
-| "No need to validate the DAG, it's simple" | Simple DAGs can still have type mismatches | Run validation script every time |
-| "User doesn't need to see the plan" | Skipping dry run violates hardcoded behavior | Present plan, wait for confirmation |
-| "I'll add a few extra skills for quality" | Over-composition wastes time and adds failure points | Only compose skills explicitly needed |
-
-### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/composition-patterns.md`: Proven multi-skill composition patterns with duration estimates
 - `${CLAUDE_SKILL_DIR}/references/compatibility-matrix.md`: Skill input/output compatibility and valid chains
 - `${CLAUDE_SKILL_DIR}/references/skill-patterns.md`: Common skill patterns with sequential/parallel decision trees
-- `${CLAUDE_SKILL_DIR}/references/examples.md`: Real-world composition examples with execution output

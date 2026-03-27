@@ -51,57 +51,11 @@ routing:
 
 ---
 
-## Operator Context
+## Overview
 
-### Hardcoded Behaviors (Always Apply)
-- **Domain-Scoped References**: Each agent loads ONLY its domain-specific reference file (see Reference Loading Strategy). The essential rules are inline in each agent's dispatch prompt.
-- **Domain Specialist Model**: Agents are assigned by rule domain (testing, errors, types, etc.), NOT by package. Each agent scans ALL packages for their domain's violations.
-- **Code-Level Findings Only**: Every finding must include actual code from the repo and a concrete CORRECT version. Abstract suggestions are forbidden.
-- **Cite Rule Source**: Every finding must cite the section number from sapcc-code-patterns.md (e.g., "§30.1: httptest.Handler migration").
-- **Directive Review Voice**: Frame findings as the lead reviewer would state them in a PR comment. Use the project's established review phrases where applicable.
-- **Audit Only By Default**: READ and REPORT. Do NOT modify code unless `--fix` is specified.
-- **Skip Generic Go**: Do NOT report generic Go best practices. Only report patterns that are specifically sapcc/project-convention divergences.
+This skill executes a gold-standard code review against SAP Converged Cloud Go repository standards through parallel domain specialists. Rather than one generalist reviewing one package, ten specialists review all packages for their specific domain (error handling, testing, types, HTTP APIs, etc.). This catches systemic patterns that package-level reviews miss.
 
-### Default Behaviors (ON unless disabled)
-- **gopls MCP Integration**: All review agents MUST use gopls MCP tools when available — `go_workspace` at start, `go_file_context` for dependency analysis, `go_symbol_references` for cross-package impact tracing, `go_diagnostics` for build verification. This gives type-aware analysis instead of text-only grep.
-- **Save Report**: Write findings to `sapcc-review-report.md` in repo root
-- **Quick Wins Section**: Identify the 5 easiest fixes with highest impact
-- **Cross-Repository Reinforcement**: Weight findings higher when the violated rule appears in 4+ repos per §35
-
-### Optional Behaviors (OFF unless enabled)
-- **--fix**: Create worktree, apply fixes, run tests, create branch
-- **--focus [package]**: Audit only one package (runs 3 agents instead of 10)
-- **--severity [critical|high|medium|all]**: Only report findings at or above severity
-
----
-
-## Reference Loading Strategy
-
-Reference files live at `skills/go-sapcc-conventions/references/` (or `~/.claude/skills/go-sapcc-conventions/references/` globally).
-
-**Key change from v0**: Agents load ONLY their domain-specific reference, NOT the full patterns file. The essential rules are already embedded in each agent's dispatch prompt below. Reference files provide supplementary depth.
-
-**Per-agent reference loading** (included in each agent's dispatch prompt):
-
-| Agent | Domain Reference to Load |
-|-------|--------------------------|
-| 1 (Signatures/Config) | `review-standards-lead.md` |
-| 2 (Types/Option[T]) | `architecture-patterns.md` |
-| 3 (HTTP/API) | `api-design-detailed.md` |
-| 4 (Error Handling) | `error-handling-detailed.md` |
-| 5 (Database/SQL) | (none — rules inline) |
-| 6 (Testing) | `testing-patterns-detailed.md` |
-| 7 (Pkg Org/Imports) | `architecture-patterns.md` |
-| 8 (Modern Go/Stdlib) | (none — rules inline) |
-| 9 (Observability/Jobs) | (none — rules inline) |
-| 10 (Anti-Patterns/LLM) | `anti-patterns.md` |
-
-**Optional deep-dive** (load only when findings need calibration):
-- `sapcc-code-patterns.md` — Comprehensive 36-section reference. Only load specific sections, not the entire file.
-- `pr-mining-insights.md` — Review severity calibration
-- `library-reference.md` — Approved/forbidden dependency table
-
-**Anti-pattern**: Loading ALL reference files into EVERY agent wastes context and dilutes focus. Each agent should load only what it needs.
+Each specialist loads only its domain-specific reference file to keep context tight and focus deep. Findings are code-level (actual rejected/correct examples, never abstract suggestions) and cite specific sections from sapcc-code-patterns.md.
 
 ---
 
@@ -176,12 +130,12 @@ Comprehensive code review of [repo] against project standards, dispatching 10 do
 
 **Goal**: Launch 10 domain-specialist agents in a SINGLE message for true parallel execution.
 
-**CRITICAL**: All 10 agents must be dispatched in ONE message using the Agent tool. Do NOT serialize them.
+**CRITICAL**: All 10 agents must be dispatched in ONE message using the Agent tool. Do NOT serialize them. Serializing agents wastes time since domain specialists operate independently on disjoint concerns.
 
 Each agent receives:
 1. The path to sapcc-code-patterns.md to read
 2. Their assigned sections to focus on
-3. Their domain-specific reference file(s) to read
+3. Their domain-specific reference file (loaded to avoid context dilution; each agent reads ONLY what it needs because loading all references into every agent wastes context and dilutes focus)
 4. Instructions to scan ALL .go files in the repo
 5. The exact output format for findings
 
@@ -567,59 +521,85 @@ Update `sapcc-review-report.md` with:
 
 ---
 
-## Calibration: What Makes This Gold Standard
+### Phase 4: FIX (Optional — only with `--fix` flag)
 
-### Why 10 Domain Specialists > N Package Generalists
+**Goal**: Apply fixes on an isolated branch.
 
-| Approach | Strength | Weakness |
-|----------|----------|----------|
-| **Package generalist** (sapcc-audit) | Understands file-level context | Must remember ALL rules for every file |
-| **Domain specialist** (sapcc-review) | Deep expertise in one rule domain | May miss cross-concern interactions |
+**Step 1: Create worktree**
 
-**Combination is ideal**: Run `/sapcc-review` for comprehensive rule coverage, then `/sapcc-audit` for holistic package-level review.
+Use `EnterWorktree` to create an isolated copy. Name it `sapcc-review-fixes`.
 
-### Why Read sapcc-code-patterns.md First
+**Step 2: Apply Quick Wins first**
 
-The comprehensive reference is the single source of truth. Without reading it, agents default to community Go conventions — which are WRONG for 12+ patterns the project explicitly diverges from (§22). The reference file IS the competitive advantage.
+Start with Quick Wins (lowest risk). After each group of fixes:
 
-### What "Gold Standard" Means
+```bash
+go build ./...    # Must still compile
+go vet ./...      # Must pass vet
+make check 2>/dev/null || go test ./...  # Must pass tests
+```
 
-1. **Complete coverage**: Every section in sapcc-code-patterns.md has a specialist agent checking for it
-2. **Low false positives**: Agents skip generic Go advice and only report sapcc-specific divergences
-3. **Actionable findings**: Every finding has REJECTED code and CORRECT code
-4. **Prioritized output**: Cross-repo reinforcement weights findings by importance
-5. **Reproducible**: Same repo + same reference = same findings
-6. **Quick Wins first**: Operator can fix 10 easy things immediately for rapid improvement
+**Step 3: Apply Critical and High fixes**
 
----
+Apply in order. Run tests between each fix. If a fix breaks tests, revert it and note in the report.
 
-## Anti-Patterns
+**Step 4: Create commit**
 
-### AP-1: Not Reading the References
-**What it looks like**: Agent starts reviewing without reading sapcc-code-patterns.md
-**Why wrong**: Without the reference, agents generate findings based on community Go advice, which diverges from the project's preferences in 12+ areas
-**Do instead**: ALWAYS read sapcc-code-patterns.md FIRST. This is hardcoded behavior.
+```bash
+git add -A
+git commit -m "fix: apply sapcc-review findings (N fixes across M files)"
+```
 
-### AP-2: Reporting Generic Go Issues
-**What it looks like**: "Add t.Parallel()", "Use context.Context as first param"
-**Why wrong**: The lead reviewer doesn't care about these. The focus is on over-engineering, dead code, and error quality.
-**Do instead**: Only report patterns that match rules in sapcc-code-patterns.md
+**Step 5: Report results**
 
-### AP-3: Suggesting More Complexity
-**What it looks like**: "Add a config validation layer", "Create an error registry"
-**Why wrong**: The #1 concern in lead review is over-engineering. Never suggest adding abstraction.
-**Do instead**: Suggest REMOVING complexity. "Delete this wrapper" > "Add this wrapper"
-
-### AP-4: Abstract Findings Without Code
-**What it looks like**: "Error handling could be improved in package X"
-**Why wrong**: Not actionable. Lead reviews always show exact code.
-**Do instead**: Show the actual line, the actual code, and the actual fix.
+Update `sapcc-review-report.md` with:
+- Which findings were fixed
+- Which findings were skipped (and why)
+- Test results after fixes
 
 ---
 
-## Integration
+## Error Handling
 
-- **Router**: `/do` routes via "sapcc review", "sapcc lead review", "comprehensive sapcc audit"
-- **Complements**: `/sapcc-audit` (package-level generalist) — use both for maximum coverage
-- **Prerequisite**: go-sapcc-conventions skill must be installed at `~/.claude/skills/go-sapcc-conventions/`
-- **Sync**: After creating, run `cp -r skills/sapcc-review ~/.claude/skills/sapcc-review` for global access
+**When an agent fails or produces empty findings**:
+1. Verify the repo has Go files (some repos may be non-Go or already pass review completely)
+2. Check agent logs for permission errors or gopls MCP connection failures
+3. If agent timed out, increase timeout or split the 10 agents into two waves of 5
+4. If agent reports "no findings", it has completed successfully — that domain is clean
+
+**When a finding looks wrong** (e.g., false positive):
+- Cross-check with sapcc-code-patterns.md section cited in the finding
+- If it contradicts the reference, note the discrepancy and file in toolkit issue
+- If it applies to pre-existing code older than the rule's introduction, mark as LOW and note in systemic recommendations
+
+**When `--fix` breaks tests**:
+1. Revert the failed fix
+2. Note in report that this finding needs manual review
+3. Document the test failure reason so the maintainer understands the blocker
+4. Continue with next fix rather than stopping the whole process
+
+---
+
+## References
+
+- **sapcc-code-patterns.md** — Comprehensive 36-section reference (single source of truth for all review rules)
+- **Per-agent reference files** (loaded during dispatch):
+  - Agent 1: `review-standards-lead.md`
+  - Agent 2: `architecture-patterns.md`
+  - Agent 3: `api-design-detailed.md`
+  - Agent 4: `error-handling-detailed.md`
+  - Agent 5: (none — rules inline in §7 + §27)
+  - Agent 6: `testing-patterns-detailed.md`
+  - Agent 7: `architecture-patterns.md`
+  - Agent 8: (none — rules inline in §14, §15, §29)
+  - Agent 9: (none — rules inline in §16-18, §20)
+  - Agent 10: `anti-patterns.md`
+- **Optional deep-dive references** (load only when findings need calibration):
+  - `pr-mining-insights.md` — Review severity calibration across projects
+  - `library-reference.md` — Approved/forbidden dependency table
+
+**Integration notes**:
+- Complements `/sapcc-audit` (package-level generalist) — use both for maximum coverage
+- Prerequisite: go-sapcc-conventions skill must be installed at `~/.claude/skills/go-sapcc-conventions/`
+- Sync: After creating, run `cp -r skills/sapcc-review ~/.claude/skills/sapcc-review` for global access
+- Router: `/do` routes via "sapcc review", "sapcc lead review", "comprehensive sapcc audit"
