@@ -147,64 +147,53 @@ skill-name/
 
 Bundled agents are referenced from SKILL.md: "Spawn a subagent using the prompt in `agents/grader.md`". They don't appear in the routing system — they're internal to the skill's workflow.
 
-## Operator Context Section
-
-```markdown
-## Operator Context
-
-This skill operates as an operator for [workflow], configuring Claude's behavior for [automation context].
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files
-- **Over-Engineering Prevention**: Only implement what's directly requested
-- [Domain-specific constraint]
-
-### Default Behaviors (ON unless disabled)
-- **Communication**: Show complete output, never summarize
-- **Temp File Cleanup**: Remove iteration files at completion
-- [Workflow-specific default]
-
-### Optional Behaviors (OFF unless enabled)
-- [Capability available on request]
-
-## What This Skill CAN Do
-- [Explicit capability 1]
-- [Explicit capability 2]
-
-## What This Skill CANNOT Do
-- [Limitation 1]: [Reason]
-- [Limitation 2]: [Reason]
-```
-
 ## Instructions Section
+
+Constraints belong **inline** within the workflow step where they apply, not in a
+separate `## Operator Context` block. If a constraint matters during Phase 2, put
+it in Phase 2 — not in a preamble 200 lines above where the model encounters it.
+Explain the reasoning alongside each constraint (see "Motivation over Mandate" below).
 
 ```markdown
 ## Instructions
 
-### Step 1: [First Action]
+### Overview
+
+[2-3 sentences: what this skill does and how it works end-to-end]
+
+### Phase 1: [First Phase Name]
+
+[What to do here — goal and actions]
+
 Run: `python3 ~/.claude/scripts/main.py --input {input_file}`
 Expect: [Specific output format]
-Validate: [How to verify success]
 
-### Step 2: [Next Action]
-[Continue with explicit steps]
+Gate: [Condition that must be true before moving to Phase 2]
+— because [reason the gate exists]
 
-## Examples
+### Phase 2: [Second Phase Name]
 
-### Example 1: [Common Scenario]
-User says: "[trigger phrase]"
-Actions:
-1. [Step]
-2. [Step]
-Result: [Concrete outcome]
+[What to do here]
+
+Constraint: [Domain-specific rule that applies HERE]
+— because [why this matters in this context]
+
+> If SKILL.md exceeds 500 lines: extract detailed content to `references/`
+> and add a one-liner here: "See `references/X.md` for the full [checklist/rubric/template]."
+
+### Phase 3: [Output Phase]
+
+[Produce the output artifact]
 
 ## Error Handling
+
 **Error: "[Error message]"**
 - Cause: [Why it happens]
 - Solution: [How to fix]
 
 ## Reference Files
-- `references/examples.md`: [Purpose]
+- `references/examples.md`: [Purpose — loaded only when this skill executes]
+- `references/checklist.md`: [Phase 2 checklist — deep content extracted from SKILL.md]
 ```
 
 ### Best Practices for Instructions
