@@ -38,65 +38,23 @@ routing:
 
 # Fish Shell Configuration Skill
 
-## Operator Context
-
-This skill operates as an operator for Fish shell configuration tasks, configuring Claude's behavior for correct Fish syntax and idioms. It implements **Domain Intelligence** — Fish-specific patterns that differ fundamentally from Bash/POSIX — ensuring generated shell code actually works in Fish.
-
-### Hardcoded Behaviors (Always Apply)
-- **Fish Syntax Only**: Never emit Bash syntax (`VAR=value`, `[[ ]]`, `export`, heredocs) in Fish contexts
-- **Variables Are Lists**: Treat every Fish variable as a list; never use colon-separated PATH strings
-- **No Word Splitting**: `$var` and `"$var"` are identical in Fish; do not add defensive quotes for word-splitting
-- **`test` Over Brackets**: Use `test` builtin, never `[[ ]]` or `[ ]`
-- **`set` Over Assignment**: Variable assignment is always `set VAR value`, never `VAR=value`
-- **Filename = Function Name**: Autoloaded function files must match: `functions/foo.fish` contains `function foo`
-
-### Default Behaviors (ON unless disabled)
-- **Modular Config**: Place config in `conf.d/` files, keep `config.fish` minimal
-- **`fish_add_path`**: Use for PATH manipulation instead of manual `set PATH`
-- **Interactive Guards**: Wrap abbreviations and key bindings in `if status is-interactive`
-- **`type -q` Checks**: Guard tool integrations with existence checks
-- **Numeric Prefixes**: Use `00-`, `10-`, `20-` prefixes in `conf.d/` for ordering
-
-### Optional Behaviors (OFF unless enabled)
-- **Universal Variables**: Use `-U` flag for cross-session persistence
-- **Bash Migration**: Convert Bash scripts to Fish syntax (see `references/bash-migration.md`)
-- **Completion Authoring**: Write custom Fish completions
-
-## What This Skill CAN Do
-- Write syntactically correct Fish functions, config, and abbreviations
-- Structure `~/.config/fish/` with proper modular layout
-- Manage variable scoping (local, function, global, universal, export)
-- Integrate tools (Starship, direnv, fzf, Homebrew, Nix) with Fish
-- Migrate Bash patterns to Fish equivalents
-
-## What This Skill CANNOT Do
-- Write POSIX-compatible scripts (Fish is not POSIX)
-- Fix Bash/Zsh configurations (use appropriate shell skill)
-- Manage Fish plugin frameworks (Fisher, Oh My Fish) beyond basic guidance
-- Debug Fish shell internals or C/Rust source code
-
----
+Fish is not POSIX. Every pattern here targets Fish 3.0+ (supports `$()`, `&&`, `||`). Fish 4.0 (Rust rewrite) has no syntax changes. All generated code must use Fish-native syntax exclusively — never emit Bash constructs (`VAR=value`, `[[ ]]`, `export`, heredocs) in Fish contexts.
 
 ## Instructions
 
-### Phase 1: DETECT
+### Step 1: Confirm Fish Context
 
-**Goal**: Confirm Fish shell context before writing any shell code.
+Before writing any shell code, confirm the target is Fish:
 
-**Step 1: Check shell environment**
 - `$SHELL` contains `fish`, or
 - Target file has `.fish` extension, or
 - Target directory is `~/.config/fish/`
 
-**Step 2: Identify Fish version constraints**
-- All patterns target Fish 3.0+ (supports `$()`, `&&`, `||`)
-- Fish 4.0 (Rust rewrite) has no syntax changes
+If none of these hold, stop — this skill does not apply to Bash, Zsh, or POSIX shells.
 
-**Gate**: Confirmed Fish context. Proceed only when gate passes.
+### Step 2: Choose the Correct File Location
 
-### Phase 2: STRUCTURE
-
-**Goal**: Place configuration in the correct location.
+Place configuration in `conf.d/` modules with numeric prefixes for ordering — keep `config.fish` minimal. A monolithic `config.fish` with hundreds of lines is slow to load, hard to maintain, and impossible to selectively disable.
 
 **Directory layout**:
 ```
@@ -126,26 +84,26 @@ This skill operates as an operator for Fish shell configuration tasks, configuri
 | Completions | `completions/<command>.fish` |
 | One-time interactive init | `config.fish` (inside `status is-interactive`) |
 
-**Gate**: Correct file location chosen. Proceed only when gate passes.
+### Step 3: Write Variables
 
-### Phase 3: WRITE
-
-**Goal**: Generate syntactically correct Fish code.
-
-**Step 1: Variables**
+Variable assignment is always `set VAR value` — never `VAR=value` (syntax error in Fish) or `export VAR=value`.
 
 ```fish
 set -l VAR value    # Local — current block only
 set -f VAR value    # Function — entire function scope
 set -g VAR value    # Global — current session
-set -U VAR value    # Universal — persists across sessions
+set -U VAR value    # Universal — persists across sessions (use sparingly)
 set -x VAR value    # Export — visible to child processes
 set -gx VAR value   # Global + Export (typical for env vars)
 set -e VAR          # Erase variable
 set -q VAR          # Test if set (silent, for conditionals)
 ```
 
-**Step 2: PATH management**
+Every Fish variable is a list. Never use colon-separated strings for PATH or similar variables — `set PATH "$PATH:/new/path"` creates a single malformed element because Fish PATH is a list, not a colon-delimited string.
+
+### Step 4: Manage PATH
+
+Use `fish_add_path` for PATH manipulation — it handles deduplication and persistence automatically. Manual `set PATH` only for session-scoped overrides.
 
 ```fish
 # CORRECT: fish_add_path handles deduplication and persistence
@@ -160,7 +118,9 @@ set -gx PATH ~/custom/bin $PATH
 # set PATH "$PATH:/new/path"
 ```
 
-**Step 3: Functions**
+### Step 5: Write Functions
+
+The autoloaded function filename must match the function name exactly — `functions/foo.fish` must contain `function foo`. A mismatch causes "Unknown command" errors.
 
 ```fish
 # ~/.config/fish/functions/mkcd.fish
@@ -189,7 +149,7 @@ function backup --description "Create timestamped backup"
 end
 ```
 
-**Step 4: Abbreviations vs Functions vs Aliases**
+### Step 6: Choose Between Abbreviations, Functions, and Aliases
 
 | Use Case | Mechanism | Why |
 |----------|-----------|-----|
@@ -197,7 +157,7 @@ end
 | Needs arguments/logic | `function` in `functions/` | Full programming, works in scripts |
 | Wrapping a command | `alias ll "ls -la"` | Convenience; creates function internally |
 
-Abbreviations are **interactive-only** — they do not work in scripts.
+Abbreviations are interactive-only — they do not work in scripts. Always wrap them in an interactive guard because they have no effect during non-interactive sourcing:
 
 ```fish
 # Always guard abbreviations
@@ -210,7 +170,9 @@ if status is-interactive
 end
 ```
 
-**Step 5: Conditionals and control flow**
+### Step 7: Write Conditionals and Control Flow
+
+Use the `test` builtin for conditionals — never `[[ ]]` (syntax error in Fish) or `[ ]` (calls external `/bin/[`, slower than the builtin). Fish has no word splitting, so `$var` and `"$var"` behave identically — quote only when you need to prevent list expansion or preserve empty strings.
 
 ```fish
 # Conditionals — use 'test', not [[ ]]
@@ -241,9 +203,10 @@ switch $argv[1]
 end
 ```
 
-**Step 6: Tool integrations**
+### Step 8: Integrate External Tools
 
-Always guard with `type -q`:
+Guard every tool integration with `type -q` so the config works on machines where the tool is not installed:
+
 ```fish
 # ~/.config/fish/conf.d/30-tools.fish
 if type -q starship
@@ -269,43 +232,30 @@ if test -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.fish
 end
 ```
 
-**Gate**: Code uses correct Fish syntax. No Bash-isms present. Proceed only when gate passes.
+### Step 9: Verify
 
-### Phase 4: VERIFY
-
-**Goal**: Confirm configuration works and is correctly structured.
-
-**Step 1**: Syntax check — `fish -n <file>` (parse without executing)
-
-**Step 2**: For functions — verify filename matches function name
-
-**Step 3**: For conf.d — verify `status is-interactive` guards on interactive-only code
-
-**Step 4**: Test in clean environment — `fish --no-config` then `source <file>`
-
-**Gate**: All verification steps pass. Configuration is complete.
+1. **Syntax check** — run `fish -n <file>` (parse without executing)
+2. **Function name match** — verify filename matches function name for every file in `functions/`
+3. **Interactive guards** — verify `status is-interactive` guards on abbreviations and key bindings in `conf.d/`
+4. **Clean environment test** — run `fish --no-config` then `source <file>` to confirm isolated correctness
 
 ---
 
-## Examples
+## Reference Material
 
-### Example 1: Setting Up a New Fish Config
+### Example: Setting Up a New Fish Config
 User says: "Set up my Fish shell config"
-Actions:
-1. Detect Fish context (DETECT)
-2. Create modular structure in `~/.config/fish/` (STRUCTURE)
-3. Write `conf.d/00-path.fish`, `conf.d/10-env.fish`, `conf.d/20-abbreviations.fish` (WRITE)
-4. Syntax-check all files (VERIFY)
-Result: Clean modular Fish configuration
+1. Confirm Fish context
+2. Create modular structure in `~/.config/fish/`
+3. Write `conf.d/00-path.fish`, `conf.d/10-env.fish`, `conf.d/20-abbreviations.fish`
+4. Syntax-check all files
 
-### Example 2: Migrating a Bash Alias File
+### Example: Migrating a Bash Alias File
 User says: "Convert my .bash_aliases to Fish"
-Actions:
-1. Read `.bash_aliases`, confirm Fish target (DETECT)
-2. Determine which become abbreviations vs functions (STRUCTURE)
-3. Write abbreviations to `conf.d/`, functions to `functions/` (WRITE)
-4. Syntax-check, test in clean shell (VERIFY)
-Result: Bash aliases converted to idiomatic Fish
+1. Read `.bash_aliases`, confirm Fish target
+2. Determine which become abbreviations vs functions
+3. Write abbreviations to `conf.d/`, functions to `functions/`
+4. Syntax-check, test in clean shell
 
 ---
 
@@ -329,50 +279,7 @@ Solution: Use `set -gx VAR value` to make variable visible to subprocesses. Chec
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Bash Assignment Syntax
-**What it looks like**: `VAR=value` or `export VAR=value` in a `.fish` file
-**Why wrong**: Syntax error in Fish. Fish has no inline assignment.
-**Do instead**: `set VAR value` or `set -gx VAR value`
-
-### Anti-Pattern 2: Colon-Separated PATH
-**What it looks like**: `set PATH "$PATH:/new/path"`
-**Why wrong**: Fish PATH is a list, not a colon-delimited string. Creates a single malformed element.
-**Do instead**: `fish_add_path /new/path` or `set PATH $PATH /new/path`
-
-### Anti-Pattern 3: Monolithic config.fish
-**What it looks like**: Hundreds of lines in `config.fish` — PATH, env, aliases, functions, integrations
-**Why wrong**: Slow to load, hard to maintain, impossible to selectively disable.
-**Do instead**: Split into `conf.d/` modules and `functions/` autoload files.
-
-### Anti-Pattern 4: Bracket Conditionals
-**What it looks like**: `if [[ -f file ]]` or `if [ -f file ]`
-**Why wrong**: `[[ ]]` is a syntax error. `[ ]` calls external `/bin/[`, slower than builtin.
-**Do instead**: `if test -f file` — uses Fish's fast builtin.
-
-### Anti-Pattern 5: Word-Split Defensive Quoting
-**What it looks like**: Always quoting `"$var"` out of Bash habit
-**Why wrong**: Not harmful, but misleading. Fish never word-splits; `$var` and `"$var"` are identical.
-**Do instead**: Quote only when you need to prevent list expansion or preserve empty strings.
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Quotes won't hurt in Fish" | Masks misunderstanding of Fish semantics | Learn Fish variable expansion rules |
-| "Just put it all in config.fish" | Monolithic config is an anti-pattern | Use conf.d/ and functions/ |
-| "Bash syntax is close enough" | Fish is not POSIX; Bash-isms cause errors | Use Fish-native syntax only |
-| "I'll use [ ] since it works" | Calls external binary, slower than test | Use `test` builtin always |
-
-### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/bash-migration.md`: Complete Bash-to-Fish syntax translation table
 - `${CLAUDE_SKILL_DIR}/references/fish-quick-reference.md`: Variable scoping, special variables, and command cheatsheet

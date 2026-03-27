@@ -30,46 +30,7 @@ routing:
 
 $ARGUMENTS - Target agent/skill name + source material file path
 
----
-
-## Operator Context
-
-This skill operates as an operator for intensive multi-perspective analysis, configuring Claude's behavior for true parallel independence across 10 analytical agents. It implements the **Fan-Out / Fan-In** architectural pattern -- dispatch independent agents in parallel, collect results, synthesize into unified recommendations -- with **Domain Intelligence** embedded in each perspective's focus constraints.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before execution
-- **Over-Engineering Prevention**: Apply only Priority 1 and Priority 2 synthesized rules. Do not invent improvements beyond what the source material supports. No speculative enhancements.
-- **True Parallel Independence**: All 10 Task invocations MUST be in a single message. Each agent receives ONLY its assigned perspective with zero cross-contamination. All 10 agents are read-only analysts — scope overlap checking (`scripts/check-scope-overlap.py`) is not required since agents produce analysis artifacts, not code modifications.
-- **Artifact Persistence**: Save synthesis document and completion report to files. Context is ephemeral; artifacts persist.
-- **Source Material Assessment**: Validate source material has sufficient depth before spawning agents. Thin material (under 500 words) should use inline analysis instead.
-- **Validate Inputs First**: Verify target agent/skill exists and source material is readable before spawning any agents.
-- **No Behavior Changes**: Synthesized rules ADD depth. They NEVER remove or significantly alter existing working patterns in the target.
-
-### Default Behaviors (ON unless disabled)
-- **10 Perspectives**: Use all 10 analytical frameworks (see `references/perspective-prompts.md`)
-- **Priority-Based Application**: Apply Must-Have rules first, then Should-Have. Skip Nice-to-Have unless user requests.
-- **Synthesis Before Application**: Collect all 10 reports and synthesize before making any changes to the target.
-- **Completion Report**: Generate detailed report showing impact, changes, and perspective contributions.
-- **Graceful Degradation**: If agents time out, proceed with available results (3+ of 10 sufficient).
-- **Git Commit**: Commit improvements with descriptive message after application.
-
-### Optional Behaviors (OFF unless enabled)
-- **Reduced Perspectives**: Use 5 perspectives instead of 10 for faster completion
-- **Dry Run Mode**: Generate synthesis without applying changes to target
-- **Compare Mode**: Analyze two sources and extract differences
-
-## What This Skill CAN Do
-- Extract comprehensive insights from complex source material through 10 independent lenses
-- Synthesize cross-perspective patterns into prioritized improvement recommendations
-- Apply synthesized rules to enhance an existing agent or skill
-- Produce detailed reports showing which perspectives contributed to each improvement
-- Detect patterns that single-threaded analysis misses due to cognitive anchoring
-
-## What This Skill CANNOT Do
-- Replace inline analysis for simple or straightforward material (use `/do-perspectives` for single-target improvements)
-- Generate value from poor source material (marketing fluff, auto-generated docs, under 500 words)
-- Guarantee all 10 agents complete (network/timeout issues may reduce count)
-- Skip the synthesis phase and apply raw per-perspective rules directly
+This skill implements Fan-Out / Fan-In: dispatch 10 independent agents in parallel, collect results, synthesize into unified recommendations, and apply improvements to a target agent or skill. The primary value comes from cross-perspective pattern detection that single-threaded analysis misses due to cognitive anchoring.
 
 ---
 
@@ -100,6 +61,8 @@ ls skills/{target_name}/SKILL.md
 
 **Step 3: Validate source material**
 
+Read and follow repository CLAUDE.md before proceeding. Then assess the source:
+
 ```markdown
 ## Source Material Assessment
 
@@ -115,7 +78,8 @@ Assessment: SUITABLE / UNSUITABLE
 ```
 
 - Read source file, confirm it is non-empty
-- If material fails 2+ quality indicators, recommend inline analysis instead and ask user to confirm
+- Material under 500 words lacks sufficient depth for 10-angle extraction -- recommend inline analysis instead and ask user to confirm
+- If material fails 2+ quality indicators, recommend inline analysis (`/do-perspectives` for single-target improvements) and ask user to confirm
 
 **Gate**: Target exists and is readable. Source material is present and substantive. Proceed only when gate passes.
 
@@ -124,6 +88,8 @@ Assessment: SUITABLE / UNSUITABLE
 **Goal**: Spawn 10 independent agents to analyze source material from distinct frameworks.
 
 **Step 1: Launch all 10 agents in a SINGLE message**
+
+All 10 Task invocations MUST appear in one message to achieve true parallelism. Each agent is a read-only analyst receiving ONLY its assigned perspective with zero cross-contamination between agents.
 
 Each agent receives:
 1. The FULL source material
@@ -143,6 +109,8 @@ The 10 perspectives are:
 9. Complexity Management
 10. Limitation and Nuance Handling
 
+**Optional**: Use 5 perspectives instead of 10 for faster completion if user requests reduced mode.
+
 **Step 2: Collect results with timeout awareness**
 
 Wait for all agents to complete. Monitor using this decision tree:
@@ -161,6 +129,8 @@ Agent running > 5 minutes?
 
 **Step 3: Assess completeness**
 
+Not all 10 agents are guaranteed to complete (network/timeout issues may reduce count). Degrade gracefully:
+
 | Agents Completed | Action |
 |------------------|--------|
 | 8-10 of 10 | Full pipeline, excellent coverage |
@@ -173,7 +143,7 @@ Agent running > 5 minutes?
 
 ### Phase 3: SYNTHESIZE
 
-**Goal**: Merge 10 independent analyses into prioritized, unified recommendations.
+**Goal**: Merge all independent analyses into prioritized, unified recommendations. Always collect ALL reports and synthesize before touching the target -- applying per-perspective rules one at a time misses cross-cutting themes and introduces contradictions.
 
 **Step 1: Create cross-reference matrix**
 
@@ -198,6 +168,8 @@ For each rule extracted by any perspective, track which perspectives identified 
 
 **Step 4: Prioritize rules**
 
+Apply only Priority 1 and Priority 2 rules. Do not invent improvements beyond what the source material supports -- no speculative enhancements.
+
 ```markdown
 ## Priority Rules for [Target]
 
@@ -217,16 +189,20 @@ Rules present in 1-3 perspectives OR moderate impact:
 2. [Rule] - Found in: [perspective]
 ```
 
+Priority 3 rules are documented but NOT applied unless the user explicitly requests them. Applying all 30-50 extracted rules without filtering leads to target bloat and conflicts with existing patterns.
+
 **Step 5: Save synthesis document**
 - Write to `skills/do-parallel/artifacts/synthesis-{target}-{date}.md`
 - Include the cross-reference matrix, themes, and prioritized rules
-- This artifact persists for future reference and can inform later analyses
+- This artifact persists for future reference and can inform later analyses (context is ephemeral; artifacts persist)
+
+**Optional**: In dry run mode, stop here and present the synthesis without applying changes.
 
 **Gate**: Synthesis document exists with at least 3 Must-Have and 3 Should-Have rules. Proceed only when gate passes.
 
 ### Phase 4: APPLY
 
-**Goal**: Improve the target agent/skill using synthesized recommendations.
+**Goal**: Improve the target agent/skill using synthesized recommendations. Synthesized rules ADD depth -- they NEVER remove or significantly alter existing working patterns in the target.
 
 **Step 1: Read current target state**
 
@@ -256,13 +232,12 @@ Map each Priority 1 and Priority 2 rule to a specific location in the target:
 
 **Step 3: Apply Priority 1 rules**
 - Add or enhance sections based on Must-Have recommendations
-- Preserve all existing working patterns
+- Preserve all existing working patterns -- additions only
 - After each rule application, verify target file is still valid markdown
 
 **Step 4: Apply Priority 2 rules**
 - Add Should-Have enhancements where they integrate naturally
-- Do NOT force rules that conflict with existing patterns
-- If a Should-Have rule conflicts with an existing pattern, document the conflict in the report and skip
+- If a Should-Have rule conflicts with an existing pattern, document the conflict in the report and skip it
 
 **Step 5: Commit changes**
 - Create descriptive git commit explaining what was improved and from what source
@@ -385,41 +360,6 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Using Parallel for Simple Material
-**What it looks like**: Running 10 agents on a 200-word README
-**Why wrong**: No depth to analyze from 10 angles. Simple material yields the same insights from a single reading.
-**Do instead**: Use `/do-perspectives` for single-target improvements or simpler inline analysis. Reserve do-parallel for complex, hard-to-grasp material.
-
-### Anti-Pattern 2: Applying All Rules Without Prioritization
-**What it looks like**: Dumping all 30-50 extracted rules into the target without filtering
-**Why wrong**: Low-frequency rules may conflict with existing patterns. Quantity overwhelms quality. Target becomes bloated.
-**Do instead**: Apply Priority 1 first, then Priority 2. Skip Priority 3 unless explicitly requested.
-
-### Anti-Pattern 3: Skipping Synthesis Phase
-**What it looks like**: Reading each agent report and applying rules one perspective at a time
-**Why wrong**: Cross-perspective patterns are the primary value. Applying per-perspective rules misses common themes and introduces contradictions.
-**Do instead**: Always collect all reports, identify common themes, then create unified recommendations before touching the target.
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-- [Pipeline Architecture](../shared-patterns/pipeline-architecture.md) - Phase-gated pipeline design
-- [Gate Enforcement](../shared-patterns/gate-enforcement.md) - Phase transition rules
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Source is simple, 10 perspectives overkill" | Simple source = use inline analysis instead | Check material depth in Phase 1, downgrade if thin |
-| "3 perspectives returned, close enough" | 3 is minimum for synthesis, not ideal | Wait for timeout threshold, then proceed with available |
-| "I can synthesize as I go" | Per-perspective application misses cross-cutting themes | Complete all collection before ANY synthesis |
-| "Existing patterns in target are outdated" | Existing patterns may work; new rules ADD, never replace | Preserve all existing content, add depth only |
-
-### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/perspective-prompts.md`: All 10 perspective templates, synthesis format, completion report template, and source material guidance
