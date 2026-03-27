@@ -28,46 +28,11 @@ routing:
 
 # Topic Brainstormer
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for topic ideation workflows, configuring Claude's behavior for generating blog post ideas that align with a content identity built around solving frustrating technical problems. It implements the **Assess-Decide-Generate** pattern -- gather signals, filter candidates, prioritize output -- with **Domain Intelligence** embedded in the content quality filter methodology.
+This skill generates blog post topic ideas that align with a content identity built around solving frustrating technical problems. It operates through three sequential phases (ASSESS → DECIDE → GENERATE) with **hard quality gates**: every topic must pass a three-question content quality filter before presentation. The output is always a prioritized list with impact/vex/resolution scores, never an unfiltered pile of ideas.
 
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before brainstorming
-- **Over-Engineering Prevention**: Generate topic ideas only. No outlines, no drafts, no full posts
-- **content quality Filter Enforcement**: Every topic MUST pass the vex test (frustration + resolution + value to others)
-- **No Tutorial-Only Topics**: Reject topics that are "how to do X" without a struggle narrative
-- **No Opinion Pieces**: Reject commentary without concrete hands-on experience
-- **Priority Matrix Required**: All outputs must include impact/vex/resolution scoring
-
-### Default Behaviors (ON unless disabled)
-- **Existing Post Analysis**: Read existing posts to identify gaps and themes before generating
-- **Multi-Source Generation**: Mine from at least 2 different sources per session
-- **Angle Suggestions**: Include specific narrative angles for medium-priority topics
-- **Specific Titles**: Use failure-mode titles, not vague category titles
-- **Complete Output**: Show full brainstorm report with all sections
-
-### Optional Behaviors (OFF unless enabled)
-- **Deep Gap Analysis**: Exhaustive scan of all cross-references and "see also" mentions
-- **Tech Stack Expansion**: Suggest adjacent technologies not yet covered
-- **Series Planning**: Group related topics into potential multi-part series
-
-## What This Skill CAN Do
-- Generate topic ideas from problem mining (debugging sessions, errors, config struggles)
-- Identify content gaps based on existing post references and cross-links
-- Analyze technology patterns in existing content to find expansion opportunities
-- Apply the content quality filter to validate every topic candidate
-- Score topics by impact, vex level, and resolution satisfaction
-- Suggest specific narrative angles for each topic
-- Estimate word counts and categorize by priority tier
-
-## What This Skill CANNOT Do
-- Write blog posts (use blog-post-writer instead)
-- Create post outlines (use post-outliner instead)
-- Guarantee topics will resonate with readers (user judgment required)
-- Generate topics without applying the content quality filter
-- Accept tutorial-only or opinion-only topics that lack struggle narratives
-- Skip the priority scoring step
+Core principle: **Assess-Decide-Generate with Domain Intelligence**. Gather signals from existing content and problem sources, filter candidates ruthlessly, then score and prioritize the survivors.
 
 ---
 
@@ -102,9 +67,13 @@ Extract all "see also", "related", and cross-reference mentions from existing po
 
 **Gate**: Content landscape documented, at least 2 sources identified with material. Proceed only when gate passes.
 
+---
+
 ### Phase 2: DECIDE
 
 **Goal**: Generate topic candidates and filter them through the content quality test.
+
+**Quality Filter Rule**: This is non-negotiable. Every candidate must answer YES to all three questions. Unfiltered lists waste user time; apply rigor here.
 
 **Step 1: Mine candidates from identified sources**
 
@@ -121,6 +90,8 @@ Each topic must answer YES to all three questions:
 2. **Is there a satisfying resolution?** Clear fix exists, understanding gained, prevention strategy available, or "a-ha moment" to share.
 3. **Would this help others?** Problem is reproducible, not too environment-specific, solution is actionable, frustration is relatable.
 
+**Why this matters**: Topics that fail any question produce weak posts. "How to Set Up Hugo" lacks genuine frustration (official docs already cover installation). "Rewriting a Python CLI in Go Cut Startup Time by 10x" has concrete vex (400ms startup delay) and concrete joy (40ms result).
+
 **Step 3: Reject failing candidates**
 
 Remove any topic that fails the filter. Document why each rejection failed:
@@ -129,7 +100,13 @@ Remove any topic that fails the filter. Document why each rejection failed:
 |----------------|-----------------|--------|
 | [topic] | [1, 2, or 3] | [why] |
 
+**Anti-Pattern Warning — Do Not Generate Tutorial-Only Topics**: "How to Set Up X" with vex listed as "learning a new tool" is not genuine frustration. Find the specific friction point. "Hugo Local Build Works But Cloudflare Deploy Fails" has real vex (version mismatch between local and CI).
+
+**Anti-Pattern Warning — Do Not Accept Opinion Without Experience**: "Why Go Is Better Than Python for CLI Tools" is debate, not experience. This lacks a specific problem solved, no measurable outcome. Ground in measurement instead.
+
 **Gate**: At least 3 candidates pass the content quality filter. If fewer than 3 pass, return to Step 1 with different sources. Proceed only when gate passes.
+
+---
 
 ### Phase 3: GENERATE
 
@@ -152,11 +129,15 @@ Priority Score = Impact x Vex Level x Resolution
   1-14:   SKIP             - Not enough value for readers
 ```
 
+**Why scoring matters**: Unscored lists require user re-evaluation. Always include the priority matrix for every topic.
+
 **Step 2: Write specific titles**
 
 Replace vague category titles with failure-mode titles:
 - Bad: "Kubernetes Networking Issues"
 - Good: "Pod-to-Pod Traffic Works But Service Discovery Fails"
+
+**Anti-Pattern Warning — Do Not Use Vague Topic Titles**: "Kubernetes Networking Issues" is too broad to act on. Which issues? What specifically failed? Use failure-mode titles instead: "CoreDNS Returns NXDOMAIN for Internal Services" signals real vex and specificity.
 
 **Step 3: Present prioritized output**
 
@@ -262,80 +243,12 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Generating Tutorial Topics
-**What it looks like**: "How to Set Up Hugo" with vex listed as "learning a new tool"
-**Why wrong**: No actual frustration. "Learning something new" is not a vex. Official docs already cover installation.
-**Do instead**: Find the specific friction point. "Hugo Local Build Works But Cloudflare Deploy Fails" has real vex (version mismatch between local and CI).
-
-### Anti-Pattern 2: Opinion Without Experience
-**What it looks like**: "Why Go Is Better Than Python for CLI Tools" with vex listed as "other languages are slower"
-**Why wrong**: This is debate, not experience. No specific problem was solved, no measurable outcome.
-**Do instead**: Ground in measurement. "Rewriting a Python CLI in Go Cut Startup Time by 10x" has concrete vex (400ms startup delay) and concrete joy (40ms result).
-
-### Anti-Pattern 3: Skipping the content quality Filter
-**What it looks like**: Generating 10 topics and presenting all of them without evaluating each against the three-question test.
-**Why wrong**: Quantity over quality. Dilutes content identity. User must re-evaluate every topic manually.
-**Do instead**: Apply the filter to every candidate. Reject topics that fail any question. Only present topics that pass all three.
-
-### Anti-Pattern 4: Vague Topic Titles
-**What it looks like**: "Kubernetes Networking Issues" or "Docker Problems"
-**Why wrong**: Too broad to act on. Which issues? What specifically failed? Reader cannot tell what the post is about.
-**Do instead**: Use failure-mode titles. "CoreDNS Returns NXDOMAIN for Internal Services" or "NetworkPolicy Blocks Traffic It Shouldn't" are specific and signal real vex.
-
-### Anti-Pattern 5: Missing Priority Scoring
-**What it looks like**: Presenting a topic list without impact/vex/resolution scores or priority tiers.
-**Why wrong**: No way to prioritize. User must mentally re-evaluate all topics to decide what to write first.
-**Do instead**: Always include the priority matrix with scores for every topic. Always include recommendations (top pick, quick win, deep dive).
-
----
-
-## Topic Source Quick Reference
-
-### Problem Mining Signals
-
-| Signal | Where to Find | Topic Potential |
-|--------|---------------|-----------------|
-| Debugging sessions | Recent git commits, shell history | High - fresh frustration |
-| Stack Overflow searches | Browser history, bookmarks | High - common problems |
-| Error messages | Logs, terminal output | Medium - depends on depth |
-| Configuration struggles | Config file changes, dotfiles | Medium - relatable pain |
-| "This took forever" | User conversation, retrospectives | High - strong vex signal |
-
-### Gap Analysis Signals
-
-| Gap Type | How to Identify | Value |
-|----------|-----------------|-------|
-| "See also" missing | Referenced but no post exists | High - reader expectation |
-| Prerequisites assumed | "Assuming you know X" statements | Medium - onboarding help |
-| Incomplete series | "Part 1" with no Part 2 | Medium - completeness |
-| Follow-up questions | Comments, emails, feedback | High - proven demand |
-
-### Technology Expansion Strategy
-- Same tool, different feature (Hugo -> Hugo modules)
-- Same category, different tool (Hugo -> Zola)
-- Integration between covered technologies (Hugo + Cloudflare Pages)
-- Common pain points in the ecosystem
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "These are all good topics" | Unfiltered lists waste user time | Apply content quality filter to every candidate |
-| "Close enough to vex" | Weak vex = weak post | Reject or find stronger frustration signal |
-| "Scoring slows me down" | Unscored lists require user re-evaluation | Complete priority matrix for all topics |
-| "The title can be refined later" | Vague titles hide weak topics | Use failure-mode titles now |
-
-### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/content-filter.md`: Detailed filter criteria and examples
-- `${CLAUDE_SKILL_DIR}/references/topic-sources.md`: Mining strategies for each source type
-- `${CLAUDE_SKILL_DIR}/references/priority-scoring.md`: Scoring rubrics and examples
+This skill uses these patterns:
+- **Content Quality Filter**: Three-question test (frustration + resolution + helpfulness) is the gate
+- **Priority Scoring**: Always use the Impact × Vex × Resolution matrix
+- **Failure-Mode Titles**: Specific problem descriptors, never vague categories
+- **Problem Mining Signals**: Debugging sessions, Stack Overflow searches, error messages, config struggles
+- **Gap Analysis**: "See also" missing posts, prerequisites assumed, incomplete series, follow-up questions
+- **Technology Expansion**: Same tool/different feature, same category/different tool, integration opportunities

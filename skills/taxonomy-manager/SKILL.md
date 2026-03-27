@@ -26,48 +26,9 @@ routing:
 
 # Taxonomy Manager Skill
 
-## Operator Context
-
-This skill operates as an operator for taxonomy management workflows on Hugo-based blogs, configuring Claude's behavior for consistent, SEO-friendly categorization. It implements the **Scan-Analyze-Report-Act** architectural pattern with preview-first safety and build verification gates.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before execution
-- **Over-Engineering Prevention**: Fix actionable taxonomy issues only; no elaborate classification redesigns without explicit request
-- **Preview-First Workflow**: Always show current state and proposed changes before modifying any files
-- **Case Normalization**: Hugo taxonomies are case-sensitive; standardize all terms to `lowercase-with-hyphens`
-- **Non-Destructive Operations**: Never delete or rename taxonomy terms without explicit user confirmation
-- **Build Verification**: Run `hugo --quiet` after every batch of changes to confirm site still builds
-
-### Default Behaviors (ON unless disabled)
-- **Complete Output**: Show full taxonomy audit with visual charts, never summarize
-- **Similarity Detection**: Flag potentially duplicate tags (case variations, plurals, synonyms)
-- **Orphan Detection**: Identify tags used only once or categories with no posts
-- **Confirmation Required**: Require explicit confirmation before modifying any content files
-- **One Operation at a Time**: Apply merge/rename/add/remove operations individually, verify between each
-
-### Optional Behaviors (OFF unless enabled)
-- **Auto-Apply**: Apply suggested changes without per-file confirmation
-- **Batch Mode**: Process all detected issues in a single pass
-- **Aggressive Merge**: Merge all similar tags automatically (requires explicit opt-in)
-
-## What This Skill CAN Do
-- Audit all categories and tags across a Hugo site's content directory
-- Count posts per taxonomy term and generate visual usage statistics
-- Detect orphan tags (single-use), empty categories, case variations, and synonym pairs
-- Suggest and execute merge, rename, add, and remove operations on taxonomy terms
-- Show before/after diffs for every proposed change
-- Verify Hugo build integrity after modifications
-
-## What This Skill CANNOT Do
-- Create new categories without explicit instruction (taxonomy design is intentional)
-- Auto-merge tags without review (similar tags may have distinct meanings)
-- Modify post content beyond front matter (preserves author's voice)
-- Guarantee SEO improvements (taxonomy is one factor among many)
-- Skip confirmation or build verification gates
-
----
-
 ## Instructions
+
+This skill audits and maintains blog taxonomy on Hugo-based sites using the **Scan-Analyze-Report-Act** workflow. Apply this skill when users ask to audit tags, fix inconsistencies, or consolidate taxonomy terms.
 
 ### Phase 1: SCAN - Collect Taxonomy Data
 
@@ -75,7 +36,7 @@ This skill operates as an operator for taxonomy management workflows on Hugo-bas
 
 **Step 1: Identify all content files**
 
-Locate every Markdown file in the Hugo content directory.
+Locate every Markdown file in the Hugo content directory (because Hugo requires explicit file discovery to avoid missing nested structures).
 
 ```bash
 find /path/to/content -name "*.md" -type f | sort
@@ -90,7 +51,7 @@ For each file, parse the YAML front matter and extract:
 
 **Step 3: Build taxonomy index**
 
-Construct an in-memory mapping of every taxonomy term to its list of posts:
+Construct an in-memory mapping of every taxonomy term to its list of posts (because this index is the foundation for all downstream analysis):
 
 ```
 CATEGORIES:
@@ -104,7 +65,7 @@ TAGS:
 
 **Step 4: Check Hugo taxonomy configuration**
 
-Read `hugo.toml` (or `config.toml`) for any custom taxonomy definitions or overrides.
+Read `hugo.toml` (or `config.toml`) for any custom taxonomy definitions or overrides (because Hugo may define non-standard taxonomies beyond categories/tags).
 
 **Gate**: Taxonomy index is complete with all terms mapped to their posts. Proceed only when gate passes.
 
@@ -160,11 +121,12 @@ Present the report to the user. If no issues are found, state the taxonomy is he
 
 ### Phase 4: ACT - Apply Changes
 
-**Goal**: Execute approved taxonomy modifications safely.
+**Goal**: Execute approved taxonomy modifications safely and verify correctness.
 
 **Step 1: Preview every change**
 
-Before any file modification, show:
+Before any file modification, show the change in diff format (because previewing prevents accidental mass edits that break navigation):
+
 ```
 File: content/posts/example.md
   Current tags: ["Hugo", "debugging", "templates"]
@@ -174,17 +136,20 @@ File: content/posts/example.md
 
 **Step 2: Get confirmation**
 
-Wait for explicit user approval before proceeding.
+Wait for explicit user approval before proceeding (because taxonomy modifications affect site navigation and SEO).
 
 **Step 3: Apply operations**
 
-Execute the approved operation (merge, rename, add, or remove). See `references/consolidation-rules.md` for operation semantics:
+Execute the approved operation (merge, rename, add, or remove). See `references/consolidation-rules.md` for operation semantics. Apply operations individually, not in batches, to isolate errors:
+
 - **Merge**: Replace source tag(s) with target in all posts; skip if post already has target
 - **Rename**: Replace old name with new in all posts
 - **Add**: Add tag to matching posts (skip if already present)
 - **Remove**: Remove term from front matter or config (only if unused)
 
 **Step 4: Verify build**
+
+After each operation, run Hugo to confirm the site still builds (because taxonomy modifications can break Hugo's site generation):
 
 ```bash
 hugo --quiet
@@ -202,6 +167,17 @@ git diff content/
 ```
 
 **Gate**: All changes applied, build verified, diff reviewed. Operation complete.
+
+### Taxonomy Formatting Standards
+
+Apply these constraints throughout all phases because Hugo is case-sensitive and requires consistent formatting:
+
+- **Case Normalization**: Standardize all terms to `lowercase-with-hyphens` (not PascalCase, UPPERCASE, or spaces). Hugo treats `Hugo`, `hugo`, and `HUGO` as three separate tags, each with its own page.
+- **Non-Destructive Operations**: Never delete or rename taxonomy terms without explicit user confirmation (because accidental deletions create orphan link targets in content).
+- **Complete Output**: Show full taxonomy audit with visual charts, never summarize (because partial audits miss subtle issues like orphan tags or synonyms).
+- **Similarity Detection**: Flag potentially duplicate tags including case variations, plurals, and synonyms (because similar tags fragment navigation and SEO value).
+- **Orphan Detection**: Identify tags used only once or categories with no posts (because orphans accumulate into taxonomy debt).
+- **Confirmation Required**: Require explicit confirmation before modifying any content files (because bulk edits without review create unintended side effects).
 
 ---
 
@@ -270,44 +246,7 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Tag Explosion
-**What it looks like**: Creating `hugo-themes`, `hugo-templates`, `hugo-debugging`, `hugo-config` instead of using `hugo` + `themes`
-**Why wrong**: Fragments the taxonomy; users browsing "hugo" miss related posts scattered across subtags
-**Do instead**: Use broader tags in combination (`hugo` + `debugging`) and let post content provide specificity
-
-### Anti-Pattern 2: Case Inconsistency
-**What it looks like**: `Hugo` in one post, `hugo` in another, `HUGO` in a third
-**Why wrong**: Hugo treats these as separate tags, creating three different tag pages each showing a fraction of the posts
-**Do instead**: Standardize all terms to `lowercase-with-hyphens`; run this skill regularly to catch drift
-
-### Anti-Pattern 3: Single-Use Tags as Description
-**What it looks like**: `fixing-hugo-template-rendering-issues` as a tag on a post titled "Fixing Hugo Template Rendering Issues"
-**Why wrong**: The tag duplicates the title, will never be reused, and provides zero navigation value
-**Do instead**: Use generic, reusable tags: `hugo`, `templates`, `debugging`
-
-### Anti-Pattern 4: Merging Without Understanding
-**What it looks like**: Automatically merging `debugging` and `troubleshooting` because they seem similar
-**Why wrong**: Near-synonyms may carry distinct connotations in context; aggressive merging can lose meaningful distinctions
-**Do instead**: Present similar terms to the user with usage context; let them decide which to keep
-
----
-
 ## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "These tags are obviously the same" | Similar does not mean identical; context matters | Show usage examples, let user decide |
-| "Just a quick rename, no need to preview" | Renames can break Hugo taxonomy pages | Always preview, always verify build |
-| "One orphan tag doesn't matter" | Orphans accumulate into taxonomy debt | Address during audit or document exception |
-| "The build passed, taxonomy must be fine" | Build success does not validate semantic correctness | Review the diff, confirm navigation works |
 
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/taxonomy-guidelines.md`: Naming conventions, category/tag best practices, maintenance cadence

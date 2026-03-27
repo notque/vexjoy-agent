@@ -41,46 +41,24 @@ routing:
 
 # Video Editing Skill
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for video editing workflows, configuring Claude's behavior for
-structured, deterministic video production. It implements a **6-layer pipeline** where AI handles
-judgment tasks (what to keep, what to cut, highlight selection) and FFmpeg/Remotion handle
-mechanical execution deterministically.
+This skill implements a **6-layer pipeline** where AI handles judgment tasks (what to keep, what to cut, highlight selection) and FFmpeg/Remotion handle mechanical execution deterministically.
 
-### Hardcoded Behaviors (Always Apply)
-
-- **Preflight before anything**: Run all three preflight checks before Phase 1. No work begins on a
-  missing binary.
-- **Artifacts before proceeding**: Every phase writes its output to disk. No phase runs on memory
-  of a previous phase's output.
-- **cuts.txt is the contract**: The EDL file (`cuts.txt`) is the only source of truth for Layer 3.
-  Do not hand-edit FFmpeg commands -- generate them from the EDL.
-- **Layer 6 is human territory**: Final color grading, music timing, and caption style are human
-  taste decisions. The skill assembles; the human finishes.
-- **Generate only what doesn't exist**: Before calling ElevenLabs or any generative API, check
-  whether adequate source material already covers the gap.
-
-### Default Behaviors (ON unless disabled)
-
-- **Proxy-first for long footage**: Generate proxy files before editing long source material
-  (>10 min). Edit proxy; swap to source for final render.
-- **Scene detection before manual EDL**: Run FFmpeg scene/silence detection before writing the
-  EDL by hand. Detection output informs judgment, not replaces it.
-- **Preserve source files**: FFmpeg commands write to new files only. Source footage is never
-  overwritten.
-
-### Optional Behaviors (OFF unless enabled)
-
-- **ElevenLabs voiceover**: Only when source audio has unacceptable gaps and user authorizes API cost.
-- **Social reframe variants**: Generate 9:16 and 1:1 crops only when explicitly requested.
-- **Remotion composition**: Layer 4 is optional if the assembled MP4 from Layer 3 is sufficient.
+| Layer | Name | Mechanism | Primary Tool |
+|-------|------|-----------|-------------|
+| 1 | CAPTURE | Inventory source footage | Bash + Glob |
+| 2 | AI STRUCTURE | Transcript to EDL | LLM judgment |
+| 3 | FFMPEG CUTS | EDL to segment files | FFmpeg (deterministic) |
+| 4 | REMOTION COMPOSITION | Segments to TSX composition | Remotion + TypeScript |
+| 5 | AI GENERATION | Fill gaps with generated assets | ElevenLabs / fal.ai (conditional) |
+| 6 | FINAL POLISH | Human taste layer | Human + NLE |
 
 ---
 
-## Preflight Check
+## Instructions
 
-Run before Phase 1.
+### Preflight (Run before Phase 1)
 
 **Hard requirements** (BLOCK if missing — halt immediately):
 - `ffmpeg`: required for all phases
@@ -115,22 +93,11 @@ echo "Preflight: ffmpeg OK, node OK. (remotion optional — see above if warned)
 
 ---
 
-## Pipeline Overview
-
-| Layer | Name | Mechanism | Primary Tool |
-|-------|------|-----------|-------------|
-| 1 | CAPTURE | Inventory source footage | Bash + Glob |
-| 2 | AI STRUCTURE | Transcript to EDL | LLM judgment |
-| 3 | FFMPEG CUTS | EDL to segment files | FFmpeg (deterministic) |
-| 4 | REMOTION COMPOSITION | Segments to TSX composition | Remotion + TypeScript |
-| 5 | AI GENERATION | Fill gaps with generated assets | ElevenLabs / fal.ai (conditional) |
-| 6 | FINAL POLISH | Human taste layer | Human + NLE |
-
----
-
 ## Phase 1: CAPTURE
 
 **Goal**: Inventory all source footage and confirm files exist on disk before any processing.
+
+**Constraint**: Source files are read-only. All FFmpeg commands write to new files only. Never overwrite source footage.
 
 ### Step 1: Locate source files
 
@@ -146,7 +113,9 @@ ffprobe -v error -select_streams v:0 \
   -of csv=p=0 input.mp4
 ```
 
-### Step 3: Generate proxy (optional, recommended for files >10 min)
+### Step 3: Proxy generation (when applicable)
+
+**When to use**: For files >10 min, generate proxy files before editing. Edit proxy; swap to source for final render.
 
 See `references/ffmpeg-commands.md` -> **Proxy Generation** section.
 
@@ -169,6 +138,10 @@ cat source-inventory.txt
 
 **Goal**: Analyze content and produce a written EDL (`cuts.txt`) that drives all downstream cutting.
 
+**Constraint**: `cuts.txt` is the contract. The EDL file is the only source of truth for downstream phases. Do not hand-edit FFmpeg commands — generate them from the EDL.
+
+**Constraint**: Before writing the EDL manually, run FFmpeg scene/silence detection. Detection output informs judgment, not replaces it.
+
 ### Step 1: Transcribe (if not already done)
 
 Use whisper, AssemblyAI, or any transcription source. Write transcript to `transcript.txt`.
@@ -177,7 +150,15 @@ Use whisper, AssemblyAI, or any transcription source. Write transcript to `trans
 whisper input.mp4 --output_format txt --output_dir . --task transcribe
 ```
 
-### Step 2: Generate EDL from transcript
+### Step 2: Scene/silence detection (before manual EDL)
+
+Run FFmpeg detection to inform cutting decisions:
+
+```bash
+ffmpeg -i input.mp4 -vf "select=gt(scene\,0.4),showinfo" -f null - 2>&1 | grep showinfo
+```
+
+### Step 3: Generate EDL from transcript
 
 Read `transcript.txt` and apply judgment:
 - What sections advance the narrative or demonstrate the feature?
@@ -196,7 +177,7 @@ Write `cuts.txt` in EDL format:
 00:03:10,00:03:55,closing
 ```
 
-### Step 3: Review EDL
+### Step 4: Review EDL
 
 Read back `cuts.txt` and verify:
 - Total assembled duration matches target
@@ -214,11 +195,13 @@ test -f cuts.txt && echo "cuts.txt: OK" || echo "ERROR: cuts.txt missing"
 
 ## Phase 3: FFMPEG CUTS
 
-**Goal**: Execute the EDL deterministically -- one FFmpeg cut per segment in `cuts.txt`.
+**Goal**: Execute the EDL deterministically — one FFmpeg cut per segment in `cuts.txt`.
+
+**Constraint**: Batch-cut from EDL using a loop. Do not create individual FFmpeg commands per cut. This ensures reproducibility and review capability as a list.
+
+**Constraint**: Always generate concat-list.txt from cuts.txt order, not from shell glob. Shell glob (`segments/*.mp4`) sorts alphabetically, not by EDL order.
 
 ### Step 1: Batch cut from EDL
-
-See `references/ffmpeg-commands.md` -> **Batch Cutting from cuts.txt** for the full bash loop.
 
 ```bash
 while IFS=',' read -r start end label; do
@@ -229,6 +212,8 @@ while IFS=',' read -r start end label; do
     "segments/${label}.mp4"
 done < cuts.txt
 ```
+
+Full reference: `references/ffmpeg-commands.md` -> **Batch Cutting from cuts.txt**.
 
 ### Step 2: Verify segments
 
@@ -265,11 +250,9 @@ test -f assembled/rough-cut.mp4 && echo "rough-cut.mp4: OK" || echo "ERROR: roug
 
 **Goal**: Wrap segments in a Remotion TSX composition for programmatic overlays, titles, or transitions.
 
-**When to use**: Only when rough-cut.mp4 requires programmatic elements (animated titles, lower thirds,
-caption tracks, brand overlays). If rough-cut.mp4 is sufficient, skip to Phase 6.
+**When to use**: Only when rough-cut.mp4 requires programmatic elements (animated titles, lower thirds, caption tracks, brand overlays). If rough-cut.mp4 is sufficient, skip to Phase 6.
 
-**Agent handoff**: Layer 4 requires TypeScript/React. Hand off to `typescript-frontend-engineer`
-for TSX work; return to `python-general-engineer` for Phase 5 onward.
+**Constraint**: Layer 4 requires TypeScript/React. Hand off to `typescript-frontend-engineer` for TSX work; return to `python-general-engineer` for Phase 5 onward.
 
 ### Step 1: Initialize Remotion (first time only)
 
@@ -281,8 +264,7 @@ npm install @remotion/cli @remotion/player remotion
 
 ### Step 2: Scaffold composition
 
-See `references/remotion-scaffold.md` for the complete TSX template with `AbsoluteFill`,
-`Sequence`, and `Video` components.
+See `references/remotion-scaffold.md` for the complete TSX template with `AbsoluteFill`, `Sequence`, and `Video` components.
 
 ### Step 3: Render
 
@@ -300,21 +282,23 @@ test -f assembled/remotion-output.mp4 && echo "remotion-output.mp4: OK" || echo 
 
 ## Phase 5: AI GENERATION
 
-**Goal**: Fill genuine gaps in source material with generated assets -- only when needed.
+**Goal**: Fill genuine gaps in source material with generated assets — only when needed.
 
-**Hard rule**: Check whether existing footage covers the gap before generating anything.
+**Constraint**: Check whether existing footage covers the gap before generating anything. Generate only what doesn't exist.
 
 ### Decision tree
 
 ```
 Gap in source material?
 ├── Can it be cut around? -> Update cuts.txt, re-run Phase 3
-├── Need voiceover narration? -> ElevenLabs API (see below)
+├── Need voiceover narration? -> ElevenLabs API (authorization required)
 ├── Need background music? -> fal.ai (deferred to fal-ai-media skill)
 └── Need b-roll? -> fal.ai (deferred to fal-ai-media skill)
 ```
 
-### ElevenLabs voiceover (when authorized)
+### ElevenLabs voiceover (authorization required)
+
+Only when source audio has unacceptable gaps and user explicitly authorizes API cost.
 
 ```python
 import requests, os
@@ -348,8 +332,7 @@ ls -lh assets/ 2>/dev/null || echo "No assets directory (Phase 5 was skipped)"
 
 **Goal**: Deliver assembled output and hand off taste-layer work to human.
 
-**This layer is human territory.** The skill assembles; the human finishes. The following require
-human judgment and should not be attempted programmatically:
+**Constraint**: Layer 6 is human territory. The skill assembles; the human finishes. The following require human judgment and should not be attempted programmatically:
 
 - Color grading and color matching between clips
 - Music timing and volume ducking
@@ -377,21 +360,7 @@ Remaining for human:
 - [ ] Export settings for target platform
 ```
 
-**Gate**: `assembled/rough-cut.mp4` (or `assembled/remotion-output.mp4`) exists.
-`handoff-notes.txt` written to disk.
-
----
-
-## Deterministic vs. LLM Division
-
-| Task | Mechanism | Where |
-|------|-----------|-------|
-| FFmpeg cut commands | Deterministic -- exact flags in references | `references/ffmpeg-commands.md` |
-| Remotion TSX scaffold | Deterministic -- template in references | `references/remotion-scaffold.md` |
-| EDL generation from transcript | LLM judgment | Phase 2 |
-| Highlight extraction for social | LLM judgment | Phase 2 variant |
-| Final color, audio, captions | Human judgment | Phase 6 |
-| ElevenLabs voiceover text | LLM generation | Phase 5 (conditional) |
+**Gate**: `assembled/rough-cut.mp4` (or `assembled/remotion-output.mp4`) exists. `handoff-notes.txt` written to disk.
 
 ---
 
@@ -399,7 +368,7 @@ Remaining for human:
 
 ### Error: "No such file or directory" on source file
 **Cause**: Path in cuts.txt or command doesn't match actual filename.
-**Solution**: Run `cat source-inventory.txt`. Check for spaces in filenames -- quote all paths.
+**Solution**: Run `cat source-inventory.txt`. Check for spaces in filenames — quote all paths.
 
 ### Error: FFmpeg "Invalid option" or codec errors
 **Cause**: Codec unavailable in this FFmpeg build, or flag syntax error.
@@ -411,45 +380,11 @@ Remaining for human:
 
 ### Error: Segments exist but concat produces wrong order
 **Cause**: Shell glob `segments/*.mp4` sorts alphabetically, not by EDL order.
-**Solution**: Generate concat-list.txt from cuts.txt order -- Phase 3 Step 3 in this skill always reads from cuts.txt.
+**Solution**: Generate concat-list.txt from cuts.txt order — Phase 3 Step 3 in this skill always reads from cuts.txt, not glob.
 
 ### Error: ElevenLabs API 401
 **Cause**: `ELEVENLABS_API_KEY` not set.
 **Solution**: `export ELEVENLABS_API_KEY=your_key` before running Phase 5.
-
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Generate the whole thing from AI
-**What it looks like**: Skipping source footage; asking AI to generate all content.
-**Why wrong**: No authentic footage; result is synthetic and uncanny.
-**Do instead**: Start with real source material. Generate only genuine gaps (Phase 5).
-
-### Anti-Pattern 2: Skip the structure phase
-**What it looks like**: Running FFmpeg cuts without first writing cuts.txt.
-**Why wrong**: Without a written EDL, cuts are not reproducible and can't be reviewed.
-**Do instead**: Always write cuts.txt before any FFmpeg execution.
-
-### Anti-Pattern 3: Treat Layer 6 as optional
-**What it looks like**: Delivering rough-cut.mp4 as final without noting what remains.
-**Why wrong**: Rough cuts have unmatched color, unmixed audio, no captions.
-**Do instead**: Always write handoff-notes.txt.
-
-### Anti-Pattern 4: Overwrite source files
-**What it looks like**: `ffmpeg -i input.mp4 ... input.mp4`
-**Why wrong**: Source destroyed. No recovery without re-capture.
-**Do instead**: Always write to new paths. Source files are read-only.
-
-### Anti-Pattern 5: Hand-edit FFmpeg per cut
-**What it looks like**: Individual ffmpeg commands for each segment instead of EDL loop.
-**Why wrong**: Error-prone, not reproducible, can't be reviewed as a list.
-**Do instead**: Maintain cuts.txt. Batch-cut from the EDL.
-
-### Anti-Pattern 6: Skip preflight
-**What it looks like**: Assuming FFmpeg/node/remotion are installed.
-**Why wrong**: Missing binary produces cryptic mid-workflow errors.
-**Do instead**: Always run preflight before Phase 1.
 
 ---
 

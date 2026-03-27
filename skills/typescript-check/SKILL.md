@@ -25,48 +25,11 @@ routing:
 
 # TypeScript Type Check Skill
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for TypeScript type validation, configuring Claude's behavior for running `tsc --noEmit` and parsing output into structured, actionable error reports. It implements a **Linear Validation** pattern -- locate config, execute compiler, parse output, present results.
+This skill validates TypeScript code by running `tsc --noEmit` and parsing errors into structured, actionable reports organized by file. It is a **read-only validation** step (does not modify code) that implements a linear workflow: locate config → execute compiler → parse output → present results.
 
-### Hardcoded Behaviors (Always Apply)
-
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before running checks
-- **Read-Only Validation**: Report errors only; never modify source code unless explicitly requested
-- **Complete Output**: Always show full tsc output with file paths, line numbers, and error codes
-- **Verify tsconfig.json First**: Confirm tsconfig.json exists before running tsc
-- **No Dependency Installation**: Never run npm install, yarn add, or pnpm add
-
-### Default Behaviors (ON unless disabled)
-
-- **Parse Errors**: Convert raw tsc output into structured, file-grouped format
-- **Absolute Paths**: Display absolute file paths for direct navigation
-- **Group by File**: Organize errors by source file, sorted by line number
-- **Exit Code Reporting**: Report PASS (exit 0) or FAIL (exit 1+) with error count
-- **Error Code Inclusion**: Include TS#### codes for each error
-
-### Optional Behaviors (OFF unless enabled)
-
-- **--strict mode**: Run with additional strict flags beyond tsconfig settings
-- **--project path**: Use a specific tsconfig.json when multiple exist
-- **--skipLibCheck**: Add --skipLibCheck to speed up checking on large projects
-- **Specific files**: Check only named files instead of entire project
-
-## What This Skill CAN Do
-
-- Run TypeScript type checking on any project with tsconfig.json
-- Parse and format tsc error output into actionable, file-grouped reports
-- Detect missing type dependencies, bad imports, and configuration issues
-- Check specific files or the entire project
-- Report pass/fail status with structured error summaries
-
-## What This Skill CANNOT Do
-
-- Auto-fix type errors (this is read-only validation)
-- Install dependencies or modify package.json
-- Modify tsconfig.json or any project configuration
-- Run on projects without tsconfig.json
-- Execute tests or perform linting
+Use this skill when validating TypeScript code before commits, after refactors, or checking for type regressions. Do not use for linting, test execution, runtime errors, or projects without tsconfig.json.
 
 ---
 
@@ -74,7 +37,7 @@ This skill operates as an operator for TypeScript type validation, configuring C
 
 ### Step 1: Verify TypeScript Project
 
-Locate tsconfig.json in the project:
+Locate tsconfig.json in the project. This step is mandatory—never skip it. tsc without a tsconfig.json falls back to default settings, missing project-specific configuration like paths, strict mode, and compiler targets.
 
 ```bash
 ls tsconfig.json 2>/dev/null || ls */tsconfig.json 2>/dev/null
@@ -82,29 +45,39 @@ ls tsconfig.json 2>/dev/null || ls */tsconfig.json 2>/dev/null
 
 If no tsconfig.json exists, stop and inform the user. Do not proceed without configuration.
 
+**Why**: Running without tsconfig.json produces unreliable results that don't match the project's actual settings.
+
 ### Step 2: Run Type Check
 
-Execute the TypeScript compiler in type-check-only mode:
+Execute the TypeScript compiler in type-check-only mode using `--noEmit`:
 
 ```bash
 npx tsc --noEmit 2>&1
 ```
 
 Capture the exit code:
-- **Exit 0**: No type errors found
-- **Exit 1+**: Type errors detected
+- **Exit 0**: No type errors found. Report PASS.
+- **Exit 1+**: Type errors detected. Continue to Step 3.
+
+Do not install TypeScript or dependencies. If TypeScript is not installed, inform the user and suggest `npm install typescript --save-dev`. This is a read-only skill—never modify package.json or run installation commands.
+
+**Why**: `--noEmit` prevents generating .js files and gives you a clean type-only report. The exit code tells you definitively whether compilation succeeded.
 
 ### Step 3: Parse Output
 
 For each error line in the tsc output, extract:
-- **File path**: The .ts/.tsx file containing the error
+- **File path**: The .ts/.tsx file containing the error (use absolute paths for direct navigation)
 - **Line:Column**: Exact location in the file
 - **Error code**: TS#### identifier (e.g., TS2322, TS7006)
 - **Message**: Human-readable error description
 
+Group errors by source file and sort by line number. This helps users fix issues systematically rather than jumping randomly through the codebase.
+
+**Why**: Users need actual file paths, line numbers, and error codes to fix issues. Suppressing or summarizing this information (e.g., "5 errors found") makes errors unsolvable.
+
 ### Step 4: Present Results
 
-Format output using this structure:
+Format output using this structure. Always show the full exit code and complete error details:
 
 ```
 === TypeScript Type Check ===
@@ -124,6 +97,10 @@ src/utils/helpers.ts
 Summary: N files, M errors
 ```
 
+Never present type errors as context for auto-fixing without explicit user request. Type check is a validation step—the user may want to review errors, may disagree with a fix approach, or may have a different solution in mind.
+
+**Why**: Including the exit code and full output gives users all the context they need to make informed decisions about fixes.
+
 ---
 
 ## Error Handling
@@ -131,62 +108,44 @@ Summary: N files, M errors
 ### Error: "Cannot find tsconfig.json"
 
 Cause: No TypeScript configuration in the project root or specified path.
+
 Solution:
 1. Search for tsconfig.json in common locations (src/, app/, packages/)
 2. If found elsewhere, re-run with `--project path/to/tsconfig.json`
-3. If not found anywhere, inform user this requires a TypeScript project
+3. If not found anywhere, inform user this requires a TypeScript project with a tsconfig.json file
 
 ### Error: "Cannot find module 'typescript'"
 
 Cause: TypeScript is not installed as a project dependency.
+
 Solution:
 1. Inform user that TypeScript must be installed first
 2. Suggest `npm install typescript --save-dev`
-3. Do not install it automatically (read-only skill)
+3. Do not install it automatically—this is a read-only skill
 
 ### Error: "npx: command not found"
 
 Cause: Node.js toolchain is not installed or not in PATH.
+
 Solution:
 1. Verify Node.js is installed: `node --version`
 2. If Node.js is present but npx missing, try `npm exec tsc -- --noEmit`
 3. If Node.js is missing, inform user to install Node.js
 
----
+### Error: "Multiple tsconfig.json files found"
 
-## Anti-Patterns
+Cause: Project has nested or monorepo structure with multiple TypeScript configurations.
 
-### Anti-Pattern 1: Running Without tsconfig.json
+Solution:
+1. List all tsconfig.json files and their paths
+2. Ask user which configuration to use
+3. Re-run with `--project path/to/specific/tsconfig.json`
 
-**What it looks like**: Executing `npx tsc --noEmit` in a directory without tsconfig.json
-**Why wrong**: tsc falls back to default settings, missing project-specific configuration like paths, strict mode, and compiler targets
-**Do instead**: Always verify tsconfig.json exists in Step 1 before running
-
-### Anti-Pattern 2: Suppressing or Summarizing Output
-
-**What it looks like**: Running `npx tsc --noEmit > /dev/null` or reporting only "5 errors found"
-**Why wrong**: Users need actual error messages, file paths, and line numbers to fix issues
-**Do instead**: Always show complete, structured error output
-
-### Anti-Pattern 3: Auto-Fixing Without Explicit Request
-
-**What it looks like**: Seeing a type error and immediately editing the source file
-**Why wrong**: Type check is a read-only validation step; user may want to review errors, may disagree with the fix approach, or may have a different solution in mind
-**Do instead**: Present errors clearly; only fix if user explicitly asks
-
-### Anti-Pattern 4: Skipping Exit Code Check
-
-**What it looks like**: Parsing output text without checking the tsc exit code
-**Why wrong**: tsc may produce warnings that look like errors, or errors may be incomplete if the process was killed
-**Do instead**: Always capture and report the exit code alongside parsed output
+**Why explicit error handling matters**: tsc may fail silently, produce incomplete output, or exit unexpectedly. Capturing and reporting the actual error lets the user understand what went wrong and how to fix it.
 
 ---
 
 ## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
 
 ### Common tsc Flags
 
@@ -194,7 +153,7 @@ This skill uses these shared patterns:
 |------|---------|
 | `--noEmit` | Type check only, do not generate .js files |
 | `--project path` | Use specific tsconfig.json |
-| `--skipLibCheck` | Skip type checking .d.ts files (faster) |
+| `--skipLibCheck` | Skip type checking .d.ts files (faster on large projects) |
 | `--incremental` | Use incremental compilation (faster for repeat runs) |
 | `--strict` | Enable all strict type checks |
 
@@ -203,3 +162,10 @@ This skill uses these shared patterns:
 - **Before git-commit-flow**: Run type check before committing TypeScript changes
 - **With vitest-runner**: Run type check first, then tests
 - **With code-linting**: Run lint first, then type check
+
+### Optional Behaviors (OFF unless enabled)
+
+- **--strict mode**: Run with additional strict flags beyond tsconfig settings
+- **--project path**: Use a specific tsconfig.json when multiple exist
+- **--skipLibCheck**: Add --skipLibCheck to speed up checking on large projects
+- **Specific files**: Check only named files instead of entire project
