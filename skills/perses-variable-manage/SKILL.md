@@ -28,34 +28,9 @@ routing:
 
 Create and manage variables with chains and interpolation.
 
-## Operator Context
+## Overview
 
-This skill operates as the lifecycle manager for Perses variables, handling creation, chaining, and interpolation configuration across scopes.
-
-### Hardcoded Behaviors (Always Apply)
-- **Chain ordering**: Variables must be ordered so dependencies come first — Perses evaluates variables in array order, so a variable referencing `$cluster` must appear after the cluster variable
-- **MCP-first**: Use Perses MCP tools when available, percli as fallback
-- **Interpolation format**: Document which format is used and why — wrong format causes query syntax errors (e.g., regex format for Prometheus matchers, csv for multi-select labels)
-
-### Default Behaviors (ON unless disabled)
-- **ListVariable**: Default to ListVariable with PrometheusLabelValuesVariable plugin
-- **Dashboard scope**: Create variables at dashboard scope unless otherwise specified
-- **Multi-select**: Enable allowMultiple and allowAllValue by default for filter variables
-
-### Optional Behaviors (OFF unless enabled)
-- **Global/project variables**: Create at global or project scope for reuse across dashboards
-- **TextVariable**: Use TextVariable for free-form user input fields
-
-## What This Skill CAN Do
-- Create TextVariable and ListVariable at any scope (global, project, dashboard)
-- Set up variable chains with cascading dependencies
-- Configure interpolation formats (csv, regex, json, lucene, pipe, glob, etc.)
-- Use all 4 variable plugin types
-
-## What This Skill CANNOT Do
-- Create custom variable plugins (use perses-plugin-create)
-- Create dashboards (use perses-dashboard-create)
-- Manage datasources (use perses-datasource-manage)
+This skill manages the full lifecycle of Perses variables: creation, configuration, chaining with dependencies, and interpolation across all scopes (global, project, dashboard). Variable chains enable cascading filters where dependent variables only show values filtered by their parent selections — for example, a pod variable that only displays pods matching the selected cluster and namespace.
 
 ---
 
@@ -101,6 +76,8 @@ This skill operates as the lifecycle manager for Perses variables, handling crea
 | doublequote | `"a","b","c"` | Quoted CSV |
 | singlequote | `'a','b','c'` | Single-quoted CSV |
 | raw | `a` (first only) | Single value extraction |
+
+**Key constraint on variable chains**: Variables must be ordered so dependencies come first because Perses evaluates variables in array order. A variable referencing `$cluster` must appear after the cluster variable definition. This is a strict sequencing requirement — if the parent variable appears after the child, the child will resolve `$cluster` as empty on first load, returning unfiltered results.
 
 **Gate**: Variable type, plugin, scope, and dependencies identified. Proceed to Phase 2.
 
@@ -148,7 +125,7 @@ perses_create_project_variable(
 
 **Variable chain** (dashboard scope — cluster -> namespace -> pod):
 
-Variables must be ordered with dependencies first. Each subsequent variable uses matchers that reference the previous variables:
+When building chains, order variables with dependencies first. Each subsequent variable uses matchers that reference the previous variables using the exact syntax shown below. Always include the `datasource` field — Perses will not infer it and the variable will fail to resolve if omitted. Use explicit interpolation formats in consuming queries (regex for Prometheus `=~` matchers, csv for other contexts) to ensure multi-value substitution works correctly.
 
 ```yaml
 variables:
@@ -201,6 +178,11 @@ variables:
             - "namespace=\"$namespace\""
 ```
 
+**Default behaviors** (applied unless overridden):
+- Default to ListVariable with PrometheusLabelValuesVariable plugin for query-driven filtering
+- Create variables at dashboard scope unless otherwise specified
+- Enable `allowMultiple` and `allowAllValue` by default for filter variables (allows users to select all or no specific values)
+
 **Gate**: Variables created without errors. Proceed to Phase 3.
 
 ### Phase 3: VERIFY
@@ -240,47 +222,7 @@ Verify chain behavior by checking that dependent variables correctly filter when
 | MCP `perses_create_project_variable` fails | Error returned from MCP tool call — variable not created | Check: (1) variable name does not already exist in the project (names must be unique per scope), (2) the target project exists (create it first with `perses_create_project`), (3) plugin kind is spelled correctly (e.g., `PrometheusLabelValuesVariable` not `PrometheusLabelValues`) |
 | Matcher syntax error in child variable | Child variable returns empty results or Perses logs show query parse errors | Matchers must be exact PromQL label matcher syntax: `"label=\"$var\""` with escaped inner quotes. Missing escapes or wrong quote nesting breaks the matcher silently |
 
----
-
-## Anti-Patterns
-
-| Anti-Pattern | Why It Fails | Correct Approach |
-|-------------|-------------|------------------|
-| Wrong dependency order in variable array (child before parent) | Perses evaluates variables top-to-bottom. A child variable referencing `$cluster` that appears before the cluster variable will resolve `$cluster` as empty, returning unfiltered results | Always order variables by dependency chain: root variables first, then each level of dependents in order |
-| Using `${var}` or `${var:csv}` for Prometheus `=~` label matchers | `=~` expects a regex pattern. CSV format `a,b,c` is not valid regex and either causes a parse error or silently matches nothing | Use `${var:regex}` which produces `a\|b\|c` — valid regex alternation for Prometheus matchers |
-| Setting `allowMultiple: true` without configuring the appropriate interpolation format in consuming queries | The variable will return multiple values, but the query uses bare `$var` which only substitutes the first value, silently dropping the rest | When `allowMultiple` is true, always use an explicit interpolation format in queries: `${var:regex}` for Prometheus, `${var:csv}` for APIs, `${var:lucene}` for LogQL |
-| Creating GlobalVariable for project-specific filters | Global variables apply to all projects and dashboards, polluting the variable namespace and confusing users who see irrelevant filters | Use project-scoped variables (kind: Variable with project reference) for filters specific to a team or service. Reserve GlobalVariable for truly universal filters like environment or region |
-| Duplicating variables across dashboards instead of using project/global scope | Changes must be made in every dashboard individually; variable definitions drift over time | Promote shared variables to project or global scope and reference them consistently across dashboards |
-| Hardcoding datasource name without checking available datasources | Variable queries fail silently when the datasource name does not match any configured datasource | List available datasources first (`percli get datasource --project <project>` or `perses_list_datasources`) and use the exact name |
-
----
-
-## Anti-Rationalization
-
-These are shortcuts that seem reasonable but cause real failures:
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|---------------|-----------------|
-| "The variable order doesn't matter, they all resolve eventually" | Perses evaluates variables strictly in array order, not by dependency graph. A child variable that appears before its parent will resolve against an empty parent value on first load | **Map the full dependency chain and verify array order matches** |
-| "I'll just use `$var` without a format — Perses will figure it out" | Bare `$var` uses the default format which may not match the query context. For Prometheus `=~` matchers this silently produces wrong results | **Always specify the interpolation format explicitly when the variable is multi-select** |
-| "The variable works in the UI so the interpolation must be correct" | It may work with a single selection but break with multiple selections. The default interpolation for single values happens to work, masking the missing format specification | **Test with multiple values selected to verify the interpolation format produces valid query syntax** |
-| "I'll create the variable and fix the chain order later" | Variables that appear to work in isolation will return wrong results when chaining is broken, and the bug is subtle — dashboards show data, just unfiltered data | **Get the dependency order right before creating any variables** |
-
----
-
-## FORBIDDEN Patterns
-
-These patterns MUST NOT appear in any variable configuration produced by this skill:
-
-- **NEVER** define a child variable before its parent in the variables array — this silently breaks filtering
-- **NEVER** use `${var:csv}` in a Prometheus `=~` or `!~` matcher — use `${var:regex}` instead
-- **NEVER** hardcode label values in a ListVariable when the values come from Prometheus — use PrometheusLabelValuesVariable or PrometheusPromQLVariable instead
-- **NEVER** create a variable with `allowMultiple: true` without verifying that all consuming queries use an appropriate multi-value interpolation format
-- **NEVER** omit the `datasource` field in a Prometheus variable plugin — Perses will not infer it and the variable will fail to resolve
-
----
-
-## Blocker Criteria
+### Blockers
 
 Do NOT proceed past each phase gate if any of these conditions exist:
 
@@ -298,6 +240,25 @@ Do NOT proceed past each phase gate if any of these conditions exist:
 - Variable list command does not show the created variable — creation failed silently
 - Variable chain produces unfiltered results when parent is selected — dependency order or matcher syntax is wrong
 - Variable dropdown is empty — plugin configuration, datasource, or label name is incorrect
+
+### Anti-Rationalization Guards
+
+These shortcuts seem reasonable but cause real failures:
+
+- **"The variable order doesn't matter, they all resolve eventually"**: Perses evaluates variables strictly in array order, not by dependency graph. A child variable that appears before its parent will resolve against an empty parent value on first load, silently producing wrong results.
+- **"I'll just use `$var` without a format — Perses will figure it out"**: Bare `$var` uses the default format which may not match the query context. For Prometheus `=~` matchers this silently produces wrong results. Always specify the interpolation format explicitly when the variable is multi-select.
+- **"The variable works in the UI so the interpolation must be correct"**: It may work with a single selection but break with multiple selections. Always test with multiple values selected to verify the interpolation format produces valid query syntax.
+- **"I'll create the variable and fix the chain order later"**: Variables that appear to work in isolation will return wrong results when chaining is broken, and the bug is subtle — dashboards show data, just unfiltered data. Get the dependency order right before creating any variables.
+
+### Forbidden Patterns
+
+Never produce configurations with these patterns:
+
+- **NEVER** define a child variable before its parent in the variables array — this silently breaks filtering
+- **NEVER** use `${var:csv}` in a Prometheus `=~` or `!~` matcher — use `${var:regex}` instead
+- **NEVER** hardcode label values in a ListVariable when the values come from Prometheus — use PrometheusLabelValuesVariable or PrometheusPromQLVariable instead
+- **NEVER** create a variable with `allowMultiple: true` without verifying that all consuming queries use an appropriate multi-value interpolation format
+- **NEVER** omit the `datasource` field in a Prometheus variable plugin — Perses will not infer it and the variable will fail to resolve
 
 ---
 

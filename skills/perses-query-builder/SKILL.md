@@ -29,136 +29,9 @@ routing:
 
 Build and optimize queries for Perses dashboard panels.
 
-## Operator Context
+## Overview
 
-This skill constructs, validates, and optimizes queries embedded in Perses panel definitions. It handles PromQL (Prometheus), LogQL (Loki), and TraceQL (Tempo) with correct variable interpolation and datasource binding.
-
-### Hardcoded Behaviors (Always Apply)
-- **Variable-aware**: Always use Perses variable syntax `$var` or `${var:format}` — never hardcode label values that should come from variables
-- **Datasource-scoped**: Every query MUST reference its datasource by both `kind` and `name` fields
-- **Interpolation-correct**: Use `${var:regex}` for `=~` matchers, `${var:csv}` or `${var:pipe}` for multi-select labels — never use bare `$var` with regex operators
-- **Rate interval alignment**: Use `$__rate_interval` when the platform provides it; otherwise set rate intervals >= 4x the scrape interval
-
-### Default Behaviors (ON unless disabled)
-- **PromQL default**: Default to PrometheusTimeSeriesQuery if query type not specified
-- **Optimization suggestions**: Flag recording rule candidates for expensive aggregations over high-cardinality metrics
-- **Label matcher validation**: Warn when queries lack a narrowing label matcher (e.g., selecting all series for a metric)
-- **Multi-value detection**: When a variable is marked `allowMultiple`, automatically apply the correct interpolation format
-
-### Optional Behaviors (OFF unless enabled)
-- **Recording rule generation**: Produce `recording_rules.yaml` for identified candidates
-- **TraceQL exemplar linking**: Add exemplar query alongside PromQL for trace correlation
-- **Query explain mode**: Annotate each query clause with comments explaining what it selects
-
-## What This Skill CAN Do
-- Build PromQL, LogQL, and TraceQL queries for Perses panel specs
-- Apply correct Perses variable interpolation formats (`${var:regex}`, `${var:csv}`, etc.)
-- Validate query syntax and flag common PromQL/LogQL/TraceQL errors
-- Suggest query optimizations (recording rules, label narrowing, rate intervals)
-- Wire queries to the correct datasource kind and name
-
-## What This Skill CANNOT Do
-- Create or configure datasources (use perses-datasource-manage)
-- Build full dashboards or panel layouts (use perses-dashboard-create)
-- Deploy Perses server instances (use perses-deploy)
-- Develop custom Perses plugins (use perses-plugin-create)
-
----
-
-## Error Handling
-
-### PromQL Syntax Errors
-**Symptom**: Query fails validation — missing closing bracket, invalid function name, bad label matcher syntax.
-**Detection**: Look for unbalanced `()`, `{}`, `[]`; unknown function names; `=~` with unescaped special chars.
-**Resolution**: Fix the syntax. Common fixes:
-- Add missing closing `}` or `)`
-- Replace `=~` value with a valid RE2 regex (no lookaheads)
-- Use correct function name (e.g., `rate()` not `Rate()`, `histogram_quantile()` not `histogram_percentile()`)
-
-### Variable Interpolation Format Mismatch
-**Symptom**: Dashboard renders wrong results or query errors when multi-value variable is selected.
-**Detection**: `$var` or `${var}` used with `=~` matcher; `${var:csv}` used with `=~` (needs regex format).
-**Resolution**:
-- For `=~` matchers: use `${var:regex}` (produces `val1|val2|val3`)
-- For `=` with multi-select: use `${var:csv}` or `${var:pipe}` depending on downstream expectation
-- For JSON API params: use `${var:json}`
-
-### Datasource Kind Mismatch
-**Symptom**: Query silently returns no data or errors at runtime with "unsupported query type".
-**Detection**: Query plugin `kind` does not match datasource `kind` (e.g., `PrometheusTimeSeriesQuery` referencing a `TempoDatasource`).
-**Resolution**: Align the query plugin kind with the datasource kind:
-- `PrometheusTimeSeriesQuery` → `PrometheusDatasource`
-- `TempoTraceQuery` → `TempoDatasource`
-- `LokiLogQuery` → `LokiDatasource`
-
-### High-Cardinality Query Warnings
-**Symptom**: Query is slow, times out, or overwhelms Prometheus.
-**Detection**: No label matchers narrowing selection; `rate()` missing or with no interval; aggregation over unbounded label set.
-**Resolution**:
-- Add label matchers to reduce selected series (at minimum `job` or `namespace`)
-- Wrap counters in `rate()` or `increase()` with an appropriate interval
-- Consider a recording rule for expensive `histogram_quantile()` or multi-level aggregations
-
----
-
-## Anti-Patterns
-
-### Hardcoding Label Values
-**Wrong**: `http_requests_total{namespace="production"}` in a panel query.
-**Right**: `http_requests_total{namespace="$namespace"}` using a dashboard variable.
-**Why**: Hardcoded values break reusability across environments and defeat the purpose of dashboard variables.
-
-### Bare `$var` with Multi-Value or Regex
-**Wrong**: `http_requests_total{pod=~"$pod"}` when `pod` is a multi-select variable.
-**Right**: `http_requests_total{pod=~"${pod:regex}"}`.
-**Why**: Without `:regex` format, multi-select values are not joined with `|` — the query matches only the first selected value or produces a syntax error.
-
-### Missing Datasource Spec in Query
-**Wrong**: Omitting the `datasource` block or specifying only `name` without `kind`.
-**Right**:
-```yaml
-datasource:
-  kind: PrometheusDatasource
-  name: prometheus
-```
-**Why**: Perses needs both `kind` and `name` to resolve the datasource. Omitting `kind` causes runtime resolution failures.
-
-### Using `rate()` Without Meaningful Interval
-**Wrong**: `rate(http_requests_total{job="api"}[1s])`.
-**Right**: `rate(http_requests_total{job="api"}[$__rate_interval])` or `[5m]` aligned with scrape interval.
-**Why**: Intervals shorter than the scrape interval produce empty results; `$__rate_interval` auto-adapts.
-
----
-
-## Anti-Rationalization
-
-| Rationalization | Reality | Required Action |
-|---|---|---|
-| "Bare `$var` works fine for single-select" | Variables can be changed to multi-select later, breaking the query | **Always use explicit format when combined with `=~`** |
-| "Datasource kind is obvious from context" | Perses resolves datasources by kind+name pair at runtime | **Always specify both `kind` and `name`** |
-| "This query is simple enough to skip validation" | Simple queries with typos still fail silently | **Validate every query against syntax rules** |
-| "Recording rules are premature optimization" | `histogram_quantile` over thousands of series will time out in production | **Flag recording rule candidates for expensive aggregations** |
-
----
-
-## FORBIDDEN Patterns
-
-- **NEVER** use `${var:regex}` with `=` (equality) matchers — regex format with `=` causes silent mismatches
-- **NEVER** omit `kind` from the datasource reference — Perses cannot resolve by name alone
-- **NEVER** mix query plugin types within a single panel query list (e.g., PromQL and TraceQL in the same `queries[]` array)
-- **NEVER** use Grafana-style `$__interval` or `${__rate_interval}` — Perses uses `$__rate_interval` (no braces, double underscores)
-- **NEVER** assume a variable supports multi-select — check the variable definition's `allowMultiple` field
-
----
-
-## Blocker Criteria
-
-Do NOT proceed past the BUILD phase if any of these are true:
-
-1. **Datasource unknown**: The target datasource name and kind have not been confirmed — query cannot be validated
-2. **Variable definitions missing**: Query references `$var` but no matching variable exists in the dashboard spec
-3. **Query type ambiguous**: Cannot determine whether PromQL, LogQL, or TraceQL is needed from user request
-4. **Metric name unverified**: The metric name referenced does not exist in the target Prometheus/Loki/Tempo instance and the user has not confirmed it
+This skill constructs, validates, and optimizes queries embedded in Perses panel definitions. It handles PromQL (Prometheus), LogQL (Loki), and TraceQL (Tempo) with correct variable interpolation and datasource binding. The workflow progresses through three phases: identifying query requirements, building the query with proper templating, and optimizing for performance and correctness.
 
 ---
 
@@ -168,18 +41,38 @@ Do NOT proceed past the BUILD phase if any of these are true:
 
 **Goal**: Determine query type, datasource, and variable context.
 
+**Blockers**: Do not proceed if any of these are unresolved (because Perses requires them for runtime resolution and query validation):
+
+1. **Datasource unknown** — The target datasource name and kind have not been confirmed. Perses resolves datasources at runtime using the `kind` and `name` pair; queries cannot be validated without this.
+2. **Variable definitions missing** — Query references `$var` but no matching variable exists in the dashboard spec. Variables must be defined in the dashboard before queries can reference them.
+3. **Query type ambiguous** — Cannot determine whether PromQL (metrics), LogQL (logs), or TraceQL (traces) is needed from the user request. Each query type maps to a specific datasource kind.
+4. **Metric name unverified** — The metric name referenced does not exist in the target Prometheus/Loki/Tempo instance and the user has not confirmed it. Skip metric validation if the user explicitly says the metric exists or is intentional.
+
+**Steps**:
+
 1. **Query type**: Identify which query language is needed:
-   - PrometheusTimeSeriesQuery (PromQL) — metrics, counters, histograms
-   - TempoTraceQuery (TraceQL) — distributed traces
-   - LokiLogQuery (LogQL) — log streams
-2. **Datasource**: Confirm the datasource `name` and `kind` from the dashboard or project context
-3. **Variables**: Identify which dashboard variables the query should reference and their `allowMultiple` setting
+   - PrometheusTimeSeriesQuery (PromQL) — for metrics, counters, histograms
+   - TempoTraceQuery (TraceQL) — for distributed traces
+   - LokiLogQuery (LogQL) — for log streams
+2. **Datasource**: Confirm the datasource `name` and `kind` from the dashboard or project context (because Perses cannot resolve datasources by name alone at runtime)
+3. **Variables**: Identify which dashboard variables the query should reference and check their `allowMultiple` setting (because this determines which interpolation format to use)
 
 **Gate**: Query type, datasource, and variable context confirmed. Proceed to Phase 2.
 
 ### Phase 2: BUILD
 
 **Goal**: Construct the query with proper variable templating and datasource binding.
+
+**Constraints applied during building**:
+
+- **Always use Perses variable syntax** `$var` or `${var:format}` (not hardcoded label values) because dashboard variables enable query reusability across environments
+- **Include both `kind` and `name` in the datasource spec** because Perses resolves datasources by kind+name pair at runtime and will fail silently if `kind` is omitted
+- **Use the correct interpolation format for the operator context** — specifically, use `${var:regex}` for `=~` matchers and `${var:csv}` or `${var:pipe}` for equality matchers with multi-select variables, because bare `$var` with regex operators only interpolates the first selected value
+- **Never use `${var:regex}` with `=` (equality) matchers** because regex format with equality causes silent mismatches; regex format is only for `=~`
+- **Default to PrometheusTimeSeriesQuery** if query type is not explicitly specified
+- **Use `$__rate_interval` for `rate()` and `increase()`** when the platform provides it, otherwise set intervals >= 4x the scrape interval, because shorter intervals produce empty results
+
+**Example**:
 
 ```yaml
 queries:
@@ -216,13 +109,59 @@ queries:
 
 **Goal**: Review the query for performance and correctness.
 
-1. **Label narrowing**: Ensure at least one selective label matcher is present (e.g., `job`, `namespace`)
-2. **Rate intervals**: Confirm `rate()`/`increase()` intervals align with scrape interval or use `$__rate_interval`
-3. **Recording rule candidates**: Flag `histogram_quantile()` over high-cardinality metrics, multi-level `sum(rate(...))` aggregations, or any query aggregating over > 1000 estimated series
-4. **Variable format audit**: Verify every `$var` reference uses the correct interpolation format for its operator context
-5. **Datasource alignment**: Confirm query plugin kind matches datasource kind
+**Constraints validated during optimization**:
+
+- **Validate label narrowing** — ensure at least one selective label matcher is present (e.g., `job`, `namespace`) because queries without label matchers select all series for a metric and can overwhelm Prometheus
+- **Confirm rate intervals** — verify `rate()`/`increase()` intervals align with scrape interval or use `$__rate_interval`, because intervals shorter than scrape interval produce empty results
+- **Flag recording rule candidates** — identify expensive patterns like `histogram_quantile()` over high-cardinality metrics, multi-level `sum(rate(...))` aggregations, or queries aggregating over > 1000 estimated series, because these will time out in production
+- **Audit variable formats** — verify every `$var` reference uses the correct interpolation format for its operator context (regex format for `=~`, CSV/pipe for `=`), because mismatches produce wrong results
+- **Align plugin and datasource kinds** — confirm query plugin kind matches datasource kind (e.g., `PrometheusTimeSeriesQuery` with `PrometheusDatasource`, not `TempoDatasource`), because mismatches cause "unsupported query type" errors at runtime
+
+**Steps**:
+
+1. Check that at least one selective label matcher narrows the selection
+2. Verify rate intervals are appropriately tuned
+3. Identify expensive aggregations that should become recording rules
+4. Validate each variable uses the correct format for its context
+5. Confirm datasource kind aligns with query plugin kind
 
 **Gate**: Query optimized and validated. Task complete.
+
+---
+
+## Error Handling
+
+### PromQL Syntax Errors
+**Symptom**: Query fails validation — missing closing bracket, invalid function name, bad label matcher syntax.
+**Detection**: Look for unbalanced `()`, `{}`, `[]`; unknown function names; `=~` with unescaped special chars.
+**Resolution**: Fix the syntax. Common fixes:
+- Add missing closing `}` or `)`
+- Replace `=~` value with a valid RE2 regex (no lookaheads)
+- Use correct function name (e.g., `rate()` not `Rate()`, `histogram_quantile()` not `histogram_percentile()`)
+
+### Variable Interpolation Format Mismatch
+**Symptom**: Dashboard renders wrong results or query errors when multi-value variable is selected.
+**Detection**: `$var` or `${var}` used with `=~` matcher; `${var:csv}` used with `=~` (needs regex format).
+**Resolution**:
+- For `=~` matchers: use `${var:regex}` (produces `val1|val2|val3`)
+- For `=` with multi-select: use `${var:csv}` or `${var:pipe}` depending on downstream expectation
+- For JSON API params: use `${var:json}`
+
+### Datasource Kind Mismatch
+**Symptom**: Query silently returns no data or errors at runtime with "unsupported query type".
+**Detection**: Query plugin `kind` does not match datasource `kind` (e.g., `PrometheusTimeSeriesQuery` referencing a `TempoDatasource`).
+**Resolution**: Align the query plugin kind with the datasource kind:
+- `PrometheusTimeSeriesQuery` → `PrometheusDatasource`
+- `TempoTraceQuery` → `TempoDatasource`
+- `LokiLogQuery` → `LokiDatasource`
+
+### High-Cardinality Query Warnings
+**Symptom**: Query is slow, times out, or overwhelms Prometheus.
+**Detection**: No label matchers narrowing selection; `rate()` missing or with no interval; aggregation over unbounded label set.
+**Resolution**:
+- Add label matchers to reduce selected series (at minimum `job` or `namespace`)
+- Wrap counters in `rate()` or `increase()` with an appropriate interval
+- Consider a recording rule for expensive `histogram_quantile()` or multi-level aggregations
 
 ---
 
