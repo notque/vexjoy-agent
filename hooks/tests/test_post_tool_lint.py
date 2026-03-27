@@ -94,7 +94,11 @@ def test_ignores_non_lintable_files():
 
 
 def test_ignores_read_tool():
-    """Hook should only trigger for Write/Edit, not Read."""
+    """Read tool filtering is now handled by matcher 'Write|Edit' in settings.json.
+
+    When called directly (without matcher), the hook processes any tool_name.
+    This test verifies the hook still exits 0 (non-blocking) for any input.
+    """
     setup()
     event = {
         "type": "PostToolUse",
@@ -104,7 +108,7 @@ def test_ignores_read_tool():
     stdout, stderr, code = run_hook(event)
 
     assert code == 0
-    assert stdout == ""
+    # Note: hook may produce output since tool_name filter was moved to matcher
 
 
 def test_handles_missing_file_path():

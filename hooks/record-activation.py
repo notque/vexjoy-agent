@@ -28,6 +28,7 @@ sys.path.insert(0, str(Path(__file__).parent / "lib"))
 from hook_utils import get_session_id
 from stdin_timeout import read_stdin
 
+
 def main() -> None:
     """Record session activation stats on successful tool completions."""
     try:
