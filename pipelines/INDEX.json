@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-03-27T14:21:07Z",
+  "generated": "2026-03-27T18:33:03Z",
   "generated_by": "scripts/generate-skill-index.py",
   "pipelines": {
     "agent-upgrade": {
@@ -130,21 +130,6 @@
       "force_route": true,
       "user_invocable": false,
       "version": "4.0.0",
-      "phases": [
-        "STATIC ANALYSIS",
-        "SCOPE",
-        "WAVE 0 DISPATCH",
-        "WAVE 0 AGGREGATE",
-        "LIBRARY CONTRACT VERIFICATION",
-        "WAVE 1 DISPATCH",
-        "WAVE 0+1 AGGREGATE",
-        "WAVE 2 DISPATCH",
-        "WAVE 0+1+2 AGGREGATE",
-        "WAVE 3 DISPATCH",
-        "FULL AGGREGATE",
-        "FIX",
-        "REPORT"
-      ],
       "pairs_with": [
         "systematic-code-review",
         "parallel-code-review",
@@ -753,11 +738,6 @@
       "category": "content",
       "user_invocable": false,
       "version": "2.0.0",
-      "phases": [
-        "VOICE GROUNDING",
-        "VOICE METRICS",
-        "THINKING PATTERNS"
-      ],
       "pairs_with": [
         "voice-orchestrator",
         "voice-validator"
