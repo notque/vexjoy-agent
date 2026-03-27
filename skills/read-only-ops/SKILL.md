@@ -22,43 +22,11 @@ routing:
 
 # Read-Only Operations Skill
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for safe exploration and reporting, configuring Claude's behavior to NEVER modify files or system state during investigation. It implements the **Observation Only** architectural pattern -- gather evidence, report facts, never alter state.
+This skill operates as a safe exploration and reporting mechanism without ever modifying files or system state. Use it when you need to gather evidence, verify facts, or show current state to the user.
 
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before exploration
-- **Over-Engineering Prevention**: Only explore what is directly requested. No speculative investigations or comprehensive audits unless explicitly asked
-- **NEVER use Write or Edit tools**: Under no circumstances modify files
-- **NEVER run destructive Bash commands**: No rm, mv, cp, mkdir, kill, touch, or write redirects (>, >>)
-- **NEVER modify databases**: Only SELECT queries; never INSERT, UPDATE, DELETE, or DROP
-- **NEVER modify git state**: No add, commit, push, checkout, or reset commands
-- **Show complete output**: Display full command results; never summarize away details the user needs to verify
-
-### Default Behaviors (ON unless disabled)
-- **Structured reporting**: Lead with key findings summary, details below
-- **List files examined**: Document which files were read for transparency
-- **Include timestamps**: Show when status was captured for time-sensitive checks
-- **Scope confirmation**: Confirm scope before broad searches to avoid wasting tokens
-- **Temporary file cleanup**: Remove any temp files created during exploration at task end
-
-### Optional Behaviors (OFF unless enabled)
-- **Deep exploration**: Recursively examine nested directories and dependencies
-- **Performance metrics**: Include timing information for operations
-- **Diff comparison**: Compare current state against known baselines
-
-## What This Skill CAN Do
-- Read files, search codebases, and report findings
-- Run read-only Bash commands (ls, ps, git status, git log, du, df, curl GET)
-- Execute SELECT queries against databases
-- Produce structured status reports with evidence
-
-## What This Skill CANNOT Do
-- Modify, create, or delete any files
-- Run destructive or state-changing Bash commands
-- Execute write operations against databases
-- Install, remove, or update packages
-- Alter git state in any way
+The core principle: **Observation Only**. Gather evidence. Report facts. Never alter state.
 
 ---
 
@@ -69,23 +37,27 @@ This skill operates as an operator for safe exploration and reporting, configuri
 **Goal**: Understand exactly what the user wants to know before exploring.
 
 **Step 1: Parse the request**
+
+Determine:
 - What specific information is the user asking for?
 - What is the target scope (specific file, directory, service, system-wide)?
 - Are there implicit constraints (time range, file type, component)?
 
 **Step 2: Confirm scope if ambiguous**
 
-If the request could match dozens of results or span the entire filesystem, clarify before proceeding. If the scope is clear, proceed directly.
+If the request could match dozens of results or span the entire filesystem, clarify before proceeding. If the scope is clear, proceed directly. This prevents wasting tokens on over-broad searches.
 
 **Gate**: Scope is understood. Target locations are identified. Proceed only when gate passes.
 
+---
+
 ### Phase 2: GATHER
 
-**Goal**: Collect evidence using read-only tools.
+**Goal**: Collect evidence using read-only tools. Tools must never modify state.
 
 **Step 1: Execute read-only operations**
 
-Allowed commands:
+**Allowed commands** (safe for read-only use):
 ```
 ls, find, wc, du, df, file, stat
 ps, top -bn1, uptime, free, pgrep
@@ -95,7 +67,7 @@ curl -s (GET only)
 date, timedatectl, env
 ```
 
-Forbidden commands:
+**Forbidden commands** (violate read-only constraint absolutely):
 ```
 mkdir, rm, mv, cp, touch, chmod, chown
 git add, git commit, git push, git checkout, git reset
@@ -105,11 +77,15 @@ npm install, pip install, apt install
 pkill, kill, systemctl restart/stop
 ```
 
+Rationale: Even "harmless" state changes violate the read-only boundary. Use the read-only equivalent instead (e.g., `ls -la` instead of `mkdir -p`, `git status` instead of `git add`, `SELECT` instead of `INSERT`).
+
 **Step 2: Record raw output**
 
-Show complete command output. Do not paraphrase or truncate unless output exceeds reasonable display length, in which case show representative samples with counts.
+Show complete command output. Do not paraphrase or truncate unless output exceeds reasonable display length, in which case show representative samples with counts. The user must be able to verify your claims from the evidence shown.
 
 **Gate**: All requested data has been gathered with read-only commands. No state was modified. Proceed only when gate passes.
+
+---
 
 ### Phase 3: REPORT
 
@@ -117,13 +93,15 @@ Show complete command output. Do not paraphrase or truncate unless output exceed
 
 **Step 1: Summarize key findings at the top**
 
-Lead with what the user asked about. Answer the question first, then provide supporting details.
+Lead with what the user asked about. Answer the question first, then provide supporting details. This prevents burying the answer in verbose output.
 
 **Step 2: Show evidence**
 
-Include command output, file contents, or search results that support the summary. The user must be able to verify claims from the evidence shown.
+Include command output, file contents, or search results that support the summary. The user must be able to verify claims from the evidence shown. Never summarize away details — show the raw data.
 
 **Step 3: List files examined**
+
+Document which files were read for transparency:
 
 ```markdown
 ### Files Examined
@@ -138,54 +116,37 @@ Include command output, file contents, or search results that support the summar
 ## Error Handling
 
 ### Error: "Attempted to use Write or Edit tool"
-Cause: Skill boundary violation -- tried to modify a file
-Solution: This skill only permits Read, Grep, Glob, and read-only Bash. Report findings verbally; do not write them to files unless the user explicitly grants permission.
+**Cause**: Skill boundary violation — tried to modify a file.
+**Solution**: This skill only permits Read, Grep, Glob, and read-only Bash. Report findings verbally; do not write them to files unless the user explicitly grants permission. Violating the read-only boundary defeats the purpose of the skill.
 
 ### Error: "Bash command would modify state"
-Cause: Attempted destructive or state-changing command
-Solution: Use the read-only equivalent (e.g., `ls -la` instead of `mkdir -p`, `git status` instead of `git add`, `SELECT` instead of `INSERT`).
+**Cause**: Attempted destructive or state-changing command.
+**Solution**: Use the read-only equivalent. For example:
+- `ls -la` instead of `mkdir -p`
+- `git status` instead of `git add`
+- `SELECT` instead of `INSERT`
+- `stat` or `[ -d /path ] && echo exists` instead of `mkdir -p /tmp/test`
 
 ### Error: "Scope too broad, results overwhelming"
-Cause: Search returned hundreds of matches without filtering
-Solution: Return to Phase 1. Narrow scope by file type, directory, or pattern before re-executing.
+**Cause**: Search returned hundreds of matches without filtering.
+**Solution**: Return to Phase 1. Narrow scope by file type, directory, or pattern before re-executing. For example, instead of searching the entire filesystem for "config", search `~/.config/` or `./etc/` with a specific file extension.
 
----
+### Common Patterns to Avoid
 
-## Anti-Patterns
+**Investigating Everything**: User asks about API server status; you audit all services, configs, logs, and dependencies. Why wrong: Wastes tokens, buries the answer. The scope was never that broad. Do instead: Answer the specific question. Offer to investigate further if needed.
 
-### Anti-Pattern 1: Investigating Everything
-**What it looks like**: User asks about API server status; Claude audits all services, configs, logs, and dependencies
-**Why wrong**: Wastes tokens, buries the answer, scope was never that broad
-**Do instead**: Answer the specific question. Offer to investigate further if needed.
+**Summarizing Away Evidence**: "The repository has 3 modified files and is clean" instead of showing `git status` output. Why wrong: User cannot verify the claim. Missing details (which files? staged or unstaged?) prevent verification. Do instead: Show complete command output. Let the user draw conclusions.
 
-### Anti-Pattern 2: Summarizing Away Evidence
-**What it looks like**: "The repository has 3 modified files and is clean" instead of showing `git status` output
-**Why wrong**: User cannot verify the claim. Missing details (which files? staged or unstaged?)
-**Do instead**: Show complete command output. Let the user draw conclusions.
-
-### Anti-Pattern 3: Modifying State "Just to Check"
-**What it looks like**: Running `mkdir -p /tmp/test` to check if a path is writable
-**Why wrong**: Creates state change. Violates read-only constraint absolutely.
-**Do instead**: Use `ls -la`, `stat`, or `[ -d /path ] && echo exists` for read-only checks.
-
-### Anti-Pattern 4: Exploring Before Scoping
-**What it looks like**: User says "find config files"; Claude immediately searches entire filesystem
-**Why wrong**: May return hundreds of irrelevant results. Wastes time without direction.
-**Do instead**: Confirm scope (which config? where? what format?) then search targeted locations.
+**Exploring Before Scoping**: User says "find config files"; you immediately search entire filesystem. Why wrong: May return hundreds of irrelevant results. Wastes time without direction. Do instead: Confirm scope (which config? where? what format?) then search targeted locations.
 
 ---
 
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
+### Skill Design Philosophy
 
-### Domain-Specific Anti-Rationalization
+This skill enforces the **Observation Only** architectural pattern to enable safe, passive exploration without side effects. The constraint is absolute: tools must never modify state, even to "verify" something. Verification that requires modification (e.g., "is this directory writable?") should use read-only checks (`stat`, `ls -la`, test operators).
 
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "I'll just quickly create a temp file to store results" | Any file creation violates read-only constraint | Report findings in response text only |
-| "This git command is harmless" | Only explicitly allowed git commands are safe | Check against allowed list before running |
-| "The user probably wants me to fix this too" | Read-only means observe and report, never act | Report findings, let user decide next steps |
-| "I'll summarize to save space" | Summaries hide details the user needs to verify | Show complete output, summarize at top |
+### CLAUDE.md Compliance
+
+This skill follows the CLAUDE.md principle of verification over assumption and artifacts over memory. All claims are backed by shown evidence. No paraphrasing. No hidden state changes.

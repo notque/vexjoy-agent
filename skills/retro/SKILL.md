@@ -25,33 +25,9 @@ routing:
 
 # Retro Knowledge Skill
 
-## Operator Context
+## Overview
 
-This skill wraps `scripts/learning-db.py` into a user-friendly interface for the learning system. The learning database is the single source of truth — there are no L1/L2 markdown files.
-
-### Hardcoded Behaviors (Always Apply)
-- **DB is the source of truth**: All queries go through `python3 ~/.claude/scripts/learning-db.py`; never maintain a parallel file store
-- **Graduate requires confirmation**: Always present proposals and wait for user approval before editing agent/skill files
-- **Graduate requires specificity**: Only graduate entries that encode non-obvious, actionable knowledge — never generic advice
-
-### Default Behaviors (ON unless disabled)
-- **Formatted Output**: Present results in readable tables/sections, not raw JSON
-- **Actionable Suggestions**: When showing stats, suggest next actions (search, graduate)
-
-### Optional Behaviors (OFF unless enabled)
-- **Auto-Fix**: Apply graduation without confirmation (only if user passes `--auto`)
-
-## What This Skill CAN Do
-- Show learning system stats (entry counts, categories, confidence distribution)
-- List all entries with filtering by category/confidence
-- Full-text search across all learnings (FTS5)
-- Graduate mature entries into specific agents/skills (LLM-driven)
-- Mark entries as graduated after embedding
-
-## What This Skill CANNOT Do
-- Record new learnings (use `learning-db.py record` directly or let hooks capture)
-- Auto-graduate without human approval
-- Generate L1/L2 markdown files (legacy system, removed in ADR-006)
+This skill wraps `scripts/learning-db.py` into a user-friendly interface for the learning system. The learning database is the single source of truth—all queries go through the Python CLI, never maintaining a parallel file store.
 
 ---
 
@@ -67,6 +43,8 @@ Parse the user's argument to determine the subcommand. Default to `status` if no
 | graduate | **graduate** |
 
 ### Subcommand: status
+
+**Key constraint**: Always present results in readable tables/sections, not raw JSON. When showing stats, suggest next actions (search, graduate).
 
 Show learning system health summary.
 
@@ -99,6 +77,8 @@ Next actions:
 ### Subcommand: list
 
 Display all accumulated knowledge.
+
+**Key constraint**: Output must use the Python CLI as the single source of truth. Do not maintain parallel markdown files. Present results in readable grouped format, not raw JSON.
 
 **Step 1**: Query all entries.
 
@@ -148,8 +128,12 @@ SEARCH: "TERM"
 ### Subcommand: graduate
 
 Evaluate learning.db entries and embed mature ones into agents/skills.
-This is LLM work — graduation requires judgment about target identification,
-edit placement, and phrasing as prescriptive instruction.
+
+**Key constraints:**
+- Only graduate entries that encode non-obvious, actionable knowledge—never generic advice.
+- Always present proposals and wait for user approval before editing agent/skill files.
+- Do not auto-graduate without explicit user approval (even with `--auto` flag, confirm intent).
+- Skip categories `error` and `effectiveness`—those are injection-only (useful in context but not suitable as permanent agent instructions).
 
 **Step 1**: Get graduation candidates from the DB.
 
@@ -157,17 +141,13 @@ edit placement, and phrasing as prescriptive instruction.
 python3 ~/.claude/scripts/learning-db.py query --category design --category gotcha
 ```
 
-Skip categories `error` and `effectiveness` — those are injection-only (useful
-in context but not suitable as permanent agent instructions).
-
 **Step 2**: For each entry, evaluate graduation readiness.
 
 For each candidate, the LLM:
 - Reads the learning value
 - Searches the repo for the target file (grep for related keywords)
-- Determines edit type: add anti-pattern, add to operator context,
-  add warning, or "not ready / keep injecting"
-- Checks if the target already contains equivalent guidance
+- Determines edit type: add anti-pattern, add to operator context, add warning, or "not ready / keep injecting"
+- Checks if the target already contains equivalent guidance (use Grep to verify before proposing)
 
 | Question | Pass | Fail |
 |----------|------|------|
@@ -203,8 +183,7 @@ After embedding, mark the entry as graduated:
 python3 ~/.claude/scripts/learning-db.py graduate TOPIC KEY "target:file/path"
 ```
 
-Graduated entries stop being injected (the injector filters
-`graduated_to IS NULL`).
+Graduated entries stop being injected (the injector filters `graduated_to IS NULL`).
 
 **Step 5**: Report.
 
@@ -248,21 +227,15 @@ Solution: Report that no learnings exist yet. Hooks auto-populate during normal 
 Cause: No design/gotcha entries, or all already graduated
 Solution: Report the stats and suggest recording more learnings via normal work.
 
+### Common Mistakes During Graduation
+- **Graduating generic advice** (e.g., "use proper error handling"): Creates noise. Agents already know general patterns. Only graduate specific, actionable findings that encode something non-obvious.
+- **Proposing without target verification**: Always grep the target file for equivalent guidance before proposing. Duplication creates maintenance burden.
+- **Proceeding without explicit user approval**: Graduation permanently changes agent behavior. Always present proposals in Step 3 and wait for explicit approval before applying changes in Step 4.
+
 ---
 
-## Anti-Patterns
+## References
 
-### Anti-Pattern 1: Graduating Generic Advice
-**What it looks like**: Graduating "use proper error handling" into the Go agent
-**Why wrong**: Generic advice adds noise. Agents already know general patterns.
-**Do instead**: Only graduate specific, actionable findings that encode something non-obvious.
-
-### Anti-Pattern 2: Graduating Without Checking Target
-**What it looks like**: Proposing to add knowledge that's already in the target file
-**Why wrong**: Creates duplication and maintenance burden
-**Do instead**: Always grep the target file for equivalent guidance before proposing.
-
-### Anti-Pattern 3: Auto-Graduating Without User Approval
-**What it looks like**: Embedding knowledge into agents without showing proposals first
-**Why wrong**: Graduation permanently changes agent behavior. Human judgment required.
-**Do instead**: Always present proposals and wait for explicit approval.
+- `~/.claude/scripts/learning-db.py` — Python CLI for all database operations
+- `hooks/retro-knowledge-injector.py` — Hook that injects graduated knowledge into prompt context
+- `scripts/learning.db` — SQLite database with FTS5 search index

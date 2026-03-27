@@ -26,43 +26,22 @@ routing:
 
 # PR Review Address Feedback Skill
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for PR feedback processing, configuring Claude's behavior for rigorous validation of reviewer comments before acting on them. It implements a **Validate-Then-Act** pattern -- fetch all feedback, verify each claim independently, summarize findings, then fix only validated issues.
+This skill processes PR feedback by implementing a **Validate-Then-Act** pattern: fetch all comments from every GitHub source, independently verify each claim, present findings in a summary table, then fix only validated issues. The pattern is mandatory because:
+- Reviewer claims are hypotheses, not facts (verify with code/tests/HTTP requests)
+- Single comment sources miss feedback (reviews, inline comments, and issue comments are separate endpoints)
+- Unverified fixes waste time and introduce bugs (validation phase gates code changes)
 
-### Hardcoded Behaviors (Always Apply)
-- **Fetch All Sources**: Always query reviews, inline comments, AND issue comments -- never rely on a single endpoint
-- **Validate Before Acting**: NEVER start fixing code until every comment has been independently verified
-- **Evidence Over Trust**: Reviewer claims are treated as hypotheses, not facts -- verify with code, tests, or HTTP requests
-- **Summary Table Required**: Always present a validation summary table before making any changes
-- **Phase Gates Enforced**: Each phase must complete before the next begins -- no skipping
+### Key Principles
 
-### Default Behaviors (ON unless disabled)
-- **Auto-Detect PR Context**: Infer owner/repo/PR number from current git branch and remote when not provided
-- **Structured Validation Output**: Use the validation entry format for each comment
-- **Classify Verdicts**: Every comment gets VALID, INVALID, or NEEDS-DISCUSSION
-- **Show Verification Work**: Display evidence for each verdict, not just the conclusion
-- **Fix Only VALID Issues**: Skip INVALID comments, escalate NEEDS-DISCUSSION to user
+**Fetch Comprehensively**: Always query all three endpoints — reviews, inline comments, AND issue comments. Claude and other tools comment via `/issues/{pr}/comments`, which is a separate endpoint. Missing any source means missing feedback.
 
-### Optional Behaviors (OFF unless enabled)
-- **Post Reply Comments**: Reply to individual review comments on GitHub with findings
-- **Request Re-Review**: Automatically request re-review after pushing fixes
-- **Commit Per Finding**: Create separate commits for each validated fix
-- **Diff Verification**: Run `git diff` after fixes to confirm only intended changes
+**Verify Independently**: Reviewer claims must be tested using the verification tests table. Reviewers often miss indirect usage, re-exports, or dynamic references. Trust hierarchy (highest to lowest): running code/tests → HTTP requests → grep/search → reading source → reviewer's word.
 
-## What This Skill CAN Do
-- Fetch and consolidate PR feedback from all three GitHub comment sources
-- Independently verify each reviewer claim against the actual codebase
-- Classify comments as VALID, INVALID, or NEEDS-DISCUSSION with evidence
-- Fix validated issues after presenting the summary table
-- Detect reviewer claims that lack supporting evidence
+**Classify Honestly**: Classify comments as VALID, INVALID, or NEEDS-DISCUSSION based on evidence. Never downgrade NEEDS-DISCUSSION to VALID to avoid asking the user — acting on ambiguous feedback without user input may fix the wrong thing.
 
-## What This Skill CANNOT Do
-- Fix issues without completing the validation phase first
-- Trust reviewer claims without independent verification
-- Skip the summary table and proceed directly to fixes
-- Perform general code review (use systematic-code-review instead)
-- Create or submit new pull requests (use pr-pipeline instead)
+**Present Summary Before Fixes**: Complete all validations and present the full summary table before making any code changes. User loses the big picture if you validate and fix incrementally, and NEEDS-DISCUSSION items may change approach to VALID ones.
 
 ---
 
@@ -96,7 +75,7 @@ gh api repos/{owner}/{repo}/pulls/{pr_number}/comments
 gh api repos/{owner}/{repo}/issues/{pr_number}/comments
 ```
 
-All three comment sources must be fetched and combined. Treat all feedback identically regardless of submission method:
+All three comment sources must be fetched and combined because feedback arrives through different endpoints. Treat all feedback identically regardless of submission method:
 - **Formal reviews** -- submitted via GitHub's "Review changes" button
 - **Inline code comments** -- added directly to specific code lines
 - **Issue/PR comments** -- general comments on the PR conversation
@@ -140,7 +119,7 @@ Reason: [one sentence explanation]
 
 **Step 3: Flag automatic INVALID patterns**
 
-Flag as likely INVALID if reviewer:
+Flag as likely INVALID because evidence is required for all claims:
 - Claims code behavior without showing evidence
 - Says "future date" without checking if URL works
 - Claims unused without searching codebase
@@ -219,7 +198,7 @@ LEARNED: [key] → [topic]
   [one-line value]
 ```
 
-**Quality gate**: Only record specific, actionable findings. "Reviewers are sometimes wrong" is NOT worth recording. "Reviewers flag fmt.Errorf wrapping but the org convention is errors.New" IS worth recording.
+Only record specific, actionable findings because "Reviewers are sometimes wrong" provides no guidance. "Reviewers flag fmt.Errorf wrapping but the org convention is errors.New" IS worth recording as a real org standard.
 
 **Gate**: Learning recorded (or skipped if nothing reusable). Review complete.
 
@@ -286,48 +265,9 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Fixing Before Validating
-**What it looks like**: Reading reviewer comments and immediately editing code
-**Why wrong**: Reviewer may be wrong. Fixing unverified claims wastes time and can introduce bugs.
-**Do instead**: Complete Phase 2 validation for every comment before touching any code.
-
-### Anti-Pattern 2: Trusting Claims Without Evidence
-**What it looks like**: Accepting "this import is unused" without grepping for usage
-**Why wrong**: Reviewers often miss indirect usage, re-exports, or dynamic references.
-**Do instead**: Independently verify each claim using the verification tests table.
-
-### Anti-Pattern 3: Skipping the Summary Table
-**What it looks like**: Validating comments one at a time and fixing each immediately
-**Why wrong**: User loses the big picture. NEEDS-DISCUSSION items may change the approach to VALID ones.
-**Do instead**: Complete all validations, present the full summary table, then proceed to fixes.
-
-### Anti-Pattern 4: Fetching Only One Comment Source
-**What it looks like**: Checking only `/pulls/{pr}/reviews` and missing inline or issue comments
-**Why wrong**: Claude and other tools often comment via `/issues/{pr}/comments`, which is a separate endpoint. Missing any source means missing feedback.
-**Do instead**: Always fetch from all three endpoints: reviews, pull comments, and issue comments.
-
-### Anti-Pattern 5: Downgrading NEEDS-DISCUSSION to VALID
-**What it looks like**: Marking ambiguous feedback as VALID to avoid asking the user
-**Why wrong**: Acting on ambiguous feedback without user input may fix the wrong thing or introduce unintended behavior.
-**Do instead**: Classify honestly. Present NEEDS-DISCUSSION items to the user for their decision.
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization: Code Review](../shared-patterns/anti-rationalization-review.md) - Review-specific rationalization prevention
-- [Anti-Rationalization Core](../shared-patterns/anti-rationalization-core.md) - Universal anti-rationalization patterns
-- [Gate Enforcement](../shared-patterns/gate-enforcement.md) - Phase transition rules
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|---|---|---|
-| "Reviewer is probably right" | Probably is not verified | Test the claim independently |
-| "Small comment, just fix it" | Small fixes can break things | Validate first, even for trivial claims |
-| "Already validated similar comment" | Each comment has unique context | Validate each comment individually |
-| "No time for the summary table" | Summary prevents premature action | Always present the table before fixes |
+Trust hierarchy, validation checklist patterns, and phase-gate enforcement are derived from:
+- Anti-Rationalization principles (verify claims independently, never skip phases for time)
+- Code review rigor standards (validate before touching code, classify honestly)
+- Evidence-based troubleshooting (highest-trust sources first, lowest-trust sources last)
