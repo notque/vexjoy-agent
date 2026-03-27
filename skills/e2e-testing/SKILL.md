@@ -40,31 +40,9 @@ routing:
 
 # E2E Testing Skill (Playwright)
 
-## Operator Context
+Playwright-based E2E testing across four phases: Scaffold, Build, Run, Validate. Each phase produces a saved artifact and must pass its gate before the next phase begins.
 
-This skill operates as an operator for Playwright E2E testing workflows. It implements the **Pipeline** architectural pattern — four phases with explicit gates, deterministic validation before LLM judgment, and a saved artifact at each phase exit.
-
-**Scope:** This skill is exclusively for Playwright-based E2E tests that exercise a running application through a real browser. Do NOT use it for unit/component tests, Go testing, or test-first development.
-
-### Hardcoded Behaviors (Always Apply)
-- **POM Required**: Every page or feature area gets a typed Page Object class — no inline locators in spec files
-- **data-testid Selectors**: All locators use `data-testid` attributes — no CSS selectors, no XPath, no text matching for interactive elements
-- **No Arbitrary Waits**: `waitForTimeout` and `setTimeout` in tests are forbidden — use condition-based waiting only
-- **Deterministic Before Subjective**: Run `tsc --noEmit` and check JSON existence before any LLM triage
-- **Artifacts Over Memory**: Each phase produces a file; nothing lives only in context
-- **Quarantine Before Delete**: Flaky tests get `test.fixme()` and a `--repeat-each=5` reproduction attempt before removal
-
-### Default Behaviors (ON unless disabled)
-- **Multi-Browser Matrix**: Test on Chromium, Firefox, and WebKit unless project constrains otherwise
-- **Screenshot on Failure**: `screenshot: 'only-on-failure'` in Playwright config
-- **Trace on Retry**: `trace: 'on-first-retry'` for post-failure debugging
-- **Video Retain on Failure**: `video: 'retain-on-failure'`
-- **CI Retries**: `retries: process.env.CI ? 2 : 0`
-- **Structured Report**: Phase 4 always produces `e2e-report.md` with pass/fail counts and artifact inventory
-
----
-
-## Phases
+## Instructions
 
 ### PHASE 1: SCAFFOLD
 
@@ -85,12 +63,12 @@ This skill operates as an operator for Playwright E2E testing workflows. It impl
      traces/
      videos/
    ```
-3. Write `playwright.config.ts` using the template below.
-4. Confirm `playwright.config.ts` is valid TypeScript: `npx tsc --noEmit`.
+3. Write `playwright.config.ts` using the template below. The config bakes in failure diagnostics by default: `screenshot: 'only-on-failure'`, `trace: 'on-first-retry'`, and `video: 'retain-on-failure'` so that every failure produces actionable artifacts without manual setup. CI retries (`retries: process.env.CI ? 2 : 0`) absorb transient infrastructure flakiness without masking real bugs.
+4. Confirm `playwright.config.ts` is valid TypeScript: `npx tsc --noEmit`. Run this deterministic check before any subjective assessment of the config -- compiler errors are facts, opinions are not.
 
 **Artifact:** `playwright.config.ts` + `tests/e2e/` directory structure.
 
-**Gate:** `playwright.config.ts` exists AND `tests/e2e/` directory exists. If either is missing, do not proceed to Phase 2 — diagnose and fix.
+**Gate:** `playwright.config.ts` exists AND `tests/e2e/` directory exists. If either is missing, do not proceed to Phase 2 -- diagnose and fix.
 
 #### playwright.config.ts Template
 
@@ -126,22 +104,26 @@ export default defineConfig({
 });
 ```
 
+The multi-browser matrix (Chromium, Firefox, WebKit) is the default because cross-browser bugs caught in CI are cheaper than cross-browser bugs caught in production. Remove browsers only when the project explicitly constrains the target set.
+
 ---
 
 ### PHASE 2: BUILD
 
 **Goal:** Write POM classes for target feature areas, then write spec files that use those POMs.
 
+Every page or feature area gets a typed Page Object class. Spec files never contain inline locators -- all selectors live in the POM. This separation means a selector change is a one-line POM edit, not a grep-and-replace across dozens of specs.
+
 **Actions:**
 1. Identify the feature areas under test (auth, checkout, dashboard, etc.).
-2. For each area, create a POM class in `pages/` (see POM Pattern below).
-3. Write spec files in `tests/e2e/<area>/` using the POMs — no inline locators in specs.
+2. For each area, create a POM class in `pages/` (see POM Pattern below). All locators must use `data-testid` attributes via `page.getByTestId()`. CSS selectors (`page.locator('.btn-primary')`) break silently when styles change. XPath breaks on DOM restructuring. Text matching (`page.locator('text=Submit')`) breaks on copy changes. `data-testid` is a testing contract that survives all three.
+3. Write spec files in `tests/e2e/<area>/` using the POMs.
 4. Run `npx tsc --noEmit` to verify all files compile.
 5. Fix any TypeScript errors before proceeding.
 
 **Artifact:** `tests/e2e/**/*.spec.ts` files + `pages/*.ts` POM classes, all compiling cleanly.
 
-**Gate:** At least one `.spec.ts` exists under `tests/e2e/` AND `npx tsc --noEmit` exits 0. If compile fails, fix errors — do not proceed to Phase 3 with broken TypeScript.
+**Gate:** At least one `.spec.ts` exists under `tests/e2e/` AND `npx tsc --noEmit` exits 0. If compile fails, fix errors -- do not proceed to Phase 3 with broken TypeScript.
 
 #### POM Pattern
 
@@ -205,10 +187,21 @@ test.describe('Login Flow', () => {
 
 #### data-testid Convention
 
-- **Format**: `<component>-<element>` — e.g., `login-email`, `checkout-submit`, `nav-profile-link`
+- **Format**: `<component>-<element>` -- e.g., `login-email`, `checkout-submit`, `nav-profile-link`
 - **Scope**: Add `data-testid` to interactive elements and status regions the tests need to assert on
-- **Stability**: `data-testid` attributes must not change with styling or refactoring — they are a testing contract
-- **No CSS selectors**: `page.locator('.btn-primary')` is forbidden — CSS changes break tests silently
+- **Stability**: `data-testid` attributes must not change with styling or refactoring -- they are a testing contract
+
+#### Waiting and Timing
+
+Never use `waitForTimeout()` or `setTimeout()` in tests. Arbitrary waits pass slowly on fast machines and fail on slow ones -- they encode a guess about timing instead of observing the actual condition. Use condition-based waiting instead:
+
+| Instead of | Use |
+|-----------|-----|
+| `await page.waitForTimeout(2000)` | `await expect(locator).toBeVisible()` or `await page.waitForResponse(...)` |
+| `await page.waitForTimeout(0)` to "flush" | `await page.waitForLoadState('networkidle')` |
+| `page.click('button')` without waiting | `locator.click()` -- Playwright auto-waits for actionability |
+
+Each test must own its own setup in `beforeEach`. Tests sharing state via global variables break parallel execution because Playwright runs specs concurrently by default.
 
 ---
 
@@ -226,18 +219,39 @@ test.describe('Login Flow', () => {
    ```bash
    npx playwright test tests/e2e/auth/login.spec.ts --repeat-each=5
    ```
-4. Quarantine confirmed flaky tests with `test.fixme()`:
+4. Quarantine confirmed flaky tests with `test.fixme()`. Never delete a failing test -- deleted tests leave silent coverage gaps. Quarantined tests are visible debt with tracking references:
    ```typescript
    test.fixme('flaky: login redirects intermittently', async ({ page }) => {
-     // TODO: #123 — investigate race condition with auth cookie
+     // TODO: #123 -- investigate race condition with auth cookie
      ...
    });
    ```
-5. Do NOT delete failing tests. Do NOT use `test.skip()` to hide broken tests — `test.skip()` is for conditional skips (e.g., environment guards), not for hiding failures.
+5. Do NOT use `test.skip()` to hide broken tests. `test.skip()` is for conditional environment guards (e.g., "skip on WebKit"), not for sweeping failures under the rug.
 
-**Artifact:** `playwright-results.json` (presence is the gate — pass rate is not).
+**Artifact:** `playwright-results.json` (presence is the gate -- pass rate is not).
 
-**Gate:** `playwright-results.json` exists at the project root. The file must contain valid JSON. Pass rate does not block Phase 4 — reporting on failures is Phase 4's job.
+**Gate:** `playwright-results.json` exists at the project root. The file must contain valid JSON. Pass rate does not block Phase 4 -- reporting on failures is Phase 4's job.
+
+#### Flaky Test Quarantine Protocol
+
+When a test fails intermittently:
+
+1. **Reproduce**: `npx playwright test <file> --repeat-each=5` -- if it fails at least once in 5 runs, it is flaky.
+2. **Quarantine**: Replace `test(` with `test.fixme(` and add a comment with the symptom and a tracking reference.
+3. **Do not delete**: Deleted tests leave coverage gaps. Quarantined tests are visible debt.
+4. **Fix criteria**: Before removing `test.fixme`, the test must pass 10/10 with `--repeat-each=10`.
+
+```typescript
+// Before
+test('checkout completes successfully', async ({ page }) => { ... });
+
+// After quarantine
+test.fixme('checkout completes successfully', async ({ page }) => {
+  // FLAKY: intermittent race on payment confirmation response
+  // TODO: #456 -- investigate network timing in checkout flow
+  ...
+});
+```
 
 ---
 
@@ -246,7 +260,7 @@ test.describe('Login Flow', () => {
 **Goal:** Deterministic checks on test output, then structured report generation.
 
 **Actions:**
-1. **Deterministic checks** (run these first, before any LLM summary):
+1. **Deterministic checks first** -- run these before any LLM summary because compiler output and JSON parsing are facts, not opinions:
    - `playwright-results.json` exists and parses as valid JSON.
    - Extract counts: `python3 -c "import json,sys; d=json.load(open('playwright-results.json')); print(d.get('stats', d))"`
    - Identify all `unexpected` (failed) and `flaky` result entries.
@@ -312,50 +326,9 @@ test.describe('Login Flow', () => {
 
 ---
 
-## Anti-Patterns
+### CI/CD Integration
 
-These patterns cause flakiness or test fragility. Stop and correct immediately if encountered.
-
-| Anti-Pattern | Why It Fails | Correct Approach |
-|-------------|-------------|-----------------|
-| `await page.waitForTimeout(2000)` | Arbitrary time — passes slowly, fails on lag | Use `waitForResponse`, `waitForSelector`, or `expect(locator).toBeVisible()` |
-| `page.locator('.submit-btn')` | CSS breaks with restyling | `page.getByTestId('form-submit')` |
-| `page.locator('text=Submit')` | Breaks with copy changes | `page.getByTestId('form-submit')` |
-| `page.click('button')` without waiting | Race with rendering | Auto-wait via `locator.click()` — Playwright waits for actionability |
-| `await page.waitForTimeout(0)` to "flush" | Masks async ordering bugs | Use `waitForResponse` or `waitForLoadState` |
-| Tests share state via global variables | Breaks parallel execution | Each test owns its own setup in `beforeEach` |
-| `test.skip()` on a broken test | Silently hides failures | Fix it, or quarantine with `test.fixme()` + tracking issue |
-| Locators depending on element order (`nth(0)`) | Fragile to DOM reorder | Add `data-testid` to the specific element |
-| `page.fill()` without clearing first | Appends to existing value | Use `locator.clear()` then `locator.fill()`, or pass empty string first |
-
----
-
-## Flaky Test Quarantine Protocol
-
-When a test fails intermittently:
-
-1. **Reproduce**: `npx playwright test <file> --repeat-each=5` — if it fails at least once in 5 runs, it is flaky.
-2. **Quarantine**: Replace `test(` with `test.fixme(` and add a comment with the symptom and a tracking reference.
-3. **Do not delete**: Deleted tests leave coverage gaps. Quarantined tests are visible debt.
-4. **Fix criteria**: Before removing `test.fixme`, the test must pass 10/10 with `--repeat-each=10`.
-
-```typescript
-// Before
-test('checkout completes successfully', async ({ page }) => { ... });
-
-// After quarantine
-test.fixme('checkout completes successfully', async ({ page }) => {
-  // FLAKY: intermittent race on payment confirmation response
-  // TODO: #456 — investigate network timing in checkout flow
-  ...
-});
-```
-
----
-
-## CI/CD Integration
-
-### GitHub Actions Workflow Template
+#### GitHub Actions Workflow Template
 
 ```yaml
 name: E2E Tests
@@ -412,27 +385,25 @@ jobs:
 
 ---
 
-## What This Skill CAN Do
-- Scaffold Playwright config and directory structure for a project
-- Write typed POM classes and spec files for any feature area
-- Execute tests and produce structured JSON + markdown reports
-- Quarantine flaky tests with discipline (not deletion)
-- Integrate E2E runs into GitHub Actions with artifact upload
+## Error Handling
 
-## What This Skill CANNOT Do
-- Test units or components in isolation (use `vitest-runner`)
-- Write tests before the implementation exists (use `test-driven-development`)
-- Run Go tests (use `go-testing`)
-- Fix application bugs discovered by E2E tests (route to the appropriate engineer agent)
-- Guarantee zero flakiness — it can only minimize and manage it systematically
+| Symptom | Likely Cause | Fix |
+|---------|-------------|-----|
+| `npx tsc --noEmit` fails after Phase 1 | Bad config template or missing types | Check `@playwright/test` is in devDependencies, verify `tsconfig.json` includes the test directory |
+| Tests pass locally, fail in CI | Missing browser deps or wrong `BASE_URL` | Use `npx playwright install --with-deps` in CI; verify `BASE_URL` env var matches the running app |
+| `playwright-results.json` missing after run | Reporter not configured or test runner crashed | Verify `json` reporter is in `playwright.config.ts`; check for OOM or process kill signals |
+| Locator timeout on element that exists | Element present but not actionable (hidden, disabled, covered) | Use `await expect(locator).toBeVisible()` before interaction; check for overlays or modals |
+| `page.fill()` appends instead of replacing | Input field has existing value | Use `locator.clear()` then `locator.fill()` |
+| Flaky test passes 4/5 runs | Race condition, network timing, or animation interference | Quarantine with `test.fixme()`, reproduce with `--repeat-each=10`, check for missing `waitFor` conditions |
+| Locators depending on `nth(0)` break randomly | DOM order is not stable | Add a `data-testid` to the specific element instead of relying on position |
 
 ---
 
 ## References
 
-- [playwright-patterns.md](references/playwright-patterns.md) — POM examples, condition-based waiting, multi-browser config, financial skip guards
-- [wallet-testing.md](references/wallet-testing.md) — Web3/MetaMask mock patterns with `addInitScript`
-- [financial-flows.md](references/financial-flows.md) — Production skip guards, blockchain confirmation waits
-- [flakiness-triage.md](references/flakiness-triage.md) — `--repeat-each`, `--retries`, quarantine decision tree
-- [ADR-107](../../adr/ADR-107-e2e-testing.md) — Decision record for this skill
-- [Playwright docs](https://playwright.dev/docs/intro) — Official API reference
+- [playwright-patterns.md](references/playwright-patterns.md) -- POM examples, condition-based waiting, multi-browser config, financial skip guards
+- [wallet-testing.md](references/wallet-testing.md) -- Web3/MetaMask mock patterns with `addInitScript`
+- [financial-flows.md](references/financial-flows.md) -- Production skip guards, blockchain confirmation waits
+- [flakiness-triage.md](references/flakiness-triage.md) -- `--repeat-each`, `--retries`, quarantine decision tree
+- [ADR-107](../../adr/ADR-107-e2e-testing.md) -- Decision record for this skill
+- [Playwright docs](https://playwright.dev/docs/intro) -- Official API reference

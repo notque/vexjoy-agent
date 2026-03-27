@@ -35,63 +35,21 @@ routing:
 
 # Gemini Image Generator
 
-## Operator Context
-
-This skill operates as an operator for CLI-based image generation, configuring Claude's behavior for deterministic Python script execution against Google Gemini APIs. It implements an **Execute-Verify** pattern — validate environment, generate image, verify output — with **Domain Intelligence** embedded in model selection and prompt engineering.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files
-- **Over-Engineering Prevention**: Only generate what is directly requested
-- **Exact Model Names**: Use only `gemini-2.5-flash-image` or `gemini-3-pro-image-preview` — no variations, no date suffixes
-- **API Key Validation**: Always verify `GEMINI_API_KEY` exists before any generation attempt
-- **Output Verification**: Confirm output file exists and is non-zero bytes after generation
-- **Absolute Paths**: Always use absolute paths for output files
-
-### Default Behaviors (ON unless disabled)
-- **Show Complete Output**: Display full script output, never summarize
-- **Rate Limit Handling**: Wait between requests to avoid 429 errors
-- **Retry on Failure**: Retry transient failures with exponential backoff (3 attempts)
-- **Status Reporting**: Output structured status for Claude to parse
-
-### Optional Behaviors (OFF unless enabled)
-- **Watermark Removal**: Clean watermarks from corners with `--remove-watermark`
-- **Background Transparency**: Make solid backgrounds transparent with `--transparent-bg`
-- **Batch Mode**: Generate multiple images from a prompt file with `--batch`
-
-## What This Skill CAN Do
-- Generate images from text prompts via CLI using Gemini APIs
-- Select between fast (`gemini-2.5-flash-image`) and quality (`gemini-3-pro-image-preview`) models
-- Save images to specified file paths with automatic directory creation
-- Remove watermarks from generated images via post-processing
-- Make solid-color backgrounds transparent for game sprites and assets
-- Generate multiple images in batch mode from a prompt file
-- Retry on transient failures with exponential backoff
-
-## What This Skill CANNOT Do
-- Build web applications with image generation (use `nano-banana-builder` instead)
-- Use non-Gemini models (DALL-E, Midjourney, Stable Diffusion)
-- Fine-tune or train models
-- Generate video or audio content
-- Bypass content policy restrictions
-- Edit or modify existing images (generation only)
-
----
+Generate images from text prompts via CLI using Google Gemini APIs. Supports model selection between fast (`gemini-2.5-flash-image`) and quality (`gemini-3-pro-image-preview`) models, batch generation, watermark removal, and background transparency.
 
 ## Instructions
 
-### Phase 1: ENVIRONMENT
+### Step 1: Validate Environment
 
-**Goal**: Verify all prerequisites before attempting generation.
-
-**Step 1: Validate API key**
+Verify the API key exists before any generation attempt -- a missing key produces confusing errors that waste time debugging.
 
 ```bash
 echo "GEMINI_API_KEY is ${GEMINI_API_KEY:+set}"
 ```
 
-Expect: `GEMINI_API_KEY is set`. If not set, instruct user to configure it.
+Expect: `GEMINI_API_KEY is set`. If not set, instruct user to configure it and stop.
 
-**Step 2: Verify dependencies**
+Verify Python dependencies are available:
 
 ```bash
 python3 -c "from google import genai; from PIL import Image; print('OK')"
@@ -102,17 +60,13 @@ If missing, install:
 pip install google-genai Pillow
 ```
 
-**Step 3: Determine output path**
+Determine the output path. Always use absolute paths for output files -- relative paths break when scripts run in different working directories. Verify the parent directory exists or will be created.
 
-Use an absolute path for the output file. Verify the parent directory exists or will be created.
+**Proceed only when**: API key is set, dependencies installed, output path is valid.
 
-**Gate**: API key is set, dependencies installed, output path is valid. Proceed only when gate passes.
+### Step 2: Select Model and Compose Prompt
 
-### Phase 2: CONFIGURE
-
-**Goal**: Select the correct model and options for the request.
-
-**Step 1: Select model**
+Choose the model based on the use case:
 
 | Scenario | Model | Why |
 |----------|-------|-----|
@@ -122,7 +76,7 @@ Use an absolute path for the output file. Verify the parent directory exists or 
 | Text in image, typography | `gemini-3-pro-image-preview` | Better text rendering |
 | Product photography | `gemini-3-pro-image-preview` | Detail matters |
 
-**CRITICAL: Use ONLY these exact model strings. Do not invent, guess, or add date suffixes.**
+Use ONLY these exact model strings -- the API returns cryptic errors for anything else, and date suffixes (valid for text models) do not work for image models:
 
 | Correct (use exactly) | WRONG (never use) |
 |------------------------|-------------------|
@@ -131,9 +85,7 @@ Use an absolute path for the output file. Verify the parent directory exists or 
 | | `gemini-3-flash-image` (doesn't exist) |
 | | `gemini-pro-vision` (that's image input) |
 
-**Step 2: Compose prompt**
-
-Follow this structure: `[Subject] [Style] [Background] [Constraints]`
+Compose the prompt using this structure: `[Subject] [Style] [Background] [Constraints]`
 
 For transparent background post-processing, include:
 - "solid dark gray background" or "solid uniform gray background (#3a3a3a)"
@@ -141,19 +93,16 @@ For transparent background post-processing, include:
 
 Always include negative constraints: "no text", "no labels", "character only"
 
-**Step 3: Determine post-processing flags**
-
+Determine post-processing flags:
 - Need watermark removal? Add `--remove-watermark`
 - Need transparent background? Add `--transparent-bg`
 - Custom background color? Add `--bg-color "#FFFFFF" --bg-tolerance 20`
 
-**Gate**: Model selected, prompt composed, flags determined. Proceed only when gate passes.
+**Proceed only when**: Model selected, prompt composed, flags determined.
 
-### Phase 3: GENERATE
+### Step 3: Generate
 
-**Goal**: Execute the generation script and capture output.
-
-**Step 1: Run generation**
+Always use the provided `generate_image.py` script -- it contains retry logic, rate limiting, post-processing, model validation, and error handling that inline Python would miss.
 
 ```bash
 python3 $HOME/claude-code-toolkit/skills/gemini-image-generator/scripts/generate_image.py \
@@ -170,37 +119,27 @@ python3 $HOME/claude-code-toolkit/skills/gemini-image-generator/scripts/generate
   --model gemini-2.5-flash-image
 ```
 
-**Step 2: Read script output**
+Display the full script output -- never summarize it, since the user needs to see status, warnings, and any partial failures.
 
-Check for `SUCCESS` or `ERROR` in output. If rate limited (429), the script handles retry automatically.
+Check for `SUCCESS` or `ERROR` in output. If rate limited (429), the script handles retry automatically with exponential backoff (up to 3 attempts).
 
-**Gate**: Script exited with code 0 and printed SUCCESS. Proceed only when gate passes.
+**Proceed only when**: Script exited with code 0 and printed SUCCESS.
 
-### Phase 4: VERIFY
+### Step 4: Verify Output
 
-**Goal**: Confirm the output file exists and is valid.
-
-**Step 1: Verify file exists**
+Confirm the output file exists and has non-zero size -- a zero-byte file means the write succeeded but no image data was returned:
 
 ```bash
 ls -la /absolute/path/to/output.png
 ```
 
-File must exist and have non-zero size.
-
-**Step 2: Check dimensions (optional)**
+Optionally check dimensions:
 
 ```bash
 python3 -c "from PIL import Image; img = Image.open('/absolute/path/to/output.png'); print(f'Size: {img.size}, Mode: {img.mode}')"
 ```
 
-**Step 3: Visual inspection (MANDATORY)**
-
-Read the generated image file using the Read tool to visually inspect it:
-
-```
-Read the image at /absolute/path/to/output.png
-```
+**Visual inspection is mandatory.** Read the generated image file using the Read tool to visually inspect it. A file can pass all size and dimension checks but still contain watermarks, wrong composition, excessive padding, or content that doesn't match the prompt.
 
 Check for:
 - Content matches the prompt intent (correct subject, layout, composition)
@@ -211,7 +150,7 @@ Check for:
 
 If the image fails visual inspection, regenerate with an adjusted prompt before reporting to the user. Do not commit or deliver images without visual verification.
 
-**Step 4: Report result**
+### Step 5: Report Result
 
 Provide the user with:
 - Output file path
@@ -220,33 +159,7 @@ Provide the user with:
 - Visual verification status (what you checked and confirmed)
 - Any post-processing applied (cropping, resizing)
 
-**Gate**: Output file exists with non-zero size AND visual inspection passed. Generation is complete.
-
----
-
-## Script Reference
-
-### generate_image.py
-
-**Location**: `$HOME/claude-code-toolkit/skills/gemini-image-generator/scripts/generate_image.py`
-
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `--prompt` | Yes* | Text prompt for image generation |
-| `--output` | Yes* | Output file path (.png) |
-| `--model` | No | Model name (default: gemini-3-pro-image-preview) |
-| `--remove-watermark` | No | Remove watermarks from corners |
-| `--transparent-bg` | No | Make background transparent |
-| `--bg-color` | No | Background color hex (default: #3a3a3a) |
-| `--bg-tolerance` | No | Color matching tolerance (default: 30) |
-| `--batch` | No | File with prompts (one per line) |
-| `--output-dir` | No | Directory for batch output |
-| `--retries` | No | Max retry attempts (default: 3) |
-| `--delay` | No | Delay between batch requests in seconds (default: 3) |
-
-*Required unless using `--batch` + `--output-dir`
-
-**Exit Codes**: 0 = success, 1 = missing API key, 2 = generation failed, 3 = invalid arguments
+Only report what was directly requested -- do not suggest additional generations, style variations, or enhancements the user did not ask for.
 
 ---
 
@@ -270,7 +183,7 @@ Solution:
 ### Error: "No image in response"
 Cause: API returned text-only response or generation was blocked
 Solution:
-1. Add more detail to the prompt — vague prompts sometimes fail
+1. Add more detail to the prompt -- vague prompts sometimes fail
 2. Try a different model
 3. Check that the prompt does not violate content policy
 4. Verify the script sets `response_modalities=["IMAGE", "TEXT"]`
@@ -284,42 +197,29 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Inventing Model Names
-**What it looks like**: `model="gemini-2.5-flash-image-preview-12-25"` or `model="gemini-3-flash-image"`
-**Why wrong**: These models do not exist. Date suffixes are for text models only. The API returns cryptic errors.
-**Do instead**: Use exactly `gemini-2.5-flash-image` or `gemini-3-pro-image-preview`. No variations.
-
-### Anti-Pattern 2: Skipping Environment Validation
-**What it looks like**: Running `generate_image.py` without checking API key or dependencies first
-**Why wrong**: Produces confusing error messages. Wastes time debugging environment issues as generation bugs.
-**Do instead**: Complete Phase 1 (ENVIRONMENT) before any generation attempt. Always.
-
-### Anti-Pattern 3: Generating Without Visual Verification
-**What it looks like**: Running the script, checking file size, and committing the image without reading it to visually inspect
-**Why wrong**: The file may exist with correct dimensions but contain watermarks, wrong composition, excessive padding, or content that doesn't match the prompt. A 952KB PNG with a cat watermark and wrong aspect ratio passed file-exists checks but looked bad in the README.
-**Do instead**: Complete Phase 4 (VERIFY) including Step 3 (visual inspection). Read the image file with the Read tool. Check composition, content, and artifacts before delivering or committing.
-
-### Anti-Pattern 4: Writing Custom Generation Code Instead of Using the Script
-**What it looks like**: Writing inline Python to call the Gemini API directly instead of using `generate_image.py`
-**Why wrong**: Misses retry logic, rate limiting, post-processing, model validation, and error handling already built into the script.
-**Do instead**: Always use the provided `generate_image.py` script. It handles all edge cases.
-
-### Anti-Pattern 5: Storing Base64 in Memory Instead of Saving to File
-**What it looks like**: Keeping image data in a variable without writing to disk
-**Why wrong**: Data is lost on exit, cannot be used by other tools, wastes memory for large images.
-**Do instead**: Save to file immediately. The script does this automatically.
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
+### Script Reference: generate_image.py
 
-### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/prompts.md`: Categorized example prompts by use case (game art, characters, product photography, pixel art, icons)
+**Location**: `$HOME/claude-code-toolkit/skills/gemini-image-generator/scripts/generate_image.py`
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `--prompt` | Yes* | Text prompt for image generation |
+| `--output` | Yes* | Output file path (.png) |
+| `--model` | No | Model name (default: gemini-3-pro-image-preview) |
+| `--remove-watermark` | No | Remove watermarks from corners |
+| `--transparent-bg` | No | Make background transparent |
+| `--bg-color` | No | Background color hex (default: #3a3a3a) |
+| `--bg-tolerance` | No | Color matching tolerance (default: 30) |
+| `--batch` | No | File with prompts (one per line) |
+| `--output-dir` | No | Directory for batch output |
+| `--retries` | No | Max retry attempts (default: 3) |
+| `--delay` | No | Delay between batch requests in seconds (default: 3) |
+
+*Required unless using `--batch` + `--output-dir`
+
+**Exit Codes**: 0 = success, 1 = missing API key, 2 = generation failed, 3 = invalid arguments
 
 ### Prompt Engineering Quick Reference
 
@@ -334,11 +234,5 @@ This skill uses these shared patterns:
 
 **Negative constraints**: Always include "no text", "no labels", "no watermarks", "character only"
 
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "I know the right model name" | Model names are exact strings, not patterns | Check the two valid names |
-| "Output file was probably created" | Probably is not verified | Run `ls -la` on the output path |
-| "API key is probably set" | Silent failures waste debugging time | Check explicitly in Phase 1 |
-| "Custom code is faster than the script" | Script has retry, rate limiting, validation | Use `generate_image.py` |
+### Reference Files
+- `${CLAUDE_SKILL_DIR}/references/prompts.md`: Categorized example prompts by use case (game art, characters, product photography, pixel art, icons)

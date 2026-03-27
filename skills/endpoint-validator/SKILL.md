@@ -28,47 +28,7 @@ routing:
 
 # Endpoint Validator Skill
 
-## Operator Context
-
-This skill operates as an operator for API endpoint validation workflows, configuring Claude's behavior for deterministic, structured health checking. It implements the **Discover, Validate, Report** pattern -- find endpoints, test each against expectations, produce machine-readable results with clear pass/fail verdicts.
-
-### Hardcoded Behaviors (Always Apply)
-- **Read-Only by Default**: Only makes GET requests unless explicitly configured otherwise
-- **Timeout Safety**: Default 5-second timeout per request prevents hanging
-- **Structured Output**: Always produces machine-parseable results with exit codes
-- **No Data Mutation**: Never sends POST/PUT/DELETE without explicit user configuration
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before validation
-
-### Default Behaviors (ON unless disabled)
-- **Progress Display**: Show each endpoint result as it completes
-- **Summary Statistics**: Pass/fail counts and percentages at end of run
-- **Timing Information**: Response time in milliseconds for every endpoint
-- **Threshold Enforcement**: Flag endpoints exceeding configured max_time
-- **Sequential Execution**: Test endpoints one at a time for predictable output
-
-### Optional Behaviors (OFF unless enabled)
-- **POST/PUT/DELETE Testing**: Requires explicit method + body in configuration
-- **Authentication Headers**: Bearer tokens or basic auth passed via config
-- **Response Body Validation**: Deep JSON key checking beyond top-level
-- **Custom Headers**: Additional headers per endpoint (e.g., Accept, Content-Type)
-- **Parallel Requests**: Test multiple endpoints concurrently
-
-## What This Skill CAN Do
-- Validate HTTP GET endpoints for expected status codes
-- Check JSON responses contain expected top-level keys
-- Measure and report response times per endpoint
-- Detect slow endpoints exceeding configured thresholds
-- Produce CI/CD compatible exit codes (0 = all pass, 1 = any fail)
-- Read endpoint definitions from JSON config files
-
-## What This Skill CANNOT Do
-- Perform load or stress testing (single request per endpoint only)
-- Execute browser-based or JavaScript-rendered tests
-- Handle OAuth flows or multi-step authentication chains
-- Validate full JSON schemas (top-level key presence only)
-- Test WebSocket or gRPC endpoints (HTTP only)
-
----
+Deterministic HTTP endpoint validation following a **Discover, Validate, Report** pattern. Finds endpoints, tests each against expectations, and produces machine-readable results with clear pass/fail verdicts and CI-compatible exit codes.
 
 ## Instructions
 
@@ -76,14 +36,20 @@ This skill operates as an operator for API endpoint validation workflows, config
 
 **Goal**: Locate or receive endpoint definitions before making any requests.
 
-**Step 1: Search for endpoint configuration**
+**Step 1: Read repository CLAUDE.md**
+
+Check for and follow any repository-level CLAUDE.md before running validation. It may contain base URL conventions, environment variable names, or endpoint paths relevant to the project.
+
+**Step 2: Search for endpoint configuration**
 
 Look for definitions in priority order:
 1. `endpoints.json` in project root
 2. `tests/endpoints.json`
 3. Inline specification provided by user or calling agent
 
-**Step 2: Parse and validate configuration**
+Prefer config files checked into version control over ad-hoc endpoint lists. Manually listing endpoints every run leads to drift and missed endpoints.
+
+**Step 3: Parse and validate configuration**
 
 Configuration must contain `base_url` and at least one endpoint:
 
@@ -101,11 +67,17 @@ Configuration must contain `base_url` and at least one endpoint:
 Each endpoint supports these fields:
 - `path` (required): URL path appended to base_url
 - `expect_status` (default: 200): Expected HTTP status code
-- `expect_key` (optional): Top-level JSON key that must exist in response
-- `timeout` (default: 5): Request timeout in seconds
+- `expect_key` (optional): Top-level JSON key that must exist in response. Only top-level key presence is checked -- full JSON schema validation is out of scope.
+- `timeout` (default: 5): Request timeout in seconds. The 5-second default prevents hanging on unresponsive endpoints.
 - `max_time` (optional): Fail if response exceeds this threshold in seconds
+- `method` (optional): HTTP method. Defaults to GET. POST/PUT/DELETE require explicit configuration with a request body -- never send mutating requests without the user specifying them.
+- `headers` (optional): Additional headers per endpoint (e.g., Accept, Content-Type, Authorization)
 
-**Step 3: Confirm base URL is reachable**
+If `base_url` points to a production host and the config includes POST/PUT/DELETE endpoints, warn the user before proceeding. Mutating production data or triggering rate limits during a smoke test is a serious risk. Use staging environments for write operations; reserve production for GET-only health checks.
+
+Avoid hardcoded IP addresses in `base_url` (e.g., `http://192.168.1.42:8000`). They break on every other machine and CI environment. Use `localhost` with a configurable port or environment variables instead.
+
+**Step 4: Confirm base URL is reachable**
 
 Make a single request to `base_url` before running the full suite. If unreachable, report immediately rather than failing every endpoint individually.
 
@@ -117,22 +89,25 @@ Make a single request to `base_url` before running the full suite. If unreachabl
 
 **Step 1: Execute requests sequentially**
 
-For each endpoint:
+Test endpoints one at a time for predictable, reproducible output. For each endpoint:
 1. Construct full URL from `base_url` + `path`
-2. Send GET request with configured timeout
+2. Send request with configured method (GET by default) and timeout
 3. Record status code, response time, and body
+4. Display each result as it completes so the user sees progress
+
+This skill sends one request per endpoint. It is not a load tester or stress tester -- it validates contract compliance, not throughput.
 
 **Step 2: Evaluate against expectations**
 
 For each response, check in order:
 1. **Status code**: Does it match `expect_status`? If not, mark FAIL.
 2. **JSON key**: If `expect_key` set, parse JSON and check key exists. If missing or not valid JSON, mark FAIL.
-3. **Response time**: If `max_time` set and elapsed exceeds it, mark SLOW.
+3. **Response time**: If `max_time` set and elapsed exceeds it, mark SLOW. Do not ignore slow endpoints -- they indicate degradation that becomes failure under load.
 4. **Security headers**: Check response headers for common security headers. Report missing headers as WARN (not FAIL):
-   - `Strict-Transport-Security` — HSTS enforcement (expected on HTTPS endpoints)
-   - `Content-Security-Policy` — XSS mitigation
-   - `X-Content-Type-Options` — should be `nosniff`
-   - `X-Frame-Options` — clickjacking prevention (or CSP `frame-ancestors`)
+   - `Strict-Transport-Security` -- HSTS enforcement (expected on HTTPS endpoints)
+   - `Content-Security-Policy` -- XSS mitigation
+   - `X-Content-Type-Options` -- should be `nosniff`
+   - `X-Frame-Options` -- clickjacking prevention (or CSP `frame-ancestors`)
 
 Skip security header checks for localhost/127.0.0.1 endpoints (development environments don't typically set these). Only check on non-localhost base URLs unless explicitly configured.
 
@@ -186,11 +161,9 @@ SUMMARY:
 
 **Gate**: Report printed, exit code set. Validation complete.
 
----
+### Examples
 
-## Examples
-
-### Example 1: Pre-Deployment Health Check
+#### Example 1: Pre-Deployment Health Check
 User says: "Validate all endpoints before we deploy"
 Actions:
 1. Find `endpoints.json` in project root (DISCOVER)
@@ -198,7 +171,7 @@ Actions:
 3. Print report, exit 0 if all pass (REPORT)
 Result: Structured pass/fail report with CI-compatible exit code
 
-### Example 2: Smoke Test After Migration
+#### Example 2: Smoke Test After Migration
 User says: "Check if the API is still working after the database migration"
 Actions:
 1. Read endpoint config, confirm base URL reachable (DISCOVER)
@@ -233,34 +206,7 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Testing Against Production Without Safeguards
-**What it looks like**: Pointing base_url at production with POST/DELETE endpoints
-**Why wrong**: Can mutate production data, cause outages, or trigger rate limits
-**Do instead**: Use staging environments for write operations; production only for GET health checks
-
-### Anti-Pattern 2: Ignoring Slow Endpoints
-**What it looks like**: "All status codes are 200, ship it!" while ignoring 8-second response times
-**Why wrong**: Slow endpoints indicate degradation that will become failures under load
-**Do instead**: Set `max_time` thresholds and treat SLOW as actionable warnings
-
-### Anti-Pattern 3: Hardcoding Base URLs
-**What it looks like**: `"base_url": "http://192.168.1.42:8000"` in checked-in config
-**Why wrong**: Breaks on every other machine, CI environment, and deployment target
-**Do instead**: Use environment variables or localhost with configurable port
-
-### Anti-Pattern 4: No Endpoint Config in Repository
-**What it looks like**: Manually listing endpoints every time validation runs
-**Why wrong**: Endpoints drift, new ones get missed, no single source of truth
-**Do instead**: Maintain `endpoints.json` in version control alongside the API code
-
----
-
 ## References
-
-This skill uses these shared patterns:
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
 
 ### CI/CD Integration
 
