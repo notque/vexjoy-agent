@@ -328,36 +328,49 @@ def check_reference_files(component_type: str, file_path: Path) -> CheckResult:
     return CheckResult("Reference files", 10, 0, f"No references/ directory at {refs_dir.relative_to(REPO_ROOT)}")
 
 
-def check_operator_context(content: str) -> CheckResult:
-    """Check: Operator Context with Hardcoded/Default/Optional subsections (15 pts)."""
-    subsections = {
-        "Hardcoded Behaviors": bool(re.search(r"#{2,4}\s+Hardcoded Behaviors", content, re.IGNORECASE)),
-        "Default Behaviors": bool(re.search(r"#{2,4}\s+Default Behaviors", content, re.IGNORECASE)),
-        "Optional Behaviors": bool(re.search(r"#{2,4}\s+Optional Behaviors", content, re.IGNORECASE)),
-    }
+def check_workflow_instructions(content: str) -> CheckResult:
+    """Check: Instructions section with workflow-first structure (15 pts).
 
-    found = sum(1 for v in subsections.values() if v)
+    Workflow-first model: Instructions section with phases/steps and inline
+    constraints using "because X" reasoning. Replaces the old Operator Context
+    check (Hardcoded/Default/Optional subsections were removed in the
+    workflow-first migration).
+    """
+    has_instructions = bool(re.search(r"#{2,4}\s+Instructions", content, re.IGNORECASE))
+    has_phases = bool(re.search(r"#{2,4}\s+(Phase|Step)\s+\d", content, re.IGNORECASE))
+    has_gates = bool(re.search(r"\*\*Gate\*\*", content))
+
+    found = sum([has_instructions, has_phases, has_gates])
     earned = round((found / 3) * 15)
 
     if found == 3:
-        return CheckResult("Operator Context", 15, 15)
+        return CheckResult("Workflow instructions", 15, 15)
 
-    missing = [k for k, v in subsections.items() if not v]
-    return CheckResult("Operator Context", 15, earned, f"{found}/3 subsections (missing: {', '.join(missing)})")
+    missing = []
+    if not has_instructions:
+        missing.append("Instructions section")
+    if not has_phases:
+        missing.append("Phase/Step numbering")
+    if not has_gates:
+        missing.append("Gate checkpoints")
+    return CheckResult("Workflow instructions", 15, earned, f"{found}/3 elements (missing: {', '.join(missing)})")
 
 
-def check_can_cannot_sections(content: str) -> CheckResult:
-    """Check: CAN and CANNOT sections present (10 pts)."""
-    has_can = bool(re.search(r"#{2,4}\s+What This .* CAN Do", content, re.IGNORECASE))
-    has_cannot = bool(re.search(r"#{2,4}\s+What This .* CANNOT Do", content, re.IGNORECASE))
+def check_inline_constraints(content: str) -> CheckResult:
+    """Check: Inline constraints with reasoning (10 pts).
 
-    if has_can and has_cannot:
-        return CheckResult("CAN/CANNOT sections", 10, 10)
-    elif has_can or has_cannot:
-        present = "CAN" if has_can else "CANNOT"
-        missing = "CANNOT" if has_can else "CAN"
-        return CheckResult("CAN/CANNOT sections", 10, 5, f"Has {present}, missing {missing}")
-    return CheckResult("CAN/CANNOT sections", 10, 0, "Neither CAN nor CANNOT section found")
+    Workflow-first model: constraints are distributed inline with "because X"
+    reasoning at point-of-use. Replaces the old CAN/CANNOT sections check.
+    """
+    because_count = len(re.findall(r"\bbecause\b", content, re.IGNORECASE))
+
+    if because_count >= 5:
+        return CheckResult("Inline constraints", 10, 10, f"{because_count} inline 'because' reasoning instances")
+    elif because_count >= 2:
+        return CheckResult("Inline constraints", 10, 5, f"{because_count} inline 'because' reasoning (target: 5+)")
+    return CheckResult(
+        "Inline constraints", 10, 0, f"Only {because_count} inline constraint reasoning found (target: 5+)"
+    )
 
 
 def check_broken_internal_links(content: str, file_path: Path) -> CheckResult:
@@ -481,8 +494,8 @@ def score_component(file_path: Path, do_check_secrets: bool = False) -> Componen
     score.checks.append(check_error_handling_section(content))
     score.checks.append(check_routing_registration(component_type, file_path, fm))
     score.checks.append(check_reference_files(component_type, file_path))
-    score.checks.append(check_operator_context(content))
-    score.checks.append(check_can_cannot_sections(content))
+    score.checks.append(check_workflow_instructions(content))
+    score.checks.append(check_inline_constraints(content))
     score.checks.append(check_broken_internal_links(content, file_path))
 
     if do_check_secrets:
