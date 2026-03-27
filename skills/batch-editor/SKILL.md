@@ -27,48 +27,7 @@ routing:
 
 # Batch Editor Skill
 
-## Operator Context
-
-This skill operates as an operator for bulk content editing, configuring Claude's behavior for safe, reversible batch modifications across Hugo blog posts. It implements a **Preview-Confirm-Apply** pattern with mandatory git safety checks before any destructive operation.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files
-- **Preview First**: ALWAYS show complete preview before applying any changes
-- **Git Safety**: Check for uncommitted changes before any modification
-- **Never Auto-Apply**: Require explicit user confirmation for destructive operations
-- **Complete Output**: Show all affected files and changes, never summarize matches
-- **Atomic Operations**: All files succeed or none are modified
-
-### Default Behaviors (ON unless disabled)
-- **Preview Mode**: Show all matches without modifying files
-- **Backup Reminder**: Suggest git commit/stash before applying changes
-- **Case Sensitive**: Find/replace is case-sensitive by default
-- **Content Scope**: Only process files in content/posts/
-- **Preserve Formatting**: Keep original frontmatter indentation, quotes, field order
-
-### Optional Behaviors (OFF unless enabled)
-- **Case Insensitive**: Use --ignore-case for case-insensitive matching
-- **Include Drafts**: Use --include-drafts to also process draft posts
-- **Extended Scope**: Use --scope to process other content directories
-- **Force Apply**: Use --force to skip git safety checks (dangerous)
-
-## What This Skill CAN Do
-- Find and replace text (literal or regex) across multiple markdown files
-- Add, modify, or remove frontmatter fields in bulk
-- Batch update tags, categories, or other taxonomy arrays
-- Standardize heading levels, link formats, and whitespace
-- Preview all changes with line-level context before applying
-- Count total matches and affected files with dry-run validation
-
-## What This Skill CANNOT Do
-- Modify files outside content/ directory
-- Skip the preview step (hardcoded safety)
-- Undo changes without git (use git rollback)
-- Modify files when git has uncommitted changes (unless --force)
-- Process binary files or images
-- Make external API calls
-
----
+Safe, reversible bulk modifications across Hugo blog posts using a **Preview-Confirm-Apply** pattern. Supports find/replace (literal or regex), frontmatter field operations (add/modify/remove), and content transforms (headings, links, whitespace, quotes). All operations are scoped to `content/posts/*.md` by default and limited to markdown files -- binary files, images, and files outside `content/` are never touched.
 
 ## Instructions
 
@@ -86,14 +45,15 @@ This skill operates as an operator for bulk content editing, configuring Claude'
 **Common Options:**
 - `--dry-run` - Validate pattern, show matches, don't apply
 - `--apply` - Apply changes after preview confirmation
-- `--ignore-case` - Case-insensitive matching
-- `--include-drafts` - Also process draft posts
-- `--scope <path>` - Process different content directory
+- `--ignore-case` - Case-insensitive matching (default is case-sensitive)
+- `--include-drafts` - Also process draft posts (excluded by default)
+- `--scope <path>` - Process different content directory (default: `content/posts/`)
 - `--regex` - Enable regex mode for find-replace
+- `--force` - Skip git safety checks (dangerous -- no rollback safety net)
 
 ### Phase 1: SAFETY CHECK
 
-Before any batch operation, verify git status:
+Before any batch operation, verify git status. Batch edits are irreversible without git, so this check exists to guarantee a rollback path.
 
 ```bash
 cd $HOME/your-project && git status --porcelain
@@ -113,9 +73,11 @@ cd $HOME/your-project && git status --porcelain
 - List of modified files (if any)
 - Recommended action (commit, stash, or proceed)
 
-**Gate**: Git status is clean OR user provides --force. Do not proceed without passing this gate.
+**Gate**: Git status is clean OR user provides --force. Do not proceed without passing this gate. Even when a few files are involved, uncommitted changes make rollback unreliable -- always verify.
 
 ### Phase 2: SCAN AND PREVIEW
+
+The preview is mandatory and cannot be skipped. Users must see every individual change before any file is modified, because batch patterns frequently produce false positives that only a human can catch.
 
 **Step 1: Parse request**
 
@@ -143,6 +105,8 @@ For frontmatter operations, read each file and parse the YAML frontmatter block 
 
 **Step 3: Generate preview**
 
+Show every match individually with context. Never summarize as "N matches in M files" without showing each one -- users cannot verify correctness from a count alone.
+
 For each match, show:
 - File path relative to repository root
 - Line number and surrounding context
@@ -165,11 +129,13 @@ content/posts/example.md:
   ~ tags: ["a"] -> ["a","b"] (modify)
 ```
 
-**Gate**: Preview displayed with all matches visible. User must see every individual change. Never summarize as "N matches in M files" without showing each one.
+**Gate**: Preview displayed with all matches visible. User must see every individual change.
 
 ### Phase 3: APPLY (on explicit confirmation only)
 
-Only proceed when user explicitly confirms with `--apply` or clear affirmative.
+Only proceed when user explicitly confirms with `--apply` or clear affirmative. Never auto-apply -- the user must opt in to every destructive operation.
+
+All changes are atomic: validate that every target file is writable before modifying any of them. If any file would fail (permissions, disk space), abort the entire operation rather than leaving the repository in a partially edited state.
 
 **For find-replace:**
 1. Read each file with matches
@@ -180,7 +146,7 @@ Only proceed when user explicitly confirms with `--apply` or clear affirmative.
 **For frontmatter add:**
 1. Read file, parse frontmatter (YAML --- delimiters)
 2. Insert new field before closing `---`
-3. Preserve original formatting (indentation, quote style, field order)
+3. Preserve original formatting -- keep indentation, quote style, and field order intact. Modifying only the target field produces clean git diffs and avoids breaking parsers.
 4. Write modified content
 
 **For frontmatter modify:**
@@ -224,11 +190,9 @@ The `transform` operation supports these built-in transforms:
 
 For custom transforms, use `find-replace --regex` with user-provided patterns. See `references/regex-patterns.md` for tested patterns.
 
----
+### Examples
 
-## Examples
-
-### Example 1: Simple Find/Replace
+**Example 1: Simple Find/Replace**
 User says: "Replace Hugo with Hugo SSG across all posts"
 Actions:
 1. Check git status -- clean, proceed (SAFETY CHECK)
@@ -238,7 +202,7 @@ Actions:
 5. Apply replacements, show per-file summary with rollback command (APPLY + VERIFY)
 Result: All occurrences replaced, rollback instructions provided
 
-### Example 2: Add Frontmatter Field
+**Example 2: Add Frontmatter Field**
 User says: "Add author field to all posts that don't have one"
 Actions:
 1. Check git status -- clean, proceed (SAFETY CHECK)
@@ -249,7 +213,7 @@ Actions:
 6. Report: 4 files modified, 2 skipped (already had author) (VERIFY)
 Result: Field added to posts missing it, existing posts unchanged
 
-### Example 3: Content Transform
+**Example 3: Content Transform**
 User says: "Demote all H1 headings to H2"
 Actions:
 1. Check git status -- clean, proceed (SAFETY CHECK)
@@ -260,7 +224,7 @@ Actions:
 6. Suggest `hugo --quiet` to verify no build issues (VERIFY)
 Result: All H1 headings demoted, H2+ unchanged
 
-### Example 4: Regex with Dry Run
+**Example 4: Regex with Dry Run**
 User says: "Show me all date formats in posts but don't change anything"
 Actions:
 1. Check git status (SAFETY CHECK)
@@ -270,8 +234,6 @@ Actions:
 Result: User sees all date occurrences, can decide on follow-up action
 
 See `references/examples.md` for full output format templates with banner formatting.
-
----
 
 ## Error Handling
 
@@ -305,53 +267,8 @@ Solution:
 3. Fix permissions: `chmod 644 content/posts/*.md`
 4. Retry operation
 
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Applying Without Preview
-**What it looks like**: Immediately modifying files without showing what will change
-**Why wrong**: Batch operations can cause widespread damage. User loses ability to catch mistakes.
-**Do instead**: ALWAYS show complete preview first. Never modify files until user explicitly confirms.
-
-### Anti-Pattern 2: Summarizing Instead of Showing
-**What it looks like**: "Found 47 matches across 12 files. Apply changes?"
-**Why wrong**: User cannot verify each change is correct. Some matches may be false positives.
-**Do instead**: Show every match with line-level before/after context.
-
-### Anti-Pattern 3: Ignoring Git State
-**What it looks like**: Proceeding with batch edit when git has uncommitted changes
-**Why wrong**: User may lose work. Rollback becomes complicated with mixed changes.
-**Do instead**: Always check git status first. Block if uncommitted changes exist (unless --force).
-
-### Anti-Pattern 4: Destroying Frontmatter Format
-**What it looks like**: Rewriting entire frontmatter block when modifying a single field
-**Why wrong**: Creates noisy git diffs, may break parsers, loses author's preferred formatting.
-**Do instead**: Modify only the target field. Preserve indentation, quote style, and field order.
-
-### Anti-Pattern 5: Non-Atomic Application
-**What it looks like**: Applying changes to some files, then failing on others mid-operation
-**Why wrong**: Leaves repository in inconsistent state with partial edits.
-**Do instead**: Validate all files are writable before applying any changes. All or nothing.
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Only a few files, no need to preview" | Few files can still have false positives | Show complete preview |
-| "Pattern is simple, regex won't over-match" | Simple patterns match unexpected content | Test with grep first |
-| "Git is clean, no need to check" | Status could have changed since last check | Always verify |
-| "User said apply, skip the preview" | User may not realize scope of changes | Preview is hardcoded, never skip |
-
-### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/operation-types.md`: Detailed operation syntax and options
 - `${CLAUDE_SKILL_DIR}/references/regex-patterns.md`: Common regex patterns for Hugo content
 - `${CLAUDE_SKILL_DIR}/references/safety-checklist.md`: Pre-edit validation steps and rollback procedures

@@ -26,45 +26,7 @@ routing:
 
 # Blog Post Writer Skill
 
-## Operator Context
-
-This skill operates as an operator for blog post creation, configuring Claude's behavior for structured, voice-consistent content generation. It implements the **Pipeline** architectural pattern -- Assess, Decide, Draft, Preview -- with **Voice Integration** via separate voice skills for stylistic patterns.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before writing
-- **Over-Engineering Prevention**: Write the post requested. No "bonus sections", no unsolicited additions, no extra content types
-- **Banned Words Enforcement**: NEVER use words from `references/banned-words.md`. Scan every draft before finalizing
-- **Voice Compliance**: Follow the specified voice skill's patterns exactly. Do not blend voices
-- **Hugo Format**: All posts use proper YAML frontmatter with correct syntax
-- **Em-Dash Prohibition**: NEVER use em-dashes. Use commas, periods, or sentence restructuring instead
-
-### Default Behaviors (ON unless disabled)
-- **Voice Required**: Must specify a voice skill (user must configure a default voice or specify one)
-- **Preview Before Write**: Display full draft for approval before writing to file
-- **Post-Draft Banned Word Scan**: Verify zero banned words before finalizing
-- **Structure Template**: Use appropriate template from `references/structure-templates.md`
-- **Specific Numbers**: Include concrete numbers for all claims, not vague adjectives
-
-### Optional Behaviors (OFF unless enabled)
-- **Direct Write Mode**: Skip preview and write directly to file
-- **Outline Only**: Generate structure without full draft
-- **Multiple Variants**: Generate 2-3 opening paragraphs for selection
-
-## What This Skill CAN Do
-- Write complete blog posts in any defined voice profile
-- Apply voice-specific patterns (metaphors, rhythm, structure, tone)
-- Generate proper Hugo frontmatter with correct YAML syntax
-- Coordinate with voice skills for stylistic consistency
-- Revise drafts based on user feedback
-
-## What This Skill CANNOT Do
-- Use banned words under any circumstances (see `references/banned-words.md`)
-- Write without a voice specification (redirect: specify `--voice` or accept default)
-- Add sections not requested by user (redirect: ask user before adding)
-- Create or modify voice profiles (redirect: use voice skill creation workflow)
-- Skip the banned word verification step
-
----
+Voice-integrated blog post creation using a 4-phase pipeline: Assess, Decide, Draft, Preview. Each phase has a gate that must pass before proceeding.
 
 ## Instructions
 
@@ -72,7 +34,9 @@ This skill operates as an operator for blog post creation, configuring Claude's 
 
 **Goal**: Understand the topic, select voice, and classify content type before writing.
 
-**Step 1: Analyze the topic**
+**Step 1: Read repository CLAUDE.md** to load any project-specific writing rules or conventions before proceeding.
+
+**Step 2: Analyze the topic**
 
 ```markdown
 ## Assessment
@@ -82,20 +46,20 @@ This skill operates as an operator for blog post creation, configuring Claude's 
 - Estimated length: [short 500-800 / medium 1000-1500 / long 2000+]
 ```
 
-**Step 2: Select voice**
+**Step 3: Select voice**
 
-Load the specified voice skill. If none specified, ask the user which voice to use.
+Load the specified voice skill. If none specified, ask the user which voice to use -- a voice must be selected before any writing begins because retrofitting voice patterns onto an existing draft produces inconsistent results.
 
-Available voices can be found at `skills/voice-*/SKILL.md`. Create new voices with `/create-voice`.
+Available voices can be found at `skills/voice-*/SKILL.md`. Create new voices with `/create-voice`. This skill does not create or modify voice profiles; redirect to the voice skill creation workflow if needed.
 
-**Step 3: Classify content type**
+**Step 4: Classify content type**
 
 Choose from `references/structure-templates.md`:
 - **Problem-Solution**: Bug fix, debugging session, resolution
 - **Technical Explainer**: Concept, technology, how it works
 - **Walkthrough**: Step-by-step instructions for a task
 
-**Gate**: Topic analyzed, voice loaded, content type selected. Proceed only when gate passes.
+**Gate**: Topic analyzed, voice loaded, content type selected. Proceed only when all three are confirmed.
 
 ### Phase 2: DECIDE
 
@@ -103,7 +67,7 @@ Choose from `references/structure-templates.md`:
 
 **Step 1: Plan opening**
 
-Read opening patterns from voice skill. Select the pattern that fits the topic.
+Read opening patterns from the loaded voice skill. Select the pattern that fits the topic. Use exactly one voice profile per post -- mixing patterns from different voices creates inconsistent, inauthentic output.
 
 ```markdown
 ## Plan
@@ -111,7 +75,7 @@ Read opening patterns from voice skill. Select the pattern that fits the topic.
 - Draft opening: [first sentence or question]
 ```
 
-**Step 2: Plan extended metaphor** (if voice uses them)
+**Step 2: Plan extended metaphor** (if the loaded voice uses them)
 
 ```markdown
 - Core metaphor: [conceptual lens]
@@ -119,6 +83,8 @@ Read opening patterns from voice skill. Select the pattern that fits the topic.
 ```
 
 **Step 3: Plan sections** (3-7 sections)
+
+Plan only sections the user requested. Do not add "Future Implications", "Related Topics", or other unsolicited sections -- write what was asked for and nothing more. If you think an additional section would help, ask the user before including it.
 
 ```markdown
 - Sections:
@@ -137,6 +103,8 @@ Read closing patterns from voice skill. Select pattern and identify callback ele
 ```
 
 **Step 5: Draft frontmatter**
+
+All posts use Hugo YAML frontmatter with correct syntax:
 
 ```yaml
 ---
@@ -164,7 +132,7 @@ summary: "One sentence description for list views"
 - Apply sentence rhythm from voice skill
 - Develop extended metaphors if voice uses them
 - Use second-person address if voice uses it
-- Include specific numbers for all claims
+- Include specific numbers for all claims -- use concrete data, not vague adjectives like "significant" or "many"
 
 **Step 3: Write closing**
 - Apply closing pattern from voice skill
@@ -172,27 +140,32 @@ summary: "One sentence description for list views"
 - Build to emotional crescendo if appropriate for voice
 
 **Step 4: Banned word scan**
-- Scan entire draft against `references/banned-words.md`
-- If ANY banned word found: rewrite the affected sentence immediately
-- Re-scan until zero violations
 
-**Step 5: Voice verification**
-- Check patterns against voice skill requirements
+Run a systematic scan of the entire draft against `references/banned-words.md`. Visual scanning is insufficient because banned words hide in context -- the full list must be checked programmatically.
+
+- If ANY banned word is found: rewrite the affected sentence immediately using alternatives from the reference
+- Re-scan until zero violations
+- Never suppress or skip a detection
+
+**Step 5: Voice and formatting verification**
+- Check patterns against voice skill requirements; "close enough" is not passing -- re-read the voice skill and verify each pattern explicitly
 - Verify sentence rhythm matches voice
 - Confirm opening and closing styles match voice
-- Verify zero em-dashes in entire draft
+- Verify zero em-dashes in entire draft -- em-dashes are never acceptable; rewrite with commas, periods, or sentence restructuring
 
-**Gate**: Draft complete, zero banned words, voice patterns verified. Proceed only when gate passes.
+**Gate**: Draft complete, zero banned words, voice patterns verified, zero em-dashes. Proceed only when gate passes.
 
 ### Phase 4: PREVIEW
 
-**Goal**: Display full draft for user approval before writing to file.
+**Goal**: Display full draft for user approval before writing to file. Skipping preview loses the user's opportunity to request changes, and rewrites after file creation are costlier than previews. (Skip this phase only if the user explicitly enables Direct Write Mode.)
 
 **Step 1: Present draft**
 
 Display the complete post with frontmatter. Show target file path.
 
 **Step 2: Show compliance report**
+
+Verify that all planned sections are present -- length alone does not indicate completeness.
 
 ```markdown
 ## Voice Compliance
@@ -211,8 +184,6 @@ Target file: content/posts/{slug}.md
 Wait for user confirmation before writing. If user requests changes, return to the appropriate phase.
 
 **Gate**: User approves draft. Write to file. Task complete.
-
----
 
 ## Error Handling
 
@@ -245,55 +216,7 @@ Solution:
 2. Suggest 2-3 specific angles derived from the topic
 3. Proceed once user selects a narrower focus
 
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Writing Without Voice Skill Loaded
-**What it looks like**: Starting to draft before reading the voice skill's patterns
-**Why wrong**: Post will not match the voice profile. Retrofitting voice is harder than starting with it.
-**Do instead**: Complete Phase 1 fully. Load and read the voice skill before writing any content.
-
-### Anti-Pattern 2: Ignoring Banned Word Scan
-**What it looks like**: "The draft reads well, no need to scan for banned words"
-**Why wrong**: Banned words are AI fingerprints. A single occurrence undermines authenticity.
-**Do instead**: Run banned word scan on every draft. Zero tolerance.
-
-### Anti-Pattern 3: Adding Unsolicited Sections
-**What it looks like**: Adding "Future Implications" or "Related Topics" sections the user did not request
-**Why wrong**: Over-engineering the content. User asked for a specific post, not a content hub.
-**Do instead**: Write exactly what was requested. Ask before adding anything extra.
-
-### Anti-Pattern 4: Skipping Preview Phase
-**What it looks like**: Writing directly to file without showing the draft first
-**Why wrong**: User loses the opportunity to review and request changes. Rewrites are costlier than previews.
-**Do instead**: Always show full draft with compliance report unless Direct Write Mode is enabled.
-
-### Anti-Pattern 5: Blending Voice Patterns
-**What it looks like**: Mixing one voice's extended metaphors with another voice's community warmth in one post
-**Why wrong**: Each voice has distinct patterns. Mixing creates an inconsistent, inauthentic voice.
-**Do instead**: Use exactly one voice profile per post. Follow that voice skill's patterns exclusively.
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-- [Wabi-Sabi Authenticity](../shared-patterns/wabi-sabi-authenticity.md) - Natural imperfections over synthetic perfection
-- [Voice-First Writing](../shared-patterns/voice-first-writing.md) - Voice-driven content patterns
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "No banned words jumped out at me" | Visual scan misses words in context | Run systematic scan against full banned list |
-| "Close enough to the voice" | Close ≠ matching the voice profile | Re-read voice skill, verify each pattern |
-| "The post is already long enough" | Length ≠ completeness | Check all planned sections are present |
-| "Em-dash here reads better" | Em-dashes are absolutely forbidden | Rewrite with comma, period, or restructure |
-| "One extra section adds value" | User did not request it | Write what was asked, nothing more |
-
-### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/banned-words.md`: Words and phrases that signal AI-generated content
 - `${CLAUDE_SKILL_DIR}/references/structure-templates.md`: Templates for Problem-Solution, Technical Explainer, and Walkthrough content types

@@ -27,51 +27,15 @@ routing:
 
 # Agent Evaluation Skill
 
-## Operator Context
-
-This skill operates as an operator for agent/skill quality assurance, configuring Claude's behavior for objective, evidence-based evaluation. It implements the **Iterative Assessment** pattern — identify targets, validate structure, measure depth, score, report — with **Domain Intelligence** embedded in the scoring rubric.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before evaluation
-- **Over-Engineering Prevention**: Evaluate only what is requested. Do not speculatively analyze additional agents/skills or invent metrics that were not asked for
-- **Read-Only Evaluation**: NEVER modify agents or skills during evaluation — only report findings
-- **Evidence-Based Findings**: Every issue MUST include file path and line reference
-- **Objective Scoring**: Use the rubric consistently across all evaluations — no subjective "looks good" assessments
-- **Complete Output**: Show all test results with scores; never summarize as "all tests pass"
-
-### Default Behaviors (ON unless disabled)
-- **Full Test Suite**: Run all evaluation categories (structural, content, code, integration)
-- **Priority Ranking**: Sort findings by impact (HIGH / MEDIUM / LOW)
-- **Score Calculation**: Generate numeric quality scores using the standard rubric
-- **Improvement Suggestions**: Provide specific, actionable recommendations with file paths
-- **Temporary File Cleanup**: Remove any intermediate analysis files at task completion
-- **Comparative Analysis**: Show how evaluated items compare to collection averages
-
-### Optional Behaviors (OFF unless enabled)
-- **Historical Comparison**: Compare current scores to previous evaluations (requires baseline)
-- **Cross-Reference Validation**: Check all internal links and references resolve
-- **Code Example Execution**: Actually run code examples to verify they work
-
-## What This Skill CAN Do
-- Score agents and skills against a consistent 100-point rubric
-- Detect missing sections, broken references, and structural gaps
-- Measure content depth and compare to collection averages
-- Generate structured reports with prioritized findings
-- Batch-evaluate entire collections with summary statistics
-
-## What This Skill CANNOT Do
-- Modify or fix agents/skills (use skill-creator instead)
-- Evaluate external repositories or non-agent/skill files
-- Replace human judgment on content accuracy or domain correctness
-- Skip rubric categories — all must be scored
-
----
+Objective, evidence-based quality assessment for agents and skills. Implements a 6-phase rubric: Identify, Structural, Content, Code, Integration, Report. Every finding must cite a file path and line number — no subjective "looks good" verdicts.
 
 ## Instructions
 
-### Step 1: Identify Evaluation Targets
+### Phase 1: Identify Evaluation Targets
 
 **Goal**: Determine what to evaluate and confirm targets exist.
+
+Read the repository CLAUDE.md first to understand current standards before evaluating anything. Only evaluate what was explicitly requested — do not speculatively analyze additional agents or skills.
 
 ```bash
 # List all agents
@@ -87,9 +51,11 @@ ls -la skills/{name}/
 
 **Gate**: All targets confirmed to exist on disk. Proceed only when gate passes.
 
-### Step 2: Structural Validation
+### Phase 2: Structural Validation
 
 **Goal**: Check that required components exist and are well-formed.
+
+Score every rubric category — never skip a category even if it "looks fine." Parse each required field explicitly rather than eyeballing YAML. Record PASS/FAIL with the line number for each check.
 
 **For Agents** — check each item and record PASS/FAIL with line number:
 
@@ -173,9 +139,11 @@ See `references/scoring-rubric.md` for full/partial/no credit breakdowns.
 
 **Gate**: All structural checks scored with evidence. Proceed only when gate passes.
 
-### Step 3: Content Depth Analysis
+### Phase 3: Content Depth Analysis
 
 **Goal**: Measure content quality and volume.
+
+Do not estimate length by impression — count lines and calculate the score. "Content is long enough" is not a measurement.
 
 ```bash
 # Skill total lines (SKILL.md + references)
@@ -199,9 +167,11 @@ agent_lines=$(wc -l < agents/{name}.md)
 
 **Gate**: Depth score calculated. Proceed only when gate passes.
 
-### Step 4: Code Quality Checks
+### Phase 4: Code Quality Checks
 
 **Goal**: Validate that code examples and scripts are functional.
+
+A script existing on disk does not mean it works — run `python3 -m py_compile` on every `.py` file. Search for placeholder text in every file, not just files that "look incomplete."
 
 1. **Script syntax**: Run `python3 -m py_compile` on all `.py` files
 2. **Placeholder detection**: Search for `[TODO]`, `[TBD]`, `[PLACEHOLDER]`, `[INSERT]`
@@ -221,7 +191,7 @@ grep -c '```$' {file}
 
 **Gate**: All code checks complete. Proceed only when gate passes.
 
-### Step 5: Integration Verification
+### Phase 5: Integration Verification
 
 **Goal**: Confirm cross-references and tool declarations are consistent.
 
@@ -257,9 +227,13 @@ grep -c "anti-rationalization-core" skills/{name}/SKILL.md
 
 **Gate**: All integration checks complete. Proceed only when gate passes.
 
-### Step 6: Generate Quality Report
+### Phase 6: Generate Quality Report
 
 **Goal**: Compile all findings into the standard report format.
+
+Show all test results with individual scores — never summarize as "all tests pass." Sort findings by impact (HIGH / MEDIUM / LOW). Include specific, actionable recommendations with file paths and line numbers. When batch evaluating, show how each item compares to collection averages; do not report "most are good quality" without quantitative data.
+
+This phase is read-only: report findings but never modify agents or skills. Use skill-creator for fixes. Clean up any intermediate analysis files created during evaluation.
 
 Use the report template from `references/report-templates.md`. The report MUST include:
 
@@ -351,49 +325,7 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Superficial Evaluation Without Evidence
-**What it looks like**: "Structure: Looks good. Content: Seems adequate. Overall: PASS"
-**Why wrong**: No file paths, no line references, no specific scores. Cannot verify or reproduce.
-**Do instead**: Score every rubric category. Cite file:line for every finding.
-
-### Anti-Pattern 2: Skipping Validation Script Execution
-**What it looks like**: "The skill has a validation script present."
-**Why wrong**: Presence is not correctness. Script may have syntax errors or do nothing.
-**Do instead**: Run `python3 -m py_compile` at minimum. Execute the script and capture output.
-
-### Anti-Pattern 3: Accepting Placeholder Content as Complete
-**What it looks like**: "Agent has comprehensive examples section. PASS"
-**Why wrong**: Did not check if examples contain [TODO] or [PLACEHOLDER] text.
-**Do instead**: Search for placeholder patterns. Score content on substance, not section headers.
-
-### Anti-Pattern 4: Batch Evaluation Without Summary Statistics
-**What it looks like**: "Evaluated all 38 agents. Most are good quality."
-**Why wrong**: No quantitative data. Cannot track improvements or identify problem areas.
-**Do instead**: Generate score distribution table, top/bottom performers, common issues count. See `references/batch-evaluation.md` for the collection summary template.
-
-### Anti-Pattern 5: Ignoring Repository-Specific Standards
-**What it looks like**: "This agent follows standard practices and is well-structured."
-**Why wrong**: Did not check CLAUDE.md requirements. May miss v2 standards (YAML list format, pipe description, item count ranges, gates, anti-rationalization table).
-**Do instead**: Check CLAUDE.md first. Verify all v2-specific criteria. A generic "well-structured" verdict is meaningless without rubric scores.
-
----
-
 ## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "YAML looks fine, no need to parse it" | Looking is not parsing; fields may be missing | Check each required field explicitly |
-| "Content is long enough, skip counting" | Impressions are not measurements | Count lines, calculate score |
-| "Script exists, must work" | Existence is not correctness | Run `python3 -m py_compile` |
-| "One failing check, rest are probably fine" | Partial evaluation is not evaluation | Complete all 6 steps |
 
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/scoring-rubric.md` - Full/partial/no credit breakdowns per rubric category

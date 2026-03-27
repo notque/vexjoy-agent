@@ -29,57 +29,20 @@ routing:
 
 # Codebase Analyzer Skill
 
-## Operator Context
-
-This skill operates as an operator for statistical codebase analysis, configuring Claude's behavior for measurement-based rule discovery from Go codebases. It implements a **Measure, Don't Read** methodology -- Python scripts count patterns to avoid LLM training bias override, then statistics are interpreted to derive confidence-scored rules.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before execution. Project instructions override default behaviors.
-- **Over-Engineering Prevention**: Scripts perform pure statistical measurement only. No feature additions beyond counting patterns. No speculative metrics or flexibility that was not requested.
-- **Measurement-Only Analysis**: Scripts count and measure; NEVER interpret or judge code quality during data collection phase. The LLM is a calculator, not a judge.
-- **No Training Bias**: Analysis MUST avoid LLM interpretation of "good" vs "bad" patterns during measurement. What IS in the code is the local standard.
-- **Confidence Gating**: Only derive rules from patterns with >70% consistency. Below that threshold, report statistics without creating rules.
-- **Separate Measurement from Interpretation**: Run scripts first (mechanical), then interpret statistics second (analytical). Never combine these steps.
-
-### Default Behaviors (ON unless disabled)
-- **Communication Style**: Report facts without self-congratulation. Show complete statistics rather than describing them. Be concise but informative.
-- **Temporary File Cleanup**: Analysis scripts do not create temporary files (single-pass processing). Any debug outputs or iteration files should be removed at completion.
-- **Verbose Output**: Display summary statistics to stderr, full JSON to stdout or file.
-- **Confidence Thresholds**: HIGH (>85%), MEDIUM (70-85%), below 70% not extracted as rule.
-- **Vendor Filtering**: Automatically skip vendor/, testdata/, and generated code to avoid polluting statistics with external patterns.
-
-### Optional Behaviors (OFF unless enabled)
-- **Cross-Repository Analysis**: Compare patterns across multiple repos (requires explicit request).
-- **Historical Tracking**: Re-analyze same repo over time to track pattern evolution (requires explicit request).
-- **Custom Metric Addition**: Add new measurement categories beyond the 100 standard metrics (requires explicit request).
-
-## What This Skill CAN Do
-- Extract implicit coding rules through statistical analysis of Go codebases
-- Measure 100 metrics across 25 categories using Python scripts
-- Derive confidence-scored rules from pattern frequency data
-- Produce a 10-dimensional Style Vector quality fingerprint (0-100 scores)
-- Discover shadow constitution rules (linter suppressions teams accept)
-- Compare patterns across multiple repositories for team-wide standards
-
-## What This Skill CANNOT Do
-- Judge code quality subjectively (measures patterns, not "good" vs "bad")
-- Analyze non-Go codebases (scripts are Go-specific)
-- Derive rules from codebases with fewer than 50 Go files (insufficient sample)
-- Replace code review or linting (produces rules, not enforcement)
-- Skip measurement and rely on LLM "reading" the code
-
----
+Statistical rule discovery through measurement of Go codebases. Python scripts count patterns to avoid LLM training bias, then statistics are interpreted to derive confidence-scored rules. The core principle is **Measure, Don't Read** -- what IS in the code is the local standard, not what an LLM thinks "should be" there.
 
 ## Instructions
 
-### Phase 1: CONFIGURE (Do NOT proceed without validated target)
+### Phase 1: CONFIGURE
 
 **Goal**: Validate target and select analyzer variant.
+
+Read and follow the repository's CLAUDE.md before doing anything else -- project instructions override default behaviors.
 
 **Step 1: Validate the target**
 - Confirm path points to a Go repository root with .go files
 - Check for standard structure (cmd/, internal/, pkg/)
-- Verify sufficient file count (50+ files for meaningful rules, 100+ ideal)
+- Verify sufficient file count: 50+ files for meaningful rules, 100+ ideal. Below 50 files, statistics produce high variance -- patterns that look consistent may be coincidence. For small repos, combine analysis across multiple team repos rather than treating thin data as definitive.
 
 **Step 2: Select cartographer variant**
 
@@ -119,9 +82,13 @@ This skill operates as an operator for statistical codebase analysis, configurin
 
 **Gate**: Target directory exists, contains 50+ Go files, variant selected. Proceed only when gate passes.
 
-### Phase 2: MEASURE (Do NOT interpret during this phase)
+### Phase 2: MEASURE
 
 **Goal**: Run statistical analysis scripts. Pure measurement -- no interpretation yet.
+
+This phase is strictly mechanical. Scripts count and measure; do not interpret or judge code quality during data collection. Combining measurement with interpretation introduces LLM training bias -- the model reports what "should be" instead of what IS. Run scripts first, interpret the numbers second, always as separate steps.
+
+Automatically filter vendor/, testdata/, and generated code (files with "Code generated by..." markers) to avoid polluting statistics with external patterns.
 
 **Step 1: Execute the cartographer**
 
@@ -133,6 +100,8 @@ grep -rn 'fmt.Errorf.*%w' ~/repos/my-project --include="*.go" | wc -l
 # Example: count constructor patterns
 grep -rn 'func New' ~/repos/my-project --include="*.go" | wc -l
 ```
+
+Never substitute LLM "reading the codebase" for running the cartographer scripts. When an LLM sees `return err` it may report "not wrapping errors properly" even if that IS the local standard. The scripts produce deterministic, reproducible counts; the LLM's role begins at interpretation in Phase 3.
 
 **Step 2: Verify output integrity**
 - Confirm JSON output is valid and complete
@@ -173,9 +142,11 @@ grep -rn 'func New' ~/repos/my-project --include="*.go" | wc -l
 
 **Gate**: Script completed without errors, JSON output is valid, file count is reasonable. Proceed only when gate passes.
 
-### Phase 3: INTERPRET (Now the LLM analyzes)
+### Phase 3: INTERPRET
 
 **Goal**: Derive rules from statistics. This is where LLM interpretation happens -- AFTER measurement is complete.
+
+Report facts and show complete statistics rather than describing them. Do not editorialize about code quality -- the numbers speak for themselves.
 
 **Step 1: Review the three lenses**
 
@@ -189,11 +160,13 @@ For detailed lens explanations, see `references/three-lenses.md`.
 
 **Step 2: Extract rules by confidence**
 
+Only derive rules from patterns with sufficient consistency. Forcing rules from weak patterns causes false positives in reviews and may impose standards the team has not organically adopted.
+
 | Confidence | Threshold | Action | Example |
 |------------|-----------|--------|---------|
 | HIGH | >85% consistency | Extract as enforceable rule | "96% use err not e" -> MUST use err |
 | MEDIUM | 70-85% consistency | Extract as recommendation | "78% guard clauses" -> SHOULD prefer guards |
-| Below 70% | Not extracted | Report as observation only | "55% single-letter receivers" -> No rule |
+| Below 70% | Not extracted as rule | Report as observation only | "55% single-letter receivers" -> No rule |
 
 **Step 3: Review Style Vector** (Omni only)
 - 10 composite scores (0-100): Consistency, Modernization, Safety, Idiomaticity, Documentation, Testing Maturity, Architecture, Performance, Observability, Production Readiness
@@ -207,7 +180,7 @@ For detailed lens explanations, see `references/three-lenses.md`.
 
 **Gate**: Rules extracted with evidence and confidence levels. Style Vector reviewed. Proceed only when gate passes.
 
-### Phase 4: DELIVER (Do NOT mark complete without artifacts)
+### Phase 4: DELIVER
 
 **Goal**: Produce actionable output artifacts.
 
@@ -245,7 +218,7 @@ Format each rule as:
 - Compare with pr-miner data if available (explicit vs implicit rules)
 - Suggest CLAUDE.md updates for high-confidence rules
 - Identify golangci-lint rules that could enforce discovered patterns
-- Suggest quarterly re-analysis schedule
+- Suggest quarterly re-analysis schedule -- coding patterns evolve with team growth and new Go versions, so a one-time snapshot becomes stale within months
 
 ```
 ===============================================================
@@ -350,49 +323,7 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: LLM Reading Instead of Script Measuring
-**What**: Using Claude to "read the codebase and find patterns" instead of running cartographer scripts
-**Why wrong**: LLM applies training bias -- reports what "should be" instead of what IS. When the LLM sees `return err` it reports "not wrapping errors properly" even if that IS the local standard.
-**Do instead**: Run the cartographer script first (measurement), then interpret the statistics (analysis). Two separate steps, never combined.
-
-### Anti-Pattern 2: Rules from Low-Confidence Patterns
-**What**: Creating enforceable rules from patterns below 70% consistency (e.g., "45% use fmt.Errorf with %w" becomes "All errors must use fmt.Errorf")
-**Why wrong**: Forces consistency where the team has not achieved it organically. Causes false positives in reviews. Team may be transitioning between patterns.
-**Do instead**: Only derive rules from HIGH confidence (>85%). For 70-85%, suggest "consider standardizing." Below 70%, report as observation only.
-
-### Anti-Pattern 3: Analyzing Insufficient Sample Size
-**What**: Running analysis on a repo with <50 Go files and treating results as definitive patterns
-**Why wrong**: Small sample size produces high variance. Patterns that appear consistent at 20 files may be coincidence. Cannot distinguish signal from noise.
-**Do instead**: Require 50+ files minimum. For small repos, combine analysis across multiple team repos. For monorepos, analyze the full tree.
-
-### Anti-Pattern 4: One-Time Analysis Without Follow-Up
-**What**: Analyzing once, extracting rules, never re-running as the codebase evolves
-**Why wrong**: Coding patterns evolve with team growth and new Go versions. One-time snapshot becomes stale within months. Cannot measure impact of standardization efforts.
-**Do instead**: Re-analyze quarterly. Compare Style Vector scores over time. Track pattern adoption (e.g., "Did Modernization score improve after Go 1.21 adoption?").
-
-### Anti-Pattern 5: Mixing Measurement and Interpretation
-**What**: Having the LLM "read" code files and count patterns manually instead of running the deterministic Python scripts
-**Why wrong**: LLM counting is unreliable at scale -- misses files, double-counts, applies inconsistent criteria. Python scripts produce deterministic, reproducible results across runs.
-**Do instead**: ALWAYS run the cartographer script for measurement (Phase 2). The LLM's role begins at interpretation (Phase 3), working from the script's JSON output.
-
----
-
 ## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "I can read the code and find patterns" | Reading applies training bias; measures what "should be" not what IS | Run cartographer scripts for measurement |
-| "Small repo is fine for analysis" | <50 files produces unreliable statistics | Combine repos or accept limited confidence |
-| "This 55% pattern should be a rule" | Below 70% is noise, not signal | Only extract rules above confidence threshold |
-| "Analysis was done last year, still valid" | Patterns evolve with team and language | Re-analyze quarterly |
 
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/three-lenses.md`: Detailed explanation of the three analysis lenses
