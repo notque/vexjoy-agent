@@ -36,54 +36,13 @@ routing:
 
 # ADR Consultation Skill
 
-## Operator Context
-
-This skill operates as an orchestrator for multi-agent architecture consultation, configuring
-Claude's behavior to dispatch 3 specialized reviewer agents in parallel against an ADR and
-synthesize their findings into a PROCEED or BLOCKED verdict. It implements the **ConsensusCode
-file-based communication protocol** adapted to our ADR system — agents write responses to
-`adr/{name}/` directories, enabling inter-agent communication and persistence across sessions.
-
-The design principle: challenge architecture decisions BEFORE implementation, not after. A
-BLOCKED verdict stops implementation dispatch. A PROCEED verdict explicitly clears the path.
-This is the gate between feature-plan and feature-implement for Medium+ decisions.
-
-### Hardcoded Behaviors (Always Apply)
-
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before dispatching agents.
-- **Single-Message Dispatch**: All 3 Task calls MUST appear in ONE response for true parallelism.
-  Sequential dispatch defeats the purpose and triples wall-clock time.
-- **Artifacts Over Memory**: Every agent writes to `adr/{name}/{agent-name}.md`. Synthesis reads
-  from files, not from context. This makes consultation results persistent across sessions.
-- **Gate Enforcement**: If blocking concerns exist in concerns.md, do NOT proceed to
-  implementation. Report the blocks and stop. This is not advisory — it is a hard gate.
-- **All 3 Agents Required**: Do not skip a reviewer because the ADR "seems simple". Let
-  agents report "no concerns" if genuinely clean. Partial consultation gives false confidence.
-
-### Default Behaviors (ON unless disabled)
-
-- **Consultation Directory Creation**: Create `adr/{adr-name}/` before dispatching agents.
-- **Structured Concerns Tracking**: Every concern raised by any agent is tracked in
-  `adr/{adr-name}/concerns.md` with severity (blocking/important/minor) and resolution status.
-- **Synthesis Production**: After all agents complete, produce `adr/{adr-name}/synthesis.md`
-  with areas of agreement, disagreement, and final verdict rationale.
-- **Verdict Output**: Always produce a final PROCEED or BLOCKED verdict with supporting reasons.
-
-### Optional Behaviors (OFF unless enabled)
-
-- **5-Agent Mode**: For Complex decisions (new subsystem, major API change), add
-  `reviewer-security` and a second domain expert. Enable with "complex consultation" or
-  "full consultation".
-- **Prior Consultation Check**: Before dispatching, scan `adr/{name}/` for existing agent
-  files to avoid duplicate consultation. Enable with "check for prior consultation".
-
----
+Multi-agent architecture consultation that dispatches 3 specialized reviewers in parallel against an ADR and synthesizes their findings into a PROCEED or BLOCKED verdict. This is the gate between feature-plan and feature-implement for Medium+ decisions because challenging architecture decisions before implementation prevents costly post-implementation rework.
 
 ## Instructions
 
 ### Phase 1: DISCOVER
 
-**Goal**: Identify the ADR being consulted on and prepare the consultation directory.
+**Goal**: Identify the ADR and prepare the consultation directory.
 
 **Step 1: Locate the ADR**
 
@@ -91,6 +50,8 @@ Check for ADR path in this order:
 1. User-provided path (e.g., `adr/intent-based-routing.md`)
 2. Active session context from adr-system hook (`.adr-session.json`)
 3. Ask the user which ADR to consult on
+
+Do not guess which ADR to consult on because an incorrect guess wastes a full consultation cycle.
 
 ```bash
 # Check for active ADR session
@@ -100,7 +61,19 @@ cat .adr-session.json 2>/dev/null
 ls adr/*.md
 ```
 
-**Step 2: Read the ADR**
+Even if this ADR was discussed informally, run the formal consultation because undocumented discussion produces no persistent artifacts and cannot be referenced by future sessions.
+
+**Step 2: Check for prior consultation**
+
+Before dispatching, scan `adr/{adr-name}/` for existing agent files because silently overwriting prior consultation work destroys the audit trail.
+
+```bash
+ls adr/{adr-name}/ 2>/dev/null
+```
+
+If existing files are found, report them and their timestamps. Ask the user whether to overwrite (re-run consultation) or use existing results.
+
+**Step 3: Read the ADR**
 
 Read the full ADR content. Extract:
 - The decision being made
@@ -108,32 +81,37 @@ Read the full ADR content. Extract:
 - Any stated risks or consequences
 - The ADR name (filename without `.md`) for the consultation directory
 
-**Step 3: Create consultation directory**
+**Step 4: Create consultation directory**
+
+Create `adr/{adr-name}/` before dispatching agents because agents need a valid directory to write their output files.
 
 ```bash
 mkdir -p adr/{adr-name}
 ```
 
-**Gate**: ADR content read, consultation directory created, ADR name confirmed. Do NOT dispatch
-agents until this gate passes — agents need the ADR content and a valid directory to write to.
+**Gate**: ADR content read, consultation directory created, ADR name confirmed. Do NOT dispatch agents until this gate passes because agents need the ADR content and a valid directory to write to.
 
 ---
 
 ### Phase 2: DISPATCH
 
-**Goal**: Launch all 3 consultation agents in a single message for true parallel execution.
+**Goal**: Launch all consultation agents in a single message for true parallel execution.
 
-**CRITICAL**: All three Task calls MUST appear in ONE response. If you dispatch them one at a
-time, you are running sequential analysis at 3x the cost with none of the cross-perspective
-benefit. The value of this skill is in simultaneous independent judgment.
+All three Task calls MUST appear in ONE response because sequential dispatch triples wall-clock time with no cross-perspective benefit. The value of this skill is simultaneous independent judgment. If you find yourself dispatching agents one at a time, stop and restructure into a single message.
+
+Dispatch all 3 agents even if the ADR "seems simple" because partial consultation gives false confidence. Let agents report "no concerns" if genuinely clean — that is a fast, cheap confirmation that removing a safety net cannot replicate.
+
+Even when there is time pressure, do not skip consultation because blocking concerns discovered post-implementation cost dramatically more to fix than the minutes this consultation takes.
+
+**Standard mode (3 agents)**: Always dispatch all three.
+
+**Complex mode (5 agents)**: For Complex decisions (new subsystem, major API change), add `reviewer-security` and a second domain expert. Enable with "complex consultation" or "full consultation".
 
 Each agent receives:
 1. The full ADR content as context
 2. Its specific lens and analysis focus
 3. Explicit output path: `adr/{adr-name}/{agent-name}.md`
 4. The structured output format defined below
-
-Dispatch exactly these 3 agents:
 
 **Agent 1: reviewer-contrarian**
 
@@ -217,8 +195,7 @@ Structure your response as:
 
 **Agent 3: reviewer-meta-process**
 
-Lens: System health, single points of failure, whether this makes one component indispensable,
-whether it aligns with established architecture principles.
+Lens: System health, single points of failure, whether this makes one component indispensable, whether it aligns with established architecture principles.
 
 Prompt template:
 ```
@@ -262,8 +239,7 @@ Structure your response as:
 [Concrete recommendation with rationale.]
 ```
 
-**Gate**: All 3 Task calls dispatched in a single message. Proceed to Phase 3 only when all 3
-agents have returned and written their files to `adr/{adr-name}/`.
+**Gate**: All Task calls dispatched in a single message. Proceed to Phase 3 only when all agents have returned and written their files to `adr/{adr-name}/`.
 
 ---
 
@@ -271,7 +247,9 @@ agents have returned and written their files to `adr/{adr-name}/`.
 
 **Goal**: Read all agent responses from the consultation directory and produce a synthesis.
 
-**Step 1: Read all agent responses**
+**Step 1: Read all agent responses from files**
+
+Read the response files from disk, not from Task return context, because files persist across sessions while context does not — synthesis from context is not reproducible.
 
 ```bash
 cat adr/{adr-name}/reviewer-contrarian.md
@@ -281,7 +259,7 @@ cat adr/{adr-name}/reviewer-meta-process.md
 
 **Step 2: Extract all concerns**
 
-For each concern raised across all agents, record in `adr/{adr-name}/concerns.md`:
+Track every concern raised by any agent in `adr/{adr-name}/concerns.md` with severity and resolution status because structured tracking prevents concerns from being lost during synthesis.
 
 ```markdown
 # Concerns: {adr-name}
@@ -304,12 +282,18 @@ Resolution states (update as concerns are addressed):
 
 **Step 3: Identify verdict agreement**
 
+Do not treat NEEDS_CHANGES as equivalent to PROCEED because NEEDS_CHANGES means the agent identified real concerns that should be addressed. Multiple NEEDS_CHANGES aggregates to a higher concern level, not a softer approval.
+
+When one reviewer disagrees with the majority, track the minority concern with full severity assessment because minority dissent catches real failures that consensus misses.
+
 | Pattern | Meaning |
 |---------|---------|
 | All 3 PROCEED | Strong consensus — proceed with confidence |
 | 2 PROCEED, 1 NEEDS_CHANGES | Soft consensus — address changes, then proceed |
 | Any BLOCK | Hard block — must resolve before proceeding |
 | Mixed NEEDS_CHANGES | Significant concerns — address before proceeding |
+
+The synthesizer can also identify cross-cutting concerns that individual agents missed because agents assess separately and may not see emergent issues visible only in combination. Document any orchestrator-level concern in concerns.md and factor it into the verdict.
 
 **Step 4: Write synthesis**
 
@@ -346,8 +330,7 @@ Write `adr/{adr-name}/synthesis.md`:
 [Why the overall verdict is PROCEED or BLOCKED, given the above.]
 ```
 
-**Gate**: All concerns extracted to concerns.md, synthesis.md written. Proceed to Phase 4
-only when both files exist in `adr/{adr-name}/`.
+**Gate**: All concerns extracted to concerns.md, synthesis.md written. Proceed to Phase 4 only when both files exist in `adr/{adr-name}/`.
 
 ---
 
@@ -357,8 +340,9 @@ only when both files exist in `adr/{adr-name}/`.
 
 **Step 1: Check for blocking concerns**
 
-Read `adr/{adr-name}/concerns.md`. If any concern has `**Severity**: blocking`, the verdict
-is BLOCKED.
+Read `adr/{adr-name}/concerns.md`. If any concern has `**Severity**: blocking`, the verdict is BLOCKED. This is a hard gate, not advisory, because blocking concerns that surface post-implementation cost dramatically more to fix.
+
+Do not rationalize blocking concerns as "theoretical" because theoretical risk is still risk, and the gate exists specifically to prevent implementation from proceeding with unresolved blocking issues.
 
 **Step 2: Issue verdict**
 
@@ -431,7 +415,6 @@ When an ADR's implementation is complete and merged:
 
 **Cleanup instructions:**
 
-To clean up after implementation is complete:
 1. **Keep**: `adr/{name}/synthesis.md` (permanent record of verdict)
 2. **Keep**: `adr/{name}/concerns.md` (permanent record of concerns + resolutions)
 3. **Delete**: `adr/{name}/reviewer-*.md` (agent responses — value extracted into synthesis)
@@ -445,10 +428,7 @@ rm adr/{name}/reviewer-*.md
 ls adr/{name}/synthesis.md adr/{name}/concerns.md
 ```
 
-**Note**: The consultation directory is auto-created by Phase 1 (`mkdir -p adr/{adr-name}`).
-No `.gitkeep` is needed — the `adr/` directory is gitignored and the skill handles creation
-on demand. The lifecycle is: skill creates directory -> consultation runs -> implementation
-completes -> cleanup removes ephemeral agent responses -> permanent records remain.
+The consultation directory is auto-created by Phase 1 (`mkdir -p adr/{adr-name}`). No `.gitkeep` is needed because the `adr/` directory is gitignored and the skill handles creation on demand.
 
 ---
 
@@ -479,58 +459,9 @@ concerns.md and factor it into the verdict.
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Sequential Dispatch
-**What it looks like**: Dispatching agents one at a time, waiting for each to return.
-**Why wrong**: Triples wall-clock time, defeats the purpose of parallel consultation.
-**Do instead**: All 3 Task calls in ONE message. This is not optional.
-
-### Anti-Pattern 2: Skipping an Agent Because the ADR "Seems Simple"
-**What it looks like**: "This is a small change, we don't need the user advocate."
-**Why wrong**: "Simple" changes often carry hidden user impact or coupling risks. Let the
-agent return "no concerns" — that's a fast, cheap confirmation. Skipping removes a safety net.
-**Do instead**: Dispatch all 3 always. Scale down from Complex (5-agent) to Standard (3-agent),
-not from Standard to incomplete.
-
-### Anti-Pattern 3: Issuing Verdict Without Reading Agent Files
-**What it looks like**: Synthesizing from agent return values in context rather than reading files.
-**Why wrong**: Violates artifacts-over-memory principle. Files persist; context does not.
-Synthesis from context is not reproducible across sessions.
-**Do instead**: Always read `adr/{name}/*.md` files explicitly before synthesizing.
-
-### Anti-Pattern 4: Treating NEEDS_CHANGES as PROCEED
-**What it looks like**: "Two agents said NEEDS_CHANGES, that's basically approval."
-**Why wrong**: NEEDS_CHANGES means the agent identified real concerns that should be addressed.
-Multiple NEEDS_CHANGES aggregates to a higher concern level.
-**Do instead**: Extract every concern, assess severity. Two NEEDS_CHANGES with important
-concerns is not the same as one PROCEED with no concerns.
-
-### Anti-Pattern 5: Proceeding Despite Blocking Concerns
-**What it looks like**: "We'll fix it during implementation." "It's probably fine."
-**Why wrong**: This is exactly what the gate is designed to prevent. Blocking concerns that
-surface post-implementation cost dramatically more to fix.
-**Do instead**: Hard stop. Update the ADR to address blocking concerns. Re-run consultation.
-
----
-
-## Anti-Rationalization
-
-| Rationalization Attempt | Why It's Wrong | Required Action |
-|------------------------|----------------|-----------------|
-| "The ADR looks solid, consultation is ceremony" | Unreviewed plans have blind spots | Run consultation; let agents find nothing if it's solid |
-| "One reviewer disagreed but the others agreed" | Minority dissent catches real failures | Track the concern; evaluate severity |
-| "We're on a deadline, skip consultation" | Blocking concerns discovered post-impl cost more | Run consultation; it takes minutes |
-| "The contrarian is always negative" | Structured dissent is the feature, not a bug | Record the concern; assess validity |
-| "We already discussed this informally" | Undocumented discussion is not a consultation | Run the formal consultation; create artifacts |
-| "Blocking concern is theoretical" | Theoretical risk is risk | Require explicit resolution in ADR before proceeding |
-
----
-
 ## References
 
 - [ADR: Multi-Agent Consultation](../../adr/multi-agent-consultation.md) — The architecture decision this skill implements
 - [parallel-code-review](../parallel-code-review/SKILL.md) — Fan-out/fan-in pattern this skill adapts
 - [dispatching-parallel-agents](../dispatching-parallel-agents/SKILL.md) — Core parallel dispatch mechanics
-- [anti-rationalization-core.md](../shared-patterns/anti-rationalization-core.md) — Universal rationalization patterns
 - [reviewer-contrarian](../../agents/reviewer-contrarian.md) — Contrarian lens agent
