@@ -39,54 +39,15 @@ routing:
 
 # X API Skill
 
-## Operator Context
+## Overview
 
-This skill operates as an operator for X/Twitter API interactions, configuring behavior for OAuth-authenticated, rate-limit-aware API calls via a deterministic Python script. It implements a 4-phase pipeline: VALIDATE -> CONFIRM -> POST -> REPORT.
+This skill orchestrates OAuth-authenticated, rate-limit-aware X/Twitter API interactions through a deterministic Python script (`scripts/x-api-poster.py`). The workflow implements a 4-phase pipeline with an explicit confirmation gate (Phase 2) to prevent accidental public posts.
 
-The confirm gate (Phase 2) is mechanically enforced. The script refuses all write operations without --confirmed. The skill only passes --confirmed after receiving explicit user approval in the conversation -- it never passes the flag pre-emptively.
-
-### Hardcoded Behaviors (Always Apply)
-
-- **VALIDATE First**: Always run Phase 1 credential and content checks before any network call
-- **CONFIRM Gate is Mandatory**: Never pass --confirmed without explicit user approval in Phase 2
-- **OAuth Mode is Automatic**: Read ops use Bearer token only; write ops require full OAuth 1.0a -- operator never configures this
-- **Credential Source**: Credentials come from environment variables only -- never from files, arguments, or conversation context
-- **Rate Limit Respect**: Surface [rate-limit-warning] output immediately; do not proceed if remaining < 10 without user acknowledgment
-- **No Direct HTTP**: The skill never constructs HTTP requests -- all network calls go through scripts/x-api-poster.py
-
-### Default Behaviors (ON unless disabled)
-
-- **Dry Run Preview**: Run --dry-run before any write to confirm content length and credentials
-- **Thread Segmentation**: Auto-segment content exceeding 280 chars into thread parts
-- **Tweet URL Reporting**: Return canonical tweet URL (https://x.com/i/web/status/{id}) after each post
-- **Engagement Baseline**: Read public_metrics after post to establish initial engagement snapshot
-
-### Optional Behaviors (OFF unless enabled)
-
-- **Media Upload**: Attach image/video to tweet with --media /path/to/file
-- **Schedule Awareness**: User may ask to post at a specific time -- note the script posts immediately; scheduling requires external orchestration
-- **Search**: Read-only timeline/search operations with read-timeline or search commands
-
----
-
-## What This Skill CAN Do
-
-- Post a single tweet and return its ID and URL
-- Build a thread by chaining replies from a list of tweet texts
-- Upload media (image/video) and attach it to a tweet
-- Read a user home timeline (read-only, Bearer token)
-- Search recent tweets by keyword or hashtag
-- Validate content length and credential presence without posting (--dry-run)
-- Warn when rate limit headroom is low (remaining < 10)
-
-## What This Skill CANNOT Do
-
-- Post to platforms other than X/Twitter
-- Schedule posts for future delivery (posts immediately)
-- Edit or delete existing tweets
-- Access Twitter API v1.1 for anything except media upload (as required by the platform)
-- Generate content -- use content-engine for that
-- Operate without environment variables set
+**Core principles**:
+- Always validate credentials and content before any network call
+- The confirm gate is mechanically enforced by the script (refuses write ops without `--confirmed`)
+- Credentials flow from environment variables only; the operator never configures auth mode
+- Rate limits are surfaced immediately if remaining capacity drops below 10
 
 ---
 
@@ -98,13 +59,21 @@ The confirm gate (Phase 2) is mechanically enforced. The script refuses all writ
 
 **Step 1: Check credentials**
 
+Test credential presence by running a dry-run credential check:
+
 ```bash
 python3 $HOME/.claude/scripts/x-api-poster.py post --dry-run --text "ping"
 ```
 
-A clean dry-run output confirms all required env vars are present (X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET, X_BEARER_TOKEN). If any are missing, the script exits with a clear error -- surface it to the user and stop.
+This confirms all required environment variables are set: `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_SECRET`, `X_BEARER_TOKEN`.
+- For read-only operations (timeline, search), only `X_BEARER_TOKEN` is required
+- For write operations (post, thread), all five are required
+- If any required variables are missing, the script exits with a clear error; surface it to the user and stop
+- **Important**: Never pass credentials as command arguments or store in files — always read from environment
 
 **Step 2: Validate content length**
+
+The script enforces a 280-character limit per tweet. Before posting, validate your content length:
 
 For a single tweet:
 ```bash
@@ -116,7 +85,7 @@ For a thread:
 python3 $HOME/.claude/scripts/x-api-poster.py thread --dry-run --texts "part 1" "part 2" "part 3"
 ```
 
-The script enforces 280-character limit per tweet. If --dry-run reports a length error, ask the user to shorten the text or approve auto-segmentation into a thread.
+If `--dry-run` reports a length error, ask the user to shorten the text or approve auto-segmentation into a thread.
 
 **Gate**: Dry run exits 0, content length validates, credentials confirmed present. Proceed only when gate passes.
 
@@ -126,7 +95,7 @@ The script enforces 280-character limit per tweet. If --dry-run reports a length
 
 **Goal**: Show the user exactly what will be posted and require explicit approval before writing.
 
-Present the content preview in this format:
+This gate is mandatory because X posts are public and irreversible. Present a content preview in this format:
 
 ```
 CONTENT PREVIEW
@@ -156,15 +125,17 @@ Action: POST thread (3 tweets, chained replies)
 Approve? [yes/no]
 ```
 
-**Wait for explicit user approval.** The words "yes", "approve", "go ahead", "post it", or equivalent constitute approval. Do not infer approval from context or prior conversation turns.
+**Wait for explicit user approval.** The words "yes", "approve", "go ahead", "post it", or equivalent typed in the current conversation turn constitute approval. Do not infer approval from context or prior conversation turns. Do not pass `--confirmed` before the user provides explicit typed approval.
 
-**Gate**: User has typed an explicit approval in this conversation turn. Proceed only when gate passes. Do NOT pass --confirmed before the user approves.
+**Gate**: User has typed an explicit approval in this conversation turn. Proceed only when gate passes.
 
 ---
 
 ### Phase 3: POST
 
 **Goal**: Execute the write operation and capture tweet IDs.
+
+Only proceed once Phase 2 approval is confirmed. Pass the `--confirmed` flag when the user approves in this turn.
 
 **Single tweet:**
 ```bash
@@ -188,12 +159,16 @@ python3 $HOME/.claude/scripts/x-api-poster.py post \
   --media /absolute/path/to/image.jpg
 ```
 
-Watch output for:
-- [tweet-posted] id=... url=... -- success line per tweet
-- [rate-limit-warning] remaining=N reset=EPOCH -- surface to user immediately if present
-- Any ERROR: line -- surface verbatim and stop
+**Media constraints**: Images must be <= 5 MB (JPG, PNG, GIF); videos must be <= 512 MB (MP4). Media upload is a two-step process; if either step fails, no orphaned media is left behind. Confirm the file exists and is in a supported format before posting.
 
-**Gate**: Script exits 0, at least one [tweet-posted] line in output. Proceed only when gate passes.
+Watch output for:
+- `[tweet-posted] id=... url=...` — success line per tweet; contains canonical URL (https://x.com/i/web/status/{id})
+- `[rate-limit-warning] remaining=N reset=EPOCH` — surface to user immediately if present
+- Any `ERROR:` line — surface verbatim and stop
+
+**OAuth mode is automatic**: Read operations use Bearer token only; write operations require full OAuth 1.0a. The script selects the mode based on operation type — do not override it.
+
+**Gate**: Script exits 0, at least one `[tweet-posted]` line in output. Proceed only when gate passes.
 
 ---
 
@@ -203,14 +178,16 @@ Watch output for:
 
 **Step 1: Collect tweet IDs from Phase 3 output**
 
-Parse all [tweet-posted] id=... url=... lines.
+Parse all `[tweet-posted] id=... url=...` lines from the script output.
 
-**Step 2: Read engagement baseline (optional, read-only)**
+**Step 2: Read engagement baseline (optional)**
 
-For each posted tweet, you may read initial public_metrics via:
+For each posted tweet, you may optionally read initial engagement metrics via:
 ```bash
 python3 $HOME/.claude/scripts/x-api-poster.py read-timeline --user-id me --max-results 5
 ```
+
+**Engagement metrics have propagation delay**: X API metrics take time to populate. Reading `public_metrics` immediately after posting with 0 impressions is expected behavior, not failure. Report metrics as baseline at post time and note they will grow asynchronously.
 
 **Step 3: Report to user**
 
@@ -219,7 +196,7 @@ Provide:
 - Tweet ID(s) for reference
 - Thread structure if applicable (N tweets, root ID)
 - Any rate limit warnings encountered
-- Engagement baseline if collected (impressions, likes, retweets at T+0)
+- Engagement baseline if collected (impressions, likes, retweets at T+0), with a note about async growth
 
 ---
 
@@ -237,7 +214,7 @@ Solution:
 Cause: A single tweet segment is too long
 Solution:
 1. Shorten the text manually
-2. Or approve auto-segmentation into a thread -- the skill will split on sentence boundaries
+2. Or approve auto-segmentation into a thread — the skill will split on sentence boundaries
 
 ### Error: "Write operation requires --confirmed flag"
 Cause: Script invoked without confirmation (should not happen if Phase 2 gate was followed)
@@ -255,7 +232,7 @@ Cause: API rate limit window exhausted
 Solution:
 1. Check x-rate-limit-reset timestamp in the warning output
 2. Wait until the reset epoch before retrying
-3. X API rate limits are per-15-minute window -- a thread of N tweets consumes N requests
+3. X API rate limits are per-15-minute window — a thread of N tweets consumes N requests
 
 ### Error: "Media upload failed at step 1" or "Media upload failed at step 2"
 Cause: Media upload is a two-step process; failure at either step leaves no orphaned media
@@ -263,35 +240,6 @@ Solution:
 1. Confirm media file exists and is a supported format (JPG, PNG, GIF, MP4)
 2. Check file size: images <= 5 MB, videos <= 512 MB
 3. Re-run the post command; the script does not partially attach media on failure
-
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Pre-emptively passing --confirmed
-**What it looks like**: Agent passes --confirmed before the user approves in Phase 2
-**Why wrong**: Bypasses the only hard gate on irreversible public actions
-**Do instead**: Present the content preview, wait for explicit typed approval, then pass --confirmed
-
-### Anti-Pattern 2: Skipping --dry-run in Phase 1
-**What it looks like**: Running post --confirmed directly without a dry-run validation pass
-**Why wrong**: Posts content that fails length checks or uses missing credentials -- publicly, irreversibly
-**Do instead**: Always run --dry-run in Phase 1 before any write attempt
-
-### Anti-Pattern 3: Constructing HTTP requests directly
-**What it looks like**: Agent using requests or curl to call api.x.com directly
-**Why wrong**: Bypasses credential handling, rate limit inspection, and error normalization in the script
-**Do instead**: All X API calls go through scripts/x-api-poster.py
-
-### Anti-Pattern 4: Treating engagement metrics as real-time
-**What it looks like**: Reading public_metrics immediately after posting and reporting 0 impressions as failure
-**Why wrong**: X API metrics have propagation delay; 0 impressions at T+0 is normal
-**Do instead**: Report metrics as baseline at post time and note they will grow asynchronously
-
-### Anti-Pattern 5: Using OAuth 1.0a for read operations
-**What it looks like**: Passing all four OAuth 1.0a credentials for a timeline read
-**Why wrong**: Unnecessarily exposes write-capable credentials; read ops only need Bearer token
-**Do instead**: The script selects auth mode automatically based on operation type -- do not override it
 
 ---
 
