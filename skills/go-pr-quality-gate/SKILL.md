@@ -28,60 +28,27 @@ routing:
 
 # Go PR Quality Gate Skill
 
-## Operator Context
-
-This skill operates as an operator for Go quality validation workflows, configuring Claude's behavior for automated code quality checking. It implements the **Deterministic Execution** pattern -- `make check` is the single source of truth, the skill parses and categorizes output into actionable feedback.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before execution
-- **Over-Engineering Prevention**: Only run the checks requested. No speculative analysis, no additional tooling beyond what `make check` provides
-- **Deterministic Execution**: Always use `make check` as the single source of truth. No custom check orchestration or tool selection logic
-- **Exit Code Fidelity**: Report exact exit codes and status from make. Never mask or modify build tool results
-- **Validate First**: Always validate repository prerequisites (go.mod, Makefile) before running checks
-- **Incremental Fixes**: Apply one category of fixes at a time, re-run checks after each
-
-### Default Behaviors (ON unless disabled)
-- **Communication Style**: Report facts without self-congratulation. Show exact error messages and locations. Be concise but informative
-- **Temporary File Cleanup**: Remove temporary analysis files and debug logs at completion. Keep only files needed for user review
-- **Error Categorization**: Group errors by type (linting, tests, build) with actionable fix suggestions
-- **Coverage Reporting**: Extract and report test coverage percentage from check output
-- **Progressive Output**: Stream progress updates as checks run
-
-### Optional Behaviors (OFF unless enabled)
-- **Verbose Debug Mode**: Available via `--verbose` flag for troubleshooting
-- **Custom Coverage Thresholds**: Available via `--min-coverage` flag for stricter validation
-- **JSON-Only Output**: Available via `--format json` for automation pipelines
-
-## What This Skill CAN Do
-- Run `make check` and parse results into categorized, actionable output
-- Categorize linting, test, and build errors by type and severity
-- Extract coverage percentages from test output
-- Suggest make targets for common fix patterns (goimports, tidy-deps, license-headers)
-- Validate repository prerequisites (go.mod, Makefile, git)
-- Generate structured JSON reports for automation
-
-## What This Skill CANNOT Do
-- Fix code automatically -- identifies issues and suggests make targets only
-- Run custom linters -- only works with linters configured in the repository's `make check` target
-- Modify Makefile -- requires an existing `make check` target
-- Run checks incrementally -- executes full `make check` suite, not individual file checks
-- Interpret business logic errors -- provides technical categorization, not domain debugging
-
----
+Run `make check` as the single source of truth for Go code quality, parse the output into categorized errors, and suggest actionable fixes. The skill identifies issues and suggests make targets -- it does not fix code automatically, run custom linters, modify Makefiles, run checks incrementally on single files, or interpret business logic errors.
 
 ## Instructions
 
-### Prerequisites
-- Go repository with `go.mod` at root
-- Repository has `Makefile` with `check` target
-- Works best with Makefile-based build workflow repositories
+### Step 1: Read Repository CLAUDE.md
 
-### Step 1: Validate Repository Context
+Read and follow the repository's CLAUDE.md before doing anything else. It may contain project-specific quality requirements or overrides.
+
+### Step 2: Validate Repository Context
+
+Never skip validation, even if you think you know what the error is -- assumptions miss prerequisites and waste time debugging the environment instead of code quality.
 
 Run the validation script to check prerequisites:
 ```bash
 python3 ~/.claude/skills/go-pr-quality-gate/scripts/quality_checker.py --validate-only
 ```
+
+The repository needs:
+- `go.mod` at root (Go module)
+- `Makefile` with a `check` target
+- A git repository
 
 Expected success output:
 ```json
@@ -101,9 +68,11 @@ If validation fails:
 
 **Gate**: Validation returns `"status": "valid"`. Proceed only when gate passes.
 
-### Step 2: Run Quality Checks
+### Step 3: Run Quality Checks
 
-Execute comprehensive quality gate:
+Always use `make check` through the script -- never bypass it by running golangci-lint, go test, or go vet individually. Different projects configure their quality gates differently, and running tools directly skips whatever the Makefile includes.
+
+Execute the quality gate:
 ```bash
 python3 ~/.claude/skills/go-pr-quality-gate/scripts/quality_checker.py
 ```
@@ -112,18 +81,19 @@ The script will:
 1. Run `make check` (static analysis + tests)
 2. Parse output for errors and coverage
 3. Categorize any failures
-4. Generate actionable report with fix suggestions
+4. Generate an actionable report with fix suggestions
 
 For verbose progress output:
 ```bash
 python3 ~/.claude/skills/go-pr-quality-gate/scripts/quality_checker.py --verbose
 ```
 
-### Step 3: Interpret Results
+### Step 4: Interpret Results
+
+Report facts: exact error messages, file locations, exit codes, and coverage percentages. Do not editorialize or self-congratulate on passing checks.
 
 #### Success Scenario
 
-Success output format:
 ```json
 {
   "status": "success",
@@ -135,12 +105,11 @@ Success output format:
 
 When successful:
 1. Acknowledge passing checks
-2. Report coverage percentage
+2. Report coverage percentage -- always include it, because silently dropping coverage hides regressions
 3. Suggest next steps: view detailed coverage (`open build/cover.html`), create commit, or run specific checks
 
 #### Failure Scenario
 
-Failure output format:
 ```json
 {
   "status": "failed",
@@ -162,9 +131,13 @@ When failures occur:
    - License headers: `make license-headers`
    - Specific linter guidance: check `references/common-lint-errors.json`
 4. **Provide context**: file paths, line numbers, error descriptions
-5. **Suggest incremental fixes**: one make target at a time
+5. **Report exact exit codes** from make -- never mask or modify them
 
-### Step 4: Apply Suggested Fixes
+Keep explanations brief. Report the specific error with its location and the fix suggestion from script output. Only explain further if the user asks -- a quality check is not a tutorial.
+
+### Step 5: Apply Fixes Incrementally
+
+Fix one category at a time. Applying 15 fixes across multiple files simultaneously makes it impossible to verify which fix resolved which error, and if one fix is wrong, everything needs rollback.
 
 For common error patterns, run suggested make targets one at a time:
 
@@ -179,13 +152,13 @@ make tidy-deps
 make license-headers
 ```
 
-After each fix, re-run quality checks (Step 2) to verify resolution.
+After each fix, re-run quality checks (Step 3) to verify resolution before moving to the next category.
 
 **Gate**: All checks pass (exit code 0). Coverage meets baseline. No linting errors. All tests pass.
 
-### Step 5: Detailed Investigation (Optional)
+### Step 6: Detailed Investigation (Optional)
 
-For complex failures, use specific make targets:
+For complex failures, use specific make targets to isolate the problem:
 
 ```bash
 # Run only static analysis
@@ -200,6 +173,8 @@ go test -v -run TestSpecificTest ./pkg/service
 # View HTML coverage report
 open build/cover.html
 ```
+
+Only use individual make targets for focused investigation after `make check` has failed -- not as a substitute for it.
 
 ### Advanced Options
 
@@ -218,36 +193,9 @@ Combined options for thorough debugging:
 python3 ~/.claude/skills/go-pr-quality-gate/scripts/quality_checker.py --min-coverage 80.0 --verbose
 ```
 
----
+### Cleanup
 
-## Examples
-
-### Example 1: Clean Quality Check
-User says: "Run quality checks before I create a PR"
-Actions:
-1. Validate repository context (Step 1)
-2. Run `make check` via quality_checker.py (Step 2)
-3. Report all checks passed with coverage percentage (Step 3)
-4. Suggest creating commit
-Result: Clean quality gate, ready for PR
-
-### Example 2: Linting Failures with Auto-Fix
-User says: "Check code quality"
-Actions:
-1. Validate, run checks -- import and license errors found
-2. Report categorized errors with fix commands
-3. Run `make goimports` then `make license-headers`
-4. Re-run checks to verify resolution
-Result: Issues fixed incrementally, all checks pass
-
-### Example 3: Test Failures
-User says: "Why are the checks failing?"
-Actions:
-1. Run quality checks -- test failures detected
-2. Report failing test names and packages
-3. Suggest running specific test with verbose output for details
-4. After user fixes, re-run to verify
-Result: Test failures identified with actionable debug steps
+Remove temporary analysis files and debug logs at completion. Keep only files needed for user review.
 
 ---
 
@@ -284,51 +232,8 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Running Checks Without Validation
-**What it looks like**: Immediately running quality_checker.py without checking for go.mod and Makefile
-**Why wrong**: Fails with cryptic errors. Wastes time debugging environment instead of code quality.
-**Do instead**: Always run Step 1 validation first. The `--validate-only` flag exists for this purpose.
-
-### Anti-Pattern 2: Fixing All Errors Simultaneously
-**What it looks like**: "I see 15 linting errors, let me fix them all at once across multiple files"
-**Why wrong**: Multiple concurrent changes are hard to review. If one fix is wrong, all changes need rollback. Cannot verify which fix resolved which error.
-**Do instead**: Apply one category of fixes at a time. Run `make goimports`, re-run checks, then fix next category.
-
-### Anti-Pattern 3: Bypassing make check with Individual Tools
-**What it looks like**: Running golangci-lint, go test, go vet separately instead of `make check`
-**Why wrong**: Bypasses repository's configured quality gates. May miss checks the Makefile includes. Different projects have different configurations.
-**Do instead**: Always use `make check` as single source of truth. Only run individual make targets for focused investigation after a check fails.
-
-### Anti-Pattern 4: Ignoring Coverage in Results
-**What it looks like**: "All tests pass!" without mentioning that coverage dropped from 85% to 45%
-**Why wrong**: Coverage regression indicates untested code paths. New code without tests reduces overall quality.
-**Do instead**: Always report coverage percentage. Highlight changes if baseline is known. Use `--min-coverage` for threshold enforcement.
-
-### Anti-Pattern 5: Over-Explaining Linter Errors
-**What it looks like**: Writing paragraphs about Go error handling philosophy when errcheck reports an unchecked return
-**Why wrong**: User asked for quality check, not a tutorial. The script already provides fix suggestions. Delays actionable response.
-**Do instead**: Report the specific error with location, show the fix suggestion from script output, explain only if the user asks.
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "make check is slow, I'll just run go vet" | Skips configured quality gates | Run full `make check` |
-| "Coverage is fine, no need to report it" | Hides regression information | Always report coverage |
-| "I know what the error is, skip validation" | Assumptions miss prerequisites | Validate repository first |
-| "One big fix is faster than incremental" | Can't verify individual fixes | Fix one category at a time |
-
-### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/common-lint-errors.json`: Linter descriptions, severities, and fix suggestions
 - `${CLAUDE_SKILL_DIR}/references/makefile-targets.json`: Available make targets and when to use them
 - `${CLAUDE_SKILL_DIR}/references/expert-review-patterns.md`: Manual review patterns beyond automated linting

@@ -9,24 +9,13 @@ agent: kubernetes-helm-engineer
 
 # Kubernetes Security Skill
 
-## Operator Context
-
-This skill operates as an operator for Kubernetes security hardening workflows, configuring Claude's behavior for secure-by-default cluster and workload configurations. It encodes RBAC, pod security, network isolation, secret management, and supply chain security as non-negotiable constraints.
-
-### Hardcoded Behaviors (Always Apply)
-- **Least Privilege**: Every Role, ClusterRole, and ServiceAccount gets only the permissions it needs -- never wildcards in production
-- **No Privileged Containers**: Containers must not run as privileged or with elevated capabilities unless explicitly justified
-- **No Plain-Text Secrets**: Never store secrets in ConfigMaps, environment variables from manifests, or checked-in YAML
-- **Network Deny-by-Default**: Namespaces should have a default-deny NetworkPolicy before allow rules are added
-- **Non-Root by Default**: All containers run as non-root with a read-only root filesystem unless there is a documented exception
-
----
+Harden Kubernetes clusters and workloads through RBAC, pod security, network isolation, secret management, and supply chain controls.
 
 ## Instructions
 
 ### Step 1: RBAC -- Least-Privilege Roles and Bindings
 
-Grant the minimum permissions required. Prefer namespace-scoped Roles over ClusterRoles.
+Grant the minimum permissions required. Prefer namespace-scoped Roles over ClusterRoles. Never use wildcard verbs or resources in production -- even in dev clusters, because dev habits carry forward and dev manifests get promoted. Write exact verbs and resources every time.
 
 ```yaml
 # Good: namespace-scoped Role with specific verbs and resources
@@ -65,7 +54,7 @@ ServiceAccount best practices:
 
 ### Step 2: PodSecurityStandards -- Baseline vs Restricted
 
-Kubernetes PodSecurity admission replaces the deprecated PodSecurityPolicy. Apply labels at the namespace level.
+Kubernetes PodSecurity admission replaces the deprecated PodSecurityPolicy. Apply labels at the namespace level. All containers must run as non-root with a read-only root filesystem unless there is a documented exception -- if an app claims it needs root, it almost never does; it usually just needs a writable `/tmp`, which an emptyDir volume solves.
 
 ```yaml
 # Enforce restricted profile, warn on baseline violations
@@ -116,7 +105,7 @@ Key differences:
 
 ### Step 3: Network Policies -- Default Deny and Allow-Lists
 
-Start with a default-deny policy for both ingress and egress in every namespace.
+Start with a default-deny policy for both ingress and egress in every namespace. Apply this on day one, not later -- without network policies, lateral movement between compromised pods is trivial.
 
 ```yaml
 # Default deny all traffic in the namespace
@@ -179,7 +168,7 @@ spec:
 
 ### Step 4: Secret Management
 
-Never use plain Kubernetes Secrets checked into Git. Use one of these approaches:
+Never store secrets in ConfigMaps, environment variables from manifests, or checked-in YAML. Secrets exposed as env vars are visible in `kubectl describe pod` output, which makes them trivially discoverable after any pod compromise. Use one of these approaches instead:
 
 **Sealed Secrets** -- encrypts secrets client-side so they are safe in Git:
 
@@ -219,6 +208,8 @@ Avoid these patterns:
 - Hardcoding credentials in container images or Dockerfiles
 
 ### Step 5: Image Security
+
+Containers must not run as privileged or with elevated capabilities unless explicitly justified -- privileged mode grants full host access to an attacker if the pod is compromised. Use specific capabilities or debug containers instead.
 
 Build minimal, non-root container images:
 
@@ -293,8 +284,6 @@ Watch for these frequent security mistakes:
 | Latest tag without digest | Image can change without notice | Pin by digest |
 | Secrets as env vars in pod spec | Visible in `kubectl describe` | Mount as files or use external secrets |
 
----
-
 ## Error Handling
 
 ### Error: Pod rejected by PodSecurity admission
@@ -309,20 +298,12 @@ Solution: Verify pod labels match the NetworkPolicy `podSelector` and `from`/`to
 Cause: ServiceAccount lacks required permissions.
 Solution: Identify the API group, resource, and verb from the error message. Create or update a Role with the exact permissions needed -- do not add wildcards.
 
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Privileged mode is faster to debug" | Grants full host access to attacker if pod is compromised | Use specific capabilities or debug containers |
-| "Wildcard RBAC is fine for dev" | Dev clusters get promoted; habits carry | Write exact verbs and resources |
-| "Secrets in env vars are convenient" | Visible in process listing, logs, kubectl describe | Mount as files or use external-secrets |
-| "We'll add network policies later" | Lateral movement is trivial without them | Default-deny from day one |
-| "Non-root breaks our app" | Almost never true; app just needs writable /tmp | Add an emptyDir volume for /tmp |
+- [Kubernetes Pod Security Standards](https://kubernetes.io/docs/concepts/security/pod-security-standards/)
+- [Kubernetes Network Policies](https://kubernetes.io/docs/concepts/services-networking/network-policies/)
+- [Kubernetes RBAC](https://kubernetes.io/docs/reference/access-authn-authz/rbac/)
+- [External Secrets Operator](https://external-secrets.io/)
+- [Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets)
+- [Cosign](https://docs.sigstore.dev/cosign/overview/)
+- [Kyverno](https://kyverno.io/)

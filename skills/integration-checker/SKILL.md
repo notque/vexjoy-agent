@@ -34,51 +34,11 @@ routing:
 
 # Integration Checker Skill
 
-## Core Principle
-
 **Existence does not equal integration.** A component existing is implementation-level verification; a component being connected is integration-level verification. Both are necessary. Neither is sufficient alone.
 
 This skill catches the most common class of real-world bugs in AI-generated code: components that are individually correct but not connected to each other. A function can exist, contain real logic, pass correctness verification, and never be imported or called. An API endpoint can be defined but never wired into the router. An event handler can be registered but never receive events.
 
-## Purpose
-
-Verify cross-component wiring using four verification techniques. Phase 3.5 of the feature lifecycle (design -> plan -> implement -> **integration check** -> validate -> release).
-
-When used standalone (not in the feature pipeline), operates on the current working directory or a specified path.
-
-## Operator Context
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before execution
-- **Read-Only Analysis**: This skill reads and reports. It does NOT fix wiring issues. Fixes route back to feature-implement or the user.
-- **Language Detection First**: Detect project language(s) before applying verification techniques. Different languages have different import/export patterns.
-- **Three-State Classification**: Every export gets exactly one status: WIRED, IMPORTED_NOT_USED, or ORPHANED. No ambiguous states.
-- **Structural Not Semantic**: Contract checking verifies shape and naming compatibility, not whether data is logically correct. WHY: semantic correctness requires runtime information we don't have.
-
-### Default Behaviors (ON unless disabled)
-- **Concise Reporting**: Report facts. Show the wiring map, not prose about the wiring map.
-- **Feature Pipeline Integration**: When invoked within the feature pipeline, read implementation artifact from `.feature/state/implement/` for context on what was built.
-- **Exclusion Patterns**: Skip `node_modules/`, `vendor/`, `.git/`, `__pycache__/`, `dist/`, `build/`, test fixtures, and generated files. WHY: these contain intentionally unused exports (library code, vendored deps) that would flood the report with false positives.
-- **Severity Ordering**: Report ORPHANED (failure) before IMPORTED_NOT_USED (warning) before WIRED (pass). Users need to see failures first.
-
-### Optional Behaviors (OFF unless enabled)
-- **Requirements Map**: When a task plan exists (`.feature/state/plan/`), produce per-requirement wiring status. Only available in feature pipeline context.
-- **Verbose Mode**: Show WIRED components in addition to failures and warnings. Default only shows issues.
-
-## What This Skill CAN Do
-- Build export/import maps for Go, Python, TypeScript, and JavaScript projects
-- Classify exports as WIRED, IMPORTED_NOT_USED, or ORPHANED
-- Detect hardcoded empty data, placeholder values, and dead parameters flowing through wired connections
-- Verify output shape compatibility between connected components
-- Produce per-requirement wiring status when a task plan exists
-- Operate standalone or as part of the feature pipeline
-
-## What This Skill CANNOT Do
-- Fix wiring issues (route to feature-implement or the user)
-- Verify runtime behavior or semantic correctness
-- Analyze dynamically-loaded modules, reflection-based wiring, or plugin architectures with certainty
-- Replace integration tests (this is static analysis, not execution)
-- **Reason**: This skill is static structural analysis. Runtime verification and fix application require different capabilities.
+This is a read-only analysis skill -- it reads and reports but does not fix wiring issues. Fixes route back to /feature-implement or the user, because integration fixes often require design decisions about which component should call which.
 
 ---
 
@@ -88,15 +48,17 @@ When used standalone (not in the feature pipeline), operates on the current work
 
 **Goal**: Establish context, detect language, identify scope.
 
-**Step 1: Detect execution context**
+**Step 1: Read repository CLAUDE.md** (if present) and follow any project-specific conventions before proceeding.
+
+**Step 2: Detect execution context**
 
 Determine if running within the feature pipeline or standalone:
-- **Pipeline**: Check for `.feature/state/implement/` artifact. If present, load it to understand what was built and scope the check to changed/added files.
+- **Pipeline**: Check for `.feature/state/implement/` artifact. If present, load it to understand what was built and scope the check to changed/added files. Scoping to changed files prevents wasting time analyzing unchanged code in large repositories.
 - **Standalone**: Scope to the current working directory or user-specified path. Analyze all source files.
 
-**Step 2: Detect project language(s)**
+**Step 3: Detect project language(s)**
 
-Identify language(s) from file extensions, build files, and project structure:
+Detect language(s) before applying any verification techniques -- different languages have fundamentally different import/export patterns.
 
 | Indicator | Language |
 |-----------|----------|
@@ -107,7 +69,7 @@ Identify language(s) from file extensions, build files, and project structure:
 
 Multiple languages may coexist. Run all applicable techniques for each.
 
-**Step 3: Identify language-specific patterns**
+**Step 4: Identify language-specific patterns**
 
 | Language | Export Pattern | Import Pattern | Common Integration Failures |
 |----------|---------------|----------------|----------------------------|
@@ -122,7 +84,7 @@ Multiple languages may coexist. Run all applicable techniques for each.
 
 ### Phase 1: EXPORT/IMPORT MAP
 
-**Goal**: For every export in scope, determine its wiring status: WIRED, IMPORTED_NOT_USED, or ORPHANED.
+**Goal**: For every export in scope, determine its wiring status. Every export gets exactly one of three states -- no ambiguous classifications.
 
 **Step 1: Discover exports**
 
@@ -132,6 +94,8 @@ Scan source files for exported symbols. Be language-aware:
 - **Python**: Find all module-level function/class/variable definitions. Check `__all__` if present (it restricts the public API). Check `__init__.py` for re-exports.
 - **TypeScript/JavaScript**: Find all `export` declarations, `export default`, and barrel file re-exports.
 
+Skip `node_modules/`, `vendor/`, `.git/`, `__pycache__/`, `dist/`, `build/`, test fixtures, and generated files. These contain intentionally unused exports (library code, vendored deps) that would flood the report with false positives.
+
 Record each export as: `{file, name, kind (function/type/const/var), line}`.
 
 **Step 2: Discover imports and usages**
@@ -140,7 +104,7 @@ For each export found, search the codebase for:
 1. **Import**: The symbol is imported (appears in an import statement referencing the exporting module)
 2. **Usage**: The imported symbol is actually used (called, referenced, assigned, passed as argument) beyond the import statement itself
 
-This two-step check is critical. WHY: An import without usage is IMPORTED_NOT_USED, which is a distinct failure mode from ORPHANED. It signals someone intended to use the component but didn't finish wiring it.
+Both checks are required. An import without usage is a distinct failure mode from an orphan -- it signals someone intended to use the component but didn't finish wiring it.
 
 **Step 3: Classify each export**
 
@@ -150,7 +114,7 @@ This two-step check is critical. WHY: An import without usage is IMPORTED_NOT_US
 | Exported and imported, but never used beyond the import statement | **IMPORTED_NOT_USED** | Warning |
 | Exported but never imported anywhere in the project | **ORPHANED** | Failure |
 
-**Exclusions** (do not flag as ORPHANED):
+**Exclusions** (do not flag as ORPHANED -- these have legitimate reasons for not being imported internally):
 - `main()` functions and entry points
 - Interface implementations that satisfy an interface (Go)
 - Test helpers exported for use by `_test.go` files in other packages
@@ -160,7 +124,7 @@ This two-step check is critical. WHY: An import without usage is IMPORTED_NOT_US
 
 **Step 4: Build the export/import map**
 
-Produce a structured map:
+Report failures first -- users need to see ORPHANED before IMPORTED_NOT_USED before WIRED.
 
 ```
 ## Export/Import Map
@@ -186,9 +150,11 @@ Produce a structured map:
 
 ### Phase 2: DATA FLOW AND CONTRACT CHECK
 
-**Goal**: For WIRED components, verify that real data flows through the connections and that output shapes match input expectations.
+**Goal**: For WIRED components, verify that real data flows through the connections and that output shapes match input expectations. A component wired to always receive empty data is functionally disconnected.
 
 This phase checks two things simultaneously because they both operate on the same set of WIRED connections identified in Phase 1.
+
+This is structural analysis, not semantic verification. Contract checking verifies shape and naming compatibility, not whether data is logically correct -- semantic correctness would require runtime information that static analysis cannot provide.
 
 #### Data Flow Tracing
 
@@ -234,10 +200,12 @@ For each WIRED connection where component A's output feeds into component B's in
 
 Record each finding as: `{producer_file, consumer_file, mismatch_kind, description}`.
 
-**Important context**: Contract checking is approximate in dynamic languages. Report findings with appropriate confidence:
+Report contract findings with appropriate confidence levels. In dynamic languages, approximate checking still catches obvious mismatches -- report what you can find rather than skipping the check:
 - **High confidence**: Explicit type annotations match/mismatch, struct/interface definitions
 - **Medium confidence**: Inferred from usage patterns, variable names, JSDoc/docstrings
 - **Low confidence**: Dynamic access patterns, computed property names, reflection
+
+Note: dynamically-loaded modules, reflection-based wiring, and plugin architectures cannot be analyzed with certainty through static analysis. Flag what is visible and note the limitation.
 
 **Gate**: Data flow and contract findings recorded. Proceed to Phase 3.
 
@@ -245,7 +213,7 @@ Record each finding as: `{producer_file, consumer_file, mismatch_kind, descripti
 
 ### Phase 3: REPORT
 
-**Goal**: Produce a structured integration report with actionable findings.
+**Goal**: Produce a structured integration report with actionable findings. Report facts and show the wiring map -- not prose about the wiring map.
 
 **Step 1: Requirements integration map (pipeline mode only)**
 
@@ -308,6 +276,8 @@ FAIL: Has ORPHANED components, data flow issues, or high-confidence contract mis
 4. [Specific action for each contract mismatch]
 ```
 
+Only fail the verdict on high-confidence contract mismatches. Low-confidence findings in dynamic languages are informational -- they belong in the WARN tier, not FAIL.
+
 **Step 3: Verdict and next steps**
 
 | Verdict | Next Step |
@@ -328,34 +298,10 @@ FAIL: Has ORPHANED components, data flow issues, or high-confidence contract mis
 | Language not detected | No recognizable build files or source extensions | Specify language manually or check project structure |
 | Too many exports to analyze | Large monorepo or library with thousands of exports | Narrow scope to changed files (use `git diff --name-only` against base branch) |
 | False positive ORPHANED | Library code, plugin interfaces, or entry points | Check exclusion patterns. If legitimate public API, add to exclusions. |
-| Circular import detected | Python circular imports or Go import cycles | Report as separate finding — circular imports are integration issues themselves |
+| Circular import detected | Python circular imports or Go import cycles | Report as separate finding -- circular imports are integration issues themselves |
 | No implementation artifact | Running in pipeline mode but implement phase didn't checkpoint | Fall back to standalone mode using git diff to identify changed files |
-
-## Anti-Patterns
-
-| Anti-Pattern | Why Wrong | Do Instead |
-|--------------|-----------|------------|
-| Checking only that imports exist | Import without usage is a distinct failure mode (IMPORTED_NOT_USED) | Verify import AND usage for each export |
-| Treating all ORPHANED as bugs | Library code, plugin interfaces, and entry points are intentionally not imported internally | Apply exclusion patterns before flagging |
-| Skipping data flow check because wiring exists | A component wired to always receive empty data is functionally disconnected | Check data flow for every WIRED connection |
-| Running on entire monorepo in pipeline mode | Wastes time analyzing unchanged code | Scope to files changed since implementation started |
-| Auto-fixing wiring issues | Integration fixes often require design decisions (which component should call which?) | Report issues, let human or feature-implement decide the fix |
-| Treating low-confidence contract findings as failures | Dynamic language contract checking is approximate without runtime types | Report confidence level, only FAIL on high-confidence mismatches |
-
-## Anti-Rationalization
-
-| Rationalization Attempt | Why It's Wrong | Required Action |
-|------------------------|----------------|-----------------|
-| "The component exists and has real logic, so it's integrated" | Existence is not integration. A function that's never called is dead code. | Check import AND usage, not just existence |
-| "It's imported, so it must be used" | Unused imports are a specific failure mode — someone started wiring but didn't finish | Verify the import is followed by actual usage |
-| "The wiring looks right so data must flow" | Wiring to an empty array is functionally the same as no wiring | Trace actual data through each connection |
-| "Contract checking is too hard in dynamic languages" | Approximate checking still catches obvious mismatches | Check what you can, report confidence levels |
-| "These ORPHANED exports are for future use" | Future use is not current integration. Flag them now, exclude intentionally if confirmed. | Report all ORPHANED, let the user decide which are intentional |
-| "Integration checking is overkill for a small change" | Small changes are where wiring gets forgotten — new function added but never called | Run the check. Scope narrows automatically for small changes. |
 
 ## References
 
 - [Feature State Conventions](../_feature-shared/state-conventions.md)
-- [Gate Enforcement](../shared-patterns/gate-enforcement.md)
-- [Anti-Rationalization Core](../shared-patterns/anti-rationalization-core.md)
 - [ADR-078: Integration Checker](../../adr/078-integration-checker.md)

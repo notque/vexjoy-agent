@@ -37,56 +37,17 @@ routing:
 
 # Image to Video Skill
 
-## Operator Context
-
-This skill operates as an operator for CLI-based video creation, configuring Claude's behavior for deterministic FFmpeg script execution. It implements the **Sequential Pipeline** architectural pattern -- Validate, Prepare, Encode, Verify -- with **Domain Intelligence** embedded in FFmpeg filter selection and resolution matching.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before creating video
-- **Over-Engineering Prevention**: Only implement what is directly requested. No extra visualizations, no format conversions beyond MP4
-- **FFmpeg Validation**: Always verify FFmpeg is installed before attempting video creation
-- **Input Validation**: Check that both image and audio files exist before processing
-- **Absolute Paths Only**: Always use absolute paths for image, audio, and output arguments
-
-### Default Behaviors (ON unless disabled)
-- **Resolution Default**: Use 1080p (1920x1080) unless user specifies otherwise
-- **Static Mode**: No visualization overlay unless user requests one
-- **AAC Audio**: Encode audio as 192k AAC for broad compatibility
-- **H.264 Video**: Encode with libx264 preset medium, CRF 23, yuv420p pixel format
-- **Output Verification**: Run ffprobe on output and report file size after creation
-
-### Optional Behaviors (OFF unless enabled)
-- **Waveform Visualization**: Neon waveform overlay with `--visualization waveform`
-- **Spectrum Visualization**: Scrolling frequency spectrum with `--visualization spectrum`
-- **CQT Visualization**: Piano-roll style bars with `--visualization cqt`
-- **Bars Visualization**: Frequency bar graph with `--visualization bars`
-- **Custom Resolution**: Override with `--resolution` preset (720p, square, vertical)
-- **Workspace Mode**: Batch process paired files with `--process-workspace`
-
-## What This Skill CAN Do
-- Combine a static image with audio to produce an MP4 video
-- Scale images to target resolution while preserving aspect ratio
-- Add audio visualization overlays (waveform, spectrum, cqt, bars)
-- Support multiple resolution presets (1080p, 720p, square, vertical)
-- Batch process matching image+audio pairs from workspace directory
-- Validate FFmpeg availability and report actionable install instructions
-
-## What This Skill CANNOT Do
-- Generate images (use `gemini-image-generator` for that)
-- Edit existing videos or trim/split audio
-- Stream live video or produce non-MP4 formats
-- Add text overlays, captions, or transitions
-- Work without FFmpeg installed on the system
-
----
+Combine a static image with an audio file to produce an MP4 video using FFmpeg. Supports resolution presets (1080p, 720p, square, vertical), optional audio visualization overlays (waveform, spectrum, cqt, bars), and batch processing of matched image+audio pairs. For image generation, use `gemini-image-generator` instead.
 
 ## Instructions
 
 ### Phase 1: VALIDATE
 
-**Goal**: Confirm all prerequisites before attempting video creation.
+Confirm all prerequisites before attempting video creation.
 
 **Step 1: Check FFmpeg installation**
+
+Always run this check first -- many systems lack FFmpeg or have minimal builds, and skipping it produces confusing subprocess errors instead of clear install guidance.
 
 ```bash
 ffmpeg -version
@@ -95,6 +56,8 @@ ffmpeg -version
 If FFmpeg is not installed, provide platform-specific install instructions and stop.
 
 **Step 2: Verify input files exist**
+
+Both the image and audio files must be confirmed present before processing. Use absolute paths for all arguments -- relative paths break silently when the script executes from a different working directory.
 
 ```bash
 ls -la /absolute/path/to/image.png /absolute/path/to/audio.mp3
@@ -106,7 +69,9 @@ Confirm both files exist and have non-zero size. Supported formats:
 
 **Step 3: Determine parameters**
 
-Resolve resolution preset and visualization mode from user request. If the user did not specify, use defaults (1080p, static).
+Re-read the user's request before selecting defaults. Resolve resolution preset and visualization mode from what the user actually asked for. Only apply defaults (1080p, static) when the user did not specify -- defaulting to static when the user requested a visualization is a common mistake.
+
+If the user mentions a target platform, select the matching preset to avoid cropping or black bars on delivery:
 
 | Preset | Dimensions | Platform |
 |--------|------------|----------|
@@ -115,11 +80,17 @@ Resolve resolution preset and visualization mode from user request. If the user 
 | `square` | 1080x1080 | Instagram, social media |
 | `vertical` | 1080x1920 | Stories, Reels, TikTok |
 
+Optional visualization modes (off unless the user requests one):
+- `--visualization waveform` -- Neon waveform overlay
+- `--visualization spectrum` -- Scrolling frequency spectrum
+- `--visualization cqt` -- Piano-roll style bars
+- `--visualization bars` -- Frequency bar graph
+
 **Gate**: FFmpeg installed, both input files exist, parameters resolved. Proceed only when gate passes.
 
 ### Phase 2: PREPARE
 
-**Goal**: Set up output path and confirm no conflicts.
+Set up output path and confirm no conflicts.
 
 **Step 1: Determine output path**
 
@@ -136,7 +107,9 @@ The script creates parent directories automatically. Verify the target directory
 
 ### Phase 3: ENCODE
 
-**Goal**: Execute FFmpeg to produce the video.
+Execute FFmpeg to produce the video. Only implement what the user requested -- no extra visualizations or format conversions beyond MP4.
+
+Encoding defaults: libx264 preset medium, CRF 23, yuv420p pixel format, 192k AAC audio.
 
 **Step 1: Run the script**
 
@@ -165,7 +138,7 @@ The script prints progress including input paths, resolution, visualization mode
 
 ### Phase 4: VERIFY
 
-**Goal**: Confirm the output video is valid and report results.
+Confirm the output video is valid. Do not report success based on exit code alone -- FFmpeg can exit 0 but produce a corrupt or zero-duration file.
 
 **Step 1: Check file exists and has reasonable size**
 
@@ -174,6 +147,8 @@ ls -la /absolute/path/to/output.mp4
 ```
 
 **Step 2: Probe video metadata**
+
+File size alone does not prove video integrity. Always probe with ffprobe to confirm the output is a valid video with correct duration.
 
 ```bash
 ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name,width,height \
@@ -187,8 +162,6 @@ Confirm video duration matches audio duration (within 1 second tolerance).
 Provide: output file path, file size, duration, resolution, and visualization mode used.
 
 **Gate**: Output file exists, duration matches audio, metadata is valid. Task complete.
-
----
 
 ## Error Handling
 
@@ -220,47 +193,7 @@ Solution:
 2. Convert to a known format: `ffmpeg -i input.audio -acodec pcm_s16le output.wav`
 3. Re-run with the converted file
 
----
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Using Relative Paths
-**What it looks like**: `python3 image_to_video.py -i ../cover.png -a song.mp3`
-**Why wrong**: The script may execute from a different working directory, breaking all paths silently.
-**Do instead**: Always use absolute paths for every argument.
-
-### Anti-Pattern 2: Skipping FFmpeg Verification
-**What it looks like**: Running the script directly without checking `ffmpeg -version` first.
-**Why wrong**: Produces confusing subprocess errors instead of clear install instructions.
-**Do instead**: Complete Phase 1 validation before any encoding attempt.
-
-### Anti-Pattern 3: Wrong Resolution for Target Platform
-**What it looks like**: Using 1080p landscape for TikTok, or vertical for YouTube.
-**Why wrong**: Content gets cropped or displays with large black bars on the target platform.
-**Do instead**: Ask the user what platform the video targets, then select the matching preset.
-
-### Anti-Pattern 4: Skipping Output Verification
-**What it looks like**: Reporting success based on script exit code alone without probing the output.
-**Why wrong**: FFmpeg can exit 0 but produce a corrupt or zero-duration file.
-**Do instead**: Complete Phase 4 -- probe the output, confirm duration matches audio.
-
----
-
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It Is Wrong | Required Action |
-|-----------------|-----------------|-----------------|
-| "FFmpeg is always installed" | Many systems lack it or have minimal builds | Run `ffmpeg -version` every time |
-| "The script handles everything" | Script can fail silently with bad inputs | Validate inputs in Phase 1 |
-| "File size looks right" | Size alone does not prove video integrity | Probe with ffprobe, check duration |
-| "Static mode is fine" | User may have requested visualization | Re-read the request before defaulting |
-
-### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/ffmpeg-filters.md`: FFmpeg filter documentation for visualization modes
 - `${CLAUDE_SKILL_DIR}/scripts/image_to_video.py`: Python CLI script (exit codes: 0=success, 1=no FFmpeg, 2=encode failed, 3=missing args)

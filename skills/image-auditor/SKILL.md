@@ -27,58 +27,19 @@ routing:
 
 # Image Auditor Skill
 
-## Operator Context
-
-This skill operates as an operator for image validation and optimization, configuring Claude's behavior for comprehensive image auditing. It implements a **Discovery-Validation** architectural pattern — scan references, validate existence, assess quality, report findings — with **Domain Intelligence** embedded in web performance and accessibility standards.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before auditing
-- **Non-Destructive**: NEVER modify, resize, convert, or delete images without explicit user request
-- **Complete Output**: Show all validation results with absolute file paths and line numbers
-- **Reproduce First**: Verify every reported issue by reading the actual file/reference
-- **Evidence Required**: Every FAIL or WARN must cite the file path, line number, and concrete evidence
-
-### Default Behaviors (ON unless disabled)
-- **Full Audit**: Run all check categories (alt text, existence, size, format, unused)
-- **Unused Image Detection**: Find images in static/ not referenced by any content
-- **Size Thresholds**: Flag images >500KB for web optimization
-- **Format Suggestions**: Recommend WebP conversion where beneficial
-- **Page Weight Calculation**: Sum image sizes per post and flag heavy pages
-
-### Optional Behaviors (OFF unless enabled)
-- **Deep Scan**: Include theme images and assets/ directory
-- **Auto-Optimize**: Generate optimized versions (requires imagemagick, explicit consent only)
-- **Strict Mode**: Treat all suggestions as blockers
-
-## What This Skill CAN Do
-- Scan all content files for image references (Markdown, Hugo shortcodes, HTML)
-- Verify all referenced images exist at resolved paths
-- Analyze alt text quality (missing, generic, descriptive)
-- Measure file sizes and flag oversized images against thresholds
-- Detect format mismatches (photo as PNG, screenshot as JPEG)
-- Find unused images not referenced by any content
-- Calculate total page weight per post
-- Generate optimization recommendations with estimated savings
-- Report line numbers and absolute paths for all issues
-
-## What This Skill CANNOT Do
-- Modify, resize, or convert images (destructive operations require explicit consent)
-- Access external image URLs (CDN-hosted, remote images)
-- Judge alt text semantic accuracy (only structural and heuristic checks)
-- Delete unused images without user confirmation
-- Skip any of the 4 phases
-
----
-
-## Instructions
-
-### Usage
+Non-destructive 4-phase image validation pipeline: Discover, Validate, Analyze, Report. Read and follow the repository CLAUDE.md before starting any audit.
 
 ```
 /image-audit                    # Audit entire site
 /image-audit content/posts/     # Audit specific directory
 /image-audit --post my-post.md  # Audit single post
 ```
+
+By default, every audit runs all check categories (alt text, existence, size, format, unused images) and calculates per-post page weight. Optional modes: **Deep Scan** includes theme images and `assets/` directory. **Auto-Optimize** generates optimized versions (requires imagemagick and explicit user consent). **Strict Mode** treats all suggestions as blockers.
+
+---
+
+## Instructions
 
 ### Phase 1: DISCOVER
 
@@ -88,7 +49,7 @@ This skill operates as an operator for image validation and optimization, config
 
 Use Glob to locate image files:
 - Pattern: `static/**/*.{png,jpg,jpeg,gif,webp,svg}`
-- Record each file's absolute path and size (use `ls -la` or `stat`)
+- Record each file's absolute path and size (use `ls -la` or `stat`) -- measure actual bytes, never estimate
 
 **Step 2: Find all image references in content**
 
@@ -110,22 +71,24 @@ For each image reference, record:
 **Path Resolution Rules:**
 - `/images/foo.png` resolves to `static/images/foo.png`
 - `images/foo.png` resolves to `static/images/foo.png`
-- `../images/foo.png` resolves relative to the content file's location
+- `../images/foo.png` resolves relative to the content file's location (always resolve from the content file's directory, never check the literal string against static/)
 - Hugo shortcode `src=` values follow the same resolution rules
 
 **Gate**: Reference map is complete with all images and all references catalogued. Proceed only when gate passes.
 
 ### Phase 2: VALIDATE
 
-**Goal**: Check every reference and every image against quality criteria.
+**Goal**: Check every reference and every image against quality criteria. Verify every reported issue by reading the actual file or reference before recording it -- never report an issue based on assumption alone.
 
 **Step 1: Alt text validation**
 
 | Status | Condition |
 |--------|-----------|
 | PASS | Alt text present, descriptive, 10-125 characters |
-| WARN | Alt text too generic (single words: "image", "screenshot", "picture", "photo", "diagram", "figure", "img") |
+| WARN | Alt text too generic (single words: "image", "screenshot", "picture", "photo", "diagram", "figure", "img") -- always check against this generic term list rather than subjectively judging quality |
 | FAIL | Alt text missing or empty |
+
+15% of users rely on assistive technology, so validate all alt text regardless of perceived importance.
 
 See `references/alt-text-examples.md` for detailed quality guidelines.
 
@@ -155,11 +118,13 @@ See `references/size-guidelines.md` for type-specific thresholds.
 | Diagrams | SVG, WebP | Filename: "diagram", "chart", "graph", "flow" |
 | Icons/Logos | SVG | Filename: "icon", "logo", "favicon" |
 
+Report format savings estimates and let the user decide whether to convert -- do not skip format recommendations on the assumption they are unnecessary.
+
 See `references/format-selection.md` for the complete decision flowchart.
 
 **Step 5: Unused image detection**
 
-Compare all files in static/images/ against the reference map. Any file with zero references is reported as unused.
+Compare all files in static/images/ against the reference map. Any file with zero references is reported as unused. Always perform this step -- unused images bloat the repository and deployment size.
 
 **Gate**: All references validated against all criteria. Every issue has a severity level, file path, and line number. Proceed only when gate passes.
 
@@ -199,7 +164,7 @@ Rank issues by potential impact:
 
 ### Phase 4: REPORT
 
-**Goal**: Generate a structured, actionable audit report.
+**Goal**: Generate a structured, actionable audit report. This phase is read-only -- never modify, resize, convert, or delete images. Report findings and recommendations only; changes require explicit user request.
 
 Follow the report format in `references/report-templates.md`. The report must include:
 
@@ -212,6 +177,8 @@ Follow the report format in `references/report-templates.md`. The report must in
 7. **Page Weight**: Per-post breakdown, heaviest posts first
 8. **Recommendations**: Numbered, prioritized action items
 9. **Status Line**: PASS, WARN, or FAIL with counts
+
+Every issue in the report must include an absolute file path and line number so the user can locate and fix it. Clearly distinguish severity levels: FAIL (broken, must fix), WARN (should fix), INFO (suggestion). Do not conflate severity -- a format suggestion is not a blocker.
 
 **Gate**: Report is complete with all sections populated. Every issue is actionable (file path + line number + recommendation). Report ends with a status line.
 
@@ -280,49 +247,7 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Modifying Images Without Consent
-**What it looks like**: Automatically resizing or converting images during audit
-**Why wrong**: User may have specific requirements. Destructive changes cannot be undone.
-**Do instead**: Report findings and recommendations. Only modify when user explicitly requests it.
-
-### Anti-Pattern 2: Missing Line Numbers in Reports
-**What it looks like**: Reporting "screenshot.png missing alt text" without file location
-**Why wrong**: User cannot find and fix the issue efficiently without location.
-**Do instead**: Always include absolute file path and line number for every issue.
-
-### Anti-Pattern 3: Treating Suggestions as Blockers
-**What it looks like**: Marking a post as "failed audit" because images are not WebP
-**Why wrong**: Format suggestions are optimizations, not requirements. Conflating severity levels undermines trust.
-**Do instead**: Clearly distinguish FAIL (broken), WARN (should fix), INFO (suggestion).
-
-### Anti-Pattern 4: Skipping Unused Image Detection
-**What it looks like**: Only auditing referenced images, ignoring orphaned files in static/
-**Why wrong**: Unused images bloat the repository and deployment size.
-**Do instead**: Always compare static/ files against the reference map and report orphans.
-
-### Anti-Pattern 5: Not Resolving Relative Paths
-**What it looks like**: Checking for `../images/foo.png` literally in static/
-**Why wrong**: Relative paths must be resolved from the content file's location to find the actual file.
-**Do instead**: Compute absolute path from content file location, then check static/.
-
----
-
 ## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "Alt text looks fine to me" | Subjective assessment misses generic patterns | Check against generic term list |
-| "File sizes are probably okay" | Estimation is not measurement | Measure actual bytes |
-| "Nobody uses screen readers" | 15% of users rely on assistive technology | Validate all alt text |
-| "WebP is overkill for this site" | Format choice affects page load for every visitor | Report savings, let user decide |
 
 ### Integration Notes
 
