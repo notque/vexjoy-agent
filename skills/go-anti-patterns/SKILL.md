@@ -41,53 +41,19 @@ routing:
 
 # Go Anti-Patterns Skill
 
-## Operator Context
-
-This skill operates as an operator for Go anti-pattern detection and remediation, configuring Claude's behavior to identify over-engineering, premature abstraction, and idiomatic violations in Go code. It implements the **Pattern Recognition** architectural approach -- scan, detect, explain, remediate -- with **Domain Intelligence** embedded in Go-specific heuristics.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before reviewing
-- **Over-Engineering Prevention**: Flag complexity only when simpler Go exists; never add complexity while removing it
-- **Evidence-Based Detection**: Every flagged anti-pattern must cite specific code location and explain concrete harm
-- **YAGNI Enforcement**: Do not suggest abstractions (interfaces, generics, channels) without 2+ concrete use cases
-- **Preserve Working Code**: Flag patterns for awareness; do not rewrite working code without explicit request
-- **Idiomatic Go Priority**: Recommendations must align with Go proverbs and standard library conventions
-
-### Default Behaviors (ON unless disabled)
-- **Quick Detection Table**: Use the detection guide to scan code systematically
-- **One Pattern at a Time**: Address anti-patterns individually, not in bulk rewrites
-- **Context-Aware Severity**: Rate impact as low/medium/high based on codebase context
-- **Show Both Versions**: Present current code alongside recommended alternative
-- **Root Cause Explanation**: Explain WHY the pattern is harmful, not just that it is
-- **Scope Limitation**: Only flag patterns within the files under review
-
-### Optional Behaviors (OFF unless enabled)
-- **Full Codebase Scan**: Scan entire repository for anti-pattern instances
-- **Metrics Collection**: Count anti-pattern occurrences by type
-- **Auto-Refactor**: Apply fixes directly instead of only flagging them
-- **Historical Analysis**: Check git history for when anti-patterns were introduced
-
-## What This Skill CAN Do
-- Detect the 7 core Go anti-patterns with code-level evidence
-- Provide idiomatic Go alternatives with before/after examples
-- Explain the concrete harm each pattern causes (complexity, bugs, maintenance)
-- Distinguish between genuine anti-patterns and acceptable trade-offs
-- Guide incremental cleanup without destabilizing working code
-
-## What This Skill CANNOT Do
-- Rewrite entire codebases (use systematic-refactoring instead)
-- Detect non-Go anti-patterns (use language-specific skills)
-- Optimize performance (use performance profiling tools)
-- Replace code review (use go-code-review for comprehensive review)
-- Judge patterns without seeing the surrounding context
-
----
+Detect and remediate the 7 core Go anti-patterns: premature interface abstraction, goroutine overkill, error wrapping without context, channel misuse, generic abuse, context soup, and unnecessary function extraction. Every detection is evidence-based with code location and concrete harm explanation, and every recommendation aligns with Go proverbs and standard library conventions.
 
 ## Instructions
 
-### Step 1: Scan for Anti-Patterns
+### Phase 1: Prepare
 
-Use the Quick Detection Guide to systematically check code under review.
+Read and follow the repository's CLAUDE.md before reviewing any code. Identify which files are under review and restrict all analysis to those files -- do not flag patterns in files outside the review scope.
+
+If the user requests a full codebase scan or historical git analysis, enable those modes explicitly. Otherwise, stay within the files presented.
+
+### Phase 2: Scan for Anti-Patterns
+
+Use the Quick Detection Guide to systematically check each file under review. Work through the table row by row against the code.
 
 | Code Smell | Detection Question | If Yes |
 |------------|-------------------|--------|
@@ -99,23 +65,33 @@ Use the Quick Detection Guide to systematically check code under review.
 | Context in pure function | Does function do I/O? | Remove context param |
 | Tiny extracted function | Called from 2+ places? | Inline it |
 
-### Step 2: Classify and Report
+Flag complexity only when a simpler idiomatic Go alternative exists. Do not suggest adding complexity (interfaces, generics, channels, goroutines) without 2+ concrete use cases that justify it -- this is the YAGNI principle applied to Go abstractions.
 
-For each detected anti-pattern, produce a structured report:
+### Phase 3: Classify and Report
+
+For each detected anti-pattern, produce a structured report entry. Every flagged pattern must cite a specific code location and explain the concrete harm it causes -- never flag without evidence.
 
 ```
 ANTI-PATTERN DETECTED:
-- Pattern: [Name from catalog below]
+- Pattern: [Name from AP catalog, e.g., AP-1: Premature Interface Abstraction]
 - Location: [File:line]
 - Issue: [What is wrong with current approach]
 - Impact: [Complexity/performance/maintainability cost]
-- Severity: [Low/Medium/High]
+- Severity: [Low/Medium/High based on codebase context]
 - Recommendation: [Simpler Go alternative]
 ```
 
-### Step 3: Provide Remediation
+Rate severity based on the actual codebase context: a single-implementation interface in a small CLI is Low; in a hot path of a shared library it may be High. Address anti-patterns one at a time rather than proposing bulk rewrites.
 
-Show before/after code. Reference the detailed examples in `references/code-examples.md` for full patterns.
+### Phase 4: Provide Remediation
+
+For each flagged pattern, show the current code alongside the recommended alternative so the reader can compare directly. Explain WHY the current pattern is harmful, not just that it is -- root cause understanding prevents recurrence.
+
+Reference `${CLAUDE_SKILL_DIR}/references/code-examples.md` for extended before/after examples covering all 7 anti-patterns.
+
+Do not rewrite working code without an explicit request from the user. Flag patterns for awareness and let the user decide whether to act. When the user does request changes, apply them one pattern at a time to keep diffs reviewable.
+
+If metrics collection is requested, count anti-pattern occurrences by type to identify systemic issues.
 
 ---
 
@@ -296,19 +272,6 @@ func (opts AuditorOpts) buildConnectionURL() (string, error) {
 
 ---
 
-## Go-Specific Phantom Problem Indicators
-
-Watch for solutions looking for problems:
-
-- Adding interfaces when concrete types suffice
-- Implementing channels when simple function calls work
-- Creating goroutines for inherently sequential operations
-- Over-abstracting with generics for single-use cases
-- Adding middleware layers for simple HTTP handlers
-- Creating worker pools for low-throughput scenarios
-
----
-
 ## Error Handling
 
 ### Error: "False Positive -- Pattern Is Intentional"
@@ -349,19 +312,4 @@ Result: Evidence-based recommendation with Go idiom context
 
 ## References
 
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It Is Wrong | Required Action |
-|-----------------|-----------------|-----------------|
-| "This interface might be needed later" | YAGNI; future is unknown | Start concrete, extract when needed |
-| "Goroutines make it faster" | Concurrency has overhead; profile first | Prove bottleneck exists before adding goroutines |
-| "Context should be everywhere" | Context is for I/O and cancellation only | Remove from pure functions |
-| "Generics make it more flexible" | Flexibility without use cases is complexity | Use concrete types until 2+ instantiations |
-| "Small functions are always better" | Indirection has cognitive cost | Inline single-use trivial functions |
-
-### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/code-examples.md`: Extended before/after examples for all 7 anti-patterns

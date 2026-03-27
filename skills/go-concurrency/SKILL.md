@@ -49,53 +49,15 @@ routing:
 
 # Go Concurrency Skill
 
-## Operator Context
-
-This skill operates as an operator for Go concurrency workflows, configuring Claude's behavior for correct, leak-free concurrent code. It implements the **Domain Intelligence** architectural pattern -- encoding Go concurrency idioms, sync primitives, and channel patterns as non-negotiable constraints rather than suggestions.
-
-### Hardcoded Behaviors (Always Apply)
-- **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before writing concurrent code
-- **Over-Engineering Prevention**: Use concurrency only when justified by I/O, CPU parallelism, or measured bottleneck. Sequential code is correct by default
-- **Context First Parameter**: All cancellable or I/O operations accept `context.Context` as first parameter
-- **No Goroutine Leaks**: Every goroutine must have a guaranteed exit path via context, channel close, or explicit shutdown
-- **Race Detector Required**: Run `go test -race` on all concurrent code during development
-- **Channel Ownership**: Only the sender closes a channel. Never close from receiver side
-- **Select With Context**: Every `select` statement in concurrent code must include a `<-ctx.Done()` case
-
-### Default Behaviors (ON unless disabled)
-- **errgroup Over WaitGroup**: Prefer `golang.org/x/sync/errgroup` for goroutine management with error collection
-- **Buffered Channel Sizing**: Buffer size matches expected backpressure, not arbitrary large numbers
-- **Directional Channel Returns**: Return `<-chan T` (receive-only) from producer functions to prevent caller misuse
-- **Mutex Scope Minimization**: Lock only the critical section, use `defer Unlock()` immediately after `Lock()`
-- **Loop Variable Safety**: Use Go 1.22+ loop variable semantics; remove legacy `item := item` shadows in new code
-- **Graceful Shutdown**: Workers and servers implement clean shutdown with drain timeout
-- **Atomic for Counters**: Use `atomic.Int64` / `atomic.Value` for simple shared counters instead of mutex
-
-### Optional Behaviors (OFF unless enabled)
-- **Gopls MCP Analysis**: Use gopls MCP tools to trace channel usage and context propagation — `go_symbol_references` for tracing channel flow, `go_file_context` for understanding goroutine spawn sites, `go_diagnostics` after concurrent code edits. Fallback: `gopls references` CLI or LSP tool
-- **Container GOMAXPROCS Tuning**: Configure GODEBUG flags for container CPU limit overrides
-- **Performance Profiling**: Profile goroutine counts and channel contention under load
-- **Custom Rate Limiter**: Build token-bucket rate limiter instead of using `golang.org/x/time/rate`
-
-## What This Skill CAN Do
-- Guide implementation of worker pools, fan-out/fan-in, and pipeline patterns
-- Apply correct context propagation through concurrent call chains
-- Select appropriate sync primitives (Mutex, RWMutex, WaitGroup, Once, atomic)
-- Implement rate limiting with context-aware waiting
-- Diagnose and fix race conditions, deadlocks, and goroutine leaks
-- Structure graceful shutdown for background workers and servers
-
-## What This Skill CANNOT Do
-- Fix general Go bugs unrelated to concurrency (use systematic-debugging instead)
-- Optimize non-concurrent performance (use performance optimization workflows instead)
-- Write tests for concurrent code (use go-testing skill instead)
-- Handle Go error handling patterns (use go-error-handling skill instead)
-
----
+Guide implementation of correct, leak-free concurrent Go code using goroutines, channels, sync primitives, and context propagation. Works by assessing whether concurrency is justified, selecting the right primitive, enforcing context propagation, implementing the pattern, and verifying with the race detector.
 
 ## Instructions
 
-### Step 1: Assess Concurrency Need
+### Phase 1: Assess Concurrency Need
+
+**Goal**: Determine whether concurrency is justified before adding complexity.
+
+Read and follow the repository's CLAUDE.md before writing any concurrent code, because project-specific conventions (naming, package structure, error handling) override general patterns.
 
 Before writing concurrent code, answer these questions:
 
@@ -103,9 +65,13 @@ Before writing concurrent code, answer these questions:
 2. **Is the work CPU-bound?** -- concurrency helps only if parallelizable
 3. **Is there a measured bottleneck?** -- if not measured, don't assume
 
-If none apply, write sequential code. Concurrency adds complexity; justify it.
+If none apply, write sequential code. Sequential code is correct by default -- concurrency adds goroutine lifecycle management, synchronization, and race risk. Only introduce it when I/O, CPU parallelism, or a measured bottleneck justifies the complexity. Assuming "sequential is too slow" without profiling is a common mistake; profile first, then add concurrency.
 
-### Step 2: Choose the Right Primitive
+**Gate**: At least one of the three conditions (I/O-bound, CPU-bound, measured bottleneck) is met. Proceed only when gate passes.
+
+### Phase 2: Choose the Right Primitive
+
+**Goal**: Select the minimal primitive that solves the concurrency need.
 
 | Need | Primitive | When |
 |------|-----------|------|
@@ -117,9 +83,21 @@ If none apply, write sequential code. Concurrency adds complexity; justify it.
 | One-time initialization | `sync.Once` | Lazy singleton, config loading |
 | Simple shared counter | `atomic.Int64` | Increment/read without mutex overhead |
 
-### Step 3: Context Propagation
+Selection guidance:
 
-Always pass context as first parameter for I/O or cancellable operations.
+- Prefer `errgroup.Group` over `sync.WaitGroup` because errgroup collects errors and cancels remaining goroutines on first failure, which is what you want in most production scenarios.
+- Use `atomic.Int64` or `atomic.Value` for simple shared counters instead of mutex because atomic operations avoid lock contention and are sufficient when the shared state is a single value.
+- Return `<-chan T` (receive-only) from producer functions because it prevents callers from accidentally closing or sending on a channel they don't own.
+- Size buffered channels to match expected backpressure, not arbitrary large numbers, because oversized buffers hide flow-control bugs that surface under production load.
+- When you need a custom rate limiter instead of `golang.org/x/time/rate`, build a token-bucket implementation -- but only when the standard library doesn't meet your needs.
+
+**Gate**: Primitive selected with clear justification. Proceed only when gate passes.
+
+### Phase 3: Context Propagation
+
+**Goal**: Wire context through all cancellable operations so goroutines respond to cancellation.
+
+Accept `context.Context` as the first parameter for all I/O or cancellable operations because a function that's fast today may become slow under load tomorrow, and retrofitting context is harder than passing it from the start.
 
 ```go
 func FetchData(ctx context.Context, id string) (*Data, error) {
@@ -149,6 +127,8 @@ func FetchData(ctx context.Context, id string) (*Data, error) {
 }
 ```
 
+Every `select` statement in concurrent code must include a `case <-ctx.Done()` because without it, a goroutine blocks forever if the channel never receives and the upstream context is cancelled -- this is the most common source of goroutine leaks.
+
 When to use context vs not:
 
 ```go
@@ -159,9 +139,17 @@ func FetchUserData(ctx context.Context, userID string) (*User, error) { ... }
 func CalculateTotal(prices []float64) float64 { ... }
 ```
 
-### Step 4: Implement the Pattern
+When gopls MCP tools are available, use `go_symbol_references` to trace channel flow and `go_file_context` to understand goroutine spawn sites -- this helps verify context propagation through concurrent call chains.
+
+**Gate**: All I/O operations accept context, all `select` statements include `<-ctx.Done()`. Proceed only when gate passes.
+
+### Phase 4: Implement the Pattern
+
+**Goal**: Write the concurrent code using the selected primitive with correct lifecycle management.
 
 **Sync Primitives**
+
+Lock only the critical section and use `defer mu.Unlock()` immediately after `mu.Lock()` because early returns or panics between Lock and Unlock cause deadlocks that are extremely difficult to diagnose in production.
 
 ```go
 // Mutex for state protection
@@ -196,7 +184,9 @@ func (c *Cache) Set(key string, value any) {
 }
 ```
 
-**errgroup for concurrent work with error handling (preferred over WaitGroup)**
+**errgroup for concurrent work with error handling**
+
+Prefer `errgroup` over `sync.WaitGroup` because it collects errors and cancels remaining goroutines on first failure:
 
 ```go
 import "golang.org/x/sync/errgroup"
@@ -213,6 +203,8 @@ func ProcessAll(ctx context.Context, items []Item) error {
     return g.Wait()
 }
 ```
+
+Use Go 1.22+ loop variable semantics -- the `item` variable is per-iteration, so legacy `item := item` shadows are unnecessary in new code.
 
 **sync.Once for one-time initialization**
 
@@ -233,6 +225,8 @@ func (c *Config) Load() (*AppConfig, error) {
 
 **Channel patterns: buffered vs unbuffered**
 
+Only the sender closes a channel because closing from the receiver side causes panics if the sender is still sending, and multiple receivers may double-close. Use `defer close(ch)` in the goroutine that writes.
+
 ```go
 // Unbuffered: synchronous, sender blocks until receiver ready
 ch := make(chan int)
@@ -246,30 +240,53 @@ ch := make(chan int, 100)
 // - Buffer size should match expected backpressure
 ```
 
-For worker pool, fan-out/fan-in, pipeline, rate limiter, and graceful shutdown patterns, see `references/concurrency-patterns.md`.
+**Graceful Shutdown**
 
-### Step 5: Run Race Detector
+Workers and servers must implement clean shutdown with a drain timeout because abrupt termination can lose in-flight work and corrupt state. See `references/concurrency-patterns.md` for the full graceful shutdown pattern.
+
+For worker pool, fan-out/fan-in, pipeline, and rate limiter patterns, see `references/concurrency-patterns.md`.
+
+When profiling goroutine counts and channel contention under load, use `runtime.NumGoroutine()` and pprof to identify bottlenecks. For container deployments, configure `GOMAXPROCS` to match container CPU limits when needed.
+
+**Gate**: Code compiles, follows the selected pattern, channels closed by sender only, mutexes use defer Unlock. Proceed only when gate passes.
+
+### Phase 5: Run Race Detector
+
+**Goal**: Verify no data races exist in the concurrent code.
+
+Run `go test -race` on all concurrent code because race conditions are silent until production -- they don't cause compile errors, often don't cause test failures, and manifest as rare, non-reproducible bugs under load.
 
 ```bash
-# ALWAYS run with race detector during development
+# Run with race detector during development
 go test -race -count=1 -v ./...
 
 # Run specific test with race detection
 go test -race -run TestConcurrentOperation ./...
 ```
 
-### Step 6: Concurrency Checklist
+After editing concurrent code, use `go_diagnostics` (when gopls MCP tools are available) to catch errors before running tests.
+
+**Gate**: `go test -race` passes clean with no race conditions detected. Proceed only when gate passes.
+
+### Phase 6: Verify Completeness
+
+**Goal**: Confirm all concurrent code is correct and leak-free.
+
+Every goroutine must have a guaranteed exit path via context cancellation, channel close, or explicit shutdown signal because goroutine leaks compound over time and lead to OOM in production -- a single leaked goroutine in a request handler means unbounded memory growth.
 
 Before declaring concurrent code complete, verify:
 
-- [ ] **Context propagation** - All I/O operations accept context
-- [ ] **Goroutine exit paths** - Every goroutine can terminate
-- [ ] **Channel closure** - Channels closed by sender only
-- [ ] **Select with context** - All selects include `<-ctx.Done()`
-- [ ] **Proper synchronization** - Shared state protected
-- [ ] **Race detector passes** - `go test -race` clean
-- [ ] **Graceful shutdown** - Workers stop cleanly
-- [ ] **No goroutine leaks** - All goroutines tracked
+- [ ] **Context propagation** -- All I/O operations accept context as first parameter
+- [ ] **Goroutine exit paths** -- Every goroutine can terminate (via ctx.Done, channel close, or stop signal)
+- [ ] **Channel closure** -- Channels closed by sender only, using `defer close(ch)`
+- [ ] **Select with context** -- All `select` statements include `case <-ctx.Done()`
+- [ ] **Proper synchronization** -- Shared state protected by mutex or atomic
+- [ ] **Mutex discipline** -- `defer mu.Unlock()` immediately after `mu.Lock()`
+- [ ] **Race detector passes** -- `go test -race` clean
+- [ ] **Graceful shutdown** -- Workers and servers stop cleanly with drain timeout
+- [ ] **No goroutine leaks** -- All goroutines tracked and have exit paths
+
+**Gate**: All checklist items verified. Concurrent code is complete.
 
 ---
 
@@ -301,50 +318,7 @@ Solution:
 
 ---
 
-## Anti-Patterns
-
-### Anti-Pattern 1: Goroutine Without Exit Path
-**What it looks like**: `go func() { for { doWork() } }()` with no context check or stop channel
-**Why wrong**: Goroutine runs forever, leaking memory. Cannot be cancelled or shut down gracefully.
-**Do instead**: Always include `<-ctx.Done()` or a stop channel in goroutine loops.
-
-### Anti-Pattern 2: Unnecessary Concurrency
-**What it looks like**: Spawning goroutines for sequential work that does not benefit from parallelism
-**Why wrong**: Adds complexity (error channels, WaitGroups, race risks) without performance gain. Sequential code is simpler and correct by default.
-**Do instead**: Measure first. Use concurrency only for I/O-bound, CPU-parallel, or proven bottleneck scenarios.
-
-### Anti-Pattern 3: Closing Channel From Receiver Side
-**What it looks like**: Consumer goroutine calling `close(ch)` on a channel it reads from
-**Why wrong**: Sender may still send, causing panic. Multiple receivers may double-close.
-**Do instead**: Only the sender (producer) closes the channel. Use `defer close(ch)` in the goroutine that writes.
-
-### Anti-Pattern 4: Mutex Lock Without Defer Unlock
-**What it looks like**: `mu.Lock()` followed by complex logic before `mu.Unlock()`, with early returns in between
-**Why wrong**: Early returns or panics skip the `Unlock()`, causing deadlocks.
-**Do instead**: Always `defer mu.Unlock()` immediately after `mu.Lock()`.
-
-### Anti-Pattern 5: Ignoring Context in Select
-**What it looks like**: `select { case msg := <-ch: handle(msg) }` without a `<-ctx.Done()` case
-**Why wrong**: Goroutine blocks forever if channel never receives and context is cancelled.
-**Do instead**: Every `select` in concurrent code must include `case <-ctx.Done(): return`.
-
----
-
 ## References
-
-This skill uses these shared patterns:
-- [Anti-Rationalization](../shared-patterns/anti-rationalization-core.md) - Prevents shortcut rationalizations
-- [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
-
-### Domain-Specific Anti-Rationalization
-
-| Rationalization | Why It's Wrong | Required Action |
-|-----------------|----------------|-----------------|
-| "No need for context, this is fast" | Fast today, slow tomorrow under load | Pass context to all I/O operations |
-| "Race detector is slow, skip it" | Races are silent until production | Run `go test -race` every time |
-| "One goroutine leak won't matter" | Leaks compound; OOM in production | Verify every goroutine has exit path |
-| "Sequential is too slow" | Assumption without measurement | Profile first, then add concurrency |
-| "Buffer of 1000 should be enough" | Arbitrary buffers hide backpressure bugs | Size buffers to actual throughput |
 
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/concurrency-patterns.md`: Worker pool, fan-out/fan-in, pipeline, rate limiter, and graceful shutdown patterns with full code examples
