@@ -215,6 +215,53 @@ The principles above describe what the system does when it works. Equally import
 
 **Stale INDEX files:** A new agent or skill was added but the INDEX wasn't regenerated. The router can't find the component. Signal: requests that should match a known agent get routed to the fallback. Recovery: run `scripts/generate-agent-index.py` and `scripts/generate-skill-index.py`.
 
+## Skills Are Self-Contained Packages
+
+Everything a skill needs lives inside the skill directory. Scripts, viewer templates, bundled agents, reference files, assets — all co-located. Nothing leaks into repo-level `scripts/` or a separate `assets/` directory.
+
+```
+skills/my-skill/
+├── SKILL.md              # The workflow
+├── agents/               # Subagent prompts used only by this skill
+├── scripts/              # Deterministic CLI tools this skill invokes
+├── assets/               # Templates, HTML viewers, static files
+└── references/           # Deep context loaded on demand
+```
+
+**Why this matters:** A skill that depends on scripts scattered across the repo is fragile to move, hard to test, and impossible to evaluate in isolation. When everything is bundled, the skill can be:
+- Copied to another project and it works
+- Tested via `run_eval.py` against its own workspace
+- Reviewed as a single unit — all the tooling is visible in one tree
+- Deleted without orphaning dependencies elsewhere
+
+**The exception:** Shared patterns (`shared-patterns/anti-rationalization-core.md`) are referenced across skills. These stay shared. But skill-specific scripts, assets, and agents are always bundled.
+
+**Repo-level `scripts/`** is reserved for toolkit-wide operations (learning-db.py, sync-to-user-claude.py, INDEX generation) — tools that operate on the system as a whole, not on a single skill's workflow.
+
+## Workflow First, Constraints Inline
+
+Skill documents place the workflow (Instructions/Phases) immediately after the frontmatter. Constraints appear inline within the phases they govern, not in a separate upfront section.
+
+**Measured result:** A/B/C testing on Go code generation showed workflow-first ordering (C) swept constraints-first ordering (B) 3-0 across simple, medium, and complex prompts. Agent blind reviewers consistently scored workflow-first higher on testing depth, Go idioms, and benchmark coverage.
+
+**The ordering:**
+
+```
+1. YAML frontmatter           (What + When)
+2. Brief overview              (How — one paragraph)
+3. Instructions/Phases         (The actual workflow, with inline constraints)
+4. Benchmark/Commands Guide    (Reference material)
+5. Error Handling              (Failure context)
+6. Anti-Patterns               (What went wrong before)
+7. References                  (Pointers to deep context)
+```
+
+**Why it works:** The model encounters the task structure before the constraint framework. Constraints appear at the decision point where they apply — "use table-driven tests because they make adding cases trivial" inside the testing phase, not in a separate Hardcoded Behaviors section 200 lines earlier. The model spends attention on understanding the task, not parsing a constraint taxonomy.
+
+**What moves:** The Operator Context section (Hardcoded/Default/Optional behaviors) decomposes. Each constraint migrates to the phase where it applies. "Run with -race for concurrent code" belongs in Phase 3 (RUN), not in a behavior table.
+
+**What stays:** Error Handling, Anti-Patterns, and References remain at the end as context that's consulted when things go wrong — not before the model has understood what "going right" looks like.
+
 ## Open Sharing Over Individual Ownership
 
 Ideas matter less than open sharing. In an AI-assisted world, provenance becomes invisible. The toolkit is open source because:

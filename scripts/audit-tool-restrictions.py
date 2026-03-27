@@ -131,7 +131,7 @@ AGENT_ROLES = {
     "python-openstack-engineer": "code-modifier",
     "rabbitmq-messaging-engineer": "code-modifier",
     "react-portfolio-engineer": "code-modifier",
-    "skill-creator-engineer": "code-modifier",
+    "skill-creator": "code-modifier",
     "sqlite-peewee-engineer": "code-modifier",
     "testing-automation-engineer": "code-modifier",
     "typescript-debugging-engineer": "code-modifier",

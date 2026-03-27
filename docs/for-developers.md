@@ -75,7 +75,7 @@ The agent creator uses the `AGENT_TEMPLATE_V2.md` template and produces a comple
 /do create a skill for [your workflow]
 ```
 
-Describe the methodology, phases, and quality gates. The `skill-creator-engineer` builds the skill directory, SKILL.md with frontmatter, phase definitions, and updates the index.
+Describe the methodology, phases, and quality gates. The `skill-creator` builds the skill directory, SKILL.md with frontmatter, phase definitions, and updates the index.
 
 **Example prompts:**
 - `/do create a skill for database migration safety with pre-migration checks, rollback validation, and post-migration verification`

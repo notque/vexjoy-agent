@@ -8,7 +8,7 @@ description: |
   Use for "create skill pipeline", "new skill formal", "skill with gates".
 version: 1.0.0
 user-invocable: false
-agent: skill-creator-engineer
+agent: skill-creator
 allowed-tools:
   - Read
   - Bash
@@ -38,7 +38,7 @@ routing:
 
 ## Operator Context
 
-This pipeline wraps `skill-creator-engineer` with explicit discovery, design
+This pipeline wraps `skill-creator` with explicit discovery, design
 review, and validation gates. It is the **formal path** for creating new skills
 — as opposed to ad-hoc creation — and should be used whenever skill quality,
 uniqueness, or routing correctness is important. The pipeline does not replace
@@ -187,7 +187,7 @@ DESIGN BRIEF: [skill-name]
 ==========================
 
 Complexity Tier: [Simple | Medium | Complex | Comprehensive]
-Agent Binding:   skill-creator-engineer (default) or [other agent if domain-specific]
+Agent Binding:   skill-creator (default) or [other agent if domain-specific]
 User-Invocable:  [true | false]
 
 Phases:
@@ -323,7 +323,7 @@ Read the current INDEX.json and append an entry for the new skill:
   "path": "skills/skill-name/SKILL.md",
   "description": "[first line of the frontmatter description]",
   "user-invocable": true,
-  "agent": "skill-creator-engineer"
+  "agent": "skill-creator"
 }
 ```
 

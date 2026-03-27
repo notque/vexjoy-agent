@@ -4,12 +4,12 @@
 PreToolUse:Write Hook: Creation Gate
 
 Blocks direct creation of new agent/skill files that bypass the
-skill-creator-engineer pipeline. Forces the LLM to route through
+skill-creator pipeline. Forces the LLM to route through
 proper creation workflows that produce full-depth components.
 
 This is a HARD GATE — it physically prevents the Write tool from creating
 new agent or skill files. The LLM receives a [fix-with-agent] directive
-telling it to use skill-creator-engineer.
+telling it to use skill-creator.
 
 Detection logic:
 - Tool is Write (not Edit — edits to existing files are allowed)
@@ -82,9 +82,9 @@ def main() -> None:
     # Block: new agent or skill file being created outside the creator pipeline
     component_type = "agent" if is_agent else "skill"
     print(
-        f"[creation-gate] BLOCKED: New {component_type} must be created via skill-creator-engineer or skill-creation-pipeline.\n"
+        f"[creation-gate] BLOCKED: New {component_type} must be created via skill-creator or skill-creation-pipeline.\n"
         f"[creation-gate] Path: {file_path}\n"
-        f"[fix-with-agent] skill-creator-engineer",
+        f"[fix-with-agent] skill-creator",
         file=sys.stderr,
     )
     sys.exit(2)

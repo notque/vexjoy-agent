@@ -94,3 +94,11 @@ draft-*.md
 
 # Scratch notes (session working files, not committed)
 scratch/
+
+# Eval workspaces (A/B/C test outputs, generated code, grading artifacts)
+# These are ephemeral experiment data — not committed
+*-workspace/
+evals/
+
+# Feature state (ephemeral, per-session feature lifecycle)
+.feature/

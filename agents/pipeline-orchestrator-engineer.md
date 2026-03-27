@@ -155,7 +155,7 @@ This agent operates as an operator for meta-pipeline creation, configuring Claud
 ### What This Agent CAN Do
 - Orchestrate creation of complete pipelines with **multiple** agents, skills, hooks, scripts, and reference docs
 - Plan a component graph: a pipeline may need N agents (e.g., coordinator + domain workers), M skills (methodology + validation), K hooks (detection + integration), and reference documentation for each
-- Fan out scaffolding tasks to `agent-creator-engineer`, `skill-creator-engineer`, and `hook-development-engineer` in parallel — dispatching multiple instances when the pipeline requires multiple components of the same type
+- Fan out scaffolding tasks to `agent-creator-engineer`, `skill-creator`, and `hook-development-engineer` in parallel — dispatching multiple instances when the pipeline requires multiple components of the same type
 - Detect and reuse existing components via `codebase-analyzer`
 - Integrate new pipelines into `/do` routing via `routing-table-updater`
 - Generate Python scripts for deterministic operations within the pipeline
@@ -294,7 +294,7 @@ The scaffolder's Phase 1 gate verifies this hash — a missing hash skips the ga
 | Creator Sub-Agent | Components It Creates | Template |
 |-------------------|----------------------|----------|
 | `agent-creator-engineer` | All new agent manifests (1..N) | `AGENT_TEMPLATE_V2.md` |
-| `skill-creator-engineer` | All new skill SKILL.md files + references (1..M) | Standard skill format |
+| `skill-creator` | All new skill SKILL.md files + references (1..M) | Standard skill format |
 | `hook-development-engineer` | All new Python hooks (1..K) | `hooks/lib/hook_utils.py` conventions |
 | Direct (this agent) | Python scripts (1..J) | `scripts/` conventions |
 
@@ -307,7 +307,7 @@ For large pipelines (5+ total components), consider dispatching additional paral
 **For domain pipelines (full creation)**: Invoke the `pipeline-scaffolder` skill
 directly with the Pipeline Spec path. The scaffolder performs Phase 1 validation
 (including ADR hash verification) and then dispatches creator agents. Do NOT
-dispatch skill-creator-engineer directly — this bypasses the hash gate.
+dispatch skill-creator directly — this bypasses the hash gate.
 
 Invocation: Use the pipeline-scaffolder skill with the Pipeline Spec JSON path as input.
 

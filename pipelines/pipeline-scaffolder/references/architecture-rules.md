@@ -84,7 +84,7 @@ Phase 1: DISCOVER (sequential — needs full context)
     ↓
 Phase 2: SCAFFOLD (fan-out — group by creator type)
     ├─ agent-creator-engineer:   Agent A, Agent B, Agent C (1..N)
-    ├─ skill-creator-engineer:   Skill X, Skill Y (1..M)
+    ├─ skill-creator:   Skill X, Skill Y (1..M)
     ├─ hook-development-engineer: Hook 1, Hook 2 (1..K)
     └─ Direct:                    Script 1, Script 2 (1..J)
     ↓ (fan-in — wait for all)

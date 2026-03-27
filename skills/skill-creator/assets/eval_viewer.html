@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blind A/B Code Review</title>
+<style>
+/* ─── Design Tokens ─────────────────────────────────────────────────── */
+:root {
+  --bg:           #0a0c10;
+  --surface:      #111318;
+  --surface-2:    #161a22;
+  --surface-3:    #1c2130;
+  --border:       #222832;
+  --border-2:     #2a3340;
+  --text:         #b8c4d4;
+  --muted:        #5c6a7e;
+  --bright:       #e8edf5;
+  --accent:       #4d8ef5;
+  --accent-dim:   #1a2d50;
+  --green:        #3dba6c;
+  --green-dim:    #0d2420;
+  --red:          #e05454;
+  --red-dim:      #2a1015;
+  --yellow:       #d4a830;
+  --yellow-dim:   #2a2008;
+  --purple:       #9b72f5;
+  --purple-dim:   #1e1540;
+  --code-bg:      #080b0f;
+  --radius-sm:    4px;
+  --radius:       8px;
+  --radius-lg:    12px;
+  --shadow-sm:    0 1px 3px rgba(0,0,0,0.5);
+  --shadow:       0 2px 8px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03);
+  --shadow-lg:    0 4px 20px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04);
+  --font-sans:    -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono:    'SF Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+}
+
+/* ─── Reset & Base ──────────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* ─── Header ────────────────────────────────────────────────────────── */
+.header {
+  padding: 14px 32px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: var(--shadow-sm);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header h1 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--bright);
+  letter-spacing: -0.01em;
+}
+
+.blind-notice {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--yellow);
+  padding: 3px 10px;
+  border: 1px solid rgba(212, 168, 48, 0.35);
+  border-radius: 20px;
+  background: var(--yellow-dim);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  transition: color 0.3s, border-color 0.3s, background 0.3s;
+}
+
+/* ─── Navigation ────────────────────────────────────────────────────── */
+.nav {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  background: var(--surface);
+  gap: 2px;
+}
+
+.nav-btn {
+  padding: 11px 18px;
+  cursor: pointer;
+  color: var(--muted);
+  border: none;
+  background: none;
+  border-bottom: 2px solid transparent;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  transition: color 0.15s, border-color 0.15s;
+  position: relative;
+  bottom: -1px;
+}
+
+.nav-btn:hover { color: var(--text); }
+.nav-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius-sm); }
+.nav-btn.active { color: var(--bright); border-bottom-color: var(--accent); }
+
+/* ─── Pages ─────────────────────────────────────────────────────────── */
+.page { padding: 28px 32px; max-width: 1600px; display: none; }
+.page.active { display: block; }
+
+/* ─── Eval Tabs ─────────────────────────────────────────────────────── */
+.eval-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.eval-tab {
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-2);
+  background: var(--surface-2);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.eval-tab:hover { color: var(--text); border-color: var(--border-2); background: var(--surface-3); }
+.eval-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eval-tab.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+/* ─── Grid ───────────────────────────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 20px;
+}
+
+/* ─── Card ───────────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.2s;
+}
+
+.card:hover { box-shadow: var(--shadow-lg); }
+
+.card-head {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface-2);
+}
+
+.card-head h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bright);
+  letter-spacing: -0.01em;
+}
+
+/* ─── Label / Badge ──────────────────────────────────────────────────── */
+.label {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 20px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid rgba(77, 142, 245, 0.25);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: all 0.3s;
+}
+
+.revealed .label-a { background: var(--accent-dim); color: var(--accent); border-color: rgba(77, 142, 245, 0.3); }
+.revealed .label-b { background: var(--green-dim); color: var(--green); border-color: rgba(61, 186, 108, 0.3); }
+
+/* ─── Card Body & Stats ─────────────────────────────────────────────── */
+.card-body { padding: 16px; }
+
+.stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.stat:last-child { border: none; }
+
+.stat-name {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.stat-val {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Status Colors ──────────────────────────────────────────────────── */
+.pass  { color: var(--green); }
+.fail  { color: var(--red); }
+.warn  { color: var(--yellow); }
+
+/* ─── Status Pills ───────────────────────────────────────────────────── */
+.stat-val.pass::before  { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--green); margin-right: 6px; vertical-align: middle; box-shadow: 0 0 6px rgba(61, 186, 108, 0.5); }
+.stat-val.fail::before  { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--red); margin-right: 6px; vertical-align: middle; box-shadow: 0 0 6px rgba(224, 84, 84, 0.5); }
+.stat-val.warn::before  { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--yellow); margin-right: 6px; vertical-align: middle; }
+
+/* ─── Code Block ─────────────────────────────────────────────────────── */
+.code-block {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin: 10px 0;
+  font-size: 11.5px;
+  font-family: var(--font-mono);
+  overflow-x: auto;
+  max-height: 380px;
+  overflow-y: auto;
+  white-space: pre;
+  line-height: 1.6;
+  color: #8899bb;
+  tab-size: 2;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-2) transparent;
+}
+
+.code-block::-webkit-scrollbar { width: 6px; height: 6px; }
+.code-block::-webkit-scrollbar-track { background: transparent; }
+.code-block::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+
+/* ─── Syntax Highlighting ─────────────────────────────────────────────── */
+.sh-kw { color: #c678dd; }           /* keywords: func, if, for, return */
+.sh-type { color: #e5c07b; }         /* types: string, int, error, bool */
+.sh-str { color: #98c379; }          /* strings */
+.sh-num { color: #d19a66; }          /* numbers */
+.sh-cmt { color: #5c6370; font-style: italic; } /* comments */
+.sh-fn { color: #61afef; }           /* function calls */
+.sh-pkg { color: #56b6c2; }          /* package names in qualified calls */
+.sh-op { color: #8899bb; }           /* operators */
+
+/* ─── Checks ─────────────────────────────────────────────────────────── */
+.checks { margin-top: 14px; }
+
+.chk {
+  padding: 7px 10px;
+  margin: 4px 0;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  line-height: 1.5;
+}
+
+.chk.p {
+  background: var(--green-dim);
+  border: 1px solid rgba(61, 186, 108, 0.15);
+  color: #9dd4b0;
+}
+
+.chk.f {
+  background: var(--red-dim);
+  border: 1px solid rgba(224, 84, 84, 0.15);
+  color: #d49090;
+}
+
+.chk .icon {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  margin-top: 1px;
+}
+
+.chk.p .icon { background: rgba(61, 186, 108, 0.2); color: var(--green); }
+.chk.f .icon { background: rgba(224, 84, 84, 0.2); color: var(--red); }
+
+.chk .ev {
+  color: var(--muted);
+  font-style: italic;
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+}
+
+/* ─── Prompt Block ───────────────────────────────────────────────────── */
+.prompt-section {
+  margin-bottom: 22px;
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+/* ─── Winner Picker ──────────────────────────────────────────────────── */
+.winner-pick {
+  margin-top: 18px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.winner-pick > .section-label {
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+.winner-btn {
+  padding: 7px 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-2);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.winner-btn:hover { border-color: var(--border-2); background: var(--surface-3); color: var(--bright); }
+.winner-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.winner-btn.selected {
+  border-color: var(--green);
+  color: var(--green);
+  background: var(--green-dim);
+  box-shadow: 0 0 0 1px rgba(61, 186, 108, 0.2);
+}
+
+/* ─── Agent Panel ────────────────────────────────────────────────────── */
+.agent-panel {
+  margin-top: 18px;
+}
+
+.agent-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: var(--font-sans);
+}
+
+.agent-toggle-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+
+.agent-body {
+  margin-top: 14px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text);
+  display: none;
+}
+
+.agent-body p { color: var(--text); }
+
+/* ─── Score Grid ─────────────────────────────────────────────────────── */
+.score-col h3 {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bright);
+  margin-bottom: 10px;
+}
+
+.score-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.score-bar-row:last-child { border: none; }
+
+.score-dim {
+  color: var(--muted);
+  width: 110px;
+  flex-shrink: 0;
+  font-size: 11px;
+}
+
+.score-track {
+  flex: 1;
+  height: 4px;
+  background: var(--border-2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.score-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.score-fill.high  { background: var(--green); }
+.score-fill.mid   { background: var(--yellow); }
+.score-fill.low   { background: var(--red); }
+
+.score-num {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  width: 32px;
+  text-align: right;
+  font-size: 11px;
+}
+
+.score-num.high { color: var(--green); }
+.score-num.mid  { color: var(--yellow); }
+.score-num.low  { color: var(--red); }
+
+/* ─── Notable Differences ────────────────────────────────────────────── */
+.diff-list {
+  margin-top: 14px;
+}
+
+.diff-list h3 {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+/* ─── Feedback Area ──────────────────────────────────────────────────── */
+.feedback-area { margin-top: 20px; }
+
+.feedback-area label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.feedback-area textarea {
+  width: 100%;
+  min-height: 90px;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 10px 12px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  resize: vertical;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  line-height: 1.6;
+}
+
+.feedback-area textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(77, 142, 245, 0.12);
+}
+
+.feedback-area textarea::placeholder { color: var(--muted); }
+
+/* ─── Submit Bar ─────────────────────────────────────────────────────── */
+.submit-bar {
+  margin-top: 28px;
+  padding: 16px 20px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow);
+}
+
+.submit-bar .status {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.btn-group { display: flex; gap: 10px; align-items: center; }
+
+.submit-btn {
+  padding: 9px 22px;
+  border-radius: var(--radius);
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  letter-spacing: -0.01em;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  box-shadow: 0 1px 4px rgba(77, 142, 245, 0.3);
+}
+
+.submit-btn:hover { background: #5a99f8; box-shadow: 0 2px 8px rgba(77, 142, 245, 0.45); }
+.submit-btn:active { transform: translateY(1px); }
+.submit-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+.reveal-btn {
+  padding: 9px 22px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(155, 114, 245, 0.4);
+  background: var(--purple-dim);
+  color: var(--purple);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  letter-spacing: -0.01em;
+  transition: all 0.15s;
+  display: none;
+}
+
+.reveal-btn.show { display: inline-block; }
+.reveal-btn:hover { background: #261b4a; border-color: rgba(155, 114, 245, 0.7); }
+.reveal-btn:focus-visible { outline: 2px solid var(--purple); outline-offset: 3px; }
+
+/* ─── Results & Tables ───────────────────────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 14px 0;
+  font-size: 13px;
+}
+
+th, td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+thead tr { background: var(--surface-2); }
+
+th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+tbody tr { transition: background 0.1s; }
+tbody tr:hover { background: var(--surface-2); }
+
+.d-pos { color: var(--green); font-weight: 600; }
+.d-neg { color: var(--red); font-weight: 600; }
+.d-zero { color: var(--muted); }
+
+/* ─── Winner Banner ──────────────────────────────────────────────────── */
+.banner {
+  padding: 20px 28px;
+  margin: 0 0 22px 0;
+  border-radius: var(--radius-lg);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  position: relative;
+  overflow: hidden;
+}
+
+.banner-1 {
+  background: linear-gradient(135deg, var(--accent-dim) 0%, #0d1c38 100%);
+  border: 1px solid rgba(77, 142, 245, 0.3);
+  color: var(--accent);
+  box-shadow: 0 0 40px rgba(77, 142, 245, 0.08);
+}
+
+.banner-2 {
+  background: linear-gradient(135deg, var(--green-dim) 0%, #081c15 100%);
+  border: 1px solid rgba(61, 186, 108, 0.3);
+  color: var(--green);
+  box-shadow: 0 0 40px rgba(61, 186, 108, 0.08);
+}
+
+.banner-tie {
+  background: linear-gradient(135deg, var(--yellow-dim) 0%, #1c1605 100%);
+  border: 1px solid rgba(212, 168, 48, 0.3);
+  color: var(--yellow);
+}
+
+/* ─── Grades Page ────────────────────────────────────────────────────── */
+.grades-section { margin-bottom: 18px; }
+
+/* ─── Utilities ──────────────────────────────────────────────────────── */
+.hidden { display: none !important; }
+
+@media (max-width: 900px) {
+  .grid { grid-template-columns: 1fr; }
+  .header, .nav, .page { padding-left: 16px; padding-right: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <h1>Blind A/B Code Review</h1>
+    <span class="blind-notice">Blind Mode</span>
+  </div>
+</header>
+
+<nav class="nav" role="navigation" aria-label="Main navigation">
+  <button class="nav-btn active" data-page="review">Review</button>
+  <button class="nav-btn" data-page="grades">Grades</button>
+  <button class="nav-btn" data-page="results">Results</button>
+</nav>
+
+<main>
+  <div id="review-page" class="page active" role="tabpanel"></div>
+  <div id="grades-page" class="page" role="tabpanel"></div>
+  <div id="results-page" class="page" role="tabpanel"></div>
+</main>
+
+<script>
+const DATA = __DATA_PLACEHOLDER__;
+
+// Randomize which side is Output 1 vs Output 2 per eval (seeded by eval name)
+function hashStr(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0}return h}
+function isSwapped(name){return (hashStr(name) & 1) === 1}
+
+// State
+const reviews = {};
+
+// Nav
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    this.classList.add('active');
+    document.getElementById(this.dataset.page+'-page').classList.add('active');
+  });
+});
+
+function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text)e.textContent=text;return e}
+
+// Go syntax highlighter — pure regex, no dependencies
+function highlightGo(code){
+  if(!code)return '';
+  // Escape HTML entities first
+  const esc=code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // Order matters: comments first (greedy), then strings, then keywords
+  return esc
+    // Line comments
+    .replace(/(\/\/[^\n]*)/g,'<span class="sh-cmt">$1</span>')
+    // Block comments
+    .replace(/(\/\*[\s\S]*?\*\/)/g,'<span class="sh-cmt">$1</span>')
+    // Backtick strings
+    .replace(/(`[^`]*`)/g,'<span class="sh-str">$1</span>')
+    // Double-quoted strings
+    .replace(/("(?:[^"\\]|\\.)*")/g,'<span class="sh-str">$1</span>')
+    // Keywords
+    .replace(/\b(package|import|func|return|if|else|for|range|switch|case|default|var|const|type|struct|interface|map|chan|go|defer|select|break|continue|fallthrough|nil|true|false|make|append|len|cap|new|delete|close|panic|recover|copy)\b/g,'<span class="sh-kw">$1</span>')
+    // Built-in types
+    .replace(/\b(string|int|int8|int16|int32|int64|uint|uint8|uint16|uint32|uint64|float32|float64|complex64|complex128|bool|byte|rune|error|any|comparable)\b/g,'<span class="sh-type">$1</span>')
+    // Numbers
+    .replace(/\b(\d+\.?\d*(?:e[+-]?\d+)?)\b/g,'<span class="sh-num">$1</span>')
+    // Qualified function calls: pkg.Func(
+    .replace(/\b([a-z]\w*)\.([A-Z]\w*)\s*\(/g,'<span class="sh-pkg">$1</span>.<span class="sh-fn">$2</span>(')
+    // Standalone function calls: Func(
+    .replace(/\b([A-Z]\w*)\s*\(/g,'<span class="sh-fn">$1</span>(')
+    // Method/func definitions after func keyword
+    .replace(/(<span class="sh-kw">func<\/span>\s+)(\w+)\s*\(/g,'$1<span class="sh-fn">$2</span>(');
+}
+
+function buildStat(parent,name,val,cls){
+  const row=el('div','stat');
+  row.appendChild(el('span','stat-name',name));
+  const v=el('span','stat-val '+(cls||''),val);
+  row.appendChild(v);
+  parent.appendChild(row);
+}
+
+function buildChecks(parent,checks){
+  if(!checks||!checks.length){parent.appendChild(el('p','stat-name','No grading data'));return}
+  const wrap=el('div','checks');
+  checks.forEach(c=>{
+    const row=el('div','chk '+(c.passed?'p':'f'));
+    const icon=el('span','icon',c.passed?'\u2713':'\u2717');
+    row.appendChild(icon);
+    const txt=el('span','',c.text);
+    if(c.evidence){const ev=el('span','ev',c.evidence);txt.appendChild(ev)}
+    row.appendChild(txt);
+    wrap.appendChild(row);
+  });
+  parent.appendChild(wrap);
+}
+
+function buildCard(parent,data,label,id){
+  const card=el('div','card');card.dataset.outputId=id;
+  const head=el('div','card-head');
+  head.appendChild(el('h3','',label));
+  const tag=el('span','label','\u2022 blind');
+  tag.dataset.revealId=id;
+  head.appendChild(tag);
+  card.appendChild(head);
+  const body=el('div','card-body');
+  buildStat(body,'Compiles',data.compiles||'?',data.compiles==='yes'?'pass':'fail');
+  buildStat(body,'Tests pass',data.tests_pass||'?',data.tests_pass==='yes'?'pass':'fail');
+  buildStat(body,'go vet',data.govet||'?',data.govet==='clean'?'pass':'warn');
+  buildStat(body,'Lines',String(data.lines||'?'));
+  buildStat(body,'Files',String(data.fileCount||'?'));
+  if(data.files&&data.files.length){
+    const tree=el('div','code-block',data.files.join('\n'));
+    body.appendChild(tree);
+  }
+  if(data.code_preview){
+    const preview=el('div','code-block');
+    // highlightGo escapes HTML entities (&amp; &lt; &gt;) before inserting
+    // span tags with class names only — no user-controlled attributes
+    const highlighted=highlightGo(data.code_preview);
+    const range=document.createRange();
+    range.selectNode(document.body);
+    preview.appendChild(range.createContextualFragment(highlighted));
+    body.appendChild(preview);
+  }
+  buildChecks(body,data.grading?data.grading.expectations:null);
+  card.appendChild(body);
+  parent.appendChild(card);
+}
+
+function buildScoreBar(parent,dim,val){
+  const row=el('div','score-bar-row');
+  row.appendChild(el('span','score-dim',dim));
+  const track=el('div','score-track');
+  const tierCls=val>=7?'high':val>=5?'mid':'low';
+  const fill=el('div','score-fill '+tierCls);
+  fill.style.width=String((val/10)*100)+'%';
+  track.appendChild(fill);
+  row.appendChild(track);
+  const num=el('span','score-num '+tierCls,String(val)+'/10');
+  row.appendChild(num);
+  parent.appendChild(row);
+}
+
+function buildReviewPage(){
+  const page=document.getElementById('review-page');
+  if(!DATA||!DATA.evals||!DATA.evals.length){
+    page.appendChild(el('p','stat-name','No data. Run generate_comparison.py to populate.'));
+    return;
+  }
+  const tabs=el('div','eval-tabs');
+  const content=el('div','');
+
+  function renderEval(ev,idx){
+    content.replaceChildren();
+    const swapped=isSwapped(ev.name);
+    const left=swapped?ev.variantB:ev.variantA;
+    const right=swapped?ev.variantA:ev.variantB;
+    const leftId=swapped?'B':'A';
+    const rightId=swapped?'A':'B';
+
+    const promptSection=el('div','prompt-section');
+    promptSection.appendChild(el('p','section-label','Prompt'));
+    const promptText=el('div','code-block',ev.prompt||'(no prompt recorded)');
+    promptSection.appendChild(promptText);
+    content.appendChild(promptSection);
+
+    const grid=el('div','grid');
+    buildCard(grid,left||{},'Output 1',leftId);
+    buildCard(grid,right||{},'Output 2',rightId);
+    // Variant C if present (workflow-first reorder)
+    if(ev.variantC){
+      buildCard(grid,ev.variantC,'Output 3','C');
+    }
+    content.appendChild(grid);
+
+    // Winner picker — dynamically include Output 3 if variant C exists
+    const picker=el('div','winner-pick');
+    picker.appendChild(el('span','section-label','Which is better?'));
+    const options=ev.variantC?['Output 1','Output 2','Output 3','Tie']:['Output 1','Tie','Output 2'];
+    options.forEach((lbl)=>{
+      const btn=el('button','winner-btn',lbl);
+      let val;
+      if(lbl==='Output 1') val=leftId;
+      else if(lbl==='Output 2') val=rightId;
+      else if(lbl==='Output 3') val='C';
+      else val='tie';
+      if(reviews[ev.name]&&reviews[ev.name].winner===val)btn.classList.add('selected');
+      btn.addEventListener('click',()=>{
+        picker.querySelectorAll('.winner-btn').forEach(b=>b.classList.remove('selected'));
+        btn.classList.add('selected');
+        if(!reviews[ev.name])reviews[ev.name]={};
+        reviews[ev.name].winner=val;
+        updateStatus();
+      });
+      picker.appendChild(btn);
+    });
+    content.appendChild(picker);
+
+    // Agent review panel (collapsed by default, shown if data exists)
+    if(ev.blind_comparison){
+      const bc=ev.blind_comparison;
+      const agentPanel=el('div','card agent-panel');
+
+      const agentHead=el('div','card-head');
+
+      const toggleBtn=el('button','agent-toggle-btn','');
+      const toggleLabel=el('span','eval-tab','Agent Review');
+      toggleBtn.appendChild(toggleLabel);
+
+      let agentWinnerLabel='Tie';
+      if(bc.winner==='Output 1'||bc.winner==='Output 2'){
+        agentWinnerLabel=bc.winner;
+      } else if(bc.winner==='Tie'){
+        agentWinnerLabel='Tie';
+      }
+      const winTag=el('span','label',agentWinnerLabel);
+      toggleBtn.appendChild(winTag);
+      agentHead.appendChild(toggleBtn);
+      agentPanel.appendChild(agentHead);
+
+      const agentBody=el('div','agent-body');
+
+      toggleBtn.addEventListener('click',()=>{
+        const expanded=agentBody.style.display==='block';
+        agentBody.style.display=expanded?'none':'block';
+        toggleLabel.textContent=expanded?'Agent Review':'Agent Review';
+        toggleBtn.setAttribute('aria-expanded',String(!expanded));
+      });
+      toggleBtn.setAttribute('aria-expanded','false');
+
+      // Reasoning
+      const reasonPara=el('p','',bc.reasoning||'');
+      agentBody.appendChild(reasonPara);
+
+      // Scores
+      if(bc.scores){
+        const scoreGrid=el('div','grid');
+        scoreGrid.style.marginTop='16px';
+        ['output_1','output_2'].forEach((key,si)=>{
+          const scores=bc.scores[key];
+          if(!scores)return;
+          const col=el('div','score-col');
+          const heading=el('h3','',String(si===0?'Output 1':'Output 2')+' — '+String(scores.overall||'?')+'/10');
+          col.appendChild(heading);
+          Object.entries(scores).forEach(([dim,val])=>{
+            if(dim==='overall')return;
+            buildScoreBar(col,dim,Number(val));
+          });
+          scoreGrid.appendChild(col);
+        });
+        agentBody.appendChild(scoreGrid);
+      }
+
+      // Notable differences
+      if(bc.notable_differences&&bc.notable_differences.length){
+        const diffList=el('div','diff-list');
+        diffList.appendChild(el('h3','','Notable Differences'));
+        bc.notable_differences.forEach(d=>{
+          const item=el('div','chk p');
+          const icon=el('span','icon','\u2022');
+          item.appendChild(icon);
+          item.appendChild(el('span','',d));
+          diffList.appendChild(item);
+        });
+        agentBody.appendChild(diffList);
+      }
+
+      agentPanel.appendChild(agentBody);
+      content.appendChild(agentPanel);
+    }
+
+    // Feedback textareas
+    const fb=el('div','feedback-area');
+    fb.appendChild(el('label','','Notes'));
+    const ta=document.createElement('textarea');
+    ta.placeholder='e.g. "Output 1 used table-driven tests, Output 2 had a race condition..."';
+    if(reviews[ev.name]&&reviews[ev.name].notes)ta.value=reviews[ev.name].notes;
+    ta.addEventListener('input',()=>{
+      if(!reviews[ev.name])reviews[ev.name]={};
+      reviews[ev.name].notes=ta.value;
+    });
+    fb.appendChild(ta);
+    content.appendChild(fb);
+  }
+
+  DATA.evals.forEach((ev,i)=>{
+    const btn=el('button','eval-tab'+(i===0?' active':''),ev.name);
+    btn.addEventListener('click',()=>{
+      tabs.querySelectorAll('.eval-tab').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      renderEval(ev,i);
+    });
+    tabs.appendChild(btn);
+  });
+
+  page.appendChild(tabs);
+  page.appendChild(content);
+
+  // Submit bar
+  const bar=el('div','submit-bar');
+  const status=el('span','status','0/'+DATA.evals.length+' reviewed');
+  status.id='review-status';
+  bar.appendChild(status);
+
+  const btnGroup=el('div','btn-group');
+  function doReveal(){
+    document.body.classList.add('revealed');
+    document.querySelectorAll('[data-reveal-id]').forEach(tag=>{
+      const id=tag.dataset.revealId;
+      const names={A:DATA.variantAName,B:DATA.variantBName,C:DATA.variantCName||'Variant C'};
+      tag.textContent=names[id]||id;
+      tag.className='label label-'+id.toLowerCase();
+    });
+    const notice=document.querySelector('.blind-notice');
+    notice.textContent='Identities Revealed';
+    notice.style.borderColor='rgba(61, 186, 108, 0.4)';
+    notice.style.color='var(--green)';
+    notice.style.background='var(--green-dim)';
+    // Show results tab
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.querySelector('[data-page="results"]').classList.add('active');
+    document.getElementById('results-page').classList.add('active');
+  }
+
+  const submitBtn=el('button','submit-btn','Submit Reviews');
+  submitBtn.addEventListener('click',()=>{
+    const blob=new Blob([JSON.stringify({reviews:reviews,timestamp:new Date().toISOString()},null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download='feedback.json';a.click();
+    URL.revokeObjectURL(url);
+    document.getElementById('reveal-btn').classList.add('show');
+  });
+  btnGroup.appendChild(submitBtn);
+
+  const skipBtn=el('button','skip-btn','Skip to Results');
+  skipBtn.style.cssText='padding:8px 20px;border-radius:8px;border:1px solid var(--border-2);background:var(--surface-2);color:var(--muted);cursor:pointer;font-size:12px;margin-left:8px';
+  skipBtn.addEventListener('click',()=>{ doReveal(); });
+  btnGroup.appendChild(skipBtn);
+
+  const revealBtn=el('button','reveal-btn','Reveal Identities');
+  revealBtn.id='reveal-btn';
+  revealBtn.addEventListener('click',()=>{
+    doReveal();
+    revealBtn.style.display='none';
+  });
+  btnGroup.appendChild(revealBtn);
+  bar.appendChild(btnGroup);
+  page.appendChild(bar);
+
+  renderEval(DATA.evals[0],0);
+}
+
+function updateStatus(){
+  const reviewed=Object.keys(reviews).filter(k=>reviews[k].winner).length;
+  const total=DATA.evals?DATA.evals.length:0;
+  const s=document.getElementById('review-status');
+  if(s)s.textContent=reviewed+'/'+total+' reviewed';
+}
+
+function buildGradesPage(){
+  const page=document.getElementById('grades-page');
+  if(!DATA||!DATA.evals)return;
+  DATA.evals.forEach(ev=>{
+    const section=el('div','card grades-section');
+    const head=el('div','card-head');
+    head.appendChild(el('h3','',ev.name));
+    section.appendChild(head);
+    const body=el('div','card-body');
+    const grid=el('div','grid');
+
+    [['Variant A',ev.variantA],['Variant B',ev.variantB]].forEach(([label,data])=>{
+      const col=el('div','');
+      col.appendChild(el('h3','',label+' — '+(data&&data.grading?data.grading.summary.passed+'/'+data.grading.summary.total:'ungraded')));
+      buildChecks(col,data&&data.grading?data.grading.expectations:null);
+      grid.appendChild(col);
+    });
+    body.appendChild(grid);
+    section.appendChild(body);
+    page.appendChild(section);
+  });
+}
+
+function buildResultsPage(){
+  const page=document.getElementById('results-page');
+  if(!DATA||!DATA.evals||!DATA.evals.length){
+    page.appendChild(el('p','muted','No data loaded.'));
+    return;
+  }
+
+  // ── Helper: render one comparison set ──
+  function renderComparisonSet(parent,title,leftLabel,rightLabel,dataKey){
+    const section=el('div','card');
+    section.style.marginBottom='20px';
+    const head=el('div','card-head');
+    head.appendChild(el('h3','',title));
+    section.appendChild(head);
+    const body=el('div','card-body');
+    let count=0;
+
+    DATA.evals.forEach(ev=>{
+      const bc=ev[dataKey];
+      if(!bc) return;
+      count++;
+      const row=el('div','');
+      row.style.cssText='padding:10px 0;border-bottom:1px solid var(--border)';
+
+      const header=el('div','');
+      header.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px';
+      header.appendChild(el('span','bright',ev.name));
+
+      const winnerText=bc.winner||'?';
+      const winBadge=el('span','label',winnerText);
+      if(winnerText.includes('1')) winBadge.style.cssText='background:var(--accent-dim);color:var(--accent)';
+      else if(winnerText.includes('2')) winBadge.style.cssText='background:var(--green-dim);color:var(--green)';
+      else winBadge.style.cssText='background:#2d2200;color:var(--yellow)';
+      header.appendChild(winBadge);
+      row.appendChild(header);
+
+      const reasoning=el('p','muted',bc.reasoning||'');
+      reasoning.style.fontSize='12px';
+      row.appendChild(reasoning);
+
+      if(bc.scores){
+        const scoreRow=el('div','grid');
+        scoreRow.style.cssText='grid-template-columns:1fr 1fr;gap:12px;margin-top:8px';
+        ['output_1','output_2'].forEach((key,si)=>{
+          const s=bc.scores[key];
+          if(!s)return;
+          const col=el('div','');
+          col.appendChild(el('span','muted',(si===0?leftLabel:rightLabel)+': '+String(s.overall||'?')+'/10'));
+          const dims=el('div','');
+          dims.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin-top:4px';
+          Object.entries(s).forEach(([dim,val])=>{
+            if(dim==='overall')return;
+            const pill=el('span','',dim+':'+val);
+            pill.style.cssText='font-size:10px;padding:1px 6px;border-radius:8px;border:1px solid var(--border);color:'+(val>=7?'var(--green)':val>=5?'var(--yellow)':'var(--red)');
+            dims.appendChild(pill);
+          });
+          col.appendChild(dims);
+          scoreRow.appendChild(col);
+        });
+        row.appendChild(scoreRow);
+      }
+
+      if(bc.notable_differences&&bc.notable_differences.length){
+        const diffs=el('div','');
+        diffs.style.cssText='margin-top:8px;font-size:11px;color:var(--muted)';
+        bc.notable_differences.forEach(d=>{
+          const item=el('div','');
+          item.style.padding='2px 0';
+          item.textContent='\u2022 '+d;
+          diffs.appendChild(item);
+        });
+        row.appendChild(diffs);
+      }
+
+      body.appendChild(row);
+    });
+
+    if(count===0){
+      body.appendChild(el('p','muted','No agent reviews available for this comparison.'));
+    }
+    section.appendChild(body);
+    parent.appendChild(section);
+  }
+
+  // ── Agent Blind Review Results ──
+  renderComparisonSet(page,'Agent Review: A vs B (baseline vs constraints-first)','Output 1 (A)','Output 2 (B)','blind_comparison');
+  renderComparisonSet(page,'Agent Review: B vs C (constraints-first vs workflow-first)','Output 1 (B)','Output 2 (C)','blind_comparison_bc');
+
+  // ── Deterministic Checks Summary ──
+  const detSection=el('div','card');
+  detSection.style.marginBottom='20px';
+  const detHead=el('div','card-head');
+  detHead.appendChild(el('h3','','Deterministic Checks'));
+  detSection.appendChild(detHead);
+  const detBody=el('div','card-body');
+
+  const detTbl=document.createElement('table');
+  const dthead=document.createElement('thead');
+  const dhr=document.createElement('tr');
+  const hasC=DATA.evals.some(ev=>ev.variantC);
+  const detHeaders=['Eval','A: build','A: test','A: vet','B: build','B: test','B: vet'];
+  if(hasC) detHeaders.push('C: build','C: test','C: vet');
+  detHeaders.forEach(h=>{dhr.appendChild(el('th','',h))});
+  dthead.appendChild(dhr);detTbl.appendChild(dthead);
+
+  const dtbody=document.createElement('tbody');
+  DATA.evals.forEach(ev=>{
+    const tr=document.createElement('tr');
+    tr.appendChild(el('td','',ev.name));
+    [ev.variantA,ev.variantB].forEach(v=>{
+      const d=v||{};
+      const bld=d.compiles||'?';
+      const tst=d.tests_pass||'?';
+      const vet=d.govet||'?';
+      tr.appendChild(el('td',bld==='yes'?'d-pos':'d-neg',bld));
+      tr.appendChild(el('td',tst==='yes'?'d-pos':'d-neg',tst));
+      tr.appendChild(el('td',vet==='clean'?'d-pos':'d-neg',vet));
+    });
+    if(hasC){
+      const d=ev.variantC||{};
+      const bld=d.compiles||'?';
+      const tst=d.tests_pass||'?';
+      const vet=d.govet||'?';
+      tr.appendChild(el('td',bld==='yes'?'d-pos':'d-neg',bld));
+      tr.appendChild(el('td',tst==='yes'?'d-pos':'d-neg',tst));
+      tr.appendChild(el('td',vet==='clean'?'d-pos':'d-neg',vet));
+    }
+    dtbody.appendChild(tr);
+  });
+  detTbl.appendChild(dtbody);
+  detBody.appendChild(detTbl);
+  detSection.appendChild(detBody);
+  page.appendChild(detSection);
+
+  // ── Variant Identity Key ──
+  const keySection=el('div','card');
+  const keyHead=el('div','card-head');
+  keyHead.appendChild(el('h3','','Variant Identity Key'));
+  keySection.appendChild(keyHead);
+  const keyBody=el('div','card-body');
+  const variants=[
+    ['A',DATA.variantAName||'Variant A'],
+    ['B',DATA.variantBName||'Variant B'],
+  ];
+  if(DATA.variantCName) variants.push(['C',DATA.variantCName]);
+  variants.forEach(([id,name])=>{
+    const row=el('div','stat');
+    const badge=el('span','label label-'+id.toLowerCase(),id);
+    row.appendChild(badge);
+    row.appendChild(el('span','bright',name));
+    keyBody.appendChild(row);
+  });
+  keySection.appendChild(keyBody);
+  page.appendChild(keySection);
+}
+
+buildReviewPage();
+buildGradesPage();
+buildResultsPage();
+</script>
+</body>
+</html>

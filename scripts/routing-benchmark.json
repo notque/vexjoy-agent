@@ -284,10 +284,9 @@
     },
     {
       "request": "create a new Claude Code skill with quality gates",
-      "expected_agent": "skill-creator-engineer",
-      "expected_skill": "skill-creation-pipeline",
+      "expected_skill": "skill-creator",
       "category": "meta-tooling",
-      "notes": "Skill creation — agent + pipeline pairing"
+      "notes": "Skill creation — skill-creator handles the full eval-driven workflow"
     },
     {
       "request": "create a new hook for PostToolUse events",

@@ -46,7 +46,7 @@ complementing the **bottom-up** retro-knowledge-injector.
 
 ### Hardcoded Behaviors (Always Apply)
 - **Show Plan Before Implementing**: Phase 3 output (ranked upgrade list) MUST be presented to the user and approved before Phase 4 begins. Never silently execute upgrades.
-- **Reuse Domain Agents**: Phase 4 (IMPLEMENT) dispatches to existing domain agents (skill-creator-engineer, agent-creator-engineer, hook-development-engineer, golang-general-engineer, etc.). The upgrade engineer orchestrates; specialists execute.
+- **Reuse Domain Agents**: Phase 4 (IMPLEMENT) dispatches to existing domain agents (skill-creator, agent-creator-engineer, hook-development-engineer, golang-general-engineer, etc.). The upgrade engineer orchestrates; specialists execute.
 - **Parallel Fan-Out**: When 3+ components need the same type of upgrade, dispatch in parallel using multiple Agent tool calls in a single message.
 - **Score Delta Required**: Phase 5 (VALIDATE) must produce before/after evaluation delta, not just "looks good." Use `agent-evaluation` skill.
 - **Trigger Type Determines Input**: The three trigger types (claude-release, goal-change, retro-driven) require different input parsing in Phase 1.
@@ -202,7 +202,7 @@ IMPORTANT (should fix):
   4. skills/go-testing/SKILL.md — Apply new pattern from retro L2 [inject-pattern, ~10min]
 
 MINOR (nice to have):
-  5. agents/skill-creator-engineer.md — Add new frontmatter field docs [upgrade, ~5min]
+  5. agents/skill-creator.md — Add new frontmatter field docs [upgrade, ~5min]
 
 Total: 5 changes across 5 components
 Parallel dispatch: 3 groups (hooks, agents, skills)
@@ -232,10 +232,10 @@ git checkout -b chore/system-upgrade-$(date +%Y-%m-%d)
 | Change Domain | Domain Agent |
 |--------------|-------------|
 | Hook modifications | hook-development-engineer |
-| Agent upgrades | agent-creator-engineer (or skill-creator-engineer for agents) |
-| Skill upgrades | skill-creator-engineer |
+| Agent upgrades | agent-creator-engineer (or skill-creator for agents) |
+| Skill upgrades | skill-creator |
 | Routing changes | routing-table-updater |
-| Pattern injection | skill-creator-engineer or direct Edit |
+| Pattern injection | skill-creator or direct Edit |
 
 **Step 2**: Dispatch parallel agents for independent groups. Use a single message with multiple Agent tool calls for changes that don't depend on each other.
 
@@ -365,7 +365,7 @@ Solution: Manually copy modified files to `~/.claude/` equivalent directories. R
 
 ### Anti-Pattern 2: Handling All Changes Directly Instead of Dispatching
 **What it looks like**: Making all edits inline rather than routing to domain agents
-**Why wrong**: Domain agents (skill-creator-engineer, hook-development-engineer) know the templates and anti-patterns for their domain
+**Why wrong**: Domain agents (skill-creator, hook-development-engineer) know the templates and anti-patterns for their domain
 **Do instead**: Dispatch to domain agents for anything beyond simple pattern injection
 
 ### Anti-Pattern 3: Auditing Everything Every Time
