@@ -55,6 +55,10 @@ while [[ $# -gt 0 ]]; do
             MODE="uninstall"
             shift
             ;;
+        --rollback)
+            MODE="rollback"
+            shift
+            ;;
         --dry-run)
             DRY_RUN=true
             shift
@@ -64,12 +68,13 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --help|-h)
-            echo "Usage: $0 [--symlink|--copy|--uninstall|--dry-run|--force]"
+            echo "Usage: $0 [--symlink|--copy|--uninstall|--rollback|--dry-run|--force]"
             echo ""
             echo "Options:"
             echo "  --symlink    Create symlinks to this repo (recommended for development)"
             echo "  --copy       Copy files to ~/.claude (recommended for stability)"
             echo "  --uninstall  Remove the installation"
+            echo "  --rollback   Restore settings.json from the most recent backup"
             echo "  --dry-run    Show what would happen without making changes"
             echo "  --force      Replace existing directories without prompting"
             echo ""
@@ -146,6 +151,22 @@ uninstall() {
 # Handle uninstall
 if [ "$MODE" = "uninstall" ]; then
     uninstall
+fi
+
+# Handle rollback
+if [ "$MODE" = "rollback" ]; then
+    echo -e "${YELLOW}Rolling back settings.json...${NC}"
+    SETTINGS_FILE="${CLAUDE_DIR}/settings.json"
+    # Find the most recent backup
+    LATEST_BACKUP=$(ls -1t "${SETTINGS_FILE}.backup."* 2>/dev/null | head -1)
+    if [ -z "$LATEST_BACKUP" ]; then
+        echo -e "${RED}Error: No settings.json backup found in ${CLAUDE_DIR}${NC}"
+        exit 1
+    fi
+    echo "  Restoring from: $(basename "$LATEST_BACKUP")"
+    cp "$LATEST_BACKUP" "$SETTINGS_FILE"
+    echo -e "${GREEN}✓ settings.json restored from $(basename "$LATEST_BACKUP")${NC}"
+    exit 0
 fi
 
 # Interactive mode selection
@@ -329,64 +350,29 @@ if [ ! -f "$SETTINGS_FILE" ]; then
     fi
 fi
 
-# Check if hooks are already configured
-if grep -q '"hooks"' "$SETTINGS_FILE" 2>/dev/null; then
-    echo -e "${YELLOW}  Hooks already configured in settings.json${NC}"
-    echo "  Review ${SETTINGS_FILE} to ensure hook paths are correct"
-elif [ "$DRY_RUN" = true ]; then
-    echo -e "${BLUE}  Would configure hooks in ${SETTINGS_FILE}:${NC}"
-    echo -e "${BLUE}    - SessionStart: session-context.py${NC}"
-    echo -e "${BLUE}    - UserPromptSubmit: skill-evaluator.py${NC}"
-    echo -e "${BLUE}    - PostToolUse: post-tool-lint-hint.py, error-learner.py${NC}"
-    echo -e "${BLUE}    - PreCompact: precompact-archive.py${NC}"
-    echo -e "${BLUE}    - Stop: session-summary.py${NC}"
-else
-    # Create a backup
+# Sync hooks from repo's .claude/settings.json (authoritative source)
+if [ "$DRY_RUN" = true ]; then
+    echo -e "${BLUE}  Would sync hooks from ${SCRIPT_DIR}/.claude/settings.json${NC}"
+elif [ -f "${SCRIPT_DIR}/.claude/settings.json" ]; then
+    # Create a backup before modifying
     cp "$SETTINGS_FILE" "${SETTINGS_FILE}.backup"
 
-    # Add hooks configuration
-    # Use Python to safely merge JSON
-    $PYTHON_CMD << EOF
-import json
-import os
-
-settings_file = "$SETTINGS_FILE"
-hooks_dir = "$HOOKS_DIR"
-
-# Read existing settings
-with open(settings_file, 'r') as f:
-    try:
-        settings = json.load(f)
-    except json.JSONDecodeError:
-        settings = {}
-
-# Add hooks configuration if not present
-if 'hooks' not in settings:
-    settings['hooks'] = {
-        "SessionStart": [
-            {"type": "command", "command": f"python3 {hooks_dir}/session-context.py"}
-        ],
-        "UserPromptSubmit": [
-            {"type": "command", "command": f"python3 {hooks_dir}/skill-evaluator.py"}
-        ],
-        "PostToolUse": [
-            {"type": "command", "command": f"python3 {hooks_dir}/post-tool-lint-hint.py"},
-            {"type": "command", "command": f"python3 {hooks_dir}/error-learner.py"}
-        ],
-        "PreCompact": [
-            {"type": "command", "command": f"python3 {hooks_dir}/precompact-archive.py"}
-        ],
-        "Stop": [
-            {"type": "command", "command": f"python3 {hooks_dir}/session-summary.py"}
-        ]
-    }
-
-# Write updated settings
-with open(settings_file, 'w') as f:
-    json.dump(settings, f, indent=2)
-
-print("  ✓ Hooks configured in settings.json")
-EOF
+    # Sync hooks and attribution from repo settings — repo is authoritative
+    $PYTHON_CMD -c "
+import json, sys
+repo = json.load(open('${SCRIPT_DIR}/.claude/settings.json'))
+dst = '${SETTINGS_FILE}'
+try:
+    glob = json.load(open(dst))
+except (FileNotFoundError, json.JSONDecodeError):
+    glob = {}
+glob['hooks'] = repo.get('hooks', {})
+glob.setdefault('attribution', repo.get('attribution', {'commit': '', 'pr': ''}))
+json.dump(glob, open(dst, 'w'), indent=2)
+print('  Hooks configured from .claude/settings.json')
+"
+else
+    echo -e "${YELLOW}  Warning: ${SCRIPT_DIR}/.claude/settings.json not found, skipping hook sync${NC}"
 fi
 
 # Install Python dependencies
@@ -435,6 +421,30 @@ else
     python3 "${SCRIPT_DIR}/scripts/generate-agent-index.py"  >/dev/null 2>&1 && \
         echo -e "${GREEN}  ✓ Agents index regenerated${NC}" || \
         echo -e "${YELLOW}  ⚠ Agents index generation failed (non-critical)${NC}"
+fi
+
+# Write install manifest
+if [ "$DRY_RUN" = true ]; then
+    echo -e "${BLUE}  Would write: ${CLAUDE_DIR}/.install-manifest.json${NC}"
+else
+    SYMLINK_MODE="false"
+    [ "$MODE" = "symlink" ] && SYMLINK_MODE="true"
+    $PYTHON_CMD -c "
+import json, datetime, subprocess, sys
+try:
+    commit = subprocess.check_output(['git', '-C', '${SCRIPT_DIR}', 'rev-parse', '--short', 'HEAD'], text=True, stderr=subprocess.DEVNULL).strip()
+except Exception:
+    commit = 'unknown'
+manifest = {
+    'installed_at': datetime.datetime.utcnow().isoformat() + 'Z',
+    'toolkit_commit': commit,
+    'toolkit_path': '${SCRIPT_DIR}',
+    'mode': 'symlink' if ${SYMLINK_MODE} else 'copy',
+    'components': ['agents', 'skills', 'hooks', 'commands', 'scripts'],
+}
+json.dump(manifest, open('${CLAUDE_DIR}/.install-manifest.json', 'w'), indent=2)
+print('  Install manifest written to ~/.claude/.install-manifest.json')
+" && echo -e "${GREEN}  ✓ Install manifest written${NC}" || echo -e "${YELLOW}  ⚠ Install manifest write failed (non-critical)${NC}"
 fi
 
 if [ "$DRY_RUN" = true ]; then

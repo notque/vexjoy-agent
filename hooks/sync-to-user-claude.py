@@ -260,6 +260,45 @@ def _cleanup_old_backups(user_claude: Path, keep: int = 3) -> None:
             pass
 
 
+def _backup_settings_json(settings_path: Path, keep: int = 3) -> None:
+    """Write a timestamped backup of settings.json before overwriting.
+
+    Matches the CLAUDE.md backup pattern: timestamped file, capped at N,
+    skipped when content is identical to the most recent backup.
+    """
+    import datetime
+
+    if not settings_path.exists():
+        return
+
+    user_claude = settings_path.parent
+    existing_backups = sorted(user_claude.glob("settings.json.backup.*"))
+
+    # Skip backup when content is identical to the most recent backup
+    if existing_backups:
+        try:
+            if filecmp.cmp(settings_path, existing_backups[-1], shallow=False):
+                return
+        except OSError:
+            pass
+
+    timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    backup_path = user_claude / f"settings.json.backup.{timestamp}"
+    try:
+        shutil.copy2(settings_path, backup_path)
+    except OSError:
+        pass
+
+    # Cap at keep most recent backups
+    all_backups = sorted(user_claude.glob("settings.json.backup.*"))
+    if len(all_backups) > keep:
+        for old_backup in all_backups[:-keep]:
+            try:
+                old_backup.unlink()
+            except OSError:
+                pass
+
+
 def main():
     # Only run when in the agents repo
     cwd = Path.cwd()
@@ -401,6 +440,7 @@ def main():
 
             merged = sync_settings(repo_settings, global_settings)
 
+            _backup_settings_json(global_settings_path)
             _atomic_json_write(Path(global_settings_path), merged)
 
             hook_count = sum(len(v) for v in merged.get("hooks", {}).values())
