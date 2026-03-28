@@ -118,16 +118,6 @@ def _format_proposal(topic: str, entries: list[dict], target_file: str | None) -
     return "\n".join(lines)
 
 
-def _migrate_schema(conn: sqlite3.Connection) -> None:
-    """Add graduation_proposed_at column if missing. Idempotent."""
-    try:
-        conn.execute("ALTER TABLE learnings ADD COLUMN graduation_proposed_at TEXT")
-        conn.commit()
-    except sqlite3.OperationalError:
-        # Column already exists — expected on subsequent runs
-        pass
-
-
 def main():
     debug = os.environ.get("CLAUDE_HOOKS_DEBUG")
 
@@ -149,9 +139,6 @@ def main():
         conn.row_factory = sqlite3.Row
 
         try:
-            # Run idempotent migration
-            _migrate_schema(conn)
-
             # Query graduation candidates
             rows = conn.execute(
                 """

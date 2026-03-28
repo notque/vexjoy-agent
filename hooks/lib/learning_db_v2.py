@@ -28,6 +28,8 @@ from pathlib import Path
 
 _DEFAULT_DB_DIR = Path.home() / ".claude" / "learning"
 
+_CURRENT_SCHEMA_VERSION = 2
+
 CATEGORY_DEFAULTS = {
     "error": 0.55,
     "pivot": 0.60,
@@ -102,18 +104,46 @@ def get_connection():
 _initialized = False
 
 
+def _run_migrations(conn: sqlite3.Connection) -> None:
+    """Run pending schema migrations based on PRAGMA user_version."""
+    current = conn.execute("PRAGMA user_version").fetchone()[0]
+
+    if current < 1:
+        # v0 -> v1: Initial version tracking
+        conn.execute("PRAGMA user_version = 1")
+        conn.execute(
+            "INSERT OR IGNORE INTO schema_migrations (version, description) VALUES (1, 'initial version tracking')"
+        )
+
+    if current < 2:
+        # v1 -> v2: Add graduation_proposed_at column (moved from knowledge-graduation-proposer.py)
+        try:
+            conn.execute("ALTER TABLE learnings ADD COLUMN graduation_proposed_at TEXT")
+        except sqlite3.OperationalError:
+            pass  # Column already exists from old ad-hoc migration
+        conn.execute("PRAGMA user_version = 2")
+        conn.execute(
+            "INSERT OR IGNORE INTO schema_migrations (version, description) "
+            "VALUES (2, 'add graduation_proposed_at column to learnings')"
+        )
+
+    conn.commit()
+
+
 def init_db():
     global _initialized
     if _initialized:
         return
     with get_connection() as conn:
+        # Read version before migrations so _migrate_fts knows if triggers were active
+        pre_migration_version = conn.execute("PRAGMA user_version").fetchone()[0]
         conn.executescript(_SCHEMA)
-        conn.commit()
-    _migrate_fts()
+        _run_migrations(conn)
+    _migrate_fts(pre_migration_version)
     _initialized = True
 
 
-def _migrate_fts() -> None:
+def _migrate_fts(pre_migration_version: int = 0) -> None:
     """Rebuild the FTS5 inverted index from the learnings table.
 
     Called once from init_db() on each process start. The 'rebuild'
@@ -124,7 +154,16 @@ def _migrate_fts() -> None:
     index is empty, so we always rebuild on first init.
 
     Rebuild is idempotent and fast (<100ms for hundreds of rows).
+
+    Args:
+        pre_migration_version: The user_version before migrations ran. If >= 1,
+            FTS triggers were active from table creation so the inverted index
+            is already current and the expensive rebuild can be skipped.
     """
+    if pre_migration_version >= 1:
+        # Triggers have maintained the FTS index since the DB was first created
+        return
+
     with get_connection() as conn:
         try:
             main_count = conn.execute("SELECT COUNT(*) FROM learnings").fetchone()[0]
@@ -255,6 +294,12 @@ CREATE INDEX IF NOT EXISTS idx_gov_session   ON governance_events(session_id);
 CREATE INDEX IF NOT EXISTS idx_gov_type      ON governance_events(event_type);
 CREATE INDEX IF NOT EXISTS idx_gov_severity  ON governance_events(severity);
 CREATE INDEX IF NOT EXISTS idx_gov_created   ON governance_events(created_at);
+
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    version INTEGER PRIMARY KEY,
+    applied_at TEXT DEFAULT (datetime('now')),
+    description TEXT
+);
 """
 
 
@@ -355,94 +400,62 @@ def record_learning(
     tags_str = ",".join(tags) if tags else None
 
     with get_connection() as conn:
-        row = conn.execute(
-            "SELECT * FROM learnings WHERE topic = ? AND key = ?",
-            (topic, key),
-        ).fetchone()
-
-        if row:
-            new_confidence = max(row["confidence"], confidence)
-            new_value = value if len(value) > len(row["value"]) else row["value"]
-            new_tags = tags_str if tags_str else row["tags"]
-            obs = row["observation_count"] + 1
-
-            conn.execute(
-                """
-                UPDATE learnings SET
-                    value = ?, confidence = ?, tags = ?,
-                    observation_count = ?, last_seen = ?,
-                    source = ?, source_detail = ?,
-                    error_signature = COALESCE(?, error_signature),
-                    error_type = COALESCE(?, error_type),
-                    fix_type = COALESCE(?, fix_type),
-                    fix_action = COALESCE(?, fix_action)
-                WHERE topic = ? AND key = ?
-                """,
-                (
-                    new_value,
-                    new_confidence,
-                    new_tags,
-                    obs,
-                    now,
-                    source,
-                    source_detail,
-                    error_signature,
-                    error_type,
-                    fix_type,
-                    fix_action,
-                    topic,
-                    key,
-                ),
-            )
-            conn.commit()
-            return {
-                "topic": topic,
-                "key": key,
-                "value": new_value,
-                "category": category,
-                "confidence": new_confidence,
-                "observation_count": obs,
-                "is_new": False,
-            }
-        else:
-            conn.execute(
-                """
-                INSERT INTO learnings
+        conn.execute(
+            """
+            INSERT INTO learnings
                 (topic, key, value, category, confidence, tags,
                  source, source_detail, project_path, session_id,
                  first_seen, last_seen,
                  error_signature, error_type, fix_type, fix_action)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    topic,
-                    key,
-                    value,
-                    category,
-                    confidence,
-                    tags_str,
-                    source,
-                    source_detail,
-                    project_path,
-                    session_id,
-                    now,
-                    now,
-                    error_signature,
-                    error_type,
-                    fix_type,
-                    fix_action,
-                ),
-            )
-            conn.commit()
-            return {
-                "topic": topic,
-                "key": key,
-                "value": value,
-                "category": category,
-                "confidence": confidence,
-                "observation_count": 1,
-                "is_new": True,
-            }
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(topic, key) DO UPDATE SET
+                value = CASE WHEN length(excluded.value) > length(value) THEN excluded.value ELSE value END,
+                confidence = max(confidence, excluded.confidence),
+                observation_count = observation_count + 1,
+                last_seen = excluded.last_seen,
+                source = excluded.source,
+                source_detail = excluded.source_detail,
+                tags = COALESCE(excluded.tags, tags),
+                error_signature = COALESCE(excluded.error_signature, error_signature),
+                error_type = COALESCE(excluded.error_type, error_type),
+                fix_type = COALESCE(excluded.fix_type, fix_type),
+                fix_action = COALESCE(excluded.fix_action, fix_action)
+            """,
+            (
+                topic,
+                key,
+                value,
+                category,
+                confidence,
+                tags_str,
+                source,
+                source_detail,
+                project_path,
+                session_id,
+                now,
+                now,
+                error_signature,
+                error_type,
+                fix_type,
+                fix_action,
+            ),
+        )
+        conn.commit()
+
+        row = conn.execute(
+            "SELECT value, confidence, observation_count FROM learnings WHERE topic = ? AND key = ?",
+            (topic, key),
+        ).fetchone()
+        is_new = row["observation_count"] == 1
+        return {
+            "topic": topic,
+            "key": key,
+            "value": row["value"],
+            "category": category,
+            "confidence": row["confidence"],
+            "observation_count": row["observation_count"],
+            "is_new": is_new,
+        }
 
 
 def query_learnings(
@@ -924,6 +937,47 @@ def get_stats() -> dict:
             "sessions_tracked": sessions_count,
             "learnings_per_session": round(learnings_per_session, 2),
         }
+
+
+def prune_ancillary(
+    governance_days: int = 180,
+    sessions_days: int = 365,
+    activations_days: int = 90,
+) -> dict[str, int]:
+    """Prune old rows from ancillary tables. Returns per-table deletion counts.
+
+    Args:
+        governance_days: Delete governance_events older than this many days.
+        sessions_days: Delete sessions and session_stats older than this many days.
+        activations_days: Delete activations older than this many days.
+
+    Returns:
+        Dict mapping table name to number of rows deleted.
+    """
+    init_db()
+    counts: dict[str, int] = {}
+
+    # Table name → (timestamp column, cutoff days)
+    table_specs = [
+        ("governance_events", "created_at", governance_days),
+        ("sessions", "start_time", sessions_days),
+        ("session_stats", "created_at", sessions_days),
+        ("activations", "timestamp", activations_days),
+    ]
+
+    with get_connection() as conn:
+        for table, ts_col, days in table_specs:
+            try:
+                cursor = conn.execute(
+                    f"DELETE FROM {table} WHERE {ts_col} < datetime('now', ?)",
+                    (f"-{days} days",),
+                )
+                counts[table] = cursor.rowcount
+            except sqlite3.OperationalError:
+                counts[table] = 0  # Table may not exist yet
+        conn.commit()
+
+    return counts
 
 
 def prune(min_confidence: float = 0.3, older_than_days: int = 90) -> int:
