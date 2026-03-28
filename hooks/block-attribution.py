@@ -46,12 +46,12 @@ def main() -> None:
         print(json.dumps({}))
         return
 
-    tool = data.get("tool", "")
+    tool = data.get("tool_name") or data.get("tool", "")
     if tool != "Bash":
         print(json.dumps({}))
         return
 
-    command = data.get("input", {}).get("command", "")
+    command = data.get("tool_input", data.get("input", {})).get("command", "")
     match = FORBIDDEN_RE.search(command)
     if match:
         # Exit code 2 = block the tool use

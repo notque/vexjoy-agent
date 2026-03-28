@@ -96,7 +96,7 @@ def main():
         filename = Path(file_path).name
         print(f"[lint-hint] {filename} modified. Consider: {linter}")
 
-    except (json.JSONDecodeError, Exception) as e:
+    except Exception as e:
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             import traceback
 

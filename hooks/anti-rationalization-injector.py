@@ -50,8 +50,8 @@ def main():
 
         if messages:
             print("\n".join(messages))
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[anti-rationalization] HOOK-CRASH: {type(e).__name__}: {e}", file=sys.stderr)
 
 
 if __name__ == "__main__":
