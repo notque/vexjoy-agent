@@ -57,7 +57,6 @@ routing:
     - systematic-code-review
     - parallel-code-review
     - systematic-code-review
-  force_routing: false
   complexity: Complex
   category: review
 ---

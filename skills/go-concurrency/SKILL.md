@@ -44,7 +44,6 @@ routing:
   pairs_with:
     - golang-general-engineer
     - golang-general-engineer-compact
-  force_routing: true
 ---
 
 # Go Concurrency Skill

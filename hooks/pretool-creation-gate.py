@@ -76,7 +76,7 @@ def main() -> None:
         sys.exit(0)
 
     # Allow overwrites of existing files (this is an update, not creation)
-    if os.path.exists(file_path):
+    if Path(file_path).exists():
         sys.exit(0)
 
     # Block: new agent or skill file being created outside the creator pipeline

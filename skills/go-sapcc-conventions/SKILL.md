@@ -27,7 +27,6 @@ routing:
     - golang-general-engineer-compact
     - go-testing
     - go-error-handling
-  force_routing: true
   complexity: Comprehensive
   category: language
 ---

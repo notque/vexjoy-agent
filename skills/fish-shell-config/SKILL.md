@@ -33,7 +33,7 @@ routing:
     - .fish file
     - "#!/usr/bin/env fish"
   pairs_with: []
-  force_routing: true
+  force_route: true
 ---
 
 # Fish Shell Configuration Skill
