@@ -5,7 +5,7 @@ description: |
   GitHub PR history. Use when mining review comments, extracting coding rules,
   tracking mining jobs, or analyzing reviewer patterns across repositories.
   Use for "mine PRs", "extract standards", "coding rules from reviews", or
-  "reviewer patterns". Do NOT use for code review, linting, static analysis,
+  "reviewer patterns". Route to other skills for code review, linting, static analysis,
   or writing new coding standards from scratch without PR data.
 version: 2.0.0
 user-invocable: false
@@ -47,7 +47,7 @@ fish -c "ls ~/.claude/skills/pr-miner/scripts/miner.py"
 
 Expected: File exists at path.
 
-**Constraint**: Never skip this step. Miner script must exist before mining can run.
+**Constraint**: Always complete this step. Miner script must exist before mining can run.
 
 **Step 2: Verify GitHub token**
 
@@ -57,7 +57,7 @@ fish -c "security find-internet-password -s github.com -w 2>/dev/null"
 
 Expected: Token printed (ghp_...).
 
-**Constraint**: Always extract token from keychain using `security find-internet-password -s github.com -w`. Never hardcode or accept tokens from user input. If empty, user must add token with `security add-internet-password`.
+**Constraint**: Always extract token from keychain using `security find-internet-password -s github.com -w`. Always extract tokens from keychain. If empty, user must add token with `security add-internet-password`.
 
 **Step 3: Verify reviewer username (if filtering by reviewer)**
 
@@ -67,7 +67,7 @@ fish -c "gh pr list --repo {org/repo} --search 'reviewed-by:{username}' --limit 
 
 Expected: PR results confirm username is valid and active.
 
-**Constraint**: Username verification is MANDATORY when user specifies --reviewer flag. Silently wrong usernames cause 0 interactions after 5+ minutes of wasted API quota. Verify before mining, not after. (Anti-pattern #1)
+**Constraint**: Username verification is MANDATORY when user specifies --reviewer flag. Silently wrong usernames cause 0 interactions after 5+ minutes of wasted API quota. Verify before mining, not after. (Pattern #1)
 
 **Gate**: Miner script exists, token available, reviewer verified if applicable. Proceed only when gate passes.
 
@@ -87,7 +87,7 @@ fish -c "set -x GITHUB_TOKEN (security find-internet-password -s github.com -w 2
 
 See `references/mining-commands.md` for full command patterns and flag reference.
 
-**Constraint - Background Execution**: Always run mining with `&` (ampersand suffix) to background the job. Never block on mining operations. Capture and store the background job PID for tracking.
+**Constraint - Background Execution**: Always run mining with `&` (ampersand suffix) to background the job. Run mining operations in the background. Capture and store the background job PID for tracking.
 
 **Constraint - GitHub Token Source**: Always extract token from keychain inline with `security find-internet-password -s github.com -w`. Export as GITHUB_TOKEN environment variable before calling miner.py. No other token sources are acceptable.
 
@@ -99,9 +99,9 @@ Monitor background job with BashOutput tool. Check every 30-60 seconds. Report p
 
 **Step 3: Handle multiple repos**
 
-Run jobs sequentially. Wait for each to complete before starting next. Never start new job until previous finishes.
+Run jobs sequentially. Wait for each to complete before starting next. Wait for each job to complete before starting the next.
 
-**Constraint - Sequential by Default**: Running multiple mining jobs in parallel exhausts the 5000 requests/hour API quota faster than you can track which job caused the failure. Sequential mining prevents rate limit cascades and makes attribution clear. (Anti-pattern #2) Only enable concurrency if explicitly requested AND user understands rate limit risk.
+**Constraint - Sequential by Default**: Running multiple mining jobs in parallel exhausts the 5000 requests/hour API quota faster than you can track which job caused the failure. Sequential mining prevents rate limit cascades and makes attribution clear. (Pattern #2) Only enable concurrency if explicitly requested AND user understands rate limit risk.
 
 **Gate**: Mining job completes with non-zero interaction count. If job exits with 0 interactions, see Error Handling "0 interactions found" section.
 
@@ -140,13 +140,13 @@ Confirm JSON matches expected schema:
 }
 ```
 
-**Constraint**: If `interaction_count` is 0, do NOT proceed to Phase 4. Instead, check Error Handling section "0 interactions found" for diagnosis. Common causes: wrong reviewer username (should have caught in Phase 1), no PR activity in date range, or repo has no review comments (only approvals).
+**Constraint**: If `interaction_count` is 0, stop and resolve before proceeding to Phase 4. Instead, check Error Handling section "0 interactions found" for diagnosis. Common causes: wrong reviewer username (should have caught in Phase 1), no PR activity in date range, or repo has no review comments (only approvals).
 
 **Step 3: Check interaction quality**
 
 Verify interactions have: pr_number, pr_title, comment text. Code pairs (code_before/code_after) are strongly preferred but not mandatory. Interactions without code pairs can still produce rules but are lower value.
 
-**Constraint - Prevent Flat Dumps**: Do not proceed to Phase 4 without checking that `interaction_count > 0`. Attempting to generate rules from empty results wastes time and produces nothing usable. Empty results signal a problem to diagnose, not a success to report.
+**Constraint - Prevent Flat Dumps**: Confirm `interaction_count > 0` before proceeding to Phase 4. Checking that `interaction_count > 0`. Attempting to generate rules from empty results wastes time and produces nothing usable. Empty results signal a problem to diagnose, not a success to report.
 
 **Gate**: Output JSON is valid, interaction_count > 0, interactions have required fields. Proceed only when gate passes.
 
@@ -158,7 +158,7 @@ Verify interactions have: pr_number, pr_title, comment text. Code pairs (code_be
 
 Read mined JSON. Group interactions by topic using standard categories from `references/pattern-categories.md`. Example categories: Error Handling, Testing, API Design, Concurrency, Performance, Naming, Documentation, Security, Refactoring, Tooling.
 
-**Constraint - Mandatory Categorization**: Do NOT generate a flat numbered list of 50 patterns. Flat lists are overwhelming, unscannable, and lose priority context. Organize by topic, then by confidence within topic. (Anti-pattern #3)
+**Constraint - Mandatory Categorization**: Organize patterns by topic with confidence ranking of 50 patterns. Flat lists are overwhelming, unscannable, and lose priority context. Organize by topic, then by confidence within topic. (Pattern #3)
 
 **Step 2: Score confidence**
 
@@ -221,7 +221,7 @@ Provide:
 
 **Constraint - Report Clarity**: Show actual numbers and paths, not generic summaries. Example good report: "Analyzed 150 PRs, extracted 42 interactions. HIGH confidence (12 patterns): Error handling (5), Testing (4), Naming (3). MEDIUM confidence: 18 patterns. LOW confidence: 12 patterns. Rules: ~/.claude/skills/pr-miner/rules/myrepo_coding_rules.md"
 
-**Constraint - Communication Style**: Report facts without self-congratulation. Show what happened and where the output is. Avoid "Mining went great!" — instead say "Mined 42 interactions from 150 PRs."
+**Constraint - Communication Style**: Report facts without self-congratulation. Show what happened and where the output is. Report facts directly: "Mined 42 interactions from 150 PRs" — keep the tone factual.
 
 **Gate**: User has file paths, pattern counts, and top patterns. They can immediately act on the rules markdown.
 
@@ -267,14 +267,14 @@ Solution:
 1. Senior reviewers often use questions and suggestions instead of imperative statements
 2. Default mining mode captures only imperative comments
 3. Re-run with `--all-comments` flag to capture all comment types
-4. For future runs: always use `--all-comments` when mining experienced reviewers (Anti-pattern #4)
+4. For future runs: always use `--all-comments` when mining experienced reviewers (Pattern #4)
 
 ### Error: "Multi-repo mining fails partway through"
 Cause: Running 5+ repos in parallel, early jobs exhaust rate limits, later jobs fail
 Solution:
 1. Check remaining rate quota with `gh rate-limit`
 2. If critically low (<150 remaining): wait for reset before retrying
-3. For future runs: test with a single repo and `--limit 10` first. Expand incrementally after confirming access works. (Anti-pattern #5)
+3. For future runs: test with a single repo and `--limit 10` first. Expand incrementally after confirming access works. (Pattern #5)
 
 ---
 

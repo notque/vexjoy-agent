@@ -6,7 +6,7 @@ description: |
   framing, and suggests reframes. Use when user says "joy check", "check
   framing", "tone check", "negative framing", "is this too negative", or
   "reframe this positively". Use for any content where positive, curious,
-  generous framing matters. Do NOT use for voice validation (use
+  generous framing matters. Route to other skills for voice validation (use
   voice-validator), AI pattern detection (use anti-ai-editor), or grammar
   and style editing.
 version: 1.0.0
@@ -59,11 +59,11 @@ python3 ~/.claude/scripts/scan-negative-framing.py [file]
 
 **Step 2: Handle regex hits**
 
-If the scanner finds hits, these are obvious negative framing patterns (victimhood, accusation, bitterness, passive aggression). Report them to the user with the scanner's suggested reframes. These do not require LLM evaluation -- the regex patterns are high-confidence matches.
+If the scanner finds hits, these are obvious negative framing patterns (victimhood, accusation, bitterness, passive aggression). Report them to the user with the scanner's suggested reframes. These are high-confidence regex matches -- the regex patterns are high-confidence matches.
 
 If `--fix` mode is active, apply the scanner's suggested reframes and re-run to confirm clean.
 
-**GATE**: Regex scan returns zero hits. If hits remain after reporting/fixing, do NOT proceed to Phase 2 -- the obvious patterns must be resolved first. Proceeding with known regex hits would waste LLM analysis on paragraphs that need mechanical fixes.
+**GATE**: Regex scan returns zero hits. If hits remain after reporting/fixing, stop and resolve before proceeding to Phase 2 -- the obvious patterns must be resolved first. Proceeding with known regex hits would waste LLM analysis on paragraphs that need mechanical fixes.
 
 ### Phase 2: ANALYZE
 
@@ -93,7 +93,7 @@ When evaluating, watch for these subtle patterns that the regex scanner cannot c
 - **Passive-aggressive factuality** ("The timeline shows X. The repo was created Y days later. I'll let you draw your own conclusions."): Presenting facts in prosecution order is framing, not neutrality. "I'll let you draw your own conclusions" deputizes the reader as jury. Flag and recommend including facts where relevant to the experience, not as evidence.
 - **Reluctant generosity** ("I'm not saying they did anything wrong, BUT..."): The "but" negates the generosity. This is grievance wearing a generous mask. Flag and recommend being generous without qualification, or acknowledging the complexity directly.
 
-Do not dismiss a paragraph as "fine because it's factual." Facts arranged as prosecution are framing, not neutrality -- evaluate the *arrangement* of facts, not just their accuracy. Similarly, do not excuse grievance framing because the author's feelings are justified. The skill checks framing, not whether the underlying feeling is earned.
+Evaluate every paragraph, including factual ones. Facts arranged as prosecution are framing, not neutrality -- evaluate the *arrangement* of facts, not just their accuracy. Similarly, flag grievance framing regardless of whether because the author's feelings are justified. The skill checks framing, not whether the underlying feeling is earned.
 
 **Step 3: Score each paragraph**
 
@@ -103,7 +103,7 @@ For each paragraph, assign one of:
 - **CAUTION** (30-49): Leans toward grievance but recoverable with reframing
 - **GRIEVANCE** (0-29): Frames through accusation, victimhood, or bitterness
 
-For any paragraph scored CAUTION or GRIEVANCE, draft a specific reframe suggestion that preserves the substance while shifting the framing toward curiosity or generosity. Remember: reframing is editorial craft, not dishonesty. The substance stays the same; only the lens changes. A single GRIEVANCE paragraph poisons the tonal arc of the whole piece, so do not treat it as minor.
+For any paragraph scored CAUTION or GRIEVANCE, draft a specific reframe suggestion that preserves the substance while shifting the framing toward curiosity or generosity. Remember: reframing is editorial craft, not dishonesty. The substance stays the same; only the lens changes. A single GRIEVANCE paragraph poisons the tonal arc of the whole piece, so treat it as minor.
 
 If a paragraph seems "too subtle to flag," that is precisely when flagging matters most. Subtle grievance is what the regex scanner misses, making it the primary purpose of this LLM analysis phase.
 
@@ -212,7 +212,7 @@ architecture I'd spent months developing and writing about.
 ```
 If the ideas are going to spread through AI's training data anyway, if
 Claude is going to absorb my blog posts and hand the architecture to
-people who don't know where it came from, then I might as well just
+people who are unaware of where it came from, then I might as well just
 give up trying to get credit.
 ```
 
@@ -249,7 +249,7 @@ it, and be understood.
 
 **GRIEVANCE (FAIL):**
 ```
-I don't know how to fix the provenance problem. But I'm going to keep
+I have no answer for the provenance problem. But I'm going to keep
 documenting my work publicly so at least there's a record. If nothing
 else, the timestamps speak for themselves.
 ```
@@ -277,7 +277,7 @@ timeline doesn't lie.
 Claude doesn't cite its sources. There's no way for any of us to tell
 whether our AI-assisted work drew on someone else's blog post or was
 synthesized fresh. The honest answer to "where did this architecture
-come from?" might be "I built it with Claude and I don't know what
+come from?" might be "I built it with Claude and I have no way of knowing what
 Claude drew on." That's true for everyone using these tools. Including me.
 ```
 

@@ -91,7 +91,7 @@ This agent operates as an operator for language-specific code review, configurin
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md language conventions before analysis.
-- **Over-Engineering Prevention**: Report actual pattern issues found in code. Do not invent theoretical idiom violations without evidence.
+- **Over-Engineering Prevention**: Report actual pattern issues found in code. Ground every finding in evidence from the codebase.
 - **Language Detection**: Detect the language from file extensions (.go, .py, .ts, .tsx) and apply the corresponding expert-level checks.
 - **Version Citations**: Every modern stdlib recommendation must cite the language version that introduced the feature.
 - **Structured Output**: All findings must use the Language Review Schema with severity classification.
@@ -165,7 +165,7 @@ This agent operates as an operator for language-specific code review, configurin
 
 **Resources**:
 - `defer Close()` must come AFTER the error check on the open call
-- Connection pool sharing (do not create per-request clients)
+- Connection pool sharing (reuse shared clients across requests)
 - `http.DefaultClient` reuse vs creating new clients
 - File descriptor limits awareness
 
@@ -258,7 +258,7 @@ This agent operates as an operator for language-specific code review, configurin
 - Proper hook dependency arrays (exhaustive deps)
 - `memo` only with measured performance justification
 - Server Components vs Client Components distinction
-- Avoid `useEffect` for data fetching (use framework data loading)
+- Use framework data loading instead of `useEffect` for data fetching
 
 **Anti-patterns**:
 - `any` overuse instead of proper types or `unknown`
@@ -397,15 +397,15 @@ Common language review scenarios.
 
 ### Mixed Language Codebase
 **Cause**: PR contains files in multiple languages.
-**Solution**: Apply each language's checks independently to its own files. Report findings grouped by language. Do not cross-contaminate idiom expectations between languages.
+**Solution**: Apply each language's checks independently to its own files. Report findings grouped by language. Keep idiom expectations scoped to their own language.
 
 ### Framework-Specific Patterns
 **Cause**: Code follows framework conventions that may contradict general language idioms.
 **Solution**: Note: "Pattern at [file:line] follows [framework] conventions which differ from general [language] idioms. Framework conventions take precedence here."
 
-## Anti-Patterns
+## Preferred Patterns
 
-Language review anti-patterns to avoid.
+Language review patterns to follow.
 
 ### Applying Wrong Language Idioms
 **What it looks like**: Expecting Python-style comprehensions in Go or Go-style error returns in Python.
@@ -438,14 +438,14 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 | "Tests pass so it's fine" | Tests verify behavior, not code quality | Review quality independently of test results |
 | "Everyone writes it this way" | Popular != idiomatic; check official style guides | Cite official language style guide |
 
-## FORBIDDEN Patterns (Analysis Integrity)
+## Hard Boundary Patterns (Analysis Integrity)
 
 These patterns violate language review integrity. If encountered:
-1. STOP - Do not proceed
+1. STOP - Pause execution
 2. REPORT - Explain the issue
 3. RECOMMEND - Suggest proper approach
 
-| Pattern | Why FORBIDDEN | Correct Approach |
+| Pattern | Why It Violates Integrity | Correct Approach |
 |---------|---------------|------------------|
 | Applying Go idioms to Python code | Cross-language contamination | Detect language, apply correct checks |
 | Ignoring language version context | May recommend unavailable features | Always cite version, default to latest stable |
@@ -455,7 +455,7 @@ These patterns violate language review integrity. If encountered:
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (always get explicit approval) before proceeding when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|

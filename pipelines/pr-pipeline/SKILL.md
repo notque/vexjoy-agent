@@ -58,7 +58,7 @@ REPO_TYPE=$(python3 ~/.claude/scripts/classify-repo.py --type-only)
 
 | Repo Type | Review Policy | Merge Policy | Step Execution |
 |-----------|--------------|--------------|----------------|
-| `protected-org` | Phase 2 parallel review only (their reviewers handle comprehensive review) | **NEVER auto-merge**. Create PR, report URL, stop. | **Human-gated**: confirm commit message, push, and PR creation with user before each step |
+| `protected-org` | Phase 2 parallel review only (their reviewers handle comprehensive review) | **Create PR, report URL, stop** — merge is handled by org reviewers. | **Human-gated**: confirm commit message, push, and PR creation with user before each step |
 | `personal` | Phase 2 parallel review + Phase 4b review-fix loop (max 3 iterations of `/pr-review` -> fix) | Create PR after review passes | Auto-execute steps normally |
 
 Protected-org repos require user confirmation before EACH step (commit message approval, push approval, PR creation approval) because unauthorized actions in shared org repos can trigger CI storms, notify entire teams, or violate org policies. Never auto-execute any of these steps -- present the proposed action and wait for user approval.
@@ -229,7 +229,7 @@ See `references/review-fix-loop.md` for the full loop logic, steps 1-5 with code
 
 ### Phase 4c: RETRO (toolkit repo only)
 
-**Goal**: Record review findings as retro learnings, graduate them, and embed patterns in the responsible agents/skills so they don't recur.
+**Goal**: Record review findings as retro learnings, graduate them, and embed patterns in the responsible agents/skills to prevent recurrence.
 
 **Skip condition**: If the repo is NOT the claude-code-toolkit repo, skip this phase entirely. Detection: check if both `agents/` and `skills/` directories exist at the project root. If either is missing, skip directly to Phase 5.
 
@@ -403,7 +403,7 @@ Solution:
 ### Error: "Sensitive File Detected in Staging"
 Cause: User's changes include .env, credentials, keys, or other secrets
 Solution:
-1. STOP immediately -- do not stage the sensitive file
+1. STOP immediately -- exclude the sensitive file from staging
 2. Report which file(s) were blocked and why
 3. Ask user to confirm exclusion or add to .gitignore
 4. Resume pipeline with sensitive files excluded

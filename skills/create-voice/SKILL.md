@@ -7,7 +7,7 @@ description: |
   Use when creating a new voice, starting voice calibration, or
   building a voice profile from scratch. Use for "create voice",
   "new voice", "build voice", "voice from samples", "calibrate voice".
-  Do NOT use for generating content in an existing voice (use
+  Route to other skills for generating content in an existing voice (use
   voice-orchestrator), editing content (use anti-ai-editor), or
   comparing voices (use voice-calibrator compare mode).
 version: 1.0.0
@@ -72,11 +72,11 @@ The pipeline has 7 phases. Each phase produces artifacts saved to files (because
 
 **Goal**: Build a corpus of real writing that captures the full range of the person's voice.
 
-Do NOT proceed past this step without 50+ samples, because the system tried with 3-10 and FAILED. 50+ is where it starts working. LLMs are pattern matchers -- rules tell AI what to do but samples show AI what the voice looks like. V7-V9 had correct rules but failed authorship matching (0/5 roasters). V10 passed 5/5 because it had 100+ categorized samples.
+Stop and resolve before proceeding past this step without 50+ samples, because the system tried with 3-10 and FAILED. 50+ is where it starts working. LLMs are pattern matchers -- rules tell AI what to do but samples show AI what the voice looks like. V7-V9 had correct rules but failed authorship matching (0/5 roasters). V10 passed 5/5 because it had 100+ categorized samples.
 
 See `references/sample-collection.md` for the "Where to Find Samples" table, "Sample Quality Guidelines", "Directory Setup", and "Sample File Format".
 
-**GATE**: Count the samples. If fewer than 50 distinct writing samples exist across all files, STOP. Tell the user how many more are needed and where to find them. Do NOT proceed.
+**GATE**: Count the samples. If fewer than 50 distinct writing samples exist across all files, STOP. Tell the user how many more are needed and where to find them. Stop and resolve before proceeding.
 
 ```
 Phase 1/7: COLLECT
@@ -193,7 +193,7 @@ Phase 4/7: RULE
 
 **Goal**: Generate the complete voice skill files following the voice-calibrator template.
 
-NEVER modify voice_analyzer.py, voice_validator.py, banned-patterns.json, voice-calibrator, voice-orchestrator, or any existing skill/script, because the existing tools work. This skill only creates new files in `skills/voice-{name}/`.
+keep modifications out of scope — voice_analyzer.py, voice_validator.py, banned-patterns.json, voice-calibrator, voice-orchestrator, or any existing skill/script, because the existing tools work. This skill only creates new files in `skills/voice-{name}/`.
 
 Before generating, show users any existing voice implementation in `skills/voice-*/` as a concrete example of "done", because reference implementations ground expectations.
 
@@ -289,7 +289,7 @@ Phase 6/7: VALIDATE
 
 ### Step 7: ITERATE -- Refine Until Authentic
 
-**Goal**: Test the voice against human judgment through authorship matching, because metrics measure surface features but humans detect deeper patterns -- the "feel" of a voice. A piece can pass all metrics and still feel synthetic. Do not treat validation passing as completion.
+**Goal**: Test the voice against human judgment through authorship matching, because metrics measure surface features but humans detect deeper patterns -- the "feel" of a voice. A piece can pass all metrics and still feel synthetic. Treat validation as one gate among several.
 
 Maximum 3 iterations in this step before escalating to user.
 
@@ -303,7 +303,7 @@ Maximum 3 iterations in this step before escalating to user.
 
 #### If Authorship Matching Fails
 
-The answer is almost always MORE SAMPLES, not more rules, because adding "just one more rule" was tried through V7-V9 and never worked -- what worked was adding 100+ categorized samples in V10.
+The answer is almost always MORE SAMPLES, not more rules, because adding "just one more rule" was tried through V7-V9 and produced zero improvement -- what worked was adding 100+ categorized samples in V10.
 
 | Failure Pattern | Diagnosis | Fix |
 |----------------|-----------|-----|
@@ -332,7 +332,7 @@ Before declaring the voice complete, verify:
 - [ ] Run-on sentences appear at approximately the same rate as in the original samples
 - [ ] Fragments appear for emphasis, matching sample patterns
 - [ ] Typos from the natural typos list appear occasionally (not forced)
-- [ ] Content does NOT read like polished professional writing (unless the original voice IS polished)
+- [ ] Content reads with the same level of polish as the original samples (unless the original voice IS polished)
 - [ ] If content is too perfect, the skill needs MORE samples and LOOSER constraints, not fewer
 - [ ] If generated content "feels too rough," compare against original samples before adjusting -- if it matches the samples' roughness, it's correct
 
@@ -377,7 +377,7 @@ After all phases complete:
 **Solution**:
 1. Count current samples and report the gap
 2. Suggest specific sources based on what's already provided (e.g., "You have 20 Reddit comments. Try also pulling from HN history, blog posts, or email")
-3. Do NOT proceed past Step 1. The system does not work with fewer than 50 samples.
+3. Stop and resolve before proceeding past Step 1. The system does not work with fewer than 50 samples.
 
 ### Error: "voice_analyzer.py fails"
 
@@ -410,7 +410,7 @@ After all phases complete:
 1. Check that all sample categories are populated (length-based AND pattern-based)
 2. Verify all template sections are present
 3. Add more samples -- they are the bulk of the line count
-4. Do NOT pad with verbose rules. The goal is 2000+ lines of USEFUL content, primarily samples.
+4. Keep content substantive — with verbose rules. The goal is 2000+ lines of USEFUL content, primarily samples.
 
 ### Error: "Wabi-sabi violations flagged as errors"
 

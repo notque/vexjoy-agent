@@ -55,7 +55,7 @@ Layer 3: VALIDATION -- Regenerate the affected skills + re-test
   -> PROVE (empirical evidence the fix actually works end-to-end)
 ```
 
-The critical discipline: we NEVER patch a generated skill directly. Every fix goes through the generator so all future pipelines benefit. This is what makes the system self-improving rather than self-patching.
+The critical discipline: route every fix through the generator so all future pipelines benefit. Direct skill patches teach the system nothing; generator-level fixes propagate to all future pipelines. This is what makes the system self-improving rather than self-patching.
 
 ---
 
@@ -74,7 +74,7 @@ These are provided by `pipeline-orchestrator-engineer` when invoking Phase 6 (RE
 
 **Goal**: Load the test runner report and build a failure inventory.
 
-**Hardcoded Constraint**: If all results are PASS, produce a minimal report and exit—do not proceed to Phase 2.
+**Hardcoded Constraint**: If all results are PASS, produce a minimal report and exit—skip directly to the final report.
 
 **Step 1**: Read the test runner `manifest.json`. Extract:
 - `status`: overall pipeline test status
@@ -109,7 +109,7 @@ Save the failure inventory to `/tmp/pipeline-retro-{domain}/failure-inventory.md
 
 **Goal**: For each failure, trace it to a specific link in the 5-link generation chain.
 
-**Hardcoded Constraint**: NEVER propose a generator fix without first tracing the failure to a specific link. Fixing the wrong link wastes a regeneration cycle. The 5-link chain analysis ensures you fix the root cause, not a symptom.
+**Hardcoded Constraint**: Trace every failure to a specific link before proposing a generator fix. Fixing the wrong link wastes a regeneration cycle. The 5-link chain analysis ensures you fix the root cause, not a symptom.
 
 The generation chain has 5 links. Each link is a component of the pipeline generator that contributed to the final output. The failure was introduced at one of these links -- the goal is to identify which one.
 
@@ -162,7 +162,7 @@ Save the trace analysis to `/tmp/pipeline-retro-{domain}/trace-analysis.md`.
 
 **Goal**: For each root cause, propose a specific fix to the generator component.
 
-**Hardcoded Constraint**: NEVER add a rule to `architecture-rules.md` without citing the specific test failure that proved it necessary. Rules earn their place through data. Rules without evidence accumulate into bloat that slows every future generation.
+**Hardcoded Constraint**: Every rule added to `architecture-rules.md` must cite the specific test failure that proved it necessary. Rules earn their place through data. Rules without evidence accumulate into bloat that slows every future generation.
 
 **Hardcoded Constraint**: For complex fixes (new step types, restructured chains), present for review rather than auto-applying. For trivial fixes (template typos, missing rules with clear evidence), apply directly.
 
@@ -183,7 +183,7 @@ Save the trace analysis to `/tmp/pipeline-retro-{domain}/trace-analysis.md`.
 - Propose: Fixing the chain-to-phase mapping for the affected step family, correcting template variable substitution, or adding missing template sections
 - Evidence required: Show the template output vs. what it should have produced
 
-**`missing-rule`** -- Architecture rules don't cover this case.
+**`missing-rule`** -- Architecture rules lack coverage for this case.
 - Target: `pipelines/pipeline-scaffolder/references/architecture-rules.md`
 - Propose: A new rule with full format: Rule N, BANNED/REQUIRED statement, evidence citation, test/enforcement guidance
 - Evidence required: The failure trace that proves the rule is necessary. Per the ADR: "Rules earn their place through data."
@@ -197,7 +197,7 @@ Save the trace analysis to `/tmp/pipeline-retro-{domain}/trace-analysis.md`.
 **`test-target-issue`** -- The test target was inadequate.
 - Target: The test runner configuration, not the generator
 - Propose: Better test targets or adjusted grading criteria
-- Note: This is NOT a generator fix. Document it in the report but do not modify generator components.
+- Note: This is a test target fix, not a generator fix. Document it in the report and leave generator components unchanged.
 
 **For each proposed fix**:
 
@@ -206,7 +206,7 @@ Save the trace analysis to `/tmp/pipeline-retro-{domain}/trace-analysis.md`.
 3. Classify the fix complexity:
    - **Trivial**: Template typo, missing rule with clear evidence -> can auto-apply
    - **Moderate**: New canonical chain pattern, template mapping fix -> can auto-apply with review
-   - **Complex**: New step type, restructured chain logic -> present for review, do not auto-apply
+   - **Complex**: New step type, restructured chain logic -> present for review, require explicit approval before applying
 
 Save proposed fixes to `/tmp/pipeline-retro-{domain}/proposed-fixes.md`.
 
@@ -216,7 +216,7 @@ Save proposed fixes to `/tmp/pipeline-retro-{domain}/proposed-fixes.md`.
 
 **Goal**: Apply generator fixes and regenerate affected pipelines to prove the fixes work.
 
-**Hardcoded Constraint**: NEVER mark a generator fix as complete without regenerating the affected skill and re-testing. A fix that doesn't improve test results isn't a fix -- it's a guess. Layer 3 is what distinguishes this from wishful thinking.
+**Hardcoded Constraint**: Mark a generator fix as complete only after regenerating the affected skill and re-testing. A fix that doesn't improve test results isn't a fix -- it's a guess. Layer 3 is what distinguishes this from wishful thinking.
 
 **Step 1: Classify and apply fixes**
 

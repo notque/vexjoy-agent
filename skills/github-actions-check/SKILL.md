@@ -5,7 +5,7 @@ description: |
   CI status, identifies failing jobs, and suggests local reproduction
   commands. Use after "git push", when user asks about CI status, workflow
   failures, or build results. Use for "check CI", "workflow status",
-  "actions failing", or "build broken". Do NOT use for local linting
+  "actions failing", or "build broken". Route to other skills for local linting
   (use code-linting), debugging test failures locally (use
   systematic-debugging), or setting up new workflows.
 version: 2.0.0
@@ -26,7 +26,7 @@ routing:
 
 # GitHub Actions Check Skill
 
-Check GitHub Actions workflow status after a git push, identify failures, and suggest local reproduction commands. This skill observes and reports -- it never modifies workflow files or auto-fixes code without explicit permission.
+Check GitHub Actions workflow status after a git push, identify failures, and suggest local reproduction commands. This skill observes and reports -- it modifies workflow files or auto-fixes code only with explicit permission.
 
 ## Instructions
 
@@ -44,9 +44,9 @@ git remote get-url origin
 git branch --show-current
 ```
 
-Always use the branch that was actually pushed, never the default branch. Checking without `--branch` can show runs from other branches and give misleading status for the user's actual push.
+Always use the branch that was actually pushed, always the branch that was actually pushed. Checking without `--branch` can show runs from other branches and give misleading status for the user's actual push.
 
-**Gate**: Repository and branch both identified. Do not proceed without both values confirmed.
+**Gate**: Repository and branch both identified. Confirm both values before proceeding.
 
 ### Step 2: Wait and Check Workflow Status
 
@@ -63,13 +63,13 @@ gh run list --branch "$BRANCH" --limit 5
 
 Always use the `gh` CLI rather than raw GitHub API calls -- `gh` handles authentication, pagination, and formatting automatically. Writing custom scripts with `curl` or `requests` adds unnecessary complexity when `gh` already does the job.
 
-Show the complete `gh` output verbatim. Never summarize results as "build passed" or "tests failed" -- that hides which jobs ran, their timing, and any warnings. Claiming "build passed" without showing output is unverifiable. The user needs to see the actual data.
+Show the complete `gh` output verbatim. Show complete output rather than summarizing as "build passed" or "tests failed" -- that hides which jobs ran, their timing, and any warnings. Claiming "build passed" without showing output is unverifiable. The user needs to see the actual data.
 
-**Gate**: Workflow status retrieved and complete output displayed to user. Do not proceed until the gate passes.
+**Gate**: Workflow status retrieved and complete output displayed to user. Wait for the gate to pass before proceeding.
 
 ### Step 3: Investigate Failures
 
-Only execute this step if Step 2 shows a failed or failing run. Do not assume failures are pre-existing without comparing against previous runs -- that is speculation, not evidence.
+Only execute this step if Step 2 shows a failed or failing run. Compare against previous runs before classifying failures as pre-existing without comparing against previous runs -- that is speculation, not evidence.
 
 ```bash
 # Get details of the failed run
@@ -93,9 +93,9 @@ Local reproduction: [command to reproduce locally]
 Suggested fix: [exact commands to fix, if applicable]
 ```
 
-For common failures like linting or formatting, provide exact fix commands but do not execute them. Never auto-fix and re-push without explicit user permission -- making code changes and git commits without review may introduce unintended changes. Only use `gh run watch` for interactive monitoring if the user specifically asks for it.
+For common failures like linting or formatting, provide exact fix commands but present them for user approval. Wait for explicit user permission before auto-fixing and re-pushing -- making code changes and git commits without review may introduce unintended changes. Only use `gh run watch` for interactive monitoring if the user specifically asks for it.
 
-**Gate**: All failures identified with reproduction commands. Do not proceed until the gate passes.
+**Gate**: All failures identified with reproduction commands. Wait for the gate to pass before proceeding.
 
 ### Step 4: Report and Suggest
 
@@ -106,14 +106,14 @@ If all checks passed:
 If checks failed:
 - Show the failure report from Step 3
 - Suggest local reproduction commands
-- Suggest fix commands but do NOT execute without permission
+- Suggest fix commands but wait for confirmation before executing without permission
 - Ask the user if they want you to apply fixes
 
 Report facts without self-congratulation. Show command output rather than describing it. Be concise but informative.
 
 Clean up any temporary scripts or cache files created during the check before finishing.
 
-This skill only checks CI status. For local debugging of test failures, hand off to systematic-debugging. For local linting, hand off to code-linting. Never modify workflow YAML files or CI configuration as part of this skill.
+This skill only checks CI status. For local debugging of test failures, hand off to systematic-debugging. For local linting, hand off to code-linting. Keep workflow YAML files and CI configuration out of scope for this skill.
 
 **Gate**: Complete status report delivered to user.
 

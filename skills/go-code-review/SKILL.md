@@ -5,7 +5,7 @@ description: |
   Quality Analysis, Specific Analysis, Line-by-Line, Documentation. Use when
   reviewing Go code, PRs, or auditing Go codebases for quality and best practices.
   Use for "review Go", "Go PR", "check Go code", "Go quality", "review .go".
-  Do NOT use for writing new Go code, debugging Go bugs, or refactoring --
+  Route to other skills for writing new Go code, debugging Go bugs, or refactoring --
   use golang-general-engineer, systematic-debugging, or systematic-refactoring
   for those tasks.
 version: 2.0.0
@@ -38,7 +38,7 @@ routing:
 
 # Go Code Review Skill
 
-Systematic, read-only analysis of Go codebases and pull requests across 6 structured phases. Every phase is mandatory because small changes cause large bugs and skipping phases misses race conditions, compilation errors, and edge cases that visual inspection alone cannot catch. This skill gathers context, runs automated checks, analyzes quality, and reports findings -- it never modifies code.
+Systematic, read-only analysis of Go codebases and pull requests across 6 structured phases. Every phase is mandatory because small changes cause large bugs and skipping phases misses race conditions, compilation errors, and edge cases that visual inspection alone cannot catch. This skill gathers context, runs automated checks, analyzes quality, and reports findings -- it operates in read-only mode.
 
 ## Available Scripts
 
@@ -66,7 +66,7 @@ Complete all 6 phases regardless of PR size because small changes cause large bu
 - Testing strategy: [approach]
 ```
 
-Do not shortcut scope analysis based on author reputation because everyone makes mistakes and the same rigor must apply to all authors.
+Apply the same rigor to scope analysis based on author reputation because everyone makes mistakes and the same rigor must apply to all authors.
 
 **Step 3: Change overview**
 - List all modified files and packages
@@ -169,7 +169,7 @@ gosec ./...  # if available
 
 ### Phase 3: Code Quality Analysis
 
-**Goal**: Evaluate architecture, idioms, and performance. Do not suggest speculative improvements or "while reviewing" refactors because the reviewer role is to identify real issues, not propose hypothetical enhancements.
+**Goal**: Evaluate architecture, idioms, and performance. Focus only on real issues found in the code or "while reviewing" refactors because the reviewer role is to identify real issues, not propose hypothetical enhancements.
 
 **Architecture and Design**:
 - SOLID principles followed?
@@ -223,7 +223,7 @@ Review each area relevant to the changed code. Enable optional analysis (benchma
 - Test helpers marked with t.Helper()?
 - No test interdependencies?
 
-Do not accept passing tests as sufficient evidence of correctness because tests can be incomplete or wrong -- review test coverage and quality alongside pass/fail status.
+Review test coverage and quality alongside pass/fail status of correctness because tests can be incomplete or wrong -- review test coverage and quality alongside pass/fail status.
 
 **Security Review**:
 - Input validation present?
@@ -237,7 +237,7 @@ Do not accept passing tests as sufficient evidence of correctness because tests 
 
 ### Phase 5: Line-by-Line Review
 
-**Goal**: Inspect each significant change individually. NEVER modify code during review because the reviewer role is read-only -- analyze, identify, report, but do not fix. Fixing bypasses author ownership and testing.
+**Goal**: Inspect each significant change individually. keep review read-only — analyze, identify, report, and leave fixing to the author. Fixing bypasses author ownership and testing.
 
 For each significant change, ask:
 1. Is the change necessary?
@@ -248,7 +248,7 @@ For each significant change, ask:
 6. Performance implications?
 7. Security implications?
 
-Every issue must reference file, line, and concrete impact because evidence-based findings are actionable while vague observations are not. Do not accept author explanations at face value -- verify the code itself because explanation does not equal correctness.
+Every issue must reference file, line, and concrete impact because evidence-based findings are actionable while vague observations are not. Verify against the code itself rather than accepting author explanations at face value because explanation does not equal correctness.
 
 Tag every finding with a severity level (CRITICAL, HIGH, MEDIUM, LOW) because priority classification drives merge decisions. Classify severity honestly based on impact, not author relationship, because severity is objective and downgrading to avoid conflict misrepresents risk.
 
@@ -340,10 +340,10 @@ Coverage: X%, Target: 80%+, Gaps: [areas needing tests]
 
 ### Death Loop Prevention
 
-NEVER make changes that cause compilation failures during review:
+Preserve compilation integrity during review:
 
-1. **Channel Direction Changes**: NEVER change `chan Type` to `<-chan Type` without verifying the function does not send or close
-2. **Function Signature Changes**: NEVER change return types without updating ALL call sites
+1. **Channel Direction Changes**: Verify the function behavior before changing `chan Type` to `<-chan Type` without verifying the function does not send or close
+2. **Function Signature Changes**: Update ALL call sites when changing return types
 3. **Compilation Before Linting**: Run `go build ./...` FIRST. If code does not compile, report compilation errors before linting issues
 
 ### Error: "Automated Tool Not Available"

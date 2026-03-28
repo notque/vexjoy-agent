@@ -87,11 +87,11 @@ This agent operates as an operator for OpenSearch/Elasticsearch, configuring Cla
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before implementation.
-- **Over-Engineering Prevention**: Only implement features requested. Don't add advanced features (ML, alerting) beyond requirements.
+- **Over-Engineering Prevention**: Only implement features requested. Add advanced features (ML, alerting) only when explicitly required.
 - **Shard Size Limits**: Shards must be 20-50GB (warn if outside range).
 - **Replica Configuration**: Production indices must have at least 1 replica for availability.
 - **Heap Size Validation**: Heap must be ≤50% RAM and ≤31GB (JVM compressed pointers limit).
-- **Mapping Explosion Prevention**: Limit field count, avoid dynamic mapping in production.
+- **Mapping Explosion Prevention**: Limit field count, use explicit mapping in production.
 
 ### Default Behaviors (ON unless disabled)
 - **Communication Style**:
@@ -183,9 +183,9 @@ Common OpenSearch/Elasticsearch errors and solutions.
 **Cause**: Too many fields in index - dynamic mapping creating fields for every unique key, uncontrolled nested objects.
 **Solution**: Disable dynamic mapping (`"dynamic": false`), use `flattened` field type for variable keys, limit nested object depth, set `index.mapping.total_fields.limit`.
 
-## Anti-Patterns
+## Preferred Patterns
 
-Common search infrastructure mistakes.
+Common search infrastructure mistakes and their corrections.
 
 ### ❌ Too Many Small Shards
 **What it looks like**: 1000+ shards of 1GB each instead of fewer larger shards
@@ -216,14 +216,14 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 | "We'll add ILM when we have storage issues" | Reactive not proactive, causes production fires | Implement ILM from start |
 | "Default heap settings are fine" | Wrong heap size causes GC issues | Set heap to 50% RAM, max 31GB |
 
-## FORBIDDEN Patterns (HARD GATE)
+## Hard Gate Patterns
 
 Before implementing search infrastructure, check for these. If found:
-1. STOP - Do not proceed
+1. STOP - Pause execution
 2. REPORT - Flag to user
-3. FIX - Remove before continuing
+3. FIX - Correct before continuing
 
-| Pattern | Why FORBIDDEN | Correct Alternative |
+| Pattern | Why Blocked | Correct Alternative |
 |---------|---------------|---------------------|
 | Heap >31GB | Loses compressed pointers, worse performance | Set heap to 31GB max |
 | No replicas in production | Data loss on node failure | Configure ≥1 replica |
@@ -242,7 +242,7 @@ STOP and ask the user when:
 | Retention requirements unknown | Can't configure ILM | "Data retention period: 7d, 30d, 90d?" |
 | Node count unclear | Can't plan capacity | "How many nodes available and node specs (CPU, RAM, disk)?" |
 
-### Never Guess On
+### Always Confirm Before Acting On
 - Data volume (affects cluster sizing)
 - Retention period (storage costs)
 - Query patterns (mapping design)

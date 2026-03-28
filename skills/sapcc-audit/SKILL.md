@@ -90,13 +90,13 @@ Adjust based on actual package sizes. Aim for 5-8 agents.
 
 **Goal**: Launch parallel agents that review packages against project standards.
 
-**Principle: Read the actual code.** Agents MUST use the Read tool to read every .go file in their assigned packages. Do not guess based on file names or grep output. Use gopls MCP tools when available: `go_workspace` to detect workspace structure, `go_file_context` after reading each .go file for intra-package dependency understanding, `go_symbol_references` to verify type usage across packages (critical for export decisions), `go_package_api` to inspect package APIs, `go_diagnostics` to verify any fixes.
+**Principle: Read the actual code.** Agents MUST use the Read tool to read every .go file in their assigned packages. Read every file directly rather than guessing from names or grep output. Use gopls MCP tools when available: `go_workspace` to detect workspace structure, `go_file_context` after reading each .go file for intra-package dependency understanding, `go_symbol_references` to verify type usage across packages (critical for export decisions), `go_package_api` to inspect package APIs, `go_diagnostics` to verify any fixes.
 
 **Principle: Real review, not checklists.** The primary question for every function is: "Would this pass review?" not "does it follow a checklist." A real reviewer reads code holistically and reacts to architectural issues, not just mechanical patterns.
 
 **Principle: Segment by package, not by concern.** Dispatch agents by package groups, NOT by concern area. Each agent reviews its packages holistically (errors + architecture + patterns + tests together), exactly like a real PR review. Real code review reads a file holistically — an error handling issue might actually be an architecture issue. Segmenting by concern produces shallow findings.
 
-**Code-level findings only.** Every finding MUST include the actual code snippet and a concrete fix showing what it should become. Abstract suggestions like "consider using X" are forbidden. Show current code and what it should become.
+**Code-level findings only.** Every finding MUST include the actual code snippet and a concrete fix showing what it should become. Every finding must include a concrete code-level fix. Show current code and what it should become.
 
 **Each agent gets this dispatch prompt:**
 
@@ -113,13 +113,13 @@ Read EVERY .go file in these packages using the Read tool. For each file:
    - Interfaces with only one implementation? → "Just use the concrete type." Project convention: only create interfaces when there are 2+ real implementations.
    - Wrapper function that adds nothing? → "Delete this, call the real function"
    - Struct for one-time JSON? → "Use fmt.Sprintf + json.Marshal" (per project convention)
-   - Option struct for constructor? → "Just use positional params." Project convention uses 7-8 positional params, never option structs.
-   - Config file/viper? → "Use osext.MustGetenv." Project convention never uses config files. Pure env vars only.
+   - Option struct for constructor? → "Just use positional params." Project convention uses 7-8 positional params, always positional params.
+   - Config file/viper? → "Use osext.MustGetenv." Project convention uses environment variables exclusively. Pure env vars only.
 
 2. **Dead code**
    - Exported functions with no callers outside the package? Use Grep to check: `grep -r "FunctionName" --include="*.go"`. If no callers exist, flag it.
-   - Interface methods never called
-   - Fields set but never read
+   - Interface methods unused
+   - Fields set but unread
    - Entire packages imported but barely used
    - "TODO: remove" comments on code that should already be gone
 
@@ -129,10 +129,10 @@ Read EVERY .go file in these packages using the Read tool. For each file:
    - Message format: "cannot <operation>: %w" or "while <operation>: %w" with relevant identifiers
    - Would a user/operator reading this know what to do?
    - "internal error" with no context = CRITICAL
-   - Never log AND return the same error. Primary error returned, secondary/cleanup errors logged.
+   - Return the primary error; log secondary/cleanup errors. Primary error returned, secondary/cleanup errors logged.
 
 4. **Constructor patterns**
-   - Constructor should be `NewX(deps...) *X` — never returns error (construction is infallible)
+   - Constructor should be `NewX(deps...) *X` — returns infallibly (no error) (construction is infallible)
    - Uses positional struct literal init: `&API{cfg, ad, fd, sd, ...}` (no field names)
    - Injects default functions for test doubles: `time.Now`, etc.
    - Override pattern for test doubles: fluent `OverrideTimeNow(fn) *T` methods
@@ -158,7 +158,7 @@ Read EVERY .go file in these packages using the Read tool. For each file:
 
 8. **Database patterns**
    - SQL queries as package-level `var` with `sqlext.SimplifyWhitespace()`
-   - PostgreSQL `$1, $2` params (never `?`)
+   - PostgreSQL `$1, $2` params (always `$1, $2` (PostgreSQL syntax))
    - gorp for simple CRUD, raw SQL for complex queries
    - Transactions: `db.Begin()` + `defer sqlext.RollbackUnlessCommitted(tx)`
    - NULL: `Option[T]` (from majewsky/gg/option), not `*T` pointers
@@ -171,9 +171,9 @@ Read EVERY .go file in these packages using the Read tool. For each file:
 
 10. **Logging patterns**
     - `logg.Fatal` ONLY in cmd/ packages for startup failures
-    - `logg.Error` for secondary/cleanup errors (never for primary errors)
+    - `logg.Error` for secondary/cleanup errors (only for secondary/cleanup errors)
     - `logg.Info` for operational events
-    - Never log.Printf or fmt.Printf for logging
+    - Use logg package for all logging
     - Panics only for impossible states, annotated with "why was this not caught by Validate!?"
 
 11. **Mixed approaches** (Pattern consistency)
@@ -206,17 +206,17 @@ SEVERITY GUIDE:
 - SHOULD-FIX: Would get a strong review comment (dead code, copy-paste, bad errors)
 - NIT: Would get a comment but not block (style, naming, minor simplification)
 
-DO NOT report:
+Skip:
 - Generic Go best practices (t.Parallel, DisallowUnknownFields, context.Context first)
 - Things that are actually fine but could theoretically be "better"
 - Suggestions that add complexity without clear benefit
 
-DO report:
+Focus on:
 - Real over-engineering (lead reviewer's #1 concern)
 - Actually useless error messages (secondary reviewer's #1 concern)
 - Dead code that should be deleted
 - Interface contract bugs
-- Constructor/config patterns that don't match keppel
+- Constructor/config patterns that diverge from keppel patterns
 - Inconsistent patterns within the same repo
 ```
 
@@ -294,8 +294,8 @@ Show the verdict, must-fix count, and top 5 findings inline. Point to the full r
 ### Principles
 
 - **Audit only**: READS and REPORTS. Does NOT modify code unless explicitly asked with `--fix`.
-- **Skip generic findings**: Do NOT report `DisallowUnknownFields`, `t.Parallel()`, or other generic Go best practices unless they are genuinely wrong in context. Focus on sapcc-specific patterns.
-- **Rationalization guard**: Avoid "could theoretically be better" findings. Focus on things that would actually be commented on in a real PR review.
+- **Skip generic findings**: Skip reporting `DisallowUnknownFields`, `t.Parallel()`, or other generic Go best practices unless they are genuinely wrong in context. Focus on sapcc-specific patterns.
+- **Rationalization guard**: Focus on findings that would actually be commented on in a real PR review. Focus on things that would actually be commented on in a real PR review.
 
 ---
 
@@ -314,10 +314,10 @@ Show the verdict, must-fix count, and top 5 findings inline. Point to the full r
 
 ### Always available for calibration (load only when needed)
 
-- `anti-patterns.md` — Quick-check findings against known anti-patterns
+- `quality-issues.md` — Quick-check findings against known anti-patterns
 - `review-standards-lead.md` — Calibrate review tone and severity
 
-**Note**: Do NOT tell every agent to read the full sapcc-code-patterns.md. The rules are already inline in the dispatch prompt. Load reference files only for domain-specific depth.
+**Note**: Load reference files only for domain-specific depth, rather than giving every agent to read the full sapcc-code-patterns.md. The rules are already inline in the dispatch prompt. Load reference files only for domain-specific depth.
 
 ### Integration
 

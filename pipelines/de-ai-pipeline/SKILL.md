@@ -171,7 +171,7 @@ Report staged files. Do not run `git commit` — the user owns the final commit 
 
 ### Error: "Fix introduces new errors"
 **Cause**: Rephrased sentence contains a different banned pattern
-**Solution**: Rephrase again avoiding both patterns. If stuck after 3 attempts on one sentence, skip and note in report. Don't sacrifice clarity for pattern avoidance.
+**Solution**: Rephrase again to clear both patterns. If stuck after 3 attempts on one sentence, skip and note in report. Prioritize clarity over pattern avoidance.
 
 ---
 

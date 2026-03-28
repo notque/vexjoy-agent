@@ -51,7 +51,7 @@ This pipeline operates as the automatic fallback for `/do` when no existing rout
 
 **Goal**: Ensure we're not duplicating an existing pipeline.
 
-**Why this matters**: ALWAYS check the pipeline catalog first. If an existing pipeline covers 70%+ of the request, route to it instead. Duplicate pipelines fragment routing, create maintenance burden, and confuse discovery. The dedup gate is a HARD BLOCK — do not rationalize "this is slightly different."
+**Why this matters**: ALWAYS check the pipeline catalog first. If an existing pipeline covers 70%+ of the request, route to it instead. Duplicate pipelines fragment routing, create maintenance burden, and confuse discovery. The dedup gate is a HARD BLOCK — apply it even when the request seems "slightly different."
 
 **Step 1**: Run task type classification:
 ```bash
@@ -114,7 +114,7 @@ python3 ~/.claude/scripts/task-type-classifier.py --request "{user_request}" --c
 
 **Goal**: Determine whether to crystallize immediately or run ephemeral.
 
-**Toolkit repo rule**: If running in this repo (detected by `pipelines/auto-pipeline/SKILL.md` existing in CWD), crystallize on first encounter. This repo IS the pipeline system — every pattern we extract becomes part of the toolkit. Don't wait for 3 runs; capture the pattern immediately.
+**Toolkit repo rule**: If running in this repo (detected by `pipelines/auto-pipeline/SKILL.md` existing in CWD), crystallize on first encounter. This repo IS the pipeline system — every pattern we extract becomes part of the toolkit. Capture the pattern immediately on the first run.
 
 **Outside toolkit repo rule**: Wait for 3+ ephemeral executions in the same domain before crystallizing. This ensures the pattern is stable and not a one-off.
 

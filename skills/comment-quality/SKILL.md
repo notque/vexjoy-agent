@@ -5,7 +5,7 @@ description: |
   language, or relative comparisons. Use when reviewing code comments, preparing
   documentation for release, or auditing inline comments for timelessness. Use
   for "check comments", "temporal language", "comment review", or "fix docs".
-  Do NOT use for writing new documentation, API reference generation, or
+  Route to other skills for writing new documentation, API reference generation, or
   code style linting unrelated to comment content.
 version: 2.0.0
 user-invocable: false
@@ -27,7 +27,7 @@ routing:
 
 # Comment Quality Skill
 
-Review code comments for temporal references, development-activity language, and relative comparisons. Produces structured reports with actionable rewrites that explain WHAT the code does and WHY, never WHEN something changed. Supports `.go`, `.py`, `.js`, `.ts`, `.md`, and `.txt` files.
+Review code comments for temporal references, development-activity language, and relative comparisons. Produces structured reports with actionable rewrites that explain WHAT the code does and WHY, only WHAT the code does and WHY. Supports `.go`, `.py`, `.js`, `.ts`, `.md`, and `.txt` files.
 
 ## Instructions
 
@@ -39,7 +39,7 @@ Review code comments for temporal references, development-activity language, and
 
 Read the repository CLAUDE.md first to pick up any project-specific comment conventions.
 
-Scan only what was requested. If user specifies files, scan those files. If user specifies a directory, scan that directory. NEVER default to full codebase -- even if you suspect other files have issues, honor the explicit scope and suggest expansion separately at the end.
+Scan only what was requested. If user specifies files, scan those files. If user specifies a directory, scan that directory. Honor the explicit scope -- even if you suspect other files have issues, honor the explicit scope and suggest expansion separately at the end.
 
 If user explicitly requests auto-fix, enable it. Otherwise present findings for review. For large codebases, group findings by directory when reporting.
 
@@ -148,7 +148,7 @@ Report facts concisely with file paths and line numbers. Every finding must incl
 
 **Step 2: Apply fixes (if auto-fix enabled)**
 
-If user requested auto-fix, apply all rewrites using Edit tool. Verify each edit succeeded. Never auto-fix without explicit user authorization.
+If user requested auto-fix, apply all rewrites using Edit tool. Verify each edit succeeded. Wait for explicit user permission before auto-fixing without explicit user authorization.
 
 **Step 3: Cleanup**
 
@@ -184,4 +184,4 @@ Solution:
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/temporal-keywords.txt`: Complete list of temporal words to flag
 - `${CLAUDE_SKILL_DIR}/references/examples.md`: Before/after examples of comment rewrites
-- `${CLAUDE_SKILL_DIR}/references/anti-patterns.md`: Common problematic patterns with explanations
+- `${CLAUDE_SKILL_DIR}/references/quality-issues.md`: Common problematic patterns with explanations

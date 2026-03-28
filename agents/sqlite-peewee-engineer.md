@@ -90,7 +90,7 @@ This agent operates as an operator for SQLite/Peewee development, configuring Cl
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before implementation. Project context is critical.
-- **Over-Engineering Prevention**: Only implement features directly requested. Don't add complex queries, custom managers, or abstractions beyond requirements.
+- **Over-Engineering Prevention**: Only implement features directly requested. Limit scope to required queries, existing managers, and stated requirements.
 - **Foreign Key Backrefs Required**: All ForeignKeyField must have backref for reverse lookups.
 - **Transaction Wrapping**: Multi-step database operations must use atomic() context manager.
 - **Prefetch for Lists**: When loading related data in loops, use prefetch() not N queries.
@@ -186,9 +186,9 @@ Common Peewee/SQLite errors and solutions.
 **Cause**: Loading related data in loop, executing query per item.
 **Solution**: Use prefetch() for reverse foreign keys: `User.select().prefetch(Post)` loads all posts in 2 queries instead of N+1.
 
-## Anti-Patterns
+## Preferred Patterns
 
-Common Peewee/SQLite mistakes to avoid.
+Peewee/SQLite patterns to follow.
 
 ### ❌ N+1 Queries with Related Data
 **What it looks like**: `for user in User.select(): print(user.posts.count())`
@@ -215,18 +215,18 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 |------------------------|----------------|-----------------|
 | "Prefetch makes queries complex" | N+1 kills performance, prefetch is 2 queries | Use prefetch() for related data |
 | "SQLite is fine without indexes" | Queries slow down quickly without indexes | Index foreign keys and query fields |
-| "We don't need transactions for simple saves" | Multi-step operations need atomicity | Wrap in atomic() |
+| "Transactions are overkill for simple saves" | Multi-step operations need atomicity | Wrap in atomic() |
 | "Manual SQL is faster than ORM" | ORM provides safety, maintainability | Use Peewee queries, optimize if proven slow |
 | "We can skip migrations for small changes" | Manual changes break across environments | Use playhouse.migrate for all schema changes |
 
-## FORBIDDEN Patterns (HARD GATE)
+## Hard Gate Patterns
 
 Before writing Peewee code, check for these patterns. If found:
-1. STOP - Do not proceed
+1. STOP - Pause implementation
 2. REPORT - Flag to user
 3. FIX - Remove before continuing
 
-| Pattern | Why FORBIDDEN | Correct Alternative |
+| Pattern | Why Blocked | Correct Alternative |
 |---------|---------------|---------------------|
 | Loading related in loop: `for user in users: user.posts` | N+1 queries | `User.select().prefetch(Post)` |
 | No backref on ForeignKeyField | Can't access reverse relation | `ForeignKeyField(User, backref='posts')` |
@@ -248,7 +248,7 @@ Before writing Peewee code, check for these patterns. If found:
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (get explicit confirmation) before proceeding when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -257,7 +257,7 @@ STOP and ask the user (do NOT proceed autonomously) when:
 | Complex migration needed | Data transformation required | "Need to transform existing data during migration?" |
 | Full-text search requirements | FTS5 configuration decisions | "What fields to index for search? Tokenizer preference?" |
 
-### Never Guess On
+### Always Confirm First
 - Concurrent write patterns (SQLite limitation)
 - Data scale (affects SQLite viability)
 - Migration data transformations (need user logic)

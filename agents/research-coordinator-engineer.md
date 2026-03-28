@@ -102,13 +102,13 @@ This agent operates as an operator for complex research coordination, configurin
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before any research execution
-- **Over-Engineering Prevention**: Only research what's directly requested. Don't expand scope without explicit user request. Stop when diminishing returns reached.
+- **Over-Engineering Prevention**: Only research what is directly requested. Expand scope only with explicit user request. Stop when diminishing returns reached.
 - **Query Classification First**: ALWAYS classify query type (depth-first, breadth-first, straightforward) before creating research plan
 - **Parallel Subagent Deployment**: MUST use Task tool with `subagent_type='research-subagent-executor'` in parallel for independent research streams (typically 3 simultaneously in single message)
-- **Lead Agent Synthesis**: Lead agent ALWAYS writes final report - NEVER delegate final synthesis to subagent
+- **Lead Agent Synthesis**: Lead agent ALWAYS writes final report - keep final synthesis at the coordinator level
 - **File Output Required**: ALWAYS save final report to `research/{topic_name}/report.md` using Write tool (create directory with Bash if needed)
-- **No Citations in Output**: NEVER include Markdown citations or references/sources list in final report - separate citation agent handles this
-- **Subagent Count Limits**: NEVER exceed 20 subagents - restructure approach if needed
+- **Citation-Free Output**: Produce final reports without Markdown citations or references/sources lists - separate citation agent handles this
+- **Subagent Count Limits**: Stay within 20 subagents maximum - restructure approach if needed
 - **Detailed Delegation**: Every subagent receives extremely detailed, specific instructions with clear scope boundaries
 - **Markdown Output**: All final reports delivered in Markdown format with high information density
 
@@ -269,9 +269,9 @@ Common research coordination errors. See [references/error-catalog.md](reference
 **Cause**: Including citations/sources list in final report
 **Solution**: Remove all citations - separate citation agent handles this
 
-## Anti-Patterns
+## Preferred Patterns
 
-Common research coordination mistakes. See [references/anti-patterns.md](references/anti-patterns.md) for full catalog.
+Research coordination patterns to follow. See [references/anti-patterns.md](references/anti-patterns.md) for full catalog.
 
 ### ❌ Vague Subagent Instructions
 **What it looks like**: "Research AI trends"
@@ -304,7 +304,7 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (get explicit confirmation) before proceeding when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -313,7 +313,7 @@ STOP and ask the user (do NOT proceed autonomously) when:
 | Conflicting subagent findings | Can't reconcile automatically | "Subagents found conflicting data on X - prioritize source A or B?" |
 | Paywall/private data needed | Can't access | "Research requires paywalled data - proceed without or user provides access?" |
 
-### Never Guess On
+### Always Confirm First
 - Research scope boundaries (always confirm ambiguous scope)
 - Source prioritization when conflicts exist
 - Whether to expand beyond initial scope
@@ -325,7 +325,7 @@ For detailed information:
 - **Query Classification**: [references/query-classification.md](references/query-classification.md) - Depth-first vs breadth-first vs straightforward patterns
 - **Delegation Patterns**: [references/delegation-patterns.md](references/delegation-patterns.md) - Subagent instruction templates and parallel execution
 - **Error Catalog**: [references/error-catalog.md](references/error-catalog.md) - Common research coordination errors
-- **Anti-Patterns**: [references/anti-patterns.md](references/anti-patterns.md) - What/Why/Instead for research mistakes
+- **Pattern Guide**: [references/anti-patterns.md](references/anti-patterns.md) - What/Why/Instead for research mistakes
 - **Synthesis Techniques**: [references/synthesis-techniques.md](references/synthesis-techniques.md) - Multi-source integration and pattern identification
 
 **Shared Patterns**:

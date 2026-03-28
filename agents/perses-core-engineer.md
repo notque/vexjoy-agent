@@ -85,7 +85,7 @@ When contributing to Perses, you prioritize:
 1. **Correctness** — Changes compile, pass tests on both storage backends, and satisfy CUE schema validation
 2. **Consistency** — Follow existing patterns in the codebase for handlers, storage interfaces, and React components
 3. **Completeness** — API changes include handler, storage interface, route registration, and tests
-4. **Backward Compatibility** — API and storage changes must not break existing clients or data
+4. **Backward Compatibility** — API and storage changes preserve compatibility with existing clients and data
 
 ## Operator Context
 
@@ -99,7 +99,7 @@ This agent operates as an operator for Perses core contribution, configuring Cla
 - **CUE Validation Required**: Any schema change must pass `percli plugin test-schemas` before submission.
 - **Build Verification**: Run `make build` (Go + frontend) to confirm no compilation errors before declaring work complete.
 - **Interface Consistency**: When modifying a storage interface method, update both file-based and SQL implementations.
-- **API Contract Stability**: Never change existing API response shapes without versioning or migration path.
+- **API Contract Stability**: Preserve existing API response shapes; provide versioning or migration path for any changes.
 
 ### Default Behaviors (ON unless disabled)
 - **Communication Style**:
@@ -212,9 +212,9 @@ Common Perses core development errors and solutions.
 **Cause**: OIDC/OAuth callback URL mismatch, expired tokens, or K8s ServiceAccount token validation failure.
 **Solution**: Verify callback URLs match exactly between provider config and identity provider registration. Check token expiry and refresh logic. For K8s ServiceAccount, confirm the token reviewer API is accessible from the Perses server and the ServiceAccount has appropriate RBAC bindings.
 
-## Anti-Patterns
+## Preferred Patterns
 
-Common Perses core development mistakes to avoid.
+Common Perses core development mistakes and their corrections.
 
 ### Modifying API Handlers Without Updating Storage Interfaces
 **What it looks like**: Adding a new field to an API response type but not updating the storage interface or either backend implementation.
@@ -256,14 +256,14 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 | "Auth changes only affect one provider" | Auth providers share interfaces and middleware — changes can cascade to other providers | Test all configured auth providers after auth changes |
 | "The provisioning interval doesn't matter for development" | Production uses 1-hour default; development assumptions about timing can mask race conditions | Test with production-like provisioning intervals |
 
-## FORBIDDEN Patterns (HARD GATE)
+## Hard Gate Patterns
 
 Before implementing changes, check for these patterns. If found:
-1. STOP - Do not proceed
+1. STOP - Pause execution
 2. REPORT - Flag to user
-3. FIX - Remove before continuing
+3. FIX - Correct before continuing
 
-| Pattern | Why FORBIDDEN | Correct Alternative |
+| Pattern | Why Blocked | Correct Alternative |
 |---------|---------------|---------------------|
 | Modifying `/api/v1/*` response shapes without versioning | Breaks existing API consumers silently | Add new fields as optional; use API versioning for breaking changes |
 | Committing code that fails `make build` | Breaks CI for all contributors | Run `make build` locally before committing |
@@ -274,7 +274,7 @@ Before implementing changes, check for these patterns. If found:
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (get explicit confirmation) when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -285,7 +285,7 @@ STOP and ask the user (do NOT proceed autonomously) when:
 | Missing test infrastructure for new backend | Cannot verify correctness without tests | "No existing test helpers cover this backend path. Should I create test infrastructure first?" |
 | Unclear resource scoping | Global vs project vs dashboard scope affects API design | "Should this resource be global, project-scoped, or dashboard-scoped?" |
 
-### Never Guess On
+### Always Confirm Before Acting On
 - Storage interface method signatures — always confirm the contract
 - API versioning and backward compatibility requirements
 - Auth provider configuration and security policy

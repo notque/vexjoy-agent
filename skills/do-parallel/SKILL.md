@@ -6,7 +6,7 @@ description: |
   a target agent or skill. Use when source material is complex and
   multi-angle extraction reveals patterns that single-threaded analysis misses.
   Use for "parallel analysis", "multi-perspective", or "deep extraction".
-  Do NOT use for routine improvements or simple source material.
+  Route to other skills for routine improvements or simple source material.
 version: 2.0.0
 user-invocable: false
 argument-hint: "<target-name> <source-path>"
@@ -168,7 +168,7 @@ For each rule extracted by any perspective, track which perspectives identified 
 
 **Step 4: Prioritize rules**
 
-Apply only Priority 1 and Priority 2 rules. Do not invent improvements beyond what the source material supports -- no speculative enhancements.
+Apply only Priority 1 and Priority 2 rules. Limit improvements to what the source material supports -- no speculative enhancements.
 
 ```markdown
 ## Priority Rules for [Target]
@@ -202,7 +202,7 @@ Priority 3 rules are documented but NOT applied unless the user explicitly reque
 
 ### Phase 4: APPLY
 
-**Goal**: Improve the target agent/skill using synthesized recommendations. Synthesized rules ADD depth -- they NEVER remove or significantly alter existing working patterns in the target.
+**Goal**: Improve the target agent/skill using synthesized recommendations. Synthesized rules ADD depth -- they preserve existing working patterns in the target.
 
 **Step 1: Read current target state**
 
@@ -227,7 +227,7 @@ Map each Priority 1 and Priority 2 rule to a specific location in the target:
 |------|--------|----------------|------|
 | [Rule 1] | Add subsection | Operator Context | LOW |
 | [Rule 2] | Enhance existing | Instructions Phase 2 | LOW |
-| [Rule 3] | Add new section | After Anti-Patterns | MEDIUM |
+| [Rule 3] | Add new section | After Preferred Patterns | MEDIUM |
 ```
 
 **Step 3: Apply Priority 1 rules**

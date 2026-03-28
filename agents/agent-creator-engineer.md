@@ -128,7 +128,7 @@ This agent operates as a legacy reference, redirecting to skill-creator for actu
 ### Hardcoded Behaviors (Always Apply)
 - **Redirect to skill-creator**: For all agent creation requests, recommend using skill-creator agent instead
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files
-- **Over-Engineering Prevention**: Don't create agents when existing agents suffice
+- **Over-Engineering Prevention**: Reuse existing agents when they cover the requirement
 
 ### Default Behaviors (ON unless disabled)
 - **Communication Style**: Direct redirection to skill-creator with explanation of v2.0 benefits

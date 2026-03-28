@@ -160,7 +160,7 @@ Produce output as dual-layer artifacts in:
 Requirements:
 - manifest.json must conform to the artifact envelope format
 - content.md must contain the skill's output
-- Follow the full pipeline chain -- do not skip phases
+- Follow the full pipeline chain -- execute every phase in order
 ```
 
 **Step 3: Fan-out execution**
@@ -415,7 +415,7 @@ Remove `/tmp/pipeline-test-*` directories after the report is produced. Keep onl
 
 ### Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (wait for explicit confirmation) when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -425,7 +425,7 @@ STOP and ask the user (do NOT proceed autonomously) when:
 
 ### Never Guess On
 - Whether a failure is a target issue vs a skill issue (report both possibilities, let retro decide)
-- Whether to increase timeout (ask, don't assume)
+- Whether to increase timeout (ask the user first)
 - Whether to skip a subdomain (test everything the spec defines)
 
 ---

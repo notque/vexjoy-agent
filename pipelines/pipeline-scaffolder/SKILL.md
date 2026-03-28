@@ -47,7 +47,7 @@ The skill MUST read and follow repository CLAUDE.md files before execution (proj
 
 **Step 1**: Read the Pipeline Spec JSON. This is typically saved by `chain-composer` at a known path (passed as input to this skill or found in the ADR).
 
-**Step 2**: Validate the spec against `references/pipeline-spec-format.md`. The spec is the only valid input contract—do NOT attempt to fix or reinterpret invalid specs; that is `chain-composer`'s responsibility. Check:
+**Step 2**: Validate the spec against `references/pipeline-spec-format.md`. The spec is the only valid input contract—pass invalid specs back to `chain-composer` for correction rather than fixing them here. Check:
 
 Top-level:
 - [ ] Exactly one of `new_agent` or `reuse_agent` is non-null
@@ -164,7 +164,7 @@ If `adr_hash` field is absent from the spec: Log a warning and continue (older p
 - `{{description}}` from `subdomain.description`
 - `{{agent_name}}` from the agent decision (`reuse_agent` or `new_agent.name`)
 - `{{routing_triggers_csv}}` from joining `subdomain.routing_triggers`
-- `{{operator_profile_*}}` flags from top-level `operator_profile`—respect the profile field to include or exclude safety/interaction steps based on profile (personal profiles don't need APPROVE gates; production profiles require them)
+- `{{operator_profile_*}}` flags from top-level `operator_profile`—respect the profile field to include or exclude safety/interaction steps based on profile (personal profiles skip APPROVE gates; production profiles require them)
 
 **Step 2: Convert chain steps to phases**. For each step in `subdomain.chain`:
 
@@ -332,7 +332,7 @@ To invoke each generated skill:
 ## Error Handling
 
 ### Error: Invalid Pipeline Spec
-**Cause**: The spec fails validation in Phase 1—missing fields, type incompatibilities, invalid enums, or constraint violations. Specs are contracts; do NOT attempt to fix them during scaffolding.
+**Cause**: The spec fails validation in Phase 1—missing fields, type incompatibilities, invalid enums, or constraint violations. Specs are contracts; return them to `chain-composer` for correction rather than fixing during scaffolding.
 **Solution**: Return the specific validation failure with the field path and expected value. This is `chain-composer`'s responsibility. Report the error to the orchestrator so it can re-invoke chain composition.
 
 ### Error: Agent Not Found
@@ -361,7 +361,7 @@ To invoke each generated skill:
 
 ### Error: Freestyle Scaffolding Attempted
 **Cause**: Creating skills without a Pipeline Spec JSON—"just make a skill for X".
-**Solution**: Without the spec, there is no validated chain, no type checking, no consistent structure. The result is skills that don't integrate with the pipeline system. Always require a Pipeline Spec JSON. If one doesn't exist, route to `chain-composer` first.
+**Solution**: Without the spec, there is no validated chain, no type checking, no consistent structure. The result is skills that fail to integrate with the pipeline system. Always require a Pipeline Spec JSON. If one is missing, route to `chain-composer` first.
 
 ### Error: Routing Integration Skipped
 **Cause**: All skill files exist but `routing-table-updater` was not run.

@@ -49,7 +49,7 @@ Evidence-based 5-phase debugging pipeline with mandatory gates between each phas
 
 **Artifact**: `debug-observations.md`
 
-**Core Principle**: Reproduce first, always. NEVER attempt fixes before creating a reliable reproduction. This prevents you from chasing the wrong problem and ensures you can verify any fix actually works.
+**Core Principle**: Reproduce first, always. Create a reliable reproduction before attempting any fix. This prevents you from chasing the wrong problem and ensures you can verify any fix actually works.
 
 **Step 1: Document the bug**
 
@@ -141,7 +141,7 @@ Generate 3-5 hypotheses. Rank by likelihood based on evidence gathered so far.
 
 Write current top hypothesis and next action to `.debug-session.md` BEFORE taking any debugging action. This creates an audit trail that survives context resets.
 
-**Anti-Pattern Trap**: Do not make changes based on visual inspection alone. "I can see the bug" misses edge cases and is not evidence. Form a hypothesis, test it with data, then decide.
+**Pattern Trap**: Always validate with data before making changes. "I can see the bug" misses edge cases and is not evidence. Form a hypothesis, test it with data, then decide.
 
 **GATE**: At least 3 hypotheses documented with supporting evidence and test plans. Identified smallest code path and input that reproduces the bug. Proceed only when gate passes.
 
@@ -212,7 +212,7 @@ Run the reproduction test. It must turn GREEN. If it doesn't, the fix didn't wor
 
 **Step 3: Test edge cases**
 
-Test boundary values, empty input, null, maximum values. Don't assume the fix works beyond the exact reproduction case.
+Test boundary values, empty input, null, maximum values. Verify the fix works beyond the exact reproduction case.
 
 **Step 4: Run full test suite**
 

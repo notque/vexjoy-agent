@@ -2,7 +2,7 @@
 name: socratic-debugging
 description: |
   Question-only debugging mode that guides users to find root causes
-  themselves through structured questioning. Never gives answers directly.
+  themselves through structured questioning. Guides users to discover answers themselves.
   Escalates to systematic-debugging after 12 questions if no progress.
 
   Use when: "rubber duck", "help me think through this bug", "debug with me",
@@ -39,7 +39,7 @@ This skill teaches debugging through structured inquiry rather than providing an
 
 ### Core Constraints
 
-Never state the answer directly. The user must arrive at the root cause themselves -- giving answers defeats the learning objective. Always read relevant code first using Read/Grep/Glob before formulating questions. Knowledge of the code makes questions precise and productive rather than generic. Follow the 9-phase progression without skipping: jumping to hypothesis questions without establishing symptoms and state leads to guesswork instead of systematic discovery.
+Guide the user to discover the answer themselves. The user must arrive at the root cause themselves -- giving answers defeats the learning objective. Always read relevant code first using Read/Grep/Glob before formulating questions. Knowledge of the code makes questions precise and productive rather than generic. Follow the 9-phase progression without skipping: jumping to hypothesis questions without establishing symptoms and state leads to guesswork instead of systematic discovery.
 
 ### Default Workflow Behaviors
 
@@ -53,7 +53,7 @@ Follow these phases in order. Each phase builds evidence for the next.
 |-------|---------|-------------------|
 | 1. Symptoms | Establish the gap between expected and actual | "What did you expect to happen?" / "What actually happened instead?" |
 | 2. Reproducibility | Determine if the bug is deterministic | "Can you reproduce this consistently?" / "What conditions trigger it?" |
-| 3. Prior Attempts | Avoid retreading failed approaches | "What have you already tried?" / "What happened when you tried that?" |
+| 3. Prior Attempts | Focus on fresh approaches | "What have you already tried?" / "What happened when you tried that?" |
 | 4. Minimal Case | Reduce the search space | "Can you reproduce this with less code?" / "What is the smallest failing input?" |
 | 5. Error Analysis | Extract signal from error output | "What does the error message tell you?" / "Which part of the message is most informative?" |
 | 6. State Inspection | Ground the investigation in actual data | "What is the value of X right before the error?" / "What state do you see at that point?" |
@@ -67,11 +67,11 @@ Follow these phases in order. Each phase builds evidence for the next.
 2. **Ask Phase 1 question.** Even if the bug seems obvious from the code, start with symptoms. Make the question pointed if the answer is likely simple.
 3. **Listen, acknowledge, ask next question.** Format: brief acknowledgment of what they said, then one question advancing toward root cause.
 4. **Track question count.** After 12 questions with no progress toward root cause, trigger escalation offer.
-5. **When user identifies root cause**, confirm their finding and ask what fix they would apply. Do not suggest the fix yourself.
+5. **When user identifies root cause**, confirm their finding and ask what fix they would apply. Let the user propose the fix.
 
 ### Hints vs. Leading Questions
 
-Questions may contain subtle directional hints. The goal is discovery, not suffering. A **good hint** directs attention without revealing the answer: "What happens if you log the value of `request.userId` right before line 42?" A **bad hint** is a leading question that contains the answer: "Don't you think `request.userId` is null at line 42?" The line: open-ended questions that narrow focus are hints. Leading questions that contain the answer are violations.
+Questions may contain subtle directional hints. The goal is discovery, not suffering. A **good hint** directs attention without revealing the answer: "What happens if you log the value of `request.userId` right before line 42?" A **bad hint** is a leading question that contains the answer: "Could `request.userId` be null at line 42?" The line: open-ended questions that narrow focus are hints. Leading questions that contain the answer are violations.
 
 ### Escalation Protocol
 
@@ -99,10 +99,10 @@ Solution: Acknowledge the frustration. Offer escalation. If they want to continu
 
 ### Bug Is Trivially Obvious From Code
 Cause: A typo, missing import, or simple syntax error visible in the source
-Solution: Still ask Phase 1, but make the question very pointed -- narrow enough that the user will see the answer immediately. Example: "What do you expect `reponse.data` to contain?" (the typo in the variable name is the bug). Avoid skipping phases; pointed questions stay within the Socratic framework.
+Solution: Still ask Phase 1, but make the question very pointed -- narrow enough that the user will see the answer immediately. Example: "What do you expect `reponse.data` to contain?" (the typo in the variable name is the bug). Follow phase progression; pointed questions stay within the Socratic framework.
 
 ---
 
 ## References
 
-This skill teaches debugging through structured inquiry within these constraints: Never violate the Socratic method by stating answers directly; always read code before questioning (generic questions signal incomplete code understanding); follow phase progression to build evidence rather than guessing; escalate cleanly at 12 questions without progress rather than continuing to frustrate the user; use the user's terminology to maintain engagement; acknowledge discoveries to keep the dialogue feeling collaborative rather than like interrogation.
+This skill teaches debugging through structured inquiry within these constraints: Maintain the Socratic method by guiding toward answers; always read code before questioning (generic questions signal incomplete code understanding); follow phase progression to build evidence rather than guessing; escalate cleanly at 12 questions without progress rather than continuing to frustrate the user; use the user's terminology to maintain engagement; acknowledge discoveries to keep the dialogue feeling collaborative rather than like interrogation.

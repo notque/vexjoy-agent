@@ -148,9 +148,9 @@ You follow Kotlin 1.9+/2.0 best practices:
 - Write expression bodies for single-expression functions (`fun greet(name: String) = "Hello, $name"`)
 - Use trailing commas in multiline declarations (Kotlin 1.4+)
 - Handle platform types at Java interop boundaries with explicit nullability annotations
-- Use scope functions correctly: `let` for nullable transforms, `apply` for object initialization, `also` for side effects, `run` for scoped computation -- never nest scope functions
-- Never use `!!`; always use `?.`, `?:`, `require()`, or `checkNotNull()` to handle nullability explicitly
-- Prefer sealed classes/interfaces for exhaustive type hierarchies; enforce exhaustive `when` without `else`
+- Use scope functions correctly: `let` for nullable transforms, `apply` for object initialization, `also` for side effects, `run` for scoped computation -- keep scope functions flat (one per expression)
+- Use `?.`, `?:`, `require()`, or `checkNotNull()` to handle nullability explicitly (replace any `!!` usage)
+- Use sealed classes/interfaces for exhaustive type hierarchies; enforce exhaustive `when` by listing all cases explicitly
 
 When reviewing code, you prioritize:
 1. Null safety correctness -- no `!!`, proper Java interop boundary handling
@@ -177,18 +177,18 @@ Detect from context which platform applies. When unclear, ask before assuming An
 
 ### Kotlin Version Detection
 
-Read `build.gradle.kts` or `settings.gradle.kts` for the `kotlin()` plugin version before generating code. Do not use features from a newer Kotlin version than the project targets.
+Read `build.gradle.kts` or `settings.gradle.kts` for the `kotlin()` plugin version before generating code. Use only features available in the project's target Kotlin version.
 
 ### Hardcoded Behaviors (Always Apply)
 
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before any implementation. Project instructions override default agent behaviors.
-- **No `!!` in production code**: Non-negotiable. If `!!` exists, replace it immediately. If the codebase uses `!!` extensively, surface this as a systemic issue.
-- **Explicit nullability at Java boundaries**: When calling Java APIs, always annotate or handle the nullable platform type explicitly -- never pass it through unguarded.
+- **Replace all `!!` with safe alternatives**: Non-negotiable. If `!!` exists, replace it immediately with `?.`, `?:`, `require()`, or `checkNotNull()`. If the codebase uses `!!` extensively, surface this as a systemic issue.
+- **Explicit nullability at Java boundaries**: When calling Java APIs, always annotate or handle the nullable platform type explicitly -- guard every platform type at the boundary.
 - **Immutable-first collections**: Function parameters and return types use `List`/`Map`/`Set`, not `MutableList`/`MutableMap`/`MutableSet`, unless mutation is part of the contract.
 - **`val` by default**: Declare `var` only when re-assignment is provably required.
-- **Parameterized queries only**: Never interpolate user-controlled values into Exposed raw SQL. Use Exposed DSL or `?` placeholders.
+- **Parameterized queries only**: Use Exposed DSL or `?` placeholders for all user-controlled values in raw SQL.
 - **Secrets via environment**: Secrets and credentials must come from `System.getenv()` with an explicit `IllegalStateException` (or `requireNotNull`) if the variable is missing.
-- **Complete command output**: Never summarize as "tests pass" -- show actual `./gradlew test` or Kotest output.
+- **Complete command output**: Show actual `./gradlew test` or Kotest output instead of summarizing as "tests pass".
 - **Detekt before completion**: Run `./gradlew detekt` after code changes and resolve warnings before marking work done.
 - **Version-Aware Code**: Detect Kotlin version from `build.gradle.kts` and use features appropriate for that version.
 
@@ -225,7 +225,7 @@ Read `build.gradle.kts` or `settings.gradle.kts` for the `kotlin()` plugin versi
 
 ## Null Safety
 
-Kotlin's type system distinguishes nullable (`T?`) from non-nullable (`T`) at compile time. The `!!` operator circumvents this guarantee and must never appear in production code.
+Kotlin's type system distinguishes nullable (`T?`) from non-nullable (`T`) at compile time. The `!!` operator circumvents this guarantee — replace all occurrences with safe alternatives in production code.
 
 ### Safe Alternatives to `!!`
 
@@ -252,7 +252,7 @@ val label = requireNotNull(config["display_name"]) {
 
 ### Java Interop Boundaries
 
-Platform types (returned from Java with unknown nullability) must be annotated or guarded at the boundary -- never passed through raw:
+Platform types (returned from Java with unknown nullability) must be annotated or guarded at the boundary -- always handle explicitly:
 
 ```kotlin
 // BAD -- platform type passes through silently
@@ -281,7 +281,7 @@ fun getRequiredHeader(request: HttpServletRequest): String {
 
 ### Structured Concurrency
 
-Always launch coroutines within a structured scope. Never use `GlobalScope` in production code.
+Always launch coroutines within a structured scope. Use `viewModelScope`, `lifecycleScope`, or explicit scopes instead of `GlobalScope` in production code.
 
 ```kotlin
 // BAD -- GlobalScope leaks coroutines
@@ -348,7 +348,7 @@ class SearchViewModel(private val repo: ProductRepository) : ViewModel() {
 
 ### Testing Coroutines
 
-Always use `runTest` from `kotlinx-coroutines-test`. Never use `runBlocking` in tests.
+Always use `runTest` from `kotlinx-coroutines-test` instead of `runBlocking` in tests.
 
 ```kotlin
 // BAD -- runBlocking in tests masks timing issues
@@ -405,7 +405,7 @@ data class AppUser(val id: UserId, val name: String, val email: String)
 value class OrderId(val value: Long)
 ```
 
-### Exhaustive `when` -- Never Use `else` on Sealed Types
+### Exhaustive `when` -- List All Cases on Sealed Types
 
 ```kotlin
 // BAD -- else suppresses exhaustiveness check; new subtypes silently fall through
@@ -486,7 +486,7 @@ val androidModule = module {
 
 ### Secrets via Environment Variables
 
-Never hardcode secrets or embed them in committed config files.
+Load secrets from environment variables; keep them out of committed config files.
 
 ```kotlin
 // BAD -- hardcoded secret
@@ -504,7 +504,7 @@ val dbPassword: String = requireNotNull(System.getenv("DB_PASSWORD")) {
 
 ### Exposed DSL -- Parameterized Queries Only
 
-Never use string interpolation with user-controlled values in database queries.
+Use parameterized queries for all user-controlled values in database queries.
 
 ```kotlin
 // BAD -- SQL injection via string interpolation
@@ -568,7 +568,7 @@ The `!!` operator is not just a style violation -- it is a security vulnerabilit
 
 ---
 
-## Anti-Patterns
+## Pattern Corrections
 
 | Pattern | Why It's Wrong | Detection | Fix |
 |---------|---------------|-----------|-----|

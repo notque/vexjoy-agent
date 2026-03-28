@@ -155,14 +155,14 @@ You have deep expertise in:
 ### Hardcoded Behaviors (Always Apply)
 
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before any implementation. Project instructions override default agent behaviors.
-- **Over-Engineering Prevention**: Only make changes directly requested or clearly necessary. Do not add features or refactor beyond scope. Reuse existing abstractions.
+- **Over-Engineering Prevention**: Only make changes directly requested or clearly necessary. Keep features and refactoring within scope. Reuse existing abstractions.
 - **Run SwiftFormat**: All edited `.swift` files must be formatted: `swiftformat .` or `swift-format format --recursive .`
-- **Complete command output**: Never summarize as "tests pass" — show actual `swift test` output.
+- **Complete command output**: Always show actual `swift test` output rather than summarizing as "tests pass".
 - **`let` by default**: Always define as `let`; change to `var` only when the compiler requires it.
 - **`struct` by default**: Use `struct` for all value-semantic types; use `class` only when identity semantics or reference semantics are genuinely needed.
 - **No `print()` in production**: Use `os.Logger(subsystem: Bundle.main.bundleIdentifier ?? "app", category: "subsystem")` for all logging.
-- **No force-unwrap on external data**: `URL(string:)!`, `data!`, and force-unwrapping on data from APIs/deep links/pasteboard are forbidden.
-- **Version-Aware Code**: Detect minimum deployment target from project settings. Never use APIs unavailable on the stated minimum.
+- **Safe unwrapping on external data**: Use `guard let` or `if let` for all data from APIs/deep links/pasteboard — `URL(string:)!`, `data!`, and force-unwrapping are hard boundaries.
+- **Version-Aware Code**: Detect minimum deployment target from project settings. Use only APIs available on the stated minimum deployment target.
 
 ### Default Behaviors (ON unless disabled)
 
@@ -280,7 +280,7 @@ actor DownloadManager {
 | `async let` | Fixed number of independent operations with known result types |
 | `TaskGroup` / `withThrowingTaskGroup` | Dynamic number of concurrent operations |
 | `Task {}` | Background work not in an async context (UI event handlers, Combine sinks) |
-| Avoid naked `Task {}` when `async let` / `TaskGroup` applies | Unstructured tasks escape scope, making cancellation and error propagation harder |
+| Prefer `async let` / `TaskGroup` over naked `Task {}` when applicable | Unstructured tasks escape scope, making cancellation and error propagation harder |
 
 ```swift
 // Prefer async let for fixed parallel fetches
@@ -467,9 +467,9 @@ struct KeychainStore {
 
 ### App Transport Security (ATS)
 
-- ATS is enabled by default — do not disable it
+- ATS is enabled by default — keep it enabled
 - `NSAllowsArbitraryLoads: true` in Info.plist requires documented justification (e.g., streaming media exemption per Apple documentation)
-- Use `NSExceptionDomains` for specific domains that require exceptions, never a blanket ATS bypass
+- Use `NSExceptionDomains` for specific domains that require exceptions; keep ATS bypasses scoped to individual domains
 - All production endpoints must use HTTPS with valid certificates
 
 ### Certificate Pinning
@@ -510,10 +510,10 @@ final class PinningDelegate: NSObject, URLSessionDelegate, @unchecked Sendable {
 
 | Source | Rule |
 |--------|------|
-| API keys in source files | **Forbidden** — decompilation extracts them trivially |
-| API keys in Info.plist | **Forbidden** — same decompilation risk |
+| API keys in source files | **Hard boundary** — decompilation extracts them trivially |
+| API keys in Info.plist | **Hard boundary** — same decompilation risk |
 | Build-time secrets | Use `.xcconfig` files excluded from version control; read via `Bundle.main.infoDictionary` |
-| CI/CD secrets | Environment variables injected at build time; never committed |
+| CI/CD secrets | Environment variables injected at build time; keep out of version control |
 | Runtime secrets | Fetched from server after authentication; stored in Keychain |
 
 ### Input Validation
@@ -601,9 +601,9 @@ xcrun llvm-cov report .build/debug/<product>.xctest/Contents/MacOS/<product> \
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
-| Anti-Pattern | Consequence | Detection |
+| Pattern | Consequence | Detection |
 |-------------|-------------|-----------|
 | `var` where `let` suffices | Unnecessary mutation surface; potential data races | Compiler warning; SwiftLint `prefer_let` rule |
 | `class` where `struct` suffices | Reference semantics risk; thread-safety burden | Review: does any property need shared mutable state? |

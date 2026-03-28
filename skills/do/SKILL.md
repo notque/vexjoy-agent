@@ -4,9 +4,9 @@ description: |
   Classify user requests and route to the correct agent + skill combination.
   Use for any user request that needs delegation: code changes, debugging,
   reviews, content creation, research, or multi-step workflows. Invoked as
-  the primary entry point via "/do [request]". Do NOT handle code changes
-  directly - always route to a domain agent. Do NOT skip routing for
-  anything beyond pure fact lookups or single read commands.
+  the primary entry point via "/do [request]". Route all code changes to
+  domain agents. Route all requests beyond pure fact lookups and single
+  reads to agents and skills.
 version: 2.0.0
 user-invocable: true
 argument-hint: "<request>"
@@ -26,13 +26,13 @@ routing:
 
 # /do - Smart Router
 
-/do is a **ROUTER**, not a worker. Its ONLY job is to classify requests, select the right agent + skill, and dispatch. It does NOT execute, implement, debug, review, or fix anything itself.
+/do is a **ROUTER**, not a worker. Its ONLY job is to classify requests, select the right agent + skill, and dispatch. It delegates all execution, implementation, debugging, review, and fixes to specialized agents.
 
 **What the main thread does:** (1) Classify, (2) Select agent+skill, (3) Dispatch via Agent tool, (4) Evaluate if more work needed, (5) Route to ANOTHER agent if yes, (6) Report results.
 
-**What the main thread NEVER does:** Read code files (dispatch Explore agent), edit files (dispatch domain agent), run tests (dispatch agent with skill), write docs (dispatch technical-documentation-engineer), handle ANY Simple+ task directly.
+**The main thread delegates to agents:** code reading (Explore agent), file edits (domain agents), test runs (agent with skill), documentation (technical-documentation-engineer), all Simple+ tasks.
 
-The main thread is an **orchestrator**. If you find yourself reading source code, writing code, or doing analysis instead of dispatching an agent — STOP. Route it.
+The main thread is an **orchestrator**. If you find yourself reading source code, writing code, or doing analysis — pause and route to an agent instead.
 
 ---
 
@@ -55,9 +55,9 @@ Read and follow the repository CLAUDE.md before making any routing decision, bec
 | Complexity | Agent | Skill | Direct Action |
 |------------|-------|-------|---------------|
 | Trivial | No | No | **ONLY reading a file the user named by exact path** |
-| Simple | **Yes** | Yes | Never |
-| Medium | **Required** | **Required** | Never |
-| Complex | Required (2+) | Required (2+) | Never |
+| Simple | **Yes** | Yes | Route to agent |
+| Medium | **Required** | **Required** | Route to agent |
+| Complex | Required (2+) | Required (2+) | Route to agent |
 
 **Trivial = reading a file the user named by exact path.** Everything else is Simple+ and MUST use an agent, skill, or pipeline. When uncertain, classify UP not down — because under-routing wastes implementations while over-routing only wastes tokens, and tokens are cheap but bad code is expensive.
 
@@ -95,7 +95,7 @@ Route to the simplest agent+skill that satisfies the request, because over-engin
 
 When `[cross-repo]` output is present, route to `.claude/agents/` local agents because they contain project-specific knowledge that generic agents lack.
 
-Never edit code directly — any code modification MUST be routed to a domain agent, because domain agents carry language-specific expertise, testing methodology, and quality gates that the router lacks.
+Route all code modifications to domain agents, because domain agents carry language-specific expertise, testing methodology, and quality gates that the router lacks.
 
 **Step 3: Apply skill override** (task verb overrides default skill)
 
@@ -156,7 +156,7 @@ Auto-inject retro knowledge from `learning.db` for any substantive work (benchma
 | "review" with 5+ files | Use parallel-code-review (3 reviewers) |
 | Complex implementation | Offer subagent-driven-development |
 
-Before stacking any enhancement, check the target skill's `pairs_with` field in `skills/INDEX.json`, because some skills have built-in verification gates that make stacking redundant or harmful. Specifically: empty `pairs_with: []` means no stacking allowed. Do NOT stack verification on skills with built-in verification gates. Do NOT stack TDD on `fast`.
+Before stacking any enhancement, check the target skill's `pairs_with` field in `skills/INDEX.json`, because some skills have built-in verification gates that make stacking redundant or harmful. Specifically: empty `pairs_with: []` means no stacking allowed. Skills with built-in verification gates handle their own verification. The `fast` skill handles its own testing — stack only compatible enhancements.
 
 **Auto-inject anti-rationalization** for these task types, because these categories are where shortcut rationalization causes the most damage:
 
@@ -191,13 +191,13 @@ Create `task_plan.md` before execution, because executing without a plan produce
 
 Dispatch the agent. MCP tool discovery is the agent's responsibility — each agent's markdown declares which MCP tools it needs. Do not inject MCP instructions from /do.
 
-Route to agents that create branches; never allow direct main/master commits, because main branch commits affect everyone and bypassing branch protection causes cascading problems.
+Route to agents that create feature branches for all commits, because main branch commits affect everyone and bypassing branch protection causes cascading problems.
 
 When dispatching agents for file modifications, explicitly include "commit your changes on the branch" in the agent prompt, because otherwise the agent completes file edits but changes sit unstaged — the orchestrator assumes committed work and moves on, and changes are lost.
 
-When dispatching agents with `isolation: "worktree"`, inject the `worktree-agent` skill rules into the agent prompt. The skill at `skills/worktree-agent/SKILL.md` contains mandatory rules that prevent worktree isolation failures (leaked changes, branch confusion, auto-plan hook interference). At minimum include: "Verify your CWD contains .claude/worktrees/. Create feature branch before edits. Do NOT create task_plan.md. Stage specific files only."
+When dispatching agents with `isolation: "worktree"`, inject the `worktree-agent` skill rules into the agent prompt. The skill at `skills/worktree-agent/SKILL.md` contains mandatory rules that prevent worktree isolation failures (leaked changes, branch confusion, auto-plan hook interference). At minimum include: "Verify your CWD contains .claude/worktrees/. Create feature branch before edits. Skip task_plan.md creation (handled by orchestrator). Stage specific files only."
 
-For repos without organization-gated workflows, run up to 3 iterations of `/pr-review` → fix before creating a PR, because post-merge fixes cost 2 PRs instead of 1. For repos under protected organizations (via `scripts/classify-repo.py`), require user confirmation before EACH git action — never auto-execute or auto-merge, because organization-gated repos have compliance requirements that automation must not bypass.
+For repos without organization-gated workflows, run up to 3 iterations of `/pr-review` → fix before creating a PR, because post-merge fixes cost 2 PRs instead of 1. For repos under protected organizations (via `scripts/classify-repo.py`), require user confirmation before EACH git action — confirm before executing or merging, because organization-gated repos have compliance requirements that require explicit approval.
 
 **Step 3: Handle multi-part requests**
 
@@ -205,7 +205,7 @@ Detect: "first...then", "and also", numbered lists, semicolons. Sequential depen
 
 **Step 4: Auto-Pipeline Fallback** (when no agent/skill matches AND complexity >= Simple)
 
-Invoke `auto-pipeline` (MANDATORY — "handle directly" is not an option), because a missing agent match is a routing gap to report, not a license to bypass routing. If no pipeline matches either, fall back to closest agent + verification-before-completion.
+Always invoke `auto-pipeline` for unmatched requests, because a missing agent match is a routing gap to report — routing overhead is always less than unreviewed code changes. If no pipeline matches either, fall back to closest agent + verification-before-completion.
 
 When uncertain which route: **ROUTE ANYWAY.** Add verification-before-completion as safety net. Routing overhead is always less than the cost of unreviewed code changes.
 
@@ -225,7 +225,7 @@ python3 ~/.claude/scripts/learning-db.py record \
     --category routing-decision
 ```
 
-Do NOT record subjective outcomes like "success" or "misroute" — that is self-grading.
+Record only observable facts (tool_errors, user_rerouted) — routing outcome quality is measured by user reroutes, not self-assessment.
 
 **Auto-capture** (hooks, zero LLM cost): `error-learner.py` (PostToolUse), `review-capture.py` (PostToolUse), `session-learning-recorder.py` (Stop).
 

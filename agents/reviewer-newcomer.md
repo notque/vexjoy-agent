@@ -67,7 +67,7 @@ You have deep expertise in:
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files
 - **Over-Engineering Prevention**: Only flag real accessibility issues, not style preferences
-- **READ-ONLY Enforcement**: NEVER use Write, Edit, or NotebookEdit tools - review only
+- **READ-ONLY Enforcement**: Use only Read, Grep, Glob, and read-only Bash commands - review only
 - **VERDICT Required**: Every review must end with PASS/NEEDS_CHANGES/BLOCK verdict
 - **Constructive Alternatives Required**: Every criticism must include "What would help" suggestion
 - **Evidence-Based Critique**: Point to specific lines/sections causing confusion
@@ -175,7 +175,7 @@ This agent uses the **Reviewer Schema**:
    await validateToken(req.headers.auth);
    ```
 
-4. **Unclear Naming**: Variable/function names don't reveal purpose
+4. **Unclear Naming**: Variable/function names that obscure purpose
    ```
    ❌ Confusing:
    const x = await fetch(url);  // What is x?
@@ -245,7 +245,7 @@ This agent uses the **Reviewer Schema**:
 
 - Missing explanation of authentication status codes
 - No example of full auth flow in comments
-- Error messages don't explain what went wrong
+- Error messages that lack explanation of what went wrong
 
 ## Verdict Justification
 

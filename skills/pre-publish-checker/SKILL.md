@@ -5,7 +5,7 @@ description: |
   draft status, and taxonomy. Use when user wants to check a post before
   publishing, validate blog content, or run pre-publish checks. Use for
   "pre-publish", "check post", "ready to publish", "validate post", or
-  "publication check". Do NOT use for content writing, editing prose, or
+  "publication check". Route to other skills for content writing, editing prose, or
   generating new posts.
 version: 2.0.0
 user-invocable: false
@@ -32,7 +32,7 @@ routing:
 
 This skill performs rigorous pre-publication validation for Hugo blog posts using a **Sequential Validation** workflow: assess structure, validate fields, check assets, and report results. It embeds Hugo-specific rules and SEO best practices to catch publication blockers before they reach production.
 
-The skill is **non-destructive** (never modifies files without explicit user request), **complete** (shows all validation results—never summarizes), and **severity-aware** (distinguishes BLOCKER from SUGGESTION throughout the workflow).
+The skill is **non-destructive** (modifies files only with explicit user request), **complete** (shows all validation results—always shows complete output), and **severity-aware** (distinguishes BLOCKER from SUGGESTION throughout the workflow).
 
 ---
 
@@ -155,7 +155,7 @@ Match current post content against existing taxonomy terms. Prefer established t
 
 **Step 3: Generate suggestions**
 
-Suggest 3-5 tags and 1-2 categories. Avoid over-suggesting popular tags; distribute evenly across the taxonomy. Report suggestions even if tags/categories are already present—they validate against site conventions.
+Suggest 3-5 tags and 1-2 categories. Distribute suggestions evenly across the taxonomy rather than over-suggesting popular tags; distribute evenly across the taxonomy. Report suggestions even if tags/categories are already present—they validate against site conventions.
 
 **Gate**: Taxonomy suggestions generated from existing site data (not invented). Proceed only when gate passes.
 
@@ -199,7 +199,7 @@ Format the report as:
 - READY FOR PUBLISH: Zero blockers (suggestions and warnings are acceptable)
 - NOT READY: One or more blockers present; list all blockers after result
 
-Ensure accurate blocker count. Count blockers and suggestions independently in the final result—never mix them.
+Ensure accurate blocker count. Count blockers and suggestions independently in the final result—count them independently.
 
 **Gate**: Report generated with accurate blocker count. Result matches blocker tally.
 

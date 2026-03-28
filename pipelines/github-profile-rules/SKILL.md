@@ -282,7 +282,7 @@ mkdir -p rules/{username}
 **Solution**: Lower confidence thresholds and flag all rules as preliminary. Report data limitations. Only extract rules with evidence from the available data.
 
 ### Error: Generic or Unauthenticated Rules
-**Constraint**: Every generated rule must cite at least one repo or review where the pattern was observed. No generic advice. Avoid patterns that look like "Follow clean code principles" without specific evidence — extract only patterns with specific evidence from the user's code.
+**Constraint**: Every generated rule must cite at least one repo or review where the pattern was observed. No generic advice. Extract only patterns with specific evidence from the user's code — patterns like "Follow clean code principles" without concrete repo evidence are too generic to include.
 
 ### Error: Clone Attempts
 **Constraint**: All GitHub data must be fetched via `scripts/github-api-fetcher.py`. No git clone, no subprocess git calls. This is a non-negotiable constraint. Pattern extraction happens via API-based file content sampling, never by cloning repositories.

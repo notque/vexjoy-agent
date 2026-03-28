@@ -200,7 +200,7 @@ Default target: **PHP 8.2+** unless the project's `composer.json` specifies othe
 | `never` return type | 8.1 |
 | First-class callable syntax | 8.1 |
 
-Always check `composer.json` `require.php` before using features. Never use features from a newer version than the project targets.
+Always check `composer.json` `require.php` before using features. Use only features available in the project's target version.
 
 ### Framework Variants
 
@@ -222,13 +222,13 @@ Always check `composer.json` `require.php` before using features. Never use feat
 ### Hardcoded Behaviors (Always Apply)
 
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before any implementation. Project instructions override default agent behaviors.
-- **Over-Engineering Prevention**: Only make changes directly requested or clearly necessary. Keep solutions simple and focused. Don't add features, refactor code, or make "improvements" beyond what was asked. Reuse existing abstractions over creating new ones.
+- **Over-Engineering Prevention**: Only make changes directly requested or clearly necessary. Keep solutions simple and focused. Limit scope to requested features, existing code structure, and stated requirements. Reuse existing abstractions over creating new ones.
 - **`declare(strict_types=1)` on new files**: Every new PHP application file must open with `<?php\ndeclare(strict_types=1);`. Non-negotiable.
 - **Format after every edit**: After editing any `.php` file, run `./vendor/bin/pint` (Laravel) or `php-cs-fixer fix` before committing.
-- **Complete command output**: Never summarize as "tests pass" — show actual `phpunit` or `pest` output.
+- **Complete command output**: Show actual `phpunit` or `pest` output instead of summarizing as "tests pass".
 - **Prepared statements only**: Raw SQL string interpolation is forbidden. Use PDO prepared statements, Doctrine QueryBuilder, or Eloquent query builder.
-- **Constructor injection**: Inject dependencies through constructors. Never use service-locator lookups (`app()->make()`, `container->get()`) inside business services.
-- **Version-Aware Code**: Check `composer.json` for PHP version target. Never use 8.2+ features in an 8.0-targeted project.
+- **Constructor injection**: Inject dependencies through constructors. Use constructor injection instead of service-locator lookups (`app()->make()`, `container->get()`) inside business services.
+- **Version-Aware Code**: Check `composer.json` for PHP version target. Use only features available in the project's target PHP version.
 
 ### Default Behaviors (ON unless disabled)
 
@@ -347,9 +347,9 @@ final class OrderService
 | HTTP method routing | Yes | No |
 | Input validation | Yes (Form Request) | No |
 | Authentication/authorization | Yes (middleware/policy) | No |
-| Business logic | **Never** | Yes |
-| Database queries | **Never** | Yes (via repository) |
-| External API calls | **Never** | Yes (via interface) |
+| Business logic | **Service only** | Yes |
+| Database queries | **Service only** | Yes (via repository) |
+| External API calls | **Service only** | Yes (via interface) |
 | HTTP response construction | Yes | No |
 
 ---
@@ -417,10 +417,10 @@ final readonly class Money
 
 ### Prepared Statements (Mandatory)
 
-Never build SQL with string interpolation.
+Build SQL exclusively with prepared statements or query builders.
 
 ```php
-// FORBIDDEN — SQL injection risk
+// BLOCKED — SQL injection risk
 $result = $pdo->query("SELECT * FROM users WHERE email = '$email'");
 
 // CORRECT — PDO prepared statement
@@ -450,7 +450,7 @@ grep -rn --include="*.php" -E '(query|exec)\s*\(\s*["\x27].*\$' src/
 Always declare `$fillable` (whitelist) — never use `$guarded = []`.
 
 ```php
-// FORBIDDEN
+// BLOCKED — mass-assignment vulnerability
 protected $guarded = [];
 
 // CORRECT
@@ -492,7 +492,7 @@ Use `password_hash()` / `password_verify()` — never `md5()` or `sha1()` for pa
 $hash = password_hash($plaintext, PASSWORD_BCRYPT);
 $valid = password_verify($plaintext, $hash);
 
-// FORBIDDEN
+// BLOCKED — cryptographically broken for passwords
 $hash = md5($plaintext);
 $hash = sha1($plaintext);
 ```
@@ -505,7 +505,7 @@ Secrets (API keys, DB passwords, tokens) must come from environment variables or
 // CORRECT
 $apiKey = env('PAYMENT_API_KEY');
 
-// FORBIDDEN — never commit secrets
+// BLOCKED — secrets stay in environment variables, not in code
 $apiKey = 'sk_live_abc123...';
 ```
 
@@ -518,9 +518,9 @@ composer audit
 
 ---
 
-## Anti-Patterns
+## Preferred Patterns
 
-| Anti-Pattern | Why It Is Wrong | Detection Command |
+| Pattern to Replace | Why It Is Wrong | Detection Command |
 |-------------|----------------|------------------|
 | Fat controller | Business logic in controllers couples transport to domain, kills testability, and prevents service reuse | `grep -rn --include="*.php" -E 'Eloquent\\Model\|DB::' app/Http/Controllers/` |
 | Associative arrays where DTOs fit | Untyped arrays lose IDE support, skip static analysis, and make refactoring risky | `grep -rn --include="*.php" -E '\$data\s*=\s*\[' app/Services/` |
@@ -533,14 +533,14 @@ composer audit
 
 ---
 
-## Forbidden Patterns
+## Hard Gate Patterns
 
-These patterns are blocked unconditionally. Do not implement them, suggest them, or leave them in code you edit.
+These patterns are blocked unconditionally. Replace them with the correct alternative in any code you edit.
 
 | Pattern | Reason |
 |---------|--------|
 | `$$variable` (variable variables) in business logic | Arbitrary indirection; unanalyzable by static analysis tools; creates impossible-to-audit attack surface |
-| Dynamic code execution via string-eval functions | Executes arbitrary strings as PHP code; forbidden in all contexts without exception |
+| Dynamic code execution via string-eval functions | Executes arbitrary strings as PHP code; blocked in all contexts without exception |
 | `mysql_*` functions | Removed in PHP 7; any occurrence indicates legacy migration debt requiring immediate remediation |
 | `preg_replace` with `/e` modifier | Executes replacement string as PHP code; security vulnerability removed in PHP 7 |
 | Disabling CSRF protection without documented reason | State-changing endpoints without CSRF tokens are vulnerable to cross-site request forgery |
@@ -559,11 +559,11 @@ These patterns are blocked unconditionally. Do not implement them, suggest them,
 | Laravel project with team preference for expressive syntax | Pest acceptable |
 | CI pipeline expects PHPUnit XML output | PHPUnit |
 
-Never mix PHPUnit and Pest test styles in the same test class.
+Use one test framework per test class — PHPUnit or Pest, not both.
 
 ### Factory Fixtures (Mandatory)
 
-Use Laravel factories or custom builders for test data. Never hand-write large arrays of fixture data.
+Use Laravel factories or custom builders for test data. Generate fixture data through factories instead of hand-writing large arrays.
 
 ```php
 // CORRECT — factory with state
@@ -578,7 +578,7 @@ $order = OrderBuilder::new()
     ->forCustomer($user)
     ->build();
 
-// FORBIDDEN — hand-written array fixture
+// BLOCKED — hand-written array fixture
 $orderData = [
     'customer_id' => 1,
     'items' => [['product_id' => 5, 'quantity' => 2, 'price' => 1000]],
@@ -594,7 +594,7 @@ $orderData = [
 | Integration | Service + real database, or controller + real HTTP stack | Slower (>10ms) | Yes |
 | Feature/E2E | Full request lifecycle | Slowest | Yes |
 
-Run unit tests in tight loops; run integration tests in CI. Never intermix database usage in unit test classes.
+Run unit tests in tight loops; run integration tests in CI. Keep database usage in integration test classes only.
 
 ```php
 // Unit test — mocked dependencies

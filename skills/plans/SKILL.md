@@ -4,8 +4,8 @@ description: |
   Deterministic plan lifecycle management via scripts/plan-manager.py: create,
   track, check, complete, and abandon task plans. Use when user says "/plans",
   needs to create a multi-phase plan, track progress on active plans, or manage
-  plan lifecycle (complete, abandon, audit). Do NOT use for one-off tasks that
-  need no tracking, feature implementation, or debugging workflows.
+  plan lifecycle (complete, abandon, audit). Route one-off tasks that
+  need no tracking, feature implementation, or debugging workflows to other skills.
 version: 2.0.0
 user-invocable: true
 argument-hint: "[status|list|show|check|complete|abandon]"
@@ -26,9 +26,9 @@ routing:
 
 ## Overview
 
-This skill manages the full lifecycle of task plans through deterministic commands in `scripts/plan-manager.py`. Plans track multi-phase work with task-level granularity, enabling progress tracking, stale-plan detection, and structured completion. The skill routes all mutations through the script—never edit plan files directly—and enforces gates at key decision points.
+This skill manages the full lifecycle of task plans through deterministic commands in `scripts/plan-manager.py`. Plans track multi-phase work with task-level granularity, enabling progress tracking, stale-plan detection, and structured completion. The skill routes all mutations through the script—always use the script for plan file changes—and enforces gates at key decision points.
 
-**Scope**: Creating, listing, inspecting, checking off tasks, completing, and abandoning plans. Does NOT execute the tasks themselves (other skills do that) or replace Claude Code's built-in `/plan` command.
+**Scope**: Creating, listing, inspecting, checking off tasks, completing, and abandoning plans. Other skills execute the tasks themselves, and Claude Code's built-in `/plan` command serves a different purpose.
 
 ---
 
@@ -43,7 +43,7 @@ python3 ~/.claude/scripts/plan-manager.py list --human
 python3 ~/.claude/scripts/plan-manager.py list --stale --human
 ```
 
-**Constraint**: If stale plans exist, warn the user and ask whether to proceed, abandon, or update the timeline. Never skip this gate.
+**Constraint**: If stale plans exist, warn the user and ask whether to proceed, abandon, or update the timeline. Always complete this gate before proceeding.
 
 ### Phase 2: INSPECT (Show Before Modify)
 
@@ -66,7 +66,7 @@ Apply the exact requested action via the script:
 | Complete | `python3 ~/.claude/scripts/plan-manager.py complete NAME` |
 | Abandon | `python3 ~/.claude/scripts/plan-manager.py abandon NAME --reason "reason"` |
 
-**Constraint**: NEVER edit plan files with Read/Write/Edit tools. All mutations go through the script to maintain audit trail and validation. **Constraint**: For `complete` and `abandon`, require explicit user confirmation before executing—these are high-consequence actions.
+**Constraint**: Route all plan file mutations through the script to maintain audit trail and validation. **Constraint**: For `complete` and `abandon`, require explicit user confirmation before executing—these are high-consequence actions.
 
 **Gate**: Mutation succeeds (exit code 0) or fails cleanly with a clear error message.
 
@@ -78,7 +78,7 @@ Display the updated plan state to verify the mutation worked as expected.
 python3 ~/.claude/scripts/plan-manager.py show PLAN_NAME --human
 ```
 
-**Constraint**: NEVER summarize or truncate script output—show the complete output to the user so they see task lists, completion status, and any warnings. If exit code != 0, report the error and stop.
+**Constraint**: Show the complete, untruncated script output to the user so they see task lists, completion status, and any warnings. If exit code != 0, report the error and stop.
 
 ---
 
@@ -100,7 +100,7 @@ python3 ~/.claude/scripts/plan-manager.py show PLAN_NAME --human
 **Solution**:
 1. Display the stale plan's current state to the user using `show`
 2. Ask explicitly: Continue working? Abandon? Update the plan timeline?
-3. **Constraint**: Do NOT execute tasks from stale plans without explicit user confirmation
+3. **Constraint**: Get explicit user confirmation before executing tasks from stale plans
 
 ---
 
@@ -108,34 +108,30 @@ python3 ~/.claude/scripts/plan-manager.py show PLAN_NAME --human
 **Cause**: Invalid arguments, missing plan, filesystem permissions, or missing script file.
 
 **Solution**:
-1. Show the full error output to the user (never summarize)
+1. Show the full error output to the user (always display complete output)
 2. Check that script arguments match expected format
 3. Verify `scripts/plan-manager.py` exists and is executable
 4. If persist: ask user to diagnose environment issue
 
 ---
 
-### Common Anti-Patterns (Constraint Violations)
+### Preferred Patterns
 
-**Anti-Pattern: Editing Plan Files Directly**
-- **Wrong**: Using Read/Write/Edit to modify a plan markdown file
-- **Why**: Bypasses script validation, breaks audit trail, corrupts format
-- **Correct**: All mutations through `plan-manager.py`
+**Pattern: All Mutations Through Scripts**
+- **Do**: Route all plan file mutations through `plan-manager.py`
+- **Why**: Maintains audit trail, validation, and format integrity
 
-**Anti-Pattern: Skipping Show Before Mutation**
-- **Wrong**: Running `check` or `complete` without first running `show`
-- **Why**: Risk marking the wrong task, completing with remaining work, or acting on stale data
-- **Correct**: Always Phase 2 (INSPECT) before Phase 3 (MUTATE)
+**Pattern: Inspect Before Mutate**
+- **Do**: Run `show` (Phase 2: INSPECT) before any mutation (Phase 3: MUTATE)
+- **Why**: Confirms the right task, surfaces remaining work, and reveals stale data
 
-**Anti-Pattern: Summarizing Script Output**
-- **Wrong**: "The plan has 3 remaining tasks" instead of showing full output
-- **Why**: User loses task descriptions, staleness info, completion details, and audit trail
-- **Correct**: Display complete script output; let user read it
+**Pattern: Display Complete Script Output**
+- **Do**: Show full, untruncated script output to the user
+- **Why**: Preserves task descriptions, staleness info, completion details, and audit trail
 
-**Anti-Pattern: Auto-Completing Without Confirmation**
-- **Wrong**: Detecting all tasks done and running `complete` automatically
+**Pattern: Confirm Before Completing**
+- **Do**: Suggest completion after all tasks checked; wait for explicit user confirmation
 - **Why**: User may want to add tasks, review work, or keep the plan active for tracking
-- **Correct**: Suggest completion after all tasks checked; wait for explicit user confirmation
 
 ---
 
@@ -145,4 +141,4 @@ python3 ~/.claude/scripts/plan-manager.py show PLAN_NAME --human
 - **Location**: `scripts/plan-manager.py`
 - **Exit codes**: 0 = success, 1 = error, 2 = warnings (e.g., stale plans detected)
 - **Output format**: JSON by default; add `--human` flag for readable format
-- **Mutations**: All plan changes must go through this script; direct file editing is forbidden
+- **Mutations**: Route all plan changes through this script to preserve audit trail and validation

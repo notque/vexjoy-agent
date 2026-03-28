@@ -5,7 +5,7 @@ description: |
   Use when starting work on an unfamiliar codebase, onboarding to a new project,
   reviewing a repository for the first time, or building context before debugging
   or code review. Use for "explore codebase", "what does this project do",
-  "understand architecture", or "onboard me". Do NOT use for modifying files,
+  "understand architecture", or "onboard me". Route to other skills for modifying files,
   running applications, performance optimization, or deep domain analysis.
 version: 2.0.0
 user-invocable: false
@@ -40,11 +40,11 @@ Execute all phases autonomously. Verify each gate before advancing. Consult `ref
 
 Before starting any exploration, read and follow any `.claude/CLAUDE.md` or `CLAUDE.md` in the repository root because project-specific instructions override default behavior.
 
-This is a **read-only** skill -- never modify, create, or delete project files because the goal is observation, not mutation. Likewise, never run the application or execute its test suite because those are execution concerns outside this skill's scope. For deep domain analysis, route to a specialized agent instead.
+This is a **read-only** skill -- keep all project files unmodified because the goal is observation, not mutation. Likewise, leave application execution and test running to other skills because those are execution concerns outside this skill's scope. For deep domain analysis, route to a specialized agent instead.
 
-### Forbidden-Files Guardrail
+### Sensitive-Files Guardrail
 
-Check every file path against this list BEFORE reading because secrets leaked into exploration output are hard to retract and easy to miss. Skip silently -- do not log the file contents or path in output.
+Check every file path against this list BEFORE reading because secrets leaked into exploration output are hard to retract and easy to miss. Skip silently -- skip silently without logging the file contents or path.
 
 ```
 # Secrets and credentials
@@ -242,7 +242,7 @@ Based on examined files, identify and document with evidence. Every architectura
 - DI approach: [manual/framework/none] (evidence: [file paths])
 ```
 
-Do not infer architecture from the README alone because READMEs may be outdated or incomplete -- always verify against actual source files.
+Verify architectural claims against source files because READMEs may be outdated or incomplete -- always verify against actual source files.
 
 **Step 2: Map key abstractions**
 
@@ -330,7 +330,7 @@ Populate this table from evidence gathered in Phases 2-3. Every entry MUST refer
 
 **Step 4: Post-exploration secret scan**
 
-Before presenting results, scan all output for accidentally captured secrets. Even with the forbidden-files guardrail, secrets can appear in non-obvious places (config comments, inline connection strings, hardcoded tokens in source).
+Before presenting results, scan all output for accidentally captured secrets. Even with the sensitive-files guardrail, secrets can appear in non-obvious places (config comments, inline connection strings, hardcoded tokens in source).
 
 ```bash
 # Scan exploration output for common secret patterns
@@ -339,7 +339,7 @@ grep -E '(AIza|sk-|ghp_|gho_|AKIA|-----BEGIN)' <output_file> || true
 ```
 
 If any matches are found:
-1. Do NOT present the raw output to the user
+1. Redact the output before presenting to the user
 2. Redact the matched lines (replace values with `[REDACTED]`)
 3. Flag the finding: "Secret pattern detected in exploration output -- redacted before display. Review [file path] manually."
 
@@ -359,11 +359,11 @@ When the user requests a full architectural analysis (e.g., "give me the full pi
 
 ### When to Use
 
-Use parallel mapping when the exploration goal is broad and open-ended -- full onboarding, major refactor preparation, or comprehensive architectural review. Do NOT use for targeted questions about a single subsystem; the standard 4-phase flow is more efficient for focused exploration.
+Use parallel mapping when the exploration goal is broad and open-ended -- full onboarding, major refactor preparation, or comprehensive architectural review. Use the standard 4-phase flow for targeted questions about a single subsystem; the standard 4-phase flow is more efficient for focused exploration.
 
 ### Agent Domains
 
-Launch 4 parallel agents using Task, each focused on a specific domain. Each agent follows the forbidden-files guardrail and writes a structured document. This skill works across any language, framework, or build system because the agent instructions are project-agnostic.
+Launch 4 parallel agents using Task, each focused on a specific domain. Each agent follows the sensitive-files guardrail and writes a structured document. This skill works across any language, framework, or build system because the agent instructions are project-agnostic.
 
 | Agent | Focus | Output File |
 |-------|-------|-------------|
@@ -376,7 +376,7 @@ Launch 4 parallel agents using Task, each focused on a specific domain. Each age
 
 1. **Phase 1 (DETECT) runs first, sequentially** -- All agents need the project type context from DETECT before they can explore effectively
 2. **Agents launch after DETECT gate passes** -- Spawn all 4 agents in parallel using Task
-3. **Each agent writes its own output file** -- Agents do not share context or coordinate
+3. **Each agent writes its own output file** -- Agents operate independently without sharing context
 4. **Timeout: 5 minutes per agent** -- If an agent times out, proceed with completed results. Minimum 3 of 4 agents MUST complete.
 5. **Orchestrator does NOT merge results** -- The parallel documents ARE the output. The orchestrator collects confirmations and line counts, then runs the post-exploration secret scan across all output files
 6. **Slight redundancy is acceptable** -- Both Architecture and Risks agents may note the same coupling issue. This is preferable to gaps from trying to deduplicate.
@@ -391,8 +391,8 @@ Project root: [absolute path]
 Project type: [from DETECT phase]
 
 RULES:
-- Read-only. NEVER modify files.
-- NEVER read files matching forbidden patterns: .env, .env.*, *.pem, *.key, credentials.json, secrets.*, *secret*, *credential*, *password*, token.json, .npmrc, .pypirc, .aws/credentials, .gcloud/, service-account*.json
+- Read-only. keep modifications out of scope — files.
+- Skip files matching sensitive patterns: .env, .env.*, *.pem, *.key, credentials.json, secrets.*, *secret*, *credential*, *password*, token.json, .npmrc, .pypirc, .aws/credentials, .gcloud/, service-account*.json
 - All file paths in output MUST be absolute.
 - Every claim MUST cite an examined file.
 
@@ -417,7 +417,7 @@ Actions:
 Result: Structured overview enabling immediate productive contribution
 
 ### Example 2: Pre-Review Context Building
-User says: "I need to review a PR in this repo but don't know the codebase"
+User says: "I need to review a PR in this repo but am unfamiliar with the codebase"
 Actions:
 1. Detect Go project with `go.mod`, identify Gin framework (DETECT)
 2. Find `cmd/server/main.go` entry point, map `internal/` packages (EXPLORE)

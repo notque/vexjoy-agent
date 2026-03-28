@@ -203,7 +203,7 @@ Collect Wave 0 findings into a per-package summary. Read `${CLAUDE_SKILL_DIR}/re
 
 **Step 2**: Identify cross-package patterns (e.g., "5 packages have inconsistent error handling"). These are especially valuable for Wave 1+2 agents.
 
-**Step 3: Save Wave 0 findings to disk** — do NOT skip this step
+**Step 3: Save Wave 0 findings to disk** — this step is mandatory
 
 ```bash
 cat > "$REVIEW_DIR/wave0-findings.md" << 'WAVE0_EOF'
@@ -284,7 +284,7 @@ Read `${CLAUDE_SKILL_DIR}/references/wave-1-foundation.md` for the Wave 0+1 comb
 
 **Step 2**: Build combined Wave 0+1 summary (Wave 0 per-package findings + Wave 1 cross-cutting findings). Identify overlapping findings between waves — duplicates validate both agents' analysis.
 
-**Step 3: Save to disk** — do NOT skip:
+**Step 3: Save to disk** — mandatory:
 
 ```bash
 cat > "$REVIEW_DIR/wave1-findings.md" << 'WAVE1_EOF'
@@ -349,7 +349,7 @@ echo "Loaded Wave 0: $(echo "$WAVE0" | wc -l) lines, Wave 1: $(echo "$WAVE1" | w
 
 **Step 4**: Build preliminary summary matrix. Read `${CLAUDE_SKILL_DIR}/references/output-templates.md` for the full matrix format.
 
-**Step 5: Save to disk** — do NOT skip:
+**Step 5: Save to disk** — mandatory:
 
 ```bash
 cat > "$REVIEW_DIR/wave2-findings.md" << 'WAVE2_EOF'
@@ -535,7 +535,7 @@ Review findings persisted at: $REVIEW_DIR/
 
 ## Error Handling
 
-**Agent Times Out**: Report findings from completed agents immediately. Note which timed out. Offer to re-run separately. Proceed with partial results — do not block the entire wave.
+**Agent Times Out**: Report findings from completed agents immediately. Note which timed out. Offer to re-run separately. Proceed with partial results — keep the entire wave moving.
 
 **Fix Breaks Tests**: Revert the specific fix. Try an ALTERNATIVE approach for the same finding. If alternative also fails, mark BLOCKED. Continue. BLOCKED must be <10%.
 

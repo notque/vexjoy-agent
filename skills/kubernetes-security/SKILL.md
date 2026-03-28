@@ -15,7 +15,7 @@ Harden Kubernetes clusters and workloads through RBAC, pod security, network iso
 
 ### Step 1: RBAC -- Least-Privilege Roles and Bindings
 
-Grant the minimum permissions required. Prefer namespace-scoped Roles over ClusterRoles. Never use wildcard verbs or resources in production -- even in dev clusters, because dev habits carry forward and dev manifests get promoted. Write exact verbs and resources every time.
+Grant the minimum permissions required. Prefer namespace-scoped Roles over ClusterRoles. Write exact verbs and resources in production -- even in dev clusters, because dev habits carry forward and dev manifests get promoted. Write exact verbs and resources every time.
 
 ```yaml
 # Good: namespace-scoped Role with specific verbs and resources
@@ -48,13 +48,13 @@ roleRef:
 ```
 
 ServiceAccount best practices:
-- Create dedicated ServiceAccounts per workload -- never use the `default` account
-- Set `automountServiceAccountToken: false` on pods that do not need the Kubernetes API
+- Create dedicated ServiceAccounts per workload -- create dedicated ServiceAccounts per workload
+- Set `automountServiceAccountToken: false` on pods that have no need for Kubernetes API access
 - Regularly audit which ServiceAccounts have ClusterRole bindings
 
 ### Step 2: PodSecurityStandards -- Baseline vs Restricted
 
-Kubernetes PodSecurity admission replaces the deprecated PodSecurityPolicy. Apply labels at the namespace level. All containers must run as non-root with a read-only root filesystem unless there is a documented exception -- if an app claims it needs root, it almost never does; it usually just needs a writable `/tmp`, which an emptyDir volume solves.
+Kubernetes PodSecurity admission replaces the deprecated PodSecurityPolicy. Apply labels at the namespace level. All containers must run as non-root with a read-only root filesystem unless there is a documented exception -- if an app claims it needs root, it usually just needs a writable `/tmp`; it usually just needs a writable `/tmp`, which an emptyDir volume solves.
 
 ```yaml
 # Enforce restricted profile, warn on baseline violations
@@ -168,7 +168,7 @@ spec:
 
 ### Step 4: Secret Management
 
-Never store secrets in ConfigMaps, environment variables from manifests, or checked-in YAML. Secrets exposed as env vars are visible in `kubectl describe pod` output, which makes them trivially discoverable after any pod compromise. Use one of these approaches instead:
+Store secrets using Sealed Secrets or External Secrets Operator, environment variables from manifests, or checked-in YAML. Secrets exposed as env vars are visible in `kubectl describe pod` output, which makes them trivially discoverable after any pod compromise. Use one of these approaches instead:
 
 **Sealed Secrets** -- encrypts secrets client-side so they are safe in Git:
 
@@ -202,14 +202,14 @@ spec:
         property: password
 ```
 
-Avoid these patterns:
+Use these alternatives instead:
 - Mounting secrets as environment variables in the pod spec (visible in `kubectl describe pod`)
 - Storing secrets in ConfigMaps
 - Hardcoding credentials in container images or Dockerfiles
 
 ### Step 5: Image Security
 
-Containers must not run as privileged or with elevated capabilities unless explicitly justified -- privileged mode grants full host access to an attacker if the pod is compromised. Use specific capabilities or debug containers instead.
+Containers should instead run as privileged or with elevated capabilities unless explicitly justified -- privileged mode grants full host access to an attacker if the pod is compromised. Use specific capabilities or debug containers instead.
 
 Build minimal, non-root container images:
 
@@ -294,9 +294,9 @@ Solution: Check the admission warning message, then update the pod's SecurityCon
 Cause: Default-deny is in place but the allow-list rule is missing or has incorrect label selectors.
 Solution: Verify pod labels match the NetworkPolicy `podSelector` and `from`/`to` selectors. Use `kubectl describe networkpolicy` to inspect rules.
 
-### Error: RBAC "forbidden" errors in application logs
+### Error: RBAC "access denied" errors in application logs
 Cause: ServiceAccount lacks required permissions.
-Solution: Identify the API group, resource, and verb from the error message. Create or update a Role with the exact permissions needed -- do not add wildcards.
+Solution: Identify the API group, resource, and verb from the error message. Create or update a Role with the exact permissions needed -- list specific verbs and resources.
 
 ## References
 

@@ -6,7 +6,7 @@ description: |
   slide presentation, pitch deck, or conference talk slides.
   Triggers: "create a presentation", "make slides", "pitch deck", "powerpoint",
   "pptx", "slide deck", "generate presentation".
-  Do NOT use for Google Slides, Keynote, or PDF-only documents.
+  Route to other skills for Google Slides, Keynote, or PDF-only documents.
 version: 1.0.0
 user-invocable: false
 allowed-tools:
@@ -128,7 +128,7 @@ Select layout types for each slide. Use at least 2-3 distinct layout types to av
 Available layouts: `title`, `section` (divider), `content` (bullets), `two_column`, `image_text`, `quote` (callout), `table`, `closing`
 
 Layout rhythm rules:
-- Never use the same layout more than 3 times in a row. (Reason: Identical layouts are the most obvious AI-slide tell. Real presentations have visual rhythm with varied layouts.)
+- Use a different layout after 3 consecutive slides of the same type in a row. (Reason: Identical layouts are the most obvious AI-slide tell. Real presentations have visual rhythm with varied layouts.)
 - For 10+ slide decks, use at least 3 distinct layout types
 - Insert a different layout type (quote, two-column, section divider) to break repetition
 
@@ -204,7 +204,7 @@ SLIDE MAP (10 slides, Corporate palette):
 Approve this structure, or suggest changes?
 ```
 
-**GATE**: User approves the slide map. If the user requests changes, update the slide map and re-present. Do not proceed to generation without explicit approval. Why: regeneration costs iteration budget that should be reserved for visual QA fixes.
+**GATE**: User approves the slide map. If the user requests changes, update the slide map and re-present. Get explicit user approval before proceeding to generation. Why: regeneration costs iteration budget that should be reserved for visual QA fixes.
 
 ---
 
@@ -319,7 +319,7 @@ Check that one PNG exists per slide. If fewer PNGs than slides, some slides may 
 
 **Why a subagent**: The generating agent has context bias -- it "knows" what the slide should look like and will rationalize visual problems. A fresh-eyes subagent with zero generation context sees the slide as a viewer would. This is the same anti-bias pattern as the voice-validator: the generator and the validator must be separate.
 
-**Why max 3 iterations**: If visual issues persist after 3 fix cycles, the design is wrong, not the implementation. Looping further produces diminishing returns and wastes context. (Reason: Do NOT continue iterating beyond 3. This signals that the design approach is wrong, not the implementation. More iterations burn context without convergence.)
+**Why max 3 iterations**: If visual issues persist after 3 fix cycles, the design is wrong, not the implementation. Looping further produces diminishing returns and wastes context. (Reason: Stop iterating after 3 attempts. This signals that the design approach is wrong, not the implementation. More iterations burn context without convergence.)
 
 **Step 1: Dispatch QA subagent**
 
@@ -376,7 +376,7 @@ If QA returns FAIL with Blocker or Major issues:
 Severity levels:
 - **Blocker**: Must fix (text unreadable, content missing, wrong slide order)
 - **Major**: Should fix (alignment off, anti-AI violation, contrast issue)
-- **Minor**: Report but do not require a fix cycle (slightly suboptimal spacing)
+- **Minor**: Report but report without requiring a fix cycle (slightly suboptimal spacing)
 
 Only Blocker and Major issues trigger a fix iteration.
 
@@ -387,7 +387,7 @@ QA Iteration 2/3: 1 issue found (1 Minor)
 QA Iteration 3/3: PASS (0 Blocker, 0 Major)
 ```
 
-**GATE**: QA subagent returns PASS, OR 3 iterations exhausted. If iterations exhausted with remaining issues, include them in the output report. Do not loop beyond 3.
+**GATE**: QA subagent returns PASS, OR 3 iterations exhausted. If iterations exhausted with remaining issues, include them in the output report. Stop after 3 iterations.
 
 ---
 
@@ -512,13 +512,13 @@ Install with: `apt install libreoffice-impress` (Debian/Ubuntu) or `brew install
 
 ### Error: QA Loop Exceeds 3 Iterations
 **Cause**: Visual issues persist despite fixes. Usually indicates a fundamental design problem.
-**Solution**: Do NOT continue iterating. Report remaining issues, suggest the user simplify content or change layout approach, deliver the best available version with caveats.
+**Solution**: Stop iterating after 3 attempts. Report remaining issues, suggest the user simplify content or change layout approach, deliver the best available version with caveats.
 
 ---
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (stop and resolve before proceeding autonomously) when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -528,12 +528,12 @@ STOP and ask the user (do NOT proceed autonomously) when:
 | QA finds structural issues (wrong slide count) | Structural failures indicate a slide map problem, not a visual fix | "The generated deck has 8 slides but the map specified 10. Regenerate or adjust the map?" |
 | Multiple valid palette choices | Aesthetic preference is personal | "I'd suggest [Palette] for this type of presentation. Want that, or prefer something else?" |
 
-### Never Guess On
+### Confirm With User
 - Audience and tone (business vs technical vs casual changes everything)
 - Whether to use dark theme (Midnight palette) -- strong aesthetic choice
 - Whether to include images (user must provide assets or explicitly request generation)
 - Slide count when user is vague ("a few slides" -- ask for a number)
-- Content that the user hasn't provided (do not invent slide content). Reason: Build the deck the user asked for. No speculative slides, no "bonus" content, no unsolicited animations or transitions.
+- Content that the user hasn't provided (build the deck from user-provided content only). Reason: Build the deck the user asked for. No speculative slides, no "bonus" content, no unsolicited animations or transitions.
 
 ---
 
@@ -566,7 +566,7 @@ STOP and ask the user (do NOT proceed autonomously) when:
 | `pdftoppm` (poppler-utils) | system | Higher-quality PDF-to-PNG conversion | `apt install poppler-utils` |
 | `markitdown` | pip | Extract text from existing PPTX for content reuse | `pip install markitdown` |
 
-### What We Do NOT Need
+### Out-of-Scope Tools
 | Tool | Why Not |
 |------|---------|
 | `pptxgenjs` / Node.js | Foreign ecosystem; python-pptx covers our needs |

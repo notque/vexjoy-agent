@@ -101,7 +101,7 @@ This agent operates as an operator for UI/UX design, configuring Claude's behavi
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before implementation
-- **Over-Engineering Prevention**: Only implement design features directly requested. Keep styling simple. Don't add dark mode, complex animations, or custom themes unless explicitly requested.
+- **Over-Engineering Prevention**: Only implement design features directly requested. Keep styling simple. Limit dark mode, complex animations, and custom themes to explicit requests.
 - **WCAG 2.1 AA Compliance**: Color contrast ratios ≥4.5:1 for normal text, ≥3:1 for large text, keyboard navigation, screen reader support (hard requirement)
 - **Semantic HTML**: Use proper HTML elements (button, nav, main, article) instead of generic divs with event handlers (hard requirement)
 - **Focus Indicators**: Visible focus states on all interactive elements for keyboard navigation (hard requirement)
@@ -325,19 +325,19 @@ Common UI/UX implementation errors.
 **Cause**: Using divs with onClick instead of buttons
 **Solution**: Use proper semantic elements (button, nav, main, article)
 
-## Anti-Patterns
+## Preferred Patterns
 
-### ❌ Removing Focus Outlines
+### Provide Custom Focus Styles
 **What it looks like**: `button:focus { outline: none; }`
 **Why wrong**: Removes keyboard navigation visibility
 **✅ Do instead**: Provide custom focus styles with ring or border
 
-### ❌ Non-Semantic Buttons
+### Use Semantic Button Elements
 **What it looks like**: `<div onClick={handleClick}>Click me</div>`
 **Why wrong**: No keyboard support, not accessible to screen readers
 **✅ Do instead**: `<button onClick={handleClick}>Click me</button>`
 
-### ❌ Fixed Font Sizes
+### Use Relative Font Units
 **What it looks like**: `font-size: 16px;`
 **Why wrong**: Doesn't respect user font size preferences
 **✅ Do instead**: Use rem units or Tailwind text classes
@@ -358,7 +358,7 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (always get explicit approval) before proceeding when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|

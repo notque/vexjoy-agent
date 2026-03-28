@@ -104,7 +104,7 @@ Launch **all 4 agents simultaneously** using the Task tool. Each agent receives 
 - Output: Reference file recommendations and deterministic validation opportunities
 - Save to: `/tmp/pipeline-{run-id}/phase-1-research/agent-4-reference-research.md`
 
-**Why parallel is mandatory**: Parallel dispatch forces diverse perspectives from the start. Agents do not see each other's partial results and thus avoid anchoring bias. Testing proved 4-agent parallel produces measurably better Examples coverage than sequential dispatch.
+**Why parallel is mandatory**: Parallel dispatch forces diverse perspectives from the start. Agents work independently without seeing each other's partial results, staying free of anchoring bias. Testing proved 4-agent parallel produces measurably better Examples coverage than sequential dispatch.
 
 **Step 3: Collect and merge research artifacts**
 
@@ -286,7 +286,7 @@ For each classified subdomain, build a preliminary chain by:
    - Has quality criteria: VALIDATE
    - Add REFINE (max 3 cycles) after any validation step that can fail
 
-6. **Apply profile gates** — note which steps are profile-dependent. Record as annotations on the chain, not hard inclusions. Why? Read the operator profile from pipeline context but do NOT gate any research steps on it — research itself is read-only and harmless across all profiles. The profile information is passed through to the Component Manifest so downstream skills (chain-composer, scaffolder) can apply the correct safety gates.
+6. **Apply profile gates** — note which steps are profile-dependent. Record as annotations on the chain, not hard inclusions. Why? Read the operator profile from pipeline context but keep all research steps ungated — research itself is read-only and harmless across all profiles. The profile information is passed through to the Component Manifest so downstream skills (chain-composer, scaffolder) can apply the correct safety gates.
    - APPROVE: Work/Production only
    - GUARD + SNAPSHOT: Work/Production only for state changes
    - SIMULATE: Production only (optional elsewhere)
@@ -379,7 +379,7 @@ Based on the existing inventory (Phase 1, Agent 2) and reuse assessments (Phase 
 
 - If an existing agent covers 70%+ of the domain: **Reuse it**. Bind all new subdomain skills to this agent. Note the agent name and what gaps it has (if any).
 - If no existing agent covers the domain: **Create one new coordinator agent**. Define its name (`{domain}-pipeline-engineer` or `{domain}-{function}-engineer`), purpose, and which subdomain skills it will execute.
-- **NEVER create one agent per subdomain.** Why? Agents are expensive context; skills are cheap. The architecture is "1 agent : N skills" not "N agents : N skills".
+- **Create one coordinator agent for the entire domain.** Why? Agents are expensive context; skills are cheap. The architecture is "1 agent : N skills" not "N agents : N skills".
 
 **Step 2: Compile shared resources**
 
@@ -541,7 +541,7 @@ Every research finding is tagged with a confidence level. Why? Without explicit 
 ### Rules
 
 - Every finding in the research output MUST have a confidence tag
-- LOW confidence findings are NEVER presented as authoritative — even in summary tables
+- Present LOW confidence findings with explicit "[UNVERIFIED]" prefix — even in summary tables
 - If only LOW confidence information is available for a critical decision point, the research output MUST flag this as a **verification gap**: "No high-confidence source found for [topic]. Manual verification required before proceeding."
 - When multiple sources disagree, report the disagreement rather than picking one. Tag with the confidence of the highest-quality source and note the conflict.
 
@@ -563,7 +563,7 @@ Every research finding is tagged with a confidence level. Why? Without explicit 
 
 ---
 
-## Don't Hand-Roll Output Section
+## Use Battle-Tested Libraries Output Section
 
 Research output includes a mandatory section listing problems that seem simple but have battle-tested library solutions. Why? The most expensive bugs come from reimplementing solutions that already exist with years of production hardening, security patches, and edge case coverage. A hand-rolled JWT validator or rate limiter might pass tests but fail under adversarial conditions.
 
@@ -572,7 +572,7 @@ Research output includes a mandatory section listing problems that seem simple b
 Every research deliverable MUST include this section, even if empty (with "No hand-roll risks identified for this domain"):
 
 ```markdown
-## Don't Hand-Roll
+## Use Battle-Tested Libraries
 
 | Problem | Library/Solution | Why Not DIY |
 |---------|-----------------|-------------|
@@ -631,7 +631,7 @@ The researcher should identify anti-features specific to the domain being resear
 
 ## Blocker Criteria
 
-STOP and ask the pipeline-orchestrator-engineer (do NOT proceed autonomously) when:
+STOP and ask the pipeline-orchestrator-engineer (wait for explicit confirmation) when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -643,7 +643,7 @@ STOP and ask the pipeline-orchestrator-engineer (do NOT proceed autonomously) wh
 
 ### Never Guess On
 - Whether to create a new agent vs. reuse an existing one (always check inventory first)
-- How many subdomains a domain should have (discover, don't prescribe)
+- How many subdomains a domain should have (discover through research, let data drive the count)
 - Which operator profile to apply (detect from context or use default)
 - Whether a subdomain is too narrow or too broad (ask when uncertain)
 

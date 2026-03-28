@@ -4,8 +4,7 @@ description: |
   RED-GREEN-REFACTOR testing for agents: dispatch subagents with known inputs,
   capture verbatim outputs, verify against expectations. Use when creating,
   modifying, or validating agents and skills. Use for "test agent", "validate
-  agent", "verify agent works", or pre-deployment checks. Do NOT use for
-  feature requests, simple prompt edits without behavioral impact, or agents
+  agent", "verify agent works", or pre-deployment checks. Route feature requests to other skills, simple prompt edits without behavioral impact, or agents
   with no structured output to verify.
 version: 2.0.0
 user-invocable: false
@@ -31,7 +30,7 @@ routing:
 
 This skill applies **TDD methodology to agent development** — RED (observe failures), GREEN (fix agent definition), REFACTOR (edge cases and robustness) — with subagent dispatch as the execution mechanism.
 
-Test what the agent DOES, not what the prompt SAYS. Evidence-based verification only: capture exact outputs from subagent dispatch, never assume a prompt change will work without testing. Always test via the Task tool, never substitute reading a prompt for running the agent.
+Test what the agent DOES, not what the prompt SAYS. Evidence-based verification only: capture exact outputs from subagent dispatch, verify every prompt change through testing. Always test via the Task tool, always test via the Task tool rather than reading prompts.
 
 Minimum test counts vary by agent type: Reviewer agents need 6 cases (2 real issues, 2 clean, 1 edge, 1 ambiguous), Implementation agents 5 cases (2 typical, 1 complex, 1 minimal, 1 error), Analysis agents 4 cases (2 standard, 1 edge, 1 malformed), Routing/orchestration 4 cases (2 correct route, 1 ambiguous, 1 invalid). No agent is simple enough to skip testing — get human confirmation before exempting any agent.
 
@@ -120,7 +119,7 @@ Each test runs in a fresh subagent — this prevents context pollution from earl
 
 **Step 3: Capture results verbatim**
 
-Document exact agent outputs. NEVER summarize or paraphrase:
+Document exact agent outputs. Record verbatim output:
 
 ```markdown
 ## Test T1: Happy Path
@@ -132,7 +131,7 @@ Document exact agent outputs. NEVER summarize or paraphrase:
 {what you expected}
 
 **Actual Output:**
-{verbatim output from agent — do not summarize}
+{verbatim output from agent — record verbatim}
 
 **Result:** PASS / FAIL
 **Failure Reason:** {if FAIL, exactly what was wrong}
@@ -175,7 +174,7 @@ Triage failures by severity:
 
 Change one thing in the agent definition. Re-run ALL test cases. Document which tests now pass/fail.
 
-Never make multiple fixes simultaneously — you cannot determine which change was effective. Same debugging principle: one variable at a time.
+Make one fix at a time — you cannot determine which change was effective. Same debugging principle: one variable at a time.
 
 **Step 4: Iterate until green**
 

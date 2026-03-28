@@ -54,7 +54,7 @@ Safe, verifiable refactoring through 5 explicit phases with mandatory gates. Eac
 
 **Goal**: Document current behavior with tests before touching any code.
 
-**Key Constraint**: NEVER change behavior without tests. Write characterization tests first. Capture current behavior before changing anything.
+**Key Constraint**: Write characterization tests first — establish a green test suite that captures current behavior before changing anything.
 
 **Artifact**: Characterization test suite (green).
 
@@ -107,7 +107,7 @@ Safe, verifiable refactoring through 5 explicit phases with mandatory gates. Eac
 
 **Goal**: Identify refactoring targets, define incremental steps with rollback points.
 
-**Key Constraints**: Only refactor what's directly requested. Keep changes minimal and focused. No speculative improvements. NEVER make multiple changes at once — one atomic change per commit. Break into smallest possible atomic changes with clear dependencies and rollback procedures for each step.
+**Key Constraints**: Only refactor what's directly requested. Keep changes minimal and focused. No speculative improvements. Make one atomic change per commit. Break into smallest possible atomic changes with clear dependencies and rollback procedures for each step.
 
 **Artifact**: `refactor-plan.md`
 
@@ -163,7 +163,7 @@ Safe, verifiable refactoring through 5 explicit phases with mandatory gates. Eac
 
 **Goal**: Apply changes incrementally, run tests after each step. Tests must stay green throughout.
 
-**Key Constraints**: NEVER skip validation — tests must pass after every change. NEVER make multiple changes at once — one atomic change per commit. Phase gates enforced: each step must pass before the next begins.
+**Key Constraints**: Run validation after every change — tests must pass before proceeding. Make one atomic change per commit. Phase gates enforced: each step must pass before the next begins.
 
 ```
 ===============================================================

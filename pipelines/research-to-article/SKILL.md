@@ -41,7 +41,7 @@ routing:
 
 This skill orchestrates a complete content pipeline from research to publication. The pipeline operates in six distinct phases, each with defined inputs and gate criteria that must pass before proceeding to the next phase. Each phase produces persistent artifacts (files saved to disk) because context is ephemeral but files remain.
 
-The core principle: research informs the article but NEVER dominates the narrative. Raw data transforms into story before reaching the final output. Always run deterministic validation with `voice_validator.py` at the end because self-assessment is unreliable.
+The core principle: research informs the article while the narrative stays in control. Raw data transforms into story before reaching the final output. Always run deterministic validation with `voice_validator.py` at the end because self-assessment is unreliable.
 
 ## Instructions
 
@@ -73,7 +73,7 @@ Search for these in current news research:
 - Media coverage, press conferences, official statements
 - Social media announcements or reactions
 
-**Important**: Raw analytics, ratings, or database numbers serve research context only — NEVER surface raw data in the final article because readers don't know or care about database numbers like "1771.7 in the ratings and 8.40 community rating". Use data during research to understand trajectory, then transform to narrative in the article: "having the best stretch of their career right now".
+**Important**: Raw analytics, ratings, or database numbers serve research context only — transform all raw data into narrative for the final article because readers engage with stories, not database numbers like "1771.7 in the ratings and 8.40 community rating". Use data during research to understand trajectory, then express it as narrative in the article: "having the best stretch of their career right now".
 
 **Step 2: Launch 5 parallel agents**
 
@@ -143,7 +143,7 @@ Invoke the appropriate voice skill (e.g., `voice-{name}`) via the Skill tool. Se
 **Step 2: Generate with research context**
 
 Key constraints for ALL voices:
-- NEVER expose analytics, ratings, or raw data — transform to narrative because readers want stories, not reports
+- Transform all analytics, ratings, and raw data into narrative — readers want stories, not reports
 - Reference the compiled research document by path
 - Apply wabi-sabi: natural imperfections are features, not bugs. Do not over-polish
 - End with forward momentum — point ahead, not backward. Voice-authentic writing never summarizes. Summary paragraphs are an AI tell

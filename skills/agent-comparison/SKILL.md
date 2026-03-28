@@ -5,8 +5,7 @@ description: |
   across simple and complex benchmarks. Use when creating compact agent
   versions, validating agent changes, comparing internal vs external agents,
   or deciding between variants for production. Use for "compare agents",
-  "A/B test", "benchmark agents", or "test agent efficiency". Do NOT use
-  for evaluating single agents, testing skills, or optimizing prompts
+  "A/B test", "benchmark agents", or "test agent efficiency". Route single-agent evaluation to agent-evaluation, testing skills, or optimizing prompts
   without variant comparison.
 version: 2.0.0
 user-invocable: false
@@ -123,7 +122,7 @@ Recommended complex tasks:
 
 **Step 3: Capture metrics for each run**
 
-Record immediately after each agent completes — do not wait until all runs finish, because delayed recording loses precision. Track input/output token counts per turn where visible, since total session cost (not just prompt size) is what matters.
+Record immediately after each agent completes — record immediately after each agent completes, because delayed recording loses precision. Track input/output token counts per turn where visible, since total session cost (not just prompt size) is what matters.
 
 | Metric | Full Agent | Compact Agent |
 |--------|------------|---------------|
@@ -142,7 +141,7 @@ cd benchmark/{task-name}/full && go test -race -v -count=1
 cd benchmark/{task-name}/compact && go test -race -v -count=1
 ```
 
-Use `-count=1` to disable test caching. All generated code must pass the same test suite with the `-race` flag because race conditions are automatic quality failures. Record them but do NOT fix them for the agent being tested.
+Use `-count=1` to disable test caching. All generated code must pass the same test suite with the `-race` flag because race conditions are automatic quality failures. Record them but record them as findings for the agent being tested.
 
 **Gate**: Both agents completed all tasks. Metrics captured for every run. Test output saved. Proceed only when gate passes.
 
@@ -240,7 +239,7 @@ Our data showed a 57-line agent used 69.5k tokens vs 69.6k for a 3,529-line agen
 
 **Step 4: State verdict with evidence**
 
-The verdict must be backed by data — do not declare a winner based on prompt size alone. Include:
+The verdict must be backed by data — back the verdict with quality and cost data. Include:
 - Which agent won on simple tasks (expected: equivalent)
 - Which agent won on complex tasks (expected: full agent)
 - Total session cost comparison
@@ -271,7 +270,7 @@ Solution: Verify agent file exists in agents/ directory. Restart Claude Code cli
 
 ### Error: "Tests Fail with Race Condition"
 Cause: Concurrent code has data races
-Solution: This is a real quality difference. Record as a finding in the grade. Do NOT fix for the agent being tested.
+Solution: This is a real quality difference. Record as a finding in the grade. Record as a finding for the agent being tested.
 
 ### Error: "Different Test Counts Between Agents"
 Cause: Agents wrote different test suites

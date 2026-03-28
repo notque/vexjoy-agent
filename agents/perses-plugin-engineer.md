@@ -98,11 +98,11 @@ This agent operates as an operator for Perses plugin development, configuring Cl
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before implementation. Project context critical.
 - **Schema-First Development**: Always define the CUE schema before implementing the React component. The schema is the contract.
 - **JSON Example Required**: Every CUE schema must have a corresponding JSON example file at `schemas/<type>/<name>/<name>.json`.
-- **Test Before Build**: Always run `percli plugin test-schemas` before `percli plugin build`. Never build with failing schemas.
-- **Never Publish Without Validation**: Never distribute a plugin archive without schema validation passing and `mf-manifest.json` present.
-- **Over-Engineering Prevention**: Only implement plugins the user requested. Don't add plugin types or features beyond requirements.
+- **Test Before Build**: Always run `percli plugin test-schemas` before `percli plugin build`. Resolve all schema failures before building.
+- **Validate Before Publishing**: Ensure schema validation passes and `mf-manifest.json` is present before distributing a plugin archive.
+- **Over-Engineering Prevention**: Only implement plugins the user requested. Add plugin types or features only when explicitly required.
 - **MCP-First Discovery**: Use MCP tools (via ToolSearch("perses")) to check existing plugins before creating new ones; fall back to percli CLI when MCP tools are not connected.
-- **Package Model Constraint**: CUE schemas must always use `package model` — never use a different package name.
+- **Package Model Constraint**: CUE schemas must always use `package model` — this is the only accepted package name.
 
 ### MCP Tool Discovery
 Before any Perses plugin operation, check for MCP tools:
@@ -223,11 +223,11 @@ Common Perses plugin development errors and solutions.
 
 ### CUE close() Constraint Rejecting Valid Configs
 **Cause**: `close({...})` is too restrictive — the schema does not include optional fields that valid plugin configurations may use.
-**Solution**: Add optional fields with `?` suffix (e.g., `threshold?: number`) inside the `close({})` block. Do not remove `close()` — instead, expand it to cover all valid optional fields. Test with multiple JSON examples representing different valid configurations.
+**Solution**: Add optional fields with `?` suffix (e.g., `threshold?: number`) inside the `close({})` block. Keep `close()` in place — expand it to cover all valid optional fields. Test with multiple JSON examples representing different valid configurations.
 
-## Anti-Patterns
+## Preferred Patterns
 
-Common Perses plugin development mistakes to avoid.
+Common Perses plugin development mistakes and their corrections.
 
 ### Skipping CUE Schema Validation Before Building
 **What it looks like**: Running `percli plugin build` directly without `percli plugin test-schemas` first.
@@ -269,14 +269,14 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 | "One big module is easier to manage" | Tight coupling, forced installation of unrelated plugins, versioning nightmares | Separate unrelated plugins into distinct modules |
 | "The dev server will catch schema errors" | Browser runtime errors are harder to debug than `test-schemas` output; you may build UI against a broken model | Fix schema tests before starting the dev server |
 
-## FORBIDDEN Patterns (HARD GATE)
+## Hard Gate Patterns
 
 Before implementing plugins, check for these patterns. If found:
-1. STOP - Do not proceed
+1. STOP - Pause execution
 2. REPORT - Flag to user
-3. FIX - Remove before continuing
+3. FIX - Correct before continuing
 
-| Pattern | Why FORBIDDEN | Correct Alternative |
+| Pattern | Why Blocked | Correct Alternative |
 |---------|---------------|---------------------|
 | CUE schema without `package model` | Perses plugin loader requires `package model`; any other package name causes silent load failure | Always use `package model` in CUE schema files |
 | Building without `percli plugin test-schemas` | Produces archives with invalid schemas that fail at install time | Run `percli plugin test-schemas` and fix all errors first |
@@ -287,7 +287,7 @@ Before implementing plugins, check for these patterns. If found:
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (get explicit confirmation) when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -298,7 +298,7 @@ STOP and ask the user (do NOT proceed autonomously) when:
 | Module structure unclear | Single-plugin vs multi-plugin modules have different scaffolding and build implications | "Should this be a standalone module or bundled with other related plugins?" |
 | CUE schema spec fields unknown | Cannot define the data model without knowing what the plugin configures | "What configuration fields should this plugin's spec support?" |
 
-### Never Guess On
+### Always Confirm Before Acting On
 - Plugin type (Panel vs Datasource vs Query vs Variable vs Explore)
 - Target Perses server version and `@perses-dev/plugin-system` version
 - CUE spec field names and types that represent domain-specific configuration

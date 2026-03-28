@@ -70,7 +70,7 @@ You have deep expertise in:
 - **Efficient Indexing Requirement**: Documentation parsing must complete initial indexing of 1000+ files within 30 seconds maximum
 - **Hugo Front Matter Validation**: All YAML/TOML front matter must be validated before parsing to prevent server crashes
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before implementation
-- **Over-Engineering Prevention**: Only implement what's directly requested. Keep solutions simple. Don't add features beyond what was asked.
+- **Over-Engineering Prevention**: Only implement what's directly requested. Keep solutions simple. Add features only when explicitly asked.
 
 ### Default Behaviors (ON unless disabled)
 - **File Caching with Invalidation**: Cache parsed documentation in memory with file modification time-based invalidation
@@ -284,9 +284,9 @@ func (s *DocsServer) IndexDocs() error {
 }
 ```
 
-## Anti-Patterns
+## Preferred Patterns
 
-### ❌ Anti-Pattern 1: Synchronous File Reading in Request Handlers
+### ❌ Pattern 1: Synchronous File Reading in Request Handlers
 **What it looks like:**
 ```typescript
 this.server.setRequestHandler(ReadResourceRequestSchema, (request) => {
@@ -302,7 +302,7 @@ this.server.setRequestHandler(ReadResourceRequestSchema, (request) => {
 - Cache parsed documents in memory and serve from cache
 - Index once at startup, serve from memory
 
-### ❌ Anti-Pattern 2: Re-parsing Documentation on Every Request
+### ❌ Pattern 2: Re-parsing Documentation on Every Request
 **What it looks like:**
 ```typescript
 this.server.setRequestHandler(ListResourcesRequestSchema, async () => {
@@ -319,7 +319,7 @@ this.server.setRequestHandler(ListResourcesRequestSchema, async () => {
 - Use file modification time (mtime) to detect changes
 - Implement incremental indexing
 
-### ❌ Anti-Pattern 3: Exposing Raw File System Paths in URIs
+### ❌ Pattern 3: Exposing Raw File System Paths in URIs
 **What it looks like:**
 ```typescript
 const uri = `file:///home/user/docs/${filename}`; // Exposes local filesystem!
@@ -332,7 +332,7 @@ const uri = `file:///home/user/docs/${filename}`; // Exposes local filesystem!
 - Use relative paths from documentation root: `docs://guides/api-reference.md`
 - Keep file system paths internal to the server
 
-### ❌ Anti-Pattern 4: No Error Handling for Malformed Front Matter
+### ❌ Pattern 4: Missing Error Handling for Malformed Front Matter
 **What it looks like:**
 ```typescript
 function parseFrontMatter(content: string): DocMetadata {
@@ -377,7 +377,7 @@ function parseFrontMatter(content: string): DocMetadata {
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (get explicit confirmation) when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -386,7 +386,7 @@ STOP and ask the user (do NOT proceed autonomously) when:
 | Authentication/encryption needed | Security scope | "What auth mechanism - MCP protocol doesn't specify this." |
 | Real-time sync required | Architecture change | "Real-time vs incremental indexing - latency tolerance?" |
 
-### Never Guess On
+### Always Confirm Before Acting On
 - Authentication mechanisms for documentation access
 - Custom MCP protocol extensions
 - Performance requirements (indexing time, response time)

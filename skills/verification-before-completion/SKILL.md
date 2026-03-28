@@ -6,7 +6,7 @@ description: |
   adversarial artifact verification (EXISTS > SUBSTANTIVE > WIRED > DATA FLOWS)
   with goal-backward framing. Use before saying "done", "fixed", or "complete"
   on any code change. Use for "verify", "make sure it works", "check before
-  committing", or "validate changes". Do NOT use for debugging
+  committing", or "validate changes". Route to other skills for debugging
   (use systematic-debugging) or code review (use systematic-code-review).
 version: 3.0.0
 user-invocable: false
@@ -33,7 +33,7 @@ routing:
 
 ## Overview
 
-Enforce rigorous, adversarial verification before declaring any task complete. Implements defense-in-depth validation with multiple independent checks to catch errors before they reach users. The core principle: never trust executor claims (what was SAID) — verify what ACTUALLY exists in the codebase through testing, inspection, and data-flow tracing.
+Enforce rigorous, adversarial verification before declaring any task complete. Implements defense-in-depth validation with multiple independent checks to catch errors before they reach users. The core principle: verify independently rather than trusting executor claims (what was SAID) — verify what ACTUALLY exists in the codebase through testing, inspection, and data-flow tracing.
 
 This skill prevents the most common form of premature completion: claiming success without running tests, summarizing results instead of showing evidence, or trusting code that "looks right" without verification.
 
@@ -48,7 +48,7 @@ Before verification, understand the scope of changes:
 git diff --name-only
 ```
 
-**Why:** Use `git status --short` (not just `git diff`) to capture both modified AND untracked (new) files. New files created during the session are easy to miss in status summaries. Over-engineering prevention requires limiting scope to what was actually changed — don't add verification steps that weren't requested. Focus only on the specific changes made.
+**Why:** Use `git status --short` (not just `git diff`) to capture both modified AND untracked (new) files. New files created during the session are easy to miss in status summaries. Over-engineering prevention requires limiting scope to what was actually changed — limit verification to what was actually changed. Focus only on the specific changes made.
 
 For each changed file:
 - Read the file with the Read tool to validate the actual contents
@@ -79,7 +79,7 @@ Run the appropriate test suite and show **complete** output (not summaries):
 - Show any warnings or deprecation notices
 - Include execution time
 
-**Critical constraint**: Never say "tests pass" without showing output. Summary claims document what was SAID, not what IS. Evidence-based reporting is required.
+**Critical constraint**: Show test output when reporting test results. Summary claims document what was SAID, not what IS. Evidence-based reporting is required.
 
 ### Step 3: Verify Build/Compilation
 
@@ -103,7 +103,7 @@ npm run build
 
 ### Step 4: Validate Changed Files
 
-For each changed file, use the Read tool to inspect the actual file contents. **Validate assumptions**: Never rely on memory of what you wrote — re-read the file to confirm. Verify that what you think happened actually happened.
+For each changed file, use the Read tool to inspect the actual file contents. **Validate assumptions**: Re-read the file to confirm the actual contents — re-read the file to confirm. Verify that what you think happened actually happened.
 
 For each file verify:
 1. **Syntax** is correct (no unterminated strings, mismatched brackets)
@@ -173,11 +173,11 @@ Test if this addresses the issue.
 ```
 
 **Critical constraints on communication:**
-- Never say "tests pass" without showing output. Show complete verification output, not summaries.
+- Show test output when reporting test results. Show complete verification output, not summaries.
 - Report verification results concisely without self-congratulation. Show command output rather than describing it.
 - Verify that what you think happened actually happened. Use Read tool on changed files, not memory.
 
-**NEVER say:**
+**Replace with:**
 - "Should be fixed now"
 - "This is working"
 - "All done"
@@ -191,7 +191,7 @@ Test if this addresses the issue.
 
 ## 4-Level Adversarial Artifact Verification Methodology
 
-> **Core Principle**: Never trust executor claims. The verification question is not "did the executor say it's done?" but "does the codebase prove it's done?"
+> **Core Principle**: Verify what ACTUALLY exists in the codebase. The verification question is not "did the executor say it's done?" but "does the codebase prove it's done?"
 
 Steps 1-7 above verify that tests pass, builds succeed, and files contain what you expect. The adversarial methodology below goes deeper: it verifies that artifacts are real implementations (not stubs), actually integrated (not orphaned), and processing real data (not hardcoded empties). Apply this methodology after Steps 1-7 pass, focusing on artifacts that are part of the stated goal.
 
@@ -199,7 +199,7 @@ Steps 1-7 above verify that tests pass, builds succeed, and files contain what y
 
 ### Goal-Backward Framing
 
-**Do NOT ask**: "Were all tasks completed?"
+**Replace this question**: "Were all tasks completed?"
 **Instead ask**: "What must be TRUE for the goal to be achieved?"
 
 This framing prevents task-forward verification that invites executors to confirm their own narrative. Goal-backward verification derives conditions independently from the goal itself, then checks whether the codebase satisfies them. This structural approach counteracts confirmation bias.
@@ -227,7 +227,7 @@ Each artifact produced during the task is verified at four progressively deeper 
 
 **Check**: Use Glob or Bash (`ls`, `test -f`) to confirm the file exists.
 
-**What this catches**: Claims about files that were never created (forgotten Write calls, planned-but-not-executed steps).
+**What this catches**: Claims about files that were planned but not written to disk (forgotten Write calls, planned-but-not-executed steps).
 
 **What this misses**: Everything else. Existence is necessary but nowhere near sufficient.
 
@@ -258,9 +258,9 @@ grep -r "from.*scoring import\|import.*scoring" --include="*.py" .
 grep -r "calculate_score\|score_package" --include="*.py" .
 ```
 
-**What this catches**: Orphaned files that were created but never integrated. Wiring gaps indicate the component exists structurally but is not active in the system.
+**What this catches**: Orphaned files that were created but left unintegrated. Wiring gaps indicate the component exists structurally but is not active in the system.
 
-**What this misses**: Circular or dead-end wiring where the integration exists but the code path is never reached at runtime.
+**What this misses**: Circular or dead-end wiring where the integration exists but the code path is unreachable at runtime.
 
 ---
 
@@ -272,7 +272,7 @@ grep -r "calculate_score\|score_package" --include="*.py" .
 3. Verify outputs are consumed by downstream code (not discarded)
 4. If tests exist, verify test inputs exercise meaningful cases (not just empty-input tests)
 
-**What this catches**: Integration that exists structurally but passes no real data — functions wired in but fed empty arrays, handlers registered but never triggered. Data flow verification confirms the entire chain is active end-to-end.
+**What this catches**: Integration that exists structurally but passes no real data — functions wired in but fed empty arrays, handlers registered but inactive. Data flow verification confirms the entire chain is active end-to-end.
 
 **What this misses**: Semantic correctness (the data flows but produces wrong results). That is the domain of testing, not verification.
 
@@ -308,9 +308,9 @@ changed_files=$(git diff --name-only main...HEAD)
 grep -n -E "(return \[\]|return \{\}|return None|return nil|pass$|raise NotImplementedError|panic\(\"not implemented\"\)|throw new Error\(\"not implemented\"\)|TODO|FIXME|HACK|XXX|PLACEHOLDER)" $changed_files
 ```
 
-**Review methodology**: Each match requires investigation. If the pattern is intentional (e.g., a function that genuinely returns an empty list), note it in the verification report with rationale. If it is a stub, flag it as a blocker — do NOT declare task complete.
+**Review methodology**: Each match requires investigation. If the pattern is intentional (e.g., a function that genuinely returns an empty list), note it in the verification report with rationale. If it is a stub, flag it as a blocker — resolve stubs before declaring task complete.
 
-### Anti-Pattern Scan (Level 2 Supplement)
+### Completion Shortcut Scan (Level 2 Supplement)
 
 Beyond stub detection, scan for patterns that indicate premature completion claims:
 
@@ -331,7 +331,7 @@ grep -n "handler.*{\\s*}" $changed_files
 grep -n -i "(placeholder|example data|test data|lorem ipsum)" $changed_files
 ```
 
-**Dead imports** — modules imported but never used:
+**Dead imports** — modules imported but unused:
 ```bash
 # Python: imported but not referenced later in the file
 # (manual check — read the file and verify each import is used)
@@ -386,7 +386,7 @@ Not every artifact needs Level 4 verification. Apply only the minimum level requ
 ## Error Handling
 
 **Error: "Tests failed after changes"**
-- DO NOT declare task complete
+- Resolve stubs before declaring task complete
 - Show full test failure output
 - Analyze what went wrong
 - Fix issues and re-run full verification
@@ -399,7 +399,7 @@ Not every artifact needs Level 4 verification. Apply only the minimum level requ
 
 **Error: "No tests exist for changed code"**
 - Acknowledge lack of test coverage
-- Recommend writing tests (but don't require unless user requests)
+- Recommend writing tests (but include only if user requests)
 - Perform extra manual validation
 - Document that changes are untested
 
@@ -410,7 +410,7 @@ Not every artifact needs Level 4 verification. Apply only the minimum level requ
 
 **Error: "Stub patterns detected in changed files"**
 - Review each match individually -- some stubs are intentional (e.g., `return []` when empty list is the correct result)
-- For confirmed stubs: flag as blocker, DO NOT declare task complete
+- For confirmed stubs: flag as blocker, Resolve stubs before declaring task complete
 - For intentional patterns: document in verification report with rationale
 - If unsure: treat as stub (false positive is safer than false negative)
 
@@ -424,22 +424,22 @@ Not every artifact needs Level 4 verification. Apply only the minimum level requ
 - Common cause: function called with hardcoded `[]` or `{}` instead of computed values
 - Flag as blocker: "Function X is called but receives empty data at call site Y"
 
-The error handling section above integrates constraints inline: "Stop immediately" for build failures reinforces the critical gate, "flag as blocker, DO NOT declare task complete" for confirmed stubs enforces the no-stubs constraint, and detailed guidance on each error prevents rationalization.
+The error handling section above integrates constraints inline: "Stop immediately" for build failures reinforces the critical gate, "flag as blocker, Resolve stubs before declaring task complete" for confirmed stubs enforces the no-stubs constraint, and detailed guidance on each error prevents rationalization.
 
 ## References
 
 **Core Principles**
-- **Adversarial distrust**: Never trust executor claims. The same agent that writes code has inherent bias toward believing its own output is correct. Structural distrust in the verification process counteracts this bias.
+- **Adversarial distrust**: Verify independently. The same agent that writes code has inherent bias toward believing its own output is correct. Structural distrust in the verification process counteracts this bias.
 - **Evidence over claims**: Summary claims document what was SAID, not what IS. Always show actual test output, build logs, and file contents. Verification without evidence is unverifiable.
 - **Goal-backward framing**: Derive verification conditions from what must be true for the goal, not from executor task lists. This prevents executors from confirming their own narrative.
 - **4-level artifact verification**: EXISTS → SUBSTANTIVE → WIRED → DATA FLOWS. Each level catches distinct classes of premature-completion failures.
 
 **Key Constraints (Integrated Above)**
-- Never declare completion without running tests
+- Run tests before declaring completion
 - Show complete verification output (not summaries or "X tests passed")
 - Check all changed files using Read tool (not memory)
-- Never say "tests pass" without displaying actual output
+- Show actual test output when reporting test results
 - Run full test suite for affected domain (not just changed files)
-- Flag any stub patterns as blockers — do not declare complete
+- Flag any stub patterns as blockers — mark complete only after full verification
 - Build failures are gates that stop all other verification
 - Over-engineering prevention: only verify what was actually changed

@@ -93,7 +93,7 @@ This agent operates as an operator for Kubernetes and Helm operations, configuri
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before any implementation. Project context is critical.
-- **Over-Engineering Prevention**: Only make changes directly requested. Don't add service mesh, monitoring, or features beyond requirements.
+- **Over-Engineering Prevention**: Only make changes directly requested. Add service mesh, monitoring, or additional features only when explicitly required.
 - **kubectl Context Verification**: ALWAYS verify current context with `kubectl config current-context` before any cluster operations.
 - **Helm Lint Required**: Run `helm lint` on all chart changes before deployment to catch template errors.
 - **Resource Limits Mandatory**: All pod specs must include resource requests and limits for CPU/memory.
@@ -192,9 +192,9 @@ Common Kubernetes/Helm errors and solutions.
 **Cause**: PersistentVolumeClaim can't bind to volume - no matching PV, storage class misconfigured, provisioner not running.
 **Solution**: Check storage class exists and is default, verify CSI driver pods running, check provisioner logs, ensure sufficient storage capacity available.
 
-## Anti-Patterns
+## Preferred Patterns
 
-Common Kubernetes/Helm mistakes to avoid.
+Common Kubernetes/Helm mistakes and their corrections.
 
 ### ❌ No Resource Limits
 **What it looks like**: Pods without resource requests/limits specified
@@ -225,14 +225,14 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 | "latest tag is fine, we update frequently" | Can't rollback, unclear state | Use version tags |
 | "We'll add monitoring later" | Hard to debug without observability | Add basic monitoring from start |
 
-## FORBIDDEN Patterns (HARD GATE)
+## Hard Gate Patterns
 
 Before applying Kubernetes changes, check for these patterns. If found:
-1. STOP - Do not proceed
+1. STOP - Pause execution
 2. REPORT - Flag to user
-3. FIX - Remove before continuing
+3. FIX - Correct before continuing
 
-| Pattern | Why FORBIDDEN | Correct Alternative |
+| Pattern | Why Blocked | Correct Alternative |
 |---------|---------------|---------------------|
 | No resource requests/limits | Node instability, scheduling issues | Add requests/limits to all containers |
 | Missing health probes | Traffic to unhealthy pods | Add liveness/readiness probes |
@@ -254,7 +254,7 @@ kubectl get pods --all-namespaces -o json | jq '.items[] | select(.spec.containe
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (get explicit confirmation) when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -264,7 +264,7 @@ STOP and ask the user (do NOT proceed autonomously) when:
 | Storage class choice | Performance/cost implications | "Which storage class: fast (SSD) or standard (HDD)?" |
 | Ingress controller unknown | Multiple options available | "Which ingress: nginx, traefik, or istio gateway?" |
 
-### Never Guess On
+### Always Confirm Before Acting On
 - kubectl context (wrong cluster = disaster)
 - Production vs staging (safety critical)
 - Storage class (performance/cost trade-offs)

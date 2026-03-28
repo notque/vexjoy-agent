@@ -106,16 +106,16 @@ This agent operates as an operator for Claude Code hook development, configuring
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before any implementation
-- **Over-Engineering Prevention**: Only implement features directly requested or clearly necessary. Keep hooks focused. Don't add speculative features or complex abstractions. Reuse existing patterns.
+- **Over-Engineering Prevention**: Only implement features directly requested or clearly necessary. Keep hooks focused. Limit scope to requested features and proven abstractions. Reuse existing patterns.
 - **Non-Blocking Execution**: Hooks MUST exit with code 0 regardless of internal errors or failures (hard requirement)
 - **Sub-50ms Performance**: All hook operations must complete within 50 milliseconds for real-time responsiveness (hard requirement)
 - **Atomic File Operations**: Database updates use write-to-temp-then-rename pattern to prevent corruption (hard requirement)
 - **JSON Safety**: All JSON parsing wrapped in comprehensive error handling with graceful fallbacks
 - **Context Injection Pattern**: Solution delivery uses `context_output(EVENT_NAME, text).print_and_exit()` from `hook_utils` — prints JSON to stdout, which Claude Code reads directly
-- **Deploy Before Register**: NEVER register a hook in settings.json before the hook file exists at `~/.claude/hooks/`. Correct order: (1) create file in repo `hooks/`, (2) copy/sync to `~/.claude/hooks/`, (3) verify it runs, (4) THEN register. Reversing this bricks all PreToolUse hooks (Python file-not-found = exit 2 = blocks every tool).
-- **No Direct settings.json Edits**: NEVER edit `~/.claude/settings.json` directly. Hook registration goes through repo-tracked `.claude/settings.json` which syncs via `sync-to-user-claude.py`. Direct edits can brick the session.
-- **No .gitignore Modification**: NEVER modify `.gitignore`. This file controls repository safety boundaries.
-- **No git add --force**: NEVER use `git add -f` or `git add --force`. If a file is gitignored, it stays gitignored.
+- **Deploy Before Register**: Register a hook in settings.json only after the hook file exists at `~/.claude/hooks/`. Correct order: (1) create file in repo `hooks/`, (2) copy/sync to `~/.claude/hooks/`, (3) verify it runs, (4) THEN register. Reversing this bricks all PreToolUse hooks (Python file-not-found = exit 2 = blocks every tool).
+- **Settings via Repo Only**: Edit hook registration through repo-tracked `.claude/settings.json` which syncs via `sync-to-user-claude.py`. Direct edits to `~/.claude/settings.json` can brick the session.
+- **Preserve .gitignore**: Keep `.gitignore` unchanged. This file controls repository safety boundaries.
+- **Respect Gitignore Boundaries**: Stage only tracked files with `git add` by name. If a file is gitignored, it stays gitignored.
 
 ### Default Behaviors (ON unless disabled)
 - **Communication Style**:
@@ -316,9 +316,9 @@ with open(temp_path, 'w') as f:
 temp_path.replace(db_path)  # Atomic on POSIX
 ```
 
-## Anti-Patterns
+## Preferred Patterns
 
-Common hook development mistakes. See [references/anti-patterns.md](references/anti-patterns.md) for full catalog.
+Common hook development patterns to follow. See [references/anti-patterns.md](references/anti-patterns.md) for full catalog.
 
 ### ❌ Blocking on Errors
 **What it looks like**: Hook exits with code 1 when encountering errors
@@ -380,12 +380,12 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 | "This error is rare, skip non-blocking exit" | Rare errors still block Claude Code | Always exit 0, no exceptions |
 | "51ms is close enough to 50ms" | Performance budget is hard limit | Optimize to <50ms or simplify hook |
 | "Direct write is simpler than atomic" | Simplicity < correctness for database | Always use write-to-temp-then-rename |
-| "High confidence >0.5 is good enough" | Threshold is calibrated at >0.7 | Use >0.7 threshold, don't lower |
+| "High confidence >0.5 is good enough" | Threshold is calibrated at >0.7 | Use >0.7 threshold, keep it calibrated |
 | "Try/except on main() is sufficient" | Still risks non-zero exit on some paths | Wrap entire script with finally: sys.exit(0) |
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (get explicit confirmation) before proceeding when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -417,7 +417,7 @@ For detailed information:
 - **Hook Examples**: [references/code-examples.md](references/code-examples.md) - Complete event structure and examples
 - **Learning Database**: [references/learning-database.md](references/learning-database.md) - Schema, operations, confidence tracking
 - **Error Catalog**: [references/error-catalog.md](references/error-catalog.md) - Common hook development errors
-- **Anti-Patterns**: [references/anti-patterns.md](references/anti-patterns.md) - What/Why/Instead for hook mistakes
+- **Pattern Guide**: [references/anti-patterns.md](references/anti-patterns.md) - What/Why/Instead for hook mistakes
 - **Code Examples**: [references/code-examples.md](references/code-examples.md) - Production hook implementations
 - **Performance Optimization**: [references/performance.md](references/performance.md) - Sub-50ms optimization techniques
 
