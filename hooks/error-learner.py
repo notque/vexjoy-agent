@@ -32,6 +32,7 @@ from learning_db_v2 import (
     generate_signature,
     lookup_error_solution,
     record_learning,
+    sanitize_for_context,
 )
 from stdin_timeout import read_stdin
 
@@ -158,6 +159,9 @@ def main():
         # Classify and generate signature
         error_type = classify_error(error_message)
         signature = generate_signature(error_message, error_type)
+
+        # Sanitize before storing or replaying in context
+        error_message = sanitize_for_context(error_message)
 
         # Check for existing solution in unified DB
         existing = lookup_error_solution(error_message)

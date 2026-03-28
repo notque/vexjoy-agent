@@ -121,7 +121,7 @@ def format_hints(results: list[dict]) -> str:
 
     for r in results:
         # Build a one-line summary from the value field
-        value = r.get("value", "")
+        value = sanitize_for_context(r.get("value", ""))
         first_line = value.split("\n")[0]
 
         # If value has " -> " separator (error -> solution format), use the solution part
@@ -178,7 +178,7 @@ def main():
 
         # Query learning.db for matching patterns via FTS5 full-text search
         # Lazy import to avoid paying cost when early-exiting
-        from learning_db_v2 import search_learnings
+        from learning_db_v2 import sanitize_for_context, search_learnings
 
         query_str = " OR ".join(tags)
         results = search_learnings(
