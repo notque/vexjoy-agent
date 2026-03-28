@@ -139,11 +139,23 @@ def _load_guard_whitelist() -> list[str]:
     if not whitelist_path.is_file():
         return []
     try:
-        return [
-            line.strip()
-            for line in whitelist_path.read_text().splitlines()
-            if line.strip() and not line.strip().startswith("#")
-        ]
+        entries = []
+        for line in whitelist_path.read_text().splitlines():
+            entry = line.strip()
+            if not entry or entry.startswith("#"):
+                continue
+            if len(entry) < 8:
+                print(
+                    f"[dangerous-command-guard] WARN: Skipping short whitelist entry (< 8 chars): {entry!r}",
+                    file=sys.stderr,
+                )
+                continue
+            entries.append(entry)
+        print(
+            f"[dangerous-command-guard] INFO: Loaded {len(entries)} whitelist entries from {whitelist_path}",
+            file=sys.stderr,
+        )
+        return entries
     except OSError:
         return []
 
