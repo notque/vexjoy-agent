@@ -128,6 +128,29 @@ the creation workflow:_
 _If this ADR only modifies existing components, use phases 2-7 (skip Design)._
 _If no new workflow is needed, write "N/A — modification only, standard PR flow."_
 
+### Execution Mode
+
+_Specify how the implementing agent should run:_
+
+| Mode | When to Use | How |
+|------|------------|-----|
+| **Worktree** | Independent changes that don't conflict with other ADRs | `isolation: "worktree"` on Agent tool — gives the agent an isolated repo copy |
+| **In-place** | Changes that depend on other ADR outputs | Standard agent dispatch on a feature branch |
+| **Parallel batch** | Multiple independent ADRs being implemented simultaneously | Dispatch via `dispatching-parallel-agents` skill, each in a worktree |
+
+**Worktree is the default for ADR implementation.** Each ADR gets its own isolated
+worktree so agents can work in parallel without stepping on each other. The
+orchestrator creates a target branch first, passes it to all agents, and merges
+worktree branches afterward.
+
+**Branch naming**: `feat/adr-NNN-short-slug` (e.g., `feat/adr-103-hook-silent-failure`)
+
+**Parallel execution rules** (from ADR-093):
+1. Orchestrator creates target branch BEFORE dispatching agents
+2. Each agent prompt includes the branch name explicitly
+3. All agents commit to that branch (or their worktree branch merges to it)
+4. Orchestrator verifies convergence after all agents complete
+
 ## Router Integration Checklist
 
 _Required for any ADR that creates or modifies a skill, pipeline, or agent._
