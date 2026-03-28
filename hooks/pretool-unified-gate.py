@@ -25,6 +25,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from learning_db_v2 import record_governance_event
 from stdin_timeout import read_stdin
 
 # ═══════════════════════════════════════════════════════════════
@@ -177,9 +178,13 @@ def _is_sensitive_exception(file_path: str) -> bool:
     return any(p.search(file_path) for p in _SENSITIVE_EXCEPTIONS)
 
 
-def _block(message: str) -> None:
+def _block(message: str, tool_name: str = "") -> None:
     """Print block message to stderr and exit 2."""
     print(message, file=sys.stderr)
+    try:
+        record_governance_event("hook_blocked", tool_name=tool_name, hook_phase="pre", severity="high", blocked=True)
+    except Exception:
+        pass  # Never let recording prevent a block
     sys.exit(2)
 
 

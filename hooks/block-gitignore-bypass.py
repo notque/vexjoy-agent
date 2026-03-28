@@ -22,6 +22,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from learning_db_v2 import record_governance_event
 from stdin_timeout import read_stdin
 
 
@@ -49,6 +50,12 @@ def main() -> None:
         ):
             print("[BLOCKED] Agents must not modify .gitignore.")
             print("This file controls repository safety boundaries.")
+            try:
+                record_governance_event(
+                    "policy_violation", tool_name="Bash", hook_phase="pre", severity="critical", blocked=True
+                )
+            except Exception:
+                pass  # Never let recording prevent a block
             sys.exit(2)
 
         # Fast path: no git add in command
@@ -90,6 +97,12 @@ def main() -> None:
         if ignored:
             print(f"[BLOCKED] git add -f on gitignored paths: {', '.join(ignored)}")
             print("These paths are gitignored for a reason. Do not force-add them.")
+            try:
+                record_governance_event(
+                    "policy_violation", tool_name="Bash", hook_phase="pre", severity="critical", blocked=True
+                )
+            except Exception:
+                pass  # Never let recording prevent a block
             sys.exit(2)
 
         sys.exit(0)

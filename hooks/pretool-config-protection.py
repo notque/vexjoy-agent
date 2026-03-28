@@ -22,6 +22,7 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from learning_db_v2 import record_governance_event
 from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "CONFIG_PROTECTION_BYPASS"
@@ -95,6 +96,10 @@ def _block(file_path: str) -> None:
         "[config-protection] To allow a legitimate config change: set CONFIG_PROTECTION_BYPASS=1",
         file=sys.stderr,
     )
+    try:
+        record_governance_event("policy_violation", tool_name="Write", hook_phase="pre", severity="high", blocked=True)
+    except Exception:
+        pass  # Never let recording prevent a block
     sys.exit(2)
 
 

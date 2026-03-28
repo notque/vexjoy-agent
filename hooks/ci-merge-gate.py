@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from learning_db_v2 import record_governance_event
 from stdin_timeout import read_stdin
 
 
@@ -89,6 +90,12 @@ def main() -> None:
         names = ", ".join(c["name"] for c in failing)
         print(f"[ci-merge-gate] BLOCKED: CI checks failing: {names}")
         print(f"[ci-merge-gate] Fix the failing checks before merging PR #{pr_number}.")
+        try:
+            record_governance_event(
+                "approval_requested", tool_name="Bash", hook_phase="pre", severity="medium", blocked=True
+            )
+        except Exception:
+            pass  # Never let recording prevent a block
         # Exit non-zero to block the tool call
         sys.exit(2)
 
@@ -96,6 +103,12 @@ def main() -> None:
         names = ", ".join(c["name"] for c in pending)
         print(f"[ci-merge-gate] BLOCKED: CI checks still running: {names}")
         print(f"[ci-merge-gate] Wait for checks to complete before merging PR #{pr_number}.")
+        try:
+            record_governance_event(
+                "approval_requested", tool_name="Bash", hook_phase="pre", severity="medium", blocked=True
+            )
+        except Exception:
+            pass  # Never let recording prevent a block
         sys.exit(2)
 
     # All checks passed
