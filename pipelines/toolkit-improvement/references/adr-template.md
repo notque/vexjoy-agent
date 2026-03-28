@@ -74,6 +74,20 @@ file Z because reason W".]
 | `path/to/file.py` | Modify | What specifically changes |
 | `path/to/other.py` | Modify | What specifically changes |
 
+## Router Integration Checklist
+
+_Required for any ADR that creates or modifies a skill, pipeline, or agent._
+
+- [ ] Frontmatter triggers added/updated in component YAML
+- [ ] INDEX.json regenerated (`generate-skill-index.py` or `generate-agent-index.py`)
+- [ ] Entry added to `skills/do/references/routing-tables.md`
+- [ ] Trigger collision check passed (no duplicate triggers across force-routed entries)
+- [ ] Pipeline companion map updated (if component pairs with existing pipelines)
+- [ ] Quick-reference examples added to routing tables
+- [ ] `routing-benchmark.py --verbose` passes in CI
+
+_If this ADR does NOT create or modify a routable component, write "N/A — no routing changes" and skip._
+
 ## Consequences
 
 ### Positive
@@ -157,3 +171,22 @@ the table complete.
 Remediation Protocol sections verbatim for every ADR. Only adjust the skill names if
 the ADR affects non-skill components (e.g., if it only modifies Python scripts with no
 skill impact, note that skill-eval is not applicable for this ADR and explain why).
+
+**Router integration is mandatory for new components**: If the ADR creates or modifies
+any skill, pipeline, or agent, the Implementation Task List MUST include ALL of these
+routing integration steps:
+
+1. **Frontmatter triggers**: Add routing triggers to the component's YAML frontmatter
+2. **INDEX.json regeneration**: Run the appropriate generator script:
+   - Skills: `python3 scripts/generate-skill-index.py`
+   - Pipelines: `python3 scripts/generate-skill-index.py` (handles both)
+   - Agents: `python3 scripts/generate-agent-index.py`
+3. **Routing table entry**: Add entry to `skills/do/references/routing-tables.md`
+4. **Trigger collision check**: Verify no trigger phrases overlap with existing entries
+5. **Pipeline companion map**: If the new component pairs with existing pipelines, add to the companion map
+6. **Quick-reference examples**: Add representative "user says X → routes to Y" examples
+7. **CI validation**: Run `python3 scripts/routing-benchmark.py --verbose` to verify no regressions
+
+Every ADR that creates a routable component without these steps will produce a component
+that exists on disk but is invisible to `/do` — the most common source of "it exists but
+nobody can find it" bugs in the toolkit.

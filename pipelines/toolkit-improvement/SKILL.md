@@ -40,7 +40,7 @@ routing:
     - repo health check
     - toolkit audit
     - audit the system
-    - system health
+    - toolkit system health
     - health check
     - run a health check
     - check system health
