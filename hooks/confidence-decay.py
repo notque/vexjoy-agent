@@ -26,12 +26,19 @@ def main():
     try:
         # Lazy imports
         sys.path.insert(0, str(Path(__file__).parent / "lib"))
-        from learning_db_v2 import decay_confidence, get_connection, init_db, prune
+        from learning_db_v2 import decay_confidence, get_connection, init_db, prune, prune_ancillary
 
         init_db()
 
         # Step 1: Prune dead entries (confidence < 0.3, older than 90 days)
         pruned = prune(min_confidence=0.3, older_than_days=90)
+
+        # Step 1b: Prune old rows from ancillary tables
+        ancillary_counts = prune_ancillary()
+        if os.environ.get("CLAUDE_HOOKS_DEBUG") or any(v > 0 for v in ancillary_counts.values()):
+            pruned_parts = ", ".join(f"{t}={c}" for t, c in ancillary_counts.items() if c > 0)
+            if pruned_parts:
+                print(f"[confidence-decay] Ancillary pruning: {pruned_parts}", file=sys.stderr)
 
         # Step 2: Decay stale entries (untouched > 30 days, confidence > 0.3)
         cutoff = (datetime.now() - timedelta(days=30)).isoformat()
