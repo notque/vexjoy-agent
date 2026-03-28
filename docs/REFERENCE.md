@@ -185,7 +185,7 @@ Loaded automatically or via `Skill("name")`.
 ### Voice System
 | Skill | Purpose |
 |-------|---------|
-| `voice-orchestrator` | Multi-step voice generation with validation |
+| `voice-writer` | Unified voice content generation with validation |
 | `voice-calibrator` | Create voice profiles from samples |
 | `anti-ai-editor` | Remove AI-sounding patterns |
 

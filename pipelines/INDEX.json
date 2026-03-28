@@ -50,7 +50,7 @@
         "REPORT"
       ],
       "pairs_with": [
-        "voice-orchestrator"
+        "voice-writer"
       ]
     },
     "auto-pipeline": {
@@ -607,7 +607,7 @@
         "OUTPUT"
       ],
       "pairs_with": [
-        "voice-orchestrator"
+        "voice-writer"
       ]
     },
     "skill-creation-pipeline": {
@@ -800,7 +800,7 @@
       "user_invocable": false,
       "version": "2.0.0",
       "pairs_with": [
-        "voice-orchestrator",
+        "voice-writer",
         "voice-validator"
       ]
     },
@@ -817,7 +817,17 @@
         "write about",
         "write post",
         "blog about",
-        "create content"
+        "create content",
+        "write blog",
+        "article about",
+        "publish post",
+        "content for blog",
+        "hugo post",
+        "write for website",
+        "long-form content",
+        "write piece",
+        "write essay",
+        "ghost write"
       ],
       "category": "content",
       "force_route": true,

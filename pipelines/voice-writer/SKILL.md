@@ -35,6 +35,16 @@ routing:
     - write post
     - blog about
     - create content
+    - write blog
+    - article about
+    - publish post
+    - content for blog
+    - hugo post
+    - write for website
+    - long-form content
+    - write piece
+    - write essay
+    - ghost write
   pairs_with:
     - create-voice
     - voice-calibrator

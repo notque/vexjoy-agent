@@ -24,7 +24,7 @@ description: |
   <example>
   Context: User needs a content publishing workflow.
   user: "Build a pipeline for blog post publishing with voice validation"
-  assistant: "I'll discover existing voice and publishing components, then scaffold only the missing pieces — avoiding duplication of voice-validator and blog-post-writer."
+  assistant: "I'll discover existing voice and publishing components, then scaffold only the missing pieces — avoiding duplication of voice-validator and voice-writer."
   <commentary>
   The orchestrator uses codebase-analyzer to detect existing components before
   scaffolding, preventing duplication and encouraging reuse.

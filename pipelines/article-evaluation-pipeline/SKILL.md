@@ -30,7 +30,7 @@ routing:
     - article evaluation
     - check my voice
   pairs_with:
-    - voice-orchestrator
+    - voice-writer
   complexity: medium
   category: content
 ---
@@ -54,7 +54,7 @@ This skill evaluates articles for voice authenticity through a deterministic 4-p
 - Fix suggestions: Generate revision items for NEEDS WORK/FAILED verdicts (`--suggest-fixes`)
 - Force voice: Override auto-detection with explicit profile (`--voice {name}`)
 
-**Scope boundaries**: This skill evaluates existing articles only. Do not use for writing (use voice-orchestrator), editing (use anti-ai-editor), or creating voice profiles (use voice-calibrator).
+**Scope boundaries**: This skill evaluates existing articles only. Do not use for writing (use voice-writer), editing (use anti-ai-editor), or creating voice profiles (use voice-calibrator).
 
 ---
 

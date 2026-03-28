@@ -40,7 +40,7 @@ routing:
     - technical writer
     - technical journalism
   pairs_with:
-    - voice-orchestrator
+    - voice-writer
   complexity: Comprehensive
   category: content
 allowed-tools:
@@ -87,7 +87,7 @@ You have deep expertise in:
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `voice-orchestrator` | Multi-step voice content generation with deterministic validation. Orchestrates a 7-phase pipeline: LOAD, GROUND, GEN... |
+| `voice-writer` | Unified voice content generation pipeline with mandatory validation and joy-check. |
 
 **Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
 
@@ -386,7 +386,7 @@ STOP and ask the user when:
 ## References
 
 This agent pairs well with:
-- **voice-orchestrator**: Multi-step voice content generation
+- **voice-writer**: Unified voice content generation pipeline
 - **technical-documentation-engineer**: For technical accuracy validation
 
 See [voice-patterns.md](references/voice-patterns.md) for complete voice analysis with extensive examples.

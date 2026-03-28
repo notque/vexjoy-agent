@@ -87,5 +87,5 @@ Create your own voice profiles with `/create-voice` and define custom modes in `
 | `voice-{name}` | Loads SKILL.md for voice patterns and rules |
 | `voice-calibrator` | Uses profiles created by calibrator |
 | `voice-validator` | Complementary manual validation interface |
-| `blog-post-writer` | Can invoke orchestrator for voiced content |
+| `voice-writer` | Unified voice content generation pipeline |
 | `anti-ai-editor` | Uses same banned-patterns.json database |

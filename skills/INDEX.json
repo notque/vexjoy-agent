@@ -77,12 +77,12 @@
     "blog-post-writer": {
       "file": "skills/blog-post-writer/SKILL.md",
       "description": "Voice-integrated blog post creation with 4-phase workflow: Assess, Decide, Draft, Preview.",
-      "triggers": [
-        "write blog post"
-      ],
+      "triggers": [],
       "category": "content-creation",
       "user_invocable": false,
-      "version": "2.0.0"
+      "version": "2.0.0",
+      "deprecated": true,
+      "deprecated_by": "voice-writer"
     },
     "bluesky-reader": {
       "file": "skills/bluesky-reader/SKILL.md",
@@ -246,7 +246,7 @@
       "version": "1.0.0",
       "pairs_with": [
         "voice-calibrator",
-        "voice-orchestrator"
+        "voice-writer"
       ]
     },
     "cron-job-auditor": {
@@ -2100,14 +2100,12 @@
     "voice-orchestrator": {
       "file": "skills/voice-orchestrator/SKILL.md",
       "description": "Multi-step voice content generation with deterministic validation.",
-      "triggers": [
-        "voice generation",
-        "multi-step voice",
-        "voice pipeline"
-      ],
+      "triggers": [],
       "category": "voice",
       "user_invocable": false,
-      "version": "2.0.0"
+      "version": "2.0.0",
+      "deprecated": true,
+      "deprecated_by": "voice-writer"
     },
     "voice-validator": {
       "file": "skills/voice-validator/SKILL.md",
@@ -2174,7 +2172,7 @@
       "user_invocable": false,
       "version": "2.0.0",
       "pairs_with": [
-        "blog-post-writer",
+        "voice-writer",
         "anti-ai-editor"
       ]
     },

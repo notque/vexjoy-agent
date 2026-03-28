@@ -159,9 +159,11 @@ Route to these agents based on the user's task domain. Each entry describes what
 
 ## Content Creation Skills
 
+**Deprecated**: `blog-post-writer` and `voice-orchestrator` are deprecated. All writing tasks route to `voice-writer`.
+
 | Skill | When to Route Here |
 |-------|-------------------|
-| **voice-writer** | User wants to write a blog post, article, or long-form content in a specific voice. |
+| **voice-writer** | User wants to write a blog post, article, or long-form content in a specific voice. Catches all content triggers previously handled by blog-post-writer (deprecated) and voice-orchestrator (deprecated). |
 | **anti-ai-editor** | User wants to edit content to remove AI-sounding patterns, genericness, or sterile phrasing. |
 | **de-ai-pipeline (FORCE)** | User wants to scan and systematically fix AI patterns across documentation or a content repository. |
 | **post-outliner** | User wants a structured outline for a blog post or article before writing. |
@@ -198,6 +200,8 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **voice-validator** | User wants to run a validation loop to confirm generated content matches the voice profile. |
 
 **Voice selection:** Use `create-voice` to build voice profiles from writing samples, then `voice-writer` for multi-step generation in that voice. Custom voice profiles are matched via their skill triggers.
+
+**Deprecated**: `blog-post-writer` and `voice-orchestrator` are deprecated. All writing tasks route to `voice-writer`.
 
 **Wabi-sabi principle:** Perfection is an AI tell. Natural imperfections are features. Don't over-polish.
 
@@ -411,3 +415,6 @@ Invoked via the roast skill or directly:
 | "review this" | comprehensive-review | Multi-wave code review |
 | "look at this code" | comprehensive-review | Code review request |
 | "debug the goroutine leak" | golang-general-engineer + systematic-debugging | Go domain + diagnosis |
+| "write a blog post about X" | voice-writer | Blog content generation (was blog-post-writer, now deprecated) |
+| "article about kubernetes" | voice-writer | Long-form content in voice |
+| "write for the website" | voice-writer | Website content generation |

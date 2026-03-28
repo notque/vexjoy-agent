@@ -210,4 +210,4 @@ Solution:
 ### Related Skills
 - `voice-{name}` - Generates content in a specific voice (validate output with this skill)
 - `anti-ai-editor` - Complementary anti-AI pattern detection
-- `voice-orchestrator` - Multi-step voice generation pipeline that invokes this skill
+- `voice-writer` - Unified voice content generation pipeline that invokes this skill

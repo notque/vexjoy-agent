@@ -248,7 +248,7 @@ Deterministic voice validation using Python scripts + AI generation.
 |-----------|------|---------|
 | `voice_analyzer.py` | Script | Extract metrics from writing samples |
 | `voice_validator.py` | Script | Validate content against voice profiles |
-| `voice-orchestrator` | Skill | Multi-step voice generation with validation |
+| `voice-writer` | Skill | Unified voice content generation with validation |
 | `voice-{name}` | Skill | Apply specific voice patterns |
 
 ### Validation Commands
