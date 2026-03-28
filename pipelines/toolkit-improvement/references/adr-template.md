@@ -1,0 +1,159 @@
+# ADR Template
+
+Standard format for ADRs created by the toolkit improvement pipeline. Copy this
+structure for each ADR. The Validation Requirements and Failure Remediation Protocol
+sections are mandatory and must appear verbatim (with only the skill names adjusted
+if the ADR affects non-skill components).
+
+---
+
+## File naming
+
+```
+adr/NNN-short-descriptive-slug.md
+```
+
+Where `NNN` is the next available number (`ls adr/ | grep -E '^[0-9]' | sort | tail -1`
+then increment by 1).
+
+Also create `adr/short-descriptive-slug.md` as a one-line redirect to the numbered file.
+This satisfies the ADR creation gate hook which looks for `adr/{component-name}.md`.
+
+---
+
+## Template
+
+```markdown
+# ADR-NNN: [Title]
+
+## Status
+Proposed
+
+## Date
+YYYY-MM-DD
+
+## Context
+
+[2-3 paragraph explanation of the problem. Include:]
+- What the evaluation found
+- The critique's disposition (CONFIRM / DOWNGRADE / DISMISS / ELEVATE) and reasoning
+- Why the issue matters in practice — concrete scenario, not theoretical risk
+- File and line references for every claim
+
+### Finding [ID]: [Short title]
+
+**Verdict: [CONFIRMED | DOWNGRADED from HIGH to MEDIUM | etc.]**
+
+[Detailed description of the finding with file:line evidence. Quote relevant code
+snippets where they help clarify the issue.]
+
+**Why this matters:**
+[Concrete impact — what breaks, who is affected, under what conditions]
+
+## Decision
+
+### [Decision title]
+
+[Concrete implementation plan. Not "improve the code" but "replace X with Y in
+file Z because reason W".]
+
+[Include before/after code snippets for non-trivial changes.]
+
+[If multiple changes, use numbered subsections:]
+
+### 1. [First change]
+[Description + code]
+
+### 2. [Second change]
+[Description + code]
+
+## Components
+
+| Component | Action | Description |
+|-----------|--------|-------------|
+| `path/to/file.py` | Modify | What specifically changes |
+| `path/to/other.py` | Modify | What specifically changes |
+
+## Consequences
+
+### Positive
+- [Concrete improvement]
+- [Another improvement]
+
+### Negative
+- [Tradeoff or risk introduced]
+- [Churn cost if applicable]
+
+## Validation Requirements
+
+**Skill Evaluator Gate**: Any skill or agent changes resulting from this ADR MUST be
+validated using the skill evaluator (`/skill-eval`) before merging:
+
+1. **Baseline capture**: Run `/skill-eval` on the affected skill(s) BEFORE implementation
+   to establish a baseline score
+2. **Post-implementation evaluation**: Run `/skill-eval` on the modified skill(s) AFTER
+   implementation
+3. **Pass criteria**: The post-implementation score MUST meet or exceed the baseline
+   score. Regressions are blockers.
+4. **Review evidence**: Include skill-eval output (before/after scores) in the PR
+   description as proof of non-regression
+
+This gate ensures that improvements to the toolkit's infrastructure do not inadvertently
+degrade the quality of skill descriptions, trigger accuracy, or routing behavior. The
+skill evaluator tests trigger matching, description clarity, and structural compliance —
+the exact properties most likely to be affected by the changes in this ADR.
+
+### Failure Remediation Protocol
+
+If the skill evaluator score **regresses** (post-implementation < baseline):
+
+1. **STOP** — Do not merge. The regression is a blocker.
+2. **Dispatch 3 parallel perspective agents** to analyze the failure:
+   - **Agent A (Contrarian)**: Challenge whether the change was necessary at all.
+     Propose a simpler alternative that preserves the baseline score.
+   - **Agent B (Domain Specialist)**: Analyze WHY the score dropped — which specific
+     triggers, descriptions, or structural elements degraded? Propose targeted fixes.
+   - **Agent C (User Advocate)**: Evaluate from the end-user perspective — does the
+     change make the skill harder to discover or invoke? Propose routing improvements.
+3. **Synthesize**: Collect all three perspectives. Identify the fix that addresses the
+   root cause without over-engineering.
+4. **Re-implement**: Apply the synthesized fix.
+5. **Re-evaluate**: Run `/skill-eval` again. The new score must meet or exceed the
+   original baseline.
+6. **Max iterations**: 3 remediation cycles. If the score still regresses after 3
+   attempts, escalate to the user with all three perspective reports and ask for a
+   decision.
+
+This loop ensures that no ADR implementation degrades the toolkit's routing
+effectiveness, and that failures are diagnosed from multiple angles rather than
+brute-forced.
+
+### Risks
+- [Specific risk from this ADR's implementation]
+- [Another risk]
+```
+
+---
+
+## Notes for ADR writers
+
+**Context section must cite files**: Every claim in Context must have a file:line
+reference. "The code does X" without a location is not verifiable.
+
+**Include the critique verdict**: If the critique agent rated this finding DOWNGRADE
+or CONFIRM, say so explicitly. This shows the operator that the finding survived
+scrutiny before the ADR was written.
+
+**Decision must be implementable**: A domain agent will read the Decision section and
+execute it. "Improve error handling" is not implementable. "Replace bare `except:` on
+line 47 of hooks/foo.py with `except (json.JSONDecodeError, OSError) as e:` and log
+the error to stderr" is implementable.
+
+**Components table is the source of truth**: The implementing agent only touches files
+listed in the Components table. If a file is not listed, it will not be modified. Make
+the table complete.
+
+**Validation Requirements are mandatory**: Copy the Validation Requirements and Failure
+Remediation Protocol sections verbatim for every ADR. Only adjust the skill names if
+the ADR affects non-skill components (e.g., if it only modifies Python scripts with no
+skill impact, note that skill-eval is not applicable for this ADR and explain why).
