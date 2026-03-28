@@ -55,13 +55,12 @@ def _save_state(state: dict) -> None:
     try:
         _ensure_dir()
         state["timestamp"] = time.time()
-        _STATE_FILE.write_text(json.dumps(state, indent=2))
+        tmp = _STATE_FILE.with_suffix(".tmp")
+        tmp.write_text(json.dumps(state, indent=2))
+        tmp.rename(_STATE_FILE)
     except OSError as e:
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            print(f"[feedback-tracker] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
+            print(f"[feedback-tracker] save error: {e}", file=sys.stderr)
 
 
 def set_pending_feedback(signature: str, error_type: str, fix_action: str, original_error: str) -> None:
@@ -140,14 +139,9 @@ def check_pending_feedback(current_error: Optional[str]) -> Optional[dict]:
 def clear_pending() -> None:
     """Clear any pending feedback state."""
     try:
-        if _STATE_FILE.exists():
-            _STATE_FILE.unlink()
-    except OSError as e:
-        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
-            import traceback
-
-            print(f"[feedback-tracker] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
+        _STATE_FILE.unlink(missing_ok=True)
+    except OSError:
+        pass
 
 
 def has_pending() -> bool:
