@@ -206,7 +206,7 @@ Validate: Accuracy over style.
 ## Integration Points
 
 This pattern is referenced by:
-- `skills/voice-orchestrator/SKILL.md` - Full orchestration
+- `pipelines/voice-writer/SKILL.md` - Full orchestration
 - `skills/voice-{name}/SKILL.md` - Individual voice skills
 - `pipelines/research-to-article/SKILL.md` - Article pipeline
 - `CLAUDE.md` - Repository default behavior

@@ -8,7 +8,7 @@ description: |
   building a voice profile from scratch. Use for "create voice",
   "new voice", "build voice", "voice from samples", "calibrate voice".
   Route to other skills for generating content in an existing voice (use
-  voice-orchestrator), editing content (use anti-ai-editor), or
+  voice-writer), editing content (use anti-ai-editor), or
   comparing voices (use voice-calibrator compare mode).
 version: 1.0.0
 user-invocable: false
@@ -35,7 +35,7 @@ routing:
     - make a voice
   pairs_with:
     - voice-calibrator
-    - voice-orchestrator
+    - voice-writer
   complexity: Medium
   category: content
 ---
@@ -193,7 +193,7 @@ Phase 4/7: RULE
 
 **Goal**: Generate the complete voice skill files following the voice-calibrator template.
 
-keep modifications out of scope — voice_analyzer.py, voice_validator.py, banned-patterns.json, voice-calibrator, voice-orchestrator, or any existing skill/script, because the existing tools work. This skill only creates new files in `skills/voice-{name}/`.
+keep modifications out of scope — voice_analyzer.py, voice_validator.py, banned-patterns.json, voice-calibrator, voice-writer, or any existing skill/script, because the existing tools work. This skill only creates new files in `skills/voice-{name}/`.
 
 Before generating, show users any existing voice implementation in `skills/voice-*/` as a concrete example of "done", because reference implementations ground expectations.
 

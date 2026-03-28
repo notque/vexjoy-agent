@@ -26,7 +26,7 @@ routing:
     - voice analysis
     - voice refine
   pairs_with:
-    - voice-orchestrator
+    - voice-writer
     - voice-validator
   complexity: Medium
   category: content

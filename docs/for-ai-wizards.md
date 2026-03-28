@@ -113,7 +113,7 @@ allowed-tools:
   - Skill
 routing:
   triggers: [research then write, article with research]
-  pairs_with: [voice-orchestrator]
+  pairs_with: [voice-writer]
   complexity: complex
   category: content-pipeline
 ---
@@ -272,7 +272,7 @@ PHASE 6: REFINE    -> Fix validation errors (max 3 iterations)
 PHASE 7: OUTPUT    -> Final content with validation report
 ```
 
-`research-to-article` uses all seven. It launches 5 parallel research agents in GATHER (primary domain, narrative arcs, external context, community reaction, business context), compiles findings with story arc emphasis in COMPILE, selects voice mode in GROUND, generates via voice-orchestrator in GENERATE, validates with `voice_validator.py` in VALIDATE, iterates in REFINE, and outputs with a validation report.
+`research-to-article` uses all seven. It launches 5 parallel research agents in GATHER (primary domain, narrative arcs, external context, community reaction, business context), compiles findings with story arc emphasis in COMPILE, selects voice mode in GROUND, generates via voice-writer in GENERATE, validates with `voice_validator.py` in VALIDATE, iterates in REFINE, and outputs with a validation report.
 
 `parallel-code-review` uses a compressed version: IDENTIFY SCOPE -> DISPATCH (3 reviewers in parallel) -> AGGREGATE -> VERDICT. The fan-out/fan-in pattern -- dispatch independent subagents, collect results, merge by severity.
 

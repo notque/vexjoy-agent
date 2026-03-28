@@ -358,7 +358,7 @@ These are mandatory. When triggers match, the skill fires before any other routi
 | `go-sapcc-conventions` | sapcc, sap-cloud-infrastructure, go-bits, keppel, go-api-declarations |
 | `python-quality-gate` | bandit, Python security scan, Python SAST |
 | `create-voice` | create voice, new voice, build voice, voice from samples, calibrate voice |
-| `voice-orchestrator` | write in voice, generate voice content, voice workflow |
+| `voice-writer` | write article, blog post, write in voice, generate voice content |
 | `feature-design` | design feature, feature design, think through feature |
 | `feature-plan` | plan feature, feature plan, break down design |
 | `feature-implement` | implement feature, execute plan, start building |
@@ -387,7 +387,7 @@ Pipeline skills have explicit phases with gates between them.
 | `explore-pipeline` | SCAN -> MAP -> ANALYZE -> REPORT |
 | `research-to-article` | RESEARCH -> COMPILE -> GROUND -> GENERATE -> VALIDATE -> REFINE -> OUTPUT |
 | `pr-pipeline` | CLASSIFY -> STAGE -> REVIEW -> COMMIT -> PUSH -> CREATE -> VERIFY -> CLEANUP |
-| `voice-orchestrator` | LOAD -> GROUND -> GENERATE -> VALIDATE -> REFINE -> OUTPUT -> CLEANUP |
+| `voice-writer` | LOAD -> GROUND -> GENERATE -> VALIDATE -> REFINE -> JOY-CHECK -> OUTPUT -> CLEANUP |
 | `github-profile-rules` | PROFILE-SCAN -> CODE-ANALYSIS -> REVIEW-MINING -> PATTERN-SYNTHESIS -> RULES-GENERATION -> VALIDATION -> OUTPUT |
 | `doc-pipeline` | RESEARCH -> OUTLINE -> GENERATE -> VERIFY -> OUTPUT |
 | `workflow-orchestrator` | BRAINSTORM -> WRITE-PLAN -> EXECUTE-PLAN |

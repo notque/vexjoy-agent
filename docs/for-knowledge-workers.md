@@ -41,7 +41,7 @@ Say you want to write a blog post. Here's what happens when you type:
 /do write a blog post about debugging production incidents
 ```
 
-The router dispatches to the blog-post-writer skill, which runs a 4-phase workflow: Assess the topic, Decide on structure, Draft the content, Preview before saving. It picks a structure template, enforces banned-word lists (no "delve" or "leverage" slipping through), and writes the final post in Hugo-compatible format with proper frontmatter.
+The router dispatches to the voice-writer skill, which runs a multi-phase workflow: Assess the topic, Decide on structure, Draft the content, Preview before saving. It picks a structure template, enforces banned-word lists (no "delve" or "leverage" slipping through), and writes the final post in Hugo-compatible format with proper frontmatter.
 
 Want research baked in? Say so:
 

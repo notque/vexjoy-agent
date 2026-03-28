@@ -6,7 +6,7 @@ description: |
   uploading images, editing existing posts, or managing WordPress content.
   Use for "upload to wordpress", "create wordpress draft", "publish to
   your-blog", "upload image", or "edit wordpress post". Do NOT use for
-  writing articles (use blog-post-writer) or editing prose style (use
+  writing articles (use voice-writer) or editing prose style (use
   anti-ai-editor).
 version: 2.0.0
 user-invocable: false
@@ -31,7 +31,7 @@ routing:
     - update wordpress post
     - wordpress media
   pairs_with:
-    - blog-post-writer
+    - voice-writer
     - anti-ai-editor
   complexity: simple
   category: content-publishing
@@ -43,7 +43,7 @@ routing:
 
 This skill provides WordPress REST API integration for posts and media uploads using deterministic Python scripts. **LJMs orchestrate. Scripts execute.** All WordPress operations go through the three provided Python scripts (`wordpress-upload.py`, `wordpress-media-upload.py`, `wordpress-edit-post.py`), never via curl or raw API calls. This approach ensures credential security, deterministic behavior, and proper markdown-to-Gutenberg conversion.
 
-**Scope**: Create new posts, upload media, edit existing posts, manage featured images, handle categories/tags. Does not write article prose (use blog-post-writer) or edit prose style (use anti-ai-editor). Requires HTTPS-only connections and Application Password authentication configured in `~/.env`.
+**Scope**: Create new posts, upload media, edit existing posts, manage featured images, handle categories/tags. Does not write article prose (use voice-writer) or edit prose style (use anti-ai-editor). Requires HTTPS-only connections and Application Password authentication configured in `~/.env`.
 
 ---
 
@@ -368,5 +368,5 @@ Solution:
 - Must use HTTPS for the site URL
 
 **Related Skills**:
-- `blog-post-writer`: Use for writing articles (not uploading them)
+- `voice-writer`: Use for writing articles (not uploading them)
 - `anti-ai-editor`: Use for editing prose style (not publishing to WordPress)

@@ -30,7 +30,7 @@ routing:
     - full article pipeline
     - comprehensive article
   pairs_with:
-    - voice-orchestrator
+    - voice-writer
   complexity: complex
   category: content
 ---
@@ -281,7 +281,7 @@ Cause: Requested voice skill does not exist or has wrong path
 Solution:
 1. List available voice skills with `ls skills/voice-*/SKILL.md`
 2. Verify skill name matches exactly (e.g., `voice-yourname` not `voice-your`)
-3. Fall back to `voice-orchestrator` which handles voice selection internally
+3. Fall back to `voice-writer` which handles voice selection internally
 
 ### Error: "Research Document Missing Story Arc"
 Cause: Agents returned facts without narrative structure
@@ -303,6 +303,6 @@ Solution:
 
 | Skill | Integration |
 |-------|-------------|
-| `voice-orchestrator` | Used for Phase 4 voice generation |
+| `voice-writer` | Used for Phase 4 voice generation |
 | `voice-{name}` | Loaded for target voice content |
 | `wordpress-uploader` | Upload final article (post-pipeline) |
