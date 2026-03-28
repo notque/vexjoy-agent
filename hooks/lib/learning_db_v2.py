@@ -258,6 +258,43 @@ CREATE INDEX IF NOT EXISTS idx_gov_created   ON governance_events(created_at);
 """
 
 
+# ─── Injection Defense ────────────────────────────────────────
+
+
+def sanitize_for_context(text: str) -> str:
+    """Neutralize known injection patterns in text before agent context injection.
+
+    Replaces role boundary tags and strips zero-width Unicode characters to prevent
+    second-order prompt injection via stored learning database values.
+    """
+    if not text:
+        return text
+    # Neutralize role boundary tags
+    for tag in ("system", "user", "assistant", "human"):
+        text = text.replace(f"<{tag}>", f"[{tag}]")
+        text = text.replace(f"</{tag}>", f"[/{tag}]")
+    # Strip zero-width Unicode characters
+    zero_width = "\u200b\u200d\u200e\u200f\u202a\u202b\u202c\u202d\u202e\ufeff"
+    for ch in zero_width:
+        text = text.replace(ch, "")
+    return text
+
+
+def sanitize_fts_query(term: str) -> str:
+    """Strip FTS5 operators from a search term to prevent query injection.
+
+    FTS5 operators (NOT, NEAR, AND, OR, *, quotes, parens, minus, colon) are removed
+    to ensure terms are treated as plain text matches.
+    """
+    import re as _re
+
+    # Remove FTS5 special characters
+    term = _re.sub(r'["\(\)\*:\-]', "", term)
+    # Remove FTS5 keyword operators (case-insensitive, whole word)
+    term = _re.sub(r"\b(NOT|NEAR|AND|OR)\b", "", term, flags=_re.IGNORECASE)
+    return term.strip()
+
+
 # ─── Error Classification (from learning_db.py) ───────────────
 
 
@@ -501,6 +538,17 @@ def search_learnings(
     if not query or not query.strip():
         return []
 
+    # Sanitize FTS query terms before matching
+    query_str = query
+    if query_str:
+        terms = query_str.split(" OR ")
+        terms = [sanitize_fts_query(t.strip()) for t in terms if t.strip()]
+        terms = [t for t in terms if t]  # Remove empty after sanitization
+        if terms:
+            query_str = " OR ".join(terms)
+        else:
+            return []  # All terms were FTS operators — no valid query
+
     conditions = ["l.confidence >= ?"]
     params: list = [min_confidence]
 
@@ -521,7 +569,7 @@ def search_learnings(
                 ORDER BY rank
                 LIMIT ?
                 """,
-                (query, *params, limit),
+                (query_str, *params, limit),
             ).fetchall()
             return [dict(row) for row in rows]
         except sqlite3.OperationalError:

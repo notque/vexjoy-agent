@@ -34,6 +34,7 @@ from stdin_timeout import read_stdin
 
 # Try to import learning_db_v2 for SQLite-based injection
 try:
+    from learning_db_v2 import sanitize_for_context as _sanitize_for_context
     from learning_db_v2 import search_learnings as _search_db
 
     _HAS_LEARNING_DB = True
@@ -298,7 +299,7 @@ def query_knowledge_from_db(prompt_keywords: set[str], debug: bool = False, agen
             parts.append(f"## {heading}")
             for e in entries:
                 obs = f" [{e['observation_count']}x]" if e["observation_count"] > 1 else ""
-                first_line = e["value"].split("\n")[0][:150]
+                first_line = _sanitize_for_context(e["value"]).split("\n")[0][:150]
                 parts.append(f"- {e['key']}{obs}: {first_line}")
             parts.append("")
 
