@@ -15,9 +15,7 @@ from pathlib import Path
 import pytest
 
 # Load kebab-case module via importlib (not a valid Python identifier)
-_spec = importlib.util.spec_from_file_location(
-    "reddit_mod", Path(__file__).resolve().parent.parent / "reddit-mod.py"
-)
+_spec = importlib.util.spec_from_file_location("reddit_mod", Path(__file__).resolve().parent.parent / "reddit-mod.py")
 reddit_mod = importlib.util.module_from_spec(_spec)
 sys.modules["reddit_mod"] = reddit_mod
 _spec.loader.exec_module(reddit_mod)

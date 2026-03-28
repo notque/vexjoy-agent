@@ -241,10 +241,10 @@ def check_referenced_files(content: str) -> CheckResult:
 
 
 def check_anti_patterns_section(content: str) -> CheckResult:
-    """Check: Has anti-patterns section heading (10 pts)."""
-    if re.search(r"^#{1,3}\s+.*anti.?pattern", content, re.IGNORECASE | re.MULTILINE):
-        return CheckResult("Anti-patterns section", 10, 10)
-    return CheckResult("Anti-patterns section", 10, 0, "No '## Anti-Pattern*' heading found")
+    """Check: Has patterns section heading — either 'Preferred Patterns' (ADR-127) or legacy 'Anti-Patterns' (10 pts)."""
+    if re.search(r"^#{1,3}\s+.*(preferred\s+pattern|anti.?pattern|pattern)", content, re.IGNORECASE | re.MULTILINE):
+        return CheckResult("Patterns section", 10, 10)
+    return CheckResult("Patterns section", 10, 0, "No '## Preferred Patterns' or '## Anti-Patterns' heading found")
 
 
 def check_error_handling_section(content: str) -> CheckResult:
