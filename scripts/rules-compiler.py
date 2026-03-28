@@ -363,7 +363,7 @@ def cmd_compile(args: argparse.Namespace) -> int:
 
     # Write output
     if output:
-        os.makedirs(os.path.dirname(output) or ".", exist_ok=True)
+        Path(output).parent.mkdir(parents=True, exist_ok=True)
         with open(output, "w") as f:
             json.dump(output_data, f, indent=2)
         print(f"Compiled {len(rules)} rules to {output}", file=sys.stderr)
@@ -403,7 +403,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
     }
 
     if output:
-        os.makedirs(os.path.dirname(output) or ".", exist_ok=True)
+        Path(output).parent.mkdir(parents=True, exist_ok=True)
         with open(output, "w") as f:
             json.dump(result, f, indent=2)
 
@@ -419,7 +419,7 @@ def cmd_format(args: argparse.Namespace) -> int:
     output_md = args.output_md
     output_json = args.output_json
 
-    if not os.path.exists(input_file):
+    if not Path(input_file).exists():
         print(f"ERROR: Input file '{input_file}' not found.", file=sys.stderr)
         return 1
 
@@ -432,14 +432,14 @@ def cmd_format(args: argparse.Namespace) -> int:
 
     if output_md:
         md_content = format_rules_markdown(rules, username, metadata)
-        os.makedirs(os.path.dirname(output_md) or ".", exist_ok=True)
+        Path(output_md).parent.mkdir(parents=True, exist_ok=True)
         with open(output_md, "w") as f:
             f.write(md_content)
         print(f"Written markdown to {output_md}", file=sys.stderr)
 
     if output_json:
         json_content = format_rules_json(rules, username, metadata)
-        os.makedirs(os.path.dirname(output_json) or ".", exist_ok=True)
+        Path(output_json).parent.mkdir(parents=True, exist_ok=True)
         with open(output_json, "w") as f:
             f.write(json_content)
         print(f"Written JSON to {output_json}", file=sys.stderr)

@@ -36,7 +36,6 @@ routing:
     - golang-general-engineer
     - golang-general-engineer-compact
     - go-code-review
-  force_routing: true
 ---
 
 # Go Anti-Patterns Skill

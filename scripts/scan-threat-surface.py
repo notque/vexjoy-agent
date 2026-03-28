@@ -40,21 +40,30 @@ _NC_PATTERN = re.compile(r"\bnc\b")
 # ─── Helpers ───────────────────────────────────────────────────
 
 
-def _load_json_file(path: Path) -> dict | None:
-    """Load JSON from a file, returning None on any error."""
+def _load_json_file(path: Path) -> tuple[dict | None, str | None]:
+    """Load JSON from a file.
+
+    Returns:
+        (data, None) on success, (None, error_message) on failure.
+    """
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
-        return None
+        return json.loads(path.read_text(encoding="utf-8")), None
+    except Exception as e:
+        return None, str(e)
 
 
-def _scan_hooks_config(settings_path: Path, verbose: bool) -> list[dict]:
+def _scan_hooks_config(settings_path: Path, verbose: bool, parse_errors: list[dict]) -> list[dict]:
     """Parse registered hooks from ~/.claude/settings.json."""
     hooks = []
-    data = _load_json_file(settings_path)
+    data, err = _load_json_file(settings_path)
     if not data:
-        if verbose:
-            print(f"  [surface] No settings.json at {settings_path}", file=sys.stderr)
+        if err is not None:
+            parse_errors.append({"file": str(settings_path), "error": err})
+            if verbose:
+                print(f"  [surface] Failed to parse {settings_path}: {err}", file=sys.stderr)
+        else:
+            if verbose:
+                print(f"  [surface] No hooks data in {settings_path}", file=sys.stderr)
         return hooks
 
     raw_hooks = data.get("hooks", {})
@@ -83,11 +92,15 @@ def _scan_hooks_config(settings_path: Path, verbose: bool) -> list[dict]:
     return hooks
 
 
-def _scan_mcp_config(mcp_path: Path, verbose: bool) -> list[dict]:
+def _scan_mcp_config(mcp_path: Path, verbose: bool, parse_errors: list[dict]) -> list[dict]:
     """Parse MCP servers from an mcp.json file."""
     servers = []
-    data = _load_json_file(mcp_path)
+    data, err = _load_json_file(mcp_path)
     if not data:
+        if err is not None:
+            parse_errors.append({"file": str(mcp_path), "error": err})
+            if verbose:
+                print(f"  [surface] Failed to parse {mcp_path}: {err}", file=sys.stderr)
         return servers
 
     # Handle both {"mcpServers": {...}} and flat {"name": {...}} formats
@@ -214,13 +227,14 @@ def build_report(repo_root: Path, verbose: bool) -> dict:
         "skills": [],
         "base_url_findings": [],
         "unscoped_tool_findings": [],
+        "parse_errors": [],
         "env_vars": {},
     }
 
     # 1. Registered hooks from ~/.claude/settings.json
     settings_path = Path.home() / ".claude" / "settings.json"
     if settings_path.exists():
-        report["hooks"] = _scan_hooks_config(settings_path, verbose)
+        report["hooks"] = _scan_hooks_config(settings_path, verbose, report["parse_errors"])
         if verbose:
             print(f"  [surface] hooks from {settings_path}: {len(report['hooks'])}", file=sys.stderr)
 
@@ -231,7 +245,7 @@ def build_report(repo_root: Path, verbose: bool) -> dict:
     ]
     for mp in mcp_paths:
         if mp.exists():
-            servers = _scan_mcp_config(mp, verbose)
+            servers = _scan_mcp_config(mp, verbose, report["parse_errors"])
             report["mcp_servers"].extend(servers)
             if verbose:
                 print(f"  [surface] MCP servers from {mp}: {len(servers)}", file=sys.stderr)
@@ -334,7 +348,7 @@ def main() -> None:
     print(
         f"[surface] hooks={len(report['hooks'])} mcp_servers={len(report['mcp_servers'])} "
         f"skills={len(report['skills'])} base_url_findings={len(report['base_url_findings'])} "
-        f"run_id={report['run_id']}",
+        f"parse_errors={len(report['parse_errors'])} run_id={report['run_id']}",
         file=sys.stderr,
     )
     print(f"[surface] Written to {output_path}", file=sys.stderr)

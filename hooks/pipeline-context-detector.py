@@ -72,12 +72,36 @@ def scan_agents(base_dir: Path) -> list[dict]:
     """
     Scan agents/ directory for existing agent manifests.
 
+    Reads agents/INDEX.json when available (single JSON parse replaces ~69
+    file reads + YAML parses). Falls back to filesystem glob only when
+    INDEX.json is missing or unparseable.
+
     Returns list of {name, triggers, pairs_with, category} dicts.
     """
     agents_dir = base_dir / "agents"
     if not agents_dir.is_dir():
         return []
 
+    # Fast path: read pre-built index
+    index_path = agents_dir / "INDEX.json"
+    if index_path.is_file():
+        try:
+            data = json.loads(index_path.read_text(encoding="utf-8"))
+            agents_dict = data.get("agents", {})
+            if isinstance(agents_dict, dict):
+                return [
+                    {
+                        "name": name,
+                        "triggers": entry.get("triggers", []),
+                        "pairs_with": entry.get("pairs_with", []),
+                        "category": entry.get("category", "unknown"),
+                    }
+                    for name, entry in agents_dict.items()
+                ]
+        except (OSError, json.JSONDecodeError, AttributeError):
+            pass  # Fall through to filesystem scan
+
+    # Slow path: filesystem glob with frontmatter parsing
     agents = []
     for md_file in sorted(agents_dir.glob("*.md")):
         if md_file.name in ("README.txt", "INDEX.json"):
@@ -113,25 +137,60 @@ def scan_agents(base_dir: Path) -> list[dict]:
     return agents
 
 
+def _skills_from_index(index_path: Path) -> list[dict] | None:
+    """
+    Parse a skills/INDEX.json or pipelines/INDEX.json file.
+
+    Returns a list of {name, user_invocable, agent} dicts on success,
+    or None if the file is missing or unparseable.
+    """
+    if not index_path.is_file():
+        return None
+    try:
+        data = json.loads(index_path.read_text(encoding="utf-8"))
+        # Both skills/INDEX.json and pipelines/INDEX.json store entries under
+        # a dict keyed by skill name ("skills" or "pipelines" top-level key).
+        entries: dict = data.get("skills") or data.get("pipelines") or {}
+        if not isinstance(entries, dict):
+            return None
+        return [
+            {
+                "name": name,
+                "user_invocable": entry.get("user_invocable", True),
+                "agent": entry.get("agent", None),
+            }
+            for name, entry in entries.items()
+        ]
+    except (OSError, json.JSONDecodeError, AttributeError):
+        return None
+
+
 def scan_skills(base_dir: Path) -> list[dict]:
     """
-    Scan skills/ directory for existing skill definitions.
+    Scan skills/ and pipelines/ directories for existing skill definitions.
+
+    Reads skills/INDEX.json and pipelines/INDEX.json when available (single
+    JSON parse per directory replaces ~145 + ~30 SKILL.md reads + YAML parses).
+    Falls back to filesystem walk per directory only when INDEX.json is
+    missing or unparseable.
 
     Returns list of {name, user_invocable, agent} dicts.
     """
-    # Scan both skills/ and pipelines/ directories
-    skill_dirs_to_scan = []
+    skills: list[dict] = []
+
     for dirname in ("skills", "pipelines"):
         d = base_dir / dirname
-        if d.is_dir():
-            skill_dirs_to_scan.append(d)
+        if not d.is_dir():
+            continue
 
-    if not skill_dirs_to_scan:
-        return []
+        # Fast path: read pre-built index
+        index_entries = _skills_from_index(d / "INDEX.json")
+        if index_entries is not None:
+            skills.extend(index_entries)
+            continue
 
-    skills = []
-    for skills_dir in skill_dirs_to_scan:
-        for skill_dir in sorted(skills_dir.iterdir()):
+        # Slow path: walk subdirectories and parse SKILL.md frontmatter
+        for skill_dir in sorted(d.iterdir()):
             if not skill_dir.is_dir():
                 continue
             skill_md = skill_dir / "SKILL.md"

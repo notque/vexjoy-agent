@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-03-28T04:23:31Z",
+  "generated": "2026-03-28T04:29:42Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -549,6 +549,7 @@
         ".fish file",
         "#!/usr/bin/env fish"
       ],
+      "force_route": true,
       "user_invocable": false,
       "version": "2.0.0",
       "pairs_with": []

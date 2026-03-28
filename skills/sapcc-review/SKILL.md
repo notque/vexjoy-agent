@@ -38,7 +38,7 @@ routing:
     - golang-general-engineer
     - go-sapcc-conventions
     - sapcc-audit
-  force_routing: false
+  force_route: false
   complexity: Complex
   category: language
 ---

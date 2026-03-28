@@ -295,7 +295,7 @@ def check_creation_gate(file_path: str) -> None:
         return
 
     # Allow overwrites of existing files (update, not creation)
-    if os.path.exists(file_path):
+    if Path(file_path).exists():
         return
 
     component_type = "agent" if is_agent else "skill"
