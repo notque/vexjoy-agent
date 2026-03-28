@@ -28,6 +28,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from hook_utils import context_output, empty_output
+from injection_patterns import scan_content as _scan_patterns
 from stdin_timeout import read_stdin
 
 EVENT_NAME = "PreToolUse"
@@ -64,190 +65,32 @@ def _is_context_file(file_path: str) -> bool:
 
 
 # ═══════════════════════════════════════════════════════════════
-# INJECTION PATTERNS — compiled at module level for performance
-# ═══════════════════════════════════════════════════════════════
-
-# Each entry: (compiled_regex, category, risk_description)
-_INJECTION_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
-    # 1. Instruction override
-    (
-        re.compile(r"ignore\s+(all\s+)?previous\s+instructions", re.IGNORECASE),
-        "instruction-override",
-        "Attempts to override prior instructions",
-    ),
-    (
-        re.compile(r"disregard\s+(all\s+)?(previous|above|prior)", re.IGNORECASE),
-        "instruction-override",
-        "Attempts to disregard prior context",
-    ),
-    (
-        re.compile(r"forget\s+(all\s+)?your\s+instructions", re.IGNORECASE),
-        "instruction-override",
-        "Attempts to clear agent instructions",
-    ),
-    (
-        re.compile(r"new\s+instructions?\s*:", re.IGNORECASE),
-        "instruction-override",
-        "Attempts to inject new instructions",
-    ),
-    (
-        re.compile(r"override\s+(all\s+)?(system|safety|security)\s+(prompt|instructions|rules)", re.IGNORECASE),
-        "instruction-override",
-        "Attempts to override system safety rules",
-    ),
-    # 2. Role hijacking
-    (
-        re.compile(r"you\s+are\s+now\s+a\b", re.IGNORECASE),
-        "role-hijacking",
-        "Attempts to reassign agent identity",
-    ),
-    (
-        re.compile(r"pretend\s+you'?re\b", re.IGNORECASE),
-        "role-hijacking",
-        "Attempts to make agent assume false identity",
-    ),
-    (
-        re.compile(r"from\s+now\s+on\s+you\s+(are|will|should|must)\b", re.IGNORECASE),
-        "role-hijacking",
-        "Attempts to permanently alter agent behavior",
-    ),
-    (
-        re.compile(r"\b(admin|developer|jailbreak)\s+mode\b", re.IGNORECASE),
-        "role-hijacking",
-        "Attempts to activate privileged mode",
-    ),
-    (
-        re.compile(r"\bact\s+as\s+(root|admin|sudo)\b", re.IGNORECASE),
-        "role-hijacking",
-        "Attempts authority escalation",
-    ),
-    # 3. Prompt extraction
-    (
-        re.compile(
-            r"(print|output|reveal|show|repeat|display)\s+(your\s+)?(system\s+prompt|instructions|rules|system\s+message)",
-            re.IGNORECASE,
-        ),
-        "prompt-extraction",
-        "Attempts to extract system prompt or instructions",
-    ),
-    (
-        re.compile(r"what\s+are\s+your\s+(rules|instructions|constraints)", re.IGNORECASE),
-        "prompt-extraction",
-        "Probes for agent configuration details",
-    ),
-    # 4. Fake message boundaries
-    (
-        re.compile(r"</?system>", re.IGNORECASE),
-        "fake-boundary",
-        "Fake <system> tag — attempts message boundary injection",
-    ),
-    (
-        re.compile(r"</?assistant>", re.IGNORECASE),
-        "fake-boundary",
-        "Fake <assistant> tag — attempts message boundary injection",
-    ),
-    (
-        re.compile(r"</?user>", re.IGNORECASE),
-        "fake-boundary",
-        "Fake <user> tag — attempts message boundary injection",
-    ),
-    (
-        re.compile(r"\[SYSTEM\]"),
-        "fake-boundary",
-        "Fake [SYSTEM] marker — attempts boundary injection",
-    ),
-    (
-        re.compile(r"\[INST\]"),
-        "fake-boundary",
-        "Fake [INST] marker — attempts Llama-style boundary injection",
-    ),
-    (
-        re.compile(r"<<SYS>>"),
-        "fake-boundary",
-        "Fake <<SYS>> marker — attempts Llama-style system injection",
-    ),
-]
-
-# 5. Invisible Unicode — checked separately (character-level scan)
-_INVISIBLE_CODEPOINTS: dict[int, str] = {
-    0x200B: "zero-width space",
-    0x200C: "zero-width non-joiner",
-    0x200D: "zero-width joiner",
-    0x200E: "left-to-right mark",
-    0x200F: "right-to-left mark",
-    0x00AD: "soft hyphen",
-    0x202A: "left-to-right embedding",
-    0x202B: "right-to-left embedding",
-    0x202C: "pop directional formatting",
-    0x202D: "left-to-right override",
-    0x202E: "right-to-left override",
-    0xFEFF: "byte order mark (mid-text)",
-    0x2060: "word joiner",
-    0x2061: "function application",
-    0x2062: "invisible times",
-    0x2063: "invisible separator",
-    0x2064: "invisible plus",
-}
-
-
-# ═══════════════════════════════════════════════════════════════
 # SCANNING
 # ═══════════════════════════════════════════════════════════════
 
 
 def _scan_content(content: str, file_path: str) -> list[str]:
     """Scan content for injection patterns. Returns list of warning strings."""
+    findings = _scan_patterns(content, source_label=file_path)
     warnings = []
-
-    # Split into lines for line-number reporting
-    lines = content.split("\n")
-
-    # Regex pattern scan
-    for pattern, category, risk in _INJECTION_PATTERNS:
-        for line_num, line in enumerate(lines, 1):
-            if pattern.search(line):
-                matched = line.strip()[:80]
-                warnings.append(
-                    f"[INJECTION-WARN] Potential prompt injection in {file_path}:{line_num}\n"
-                    f"  Category: {category}\n"
-                    f"  Pattern: {matched}\n"
-                    f"  Risk: {risk}\n"
-                    f"  Action: Review this content before it enters agent context"
-                )
-                break  # One warning per pattern per file is enough
-
-    # Invisible Unicode scan — only if no massive content (performance guard)
-    if len(content) < 500_000:
-        invisible_found: dict[str, list[int]] = {}
-        for line_num, line in enumerate(lines, 1):
-            for char in line:
-                cp = ord(char)
-                if cp in _INVISIBLE_CODEPOINTS:
-                    name = _INVISIBLE_CODEPOINTS[cp]
-                    if name not in invisible_found:
-                        invisible_found[name] = []
-                    if len(invisible_found[name]) < 3:  # Cap locations
-                        invisible_found[name].append(line_num)
-
-        for name, line_nums in invisible_found.items():
-            locations = ", ".join(f"line {n}" for n in line_nums)
+    for f in findings:
+        if f["category"] == "invisible-unicode":
             warnings.append(
-                f"[INJECTION-WARN] Invisible Unicode in {file_path}\n"
-                f"  Category: invisible-unicode\n"
-                f"  Pattern: {name} (U+{_get_codepoint(name):04X}) at {locations}\n"
-                f"  Risk: Hidden characters can conceal malicious content\n"
+                f"[INJECTION-WARN] Invisible Unicode in {f['location']}\n"
+                f"  Category: {f['category']}\n"
+                f"  Pattern: {f['snippet']}\n"
+                f"  Risk: {f['risk']}\n"
                 f"  Action: Review this content before it enters agent context"
             )
-
+        else:
+            warnings.append(
+                f"[INJECTION-WARN] Potential prompt injection in {f['location']}\n"
+                f"  Category: {f['category']}\n"
+                f"  Pattern: {f['snippet']}\n"
+                f"  Risk: {f['risk']}\n"
+                f"  Action: Review this content before it enters agent context"
+            )
     return warnings
-
-
-def _get_codepoint(name: str) -> int:
-    """Reverse lookup codepoint from name."""
-    for cp, n in _INVISIBLE_CODEPOINTS.items():
-        if n == name:
-            return cp
-    return 0
 
 
 # ═══════════════════════════════════════════════════════════════
