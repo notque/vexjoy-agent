@@ -87,6 +87,11 @@ def _get_db_dir() -> Path:
 def get_db_path() -> Path:
     db_dir = _get_db_dir()
     db_dir.mkdir(parents=True, exist_ok=True)
+    # Harden directory permissions (ADR-122)
+    try:
+        os.chmod(db_dir, 0o700)
+    except OSError:
+        pass
     return db_dir / "learning.db"
 
 
@@ -140,6 +145,11 @@ def init_db():
         conn.executescript(_SCHEMA)
         _run_migrations(conn)
     _migrate_fts(pre_migration_version)
+    # Harden DB file permissions after creation (ADR-122)
+    try:
+        os.chmod(get_db_path(), 0o600)
+    except OSError:
+        pass
     _initialized = True
 
 

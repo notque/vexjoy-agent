@@ -442,6 +442,11 @@ def main():
 
             _backup_settings_json(global_settings_path)
             _atomic_json_write(Path(global_settings_path), merged)
+            # Harden permissions after write (ADR-122)
+            try:
+                os.chmod(global_settings_path, 0o600)
+            except OSError:
+                pass
 
             hook_count = sum(len(v) for v in merged.get("hooks", {}).values())
             synced.append(f"settings({hook_count} hook events)")
@@ -477,6 +482,11 @@ def main():
             global_mcp["mcpServers"] = merged_servers
 
             _atomic_json_write(Path(global_mcp_path), global_mcp)
+            # Harden permissions after write (ADR-122)
+            try:
+                os.chmod(global_mcp_path, 0o600)
+            except OSError:
+                pass
 
             new_servers = [n for n in repo_servers if n not in global_servers]
             if new_servers:

@@ -399,10 +399,19 @@ if [ "$DRY_RUN" = true ]; then
     echo -e "${BLUE}  Would set 644 on docs/*.md${NC}"
     echo -e "${BLUE}  Would set 755 on hooks/*.py${NC}"
     echo -e "${BLUE}  Would set 755 on scripts/*.py${NC}"
+    echo -e "${BLUE}  Would set 600 on ~/.claude/settings.json${NC}"
+    echo -e "${BLUE}  Would set 700 on ~/.claude/ and ~/.claude/learning/${NC}"
+    echo -e "${BLUE}  Would set 600 on ~/.claude/history.jsonl (if it exists)${NC}"
 else
     chmod 644 "${SCRIPT_DIR}/docs/"*.md 2>/dev/null || true
     find "${SCRIPT_DIR}/hooks" -name "*.py" -exec chmod 755 {} \; 2>/dev/null || true
     find "${SCRIPT_DIR}/scripts" -name "*.py" -exec chmod 755 {} \; 2>/dev/null || true
+    # Harden ~/.claude/ sensitive files (ADR-122)
+    chmod 700 "${CLAUDE_DIR}" 2>/dev/null || true
+    chmod 600 "${SETTINGS_FILE}" 2>/dev/null || true
+    chmod 600 "${SETTINGS_FILE}.backup" 2>/dev/null || true
+    chmod 700 "${CLAUDE_DIR}/learning" 2>/dev/null || true
+    chmod 600 "${CLAUDE_DIR}/history.jsonl" 2>/dev/null || true
 fi
 echo -e "${GREEN}✓ Permissions set${NC}"
 
