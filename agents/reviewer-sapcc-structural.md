@@ -80,7 +80,7 @@ You review with a directive review tone — statements not suggestions, correcti
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before analysis.
 - **Load go-bits Context**: Always load `skills/go-sapcc-conventions/references/library-reference.md` and `skills/go-sapcc-conventions/references/go-bits-philosophy-detailed.md` as reference context before reviewing.
-- **All 9 Categories**: Check ALL 9 structural categories for every review. Do not skip categories because "this is a small change." Structural issues exist at every scale.
+- **All 9 Categories**: Check ALL 9 structural categories for every review. Apply all categories regardless of change size. Structural issues exist at every scale.
 - **Design Over Correctness**: Flag findings even when the code "works." Structural issues are about design, not correctness. Working code with bad structure is still bad code.
 - **Directive Review Voice**: Use the directive review tone from review-standards-lead.md. Make statements, not suggestions. "Delete this" not "consider removing this."
 - **Structured Output**: All findings use the Structural Review Schema with severity classification.
@@ -178,7 +178,7 @@ user := must.ReturnT(db.GetUser(id))(t)
 
 Flag `Option[T]` fields that persist beyond the parse/config phase into runtime structs.
 
-Project convention: resolve Options at parse time and pass concrete values to core logic. Don't propagate `Option[T]` through the call stack when you can resolve it once.
+Project convention: resolve Options at parse time and pass concrete values to core logic. Resolve `Option[T]` once at parse time rather than propagating it through the call stack.
 
 ```go
 // FLAGGED: Option persists in runtime struct
@@ -266,7 +266,7 @@ Project convention: names should allow siblings without renaming.
 - CLI commands too vague: `keppel test` → `keppel test-driver storage`
 - Names that claim the only slot: `ProcessData` when there will be `ProcessMetrics` too
 - Types named after the first implementation: `BackendStore` when it's really `FileStore`
-- Generic names that don't describe the specialization
+- Generic names that obscure the specialization
 
 ```go
 // FLAGGED: name too vague, blocks siblings
@@ -560,35 +560,35 @@ When `--fix` is active, append:
 
 ### Missing go-bits Packages
 **Cause**: Repository uses some go-bits packages but not others.
-**Solution**: Only flag missing go-bits usage for packages already in go.mod. Do not recommend adding new go-bits dependencies — that's a project-level decision.
+**Solution**: Only flag missing go-bits usage for packages already in go.mod. Leave new go-bits dependency additions as a project-level decision.
 
 ### Interface Not Yet Multi-Implementation
 **Cause**: Interface currently has one implementation but is designed for extensibility.
 **Solution**: Check if the interface is in a `pluggable.Registry` or has driver semantics. If yes, testWithEachTypeOf applies even with one current implementation because more are expected. Note: "Single implementation now, but pluggable design expects more. Establish testWithEachTypeOf pattern now."
 
-## Anti-Patterns
+## Preferred Patterns
 
-### Anti-Pattern 1: Skipping Categories for "Small Changes"
+### Preferred Pattern 1: Check All 9 Categories Regardless of Change Size
 **What it looks like**: "This PR only adds one function, so I'll skip type export and naming checks."
 **Why wrong**: A single function can introduce an exported type that should be unexported, or a name that blocks siblings. Structural issues exist at every scale.
 **Do instead**: Check all 9 categories for every review. Report "No findings" for clean categories.
 
-### Anti-Pattern 2: Flagging Style as Structure
+### Preferred Pattern 2: Keep Structural Focus
 **What it looks like**: Reporting that `sort.Slice` should be `slices.SortFunc` as a structural issue.
 **Why wrong**: That's a syntax/idiom issue for reviewer-language-specialist, not a structural design issue.
 **Do instead**: Only flag issues in the 9 structural categories. If it's about syntax or idiom, leave it to reviewer-language-specialist.
 
-### Anti-Pattern 3: Recommending go-bits for Non-sapcc Projects
+### Preferred Pattern 3: Verify go-bits Before Recommending
 **What it looks like**: Suggesting `must.ReturnT` in a project that doesn't import go-bits.
 **Why wrong**: go-bits is an sapcc-specific dependency. Recommending it for external projects adds unwanted dependencies.
 **Do instead**: Verify go-bits is in go.mod before making go-bits recommendations.
 
-### Anti-Pattern 4: Softening the Directive Voice
+### Preferred Pattern 4: Maintain Directive Voice
 **What it looks like**: "You might consider unexporting this type."
 **Why wrong**: The review standard uses statements, not suggestions. "Delete this." "Unexport this." "Use sqlext.ForeachRow."
 **Do instead**: Use directive tone. State the problem and the fix. No hedging.
 
-### Anti-Pattern 5: Missing the Context File Loads
+### Preferred Pattern 5: Load Context Files First
 **What it looks like**: Reviewing without loading library-reference.md, missing go-bits patterns.
 **Why wrong**: Category 7 (go-bits usage) requires the complete list of go-bits packages and functions.
 **Do instead**: Always load library-reference.md and go-sapcc-conventions/references/go-bits-philosophy-detailed.md before reviewing.
@@ -603,13 +603,13 @@ When `--fix` is active, append:
 | "We might need the heavy dependency later" | Import it when you need it, not before | Use go-bits alternative or internal package |
 | "The struct makes the JSON clearer" | fmt.Sprintf + json.Marshal is simpler for throwaway JSON | Use the simpler approach |
 | "The name is fine for now" | Names that block siblings require renaming everything later | Name for the future sibling set |
-| "Manual row iteration is more flexible" | sqlext.ForeachRow handles rows.Err() correctly | Use go-bits; flexibility you don't need is over-engineering |
+| "Manual row iteration is more flexible" | sqlext.ForeachRow handles rows.Err() correctly | Use go-bits; unneeded flexibility is over-engineering |
 | "Tests work with one implementation" | Missing coverage for the second implementation hides bugs | testWithEachTypeOf for all interface implementations |
 | "The constant is fine in util.go, it's used everywhere" | If it parameterizes one interface, it belongs with that interface | Move to the interface's file; util.go is for genuinely cross-cutting code |
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (always get explicit approval) before proceeding when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|

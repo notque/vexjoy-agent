@@ -166,7 +166,7 @@ The `{server-name}` comes from the design.md header (e.g., `github-mcp-server`).
 
 Follow patterns from `references/ts-scaffold-template.md`:
 - Tool annotations: set `readOnlyHint: true` on all read tools
-- Error handling: always return text content on error; do not throw
+- Error handling: always return text content on error; return error messages instead of throwing
 - Auth pattern: read from `process.env.SERVICE_API_KEY`; throw if missing
 - Import style: use named imports from `@modelcontextprotocol/sdk/server/mcp.js`
 
@@ -234,9 +234,9 @@ After 3 failures:
 #### Generate Q&A Pairs
 
 Produce 10 evaluation question-answer pairs using the rules from `references/evaluation-guide.md`. Requirements:
-- Read-only (do not modify state)
+- Read-only (preserve all state)
 - Independently verifiable (answers exist in the repo data)
-- Stable (answers do not change between runs)
+- Stable (answers remain consistent between runs)
 - Format: `{"question": "...", "expected_answer_contains": "...", "tool_hints": ["tool_name"], "category": "get_single|list_filtered|search|metadata", "entity_type": "..."}` — see `references/evaluation-guide.md` → Q&A Pair Format for full field definitions
 
 Use the heuristic: 2 Q&A pairs per major entity type from analysis.md.
@@ -303,9 +303,9 @@ python3 ${CLAUDE_SKILL_DIR}/scripts/register_mcp.py \
   [--project]
 ```
 
-With `--dry-run`: print the config snippet only; do not write.
+With `--dry-run`: print the config snippet only; skip the write step.
 
-The script enforces read-before-write semantics: it reads the existing config file before writing. It NEVER overwrites existing `mcpServers` entries. If the target server name already exists in the config, the script prints a warning and exits without modifying the file.
+The script enforces read-before-write semantics: it reads the existing config file before writing. It preserves all existing `mcpServers` entries intact. If the target server name already exists in the config, the script prints a warning and exits without modifying the file.
 
 #### Post-Registration Output
 
@@ -351,7 +351,7 @@ The pipeline agent should additionally inform the user: "Test with `/mcp` or the
 
 ### Error: Server name already exists in config
 **Cause**: A previous pipeline run already registered an MCP server with the same name in Phase 6.
-**Solution**: Print a warning and do not overwrite. Suggest the user pass `--name {new-name}` or manually remove the existing entry before re-running Phase 6.
+**Solution**: Print a warning and preserve the existing entry. Suggest the user pass `--name {new-name}` or manually remove the existing entry before re-running Phase 6.
 
 ---
 

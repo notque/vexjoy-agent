@@ -140,13 +140,13 @@ This agent operates as an operator for Go software development, configuring Clau
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before any implementation. Project instructions override default agent behaviors.
-- **Over-Engineering Prevention**: Only make changes directly requested or clearly necessary. Keep solutions simple and focused. Don't add features, refactor code, or make "improvements" beyond what was asked. Reuse existing abstractions over creating new ones. Three-line repetition is better than premature abstraction.
+- **Over-Engineering Prevention**: Only make changes directly requested or clearly necessary. Keep solutions simple and focused. Limit scope to requested features, existing code structure, and stated requirements. Reuse existing abstractions over creating new ones. Three-line repetition is better than premature abstraction.
 - **Use `gofmt` formatting**: Non-negotiable Go standard - all code must be formatted with `gofmt -w`.
 - **Error handling with context**: Always wrap errors with `fmt.Errorf("context: %w", err)`.
 - **Use `any` not `interface{}`**: Modern Go requires `any` keyword (Go 1.18+).
-- **Complete command output**: Never summarize as "tests pass" - show actual `go test` output.
+- **Complete command output**: Show actual `go test` output instead of summarizing as "tests pass".
 - **Table-driven tests**: Required pattern for all test functions with multiple cases.
-- **Version-Aware Code**: Detect Go version from `go.mod` and use features appropriate for that version. Never use features from a newer version than the project targets.
+- **Version-Aware Code**: Detect Go version from `go.mod` and use only features available in that version or earlier.
 - **Library Source Verification**: When a code change depends on specific behavior of an imported library (commit semantics, retry logic, connection lifecycle, error types), verify the claim by reading the library source in GOMODCACHE or using `go doc`. Do NOT rely on protocol-level reasoning from training data. The question is not "how does Kafka work?" but "how does segmentio/kafka-go v0.4.47 implement this specific method?" Use: `cat $(go env GOMODCACHE)/path/to/lib@version/file.go`
 - **gopls MCP First (MANDATORY)**: When in a Go workspace with gopls MCP available, you MUST use gopls tools in this order:
   1. `go_workspace` — MUST call at session start to detect workspace
@@ -255,7 +255,7 @@ If gopls tools are not available, fall back to:
 
 All AI agents tend to generate outdated Go due to training data lag and frequency bias. These guidelines fix both problems by providing an explicit reference for modern idioms per Go version.
 
-**CRITICAL**: Detect the project's Go version from `go.mod`. Use ONLY features available up to and including that version. Never use features from a newer version than the target.
+**CRITICAL**: Detect the project's Go version from `go.mod`. Use ONLY features available up to and including that version. Restrict to features present in the target version or earlier.
 
 ### Go 1.0+
 
@@ -576,11 +576,11 @@ Common Go errors and solutions. See [references/go-errors.md](references/go-erro
 **Cause**: Operation took longer than context deadline/timeout
 **Solution**: Increase timeout, optimize slow operations, check if context is respected in loops, propagate context to all blocking calls
 
-## Anti-Patterns
+## Preferred Patterns
 
-Common Go mistakes. See [references/go-anti-patterns.md](references/go-anti-patterns.md) for full catalog.
+Common Go patterns to follow. See [references/go-anti-patterns.md](references/go-anti-patterns.md) for full catalog.
 
-### Outdated Idiom Anti-Patterns
+### Modern Idiom Patterns
 
 These are the most common AI-generated Go anti-patterns — using old patterns when modern alternatives exist:
 
@@ -647,25 +647,25 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 | Rationalization Attempt | Why It's Wrong | Required Action |
 |------------------------|----------------|-----------------|
 | "Tests pass, code is correct" | Tests may not cover race conditions | Run `go test -race`, check coverage |
-| "Go's type system catches it" | Types don't catch goroutine leaks or logic errors | Test concurrency, check goroutine lifecycle |
+| "Go's type system catches it" | Types miss goroutine leaks and logic errors | Test concurrency, check goroutine lifecycle |
 | "It compiles, it's correct" | Compilation ≠ Correctness | Run tests, vet, and race detector |
 | "Defer will handle cleanup" | Defer only runs when function returns | Check early returns, panics, infinite loops |
-| "Channels prevent race conditions" | Channels don't prevent all races | Still need proper synchronization patterns |
+| "Channels prevent race conditions" | Channels alone leave some races uncovered | Still need proper synchronization patterns |
 | "Error handling can wait" | Errors compound in production | Handle errors at write time |
 | "Small change, skip tests" | Small changes cause big bugs | Full test suite always |
 | "This Go version doesn't matter" | Using wrong-version features breaks builds | Check `go.mod`, use version-appropriate features |
 | "gopls isn't needed, I can grep" | gopls understands types and references; grep sees text | Use `go_symbol_references` before renaming |
 
-## FORBIDDEN Patterns (HARD GATE)
+## Hard Gate Patterns
 
 Before writing Go code, check for these patterns. If found:
-1. STOP - Do not proceed
+1. STOP - Pause implementation
 2. REPORT - Flag to user
 3. FIX - Remove before continuing
 
 See [shared-patterns/forbidden-patterns-template.md](../skills/shared-patterns/forbidden-patterns-template.md) for framework.
 
-| Pattern | Why FORBIDDEN | Correct Alternative |
+| Pattern | Why Blocked | Correct Alternative |
 |---------|---------------|---------------------|
 | `_ = err` (blank error) | Silent failures, violates Go conventions | `if err != nil { return fmt.Errorf("context: %w", err) }` |
 | `interface{}` instead of `any` | Deprecated syntax (Go 1.18+) | Use `any` |
@@ -701,7 +701,7 @@ grep -rn 'omitempty.*Duration\|omitempty.*Time\|omitempty.*struct' --include="*.
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (get explicit confirmation) before proceeding when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -712,7 +712,7 @@ STOP and ask the user (do NOT proceed autonomously) when:
 | Breaking API change | Affects consumers | "This changes public API. How to handle migration?" |
 | Database/storage choice | Long-term architecture | "SQL, NoSQL, or file-based? What are the requirements?" |
 
-### Never Guess On
+### Always Confirm First
 - Concurrency patterns (worker pools, pipelines, fan-out)
 - Error handling strategy (wrapping, sentinels, custom types)
 - Interface contracts and public APIs
@@ -724,7 +724,7 @@ STOP and ask the user (do NOT proceed autonomously) when:
 
 ### Retry Limits
 - Maximum 3 attempts for any operation (build, test, vet)
-- Clear failure escalation: fix root cause, don't repeat same change
+- Clear failure escalation: fix root cause, address a different aspect each attempt
 
 ### Compilation-First Rule
 1. Verify `go build` succeeds before running tests
@@ -744,7 +744,7 @@ STOP and ask the user (do NOT proceed autonomously) when:
 
 For detailed Go patterns and examples:
 - **Error Catalog**: [references/go-errors.md](references/go-errors.md)
-- **Anti-Patterns**: [references/go-anti-patterns.md](references/go-anti-patterns.md)
+- **Pattern Guide**: [references/go-anti-patterns.md](references/go-anti-patterns.md)
 - **Concurrency Patterns**: [references/go-concurrency.md](references/go-concurrency.md)
 - **Testing Patterns**: [references/go-testing.md](references/go-testing.md)
 - **Modern Features**: [references/go-modern-features.md](references/go-modern-features.md)
@@ -756,14 +756,14 @@ For detailed Go patterns and examples:
 - Added complete JetBrains Modern Go Guidelines (Go 1.0 through 1.26)
 - Version-aware code generation: detect Go version from go.mod
 - Added gopls MCP tools table and usage instructions
-- Added Outdated Idiom Anti-Patterns table with version annotations
+- Added Modern Idiom Patterns table with version annotations
 - Updated forbidden patterns with benchmark loop and omitzero checks
 - Updated anti-rationalization with version and gopls awareness
 - Bumped version references from 1.24+ to 1.26+
 
 ### v2.0.0 (2026-02-13)
 - Migrated to v2.0 structure with Anthropic best practices
-- Added Error Handling, Anti-Patterns, Anti-Rationalization, Blocker Criteria sections
+- Added Error Handling, Preferred Patterns, Anti-Rationalization, Blocker Criteria sections
 - Created references/ directory for progressive disclosure
 - Maintained all routing metadata, hooks, and color
 - Updated to standard Operator Context structure

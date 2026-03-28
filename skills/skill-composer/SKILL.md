@@ -6,7 +6,7 @@ description: |
   or parallel with dependency resolution and context passing. Use when a
   task requires 2+ skills chained together, parallel skill execution, or
   conditional branching between skills. Use for "compose skills", "chain
-  workflow", "multi-skill", or "orchestrate skills". Do NOT use when a
+  workflow", "multi-skill", or "orchestrate skills". Route to other skills when a
   single skill can handle the request, or for simple sequential invocation
   that needs no dependency management.
 version: 2.0.0
@@ -32,9 +32,9 @@ routing:
 
 ## Overview
 
-Orchestrate complex workflows by chaining multiple skills into validated execution DAGs. This skill discovers applicable skills, resolves dependencies, validates compatibility, presents execution plans, and manages skill-to-skill context passing. Use when a task requires 2+ skills chained together, parallel skill execution, or conditional branching between skills. Do NOT use when a single skill can handle the request alone, or for simple sequential invocation that needs no dependency management.
+Orchestrate complex workflows by chaining multiple skills into validated execution DAGs. This skill discovers applicable skills, resolves dependencies, validates compatibility, presents execution plans, and manages skill-to-skill context passing. Use when a task requires 2+ skills chained together, parallel skill execution, or conditional branching between skills. Invoke the single skill directly when it can handle the request alone, or for simple sequential invocation that needs no dependency management.
 
-**Core principle**: Minimize composition overhead. Prefer simple 2-3 skill chains. Do not add speculative skills or "nice to have" additions without explicit user request.
+**Core principle**: Minimize composition overhead. Prefer simple 2-3 skill chains. Add only skills directly needed or "nice to have" additions without explicit user request.
 
 ## Instructions
 
@@ -66,7 +66,7 @@ Review the discovered skills. Categorize by type (workflow, testing, quality, do
 
 Choose only skills directly needed for the stated goals. This prevents over-composition and unnecessary failure points:
 
-- Can a single skill handle this? If yes, do NOT compose. Invoke it directly.
+- Can a single skill handle this? If yes, invoke it directly. Invoke it directly.
 - Can 2 skills handle this? Prefer that over 3+.
 - Is a skill being added "for quality" or "just in case"? Remove it.
 

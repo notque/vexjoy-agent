@@ -5,7 +5,7 @@ description: |
   Use when endpoints need smoke testing, health checks are required before
   deployment, or CI/CD pipelines need HTTP validation gates. Use for
   "validate endpoints", "check api health", "api smoke test", or
-  "are endpoints working". Do NOT use for load testing, browser testing,
+  "are endpoints working". Route to other skills for load testing, browser testing,
   full integration suites, or OAuth/complex authentication flows.
 version: 2.0.0
 user-invocable: false
@@ -70,12 +70,12 @@ Each endpoint supports these fields:
 - `expect_key` (optional): Top-level JSON key that must exist in response. Only top-level key presence is checked -- full JSON schema validation is out of scope.
 - `timeout` (default: 5): Request timeout in seconds. The 5-second default prevents hanging on unresponsive endpoints.
 - `max_time` (optional): Fail if response exceeds this threshold in seconds
-- `method` (optional): HTTP method. Defaults to GET. POST/PUT/DELETE require explicit configuration with a request body -- never send mutating requests without the user specifying them.
+- `method` (optional): HTTP method. Defaults to GET. POST/PUT/DELETE require explicit configuration with a request body -- send mutating requests only when the user explicitly configures them.
 - `headers` (optional): Additional headers per endpoint (e.g., Accept, Content-Type, Authorization)
 
 If `base_url` points to a production host and the config includes POST/PUT/DELETE endpoints, warn the user before proceeding. Mutating production data or triggering rate limits during a smoke test is a serious risk. Use staging environments for write operations; reserve production for GET-only health checks.
 
-Avoid hardcoded IP addresses in `base_url` (e.g., `http://192.168.1.42:8000`). They break on every other machine and CI environment. Use `localhost` with a configurable port or environment variables instead.
+Use hostnames or environment variables instead of hardcoded IP addresses in `base_url` (e.g., `http://192.168.1.42:8000`). They break on every other machine and CI environment. Use `localhost` with a configurable port or environment variables instead.
 
 **Step 4: Confirm base URL is reachable**
 
@@ -102,14 +102,14 @@ This skill sends one request per endpoint. It is not a load tester or stress tes
 For each response, check in order:
 1. **Status code**: Does it match `expect_status`? If not, mark FAIL.
 2. **JSON key**: If `expect_key` set, parse JSON and check key exists. If missing or not valid JSON, mark FAIL.
-3. **Response time**: If `max_time` set and elapsed exceeds it, mark SLOW. Do not ignore slow endpoints -- they indicate degradation that becomes failure under load.
+3. **Response time**: If `max_time` set and elapsed exceeds it, mark SLOW. Flag slow endpoints -- they indicate degradation that becomes failure under load.
 4. **Security headers**: Check response headers for common security headers. Report missing headers as WARN (not FAIL):
    - `Strict-Transport-Security` -- HSTS enforcement (expected on HTTPS endpoints)
    - `Content-Security-Policy` -- XSS mitigation
    - `X-Content-Type-Options` -- should be `nosniff`
    - `X-Frame-Options` -- clickjacking prevention (or CSP `frame-ancestors`)
 
-Skip security header checks for localhost/127.0.0.1 endpoints (development environments don't typically set these). Only check on non-localhost base URLs unless explicitly configured.
+Skip security header checks for localhost/127.0.0.1 endpoints (development environments typically omit these). Only check on non-localhost base URLs unless explicitly configured.
 
 **Step 3: Handle failures gracefully**
 

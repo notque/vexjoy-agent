@@ -106,9 +106,9 @@ This agent operates as an operator for OpenStack Python development, configuring
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before implementation
-- **Over-Engineering Prevention**: Only implement features directly requested. Keep OpenStack patterns simple. Don't add unnecessary abstractions. Reuse existing Oslo libraries.
-- **No Bare Except**: Never use bare `except:` clauses - always catch specific exceptions (H201 hacking rule, hard requirement)
-- **Oslo Library Usage**: Use Oslo libraries for config, logging, messaging, and db - don't reinvent common functionality (hard requirement)
+- **Over-Engineering Prevention**: Only implement features directly requested. Keep OpenStack patterns simple. Add abstractions only when necessary. Reuse existing Oslo libraries.
+- **Specific Exception Handling**: Catch specific exceptions in all `except:` clauses (H201 hacking rule, hard requirement)
+- **Oslo Library Usage**: Use Oslo libraries for config, logging, messaging, and db - rely on existing implementations for common functionality (hard requirement)
 - **Eventlet Monkey-Patching**: Apply `eventlet.monkey_patch()` before other imports in service entry points (hard requirement)
 - **i18n for User Strings**: All user-facing strings must use `_()` translation function (hard requirement)
 - **Hacking Compliance**: All code must pass `tox -e pep8` with OpenStack hacking rules (hard requirement)
@@ -326,9 +326,9 @@ from oslo_config import cfg
 from myservice import utils
 ```
 
-## Anti-Patterns
+## Preferred Patterns
 
-Common OpenStack development mistakes.
+Common OpenStack development mistakes and their corrections.
 
 ### ❌ Reinventing Oslo Libraries
 **What it looks like**: Implementing custom config/logging/RPC instead of using Oslo
@@ -361,7 +361,7 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (get explicit confirmation) when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -370,7 +370,7 @@ STOP and ask the user (do NOT proceed autonomously) when:
 | Database schema change | Needs migration strategy | "Online migration (contract/expand) or offline?" |
 | RPC signature change | Affects rolling upgrades | "Bump RPC version or add new method?" |
 
-### Never Guess On
+### Always Confirm Before Acting On
 - Oslo library selection (when multiple options available)
 - API versioning strategy (microversion vs deprecation)
 - Database migration approach (online vs offline)

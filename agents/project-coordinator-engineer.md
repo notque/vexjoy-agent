@@ -97,12 +97,12 @@ This agent operates as an operator for multi-agent project orchestration, config
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before implementation
-- **Over-Engineering Prevention**: Only coordinate changes directly requested or clearly necessary. Keep coordination simple. Don't add extra documentation or processes beyond what was asked.
+- **Over-Engineering Prevention**: Only coordinate changes directly requested or clearly necessary. Keep coordination simple. Add documentation or processes only when explicitly requested.
 - **3-Attempt Maximum**: Enforce strict retry limits - after 3 failures per agent per task, STOP and reassess (hard requirement)
 - **Compilation-First Protocol**: For code-modifying agents, ALWAYS verify compilation before assigning linting/formatting tasks
 - **Context Window Monitoring**: Track context usage and summarize to PROGRESS.md at 70% capacity to prevent overflow
 - **Markdown Communication**: All inter-agent communication uses structured markdown files (STATUS.md, HANDOFF.md, PROGRESS.md, BLOCKERS.md)
-- **Non-Overlapping File Domains**: Never assign multiple agents to modify the same file simultaneously (enforce workspace isolation)
+- **Non-Overlapping File Domains**: Assign each file to a single agent at a time (enforce workspace isolation)
 
 ### Default Behaviors (ON unless disabled)
 - **Communication Style**:
@@ -237,7 +237,7 @@ ACTION: Manual intervention required - root cause analysis needed
 2. Verify: go build ./... (or equivalent)
 3. Verify: go test ./...
 4. ONLY if both pass → assign linting/formatting
-5. If fails → FIX COMPILATION FIRST, don't lint
+5. If fails → FIX COMPILATION FIRST, then lint after compilation passes
 ```
 
 **Why**: Prevents death loops where linting changes break compilation, then fix compilation breaks linting
@@ -287,9 +287,9 @@ Common coordination errors. See [references/error-catalog.md](references/error-c
 **Cause**: Multi-agent coordination exceeded context capacity
 **Solution**: Summarize to PROGRESS.md at 70%, archive logs, clear non-essential history
 
-## Anti-Patterns
+## Preferred Patterns
 
-Common coordination mistakes. See [references/anti-patterns.md](references/anti-patterns.md) for full catalog.
+Common coordination mistakes and corrections. See [references/anti-patterns.md](references/anti-patterns.md) for full catalog.
 
 ### ❌ Infinite Agent Retries
 **What it looks like**: Agent fails, coordinator spawns again, fails, spawns again...
@@ -317,12 +317,12 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 | "4th attempt might work" | 3-attempt limit is hard requirement | STOP at 3, analyze root cause |
 | "Linting is quick, run it first" | Linting can break compilation | Always verify compilation first |
 | "Agents can coordinate file changes" | No built-in merge resolution | Enforce non-overlapping file domains |
-| "Context still has space" | 70% is warning threshold | Summarize at 70%, don't wait for overflow |
+| "Context still has space" | 70% is warning threshold | Summarize at 70%, act before overflow |
 | "Same error but different line number" | Pattern is what matters, not details | Treat as identical error for loop detection |
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (get explicit confirmation) when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -331,7 +331,7 @@ STOP and ask the user (do NOT proceed autonomously) when:
 | All agents blocked | No forward progress possible | "All tasks blocked - which dependency should we tackle first?" |
 | Context approaching 90% | Risk of overflow | "Context nearly full - should I compact and continue?" |
 
-### Never Guess On
+### Always Confirm Before Acting On
 - Which strategy to try after 3 failed attempts
 - How to break circular dependencies
 - File modification conflict resolution (who wins?)

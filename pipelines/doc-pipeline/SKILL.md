@@ -4,8 +4,9 @@ description: |
   Structured 5-phase documentation pipeline: Research, Outline, Generate,
   Verify, Output. Use when user asks to "document this", "create README",
   "write documentation", "generate docs", or any technical documentation
-  task requiring research and accuracy. Do NOT use for editing existing
-  docs, writing blog posts, or non-technical content creation.
+  task requiring research and accuracy. Use for new documentation only —
+  for editing existing docs, writing blog posts, or non-technical content,
+  use the appropriate specialized skill.
 version: 2.0.0
 user-invocable: false
 allowed-tools:
@@ -120,7 +121,7 @@ Read `doc-research.md` and `doc-outline.md` to ground generation in verified fac
 **Step 2: Write each section**
 
 For each outlined section:
-- Write in clear, direct prose. Avoid filler phrases and unnecessary hedging.
+- Write in clear, direct prose. Use concrete language instead of filler phrases and hedging.
 - Include working code examples drawn from research findings
 - Assume the reader's knowledge level matches the identified audience
 - Start with what the user needs to know most urgently

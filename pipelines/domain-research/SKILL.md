@@ -5,9 +5,9 @@ description: |
   Dispatches 4 parallel research agents (Rule 12 mandatory — validated by A/B test),
   classifies task types, maps subdomains to step menu chains, and produces a Component
   Manifest for the chain-composer. Use for "research domain", "discover subdomains",
-  "domain decomposition", "what pipelines does X need". Do NOT use for scaffolding
-  pipelines (use pipeline-scaffolder), modifying existing pipelines, or single-skill
-  creation.
+  "domain decomposition", "what pipelines does X need". Route scaffolding to
+  pipeline-scaffolder, modifications to existing pipelines to their owners, and
+  single-skill creation to skill-creator.
 version: 1.0.0
 user-invocable: false
 agent: pipeline-orchestrator-engineer
@@ -59,7 +59,7 @@ This is the first step in the self-improving pipeline generator (see `adr/self-i
 
 ### Phase 1: DISCOVER (Parallel Multi-Agent — Rule 12 Mandatory)
 
-**Goal**: Build a broad, multi-perspective understanding of the target domain. Breadth of research directly determines the quality of subdomain discovery — this is why parallel agents are mandatory, not optional. A/B testing proved parallel research eliminates a 1.40-point gap in Examples quality (see `adr/pipeline-creator-ab-test.md`). Sequential research is **BANNED** because it produces shallower, less diverse findings.
+**Goal**: Build a broad, multi-perspective understanding of the target domain. Breadth of research directly determines the quality of subdomain discovery — this is why parallel agents are mandatory, not optional. A/B testing proved parallel research eliminates a 1.40-point gap in Examples quality (see `adr/pipeline-creator-ab-test.md`). Parallel research is **mandatory** because sequential research produces shallower, less diverse findings.
 
 **Default N = 4 agents.** Override with `--research-agents N` (minimum 2, maximum 6).
 
@@ -104,7 +104,7 @@ Launch **all 4 agents simultaneously** using the Task tool. Each agent receives 
 - Output: Reference file recommendations and deterministic validation opportunities
 - Save to: `/tmp/pipeline-{run-id}/phase-1-research/agent-4-reference-research.md`
 
-**Why parallel is mandatory**: Parallel dispatch forces diverse perspectives from the start. Agents do not see each other's partial results and thus avoid anchoring bias. Testing proved 4-agent parallel produces measurably better Examples coverage than sequential dispatch.
+**Why parallel is mandatory**: Parallel dispatch forces diverse perspectives from the start. Agents work independently without seeing each other's partial results, staying free of anchoring bias. Testing proved 4-agent parallel produces measurably better Examples coverage than sequential dispatch.
 
 **Step 3: Collect and merge research artifacts**
 
@@ -248,7 +248,7 @@ Create the Phase 2 dual-layer artifact:
 
 ### Phase 3: MAP (Compose Preliminary Chains)
 
-**Goal**: For each classified subdomain, select steps from the step menu and compose a preliminary pipeline chain. These are draft chains — the chain-composer skill validates and finalizes them. **Type compatibility is mandatory**: Every adjacent step pair must have compatible output-to-input types. Why? Invalid types produce broken chains. Never skip this validation.
+**Goal**: For each classified subdomain, select steps from the step menu and compose a preliminary pipeline chain. These are draft chains — the chain-composer skill validates and finalizes them. **Type compatibility is mandatory**: Every adjacent step pair must have compatible output-to-input types. Why? Invalid types produce broken chains. Always validate type compatibility.
 
 **Step 1: Load step menu**
 
@@ -286,7 +286,7 @@ For each classified subdomain, build a preliminary chain by:
    - Has quality criteria: VALIDATE
    - Add REFINE (max 3 cycles) after any validation step that can fail
 
-6. **Apply profile gates** — note which steps are profile-dependent. Record as annotations on the chain, not hard inclusions. Why? Read the operator profile from pipeline context but do NOT gate any research steps on it — research itself is read-only and harmless across all profiles. The profile information is passed through to the Component Manifest so downstream skills (chain-composer, scaffolder) can apply the correct safety gates.
+6. **Apply profile gates** — note which steps are profile-dependent. Record as annotations on the chain, not hard inclusions. Why? Read the operator profile from pipeline context but keep all research steps ungated — research itself is read-only and harmless across all profiles. The profile information is passed through to the Component Manifest so downstream skills (chain-composer, scaffolder) can apply the correct safety gates.
    - APPROVE: Work/Production only
    - GUARD + SNAPSHOT: Work/Production only for state changes
    - SIMULATE: Production only (optional elsewhere)
@@ -312,7 +312,7 @@ When incompatibility is found, insert a bridging step. Common bridges:
 - Multiple Verdicts need to become one: insert AGGREGATE
 - Generation Artifact needs Verdict before next step: insert VALIDATE
 
-If no bridge works, restructure the chain. **Never skip type validation.**
+If no bridge works, restructure the chain. **Always validate type compatibility.**
 
 **Step 4: Produce mapping artifact**
 
@@ -379,7 +379,7 @@ Based on the existing inventory (Phase 1, Agent 2) and reuse assessments (Phase 
 
 - If an existing agent covers 70%+ of the domain: **Reuse it**. Bind all new subdomain skills to this agent. Note the agent name and what gaps it has (if any).
 - If no existing agent covers the domain: **Create one new coordinator agent**. Define its name (`{domain}-pipeline-engineer` or `{domain}-{function}-engineer`), purpose, and which subdomain skills it will execute.
-- **NEVER create one agent per subdomain.** Why? Agents are expensive context; skills are cheap. The architecture is "1 agent : N skills" not "N agents : N skills".
+- **Create one coordinator agent for the entire domain.** Why? Agents are expensive context; skills are cheap. The architecture is "1 agent : N skills" not "N agents : N skills".
 
 **Step 2: Compile shared resources**
 
@@ -509,7 +509,7 @@ If gate passes: Report completion to pipeline-orchestrator-engineer. The Compone
 - Research Artifact needs to become Structured Corpus: insert COMPILE
 - Multiple Verdicts need to become one: insert AGGREGATE
 - Generation Artifact needs Verdict before next step: insert VALIDATE
-If no bridge works, restructure the chain. Never skip type validation.
+If no bridge works, restructure the chain. Always validate type compatibility.
 
 ---
 
@@ -536,12 +536,12 @@ Every research finding is tagged with a confidence level. Why? Without explicit 
 |-------|---------------|-------------------|
 | **HIGH** | Official documentation, verified API responses, source code inspection, Context7 query results | Present as authoritative. No caveats needed. |
 | **MEDIUM** | Verified web search results, community consensus (multiple independent sources agree), well-maintained third-party docs | Present with source attribution: "According to [source]..." |
-| **LOW** | Unverified sources, single blog post, training data without verification, inference from patterns | Present with explicit caveat: "[UNVERIFIED]" prefix. Never present as authoritative. |
+| **LOW** | Unverified sources, single blog post, training data without verification, inference from patterns | Present with explicit caveat: "[UNVERIFIED]" prefix. Use cautious language only. |
 
 ### Rules
 
 - Every finding in the research output MUST have a confidence tag
-- LOW confidence findings are NEVER presented as authoritative — even in summary tables
+- Present LOW confidence findings with explicit "[UNVERIFIED]" prefix — even in summary tables
 - If only LOW confidence information is available for a critical decision point, the research output MUST flag this as a **verification gap**: "No high-confidence source found for [topic]. Manual verification required before proceeding."
 - When multiple sources disagree, report the disagreement rather than picking one. Tag with the confidence of the highest-quality source and note the conflict.
 
@@ -563,7 +563,7 @@ Every research finding is tagged with a confidence level. Why? Without explicit 
 
 ---
 
-## Don't Hand-Roll Output Section
+## Use Battle-Tested Libraries Output Section
 
 Research output includes a mandatory section listing problems that seem simple but have battle-tested library solutions. Why? The most expensive bugs come from reimplementing solutions that already exist with years of production hardening, security patches, and edge case coverage. A hand-rolled JWT validator or rate limiter might pass tests but fail under adversarial conditions.
 
@@ -572,7 +572,7 @@ Research output includes a mandatory section listing problems that seem simple b
 Every research deliverable MUST include this section, even if empty (with "No hand-roll risks identified for this domain"):
 
 ```markdown
-## Don't Hand-Roll
+## Use Battle-Tested Libraries
 
 | Problem | Library/Solution | Why Not DIY |
 |---------|-----------------|-------------|
@@ -631,7 +631,7 @@ The researcher should identify anti-features specific to the domain being resear
 
 ## Blocker Criteria
 
-STOP and ask the pipeline-orchestrator-engineer (do NOT proceed autonomously) when:
+STOP and ask the pipeline-orchestrator-engineer (wait for explicit confirmation) when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -641,9 +641,9 @@ STOP and ask the pipeline-orchestrator-engineer (do NOT proceed autonomously) wh
 | No existing agent AND domain is well-established | Surprising — may indicate search failure | "Found no existing agent for {domain}. Verify this is correct before creating new one?" |
 | Two subdomains have identical preliminary chains | May be duplicates that should merge | "{Sub A} and {Sub B} have the same chain. Merge them?" |
 
-### Never Guess On
+### Always Confirm Before Acting On
 - Whether to create a new agent vs. reuse an existing one (always check inventory first)
-- How many subdomains a domain should have (discover, don't prescribe)
+- How many subdomains a domain should have (discover through research, let data drive the count)
 - Which operator profile to apply (detect from context or use default)
 - Whether a subdomain is too narrow or too broad (ask when uncertain)
 

@@ -88,10 +88,10 @@ This agent operates as an operator for Ansible automation, configuring Claude's 
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before implementation. Project context critical.
-- **Over-Engineering Prevention**: Only implement features directly requested. Don't add complex roles, dynamic inventory, or abstractions beyond requirements.
+- **Over-Engineering Prevention**: Only implement features directly requested. Add complex roles, dynamic inventory, or abstractions only when explicitly required.
 - **Idempotency Required**: ALL tasks must be idempotent - safe to run multiple times without changing result.
 - **Check Mode First**: Use `--check` mode to preview changes before applying to infrastructure.
-- **Ansible Vault for Secrets**: Never commit plaintext secrets - use ansible-vault for all sensitive data.
+- **Ansible Vault for Secrets**: Encrypt all sensitive data with ansible-vault before committing.
 - **Lint Before Run**: Run `ansible-lint` on playbooks before execution to catch issues.
 
 ### Default Behaviors (ON unless disabled)
@@ -186,9 +186,9 @@ Common Ansible errors and solutions.
 **Cause**: Wrong vault password, vault ID mismatch, encrypted variable format incorrect.
 **Solution**: Verify vault password with `ansible-vault decrypt --vault-id @prompt`, check `--vault-id` matches encryption ID, re-encrypt with correct vault ID if needed, use `ansible-playbook --ask-vault-pass` for single vault.
 
-## Anti-Patterns
+## Preferred Patterns
 
-Common Ansible mistakes to avoid.
+Common Ansible mistakes and their corrections.
 
 ### ❌ Using Command Module When Specific Module Exists
 **What it looks like**: `command: apt-get install nginx` or `shell: systemctl restart nginx`
@@ -219,14 +219,14 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 | "We'll add error handling later" | Failures leave systems in bad state | Add error handling to critical tasks |
 | "Secrets in Git are encrypted with Vault" | Still risky, git history preserves mistakes | Use external secret management or vault files |
 
-## FORBIDDEN Patterns (HARD GATE)
+## Hard Gate Patterns
 
 Before running Ansible automation, check for these patterns. If found:
-1. STOP - Do not proceed
+1. STOP - Pause execution
 2. REPORT - Flag to user
-3. FIX - Remove before continuing
+3. FIX - Correct before continuing
 
-| Pattern | Why FORBIDDEN | Correct Alternative |
+| Pattern | Why Blocked | Correct Alternative |
 |---------|---------------|---------------------|
 | Plaintext secrets in playbooks | Security breach, credential exposure | Use ansible-vault encrypt_string |
 | command/shell for package management | Not idempotent | Use apt/yum/package modules |
@@ -248,7 +248,7 @@ grep -A2 "^  - " playbooks/*.yml | grep -v "name:"
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (get explicit confirmation) when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -257,7 +257,7 @@ STOP and ask the user (do NOT proceed autonomously) when:
 | Multiple environments | Wrong target risk | "Which environment: dev, staging, or production?" |
 | Secrets management strategy | Security implications | "Use ansible-vault or external secret manager (AWS Secrets, etc)?" |
 
-### Never Guess On
+### Always Confirm Before Acting On
 - Production vs staging (safety critical)
 - Secrets management approach (security implications)
 - Service restart strategy (downtime considerations)

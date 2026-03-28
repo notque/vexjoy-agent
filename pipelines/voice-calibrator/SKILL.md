@@ -198,7 +198,7 @@ Teach these 16 patterns explicitly—they distinguish human writing from AI-gene
 3. **Assumed shared context** - Parenthetical winks assuming reader knowledge (e.g., "(that Rob Pike)")
 4. **Evolution/iteration narrative** - Show history of attempts, not just final solution (e.g., "The first was X, but that missed Y")
 5. **Mid-thought discoveries** - Include moments where learning happens during writing (e.g., "new to me, suggested by Claude")
-6. **Unhedged strong opinions** - State opinions directly without AI safety hedges (e.g., "I don't like this at all" not "One might argue")
+6. **Unhedged strong opinions** - State opinions directly with full conviction (e.g., "I think this is wrong" rather than "One might argue")
 7. **Playful/subversive notes** - Allow personality to bleed through in unexpected moments
 8. **Specific artifacts** - Reference real, specific things that can be verified (actual commits, real commands, specific dependencies)
 9. **Visible self-correction** - Show thinking that changes direction mid-paragraph (e.g., "At first I thought... but then I realized")
@@ -212,7 +212,7 @@ Teach these 16 patterns explicitly—they distinguish human writing from AI-gene
 
 **f. Anti-Essay Patterns** (~150 lines)
 
-Patterns that AI frequently uses but humans don't—these kill authenticity matching:
+Patterns that AI frequently uses but humans rarely do—these kill authenticity matching:
 
 - "It's not X. It's Y" rhetorical pivots (distinct from technical "Not X: Y" contrast pairs)
 - "Raises important concerns about..." hedging language
@@ -238,7 +238,7 @@ Pre/During/Post checklists:
 - During writing: Check sentence lengths, contraction rate, paragraph breaks
 - After writing: Run authenticity markers checklist
 
-**If SKILL.md is under 1500 lines, you don't have enough samples.**
+**SKILL.md needs 1500+ lines to have enough samples for reliable voice matching.**
 
 Reasoning: The file length correlates with sample collection depth. A short file signals insufficient grounding.
 
@@ -382,11 +382,11 @@ When generating voice skills, apply these techniques for maximum effectiveness:
 
 ### 1. Attention Anchoring (Bolding)
 
-Apply **bold** strictly to negative constraints and safety guardrails:
+Apply **bold** to critical constraints and safety guardrails:
 
 ```markdown
-**You must strictly avoid** the "It's not X. It's Y" rhetorical pattern.
-**NEVER use** em-dashes in any form.
+**Use direct phrasing** instead of the "It's not X. It's Y" rhetorical pattern.
+**Replace all em-dashes** with colons, commas, or periods.
 ```
 
 **Mechanism**: Acts as attention flag for tokenizer, increasing statistical weight of constraint.
@@ -421,7 +421,7 @@ Separate static instructions from dynamic context using horizontal rules and XML
 
 ### 4. Probability Dampening (Adverbs)
 
-Use adverbs when defining personality/tone. Avoid absolute binary instructions:
+Use adverbs when defining personality/tone. Prefer graduated instructions over absolute binaries:
 
 ```markdown
 Write in a **subtly** skeptical tone.
@@ -558,7 +558,7 @@ These patterns are red flags that signal AI-generated content and kill authentic
 **Bad**:
 Single paragraph with 5+ sentences, no natural breaks.
 
-**Why harmful**: Breaks don't always come from paragraph topic, but from natural breathing points in human thinking.
+**Why harmful**: Breaks come from natural breathing points in human thinking, not just paragraph topic.
 
 **Alternative**: Use 2-3 sentence paragraphs, breaks where you naturally pause.
 
@@ -696,7 +696,7 @@ When content repeatedly fails validation:
 3. Consider relaxing metric_tolerance in config.json
 4. Manual review of SKILL.md instructions
 
-**Reasoning**: Iteration limit prevents infinite loops. If 3 passes don't resolve, the profile may be over-constrained or SKILL.md instructions may be contradictory.
+**Reasoning**: Iteration limit prevents infinite loops. If 3 passes still leave failures, the profile may be over-constrained or SKILL.md instructions may be contradictory.
 
 ### Error: "Script execution failed"
 

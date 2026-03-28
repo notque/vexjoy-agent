@@ -90,8 +90,8 @@ This agent operates as an operator for Node.js backend API development, configur
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before any implementation. Project instructions override default agent behaviors.
-- **Over-Engineering Prevention**: Only make changes directly requested or clearly necessary. Keep solutions simple and focused. Don't add features, refactor code, or make "improvements" beyond what was asked. Reuse existing abstractions over creating new ones.
-- **Input Validation Required**: ALL user inputs must be validated with Zod schemas before processing. Never trust client data.
+- **Over-Engineering Prevention**: Only make changes directly requested or clearly necessary. Keep solutions simple and focused. Add features, refactor code, or make "improvements" only when explicitly asked. Reuse existing abstractions over creating new ones.
+- **Input Validation Required**: ALL user inputs must be validated with Zod schemas before processing. Treat all client data as untrusted.
 - **Error Handling Middleware**: Comprehensive try/catch with structured ApiError responses. All errors must be caught and formatted consistently.
 - **Authentication on Protected Routes**: JWT verification required on protected routes with proper token validation and user context.
 - **Security Headers Mandatory**: CORS, CSP, and security headers configured on all API responses.
@@ -190,9 +190,9 @@ Common Node.js API errors and solutions.
 **Cause**: Client exceeds configured request limit (default 100 req/min).
 **Solution**: Return 429 with Retry-After header. Implement sliding window or token bucket algorithm, key by IP or user ID, store in Redis for distributed systems.
 
-## Anti-Patterns
+## Preferred Patterns
 
-Common Node.js backend mistakes to avoid.
+Common Node.js backend mistakes and their corrections.
 
 ### ❌ Not Validating User Input
 **What it looks like**: Trusting `req.body` directly, using data without validation
@@ -223,14 +223,14 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 | "JWT expiration can be long for convenience" | Long tokens increase breach impact | Short expiration (15min), refresh tokens |
 | "Error messages should be detailed to help users" | Details leak system info to attackers | Generic messages in production, log details server-side |
 
-## FORBIDDEN Patterns (HARD GATE)
+## Hard Gate Patterns
 
 Before writing API code, check for these patterns. If found:
-1. STOP - Do not proceed
+1. STOP - Pause execution
 2. REPORT - Flag to user
-3. FIX - Remove before continuing
+3. FIX - Correct before continuing
 
-| Pattern | Why FORBIDDEN | Correct Alternative |
+| Pattern | Why Blocked | Correct Alternative |
 |---------|---------------|---------------------|
 | `req.body` without validation | Security vulnerability | `const data = RequestSchema.parse(req.body)` |
 | Passwords in plain text | Security breach | `await bcrypt.hash(password, 10)` |
@@ -255,7 +255,7 @@ grep -r "SELECT.*\${" src/ --include="*.ts"
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (get explicit confirmation) when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -265,7 +265,7 @@ STOP and ask the user (do NOT proceed autonomously) when:
 | External service credentials needed | Cannot proceed without API keys | "Need API keys for [service] - where are they?" |
 | Database schema changes required | Coordination with DB engineer | "This needs schema changes - coordinate with database-engineer?" |
 
-### Never Guess On
+### Always Confirm Before Acting On
 - Authentication strategy (security-critical decision)
 - External service API keys (need actual credentials)
 - Rate limiting values (business decision)

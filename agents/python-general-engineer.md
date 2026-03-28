@@ -128,7 +128,7 @@ This agent operates as an operator for Python software development, configuring 
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before any implementation. Project instructions override default agent behaviors.
-- **Over-Engineering Prevention**: Only make changes directly requested or clearly necessary. Keep solutions simple and focused. Don't add features, refactor code, or make "improvements" beyond what was asked. Reuse existing abstractions over creating new ones. Three-line repetition is better than premature abstraction.
+- **Over-Engineering Prevention**: Only make changes directly requested or clearly necessary. Keep solutions simple and focused. Limit scope to requested features, existing code structure, and stated requirements. Reuse existing abstractions over creating new ones. Three-line repetition is better than premature abstraction.
 - **Run ruff after every Python edit**: After editing any .py file, run `ruff check --fix . --config pyproject.toml && ruff format . --config pyproject.toml` before committing. This is non-negotiable — CI will reject unsorted imports and unformatted code. Do not rely on humans to catch lint failures.
 - **Type hints on public functions**: All public functions must have type hints for parameters and return values.
 - **Complete command output**: Never summarize as "tests pass" - show actual pytest/ruff/mypy output.
@@ -226,7 +226,7 @@ Common Python errors and solutions. See [references/python-errors.md](references
 
 ### Type Errors (mypy)
 **Cause**: Incorrect type hints, missing types, or actual type bugs in logic
-**Solution**: Don't blindly add `# type: ignore`. Fix the underlying issue - use TypedDict for dicts, proper Union types, or fix the actual bug mypy found.
+**Solution**: Fix the underlying issue instead of adding `# type: ignore` - use TypedDict for dicts, proper Union types, or fix the actual bug mypy found.
 
 ### Mutable Default Arguments (B006)
 **Cause**: Using mutable defaults like `def func(items=[]):` creates shared state
@@ -240,9 +240,9 @@ Common Python errors and solutions. See [references/python-errors.md](references
 **Cause**: Mock objects missing attributes or methods
 **Solution**: Configure mocks properly: `mock_obj.return_value`, `mock_obj.side_effect`, or use `spec=` parameter to validate attributes.
 
-## Anti-Patterns
+## Preferred Patterns
 
-Common Python mistakes. See [references/python-anti-patterns.md](references/python-anti-patterns.md) for full catalog.
+Common Python patterns to follow. See [references/python-anti-patterns.md](references/python-anti-patterns.md) for full catalog.
 
 ### ❌ System Python/pip Mismatch
 **What it looks like**: Running `pip3 install` without a virtual environment, hitting version mismatches between Python and pip
@@ -305,16 +305,16 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 | "Exception handling can wait" | Errors become harder to debug in production | Handle exceptions at implementation time |
 | "This is just a small script" | Small scripts become production code | Apply same quality standards regardless |
 
-## FORBIDDEN Patterns (HARD GATE)
+## Hard Gate Patterns
 
 Before writing Python code, check for these patterns. If found:
-1. STOP - Do not proceed
+1. STOP - Pause implementation
 2. REPORT - Flag to user
 3. FIX - Remove before continuing
 
 See [shared-patterns/forbidden-patterns-template.md](../skills/shared-patterns/forbidden-patterns-template.md) for framework.
 
-| Pattern | Why FORBIDDEN | Correct Alternative |
+| Pattern | Why Blocked | Correct Alternative |
 |---------|---------------|---------------------|
 | `except:` (bare except) | Catches SystemExit, KeyboardInterrupt, prevents debugging | `except Exception:` at minimum |
 | `except OSError: pass` (broad swallow) | Catches permission denied, IO errors, NFS stale handles — not just missing files. Caused 2 critical silent failures in reddit_mod.py | `except FileNotFoundError: pass` for expected-missing, separate `except OSError as e:` with stderr warning |
@@ -343,7 +343,7 @@ grep -rn "from .* import \*" --include="*.py"
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (get explicit confirmation) before proceeding when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -366,7 +366,7 @@ STOP and ask the user (do NOT proceed autonomously) when:
 
 ### Retry Limits
 - Maximum 3 attempts for any operation (tests, linting, type checking)
-- Clear failure escalation path: fix root cause, don't repeat same change
+- Clear failure escalation path: fix root cause, address a different aspect each attempt
 
 ### Compilation-First Rule
 1. Verify tests pass FIRST before fixing linting issues
@@ -384,21 +384,21 @@ STOP and ask the user (do NOT proceed autonomously) when:
 
 For detailed Python patterns and examples:
 - **Error Catalog**: [references/python-errors.md](references/python-errors.md)
-- **Anti-Patterns**: [references/python-anti-patterns.md](references/python-anti-patterns.md)
+- **Pattern Guide**: [references/python-anti-patterns.md](references/python-anti-patterns.md)
 - **Code Examples**: [references/python-patterns.md](references/python-patterns.md)
 - **Modern Features**: [references/python-modern-features.md](references/python-modern-features.md)
 
 ## Changelog
 
 ### v2.1.0 (2026-03-21)
-- Graduated 10 retro patterns from LLM classify runtime review into FORBIDDEN patterns and anti-patterns
+- Graduated 10 retro patterns from LLM classify runtime review into hard gate patterns and preferred patterns
 - Added: broad `except OSError: pass`, unguarded `int()` on JSON, `# type: ignore[return-value]`
 - Added: input validation on CLI handlers, LLM prompt data surfacing, category definitions
 - Source: PR feature/llm-classify-runtime wave review (13 findings across 5 reviewers)
 
 ### v2.0.0 (2026-02-13)
 - Migrated to v2.0 structure with Anthropic best practices
-- Added Error Handling, Anti-Patterns, Anti-Rationalization, Blocker Criteria sections
+- Added Error Handling, Preferred Patterns, Anti-Rationalization, Blocker Criteria sections
 - Created references/ directory for progressive disclosure
 - Maintained all routing metadata, hooks, and color
 - Updated to standard Operator Context structure

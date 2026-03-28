@@ -52,7 +52,7 @@ routing:
 This skill performs systematic codebase exploration using parallel subagents and tiered depth selection. It is read-only (never modifies files) and saves structured artifacts at every phase. Depth is determined by the query type: **Quick** (single question, Phase 1 only), **Standard** (subsystem understanding, 4 phases), or **Deep** (full quality assessment with recommendations, 8 phases).
 
 The pipeline implements three core constraints:
-1. **Scope discipline**: Answer the question asked, do not tangent into unrelated subsystems or generate unsolicited recommendations
+1. **Scope discipline**: Answer the question asked, stay focused on the target subsystem and deliver only requested recommendations
 2. **Artifact-first**: Save findings to files at each phase; context is ephemeral
 3. **Gate enforcement**: Do not skip phases within the selected tier. Each phase has defined exit criteria and cannot be omitted
 
@@ -282,7 +282,7 @@ The tier is determined by query type, not guessed. Matching depth to question sc
 
 **Purpose**: Confirm a specific fact about the codebase.
 
-**Scope**: Answer one question. Read only the files necessary to answer it. No document generation — the answer IS the output. Avoid tangenting into adjacent subsystems: stay focused on the specific fact.
+**Scope**: Answer one question. Read only the files necessary to answer it. No document generation — the answer IS the output. Stay focused on the specific fact; adjacent subsystems are out of scope.
 
 **Phases used**: Phase 1 (SCAN) only — single targeted scanner, not parallel.
 

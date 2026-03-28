@@ -6,7 +6,7 @@ description: |
   global, project, or dashboard scope. Supports Prometheus, Tempo, Loki, Pyroscope,
   ClickHouse, and VictoriaLogs. Uses MCP tools when available, percli CLI as fallback.
   Use for "perses datasource", "add datasource", "configure prometheus perses",
-  "perses data source". Do NOT use for dashboard creation (use perses-dashboard-create).
+  "perses data source". Route to other skills for dashboard creation (use perses-dashboard-create).
 allowed-tools:
   - Read
   - Grep
@@ -52,7 +52,7 @@ If the user requests a plugin kind not installed on the Perses server, verify av
 
 A dashboard-scoped datasource overrides a project-scoped one of the same name, which overrides a global one. Choose scope deliberately at creation time because moving from global to project later requires deleting the global datasource and recreating it as project-scoped — a disruptive migration. Ask: "Does every project need this, or just one team?"
 
-- **Global**: Organization-wide defaults. Default to this scope unless the user specifies a project. Avoid putting team-specific backends at global scope because it pollutes the namespace and makes per-team access control impossible.
+- **Global**: Organization-wide defaults. Default to this scope unless the user specifies a project. Place team-specific backends at project scope because it pollutes the namespace and makes per-team access control impossible.
 - **Project**: Team-specific overrides. Use when a datasource serves more than one dashboard but not the entire organization. The project datasource `metadata.name` must match the global datasource name exactly for override to work (names are case-sensitive).
 - **Dashboard**: One-off configurations embedded in the dashboard spec. Reserve for true one-off test configurations only because dashboard-scoped config is duplicated in every dashboard that needs it and cannot be shared.
 
@@ -64,9 +64,9 @@ Set the first datasource of each plugin kind as `default: true` so dashboard pan
 
 **Goal**: Create the datasource resource.
 
-Every HTTP proxy datasource **must** include `allowedEndpoints` with both `endpointPattern` and explicit `method` entries. Without them, the proxy returns 403 on all queries with no useful error message. Never use `method: *` or omit the `method` field because the Perses proxy requires explicit method matching. Configure both GET and POST for most backends because Prometheus `/api/v1/query_range` and `/api/v1/labels` use POST for large payloads, and Loki/Tempo also mix methods.
+Every HTTP proxy datasource **must** include `allowedEndpoints` with both `endpointPattern` and explicit `method` entries. Without them, the proxy returns 403 on all queries with no useful error message. Always use explicit method entries or omit the `method` field because the Perses proxy requires explicit method matching. Configure both GET and POST for most backends because Prometheus `/api/v1/query_range` and `/api/v1/labels` use POST for large payloads, and Loki/Tempo also mix methods.
 
-Never embed secrets (passwords, tokens) in datasource YAML committed to version control — use Perses native auth or external secret management.
+Keep secrets out of (passwords, tokens) in datasource YAML committed to version control — use Perses native auth or external secret management.
 
 For non-local deployments, use container/service names instead of `localhost`. In Docker, use the container network name or `host.docker.internal`. In Kubernetes, use the service DNS name (e.g., `http://prometheus.monitoring.svc:9090`). `localhost` refers to the container itself and will break.
 
@@ -165,7 +165,7 @@ Before deleting any global datasource, check which projects and dashboards refer
 
 | Symptom | Cause | Solution |
 |---------|-------|----------|
-| Datasource proxy returns **403 Forbidden** | `allowedEndpoints` not configured, or the HTTP method in the endpoint pattern does not match the request method (e.g., only GET defined but query uses POST) | Add the missing endpoint patterns to `spec.plugin.spec.proxy.spec.allowedEndpoints`. Prometheus needs both GET and POST for `/api/v1/.*`. Tempo needs GET for `/api/traces/.*` and POST for `/api/search` |
+| Datasource proxy returns **403 Access Denied** | `allowedEndpoints` not configured, or the HTTP method in the endpoint pattern does not match the request method (e.g., only GET defined but query uses POST) | Add the missing endpoint patterns to `spec.plugin.spec.proxy.spec.allowedEndpoints`. Prometheus needs both GET and POST for `/api/v1/.*`. Tempo needs GET for `/api/traces/.*` and POST for `/api/search` |
 | MCP tool `perses_create_global_datasource` fails with **conflict/already exists** | A GlobalDatasource with that name already exists | Use `perses_update_global_datasource` instead, or delete the existing one first with `percli delete globaldatasource <name>`. To check: `perses_list_global_datasources()` |
 | MCP tool fails with **invalid plugin kind** | The `type` parameter does not match a registered plugin kind exactly | Use the exact casing: `PrometheusDatasource`, `TempoDatasource`, `LokiDatasource`, `PyroscopeDatasource`, `ClickHouseDatasource`, `VictoriaLogsDatasource`. These are case-sensitive |
 | Datasource connectivity test fails (proxy returns **502/504**) | Backend URL is unreachable from the Perses server. The server cannot connect to the datasource backend at the configured URL | Verify the backend URL is reachable from the Perses server's network context. For Docker, use `host.docker.internal` or the container network name instead of `localhost`. For K8s, use the service DNS name (e.g., `http://prometheus.monitoring.svc:9090`) |

@@ -4,8 +4,8 @@ description: |
   Identify and fix common testing mistakes across unit, integration, and E2E
   test suites. Use when tests are flaky, brittle, over-mocked, order-dependent,
   slow, poorly named, or providing false confidence. Use for "test smell",
-  "fragile test", "flaky test", "over-mocking", "test anti-pattern", or
-  "skipped tests". Do NOT use for writing new tests from scratch (use
+  "fragile test", "flaky test", "over-mocking", "test quality issue", or
+  "skipped tests". Route to other skills for writing new tests from scratch (use
   test-driven-development), refactoring architecture (use systematic-refactoring),
   or performance profiling without a specific test quality symptom.
 version: 2.0.0
@@ -23,7 +23,7 @@ routing:
     - flaky test
     - brittle test
     - test smell
-    - test anti-pattern
+    - test quality issue
     - slow tests
     - skipped test
     - test depends on order
@@ -37,15 +37,15 @@ routing:
   complementary: test-driven-development
 ---
 
-# Testing Anti-Patterns Skill
+# Testing Pattern Quality Skill
 
 ## Overview
 
 This skill identifies and fixes common testing mistakes across unit, integration, and E2E test suites. Tests should verify behavior, be reliable, run fast, and fail for the right reasons.
 
-**Scope:** This skill focuses on improving test quality and reliability. It complements `test-driven-development` by addressing what goes wrong with tests, not just how to write them correctly from scratch.
+**Scope:** This skill focuses on improving test quality and reliability. It complements `test-driven-development` by addressing what goes wrong with tests, complementing how to write them correctly from scratch.
 
-**Not in scope:** Writing new tests from scratch (use `test-driven-development`), fixing fundamental architectural issues (use `systematic-refactoring`), or profiling test performance with external tools.
+**Out of scope:** Writing new tests from scratch (use `test-driven-development`), fixing fundamental architectural issues (use `systematic-refactoring`), or profiling test performance with external tools.
 
 ---
 
@@ -53,7 +53,7 @@ This skill identifies and fixes common testing mistakes across unit, integration
 
 ### Phase 1: SCAN
 
-**Goal**: Identify anti-patterns present in the target test code.
+**Goal**: Identify quality issues present in the target test code.
 
 **Step 1: Locate test files**
 
@@ -64,13 +64,13 @@ Use Grep/Glob to find test files in the relevant area. If user pointed to specif
 
 **Step 2: Read CLAUDE.md**
 
-Check for project-specific testing conventions before flagging anti-patterns. Some projects intentionally deviate from general best practices. This prevents false positives based on organizational standards.
+Check for project-specific testing conventions before flagging quality issues. Some projects intentionally deviate from general best practices. This prevents false positives based on organizational standards.
 
-**Step 3: Classify anti-patterns**
+**Step 3: Classify quality issues**
 
 For each test file, scan for these 10 categories (detailed examples in `references/anti-pattern-catalog.md`):
 
-| # | Anti-Pattern | Detection Signal |
+| # | Pattern to Fix | Detection Signal |
 |---|-------------|-----------------|
 | 1 | Testing implementation details | Asserts on private fields, internal regex, spy on private methods |
 | 2 | Over-mocking / brittle selectors | Mock setup > 50% of test code, CSS nth-child selectors |
@@ -86,15 +86,15 @@ For each test file, scan for these 10 categories (detailed examples in `referenc
 **Step 4: Document findings**
 
 ```markdown
-## Anti-Pattern Report
+## Pattern Quality Report
 
-### [File:Line] - [Anti-Pattern Name]
+### [File:Line] - [Pattern Name]
 - **Severity**: HIGH / MEDIUM / LOW
 - **Issue**: [What is wrong]
 - **Impact**: [Flaky / slow / false-confidence / maintenance burden]
 ```
 
-**Gate**: At least one anti-pattern identified with file:line reference. Proceed only when gate passes.
+**Gate**: At least one quality issue identified with file:line reference. Proceed only when gate passes.
 
 ### Phase 2: PRIORITIZE
 
@@ -107,20 +107,20 @@ For each test file, scan for these 10 categories (detailed examples in `referenc
 
 **Constraint: Fix one pattern at a time.** Mechanical bulk fixes (applying the same pattern to 50 tests without running them) miss context-specific nuances and cause regressions. Fix one, verify it works, then move to the next.
 
-**Constraint: Preserve test intent.** When fixing anti-patterns, maintain what the test was originally trying to verify. Do not silently change test coverage.
+**Constraint: Preserve test intent.** When fixing quality issues, maintain what the test was originally trying to verify. Preserve the original test coverage scope.
 
-**Constraint: Prevent over-engineering.** Fix the specific anti-pattern identified; do not rewrite the entire test suite or delete tests and write new ones from scratch. Institutional knowledge lives in the existing tests.
+**Constraint: Prevent over-engineering.** Fix the specific quality issue identified; make targeted fixes to the specific anti-pattern or delete tests and write new ones from scratch. Institutional knowledge lives in the existing tests.
 
 **Gate**: Findings ranked. User agrees on scope of fixes. Proceed only when gate passes.
 
 ### Phase 3: FIX
 
-**Goal**: Apply targeted fixes to identified anti-patterns.
+**Goal**: Apply targeted fixes to identified quality issues.
 
-**Step 1: For each anti-pattern (highest priority first):**
+**Step 1: For each quality issue (highest priority first):**
 
 ```markdown
-ANTI-PATTERN: [Name]
+ISSUE: [Name]
 Location: [file:line]
 Issue: [What is wrong]
 Impact: [Flaky/slow/false-confidence/maintenance burden]
@@ -136,12 +136,12 @@ Priority: [HIGH/MEDIUM/LOW]
 
 **Step 2: Apply fix**
 
-**Constraint: Show real examples.** Point to actual code when identifying anti-patterns, not abstract descriptions. Avoid rationalization — if a test breaks during refactoring, that test was relying on buggy behavior. Investigate and fix the root cause, do not just adjust the assertion.
+**Constraint: Show real examples.** Point to actual code when identifying quality issues, not abstract descriptions. Check for rationalization — if a test breaks during refactoring, that test was relying on buggy behavior. Investigate and fix the root cause, investigate and fix the root cause.
 
 **Constraint: Guide toward behavior testing.** Always recommend testing observable behavior, not implementation internals. For example:
-- ANTI-PATTERN: Test asserts on private fields → FIX: Test the public behavior that those fields enable
-- ANTI-PATTERN: Test spies on `_getUser()` → FIX: Test what happens when a user exists or doesn't exist
-- ANTI-PATTERN: Test checks exact regex → FIX: Test that validation succeeds/fails for representative inputs
+- ISSUE: Test asserts on private fields → FIX: Test the public behavior that those fields enable
+- ISSUE: Test spies on `_getUser()` → FIX: Test what happens when a user exists or doesn't exist
+- ISSUE: Test checks exact regex → FIX: Test that validation succeeds/fails for representative inputs
 
 Change only what is needed to fix the anti-pattern. Consult `references/fix-strategies.md` for language-specific patterns.
 
@@ -183,15 +183,15 @@ Remaining issues: [any deferred items]
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Quality Catalog
 
 This section documents the domain-specific anti-patterns this skill detects and fixes.
 
-### Anti-Pattern 1: Testing Implementation Details
+### Pattern 1: Test Observable Behavior
 
 **What it looks like:** Tests assert on private fields, internal regex patterns, or spy on private methods.
 
-**Why it's problematic:** Tests coupled to implementation details break whenever the implementation changes, even if public behavior is identical. This creates brittle tests that don't reflect real-world usage.
+**Why it's problematic:** Tests coupled to implementation details break whenever the implementation changes, even if public behavior is identical. This creates brittle tests that fail to reflect real-world usage.
 
 **Example signals:**
 - Test accesses `obj._privateField`
@@ -200,11 +200,11 @@ This section documents the domain-specific anti-patterns this skill detects and 
 
 **Fix:** Test the public behavior that those implementation details enable. If private fields matter, they matter because they affect what users see or experience.
 
-### Anti-Pattern 2: Over-Mocking / Brittle Selectors
+### Pattern 2: Mock Only at Boundaries
 
 **What it looks like:** Mock setup spans more than 50% of the test code. CSS selectors use nth-child or rely on brittle DOM structure.
 
-**Why it's problematic:** Over-mocked tests verify mock wiring, not actual behavior. They don't catch real integration issues and break whenever the mocking structure changes.
+**Why it's problematic:** Over-mocked tests verify mock wiring, not actual behavior. They miss real integration issues and break whenever the mocking structure changes.
 
 **Example signals:**
 - Test has 15 lines of setup and 5 lines of assertion
@@ -213,7 +213,7 @@ This section documents the domain-specific anti-patterns this skill detects and 
 
 **Fix:** Mock only at architectural boundaries (HTTP, DB, external services). Use real implementations for internal logic. For UI tests, select by semantic attributes (data-testid, role) instead of DOM structure.
 
-### Anti-Pattern 3: Order-Dependent Tests
+### Pattern 3: Isolate Test State
 
 **What it looks like:** Tests share mutable state, use class-level variables, or have numbered test names (test1, test2) suggesting sequence dependency.
 
@@ -226,11 +226,11 @@ This section documents the domain-specific anti-patterns this skill detects and 
 
 **Fix:** Each test owns its data. Use setup/teardown or test fixtures to isolate state. Run suite with `--shuffle` or `-random-order` to catch dependencies.
 
-### Anti-Pattern 4: Incomplete Assertions
+### Pattern 4: Assert Specific Values
 
 **What it looks like:** Tests use assertions like `!= nil`, `> 0`, `toBeTruthy()` without checking specific values.
 
-**Why it's problematic:** Incomplete assertions pass for many wrong reasons. A function that returns 999 (wrong) passes an `> 0` assertion. This gives false confidence — tests pass but don't catch bugs.
+**Why it's problematic:** Incomplete assertions pass for many wrong reasons. A function that returns 999 (wrong) passes an `> 0` assertion. This gives false confidence — tests pass but miss bugs.
 
 **Example signals:**
 - `assert result != nil` (passes for any non-nil value)
@@ -242,7 +242,7 @@ This section documents the domain-specific anti-patterns this skill detects and 
 - `assert.equal(response.status, 200)`
 - `expect(user.name).toBe("Alice")`
 
-### Anti-Pattern 5: Over-Specification
+### Pattern 5: Assert Only What Matters
 
 **What it looks like:** Tests assert on default values, exact timestamps, hardcoded IDs, or every field in a response.
 
@@ -257,7 +257,7 @@ This section documents the domain-specific anti-patterns this skill detects and 
 - `expect(user.createdAt).toBeDefined()` or `toBeWithin(now, 1000ms)`
 - `assert.truthy(post.id)` (just verify it exists)
 
-### Anti-Pattern 6: Ignored Failures
+### Pattern 6: Address or Remove Skipped Tests
 
 **What it looks like:** Tests use `@skip`, `.skip`, `xit`, empty catch blocks, or `_ = err` (ignore error).
 
@@ -273,7 +273,7 @@ This section documents the domain-specific anti-patterns this skill detects and 
 t.Skip("TODO: fix timing issue (2024-01-15)")
 ```
 
-### Anti-Pattern 7: Poor Naming
+### Pattern 7: Use Descriptive Test Names
 
 **What it looks like:** Test names use sequential numbers (`test1`, `test2`), vague names (`testFunc`, `test_new`), or generic descriptions (`it('works')`, `it('handles case')`).
 
@@ -289,7 +289,7 @@ t.Skip("TODO: fix timing issue (2024-01-15)")
 - Python: `test_create_user_with_valid_email_returns_new_user`
 - JS: `it('creates a user when given a valid email')`
 
-### Anti-Pattern 8: Missing Edge Cases
+### Pattern 8: Cover Boundaries and Errors
 
 **What it looks like:** Test suite covers only the happy path. No tests for empty inputs, null values, boundary conditions, errors, or large datasets.
 
@@ -307,7 +307,7 @@ t.Skip("TODO: fix timing issue (2024-01-15)")
 - **Error**: timeout, network failure, permission denied
 - **Large**: very large arrays, deep nesting
 
-### Anti-Pattern 9: Slow Test Suites
+### Pattern 9: Optimize Test Speed
 
 **What it looks like:** Full database reset between every test. No parallelization. Fixture data shared instead of created per-test. Tests wait on actual time.
 
@@ -324,11 +324,11 @@ t.Skip("TODO: fix timing issue (2024-01-15)")
 - Create fixtures once, reference per-test: fixture factories, test-specific data builders
 - Replace waits with condition checks: `waitFor(() => element.textContent)` instead of `sleep(1000)`
 
-### Anti-Pattern 10: Flaky Tests
+### Pattern 10: Ensure Deterministic Tests
 
 **What it looks like:** Tests use `sleep()`, `time.Sleep()`, `setTimeout()` or unsynchronized goroutines. Tests pass locally but fail randomly in CI.
 
-**Why it's problematic:** Flaky tests erode trust in the test suite. Developers don't know if a failure is real or just timing. Teams start ignoring test failures — the worst outcome.
+**Why it's problematic:** Flaky tests erode trust in the test suite. Developers cannot tell if a failure is real or just timing. Teams start ignoring test failures — the worst outcome.
 
 **Example signals:**
 - `time.Sleep(100 * time.Millisecond)` to wait for goroutine
@@ -345,7 +345,7 @@ t.Skip("TODO: fix timing issue (2024-01-15)")
 
 ## Error Handling
 
-### Error: "Cannot Determine if Pattern is Anti-Pattern"
+### Error: "Cannot Determine if Pattern is a Quality Issue"
 
 Cause: Context-dependent — pattern may be valid in specific situations
 
@@ -363,16 +363,16 @@ Solution:
 1. Identify what the test was originally trying to verify
 2. Write the correct assertion for that behavior
 3. If original behavior was wrong, note it as a separate finding
-4. Do not silently change what a test covers
+4. Preserve what each test covers
 
-### Error: "Suite Has Hundreds of Anti-Patterns"
+### Error: "Suite Has Hundreds of Quality Issues"
 
 Cause: Systemic test quality issues, not individual mistakes
 
 Solution:
-1. Do NOT attempt to fix everything at once
+1. Fix issues incrementally, focusing on highest severity first
 2. Focus on HIGH severity items only (flaky, order-dependent)
-3. Recommend adopting TDD going forward to prevent new anti-patterns
+3. Recommend adopting TDD going forward to prevent new quality issues
 4. Suggest incremental cleanup strategy (fix on touch, not bulk rewrite)
 
 ---
@@ -381,7 +381,7 @@ Solution:
 
 ### Quick Reference Table
 
-| Anti-Pattern | Symptom | Fix |
+| Pattern to Fix | Symptom | Fix |
 |-------------|---------|-----|
 | Testing implementation | Test breaks on refactor | Test behavior, not internals |
 | Over-mocking | Mock setup > test logic | Integration test or mock only I/O |
@@ -406,18 +406,18 @@ Solution:
 
 ### TDD Relationship
 
-Strict TDD prevents most anti-patterns:
+Strict TDD prevents most quality issues:
 1. **RED phase** catches incomplete assertions (test must fail first)
 2. **GREEN phase minimum** prevents over-specification
 3. **Watch failure** confirms you test behavior, not mocks
 4. **Incremental cycles** prevent test interdependence
 5. **Refactor phase** reveals tests coupled to implementation
 
-If you find anti-patterns in a codebase, check if TDD discipline slipped.
+If you find quality issues in a codebase, check if TDD discipline slipped.
 
 ### Reference Files
 
-- `${CLAUDE_SKILL_DIR}/references/anti-pattern-catalog.md`: Detailed code examples for all 10 anti-patterns (Go, Python, JavaScript)
+- `${CLAUDE_SKILL_DIR}/references/pattern-catalog.md`: Detailed code examples for all 10 anti-patterns (Go, Python, JavaScript)
 - `${CLAUDE_SKILL_DIR}/references/fix-strategies.md`: Language-specific fix patterns and tooling
 - `${CLAUDE_SKILL_DIR}/references/blind-spot-taxonomy.md`: 6-category taxonomy of what high-coverage test suites commonly miss (concurrency, state, boundaries, security, integration, resilience)
 - `${CLAUDE_SKILL_DIR}/references/load-test-scenarios.md`: 6 load test scenario types (smoke, load, stress, spike, soak, breakpoint) with configurations and critical endpoint priorities

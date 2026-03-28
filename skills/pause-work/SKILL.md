@@ -5,7 +5,7 @@ description: |
   completed work, remaining tasks, decisions, uncommitted files, and reasoning context
   so the next session can resume without reconstruction overhead. Use for "pause",
   "save progress", "handoff", "stopping for now", "end session", "pick this up later".
-  Do NOT use for task planning (use task_plan.md), session summaries (use /retro),
+  Route to other skills for task planning (use task_plan.md), session summaries (use /retro),
   or committing work (use /commit or git directly).
 version: 1.0.0
 user-invocable: false
@@ -156,7 +156,7 @@ Capture the session's mental model — the reasoning context that is NOT capture
 
 ### Phase 3: WRITE
 
-**Goal**: Write both handoff files to the project root. This skill only creates files — it never deletes, modifies existing code, or runs destructive git commands because it must be safe to invoke repeatedly without side effects.
+**Goal**: Write both handoff files to the project root. This skill only creates files — it only creates files and leaves existing code and git state untouched because it must be safe to invoke repeatedly without side effects.
 
 **Step 1: Write HANDOFF.json**
 
@@ -227,7 +227,7 @@ Write to `{project_root}/.continue-here.md` because humans need prose-form state
 
 **Step 3: Suggest WIP commit if needed**
 
-If there are uncommitted changes (from Phase 1 Step 3), display a warning because uncommitted work can be lost if the worktree is cleaned up. However, do NOT auto-commit because auto-committing removes the user's ability to decide — changes may be experimental, broken, or intentionally staged for review.
+If there are uncommitted changes (from Phase 1 Step 3), display a warning because uncommitted work can be lost if the worktree is cleaned up. However, let the user decide whether to commit because auto-committing removes the user's ability to decide — changes may be experimental, broken, or intentionally staged for review.
 
 ```
 WARNING: Uncommitted changes detected in N file(s):
@@ -288,7 +288,7 @@ Display the handoff summary:
 **Solution**: If the session genuinely did no work, there is nothing to hand off. Inform the user: "No work detected to hand off. If you made changes that aren't committed or tracked, describe what you were working on and I'll create the handoff manually."
 
 ### Error: HANDOFF.json Already Exists
-**Cause**: A previous `/pause` created handoff files that were never consumed by `/resume`
+**Cause**: A previous `/pause` created handoff files that were not yet consumed by `/resume`
 **Solution**: Warn the user that stale handoff files exist. Offer to overwrite (default) or append. Overwriting is almost always correct — stale handoffs from abandoned sessions should not block new ones.
 
 ## References

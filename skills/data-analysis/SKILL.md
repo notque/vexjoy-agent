@@ -5,7 +5,7 @@ description: |
   analyzing CSV, JSON, database exports, API responses, logs, or any
   structured data to support a business decision. Handles: trend analysis,
   cohort comparison, A/B test evaluation, distribution profiling, anomaly
-  detection. Do NOT use for codebase analysis (use codebase-analyzer),
+  detection. Route to other skills for codebase analysis (use codebase-analyzer),
   codebase exploration (use explore-pipeline), or ML model training.
 version: 1.0.0
 user-invocable: false
@@ -54,11 +54,11 @@ Every analysis begins with the decision being supported, works backward to the e
 
 ## Instructions
 
-### Phase 1: FRAME (Do NOT touch data before framing the decision)
+### Phase 1: FRAME (Frame the decision before touching data)
 
 **Goal**: Establish what decision this analysis supports and what evidence would change it.
 
-Starting with data before establishing the decision context is the single most common analytical failure. The analyst finds interesting patterns and presents them, but the decision-maker cannot act because the patterns do not map to their options. Framing first ensures every computation serves the decision. Do not skip framing because "the user just wants numbers" -- numbers without decision context are not actionable, and the user may not know they need framing, which is exactly why this phase enforces it.
+Starting with data before establishing the decision context is the single most common analytical failure. The analyst finds interesting patterns and presents them, but the decision-maker cannot act because the patterns do not map to their options. Framing first ensures every computation serves the decision. Complete framing even when the user says they "just want numbers" -- numbers without decision context are not actionable, and the user may not know they need framing, which is exactly why this phase enforces it.
 
 **Step 1: Identify the decision**
 - What specific decision does this analysis support?
@@ -88,7 +88,7 @@ Save `analysis-frame.md`:
 ## Options
 - Option A: [description]
 - Option B: [description]
-- Default (no action): [what happens if we don't decide]
+- Default (no action): [what happens if we take no action]
 
 ## Evidence Requirements
 - Favors Option A if: [condition]
@@ -107,7 +107,7 @@ Save `analysis-frame.md`:
 
 **Goal**: Define exactly what will be measured, how, and over what population. Write definitions to file before any data is loaded.
 
-Defining metrics after seeing data enables (consciously or not) choosing definitions that produce favorable results. Locking definitions first makes the analysis auditable -- anyone can verify whether the definitions were followed. Do not treat a metric definition as "close enough" -- a slight change in numerator or denominator can flip a conclusion. A/B tests have been decided on the wrong metric because "daily active" vs "monthly active" seemed interchangeable.
+Defining metrics after seeing data enables (consciously or not) choosing definitions that produce favorable results. Locking definitions first makes the analysis auditable -- anyone can verify whether the definitions were followed. Verify every metric definition is exact -- a slight change in numerator or denominator can flip a conclusion. A/B tests have been decided on the wrong metric because "daily active" vs "monthly active" seemed interchangeable.
 
 **Step 1: Define metrics**
 
@@ -159,13 +159,13 @@ Save `metric-definitions.md`:
 
 **GATE**: All metrics defined with formulas and populations. Definitions saved to file. If this is a comparison analysis, fairness checks documented. Proceed only when gate passes.
 
-**Immutability rule**: Once Phase 3 begins, these definitions are locked. If the data reveals that a definition is unworkable (e.g., the column doesn't exist), return to Phase 2, update the definition, and document the change and its reason in the artifact. Do not silently adjust -- silent definition changes are p-hacking by another name, and the change must be visible in the artifact trail for the analysis to be auditable.
+**Immutability rule**: Once Phase 3 begins, these definitions are locked. If the data reveals that a definition is unworkable (e.g., the column doesn't exist), return to Phase 2, update the definition, and document the change and its reason in the artifact. Document every adjustment -- silent definition changes are p-hacking by another name, and the change must be visible in the artifact trail for the analysis to be auditable.
 
 ---
 
 ### Phase 3: EXTRACT (Load data. Assess quality. No interpretation.)
 
-**Goal**: Load the data, profile its quality, and determine whether it is adequate for the planned analysis. Do NOT interpret results during this phase.
+**Goal**: Load the data, profile its quality, and determine whether it is adequate for the planned analysis. Keep interpretation out of this phase.
 
 Combining loading and interpretation causes confirmation bias -- you see what you expect instead of what the data shows. Extracting first forces you to confront data quality issues (missing values, unexpected distributions, date gaps) before they silently distort your conclusions.
 
@@ -201,7 +201,7 @@ Profile the dataset:
 
 **Step 3: Assess data quality**
 
-Apply the Sample Adequacy gate (see `references/rigor-gates.md` Gate 1). Do not assume a sample is "probably big enough" -- that is not a statistical assessment. Check actual numbers against these minimums:
+Apply the Sample Adequacy gate (see `references/rigor-gates.md` Gate 1). Verify sample adequacy with actual numbers -- that is not a statistical assessment. Check actual numbers against these minimums:
 
 | Check | Minimum | Action if Failed |
 |-------|---------|------------------|
@@ -291,7 +291,7 @@ Before interpreting any group comparison, verify (see `references/rigor-gates.md
 
 **Step 3: Apply Multiple Testing Correction** (if testing multiple hypotheses)
 
-See `references/rigor-gates.md` Gate 3. Do not cherry-pick a single significant segment from many tests -- if you test 10 segments, one will likely show significance by chance (5% false positive rate per test). Report all segments tested.
+See `references/rigor-gates.md` Gate 3. Report all segments tested from many tests -- if you test 10 segments, one will likely show significance by chance (5% false positive rate per test). Report all segments tested.
 
 | Scenario | Correction |
 |----------|------------|
@@ -361,7 +361,7 @@ Summarize the key metrics that support the headline, in order of importance:
 
 **Step 3: State limitations explicitly**
 
-Do not omit limitations because the analysis is complex and "the user won't understand" -- hiding limitations is more misleading than explaining them, and simple language makes limitations accessible. If confidence intervals are wide, that IS the finding (the data is insufficient to support a decision), not a formatting problem to hide by reporting only the point estimate.
+State limitations explicitly because the analysis is complex and "the user won't understand" -- hiding limitations is more misleading than explaining them, and simple language makes limitations accessible. If confidence intervals are wide, that IS the finding (the data is insufficient to support a decision), not a formatting problem to hide by reporting only the point estimate.
 
 - What the data does NOT tell you
 - Rigor gate violations and their implications
@@ -450,7 +450,7 @@ Actions:
 
 ### Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (stop and resolve before proceeding autonomously) when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -460,7 +460,7 @@ STOP and ask the user (do NOT proceed autonomously) when:
 | Metric definitions contradict each other | Conflicting definitions produce conflicting results | "Metric A and B use different definitions of 'active user'. Which should we standardize on?" |
 | Results are ambiguous (CI spans zero for primary metric) | User needs to know the data is inconclusive | State clearly: "The data does not support a confident decision. Here are options for getting more data." |
 
-Never guess on column semantics, population definitions, business thresholds, or causal claims (correlation is not causation).
+Ask the user about column semantics, population definitions, business thresholds, or causal claims (correlation is not causation).
 
 ---
 
@@ -476,7 +476,7 @@ Never guess on column semantics, population definitions, business thresholds, or
 1. Try common encodings: utf-8, latin-1, utf-8-sig
 2. Detect delimiter: comma, tab, semicolon, pipe
 3. If JSON: validate structure, identify if it's array-of-objects or nested
-4. If still failing: ask user for format details. Do not guess.
+4. If still failing: ask user for format details. Ask the user for format details.
 5. Maximum 3 parse attempts before asking the user for format help.
 
 ### Error: "Insufficient data for planned segments"
@@ -487,12 +487,12 @@ Never guess on column semantics, population definitions, business thresholds, or
 3. Return to Phase 2 to adjust definitions if needed, documenting the change
 
 ### Error: "Metrics changed after seeing data"
-**Cause**: Analyst realizes original definitions don't work after loading data (column doesn't exist, wrong granularity).
+**Cause**: Analyst realizes original definitions prove unworkable after loading data (column doesn't exist, wrong granularity).
 **Solution**: This is expected and acceptable IF handled properly:
 1. Return explicitly to Phase 2
 2. Document what changed and why
 3. Save updated metric-definitions.md with change log
-4. Do NOT silently adjust -- the change must be visible in the artifact trail
+4. Make every adjustment visible -- the change must appear in the artifact trail
 5. Maximum 2 definition revisions before flagging scope concern.
 
 ### Death Loop Prevention
@@ -509,4 +509,4 @@ Maximum retry limits:
 
 - **Rigor Gates**: [references/rigor-gates.md](references/rigor-gates.md) - Detailed statistical gate documentation with examples
 - **Output Templates**: [references/output-templates.md](references/output-templates.md) - Templates for different analysis types (A/B test, trend, distribution, cohort)
-- **Anti-Patterns**: [references/anti-patterns.md](references/anti-patterns.md) - Extended anti-pattern catalog with code examples
+- **Quality Patterns**: [references/anti-patterns.md](references/anti-patterns.md) - Extended pattern catalog with code examples

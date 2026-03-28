@@ -3,7 +3,7 @@ name: read-only-ops
 description: |
   Read-only exploration, status checks, and reporting without modifications.
   Use when user asks to check status, find files, search code, show state,
-  or explicitly requests read-only investigation. Do NOT use when user wants
+  or explicitly requests read-only investigation. Route to other skills when user wants
   changes, fixes, refactoring, or any write operation.
 version: 2.0.0
 user-invocable: false
@@ -26,7 +26,7 @@ routing:
 
 This skill operates as a safe exploration and reporting mechanism without ever modifying files or system state. Use it when you need to gather evidence, verify facts, or show current state to the user.
 
-The core principle: **Observation Only**. Gather evidence. Report facts. Never alter state.
+The core principle: **Observation Only**. Gather evidence. Report facts. Keep all state unchanged.
 
 ---
 
@@ -53,7 +53,7 @@ If the request could match dozens of results or span the entire filesystem, clar
 
 ### Phase 2: GATHER
 
-**Goal**: Collect evidence using read-only tools. Tools must never modify state.
+**Goal**: Collect evidence using read-only tools. Tools must preserve state.
 
 **Step 1: Execute read-only operations**
 
@@ -67,7 +67,7 @@ curl -s (GET only)
 date, timedatectl, env
 ```
 
-**Forbidden commands** (violate read-only constraint absolutely):
+**Out-of-scope commands** (are outside the read-only boundary):
 ```
 mkdir, rm, mv, cp, touch, chmod, chown
 git add, git commit, git push, git checkout, git reset
@@ -81,7 +81,7 @@ Rationale: Even "harmless" state changes violate the read-only boundary. Use the
 
 **Step 2: Record raw output**
 
-Show complete command output. Do not paraphrase or truncate unless output exceeds reasonable display length, in which case show representative samples with counts. The user must be able to verify your claims from the evidence shown.
+Show complete command output. Show complete output, truncating only unless output exceeds reasonable display length, in which case show representative samples with counts. The user must be able to verify your claims from the evidence shown.
 
 **Gate**: All requested data has been gathered with read-only commands. No state was modified. Proceed only when gate passes.
 
@@ -97,7 +97,7 @@ Lead with what the user asked about. Answer the question first, then provide sup
 
 **Step 2: Show evidence**
 
-Include command output, file contents, or search results that support the summary. The user must be able to verify claims from the evidence shown. Never summarize away details — show the raw data.
+Include command output, file contents, or search results that support the summary. The user must be able to verify claims from the evidence shown. Show the raw data — show the raw data.
 
 **Step 3: List files examined**
 
@@ -117,7 +117,7 @@ Document which files were read for transparency:
 
 ### Error: "Attempted to use Write or Edit tool"
 **Cause**: Skill boundary violation — tried to modify a file.
-**Solution**: This skill only permits Read, Grep, Glob, and read-only Bash. Report findings verbally; do not write them to files unless the user explicitly grants permission. Violating the read-only boundary defeats the purpose of the skill.
+**Solution**: This skill only permits Read, Grep, Glob, and read-only Bash. Report findings verbally; write them to files only with explicit user permission. Crossing the read-only boundary defeats the purpose of the skill.
 
 ### Error: "Bash command would modify state"
 **Cause**: Attempted destructive or state-changing command.
@@ -131,9 +131,9 @@ Document which files were read for transparency:
 **Cause**: Search returned hundreds of matches without filtering.
 **Solution**: Return to Phase 1. Narrow scope by file type, directory, or pattern before re-executing. For example, instead of searching the entire filesystem for "config", search `~/.config/` or `./etc/` with a specific file extension.
 
-### Common Patterns to Avoid
+### Preferred Patterns
 
-**Investigating Everything**: User asks about API server status; you audit all services, configs, logs, and dependencies. Why wrong: Wastes tokens, buries the answer. The scope was never that broad. Do instead: Answer the specific question. Offer to investigate further if needed.
+**Investigating Everything**: User asks about API server status; you audit all services, configs, logs, and dependencies. Why wrong: Wastes tokens, buries the answer. The scope extends beyond the specific question. Do instead: Answer the specific question. Offer to investigate further if needed.
 
 **Summarizing Away Evidence**: "The repository has 3 modified files and is clean" instead of showing `git status` output. Why wrong: User cannot verify the claim. Missing details (which files? staged or unstaged?) prevent verification. Do instead: Show complete command output. Let the user draw conclusions.
 
@@ -145,7 +145,7 @@ Document which files were read for transparency:
 
 ### Skill Design Philosophy
 
-This skill enforces the **Observation Only** architectural pattern to enable safe, passive exploration without side effects. The constraint is absolute: tools must never modify state, even to "verify" something. Verification that requires modification (e.g., "is this directory writable?") should use read-only checks (`stat`, `ls -la`, test operators).
+This skill enforces the **Observation Only** architectural pattern to enable safe, passive exploration without side effects. The constraint is absolute: tools must preserve state, even to "verify" something. Verification that requires modification (e.g., "is this directory writable?") should use read-only checks (`stat`, `ls -la`, test operators).
 
 ### CLAUDE.md Compliance
 

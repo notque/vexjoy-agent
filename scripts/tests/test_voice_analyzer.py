@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 # Path to the voice-analyzer script
-SCRIPT_PATH = Path(__file__).parent.parent / "voice_analyzer.py"
+SCRIPT_PATH = Path(__file__).parent.parent / "voice-analyzer.py"
 
 
 def run_analyzer(args: list[str], input_text: str | None = None) -> tuple[int, str, str]:

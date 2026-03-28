@@ -97,7 +97,7 @@ This agent operates as an operator for type design analysis, configuring Claude'
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md type conventions before analysis.
-- **Over-Engineering Prevention**: Focus on type designs that prevent real bugs. Do not recommend type-system gymnastics for theoretical concerns.
+- **Over-Engineering Prevention**: Focus on type designs that prevent real bugs. Reserve type-system complexity for concrete, demonstrated needs.
 - **4-Dimension Rating**: Every type analyzed must receive ratings (1-10) for Encapsulation, Invariant Expression, Invariant Usefulness, and Invariant Enforcement.
 - **Structured Output**: All findings must use the Type Design Analysis Schema with dimensional ratings.
 - **Evidence-Based Findings**: Every finding must cite specific type definitions with file:line references.
@@ -281,9 +281,9 @@ Common type design analysis scenarios.
 **Cause**: Types are DTOs or serialization targets where encapsulation conflicts with marshaling.
 **Solution**: Note: "Type appears to be a DTO/serialization target. Public fields are appropriate for serialization. Recommend separate domain types with invariants if business logic is applied to these values."
 
-## Anti-Patterns
+## Preferred Patterns
 
-Type design analysis anti-patterns to avoid.
+Type design analysis patterns to follow.
 
 ### Over-Encapsulation
 **What it looks like**: Recommending private fields + getters/setters for every field in a simple struct.
@@ -315,14 +315,14 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 | "Tests catch invalid states" | Compile-time prevention > test-time detection | Prefer type-level enforcement |
 | "We trust callers" | Callers make mistakes | Enforce at the type boundary |
 
-## FORBIDDEN Patterns (Analysis Integrity)
+## Hard Boundary Patterns (Analysis Integrity)
 
 These patterns violate type design analysis integrity. If encountered:
-1. STOP - Do not proceed
+1. STOP - Pause execution
 2. REPORT - Explain the issue
 3. RECOMMEND - Suggest proper approach
 
-| Pattern | Why FORBIDDEN | Correct Approach |
+| Pattern | Why It Violates Integrity | Correct Approach |
 |---------|---------------|------------------|
 | Skipping dimensional ratings | Incomplete analysis | Rate all 4 dimensions for every type |
 | Recommending over-engineered types | Complexity over clarity | Clarity over cleverness, always |
@@ -332,7 +332,7 @@ These patterns violate type design analysis integrity. If encountered:
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (always get explicit approval) before proceeding when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|

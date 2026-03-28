@@ -6,7 +6,7 @@ description: |
   patterns, library usage rules, error handling conventions, testing patterns,
   and anti-over-engineering principles. Use when working in sapcc/* repos,
   when code imports github.com/sapcc/go-bits, or when targeting SAP CC
-  code review standards. Do NOT use for general Go projects without
+  code review standards. Route to other skills for general Go projects without
   sapcc dependencies.
 version: 1.0.0
 user-invocable: false
@@ -47,11 +47,11 @@ Read project context and reference files before writing any code. Project conven
 
 **1c. Detect Go version from go.mod** because sapcc projects typically target Go 1.22+. Use version-appropriate features: `t.Context()` (1.24+), `b.Loop()` (1.24+), `strings.SplitSeq` (1.24+), `wg.Go()` (1.25+), `errors.AsType[T]` (1.26+).
 
-**1d. Load reference files** — this is NON-NEGOTIABLE. Do NOT rely on training data for sapcc conventions; read the actual references because they contain real rules from actual PR reviews. Load in this order because each builds on the previous:
+**1d. Load reference files** — this is NON-NEGOTIABLE. Read the actual references instead of relying on training data for sapcc conventions; read the actual references because they contain real rules from actual PR reviews. Load in this order because each builds on the previous:
 1. **[references/sapcc-code-patterns.md](${CLAUDE_SKILL_DIR}/references/sapcc-code-patterns.md)** -- actual function signatures, constructors, interfaces, HTTP handlers, error handling, DB access, testing, package organization
-2. **[references/library-reference.md](${CLAUDE_SKILL_DIR}/references/library-reference.md)** -- complete library table: 30 approved, 10+ forbidden, with versions and usage counts
+2. **[references/library-reference.md](${CLAUDE_SKILL_DIR}/references/library-reference.md)** -- complete library table: 30 approved, 10+ restricted, with versions and usage counts
 3. **[references/architecture-patterns.md](${CLAUDE_SKILL_DIR}/references/architecture-patterns.md)** -- full 102-rule architecture specification (when working on architecture, handlers, or DB access)
-4. Load others as needed: [references/review-standards-lead.md](${CLAUDE_SKILL_DIR}/references/review-standards-lead.md) (21 lead review comments), [references/review-standards-secondary.md](${CLAUDE_SKILL_DIR}/references/review-standards-secondary.md) (15 secondary review comments), [references/anti-patterns.md](${CLAUDE_SKILL_DIR}/references/anti-patterns.md) (20+ anti-patterns with BAD/GOOD examples), [references/extended-patterns.md](${CLAUDE_SKILL_DIR}/references/extended-patterns.md) (security micro-patterns, K8s namespace isolation, PR hygiene, changelog format)
+4. Load others as needed: [references/review-standards-lead.md](${CLAUDE_SKILL_DIR}/references/review-standards-lead.md) (21 lead review comments), [references/review-standards-secondary.md](${CLAUDE_SKILL_DIR}/references/review-standards-secondary.md) (15 secondary review comments), [references/anti-patterns.md](${CLAUDE_SKILL_DIR}/references/quality-issues.md) (20+ quality issues with BAD/GOOD examples), [references/extended-patterns.md](${CLAUDE_SKILL_DIR}/references/extended-patterns.md) (security micro-patterns, K8s namespace isolation, PR hygiene, changelog format)
 
 **Gate**: go.mod contains `github.com/sapcc/go-bits`. If absent, this skill does not apply -- use general Go conventions instead.
 
@@ -63,7 +63,7 @@ Apply sapcc conventions while writing. The strongest project opinion is anti-ove
 
 This section comes first because it is the defining characteristic of SAP CC Go code.
 
-**When NOT to create types** -- do not create throwaway struct types just to marshal a simple JSON payload because lead review considers this "overengineered":
+**When to use inline marshaling** -- use inline marshaling for throwaway JSON payloads just to marshal a simple JSON payload because lead review considers this "overengineered":
 
 ```go
 // REJECTED: Copilot suggested this
@@ -76,7 +76,7 @@ storageConfig = fmt.Sprintf(`{"type":"filesystem","params":{"path":%s}}`,
   must.Return(json.Marshal(filesystemPath)))
 ```
 
-**When NOT to wrap errors** -- do not add error context that the called function already provides because `strconv` functions include function name, input value, and error reason:
+**When to trust existing error context** -- trust the error context that the called function already provides because `strconv` functions include function name, input value, and error reason:
 
 ```go
 // REJECTED: redundant wrapping
@@ -91,7 +91,7 @@ chunkNumber := must.Return(strconv.ParseUint(chunkNumberStr, 10, 32))
 
 > "ParseUint is disciplined about providing good context in its input messages... So we can avoid boilerplate here without compromising that much clarity."
 
-**When NOT to handle errors** -- do not handle errors that are never triggered in practice because consistency matters more than theoretical completeness:
+**When to accept implicit error handling** -- accept implicit error handling for errors that are inactive in practice because consistency matters more than theoretical completeness:
 
 ```go
 // REJECTED: handling os.Stdout.Write errors
@@ -106,16 +106,16 @@ os.Stdout.Write(data)
 
 > "I'm going to ignore this based purely on the fact that Copilot complains about `os.Stdout.Write()`, but not about the much more numerous instances of `fmt.Println` that theoretically suffer the same problem."
 
-**When NOT to add defer close** -- do not add `defer Close()` on `io.NopCloser` just for theoretical contract compliance:
+**When to skip defer close** -- skip `defer Close()` on `io.NopCloser` just for theoretical contract compliance:
 
 > "This is an irrelevant contrivance. Either `WriteTrivyReport` does it, or the operation fails and we fatal-error out, in which case it does not matter anyway."
 
 **Dismiss Copilot/AI suggestions that add complexity** -- lead review evaluates AI suggestions on merit and frequently simplifies them:
 - If a Copilot suggestion is inconsistent (complains about X but not equivalent Y), dismiss it
 - If a Copilot suggestion creates types for one-off marshaling, simplify it
-- Ask: "Can you point to a concrete scenario where this fails?" If not, don't handle it
+- Ask: "Can you point to a concrete scenario where this fails?" If not, keep it simple
 
-**When NOT to build smart inference** -- when a known future design change is coming, don't build abstractions that will break:
+**When to use explicit parameters** -- when a known future design change is coming, keep the design simple and future-compatible:
 
 ```
 # REJECTED: inferring params from driver name (won't work for future "multi" driver)
@@ -127,7 +127,7 @@ os.Stdout.Write(data)
 
 > "I appreciate the logic behind inferring storage driver params automatically... But this will not scale beyond next month."
 
-But also: do NOT preemptively solve the future problem. Just don't build something that blocks the future solution.
+But also: keep the design forward-compatible while keep the current design compatible with the future solution.
 
 **No hidden defaults for niche cases** -- if a default value only applies to a subset of use cases, make the parameter required for everyone:
 
@@ -135,7 +135,7 @@ But also: do NOT preemptively solve the future problem. Just don't build somethi
 
 #### 2b. Library Usage
 
-Use only approved libraries because the lead reviewer will reject PRs that introduce forbidden dependencies. SAP CC has its own equivalents for common Go libraries.
+Use only approved libraries because the lead reviewer will reject PRs that introduce restricted dependencies. SAP CC has its own equivalents for common Go libraries.
 
 **APPROVED Libraries**:
 
@@ -154,7 +154,7 @@ Use only approved libraries because the lead reviewer will reject PRs that intro
 | `golang-jwt/jwt/v5` | JWT tokens | Auth token handling |
 | `alicebob/miniredis/v2` | Testing only | In-memory Redis for tests |
 
-**FORBIDDEN Libraries** -- using any of these will fail review:
+**Restricted Libraries** -- using any of these will fail review:
 
 | Library | Reason | Use Instead |
 |---------|--------|-------------|
@@ -301,8 +301,8 @@ var celEnv = must.Return(cel.NewEnv(...))
 must.SucceedT(t, s.DB.Insert(&record))
 digest := must.ReturnT(rc.UploadBlob(ctx, data))(t)
 
-// FORBIDDEN: request handlers, business logic, background tasks
-// Never use must.* where errors should be propagated
+// Restricted scope: request handlers, business logic, background tasks
+// Reserve must.* for startup and test code where errors should be propagated
 ```
 
 **must vs assert in tests** -- `must` and `assert` serve different roles:
@@ -343,7 +343,7 @@ Common mistake flagged in review: `assert.DeepEqual(t, "count", len(events), 3)`
 
 | Level | When | Example |
 |-------|------|---------|
-| `logg.Fatal` | Startup/CLI only, never in handlers | `logg.Fatal("failed to read key: %s", err.Error())` |
+| `logg.Fatal` | Startup/CLI only, only in startup/CLI code | `logg.Fatal("failed to read key: %s", err.Error())` |
 | `logg.Error` | Cannot bubble up (cleanup, deferred, advisory) | `logg.Error("rollback failed: " + err.Error())` |
 | `logg.Info` | Operational events, graceful degradation | `logg.Info("rejecting overlong name: %q", name)` |
 | `logg.Debug` | Diagnostic, gated behind `KEPPEL_DEBUG` | `logg.Debug("parsing configuration...")` |
@@ -354,7 +354,7 @@ Common mistake flagged in review: `assert.DeepEqual(t, "count", len(events), 3)`
 - Infallible operations: `crypto/rand.Read`, `json.Marshal` on known-good data
 - Init-order violations: `panic("called before Connect()")`
 
-NEVER panic for: user input, external services, database errors, request handling.
+Propagate errors (rather than panicking) for: user input, external services, database errors, request handling.
 
 **HTTP error response formats** (3 distinct -- using the wrong format for an API surface will fail review):
 
@@ -415,7 +415,7 @@ respondwith.JSON(w, http.StatusOK, map[string]any{"account": rendered})
 // Collection: wrap in plural named key
 respondwith.JSON(w, http.StatusOK, map[string]any{"accounts": list})
 
-// Empty list: MUST be [], never null
+// Empty list: MUST be [], always [] instead of null
 if len(items) == 0 {
     items = []ItemType{}
 }
@@ -429,7 +429,7 @@ if len(items) == 0 {
 - **DB testing**: `easypg.WithTestDB` in every `TestMain`
 - **Test setup**: Functional options via `test.NewSetup(t, ...options)`
 - **HTTP testing**: `assert.HTTPRequest{}.Check(t, handler)`
-- **Time control**: `mock.Clock` (never call `time.Now()` directly)
+- **Time control**: `mock.Clock` (inject `func() time.Time` for clock control)
 - **Test doubles**: Implement real driver interfaces, register via `init()`
 
 **assert.HTTPRequest pattern**:
@@ -483,9 +483,9 @@ go test -shuffle=on -p 1 -covermode=count -coverpkg=... -mod vendor ./...
 - `-p 1`: Sequential packages (shared PostgreSQL database)
 - `-mod vendor`: Use vendored dependencies
 
-**Test anti-patterns** -- these will fail review:
+**Test quality issues** -- these will fail review:
 
-| Anti-Pattern | Correct Pattern |
+| Issue | Correct Pattern |
 |-------------|----------------|
 | `testify/assert` | `go-bits/assert` |
 | `gomock` / `mockery` | Hand-written test doubles implementing real interfaces |
@@ -495,9 +495,9 @@ go test -shuffle=on -p 1 -covermode=count -coverpkg=... -mod vendor ./...
 
 ### Phase 3: BUILD AND LINT
 
-Run build tooling and lint checks before submitting. All build config is generated from `Makefile.maker.yaml` -- do NOT edit generated files directly because `go-makefile-maker` will overwrite them.
+Run build tooling and lint checks before submitting. All build config is generated from `Makefile.maker.yaml` -- leave generated files unmodified because `go-makefile-maker` will overwrite them.
 
-**Generated files (do NOT edit)**:
+**Generated files (managed by go-makefile-maker):**
 - `Makefile`
 - `.golangci.yaml`
 - `REUSE.toml`
@@ -580,17 +580,17 @@ Two complementary review styles govern sapcc code review.
 
 | Rule | Summary |
 |------|---------|
-| Trust the stdlib | Don't wrap errors that `strconv`, constructors, etc. already describe well |
-| Use Cobra subcommands | Never manually roll argument dispatch that Cobra handles |
+| Trust the stdlib | Trust the error context from functions that `strconv`, constructors, etc. already describe well |
+| Use Cobra subcommands | Use Cobra subcommands instead of manually rolling argument dispatch that Cobra handles |
 | CLI names: specific + extensible | `keppel test-driver storage`, not `keppel test` |
 | Marshal structured data for errors | If you have a `map[string]any`, `json.Marshal` it instead of manually formatting fields |
-| Tests must verify behavior | Never silently remove test assertions during refactoring |
+| Tests must verify behavior | Preserve test assertions during refactoring |
 | Explain test workarounds | Add comments when test setup diverges from production patterns |
 | Use existing error utilities | Use `errext.ErrorSet` and `.Join()`, not manual string concatenation |
 | TODOs need context | Include what, a starting point link, and why not done now |
 | Documentation stays qualified | When behavior changes conditionally, update docs to state the conditions |
 | Understand value semantics | Value receiver copies the struct, but reference-type fields share data |
-| Variable names don't mislead | Don't name script vars as if the application reads them |
+| Variable names match their scope | Name script vars to reflect their actual scope, distinct from application vars |
 
 How lead review works:
 - Reads Copilot suggestions critically -- agrees with principle, proposes simpler alternatives
@@ -612,8 +612,8 @@ How lead review works:
 | Test ALL combinations | When changing logic with multiple inputs, test every meaningful combination |
 | Eliminate redundant code | Ask "This check is now redundant?" when code is refactored |
 | Comments explain WHY | When something non-obvious is added, request an explanatory comment |
-| Domain knowledge over theory | Dismiss concerns that don't apply to actual domain constraints |
-| Smallest possible fix | 2-line PRs are fine. Don't bundle unrelated changes |
+| Domain knowledge over theory | Dismiss concerns that are irrelevant to actual domain constraints |
+| Smallest possible fix | 2-line PRs are fine. Keep changes focused to a single concern |
 | Respect ownership hierarchy | "LGTM but lets wait for lead review, we are in no hurry here" |
 | Be honest about mistakes | Acknowledge errors quickly and propose fix direction |
 | Validate migration paths | "Do we somehow check if this is still set and then abort?" |
@@ -649,11 +649,11 @@ errext.As[T](err)           // "error extension: as T"
 **Rule 8: Dependency Consciousness** -- actively prevents unnecessary dependency trees. Importing UUID from `audittools` into `respondwith` was rejected because it would pull in AMQP dependencies. Solution: move to internal package.
 
 **Rule 9: Prefer Functions Over Global Variables**:
-> "I don't like having a global variable for this that callers can mess with."
+> "A global variable for this that callers can mess with is problematic for this that callers can mess with."
 
 Use `ForeachOptionTypeInLIQUID[T any](action func(any) T) []T` instead of `var LiquidOptionTypes = []any{...}`.
 
-**Rule 10: Leverage Go Generics Judiciously** -- use generics where they eliminate boilerplate or improve type safety (`must.Return[V]`, `errext.As[T]`, `pluggable.Registry[T Plugin]`). Do NOT use generics where they add complexity without clear benefit.
+**Rule 10: Leverage Go Generics Judiciously** -- use generics where they eliminate boilerplate or improve type safety (`must.Return[V]`, `errext.As[T]`, `pluggable.Registry[T Plugin]`). Use generics only where they eliminate boilerplate or improve type safety.
 
 **Rule 11: Graceful Deprecation** -- `assert.HTTPRequest` is deprecated but not removed. The deprecation notice includes a complete migration guide. No forced migration.
 
@@ -670,7 +670,7 @@ These are reasoning patterns that sound correct but lead to rejected PRs in sapc
 | "I need a struct for this JSON" | One-off JSON can use `fmt.Sprintf` + `json.Marshal` | Only create types if reused or complex |
 | "Better safe than sorry" (re: error handling) | "Irrelevant contrivance" — over-handling is an anti-pattern | Ask "concrete scenario where this fails?" |
 | "Standard library X works fine here" | SAP CC has go-bits equivalents that are expected | Use go-bits equivalents |
-| "testify is the Go standard" | SAP CC uses go-bits/assert exclusively | Never introduce testify in sapcc repos |
+| "testify is the Go standard" | SAP CC uses go-bits/assert exclusively | Use go-bits/assert exclusively in sapcc repos |
 | "I'll add comprehensive error wrapping" | Trust well-designed functions' error messages | Check if called function already provides context |
 | "This needs a config file" | SAP CC uses env vars only | Use `osext.MustGetenv` / `GetenvOrDefault` / `GetenvBool` |
 
@@ -680,9 +680,9 @@ These are reasoning patterns that sound correct but lead to rejected PRs in sapc
 **Cause**: Project does not import `github.com/sapcc/go-bits`
 **Solution**: This skill only applies to sapcc projects. Check `go.mod` first.
 
-### Error: "Linter reports forbidden import"
-**Cause**: Using a FORBIDDEN library (testify, zap, gin, etc.)
-**Solution**: Replace with the SAP CC equivalent. See the FORBIDDEN Libraries table in Phase 2b.
+### Error: "Linter reports restricted import"
+**Cause**: Using a restricted library (testify, zap, gin, etc.)
+**Solution**: Replace with the SAP CC equivalent. See the Restricted Libraries table in Phase 2b.
 
 ### Error: "Missing SPDX license header"
 **Cause**: `.go` file missing the required two-line SPDX header
@@ -701,9 +701,9 @@ These are reasoning patterns that sound correct but lead to rejected PRs in sapc
 | File | What It Contains | When to Read |
 |------|-----------------|--------------|
 | [references/sapcc-code-patterns.md](${CLAUDE_SKILL_DIR}/references/sapcc-code-patterns.md) | **Actual code patterns** -- function signatures, constructors, interfaces, HTTP handlers, error handling, DB access, testing, package organization | **ALWAYS** -- this is the primary reference |
-| [references/library-reference.md](${CLAUDE_SKILL_DIR}/references/library-reference.md) | Complete library table: 30 approved, 10+ forbidden, with versions and usage counts | **ALWAYS** -- need to know approved/forbidden imports |
+| [references/library-reference.md](${CLAUDE_SKILL_DIR}/references/library-reference.md) | Complete library table: 30 approved, 10+ restricted, with versions and usage counts | **ALWAYS** -- need to know approved/restricted imports |
 | [references/architecture-patterns.md](${CLAUDE_SKILL_DIR}/references/architecture-patterns.md) | Full 102-rule architecture specification with code examples | When working on architecture, handlers, DB access |
 | [references/review-standards-lead.md](${CLAUDE_SKILL_DIR}/references/review-standards-lead.md) | All 21 lead review comments with full context and quotes | For reviews and understanding lead review reasoning |
 | [references/review-standards-secondary.md](${CLAUDE_SKILL_DIR}/references/review-standards-secondary.md) | All 15 secondary review comments with PR context | For reviews and understanding secondary review patterns |
-| [references/anti-patterns.md](${CLAUDE_SKILL_DIR}/references/anti-patterns.md) | 20+ SAP CC anti-patterns with BAD/GOOD code examples | For code review and avoiding common mistakes |
+| [references/anti-patterns.md](${CLAUDE_SKILL_DIR}/references/quality-issues.md) | 20+ SAP CC anti-patterns with BAD/GOOD code examples | For code review and avoiding common mistakes |
 | [references/extended-patterns.md](${CLAUDE_SKILL_DIR}/references/extended-patterns.md) | Extended patterns from related repos -- security micro-patterns, visual section separators, copyright format, K8s namespace isolation, PR hygiene | For security-conscious code, K8s helm work, or PR hygiene |

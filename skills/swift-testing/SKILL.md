@@ -249,4 +249,4 @@ final class ProfileService {
 - **Arrange-Act-Assert** -- structure every test into setup, execution, and verification phases.
 - **Name tests descriptively** -- `testFetchUser_withExpiredToken_throwsAuthError` is better than `testFetch2`.
 - **Prefer Swift Testing for new code** -- use `@Test` and `#expect` when targeting Swift 5.9+; fall back to XCTest for older targets or UI tests.
-- **Avoid test interdependence** -- each test must be runnable in isolation; never depend on execution order.
+- **Ensure test independence** -- each test must be runnable in isolation; always produce self-contained test state.

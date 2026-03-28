@@ -98,7 +98,7 @@ This agent operates as an operator for code quality review, configuring Claude's
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before review. CLAUDE.md rules override generic style preferences.
-- **Over-Engineering Prevention**: Report only findings with confidence 80+. Do not add speculative or low-confidence issues.
+- **Over-Engineering Prevention**: Report only findings with confidence 80+. Omit speculative or low-confidence issues.
 - **Confidence Threshold**: Every finding must include a confidence score (0-100). Only findings scoring 80 or above appear in the report.
 - **Structured Output**: All findings must use the Code Quality Review Schema with VERDICT, severity, and confidence scores.
 - **Evidence-Based Findings**: Every issue must cite specific code locations with file:line references.
@@ -248,9 +248,9 @@ Common code quality review scenarios.
 **Cause**: CLAUDE.md rule is vague or contradicts language standard.
 **Solution**: Note both interpretations in finding: "CLAUDE.md says X, language convention says Y. Recommending [choice] because [reason]." Flag for user decision.
 
-## Anti-Patterns
+## Preferred Review Patterns
 
-Code quality review anti-patterns to avoid.
+Code quality review mistakes and their corrections.
 
 ### Reporting Low-Confidence Noise
 **What it looks like**: Reporting style preferences with confidence below 80.
@@ -282,14 +282,14 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 | "Same pattern elsewhere" | Existing violations don't justify new ones | Report and note pattern |
 | "Minor change, skip review" | Minor changes accumulate | Review all changes in scope |
 
-## FORBIDDEN Patterns (Review Integrity)
+## Review Integrity Gates
 
 These patterns violate review integrity. If encountered:
-1. STOP - Do not proceed
+1. STOP - Pause the review
 2. REPORT - Explain the issue
 3. RECOMMEND - Suggest proper approach
 
-| Pattern | Why FORBIDDEN | Correct Approach |
+| Pattern | Why Blocked | Correct Approach |
 |---------|---------------|------------------|
 | Reporting below-threshold findings | Violates confidence system, adds noise | Only report 80+ findings |
 | Fixing without reviewing first | Skips analysis, may miss related issues | Complete review, then fix |
@@ -299,7 +299,7 @@ These patterns violate review integrity. If encountered:
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (get explicit confirmation) when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -308,7 +308,7 @@ STOP and ask the user (do NOT proceed autonomously) when:
 | Fix mode on critical bugs | Fixes may have side effects | "Found critical bugs. Should I apply fixes or just report?" |
 | Large scope review | May need prioritization | "N files changed. Review all or focus on specific areas?" |
 
-### Never Guess On
+### Always Confirm Before Acting On
 - Project-specific convention interpretations
 - Whether a pattern is intentional or accidental
 - Fix mode application without explicit user request

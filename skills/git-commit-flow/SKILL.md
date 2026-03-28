@@ -5,7 +5,7 @@ description: |
   compliance enforcement. Use when creating commits, staging changes, or
   when PR workflows need standardized commits. Triggers: "commit changes",
   "save work", "create commit", or internal skill invocation from PR
-  workflows. Do NOT use for merge commits, rebases, amends, cherry-picks,
+  workflows. Route to other skills for merge commits, rebases, amends, cherry-picks,
   or emergency rollbacks requiring raw git speed.
 effort: low
 version: 2.0.0
@@ -30,7 +30,7 @@ routing:
 
 # Git Commit Flow Skill
 
-Create validated, compliant git commits through a 4-phase gate pattern: VALIDATE, STAGE, COMMIT, VERIFY. Every phase must pass its gate before the next phase begins -- no partial commits, no skipped phases. Only implement the requested commit workflow; do not add speculative improvements or "while I'm here" changes.
+Create validated, compliant git commits through a 4-phase gate pattern: VALIDATE, STAGE, COMMIT, VERIFY. Every phase must pass its gate before the next phase begins -- no partial commits, no skipped phases. Only implement the requested commit workflow; implement only the requested commit workflow or "while I'm here" changes.
 
 **Flags** (all OFF by default):
 - `--auto-stage`: Stage all modified files without confirmation
@@ -63,7 +63,7 @@ Verify:
 
 **Step 2: Scan for sensitive files**
 
-NEVER allow `.env`, `*credentials*`, `*secret*`, `*.pem`, `*.key`, `.npmrc`, or `.pypirc` into a commit because credentials in git history are permanent -- removing them requires a full history rewrite and credential rotation. This is a hard fail, not a warning.
+block `.env`, `*credentials*`, `*secret*`, `*.pem`, `*.key`, `.npmrc`, or `.pypirc` into a commit because credentials in git history are permanent -- removing them requires a full history rewrite and credential rotation. This is a hard fail, not a warning.
 
 Check all changed files against sensitive patterns:
 
@@ -74,7 +74,7 @@ git diff --cached --name-only | grep -iE '\.(env|pem|key)$|credentials|secret|\.
 If sensitive files detected:
 1. Display them
 2. Suggest `.gitignore` additions
-3. HARD STOP until resolved -- do not proceed regardless of user urgency
+3. HARD STOP until resolved -- resolve the issue before proceeding
 
 This scan applies to every commit, including documentation-only changes, because doc commits can accidentally include `.env` files staged alongside them.
 
@@ -129,7 +129,7 @@ If `--auto-stage` flag is set, skip confirmation and stage all modified files.
 
 **Step 4: Execute staging**
 
-Stage files explicitly by name -- never use `git add .` or `git add -A` because blind bulk staging bypasses sensitive file detection and groups unrelated changes together.
+Stage files explicitly by name -- stage files explicitly by name because blind bulk staging bypasses sensitive file detection and groups unrelated changes together.
 
 ```bash
 git add <files>
@@ -175,7 +175,7 @@ Either accept user-provided message or generate one from staged changes. Show th
 
 **Step 2: Validate message**
 
-Validate now, not later, because git history is permanent and "I'll fix the message later" never happens in practice.
+Validate now, not later, because git history is permanent and "I'll fix the message later" rarely happens in practice.
 
 ```bash
 # TODO: scripts/validate_message.py not yet implemented
@@ -185,7 +185,7 @@ Validate now, not later, because git history is permanent and "I'll fix the mess
 
 Check:
 - Conventional commit format: `<type>[scope]: <description>` (see `references/conventional-commits.md`). Skip this check if `--skip-validation` flag is set.
-- No banned patterns from CLAUDE.md (see `references/banned-patterns.md`). Never skip this check -- banned pattern enforcement applies even with `--skip-validation` because these patterns violate repository-level standards, not just formatting preferences.
+- No banned patterns from CLAUDE.md (see `references/banned-patterns.md`). Always enforce banned patterns -- this check applies even with `--skip-validation` because these patterns violate repository-level standards, not just formatting preferences.
 - Subject line: lowercase after type, no trailing period, max 72 chars, imperative mood
 - Body: separated by blank line, wrapped at 72 chars
 - Focus on WHAT changed and WHY -- no attribution, no emoji unless repo style requires it
@@ -298,7 +298,7 @@ Runs VALIDATE and STAGE phases, shows commit message preview, but does not execu
 1. Read hook output to identify the issue
 2. Fix the issue (run formatter, fix lint errors)
 3. Re-stage fixed files: `git add -u`
-4. Create a NEW commit (do not amend -- the previous commit did not happen)
+4. Create a NEW commit (create a NEW commit -- the previous commit attempt did not complete)
 
 ### Error: Merge/Rebase in Progress
 **Cause**: Working tree is in an incomplete merge or rebase state.

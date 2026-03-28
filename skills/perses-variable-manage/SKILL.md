@@ -6,7 +6,7 @@ description: |
   project, or dashboard scope. Handle variable chains with dependencies (A depends
   on B depends on C). Supports 14+ interpolation formats. Uses MCP tools when
   available, percli CLI as fallback. Use for "perses variable", "dashboard variable",
-  "perses filter", "add variable". Do NOT use for datasource management
+  "perses filter", "add variable". Route to other skills for datasource management
   (use perses-datasource-manage).
 allowed-tools:
   - Read
@@ -224,7 +224,7 @@ Verify chain behavior by checking that dependent variables correctly filter when
 
 ### Blockers
 
-Do NOT proceed past each phase gate if any of these conditions exist:
+Stop and resolve before proceeding past each phase gate if any of these conditions exist:
 
 **Phase 1 Blockers**:
 - Variable dependency chain is circular (A -> B -> A) — restructure the chain
@@ -250,15 +250,15 @@ These shortcuts seem reasonable but cause real failures:
 - **"The variable works in the UI so the interpolation must be correct"**: It may work with a single selection but break with multiple selections. Always test with multiple values selected to verify the interpolation format produces valid query syntax.
 - **"I'll create the variable and fix the chain order later"**: Variables that appear to work in isolation will return wrong results when chaining is broken, and the bug is subtle — dashboards show data, just unfiltered data. Get the dependency order right before creating any variables.
 
-### Forbidden Patterns
+### Required Patterns
 
-Never produce configurations with these patterns:
+Ensure all configurations follow these requirements:
 
-- **NEVER** define a child variable before its parent in the variables array — this silently breaks filtering
-- **NEVER** use `${var:csv}` in a Prometheus `=~` or `!~` matcher — use `${var:regex}` instead
-- **NEVER** hardcode label values in a ListVariable when the values come from Prometheus — use PrometheusLabelValuesVariable or PrometheusPromQLVariable instead
-- **NEVER** create a variable with `allowMultiple: true` without verifying that all consuming queries use an appropriate multi-value interpolation format
-- **NEVER** omit the `datasource` field in a Prometheus variable plugin — Perses will not infer it and the variable will fail to resolve
+- **Always** order child variables after their parents in the variables array — this silently breaks filtering
+- **Always** use `${var:regex}` for Prometheus `=~` or `!~` matchers — use `${var:regex}` instead
+- **Always** use PrometheusLabelValuesVariable or PrometheusPromQLVariable for dynamic label values — use PrometheusLabelValuesVariable or PrometheusPromQLVariable instead
+- **Always** verify all consuming queries use an appropriate multi-value interpolation format before enabling `allowMultiple: true` that all consuming queries use an appropriate multi-value interpolation format
+- **Always** include the `datasource` field in Prometheus variable plugins — Perses will not infer it and the variable will fail to resolve
 
 ---
 

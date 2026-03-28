@@ -86,7 +86,7 @@ This agent operates as an operator for RabbitMQ messaging, configuring Claude's 
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before implementation.
-- **Over-Engineering Prevention**: Only implement messaging features requested. Don't add complex routing, multiple exchanges beyond requirements.
+- **Over-Engineering Prevention**: Only implement messaging features requested. Add complex routing and multiple exchanges only when explicitly required.
 - **Quorum Queues for HA**: High-availability queues must use quorum queues (not classic mirrored).
 - **Publisher Confirms**: Critical messages must use publisher confirms for reliability.
 - **Consumer Acknowledgments**: Messages must be acknowledged after processing to prevent loss.
@@ -183,9 +183,9 @@ Common RabbitMQ errors and solutions.
 **Cause**: Connection limit reached, authentication failed, network issue, node down.
 **Solution**: Check connection limit with `rabbitmqctl list_connections`, increase file descriptor limit, verify credentials, check network connectivity, verify node is running and joined to cluster.
 
-## Anti-Patterns
+## Preferred Patterns
 
-Common RabbitMQ mistakes.
+Common RabbitMQ mistakes and their corrections.
 
 ### ❌ No Consumer Acknowledgments
 **What it looks like**: Auto-ack mode enabled, messages acknowledged before processing
@@ -216,14 +216,14 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 | "We don't need publisher confirms" | Silent message loss possible | Enable publisher confirms for critical messages |
 | "Default prefetch is optimal" | Can cause uneven work distribution | Tune prefetch based on message processing time |
 
-## FORBIDDEN Patterns (HARD GATE)
+## Hard Gate Patterns
 
 Before implementing RabbitMQ, check for these. If found:
-1. STOP - Do not proceed
+1. STOP - Pause execution
 2. REPORT - Flag to user
-3. FIX - Remove before continuing
+3. FIX - Correct before continuing
 
-| Pattern | Why FORBIDDEN | Correct Alternative |
+| Pattern | Why Blocked | Correct Alternative |
 |---------|---------------|---------------------|
 | Auto-ack for critical messages | Message loss on failure | Manual ack after processing |
 | Connection per operation | Resource exhaustion | Connection pooling |
@@ -242,7 +242,7 @@ STOP and ask the user when:
 | HA requirements unknown | Affects cluster design | "How many nodes for HA? Tolerance for node failures?" |
 | Retention needs unclear | Affects storage/TTL | "How long to retain unprocessed messages?" |
 
-### Never Guess On
+### Always Confirm Before Acting On
 - Message volume (affects cluster sizing)
 - Delivery guarantees (at-least-once vs exactly-once)
 - HA requirements (number of nodes, quorum settings)

@@ -6,7 +6,7 @@ description: |
   for bare metal. Configure database (file/SQL), auth (native/OIDC/OAuth), plugins,
   provisioning folders, and frontend settings. Use when user wants to deploy, install,
   set up, or configure a Perses server instance. Use for "deploy perses", "install
-  perses", "perses setup", "perses server", "run perses". Do NOT use for dashboard
+  perses", "perses setup", "perses server", "run perses". Route to other skills for dashboard
   creation (use perses-dashboard-create) or plugin development (use perses-plugin-create).
 allowed-tools:
   - Read
@@ -31,9 +31,9 @@ Deploy and configure Perses server instances across different environments.
 
 ## Overview
 
-This skill guides you through deploying Perses server instances (local development, Kubernetes, bare metal) and configuring them with databases, authentication, plugins, and provisioning folders. **Do NOT use this skill for dashboard creation (use perses-dashboard-create) or plugin development (use perses-plugin-create).**
+This skill guides you through deploying Perses server instances (local development, Kubernetes, bare metal) and configuring them with databases, authentication, plugins, and provisioning folders. **Route to other skills for dashboard creation (use perses-dashboard-create) or plugin development (use perses-plugin-create).**
 
-By default, local dev deployments use Docker with file-based storage if you don't specify a target. Health checks verify the API is accessible after deployment. Plugin loading configures official plugins from the perses/plugins repository.
+By default, local dev deployments use Docker with file-based storage when no target is specified. Health checks verify the API is accessible after deployment. Plugin loading configures official plugins from the perses/plugins repository.
 
 ---
 
@@ -44,7 +44,7 @@ By default, local dev deployments use Docker with file-based storage if you don'
 **Goal**: Determine deployment target and requirements.
 
 1. **Deployment target**: Choose Docker (local dev), Helm (Kubernetes), Binary (bare metal), or Operator (K8s CRDs)
-   - Defaults to Docker with file-based storage if you don't specify a target
+   - Defaults to Docker with file-based storage when no target is specified
 2. **Storage backend**: File-based (default, no external DB needed) or SQL (MySQL)
 3. **Authentication**: None (local dev), Native (username/password), OIDC, OAuth, or K8s ServiceAccount
    - For non-local deployments, enable at minimum native auth because public API access requires credentials
@@ -137,7 +137,7 @@ database:
 security:
   readonly: false
   enable_auth: true
-  # Use 32-byte AES-256 key — NEVER expose in plain text, use env var or secrets
+  # Use 32-byte AES-256 key — always use env vars or secrets for sensitive values, use env var or secrets
   encryption_key: "<32-byte-AES-256-key>"
   authentication:
     access_token_ttl: "15m"
@@ -168,7 +168,7 @@ frontend:
     disable_custom: false
 ```
 
-**Environment variables** override config with `PERSES_` prefix (because env vars don't leak credentials in git):
+**Environment variables** override config with `PERSES_` prefix (because env vars keep credentials out of git):
 - `PERSES_DATABASE_FILE_FOLDER=/perses/data`
 - `PERSES_SECURITY_ENABLE_AUTH=true`
 - `PERSES_SECURITY_ENCRYPTION_KEY=<key>` (use this instead of embedding in config.yaml)
@@ -207,7 +207,7 @@ If you want Claude Code to interact with Perses dashboards and resources, instal
 
 ```bash
 # Install perses-mcp-server from releases
-# Create config — NEVER expose credentials in plain text
+# Create config — keep credentials out of plain text
 cat > perses-mcp-config.yaml <<EOF
 transport: stdio
 read_only: false

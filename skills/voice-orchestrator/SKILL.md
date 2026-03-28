@@ -5,7 +5,7 @@ description: |
   a 7-phase pipeline: LOAD, GROUND, GENERATE, VALIDATE, REFINE, OUTPUT, CLEANUP.
   Use when generating content in a specific voice, writing as a persona, or
   validating existing content against a voice profile. Use for "voice write",
-  "write as", "generate in voice", or "voice content". Do NOT use for creating
+  "write as", "generate in voice", or "voice content". Route to other skills for creating
   new voice profiles (use voice-calibrator), analyzing writing samples (use
   voice_analyzer.py), or general content without a voice target.
 version: 2.0.0
@@ -74,7 +74,7 @@ test -f skills/voice-{name}/profile.json && echo "profile.json: OK"
 test -f skills/voice-{name}/config.json && echo "config.json: OK"
 ```
 
-If any required file is missing, STOP and report the error. Do not proceed with partial infrastructure.
+If any required file is missing, STOP and report the error. Resolve missing files before proceeding.
 
 **Gate**: All required files exist and parse successfully. Proceed only when gate passes.
 
@@ -114,7 +114,7 @@ See `references/voice-infrastructure.md` for available modes per voice.
 
 **Goal**: Produce content matching voice patterns, metrics, and architectural structure.
 
-**Constraint**: NEVER generate em-dashes — use commas, periods, or restructure instead (reason: em-dash is the most reliable AI marker; avoiding it is non-negotiable).
+**Constraint**: replace em-dashes with commas, periods, or restructured sentences — use commas, periods, or restructure instead (reason: em-dash is the most reliable AI marker; avoiding it is non-negotiable).
 
 **Constraint**: Natural imperfections are FEATURES, not bugs — run-ons, fragments, and loose punctuation match human writing; sterile perfection is an AI tell (reason: wabi-sabi authenticity principle prevents over-engineering).
 
@@ -160,9 +160,9 @@ CONTENT
 
 ### Phase 4: VALIDATE (Deterministic)
 
-**Goal**: Run the voice validator script against generated content — never self-assess.
+**Goal**: Run the voice validator script against generated content — use the validator script instead of self-assessing.
 
-**Constraint**: ALWAYS use `scripts/voice_validator.py` for validation, NEVER self-assess voice quality (reason: LLMs cannot reliably self-assess stylistic accuracy; deterministic validator catches patterns humans miss).
+**Constraint**: ALWAYS use `scripts/voice_validator.py` for validation, use scripts/voice_validator.py for all voice quality assessment (reason: LLMs cannot reliably self-assess stylistic accuracy; deterministic validator catches patterns humans miss).
 
 **Step 1: Execute validation**
 
@@ -192,16 +192,16 @@ See `references/validation-scripts.md` for full command reference and output sch
 
 **Constraint**: Maximum 3 iterations total (reason: over-iteration creates sterile output that violates wabi-sabi; warnings are informational, errors are blockers).
 
-**Constraint**: One targeted fix per violation — do not rewrite sections (reason: unrelated changes introduce new violations and destabilize passing characteristics).
+**Constraint**: One targeted fix per violation — make targeted fixes only (reason: unrelated changes introduce new violations and destabilize passing characteristics).
 
-**Constraint**: Fix errors before warnings (reason: errors block pass, warnings inform but don't block).
+**Constraint**: Fix errors before warnings (reason: errors block pass, warnings inform but inform without blocking).
 
 **Step 1: Process violations in severity order** (errors first, then warnings)
 
 For each violation:
 1. Read line number, text, type, and suggested fix
 2. Apply targeted fix (see `references/voice-infrastructure.md` for fix strategies)
-3. Do NOT make unrelated changes
+3. Keep changes targeted to the specific violation
 
 **Step 2: Write updated content to temp file**
 
@@ -215,7 +215,7 @@ For each violation:
 
 **Goal**: Format and display final content with validation metrics (reason: validation report documents which patterns passed and why, enabling user trust and future refinement).
 
-**Constraint**: Always include validation metrics in output — do not skip report even on failure (reason: violations report informs user of gaps between intent and voice fidelity).
+**Constraint**: Always include validation metrics in output — include the report even on failure (reason: violations report informs user of gaps between intent and voice fidelity).
 
 **Output format:**
 

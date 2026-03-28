@@ -110,7 +110,7 @@ For each perspective, produce output in this format:
 
 **Goal**: Unify findings across all perspectives into priority-ranked recommendations.
 
-**Hardcoded requirement** (always apply): Synthesis before application. NEVER apply improvements without completing the synthesis phase first. Without synthesis, you apply every extracted rule equally. Priority ranking prevents over-engineering and focuses on high-signal patterns.
+**Hardcoded requirement** (always apply): Synthesis before application. Complete the synthesis phase before applying any improvements. Without synthesis, you apply every extracted rule equally. Priority ranking prevents over-engineering and focuses on high-signal patterns.
 
 **Step 1: Identify common themes**
 - Patterns that appeared in 4+ perspectives are high-signal (supported by multiple lenses)

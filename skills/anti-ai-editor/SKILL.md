@@ -6,8 +6,8 @@ description: |
   meta-commentary. Use when content sounds robotic, needs de-AIing, or
   voice validation flags synthetic patterns. Use for "edit for AI",
   "remove AI patterns", "make it sound human", or "de-AI this".
-  Do NOT use for grammar checking, factual editing, or full rewrites.
-  Do NOT use for voice generation (use voice skills instead).
+  Route to other skills for grammar checking, factual editing, or full rewrites.
+  Route to other skills for voice generation (use voice skills instead).
 version: 2.1.0
 user-invocable: false
 command: /edit
@@ -30,7 +30,7 @@ routing:
 
 # Anti-AI Editor
 
-Detect and remove AI-generated writing patterns through targeted, minimal edits. This skill scans for cliches, passive voice, structural monotony, and meta-commentary, then proposes specific replacements -- never wholesale rewrites. Human imperfections (run-ons, fragments, loose punctuation) are features, not bugs; do not "fix" them.
+Detect and remove AI-generated writing patterns through targeted, minimal edits. This skill scans for cliches, passive voice, structural monotony, and meta-commentary, then proposes specific replacements -- always targeted, minimal edits. Human imperfections (run-ons, fragments, loose punctuation) are features, not bugs; preserve them.
 
 ## Instructions
 
@@ -40,7 +40,7 @@ Detect and remove AI-generated writing patterns through targeted, minimal edits.
 
 **Step 1: Read and classify the file**
 
-Read the target file. Identify file type (blog post, docs, README). Skip frontmatter (YAML between `---` markers), code blocks, inline code, and blockquotes -- edits to these zones corrupt structure and are never appropriate.
+Read the target file. Identify file type (blog post, docs, README). Skip frontmatter (YAML between `---` markers), code blocks, inline code, and blockquotes -- edits to these zones corrupt structure and would corrupt structure.
 
 If a voice profile is specified, also check voice-specific anti-patterns alongside the standard categories.
 
@@ -104,7 +104,7 @@ Every fix must be the minimum change needed. Multiple small edits beat one big r
 
 **Step 3: Wabi-sabi check**
 
-Before proposing any fix, ask: "Would removing this imperfection make it sound MORE robotic?" If yes, do NOT flag it. Preserve:
+Before proposing any fix, ask: "Would removing this imperfection make it sound MORE robotic?" If yes, preserve it. Preserve:
 - Run-on sentences that convey enthusiasm
 - Fragment punches that create rhythm
 - Loose punctuation that matches conversational flow
@@ -120,7 +120,7 @@ Natural informal language like "So basically" in a casual blog post is spoken rh
 
 **Step 1: Generate the edit report**
 
-Show before/after for every modification with the reason -- never apply silent changes.
+Show before/after for every modification with the reason -- always show before/after for every modification with the reason.
 
 ```
 =================================================================
@@ -152,7 +152,7 @@ Show before/after for every modification with the reason -- never apply silent c
 =================================================================
 ```
 
-Style edits must never change what the content says. When fixing "This solution robustly handles edge cases", write "This solution handles edge cases reliably" -- fix the style word, keep the technical meaning intact. If removing a flagged word would lose meaningful information, rephrase rather than delete.
+Style edits must preserve what the content says. When fixing "This solution robustly handles edge cases", write "This solution handles edge cases reliably" -- fix the style word, keep the technical meaning intact. If removing a flagged word would lose meaningful information, rephrase rather than delete.
 
 **Step 2: Apply changes after confirmation**
 

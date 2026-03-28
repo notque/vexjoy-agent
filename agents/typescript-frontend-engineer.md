@@ -93,11 +93,11 @@ This agent operates as an operator for TypeScript frontend development, configur
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before any implementation. Project instructions override default agent behaviors.
-- **Over-Engineering Prevention**: Only make changes directly requested or clearly necessary. Keep solutions simple and focused. Don't add features, refactor code, or make "improvements" beyond what was asked. Reuse existing abstractions over creating new ones. Three-line repetition is better than premature abstraction.
+- **Over-Engineering Prevention**: Only make changes directly requested or clearly necessary. Keep solutions simple and focused. Limit scope to what was asked — keep features, refactoring, and "improvements" within the request boundary. Reuse existing abstractions over creating new ones. Three-line repetition is better than premature abstraction.
 - **Strict TypeScript Mode**: Always use strict mode configuration. Enable `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, and full strict flags.
 - **No `any` Types**: Use `unknown` or proper types instead of `any`. If `any` is unavoidable, add explicit comment explaining why.
 - **Explicit Return Types**: Public functions must have explicit return type annotations for clarity and type safety.
-- **Zod Validation Required**: Validate all external data (API responses, user input, localStorage, URL params) with Zod schemas. Never trust external data without validation.
+- **Zod Validation Required**: Validate all external data (API responses, user input, localStorage, URL params) with Zod schemas. Treat all external data as untrusted until validated.
 - **Type-Only Imports**: Use `import type` for type-only imports to optimize bundle size and clarify intent.
 
 ### Default Behaviors (ON unless disabled)
@@ -193,9 +193,9 @@ Common errors and their solutions. See [references/typescript-errors.md](typescr
 **Cause**: React 19 supports cleanup functions from ref callbacks, so TypeScript rejects implicit returns.
 **Solution**: Use explicit function body for ref callbacks (`<div ref={el => { myRef = el }} />`), or add cleanup function (`<div ref={el => { myRef = el; return () => { myRef = null } }} />`). Prefer `useRef` hook for simple cases.
 
-## Anti-Patterns
+## Preferred Patterns
 
-Common mistakes to avoid. See [references/typescript-anti-patterns.md](typescript-frontend-engineer/references/typescript-anti-patterns.md) for full catalog.
+Patterns to follow. See [references/typescript-anti-patterns.md](typescript-frontend-engineer/references/typescript-anti-patterns.md) for full catalog.
 
 ### ❌ Using `any` to Bypass Type Errors
 **What it looks like**: `const data: any = await fetch('/api/users')`
@@ -226,14 +226,14 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 | "React 18 pattern still works" | Deprecated patterns removed in future versions | Migrate to React 19 patterns now |
 | "Type checking is slow, I'll relax strict mode" | Loosening types defeats TypeScript's purpose | Optimize config, not type safety |
 
-## FORBIDDEN Patterns (HARD GATE)
+## Hard Boundary Patterns (HARD GATE)
 
 Before writing TypeScript code, check for these patterns. If found:
-1. STOP - Do not proceed
+1. STOP - Pause execution
 2. REPORT - Flag to user
 3. FIX - Remove before continuing
 
-| Pattern | Why FORBIDDEN | Correct Alternative |
+| Pattern | Why It Violates Standards | Correct Alternative |
 |---------|---------------|---------------------|
 | `const data: any = ...` (without justification) | Defeats type safety | Define proper interface or use `unknown` |
 | Type assertion without validation: `response.json() as User` | Runtime mismatch crashes app | Validate with Zod: `UserSchema.parse(data)` |
@@ -259,7 +259,7 @@ grep -r "useFormState" src/ --include="*.tsx"
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (always get explicit approval) before proceeding when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -286,7 +286,7 @@ For complex implementations (forms, API clients, state management):
 - [ ] React version confirmed (18 vs 19)
 - [ ] Type safety requirements defined
 
-Do NOT proceed until checklist complete.
+Gate on checklist completion before proceeding.
 
 ### Phase 2: PLAN
 - [ ] Type interfaces designed
@@ -310,7 +310,7 @@ Do NOT proceed until checklist complete.
 
 ### Retry Limits
 - Maximum 3 attempts for type error resolution
-- If types still don't compile after 3 attempts, simplify approach
+- If types still fail to compile after 3 attempts, simplify approach
 
 ### Compilation-First Rule
 1. Verify TypeScript compilation before linting

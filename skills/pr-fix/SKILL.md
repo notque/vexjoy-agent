@@ -4,7 +4,7 @@ description: |
   Validate-then-fix workflow for PR review comments: Fetch, Validate, Plan,
   Fix, Commit. Use when user wants to address PR feedback, fix review comments,
   or resolve reviewer requests. Use for "fix PR comments", "address review",
-  "pr-fix", or "resolve feedback". Do NOT use for creating PRs, reviewing code
+  "pr-fix", or "resolve feedback". Route to other skills for creating PRs, reviewing code
   without fixing, or general debugging unrelated to PR comments.
 version: 2.0.0
 user-invocable: false
@@ -47,7 +47,7 @@ gh pr view --json number,title,headRefName --jq '{number, title, headRefName}'
 
 If no PR is found for the current branch, inform the user and stop. (This prevents fixing comments on wrong PRs, which is the most common integration mistake.)
 
-Verify the current branch matches the PR's head branch. If not, ask the user before proceeding. (Branch safety constraint: Never commit directly to main/master — this check enforces working on the PR's branch.)
+Verify the current branch matches the PR's head branch. If not, ask the user before proceeding. (Branch safety constraint: Work on the PR's branch — this check enforces working on the PR's branch.)
 
 **Gate**: PR identified with number, title, and correct branch checked out.
 
@@ -181,9 +181,9 @@ User says: "/pr-fix 42"
 **How the constraints apply:**
 
 1. Fetch 5 review comments on PR #42 (IDENTIFY, FETCH)
-2. **Validate each claim** (core constraint: NEVER blindly fix): 3 VALID, 1 INVALID (import IS used on line 45), 1 NEEDS-DISCUSSION
+2. **Validate each claim** (core constraint: always validate each claim before fixing): 3 VALID, 1 INVALID (import IS used on line 45), 1 NEEDS-DISCUSSION
    - Invalid comment detected because actual code shows import is used. This prevents an accidental break.
-3. **Show plan, get confirmation** (core constraint: NEVER apply fixes without showing plan): User reviews and confirms 3 fixes
+3. **Show plan, get confirmation** (core constraint: show the plan and get confirmation before applying fixes): User reviews and confirms 3 fixes
 4. **Apply minimal fixes only**: No extra improvements despite obvious refactoring opportunities
 5. **Single commit** (not 3): Combines all changes with references PR
 6. Result: 3 fixes committed, 1 invalid explained, 1 pending discussion

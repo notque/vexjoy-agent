@@ -202,10 +202,10 @@ AGENT_TEMPLATE_V2. Include these sections in this order:
 4. **Error Handling** with 2–3 named error cases (Cause, Solution pattern)
 5. **References** (links to related files, skills, agents)
 
-Avoid these outdated sections — they are being removed from the template:
+Omit these outdated sections — they are being removed from the template:
 - "Operator Context" (hardcoded/default/optional behaviors)
 - "What This Skill CAN/CANNOT Do"
-- "Anti-Patterns" and anti-rationalization tables
+- "Preferred Patterns" tables and rationalization-detection tables
 
 **Step 3**: Integrate constraints inline with each phase's reasoning and gate
 logic rather than in separate subsections. For example:
@@ -342,7 +342,7 @@ section. Proceed with a clear rationale for the new skill's existence.
 Cause: The complexity tier may be wrong, the phase structure may be incoherent,
 or the domain is too narrow to support a full Operator Context + Error Handling
 section.
-Solution: Return to Phase 2 (DESIGN). Reconsider the tier — Simple skills don't
+Solution: Return to Phase 2 (DESIGN). Reconsider the tier — Simple skills rarely
 need elaborate error handling. If the skill is genuinely too narrow, consider
 whether it should be a section within an existing skill rather than a standalone
 SKILL.md.

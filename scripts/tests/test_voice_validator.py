@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 # Path to the voice-validator script
-SCRIPT_PATH = Path(__file__).parent.parent / "voice_validator.py"
+SCRIPT_PATH = Path(__file__).parent.parent / "voice-validator.py"
 
 
 def run_validator(args: list[str], input_text: str | None = None) -> tuple[int, str, str]:

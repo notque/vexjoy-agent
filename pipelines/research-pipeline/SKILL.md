@@ -110,7 +110,7 @@ Write `research/{topic}/scope.md`:
 
 **Goal**: Execute parallel research with mandatory multi-agent dispatch.
 
-**Critical Constraint**: You MUST dispatch minimum 3 parallel `research-subagent-executor` agents in a single message. Sequential research is forbidden — it produces lower quality output and takes 3–5x longer than parallel dispatch (validated by A/B testing). Each agent must be assigned a distinct angle and receive identical dispatch instructions in the same message; do NOT dispatch agents one at a time waiting for completion between each.
+**Critical Constraint**: Dispatch minimum 3 parallel `research-subagent-executor` agents in a single message. Sequential research is forbidden — it produces lower quality output and takes 3-5x longer than parallel dispatch (validated by A/B testing). Each agent must be assigned a distinct angle and receive identical dispatch instructions in the same message; dispatch all agents simultaneously.
 
 **Step 1**: Assign a distinct angle to each agent. Angles should cover the scope without overlapping. Good angle patterns for most research topics:
 
@@ -171,7 +171,7 @@ ls research/{topic}/raw-*.md
 
 If an agent times out or fails to write its file:
 - Re-dispatch the failed agent once with the same instructions
-- If re-dispatch also fails, note the angle as "unavailable" and continue with remaining agents — do NOT block on a single failed agent
+- If re-dispatch also fails, note the angle as "unavailable" and continue with remaining agents — keep the pipeline moving forward
 
 ---
 

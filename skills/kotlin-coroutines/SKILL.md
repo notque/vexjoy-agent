@@ -11,7 +11,7 @@ agent: kotlin-general-engineer
 
 ## Structured Concurrency
 
-Every coroutine must belong to a scope. The scope defines the lifetime -- when the scope is cancelled, all its children are cancelled. Never launch coroutines into the void.
+Every coroutine must belong to a scope. The scope defines the lifetime -- when the scope is cancelled, all its children are cancelled. Tie every coroutine to a scope.
 
 ```kotlin
 import kotlinx.coroutines.*
@@ -154,7 +154,7 @@ class CounterViewModel : ViewModel() {
 // Use for one-shot events (navigation, toasts, errors).
 class EventBus {
     private val _events = MutableSharedFlow<AppEvent>(
-        replay = 0,           // Don't replay old events to new subscribers
+        replay = 0,           // Skip replaying old events to new subscribers
         extraBufferCapacity = 64,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
@@ -260,12 +260,12 @@ suspend fun fetchWithFallback(): Data {
     }
 }
 
-// NEVER catch CancellationException — it breaks structured concurrency
+// Always rethrow CancellationException — it breaks structured concurrency
 suspend fun badExample() {
     try {
         someWork()
     } catch (e: Exception) {
-        // BAD: This catches CancellationException too!
+        // Before: This catches CancellationException too!
         // The coroutine won't cancel properly.
     }
 }
@@ -305,19 +305,19 @@ suspend fun queryDatabase(): List<Row> = withContext(dbDispatcher) {
 }
 ```
 
-## Common Anti-Patterns
+## Preferred Patterns
 
 ### GlobalScope: Fire-and-Forget Leak
 
 ```kotlin
-// BAD: No lifecycle management, lives until process dies
+// Before: No lifecycle management, lives until process dies
 fun handleRequest(request: Request) {
     GlobalScope.launch {
         auditService.log(request) // If this hangs, it leaks forever
     }
 }
 
-// GOOD: Use a scoped coroutine tied to the component lifecycle
+// After: Use a scoped coroutine tied to the component lifecycle
 class RequestHandler(private val scope: CoroutineScope) {
     fun handleRequest(request: Request) {
         scope.launch {
@@ -330,7 +330,7 @@ class RequestHandler(private val scope: CoroutineScope) {
 ### Unstructured launch Without Join
 
 ```kotlin
-// GOOD: coroutineScope waits for all children
+// After: coroutineScope waits for all children
 suspend fun processAll(items: List<Item>) = coroutineScope {
     items.forEach { item ->
         launch { process(item) } // These run concurrently
@@ -338,25 +338,25 @@ suspend fun processAll(items: List<Item>) = coroutineScope {
     // coroutineScope suspends until all children complete
 }
 
-// BAD: Using a detached scope means no waiting
+// Before: Using a detached scope means no waiting
 fun processAllBroken(items: List<Item>) {
     val scope = CoroutineScope(Dispatchers.Default)
     items.forEach { item ->
         scope.launch { process(item) } // No one awaits these!
     }
-    // Function returns immediately, work may never complete
+    // Function returns immediately, work may remain incomplete
 }
 ```
 
 ### Catching CancellationException
 
 ```kotlin
-// BAD: Swallowing cancellation breaks the entire coroutine tree
+// Before: Swallowing cancellation breaks the entire coroutine tree
 try {
     longRunningWork()
 } catch (e: Exception) { /* swallows CancellationException */ }
 
-// GOOD: Explicit rethrow
+// After: Explicit rethrow
 try {
     longRunningWork()
 } catch (e: CancellationException) {
@@ -370,7 +370,7 @@ try {
 
 1. **Structured concurrency is non-negotiable** -- every coroutine must have a parent scope that defines its lifetime.
 2. **Inject dispatchers** -- accept `CoroutineDispatcher` as a parameter so callers (and tests) can control threading.
-3. **Never catch CancellationException** -- rethrow it immediately or don't catch `Exception` at all. Use specific exception types.
+3. **Always rethrow CancellationException** -- rethrow it immediately or use specific exception types instead of catching `Exception`. Use specific exception types.
 4. **Prefer Flow over Channel** -- Flow is cold, composable, and handles backpressure. Channels are lower-level; reach for them only when Flow cannot express the pattern.
 5. **Use supervisorScope for partial failure tolerance** -- when independent tasks should not cancel each other, wrap them in supervisorScope.
-6. **Avoid GlobalScope** -- it has no lifecycle, no cancellation, and no structured concurrency. Pass a scope from your application framework instead.
+6. **Use scoped coroutines instead of GlobalScope** -- it has no lifecycle, no cancellation, and no structured concurrency. Pass a scope from your application framework instead.

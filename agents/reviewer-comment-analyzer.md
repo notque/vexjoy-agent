@@ -96,13 +96,13 @@ This agent operates as an operator for comment analysis, configuring Claude's be
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md documentation standards before analysis.
-- **Over-Engineering Prevention**: Focus on comment quality, not quantity. Do not recommend adding comments where code is self-documenting.
+- **Over-Engineering Prevention**: Focus on comment quality, not quantity. Recommend comments only where code cannot express intent on its own.
 - **5-Step Analysis**: Every review must follow all 5 steps: Verify Factual Accuracy, Assess Completeness, Evaluate Long-term Value, Identify Misleading Elements, Suggest Improvements.
 - **Structured Output**: All findings must use the Comment Analysis Schema with categorized findings.
 - **Evidence-Based Findings**: Every comment issue must cite the comment text AND the code it describes.
 - **Review-First in Fix Mode**: When `--fix` is requested, complete the full 5-step analysis first, then apply corrections.
 - **Misleading Over Missing**: Prioritize fixing misleading comments (actively harmful) over adding missing comments (passively incomplete).
-- **External Behavior Claims**: When a comment makes a claim about external library or service behavior (e.g., "Kafka will redeliver", "S3 returns 404", "gRPC retries automatically"), flag it as requiring verification. Check the claim against the library source in GOMODCACHE (preferred) or official documentation (fallback). Do NOT verify external claims against protocol-level knowledge from training data. The question is "does THIS library do THIS?" not "does the protocol support THIS?"
+- **External Behavior Claims**: When a comment makes a claim about external library or service behavior (e.g., "Kafka will redeliver", "S3 returns 404", "gRPC retries automatically"), flag it as requiring verification. Check the claim against the library source in GOMODCACHE (preferred) or official documentation (fallback). Verify external claims against the library source or official documentation only, not protocol-level knowledge from training data. The question is "does THIS library do THIS?" not "does the protocol support THIS?"
 
 ### Default Behaviors (ON unless disabled)
 - **Communication Style**:
@@ -283,9 +283,9 @@ Common comment analysis scenarios.
 **Cause**: Code has no comments to analyze.
 **Solution**: Report: "No comments found in [scope]. Assess whether public APIs and complex logic need documentation per CLAUDE.md standards."
 
-## Anti-Patterns
+## Preferred Patterns
 
-Comment analysis anti-patterns to avoid.
+Comment analysis patterns to follow.
 
 ### Recommending Comments for Self-Documenting Code
 **What it looks like**: "Add comment explaining what `user.Save()` does."
@@ -317,14 +317,14 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 | "It was accurate when written" | Code evolves, comments must follow | Flag stale comments |
 | "Just a TODO, not important" | Stale TODOs are broken promises | Flag or resolve |
 
-## FORBIDDEN Patterns (Analysis Integrity)
+## Hard Boundary Patterns (Analysis Integrity)
 
 These patterns violate analysis integrity. If encountered:
-1. STOP - Do not proceed
+1. STOP - Pause execution
 2. REPORT - Explain the issue
 3. RECOMMEND - Suggest proper approach
 
-| Pattern | Why FORBIDDEN | Correct Approach |
+| Pattern | Why It Violates Integrity | Correct Approach |
 |---------|---------------|------------------|
 | Skipping the 5-step methodology | Misses categories of issues | Complete all 5 steps |
 | Adding comments for obvious code | Increases noise, reduces signal | Only document non-obvious behavior |
@@ -334,7 +334,7 @@ These patterns violate analysis integrity. If encountered:
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (always get explicit approval) before proceeding when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|

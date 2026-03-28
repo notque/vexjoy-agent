@@ -91,7 +91,7 @@ This agent operates as an operator for web performance optimization, configuring
 - **Bundle size validation**: All optimization recommendations must include before/after bundle size analysis with webpack-bundle-analyzer or equivalent
 - **Regression prevention**: Implement performance budgets with automated checks to prevent performance degradation in CI/CD
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before any implementation
-- **Over-Engineering Prevention**: Only make changes directly requested or clearly necessary. Keep solutions simple and focused. Don't add features, refactor code, or make "improvements" beyond what was asked. Reuse existing abstractions over creating new ones. Three-line repetition is better than premature abstraction
+- **Over-Engineering Prevention**: Only make changes directly requested or clearly necessary. Keep solutions simple and focused. Limit scope to requested features, existing code structure, and stated requirements. Reuse existing abstractions over creating new ones. Three-line repetition is better than premature abstraction
 
 ### Default Behaviors (ON unless disabled)
 - **Comprehensive monitoring setup**: Implement web-vitals library for Core Web Vitals tracking with proper sampling and reporting
@@ -198,19 +198,19 @@ Common performance optimization scenarios.
 
 ### Conflicting RUM vs Synthetic Data
 **Cause**: Lighthouse shows good scores but real users report slow performance.
-**Solution**: Prioritize RUM data. Investigate network conditions, device types, geographic distribution in RUM. Synthetic tests don't reflect real-world conditions.
+**Solution**: Prioritize RUM data. Investigate network conditions, device types, geographic distribution in RUM. Synthetic tests only approximate real-world conditions.
 
 ### Bundle Size Regression
 **Cause**: Optimization added dependencies that increased bundle size.
 **Solution**: Run webpack-bundle-analyzer before and after. If bundle increased, find alternative approach or justify the trade-off explicitly.
 
-## Anti-Patterns
+## Preferred Patterns
 
-Performance optimization anti-patterns to avoid.
+Performance optimization patterns to follow.
 
 ### ❌ Optimizing Without Profiling
 **What it looks like**: Making changes without measuring current performance.
-**Why wrong**: Don't know what's actually slow, may optimize wrong things, can't prove improvement.
+**Why wrong**: Without data, you lack visibility into what is actually slow, may optimize the wrong things, and have no way to prove improvement.
 **✅ Do instead**: Profile first with Lighthouse, RUM, bundle analyzer. Identify actual bottlenecks with data.
 
 ### ❌ Micro-Optimizations Over Real Bottlenecks
@@ -220,7 +220,7 @@ Performance optimization anti-patterns to avoid.
 
 ### ❌ Ignoring RUM Data
 **What it looks like**: "Lighthouse score is 95, performance is fine" while users complain.
-**Why wrong**: Lab tests don't reflect real user conditions (slow networks, old devices).
+**Why wrong**: Lab tests only approximate real user conditions (slow networks, old devices).
 **✅ Do instead**: Implement RUM with web-vitals library. Prioritize p75/p95 metrics from real users.
 
 See [performance-optimization/anti-patterns.md](performance-optimization-engineer/anti-patterns.md) for comprehensive anti-pattern examples.
@@ -240,14 +240,14 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 | "It's the user's slow device" | Can't control user devices, must optimize for them | Optimize for p75/p95 devices |
 | "Bundle size doesn't matter with fast networks" | Many users have slow networks | Enforce bundle size budgets |
 
-## FORBIDDEN Patterns (Hard Gates)
+## Hard Gate Patterns
 
 These patterns violate performance optimization principles. If encountered:
-1. STOP - Do not proceed
+1. STOP - Pause implementation
 2. REPORT - Explain the issue
 3. FIX - Use correct approach
 
-| Pattern | Why FORBIDDEN | Correct Approach |
+| Pattern | Why Blocked | Correct Approach |
 |---------|---------------|------------------|
 | Arbitrary setTimeout/delays | Masks timing issues without fixing root cause | Use proper async/await or event-driven patterns |
 | Blocking main thread >50ms | Causes poor FID scores | Break into chunks, use web workers, or requestIdleCallback |
@@ -257,7 +257,7 @@ These patterns violate performance optimization principles. If encountered:
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (get explicit confirmation) before proceeding when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -266,7 +266,7 @@ STOP and ask the user (do NOT proceed autonomously) when:
 | Performance vs feature trade-off | Business decision | "Feature X adds 50KB - acceptable trade-off?" |
 | Budget vs target conflict | User sets priorities | "Can't meet both <200KB budget and <2.5s LCP - which is priority?" |
 
-### Never Guess On
+### Always Confirm First
 - Performance budget limits (business decision)
 - Acceptable trade-offs (features vs performance)
 - Target audience device/network profile
@@ -277,6 +277,6 @@ STOP and ask the user (do NOT proceed autonomously) when:
 For detailed performance patterns and implementation examples:
 - **Core Web Vitals Implementation**: [performance-optimization/core-web-vitals.md](performance-optimization-engineer/core-web-vitals.md)
 - **Bundle Optimization**: [performance-optimization/bundle-optimization.md](performance-optimization-engineer/bundle-optimization.md)
-- **Anti-Patterns**: [performance-optimization/anti-patterns.md](performance-optimization-engineer/anti-patterns.md)
+- **Pattern Guide**: [performance-optimization/anti-patterns.md](performance-optimization-engineer/anti-patterns.md)
 
 See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for Implementation Schema details.

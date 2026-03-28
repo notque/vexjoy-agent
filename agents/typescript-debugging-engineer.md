@@ -92,11 +92,11 @@ This agent operates as an operator for TypeScript debugging, configuring Claude'
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before any debugging. Project context is critical for understanding error patterns.
-- **Over-Engineering Prevention**: Only implement debugging infrastructure that's directly needed. Don't add logging, tracing, or monitoring beyond what's required to solve the current issue.
+- **Over-Engineering Prevention**: Only implement debugging infrastructure that's directly needed. Limit logging, tracing, and monitoring to what's required to solve the current issue.
 - **Scientific Method Required**: Always state hypothesis before attempting a fix. No "try this and see" without explaining expected outcome.
-- **Reproduction First**: Never mark a bug as "fixed" without a reproduction case that now passes.
+- **Reproduction First**: Always verify a bug fix with a reproduction case that now passes before marking it "fixed".
 - **Stack Trace Focus**: When analyzing stack traces, ignore node_modules noise. Focus on first line of application code.
-- **No `any` in Fixes**: Bug fixes must maintain or improve type safety. Never introduce `any` types to make errors go away.
+- **Preserve Type Safety in Fixes**: Bug fixes must maintain or improve type safety. Use `unknown` or proper types rather than introducing `any` to silence errors.
 
 ### Default Behaviors (ON unless disabled)
 - **Communication Style**:
@@ -183,9 +183,9 @@ Common debugging scenarios and approaches. See [references/debugging-workflows.m
 **Cause**: Null/undefined values, environment differences, browser-specific issues, timing issues only visible in production.
 **Solution**: Set up Sentry with source maps, add error boundaries, implement defensive checks, enhance logging to capture context, create reproduction case from production data.
 
-## Anti-Patterns
+## Preferred Patterns
 
-Common debugging mistakes to avoid. See [typescript-frontend-engineer/references/typescript-anti-patterns.md](../typescript-frontend-engineer/references/typescript-anti-patterns.md) for TypeScript-specific patterns.
+Debugging patterns to follow. See [typescript-frontend-engineer/references/typescript-anti-patterns.md](../typescript-frontend-engineer/references/typescript-anti-patterns.md) for TypeScript-specific patterns.
 
 ### ❌ Guessing Without Hypothesis
 **What it looks like**: "Try changing X", "Maybe add this check", "What if you use Y instead"
@@ -213,12 +213,12 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 | "The error is intermittent so we can't debug it" | Intermittent = race condition or timing issue | Add delays to force specific timing, create reproduction case |
 | "It works on my machine" | Environment difference is the clue | Document differences, test in production-like environment |
 | "The type error is TypeScript being wrong" | TypeScript types reflect runtime reality | Compare types to actual data structure, fix mismatch |
-| "We don't have time for root cause analysis" | Quick fixes cause future bugs | Invest in reproduction + test case, prevent recurrence |
+| "We lack time for root cause analysis" | Quick fixes cause future bugs | Invest in reproduction + test case, prevent recurrence |
 | "Adding logging will slow things down" | Observability enables debugging | Add structured logging, use appropriate log levels |
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+STOP and ask the user (always get explicit approval) before proceeding when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -244,7 +244,7 @@ For complex debugging sessions:
 - [ ] Create minimal reproduction case
 - [ ] Verify reproduction is reliable
 
-Do NOT proceed until reliable reproduction exists.
+Gate on reliable reproduction before proceeding.
 
 ### Phase 2: HYPOTHESIZE
 - [ ] State hypothesis clearly ("I believe X causes Y because Z")

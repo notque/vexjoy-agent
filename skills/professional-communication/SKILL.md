@@ -6,7 +6,7 @@ description: |
   user needs to convert technical updates, debugging narratives, status
   reports, or dependency discussions into executive-ready summaries. Use for
   "transform this update", "make this executive-ready", "summarize for my
-  manager", "professional format", or "status report". Do NOT use for
+  manager", "professional format", or "status report". Route to other skills for
   writing new content from scratch, creative writing, or generating
   documentation that doesn't transform an existing input.
 version: 2.0.0
@@ -33,7 +33,7 @@ routing:
 
 This skill transforms dense technical communication into clear, structured business formats using **proposition extraction** (identify all facts and relationships) and **deterministic templates** (apply consistent structure). It extracts every detail without loss, categorizes by business relevance, applies a standard template with professional tone, and verifies completeness before delivery.
 
-**Core principle**: Transformation ≠ creation. Never write new content; always extract from existing input and restructure it for executive clarity with preserved technical accuracy.
+**Core principle**: Transformation ≠ creation. Only restructure existing input; always extract from existing input and restructure it for executive clarity with preserved technical accuracy.
 
 ---
 
@@ -53,7 +53,7 @@ Identify the communication type (this determines categorization strategy in Phas
 
 **Step 2: Extract all propositions**
 
-Parse each sentence systematically. Never summarize before extracting — summarizing skips propositions and loses facts:
+Parse each sentence systematically. Extract all propositions before summarizing — summarizing skips propositions and loses facts:
 
 1. **Facts**: All distinct statements of truth
 2. **Implications**: Cause-effect relationships
@@ -121,7 +121,7 @@ Only the highest-priority categories go into the output. Lower-priority items ar
 
 Flag any propositions that need clarification before transformation. Ask for specifics only when severity classification is ambiguous:
 - Ambiguous severity (could be GREEN or YELLOW — default to YELLOW if unclear)
-- Missing ownership for action items (block on clarity, don't infer)
+- Missing ownership for action items (block on clarity, ask for clarity)
 - Undefined technical terms critical to business impact (ask for definition)
 
 **Gate**: All propositions categorized and prioritized. Proceed only when gate passes.
@@ -132,7 +132,7 @@ Flag any propositions that need clarification before transformation. Ask for spe
 
 **Step 1: Apply standard template**
 
-Never add unsolicited sections (Risk Assessment, Historical Context, Mitigation Strategies). Use ONLY this structure:
+Include only the sections in the standard template (Risk Assessment, Historical Context, Mitigation Strategies). Use ONLY this structure:
 
 ```markdown
 **STATUS**: [GREEN|YELLOW|RED]
@@ -187,7 +187,7 @@ Vague action items cannot be executed. Every next step MUST include:
 
 **Step 1**: Compare output against extracted propositions — NO information loss allowed. If a fact from Phase 1 doesn't appear in output, it belongs in Technical Details.
 
-**Step 2**: Verify technical accuracy — terms, metrics, causal chains preserved exactly. Never substitute synonyms ("database issues" for "Redis cluster failover") — specificity is required.
+**Step 2**: Verify technical accuracy — terms, metrics, causal chains preserved exactly. Preserve exact technical terms ("database issues" for "Redis cluster failover") — specificity is required.
 
 **Step 3**: Confirm status indicator matches actual severity. Check reasoning against actual criteria (GREEN ≠ YELLOW vs YELLOW ≠ RED boundaries).
 
@@ -206,7 +206,7 @@ Information loss: None
 Template applied: standard
 ```
 
-**Gate**: All verification checks pass. Transformation is complete. Do not proceed to delivery without all 6 steps passing.
+**Gate**: All verification checks pass. Transformation is complete. Complete all 6 steps before delivering.
 
 ---
 
@@ -249,7 +249,7 @@ Result: RED status report with tiered emergency response actions
 **Solution**:
 1. Ask user for clarification on terms critical to status classification — speculation causes wrong status assignments
 2. Make reasonable inferences only for minor details; flag all assumptions explicitly in Technical Details section
-3. Don't skip transformation while waiting — provide output with a note: "Status classification assumed X because Y was undefined"
+3. Complete transformation while waiting — provide output with a note: "Status classification assumed X because Y was undefined"
 
 ### Error: "Ambiguous Status Classification"
 **Cause**: Input contains mixed signals (e.g., issue resolved but monitoring incomplete).

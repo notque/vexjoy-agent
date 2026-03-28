@@ -4,8 +4,7 @@ description: |
   Fresh-subagent-per-task execution with two-stage review (ADR compliance +
   code quality). Use when an implementation plan exists with mostly independent
   tasks and you want quality gates between each. Use for "execute plan",
-  "subagent", "dispatch tasks", or multi-task implementation runs. Do NOT use
-  for single simple tasks, tightly coupled work needing shared context, or when
+  "subagent", "dispatch tasks", or multi-task implementation runs. Route single simple tasks to other skills, tightly coupled work needing shared context, or when
   the user wants manual review after each task.
 version: 2.0.0
 user-invocable: false
@@ -88,14 +87,14 @@ Update TodoWrite status for the current task.
 **Step 2: Dispatch implementer subagent**
 
 Use the Task tool with the prompt template from `./implementer-prompt.md`. Include:
-- Full task text (NEVER say "see plan" -- subagents must have complete context)
+- Full task text (Replace with "see plan" -- subagents must have complete context)
 - Scene-setting context
 - Clear deliverables
 - Permission to ask questions
 
 **Implementation constraints** (enforced inline):
-- Implementer must understand task fully before coding begins. If they ask questions: answer clearly and completely, provide additional context, re-dispatch with answers. Do NOT rush them into implementation.
-- Tasks must run sequentially. NEVER dispatch multiple implementers in parallel because overlapping file edits cause conflicts that are expensive to resolve.
+- Implementer must understand task fully before coding begins. If they ask questions: answer clearly and completely, provide additional context, re-dispatch with answers. Give them time to fully understand the task.
+- Tasks must run sequentially. dispatch implementers sequentially because overlapping file edits cause conflicts that are expensive to resolve.
 - Implementer MUST follow these steps in order:
   1. Understand the task fully
   2. Ask questions if unclear (BEFORE implementing)
@@ -113,7 +112,7 @@ Use the prompt template from `./adr-reviewer-prompt.md`. The ADR compliance revi
 - Is anything MISSING from requirements?
 - Is anything EXTRA that was not requested?
 
-**Two-stage review constraint** (enforced inline): NEVER run code quality review before ADR compliance passes. ADR compliance gates code quality because code that doesn't match requirements is wrong, regardless of how well-written. Reviewing code quality on functionally wrong code wastes the quality reviewer's effort.
+**Two-stage review constraint** (enforced inline): run ADR compliance review first, then code quality review. ADR compliance gates code quality because code that doesn't match requirements is wrong, regardless of how well-written. Reviewing code quality on functionally wrong code wastes the quality reviewer's effort.
 
 If ADR compliance reviewer finds issues: dispatch new implementer subagent with fix instructions. ADR compliance reviewer reviews again. Repeat until ADR compliance passes.
 
@@ -195,14 +194,14 @@ Solution:
 3. Ask user to clarify ADR or adjust requirements
 4. Resume only after user provides direction
 
-**Why hard limit**: Review loops that don't converge are expensive and signal a deeper problem. Continuing them burns tokens without progress. Human judgment is needed to decide whether to clarify, change, or accept.
+**Why hard limit**: Review loops that fail to converge are expensive and signal a deeper problem. Continuing them burns tokens without progress. Human judgment is needed to decide whether to clarify, change, or accept.
 
 ### Error: "Subagent File Conflicts"
 Cause: Multiple subagents modifying overlapping files (usually from parallel dispatch)
 Solution:
 1. Resolve conflicts manually
 2. Re-run the affected review stage
-3. Enforce sequential dispatch going forward -- NEVER parallelize implementers
+3. Enforce sequential dispatch going forward -- run implementers sequentially
 
 **Why this happens**: The sequential constraint exists to prevent this. If it occurs anyway, it means the constraint was violated. Reassert it.
 
