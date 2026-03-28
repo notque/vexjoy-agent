@@ -266,6 +266,6 @@ Solution (ADR-093 -- Branch Convergence):
 ## References
 
 - `scripts/check-scope-overlap.py` -- Deterministic scope overlap checker for parallel task dispatch
-- `skills/systematic-debugging/SKILL.md` -- Use instead for single complex bugs or related failures
+- `pipelines/systematic-debugging/SKILL.md` -- Use instead for single complex bugs or related failures
 - `skills/workflow-orchestrator/SKILL.md` -- Use instead for planning implementation work
 - `skills/subagent-driven-development/SKILL.md` -- Use instead for sequential dependent tasks

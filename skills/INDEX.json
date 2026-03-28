@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-03-28T03:47:59Z",
+  "generated": "2026-03-28T04:20:25Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -1928,44 +1928,6 @@
         "code review methodology"
       ],
       "category": "code-review",
-      "user_invocable": false,
-      "version": "2.0.0"
-    },
-    "systematic-debugging": {
-      "file": "skills/systematic-debugging/SKILL.md",
-      "description": "Evidence-based 4-phase root cause analysis: Reproduce, Isolate, Identify, Verify.",
-      "triggers": [
-        "debug",
-        "find root cause",
-        "reproduce bug",
-        "fix this bug",
-        "this is broken",
-        "not working",
-        "why is this broken",
-        "getting an error",
-        "unexpected behavior",
-        "investigate error"
-      ],
-      "category": "process",
-      "user_invocable": false,
-      "version": "2.0.0"
-    },
-    "systematic-refactoring": {
-      "file": "skills/systematic-refactoring/SKILL.md",
-      "description": "Safe, phase-gated refactoring: CHARACTERIZE with tests, PLAN incremental steps, EXECUTE one change at a time, VALIDATE no regressions.",
-      "triggers": [
-        "refactor safely",
-        "rename symbol",
-        "extract function",
-        "refactor",
-        "simplify this",
-        "restructure code",
-        "reduce complexity",
-        "split this file",
-        "restructure",
-        "move to separate file"
-      ],
-      "category": "process",
       "user_invocable": false,
       "version": "2.0.0"
     },
