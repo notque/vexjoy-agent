@@ -695,6 +695,7 @@ def cmd_check_adr(args) -> int:
 
     # Find ADR path
     adr_path = None
+    session_parse_error = None
     if args.adr:
         adr_path = Path(args.adr)
     else:
@@ -703,11 +704,13 @@ def cmd_check_adr(args) -> int:
             try:
                 session = _json.loads(session_file.read_text())
                 adr_path = Path(session.get("adr_path", ""))
-            except Exception:
-                pass
+            except (json.JSONDecodeError, OSError) as e:
+                session_parse_error = e
+                print(f"[adr-compliance] WARNING: .adr-session.json exists but could not be read: {e}", file=sys.stderr)
 
     if not adr_path or not adr_path.exists():
-        print(_json.dumps({"verdict": "SKIP", "reason": "No active ADR session"}))
+        reason = f"Session file corrupt: {session_parse_error}" if session_parse_error else "No active ADR session"
+        print(_json.dumps({"verdict": "SKIP", "reason": reason}))
         return 0
 
     component_path = Path(args.file)
