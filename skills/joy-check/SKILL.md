@@ -1,17 +1,18 @@
 ---
 name: joy-check
 description: |
-  Validate content for joy-centered tonal framing. Evaluates paragraphs on a
-  joy-grievance spectrum, flags defensive, accusatory, victimhood, or bitter
-  framing, and suggests reframes. Use when user says "joy check", "check
-  framing", "tone check", "negative framing", "is this too negative", or
-  "reframe this positively". Use for any content where positive, curious,
-  generous framing matters. Route to other skills for voice validation (use
-  voice-validator), AI pattern detection (use anti-ai-editor), or grammar
-  and style editing.
-version: 1.0.0
+  Validate content framing with mode-based rubrics. Two modes:
+  - **writing** (default for human-facing content): Joy-grievance spectrum for
+    blog posts, emails, articles. Flags defensive, accusatory, or bitter framing.
+  - **instruction** (auto-detected for agent/skill/pipeline markdown): Positive
+    framing validation per ADR-127. Flags prohibition-based instructions (NEVER,
+    do NOT, FORBIDDEN) and suggests action-based rewrites.
+  Use when user says "joy check", "check framing", "tone check", "positive
+  framing check", or "instruction framing". Route to voice-validator for voice
+  fidelity, anti-ai-editor for AI pattern detection.
+version: 2.0.0
 user-invocable: false
-argument-hint: "[--fix] [--strict] <file>"
+argument-hint: "[--fix] [--strict] [--mode writing|instruction] <file>"
 command: /joy-check
 allowed-tools:
   - Read
@@ -29,85 +30,91 @@ routing:
     - joy validation
     - too negative
     - reframe positively
+    - positive framing check
+    - instruction framing
   pairs_with:
     - voice-writer
     - anti-ai-editor
     - voice-validator
+    - skill-creator
   complexity: Simple
   category: content
 ---
 
 # Joy Check
 
-Validate content for joy-centered tonal framing. Runs a two-pass pipeline -- regex pre-filter for obvious patterns, then LLM semantic analysis -- to evaluate whether content frames experiences through curiosity, generosity, and earned satisfaction rather than grievance, accusation, or victimhood.
+Validate content framing using mode-specific rubrics. Two modes:
 
-By default the skill evaluates each paragraph independently, produces a joy score (0-100), and suggests reframes without modifying content. Optional flags change behavior: `--fix` rewrites flagged paragraphs in place and re-verifies; `--strict` fails on any paragraph below 60.
+- **writing** — Joy-grievance spectrum for human-facing content (blog posts, emails, articles). Evaluates whether content frames experiences through curiosity and generosity rather than grievance and accusation.
+- **instruction** — Positive framing validation for LLM-facing content (agents, skills, pipelines). Evaluates whether instructions tell the reader what to do rather than what to avoid (ADR-127).
 
-This skill checks *framing*, not *topic* and not *voice*. Difficult experiences are valid subjects. Voice fidelity belongs to voice-validator, AI pattern detection belongs to anti-ai-editor, and grammar/style editing is out of scope entirely.
+By default the skill evaluates each paragraph/instruction independently, produces a score (0-100), and suggests reframes without modifying content. Optional flags: `--fix` rewrites flagged items in place and re-verifies; `--strict` fails on any item below 60; `--mode writing|instruction` overrides auto-detection.
+
+This skill checks *framing*, not *topic* and not *voice*. Voice fidelity belongs to voice-validator, AI pattern detection belongs to anti-ai-editor.
 
 ## Instructions
 
+### Phase 0: DETECT MODE
+
+**Goal**: Determine which rubric to apply based on file location or explicit flag.
+
+**Auto-detection rules** (in priority order):
+1. Explicit `--mode writing|instruction` flag → use that mode
+2. File in `agents/*.md` → **instruction**
+3. File in `skills/*/SKILL.md` → **instruction**
+4. File in `pipelines/*/SKILL.md` → **instruction**
+5. File is `CLAUDE.md` or `README.md` → **instruction**
+6. Everything else → **writing**
+
+**Load the rubric**: Read `references/{mode}-rubric.md` for the scoring criteria, patterns, and examples relevant to this mode.
+
+**GATE**: Mode determined, rubric loaded. Proceed to Phase 1.
+
 ### Phase 1: PRE-FILTER
 
-**Goal**: Use the regex scanner as a fast gate to catch obvious negative framing before spending LLM tokens on semantic analysis.
+**Goal**: Use regex scanning as a fast gate to catch obvious patterns before spending LLM tokens on semantic analysis.
 
-**Step 1: Run the regex-based scanner**
-
+**For writing mode**: Run the regex-based scanner for grievance patterns:
 ```bash
 python3 ~/.claude/scripts/scan-negative-framing.py [file]
 ```
 
-**Step 2: Handle regex hits**
+**For instruction mode**: Run a grep scan for prohibition patterns:
+```bash
+grep -nE 'NEVER|do NOT|must NOT|FORBIDDEN' [file]
+grep -nE "^-?\s*Don't|^#+.*Anti-[Pp]attern|^#+.*Avoid" [file]
+```
 
-If the scanner finds hits, these are obvious negative framing patterns (victimhood, accusation, bitterness, passive aggression). Report them to the user with the scanner's suggested reframes. These are high-confidence regex matches -- the regex patterns are high-confidence matches.
+**Handle hits**: Report findings with suggested reframes from the loaded rubric. If `--fix` mode is active, apply reframes and re-run to confirm clean.
 
-If `--fix` mode is active, apply the scanner's suggested reframes and re-run to confirm clean.
-
-**GATE**: Regex scan returns zero hits. If hits remain after reporting/fixing, stop and resolve before proceeding to Phase 2 -- the obvious patterns must be resolved first. Proceeding with known regex hits would waste LLM analysis on paragraphs that need mechanical fixes.
+**GATE**: Regex/grep scan returns zero hits. Resolve obvious patterns before proceeding to Phase 2 — mechanical fixes come first.
 
 ### Phase 2: ANALYZE
 
-**Goal**: Read the content and evaluate each paragraph against the Joy Framing Rubric using LLM semantic understanding.
+**Goal**: Read the content and evaluate each item against the loaded rubric using LLM semantic understanding.
 
 **Step 1: Read the content**
 
-Read the full file. Identify paragraph boundaries (blank-line separated blocks). Skip frontmatter (YAML between `---` markers), code blocks, and blockquotes.
+Read the full file. Skip frontmatter (YAML between `---` markers) and code blocks.
 
-**Step 2: Evaluate each paragraph against the Joy Framing Rubric**
+- **Writing mode**: Identify paragraph boundaries (blank-line separated blocks). Skip blockquotes.
+- **Instruction mode**: Identify each instructional statement — bullet points, table cells, imperative sentences, section headings. Skip examples, code blocks, quoted user dialogue, and file path references.
 
-Every paragraph should frame its subject through curiosity, wonder, generosity, or earned satisfaction. Content that builds a case for grievance alienates readers and undermines the author's credibility, even when the underlying experience is legitimate.
+**Step 2: Evaluate against the rubric**
 
-| Dimension | Joy-Centered (PASS) | Grievance-Centered (FAIL) |
-|-----------|-------------------|--------------------------|
-| **Subject position** | Author as explorer, builder, learner | Author as victim, wronged party, unrecognized genius |
-| **Other people** | Fellow travelers, interesting minds, people figuring things out | Opponents, thieves, people who should have done better |
-| **Difficult experiences** | Interesting, surprising, made me think differently | Unfair, hurtful, someone should fix this |
-| **Uncertainty** | Comfortable, curious, "none of us know" | Anxious, defensive, "I need to prove" |
-| **Action framing** | "I decided to", "I realized", "I learned" | "I was forced to", "I had no choice", "they made me" |
-| **Closing energy** | Forward-looking, building, sharing, exploring | Cautionary, warning, demanding, lamenting |
+Apply the scoring dimensions from the loaded rubric (`references/{mode}-rubric.md`). Each rubric defines its own PASS/FAIL dimensions, subtle patterns to detect, and contextual exceptions.
 
-When evaluating, watch for these subtle patterns that the regex scanner cannot catch:
+For **writing mode**: Evaluate through the joy-grievance lens. Watch for the subtle patterns described in `references/writing-rubric.md` (defensive disclaimers, accumulative grievance, passive-aggressive factuality, reluctant generosity).
 
-- **Defensive disclaimers** ("I'm not accusing anyone", "This isn't about blame"): If the author has to disclaim, the framing is already grievance-adjacent. The disclaimer signals the content that follows is accusatory enough to need a shield. Flag the paragraph and recommend removing both the disclaimer and the accusatory content it shields.
-- **Accumulative grievance**: Each paragraph is individually mild, but together they build a case for being wronged. A reader who finishes the piece feeling "that person was wronged" has been led through a prosecution. Flag the accumulation pattern and recommend interspersing observations with what the author learned, built, or found interesting.
-- **Passive-aggressive factuality** ("The timeline shows X. The repo was created Y days later. I'll let you draw your own conclusions."): Presenting facts in prosecution order is framing, not neutrality. "I'll let you draw your own conclusions" deputizes the reader as jury. Flag and recommend including facts where relevant to the experience, not as evidence.
-- **Reluctant generosity** ("I'm not saying they did anything wrong, BUT..."): The "but" negates the generosity. This is grievance wearing a generous mask. Flag and recommend being generous without qualification, or acknowledging the complexity directly.
+For **instruction mode**: Evaluate through the positive-negative lens. Check each instruction against the patterns table in `references/instruction-rubric.md`. Apply contextual exceptions — subordinate negatives attached to positive instructions are PASS, as are negatives in code examples, writing samples, and technical terms.
 
-Evaluate every paragraph, including factual ones. Facts arranged as prosecution are framing, not neutrality -- evaluate the *arrangement* of facts, not just their accuracy. Similarly, flag grievance framing regardless of whether because the author's feelings are justified. The skill checks framing, not whether the underlying feeling is earned.
+**Step 3: Score each item**
 
-**Step 3: Score each paragraph**
+Apply the scoring scale from the loaded rubric. For any item scoring in the lower tiers (CAUTION/GRIEVANCE for writing, NEGATIVE-LEANING/PROHIBITION-HEAVY for instruction), draft a specific reframe suggestion that preserves the substance while shifting the framing.
 
-For each paragraph, assign one of:
-- **JOY** (80-100): Frames through curiosity, generosity, or earned satisfaction
-- **NEUTRAL** (50-79): Factual, neither joy nor grievance
-- **CAUTION** (30-49): Leans toward grievance but recoverable with reframing
-- **GRIEVANCE** (0-29): Frames through accusation, victimhood, or bitterness
+If an item seems "too subtle to flag," that is precisely when flagging matters most — subtle patterns are what the regex/grep pre-filter misses, making them the primary purpose of this LLM analysis phase.
 
-For any paragraph scored CAUTION or GRIEVANCE, draft a specific reframe suggestion that preserves the substance while shifting the framing toward curiosity or generosity. Remember: reframing is editorial craft, not dishonesty. The substance stays the same; only the lens changes. A single GRIEVANCE paragraph poisons the tonal arc of the whole piece, so treat it as minor.
-
-If a paragraph seems "too subtle to flag," that is precisely when flagging matters most. Subtle grievance is what the regex scanner misses, making it the primary purpose of this LLM analysis phase.
-
-**GATE**: All paragraphs analyzed and scored. Reframe suggestions drafted for all CAUTION and GRIEVANCE paragraphs. Proceed to Phase 3.
+**GATE**: All items analyzed and scored. Reframe suggestions drafted for all flagged items. Proceed to Phase 3.
 
 ### Phase 3: REPORT
 
@@ -115,185 +122,66 @@ If a paragraph seems "too subtle to flag," that is precisely when flagging matte
 
 **Step 1: Calculate overall score**
 
-Average all paragraph scores. The overall score determines pass/fail:
-- **PASS**: Score >= 60 AND no GRIEVANCE paragraphs
-- **FAIL**: Score < 60 OR any GRIEVANCE paragraph present
+Average all item scores. Pass criteria come from the loaded rubric:
+- **Writing mode**: Score >= 60 AND no GRIEVANCE paragraphs
+- **Instruction mode**: Score >= 60 AND no primary negative patterns in instructional context
 
 **Step 2: Output the report**
 
 ```
 JOY CHECK: [file]
+Mode: [writing|instruction]
 Score: [0-100]
 Status: PASS / FAIL
 
-Paragraphs:
+Items:
+  [writing mode]
   P1 (L10-12): JOY [85] -- explorer framing, curiosity
-  P2 (L14-16): NEUTRAL [65] -- factual timeline
   P3 (L18-22): CAUTION [40] -- "confused" leans defensive
     -> Reframe: Focus on what you learned from the confusion
-  P4 (L24-28): JOY [90] -- generous framing of others
 
-Overall: [summary of tonal arc -- where the piece starts, how it moves, where it lands]
+  [instruction mode]
+  L33: NEGATIVE [20] -- "NEVER edit code directly"
+    -> Rewrite: "Route all code modifications to domain agents"
+  L45: PASS [90] -- "Create feature branches for all changes"
+  L78: PASS [85] -- "Credentials stay in .env files, never in code" (subordinate negative OK)
+
+Overall: [summary of framing arc]
 ```
 
 **Step 3: Handle fix mode**
 
 If `--fix` mode is active:
-1. Rewrite any CAUTION or GRIEVANCE paragraphs using the drafted reframe suggestions
-2. Preserve the substance -- change only the framing, not the topic or meaning
-3. Re-run Phase 2 analysis on the rewritten paragraphs to verify fixes landed
-4. If fixes introduce new CAUTION/GRIEVANCE scores, iterate (maximum 3 attempts)
+1. Rewrite flagged items using the drafted reframe suggestions
+2. Preserve the substance — change only the framing
+3. Re-run Phase 2 analysis on rewritten items to verify fixes landed
+4. If fixes introduce new flagged items, iterate (maximum 3 attempts)
 
 **GATE**: Report produced. If `--fix`, all rewrites applied and re-verified. Joy check complete.
 
 ---
 
-## Reference Material
-
-### The Joy Principle
-
-This is the editorial philosophy that drives the check.
-
-**A difficult experience is not a negative topic.** Seeing your architecture appear elsewhere is interesting. Navigating provenance in the AI age is worth writing about. The topic can involve confusion, surprise, even frustration.
-
-**The framing is what matters.** The same experience can be told as:
-- "Someone took my work" (grievance)
-- "I saw my patterns show up somewhere unexpected and it made me think about how ideas move now" (joy/curiosity)
-
-Both describe the same events. The second frames it through the lens that defines joy-centered content: the specific satisfaction found in understanding something you didn't understand before.
-
-**Joy doesn't mean happiness.** It means engagement, curiosity, the energy of figuring things out. A joy-centered post about a frustrating debugging session isn't happy -- but it frames the frustration as the puzzle and the understanding as the reward. That's the lens.
-
-### Examples
-
-These examples show the same content reframed from grievance to joy. The substance is identical. Only the framing changes.
-
-#### Example 1: Describing a Difficult Experience
-
-**GRIEVANCE (FAIL):**
-```
-I spent nine months building this system and nobody cared. Then someone
-else showed up with the same thing and got all the attention. It felt
-unfair. I did the work and they got the credit.
-```
-
-**JOY (PASS):**
-```
-I've been building and writing about this architecture for about nine
-months now. The response has been mostly crickets. Some good conversations,
-some pushback, but nothing that made me feel like the ideas were landing.
-Then someone posted a system with the same concepts and I got excited.
-Someone else got it.
-```
-
-**Why the second works:** The author is an explorer who found something interesting, not a victim cataloguing injustice. "Mostly crickets" is honest without being bitter. "Someone else got it" is generous.
-
-#### Example 2: Discovering Similarity
-
-**GRIEVANCE (FAIL):**
-```
-I was shocked to find they had copied my exact architecture. The same
-router, the same dispatch pattern, the same four layers. They claimed
-they invented it independently, which seems unlikely given the timing.
-```
-
-**JOY (PASS):**
-```
-I went from excited to curious. Because this wasn't just someone building
-agents and skills, which plenty of people do. It was the routing
-architecture I'd spent months developing and writing about.
-```
-
-**Why the second works:** "Excited to curious" is an explorer's arc. No accusation of copying. The observation is about what the author found interesting, not what was done to them.
-
-#### Example 3: Discussing How Ideas Spread
-
-**GRIEVANCE (FAIL):**
-```
-If the ideas are going to spread through AI's training data anyway, if
-Claude is going to absorb my blog posts and hand the architecture to
-people who are unaware of where it came from, then I might as well just
-give up trying to get credit.
-```
-
-**JOY (PASS):**
-```
-This experience helped me realize that the best thing I can do with
-these ideas is just put them out there completely. No holding back,
-no waiting for the perfect moment. If the patterns are useful, people
-should have them. If someone builds something better on top of them,
-even better.
-```
-
-**Why the second works:** The decision to release is framed as a positive realization, not a resignation. "Even better" at the end carries forward energy.
-
-#### Example 4: Talking About Credit
-
-**GRIEVANCE (FAIL):**
-```
-I've been thinking about why this bothered me, and it's because I
-deserve recognition for this work. Nine months of effort should count
-for something.
-```
-
-**JOY (PASS):**
-```
-I've been thinking about what made this experience interesting, and
-it's not about credit. I just want to communicate the value as I see
-it, and be understood.
-```
-
-**Why the second works:** Locates the feeling in curiosity ("what made this interesting") not entitlement ("I deserve"). "Be understood" is a human need, not a demand.
-
-#### Example 5: The Conclusion
-
-**GRIEVANCE (FAIL):**
-```
-I have no answer for the provenance problem. But I'm going to keep
-documenting my work publicly so at least there's a record. If nothing
-else, the timestamps speak for themselves.
-```
-
-**JOY (PASS):**
-```
-I may never be an influencer. I'm probably never going to be known much
-outside of the specific things I work on. I just enjoy coming up with
-interesting and novel ideas, trying weird things, seeing what sticks.
-That's been the most enjoyable part of this whole process.
-```
-
-**Why the second works:** Ends on what the author enjoys, not what they're defending against. "Seeing what sticks" carries the experimental energy. No timestamps-as-evidence framing.
-
-#### Example 6: Addressing Uncertainty About Origins
-
-**GRIEVANCE (FAIL):**
-```
-They might not know where the patterns came from. But I do. And the
-timeline doesn't lie.
-```
-
-**JOY (PASS):**
-```
-Claude doesn't cite its sources. There's no way for any of us to tell
-whether our AI-assisted work drew on someone else's blog post or was
-synthesized fresh. The honest answer to "where did this architecture
-come from?" might be "I built it with Claude and I have no way of knowing what
-Claude drew on." That's true for everyone using these tools. Including me.
-```
-
-**Why the second works:** Includes the author in the same uncertainty. "Including me" is the key phrase. It transforms from "I know and they should know" to "none of us fully know."
-
 ### Integration
 
-This skill integrates with the content validation pipeline:
+This skill integrates with content and toolkit pipelines:
 
+**Writing pipeline** (human-facing content):
 ```
-CONTENT --> voice-validator (deterministic) --> scan-ai-patterns (deterministic)
-        --> scan-negative-framing (regex pre-filter) --> joy-check (LLM analysis)
-        --> anti-ai-editor (LLM style fixes)
+CONTENT --> voice-validator --> scan-ai-patterns --> joy-check --mode writing --> anti-ai-editor
 ```
 
-The joy-check can be invoked standalone via `/joy-check [file]` or as part of the content pipeline for any content where positive framing matters.
+**Instruction pipeline** (agent/skill/pipeline creation and modification):
+```
+SKILL.md --> joy-check --mode instruction --> fix flagged patterns --> re-verify
+```
+
+**Auto-invocation points**:
+- `skill-creator` pipeline: Run `joy-check --mode instruction` after generating a new skill
+- `agent-upgrade` pipeline: Run `joy-check --mode instruction` after modifying an agent
+- `voice-writer` / `blog-post-writer`: Run `joy-check --mode writing` during validation
+- `doc-pipeline`: Run `joy-check --mode instruction` for toolkit documentation
+
+The joy-check can be invoked standalone via `/joy-check [file]` (auto-detects mode) or with explicit `--mode writing|instruction`.
 
 ---
 
@@ -331,7 +219,15 @@ The joy-check can be invoked standalone via `/joy-check [file]` or as part of th
 
 ## References
 
-- `scan-negative-framing.py` -- Regex pre-filter for obvious negative framing patterns (Phase 1)
-- `voice-validator` -- Voice fidelity validation (complementary, different concern)
-- `anti-ai-editor` -- AI pattern detection and removal (complementary, different concern)
-- `voice-writer` -- Multi-step content pipeline that can invoke joy-check as a validation phase
+### Rubric Files
+- `references/writing-rubric.md` — Joy-grievance spectrum, subtle patterns, scoring, examples (writing mode)
+- `references/instruction-rubric.md` — Positive framing rules, patterns to flag, rewrite strategies, examples (instruction mode)
+
+### Scripts
+- `scan-negative-framing.py` — Regex pre-filter for grievance patterns (writing mode, Phase 1)
+
+### Complementary Skills
+- `voice-validator` — Voice fidelity validation (different concern)
+- `anti-ai-editor` — AI pattern detection and removal (different concern)
+- `voice-writer` — Content pipeline that invokes joy-check as a validation phase
+- `skill-creator` — Skill creation pipeline that invokes joy-check in instruction mode
