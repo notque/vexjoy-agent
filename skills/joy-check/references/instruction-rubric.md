@@ -27,7 +27,7 @@ Every instruction should tell the reader what action to take. Prohibitions defin
 | must NOT | `\bmust NOT\b` | "must NOT block tools" |
 | FORBIDDEN | `\bFORBIDDEN\b` | "FORBIDDEN Patterns" |
 | Don't (instruction start) | `^-?\s*Don't\b` | "Don't mock the database" |
-| Avoid (as heading/instruction) | `^\s*#{1,6}.*Avoid\|^-?\s*Avoid\b` | "### Patterns to Avoid" |
+| Avoid (as heading/instruction) | `^\s*#{1,6}.*Avoid|^-?\s*Avoid\b` | "### Patterns to Avoid" |
 | Anti-Pattern (in headings) | `^\s*#{1,6}.*[Aa]nti-[Pp]attern` | "### Common Anti-Patterns" |
 
 ### Contextual exceptions (allow these)

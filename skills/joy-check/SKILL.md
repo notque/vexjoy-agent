@@ -82,7 +82,7 @@ python3 ~/.claude/scripts/scan-negative-framing.py [file]
 **For instruction mode**: Run a grep scan for prohibition patterns:
 ```bash
 grep -nE 'NEVER|do NOT|must NOT|FORBIDDEN' [file]
-grep -nE "^-?\s*Don't|^#+.*Anti-[Pp]attern|^#+.*Avoid" [file]
+grep -nE "^-?\s*Don't|^-?\s*Avoid|^#+.*Anti-[Pp]attern|^#+.*Avoid" [file]
 ```
 
 **Handle hits**: Report findings with suggested reframes from the loaded rubric. If `--fix` mode is active, apply reframes and re-run to confirm clean.
