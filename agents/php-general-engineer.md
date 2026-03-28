@@ -226,7 +226,7 @@ Always check `composer.json` `require.php` before using features. Use only featu
 - **`declare(strict_types=1)` on new files**: Every new PHP application file must open with `<?php\ndeclare(strict_types=1);`. Non-negotiable.
 - **Format after every edit**: After editing any `.php` file, run `./vendor/bin/pint` (Laravel) or `php-cs-fixer fix` before committing.
 - **Complete command output**: Show actual `phpunit` or `pest` output instead of summarizing as "tests pass".
-- **Prepared statements only**: Raw SQL string interpolation is forbidden. Use PDO prepared statements, Doctrine QueryBuilder, or Eloquent query builder.
+- **Prepared statements only**: Use PDO prepared statements, Doctrine QueryBuilder, or Eloquent query builder for all SQL. Raw string interpolation is a SQL injection vector.
 - **Constructor injection**: Inject dependencies through constructors. Use constructor injection instead of service-locator lookups (`app()->make()`, `container->get()`) inside business services.
 - **Version-Aware Code**: Check `composer.json` for PHP version target. Use only features available in the project's target PHP version.
 

@@ -5,9 +5,9 @@ description: |
   Dispatches 4 parallel research agents (Rule 12 mandatory — validated by A/B test),
   classifies task types, maps subdomains to step menu chains, and produces a Component
   Manifest for the chain-composer. Use for "research domain", "discover subdomains",
-  "domain decomposition", "what pipelines does X need". Do NOT use for scaffolding
-  pipelines (use pipeline-scaffolder), modifying existing pipelines, or single-skill
-  creation.
+  "domain decomposition", "what pipelines does X need". Route scaffolding to
+  pipeline-scaffolder, modifications to existing pipelines to their owners, and
+  single-skill creation to skill-creator.
 version: 1.0.0
 user-invocable: false
 agent: pipeline-orchestrator-engineer
@@ -59,7 +59,7 @@ This is the first step in the self-improving pipeline generator (see `adr/self-i
 
 ### Phase 1: DISCOVER (Parallel Multi-Agent — Rule 12 Mandatory)
 
-**Goal**: Build a broad, multi-perspective understanding of the target domain. Breadth of research directly determines the quality of subdomain discovery — this is why parallel agents are mandatory, not optional. A/B testing proved parallel research eliminates a 1.40-point gap in Examples quality (see `adr/pipeline-creator-ab-test.md`). Sequential research is **BANNED** because it produces shallower, less diverse findings.
+**Goal**: Build a broad, multi-perspective understanding of the target domain. Breadth of research directly determines the quality of subdomain discovery — this is why parallel agents are mandatory, not optional. A/B testing proved parallel research eliminates a 1.40-point gap in Examples quality (see `adr/pipeline-creator-ab-test.md`). Parallel research is **mandatory** because sequential research produces shallower, less diverse findings.
 
 **Default N = 4 agents.** Override with `--research-agents N` (minimum 2, maximum 6).
 
@@ -248,7 +248,7 @@ Create the Phase 2 dual-layer artifact:
 
 ### Phase 3: MAP (Compose Preliminary Chains)
 
-**Goal**: For each classified subdomain, select steps from the step menu and compose a preliminary pipeline chain. These are draft chains — the chain-composer skill validates and finalizes them. **Type compatibility is mandatory**: Every adjacent step pair must have compatible output-to-input types. Why? Invalid types produce broken chains. Never skip this validation.
+**Goal**: For each classified subdomain, select steps from the step menu and compose a preliminary pipeline chain. These are draft chains — the chain-composer skill validates and finalizes them. **Type compatibility is mandatory**: Every adjacent step pair must have compatible output-to-input types. Why? Invalid types produce broken chains. Always validate type compatibility.
 
 **Step 1: Load step menu**
 
@@ -312,7 +312,7 @@ When incompatibility is found, insert a bridging step. Common bridges:
 - Multiple Verdicts need to become one: insert AGGREGATE
 - Generation Artifact needs Verdict before next step: insert VALIDATE
 
-If no bridge works, restructure the chain. **Never skip type validation.**
+If no bridge works, restructure the chain. **Always validate type compatibility.**
 
 **Step 4: Produce mapping artifact**
 
@@ -509,7 +509,7 @@ If gate passes: Report completion to pipeline-orchestrator-engineer. The Compone
 - Research Artifact needs to become Structured Corpus: insert COMPILE
 - Multiple Verdicts need to become one: insert AGGREGATE
 - Generation Artifact needs Verdict before next step: insert VALIDATE
-If no bridge works, restructure the chain. Never skip type validation.
+If no bridge works, restructure the chain. Always validate type compatibility.
 
 ---
 
@@ -536,7 +536,7 @@ Every research finding is tagged with a confidence level. Why? Without explicit 
 |-------|---------------|-------------------|
 | **HIGH** | Official documentation, verified API responses, source code inspection, Context7 query results | Present as authoritative. No caveats needed. |
 | **MEDIUM** | Verified web search results, community consensus (multiple independent sources agree), well-maintained third-party docs | Present with source attribution: "According to [source]..." |
-| **LOW** | Unverified sources, single blog post, training data without verification, inference from patterns | Present with explicit caveat: "[UNVERIFIED]" prefix. Never present as authoritative. |
+| **LOW** | Unverified sources, single blog post, training data without verification, inference from patterns | Present with explicit caveat: "[UNVERIFIED]" prefix. Use cautious language only. |
 
 ### Rules
 
@@ -641,7 +641,7 @@ STOP and ask the pipeline-orchestrator-engineer (wait for explicit confirmation)
 | No existing agent AND domain is well-established | Surprising — may indicate search failure | "Found no existing agent for {domain}. Verify this is correct before creating new one?" |
 | Two subdomains have identical preliminary chains | May be duplicates that should merge | "{Sub A} and {Sub B} have the same chain. Merge them?" |
 
-### Never Guess On
+### Always Confirm Before Acting On
 - Whether to create a new agent vs. reuse an existing one (always check inventory first)
 - How many subdomains a domain should have (discover through research, let data drive the count)
 - Which operator profile to apply (detect from context or use default)
