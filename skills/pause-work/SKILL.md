@@ -37,10 +37,10 @@ routing:
 Capture ephemeral session reasoning into durable artifacts so the next session can resume without wasting time on context reconstruction. `task_plan.md` records WHAT tasks exist; this skill captures WHY the current session chose a particular approach, what it rejected, and what it planned to do next.
 
 Two output files serve different audiences because each addresses a distinct use case:
-- `HANDOFF.json` — machine-readable, consumed by `/resume` for automated state reconstruction. Must always be produced to enable `/resume` routing.
+- `HANDOFF.json` — machine-readable, consumed by `/resume-work` for automated state reconstruction. Must always be produced to enable `/resume-work` routing.
 - `.continue-here.md` — human-readable, for users who want to understand session state without starting a new session. Must always be produced to support human-only resumption paths.
 
-Skipping either file breaks half the use case: without the JSON, `/resume` cannot detect handoff state automatically; without the markdown, users cannot quickly grok where things stand.
+Skipping either file breaks half the use case: without the JSON, `/resume-work` cannot detect handoff state automatically; without the markdown, users cannot quickly grok where things stand.
 
 ## Instructions
 
@@ -59,7 +59,7 @@ Find the git root directory:
 git rev-parse --show-toplevel
 ```
 
-All subsequent paths and file writes target this root, not the current working directory because writing to the project root ensures `/resume` can find the files reliably across different shell invocation contexts.
+All subsequent paths and file writes target this root, not the current working directory because writing to the project root ensures `/resume-work` can find the files reliably across different shell invocation contexts.
 
 **Step 3: Collect git state**
 
@@ -197,7 +197,7 @@ Write to `{project_root}/HANDOFF.json` with UTC ISO 8601 timestamps for unambigu
 
 **Step 2: Write .continue-here.md**
 
-Write to `{project_root}/.continue-here.md` because humans need prose-form state before committing to `/resume`:
+Write to `{project_root}/.continue-here.md` because humans need prose-form state before committing to `/resume-work`:
 
 ```markdown
 # Continue Here
@@ -273,7 +273,7 @@ Display the handoff summary:
 
  Next action: <brief next_action summary>
 
- Resume with: /resume
+ Resume with: /resume-work
 ===================================================================
 ```
 
@@ -288,7 +288,7 @@ Display the handoff summary:
 **Solution**: If the session genuinely did no work, there is nothing to hand off. Inform the user: "No work detected to hand off. If you made changes that aren't committed or tracked, describe what you were working on and I'll create the handoff manually."
 
 ### Error: HANDOFF.json Already Exists
-**Cause**: A previous `/pause` created handoff files that were not yet consumed by `/resume`
+**Cause**: A previous `/pause` created handoff files that were not yet consumed by `/resume-work`
 **Solution**: Warn the user that stale handoff files exist. Offer to overwrite (default) or append. Overwriting is almost always correct — stale handoffs from abandoned sessions should not block new ones.
 
 ## References
