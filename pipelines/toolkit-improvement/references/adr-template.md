@@ -74,6 +74,60 @@ file Z because reason W".]
 | `path/to/file.py` | Modify | What specifically changes |
 | `path/to/other.py` | Modify | What specifically changes |
 
+## Execution Plan
+
+_The implementing agent follows this section step-by-step. Every task must be
+granular enough to complete in a single agent dispatch._
+
+### Agents, Skills & Pipelines to Use
+
+| Step | Agent | Skill/Pipeline | Purpose |
+|------|-------|---------------|---------|
+| 1 | `[agent-name]` | `[skill-name]` | [What this step accomplishes] |
+| 2 | `[agent-name]` | `[skill-name]` | [What this step accomplishes] |
+| ... | ... | ... | ... |
+
+_Select agents from `agents/INDEX.json`. Select skills from `skills/INDEX.json`
+and `pipelines/INDEX.json`. Prefer specialized agents over general-purpose.
+If no suitable agent exists, note the gap — it may itself warrant a new agent._
+
+### Implementation Task List
+
+_Granular, ordered steps. Each step should be independently verifiable._
+
+- [ ] **Step 1**: [Action verb] [specific file:line] — [what changes]
+  - Agent: `[agent-name]` | Skill: `[skill-name]`
+  - Verify: [how to confirm this step succeeded]
+- [ ] **Step 2**: [Action verb] [specific file:line] — [what changes]
+  - Agent: `[agent-name]` | Skill: `[skill-name]`
+  - Verify: [how to confirm this step succeeded]
+- [ ] **Step 3**: Regenerate INDEX files
+  - Run: `python3 scripts/generate-skill-index.py` and/or `python3 scripts/generate-agent-index.py`
+  - Verify: `python3 scripts/routing-benchmark.py --verbose` passes
+- [ ] **Step 4**: Run quality gate
+  - Skill: `/skill-eval` on affected components
+  - Verify: Score >= baseline (captured in Step 0)
+- [ ] **Step 5**: Commit + PR via `/pr-sync`
+  - Verify: All CI checks pass
+
+### Workflow
+
+_If this ADR creates a new component (skill, pipeline, agent, hook), specify
+the creation workflow:_
+
+| Phase | What Happens | Gate |
+|-------|-------------|------|
+| 1. Design | Read PHILOSOPHY.md, draft component | ADR approved |
+| 2. Implement | Write files using domain agent | Files exist |
+| 3. Integrate | Add triggers, regen INDEX, update routing tables | No trigger collisions |
+| 4. Validate | Run /skill-eval (baseline vs post) | Score >= baseline |
+| 5. Review | Run /pr-review (3 rounds max) | No blockers |
+| 6. Ship | /pr-sync → CI → merge | All checks pass |
+| 7. Record | Capture learnings to learning.db | Entry exists |
+
+_If this ADR only modifies existing components, use phases 2-7 (skip Design)._
+_If no new workflow is needed, write "N/A — modification only, standard PR flow."_
+
 ## Router Integration Checklist
 
 _Required for any ADR that creates or modifies a skill, pipeline, or agent._
