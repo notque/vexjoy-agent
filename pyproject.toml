@@ -5,6 +5,16 @@ description = "Claude Code agents, skills, and hooks for automated development w
 requires-python = ">=3.10"
 
 [project.optional-dependencies]
+evals = [
+    "anthropic>=0.40",
+]
+reddit = [
+    "praw>=7.7",
+    "python-dotenv>=1.0",
+]
+gemini = [
+    "google-genai>=1.0",
+]
 quality = [
     "ruff>=0.8.0",
 ]
