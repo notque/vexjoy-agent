@@ -33,11 +33,11 @@ routing:
   category: process
 ---
 
-# /resume - Session State Restoration
+# /resume-work - Session State Restoration
 
 ## Overview
 
-This skill reconstructs session state from handoff artifacts so work can continue without wasting time re-reading files and re-discovering decisions. It is the consumer half of the pause/resume pair — `/pause` creates the artifacts, `/resume` consumes them.
+This skill reconstructs session state from handoff artifacts so work can continue without wasting time re-reading files and re-discovering decisions. It is the consumer half of the pause/resume pair — `/pause-work` creates the artifacts, `/resume-work` consumes them.
 
 The priority cascade exists because handoff quality varies:
 1. **HANDOFF.json** — Best case. Machine-readable, structured, created by explicit `/pause`. Contains reasoning context.
@@ -200,7 +200,7 @@ If user discards, fall to next priority level in cascade.
 
 ### Phase 4: EXECUTE
 
-**Goal**: Route to the next action and clean up handoff files (they are ephemeral session artifacts, not persistent state, so keeping them risks future `/resume` calls loading outdated context).
+**Goal**: Route to the next action and clean up handoff files (they are ephemeral session artifacts, not persistent state, so keeping them risks future `/resume-work` calls loading outdated context).
 
 **Step 1: Execute next action**
 
