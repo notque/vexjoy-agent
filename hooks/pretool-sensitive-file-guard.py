@@ -29,6 +29,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from learning_db_v2 import record_governance_event
 from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "SENSITIVE_FILE_GUARD_BYPASS"
@@ -127,6 +128,12 @@ def main() -> None:
                 f"[sensitive-file-guard] To allow: set SENSITIVE_FILE_GUARD_BYPASS=1 or add exception to .guard-patterns",
                 file=sys.stderr,
             )
+            try:
+                record_governance_event(
+                    "secret_detected", tool_name=tool_name, hook_phase="pre", severity="critical", blocked=True
+                )
+            except Exception:
+                pass  # Never let recording prevent a block
             sys.exit(2)
 
     sys.exit(0)

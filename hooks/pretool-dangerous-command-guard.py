@@ -34,6 +34,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from learning_db_v2 import record_governance_event
 from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "DANGEROUS_GUARD_BYPASS"
@@ -124,6 +125,12 @@ def main() -> None:
                 f"[dangerous-command-guard] To allow: add pattern to .guard-whitelist",
                 file=sys.stderr,
             )
+            try:
+                record_governance_event(
+                    "security_finding", tool_name="Bash", hook_phase="pre", severity="high", blocked=True
+                )
+            except Exception:
+                pass  # Never let recording prevent a block
             sys.exit(2)
 
     sys.exit(0)

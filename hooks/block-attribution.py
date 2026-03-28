@@ -25,6 +25,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from learning_db_v2 import record_governance_event
 from stdin_timeout import read_stdin
 
 FORBIDDEN_PATTERNS = [
@@ -64,6 +65,12 @@ def main() -> None:
             ),
         }
         print(json.dumps(result))
+        try:
+            record_governance_event(
+                "policy_violation", tool_name="Bash", hook_phase="pre", severity="high", blocked=True
+            )
+        except Exception:
+            pass  # Never let recording prevent a block
         sys.exit(2)
 
     print(json.dumps({}))

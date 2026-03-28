@@ -16,12 +16,12 @@ Design Principles:
 import json
 import os
 import sys
-import uuid
 from pathlib import Path
 
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
+from hook_utils import get_session_id
 from learning_db_v2 import get_stats, record_session
 from stdin_timeout import read_stdin
 
@@ -33,7 +33,7 @@ def main():
         cwd = os.getcwd()
 
         # Generate session ID
-        session_id = str(uuid.uuid4())[:8]
+        session_id = get_session_id()
 
         if event_data:
             try:

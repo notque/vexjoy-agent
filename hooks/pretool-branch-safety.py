@@ -28,6 +28,7 @@ import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
+from learning_db_v2 import record_governance_event
 from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "BRANCH_SAFETY_BYPASS"
@@ -91,6 +92,12 @@ def main() -> None:
             file=sys.stderr,
         )
         print("[fix-with-skill] git-commit-flow", file=sys.stderr)
+        try:
+            record_governance_event(
+                "policy_violation", tool_name="Bash", hook_phase="pre", severity="high", blocked=True
+            )
+        except Exception:
+            pass  # Never let recording prevent a block
         sys.exit(2)
 
     if debug:
