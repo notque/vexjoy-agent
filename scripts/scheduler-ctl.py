@@ -151,10 +151,15 @@ def cmd_run(args: argparse.Namespace) -> int:
     model = job.get("model", "haiku")
     timeout = job.get("timeout_seconds", 120)
     prompt = job["prompt"]
+    allowed_tools: list[str] = job.get("allowed_tools", [])
 
     print(f"Running job '{args.job_name}' (model={model}, timeout={timeout}s)...")
 
-    cmd = ["claude", "-p", prompt, "--model", model, "--dangerously-skip-permissions", "--print"]
+    if allowed_tools:
+        # Per-job tool scoping: pass --allowedTools instead of --dangerously-skip-permissions
+        cmd = ["claude", "-p", prompt, "--model", model, "--allowedTools", ",".join(allowed_tools), "--print"]
+    else:
+        cmd = ["claude", "-p", prompt, "--model", model, "--dangerously-skip-permissions", "--print"]
 
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, cwd=str(_REPO_ROOT))

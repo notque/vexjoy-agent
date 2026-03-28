@@ -333,15 +333,30 @@ class Scheduler:
         started_at = datetime.now(timezone.utc).isoformat()
         start_time = time.monotonic()
 
-        cmd = [
-            "claude",
-            "-p",
-            prompt,
-            "--model",
-            model,
-            "--dangerously-skip-permissions",
-            "--print",
-        ]
+        allowed_tools: list[str] = job.get("allowed_tools", [])
+        if allowed_tools:
+            # Per-job tool scoping: pass --allowedTools instead of --dangerously-skip-permissions
+            cmd = [
+                "claude",
+                "-p",
+                prompt,
+                "--model",
+                model,
+                "--allowedTools",
+                ",".join(allowed_tools),
+                "--print",
+            ]
+        else:
+            log.debug("Job %s has no allowed_tools — running with --dangerously-skip-permissions", name)
+            cmd = [
+                "claude",
+                "-p",
+                prompt,
+                "--model",
+                model,
+                "--dangerously-skip-permissions",
+                "--print",
+            ]
 
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, cwd=str(_REPO_ROOT))
@@ -499,17 +514,31 @@ class Scheduler:
                     self.wfile.write(b'{"error": "no matching webhook job"}')
                     return
 
-                # Verify GitHub signature if configured
+                # Require webhook authentication. When GITHUB_WEBHOOK_SECRET is not
+                # set, all POST requests are rejected with 403. To enable webhook
+                # processing, set the GITHUB_WEBHOOK_SECRET environment variable.
                 webhook_secret = os.environ.get("GITHUB_WEBHOOK_SECRET", "")
-                if webhook_secret:
-                    signature = self.headers.get("X-Hub-Signature-256", "")
-                    expected = "sha256=" + hmac.new(webhook_secret.encode(), body, hashlib.sha256).hexdigest()
-                    if not hmac.compare_digest(signature, expected):
-                        log.warning("Webhook signature mismatch on %s", self.path)
-                        self.send_response(401)
-                        self.end_headers()
-                        self.wfile.write(b'{"error": "invalid signature"}')
-                        return
+                if not webhook_secret:
+                    log.warning(
+                        "Rejected unauthenticated webhook POST to %s (GITHUB_WEBHOOK_SECRET not set)", self.path
+                    )
+                    self.send_response(403)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(
+                        b'{"error": "webhook authentication required", '
+                        b'"fix": "set GITHUB_WEBHOOK_SECRET environment variable"}'
+                    )
+                    return
+
+                signature = self.headers.get("X-Hub-Signature-256", "")
+                expected = "sha256=" + hmac.new(webhook_secret.encode(), body, hashlib.sha256).hexdigest()
+                if not hmac.compare_digest(signature, expected):
+                    log.warning("Webhook signature mismatch on %s", self.path)
+                    self.send_response(401)
+                    self.end_headers()
+                    self.wfile.write(b'{"error": "invalid signature"}')
+                    return
 
                 # Parse payload
                 try:
@@ -572,13 +601,24 @@ class Scheduler:
         port = int(self.config.get("webhook_port", 9100))
         handler_cls = self._create_webhook_handler()
 
+        # webhook_bind defaults to 127.0.0.1 (localhost-only). Set to "0.0.0.0"
+        # in schedules.json if you need external access (e.g. behind a reverse proxy).
+        bind_address = self.config.get("webhook_bind", "127.0.0.1")
+
+        webhook_secret = os.environ.get("GITHUB_WEBHOOK_SECRET", "")
+        if not webhook_secret:
+            log.warning(
+                "GITHUB_WEBHOOK_SECRET not set — all webhook POST requests will be rejected (403). "
+                "Set the env var to enable webhook processing."
+            )
+
         try:
-            self._webhook_server = HTTPServer(("0.0.0.0", port), handler_cls)
+            self._webhook_server = HTTPServer((bind_address, port), handler_cls)
         except OSError as exc:
             log.error("Cannot bind webhook port %d: %s", port, exc)
             return
 
-        log.info("Webhook server listening on port %d (%d jobs)", port, len(webhook_jobs))
+        log.info("Webhook server listening on %s:%d (%d jobs)", bind_address, port, len(webhook_jobs))
         self._webhook_thread = threading.Thread(
             target=self._webhook_server.serve_forever, daemon=True, name="webhook-server"
         )
