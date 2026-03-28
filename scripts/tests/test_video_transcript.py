@@ -19,7 +19,7 @@ video_transcript = importlib.util.module_from_spec(_spec)
 sys.modules["video_transcript"] = video_transcript
 _spec.loader.exec_module(video_transcript)
 
-from video_transcript import (  # noqa: E402
+from video_transcript import (
     TranscriptResult,
     TranscriptSegment,
     _clean_subtitle_text,

@@ -22,7 +22,7 @@ reddit_mod = importlib.util.module_from_spec(_spec)
 sys.modules["reddit_mod"] = reddit_mod
 _spec.loader.exec_module(reddit_mod)
 
-from reddit_mod import (  # noqa: E402
+from reddit_mod import (
     _DEFAULT_CONFIG,
     _FULLNAME_RE,
     _SUBREDDIT_RE,
