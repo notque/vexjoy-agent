@@ -154,13 +154,79 @@ Capture the session's mental model — the reasoning context that is NOT capture
 
 **GATE**: All handoff fields populated with specific, actionable content. No vague entries like "continue work" or "finish implementation."
 
-### Phase 3: WRITE
+### Phase 3: EXTRACT LEARNINGS
+
+**Goal**: Query session learnings from learning.db, filter for architectural decisions that warrant ADRs, and draft ADR skeletons for each candidate. This phase runs before WRITE so that ADR data is available for inclusion in both handoff files — passing extracted data downstream is cheaper than appending to files after the fact.
+
+**Step 1: Query session learnings**
+
+```bash
+python3 ~/.claude/scripts/learning-db.py query --format json --limit 20
+```
+
+`learning-db.py` has no `--since` flag, so query recent entries and filter by recency. Use the `created_at` field in the JSON output to identify entries recorded during this session — the most recent entries are the ones this session produced.
+
+**Step 2: Filter for ADR candidates**
+
+Apply this heuristic to determine which learnings describe architectural decisions vs. incidental tips:
+
+| Learning pattern | ADR candidate? |
+|-----------------|----------------|
+| "After X, always do Y" | Yes — process decision |
+| "X depends on Y" | Yes — contract/coupling |
+| "Use A instead of B because C" | Yes — architectural choice |
+| "X is faster than Y" | Maybe — only if it changes approach |
+| "Use --flag for better output" | No — tip, not decision |
+
+Keep only entries that describe process changes, tooling contracts, or architectural choices. Tips and incidental observations don't warrant ADRs because they don't reflect decisions that constrain future work — capturing them as ADRs would dilute the ADR corpus and create noise in architecture documentation.
+
+**Step 3: Draft ADR skeletons** (only if candidates found)
+
+Get the next safe ADR number once, then increment for subsequent candidates:
+```bash
+python3 ~/.claude/scripts/adr-query.py next-number 2>/dev/null || echo "manual"
+```
+
+Call `next-number` once for the first candidate. For additional candidates, increment the number manually (e.g., if first returns 132, use 133 for the second) because the script checks existing files on disk and the first skeleton has not been committed yet.
+
+If `adr-query.py` returns "manual", use placeholder numbers and note that the user should assign them before merging.
+
+Draft to `adr/{number}-{slug}.md`:
+
+```markdown
+# ADR-{number}: {Title from learning}
+
+**Status**: Proposed
+**Date**: {today}
+**Source**: Auto-extracted from session learning (confidence: {confidence})
+
+## Context
+{Context derived from the learning entry}
+
+## Decision
+{Decision derived from the learning pattern}
+
+## Validation Criteria
+- [ ] {Criterion derived from the decision}
+```
+
+Write the file to disk so it is visible in the next session even if Phase 4 fails.
+
+**Step 4: Pass ADR data to Phase 4**
+
+Construct a `drafted_adrs` list in memory for use during the WRITE phase:
+- If candidates were found: list of `{"number": N, "path": "adr/N-slug.md", "title": "..."}` entries
+- If no candidates found: empty list — skip silently, no empty sections in output files
+
+**GATE**: learning.db queried. Candidates filtered using the decision-vs-tip heuristic. ADR skeleton files written to disk for any candidates found. `drafted_adrs` data available for Phase 4.
+
+### Phase 4: WRITE
 
 **Goal**: Write both handoff files to the project root. This skill only creates files — it only creates files and leaves existing code and git state untouched because it must be safe to invoke repeatedly without side effects.
 
 **Step 1: Write HANDOFF.json**
 
-Write to `{project_root}/HANDOFF.json` with UTC ISO 8601 timestamps for unambiguous parsing across time zones and system clocks:
+Write to `{project_root}/HANDOFF.json` with UTC ISO 8601 timestamps for unambiguous parsing across time zones and system clocks. Include the `drafted_adrs` field from Phase 3 — omit the field entirely (not null, not `[]`) if no ADRs were drafted, so `/resume-work` can detect absence reliably:
 
 ```json
 {
@@ -191,13 +257,16 @@ Write to `{project_root}/HANDOFF.json` with UTC ISO 8601 timestamps for unambigu
   "base_branch": "main",
   "false_completions": [
     "<file:line — placeholder marker found, if any>"
+  ],
+  "drafted_adrs": [
+    {"number": "<N>", "path": "adr/<N>-<slug>.md", "title": "<title>"}
   ]
 }
 ```
 
 **Step 2: Write .continue-here.md**
 
-Write to `{project_root}/.continue-here.md` because humans need prose-form state before committing to `/resume-work`:
+Write to `{project_root}/.continue-here.md` because humans need prose-form state before committing to `/resume-work`. Include the ADR section only if `drafted_adrs` is non-empty — an empty section wastes the reader's attention and signals noise:
 
 ```markdown
 # Continue Here
@@ -223,7 +292,12 @@ Write to `{project_root}/.continue-here.md` because humans need prose-form state
 ## Uncommitted work
 - [file1 — brief description of changes]
 - [file2 — brief description of changes]
+
+## ADRs Drafted from Session Learnings
+- [ADR-N: Title — adr/N-slug.md]
 ```
+
+Omit the "ADRs Drafted from Session Learnings" section entirely when `drafted_adrs` is empty.
 
 **Step 3: Suggest WIP commit if needed**
 
@@ -250,7 +324,7 @@ git commit -m "chore: session handoff artifacts"
 
 **GATE**: Both files written to project root. User notified of uncommitted work if any.
 
-### Phase 4: CONFIRM
+### Phase 5: CONFIRM
 
 **Goal**: Display summary and confirm handoff was captured. Skip this phase if `--quiet` flag was provided (for automated/scripted usage).
 
@@ -270,6 +344,7 @@ Display the handoff summary:
  Blockers: N
  Uncommitted files: N
  False completions: N placeholder(s) found
+ ADRs drafted: N
 
  Next action: <brief next_action summary>
 
@@ -286,6 +361,10 @@ Display the handoff summary:
 ### Error: Cannot Determine Session Work
 **Cause**: No commits on current branch, no task_plan.md, no uncommitted changes — nothing to hand off
 **Solution**: If the session genuinely did no work, there is nothing to hand off. Inform the user: "No work detected to hand off. If you made changes that aren't committed or tracked, describe what you were working on and I'll create the handoff manually."
+
+### Error: learning-db.py query fails
+**Cause**: `learning-db.py query` exits non-zero — database not initialized, script missing, or corrupted db file
+**Solution**: Skip Phase 3 silently and proceed to Phase 4 with an empty `drafted_adrs` list. The handoff files are the primary deliverable; ADR extraction is a best-effort enhancement. Log a single line in context_notes: "learning-db.py unavailable — ADR extraction skipped."
 
 ### Error: HANDOFF.json Already Exists
 **Cause**: A previous `/pause` created handoff files that were not yet consumed by `/resume-work`

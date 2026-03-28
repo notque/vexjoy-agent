@@ -247,6 +247,7 @@ Breakdown:
   Reference Files:   [N]/10
   Error Handling:    [N]/15
   Content Depth:     [N]/30
+  Joy-Check:         [pending — run Step 3]
 
 [If grade A or B:]
   Gate passed. Proceeding to INTEGRATE.
@@ -257,7 +258,25 @@ Breakdown:
   Iterations remaining: [3 | 2 | 1]
 ```
 
-**Step 3**: If grade C or below:
+**Step 3**: Run positive framing validation on the generated skill.
+
+Invoke `joy-check --mode instruction` on `skills/{name}/SKILL.md`. This validates that
+the skill's instructions use positive framing (action-based) rather than prohibition-based
+language (NEVER, do NOT, FORBIDDEN) per ADR-127. Positive framing makes instructions more
+actionable and easier for agents to internalize — prohibitions tell the agent what to avoid
+but not what to do instead.
+
+After running, update the Joy-Check line in the Step 2 report from `[pending]` to
+`[PASS]` or `[N lines flagged]`.
+
+Joy-check is advisory, not blocking — flagged lines do not prevent proceeding to INTEGRATE
+when the quality score is ≥75. However, flagged lines should be addressed in the same
+iteration as any quality fixes to avoid accumulating framing debt:
+- List the specific lines flagged
+- If returning to SCAFFOLD for a quality score failure (Step 4), include joy-check fixes
+  in the same pass — this counts toward the same 3-iteration limit
+
+**Step 4**: If grade C or below:
 - List the specific sections that are weak or missing
 - Return to Phase 3 with explicit instructions to fix those sections
 - Re-run Phase 4 after the fix

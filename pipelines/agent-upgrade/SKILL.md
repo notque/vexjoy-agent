@@ -235,7 +235,20 @@ Proceed with implementation? (or specify which items to include/exclude)
 **For peer inconsistencies**:
 - Align to the majority pattern observed across peers. If peers themselves are inconsistent, align to the most recent or highest-scoring peer.
 
-**Step 3**: Do NOT change any of the following without explicit user direction because domain logic changes require deliberate user decision, not opportunistic bundling:
+**Step 3**: Run positive framing validation on the modified agent or skill.
+
+After applying all approved improvements, invoke `joy-check --mode instruction` on the
+target file. This ensures that new or modified content uses positive framing per ADR-127.
+Positive framing produces instructions agents act on rather than rules they work around.
+
+If joy-check flags lines in the NEW content (content that was just added/modified):
+- Fix those lines as part of this same implementation pass
+- Do not flag pre-existing content that was not part of the upgrade scope
+
+If joy-check flags lines in EXISTING content (not modified by this upgrade):
+- Note them in the upgrade report but do not fix them (out of scope for this upgrade)
+
+**Step 4**: Do NOT change any of the following without explicit user direction because domain logic changes require deliberate user decision, not opportunistic bundling:
 - Routing triggers (`triggers:` frontmatter field)
 - Domain coverage statements
 - Core methodology or phase structure (for skills)
