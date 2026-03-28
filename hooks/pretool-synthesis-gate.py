@@ -19,8 +19,14 @@ Allow-through conditions:
 - No .adr-session.json (no active ADR session)
 - Target file is in hooks/, scripts/, adr/, commands/ (infrastructure, not implementation)
 - Target file is a test file (*_test.go, *_test.py, test_*.py, *.test.ts)
-- synthesis.md exists with PROCEED verdict
+- synthesis.md exists with explicit PROCEED verdict
 - SYNTHESIS_GATE_BYPASS=1 env var (for the consultation skill itself)
+
+Block conditions:
+- synthesis.md is missing (verdict is None)
+- synthesis.md contains explicit BLOCKED verdict
+- synthesis.md exists but contains neither PROCEED nor BLOCKED (verdict is UNKNOWN --
+  indicates incomplete consultation, truncated write, or merge conflict markers)
 """
 
 import json
@@ -183,9 +189,18 @@ def main() -> None:
         )
         sys.exit(2)
 
-    # PROCEED or UNKNOWN — allow through.
+    if verdict == "UNKNOWN":
+        print(
+            f"[synthesis-gate] BLOCKED: synthesis.md exists but contains neither PROCEED nor BLOCKED for {adr_name}.\n"
+            f"[synthesis-gate] The consultation may be incomplete, truncated, or contain merge conflict markers.\n"
+            f"[synthesis-gate] Review {synthesis_path} and ensure it contains an explicit PROCEED or BLOCKED verdict.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    # Explicit PROCEED — allow through.
     if debug:
-        print(f"[synthesis-gate] Verdict={verdict} for {adr_name} — allowing through", file=sys.stderr)
+        print(f"[synthesis-gate] Verdict=PROCEED for {adr_name} — allowing through", file=sys.stderr)
     sys.exit(0)
 
 

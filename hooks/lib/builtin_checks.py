@@ -45,7 +45,17 @@ class PythonChecker:
         try:
             content = file_path.read_text()
             self.lines = content.split("\n")
-        except Exception:
+        except Exception as e:
+            self.issues.append(
+                Issue(
+                    file=self.file_path,
+                    line=0,
+                    column=0,
+                    code="E000",
+                    message=f"Could not read file: {e}",
+                    severity="warning",
+                )
+            )
             return self.issues
 
         # Syntax check first
@@ -257,7 +267,17 @@ class JavaScriptChecker:
         try:
             content = file_path.read_text()
             self.lines = content.split("\n")
-        except Exception:
+        except Exception as e:
+            self.issues.append(
+                Issue(
+                    file=self.file_path,
+                    line=0,
+                    column=0,
+                    code="E000",
+                    message=f"Could not read file: {e}",
+                    severity="warning",
+                )
+            )
             return self.issues
 
         self._check_var_usage()
@@ -359,7 +379,17 @@ class ShellChecker:
         try:
             content = file_path.read_text()
             self.lines = content.split("\n")
-        except Exception:
+        except Exception as e:
+            self.issues.append(
+                Issue(
+                    file=self.file_path,
+                    line=0,
+                    column=0,
+                    code="E000",
+                    message=f"Could not read file: {e}",
+                    severity="warning",
+                )
+            )
             return self.issues
 
         self._check_shebang()
