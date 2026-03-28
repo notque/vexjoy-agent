@@ -34,7 +34,6 @@ routing:
     - golang-general-engineer
     - golang-general-engineer-compact
     - systematic-code-review
-  force_routing: true
 ---
 
 # Go Code Review Skill

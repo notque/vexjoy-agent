@@ -32,7 +32,7 @@ routing:
     - golang-general-engineer
     - golang-general-engineer-compact
     - go-sapcc-conventions
-  force_routing: false
+  force_route: false
   complexity: Complex
   category: language
 ---

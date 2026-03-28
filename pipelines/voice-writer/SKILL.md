@@ -24,7 +24,6 @@ allowed-tools:
   - Skill
 routing:
   force_route: true
-  force_routing: true
   triggers:
     - write article
     - blog post
