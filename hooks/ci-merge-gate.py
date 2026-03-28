@@ -107,5 +107,6 @@ if __name__ == "__main__":
         main()
     except SystemExit:
         raise  # Let intentional exit(2) blocks propagate
-    except Exception:
+    except Exception as e:
+        print(f"[ci-merge-gate] HOOK-CRASH: {type(e).__name__}: {e}", file=sys.stderr)
         sys.exit(0)  # Fail-open: crashed hook must never block tools
