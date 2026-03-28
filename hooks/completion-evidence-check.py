@@ -38,8 +38,8 @@ def main():
                     "[completion-check] Completion claimed without test evidence. "
                     "Required: run tests and show output before marking complete."
                 )
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[completion-check] HOOK-CRASH: {type(e).__name__}: {e}", file=sys.stderr)
 
 
 if __name__ == "__main__":

@@ -68,7 +68,7 @@ def main():
                 isolation=isolation,
             )
 
-    except (json.JSONDecodeError, Exception) as e:
+    except Exception as e:
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             import traceback
 

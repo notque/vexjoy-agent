@@ -363,6 +363,7 @@ if __name__ == "__main__":
         main()
     except SystemExit:
         raise  # Let sys.exit(2) propagate for blocks
-    except Exception:
+    except Exception as e:
         # Fail OPEN — a crashed hook must never exit 2.
+        print(f"[unified-gate] HOOK-CRASH: {type(e).__name__}: {e}", file=sys.stderr)
         sys.exit(0)
