@@ -201,7 +201,7 @@ When calibrating the voice system, one writer's actual writing scored 66/100 wit
 This pattern applies to:
 - All voice replication skills
 - The anti-ai-editor skill
-- The voice-orchestrator workflow
+- The voice-writer workflow
 - Content validation systems
 - Any human-mimicking generation
 

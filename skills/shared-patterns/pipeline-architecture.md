@@ -403,7 +403,7 @@ The router already suggests pipelines:
 ### 3. Skill Triggers
 
 Skills themselves reference pipelines:
-- `voice-orchestrator` has 7 steps
+- `voice-writer` has 8 steps
 - `research-to-article` has explicit phases
 - `workflow-orchestrator` has UNDERSTAND/PLAN/EXECUTE/VERIFY
 
@@ -426,7 +426,7 @@ Current pipelines in this repository:
 | Pipeline | Skill | Phases |
 |----------|-------|--------|
 | Research-to-Article | `research-to-article` | 7 (RESEARCH→COMPILE→GROUND→GENERATE→VALIDATE→REFINE→OUTPUT) |
-| Voice Orchestration | `voice-orchestrator` | 7 (RESEARCH→LOAD→GROUND→GENERATE→VALIDATE→REFINE→OUTPUT) |
+| Voice Writing | `voice-writer` | 8 (LOAD→GROUND→GENERATE→VALIDATE→REFINE→JOY-CHECK→OUTPUT→CLEANUP) |
 | Workflow Orchestration | `workflow-orchestrator` | 4 (UNDERSTAND→PLAN→EXECUTE→VERIFY) |
 | Subagent Development | `subagent-driven-development` | 3 (SPEC→EXECUTE→REVIEW) |
 | Parallel Code Review | `parallel-code-review` | 3 (DISPATCH→EXECUTE→AGGREGATE) |
@@ -507,7 +507,7 @@ Tasks that could benefit from explicit pipelines:
 - Content → `research-to-article`
 - Code → `workflow-orchestrator`
 - Review → `parallel-code-review`
-- Voice → `voice-orchestrator`
+- Voice → `voice-writer`
 - Debug → `systematic-debugging`
 - Test → `test-driven-development`
 
