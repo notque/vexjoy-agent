@@ -197,7 +197,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/post-tool-lint-hint.py\"",
+            "command": "python3 \"$HOME/.claude/hooks/posttool-lint-hint.py\"",
             "description": "Gentle lint reminder after file modifications"
           },
           {
