@@ -11,7 +11,6 @@ description: |
 version: 1.0.0
 user-invocable: false
 context: fork
-agent: general-purpose
 allowed-tools:
   - Read
   - Write

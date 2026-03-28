@@ -4,7 +4,7 @@ description: Swift structured concurrency with async/await, Actor, Task, and Sen
 version: 1.0.0
 user-invocable: false
 context: fork
-agent: general-purpose
+agent: swift-general-engineer
 ---
 
 # Swift Structured Concurrency

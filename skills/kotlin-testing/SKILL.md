@@ -4,7 +4,7 @@ description: Kotlin testing patterns with JUnit 5, Kotest, and coroutine test di
 version: 1.0.0
 user-invocable: false
 context: fork
-agent: general-purpose
+agent: kotlin-general-engineer
 ---
 
 # Kotlin Testing Patterns

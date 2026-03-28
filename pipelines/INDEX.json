@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-03-28T04:20:25Z",
+  "generated": "2026-03-28T04:23:31Z",
   "generated_by": "scripts/generate-skill-index.py",
   "pipelines": {
     "agent-upgrade": {
@@ -26,8 +26,7 @@
       "pairs_with": [
         "agent-evaluation",
         "system-upgrade"
-      ],
-      "agent": "skill-creator"
+      ]
     },
     "article-evaluation-pipeline": {
       "file": "pipelines/article-evaluation-pipeline/SKILL.md",
@@ -256,7 +255,6 @@
         "analyze quality",
         "assess consistency",
         "evaluate patterns",
-        "analyze codebase",
         "explore codebase",
         "understand this repo",
         "map the codebase",
@@ -303,8 +301,7 @@
         "VALIDATE",
         "RELEASE",
         "RECORD"
-      ],
-      "agent": "general-purpose"
+      ]
     },
     "github-profile-rules": {
       "file": "pipelines/github-profile-rules/SKILL.md",
@@ -639,8 +636,7 @@
       "pairs_with": [
         "agent-evaluation",
         "routing-table-updater"
-      ],
-      "agent": "skill-creator"
+      ]
     },
     "system-upgrade": {
       "file": "pipelines/system-upgrade/SKILL.md",
@@ -695,8 +691,7 @@
         "TEST",
         "FIX",
         "RECORD"
-      ],
-      "agent": "general-purpose"
+      ]
     },
     "systematic-refactoring": {
       "file": "pipelines/systematic-refactoring/SKILL.md",
@@ -722,8 +717,7 @@
         "REFACTOR",
         "VERIFY",
         "RECORD"
-      ],
-      "agent": "general-purpose"
+      ]
     },
     "toolkit-improvement": {
       "file": "pipelines/toolkit-improvement/SKILL.md",

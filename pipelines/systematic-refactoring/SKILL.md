@@ -10,7 +10,6 @@ description: |
 version: 2.0.0
 user-invocable: false
 context: fork
-agent: general-purpose
 allowed-tools:
   - Read
   - Edit

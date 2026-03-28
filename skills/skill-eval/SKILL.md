@@ -11,7 +11,6 @@ description: |
 version: 1.0.0
 user-invocable: false
 argument-hint: "<skill-name>"
-agent: skill-creator
 allowed-tools:
   - Read
   - Write

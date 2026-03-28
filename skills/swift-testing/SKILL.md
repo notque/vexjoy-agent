@@ -4,7 +4,7 @@ description: Swift testing patterns with XCTest, Swift Testing framework, and as
 version: 1.0.0
 user-invocable: false
 context: fork
-agent: general-purpose
+agent: swift-general-engineer
 ---
 
 # Swift Testing Patterns
