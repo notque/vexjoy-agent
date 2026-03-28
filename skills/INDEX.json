@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-03-28T04:20:25Z",
+  "generated": "2026-03-28T04:23:31Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -975,7 +975,7 @@
       ],
       "user_invocable": false,
       "version": "1.0.0",
-      "agent": "general-purpose"
+      "agent": "kotlin-general-engineer"
     },
     "kotlin-testing": {
       "file": "skills/kotlin-testing/SKILL.md",
@@ -987,7 +987,7 @@
       ],
       "user_invocable": false,
       "version": "1.0.0",
-      "agent": "general-purpose"
+      "agent": "kotlin-general-engineer"
     },
     "kubernetes-debugging": {
       "file": "skills/kubernetes-debugging/SKILL.md",
@@ -1286,7 +1286,7 @@
       ],
       "user_invocable": false,
       "version": "1.0.0",
-      "agent": "general-purpose"
+      "agent": "php-general-engineer"
     },
     "php-testing": {
       "file": "skills/php-testing/SKILL.md",
@@ -1298,7 +1298,7 @@
       ],
       "user_invocable": false,
       "version": "1.0.0",
-      "agent": "general-purpose"
+      "agent": "php-general-engineer"
     },
     "plan-checker": {
       "file": "skills/plan-checker/SKILL.md",
@@ -1331,7 +1331,7 @@
         "complete plan"
       ],
       "category": "process",
-      "user_invocable": false,
+      "user_invocable": true,
       "version": "2.0.0"
     },
     "planning-with-files": {
@@ -1555,7 +1555,7 @@
         "bandit scan",
         "mypy check",
         "python lint",
-        "quality gate",
+        "python quality gate",
         "check python",
         "pre-commit check"
       ],
@@ -1573,7 +1573,6 @@
         "small change",
         "ad hoc task",
         "add a flag",
-        "extract function",
         "small refactor",
         "targeted fix"
       ],
@@ -1842,8 +1841,7 @@
       "pairs_with": [
         "agent-evaluation",
         "verification-before-completion"
-      ],
-      "agent": "skill-creator"
+      ]
     },
     "socratic-debugging": {
       "file": "skills/socratic-debugging/SKILL.md",
@@ -1906,7 +1904,7 @@
       ],
       "user_invocable": false,
       "version": "1.0.0",
-      "agent": "general-purpose"
+      "agent": "swift-general-engineer"
     },
     "swift-testing": {
       "file": "skills/swift-testing/SKILL.md",
@@ -1918,7 +1916,7 @@
       ],
       "user_invocable": false,
       "version": "1.0.0",
-      "agent": "general-purpose"
+      "agent": "swift-general-engineer"
     },
     "systematic-code-review": {
       "file": "skills/systematic-code-review/SKILL.md",

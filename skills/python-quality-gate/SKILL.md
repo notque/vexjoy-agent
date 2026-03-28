@@ -28,7 +28,7 @@ routing:
     - "bandit scan"
     - "mypy check"
     - "python lint"
-    - "quality gate"
+    - "python quality gate"
     - "check python"
     - "pre-commit check"
   category: code-quality

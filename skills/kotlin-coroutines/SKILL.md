@@ -4,7 +4,7 @@ description: Kotlin structured concurrency, Flow, Channel, and cancellation patt
 version: 1.0.0
 user-invocable: false
 context: fork
-agent: general-purpose
+agent: kotlin-general-engineer
 ---
 
 # Kotlin Coroutines Patterns
