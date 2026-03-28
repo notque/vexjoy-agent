@@ -27,7 +27,6 @@ routing:
     - small change
     - ad hoc task
     - add a flag
-    - extract function
     - small refactor
     - targeted fix
   pairs_with:

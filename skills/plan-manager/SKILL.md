@@ -8,7 +8,7 @@ description: |
   Do NOT use for executing plan tasks, modifying plan content directly, or
   performance/refactoring work unrelated to plan tracking.
 version: 2.0.0
-user-invocable: false
+user-invocable: true
 allowed-tools:
   - Read
   - Bash

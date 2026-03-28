@@ -4,7 +4,7 @@ description: PHP code quality patterns including PSR standards, strict types, an
 version: 1.0.0
 user-invocable: false
 context: fork
-agent: general-purpose
+agent: php-general-engineer
 ---
 
 # PHP Quality Skill

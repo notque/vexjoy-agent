@@ -4,7 +4,7 @@ description: PHP testing patterns with PHPUnit, test doubles, and database testi
 version: 1.0.0
 user-invocable: false
 context: fork
-agent: general-purpose
+agent: php-general-engineer
 ---
 
 # PHP Testing Skill

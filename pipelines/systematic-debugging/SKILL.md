@@ -11,7 +11,6 @@ effort: high
 version: 2.0.0
 user-invocable: false
 context: fork
-agent: general-purpose
 allowed-tools: [Read, Write, Bash, Grep, Glob, Edit, Task]
 success-criteria:
   - "Bug is reproducible with a specific test or command"

@@ -33,7 +33,6 @@ routing:
     - analyze quality
     - assess consistency
     - evaluate patterns
-    - analyze codebase
     - "explore codebase"
     - "understand this repo"
     - "map the codebase"

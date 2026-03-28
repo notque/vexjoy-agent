@@ -20,6 +20,8 @@ routing:
   category: process
 ---
 
+> **Deprecated**: This skill is superseded by [plan-manager](../plan-manager/SKILL.md). Use `/plan-manager` instead.
+
 # Plans - Plan Lifecycle Management
 
 ## Overview
