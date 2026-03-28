@@ -27,6 +27,25 @@ import sys
 from pathlib import Path
 
 
+def _atomic_json_write(path: Path, data: dict) -> None:
+    """Write JSON atomically via temp file + rename."""
+    tmp_path = path.with_suffix(".json.tmp")
+    try:
+        with open(tmp_path, "w") as f:
+            json.dump(data, f, indent=2)
+            f.write("\n")
+            f.flush()
+            os.fsync(f.fileno())
+        os.rename(str(tmp_path), str(path))
+    except Exception:
+        # Clean up temp file on failure
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise
+
+
 def _parse_retro_entries(text: str) -> tuple[str, list[tuple[str, str]]]:
     """Parse a retro markdown file into header (everything before first ###) and entries.
 
@@ -151,6 +170,9 @@ def regenerate_l1_at_dst(dst_retro: Path) -> None:
     l1_path.write_text("\n".join(lines) + "\n")
 
 
+# NOTE: Hook sync uses repo-as-source-of-truth (replace, not merge) to prevent
+# phantom hook errors when switching branches. User hooks added manually or from
+# other repos will be overwritten. Non-hook keys are preserved. See ADR-104.
 def sync_settings(repo_settings: dict, global_settings: dict) -> dict:
     """Sync repo settings as source-of-truth for hooks and attribution.
 
@@ -379,8 +401,7 @@ def main():
 
             merged = sync_settings(repo_settings, global_settings)
 
-            with open(global_settings_path, "w") as f:
-                json.dump(merged, f, indent=2)
+            _atomic_json_write(Path(global_settings_path), merged)
 
             hook_count = sum(len(v) for v in merged.get("hooks", {}).values())
             synced.append(f"settings({hook_count} hook events)")
@@ -415,9 +436,7 @@ def main():
 
             global_mcp["mcpServers"] = merged_servers
 
-            with open(global_mcp_path, "w") as f:
-                json.dump(global_mcp, f, indent=2)
-                f.write("\n")
+            _atomic_json_write(Path(global_mcp_path), global_mcp)
 
             new_servers = [n for n in repo_servers if n not in global_servers]
             if new_servers:
