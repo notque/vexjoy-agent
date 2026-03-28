@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-03-28T04:29:42Z",
+  "generated": "2026-03-28T04:44:21Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -2189,6 +2189,17 @@
       "category": "meta-tooling",
       "user_invocable": true,
       "version": "2.0.0"
+    },
+    "worktree-agent": {
+      "file": "skills/worktree-agent/SKILL.md",
+      "description": "Mandatory rules for agents running in git worktree isolation to prevent leaks, branch confusion, and cross-contamination",
+      "triggers": [
+        "worktree-agent",
+        "worktree",
+        "agent"
+      ],
+      "user_invocable": false,
+      "version": "1.0.0"
     },
     "x-api": {
       "file": "skills/x-api/SKILL.md",

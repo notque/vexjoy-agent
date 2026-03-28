@@ -195,6 +195,8 @@ Route to agents that create branches; never allow direct main/master commits, be
 
 When dispatching agents for file modifications, explicitly include "commit your changes on the branch" in the agent prompt, because otherwise the agent completes file edits but changes sit unstaged — the orchestrator assumes committed work and moves on, and changes are lost.
 
+When dispatching agents with `isolation: "worktree"`, inject the `worktree-agent` skill rules into the agent prompt. The skill at `skills/worktree-agent/SKILL.md` contains mandatory rules that prevent worktree isolation failures (leaked changes, branch confusion, auto-plan hook interference). At minimum include: "Verify your CWD contains .claude/worktrees/. Create feature branch before edits. Do NOT create task_plan.md. Stage specific files only."
+
 For repos without organization-gated workflows, run up to 3 iterations of `/pr-review` → fix before creating a PR, because post-merge fixes cost 2 PRs instead of 1. For repos under protected organizations (via `scripts/classify-repo.py`), require user confirmation before EACH git action — never auto-execute or auto-merge, because organization-gated repos have compliance requirements that automation must not bypass.
 
 **Step 3: Handle multi-part requests**
