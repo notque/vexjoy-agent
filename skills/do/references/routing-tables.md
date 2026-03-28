@@ -227,6 +227,7 @@ All pipelines live in the `pipelines/` directory (synced to `~/.claude/skills/` 
 
 | Pipeline | When to Route Here | Phases |
 |----------|--------------------|--------|
+| **toolkit-improvement** (FORCE) | User wants to evaluate, audit, or improve the toolkit itself. Dispatches 30+ reviewer agents in waves, synthesizes findings, has a skeptical grader challenge them, creates ADRs, implements fixes, and validates. Use for: "improve the toolkit", "evaluate the repo", "audit the system", "find issues", "self-improvement", "repo health check", "what can be better", "how can we improve", "make the toolkit better". NOT: reviewing a single PR (use /pr-review) or fixing one bug (use /systematic-debugging). | EVALUATE → RESEARCH → SYNTHESIZE → CRITIQUE → REPORT → ADR → IMPLEMENT → VALIDATE → REMEDIATE → RECORD |
 | **pipeline-scaffolder** (pipeline-orchestrator-engineer) | User wants to create a new pipeline, scaffold a new structured workflow from a spec. | LOAD → SCAFFOLD → INTEGRATE → REPORT |
 | **system-upgrade** (system-upgrade-engineer) | User wants to upgrade the Claude Code toolkit after a model update, apply system-wide changes, or roll out agent improvements. NOT: upgrading a specific library dependency in user code. | CHANGELOG → AUDIT → PLAN → IMPLEMENT → VALIDATE → DEPLOY |
 | **skill-creation-pipeline** (skill-creator) | User wants to create a new skill with formal quality gates, phase structure, and integration. | DISCOVER → DESIGN → SCAFFOLD → VALIDATE → INTEGRATE |
@@ -259,6 +260,7 @@ Pipelines that work together in common workflows:
 | **Feature lifecycle** | explore-pipeline → workflow-orchestrator → pr-pipeline | Understand → implement → ship |
 | **Code review** | comprehensive-review → pr-pipeline | Review then submit |
 | **Agent improvement** | agent-upgrade → skill-creation-pipeline | Audit agent, then scaffold missing skills |
+| **Toolkit improvement** | toolkit-improvement → system-upgrade → agent-upgrade | Evaluate → fix → upgrade system → upgrade agents |
 | **System upgrade** | system-upgrade → agent-upgrade | Upgrade system, then individual agents |
 | **Voice development** | voice-calibrator → voice-writer → article-evaluation-pipeline | Calibrate → write → evaluate |
 | **Documentation** | explore-pipeline → doc-pipeline | Understand codebase → generate docs |
@@ -375,6 +377,12 @@ Invoked via the roast skill or directly:
 | "check my logic here" | (domain agent + review) | Intent: review — not CI |
 | "research then write article" | research-to-article pipeline | Research-backed content creation |
 | "create a pipeline for X" | pipeline-orchestrator-engineer + pipeline-scaffolder | Pipeline creation |
+| "improve the toolkit" | toolkit-improvement (FORCE) | Full 10-phase evaluation + improvement |
+| "evaluate the repo" | toolkit-improvement (FORCE) | Full 10-phase evaluation + improvement |
+| "audit the system" | toolkit-improvement (FORCE) | Full 10-phase evaluation + improvement |
+| "find issues" | toolkit-improvement (FORCE) | Full 10-phase evaluation + improvement |
+| "what can be better" | toolkit-improvement (FORCE) | Full 10-phase evaluation + improvement |
+| "self-improvement" | toolkit-improvement (FORCE) | Full 10-phase evaluation + improvement |
 | "upgrade system for new Claude version" | system-upgrade-engineer + system-upgrade | System-wide upgrade |
 | "create skill with quality gates" | skill-creator + skill-creation-pipeline | Formal skill creation |
 | "create hook (formal, with perf test)" | hook-development-engineer + hook-development-pipeline | Formal hook creation |
