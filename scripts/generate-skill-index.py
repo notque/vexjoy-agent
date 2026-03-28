@@ -313,6 +313,12 @@ def generate_index(
             continue
 
         name = frontmatter.get("name", skill_dir.name)
+
+        promoted_to = frontmatter.get("promoted_to")
+        if promoted_to:
+            print(f"  [skip] {name} promoted to {promoted_to}")
+            continue
+
         entry = build_entry(
             frontmatter=frontmatter,
             skill_dir=skill_dir,

@@ -172,13 +172,14 @@ PHASE 7: OUTPUT    → Final content with validation report
 
 ### Available Pipelines
 
-| Skill | Phases | Use Case |
-|-------|--------|----------|
-| `research-to-article` | 7 | Blog posts, documentation with parallel research |
-| `explore-pipeline` | 4 | Systematic codebase exploration |
-| `pr-pipeline` | 5 | Stage → commit → push → create → verify |
-| `workflow-orchestrator` | 4 | UNDERSTAND → PLAN → EXECUTE → VERIFY |
-| `voice-orchestrator` | 7 | Voice content with deterministic validation |
+Pipelines live in `pipelines/*/SKILL.md`. Each pipeline's frontmatter contains its
+description and phase count. Run `ls pipelines/` for the current inventory.
+
+Key pipelines referenced elsewhere in this document:
+- `workflow-orchestrator`: Task orchestration (BRAINSTORM → WRITE-PLAN → VALIDATE-PLAN → EXECUTE-PLAN)
+- `pr-pipeline`: Pull request lifecycle (Stage → Commit → Push → Create → Verify)
+- `explore-pipeline`: Systematic codebase exploration
+- `research-to-article`: Multi-agent research to voice content generation
 
 ### Pipeline Principles
 
