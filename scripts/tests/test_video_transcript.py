@@ -1,7 +1,8 @@
-"""Tests for video_transcript.py -- URL parsing, subtitle parsing, output formatting."""
+"""Tests for video-transcript.py -- URL parsing, subtitle parsing, output formatting."""
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import subprocess
 import sys
@@ -10,9 +11,15 @@ from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+# Load kebab-case module via importlib (not a valid Python identifier)
+_spec = importlib.util.spec_from_file_location(
+    "video_transcript", Path(__file__).resolve().parent.parent / "video-transcript.py"
+)
+video_transcript = importlib.util.module_from_spec(_spec)
+sys.modules["video_transcript"] = video_transcript
+_spec.loader.exec_module(video_transcript)
 
-from video_transcript import (
+from video_transcript import (  # noqa: E402
     TranscriptResult,
     TranscriptSegment,
     _clean_subtitle_text,
@@ -284,7 +291,7 @@ class TestTranscriptResultFormat:
 # --- CLI argument parsing ---
 
 
-_SCRIPT_PATH = str(Path(__file__).resolve().parent.parent / "video_transcript.py")
+_SCRIPT_PATH = str(Path(__file__).resolve().parent.parent / "video-transcript.py")
 
 
 class TestCliHelp:

@@ -1,8 +1,9 @@
-"""Tests for reddit_mod.py pure functions."""
+"""Tests for reddit-mod.py pure functions."""
 
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import io
 import json
 import re
@@ -13,11 +14,15 @@ from pathlib import Path
 
 import pytest
 
-# Add scripts dir to path so we can import
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+# Load kebab-case module via importlib (not a valid Python identifier)
+_spec = importlib.util.spec_from_file_location(
+    "reddit_mod", Path(__file__).resolve().parent.parent / "reddit-mod.py"
+)
+reddit_mod = importlib.util.module_from_spec(_spec)
+sys.modules["reddit_mod"] = reddit_mod
+_spec.loader.exec_module(reddit_mod)
 
-import reddit_mod
-from reddit_mod import (
+from reddit_mod import (  # noqa: E402
     _DEFAULT_CONFIG,
     _FULLNAME_RE,
     _SUBREDDIT_RE,

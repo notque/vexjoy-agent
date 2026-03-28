@@ -10,7 +10,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-HOOK_PATH = Path(__file__).parent.parent / "post-tool-lint-hint.py"
+HOOK_PATH = Path(__file__).parent.parent / "posttool-lint-hint.py"
 
 
 def setup():
