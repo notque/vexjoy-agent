@@ -99,7 +99,6 @@ from datetime import datetime
 
 
 LEARNING_DB = Path.home() / '.claude' / 'learnings' / 'error_patterns.json'
-CONTEXT_FILE = Path('/tmp/claude_session_context.json')
 DEBUG_LOG = Path('/tmp/claude_hook_debug.log')
 
 
@@ -188,30 +187,22 @@ def query_learning_db(signature):
     return None
 
 
-def inject_solution(solution_data):
+def inject_solution(solution_data, event_name: str) -> None:
     """
-    Inject solution into Claude Code context.
+    Inject solution into Claude Code context via stdout.
 
     Args:
         solution_data: Solution dict with description and command
+        event_name: Hook event name (e.g. "PostToolUse")
     """
     try:
-        context = {
-            'auto-fix': {
-                'description': solution_data.get('description', ''),
-                'command': solution_data.get('command', ''),
-                'confidence': solution_data.get('confidence', 0.0)
-            }
-        }
-
-        # Atomic write: write to temp, then rename
-        temp_path = CONTEXT_FILE.with_suffix('.tmp')
-        with temp_path.open('w') as f:
-            json.dump(context, f, indent=2)
-        temp_path.replace(CONTEXT_FILE)
-
-        debug_log(f"Injected solution: {solution_data.get('description')}")
-
+        from hook_utils import context_output
+        text = (
+            f"[auto-fix] action={solution_data.get('command', '')}\n"
+            f"description={solution_data.get('description', '')}\n"
+            f"confidence={solution_data.get('confidence', 0.0)}"
+        )
+        context_output(event_name, text).print_and_exit()
     except Exception as e:
         debug_log(f"Context injection error: {e}")
 
