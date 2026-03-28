@@ -9,6 +9,8 @@ description: |
   new voice profiles (use voice-calibrator), analyzing writing samples (use
   voice_analyzer.py), or general content without a voice target.
 version: 2.0.0
+deprecated: true
+deprecated_by: voice-writer
 user-invocable: false
 allowed-tools:
   - Read
@@ -21,14 +23,16 @@ allowed-tools:
   - Skill
 context: fork
 routing:
-  triggers:
-    - "voice generation"
-    - "multi-step voice"
-    - "voice pipeline"
+  triggers: []
   category: voice
 ---
 
 # Voice Orchestrator Skill
+
+> **DEPRECATED**: This skill is deprecated in favor of `voice-writer` (ADR-068).
+> Use `/voice-writer` for all blog post and article generation. The voice-writer
+> pipeline includes mandatory de-ai scanning, joy-check validation, and voice
+> metric verification that this skill lacks.
 
 ## Overview
 

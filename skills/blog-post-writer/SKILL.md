@@ -8,6 +8,8 @@ description: |
   or "write about [topic]". Do NOT use for editing existing posts, voice
   profile creation, SEO optimization, or social media content.
 version: 2.0.0
+deprecated: true
+deprecated_by: voice-writer
 user-invocable: false
 allowed-tools:
   - Read
@@ -19,8 +21,7 @@ allowed-tools:
   - Task
   - Skill
 routing:
-  triggers:
-    - "write blog post"
+  triggers: []
   category: content-creation
 ---
 
@@ -29,6 +30,11 @@ routing:
 Voice-integrated blog post creation using a 4-phase pipeline: Assess, Decide, Draft, Preview. Each phase has a gate that must pass before proceeding.
 
 ## Instructions
+
+> **DEPRECATED**: This skill is deprecated in favor of `voice-writer` (ADR-068).
+> Use `/voice-writer` for all blog post and article generation. The voice-writer
+> pipeline includes mandatory de-ai scanning, joy-check validation, and voice
+> metric verification that this skill lacks.
 
 ### Phase 1: ASSESS
 

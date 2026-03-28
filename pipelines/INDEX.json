@@ -817,7 +817,17 @@
         "write about",
         "write post",
         "blog about",
-        "create content"
+        "create content",
+        "write blog",
+        "article about",
+        "publish post",
+        "content for blog",
+        "hugo post",
+        "write for website",
+        "long-form content",
+        "write piece",
+        "write essay",
+        "ghost write"
       ],
       "category": "content",
       "force_route": true,
