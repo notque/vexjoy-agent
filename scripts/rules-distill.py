@@ -310,7 +310,12 @@ def filter_layer4_not_covered(
 
 
 def _run_claude_code(prompt: str, model: str | None = None) -> tuple[str, str]:
-    """Run Claude Code and return (assistant_text, raw_result_text)."""
+    """Run Claude Code and return (assistant_text, raw_result_text).
+
+    Soft-fail contract: returns ('', '') on any failure (non-zero exit, invalid
+    JSON, timeout). Callers must treat empty strings as a no-op and fall back
+    to keyword-based extraction.
+    """
     cmd = ["claude", "-p", prompt, "--output-format", "json", "--print"]
     if model:
         cmd.extend(["--model", model])

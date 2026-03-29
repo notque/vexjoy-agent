@@ -630,8 +630,8 @@ def _run_trigger_rate(
     task_file = None
     try:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump(tasks, f)
             task_file = f.name
+            json.dump(tasks, f)
 
         with tempfile.TemporaryDirectory() as skill_dir:
             skill_md = Path(skill_dir) / "SKILL.md"
@@ -679,7 +679,11 @@ def _run_trigger_rate(
                 print(f"Trigger assessment failed (exit {result.returncode}): {result.stderr[:300]}", file=sys.stderr)
                 return {"results": [], "summary": {"total": 0, "passed": 0, "failed": 0}}
 
-            return json.loads(result.stdout)
+            try:
+                return json.loads(result.stdout)
+            except json.JSONDecodeError as e:
+                print(f"Trigger assessment returned invalid JSON: {e} — stdout: {result.stdout[:200]}", file=sys.stderr)
+                return {"results": [], "summary": {"total": 0, "passed": 0, "failed": 0}}
     finally:
         if task_file:
             Path(task_file).unlink(missing_ok=True)
