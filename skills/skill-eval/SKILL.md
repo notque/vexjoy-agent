@@ -109,7 +109,6 @@ Automated loop that tests, improves, and re-tests descriptions using Claude with
 python3 -m scripts.skill_eval.run_loop \
   --eval-set evals.json \
   --skill-path <path/to/skill> \
-  --model claude-opus-4-6 \
   --max-iterations 5 \
   --verbose
 ```
@@ -117,7 +116,7 @@ python3 -m scripts.skill_eval.run_loop \
 This will:
 1. Split eval set 60/40 train/test (stratified by should_trigger) — prevents overfitting to test cases
 2. Evaluate current description on all queries (3 runs each for reliability)
-3. Use Claude with extended thinking to propose improvements based on training failures
+3. Use `claude -p` to propose improvements based on training failures
 4. Re-evaluate the new description
 5. Repeat until all pass or max iterations reached
 6. Select best description by **test** score (not train score — prevents overfitting)
@@ -207,9 +206,9 @@ If description optimization found a better description:
 **Cause**: Claude CLI not available for trigger evaluation
 **Solution**: Install Claude Code CLI. Trigger eval requires `claude -p` to test skill invocation.
 
-### Error: "anthropic SDK not installed"
-**Cause**: Description optimization requires the Anthropic Python SDK
-**Solution**: `pip install anthropic`. Only needed for `improve_description.py` and `run_loop.py`.
+### Error: "legacy SDK dependency"
+**Cause**: Outdated instructions or an old checkout still expects a direct SDK client
+**Solution**: Update to the current scripts. Description optimization now runs through `claude -p`.
 
 ### Error: "CLAUDECODE environment variable"
 **Cause**: Running eval from inside a Claude Code session blocks nested instances

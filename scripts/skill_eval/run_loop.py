@@ -15,8 +15,6 @@ import time
 import webbrowser
 from pathlib import Path
 
-import anthropic
-
 from scripts.skill_eval.generate_report import generate_html
 from scripts.skill_eval.improve_description import improve_description
 from scripts.skill_eval.run_eval import find_project_root, run_eval
@@ -56,7 +54,7 @@ def run_loop(
     runs_per_query: int,
     trigger_threshold: float,
     holdout: float,
-    model: str,
+    model: str | None,
     verbose: bool,
     live_report_path: Path | None = None,
     log_dir: Path | None = None,
@@ -75,7 +73,6 @@ def run_loop(
         train_set = eval_set
         test_set = []
 
-    client = anthropic.Anthropic()
     history = []
     exit_reason = "unknown"
 
@@ -206,7 +203,6 @@ def run_loop(
         # Strip test scores from history so improvement model can't see them
         blinded_history = [{k: v for k, v in h.items() if not k.startswith("test_")} for h in history]
         new_description = improve_description(
-            client=client,
             skill_name=name,
             skill_content=content,
             current_description=current_description,
@@ -264,7 +260,7 @@ def main():
     parser.add_argument(
         "--holdout", type=float, default=0.4, help="Fraction of eval set to hold out for testing (0 to disable)"
     )
-    parser.add_argument("--model", required=True, help="Model for improvement")
+    parser.add_argument("--model", default=None, help="Optional Claude Code model override")
     parser.add_argument("--verbose", action="store_true", help="Print progress to stderr")
     parser.add_argument(
         "--report",
