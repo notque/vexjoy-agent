@@ -162,6 +162,38 @@ def find_iteration_dirs(workspace: Path) -> list[Path]:
     return [d for d in dirs if d.is_dir()]
 
 
+def is_optimization_data(data: object) -> bool:
+    """Return True when the payload matches optimize_loop.py results."""
+    if not isinstance(data, dict):
+        return False
+    iterations = data.get("iterations")
+    if not isinstance(iterations, list):
+        return False
+    if "baseline_score" not in data:
+        return False
+    if "target" not in data:
+        return False
+    return all(
+        isinstance(item, dict) and "number" in item and "verdict" in item
+        for item in iterations
+    )
+
+
+def load_optimization_data(workspace: Path) -> dict | None:
+    """Load optimization loop results when present in the workspace."""
+    candidates = [
+        workspace / "results.json",
+        workspace / "evals" / "iterations" / "results.json",
+        workspace / "out" / "results.json",
+    ]
+    for path in candidates:
+        if path.exists():
+            data = load_json_safe(path)
+            if is_optimization_data(data):
+                return data
+    return None
+
+
 def build_data(workspace: Path) -> dict:
     """Build full comparison data."""
     evals_path = workspace / "evals" / "evals.json"
@@ -185,6 +217,7 @@ def build_data(workspace: Path) -> dict:
             "variantAName": "Variant A",
             "variantBName": "Variant B",
             "variantCName": "Variant C",
+            "optimization": load_optimization_data(workspace),
         }
 
     iteration = iterations[-1]  # Latest iteration
@@ -239,6 +272,7 @@ def build_data(workspace: Path) -> dict:
         "variantAName": variants.get("A", {}).get("name", "Variant A"),
         "variantBName": variants.get("B", {}).get("name", "Variant B"),
         "variantCName": variants.get("C", {}).get("name", "Variant C"),
+        "optimization": load_optimization_data(workspace),
     }
 
 
