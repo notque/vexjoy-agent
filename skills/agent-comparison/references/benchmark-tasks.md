@@ -184,3 +184,76 @@ cd benchmark/{task-name}/compact && go test -race -v
 # Manual alternative: compare outputs side-by-side using diff
 diff benchmark/{task-name}/full/ benchmark/{task-name}/compact/
 ```
+
+## Optimization Loop Task Format
+
+The current optimization loop is for frontmatter-description and routing-trigger quality. It does not run full code-generation benchmarks. Use Phase 5 with trigger-rate eval tasks, then use Phases 1-4 for full agent benchmarking.
+
+### Supported Task File Schemas
+
+Flat list with optional split markers:
+
+```json
+{
+  "tasks": [
+    {
+      "name": "go-testing-positive",
+      "split": "train",
+      "complexity": "complex",
+      "query": "write table-driven tests for a Go parser with subtests and helpers",
+      "should_trigger": true
+    },
+    {
+      "name": "kubernetes-negative",
+      "split": "test",
+      "complexity": "complex",
+      "query": "debug a kubernetes pod stuck in CrashLoopBackOff",
+      "should_trigger": false
+    }
+  ]
+}
+```
+
+Explicit top-level train/test sets:
+
+```json
+{
+  "train": [
+    {
+      "name": "positive-1",
+      "query": "write Go benchmarks and race tests for a worker pool",
+      "should_trigger": true
+    }
+  ],
+  "test": [
+    {
+      "name": "negative-1",
+      "query": "design a PostgreSQL indexing strategy",
+      "should_trigger": false
+    }
+  ]
+}
+```
+
+### Required Fields
+
+- `query`: the prompt used to test routing behavior
+- `should_trigger`: expected boolean outcome for the target description
+
+### Optional Fields
+
+- `name`: human-readable label shown in reports
+- `split`: `train` or `test` when using a flat `tasks` list
+- `complexity`: used for stratified splitting when no explicit split is provided
+
+### Split Strategy
+
+- `train` tasks are used during each optimization iteration.
+- `test` tasks are held out and checked every 5 iterations for Goodhart divergence.
+- If no split markers are present, the loop performs a reproducible random split with seed `42`, stratified by `complexity`.
+
+### Task Selection Principles for Optimization
+
+1. Cover both positive and negative routing examples. A description that only improves recall while tanking precision is not an improvement.
+2. Put at least one out-of-domain prompt in the held-out set. This catches overfitting where the description starts matching benchmark phrasing instead of the real scope.
+3. Use realistic user wording, not only canonical trigger phrases. Optimization on synthetic wording alone produces brittle routing behavior.

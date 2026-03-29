@@ -641,6 +641,98 @@ tbody tr:hover { background: var(--surface-2); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+
+/* ─── Iterations Tab ───────────────────────────────────────────────── */
+.opt-dashboard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.opt-dash-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.opt-dash-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.opt-dash-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--bright);
+  font-variant-numeric: tabular-nums;
+}
+
+.opt-running { color: var(--accent); }
+.opt-done { color: var(--green); }
+.opt-alarm { color: var(--red); }
+
+.opt-chart { margin-bottom: 20px; }
+
+.iter-row { cursor: pointer; transition: background 0.1s; }
+.iter-row:hover { background: var(--surface-2); }
+
+.iter-diff-row td { padding: 0; }
+
+.iter-diff-block {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  padding: 12px 14px;
+  font-size: 11.5px;
+  font-family: var(--font-mono);
+  max-height: 400px;
+  overflow: auto;
+  white-space: pre;
+  line-height: 1.6;
+  color: #8899bb;
+}
+
+.verdict-keep { color: var(--green); font-weight: 600; }
+.verdict-revert { color: var(--red); font-weight: 600; }
+.verdict-stop { color: var(--yellow); font-weight: 600; }
+
+.opt-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.opt-btn {
+  padding: 8px 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-2);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.opt-btn:hover { color: var(--bright); background: var(--surface-3); }
+.opt-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.opt-btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  box-shadow: 0 1px 4px rgba(77, 142, 245, 0.3);
+}
+
+.opt-btn-primary:hover { background: #5a99f8; }
 </style>
 </head>
 <body>
@@ -656,12 +748,14 @@ tbody tr:hover { background: var(--surface-2); }
   <button class="nav-btn active" data-page="review">Review</button>
   <button class="nav-btn" data-page="grades">Grades</button>
   <button class="nav-btn" data-page="results">Results</button>
+  <button class="nav-btn" data-page="iterations">Iterations</button>
 </nav>
 
 <main>
   <div id="review-page" class="page active" role="tabpanel"></div>
   <div id="grades-page" class="page" role="tabpanel"></div>
   <div id="results-page" class="page" role="tabpanel"></div>
+  <div id="iterations-page" class="page" role="tabpanel"></div>
 </main>
 
 <script>
@@ -681,6 +775,8 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     this.classList.add('active');
     document.getElementById(this.dataset.page+'-page').classList.add('active');
+    // Re-render iterations chart when tab becomes visible (clientWidth is 0 when hidden)
+    if(this.dataset.page==='iterations' && typeof window.drawOptChart==='function') window.drawOptChart();
   });
 });
 
@@ -1181,9 +1277,321 @@ function buildResultsPage(){
   page.appendChild(keySection);
 }
 
+function buildIterationsPage(){
+  var page = document.getElementById('iterations-page');
+  page.replaceChildren();
+  page.style.cssText = '';
+  if(!DATA || !DATA.optimization) {
+    page.textContent = 'No optimization data. Run optimize_loop.py to populate.';
+    page.style.cssText = 'display:none;padding:28px 32px;color:var(--muted);font-size:13px';
+    // Hide the Iterations tab if no data
+    var iterBtn = document.querySelector('[data-page="iterations"]');
+    if(iterBtn) iterBtn.style.display = 'none';
+    return;
+  }
+
+  var opt = DATA.optimization;
+  var iterations = opt.iterations || [];
+  var baselineRaw = opt.baseline_score;
+  var baseline = (baselineRaw && typeof baselineRaw === 'object') ? baselineRaw : {train: baselineRaw, test: opt.baseline_holdout_score};
+  var taskCounts = opt.task_counts || {train: opt.train_size, test: opt.test_size};
+  var status = opt.status || 'UNKNOWN';
+  var bt = typeof baseline.train === 'number' ? baseline.train : 0;
+
+  // Dashboard
+  var dash = el('div','opt-dashboard');
+  var best = bt;
+  iterations.forEach(function(it){ if(it.score && typeof it.score.train === 'number' && it.score.train > best) best = it.score.train; });
+  var kept = iterations.filter(function(it){return it.verdict==='KEEP'}).length;
+  var reverted = iterations.filter(function(it){return it.verdict==='REVERT'}).length;
+  var statusCls = status==='RUNNING'?'opt-running':status==='GOODHART_ALARM'?'opt-alarm':'opt-done';
+
+  function dashItem(label, value, cls) {
+    var item = el('div','opt-dash-item');
+    item.appendChild(el('span','opt-dash-label',label));
+    var val = el('span','opt-dash-value'+(cls?' '+cls:''),String(value));
+    item.appendChild(val);
+    dash.appendChild(item);
+  }
+
+  dashItem('Status', status, statusCls);
+  dashItem('Progress', iterations.length + '/' + (opt.max_iterations||20));
+  dashItem('Baseline', bt.toFixed(2));
+  dashItem('Best', best.toFixed(2) + ' (' + (best-bt >= 0 ? '+' : '') + (best-bt).toFixed(2) + ')');
+  dashItem('Kept', String(kept));
+  dashItem('Reverted', String(reverted));
+  if(opt.total_tokens) dashItem('Tokens', Math.round(opt.total_tokens/1000)+'k');
+
+  page.appendChild(dash);
+  if(taskCounts.train || taskCounts.test) {
+    var counts = el('p','muted','Train tasks: '+String(taskCounts.train||0)+(taskCounts.test ? ' | Held-out tasks: '+String(taskCounts.test) : ''));
+    counts.style.marginBottom = '20px';
+    page.appendChild(counts);
+  }
+
+  // Convergence chart (safe DOM construction)
+  var chartBox = el('div','card opt-chart');
+  var chartHead = el('div','card-head');
+  chartHead.appendChild(el('h3','','Convergence'));
+  chartBox.appendChild(chartHead);
+  var chartBody = el('div','card-body');
+  chartBody.id = 'opt-chart-area';
+  chartBox.appendChild(chartBody);
+  page.appendChild(chartBox);
+
+  // Draw chart using safe SVG DOM methods
+  function drawOptChart() {
+    var area = document.getElementById('opt-chart-area');
+    if(!iterations.length) { area.textContent = 'No iterations yet'; return; }
+
+    var W = Math.min(area.clientWidth - 16, 800), H = 200;
+    var pad = {l:40, r:20, t:10, b:30};
+    var pW = W-pad.l-pad.r, pH = H-pad.t-pad.b;
+    var pts = iterations.map(function(it){
+      return {x:it.number, train:it.score?it.score.train:0, test:it.score?it.score.test:null};
+    });
+    var xMax = Math.max.apply(null, pts.map(function(p){return p.x}));
+    if(xMax<1) xMax=1;
+    var yValues = [bt];
+    pts.forEach(function(p){
+      if(typeof p.train === 'number') yValues.push(p.train);
+      if(typeof p.test === 'number') yValues.push(p.test);
+    });
+    var yMin = Math.max(0, Math.floor(Math.min.apply(null, yValues)) - 0.5);
+    var yMax = Math.ceil(Math.max.apply(null, yValues) + 0.5);
+    if(yMax <= yMin) yMax = yMin + 1;
+    function sx(x){return pad.l+(x/xMax)*pW;}
+    function sy(y){return pad.t+pH-((y-yMin)/(yMax-yMin))*pH;}
+
+    var NS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(NS,'svg');
+    svg.setAttribute('width',String(W));
+    svg.setAttribute('height',String(H));
+    svg.style.display='block';
+
+    function svgLine(x1,y1,x2,y2,stroke,w,d){
+      var l=document.createElementNS(NS,'line');
+      l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);
+      l.setAttribute('stroke',stroke);l.setAttribute('stroke-width',w);
+      if(d)l.setAttribute('stroke-dasharray',d);svg.appendChild(l);
+    }
+    function svgCircle(cx,cy,r,fill,stroke){
+      var c=document.createElementNS(NS,'circle');
+      c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);
+      c.setAttribute('fill',fill||'none');if(stroke)c.setAttribute('stroke',stroke);
+      svg.appendChild(c);
+    }
+    function svgText(x,y,t,fill,sz,anchor){
+      var e=document.createElementNS(NS,'text');
+      e.setAttribute('x',x);e.setAttribute('y',y);e.setAttribute('fill',fill);
+      e.setAttribute('font-size',sz);if(anchor)e.setAttribute('text-anchor',anchor);
+      e.textContent=t;svg.appendChild(e);
+    }
+    function svgPath(d,stroke,w,dash){
+      var p=document.createElementNS(NS,'path');
+      p.setAttribute('d',d);p.setAttribute('fill','none');
+      p.setAttribute('stroke',stroke);p.setAttribute('stroke-width',w);
+      if(dash)p.setAttribute('stroke-dasharray',dash);svg.appendChild(p);
+    }
+
+    // Grid
+    for(var y=yMin;y<=yMax+0.001;y+=0.5){svgLine(pad.l,sy(y),W-pad.r,sy(y),'#222832',1);svgText(pad.l-6,sy(y)+4,y.toFixed(1),'#5c6a7e',10,'end');}
+    // Baseline
+    svgLine(pad.l,sy(bt),W-pad.r,sy(bt),'#d4a830',1,'4,4');
+    // Train (solid blue)
+    var tp=pts.filter(function(p){return p.train!=null});
+    if(tp.length>1){var d=tp.map(function(p,i){return(i===0?'M':'L')+sx(p.x)+','+sy(p.train)}).join(' ');svgPath(d,'#4d8ef5',2);}
+    tp.forEach(function(p){svgCircle(sx(p.x),sy(p.train),3,'#4d8ef5');});
+    // Test (dashed green)
+    var hp=pts.filter(function(p){return p.test!=null});
+    if(hp.length>1){var d2=hp.map(function(p,i){return(i===0?'M':'L')+sx(p.x)+','+sy(p.test)}).join(' ');svgPath(d2,'#3dba6c',2,'6,3');}
+    hp.forEach(function(p){svgCircle(sx(p.x),sy(p.test),3,'none','#3dba6c');});
+    // X labels
+    for(var x=1;x<=xMax;x++){svgText(sx(x),H-5,String(x),'#5c6a7e',10,'middle');}
+    // Legend
+    svgText(pad.l+10,pad.t+14,'Train','#4d8ef5',10);
+    svgText(pad.l+50,pad.t+14,'Held-out','#3dba6c',10);
+    svgText(pad.l+110,pad.t+14,'Baseline','#d4a830',10);
+
+    area.replaceChildren(svg);
+  }
+  drawOptChart();
+  window.drawOptChart = drawOptChart;
+  window.addEventListener('resize', drawOptChart);
+
+  // Iteration table
+  var tableCard = el('div','card');
+  tableCard.style.marginBottom = '20px';
+  var tHead = el('div','card-head');
+  tHead.appendChild(el('h3','','Iterations'));
+  tableCard.appendChild(tHead);
+  var tBody = el('div','card-body');
+
+  var tbl = document.createElement('table');
+  var thead = document.createElement('thead');
+  var hrow = document.createElement('tr');
+  ['#','Verdict','Score','Delta','Change','Pick'].forEach(function(h){hrow.appendChild(el('th','',h));});
+  thead.appendChild(hrow);tbl.appendChild(thead);
+
+  var tbody = document.createElement('tbody');
+  iterations.forEach(function(it){
+    var tr = document.createElement('tr');
+    tr.className = 'iter-row';
+    tr.dataset.iteration = String(it.number);
+
+    tr.appendChild(el('td','',String(it.number)));
+
+    var vtd = document.createElement('td');
+    var vspan = el('span','verdict-'+(it.verdict||'').toLowerCase(),it.verdict||'?');
+    vtd.appendChild(vspan);
+    tr.appendChild(vtd);
+
+    var sc = it.score || {};
+    var scoreText = typeof sc.train === 'number' ? sc.train.toFixed(2) : '?';
+    if(typeof sc.test === 'number') scoreText += ' / ' + sc.test.toFixed(2);
+    tr.appendChild(el('td','',scoreText));
+
+    var delta = String(it.delta||'');
+    var dcls = delta.indexOf('+')===0&&delta!=='+0'?'d-pos':delta.indexOf('-')===0?'d-neg':'d-zero';
+    tr.appendChild(el('td',dcls,delta));
+
+    tr.appendChild(el('td','',String(it.change_summary||'').substring(0,60)));
+
+    var pickTd = document.createElement('td');
+    var pickLabel = document.createElement('label');
+    var pickCb = document.createElement('input');
+    pickCb.type = 'checkbox';
+    pickCb.className = 'cherry-pick-cb';
+    pickCb.dataset.iteration = String(it.number);
+    if(it.verdict==='KEEP') pickCb.checked = true;
+    if(it.verdict!=='KEEP') pickCb.disabled = true;
+    pickLabel.appendChild(pickCb);
+    pickLabel.appendChild(document.createTextNode(' Pick'));
+    pickTd.appendChild(pickLabel);
+    tr.appendChild(pickTd);
+
+    // Click to toggle diff
+    tr.addEventListener('click', function(e){
+      if(e.target.closest && e.target.closest('label')) return;
+      if(e.target.type==='checkbox') return;
+      var diffRow = document.getElementById('opt-diff-'+it.number);
+      if(diffRow) diffRow.classList.toggle('hidden');
+    });
+    tbody.appendChild(tr);
+
+    // Diff row (hidden by default)
+    var diffTr = document.createElement('tr');
+    diffTr.className = 'iter-diff-row hidden';
+    diffTr.id = 'opt-diff-'+it.number;
+    var diffTd = document.createElement('td');
+    diffTd.colSpan = 6;
+    var diffPre = el('pre','iter-diff-block',it.diff||'(no diff)');
+    diffTd.appendChild(diffPre);
+    diffTr.appendChild(diffTd);
+    tbody.appendChild(diffTr);
+  });
+  tbl.appendChild(tbody);
+  tBody.appendChild(tbl);
+  tableCard.appendChild(tBody);
+  page.appendChild(tableCard);
+
+  // Actions bar
+  var actions = el('div','opt-actions');
+
+  var previewBtn = el('button','opt-btn opt-btn-primary','Preview Combined');
+  previewBtn.addEventListener('click', function(){
+    var selected = Array.from(document.querySelectorAll('#iterations-page .cherry-pick-cb:checked'))
+      .map(function(cb){return parseInt(cb.dataset.iteration);});
+    if(!selected.length){alert('No iterations selected');return;}
+    var combined = selected.map(function(n){
+      var it = iterations.find(function(i){return i.number===n;});
+      return '--- Iteration '+n+' ---\n'+(it&&it.diff||'(no diff)');
+    }).join('\n\n');
+    var preview = document.getElementById('opt-preview-content');
+    preview.textContent = combined;
+    document.getElementById('opt-preview-area').classList.remove('hidden');
+  });
+  actions.appendChild(previewBtn);
+
+  var exportBtn = el('button','opt-btn','Export Selected');
+  exportBtn.addEventListener('click', function(){
+    var selected = Array.from(document.querySelectorAll('#iterations-page .cherry-pick-cb:checked'))
+      .map(function(cb){return parseInt(cb.dataset.iteration);});
+    if(!selected.length){alert('No iterations selected');return;}
+    var output = {selected_iterations:selected, diffs:{}};
+    selected.forEach(function(n){
+      var it = iterations.find(function(i){return i.number===n;});
+      output.diffs[String(n)] = it&&it.diff||'';
+    });
+    var blob = new Blob([JSON.stringify(output,null,2)],{type:'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');a.href=url;a.download='cherry-picked-iterations.json';a.click();
+    URL.revokeObjectURL(url);
+  });
+  actions.appendChild(exportBtn);
+
+  page.appendChild(actions);
+
+  // Preview area
+  var previewArea = el('div','hidden');
+  previewArea.id = 'opt-preview-area';
+  previewArea.style.marginTop = '16px';
+  previewArea.appendChild(el('h3','','Combined Preview'));
+  previewArea.lastChild.style.cssText = 'color:var(--bright);margin-bottom:8px;font-size:14px';
+  var previewPre = el('pre','iter-diff-block','');
+  previewPre.id = 'opt-preview-content';
+  previewArea.appendChild(previewPre);
+  page.appendChild(previewArea);
+
+  // Summary stats card
+  if(opt.summary || iterations.length) {
+    var statsCard = el('div','card');
+    statsCard.style.marginTop = '20px';
+    var statsHead = el('div','card-head');
+    statsHead.appendChild(el('h3','','Summary'));
+    statsCard.appendChild(statsHead);
+    var statsBody = el('div','card-body');
+
+    var totalIter = iterations.length;
+    var improvRate = totalIter>0 ? (kept/totalIter*100).toFixed(1)+'%' : '0%';
+    var totalImprove = best - bt;
+    var avgPerKeep = kept>0 ? (totalImprove/kept).toFixed(1) : '0';
+    var tokensK = opt.total_tokens ? Math.round(opt.total_tokens/1000)+'k' : '?';
+    var tokPerImprov = kept>0&&opt.total_tokens ? Math.round(opt.total_tokens/kept/1000)+'k' : '?';
+    var stopReason = opt.exit_reason || opt.status || '?';
+
+    buildStat(statsBody, 'Total Iterations', String(totalIter));
+    buildStat(statsBody, 'Improvements Found', kept+' ('+improvRate+')');
+    buildStat(statsBody, 'Total Score Improvement', (totalImprove >= 0 ? '+' : '')+totalImprove.toFixed(2)+' ('+bt.toFixed(2)+'→'+best.toFixed(2)+')');
+    buildStat(statsBody, 'Avg Improvement per KEEP', avgPerKeep);
+    buildStat(statsBody, 'Total Tokens', tokensK);
+    buildStat(statsBody, 'Tokens per Improvement', tokPerImprov);
+    buildStat(statsBody, 'Stop Reason', stopReason);
+
+    statsCard.appendChild(statsBody);
+    page.appendChild(statsCard);
+  }
+
+  // Goal card
+  if(opt.goal) {
+    var goalCard = el('div','card');
+    goalCard.style.marginTop = '16px';
+    var goalHead = el('div','card-head');
+    goalHead.appendChild(el('h3','','Optimization Target'));
+    goalCard.appendChild(goalHead);
+    var goalBody = el('div','card-body');
+    buildStat(goalBody, 'Target', opt.target||'?');
+    buildStat(goalBody, 'Goal', opt.goal);
+    buildStat(goalBody, 'Train/Test Split', String(taskCounts.train||opt.train_size||'?')+'/'+String(taskCounts.test||opt.test_size||'?'));
+    goalCard.appendChild(goalBody);
+    page.appendChild(goalCard);
+  }
+}
+
 buildReviewPage();
 buildGradesPage();
 buildResultsPage();
+buildIterationsPage();
 </script>
 </body>
 </html>

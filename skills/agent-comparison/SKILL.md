@@ -2,12 +2,15 @@
 name: agent-comparison
 description: |
   A/B test agent variants measuring quality and total session token cost
-  across simple and complex benchmarks. Use when creating compact agent
-  versions, validating agent changes, comparing internal vs external agents,
-  or deciding between variants for production. Use for "compare agents",
-  "A/B test", "benchmark agents", or "test agent efficiency". Route single-agent evaluation to agent-evaluation, testing skills, or optimizing prompts
-  without variant comparison.
-version: 2.0.0
+  across simple and complex benchmarks. Also supports automated optimization
+  loops (autoresearch) for frontmatter description and routing-trigger quality
+  using train/test eval sets. Use when creating compact agent versions, validating
+  agent changes, comparing internal vs external agents, optimizing a skill description,
+  or deciding between variants for production. Use for "compare agents", "A/B test",
+  "benchmark agents", "test agent efficiency", "optimize description", "optimize skill",
+  or "run autoresearch". Route single-agent evaluation to agent-evaluation, testing skills,
+  or simple prompt optimization without variant comparison.
+version: 2.2.0
 user-invocable: false
 allowed-tools:
   - Read
@@ -22,6 +25,9 @@ routing:
     - "compare agents"
     - "A/B test agents"
     - "benchmark agents"
+    - "optimize skill"
+    - "optimize description"
+    - "run autoresearch"
   category: meta-tooling
 ---
 
@@ -253,6 +259,129 @@ See `references/methodology.md` for the complete testing methodology with Decemb
 Remove temporary benchmark files and debug outputs. Keep only the comparison report and generated code.
 
 **Gate**: Report generated with all metrics. Verdict stated with evidence. Report saved to benchmark directory.
+
+### Phase 5: OPTIMIZE (optional — invoked explicitly)
+
+**Goal**: Run an automated optimization loop that iteratively improves a markdown target's frontmatter `description` using trigger-rate eval tasks, then keeps only measured improvements.
+
+This phase is for routing/trigger optimization, not full code-generation benchmarking. Invoke it when the user says "optimize this skill", "optimize the description", or "run autoresearch". The existing manual A/B comparison (Phases 1-4) remains the path for full agent benchmarking.
+
+**Step 1: Validate optimization target and goal**
+
+Confirm the target file exists, has YAML frontmatter with a `description`, and the optimization goal is clear:
+
+```bash
+# Target must be a markdown file with frontmatter description
+test -f skills/{target}/SKILL.md
+rg -n '^description:' skills/{target}/SKILL.md
+
+# Goal should be specific and measurable
+# Good: "improve error handling instructions"
+# Bad: "make it better"
+```
+
+**Step 2: Prepare trigger-rate eval tasks**
+
+```bash
+python3 skills/agent-comparison/scripts/optimize_loop.py \
+    --target skills/{target}/SKILL.md \
+    --goal "{optimization goal}" \
+    --benchmark-tasks skills/agent-comparison/references/optimization-tasks.example.json \
+    --train-split 0.6 \
+    --model claude-sonnet-4-20250514 \
+    --verbose
+```
+
+Supported task schemas:
+- Flat `tasks` list with optional `"split": "train" | "test"` per task
+- Top-level `train` and `test` arrays
+
+Every task must include:
+- `query`: the routing prompt to test
+- `should_trigger`: whether the target should trigger for that prompt
+
+If no split markers are present, the loop does a reproducible random split with seed `42`.
+
+**Step 3: Run baseline evaluation**
+
+The loop automatically evaluates the unmodified target against the train set before starting iteration. This establishes the score to beat, and records a held-out baseline if test tasks exist.
+
+**Step 4: Enter optimization loop**
+
+The `optimize_loop.py` script handles the full loop:
+- Calls `generate_variant.py` to propose changes (Claude with extended thinking)
+- Evaluates each variant against train tasks
+- Keeps variants that improve score by more than `--min-gain` (default 0.02)
+- Reverts variants that don't improve, break hard gates, or delete sections without justification
+- Checks held-out test set every 5 iterations for Goodhart divergence
+- Stops on convergence (5 consecutive reverts), Goodhart alarm, or max iterations
+
+```bash
+python3 skills/agent-comparison/scripts/optimize_loop.py \
+    --target skills/{target}/SKILL.md \
+    --goal "{optimization goal}" \
+    --benchmark-tasks skills/agent-comparison/references/optimization-tasks.example.json \
+    --max-iterations 20 \
+    --min-gain 0.02 \
+    --train-split 0.6 \
+    --model claude-sonnet-4-20250514 \
+    --report optimization-report.html \
+    --output-dir evals/iterations \
+    --verbose
+```
+
+The `--report` flag generates a live HTML dashboard that auto-refreshes every 10 seconds, showing a convergence chart, iteration table, and cherry-pick controls.
+
+**Step 5: Present results in UI**
+
+Open the generated `optimization-report.html` in a browser. The report shows:
+- Progress dashboard (status, baseline vs best, kept/reverted counts)
+- Convergence chart (train solid line, held-out dashed line, baseline dotted)
+- Iteration table with verdict, composite score, delta, and change summary
+- Expandable inline diffs per iteration (click any row)
+
+**Step 6: User cherry-picks improvements**
+
+Not all KEEP iterations are real improvements — some may be harness artifacts. The user reviews each kept iteration's diff and selects which to include:
+- Check the "Pick" checkbox for desired iterations
+- Click "Preview Combined" to see the merged diff
+- Click "Export Selected" to download a JSON file with chosen diffs
+
+**Step 7: Apply selected improvements to target file**
+
+Apply the selected improvements to the original target file.
+
+- If you want the best single kept variant, use `evals/iterations/best_variant.md`.
+- If you exported selected diffs, treat that JSON as review material for a manual follow-up apply step. It is not auto-applied by the current tooling.
+
+```bash
+# Review the best kept variant before applying
+cat evals/iterations/best_variant.md | head -20
+
+# Replace the target with the best kept variant
+cp evals/iterations/best_variant.md skills/{target}/SKILL.md
+```
+
+**Step 8: Run final evaluation on FULL task set (train + test)**
+
+After applying improvements, run a final evaluation on ALL tasks (not just train) to verify the improvements generalize:
+
+```bash
+# Re-run optimize_loop.py against the same task file and inspect results.json/report output
+```
+
+Compare final scores to the baseline to confirm net improvement.
+
+**Step 9: Record in learning-db**
+
+```bash
+python3 scripts/learning-db.py learn \
+    --skill agent-comparison \
+    "autoresearch: {target} improved {baseline}→{best} over {iterations} iterations. \
+     Kept: {kept}/{total}. Stop: {reason}. Changes: {summaries}"
+```
+
+**Gate**: Optimization complete. Results reviewed. Cherry-picked improvements applied and verified against full task set. Results recorded.
 
 ### Optional Extensions
 
