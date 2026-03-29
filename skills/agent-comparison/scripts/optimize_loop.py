@@ -763,7 +763,7 @@ def _run_behavioral_eval(
                 env=env,
                 timeout=timeout,
             )
-            if verbose and result.returncode != 0:
+            if result.returncode != 0:
                 print(
                     f"[behavioral] claude exited {result.returncode}: {result.stderr[:300]}",
                     file=sys.stderr,
@@ -786,6 +786,13 @@ def _run_behavioral_eval(
             triggered = len(new_artifacts) > 0
             if verbose and triggered:
                 print(f"[behavioral] Artifacts found despite timeout: {new_artifacts}", file=sys.stderr)
+
+        # Clean up artifacts so they don't pollute the before-snapshot of the next task
+        for artifact_path in new_artifacts:
+            try:
+                Path(artifact_path).unlink(missing_ok=True)
+            except OSError:
+                pass
 
         passed = triggered == should_trigger
         results.append(

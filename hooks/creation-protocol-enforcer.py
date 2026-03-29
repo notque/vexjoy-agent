@@ -39,11 +39,21 @@ _CREATION_KEYWORDS = [
     "create",
     "scaffold",
     "build a new",
+    "build a ",
+    "add a new",
+    "add new",
     "new agent",
     "new skill",
     "new pipeline",
     "new hook",
+    "new feature",
+    "new workflow",
+    "new plugin",
     "implement new",
+    "i need a ",
+    "i need an ",
+    "we need a ",
+    "we need an ",
 ]
 
 _WARNING_LINES = [
