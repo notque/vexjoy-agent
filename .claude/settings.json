@@ -90,6 +90,12 @@
             "command": "python3 \"$HOME/.claude/hooks/anti-rationalization-injector.py\"",
             "description": "Inject anti-rationalization warnings based on task-type keywords",
             "timeout": 1000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/creation-request-enforcer-userprompt.py\"",
+            "description": "Early ADR enforcement: detect creation requests before model processing begins",
+            "timeout": 5000
           }
         ]
       }
@@ -295,6 +301,16 @@
             "command": "python3 \"$HOME/.claude/hooks/completion-evidence-check.py\"",
             "description": "Advisory check for completion claims without test evidence",
             "timeout": 2000
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/sql-injection-detector.py",
+            "timeout": 5000
           }
         ]
       }
