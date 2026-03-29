@@ -90,6 +90,12 @@ body {
   transition: color 0.3s, border-color 0.3s, background 0.3s;
 }
 
+.blind-notice.optimization {
+  color: var(--accent);
+  border-color: rgba(77, 142, 245, 0.35);
+  background: var(--accent-dim);
+}
+
 /* ─── Navigation ────────────────────────────────────────────────────── */
 .nav {
   display: flex;
@@ -707,6 +713,7 @@ tbody tr:hover { background: var(--surface-2); }
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .opt-btn {
@@ -768,15 +775,20 @@ function isSwapped(name){return (hashStr(name) & 1) === 1}
 // State
 const reviews = {};
 
+function setActivePage(pageName){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const btn = document.querySelector(`.nav-btn[data-page="${pageName}"]`);
+  const page = document.getElementById(pageName+'-page');
+  if(btn) btn.classList.add('active');
+  if(page) page.classList.add('active');
+  if(pageName==='iterations' && typeof window.drawOptChart==='function') window.drawOptChart();
+}
+
 // Nav
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', function(){
-    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-    this.classList.add('active');
-    document.getElementById(this.dataset.page+'-page').classList.add('active');
-    // Re-render iterations chart when tab becomes visible (clientWidth is 0 when hidden)
-    if(this.dataset.page==='iterations' && typeof window.drawOptChart==='function') window.drawOptChart();
+    setActivePage(this.dataset.page);
   });
 });
 
@@ -884,7 +896,7 @@ function buildScoreBar(parent,dim,val){
 function buildReviewPage(){
   const page=document.getElementById('review-page');
   if(!DATA||!DATA.evals||!DATA.evals.length){
-    page.appendChild(el('p','stat-name','No data. Run generate_comparison.py to populate.'));
+    page.appendChild(el('p','stat-name','No blind-comparison evals in this workspace.'));
     return;
   }
   const tabs=el('div','eval-tabs');
@@ -1289,6 +1301,8 @@ function buildIterationsPage(){
     if(iterBtn) iterBtn.style.display = 'none';
     return;
   }
+  var iterBtn = document.querySelector('[data-page="iterations"]');
+  if(iterBtn) iterBtn.style.display = '';
 
   var opt = DATA.optimization;
   var iterations = opt.iterations || [];
@@ -1343,8 +1357,9 @@ function buildIterationsPage(){
   function drawOptChart() {
     var area = document.getElementById('opt-chart-area');
     if(!iterations.length) { area.textContent = 'No iterations yet'; return; }
+    if(area.clientWidth <= 32) return;
 
-    var W = Math.min(area.clientWidth - 16, 800), H = 200;
+    var W = Math.max(280, Math.min(area.clientWidth - 16, 800)), H = 200;
     var pad = {l:40, r:20, t:10, b:30};
     var pW = W-pad.l-pad.r, pH = H-pad.t-pad.b;
     var pts = iterations.map(function(it){
@@ -1434,6 +1449,8 @@ function buildIterationsPage(){
   thead.appendChild(hrow);tbl.appendChild(thead);
 
   var tbody = document.createElement('tbody');
+  var keepNumbers = iterations.filter(function(it){return it.verdict==='KEEP';}).map(function(it){return it.number;});
+  var defaultPick = keepNumbers.length ? keepNumbers[keepNumbers.length-1] : null;
   iterations.forEach(function(it){
     var tr = document.createElement('tr');
     tr.className = 'iter-row';
@@ -1460,10 +1477,11 @@ function buildIterationsPage(){
     var pickTd = document.createElement('td');
     var pickLabel = document.createElement('label');
     var pickCb = document.createElement('input');
-    pickCb.type = 'checkbox';
-    pickCb.className = 'cherry-pick-cb';
+    pickCb.type = 'radio';
+    pickCb.name = 'selected-iteration';
+    pickCb.className = 'snapshot-pick';
     pickCb.dataset.iteration = String(it.number);
-    if(it.verdict==='KEEP') pickCb.checked = true;
+    if(it.verdict==='KEEP' && it.number===defaultPick) pickCb.checked = true;
     if(it.verdict!=='KEEP') pickCb.disabled = true;
     pickLabel.appendChild(pickCb);
     pickLabel.appendChild(document.createTextNode(' Pick'));
@@ -1498,34 +1516,35 @@ function buildIterationsPage(){
   // Actions bar
   var actions = el('div','opt-actions');
 
-  var previewBtn = el('button','opt-btn opt-btn-primary','Preview Combined');
+  var previewBtn = el('button','opt-btn opt-btn-primary','Preview Selected Snapshot');
+  if(!keepNumbers.length) previewBtn.disabled = true;
   previewBtn.addEventListener('click', function(){
-    var selected = Array.from(document.querySelectorAll('#iterations-page .cherry-pick-cb:checked'))
-      .map(function(cb){return parseInt(cb.dataset.iteration);});
-    if(!selected.length){alert('No iterations selected');return;}
-    var combined = selected.map(function(n){
-      var it = iterations.find(function(i){return i.number===n;});
-      return '--- Iteration '+n+' ---\n'+(it&&it.diff||'(no diff)');
-    }).join('\n\n');
+    var selected = document.querySelector('#iterations-page .snapshot-pick:checked');
+    if(!selected){alert('Select one kept iteration');return;}
+    var n = parseInt(selected.dataset.iteration);
+    var it = iterations.find(function(i){return i.number===n;});
+    var combined = '--- Iteration '+n+' ---\n'+((it&& (it.full_diff||it.diff)) || '(no diff)');
     var preview = document.getElementById('opt-preview-content');
     preview.textContent = combined;
     document.getElementById('opt-preview-area').classList.remove('hidden');
   });
   actions.appendChild(previewBtn);
 
-  var exportBtn = el('button','opt-btn','Export Selected');
+  var exportBtn = el('button','opt-btn','Export Selected Snapshot');
+  if(!keepNumbers.length) exportBtn.disabled = true;
   exportBtn.addEventListener('click', function(){
-    var selected = Array.from(document.querySelectorAll('#iterations-page .cherry-pick-cb:checked'))
-      .map(function(cb){return parseInt(cb.dataset.iteration);});
-    if(!selected.length){alert('No iterations selected');return;}
-    var output = {selected_iterations:selected, diffs:{}};
-    selected.forEach(function(n){
-      var it = iterations.find(function(i){return i.number===n;});
-      output.diffs[String(n)] = it&&it.diff||'';
-    });
+    var selected = document.querySelector('#iterations-page .snapshot-pick:checked');
+    if(!selected){alert('Select one kept iteration');return;}
+    var n = parseInt(selected.dataset.iteration);
+    var it = iterations.find(function(i){return i.number===n;});
+    var output = {
+      selected_iteration:n,
+      full_diff:(it&&(it.full_diff||it.diff))||'',
+      diff_type:'full_diff_from_original'
+    };
     var blob = new Blob([JSON.stringify(output,null,2)],{type:'application/json'});
     var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');a.href=url;a.download='cherry-picked-iterations.json';a.click();
+    var a = document.createElement('a');a.href=url;a.download='selected-iteration.json';a.click();
     URL.revokeObjectURL(url);
   });
   actions.appendChild(exportBtn);
@@ -1536,12 +1555,17 @@ function buildIterationsPage(){
   var previewArea = el('div','hidden');
   previewArea.id = 'opt-preview-area';
   previewArea.style.marginTop = '16px';
-  previewArea.appendChild(el('h3','','Combined Preview'));
+  previewArea.appendChild(el('h3','','Selected Snapshot Preview'));
   previewArea.lastChild.style.cssText = 'color:var(--bright);margin-bottom:8px;font-size:14px';
   var previewPre = el('pre','iter-diff-block','');
   previewPre.id = 'opt-preview-content';
   previewArea.appendChild(previewPre);
   page.appendChild(previewArea);
+
+  var snapshotNote = el('p','muted','Selection exports the full diff from the original target to one kept snapshot.');
+  if(!keepNumbers.length) snapshotNote.textContent = 'No kept snapshot yet. Preview and export unlock after the first KEEP verdict.';
+  snapshotNote.style.marginTop = '12px';
+  page.appendChild(snapshotNote);
 
   // Summary stats card
   if(opt.summary || iterations.length) {
@@ -1583,6 +1607,9 @@ function buildIterationsPage(){
     buildStat(goalBody, 'Target', opt.target||'?');
     buildStat(goalBody, 'Goal', opt.goal);
     buildStat(goalBody, 'Train/Test Split', String(taskCounts.train||opt.train_size||'?')+'/'+String(taskCounts.test||opt.test_size||'?'));
+    if(opt.beam_width || opt.candidates_per_parent) {
+      buildStat(goalBody, 'Search', 'beam=' + String(opt.beam_width||1) + ', siblings=' + String(opt.candidates_per_parent||1));
+    }
     goalCard.appendChild(goalBody);
     page.appendChild(goalCard);
   }
@@ -1592,6 +1619,21 @@ buildReviewPage();
 buildGradesPage();
 buildResultsPage();
 buildIterationsPage();
+
+if(DATA && DATA.optimization && (!DATA.evals || !DATA.evals.length)) {
+  var title = document.querySelector('.header h1');
+  var badge = document.querySelector('.blind-notice');
+  if(title) title.textContent = 'Optimization Loop Review';
+  if(badge) {
+    badge.textContent = (DATA.optimization.status || 'Snapshot Review').replace('_', ' ');
+    badge.classList.add('optimization');
+  }
+  ['review','grades','results'].forEach(function(name){
+    var btn = document.querySelector('.nav-btn[data-page="'+name+'"]');
+    if(btn) btn.style.display = 'none';
+  });
+  setActivePage('iterations');
+}
 </script>
 </body>
 </html>

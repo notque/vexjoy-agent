@@ -69,7 +69,24 @@ Read and follow the repository CLAUDE.md before making any routing decision, bec
 
 **Optional: Force Direct** — OFF by default. When explicitly enabled, overrides routing for trivial operations. Only applies when the user explicitly requests it.
 
-**Gate**: Complexity classified. Display routing banner (ALL classifications). If not Trivial, proceed to Phase 2. If Trivial, handle directly after showing banner.
+**Creation Request Detection** (MANDATORY scan before Gate):
+
+Scan the request for creation signals before completing Phase 1:
+- Explicit creation verbs: "create", "scaffold", "build", "add new", "new [component]", "implement new"
+- Domain object targets: agent, skill, pipeline, hook, feature, plugin, workflow, voice profile
+- Implicit creation: "I need a [component]", "we need a [component]", "build me a [component]"
+
+If ANY creation signal is found AND complexity is Simple+:
+1. Set an internal flag: `is_creation = true`
+2. **Phase 4 Step 0 is MANDATORY** — write ADR before dispatching any agent
+
+This early detection exists because Phase 4 Step 0 is the most frequently skipped step in /do. Moving detection to Phase 1 ensures the creation protocol fires before routing decisions consume attention. The Gate below enforces acknowledgment before Phase 2.
+
+**Not a creation request**: debugging, reviewing, fixing, refactoring, explaining, running, checking, auditing existing components. When ambiguous, check whether the output would be a NEW file that doesn't yet exist.
+
+**Gate**: Complexity classified. If a creation signal was detected, output `[CREATION REQUEST DETECTED]` before displaying the routing banner. Display routing banner (ALL classifications). If not Trivial, proceed to Phase 2. If Trivial, handle directly after showing banner.
+
+<!-- DO NOT OPTIMIZE -->
 
 ---
 
@@ -265,3 +282,5 @@ Solution: Stop execution. Create `task_plan.md`. Resume routing after plan is in
 - `agents/INDEX.json`: Agent triggers and metadata
 - `skills/INDEX.json`: Skill triggers, force-route flags, pairs_with
 - `pipelines/INDEX.json`: Pipeline phases, triggers, composition chains
+
+<!-- END DO NOT OPTIMIZE -->

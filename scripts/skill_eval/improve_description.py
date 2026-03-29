@@ -2,33 +2,82 @@
 """Improve a skill description based on eval results.
 
 Takes eval results (from run_eval.py) and generates an improved description
-using Claude with extended thinking.
+through `claude -p`.
 """
 
 import argparse
 import json
+import os
 import re
+import subprocess
 import sys
 from pathlib import Path
-
-import anthropic
 
 from scripts.skill_eval.utils import parse_skill_md
 
 
+def _find_project_root() -> Path:
+    current = Path.cwd()
+    for parent in [current, *current.parents]:
+        if (parent / ".claude").is_dir():
+            return parent
+    print("Warning: .claude/ directory not found, using cwd as project root", file=sys.stderr)
+    return current
+
+
+def _run_claude_code(prompt: str, model: str | None) -> tuple[str, str]:
+    """Run Claude Code and return (assistant_text, raw_result_text)."""
+    cmd = ["claude", "-p", prompt, "--output-format", "json", "--print"]
+    if model:
+        cmd.extend(["--model", model])
+
+    env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
+    result = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        cwd=str(_find_project_root()),
+        env=env,
+        timeout=300,
+    )
+    if result.returncode != 0:
+        print(f"Error: claude -p failed with code {result.returncode}", file=sys.stderr)
+        if result.stderr:
+            print(result.stderr.strip(), file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        events = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        print(f"Error: could not parse claude -p JSON output: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    assistant_text = ""
+    raw_result_text = ""
+    for event in events:
+        if event.get("type") == "assistant":
+            message = event.get("message", {})
+            for content in message.get("content", []):
+                if content.get("type") == "text":
+                    assistant_text += content.get("text", "")
+        elif event.get("type") == "result":
+            raw_result_text = event.get("result", "")
+
+    return assistant_text or raw_result_text, raw_result_text
+
+
 def improve_description(
-    client: anthropic.Anthropic,
     skill_name: str,
     skill_content: str,
     current_description: str,
     eval_results: dict,
     history: list[dict],
-    model: str,
+    model: str | None,
     test_results: dict | None = None,
     log_dir: Path | None = None,
     iteration: int | None = None,
 ) -> str:
-    """Call Claude to improve the description based on eval results."""
+    """Call Claude Code to improve the description based on eval results."""
     failed_triggers = [r for r in eval_results["results"] if r["should_trigger"] and not r["pass"]]
     false_triggers = [r for r in eval_results["results"] if not r["should_trigger"] and not r["pass"]]
 
@@ -107,35 +156,20 @@ I'd encourage you to be creative and mix up the style in different iterations si
 
 Please respond with only the new description text in <new_description> tags, nothing else."""
 
-    response = client.messages.create(
-        model=model,
-        max_tokens=16000,
-        thinking={
-            "type": "enabled",
-            "budget_tokens": 10000,
-        },
-        messages=[{"role": "user", "content": prompt}],
-    )
-
-    # Extract thinking and text from response
-    thinking_text = ""
-    text = ""
-    for block in response.content:
-        if block.type == "thinking":
-            thinking_text = block.thinking
-        elif block.type == "text":
-            text = block.text
+    text, raw_result_text = _run_claude_code(prompt, model)
 
     # Parse out the <new_description> tags
     match = re.search(r"<new_description>(.*?)</new_description>", text, re.DOTALL)
+    if not match:
+        print("Warning: <new_description> tags not found in response, using raw output", file=sys.stderr)
     description = match.group(1).strip().strip('"') if match else text.strip().strip('"')
 
     # Log the transcript
     transcript: dict = {
         "iteration": iteration,
         "prompt": prompt,
-        "thinking": thinking_text,
         "response": text,
+        "raw_result_text": raw_result_text,
         "parsed_description": description,
         "char_count": len(description),
         "over_limit": len(description) > 1024,
@@ -144,34 +178,18 @@ Please respond with only the new description text in <new_description> tags, not
     # If over 1024 chars, ask the model to shorten it
     if len(description) > 1024:
         shorten_prompt = f"Your description is {len(description)} characters, which exceeds the hard 1024 character limit. Please rewrite it to be under 1024 characters while preserving the most important trigger words and intent coverage. Respond with only the new description in <new_description> tags."
-        shorten_response = client.messages.create(
-            model=model,
-            max_tokens=16000,
-            thinking={
-                "type": "enabled",
-                "budget_tokens": 10000,
-            },
-            messages=[
-                {"role": "user", "content": prompt},
-                {"role": "assistant", "content": text},
-                {"role": "user", "content": shorten_prompt},
-            ],
+        rewrite_request = (
+            f"{prompt}\n\nPrevious assistant response:\n<previous_response>\n{text}\n</previous_response>\n\n"
+            f"{shorten_prompt}"
         )
-
-        shorten_thinking = ""
-        shorten_text = ""
-        for block in shorten_response.content:
-            if block.type == "thinking":
-                shorten_thinking = block.thinking
-            elif block.type == "text":
-                shorten_text = block.text
+        shorten_text, shorten_raw_result_text = _run_claude_code(rewrite_request, model)
 
         match = re.search(r"<new_description>(.*?)</new_description>", shorten_text, re.DOTALL)
         shortened = match.group(1).strip().strip('"') if match else shorten_text.strip().strip('"')
 
         transcript["rewrite_prompt"] = shorten_prompt
-        transcript["rewrite_thinking"] = shorten_thinking
         transcript["rewrite_response"] = shorten_text
+        transcript["rewrite_raw_result_text"] = shorten_raw_result_text
         transcript["rewrite_description"] = shortened
         transcript["rewrite_char_count"] = len(shortened)
         description = shortened
@@ -191,7 +209,7 @@ def main():
     parser.add_argument("--eval-results", required=True, help="Path to eval results JSON (from run_eval.py)")
     parser.add_argument("--skill-path", required=True, help="Path to skill directory")
     parser.add_argument("--history", default=None, help="Path to history JSON (previous attempts)")
-    parser.add_argument("--model", required=True, help="Model for improvement")
+    parser.add_argument("--model", default=None, help="Optional Claude Code model override")
     parser.add_argument("--verbose", action="store_true", help="Print thinking to stderr")
     args = parser.parse_args()
 
@@ -212,9 +230,7 @@ def main():
         print(f"Current: {current_description}", file=sys.stderr)
         print(f"Score: {eval_results['summary']['passed']}/{eval_results['summary']['total']}", file=sys.stderr)
 
-    client = anthropic.Anthropic()
     new_description = improve_description(
-        client=client,
         skill_name=name,
         skill_content=content,
         current_description=current_description,

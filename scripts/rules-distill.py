@@ -24,7 +24,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -307,18 +309,56 @@ def filter_layer4_not_covered(
 # ---------------------------------------------------------------------------
 
 
+def _run_claude_code(prompt: str, model: str | None = None) -> tuple[str, str]:
+    """Run Claude Code and return (assistant_text, raw_result_text).
+
+    Soft-fail contract: returns ('', '') on any failure (non-zero exit, invalid
+    JSON, timeout). Callers must treat empty strings as a no-op and fall back
+    to keyword-based extraction.
+    """
+    cmd = ["claude", "-p", prompt, "--output-format", "json", "--print"]
+    if model:
+        cmd.extend(["--model", model])
+
+    env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
+    result = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        cwd=str(REPO_ROOT),
+        env=env,
+        timeout=300,
+    )
+    if result.returncode != 0:
+        print(f"claude -p failed (exit {result.returncode}): {result.stderr}", file=sys.stderr)
+        return "", ""
+
+    try:
+        events = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        print(f"claude -p returned invalid JSON: {result.stdout[:200]}", file=sys.stderr)
+        return "", ""
+
+    assistant_text = ""
+    raw_result_text = ""
+    for event in events:
+        if event.get("type") == "assistant":
+            message = event.get("message", {})
+            for content in message.get("content", []):
+                if content.get("type") == "text":
+                    assistant_text += content.get("text", "")
+        elif event.get("type") == "result":
+            raw_result_text = event.get("result", "")
+
+    return assistant_text or raw_result_text, raw_result_text
+
+
 def _llm_extract_principles(skill_content: str, skill_name: str) -> list[dict] | None:
-    """Try to extract principles via Anthropic SDK.
+    """Try to extract principles via Claude Code.
 
     Returns list of dicts with "principle" key, or None if unavailable.
     """
     try:
-        import anthropic  # type: ignore[import]
-    except ImportError:
-        return None
-
-    try:
-        client = anthropic.Anthropic()
         prompt = f"""You are analyzing a Claude Code skill file to extract cross-cutting behavioral principles.
 
 Skill: {skill_name}
@@ -337,12 +377,8 @@ Example: ["Always exit 0 from hooks regardless of errors", "Never auto-apply cha
 
 Return [] if no universal principles are found."""
 
-        message = client.messages.create(
-            model="claude-haiku-4-5",
-            max_tokens=1024,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        raw = message.content[0].text.strip()
+        raw, _ = _run_claude_code(prompt, model="claude-haiku-4-5")
+        raw = raw.strip()
         # Parse JSON
         principles = json.loads(raw)
         if not isinstance(principles, list):
@@ -352,7 +388,8 @@ Return [] if no universal principles are found."""
             for p in principles
             if isinstance(p, str) and len(p) >= 15
         ]
-    except Exception:
+    except Exception as exc:
+        print(f"LLM extraction failed: {exc}", file=sys.stderr)
         return None
 
 

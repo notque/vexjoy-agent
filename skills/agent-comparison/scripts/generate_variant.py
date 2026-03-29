@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Generate a variant of an agent/skill file using Claude with extended thinking.
+"""Generate a variant of an agent/skill file using Claude Code.
 
 Proposes modifications to improve the target file based on the optimization
 goal and previous iteration failures. Preserves protected sections marked
 with DO NOT OPTIMIZE markers.
 
-Pattern: follows improve_description.py's Claude + extended thinking approach.
+Pattern: uses `claude -p` so generation runs through Claude Code directly.
 
 Usage:
     python3 skills/agent-comparison/scripts/generate_variant.py \
@@ -13,7 +13,7 @@ Usage:
         --goal "improve error handling instructions" \
         --current-content "..." \
         --failures '[...]' \
-        --model claude-sonnet-4-20250514
+        --model claude-opus-4-6
 
 Output (JSON to stdout):
     {
@@ -31,13 +31,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import subprocess
 import sys
-
-try:
-    import anthropic
-except ImportError:  # pragma: no cover - exercised in environments without the SDK
-    anthropic = None
+from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Protected section handling
@@ -61,8 +59,7 @@ def restore_protected(original: str, variant: str) -> str:
 
     if len(orig_sections) != len(var_sections):
         print(
-            "Warning: Protected section count mismatch "
-            f"(original={len(orig_sections)}, variant={len(var_sections)}).",
+            f"Warning: Protected section count mismatch (original={len(orig_sections)}, variant={len(var_sections)}).",
             file=sys.stderr,
         )
         return variant
@@ -94,16 +91,69 @@ def detect_deletions(original: str, variant: str) -> list[str]:
 # ---------------------------------------------------------------------------
 
 
+def _find_project_root() -> Path:
+    current = Path.cwd()
+    for parent in [current, *current.parents]:
+        if (parent / ".claude").is_dir():
+            return parent
+    print("Warning: .claude/ directory not found, using cwd as project root", file=sys.stderr)
+    return current
+
+
+def _run_claude_code(prompt: str, model: str | None) -> tuple[str, str, int]:
+    """Run Claude Code and return (response_text, raw_result_text, tokens_used)."""
+    cmd = ["claude", "-p", prompt, "--output-format", "json", "--print"]
+    if model:
+        cmd.extend(["--model", model])
+
+    env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
+    result = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        cwd=str(_find_project_root()),
+        env=env,
+        timeout=300,
+    )
+    if result.returncode != 0:
+        print(f"Error: claude -p failed with code {result.returncode}", file=sys.stderr)
+        if result.stderr:
+            print(result.stderr.strip(), file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        events = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        print(f"Error: could not parse claude -p JSON output: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    assistant_text = ""
+    raw_result_text = ""
+    tokens_used = 0
+    for event in events:
+        if event.get("type") == "assistant":
+            message = event.get("message", {})
+            for content in message.get("content", []):
+                if content.get("type") == "text":
+                    assistant_text += content.get("text", "")
+        elif event.get("type") == "result":
+            raw_result_text = event.get("result", "")
+            usage = event.get("usage", {})
+            tokens_used = usage.get("input_tokens", 0) + usage.get("output_tokens", 0)
+
+    return assistant_text or raw_result_text, raw_result_text, tokens_used
+
+
 def generate_variant(
-    client: anthropic.Anthropic,
     target_path: str,
     goal: str,
     current_content: str,
     failures: list[dict],
-    model: str,
+    model: str | None,
     history: list[dict] | None = None,
+    diversification_note: str | None = None,
 ) -> dict:
-    """Call Claude to generate a variant of the target file.
+    """Call Claude Code to generate a variant of the target file.
 
     Returns dict with variant content, summary, reasoning, and token count.
     """
@@ -118,7 +168,13 @@ def generate_variant(
     if history:
         history_section = "\n\nPrevious attempts (do NOT repeat — try structurally different approaches):\n"
         for h in history:
-            history_section += f"  Iteration {h.get('number', '?')}: {h.get('verdict', '?')} — {h.get('change_summary', '')}\n"
+            history_section += (
+                f"  Iteration {h.get('number', '?')}: {h.get('verdict', '?')} — {h.get('change_summary', '')}\n"
+            )
+
+    diversification_section = ""
+    if diversification_note:
+        diversification_section = f"\n\nSearch diversification instruction:\n{diversification_note}\n"
 
     protected_sections = extract_protected(current_content)
     protected_notice = ""
@@ -141,7 +197,7 @@ Current content of the file:
 <current_content>
 {current_content}
 </current_content>
-{failure_section}{history_section}{protected_notice}
+{failure_section}{history_section}{diversification_section}{protected_notice}
 
 SAFETY RULES:
 1. Do NOT delete sections without replacing them with equivalent or better content.
@@ -180,31 +236,7 @@ empty tags.
 [why any removed section was replaced safely, or leave blank]
 </deletion_justification>"""
 
-    try:
-        response = client.messages.create(
-            model=model,
-            max_tokens=16000,
-            thinking={
-                "type": "enabled",
-                "budget_tokens": 10000,
-            },
-            messages=[{"role": "user", "content": prompt}],
-        )
-    except anthropic.APIStatusError as e:
-        print(f"Error: API returned status {e.status_code}: {e.message}", file=sys.stderr)
-        sys.exit(1)
-    except anthropic.APIConnectionError as e:
-        print(f"Error: API connection failed: {e}", file=sys.stderr)
-        sys.exit(1)
-
-    # Extract thinking and text
-    thinking_text = ""
-    text = ""
-    for block in response.content:
-        if block.type == "thinking":
-            thinking_text = block.thinking
-        elif block.type == "text":
-            text = block.text
+    text, raw_result_text, tokens_used = _run_claude_code(prompt, model)
 
     # Parse variant content
     variant_match = re.search(r"<variant>(.*?)</variant>", text, re.DOTALL)
@@ -229,13 +261,11 @@ empty tags.
     if deletions:
         print(f"Warning: Deleted sections: {deletions}", file=sys.stderr)
 
-    tokens_used = response.usage.input_tokens + response.usage.output_tokens
-
     return {
         "variant": variant,
         "summary": summary,
         "deletion_justification": deletion_justification,
-        "reasoning": thinking_text,
+        "reasoning": raw_result_text,
         "tokens_used": tokens_used,
         "deletions": deletions,
     }
@@ -255,7 +285,8 @@ def main():
     content_group.add_argument("--current-content-file", help="Path to a file containing the current content")
     parser.add_argument("--failures", default="[]", help="JSON list of failed tasks")
     parser.add_argument("--history", default="[]", help="JSON list of previous iterations")
-    parser.add_argument("--model", default="claude-sonnet-4-20250514", help="Model to use")
+    parser.add_argument("--diversification-note", default=None, help="Optional search diversification hint")
+    parser.add_argument("--model", default=None, help="Optional Claude Code model override")
     args = parser.parse_args()
 
     try:
@@ -269,25 +300,20 @@ def main():
         print(f"Error: --history is not valid JSON: {e}", file=sys.stderr)
         sys.exit(1)
 
-    if anthropic is None:
-        print("Error: anthropic SDK is not installed", file=sys.stderr)
-        sys.exit(1)
-
     current_content = (
-        open(args.current_content_file, encoding="utf-8").read()
+        Path(args.current_content_file).read_text(encoding="utf-8")
         if args.current_content_file
         else args.current_content
     )
 
-    client = anthropic.Anthropic()
     result = generate_variant(
-        client=client,
         target_path=args.target,
         goal=args.goal,
         current_content=current_content,
         failures=failures,
         model=args.model,
         history=history if history else None,
+        diversification_note=args.diversification_note,
     )
 
     print(json.dumps(result, indent=2))

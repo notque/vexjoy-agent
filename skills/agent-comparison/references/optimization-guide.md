@@ -90,17 +90,35 @@ python3 skills/agent-comparison/scripts/optimize_loop.py \
   --train-split 0.6 \
   --max-iterations 20 \
   --min-gain 0.02 \
-  --model claude-sonnet-4-20250514 \
+  --beam-width 3 \
+  --candidates-per-parent 2 \
+  --revert-streak-limit 20 \
+  --holdout-check-cadence 5 \
   --report optimization-report.html \
   --output-dir evals/iterations \
   --verbose
 ```
 
+By default this uses Claude Code's configured model via `claude -p`. Pass `--model` only when you want to override that explicitly.
+
 Useful flags:
 
-- `--dry-run`: exercise the loop mechanics without API calls
+- `--dry-run`: exercise the loop mechanics without calling Claude Code
 - `--report`: write a live HTML report
 - `--output-dir`: persist iteration snapshots and `results.json`
+- `--beam-width`: retain the best K improving candidates per round
+- `--candidates-per-parent`: generate multiple sibling variants from each frontier candidate
+- `--revert-streak-limit`: stop after N rounds without any KEEP candidates
+- `--holdout-check-cadence`: evaluate the global best on held-out tasks every N rounds
+
+Recommended search presets:
+
+- Single-path local search:
+  - `--beam-width 1 --candidates-per-parent 1`
+- Balanced beam search:
+  - `--beam-width 3 --candidates-per-parent 2`
+- Aggressive exploration:
+  - `--beam-width 5 --candidates-per-parent 3 --min-gain 0.0`
 
 ## Evaluation Model
 
@@ -109,6 +127,7 @@ The loop follows the ADR-131 structure:
 1. Hard gates
 2. Weighted composite score
 3. Held-out regression checks
+4. Frontier retention
 
 ### Layer 1: Hard Gates
 
@@ -126,14 +145,27 @@ preserved verbatim.
 ### Layer 2: Composite Score
 
 The loop converts trigger-rate evaluation results into a weighted composite
-score using the built-in weights in `optimize_loop.py`. A variant is kept only
-if it beats the previous best by more than `--min-gain`.
+score using the built-in weights in `optimize_loop.py`. A candidate is kept only
+if it beats its parent by more than `--min-gain`.
 
 ### Layer 3: Held-Out Regression Check
 
-Every 5 iterations, the current best variant is scored on the held-out test set.
-If held-out performance drops below the baseline while train performance has
-improved, the loop raises a Goodhart alarm and stops.
+Every `--holdout-check-cadence` rounds, the current global best variant is
+scored on the held-out test set. If held-out performance drops below the
+baseline while train performance has improved, the loop raises a Goodhart
+alarm and stops.
+
+### Layer 4: Frontier Retention
+
+When beam search is enabled:
+
+- each frontier candidate generates `--candidates-per-parent` siblings
+- every sibling is scored independently
+- the top `--beam-width` KEEP candidates become the next frontier
+- `best_variant.md` still tracks the single best candidate seen anywhere in the run
+
+When `--beam-width 1 --candidates-per-parent 1`, the behavior collapses back to
+the original single-path optimizer.
 
 ## Deletion Safety Rule
 
@@ -156,12 +188,15 @@ When `--output-dir` is set, the loop writes:
 - `best_variant.md`
 - `results.json`
 
+`results.json` also records search metadata such as `beam_width`,
+`candidates_per_parent`, and per-iteration frontier selection markers.
+
 When `--report` is set, it also writes a live HTML dashboard showing:
 
 - status, baseline, best score, kept/reverted counts
 - convergence chart
 - iteration table with diffs
-- cherry-pick controls for kept iterations
+- review/export controls for kept snapshot diffs from the original target
 
 ## Choosing Good Eval Tasks
 

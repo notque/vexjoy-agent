@@ -162,11 +162,22 @@ def find_iteration_dirs(workspace: Path) -> list[Path]:
     return [d for d in dirs if d.is_dir()]
 
 
+def is_optimization_data(data: object) -> bool:
+    """Return True when the payload matches optimize_loop.py results."""
+    if not isinstance(data, dict):
+        return False
+    iterations = data.get("iterations")
+    if not isinstance(iterations, list):
+        return False
+    if "baseline_score" not in data:
+        return False
+    if "target" not in data:
+        return False
+    return all(isinstance(item, dict) and "number" in item and "verdict" in item for item in iterations)
+
+
 def load_optimization_data(workspace: Path) -> dict | None:
     """Load optimization loop results when present in the workspace."""
-    def looks_like_optimization_results(data: dict) -> bool:
-        return isinstance(data, dict) and "iterations" in data and "baseline_score" in data and "target" in data
-
     candidates = [
         workspace / "results.json",
         workspace / "evals" / "iterations" / "results.json",
@@ -175,7 +186,7 @@ def load_optimization_data(workspace: Path) -> dict | None:
     for path in candidates:
         if path.exists():
             data = load_json_safe(path)
-            if data is not None and looks_like_optimization_results(data):
+            if is_optimization_data(data):
                 return data
     return None
 
