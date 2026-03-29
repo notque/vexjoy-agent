@@ -1517,6 +1517,7 @@ function buildIterationsPage(){
   var actions = el('div','opt-actions');
 
   var previewBtn = el('button','opt-btn opt-btn-primary','Preview Selected Snapshot');
+  if(!keepNumbers.length) previewBtn.disabled = true;
   previewBtn.addEventListener('click', function(){
     var selected = document.querySelector('#iterations-page .snapshot-pick:checked');
     if(!selected){alert('Select one kept iteration');return;}
@@ -1530,6 +1531,7 @@ function buildIterationsPage(){
   actions.appendChild(previewBtn);
 
   var exportBtn = el('button','opt-btn','Export Selected Snapshot');
+  if(!keepNumbers.length) exportBtn.disabled = true;
   exportBtn.addEventListener('click', function(){
     var selected = document.querySelector('#iterations-page .snapshot-pick:checked');
     if(!selected){alert('Select one kept iteration');return;}
@@ -1561,6 +1563,7 @@ function buildIterationsPage(){
   page.appendChild(previewArea);
 
   var snapshotNote = el('p','muted','Selection exports the full diff from the original target to one kept snapshot.');
+  if(!keepNumbers.length) snapshotNote.textContent = 'No kept snapshot yet. Preview and export unlock after the first KEEP verdict.';
   snapshotNote.style.marginTop = '12px';
   page.appendChild(snapshotNote);
 
@@ -1604,6 +1607,9 @@ function buildIterationsPage(){
     buildStat(goalBody, 'Target', opt.target||'?');
     buildStat(goalBody, 'Goal', opt.goal);
     buildStat(goalBody, 'Train/Test Split', String(taskCounts.train||opt.train_size||'?')+'/'+String(taskCounts.test||opt.test_size||'?'));
+    if(opt.beam_width || opt.candidates_per_parent) {
+      buildStat(goalBody, 'Search', 'beam=' + String(opt.beam_width||1) + ', siblings=' + String(opt.candidates_per_parent||1));
+    }
     goalCard.appendChild(goalBody);
     page.appendChild(goalCard);
   }

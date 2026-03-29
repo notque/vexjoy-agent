@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import subprocess
 import sys
 import tempfile
 from datetime import datetime, timedelta, timezone
@@ -548,6 +549,32 @@ class TestFullPipeline:
         assert "distilled_at" in written
         assert "skills_scanned" in written
         assert "candidates" in written
+
+
+class TestLlmExtraction:
+    def test_llm_extract_principles_uses_claude_code(self):
+        payload = json.dumps(
+            [
+                {
+                    "type": "assistant",
+                    "message": {"content": [{"type": "text", "text": '["Always verify output before completion"]'}]},
+                },
+                {"type": "result", "result": "ok"},
+            ]
+        )
+        completed = subprocess.CompletedProcess(["claude"], 0, stdout=payload, stderr="")
+
+        with patch.object(rules_distill.subprocess, "run", return_value=completed) as mock_run:
+            result = rules_distill._llm_extract_principles("content", "skill-a")
+
+        assert result == [
+            {
+                "principle": "Always verify output before completion",
+                "raw": "Always verify output before completion",
+                "source": "skill-a",
+            }
+        ]
+        assert mock_run.call_args.args[0][:2] == ["claude", "-p"]
 
     def test_candidates_have_required_fields(self, tmp_path):
         """All candidates must have id, principle, skills, status, confidence, verdict."""
