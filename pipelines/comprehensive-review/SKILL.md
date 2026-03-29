@@ -1,23 +1,16 @@
 ---
 name: comprehensive-review
 description: |
-  Unified 4-wave code review: Wave 0 auto-discovers packages/modules and
-  dispatches one language-specialist agent per package for deep per-package
-  analysis. Wave 1 dispatches 12 foundation reviewers in parallel (with Wave 0
-  context). Wave 2 dispatches 10 deep-dive reviewers that receive Wave 0+1
-  findings as context for targeted analysis. Wave 3 dispatches 4-5 adversarial
-  reviewers that challenge Wave 1+2 consensus — contrarian, skeptical senior,
-  user advocate, meta-process, and conditionally SAPCC structural. Aggregates
-  all findings by severity with wave-agreement labels (unanimous, majority,
-  contested), then auto-fixes ALL issues. Covers per-package deep review,
-  security, business logic, architecture, error handling, test coverage, type
-  design, code quality, comment analysis, language idioms, docs validation,
-  newcomer perspective, performance, concurrency, API contracts, dependencies,
-  error messages, dead code, naming, observability, config safety, migration
-  safety, and adversarial challenge.
-  Use for "comprehensive review", "full review", "review everything", "review
-  and fix", or "thorough code review".
-  Do NOT use for single-concern reviews (use individual agents instead).
+  Four-wave code review pipeline for large or high-risk changes. Wave 0
+  auto-discovers packages/modules and runs per-package specialist review. Wave
+  1 runs broad foundation reviewers in parallel. Wave 2 runs targeted deep-dive
+  reviewers using earlier findings as context. Wave 3 runs adversarial reviewers
+  that challenge consensus and surface missed risks. Aggregates findings by
+  severity and agreement level, deduplicates them, and can auto-fix issues
+  unless review-only mode is used. Use for "comprehensive review", "full
+  review", "review everything", "review and fix", or "thorough code review".
+  Do NOT use for narrow single-concern reviews; use smaller review skills
+  instead.
 effort: high
 version: 4.0.0
 user-invocable: false

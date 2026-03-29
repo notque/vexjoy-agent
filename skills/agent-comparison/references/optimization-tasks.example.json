@@ -1,0 +1,32 @@
+{
+  "tasks": [
+    {
+      "name": "positive-go-tests",
+      "split": "train",
+      "complexity": "complex",
+      "query": "write table-driven Go tests with subtests and helper functions",
+      "should_trigger": true
+    },
+    {
+      "name": "positive-benchmarks",
+      "split": "train",
+      "complexity": "simple",
+      "query": "add Go benchmarks and race-safe test coverage for a worker pool",
+      "should_trigger": true
+    },
+    {
+      "name": "negative-kubernetes",
+      "split": "test",
+      "complexity": "complex",
+      "query": "debug a kubernetes pod stuck in CrashLoopBackOff",
+      "should_trigger": false
+    },
+    {
+      "name": "negative-sql",
+      "split": "test",
+      "complexity": "simple",
+      "query": "design a PostgreSQL indexing strategy for a reporting query",
+      "should_trigger": false
+    }
+  ]
+}
