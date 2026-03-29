@@ -956,7 +956,7 @@ def run_optimization_loop(
                     total_tokens += variant_output.get("tokens_used", 0)
                     deletions = variant_output.get("deletions", [])
                     deletion_justification = variant_output.get("deletion_justification", "").strip()
-                except (RuntimeError, ValueError, KeyError) as e:
+                except (RuntimeError, ValueError, KeyError, subprocess.TimeoutExpired) as e:
                     if verbose:
                         print(f"Variant generation failed: {e}", file=sys.stderr)
                     iteration_data = {
@@ -1055,8 +1055,8 @@ def run_optimization_loop(
                 temp_target = (
                     target_path.parent / f".{target_path.stem}_variant_{iteration_counter}{target_path.suffix}"
                 )
-                temp_target.write_text(variant_content)
                 try:
+                    temp_target.write_text(variant_content)
                     t0 = time.time()
                     variant_scores = assess_target(temp_target, train_tasks, goal, verbose, dry_run)
                     eval_elapsed = time.time() - t0
