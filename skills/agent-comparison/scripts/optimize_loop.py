@@ -716,7 +716,7 @@ def _run_behavioral_eval(
     target_path: Path,
     description: str,
     tasks: list[dict],
-    timeout: int = 120,
+    timeout: int = 240,
     verbose: bool = False,
 ) -> list[dict]:
     """Run behavioral assessment by invoking claude -p and checking artifact output.
@@ -780,7 +780,12 @@ def _run_behavioral_eval(
         except subprocess.TimeoutExpired:
             if verbose:
                 print(f"[behavioral] Timed out after {timeout}s for query: {full_query!r}", file=sys.stderr)
-            triggered = False
+            # Still check artifacts — the process may have written them before timing out
+            after_timeout: set[str] = set(glob.glob(str(project_root / artifact_glob)))
+            new_artifacts = sorted(after_timeout - before)
+            triggered = len(new_artifacts) > 0
+            if verbose and triggered:
+                print(f"[behavioral] Artifacts found despite timeout: {new_artifacts}", file=sys.stderr)
 
         passed = triggered == should_trigger
         results.append(
