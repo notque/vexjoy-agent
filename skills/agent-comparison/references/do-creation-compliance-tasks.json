@@ -1,0 +1,292 @@
+{
+  "tasks": [
+    {
+      "name": "create-agent-prometheus",
+      "split": "train",
+      "complexity": "complex",
+      "query": "create a new Prometheus alerting agent",
+      "should_trigger": true,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "scaffold-skill-migration",
+      "split": "train",
+      "complexity": "complex",
+      "query": "scaffold a new skill for database migration safety",
+      "should_trigger": true,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "build-pipeline-security",
+      "split": "train",
+      "complexity": "complex",
+      "query": "build a pipeline for automated security scanning",
+      "should_trigger": true,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "create-hook-sql",
+      "split": "train",
+      "complexity": "simple",
+      "query": "create a PostToolUse hook that detects SQL injection patterns",
+      "should_trigger": true,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "new-feature-webhooks",
+      "split": "train",
+      "complexity": "complex",
+      "query": "new feature: add webhook support for deployment notifications",
+      "should_trigger": true,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "scaffold-perses-plugin",
+      "split": "train",
+      "complexity": "complex",
+      "query": "scaffold a Perses dashboard plugin with CUE schema and React component",
+      "should_trigger": true,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "implicit-create-rails-agent",
+      "split": "train",
+      "complexity": "simple",
+      "query": "I need an agent for Ruby on Rails development",
+      "should_trigger": true,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "add-linting-pipeline",
+      "split": "train",
+      "complexity": "simple",
+      "query": "add a new linting pipeline to the toolkit",
+      "should_trigger": true,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "create-voice-profile",
+      "split": "train",
+      "complexity": "complex",
+      "query": "create a new voice profile from my blog writing samples",
+      "should_trigger": true,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "build-agent-rust",
+      "split": "train",
+      "complexity": "simple",
+      "query": "build a Rust development agent with cargo integration",
+      "should_trigger": true,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "create-reviewer-agent",
+      "split": "test",
+      "complexity": "complex",
+      "query": "create a new code review agent focused on accessibility compliance",
+      "should_trigger": true,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "scaffold-etl-pipeline",
+      "split": "test",
+      "complexity": "complex",
+      "query": "scaffold an ETL pipeline skill with data validation phases",
+      "should_trigger": true,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "new-session-hook",
+      "split": "test",
+      "complexity": "simple",
+      "query": "new SessionStart hook that loads team configuration from a YAML file",
+      "should_trigger": true,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "create-monitoring-skill",
+      "split": "test",
+      "complexity": "simple",
+      "query": "create a skill for monitoring Kubernetes pod health across namespaces",
+      "should_trigger": true,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "build-terraform-agent",
+      "split": "test",
+      "complexity": "complex",
+      "query": "build a Terraform infrastructure agent with plan-apply-verify phases",
+      "should_trigger": true,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "implicit-create-java-skill",
+      "split": "test",
+      "complexity": "simple",
+      "query": "we need a Java Spring Boot development skill",
+      "should_trigger": true,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "neg-debug-go-tests",
+      "split": "train",
+      "complexity": "complex",
+      "query": "debug why the Go tests are failing in CI",
+      "should_trigger": false,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "neg-review-pr-security",
+      "split": "train",
+      "complexity": "complex",
+      "query": "review this PR for security issues",
+      "should_trigger": false,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "neg-optimize-db",
+      "split": "train",
+      "complexity": "simple",
+      "query": "optimize the database query performance",
+      "should_trigger": false,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "neg-explain-routing",
+      "split": "train",
+      "complexity": "simple",
+      "query": "explain how the routing system works",
+      "should_trigger": false,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "neg-update-errors",
+      "split": "train",
+      "complexity": "simple",
+      "query": "update the error messages in the auth handler",
+      "should_trigger": false,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "neg-research-rbac",
+      "split": "train",
+      "complexity": "complex",
+      "query": "research best practices for Kubernetes RBAC",
+      "should_trigger": false,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "neg-check-ci",
+      "split": "train",
+      "complexity": "simple",
+      "query": "check the CI status on this branch",
+      "should_trigger": false,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "neg-fix-import",
+      "split": "train",
+      "complexity": "simple",
+      "query": "fix the broken import in agents/INDEX.json",
+      "should_trigger": false,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "neg-refactor-middleware",
+      "split": "train",
+      "complexity": "complex",
+      "query": "refactor the authentication middleware to use context propagation",
+      "should_trigger": false,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "neg-run-tests",
+      "split": "train",
+      "complexity": "simple",
+      "query": "run the Python quality gate on the scripts directory",
+      "should_trigger": false,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "neg-check-coverage",
+      "split": "test",
+      "complexity": "simple",
+      "query": "check test coverage for the voice validation module",
+      "should_trigger": false,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "neg-deploy-staging",
+      "split": "test",
+      "complexity": "complex",
+      "query": "deploy the latest version to the staging environment",
+      "should_trigger": false,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "neg-audit-deps",
+      "split": "test",
+      "complexity": "simple",
+      "query": "audit dependencies for known CVEs in the Python packages",
+      "should_trigger": false,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "neg-compare-agents",
+      "split": "test",
+      "complexity": "complex",
+      "query": "compare the golang-general-engineer and golang-compact agents on error handling tasks",
+      "should_trigger": false,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "neg-investigate-memory-leak",
+      "split": "test",
+      "complexity": "complex",
+      "query": "investigate the memory leak in the webhook processing service",
+      "should_trigger": false,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    },
+    {
+      "name": "neg-merge-pr",
+      "split": "test",
+      "complexity": "simple",
+      "query": "merge PR 205 after CI passes",
+      "should_trigger": false,
+      "eval_mode": "behavioral",
+      "artifact_glob": "adr/*.md"
+    }
+  ]
+}

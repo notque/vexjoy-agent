@@ -71,6 +71,8 @@ Read and follow the repository CLAUDE.md before making any routing decision, bec
 
 **Gate**: Complexity classified. Display routing banner (ALL classifications). If not Trivial, proceed to Phase 2. If Trivial, handle directly after showing banner.
 
+<!-- DO NOT OPTIMIZE -->
+
 ---
 
 ### Phase 2: ROUTE
@@ -265,3 +267,5 @@ Solution: Stop execution. Create `task_plan.md`. Resume routing after plan is in
 - `agents/INDEX.json`: Agent triggers and metadata
 - `skills/INDEX.json`: Skill triggers, force-route flags, pairs_with
 - `pipelines/INDEX.json`: Pipeline phases, triggers, composition chains
+
+<!-- END DO NOT OPTIMIZE -->
