@@ -20,6 +20,7 @@ See ADR-131 for architecture details.
 from __future__ import annotations
 
 import argparse
+import glob
 import json
 import os
 import random
@@ -586,6 +587,10 @@ def _is_pattern_task(task: dict) -> bool:
     return "prompt" in task and ("expected_patterns" in task or "forbidden_patterns" in task or "weight" in task)
 
 
+def _is_behavioral_task(task: dict) -> bool:
+    return "query" in task and "should_trigger" in task and task.get("eval_mode") == "behavioral"
+
+
 def _validate_task_set(tasks: list[dict]) -> None:
     """Reject unsupported or mixed task formats early with a clear error."""
     if not tasks:
@@ -593,9 +598,22 @@ def _validate_task_set(tasks: list[dict]) -> None:
 
     trigger_tasks = sum(1 for task in tasks if _is_trigger_task(task))
     pattern_tasks = sum(1 for task in tasks if _is_pattern_task(task))
+    behavioral_tasks = sum(1 for task in tasks if _is_behavioral_task(task))
 
-    if trigger_tasks and pattern_tasks:
-        raise ValueError("Task file mixes trigger-rate and pattern benchmark formats. Use one format per run.")
+    # behavioral tasks are a subset of trigger tasks (same base fields), so subtract them
+    # to avoid double-counting when checking for pure trigger-rate sets
+    pure_trigger_tasks = trigger_tasks - behavioral_tasks
+
+    if (pure_trigger_tasks or behavioral_tasks) and pattern_tasks:
+        raise ValueError(
+            "Task file mixes trigger-rate/behavioral and pattern benchmark formats. Use one format per run."
+        )
+
+    if behavioral_tasks and pure_trigger_tasks:
+        raise ValueError("Task file mixes trigger-rate and behavioral eval modes. Use one eval_mode per run.")
+
+    if behavioral_tasks == len(tasks):
+        return
 
     if trigger_tasks == len(tasks):
         return
@@ -690,6 +708,95 @@ def _run_trigger_rate(
 
 
 # ---------------------------------------------------------------------------
+# Behavioral evaluator (runs claude -p and checks for artifact creation)
+# ---------------------------------------------------------------------------
+
+
+def _run_behavioral_eval(
+    target_path: Path,
+    description: str,
+    tasks: list[dict],
+    timeout: int = 120,
+    verbose: bool = False,
+) -> list[dict]:
+    """Run behavioral assessment by invoking claude -p and checking artifact output.
+
+    Each task must have 'query', 'should_trigger', 'artifact_glob', and optionally
+    'query_prefix' fields. Tasks are run sequentially since each claude -p invocation
+    is resource-intensive.
+
+    Returns a list of per-task result dicts with keys:
+      triggered, should_trigger, pass, new_artifacts
+    """
+    project_root = Path.cwd()
+    for parent in [project_root, *project_root.parents]:
+        if (parent / ".claude").is_dir():
+            project_root = parent
+            break
+
+    env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
+
+    results = []
+    for task in tasks:
+        query: str = task["query"]
+        should_trigger: bool = task["should_trigger"]
+        artifact_glob: str = task.get("artifact_glob", "adr/*.md")
+        query_prefix: str = task.get("query_prefix", "/do ")
+
+        full_query = f"{query_prefix}{query}"
+
+        # Snapshot existing artifacts before the run
+        before: set[str] = set(glob.glob(str(project_root / artifact_glob)))
+
+        triggered = False
+        new_artifacts: list[str] = []
+
+        if verbose:
+            print(f"[behavioral] Running: claude -p {full_query!r}", file=sys.stderr)
+
+        try:
+            result = subprocess.run(
+                ["claude", "-p", full_query],
+                capture_output=True,
+                text=True,
+                cwd=str(project_root),
+                env=env,
+                timeout=timeout,
+            )
+            if verbose and result.returncode != 0:
+                print(
+                    f"[behavioral] claude exited {result.returncode}: {result.stderr[:300]}",
+                    file=sys.stderr,
+                )
+
+            # Check for new files matching the artifact glob
+            after: set[str] = set(glob.glob(str(project_root / artifact_glob)))
+            new_artifacts = sorted(after - before)
+            triggered = len(new_artifacts) > 0
+
+            if verbose and new_artifacts:
+                print(f"[behavioral] New artifacts: {new_artifacts}", file=sys.stderr)
+
+        except subprocess.TimeoutExpired:
+            if verbose:
+                print(f"[behavioral] Timed out after {timeout}s for query: {full_query!r}", file=sys.stderr)
+            triggered = False
+
+        passed = triggered == should_trigger
+        results.append(
+            {
+                "query": query,
+                "triggered": triggered,
+                "should_trigger": should_trigger,
+                "pass": passed,
+                "new_artifacts": new_artifacts,
+            }
+        )
+
+    return results
+
+
+# ---------------------------------------------------------------------------
 # Evaluation bridge
 # ---------------------------------------------------------------------------
 
@@ -758,7 +865,8 @@ def assess_target(
         return scores
 
     # Detect assessment mode from task format
-    is_trigger = all(_is_trigger_task(task) for task in tasks)
+    is_behavioral = all(_is_behavioral_task(task) for task in tasks)
+    is_trigger = not is_behavioral and all(_is_trigger_task(task) for task in tasks)
 
     if is_trigger:
         results = _run_trigger_rate(target_path, description, tasks, verbose=verbose)
@@ -787,9 +895,36 @@ def assess_target(
             )
         return scores
 
+    if is_behavioral:
+        behavioral_results = _run_behavioral_eval(target_path, description, tasks, verbose=verbose)
+        total = len(behavioral_results)
+        passed = sum(1 for r in behavioral_results if r.get("pass", False))
+        if total == 0:
+            return scores
+
+        accuracy = passed / total
+        scores["correctness"] = round(accuracy * 10, 2)
+        scores["error_handling"] = round(accuracy * 8, 2)
+        scores["language_idioms"] = round(accuracy * 7, 2)
+        scores["testing"] = round(accuracy * 8, 2)
+        scores["efficiency"] = round(min(1.0, accuracy + 0.1) * 6, 2)
+        scores["tests_pass"] = passed == total
+
+        for r in behavioral_results:
+            artifact_summary = ", ".join(r.get("new_artifacts", [])) or "none"
+            scores["task_results"].append(
+                {
+                    "name": r.get("query", "unnamed")[:40],
+                    "passed": r.get("pass", False),
+                    "score": 1.0 if r.get("pass", False) else 0.0,
+                    "details": f"triggered={r.get('triggered')}, artifacts={artifact_summary}",
+                }
+            )
+        return scores
+
     # Benchmark behavioral assessment — not yet implemented.
-    # Use trigger-rate format (tasks with 'query' + 'should_trigger')
-    # as the recommended starting point per ADR-131 research findings.
+    # Use trigger-rate tasks ('query' + 'should_trigger') or behavioral tasks
+    # ('query' + 'should_trigger' + 'eval_mode: behavioral') per ADR-132.
     raise NotImplementedError(
         "Pattern benchmark tasks are not yet implemented. "
         "Use trigger-rate tasks with 'query' and 'should_trigger' fields. "
