@@ -115,23 +115,6 @@
       "complexity": "Medium",
       "category": "meta"
     },
-    "golang-general-engineer-compact": {
-      "file": "golang-general-engineer-compact.md",
-      "short_description": "Use this agent for focused Go development with tight context budgets",
-      "triggers": [
-        "go",
-        "golang",
-        "tight context",
-        "compact",
-        "focused go"
-      ],
-      "pairs_with": [
-        "go-pr-quality-gate",
-        "go-testing"
-      ],
-      "complexity": "Medium-Complex",
-      "category": "language"
-    },
     "golang-general-engineer": {
       "file": "golang-general-engineer.md",
       "short_description": "Use this agent when you need expert assistance with Go development, including implementing features,\ndebugging issues, reviewing code quality, optimizing performance, or answering technical questions\nabout Go codebases",
@@ -147,6 +130,23 @@
       ],
       "pairs_with": [
         "go-pr-quality-gate"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "language"
+    },
+    "golang-general-engineer-compact": {
+      "file": "golang-general-engineer-compact.md",
+      "short_description": "Use this agent for focused Go development with tight context budgets",
+      "triggers": [
+        "go",
+        "golang",
+        "tight context",
+        "compact",
+        "focused go"
+      ],
+      "pairs_with": [
+        "go-pr-quality-gate",
+        "go-testing"
       ],
       "complexity": "Medium-Complex",
       "category": "language"
@@ -170,6 +170,34 @@
       ],
       "complexity": "Comprehensive",
       "category": "meta"
+    },
+    "kotlin-general-engineer": {
+      "file": "kotlin-general-engineer.md",
+      "short_description": "Use this agent when you need expert assistance with Kotlin development, including implementing features, debugging issues, reviewing code quality, optimizing coroutine usage, or answering technical questions about Kotlin codebases",
+      "triggers": [
+        "kotlin",
+        "ktor",
+        "koin",
+        "coroutine",
+        "suspend fun",
+        "kotlin flow",
+        "StateFlow",
+        "kotest",
+        "mockk",
+        "gradle-kts",
+        "detekt",
+        "ktlint",
+        "ktfmt",
+        "android kotlin",
+        "kotlin-multiplatform"
+      ],
+      "pairs_with": [
+        "systematic-debugging",
+        "verification-before-completion",
+        "systematic-code-review"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "language"
     },
     "kubernetes-helm-engineer": {
       "file": "kubernetes-helm-engineer.md",
@@ -353,6 +381,38 @@
       ],
       "complexity": "Medium-Complex",
       "category": "development"
+    },
+    "php-general-engineer": {
+      "file": "php-general-engineer.md",
+      "short_description": "Use this agent when you need expert assistance with PHP development, including implementing features, debugging issues, reviewing code quality, enforcing security posture, or answering technical questions about PHP codebases",
+      "triggers": [
+        "php",
+        "laravel",
+        "symfony",
+        "composer",
+        "artisan",
+        "eloquent",
+        "blade",
+        "twig",
+        "phpunit",
+        "pest",
+        "psr-12",
+        "psr standards",
+        "hybris",
+        "sapcc",
+        ".php files",
+        "doctrine",
+        "php-cs-fixer",
+        "phpstan",
+        "psalm"
+      ],
+      "pairs_with": [
+        "systematic-debugging",
+        "verification-before-completion",
+        "systematic-code-review"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "language"
     },
     "pipeline-orchestrator-engineer": {
       "file": "pipeline-orchestrator-engineer.md",
@@ -792,7 +852,7 @@
     },
     "reviewer-meta-process": {
       "file": "reviewer-meta-process.md",
-      "short_description": "Meta-analysis of system design decisions \u2014 examines whether the SYSTEM ITSELF is creating\nproblems",
+      "short_description": "Meta-analysis of system design decisions — examines whether the SYSTEM ITSELF is creating\nproblems",
       "triggers": [
         "meta-process review",
         "system design review",
@@ -907,7 +967,7 @@
         "hot paths",
         "N+1 queries",
         "allocations",
-        "O(n\u00b2)",
+        "O(n²)",
         "caching",
         "slow code",
         "performance optimization"
@@ -1081,6 +1141,41 @@
         "database-engineer"
       ],
       "complexity": "Medium",
+      "category": "language"
+    },
+    "swift-general-engineer": {
+      "file": "swift-general-engineer.md",
+      "short_description": "Use this agent when you need expert assistance with Swift development, including implementing features for iOS, macOS, watchOS, tvOS, visionOS, or server-side Swift, debugging issues, reviewing code quality, or answering technical questions about Swift codebases",
+      "triggers": [
+        "swift",
+        "ios",
+        "macos",
+        "xcode",
+        "swiftui",
+        "uikit",
+        "appkit",
+        "watchos",
+        "tvos",
+        "visionos",
+        "vapor",
+        "spm",
+        "swift-package-manager",
+        "swiftlint",
+        "swiftformat",
+        "xctest",
+        "swift-testing",
+        "swift actor",
+        "swift sendable",
+        "swift-combine",
+        "swiftdata",
+        "coredata"
+      ],
+      "pairs_with": [
+        "systematic-debugging",
+        "verification-before-completion",
+        "systematic-code-review"
+      ],
+      "complexity": "Medium-Complex",
       "category": "language"
     },
     "system-upgrade-engineer": {
