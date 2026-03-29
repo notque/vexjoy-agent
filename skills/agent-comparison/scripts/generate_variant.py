@@ -59,8 +59,7 @@ def restore_protected(original: str, variant: str) -> str:
 
     if len(orig_sections) != len(var_sections):
         print(
-            "Warning: Protected section count mismatch "
-            f"(original={len(orig_sections)}, variant={len(var_sections)}).",
+            f"Warning: Protected section count mismatch (original={len(orig_sections)}, variant={len(var_sections)}).",
             file=sys.stderr,
         )
         return variant
@@ -97,6 +96,7 @@ def _find_project_root() -> Path:
     for parent in [current, *current.parents]:
         if (parent / ".claude").is_dir():
             return parent
+    print("Warning: .claude/ directory not found, using cwd as project root", file=sys.stderr)
     return current
 
 
@@ -168,7 +168,9 @@ def generate_variant(
     if history:
         history_section = "\n\nPrevious attempts (do NOT repeat — try structurally different approaches):\n"
         for h in history:
-            history_section += f"  Iteration {h.get('number', '?')}: {h.get('verdict', '?')} — {h.get('change_summary', '')}\n"
+            history_section += (
+                f"  Iteration {h.get('number', '?')}: {h.get('verdict', '?')} — {h.get('change_summary', '')}\n"
+            )
 
     diversification_section = ""
     if diversification_note:

@@ -21,6 +21,7 @@ def _find_project_root() -> Path:
     for parent in [current, *current.parents]:
         if (parent / ".claude").is_dir():
             return parent
+    print("Warning: .claude/ directory not found, using cwd as project root", file=sys.stderr)
     return current
 
 
@@ -159,6 +160,8 @@ Please respond with only the new description text in <new_description> tags, not
 
     # Parse out the <new_description> tags
     match = re.search(r"<new_description>(.*?)</new_description>", text, re.DOTALL)
+    if not match:
+        print("Warning: <new_description> tags not found in response, using raw output", file=sys.stderr)
     description = match.group(1).strip().strip('"') if match else text.strip().strip('"')
 
     # Log the transcript

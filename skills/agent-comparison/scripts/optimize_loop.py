@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import random
 import re
 import subprocess
@@ -195,10 +196,18 @@ def _generate_variant_output(
             variant_cmd.extend(["--diversification-note", diversification_note])
         if model:
             variant_cmd.extend(["--model", model])
+        _variant_project_root = Path.cwd()
+        for _parent in [_variant_project_root, *_variant_project_root.parents]:
+            if (_parent / ".claude").is_dir():
+                _variant_project_root = _parent
+                break
+        _variant_env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
         variant_result = subprocess.run(
             variant_cmd,
             capture_output=True,
             text=True,
+            cwd=str(_variant_project_root),
+            env=_variant_env,
             timeout=360,
         )
 
@@ -618,9 +627,6 @@ def _run_trigger_rate(
     Tasks must have 'query' and 'should_trigger' fields.
     Returns run_eval-style results dict.
     """
-    import os
-    import tempfile
-
     task_file = None
     try:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
@@ -670,8 +676,7 @@ def _run_trigger_rate(
             )
 
             if result.returncode != 0:
-                if verbose:
-                    print(f"Trigger assessment failed: {result.stderr[:300]}", file=sys.stderr)
+                print(f"Trigger assessment failed (exit {result.returncode}): {result.stderr[:300]}", file=sys.stderr)
                 return {"results": [], "summary": {"total": 0, "passed": 0, "failed": 0}}
 
             return json.loads(result.stdout)
@@ -1043,7 +1048,9 @@ def run_optimization_loop(
                     iteration_by_number[iteration_counter] = iteration_data
                     continue
 
-                temp_target = target_path.parent / f".{target_path.stem}_variant{target_path.suffix}"
+                temp_target = (
+                    target_path.parent / f".{target_path.stem}_variant_{iteration_counter}{target_path.suffix}"
+                )
                 temp_target.write_text(variant_content)
                 try:
                     t0 = time.time()
@@ -1140,7 +1147,7 @@ def run_optimization_loop(
             rounds_without_keep += 1
 
         if test_tasks and holdout_check_cadence > 0 and round_number % holdout_check_cadence == 0:
-            temp_target = target_path.parent / f".{target_path.stem}_variant{target_path.suffix}"
+            temp_target = target_path.parent / f".{target_path.stem}_holdout_check{target_path.suffix}"
             try:
                 temp_target.write_text(best_content)
                 holdout_scores = assess_target(temp_target, test_tasks, goal, verbose, dry_run)
@@ -1232,7 +1239,7 @@ def run_optimization_loop(
         "max_iterations": max_iterations,
         "improvements_found": sum(1 for it in iterations if it["verdict"] == "KEEP"),
         "total_tokens": total_tokens,
-        "search_strategy": "beam",
+        "search_strategy": "beam" if beam_width > 1 or candidates_per_parent > 1 else "hill_climb",
         "beam_width": beam_width,
         "candidates_per_parent": candidates_per_parent,
         "holdout_check_cadence": holdout_check_cadence,

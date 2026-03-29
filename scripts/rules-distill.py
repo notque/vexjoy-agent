@@ -325,11 +325,13 @@ def _run_claude_code(prompt: str, model: str | None = None) -> tuple[str, str]:
         timeout=300,
     )
     if result.returncode != 0:
+        print(f"claude -p failed (exit {result.returncode}): {result.stderr}", file=sys.stderr)
         return "", ""
 
     try:
         events = json.loads(result.stdout)
     except json.JSONDecodeError:
+        print(f"claude -p returned invalid JSON: {result.stdout[:200]}", file=sys.stderr)
         return "", ""
 
     assistant_text = ""
@@ -381,7 +383,8 @@ Return [] if no universal principles are found."""
             for p in principles
             if isinstance(p, str) and len(p) >= 15
         ]
-    except Exception:
+    except Exception as exc:
+        print(f"LLM extraction failed: {exc}", file=sys.stderr)
         return None
 
 

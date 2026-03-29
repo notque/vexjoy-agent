@@ -1,9 +1,8 @@
 import importlib.util
 import json
-from pathlib import Path
 import subprocess
 import sys
-
+from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -40,13 +39,7 @@ def test_check_protected_sections_rejects_missing_blocks():
         "agent_comparison_optimize_loop",
         "skills/agent-comparison/scripts/optimize_loop.py",
     )
-    original = (
-        "alpha\n"
-        "<!-- DO NOT OPTIMIZE -->\n"
-        "keep me\n"
-        "<!-- END DO NOT OPTIMIZE -->\n"
-        "omega\n"
-    )
+    original = "alpha\n<!-- DO NOT OPTIMIZE -->\nkeep me\n<!-- END DO NOT OPTIMIZE -->\nomega\n"
     relocated = "alpha\nomega\n"
 
     assert optimize_loop.check_protected_sections(original, relocated) is False
@@ -57,13 +50,7 @@ def test_restore_protected_does_not_silently_reinsert_missing_blocks():
         "agent_comparison_generate_variant",
         "skills/agent-comparison/scripts/generate_variant.py",
     )
-    original = (
-        "alpha\n"
-        "<!-- DO NOT OPTIMIZE -->\n"
-        "keep me\n"
-        "<!-- END DO NOT OPTIMIZE -->\n"
-        "omega\n"
-    )
+    original = "alpha\n<!-- DO NOT OPTIMIZE -->\nkeep me\n<!-- END DO NOT OPTIMIZE -->\nomega\n"
     variant = "alpha\nomega\n"
 
     restored = generate_variant.restore_protected(original, variant)
@@ -135,9 +122,7 @@ def test_optimize_loop_omits_model_flag_when_not_provided(tmp_path, monkeypatch)
     )
 
     target = tmp_path / "SKILL.md"
-    target.write_text(
-        "---\nname: test-skill\ndescription: test description\nversion: 1.0.0\n---\n\n# Skill\n"
-    )
+    target.write_text("---\nname: test-skill\ndescription: test description\nversion: 1.0.0\n---\n\n# Skill\n")
     tasks = [
         {"name": "train-positive", "query": "write go tests", "should_trigger": True, "split": "train"},
         {"name": "test-negative", "query": "debug kubernetes", "should_trigger": False, "split": "test"},
@@ -156,7 +141,7 @@ def test_optimize_loop_omits_model_flag_when_not_provided(tmp_path, monkeypatch)
             "task_results": [{"name": "train-positive", "passed": False}],
         }
 
-    def fake_run(cmd, capture_output, text, timeout):
+    def fake_run(cmd, capture_output, text, timeout, cwd=None, env=None):
         seen_cmds.append(cmd)
         payload = {
             "variant": target.read_text(),
@@ -195,9 +180,7 @@ def test_optimize_loop_respects_revert_streak_limit(tmp_path, monkeypatch):
     )
 
     target = tmp_path / "SKILL.md"
-    target.write_text(
-        "---\nname: test-skill\ndescription: test description\nversion: 1.0.0\n---\n\n# Skill\n"
-    )
+    target.write_text("---\nname: test-skill\ndescription: test description\nversion: 1.0.0\n---\n\n# Skill\n")
     tasks_file = tmp_path / "tasks.json"
     tasks_file.write_text(
         json.dumps(
@@ -219,7 +202,7 @@ def test_optimize_loop_respects_revert_streak_limit(tmp_path, monkeypatch):
             "task_results": [{"name": "train-positive", "passed": False}],
         }
 
-    def fake_run(cmd, capture_output, text, timeout):
+    def fake_run(cmd, capture_output, text, timeout, cwd=None, env=None):
         payload = {
             "variant": target.read_text(),
             "summary": "no-op",
@@ -258,9 +241,7 @@ def test_optimize_loop_beam_search_retains_top_k_candidates(tmp_path, monkeypatc
     )
 
     target = tmp_path / "SKILL.md"
-    target.write_text(
-        "---\nname: test-skill\ndescription: test description\nversion: 1.0.0\n---\n\n# Skill\n"
-    )
+    target.write_text("---\nname: test-skill\ndescription: test description\nversion: 1.0.0\n---\n\n# Skill\n")
     tasks_file = tmp_path / "tasks.json"
     tasks_file.write_text(
         json.dumps(
@@ -275,7 +256,7 @@ def test_optimize_loop_beam_search_retains_top_k_candidates(tmp_path, monkeypatc
 
     generated = iter(["alpha", "beta"])
 
-    def fake_run(cmd, capture_output, text, timeout):
+    def fake_run(cmd, capture_output, text, timeout, cwd=None, env=None):
         label = next(generated)
         payload = {
             "variant": target.read_text() + f"\n<!-- {label} -->\n",
