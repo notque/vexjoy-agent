@@ -712,18 +712,37 @@ def _run_trigger_rate(
 # ---------------------------------------------------------------------------
 
 
+def _snapshot_extra_dirs(project_root: Path) -> set[str]:
+    """Snapshot files in directories that creation tasks may write to."""
+    extra_globs = [
+        str(project_root / "agents" / "*.md"),
+        str(project_root / "scripts" / "*.py"),
+    ]
+    snapshot: set[str] = set()
+    for g in extra_globs:
+        snapshot.update(glob.glob(g))
+    snapshot.update(glob.glob(str(project_root / "skills" / "**" / "SKILL.md"), recursive=True))
+    snapshot.update(glob.glob(str(project_root / "pipelines" / "**" / "SKILL.md"), recursive=True))
+    return snapshot
+
+
 def _run_behavioral_eval(
     target_path: Path,
     description: str,
     tasks: list[dict],
     timeout: int = 240,
     verbose: bool = False,
+    runs_per_task: int = 1,
+    trigger_threshold: float = 0.5,
 ) -> list[dict]:
     """Run behavioral assessment by invoking claude -p and checking artifact output.
 
     Each task must have 'query', 'should_trigger', 'artifact_glob', and optionally
     'query_prefix' fields. Tasks are run sequentially since each claude -p invocation
     is resource-intensive.
+
+    When runs_per_task > 1, each task query is run that many times. The final
+    triggered value is True iff (sum(results) / runs_per_task) >= trigger_threshold.
 
     Returns a list of per-task result dicts with keys:
       triggered, should_trigger, pass, new_artifacts
@@ -745,54 +764,84 @@ def _run_behavioral_eval(
 
         full_query = f"{query_prefix}{query}"
 
-        # Snapshot existing artifacts before the run
-        before: set[str] = set(glob.glob(str(project_root / artifact_glob)))
+        run_results: list[bool] = []
+        all_new_artifacts: list[str] = []
 
-        triggered = False
-        new_artifacts: list[str] = []
+        for run_index in range(runs_per_task):
+            if verbose and runs_per_task > 1:
+                print(f"[behavioral] Run {run_index + 1}/{runs_per_task}: {full_query!r}", file=sys.stderr)
+            elif verbose:
+                print(f"[behavioral] Running: claude -p {full_query!r}", file=sys.stderr)
 
-        if verbose:
-            print(f"[behavioral] Running: claude -p {full_query!r}", file=sys.stderr)
+            # Snapshot existing artifacts before the run (primary glob + extra dirs)
+            before: set[str] = set(glob.glob(str(project_root / artifact_glob)))
+            before_extra: set[str] = _snapshot_extra_dirs(project_root)
 
-        try:
-            result = subprocess.run(
-                ["claude", "-p", full_query],
-                capture_output=True,
-                text=True,
-                cwd=str(project_root),
-                env=env,
-                timeout=timeout,
-            )
-            if result.returncode != 0:
+            run_triggered = False
+            run_new_artifacts: list[str] = []
+
+            try:
+                result = subprocess.run(
+                    ["claude", "-p", full_query],
+                    capture_output=True,
+                    text=True,
+                    cwd=str(project_root),
+                    env=env,
+                    timeout=timeout,
+                )
+                if result.returncode != 0:
+                    print(
+                        f"[behavioral] claude exited {result.returncode}: {result.stderr[:300]}",
+                        file=sys.stderr,
+                    )
+
+                # Check for new files matching the artifact glob
+                after: set[str] = set(glob.glob(str(project_root / artifact_glob)))
+                run_new_artifacts = sorted(after - before)
+                run_triggered = len(run_new_artifacts) > 0
+
+                if verbose and run_new_artifacts:
+                    print(f"[behavioral] New artifacts: {run_new_artifacts}", file=sys.stderr)
+
+            except subprocess.TimeoutExpired:
+                if verbose:
+                    print(f"[behavioral] Timed out after {timeout}s for query: {full_query!r}", file=sys.stderr)
+                # Still check artifacts — the process may have written them before timing out
+                after_timeout: set[str] = set(glob.glob(str(project_root / artifact_glob)))
+                run_new_artifacts = sorted(after_timeout - before)
+                run_triggered = len(run_new_artifacts) > 0
+                if verbose and run_triggered:
+                    print(f"[behavioral] Artifacts found despite timeout: {run_new_artifacts}", file=sys.stderr)
+
+            # Clean up primary-glob artifacts
+            for artifact_path in run_new_artifacts:
+                try:
+                    Path(artifact_path).unlink(missing_ok=True)
+                except OSError:
+                    pass
+
+            # Clean up extra-dir artifacts (agents/, skills/, pipelines/, scripts/)
+            after_extra: set[str] = _snapshot_extra_dirs(project_root)
+            new_extra = sorted(after_extra - before_extra)
+            for path in new_extra:
+                try:
+                    Path(path).unlink(missing_ok=True)
+                except OSError:
+                    pass
+            if verbose and new_extra:
                 print(
-                    f"[behavioral] claude exited {result.returncode}: {result.stderr[:300]}",
+                    f"[behavioral] Cleaned up {len(new_extra)} extra artifacts: {new_extra}",
                     file=sys.stderr,
                 )
 
-            # Check for new files matching the artifact glob
-            after: set[str] = set(glob.glob(str(project_root / artifact_glob)))
-            new_artifacts = sorted(after - before)
-            triggered = len(new_artifacts) > 0
+            run_results.append(run_triggered)
+            all_new_artifacts.extend(run_new_artifacts)
 
-            if verbose and new_artifacts:
-                print(f"[behavioral] New artifacts: {new_artifacts}", file=sys.stderr)
-
-        except subprocess.TimeoutExpired:
-            if verbose:
-                print(f"[behavioral] Timed out after {timeout}s for query: {full_query!r}", file=sys.stderr)
-            # Still check artifacts — the process may have written them before timing out
-            after_timeout: set[str] = set(glob.glob(str(project_root / artifact_glob)))
-            new_artifacts = sorted(after_timeout - before)
-            triggered = len(new_artifacts) > 0
-            if verbose and triggered:
-                print(f"[behavioral] Artifacts found despite timeout: {new_artifacts}", file=sys.stderr)
-
-        # Clean up artifacts so they don't pollute the before-snapshot of the next task
-        for artifact_path in new_artifacts:
-            try:
-                Path(artifact_path).unlink(missing_ok=True)
-            except OSError:
-                pass
+        # Aggregate across runs
+        if runs_per_task > 1:
+            triggered = (sum(run_results) / len(run_results)) >= trigger_threshold
+        else:
+            triggered = run_results[0] if run_results else False
 
         passed = triggered == should_trigger
         results.append(
@@ -801,7 +850,7 @@ def _run_behavioral_eval(
                 "triggered": triggered,
                 "should_trigger": should_trigger,
                 "pass": passed,
-                "new_artifacts": new_artifacts,
+                "new_artifacts": all_new_artifacts,
             }
         )
 
@@ -819,6 +868,8 @@ def assess_target(
     goal: str,
     verbose: bool = False,
     dry_run: bool = False,
+    behavioral_runs_per_task: int = 1,
+    behavioral_trigger_threshold: float = 0.5,
 ) -> dict:
     """Assess a target file against tasks.
 
@@ -908,7 +959,14 @@ def assess_target(
         return scores
 
     if is_behavioral:
-        behavioral_results = _run_behavioral_eval(target_path, description, tasks, verbose=verbose)
+        behavioral_results = _run_behavioral_eval(
+            target_path,
+            description,
+            tasks,
+            verbose=verbose,
+            runs_per_task=behavioral_runs_per_task,
+            trigger_threshold=behavioral_trigger_threshold,
+        )
         total = len(behavioral_results)
         passed = sum(1 for r in behavioral_results if r.get("pass", False))
         if total == 0:
@@ -984,6 +1042,8 @@ def run_optimization_loop(
     report_path: Path | None = None,
     output_dir: Path | None = None,
     dry_run: bool = False,
+    behavioral_runs_per_task: int = 1,
+    behavioral_trigger_threshold: float = 0.5,
 ) -> dict:
     """Run the autoresearch optimization loop."""
     if beam_width < 1:
@@ -1018,13 +1078,33 @@ def run_optimization_loop(
     if verbose:
         print("Running baseline evaluation...", file=sys.stderr)
 
-    baseline_scores = assess_target(target_path, train_tasks, goal, verbose, dry_run)
+    baseline_scores = assess_target(
+        target_path,
+        train_tasks,
+        goal,
+        verbose,
+        dry_run,
+        behavioral_runs_per_task,
+        behavioral_trigger_threshold,
+    )
     baseline_composite = composite_score(baseline_scores)
     best_score = baseline_composite
     best_content = original_content
     best_iteration = 0
 
-    baseline_holdout_scores = assess_target(target_path, test_tasks, goal, verbose, dry_run) if test_tasks else None
+    baseline_holdout_scores = (
+        assess_target(
+            target_path,
+            test_tasks,
+            goal,
+            verbose,
+            dry_run,
+            behavioral_runs_per_task,
+            behavioral_trigger_threshold,
+        )
+        if test_tasks
+        else None
+    )
     baseline_holdout = composite_score(baseline_holdout_scores) if baseline_holdout_scores else None
 
     if verbose:
@@ -1048,6 +1128,8 @@ def run_optimization_loop(
     status = "RUNNING"
     total_tokens = 0
     iteration_counter = 0
+    # Maps iteration number → variant content for KEEP verdicts (used for best-by-test selection)
+    keep_contents: dict[int, str] = {}
 
     for round_number in range(1, max_iterations + 1):
         if verbose:
@@ -1205,7 +1287,15 @@ def run_optimization_loop(
                 try:
                     temp_target.write_text(variant_content)
                     t0 = time.time()
-                    variant_scores = assess_target(temp_target, train_tasks, goal, verbose, dry_run)
+                    variant_scores = assess_target(
+                        temp_target,
+                        train_tasks,
+                        goal,
+                        verbose,
+                        dry_run,
+                        behavioral_runs_per_task,
+                        behavioral_trigger_threshold,
+                    )
                     eval_elapsed = time.time() - t0
                     variant_composite = composite_score(variant_scores)
                 finally:
@@ -1267,6 +1357,9 @@ def run_optimization_loop(
                         best_content = variant_content
                         best_iteration = iteration_counter
 
+                    # Track content for each KEEP so best-by-test can look it up later
+                    keep_contents[iteration_counter] = variant_content
+
                     kept_nodes.append(
                         {
                             "content": variant_content,
@@ -1301,7 +1394,15 @@ def run_optimization_loop(
             temp_target = target_path.parent / f".{target_path.stem}_holdout_check{target_path.suffix}"
             try:
                 temp_target.write_text(best_content)
-                holdout_scores = assess_target(temp_target, test_tasks, goal, verbose, dry_run)
+                holdout_scores = assess_target(
+                    temp_target,
+                    test_tasks,
+                    goal,
+                    verbose,
+                    dry_run,
+                    behavioral_runs_per_task,
+                    behavioral_trigger_threshold,
+                )
                 holdout_composite = composite_score(holdout_scores)
                 if iterations:
                     iterations[-1]["score"]["test"] = holdout_composite
@@ -1370,6 +1471,49 @@ def run_optimization_loop(
         }
         report_path.write_text(generate_optimization_report(rd, auto_refresh=False))
 
+    # Best-by-test selection: if test tasks exist, prefer the KEEP iteration with the
+    # highest held-out test score rather than the highest training score (anti-Goodhart).
+    best_test_score: float | None = None
+    if test_tasks and keep_contents:
+        # Find iterations with a recorded test score (set during holdout cadence checks)
+        scored_keeps = [
+            (it["number"], it["score"]["test"])
+            for it in iterations
+            if it["verdict"] == "KEEP" and it["score"].get("test") is not None and it["number"] in keep_contents
+        ]
+        if scored_keeps:
+            best_test_iter, best_test_score = max(scored_keeps, key=lambda x: x[1])
+            if best_test_iter != best_iteration:
+                if verbose:
+                    print(
+                        f"\nBest-by-test: switching from train-best iter {best_iteration} "
+                        f"(train={best_score:.4f}) to test-best iter {best_test_iter} "
+                        f"(test={best_test_score:.4f})",
+                        file=sys.stderr,
+                    )
+                best_content = keep_contents[best_test_iter]
+                best_iteration = best_test_iter
+        else:
+            # No holdout-checked KEEP iterations — run a final test eval on best_content
+            if best_iteration > 0:
+                temp_target = target_path.parent / f".{target_path.stem}_final_test{target_path.suffix}"
+                try:
+                    temp_target.write_text(best_content)
+                    final_test_scores = assess_target(
+                        temp_target,
+                        test_tasks,
+                        goal,
+                        verbose,
+                        dry_run,
+                        behavioral_runs_per_task,
+                        behavioral_trigger_threshold,
+                    )
+                    best_test_score = composite_score(final_test_scores)
+                    if verbose:
+                        print(f"Final test eval on best_content: test={best_test_score:.4f}", file=sys.stderr)
+                finally:
+                    temp_target.unlink(missing_ok=True)
+
     if best_iteration > 0:
         best_path = output_dir / "best_variant.md"
         best_path.write_text(best_content)
@@ -1385,6 +1529,7 @@ def run_optimization_loop(
         "baseline_train_score": baseline_composite,
         "baseline_holdout_score": baseline_holdout,
         "best_score": best_score,
+        "best_test_score": best_test_score,
         "best_iteration": best_iteration,
         "iterations_run": len(iterations),
         "max_iterations": max_iterations,
@@ -1446,6 +1591,18 @@ def main():
     )
     parser.add_argument("--report", default=None, help="Path for live HTML report")
     parser.add_argument("--output-dir", default=None, help="Directory for iteration snapshots")
+    parser.add_argument(
+        "--behavioral-runs-per-task",
+        type=int,
+        default=1,
+        help="Run each behavioral task query this many times and average results (default: 1)",
+    )
+    parser.add_argument(
+        "--behavioral-trigger-threshold",
+        type=float,
+        default=0.5,
+        help="Fraction of runs that must trigger to count as triggered (default: 0.5)",
+    )
     args = parser.parse_args()
 
     target = Path(args.target)
@@ -1475,6 +1632,8 @@ def main():
             report_path=Path(args.report) if args.report else None,
             output_dir=Path(args.output_dir) if args.output_dir else None,
             dry_run=args.dry_run,
+            behavioral_runs_per_task=args.behavioral_runs_per_task,
+            behavioral_trigger_threshold=args.behavioral_trigger_threshold,
         )
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)
