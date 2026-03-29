@@ -173,10 +173,7 @@ def is_optimization_data(data: object) -> bool:
         return False
     if "target" not in data:
         return False
-    return all(
-        isinstance(item, dict) and "number" in item and "verdict" in item
-        for item in iterations
-    )
+    return all(isinstance(item, dict) and "number" in item and "verdict" in item for item in iterations)
 
 
 def load_optimization_data(workspace: Path) -> dict | None:

@@ -13,11 +13,7 @@ def test_improve_description_uses_claude_code_and_shortens(monkeypatch, tmp_path
     def fake_run(cmd, capture_output, text, cwd, env, timeout):
         calls.append(cmd)
         if len(calls) == 1:
-            text_out = (
-                "<new_description>"
-                + ("a" * 1030)
-                + "</new_description>"
-            )
+            text_out = "<new_description>" + ("a" * 1030) + "</new_description>"
         else:
             text_out = "<new_description>short and valid</new_description>"
         payload = [
@@ -33,7 +29,9 @@ def test_improve_description_uses_claude_code_and_shortens(monkeypatch, tmp_path
         skill_content="# Skill",
         current_description="old",
         eval_results={
-            "results": [{"query": "improve this skill", "should_trigger": True, "pass": False, "triggers": 0, "runs": 1}],
+            "results": [
+                {"query": "improve this skill", "should_trigger": True, "pass": False, "triggers": 0, "runs": 1}
+            ],
             "summary": {"passed": 0, "failed": 1, "total": 1},
         },
         history=[],
@@ -48,4 +46,3 @@ def test_improve_description_uses_claude_code_and_shortens(monkeypatch, tmp_path
     transcript = json.loads((tmp_path / "improve_iter_1.json").read_text())
     assert transcript["raw_result_text"] == "raw result"
     assert transcript["rewrite_raw_result_text"] == "raw result"
-
