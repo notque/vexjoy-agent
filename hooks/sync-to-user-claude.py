@@ -450,6 +450,39 @@ def main():
 
             hook_count = sum(len(v) for v in merged.get("hooks", {}).values())
             synced.append(f"settings({hook_count} hook events)")
+
+            # Validate: every hook command's .py file must exist in ~/.claude/hooks/.
+            # When a branch adds a hook + settings entry, then the branch is merged
+            # and a new session starts on main, settings.json may reference a hook
+            # file that hasn't been synced yet (stale settings from prior branch
+            # session). Detect and warn about missing files.
+            hooks_dir = user_claude / "hooks"
+            missing_hooks = []
+            for _evt, hook_list in merged.get("hooks", {}).items():
+                for entry in hook_list:
+                    for hook_item in entry.get("hooks", [entry]):
+                        cmd = hook_item.get("command", "")
+                        # Extract .py file path from command string
+                        if ".claude/hooks/" in cmd:
+                            # Handle both "$HOME/.claude/hooks/X.py" and quoted variants
+                            py_file = cmd.split(".claude/hooks/")[-1].strip().strip('"').strip("'")
+                            hook_path = hooks_dir / py_file
+                            if py_file and not hook_path.exists():
+                                missing_hooks.append(py_file)
+            if missing_hooks:
+                print(
+                    f"[sync] WARNING: {len(missing_hooks)} hook(s) registered in settings.json "
+                    f"but missing from ~/.claude/hooks/: {', '.join(missing_hooks)}",
+                    file=sys.stderr,
+                )
+                # Attempt emergency copy from repo hooks/ for any missing files
+                for py_file in missing_hooks:
+                    repo_hook = repo_root / "hooks" / py_file
+                    if repo_hook.exists():
+                        target = hooks_dir / py_file
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(repo_hook, target)
+                        print(f"[sync] Emergency copy: hooks/{py_file} -> {target}", file=sys.stderr)
         except Exception as e:
             errors.append(f"settings.json: {e}")
 
