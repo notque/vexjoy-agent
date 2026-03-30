@@ -1,13 +1,6 @@
 ---
 name: agent-evaluation
-description: |
-  Evaluate agents and skills for quality, completeness, and standards
-  compliance using a 6-step rubric: Identify, Structural, Content, Code,
-  Integration, Report. Use when auditing agents/skills, checking quality
-  after creation or update, or reviewing collection health. Triggers:
-  "evaluate", "audit", "check quality", "review agent", "score skill".
-  Do NOT use for creating or modifying agents/skills — only for
-  read-only assessment and scoring.
+description: "Evaluate agents and skills for quality and standards compliance."
 version: 2.0.0
 user-invocable: false
 context: fork

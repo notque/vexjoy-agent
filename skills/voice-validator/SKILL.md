@@ -1,13 +1,6 @@
 ---
 name: voice-validator
-description: |
-  Critique-and-rewrite enforcement loop for voice fidelity. Validates generated
-  content against negative prompt checklists and forces revision until it passes.
-  Use when content has been generated in a target voice, voice output feels off,
-  long-form content risks voice drift, or before final delivery of voice content.
-  Use for "validate voice", "check voice fidelity", "voice critique".
-  Do NOT use for initial voice generation, voice profile creation, or content
-  that has no voice target.
+description: "Critique-and-rewrite loop for voice fidelity validation."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

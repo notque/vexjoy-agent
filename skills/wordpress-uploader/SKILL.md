@@ -1,13 +1,6 @@
 ---
 name: wordpress-uploader
-description: |
-  WordPress REST API integration for posts and media via deterministic Python
-  scripts. Use when uploading articles, creating drafts, publishing posts,
-  uploading images, editing existing posts, or managing WordPress content.
-  Use for "upload to wordpress", "create wordpress draft", "publish to
-  your-blog", "upload image", or "edit wordpress post". Do NOT use for
-  writing articles (use voice-writer) or editing prose style (use
-  anti-ai-editor).
+description: "WordPress REST API integration for posts and media uploads."
 version: 2.0.0
 user-invocable: false
 allowed-tools:
