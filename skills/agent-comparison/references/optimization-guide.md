@@ -2,9 +2,15 @@
 
 ## Scope
 
-The current autoresearch loop optimizes a markdown target's frontmatter
-`description` using trigger-rate eval tasks. This is useful for improving
-skill routing accuracy and similar description-driven dispatch behavior.
+The current autoresearch loop supports two optimization scopes:
+
+- `description-only`: mutate the frontmatter `description` and score it with
+  trigger-rate eval tasks
+- `body-only`: mutate the instruction body and score it with `blind_compare`
+  behavioral tasks
+
+This is useful for improving skill routing accuracy and for short, repeatable
+instruction-body improvements on real registered skills.
 
 It is not a replacement for the manual agent benchmark workflow in Phases 1-4.
 If you want to compare real code-generation quality across benchmark tasks, use
@@ -22,7 +28,11 @@ drives routing.
 
 ## Supported Task Formats
 
-Every task must include:
+Two task families are supported:
+
+### Trigger-rate tasks
+
+Every trigger-rate task must include:
 
 - `query`: the prompt to test
 - `should_trigger`: whether the target should trigger for that prompt
@@ -76,6 +86,40 @@ Explicit train/test sets:
   ]
 }
 ```
+
+### Blind body-compare tasks
+
+Every blind body-compare task must include:
+
+- `query`: the prompt to test
+- `eval_mode: blind_compare`
+- `judge`: currently `heuristic_socratic_debugging`
+
+Optional fields:
+
+- `name`: label shown in logs and reports
+- `split`: `train` or `test`
+- `min_score`: minimum candidate score required for the task to count as passed
+
+Example:
+
+```json
+{
+  "tasks": [
+    {
+      "name": "socratic-first-turn",
+      "query": "Help me think through this bug. My Python script sometimes returns None instead of a dict when the cache is warm. Please do not solve it for me directly.",
+      "eval_mode": "blind_compare",
+      "judge": "heuristic_socratic_debugging",
+      "min_score": 0.7,
+      "split": "train"
+    }
+  ]
+}
+```
+
+Within one run, tasks must all belong to the same family. The optimizer rejects
+mixed trigger-rate and blind body-compare task sets.
 
 If no split markers are present, the loop performs a reproducible random split
 using `--train-split` and seed `42`.
@@ -216,16 +260,20 @@ When beam search is enabled:
 When `--beam-width 1 --candidates-per-parent 1`, the behavior collapses back to
 the original single-path optimizer.
 
-## Description-Only Scope
+## Optimization Scopes
 
-The current optimizer mutates only the YAML frontmatter `description`.
+The optimizer supports two mutation scopes:
 
-- `generate_variant.py` asks the model for an improved description, not a full-file rewrite
-- the variant file is reconstructed by replacing that one field in the original content
-- eval results therefore measure the same surface area that generation changes
+- `description-only`: replace only the YAML frontmatter `description`
+- `body-only`: replace only the markdown body below the frontmatter
 
-This avoids false negatives where the model improves routing blocks or body text
-that the evaluator does not read.
+`generate_variant.py` reconstructs the full file around the selected scope so
+the unchanged parts stay intact. Use `description-only` for routing-trigger
+work and `body-only` for behavioral work judged from the skill's actual output.
+
+For body optimization, pair `--optimization-scope body-only` with
+`blind_compare` tasks so generation and evaluation are measuring the same
+surface area.
 
 ## Iteration Artifacts
 
@@ -253,15 +301,44 @@ When `--report` is set, it also writes a live HTML dashboard showing:
 What is currently demonstrated:
 - deterministic end-to-end improvement runs with readable artifacts
 - isolated live optimization for existing registered skills via temporary git worktrees
+- blind body-eval runs that require actual skill-trigger evidence before scoring
 - score calculations and accept/reject decisions that match the weighted rubric
 - short live proof on `skills/read-only-ops/SKILL.md` using
   `references/read-only-ops-short-tasks.json`, improving from one failed positive
   to `2/2` live passes after the accepted description update
+- short live body optimization on `skills/socratic-debugging/SKILL.md` using
+  `references/socratic-debugging-body-short-tasks.json`, improving from `7.85`
+  to `8.45` after the accepted instruction-body update
 
 What remains imperfect:
 - live optimization of temporary renamed skill copies still fails to show measured improvement through the dynamic command alias path
 
 So the current tooling is operational for real registered skills and deterministic proof runs, but not yet fully proven for arbitrary temporary renamed clones.
+
+## Short Live Commands
+
+Routing optimization on a real registered skill:
+
+```bash
+python3 skills/agent-comparison/scripts/optimize_loop.py \
+  --target skills/read-only-ops/SKILL.md \
+  --goal "Improve read-only routing precision for realistic user prompts." \
+  --benchmark-tasks skills/agent-comparison/references/read-only-ops-short-tasks.json
+```
+
+Body optimization on a real registered skill:
+
+```bash
+python3 skills/agent-comparison/scripts/optimize_loop.py \
+  --target skills/socratic-debugging/SKILL.md \
+  --goal "Improve the first response so it asks exactly one question, avoids direct diagnosis, avoids code examples, and does not add tool-permission preamble." \
+  --benchmark-tasks skills/agent-comparison/references/socratic-debugging-body-short-tasks.json \
+  --optimization-scope body-only
+```
+
+The blind body path now fails closed: if the intended skill does not trigger, or
+the response falls back into tool-blocked/direct-guidance chatter, the run is
+scored as a failure instead of being treated as a weak improvement.
 
 ## Choosing Good Eval Tasks
 

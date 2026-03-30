@@ -1,5 +1,7 @@
+import contextlib
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -215,6 +217,48 @@ Changed body.
     assert '    - "changed-trigger"' not in result["variant"]
     assert "Original body." in result["variant"]
     assert "Changed body." not in result["variant"]
+
+
+def test_generate_variant_body_only_changes_body_not_frontmatter(monkeypatch):
+    generate_variant = load_module(
+        "agent_comparison_generate_variant_body_only",
+        "skills/agent-comparison/scripts/generate_variant.py",
+    )
+
+    current_content = """---
+name: example-skill
+description: old description
+version: 1.0.0
+---
+
+# Skill
+
+Original body.
+"""
+
+    def fake_run_claude_code(prompt, model):
+        assert "<current_body>" in prompt
+        return (
+            "<body># Skill\n\nImproved body.\n</body><summary>body change</summary>"
+            "<deletion_justification></deletion_justification>",
+            "raw result",
+            7,
+        )
+
+    monkeypatch.setattr(generate_variant, "_run_claude_code", fake_run_claude_code)
+
+    result = generate_variant.generate_variant(
+        target_path="skills/example/SKILL.md",
+        goal="improve behavioral quality",
+        current_content=current_content,
+        failures=[],
+        model=None,
+        optimization_scope="body-only",
+    )
+
+    assert "description: old description" in result["variant"]
+    assert "# Skill\n\nImproved body." in result["variant"]
+    assert "Original body." not in result["variant"]
 
 
 def test_generate_variant_prompt_includes_full_failed_query_and_expectation(monkeypatch):
@@ -588,6 +632,490 @@ def test_assess_target_forwards_parallel_workers_for_behavioral_eval(tmp_path, m
     assert optimize_loop.composite_score(scores) == 8.45
 
 
+def test_assess_target_scores_blind_compare_results(tmp_path, monkeypatch):
+    optimize_loop = load_module(
+        "agent_comparison_optimize_loop_blind_compare",
+        "skills/agent-comparison/scripts/optimize_loop.py",
+    )
+
+    target = tmp_path / "SKILL.md"
+    target.write_text("---\ndescription: blind compare test\n---\n")
+    tasks = [{"query": "help me debug this", "eval_mode": "blind_compare", "judge": "socratic_question_only"}]
+
+    def fake_run_blind_compare_eval(target_path, candidate_content, tasks, baseline_content=None, timeout=180, verbose=False):
+        assert baseline_content == "---\ndescription: baseline\n---\n"
+        return [
+            {
+                "query": "help me debug this",
+                "winner": "candidate",
+                "candidate_score": 0.8,
+                "baseline_score": 0.5,
+                "candidate_output": "What changed recently?",
+                "baseline_output": "The issue is probably your env var rename.",
+                "passed": True,
+            }
+        ]
+
+    monkeypatch.setattr(optimize_loop, "_run_blind_compare_eval", fake_run_blind_compare_eval)
+
+    scores = optimize_loop.assess_target(
+        target,
+        tasks,
+        "improve behavioral quality",
+        candidate_content="---\ndescription: candidate\n---\n",
+        baseline_content="---\ndescription: baseline\n---\n",
+    )
+
+    assert scores["correctness"] == 8.0
+    assert scores["testing"] == 8.0
+    assert scores["tests_pass"] is True
+    assert scores["task_results"][0]["winner"] == "candidate"
+
+
+def test_assess_target_trigger_eval_uses_multiple_runs(tmp_path, monkeypatch):
+    optimize_loop = load_module(
+        "agent_comparison_optimize_loop_trigger_runs",
+        "skills/agent-comparison/scripts/optimize_loop.py",
+    )
+
+    target = tmp_path / "SKILL.md"
+    target.write_text("---\ndescription: trigger eval test\n---\n")
+    tasks = [{"query": "inspect this repo", "should_trigger": True}]
+    seen = {}
+
+    def fake_run_trigger_rate(
+        target_path,
+        description,
+        tasks,
+        candidate_content=None,
+        eval_mode="auto",
+        num_workers=1,
+        timeout=30,
+        runs_per_query=3,
+        verbose=False,
+    ):
+        seen["runs_per_query"] = runs_per_query
+        return {
+            "results": [{"query": "inspect this repo", "should_trigger": True, "trigger_rate": 1.0, "pass": True}],
+            "summary": {"total": 1, "passed": 1, "failed": 0},
+        }
+
+    monkeypatch.setattr(optimize_loop, "_run_trigger_rate", fake_run_trigger_rate)
+
+    scores = optimize_loop.assess_target(
+        target,
+        tasks,
+        "improve routing precision",
+        behavioral_runs_per_task=4,
+    )
+
+    assert seen["runs_per_query"] == 4
+    assert scores["tests_pass"] is True
+
+
+def test_socratic_question_only_heuristic_penalizes_preamble():
+    optimize_loop = load_module(
+        "agent_comparison_optimize_loop_socratic_heuristic",
+        "skills/agent-comparison/scripts/optimize_loop.py",
+    )
+
+    clean_score, _ = optimize_loop._score_socratic_question_only_output(
+        "What did you expect the test to do?"
+    )
+    preamble_score, _ = optimize_loop._score_socratic_question_only_output(
+        "Let me read the skill first. What did you expect the test to do?"
+    )
+
+    assert clean_score > preamble_score
+
+
+def test_contains_fallback_contamination_detects_tool_blocked_text():
+    optimize_loop = load_module(
+        "agent_comparison_optimize_loop_contamination",
+        "skills/agent-comparison/scripts/optimize_loop.py",
+    )
+
+    contaminated, reasons = optimize_loop._contains_fallback_contamination(
+        "The Skill tool was blocked in this session, so I'll guide you through this directly."
+    )
+
+    assert contaminated is True
+    assert "mentioned blocked skill tool" in reasons
+    assert "fell back to direct guidance" in reasons
+
+
+def test_run_blind_compare_zeroes_untriggered_or_contaminated_runs(tmp_path, monkeypatch):
+    optimize_loop = load_module(
+        "agent_comparison_optimize_loop_blind_compare_guardrails",
+        "skills/agent-comparison/scripts/optimize_loop.py",
+    )
+
+    target = tmp_path / "skills" / "socratic-debugging" / "SKILL.md"
+    target.parent.mkdir(parents=True)
+    target.write_text("---\nname: socratic-debugging\ndescription: test\n---\n")
+
+    monkeypatch.setattr(optimize_loop, "_find_project_root", lambda: tmp_path)
+
+    @contextlib.contextmanager
+    def fake_worktree(_project_root, _relpath, content):
+        worktree = tmp_path / ("candidate" if "candidate" in content else "baseline")
+        worktree.mkdir(exist_ok=True)
+        yield worktree
+
+    monkeypatch.setattr(optimize_loop, "_candidate_worktree", fake_worktree)
+
+    def fake_capture(query, cwd, accepted_skill_ids, timeout=180):
+        if cwd.name == "baseline":
+            return {
+                "output": "What changed recently?",
+                "triggered": False,
+                "contaminated": False,
+                "contamination_reasons": [],
+            }
+        return {
+            "output": "The Skill tool was blocked in this session, so I'll guide you through this directly. What changed recently?",
+            "triggered": True,
+            "contaminated": True,
+            "contamination_reasons": ["mentioned blocked skill tool", "fell back to direct guidance"],
+        }
+
+    monkeypatch.setattr(optimize_loop, "_run_query_capture_output", fake_capture)
+
+    results = optimize_loop._run_blind_compare_eval(
+        target,
+        "---\nname: socratic-debugging\ndescription: candidate\n# candidate\n",
+        [{"query": "help me debug", "eval_mode": "blind_compare", "judge": "socratic_question_only"}],
+        baseline_content="---\nname: socratic-debugging\ndescription: baseline\n# baseline\n",
+    )
+
+    assert results[0]["baseline_score"] == 0.0
+    assert results[0]["candidate_score"] == 0.0
+    assert results[0]["baseline_triggered"] is False
+    assert results[0]["candidate_contaminated"] is True
+    assert results[0]["winner"] == "tie"
+    assert results[0]["baseline_reasons"][0] == "target skill did not trigger"
+    assert results[0]["candidate_reasons"][0] == "mentioned blocked skill tool"
+
+
+def test_behavioral_eval_sequential_path_uses_isolated_worktrees(tmp_path, monkeypatch):
+    optimize_loop = load_module(
+        "agent_comparison_optimize_loop_behavioral_isolation",
+        "skills/agent-comparison/scripts/optimize_loop.py",
+    )
+
+    project_root = tmp_path / "repo"
+    (project_root / ".claude").mkdir(parents=True)
+    cwd_before = Path.cwd()
+    os.chdir(project_root)
+    try:
+        calls = []
+
+        def fake_single_task_in_worktree(task, project_root, env, timeout, verbose, runs_per_task, trigger_threshold):
+            calls.append((task["query"], project_root))
+            return {
+                "query": task["query"],
+                "triggered": task["should_trigger"],
+                "should_trigger": task["should_trigger"],
+                "pass": True,
+                "new_artifacts": [],
+            }
+
+        monkeypatch.setattr(optimize_loop, "_run_single_behavioral_task_in_worktree", fake_single_task_in_worktree)
+
+        results = optimize_loop._run_behavioral_eval(
+            tmp_path / "skills" / "example" / "SKILL.md",
+            "desc",
+            [{"query": "make a skill", "should_trigger": True}],
+            parallel_workers=0,
+        )
+    finally:
+        os.chdir(cwd_before)
+
+    assert len(calls) == 1
+    assert results[0]["pass"] is True
+
+
+def test_holdout_score_attaches_to_best_iteration_not_last(tmp_path, monkeypatch):
+    optimize_loop = load_module(
+        "agent_comparison_optimize_loop_holdout_attachment",
+        "skills/agent-comparison/scripts/optimize_loop.py",
+    )
+
+    target = tmp_path / "SKILL.md"
+    target.write_text("---\nname: test-skill\ndescription: base\nversion: 1.0.0\n---\n")
+    tasks_file = tmp_path / "tasks.json"
+    tasks_file.write_text(
+        json.dumps(
+            {
+                "tasks": [
+                    {"name": "train-positive", "query": "inspect this repo", "should_trigger": True, "split": "train"},
+                    {"name": "test-positive", "query": "inspect this repo", "should_trigger": True, "split": "test"},
+                ]
+            }
+        )
+    )
+
+    variant_counter = {"n": 0}
+
+    def fake_generate_variant_output(*args, **kwargs):
+        variant_counter["n"] += 1
+        marker = f"candidate-{variant_counter['n']}"
+        return {
+            "variant": f"---\nname: test-skill\ndescription: {marker}\nversion: 1.0.0\n---\n{marker}\n",
+            "summary": marker,
+            "reasoning": marker,
+            "tokens_used": 1,
+            "deletions": [],
+            "deletion_justification": "",
+        }
+
+    monkeypatch.setattr(optimize_loop, "_generate_variant_output", fake_generate_variant_output)
+
+    def fake_assess_target(
+        path,
+        tasks,
+        goal,
+        verbose=False,
+        dry_run=False,
+        behavioral_runs_per_task=1,
+        behavioral_trigger_threshold=0.5,
+        parallel_eval_workers=0,
+        candidate_content=None,
+        baseline_content=None,
+        eval_mode="auto",
+    ):
+        is_test = bool(tasks and tasks[0].get("split") == "test")
+        content = candidate_content or path.read_text()
+        if is_test:
+            score = 9.0 if "candidate-1" in content else 3.0
+        else:
+            if "candidate-1" in content:
+                score = 8.0
+            elif "candidate-2" in content:
+                score = 7.0
+            else:
+                score = 5.0
+        return {
+            "parses": True,
+            "compiles": True,
+            "tests_pass": True,
+            "protected_intact": True,
+            "correctness": score,
+            "error_handling": 0.0,
+            "language_idioms": 0.0,
+            "testing": 0.0,
+            "efficiency": 0.0,
+            "task_results": [{"name": "task", "passed": True}],
+        }
+
+    monkeypatch.setattr(optimize_loop, "assess_target", fake_assess_target)
+
+    result = optimize_loop.run_optimization_loop(
+        target_path=target,
+        goal="improve routing precision",
+        benchmark_tasks_path=tasks_file,
+        max_iterations=1,
+        min_gain=0.0,
+        output_dir=tmp_path / "out",
+        report_path=tmp_path / "out" / "report.html",
+        beam_width=2,
+        candidates_per_parent=2,
+        holdout_check_cadence=1,
+        verbose=False,
+        dry_run=False,
+    )
+
+    iteration_one = next(it for it in result["iterations"] if it["number"] == 1)
+    iteration_two = next(it for it in result["iterations"] if it["number"] == 2)
+    assert iteration_one["score"]["test"] == 3.6
+    assert iteration_two["score"]["test"] == 1.2
+
+
+def test_best_by_test_can_switch_from_later_train_best_to_earlier_candidate(tmp_path, monkeypatch):
+    optimize_loop = load_module(
+        "agent_comparison_optimize_loop_best_by_test",
+        "skills/agent-comparison/scripts/optimize_loop.py",
+    )
+
+    target = tmp_path / "SKILL.md"
+    target.write_text("---\nname: test-skill\ndescription: base\nversion: 1.0.0\n---\n")
+    tasks_file = tmp_path / "tasks.json"
+    tasks_file.write_text(
+        json.dumps(
+            {
+                "tasks": [
+                    {"name": "train-positive", "query": "inspect this repo", "should_trigger": True, "split": "train"},
+                    {"name": "test-positive", "query": "inspect this repo", "should_trigger": True, "split": "test"},
+                ]
+            }
+        )
+    )
+
+    variant_counter = {"n": 0}
+
+    def fake_generate_variant_output(*args, **kwargs):
+        variant_counter["n"] += 1
+        marker = f"candidate-{variant_counter['n']}"
+        return {
+            "variant": f"---\nname: test-skill\ndescription: {marker}\nversion: 1.0.0\n---\n{marker}\n",
+            "summary": marker,
+            "reasoning": marker,
+            "tokens_used": 1,
+            "deletions": [],
+            "deletion_justification": "",
+        }
+
+    monkeypatch.setattr(optimize_loop, "_generate_variant_output", fake_generate_variant_output)
+
+    def fake_assess_target(
+        path,
+        tasks,
+        goal,
+        verbose=False,
+        dry_run=False,
+        behavioral_runs_per_task=1,
+        behavioral_trigger_threshold=0.5,
+        parallel_eval_workers=0,
+        candidate_content=None,
+        baseline_content=None,
+        eval_mode="auto",
+    ):
+        is_test = bool(tasks and tasks[0].get("split") == "test")
+        content = candidate_content or path.read_text()
+        if is_test:
+            score = 9.0 if "candidate-1" in content else 3.0
+        else:
+            if "candidate-1" in content:
+                score = 8.0
+            elif "candidate-2" in content:
+                score = 9.0
+            else:
+                score = 5.0
+        return {
+            "parses": True,
+            "compiles": True,
+            "tests_pass": True,
+            "protected_intact": True,
+            "correctness": score,
+            "error_handling": 0.0,
+            "language_idioms": 0.0,
+            "testing": 0.0,
+            "efficiency": 0.0,
+            "task_results": [{"name": "task", "passed": True}],
+        }
+
+    monkeypatch.setattr(optimize_loop, "assess_target", fake_assess_target)
+
+    result = optimize_loop.run_optimization_loop(
+        target_path=target,
+        goal="improve routing precision",
+        benchmark_tasks_path=tasks_file,
+        max_iterations=2,
+        min_gain=0.0,
+        output_dir=tmp_path / "out",
+        report_path=tmp_path / "out" / "report.html",
+        beam_width=1,
+        candidates_per_parent=1,
+        holdout_check_cadence=1,
+        verbose=False,
+        dry_run=False,
+    )
+
+    assert result["best_iteration"] == 1
+    assert result["best_test_score"] == 3.6
+
+
+def test_final_report_uses_post_selection_test_scores(tmp_path, monkeypatch):
+    optimize_loop = load_module(
+        "agent_comparison_optimize_loop_final_report",
+        "skills/agent-comparison/scripts/optimize_loop.py",
+    )
+
+    target = tmp_path / "SKILL.md"
+    target.write_text("---\nname: test-skill\ndescription: base\nversion: 1.0.0\n---\n")
+    tasks_file = tmp_path / "tasks.json"
+    tasks_file.write_text(
+        json.dumps(
+            {
+                "tasks": [
+                    {"name": "train-positive", "query": "inspect this repo", "should_trigger": True, "split": "train"},
+                    {"name": "test-positive", "query": "inspect this repo", "should_trigger": True, "split": "test"},
+                ]
+            }
+        )
+    )
+
+    variant_counter = {"n": 0}
+
+    def fake_generate_variant_output(*args, **kwargs):
+        variant_counter["n"] += 1
+        marker = f"candidate-{variant_counter['n']}"
+        return {
+            "variant": f"---\nname: test-skill\ndescription: {marker}\nversion: 1.0.0\n---\n{marker}\n",
+            "summary": marker,
+            "reasoning": marker,
+            "tokens_used": 1,
+            "deletions": [],
+            "deletion_justification": "",
+        }
+
+    monkeypatch.setattr(optimize_loop, "_generate_variant_output", fake_generate_variant_output)
+
+    def fake_assess_target(
+        path,
+        tasks,
+        goal,
+        verbose=False,
+        dry_run=False,
+        behavioral_runs_per_task=1,
+        behavioral_trigger_threshold=0.5,
+        parallel_eval_workers=0,
+        candidate_content=None,
+        baseline_content=None,
+        eval_mode="auto",
+    ):
+        is_test = bool(tasks and tasks[0].get("split") == "test")
+        content = candidate_content or path.read_text()
+        if is_test:
+            score = 9.0 if "candidate-1" in content else 3.0
+        else:
+            score = 8.0 if "candidate-1" in content else 5.0
+        return {
+            "parses": True,
+            "compiles": True,
+            "tests_pass": True,
+            "protected_intact": True,
+            "correctness": score,
+            "error_handling": 0.0,
+            "language_idioms": 0.0,
+            "testing": 0.0,
+            "efficiency": 0.0,
+            "task_results": [{"name": "task", "passed": True}],
+        }
+
+    monkeypatch.setattr(optimize_loop, "assess_target", fake_assess_target)
+    monkeypatch.setattr(optimize_loop, "generate_optimization_report", lambda data, auto_refresh=False: json.dumps(data))
+
+    report_path = tmp_path / "out" / "report.html"
+    optimize_loop.run_optimization_loop(
+        target_path=target,
+        goal="improve routing precision",
+        benchmark_tasks_path=tasks_file,
+        max_iterations=1,
+        min_gain=0.0,
+        output_dir=tmp_path / "out",
+        report_path=report_path,
+        beam_width=1,
+        candidates_per_parent=1,
+        holdout_check_cadence=1,
+        verbose=False,
+        dry_run=False,
+    )
+
+    report = json.loads(report_path.read_text())
+    assert report["iterations"][0]["score"]["test"] == 3.6
+
+
 def test_run_optimization_loop_forwards_parallel_eval_to_assessments(tmp_path, monkeypatch):
     optimize_loop = load_module(
         "agent_comparison_optimize_loop_parallel_forwarding",
@@ -620,6 +1148,7 @@ def test_run_optimization_loop_forwards_parallel_eval_to_assessments(tmp_path, m
         behavioral_trigger_threshold=0.5,
         parallel_eval_workers=0,
         candidate_content=None,
+        baseline_content=None,
         eval_mode="auto",
     ):
         calls.append(
@@ -628,6 +1157,7 @@ def test_run_optimization_loop_forwards_parallel_eval_to_assessments(tmp_path, m
                 "task_count": len(tasks),
                 "parallel_eval_workers": parallel_eval_workers,
                 "candidate_content": candidate_content,
+                "baseline_content": baseline_content,
                 "eval_mode": eval_mode,
             }
         )
@@ -665,6 +1195,7 @@ def test_run_optimization_loop_forwards_parallel_eval_to_assessments(tmp_path, m
     assert calls
     assert all(call["parallel_eval_workers"] == 2 for call in calls)
     assert all(call["candidate_content"] is not None for call in calls)
+    assert any(call["baseline_content"] is not None for call in calls[1:])
     assert all(call["eval_mode"] == "auto" for call in calls)
 
 
@@ -695,6 +1226,7 @@ def test_tiny_end_to_end_autoresearch_improves_real_weak_skill_copy(tmp_path, mo
         model,
         dry_run,
         iteration_number,
+        optimization_scope,
         diversification_note=None,
     ):
         improved_description = (
@@ -718,6 +1250,7 @@ def test_tiny_end_to_end_autoresearch_improves_real_weak_skill_copy(tmp_path, mo
         eval_mode="auto",
         num_workers=5,
         timeout=30,
+        runs_per_query=3,
         verbose=False,
     ):
         passed = trigger_query in description
