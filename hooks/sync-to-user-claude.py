@@ -528,6 +528,73 @@ def main():
         if voice_count > 0:
             synced.append(f"private-voices({voice_count})")
 
+    # Sync skills + pipelines to ~/.codex/skills/ for OpenAI Codex CLI.
+    # Codex only supports skills (no agents, hooks, or scripts), and both
+    # repo skills/ and pipelines/ map to the same destination directory.
+    codex_skills_dst = Path.home() / ".codex" / "skills"
+    codex_sources = [("skills", repo_root / "skills"), ("pipelines", repo_root / "pipelines")]
+    codex_count = 0
+    codex_src_paths: set[Path] = set()
+    for label, src in codex_sources:
+        if not src.is_dir():
+            continue
+        try:
+            codex_skills_dst.mkdir(parents=True, exist_ok=True)
+            for item in src.rglob("*"):
+                if item.is_file():
+                    rel = item.relative_to(src)
+                    codex_src_paths.add(rel)
+                    target = codex_skills_dst / rel
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    if target.exists() and filecmp.cmp(item, target, shallow=False):
+                        continue
+                    shutil.copy2(item, target)
+                    codex_count += 1
+        except Exception as e:
+            errors.append(f"codex-{label}: {e}")
+    # Also sync private voices to Codex
+    if private_voices_dir.is_dir():
+        for voice_dir in sorted(private_voices_dir.iterdir()):
+            if not voice_dir.is_dir():
+                continue
+            skill_src = voice_dir / "skill"
+            if not skill_src.is_dir():
+                continue
+            voice_name = voice_dir.name
+            codex_voice_dst = codex_skills_dst / f"voice-{voice_name}"
+            try:
+                codex_voice_dst.mkdir(parents=True, exist_ok=True)
+                for item in skill_src.rglob("*"):
+                    if item.is_file():
+                        rel = item.relative_to(skill_src)
+                        codex_src_paths.add(Path(f"voice-{voice_name}") / rel)
+                        target = codex_voice_dst / rel
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        if target.exists() and filecmp.cmp(item, target, shallow=False):
+                            continue
+                        shutil.copy2(item, target)
+                        codex_count += 1
+            except Exception as e:
+                errors.append(f"codex-voice-{voice_name}: {e}")
+    # Stale cleanup for Codex skills
+    if codex_skills_dst.is_dir() and codex_src_paths:
+        try:
+            for item in codex_skills_dst.rglob("*"):
+                if item.is_file():
+                    rel = item.relative_to(codex_skills_dst)
+                    if rel not in codex_src_paths:
+                        item.unlink()
+            for dirpath in sorted(codex_skills_dst.rglob("*"), reverse=True):
+                if dirpath.is_dir() and not any(dirpath.iterdir()):
+                    dirpath.rmdir()
+        except Exception as e:
+            errors.append(f"codex-stale-cleanup: {e}")
+    if codex_count > 0:
+        synced.append(f".codex/skills({codex_count} updated)")
+    elif codex_skills_dst.is_dir():
+        total = sum(1 for _ in codex_skills_dst.rglob("*") if _.is_file())
+        synced.append(f".codex/skills({total} current)")
+
     # Sync soul document (CLAUDE-soul-template.md -> CLAUDE.md)
     soul_result, soul_error = sync_soul_document(repo_root, user_claude)
     if soul_result:
