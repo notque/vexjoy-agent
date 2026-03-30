@@ -77,16 +77,6 @@
       "user_invocable": false,
       "version": "2.0.0"
     },
-    "blog-post-writer": {
-      "file": "skills/blog-post-writer/SKILL.md",
-      "description": "Voice-integrated blog post creation with 4-phase workflow: Assess, Decide, Draft, Preview.",
-      "triggers": [],
-      "category": "content-creation",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "deprecated": true,
-      "deprecated_by": "voice-writer"
-    },
     "bluesky-reader": {
       "file": "skills/bluesky-reader/SKILL.md",
       "description": "Read public Bluesky feeds via the AT Protocol API.",
@@ -332,22 +322,6 @@
       "category": "process",
       "user_invocable": false,
       "version": "1.0.0"
-    },
-    "dispatching-parallel-agents": {
-      "file": "skills/dispatching-parallel-agents/SKILL.md",
-      "description": "Dispatch independent subagents in parallel for unrelated problems spanning different subsystems.",
-      "triggers": [
-        "parallel agents",
-        "independent failures",
-        "fan-out dispatch",
-        "do these simultaneously",
-        "handle all at once",
-        "run in parallel",
-        "split into tasks"
-      ],
-      "category": "process",
-      "user_invocable": false,
-      "version": "2.0.0"
     },
     "distinctive-frontend-design": {
       "file": "skills/distinctive-frontend-design/SKILL.md",
@@ -1360,17 +1334,6 @@
       "user_invocable": false,
       "version": "2.0.0"
     },
-    "plans": {
-      "file": "skills/plans/SKILL.md",
-      "description": "Deterministic plan lifecycle management via scripts/plan-manager.py: create, track, check, complete, and abandon task plans.",
-      "triggers": [
-        "manage plans",
-        "plan lifecycle"
-      ],
-      "category": "process",
-      "user_invocable": true,
-      "version": "2.0.0"
-    },
     "plant-seed": {
       "file": "skills/plant-seed/SKILL.md",
       "description": "Capture a forward-looking idea as a seed with trigger conditions, scope, and rationale so it surfaces automatically during future feature design.",
@@ -2108,16 +2071,6 @@
       "category": "testing",
       "user_invocable": false,
       "version": "2.0.0"
-    },
-    "voice-orchestrator": {
-      "file": "skills/voice-orchestrator/SKILL.md",
-      "description": "Multi-step voice content generation with deterministic validation.",
-      "triggers": [],
-      "category": "voice",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "deprecated": true,
-      "deprecated_by": "voice-writer"
     },
     "voice-validator": {
       "file": "skills/voice-validator/SKILL.md",

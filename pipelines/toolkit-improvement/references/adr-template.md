@@ -136,7 +136,7 @@ _Specify how the implementing agent should run:_
 |------|------------|-----|
 | **Worktree** | Independent changes that don't conflict with other ADRs | `isolation: "worktree"` on Agent tool — gives the agent an isolated repo copy |
 | **In-place** | Changes that depend on other ADR outputs | Standard agent dispatch on a feature branch |
-| **Parallel batch** | Multiple independent ADRs being implemented simultaneously | Dispatch via `dispatching-parallel-agents` skill, each in a worktree |
+| **Parallel batch** | Multiple independent ADRs being implemented simultaneously | Dispatch via `subagent-driven-development` skill, each in a worktree |
 
 **Worktree is the default for ADR implementation.** Each ADR gets its own isolated
 worktree so agents can work in parallel without stepping on each other. The

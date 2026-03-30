@@ -200,7 +200,7 @@ git checkout -b chore/system-upgrade-$(date +%Y-%m-%d)
 | Change Domain | Domain Agent |
 |--------------|-------------|
 | Hook modifications | hook-development-engineer |
-| Agent upgrades | agent-creator-engineer (or skill-creator for agents) |
+| Agent upgrades | skill-creator |
 | Skill upgrades | skill-creator |
 | Routing changes | routing-table-updater |
 | Pattern injection | skill-creator or direct Edit |
