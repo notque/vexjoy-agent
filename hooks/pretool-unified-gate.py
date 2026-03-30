@@ -266,6 +266,44 @@ def check_gitignore_bypass(command: str) -> None:
         )
 
 
+def _extract_effective_cwd(command: str, default_cwd: str | None = None) -> str | None:
+    """Extract the effective working directory from a command string.
+
+    Detects two patterns:
+    - ``cd <path> && ...`` or ``cd <path> ; ...`` prefix
+    - ``git -C <path> ...`` flag
+
+    Returns the extracted path if found, otherwise default_cwd.
+    """
+    m = re.match(r'cd\s+(?:"([^"]+)"|(\S+))\s*(?:&&|;)', command.lstrip())
+    if m:
+        p = (m.group(1) or m.group(2) or "").strip()
+        if p:
+            return p
+    m = re.search(r'\bgit\s+-C\s+(?:"([^"]+)"|(\S+))', command)
+    if m:
+        return m.group(1) or m.group(2)
+    return default_cwd
+
+
+def _is_worktree_on_feature_branch(cwd: str) -> bool:
+    """Return True if cwd is a worktree directory on a non-protected branch."""
+    try:
+        result = subprocess.run(
+            ["git", "branch", "--show-current"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            cwd=cwd,
+        )
+        if result.returncode == 0:
+            branch = result.stdout.strip()
+            return bool(branch) and branch not in {"main", "master"}
+    except (subprocess.TimeoutExpired, OSError):
+        pass
+    return False
+
+
 def check_git_submission(command: str) -> None:
     """Block raw git push, gh pr create, gh pr merge unless bypassed."""
     # Skills prefix blocked commands with CLAUDE_GATE_BYPASS=1 to pass through
@@ -274,6 +312,12 @@ def check_git_submission(command: str) -> None:
 
     for pattern, skill_name, message in _GIT_SUBMISSION_PATTERNS:
         if pattern.search(command):
+            # Allow git push from worktree directories on feature branches
+            if pattern is _GIT_SUBMISSION_PATTERNS[0][0]:  # git push pattern
+                effective_cwd = _extract_effective_cwd(command)
+                project_dir = os.environ.get("CLAUDE_PROJECT_DIR", "")
+                if effective_cwd and effective_cwd != project_dir and _is_worktree_on_feature_branch(effective_cwd):
+                    return
             _block(f"[git-submission-gate] BLOCKED: {message}\n[fix-with-skill] {skill_name}")
 
 
