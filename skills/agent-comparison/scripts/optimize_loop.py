@@ -20,11 +20,13 @@ See ADR-131 for architecture details.
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import glob
 import json
 import os
 import random
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -43,7 +45,10 @@ QUALITY_WEIGHTS = {
     "efficiency": 0.10,
 }
 
-HARD_GATE_KEYS = ["parses", "compiles", "tests_pass", "protected_intact"]
+# Hard gates should capture mechanical invalidity, not evaluation quality.
+# Routing/task accuracy is already reflected in the weighted dimensions below;
+# zeroing the whole composite on any failed task destroys the optimization signal.
+HARD_GATE_KEYS = ["parses", "compiles", "protected_intact"]
 
 
 def passes_hard_gates(scores: dict) -> bool:
@@ -273,7 +278,7 @@ def generate_optimization_report(data: dict, auto_refresh: bool = False) -> str:
     rows = ""
     for it in iterations:
         v = it["verdict"]
-        vcls = {"KEEP": "keep", "REVERT": "revert", "STOP": "stop"}.get(v, "")
+        vcls = {"ACCEPT": "accept", "REJECT": "reject", "STOP": "stop"}.get(v, "")
         sc = it["score"]
         train_score = sc.get("train")
         test_score = sc.get("test")
@@ -284,7 +289,7 @@ def generate_optimization_report(data: dict, auto_refresh: bool = False) -> str:
         dcls = "d-pos" if delta.startswith("+") and delta != "+0" else "d-neg" if delta.startswith("-") else "d-zero"
         summary = html_mod.escape(str(it.get("change_summary", ""))[:80])
         diff_esc = html_mod.escape(str(it.get("diff", "")))
-        is_keep = v == "KEEP"
+        is_keep = v == "ACCEPT"
         n = it["number"]
 
         rows += f"""
@@ -310,8 +315,8 @@ def generate_optimization_report(data: dict, auto_refresh: bool = False) -> str:
 
     bt = baseline.get("train", 0.0)
     best = max((it["score"].get("train", bt) for it in iterations), default=bt)
-    kept = sum(1 for it in iterations if it["verdict"] == "KEEP")
-    reverted = sum(1 for it in iterations if it["verdict"] == "REVERT")
+    accepted = sum(1 for it in iterations if it["verdict"] == "ACCEPT")
+    rejected = sum(1 for it in iterations if it["verdict"] == "REJECT")
     cur = len(iterations)
     mx = data.get("max_iterations", 20)
     scls = "running" if status == "RUNNING" else "done" if status in ("CONVERGED", "COMPLETE") else "alarm"
@@ -345,8 +350,8 @@ th {{ color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:
 .iter-row:hover {{ background:var(--surface-2); }}
 .diff-row td {{ padding:0; }}
 .diff-block {{ background:#080b0f;padding:12px;font-family:var(--font-mono);font-size:11px;max-height:400px;overflow:auto;white-space:pre;line-height:1.5;color:var(--muted); }}
-.verdict-keep {{ color:var(--green);font-weight:600; }}
-.verdict-revert {{ color:var(--red);font-weight:600; }}
+.verdict-accept {{ color:var(--green);font-weight:600; }}
+.verdict-reject {{ color:var(--red);font-weight:600; }}
 .verdict-stop {{ color:var(--yellow);font-weight:600; }}
 .d-pos {{ color:var(--green);font-weight:600; }}
 .d-neg {{ color:var(--red);font-weight:600; }}
@@ -367,8 +372,8 @@ th {{ color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:
   <div class="dash-item"><span class="dash-label">Progress</span><span class="dash-value">{cur}/{mx}</span></div>
   <div class="dash-item"><span class="dash-label">Baseline</span><span class="dash-value">{bt:.2f}</span></div>
   <div class="dash-item"><span class="dash-label">Best</span><span class="dash-value">{best:.2f} ({best - bt:+.2f})</span></div>
-  <div class="dash-item"><span class="dash-label">Kept</span><span class="dash-value">{kept}</span></div>
-  <div class="dash-item"><span class="dash-label">Reverted</span><span class="dash-value">{reverted}</span></div>
+  <div class="dash-item"><span class="dash-label">Accepted</span><span class="dash-value">{accepted}</span></div>
+  <div class="dash-item"><span class="dash-label">Rejected</span><span class="dash-value">{rejected}</span></div>
 </div>
 <p class="subtitle">{score_label}</p>
 <div class="chart-box" id="chart"></div>
@@ -636,7 +641,9 @@ def _run_trigger_rate(
     target_path: Path,
     description: str,
     tasks: list[dict],
-    num_workers: int = 5,
+    candidate_content: str | None = None,
+    eval_mode: str = "auto",
+    num_workers: int = 1,
     timeout: int = 30,
     verbose: bool = False,
 ) -> dict:
@@ -651,39 +658,47 @@ def _run_trigger_rate(
             task_file = f.name
             json.dump(tasks, f)
 
-        with tempfile.TemporaryDirectory() as skill_dir:
-            skill_md = Path(skill_dir) / "SKILL.md"
-            skill_md.write_text(target_path.read_text())
+        project_root = Path.cwd()
+        for parent in [project_root, *project_root.parents]:
+            if (parent / ".claude").is_dir():
+                project_root = parent
+                break
 
-            project_root = Path.cwd()
-            for parent in [project_root, *project_root.parents]:
-                if (parent / ".claude").is_dir():
-                    project_root = parent
-                    break
+        cmd = [
+            sys.executable,
+            "-m",
+            "scripts.skill_eval.run_eval",
+            "--eval-set",
+            task_file,
+            "--skill-path",
+            str(target_path.parent),
+            "--description",
+            description,
+            "--eval-mode",
+            eval_mode,
+            "--num-workers",
+            str(num_workers),
+            "--timeout",
+            str(timeout),
+            "--runs-per-query",
+            "1",
+        ]
+        if candidate_content is not None:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as candidate_file:
+                candidate_file.write(candidate_content)
+                candidate_file.flush()
+                cmd.extend(["--candidate-content-file", candidate_file.name])
+                candidate_file_path = Path(candidate_file.name)
+        else:
+            candidate_file_path = None
 
-            cmd = [
-                sys.executable,
-                "-m",
-                "scripts.skill_eval.run_eval",
-                "--eval-set",
-                task_file,
-                "--skill-path",
-                skill_dir,
-                "--description",
-                description,
-                "--num-workers",
-                str(num_workers),
-                "--timeout",
-                str(timeout),
-                "--runs-per-query",
-                "1",
-            ]
-            if verbose:
-                cmd.append("--verbose")
-                print(f"Running trigger assessment: {len(tasks)} queries", file=sys.stderr)
+        if verbose:
+            cmd.append("--verbose")
+            print(f"Running trigger assessment: {len(tasks)} queries", file=sys.stderr)
 
-            env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
+        env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
 
+        try:
             result = subprocess.run(
                 cmd,
                 capture_output=True,
@@ -692,16 +707,19 @@ def _run_trigger_rate(
                 env=env,
                 timeout=600,
             )
+        finally:
+            if candidate_file_path is not None:
+                candidate_file_path.unlink(missing_ok=True)
 
-            if result.returncode != 0:
-                print(f"Trigger assessment failed (exit {result.returncode}): {result.stderr[:300]}", file=sys.stderr)
-                return {"results": [], "summary": {"total": 0, "passed": 0, "failed": 0}}
+        if result.returncode != 0:
+            print(f"Trigger assessment failed (exit {result.returncode}): {result.stderr[:300]}", file=sys.stderr)
+            return {"results": [], "summary": {"total": 0, "passed": 0, "failed": 0}}
 
-            try:
-                return json.loads(result.stdout)
-            except json.JSONDecodeError as e:
-                print(f"Trigger assessment returned invalid JSON: {e} — stdout: {result.stdout[:200]}", file=sys.stderr)
-                return {"results": [], "summary": {"total": 0, "passed": 0, "failed": 0}}
+        try:
+            return json.loads(result.stdout)
+        except json.JSONDecodeError as e:
+            print(f"Trigger assessment returned invalid JSON: {e} — stdout: {result.stdout[:200]}", file=sys.stderr)
+            return {"results": [], "summary": {"total": 0, "passed": 0, "failed": 0}}
     finally:
         if task_file:
             Path(task_file).unlink(missing_ok=True)
@@ -726,6 +744,179 @@ def _snapshot_extra_dirs(project_root: Path) -> set[str]:
     return snapshot
 
 
+def _run_single_behavioral_task(
+    task: dict,
+    project_root: Path,
+    worktree_path: Path,
+    env: dict[str, str],
+    timeout: int,
+    verbose: bool,
+    runs_per_task: int,
+    trigger_threshold: float,
+) -> dict:
+    """Run a single behavioral task and return its result dict.
+
+    Args:
+        task: Task dict with 'query', 'should_trigger', optional 'artifact_glob' and 'query_prefix'.
+        project_root: Canonical project root (used only for worktree creation context).
+        worktree_path: Directory in which claude -p runs and artifact globs are resolved.
+            For sequential execution this equals project_root; for parallel execution
+            this is an isolated git worktree.
+        env: Environment variables to pass to subprocess.
+        timeout: Per-run timeout in seconds for the claude -p invocation.
+        verbose: Print progress to stderr.
+        runs_per_task: Number of times to run the query; result is averaged.
+        trigger_threshold: Fraction of runs that must trigger to count as triggered.
+
+    Returns:
+        Per-task result dict with keys: query, triggered, should_trigger, pass, new_artifacts.
+    """
+    query: str = task["query"]
+    should_trigger: bool = task["should_trigger"]
+    artifact_glob: str = task.get("artifact_glob", "adr/*.md")
+    query_prefix: str = task.get("query_prefix", "/do ")
+
+    full_query = f"{query_prefix}{query}"
+
+    run_results: list[bool] = []
+    all_new_artifacts: list[str] = []
+
+    for run_index in range(runs_per_task):
+        if verbose and runs_per_task > 1:
+            print(f"[behavioral] Run {run_index + 1}/{runs_per_task}: {full_query!r}", file=sys.stderr)
+        elif verbose:
+            print(f"[behavioral] Running: claude -p {full_query!r}", file=sys.stderr)
+
+        # Snapshot existing artifacts before the run (primary glob + extra dirs)
+        before: set[str] = set(glob.glob(str(worktree_path / artifact_glob)))
+        before_extra: set[str] = _snapshot_extra_dirs(worktree_path)
+
+        run_triggered = False
+        run_new_artifacts: list[str] = []
+
+        try:
+            result = subprocess.run(
+                ["claude", "-p", full_query],
+                capture_output=True,
+                text=True,
+                cwd=str(worktree_path),
+                env=env,
+                timeout=timeout,
+            )
+            if result.returncode != 0:
+                print(
+                    f"[behavioral] claude exited {result.returncode}: {result.stderr[:300]}",
+                    file=sys.stderr,
+                )
+
+            # Check for new files matching the artifact glob
+            after: set[str] = set(glob.glob(str(worktree_path / artifact_glob)))
+            run_new_artifacts = sorted(after - before)
+            run_triggered = len(run_new_artifacts) > 0
+
+            if verbose and run_new_artifacts:
+                print(f"[behavioral] New artifacts: {run_new_artifacts}", file=sys.stderr)
+
+        except subprocess.TimeoutExpired:
+            if verbose:
+                print(f"[behavioral] Timed out after {timeout}s for query: {full_query!r}", file=sys.stderr)
+            # Still check artifacts — the process may have written them before timing out
+            after_timeout: set[str] = set(glob.glob(str(worktree_path / artifact_glob)))
+            run_new_artifacts = sorted(after_timeout - before)
+            run_triggered = len(run_new_artifacts) > 0
+            if verbose and run_triggered:
+                print(f"[behavioral] Artifacts found despite timeout: {run_new_artifacts}", file=sys.stderr)
+
+        # Clean up primary-glob artifacts
+        for artifact_path in run_new_artifacts:
+            try:
+                Path(artifact_path).unlink(missing_ok=True)
+            except OSError:
+                pass
+
+        # Clean up extra-dir artifacts (agents/, skills/, pipelines/, scripts/)
+        after_extra: set[str] = _snapshot_extra_dirs(worktree_path)
+        new_extra = sorted(after_extra - before_extra)
+        for path in new_extra:
+            try:
+                Path(path).unlink(missing_ok=True)
+            except OSError:
+                pass
+        if verbose and new_extra:
+            print(
+                f"[behavioral] Cleaned up {len(new_extra)} extra artifacts: {new_extra}",
+                file=sys.stderr,
+            )
+
+        run_results.append(run_triggered)
+        all_new_artifacts.extend(run_new_artifacts)
+
+    # Aggregate across runs
+    if runs_per_task > 1:
+        triggered = (sum(run_results) / len(run_results)) >= trigger_threshold
+    else:
+        triggered = run_results[0] if run_results else False
+
+    passed = triggered == should_trigger
+    return {
+        "query": query,
+        "triggered": triggered,
+        "should_trigger": should_trigger,
+        "pass": passed,
+        "new_artifacts": all_new_artifacts,
+    }
+
+
+def _run_single_behavioral_task_in_worktree(
+    task: dict,
+    project_root: Path,
+    env: dict[str, str],
+    timeout: int,
+    verbose: bool,
+    runs_per_task: int,
+    trigger_threshold: float,
+) -> dict:
+    """Create a temporary git worktree, run a behavioral task inside it, then remove it.
+
+    Used by the parallel execution path in _run_behavioral_eval.  Each thread
+    gets its own isolated worktree so concurrent claude -p invocations do not
+    share working-directory state.
+
+    The worktree is always removed in a finally block regardless of success or failure.
+    """
+    wt_path_str = tempfile.mkdtemp(prefix="eval-wt-", dir="/tmp")
+    wt_path = Path(wt_path_str)
+    # Remove the empty dir so git worktree add can create it
+    wt_path.rmdir()
+    try:
+        subprocess.run(
+            ["git", "worktree", "add", wt_path_str, "HEAD"],
+            cwd=str(project_root),
+            capture_output=True,
+            check=True,
+        )
+        return _run_single_behavioral_task(
+            task=task,
+            project_root=project_root,
+            worktree_path=wt_path,
+            env=env,
+            timeout=timeout,
+            verbose=verbose,
+            runs_per_task=runs_per_task,
+            trigger_threshold=trigger_threshold,
+        )
+    finally:
+        try:
+            subprocess.run(
+                ["git", "worktree", "remove", "--force", wt_path_str],
+                cwd=str(project_root),
+                capture_output=True,
+            )
+        except Exception:
+            pass
+        shutil.rmtree(wt_path_str, ignore_errors=True)
+
+
 def _run_behavioral_eval(
     target_path: Path,
     description: str,
@@ -734,12 +925,16 @@ def _run_behavioral_eval(
     verbose: bool = False,
     runs_per_task: int = 1,
     trigger_threshold: float = 0.5,
+    parallel_workers: int = 0,
 ) -> list[dict]:
     """Run behavioral assessment by invoking claude -p and checking artifact output.
 
     Each task must have 'query', 'should_trigger', 'artifact_glob', and optionally
-    'query_prefix' fields. Tasks are run sequentially since each claude -p invocation
-    is resource-intensive.
+    'query_prefix' fields.
+
+    When parallel_workers > 1, tasks are dispatched concurrently via ThreadPoolExecutor.
+    Each concurrent task runs in an isolated git worktree created from HEAD so that
+    file-system mutations do not interfere across tasks.
 
     When runs_per_task > 1, each task query is run that many times. The final
     triggered value is True iff (sum(results) / runs_per_task) >= trigger_threshold.
@@ -755,106 +950,56 @@ def _run_behavioral_eval(
 
     env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
 
-    results = []
-    for task in tasks:
-        query: str = task["query"]
-        should_trigger: bool = task["should_trigger"]
-        artifact_glob: str = task.get("artifact_glob", "adr/*.md")
-        query_prefix: str = task.get("query_prefix", "/do ")
-
-        full_query = f"{query_prefix}{query}"
-
-        run_results: list[bool] = []
-        all_new_artifacts: list[str] = []
-
-        for run_index in range(runs_per_task):
-            if verbose and runs_per_task > 1:
-                print(f"[behavioral] Run {run_index + 1}/{runs_per_task}: {full_query!r}", file=sys.stderr)
-            elif verbose:
-                print(f"[behavioral] Running: claude -p {full_query!r}", file=sys.stderr)
-
-            # Snapshot existing artifacts before the run (primary glob + extra dirs)
-            before: set[str] = set(glob.glob(str(project_root / artifact_glob)))
-            before_extra: set[str] = _snapshot_extra_dirs(project_root)
-
-            run_triggered = False
-            run_new_artifacts: list[str] = []
-
-            try:
-                result = subprocess.run(
-                    ["claude", "-p", full_query],
-                    capture_output=True,
-                    text=True,
-                    cwd=str(project_root),
-                    env=env,
-                    timeout=timeout,
-                )
-                if result.returncode != 0:
-                    print(
-                        f"[behavioral] claude exited {result.returncode}: {result.stderr[:300]}",
-                        file=sys.stderr,
-                    )
-
-                # Check for new files matching the artifact glob
-                after: set[str] = set(glob.glob(str(project_root / artifact_glob)))
-                run_new_artifacts = sorted(after - before)
-                run_triggered = len(run_new_artifacts) > 0
-
-                if verbose and run_new_artifacts:
-                    print(f"[behavioral] New artifacts: {run_new_artifacts}", file=sys.stderr)
-
-            except subprocess.TimeoutExpired:
-                if verbose:
-                    print(f"[behavioral] Timed out after {timeout}s for query: {full_query!r}", file=sys.stderr)
-                # Still check artifacts — the process may have written them before timing out
-                after_timeout: set[str] = set(glob.glob(str(project_root / artifact_glob)))
-                run_new_artifacts = sorted(after_timeout - before)
-                run_triggered = len(run_new_artifacts) > 0
-                if verbose and run_triggered:
-                    print(f"[behavioral] Artifacts found despite timeout: {run_new_artifacts}", file=sys.stderr)
-
-            # Clean up primary-glob artifacts
-            for artifact_path in run_new_artifacts:
-                try:
-                    Path(artifact_path).unlink(missing_ok=True)
-                except OSError:
-                    pass
-
-            # Clean up extra-dir artifacts (agents/, skills/, pipelines/, scripts/)
-            after_extra: set[str] = _snapshot_extra_dirs(project_root)
-            new_extra = sorted(after_extra - before_extra)
-            for path in new_extra:
-                try:
-                    Path(path).unlink(missing_ok=True)
-                except OSError:
-                    pass
-            if verbose and new_extra:
-                print(
-                    f"[behavioral] Cleaned up {len(new_extra)} extra artifacts: {new_extra}",
-                    file=sys.stderr,
-                )
-
-            run_results.append(run_triggered)
-            all_new_artifacts.extend(run_new_artifacts)
-
-        # Aggregate across runs
-        if runs_per_task > 1:
-            triggered = (sum(run_results) / len(run_results)) >= trigger_threshold
-        else:
-            triggered = run_results[0] if run_results else False
-
-        passed = triggered == should_trigger
-        results.append(
-            {
-                "query": query,
-                "triggered": triggered,
-                "should_trigger": should_trigger,
-                "pass": passed,
-                "new_artifacts": all_new_artifacts,
+    if parallel_workers > 1:
+        # Parallel path: each task runs in its own temporary git worktree.
+        results: list[dict] = [{}] * len(tasks)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_workers) as executor:
+            future_to_index = {
+                executor.submit(
+                    _run_single_behavioral_task_in_worktree,
+                    task,
+                    project_root,
+                    env,
+                    timeout,
+                    verbose,
+                    runs_per_task,
+                    trigger_threshold,
+                ): idx
+                for idx, task in enumerate(tasks)
             }
-        )
+            for future in concurrent.futures.as_completed(future_to_index):
+                idx = future_to_index[future]
+                try:
+                    results[idx] = future.result()
+                except Exception as exc:
+                    task = tasks[idx]
+                    query = task.get("query", "unknown")
+                    print(f"[behavioral] Task {query!r} raised exception: {exc}", file=sys.stderr)
+                    results[idx] = {
+                        "query": query,
+                        "triggered": False,
+                        "should_trigger": task.get("should_trigger", False),
+                        "pass": False,
+                        "new_artifacts": [],
+                    }
+        return results
 
-    return results
+    # Sequential path (parallel_workers <= 1): run tasks one at a time in project_root.
+    sequential_results = []
+    for task in tasks:
+        sequential_results.append(
+            _run_single_behavioral_task(
+                task=task,
+                project_root=project_root,
+                worktree_path=project_root,
+                env=env,
+                timeout=timeout,
+                verbose=verbose,
+                runs_per_task=runs_per_task,
+                trigger_threshold=trigger_threshold,
+            )
+        )
+    return sequential_results
 
 
 # ---------------------------------------------------------------------------
@@ -870,6 +1015,9 @@ def assess_target(
     dry_run: bool = False,
     behavioral_runs_per_task: int = 1,
     behavioral_trigger_threshold: float = 0.5,
+    parallel_eval_workers: int = 0,
+    candidate_content: str | None = None,
+    eval_mode: str = "auto",
 ) -> dict:
     """Assess a target file against tasks.
 
@@ -878,6 +1026,9 @@ def assess_target(
       Uses existing run_eval infrastructure via claude -p.
     - Dry-run: returns synthetic scores for testing loop mechanics.
     - Benchmark (NYI): tasks have 'prompt' + 'name' fields.
+
+    When parallel_eval_workers > 1 and the task set is behavioral, tasks are
+    dispatched in parallel via ThreadPoolExecutor, each in its own git worktree.
 
     Returns scores dict with hard gate booleans and quality dimensions.
     """
@@ -894,7 +1045,7 @@ def assess_target(
         "task_results": [],
     }
 
-    content = target_path.read_text()
+    content = candidate_content if candidate_content is not None else target_path.read_text()
     valid, description = _parse_frontmatter(content)
     if not valid or not description:
         scores["parses"] = False
@@ -932,7 +1083,15 @@ def assess_target(
     is_trigger = not is_behavioral and all(_is_trigger_task(task) for task in tasks)
 
     if is_trigger:
-        results = _run_trigger_rate(target_path, description, tasks, verbose=verbose)
+        task_expectations = {task.get("query", ""): task.get("should_trigger") for task in tasks}
+        results = _run_trigger_rate(
+            target_path,
+            description,
+            tasks,
+            candidate_content=content,
+            eval_mode=eval_mode,
+            verbose=verbose,
+        )
         summary = results.get("summary", {})
         total = summary.get("total", 0)
         passed = summary.get("passed", 0)
@@ -951,6 +1110,9 @@ def assess_target(
             scores["task_results"].append(
                 {
                     "name": r.get("query", "unnamed")[:40],
+                    "query": r.get("query", ""),
+                    "should_trigger": r.get("should_trigger", task_expectations.get(r.get("query", ""), None)),
+                    "trigger_rate": r.get("trigger_rate", 0.0),
                     "passed": r.get("pass", False),
                     "score": 1.0 if r.get("pass", False) else 0.0,
                     "details": f"trigger_rate={r.get('trigger_rate', 0):.2f}",
@@ -959,6 +1121,7 @@ def assess_target(
         return scores
 
     if is_behavioral:
+        task_expectations = {task.get("query", ""): task.get("should_trigger") for task in tasks}
         behavioral_results = _run_behavioral_eval(
             target_path,
             description,
@@ -966,6 +1129,7 @@ def assess_target(
             verbose=verbose,
             runs_per_task=behavioral_runs_per_task,
             trigger_threshold=behavioral_trigger_threshold,
+            parallel_workers=parallel_eval_workers,
         )
         total = len(behavioral_results)
         passed = sum(1 for r in behavioral_results if r.get("pass", False))
@@ -985,6 +1149,8 @@ def assess_target(
             scores["task_results"].append(
                 {
                     "name": r.get("query", "unnamed")[:40],
+                    "query": r.get("query", ""),
+                    "should_trigger": r.get("should_trigger", task_expectations.get(r.get("query", ""), None)),
                     "passed": r.get("pass", False),
                     "score": 1.0 if r.get("pass", False) else 0.0,
                     "details": f"triggered={r.get('triggered')}, artifacts={artifact_summary}",
@@ -1030,13 +1196,13 @@ def run_optimization_loop(
     target_path: Path,
     goal: str,
     benchmark_tasks_path: Path,
-    max_iterations: int = 20,
+    max_iterations: int = 1,
     min_gain: float = 0.02,
     train_split: float = 0.6,
-    revert_streak_limit: int = 5,
+    revert_streak_limit: int = 1,
     beam_width: int = 1,
     candidates_per_parent: int = 1,
-    holdout_check_cadence: int = 5,
+    holdout_check_cadence: int = 0,
     model: str | None = None,
     verbose: bool = False,
     report_path: Path | None = None,
@@ -1044,6 +1210,8 @@ def run_optimization_loop(
     dry_run: bool = False,
     behavioral_runs_per_task: int = 1,
     behavioral_trigger_threshold: float = 0.5,
+    parallel_eval: int = 0,
+    eval_mode: str = "auto",
 ) -> dict:
     """Run the autoresearch optimization loop."""
     if beam_width < 1:
@@ -1063,8 +1231,21 @@ def run_optimization_loop(
     _validate_task_set(all_tasks)
     train_tasks, test_tasks = split_tasks(all_tasks, train_split)
 
+    # Warn and fall back to sequential when --parallel-eval is used with non-behavioral tasks.
+    is_all_behavioral = all(_is_behavioral_task(t) for t in all_tasks)
+    effective_parallel_eval = parallel_eval
+    if parallel_eval > 1 and not is_all_behavioral:
+        print(
+            "[parallel-eval] Warning: --parallel-eval requires eval_mode=behavioral tasks. "
+            "Falling back to sequential evaluation.",
+            file=sys.stderr,
+        )
+        effective_parallel_eval = 0
+
     if verbose:
         print(f"Tasks: {len(train_tasks)} train, {len(test_tasks)} test", file=sys.stderr)
+        if effective_parallel_eval > 1:
+            print(f"Parallel behavioral eval: {effective_parallel_eval} workers", file=sys.stderr)
 
     original_content = target_path.read_text()
     target_valid, target_description = _parse_frontmatter(original_content)
@@ -1086,6 +1267,9 @@ def run_optimization_loop(
         dry_run,
         behavioral_runs_per_task,
         behavioral_trigger_threshold,
+        effective_parallel_eval,
+        candidate_content=original_content,
+        eval_mode=eval_mode,
     )
     baseline_composite = composite_score(baseline_scores)
     best_score = baseline_composite
@@ -1101,6 +1285,9 @@ def run_optimization_loop(
             dry_run,
             behavioral_runs_per_task,
             behavioral_trigger_threshold,
+            effective_parallel_eval,
+            candidate_content=original_content,
+            eval_mode=eval_mode,
         )
         if test_tasks
         else None
@@ -1128,7 +1315,7 @@ def run_optimization_loop(
     status = "RUNNING"
     total_tokens = 0
     iteration_counter = 0
-    # Maps iteration number → variant content for KEEP verdicts (used for best-by-test selection)
+    # Maps iteration number → variant content for ACCEPT verdicts (used for best-by-test selection)
     keep_contents: dict[int, str] = {}
 
     for round_number in range(1, max_iterations + 1):
@@ -1190,7 +1377,7 @@ def run_optimization_loop(
                         print(f"Variant generation failed: {e}", file=sys.stderr)
                     iteration_data = {
                         "number": iteration_counter,
-                        "verdict": "REVERT",
+                        "verdict": "REJECT",
                         "score": {"train": parent["score"], "test": None},
                         "delta": "0",
                         "change_summary": str(e),
@@ -1205,7 +1392,7 @@ def run_optimization_loop(
                         iteration_counter,
                         parent["content"],
                         {},
-                        "REVERT",
+                        "REJECT",
                         "",
                         "",
                         str(e),
@@ -1223,7 +1410,7 @@ def run_optimization_loop(
                         print("REJECTED: Protected sections modified", file=sys.stderr)
                     iteration_data = {
                         "number": iteration_counter,
-                        "verdict": "REVERT",
+                        "verdict": "REJECT",
                         "score": {"train": 0.0, "test": None},
                         "delta": "0",
                         "change_summary": "Protected sections modified",
@@ -1238,7 +1425,7 @@ def run_optimization_loop(
                         iteration_counter,
                         variant_content,
                         {"protected_intact": False},
-                        "REVERT",
+                        "REJECT",
                         "Protected sections modified",
                         diff_text,
                         change_summary,
@@ -1253,7 +1440,7 @@ def run_optimization_loop(
                         print(f"REJECTED: Deleted sections without justification: {deletions}", file=sys.stderr)
                     iteration_data = {
                         "number": iteration_counter,
-                        "verdict": "REVERT",
+                        "verdict": "REJECT",
                         "score": {"train": parent["score"], "test": None},
                         "delta": "0",
                         "change_summary": "Deleted sections without justification",
@@ -1270,7 +1457,7 @@ def run_optimization_loop(
                         iteration_counter,
                         variant_content,
                         {"protected_intact": True},
-                        "REVERT",
+                        "REJECT",
                         "Deleted sections without justification",
                         diff_text,
                         change_summary,
@@ -1281,25 +1468,21 @@ def run_optimization_loop(
                     iteration_by_number[iteration_counter] = iteration_data
                     continue
 
-                temp_target = (
-                    target_path.parent / f".{target_path.stem}_variant_{iteration_counter}{target_path.suffix}"
+                t0 = time.time()
+                variant_scores = assess_target(
+                    target_path,
+                    train_tasks,
+                    goal,
+                    verbose,
+                    dry_run,
+                    behavioral_runs_per_task,
+                    behavioral_trigger_threshold,
+                    effective_parallel_eval,
+                    candidate_content=variant_content,
+                    eval_mode=eval_mode,
                 )
-                try:
-                    temp_target.write_text(variant_content)
-                    t0 = time.time()
-                    variant_scores = assess_target(
-                        temp_target,
-                        train_tasks,
-                        goal,
-                        verbose,
-                        dry_run,
-                        behavioral_runs_per_task,
-                        behavioral_trigger_threshold,
-                    )
-                    eval_elapsed = time.time() - t0
-                    variant_composite = composite_score(variant_scores)
-                finally:
-                    temp_target.unlink(missing_ok=True)
+                eval_elapsed = time.time() - t0
+                variant_composite = composite_score(variant_scores)
 
                 gain = variant_composite - parent["score"]
                 if verbose:
@@ -1310,7 +1493,7 @@ def run_optimization_loop(
                         file=sys.stderr,
                     )
 
-                verdict = "KEEP" if gain > min_gain else "REVERT"
+                verdict = "ACCEPT" if gain > min_gain else "REJECT"
                 if deletions and deletion_justification:
                     change_summary = f"{change_summary} [deletion justified]"
                 delta_str = f"{gain:+.2f}" if gain != 0 else "0"
@@ -1351,13 +1534,13 @@ def run_optimization_loop(
                 iterations.append(iteration_data)
                 iteration_by_number[iteration_counter] = iteration_data
 
-                if verdict == "KEEP":
+                if verdict == "ACCEPT":
                     if variant_composite > best_score:
                         best_score = variant_composite
                         best_content = variant_content
                         best_iteration = iteration_counter
 
-                    # Track content for each KEEP so best-by-test can look it up later
+                    # Track content for each ACCEPT so best-by-test can look it up later
                     keep_contents[iteration_counter] = variant_content
 
                     kept_nodes.append(
@@ -1391,23 +1574,21 @@ def run_optimization_loop(
             rounds_without_keep += 1
 
         if test_tasks and holdout_check_cadence > 0 and round_number % holdout_check_cadence == 0:
-            temp_target = target_path.parent / f".{target_path.stem}_holdout_check{target_path.suffix}"
-            try:
-                temp_target.write_text(best_content)
-                holdout_scores = assess_target(
-                    temp_target,
-                    test_tasks,
-                    goal,
-                    verbose,
-                    dry_run,
-                    behavioral_runs_per_task,
-                    behavioral_trigger_threshold,
-                )
-                holdout_composite = composite_score(holdout_scores)
-                if iterations:
-                    iterations[-1]["score"]["test"] = holdout_composite
-            finally:
-                temp_target.unlink(missing_ok=True)
+            holdout_scores = assess_target(
+                target_path,
+                test_tasks,
+                goal,
+                verbose,
+                dry_run,
+                behavioral_runs_per_task,
+                behavioral_trigger_threshold,
+                effective_parallel_eval,
+                candidate_content=best_content,
+                eval_mode=eval_mode,
+            )
+            holdout_composite = composite_score(holdout_scores)
+            if iterations:
+                iterations[-1]["score"]["test"] = holdout_composite
 
             if holdout_diverges(best_score, holdout_composite, baseline_holdout, baseline_composite):
                 if verbose:
@@ -1420,7 +1601,7 @@ def run_optimization_loop(
                 break
 
         if rounds_without_keep >= revert_streak_limit:
-            exit_reason = f"converged ({revert_streak_limit} rounds without KEEP by round {round_number})"
+            exit_reason = f"converged ({revert_streak_limit} rounds without ACCEPT by round {round_number})"
             status = "CONVERGED"
             break
 
@@ -1471,7 +1652,7 @@ def run_optimization_loop(
         }
         report_path.write_text(generate_optimization_report(rd, auto_refresh=False))
 
-    # Best-by-test selection: if test tasks exist, prefer the KEEP iteration with the
+    # Best-by-test selection: if test tasks exist, prefer the ACCEPT iteration with the
     # highest held-out test score rather than the highest training score (anti-Goodhart).
     best_test_score: float | None = None
     if test_tasks and keep_contents:
@@ -1479,7 +1660,7 @@ def run_optimization_loop(
         scored_keeps = [
             (it["number"], it["score"]["test"])
             for it in iterations
-            if it["verdict"] == "KEEP" and it["score"].get("test") is not None and it["number"] in keep_contents
+            if it["verdict"] == "ACCEPT" and it["score"].get("test") is not None and it["number"] in keep_contents
         ]
         if scored_keeps:
             best_test_iter, best_test_score = max(scored_keeps, key=lambda x: x[1])
@@ -1494,25 +1675,23 @@ def run_optimization_loop(
                 best_content = keep_contents[best_test_iter]
                 best_iteration = best_test_iter
         else:
-            # No holdout-checked KEEP iterations — run a final test eval on best_content
+            # No holdout-checked ACCEPT iterations — run a final test eval on best_content
             if best_iteration > 0:
-                temp_target = target_path.parent / f".{target_path.stem}_final_test{target_path.suffix}"
-                try:
-                    temp_target.write_text(best_content)
-                    final_test_scores = assess_target(
-                        temp_target,
-                        test_tasks,
-                        goal,
-                        verbose,
-                        dry_run,
-                        behavioral_runs_per_task,
-                        behavioral_trigger_threshold,
-                    )
-                    best_test_score = composite_score(final_test_scores)
-                    if verbose:
-                        print(f"Final test eval on best_content: test={best_test_score:.4f}", file=sys.stderr)
-                finally:
-                    temp_target.unlink(missing_ok=True)
+                final_test_scores = assess_target(
+                    target_path,
+                    test_tasks,
+                    goal,
+                    verbose,
+                    dry_run,
+                    behavioral_runs_per_task,
+                    behavioral_trigger_threshold,
+                    effective_parallel_eval,
+                    candidate_content=best_content,
+                    eval_mode=eval_mode,
+                )
+                best_test_score = composite_score(final_test_scores)
+                if verbose:
+                    print(f"Final test eval on best_content: test={best_test_score:.4f}", file=sys.stderr)
 
     if best_iteration > 0:
         best_path = output_dir / "best_variant.md"
@@ -1533,7 +1712,7 @@ def run_optimization_loop(
         "best_iteration": best_iteration,
         "iterations_run": len(iterations),
         "max_iterations": max_iterations,
-        "improvements_found": sum(1 for it in iterations if it["verdict"] == "KEEP"),
+        "improvements_found": sum(1 for it in iterations if it["verdict"] == "ACCEPT"),
         "total_tokens": total_tokens,
         "search_strategy": "beam" if beam_width > 1 or candidates_per_parent > 1 else "hill_climb",
         "beam_width": beam_width,
@@ -1560,18 +1739,18 @@ def main():
     parser.add_argument(
         "--max-iterations",
         type=int,
-        default=20,
-        help="Max optimization rounds (default: 20); each round evaluates up to beam_width x candidates_per_parent candidates",
+        default=1,
+        help="Max optimization rounds (default: 1, short mode); each round evaluates up to beam_width x candidates_per_parent candidates",
     )
     parser.add_argument("--min-gain", type=float, default=0.02, help="Min score gain to keep (default: 0.02)")
     parser.add_argument("--train-split", type=float, default=0.6, help="Train fraction (default: 0.6)")
     parser.add_argument(
         "--revert-streak-limit",
         type=int,
-        default=5,
-        help="Stop after this many rounds without any KEEP candidates (default: 5)",
+        default=1,
+        help="Stop after this many rounds without any ACCEPT candidates (default: 1, short mode)",
     )
-    parser.add_argument("--beam-width", type=int, default=1, help="Number of kept candidates to retain per round")
+    parser.add_argument("--beam-width", type=int, default=1, help="Number of accepted candidates to retain per round")
     parser.add_argument(
         "--candidates-per-parent",
         type=int,
@@ -1581,8 +1760,8 @@ def main():
     parser.add_argument(
         "--holdout-check-cadence",
         type=int,
-        default=5,
-        help="Check held-out tasks every N rounds (default: 5; 0 disables)",
+        default=0,
+        help="Check held-out tasks every N rounds (default: 0, disabled in short mode)",
     )
     parser.add_argument("--model", default=None, help="Optional Claude Code model override for variant generation")
     parser.add_argument("--verbose", action="store_true", help="Print progress to stderr")
@@ -1602,6 +1781,18 @@ def main():
         type=float,
         default=0.5,
         help="Fraction of runs that must trigger to count as triggered (default: 0.5)",
+    )
+    parser.add_argument(
+        "--parallel-eval",
+        type=int,
+        default=0,
+        help="Run behavioral eval tasks in parallel with isolated git worktrees (default: 0, disabled)",
+    )
+    parser.add_argument(
+        "--eval-mode",
+        choices=["auto", "registered", "alias"],
+        default="auto",
+        help="Trigger evaluator mode (default: auto; prefers registered-skill worktree eval when possible)",
     )
     args = parser.parse_args()
 
@@ -1634,6 +1825,8 @@ def main():
             dry_run=args.dry_run,
             behavioral_runs_per_task=args.behavioral_runs_per_task,
             behavioral_trigger_threshold=args.behavioral_trigger_threshold,
+            parallel_eval=args.parallel_eval,
+            eval_mode=args.eval_mode,
         )
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)
