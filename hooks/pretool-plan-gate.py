@@ -35,7 +35,6 @@ _BYPASS_ENV = "PLAN_GATE_BYPASS"
 _GATED_PREFIXES = (
     "/agents/",
     "/skills/",
-    
 )
 
 

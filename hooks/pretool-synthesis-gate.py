@@ -46,7 +46,6 @@ _BYPASS_ENV = "SYNTHESIS_GATE_BYPASS"
 _GATED_PREFIXES = (
     "/agents/",
     "/skills/",
-    
 )
 
 # Source code extensions that are implementation code.
