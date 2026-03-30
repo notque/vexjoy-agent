@@ -1,11 +1,6 @@
 ---
 name: feature-design
-description: |
-  Collaborative design phase for feature lifecycle: explore requirements,
-  discuss trade-offs, produce design document. Use when starting a new feature
-  that needs design before implementation. Use for "design feature", "let's
-  think through", "explore approaches", or "/feature-design". Do NOT use for
-  simple bug fixes or tasks that don't need design discussion.
+description: "Collaborative design phase for feature lifecycle."
 version: 2.0.0
 user-invocable: false
 argument-hint: "<feature description>"

@@ -1,12 +1,6 @@
 ---
 name: comment-quality
-description: |
-  Review and fix comments containing temporal references, development-activity
-  language, or relative comparisons. Use when reviewing code comments, preparing
-  documentation for release, or auditing inline comments for timelessness. Use
-  for "check comments", "temporal language", "comment review", or "fix docs".
-  Route to other skills for writing new documentation, API reference generation, or
-  code style linting unrelated to comment content.
+description: "Review and fix temporal references in code comments."
 version: 2.0.0
 user-invocable: false
 allowed-tools:
