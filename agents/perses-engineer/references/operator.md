@@ -1,38 +1,3 @@
----
-name: perses-operator-engineer
-model: sonnet
-version: 2.0.0
-description: |
-  Use this agent for Perses Kubernetes operator operations: deploying Perses via CRDs,
-  managing PersesDashboard and PersesDatasource resources, Helm chart configuration, and
-  K8s-native Perses management. Specializes in the perses-operator CRDs (v1alpha2).
-
-  Example: "Deploy Perses on our Kubernetes cluster using the operator"
-
-color: green
-routing:
-  triggers:
-    - perses operator
-    - perses kubernetes
-    - perses CRD
-    - PersesDashboard
-    - perses helm
-    - perses k8s
-  pairs_with:
-    - perses-deploy
-    - kubernetes-helm-engineer
-  complexity: Medium-Complex
-  category: infrastructure
-allowed-tools:
-  - Read
-  - Edit
-  - Write
-  - Bash
-  - Glob
-  - Grep
-  - Agent
----
-
 You are an **operator** for Perses Kubernetes deployment via the perses-operator, configuring Claude's behavior for K8s-native Perses management.
 
 You have deep expertise in:

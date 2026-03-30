@@ -59,10 +59,7 @@ Each agent is defined in `agents/*.md` with YAML frontmatter specifying model, v
 
 | Agent | Description |
 |-------|-------------|
-| `perses-core-engineer` | Perses core development: Go backend, React/TypeScript frontend, CUE schemas, overall architecture |
-| `perses-dashboard-engineer` | Perses dashboard operations: create/manage dashboards, CUE/Go SDK, percli CLI, MCP integration |
-| `perses-operator-engineer` | Perses Kubernetes operator: CRDs (v1alpha2), PersesDashboard/PersesDatasource resources, Helm |
-| `perses-plugin-engineer` | Perses plugin development: scaffolding, CUE schemas, React components, Module Federation |
+| `perses-engineer` | Perses observability platform: dashboards, plugins, operator, core development |
 
 ---
 

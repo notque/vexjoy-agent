@@ -408,7 +408,7 @@
         "perses-dashboard-create",
         "perses-plugin-pipeline"
       ],
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-plugin-pipeline": {
       "file": "pipelines/perses-plugin-pipeline/SKILL.md",
@@ -434,7 +434,7 @@
         "perses-plugin-create",
         "perses-dac-pipeline"
       ],
-      "agent": "perses-plugin-engineer"
+      "agent": "perses-engineer"
     },
     "pipeline-retro": {
       "file": "pipelines/pipeline-retro/SKILL.md",

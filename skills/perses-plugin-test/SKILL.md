@@ -13,7 +13,7 @@ allowed-tools:
   - Bash
   - Edit
   - Write
-agent: perses-plugin-engineer
+agent: perses-engineer
 version: 2.0.0
 routing:
   triggers:

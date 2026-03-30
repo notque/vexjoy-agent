@@ -200,7 +200,7 @@
     },
     {
       "request": "create a new Perses dashboard for API latency",
-      "expected_agent": "perses-dashboard-engineer",
+      "expected_agent": "perses-engineer",
       "expected_skill": "perses-dashboard-create",
       "category": "perses-domain",
       "notes": "Perses dashboard creation — agent + skill pairing"
