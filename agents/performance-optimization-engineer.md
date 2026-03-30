@@ -2,10 +2,7 @@
 name: performance-optimization-engineer
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent when you need expert assistance with web performance optimization, Core Web Vitals, and advanced performance monitoring for modern web applications. This includes implementing performance monitoring, optimizing loading times, reducing bundle sizes, improving runtime performance, and implementing advanced caching strategies. The agent specializes in Next.js performance optimization, bundle analysis, Core Web Vitals optimization, and comprehensive performance testing.
-
-  Example: "My website has poor LCP and CLS scores - how can I optimize Core Web Vitals?"
+description: "Web performance optimization: Core Web Vitals, rendering, bundle analysis, monitoring."
 color: yellow
 routing:
   triggers:

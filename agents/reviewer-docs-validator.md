@@ -2,10 +2,7 @@
 name: reviewer-docs-validator
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent for validating project documentation, configuration completeness, dependency health, CI/CD setup, and project metadata. This includes analyzing README.md, CLAUDE.md, dependency files, build systems, CI workflows, and project hygiene. Ensures the project is world-class, not just the code. Supports `--fix` mode to create missing files and update stale documentation.
-
-  Example: "Run a full project health check on this repository"
+description: "Documentation review: README, config completeness, dependency health, CI/CD setup validation."
 color: yellow
 routing:
   triggers:

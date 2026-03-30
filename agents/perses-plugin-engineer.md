@@ -2,14 +2,7 @@
 name: perses-plugin-engineer
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent for Perses plugin development: scaffolding plugins with percli plugin generate,
-  CUE schema authoring, React component implementation, Module Federation integration, and the
-  build/test/deploy workflow. Knows both Go backend patterns and React/TypeScript frontend patterns
-  for Perses plugin architecture.
-
-  Example: "I need a custom heatmap panel plugin for Perses"
-
+description: "Perses plugin development: scaffolding, CUE schemas, React components, Module Federation."
 color: orange
 routing:
   triggers:

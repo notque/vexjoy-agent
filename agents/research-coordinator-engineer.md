@@ -2,15 +2,7 @@
 name: research-coordinator-engineer
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent when conducting complex research requiring systematic investigation,
-  multi-source analysis, and comprehensive synthesis. This includes breaking down
-  research queries, delegating to specialized subagents, coordinating parallel research
-  streams, and synthesizing findings into high-quality reports. The agent specializes
-  in query classification, Task tool orchestration, and lead agent synthesis.
-
-  Example: "Research AI infrastructure - compute availability, semiconductor supply chains, energy requirements for 2025-2030"
-
+description: "Research coordination: systematic investigation, multi-source analysis, synthesis."
 color: purple
 background: true
 routing:

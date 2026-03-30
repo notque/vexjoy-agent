@@ -2,14 +2,7 @@
 name: nextjs-ecommerce-engineer
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent when building Next.js e-commerce applications with shopping cart, payment
-  processing, product catalogs, and order management. The agent specializes in Next.js 14
-  App Router, Stripe integration, Prisma ORM, server components, and secure checkout flows
-  for art-selling and creative business websites.
-
-  Example: "Add a shopping cart where users can buy my artwork with credit card payments"
-
+description: "Next.js e-commerce: shopping cart, payments, product catalogs, order management."
 color: green
 routing:
   triggers:

@@ -2,14 +2,7 @@
 name: ui-design-engineer
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent when designing and implementing UI/UX for modern web applications with
-  design systems, responsive layouts, accessibility compliance, and animations. The agent
-  specializes in Tailwind CSS, Headless UI, ARIA patterns, WCAG 2.1 AA compliance, and
-  modern design principles. For new projects, invokes distinctive-frontend-design skill.
-
-  Example: "I want to build a design system with consistent colors, typography, and component styles"
-
+description: "UI/UX design: design systems, responsive layouts, accessibility, animations."
 color: orange
 routing:
   triggers:

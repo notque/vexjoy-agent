@@ -2,11 +2,7 @@
 name: reviewer-language-specialist
 model: sonnet
 version: 2.1.0
-description: |
-  Use this agent for language-specific code review that adapts criteria based on the programming language. This includes checking modern stdlib usage, language-specific idioms, concurrency correctness, resource management, anti-patterns, and LLM code tells. Expert-level knowledge of Go, Python, and TypeScript. Supports `--fix` mode.
-
-  Example: "Check this Go service for outdated stdlib usage and non-idiomatic patterns"
-
+description: "Language-specific code review: modern stdlib, idioms, concurrency, type system patterns."
 color: purple
 routing:
   triggers:
