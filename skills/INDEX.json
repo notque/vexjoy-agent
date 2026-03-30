@@ -255,7 +255,6 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "voice-calibrator",
         "voice-writer"
       ]
     },
@@ -298,9 +297,8 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "explore-pipeline",
-        "codebase-analyzer",
-        "research-to-article"
+        "workflow",
+        "codebase-analyzer"
       ]
     },
     "decision-helper": {
@@ -450,7 +448,7 @@
       "pairs_with": [
         "workflow-orchestrator",
         "subagent-driven-development",
-        "pr-pipeline",
+        "pr-workflow",
         "git-commit-flow",
         "verification-before-completion",
         "universal-quality-gate",
@@ -548,7 +546,7 @@
       "user_invocable": true,
       "version": "1.0.0",
       "pairs_with": [
-        "comprehensive-review"
+        "workflow"
       ],
       "model": "opus"
     },
@@ -784,7 +782,7 @@
       "version": "1.0.0",
       "pairs_with": [
         "feature-lifecycle",
-        "comprehensive-review"
+        "workflow"
       ]
     },
     "joy-check": {
@@ -1102,7 +1100,7 @@
       "version": "1.0.0",
       "pairs_with": [
         "workflow-orchestrator",
-        "research-to-article",
+        "workflow",
         "gemini-image-generator"
       ]
     },
@@ -1266,7 +1264,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "explore-pipeline"
+        "workflow"
       ],
       "agent": "research-coordinator-engineer",
       "model": "opus"

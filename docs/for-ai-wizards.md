@@ -46,7 +46,7 @@ Some skills MUST be invoked when their triggers appear. These aren't suggestions
 
 - Go test, `_test.go`, table-driven, goroutine, channel, `sync.Mutex`, error handling, `fmt.Errorf`, sapcc, make check -> `go-patterns`
 
-Force-routes override the evaluator's recommendation. If someone says "add a goroutine pool" and the evaluator would have suggested `workflow-orchestrator`, the force-route to `go-patterns` wins.
+Force-routes override the evaluator's recommendation. If someone says "add a goroutine pool" and the evaluator would have suggested `workflow`, the force-route to `go-patterns` wins.
 
 ## Agent Architecture
 
@@ -90,7 +90,7 @@ This isn't decorative. The pattern gives Claude a clear decision framework. Hard
 
 ### Reviewer Agents
 
-Reviewer agents -- `reviewer-contrarian`, `reviewer-security`, `reviewer-dead-code`, `reviewer-newcomer`, etc. -- get dispatched in parallel by the `parallel-code-review` and `roast` skills. Each has a narrow focus and a read-only mandate. They never modify code.
+Reviewer agents -- `reviewer-code`, `reviewer-system`, `reviewer-domain`, `reviewer-perspectives` -- get dispatched by the `parallel-code-review` and `roast` skills. Each umbrella agent loads the relevant reference file for its review dimension. They never modify code.
 
 ## Skill System
 
@@ -98,11 +98,10 @@ A skill is `skills/{name}/SKILL.md` -- a workflow methodology, not a domain expe
 
 ```yaml
 ---
-name: research-to-article
+name: workflow
 version: 2.0.0
 user-invocable: false
 context: fork
-command: /research-article
 allowed-tools:
   - Read
   - Write
@@ -270,7 +269,7 @@ PHASE 6: REFINE    -> Fix validation errors (max 3 iterations)
 PHASE 7: OUTPUT    -> Final content with validation report
 ```
 
-`research-to-article` uses all seven. It launches 5 parallel research agents in GATHER (primary domain, narrative arcs, external context, community reaction, business context), compiles findings with story arc emphasis in COMPILE, selects voice mode in GROUND, generates via voice-writer in GENERATE, validates with `voice_validator.py` in VALIDATE, iterates in REFINE, and outputs with a validation report.
+The `research-to-article` workflow reference (now in `skills/workflow/references/`) uses all seven phases. It launches 5 parallel research agents in GATHER (primary domain, narrative arcs, external context, community reaction, business context), compiles findings with story arc emphasis in COMPILE, selects voice mode in GROUND, generates via voice-writer in GENERATE, validates with `voice_validator.py` in VALIDATE, iterates in REFINE, and outputs with a validation report.
 
 `parallel-code-review` uses a compressed version: IDENTIFY SCOPE -> DISPATCH (3 reviewers in parallel) -> AGGREGATE -> VERDICT. The fan-out/fan-in pattern -- dispatch independent subagents, collect results, merge by severity.
 

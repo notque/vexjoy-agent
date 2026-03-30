@@ -10,16 +10,16 @@ Use `model: sonnet` for all Wave 3 agents. The orchestrator runs on Opus; dispat
 
 | # | Agent | Role | Challenge Focus |
 |---|-------|------|----------------|
-| 21 | `reviewer-contrarian` | Challenges findings | Are these findings actually important? Which are false positives? Which are over-severity? |
-| 22 | `reviewer-skeptical-senior` | Experience-based skepticism | "I've seen this before" — which findings are theoretical vs real-world issues? |
-| 23 | `reviewer-user-advocate` | User impact assessment | Does this change break users? Are UX tradeoffs justified? Are migration paths safe? |
-| 24 | `reviewer-meta-process` | Process/approach review | Is this the right approach? Should the PR be split? Is the review itself focused correctly? |
+| 21 | `reviewer-perspectives` (contrarian lens) | Challenges findings | Are these findings actually important? Which are false positives? Which are over-severity? |
+| 22 | `reviewer-code` (skeptical-senior lens) | Experience-based skepticism | "I've seen this before" — which findings are theoretical vs real-world issues? |
+| 23 | `reviewer-perspectives` (user-advocate lens) | User impact assessment | Does this change break users? Are UX tradeoffs justified? Are migration paths safe? |
+| 24 | `reviewer-perspectives` (meta-process lens) | Process/approach review | Is this the right approach? Should the PR be split? Is the review itself focused correctly? |
 
 ## Conditional: SAPCC Structural Review
 
 | # | Agent | Condition | Challenge Focus |
 |---|-------|-----------|----------------|
-| 25 | `reviewer-sapcc-structural` | Repo contains ANY of: `hybris/`, `core-customize/`, `config/localextensions.xml`, or `manifest.json` with `"commerceSuiteVersion"` | SAP Commerce Cloud structural integrity — extension wiring, build manifest, data model impacts |
+| 25 | `reviewer-domain` (sapcc-structural lens) | Repo contains ANY of: `hybris/`, `core-customize/`, `config/localextensions.xml`, or `manifest.json` with `"commerceSuiteVersion"` | SAP Commerce Cloud structural integrity — extension wiring, build manifest, data model impacts |
 
 SAPCC detection:
 ```bash
@@ -32,7 +32,7 @@ if [ -f "manifest.json" ] && grep -q '"commerceSuiteVersion"' manifest.json 2>/d
 fi
 ```
 
-If `SAPCC_DETECTED=false`, skip `reviewer-sapcc-structural` silently (no warning, no log).
+If `SAPCC_DETECTED=false`, skip `reviewer-domain` (sapcc-structural lens) silently (no warning, no log).
 
 ## Standard Agent Prompt Template
 
@@ -80,11 +80,11 @@ OUTPUT FORMAT:
 
 | Agent | Extra Instructions |
 |-------|-------------------|
-| `reviewer-contrarian` | Challenge every HIGH and CRITICAL finding. Are they actually important? Which are false positives? Which are over-classified? Look for findings where Wave 1+2 agents reinforced each other's bias rather than independently verifying. Question whether suggested fixes introduce new problems. |
-| `reviewer-skeptical-senior` | Apply 10+ years of engineering experience. Which findings are theoretical risks that never manifest in practice? Which are textbook answers that don't apply to this codebase's scale/context? Flag "resume-driven" suggestions (over-engineering, premature optimization). Identify findings where the cure is worse than the disease. |
-| `reviewer-user-advocate` | Focus exclusively on user impact. Does this change break existing users? Are migration paths safe? Are UX tradeoffs justified? Challenge findings that improve code quality at the expense of user experience. Flag findings that ignore backward compatibility. Question whether "fixing" something makes it harder for users. |
-| `reviewer-meta-process` | Step back from individual findings. Is the overall approach correct? Should this PR be split into smaller PRs? Are the right problems being solved? Is the review itself focused on the right things? Flag cases where the review is bikeshedding on style while missing structural issues. Question whether the fix phase will create more churn than the findings are worth. |
-| `reviewer-sapcc-structural` | **(SAPCC repos only)** Challenge findings through SAP Commerce Cloud structural lens. Do findings account for hybris extension lifecycle? Are suggested fixes compatible with the SAP build system? Do architecture recommendations respect CCv2 manifest constraints? Flag findings that would break extension wiring or data model migrations. |
+| `reviewer-perspectives` (contrarian) | Challenge every HIGH and CRITICAL finding. Are they actually important? Which are false positives? Which are over-classified? Look for findings where Wave 1+2 agents reinforced each other's bias rather than independently verifying. Question whether suggested fixes introduce new problems. |
+| `reviewer-code` (skeptical-senior) | Apply 10+ years of engineering experience. Which findings are theoretical risks that never manifest in practice? Which are textbook answers that don't apply to this codebase's scale/context? Flag "resume-driven" suggestions (over-engineering, premature optimization). Identify findings where the cure is worse than the disease. |
+| `reviewer-perspectives` (user-advocate) | Focus exclusively on user impact. Does this change break existing users? Are migration paths safe? Are UX tradeoffs justified? Challenge findings that improve code quality at the expense of user experience. Flag findings that ignore backward compatibility. Question whether "fixing" something makes it harder for users. |
+| `reviewer-perspectives` (meta-process) | Step back from individual findings. Is the overall approach correct? Should this PR be split into smaller PRs? Are the right problems being solved? Is the review itself focused on the right things? Flag cases where the review is bikeshedding on style while missing structural issues. Question whether the fix phase will create more churn than the findings are worth. |
+| `reviewer-domain` (sapcc-structural) | **(SAPCC repos only)** Challenge findings through SAP Commerce Cloud structural lens. Do findings account for hybris extension lifecycle? Are suggested fixes compatible with the SAP build system? Do architecture recommendations respect CCv2 manifest constraints? Flag findings that would break extension wiring or data model migrations. |
 
 ## Wave Agreement Labels
 

@@ -170,13 +170,12 @@ The `/do` router's only job is to classify requests and dispatch them to agents.
 
 **Division of responsibility:**
 - **Main thread (/do)**: Classify request → select agent+skill → dispatch → evaluate result → route again if needed → report to user
-- **Agents**: Execute tasks using their domain expertise, skills, MCP tools, and pipelines
-- **Skills**: Provide methodology (debugging phases, review waves, TDD cycles) that agents follow
-- **Pipelines**: Multi-phase workflows that agents run through
+- **Agents**: Execute tasks using their domain expertise, skills, and MCP tools
+- **Skills**: Provide methodology (debugging phases, review waves, TDD cycles, multi-phase workflows) that agents follow
 
 **Why this matters:**
-- When the main thread does work directly, it bypasses the agent's domain knowledge, the skill's methodology, and the pipeline's phase gates
-- Every task that isn't routed to an agent is a missed opportunity: the agent can't improve, the skill can't be validated, the pipeline can't be refined
+- When the main thread does work directly, it bypasses the agent's domain knowledge and the skill's methodology
+- Every task that isn't routed to an agent is a missed opportunity: the agent can't improve, the skill can't be validated, the workflow can't be refined
 - The main thread has no domain expertise — it only knows how to route. Agents have the expertise.
 
 **The test:**

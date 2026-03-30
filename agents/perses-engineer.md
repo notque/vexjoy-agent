@@ -36,15 +36,7 @@ routing:
     - plugin schema
   pairs_with:
     - perses-onboard
-    - perses-deploy
-    - perses-lint
-    - perses-code-review
-    - perses-dashboard-create
-    - perses-grafana-migrate
-    - perses-dac-pipeline
-    - perses-plugin-create
-    - perses-cue-schema
-    - perses-plugin-test
+    - perses
     - golang-general-engineer
     - typescript-frontend-engineer
     - kubernetes-helm-engineer

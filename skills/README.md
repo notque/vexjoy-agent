@@ -76,13 +76,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `pr-sync` | yes | Detect state, branch, commit, push, and create PR in one command |
-| `pr-fix` | yes | Validate-then-fix workflow for PR review comments |
-| `pr-review-address-feedback` | yes | Fetch and validate all GitHub PR feedback before acting |
-| `pr-status` | yes | Quick status check: local changes, CI results, reviews, and merge readiness |
-| `pr-cleanup` | yes | Local branch cleanup after PR merge |
-| `pr-miner` | no | Mine patterns and insights from PR review history |
-| `pr-mining-coordinator` | no | Coordinate parallel PR mining across multiple repositories |
+| `pr-workflow` | yes | Pull request lifecycle: sync, review, fix, status, cleanup, and PR mining. Loads the appropriate reference based on task (push, create PR, fix review comments, check status, etc.). |
 | `git-commit-flow` | no | Phase-gated git commit workflow with validation and CLAUDE.md compliance |
 | `branch-naming` | no | Generate and validate Git branch names from descriptions or commit messages |
 | `github-actions-check` | no | Check GitHub Actions workflow status after push and report CI results |
@@ -94,13 +88,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `go-patterns` | no | Go testing patterns: table-driven tests, subtests, mocks, benchmarks, race detection |
-| `go-patterns` | no | Go concurrency patterns: goroutines, channels, worker pools, rate limiting, race conditions |
-| `go-patterns` | no | Go error handling: wrapping, sentinel errors, custom types, errors.Is/As chains |
-| `go-patterns` | no | Go-specific 6-phase code review methodology |
-| `go-patterns` | no | Detect and remediate Go anti-patterns: premature abstraction, goroutine overkill, interface pollution |
-| `go-patterns` | no | Run `make check` with intelligent error categorization and actionable fix suggestions |
-| `go-patterns` | no | SAP Converged Cloud Go coding conventions from sapcc/keppel and go-bits PR reviews |
+| `go-patterns` | no | Go development patterns: testing, concurrency, errors, review, anti-patterns, quality gates, and SAP CC conventions. Loads the appropriate reference based on task context. |
 | `sapcc-audit` | yes | Full-repo SAP CC Go compliance audit with parallel agents dispatched by package group |
 | `sapcc-review` | yes | Gold-standard SAP CC Go review dispatching 10 domain-specialist agents in parallel |
 | `codebase-analyzer` | no | Statistical rule discovery through Go codebase measurement, producing a Style Vector |
@@ -135,20 +123,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `perses-onboard` | yes | First-time Perses setup: discover/deploy server, configure MCP, create project, add datasources |
-| `perses-dashboard-create` | no | Guided Perses dashboard creation with CUE/JSON generation, lint, and deploy |
-| `perses-dashboard-review` | no | Review existing Perses dashboards for quality with optional `--fix` mode |
-| `perses-deploy` | no | Deploy Perses server via Docker Compose, Helm, or binary |
-| `perses-lint` | no | Validate Perses resources with `percli lint` (local or `--online`) |
-| `perses-code-review` | no | Perses-aware code review for Go backend, React components, and CUE schemas |
-| `perses-grafana-migrate` | no | Grafana-to-Perses dashboard migration with bulk parallel processing |
-| `perses-plugin-create` | no | Perses plugin scaffolding: select type, generate, implement CUE schema and React component |
-| `perses-plugin-test` | no | Perses plugin testing: CUE schema unit tests, React components, integration testing |
-| `perses-query-builder` | no | Build PromQL, LogQL, and TraceQL queries for Perses panels with variable templating |
-| `perses-variable-manage` | no | Perses variable lifecycle: create Text/List variables at global/project/dashboard scope |
-| `perses-datasource-manage` | no | Perses datasource lifecycle: create/update/delete for Prometheus, Loki, Tempo, etc. |
-| `perses-cue-schema` | no | CUE schema authoring for Perses plugins with validation constraints and migration support |
-| `perses-project-manage` | no | Perses project lifecycle: create, list, switch, and configure projects with RBAC |
+| `perses` | no | Perses platform operations: dashboards, plugins, deployment, migration, and quality. Loads the appropriate reference based on task (onboarding, dashboard creation, plugin development, etc.). |
 
 ---
 

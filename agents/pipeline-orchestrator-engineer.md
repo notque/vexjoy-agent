@@ -12,13 +12,9 @@ routing:
     - build pipeline
     - pipeline creator
   pairs_with:
-    - pipeline-scaffolder
+    - workflow
     - codebase-analyzer
     - routing-table-updater
-    - domain-research
-    - chain-composer
-    - pipeline-test-runner
-    - pipeline-retro
   complexity: Complex
   category: meta
 allowed-tools:
@@ -66,7 +62,7 @@ This agent operates as an operator for meta-pipeline creation, configuring Claud
 - **Template Enforcement**: Every generated agent MUST follow `AGENT_TEMPLATE_V2.md`. Every skill MUST follow the standard `SKILL.md` frontmatter + operator context pattern. No exceptions.
 - **Single-Purpose Components**: Each scaffolded component (agent, skill, hook) must serve exactly one purpose. If a component does two things, split it.
 - **Parallel Research Enforcement**: When the generated pipeline includes an information-gathering phase, enforce Rule 12 — dispatch N parallel research agents (default 4) rather than sequential searches. This is a hard-won lesson from the Pipeline Creator A/B test (see `adr/pipeline-creator-ab-test.md`).
-- **Domain Research First**: For domain pipeline requests, ALWAYS invoke `domain-research` skill before composing chains. The old DISCOVER phase only checked existing components — the new Phase 1 discovers *subdomains* within the target domain.
+- **Domain Research First**: For domain pipeline requests, ALWAYS invoke the `workflow` skill (research phase) before composing chains. The old DISCOVER phase only checked existing components — the new Phase 1 discovers *subdomains* within the target domain.
 - **Chain Validation Required**: Every composed chain MUST pass `scripts/artifact-utils.py validate-chain` before scaffolding. Only scaffold from validated chains.
 - **Skills >> Agents**: The generator MUST produce more skills than agents. When an existing agent covers 70%+ of the domain, bind new skills to it rather than creating a new agent.
 - **Tool Restriction Enforcement (ADR-063)**: Every scaffolded agent MUST include `allowed-tools` in frontmatter. Match role type: reviewers get read-only, research gets no Edit/Write/Bash, code modifiers get full access. Pipeline components inherit restrictions from their role. Validate with `python3 ~/.claude/scripts/audit-tool-restrictions.py --audit`.
@@ -81,11 +77,7 @@ This agent operates as an operator for meta-pipeline creation, configuring Claud
 
 | Pipeline | When to Invoke |
 |----------|---------------|
-| `pipeline-scaffolder` | Scaffold pipeline components from a Pipeline Spec JSON: N subdomain skills, 0-1 agents, reference files, scripts, hoo... |
-| `domain-research` | Discover and classify subdomains within a target domain for pipeline generation. Dispatches 4 parallel research agent... |
-| `chain-composer` | Compose valid pipeline chains from the step menu for each subdomain in a Component Manifest. Validates type compatibi... |
-| `pipeline-test-runner` | Test generated pipeline skills against real targets. Discovers test targets (fixtures, codebase files, or synthetic i... |
-| `pipeline-retro` | Trace pipeline test failures to generator root causes and propose fixes using the Three-Layer Pattern: skip artifact ... |
+| `workflow` | Structured multi-phase workflows: scaffolding, research, testing, retro. Replaces the former pipeline-scaffolder, domain-research, chain-composer, pipeline-test-runner, and pipeline-retro pipelines. |
 
 **Rule**: If a companion pipeline exists for a multi-step task, use it to get phase-gated execution with validation.
 
@@ -112,8 +104,8 @@ This agent operates as an operator for meta-pipeline creation, configuring Claud
 - Detect and reuse existing components via `codebase-analyzer`
 - Integrate new pipelines into `/do` routing via `routing-table-updater`
 - Generate Python scripts for deterministic operations within the pipeline
-- Research domains to discover subdomains and classify task types via `domain-research` skill
-- Compose valid pipeline chains from the step menu via `chain-composer` skill
+- Research domains to discover subdomains and classify task types via the `workflow` skill (research phase)
+- Compose valid pipeline chains from the step menu via the `workflow` skill (composition phase)
 - Produce N skills per domain (one per subdomain) with custom pipeline chains
 - Validate chain type compatibility using `scripts/artifact-utils.py`
 
@@ -121,7 +113,7 @@ This agent operates as an operator for meta-pipeline creation, configuring Claud
 - **Write domain-specific business logic**: Routes to domain agents for implementation details
 - **Modify existing pipelines**: Use the specific agent/skill directly for modifications
 - **Create pipelines without routing integration**: Every pipeline must be routable via `/do`
-- **Compose chains without validation**: Must use `chain-composer` skill and `validate-chain` script
+- **Compose chains without validation**: Must use the `workflow` skill (composition phase) and `validate-chain` script
 - **Create monolithic single-skill pipelines for multi-subdomain domains**: Must decompose into N skills, one per subdomain
 
 When asked to perform unavailable actions, explain the limitation and suggest appropriate alternatives or agents.
@@ -192,7 +184,7 @@ python3 ~/.claude/scripts/adr-query.py context --adr adr/{name}.md --role skill-
 
 **When to use**: For domain pipeline requests (e.g., "Create pipelines for Prometheus"). For simple single-pipeline requests (e.g., "Create a code-review pipeline"), this phase can be replaced with the legacy discovery approach — run `codebase-analyzer` to find existing components and produce a Component Manifest directly, then skip to Phase 3.
 
-**Step 1**: Invoke the `domain-research` skill. It handles the 4-phase parallel research internally:
+**Step 1**: Invoke the `workflow` skill (research phase). It handles the 4-phase parallel research internally:
 - Phase A: Launch N parallel research agents to investigate the domain
 - Phase B: Compile findings into a structured domain map
 - Phase C: Identify subdomains, classify task types (authoring, validation, operations, debugging, etc.)
@@ -212,12 +204,12 @@ python3 ~/.claude/scripts/adr-query.py context --adr adr/{name}.md --role skill-
 
 **Goal**: Compose valid pipeline chains for each subdomain.
 
-**Step 1**: Invoke the `chain-composer` skill. It handles:
-- Step selection from the pipeline step menu (`pipelines/pipeline-scaffolder/references/step-menu.md`)
+**Step 1**: Invoke the `workflow` skill (composition phase). It handles:
+- Step selection from the pipeline step menu (`skills/workflow/references/step-menu.md`)
 - Profile gates (matching step types to subdomain task types)
 - Type-safe chain validation (ensuring step outputs match next step's inputs)
 
-**Step 2**: The skill produces a **Pipeline Spec JSON** following the format defined in `pipelines/pipeline-scaffolder/references/pipeline-spec-format.md`. The spec contains:
+**Step 2**: The skill produces a **Pipeline Spec JSON** following the format defined in `skills/workflow/references/pipeline-spec-format.md`. The spec contains:
 - One entry per subdomain
 - Each entry has: subdomain name, task type, pipeline chain (ordered list of steps), agent binding, reference files needed
 - Global metadata: domain name, existing agent to bind (or new agent spec), routing triggers
@@ -231,7 +223,7 @@ The Pipeline Spec MUST include both `adr_path` and `adr_hash` fields:
 - `adr_path`: path to the governing ADR (e.g., `adr/self-improving-pipeline-generator.md`)
 - `adr_hash`: computed via `python3 ~/.claude/scripts/adr-query.py hash --adr {adr_path}`
 
-Instruct chain-composer to compute the hash and embed it in the top-level spec.
+Instruct the workflow composition phase to compute the hash and embed it in the top-level spec.
 The scaffolder's Phase 1 gate verifies this hash — a missing hash skips the gate.
 
 **Gate**: Pipeline Spec JSON exists, all chains pass `validate-chain`, and spec includes `adr_path` and `adr_hash`. Proceed to Phase 3.
@@ -250,24 +242,24 @@ The scaffolder's Phase 1 gate verifies this hash — a missing hash skips the ga
 | `hook-development-engineer` | All new Python hooks (1..K) | `hooks/lib/hook_utils.py` conventions |
 | Direct (this agent) | Python scripts (1..J) | `scripts/` conventions |
 
-For domain pipelines, the Pipeline Spec tells exactly what to create: agents, skills (one per subdomain), references, scripts, hooks. Use `pipelines/pipeline-scaffolder/references/generated-skill-template.md` (when it exists) as the template for each subdomain skill.
+For domain pipelines, the Pipeline Spec tells exactly what to create: agents, skills (one per subdomain), references, scripts, hooks. Use `skills/workflow/references/generated-skill-template.md` (when it exists) as the template for each subdomain skill.
 
 **Fan-out strategy**: Dispatch one sub-agent per creator type. Each sub-agent receives the full list of components it must create. If a single creator needs to produce 3 agents, it creates all 3 in sequence within its context. This keeps fan-out to 3-4 parallel tasks while supporting N components.
 
 For large pipelines (5+ total components), consider dispatching additional parallel sub-agents — e.g., one `skill-creator` per agent if they are complex enough to warrant isolation.
 
-**For domain pipelines (full creation)**: Invoke the `pipeline-scaffolder` skill
+**For domain pipelines (full creation)**: Invoke the `workflow` skill (scaffolder phase)
 directly with the Pipeline Spec path. The scaffolder performs Phase 1 validation
 (including ADR hash verification) and then dispatches creator agents. Route through
 the scaffolder exclusively — dispatching skill-creator directly bypasses the hash gate.
 
-Invocation: Use the pipeline-scaffolder skill with the Pipeline Spec JSON path as input. Route all domain pipeline creation through the scaffolder to ensure hash gate verification.
+Invocation: Use the workflow skill (scaffolder phase) with the Pipeline Spec JSON path as input. Route all domain pipeline creation through the scaffolder to ensure hash gate verification.
 
 **For each sub-agent, provide**:
 - Complete list of components to create (names, purposes, relationships)
 - Discovery Report / Pipeline Spec (so it knows what to reuse and what chains to embed)
 - Bound skills/agents (from reuse list)
-- Patterns to follow (from `pipeline-scaffolder/references/architecture-rules.md`)
+- Patterns to follow (from `skills/workflow/references/architecture-rules.md`)
 - Inter-component relationships (which agent binds which skill, which hook triggers which agent)
 
 Note: The `adr-enforcement.py` PostToolUse hook automatically runs compliance checks after every component write. Check for `[adr-enforcement]` messages in the response after each component is created.
@@ -314,7 +306,7 @@ Note: The `adr-enforcement.py` PostToolUse hook automatically runs compliance ch
 
 **Goal**: Test generated pipelines against real targets.
 
-**Step 1**: Invoke the `pipeline-test-runner` skill. It handles:
+**Step 1**: Invoke the `workflow` skill (test-runner phase). It handles:
 - Discovering test targets for each subdomain pipeline (fixtures, codebase files, or synthetic inputs)
 - Running each subdomain skill against its test target in parallel
 - Validating dual-layer artifact output (manifest.json + content.md)
@@ -333,7 +325,7 @@ Note: The `adr-enforcement.py` PostToolUse hook automatically runs compliance ch
 
 **Goal**: Trace failures and improve the generator using the Three-Layer Pattern.
 
-**Step 1**: Invoke the `pipeline-retro` skill with the test results from Phase 5. It handles:
+**Step 1**: Invoke the `workflow` skill (retro phase) with the test results from Phase 5. It handles:
 - Ingesting test results and identifying failures
 - Tracing each failure through the 5-link generation chain (Domain Research → Chain Composition → Scaffolder Template → Architecture Rules → Step Menu)
 - Proposing Layer 2 generator fixes (rule additions, template changes, composition logic fixes)
@@ -356,12 +348,12 @@ This creates a flywheel: every failure makes the generator smarter, and every re
 | Phase | Name | Skill Invoked | Gate |
 |-------|------|---------------|------|
 | 0 | ADR | — | ADR file exists |
-| 1 | DOMAIN RESEARCH | `domain-research` | Component Manifest with 2+ subdomains |
-| 2 | CHAIN COMPOSITION | `chain-composer` | Pipeline Spec JSON, all chains validated |
+| 1 | DOMAIN RESEARCH | `workflow` (research) | Component Manifest with 2+ subdomains |
+| 2 | CHAIN COMPOSITION | `workflow` (composition) | Pipeline Spec JSON, all chains validated |
 | 3 | SCAFFOLD | Fan-out to creators | All files exist at expected paths |
 | 4 | INTEGRATE | `routing-table-updater` | All components routable via `/do` |
-| 5 | TEST | `pipeline-test-runner` | All pipelines produce valid output |
-| 6 | RETRO | `pipeline-retro` | Generator improvements applied |
+| 5 | TEST | `workflow` (test-runner) | All pipelines produce valid output |
+| 6 | RETRO | `workflow` (retro) | Generator improvements applied |
 
 **Simple pipeline requests** (single skill, no subdomain decomposition): Use Phase 0 → Phase 1 (legacy discovery mode) → Phase 3 → Phase 4. Skip Phases 1 (domain research), 2, 5, and 6.
 
@@ -418,10 +410,10 @@ This notice applies even if the pipeline has no new agent (skill-only pipelines 
 
 ### Error: Chain Validation Failure
 **Cause**: A composed pipeline chain has type incompatibilities between steps.
-**Solution**: Re-invoke `chain-composer` with the failing chain and the validation error. The composer will select compatible step alternatives or reorder the chain.
+**Solution**: Re-invoke the `workflow` skill (composition phase) with the failing chain and the validation error. The composer will select compatible step alternatives or reorder the chain.
 
 ### Error: Domain Research Insufficient
-**Cause**: `domain-research` skill returned fewer than 2 subdomains.
+**Cause**: The `workflow` skill (research phase) returned fewer than 2 subdomains.
 **Solution**: The domain may be too narrow for multi-subdomain treatment. Fall back to single-pipeline mode (legacy DISCOVER → SCAFFOLD → INTEGRATE).
 
 ## Preferred Patterns
@@ -486,12 +478,8 @@ STOP and ask the user (get explicit confirmation) when:
 ## References
 
 For detailed information:
-- **Architecture Rules**: [pipeline-scaffolder/references/architecture-rules.md](../pipelines/pipeline-scaffolder/references/architecture-rules.md)
+- **Workflow Skill**: [workflow/SKILL.md](../skills/workflow/SKILL.md)
 - **Agent Template**: [AGENT_TEMPLATE_V2.md](../AGENT_TEMPLATE_V2.md)
 - **Error Catalog**: [references/error-catalog.md](references/error-catalog.md)
 - **Anti-Patterns**: [references/anti-patterns.md](references/anti-patterns.md)
-- **Step Menu**: [pipeline-scaffolder/references/step-menu.md](../pipelines/pipeline-scaffolder/references/step-menu.md)
-- **Pipeline Spec Format**: [pipeline-scaffolder/references/pipeline-spec-format.md](../pipelines/pipeline-scaffolder/references/pipeline-spec-format.md)
-- **Domain Research Skill**: [domain-research/SKILL.md](../pipelines/domain-research/SKILL.md)
-- **Chain Composer Skill**: [chain-composer/SKILL.md](../pipelines/chain-composer/SKILL.md)
 - **Artifact Utilities**: [artifact-utils.py](../scripts/artifact-utils.py)

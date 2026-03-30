@@ -119,58 +119,15 @@ Each agent is defined in `agents/*.md` with YAML frontmatter specifying model, v
 
 ---
 
-## Reviewers — Code Quality (Umbrella)
+## Reviewers
 
-Single umbrella agent covering 10 code review dimensions via reference files.
-
-| Agent | Description |
-|-------|-------------|
-| `reviewer-code` | Code quality review: conventions, naming, dead code, performance, types, tests, comments, config safety |
-
-Dimensions (loaded on demand): code-quality, simplifier, language-specialist, naming, dead-code, comments, performance, type-design, test-analyzer, config-safety.
-
----
-
-## Reviewers — Wave 1 (Foundation)
-
-These agents run in parallel during the first review wave, each covering a distinct concern.
+Four umbrella agents covering all review dimensions via reference files loaded on demand. Each umbrella replaces multiple individual reviewer agents from the previous architecture.
 
 | Agent | Description |
 |-------|-------------|
-| `reviewer-security` | OWASP Top 10, authentication, input validation, secrets detection — read-only |
-| `reviewer-business-logic` | Domain correctness, edge cases, state machine verification, data validation — read-only |
-| `reviewer-silent-failures` | Swallowed errors, inadequate error handling, dangerous fallbacks — zero tolerance |
-| `reviewer-docs-validator` | README, CLAUDE.md, dependency health, CI setup, project metadata — supports `--fix` |
-| `reviewer-observability` | Missing metrics, logging quality, trace propagation, health checks, alerting gaps |
-| `reviewer-adr-compliance` | Verifies every ADR decision point has implementation; no scope creep |
-| `reviewer-sapcc-structural` | SAP CC structural review: type exports, unnecessary wrappers, go-bits usage, test structure |
+| `reviewer-code` | Code quality: conventions, naming, dead code, performance, types, tests, comments, config safety (10 dimensions) |
+| `reviewer-system` | System review: security, concurrency, errors, observability, APIs, migrations, dependencies, docs |
+| `reviewer-domain` | Domain-specific: ADR compliance, business logic, SAP CC structural, pragmatic builder |
+| `reviewer-perspectives` | Multi-perspective: newcomer, senior, pedant, contrarian, user advocate, meta-process |
 
----
-
-## Reviewers — Wave 2 (Deep Dive)
-
-These agents receive Wave 1 findings as context for targeted follow-on analysis.
-
-| Agent | Description |
-|-------|-------------|
-| `reviewer-concurrency` | Race conditions, goroutine leaks, deadlocks, mutex misuse, channel lifecycle |
-| `reviewer-api-contract` | Breaking API changes, backward compatibility, schema validation, HTTP status code misuse |
-| `reviewer-dependency-audit` | CVEs, problematic licenses, deprecated packages, supply chain risks; runs govulncheck/npm audit |
-| `reviewer-error-messages` | Error message quality: actionable, sufficient context, consistent formatting, localization-ready |
-| `reviewer-migration-safety` | Reversible migrations, API deprecation paths, feature flag lifecycle, rollback strategies |
-
----
-
-## Reviewers — Persona
-
-These reviewers provide a specific human perspective rather than a technical domain.
-
-| Agent | Description |
-|-------|-------------|
-| `reviewer-skeptical-senior` | Experienced engineer: production readiness, edge cases, failure modes, long-term maintenance |
-| `reviewer-newcomer` | Fresh eyes: documentation gaps, confusing code, accessibility for developers new to the codebase |
-| `reviewer-pedant` | Technical accuracy, terminology correctness, adherence to specifications |
-| `reviewer-pragmatic-builder` | Production-focused: operational blind spots, runtime failure modes, deployment feasibility |
-| `reviewer-contrarian` | Professional skepticism: challenges assumptions, explores alternatives, audits for lock-in |
-| `reviewer-user-advocate` | User perspective: complexity vs. user value, confusion risks, proportional benefit |
-| `reviewer-meta-process` | System design analysis: single points of failure, authority concentration, reversibility |
+Each umbrella agent loads the appropriate reference file based on the review focus. For example, `reviewer-system` loads its security reference when the task involves OWASP or authentication, and its concurrency reference when the task involves race conditions or goroutine leaks.

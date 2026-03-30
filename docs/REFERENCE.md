@@ -56,10 +56,10 @@ Just say these phrases. The right skill activates automatically.
 | "investigate" | systematic-debugging |
 | "verify" | verification-before-completion |
 | "make sure it works" | verification-before-completion |
-| "orchestrate" | workflow-orchestrator |
-| "plan this out" | workflow-orchestrator |
-| "research then write" | research-to-article |
-| "explore codebase" | explore-pipeline |
+| "orchestrate" | workflow |
+| "plan this out" | workflow |
+| "research then write" | research-pipeline |
+| "explore codebase" | codebase-overview |
 
 ### Use `/do` Instead (Triggers Unreliable)
 | Intent | Use |
@@ -107,12 +107,15 @@ Request deep expertise: *"Use the [name] agent"*
 | `testing-automation-engineer` | Vitest, Playwright, E2E |
 | `performance-optimization-engineer` | Core Web Vitals, bundles |
 | `database-engineer` | PostgreSQL, Prisma, migrations |
-| `reviewer-security` | Security review, vulnerability analysis |
-| `reviewer-business-logic` | Domain correctness review |
+| `reviewer-code` | Code quality: conventions, naming, dead code, performance, types, tests |
+| `reviewer-system` | System review: security, concurrency, errors, observability, APIs |
+| `reviewer-domain` | Domain-specific: ADR compliance, business logic, SAP CC structural |
+| `reviewer-perspectives` | Multi-perspective: newcomer, senior, pedant, contrarian, user advocate |
 
 ### Specialized
 | Agent | Domain |
 |-------|--------|
+| `perses-engineer` | Perses observability platform: dashboards, plugins, operator, core |
 | `technical-documentation-engineer` | Docs, API references |
 | `technical-journalist-writer` | Technical journalism |
 | `skill-creator` | Create new skills |
@@ -127,14 +130,16 @@ Request deep expertise: *"Use the [name] agent"*
 |-------|--------|
 | Custom voice writers | Create with `/create-voice` for your own voice profiles |
 
-### Roasters (5 HN Personas)
-| Agent | Perspective |
-|-------|-------------|
-| `reviewer-contrarian` | Challenge assumptions |
-| `reviewer-newcomer` | Accessibility critique |
-| `reviewer-pragmatic-builder` | Operational reality |
-| `reviewer-skeptical-senior` | Sustainability |
-| `reviewer-pedant` | Precision/terminology |
+### Reviewer Personas (via `reviewer-perspectives`)
+| Persona | Perspective |
+|---------|-------------|
+| contrarian | Challenge assumptions |
+| newcomer | Accessibility critique |
+| pragmatic-builder | Operational reality |
+| skeptical-senior | Sustainability |
+| pedant | Precision/terminology |
+
+These personas are loaded on demand as reference files within the `reviewer-perspectives` umbrella agent.
 
 ---
 
@@ -145,7 +150,7 @@ Loaded automatically or via `Skill("name")`.
 ### Workflow Automation
 | Skill | Purpose |
 |-------|---------|
-| `workflow-orchestrator` | Brainstorm → Plan → Execute |
+| `workflow` | Structured multi-phase workflows (review, debug, refactor, deploy, create, research) |
 | `test-driven-development` | RED-GREEN-REFACTOR enforcement |
 | `systematic-debugging` | Reproduce → Isolate → Identify → Verify |
 | `systematic-refactoring` | CHARACTERIZE → PLAN → EXECUTE → VALIDATE |
@@ -153,14 +158,11 @@ Loaded automatically or via `Skill("name")`.
 | `planning-with-files` | Manus-style persistent markdown planning |
 | `plan-manager` | Plan lifecycle management |
 
-### Pipelines
+### Workflows (formerly Pipelines)
 | Skill | Purpose |
 |-------|---------|
-| `research-to-article` | 7-phase content generation with parallel research |
-| `explore-pipeline` | Systematic codebase exploration |
-| `pr-pipeline` | End-to-end PR creation |
-| `doc-pipeline` | Documentation generation |
-| `article-evaluation-pipeline` | Voice authenticity validation |
+| `workflow` | Structured multi-phase workflows: review, debug, refactor, deploy, create, research, and more. References in `skills/workflow/references/` contain the old pipeline definitions (research-to-article, explore-pipeline, pr-pipeline, doc-pipeline, etc.). |
+| `research-pipeline` | Formal 5-phase research pipeline with artifact saving and source quality gates |
 
 ### Code Quality
 | Skill | Purpose |
@@ -176,7 +178,7 @@ Loaded automatically or via `Skill("name")`.
 | Skill | Purpose |
 |-------|---------|
 | `voice-writer` | Unified voice content generation with validation |
-| `voice-calibrator` | Create voice profiles from samples |
+| `create-voice` | Create voice profiles from samples |
 | `anti-ai-editor` | Remove AI-sounding patterns |
 
 ### Knowledge Extraction
@@ -184,8 +186,7 @@ Loaded automatically or via `Skill("name")`.
 |-------|---------|
 | `codebase-analyzer` | Extract patterns statistically |
 | `codebase-overview` | Rapid context building |
-| `pr-miner` | Extract PR review comments |
-| `pr-mining-coordinator` | Coordinate mining jobs |
+| `pr-workflow` | PR mining is part of the pr-workflow skill (via references) |
 
 ### Domain-Specific
 | Skill | Purpose |
@@ -241,9 +242,10 @@ What do you need?
 ## File Locations
 
 ```
-agents/            ← Specialized agents
-skills/            ← Skills + shared-patterns/ directories
-  └─ shared-patterns/  ← Reusable patterns (pipeline-architecture, etc.)
+agents/            ← Specialized agents (one .md per agent, optional references/)
+skills/            ← Skills (one directory per skill, each with SKILL.md and optional references/)
+  └─ workflow/     ← Structured multi-phase workflows (formerly pipelines/)
+      └─ references/  ← Old pipeline definitions loaded on demand
 hooks/             ← Python hooks and utility scripts
   └─ lib/          ← Shared libraries
 scripts/           ← Deterministic Python scripts

@@ -48,12 +48,11 @@ AGENT_ROUTING = {
     # Coordination
     "research-coordinator-engineer": "Complex research, multi-source analysis",
     "project-coordinator-engineer": "Multi-agent orchestration, TodoWrite",
-    # Roasters (critique personas)
-    "reviewer-contrarian": "Challenge assumptions, explore alternatives",
-    "reviewer-newcomer": "Fresh perspective on docs, onboarding",
-    "reviewer-pragmatic-builder": "Production concerns, operational reality",
-    "reviewer-skeptical-senior": "Long-term sustainability, maintenance burden",
-    "reviewer-pedant": "Terminology precision, factual accuracy",
+    # Consolidated reviewers
+    "reviewer-code": "Code quality, style, sustainability, precision",
+    "reviewer-domain": "Business logic, ADR compliance, production readiness",
+    "reviewer-perspectives": "Contrarian analysis, user advocacy, process review",
+    "reviewer-system": "Security, concurrency, silent failures, config safety",
 }
 
 # Complete skill routing guide
@@ -152,6 +151,7 @@ def get_evaluation_prompt(complexity: str) -> str:
 - Testing: testing-automation-engineer
 - Meta: skill-creator, hook-development-engineer
 - Research: research-coordinator-engineer, project-coordinator-engineer
+- Review: reviewer-code, reviewer-domain, reviewer-perspectives, reviewer-system
 - Critique: roast skill (5 personas: contrarian, newcomer, builder, senior, pedant)"""
 
     skill_sections = """

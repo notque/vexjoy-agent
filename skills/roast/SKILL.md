@@ -111,19 +111,19 @@ Launch 5 general-purpose agents in parallel via Task tool. Load the full persona
 
 **The 5 parallel tasks:**
 
-1. **Skeptical Senior** (`agents/reviewer-skeptical-senior.md`)
+1. **Skeptical Senior** (`agents/reviewer-code.md`, senior lens)
    Focus: Sustainability, maintenance burden, long-term viability
 
-2. **Well-Actually Pedant** (`agents/reviewer-pedant.md`)
+2. **Well-Actually Pedant** (`agents/reviewer-code.md`, pedant lens)
    Focus: Precision, intellectual honesty, terminological accuracy
 
-3. **Enthusiastic Newcomer** (`agents/reviewer-newcomer.md`)
+3. **Enthusiastic Newcomer** (`agents/reviewer-perspectives.md`, newcomer lens)
    Focus: Onboarding experience, documentation clarity, accessibility
 
-4. **Contrarian Provocateur** (`agents/reviewer-contrarian.md`)
+4. **Contrarian Provocateur** (`agents/reviewer-perspectives.md`, contrarian lens)
    Focus: Fundamental assumptions, alternative approaches
 
-5. **Pragmatic Builder** (`agents/reviewer-pragmatic-builder.md`)
+5. **Pragmatic Builder** (`agents/reviewer-domain.md`, pragmatic-builder lens)
    Focus: Production readiness, operational concerns
 
 **Each agent must:**
@@ -286,11 +286,9 @@ Solution:
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/report-template.md`: Full report output template with tone transformation rules
 - `${CLAUDE_SKILL_DIR}/references/personas.md`: Persona specifications, prompt template, and claim format
-- `agents/reviewer-skeptical-senior.md`: Senior engineer persona
-- `agents/reviewer-pedant.md`: Pedant persona
-- `agents/reviewer-newcomer.md`: Newcomer persona
-- `agents/reviewer-contrarian.md`: Contrarian persona
-- `agents/reviewer-pragmatic-builder.md`: Builder persona
+- `agents/reviewer-code.md`: Code quality reviewer (senior and pedant lenses)
+- `agents/reviewer-perspectives.md`: Perspectives reviewer (newcomer and contrarian lenses)
+- `agents/reviewer-domain.md`: Domain reviewer (pragmatic-builder lens)
 
 ### Dependencies
 - **read-only-ops skill**: Enforces no-modification guardrails during analysis

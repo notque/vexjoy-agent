@@ -69,35 +69,11 @@ ROLE_TOOLS = {
 
 # Explicit agent-to-role mappings
 AGENT_ROLES = {
-    # Reviewers - read-only by default
-    "reviewer-adr-compliance": "reviewer-readonly",
-    "reviewer-api-contract": "reviewer-readonly",
-    "reviewer-business-logic": "reviewer-readonly",
-    "reviewer-comment-analyzer": "reviewer-readonly",
-    "reviewer-concurrency": "reviewer-readonly",
-    "reviewer-config-safety": "reviewer-readonly",
-    "reviewer-contrarian": "reviewer-readonly",
-    "reviewer-dead-code": "reviewer-readonly",
-    "reviewer-dependency-audit": "reviewer-readonly",
-    "reviewer-docs-validator": "reviewer-readonly",
-    "reviewer-error-messages": "reviewer-readonly",
-    "reviewer-language-specialist": "reviewer-readonly",
-    "reviewer-migration-safety": "reviewer-readonly",
-    "reviewer-naming-consistency": "reviewer-readonly",
-    "reviewer-newcomer": "reviewer-readonly",
-    "reviewer-observability": "reviewer-readonly",
-    "reviewer-pedant": "reviewer-readonly",
-    "reviewer-performance": "reviewer-readonly",
-    "reviewer-pragmatic-builder": "reviewer-readonly",
-    "reviewer-sapcc-structural": "reviewer-readonly",
-    "reviewer-security": "reviewer-readonly",
-    "reviewer-silent-failures": "reviewer-readonly",
-    "reviewer-skeptical-senior": "reviewer-readonly",
-    "reviewer-test-analyzer": "reviewer-readonly",
-    "reviewer-type-design": "reviewer-readonly",
-    # Reviewers with --fix mode (can modify code)
-    "reviewer-code-quality": "reviewer-with-fix",
-    "reviewer-code-simplifier": "reviewer-with-fix",
+    # Consolidated reviewers - read-only by default
+    "reviewer-code": "reviewer-readonly",
+    "reviewer-domain": "reviewer-readonly",
+    "reviewer-perspectives": "reviewer-readonly",
+    "reviewer-system": "reviewer-readonly",
     # Research/orchestration - no code modification
     "research-coordinator-engineer": "research",
     "research-subagent-executor": "research",
