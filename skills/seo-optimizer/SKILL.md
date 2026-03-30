@@ -1,11 +1,6 @@
 ---
 name: seo-optimizer
-description: |
-  Analyze and optimize blog post SEO: keywords, titles, meta descriptions,
-  headers, and internal linking. Use when user says "check seo", "optimize
-  for search", "improve search visibility", or when publishing a new post
-  that needs search optimization. Do NOT use for writing new content,
-  major content edits, or site-wide technical SEO (robots.txt, sitemaps).
+description: "Blog post SEO: keywords, titles, meta descriptions, internal linking."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

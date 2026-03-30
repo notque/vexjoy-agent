@@ -1,12 +1,6 @@
 ---
 name: universal-quality-gate
-description: |
-  Multi-language code quality gate with auto-detection and language-specific
-  linters. Use when user asks to "run quality checks", "quality gate",
-  "lint all", "check everything", "pre-commit checks", or "is this code
-  ready to commit". Use for verifying code quality across polyglot repos.
-  Do NOT use for single-language linting (use code-linting) or comprehensive
-  code review (use systematic-code-review).
+description: "Multi-language code quality gate with auto-detection and linters."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

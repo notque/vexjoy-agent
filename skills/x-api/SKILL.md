@@ -1,11 +1,6 @@
 ---
 name: x-api
-description: |
-  Post tweets, build threads, upload media, and read timelines via the X API.
-  Use when user wants to publish content to X/Twitter, post a thread, upload
-  media with a tweet, read a timeline, or search X. Pairs with content-engine
-  (generate content) and crosspost (distribute to multiple platforms).
-  Do NOT use for Instagram, LinkedIn, or other social platforms.
+description: "Post tweets, build threads, upload media via the X API."
 version: 1.0.0
 user-invocable: false
 agent: python-general-engineer
