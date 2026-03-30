@@ -15,7 +15,7 @@ allowed-tools:
   - Edit
   - Write
   - Agent
-agent: perses-plugin-engineer
+agent: perses-engineer
 version: 2.0.0
 routing:
   triggers:

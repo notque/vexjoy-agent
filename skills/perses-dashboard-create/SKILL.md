@@ -19,7 +19,7 @@ allowed-tools:
   - Agent
   - WebFetch
   - WebSearch
-agent: perses-dashboard-engineer
+agent: perses-engineer
 version: 2.0.0
 routing:
   triggers:
