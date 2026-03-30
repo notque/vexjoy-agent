@@ -1,12 +1,6 @@
 ---
 name: batch-editor
-description: |
-  Safe bulk editing across multiple Hugo markdown posts: find/replace, frontmatter
-  updates, content transforms with mandatory preview before apply. Use when user
-  needs batch text replacement, bulk frontmatter field changes, heading/link/whitespace
-  normalization, or regex-based content transforms across posts. Use for "batch edit",
-  "find and replace across files", "add field to all posts", "bulk update tags".
-  Do NOT use for single-file edits, structural refactoring, or content generation.
+description: "Bulk find/replace and frontmatter updates across Hugo posts."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

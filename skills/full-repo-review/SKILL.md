@@ -1,11 +1,6 @@
 ---
 name: full-repo-review
-description: >
-  Run comprehensive 3-wave review against all source files in the repo,
-  producing a prioritized issue backlog. Use for "full repo review",
-  "review entire repo", "codebase health check", "review all files",
-  "full codebase review". Do NOT use for PR-scoped reviews (use
-  comprehensive-review) or single-concern reviews (use individual agents).
+description: "Comprehensive 3-wave review of all repo source files, producing a prioritized issue backlog."
 version: 1.0.0
 user-invocable: true
 command: full-repo-review

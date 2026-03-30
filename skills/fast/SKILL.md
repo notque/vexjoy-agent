@@ -1,12 +1,6 @@
 ---
 name: fast
-description: |
-  Zero-ceremony inline execution for tasks completable in 3 or fewer file
-  edits. No plan, no subagent, no research — just understand, do, commit, log.
-  Use for "quick fix", "typo fix", "one-line change", "trivial fix", "rename
-  this variable", "update this value", "fix this import". Do NOT use for tasks
-  requiring research, planning, new dependencies, or more than 3 file edits —
-  redirect to /quick instead.
+description: "Zero-ceremony inline execution for 3 or fewer file edits."
 effort: low
 version: 1.0.0
 user-invocable: false

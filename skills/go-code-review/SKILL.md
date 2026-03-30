@@ -1,13 +1,6 @@
 ---
 name: go-code-review
-description: |
-  Go-specific code review with 6-phase methodology: Context, Automated Checks,
-  Quality Analysis, Specific Analysis, Line-by-Line, Documentation. Use when
-  reviewing Go code, PRs, or auditing Go codebases for quality and best practices.
-  Use for "review Go", "Go PR", "check Go code", "Go quality", "review .go".
-  Route to other skills for writing new Go code, debugging Go bugs, or refactoring --
-  use golang-general-engineer, systematic-debugging, or systematic-refactoring
-  for those tasks.
+description: "Go-specific 6-phase code review methodology."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

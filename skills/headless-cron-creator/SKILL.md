@@ -1,11 +1,6 @@
 ---
 name: headless-cron-creator
-description: |
-  Generate headless Claude Code cron jobs from a task description and schedule.
-  Creates a wrapper script with safety mechanisms (lockfile, budget cap, dry-run
-  default, logging) and installs crontab entries via deterministic Python script.
-  Use when user says "schedule", "run every", "cron job", "run twice daily",
-  "run hourly", "run daily", "run weekly", or "schedule task".
+description: "Generate headless Claude Code cron jobs with safety."
 version: 1.0.0
 user-invocable: false
 argument-hint: "<name> <schedule> <prompt>"

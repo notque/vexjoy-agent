@@ -1,15 +1,6 @@
 ---
 name: agent-comparison
-description: |
-  A/B test agent variants measuring quality and total session token cost
-  across simple and complex benchmarks. Also supports automated optimization
-  loops (autoresearch) for frontmatter description and routing-trigger quality
-  using train/test eval sets. Use when creating compact agent versions, validating
-  agent changes, comparing internal vs external agents, optimizing a skill description,
-  or deciding between variants for production. Use for "compare agents", "A/B test",
-  "benchmark agents", "test agent efficiency", "optimize description", "optimize skill",
-  or "run autoresearch". Route single-agent evaluation to agent-evaluation, testing skills,
-  or simple prompt optimization without variant comparison.
+description: "A/B test agent variants for quality and token cost."
 version: 2.2.0
 user-invocable: false
 allowed-tools:
