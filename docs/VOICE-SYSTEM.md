@@ -91,9 +91,9 @@ python3 scripts/voice_validator.py check-banned --content draft.md
 python3 scripts/voice_analyzer.py compare --profile1 voice1.json --profile2 voice2.json
 ```
 
-### Voice Calibrator (`pipelines/voice-calibrator/`)
+### Voice Calibrator (`skills/workflow/references/voice-calibrator.md`)
 
-Advanced calibration skill for iterative refinement. Key insight from development: getting the **rules** right isn't enough:you need **100+ real samples categorized by pattern** for the voice to pass authorship matching.
+Advanced calibration workflow reference for iterative refinement. Key insight from development: getting the **rules** right isn't enough:you need **100+ real samples categorized by pattern** for the voice to pass authorship matching.
 
 ### Wabi-Sabi Principle
 
@@ -146,7 +146,7 @@ python3 scripts/voice_validator.py validate --content draft.md --voice your-voic
 Once calibrated, the voice is available to:
 - `voice-writer`:unified 8-phase pipeline for blog posts and articles with mandatory validation
 - `anti-ai-editor`:reviews content for AI tells relative to your voice
-- `article-evaluation-pipeline`:evaluates articles for voice fidelity
+- `workflow` (via `references/article-evaluation-pipeline.md`):evaluates articles for voice fidelity
 
 ---
 
@@ -161,12 +161,12 @@ scripts/
 
 skills/
   create-voice/          # Interactive voice creation (7 phases)
-  voice-calibrator/      # Advanced calibration and refinement
   voice-validator/       # Validation methodology
+  voice-writer/          # Unified 8-phase content generation
   anti-ai-editor/        # AI tell detection and removal
-
-pipelines/
-  voice-writer/          # Unified 8-phase content generation pipeline
+  workflow/
+    references/
+      voice-calibrator.md   # Advanced calibration and refinement (workflow reference)
 ```
 
 ---

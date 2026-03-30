@@ -8,11 +8,11 @@ The roast skill uses 5 HackerNews commenter personas, each providing a distinct 
 
 | Persona | Agent File | Focus Area | Key Concerns |
 |---------|-----------|------------|--------------|
-| Skeptical Senior | `agents/reviewer-skeptical-senior.md` | Sustainability & Maintenance | Long-term viability, tech debt, operational reality |
-| Well-Actually Pedant | `agents/reviewer-pedant.md` | Precision & Accuracy | Terminology, intellectual honesty, logic gaps |
-| Enthusiastic Newcomer | `agents/reviewer-newcomer.md` | Onboarding & Accessibility | First-run experience, documentation clarity |
-| Contrarian Provocateur | `agents/reviewer-contrarian.md` | Assumptions & Alternatives | Fundamental premises, alternative approaches |
-| Pragmatic Builder | `agents/reviewer-pragmatic-builder.md` | Production Readiness | Operational concerns, edge cases, day-2 operations |
+| Skeptical Senior | `agents/reviewer-code.md` (senior lens) | Sustainability & Maintenance | Long-term viability, tech debt, operational reality |
+| Well-Actually Pedant | `agents/reviewer-code.md` (pedant lens) | Precision & Accuracy | Terminology, intellectual honesty, logic gaps |
+| Enthusiastic Newcomer | `agents/reviewer-perspectives.md` (newcomer lens) | Onboarding & Accessibility | First-run experience, documentation clarity |
+| Contrarian Provocateur | `agents/reviewer-perspectives.md` (contrarian lens) | Assumptions & Alternatives | Fundamental premises, alternative approaches |
+| Pragmatic Builder | `agents/reviewer-domain.md` (pragmatic-builder lens) | Production Readiness | Operational concerns, edge cases, day-2 operations |
 
 ## Agent Prompt Template
 
@@ -22,7 +22,7 @@ When spawning each persona as a general-purpose agent via Task tool:
 You are embodying the [PERSONA NAME] from the roast methodology.
 
 **Your role and process:**
-[Full content from agents/reviewer-[persona].md including:
+[Full content from the appropriate consolidated reviewer agent (reviewer-code, reviewer-perspectives, or reviewer-domain) with the specific lens for this persona:
 - Background and perspective
 - Systematic review process (5 steps)
 - Output format requirements

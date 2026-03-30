@@ -94,22 +94,6 @@
       "complexity": "Medium",
       "category": "meta"
     },
-    "golang-general-engineer-compact": {
-      "file": "golang-general-engineer-compact.md",
-      "short_description": "Use this agent for focused Go development with tight context budgets",
-      "triggers": [
-        "go",
-        "golang",
-        "tight context",
-        "compact",
-        "focused go"
-      ],
-      "pairs_with": [
-        "go-patterns"
-      ],
-      "complexity": "Medium-Complex",
-      "category": "language"
-    },
     "golang-general-engineer": {
       "file": "golang-general-engineer.md",
       "short_description": "Use this agent when you need expert assistance with Go development, including implementing features,\ndebugging issues, reviewing code quality, optimizing performance, or answering technical questions\nabout Go codebases",
@@ -122,6 +106,22 @@
         "goroutine",
         "channel",
         "gopls"
+      ],
+      "pairs_with": [
+        "go-patterns"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "language"
+    },
+    "golang-general-engineer-compact": {
+      "file": "golang-general-engineer-compact.md",
+      "short_description": "Use this agent for focused Go development with tight context budgets",
+      "triggers": [
+        "go",
+        "golang",
+        "tight context",
+        "compact",
+        "focused go"
       ],
       "pairs_with": [
         "go-patterns"
@@ -315,16 +315,7 @@
         "plugin schema"
       ],
       "pairs_with": [
-        "perses-onboard",
-        "perses-deploy",
-        "perses-lint",
-        "perses-code-review",
-        "perses-dashboard-create",
-        "perses-grafana-migrate",
-        "perses-dac-pipeline",
-        "perses-plugin-create",
-        "perses-cue-schema",
-        "perses-plugin-test",
+        "perses",
         "golang-general-engineer",
         "typescript-frontend-engineer",
         "kubernetes-helm-engineer",
@@ -376,13 +367,9 @@
         "pipeline creator"
       ],
       "pairs_with": [
-        "pipeline-scaffolder",
+        "workflow",
         "codebase-analyzer",
-        "routing-table-updater",
-        "domain-research",
-        "chain-composer",
-        "pipeline-test-runner",
-        "pipeline-retro"
+        "routing-table-updater"
       ],
       "complexity": "Complex",
       "category": "meta"
@@ -529,63 +516,6 @@
       "complexity": "Medium",
       "category": "research"
     },
-    "reviewer-adr-compliance": {
-      "file": "reviewer-adr-compliance.md",
-      "short_description": "Use this agent when reviewing implementations against Architecture Decision Records",
-      "triggers": [
-        "adr compliance",
-        "adr review",
-        "architecture decision",
-        "decision record",
-        "adr check",
-        "scope creep"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "parallel-code-review",
-        "systematic-code-review"
-      ],
-      "complexity": "Medium-Complex",
-      "category": "review"
-    },
-    "reviewer-api-contract": {
-      "file": "reviewer-api-contract.md",
-      "short_description": "Use this agent for detecting breaking API changes, backward compatibility issues, schema validation gaps, HTTP status code misuse, and API versioning problems",
-      "triggers": [
-        "API contract",
-        "breaking changes",
-        "backward compatibility",
-        "API versioning",
-        "HTTP status codes",
-        "schema validation",
-        "API review"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "reviewer-type-design",
-        "reviewer-business-logic"
-      ],
-      "complexity": "Medium",
-      "category": "review"
-    },
-    "reviewer-business-logic": {
-      "file": "reviewer-business-logic.md",
-      "short_description": "Use this agent for domain correctness and business logic review",
-      "triggers": [
-        "business logic",
-        "domain review",
-        "requirements",
-        "correctness",
-        "edge cases",
-        "state machine"
-      ],
-      "pairs_with": [
-        "parallel-code-review",
-        "systematic-code-review"
-      ],
-      "complexity": "Medium-Complex",
-      "category": "review"
-    },
     "reviewer-code": {
       "file": "reviewer-code.md",
       "short_description": "Code quality review: conventions, naming, dead code, performance, types, tests, comments, config safety",
@@ -670,297 +600,114 @@
       "complexity": "Medium",
       "category": "review"
     },
-    "reviewer-concurrency": {
-      "file": "reviewer-concurrency.md",
-      "short_description": "Use this agent for detecting concurrency bugs: race conditions, goroutine leaks, deadlocks, mutex misuse, channel lifecycle issues, and unsafe shared state",
+    "reviewer-domain": {
+      "file": "reviewer-domain.md",
+      "short_description": "Domain-specific review: ADR compliance, business logic, SAP CC structural, pragmatic builder.",
       "triggers": [
-        "concurrency review",
-        "race condition",
-        "goroutine leak",
-        "deadlock",
-        "mutex",
-        "channel safety",
-        "async safety",
-        "thread safety"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "reviewer-performance",
-        "reviewer-silent-failures",
-        "go-patterns"
-      ],
-      "complexity": "Medium",
-      "category": "review"
-    },
-    "reviewer-contrarian": {
-      "file": "reviewer-contrarian.md",
-      "short_description": "Use this agent for professional skepticism that challenges fundamental assumptions and\nexplores alternatives through systematic critique",
-      "triggers": [
-        "contrarian",
-        "alternatives",
-        "assumptions",
-        "challenge",
-        "roast"
-      ],
-      "pairs_with": [
-        "reviewer-skeptical-senior"
-      ],
-      "complexity": "Simple",
-      "category": "review"
-    },
-    "reviewer-dependency-audit": {
-      "file": "reviewer-dependency-audit.md",
-      "short_description": "Use this agent for auditing project dependencies: known CVEs, problematic licenses, deprecated packages, unnecessary transitive dependencies, version pinning issues, and supply chain risks",
-      "triggers": [
-        "dependency audit",
-        "CVE check",
-        "vulnerability scan",
-        "license check",
-        "deprecated packages",
-        "supply chain",
-        "dependency review"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "reviewer-docs-validator",
-        "reviewer-security"
-      ],
-      "complexity": "Medium",
-      "category": "review"
-    },
-    "reviewer-docs-validator": {
-      "file": "reviewer-docs-validator.md",
-      "short_description": "Use this agent for validating project documentation, configuration completeness, dependency health, CI/CD setup, and project metadata",
-      "triggers": [
-        "documentation review",
-        "README check",
-        "CLAUDE.md validation",
-        "project completeness",
-        "config validation",
-        "CI check"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "docs-sync-checker",
-        "comment-quality"
-      ],
-      "complexity": "Medium",
-      "category": "review"
-    },
-    "reviewer-error-messages": {
-      "file": "reviewer-error-messages.md",
-      "short_description": "Use this agent for reviewing error message quality: actionable messages, sufficient context (IDs, states, operation names), consistent formatting, user-facing vs internal distinction, and localization readiness",
-      "triggers": [
-        "error messages",
-        "error text quality",
-        "actionable errors",
-        "error format",
-        "user-facing errors",
-        "error context"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "reviewer-silent-failures",
-        "reviewer-code-quality"
-      ],
-      "complexity": "Medium",
-      "category": "review"
-    },
-    "reviewer-meta-process": {
-      "file": "reviewer-meta-process.md",
-      "short_description": "Meta-analysis of system design decisions \u2014 examines whether the SYSTEM ITSELF is creating\nproblems",
-      "triggers": [
-        "meta-process review",
-        "system design review",
-        "architecture health",
-        "single point of failure",
-        "indispensable component",
-        "complexity audit",
-        "authority concentration",
-        "reversibility check"
-      ],
-      "pairs_with": [
-        "reviewer-contrarian",
-        "reviewer-user-advocate"
-      ],
-      "complexity": "Simple",
-      "category": "meta"
-    },
-    "reviewer-migration-safety": {
-      "file": "reviewer-migration-safety.md",
-      "short_description": "Use this agent for reviewing migration safety: reversible database migrations, API deprecation paths, feature flag lifecycle, backward-compatible schema changes, and safe rollback strategies",
-      "triggers": [
-        "migration safety",
-        "database migration",
-        "schema change",
-        "API deprecation",
-        "rollback strategy",
-        "backward compatible",
-        "feature flag lifecycle"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "reviewer-api-contract",
-        "reviewer-business-logic",
-        "database-engineer"
-      ],
-      "complexity": "Medium",
-      "category": "review"
-    },
-    "reviewer-newcomer": {
-      "file": "reviewer-newcomer.md",
-      "short_description": "Use this agent when you need code review from an enthusiastic newcomer perspective",
-      "triggers": [
-        "newcomer perspective",
-        "fresh eyes review",
-        "documentation review"
-      ],
-      "pairs_with": [
-        "systematic-code-review"
-      ],
-      "complexity": "Simple",
-      "category": "review"
-    },
-    "reviewer-observability": {
-      "file": "reviewer-observability.md",
-      "short_description": "Use this agent for reviewing observability: missing metrics, logging quality, trace propagation, health checks, structured logging, and alerting gaps",
-      "triggers": [
-        "observability review",
-        "metrics",
-        "logging quality",
-        "trace propagation",
-        "health checks",
-        "structured logging",
-        "monitoring gaps"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "reviewer-silent-failures",
-        "prometheus-grafana-engineer"
-      ],
-      "complexity": "Medium",
-      "category": "review"
-    },
-    "reviewer-pedant": {
-      "file": "reviewer-pedant.md",
-      "short_description": "Use this agent when you need code review from a technical pedant perspective",
-      "triggers": [
-        "technical accuracy",
-        "spec compliance",
-        "pedantic review"
-      ],
-      "pairs_with": [
-        "systematic-code-review"
-      ],
-      "complexity": "Simple",
-      "category": "review"
-    },
-    "reviewer-pragmatic-builder": {
-      "file": "reviewer-pragmatic-builder.md",
-      "short_description": "Use this agent when you need production-focused critique and operational reality checks for code, documentation, architecture, or deployment plans",
-      "triggers": [
+        "adr compliance",
+        "adr review",
+        "architecture decision",
+        "scope creep",
+        "business logic",
+        "domain review",
+        "requirements",
+        "correctness",
+        "edge cases",
+        "sapcc structural",
+        "go-bits design",
+        "type export",
+        "go-bits usage",
         "builder",
         "production",
         "ops",
         "operational"
       ],
       "pairs_with": [
-        "roast"
-      ],
-      "complexity": "Medium",
-      "category": "review"
-    },
-    "reviewer-sapcc-structural": {
-      "file": "reviewer-sapcc-structural.md",
-      "short_description": "Use this agent for reviewing Go code in SAP Converged Cloud repositories for structural and design concerns based on the project's established review standards",
-      "triggers": [
-        "sapcc structural",
-        "go-bits design",
-        "sapcc structural review",
-        "type export",
-        "anti-over-engineering",
-        "go-bits usage"
-      ],
-      "pairs_with": [
         "comprehensive-review",
-        "reviewer-language-specialist",
-        "reviewer-code-quality",
-        "go-patterns"
-      ],
-      "complexity": "Medium",
-      "category": "review"
-    },
-    "reviewer-security": {
-      "file": "reviewer-security.md",
-      "short_description": "Use this agent for security-focused code review",
-      "triggers": [
-        "security review",
-        "vulnerability",
-        "OWASP",
-        "auth check",
-        "injection",
-        "XSS",
-        "CSRF",
-        "security scan"
-      ],
-      "pairs_with": [
         "parallel-code-review",
         "systematic-code-review"
       ],
       "complexity": "Medium-Complex",
       "category": "review"
     },
-    "reviewer-silent-failures": {
-      "file": "reviewer-silent-failures.md",
-      "short_description": "Use this agent for detecting silent failures, inadequate error handling, swallowed errors, and dangerous fallback behavior",
+    "reviewer-perspectives": {
+      "file": "reviewer-perspectives.md",
+      "short_description": "Multi-perspective review: newcomer, senior, pedant, contrarian, user advocate, meta-process.",
       "triggers": [
-        "silent failures",
-        "error handling review",
-        "catch blocks",
-        "fallback behavior",
-        "swallowed errors",
-        "error swallowing",
-        "empty catch"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "go-patterns",
-        "systematic-code-review"
-      ],
-      "complexity": "Medium",
-      "category": "review"
-    },
-    "reviewer-skeptical-senior": {
-      "file": "reviewer-skeptical-senior.md",
-      "short_description": "Use this agent when you need code review from a skeptical senior engineer perspective",
-      "triggers": [
+        "newcomer perspective",
+        "fresh eyes review",
         "production readiness",
         "senior review",
-        "skeptical review"
-      ],
-      "pairs_with": [
-        "systematic-code-review"
-      ],
-      "complexity": "Medium",
-      "category": "review"
-    },
-    "reviewer-user-advocate": {
-      "file": "reviewer-user-advocate.md",
-      "short_description": "Evaluates architecture decisions and feature designs from the user's perspective",
-      "triggers": [
+        "skeptical review",
+        "technical accuracy",
+        "spec compliance",
+        "pedantic review",
+        "contrarian",
+        "alternatives",
+        "assumptions",
+        "challenge",
+        "roast",
         "user impact",
         "user advocate",
         "usability review",
-        "is this worth the complexity",
-        "user perspective",
-        "user experience"
+        "meta-process review",
+        "system design review",
+        "architecture health",
+        "complexity audit",
+        "reversibility check"
       ],
       "pairs_with": [
-        "reviewer-contrarian",
-        "reviewer-meta-process"
+        "systematic-code-review",
+        "comprehensive-review"
       ],
-      "complexity": "Simple",
-      "category": "meta"
+      "complexity": "Medium",
+      "category": "review"
+    },
+    "reviewer-system": {
+      "file": "reviewer-system.md",
+      "short_description": "System review: security, concurrency, errors, observability, APIs, migrations, dependencies, docs.",
+      "triggers": [
+        "security review",
+        "vulnerability",
+        "OWASP",
+        "auth check",
+        "injection",
+        "concurrency review",
+        "race condition",
+        "goroutine leak",
+        "deadlock",
+        "mutex",
+        "silent failures",
+        "error handling review",
+        "swallowed errors",
+        "error messages",
+        "error text quality",
+        "actionable errors",
+        "observability review",
+        "metrics",
+        "logging quality",
+        "trace propagation",
+        "API contract",
+        "breaking changes",
+        "backward compatibility",
+        "migration safety",
+        "database migration",
+        "schema change",
+        "dependency audit",
+        "CVE check",
+        "vulnerability scan",
+        "documentation review",
+        "README check",
+        "CLAUDE.md validation"
+      ],
+      "pairs_with": [
+        "comprehensive-review",
+        "systematic-code-review",
+        "parallel-code-review",
+        "go-patterns"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "review"
     },
     "sqlite-peewee-engineer": {
       "file": "sqlite-peewee-engineer.md",
@@ -1035,7 +782,7 @@
         "agent-evaluation",
         "codebase-analyzer",
         "routing-table-updater",
-        "pr-pipeline"
+        "pr-workflow"
       ],
       "complexity": "Complex",
       "category": "meta"

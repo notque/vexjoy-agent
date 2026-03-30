@@ -49,7 +49,7 @@ Want research baked in? Say so:
 /do research then write an article about Kubernetes cost optimization
 ```
 
-Now it hits the research-to-article pipeline -- a bigger workflow. It launches 5 parallel research agents that gather information simultaneously, compiles their findings, then writes the article grounded in what they found. Research informs the narrative but doesn't dominate it.
+Now it hits the research-to-article workflow -- a bigger multi-phase process. It launches 5 parallel research agents that gather information simultaneously, compiles their findings, then writes the article grounded in what they found. Research informs the narrative but doesn't dominate it.
 
 ### Writing in Your Voice
 
