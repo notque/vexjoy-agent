@@ -158,7 +158,8 @@ def _fallback_parse(text: str) -> dict:
 def inject_config(config: dict, config_path: Path) -> None:
     """Print context lines from the loaded config to stdout."""
     version = config.get("version")
-    if version != 1:
+    # Fallback parser returns strings; PyYAML returns int. Accept both.
+    if str(version) != "1":
         debug(f"unsupported config version: {version!r}")
         return
 

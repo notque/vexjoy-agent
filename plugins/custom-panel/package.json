@@ -7,7 +7,8 @@
     "dev": "rsbuild dev",
     "build": "rsbuild build",
     "preview": "rsbuild preview",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test-schemas": "percli plugin test-schemas"
   },
   "dependencies": {
     "@perses-dev/core": "^0.48.0",
