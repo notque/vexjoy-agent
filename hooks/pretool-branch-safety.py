@@ -22,6 +22,7 @@ Allow-through conditions:
 
 import json
 import os
+import re
 import subprocess
 import sys
 import traceback
@@ -33,6 +34,30 @@ from stdin_timeout import read_stdin
 
 _BYPASS_ENV = "BRANCH_SAFETY_BYPASS"
 _PROTECTED_BRANCHES = {"main", "master"}
+
+
+def _extract_effective_cwd(command: str, default_cwd: str | None) -> str | None:
+    """Extract the effective working directory from a command string.
+
+    Detects two patterns:
+    - ``cd <path> && ...`` or ``cd <path> ; ...`` prefix
+    - ``git -C <path> ...`` flag
+
+    Returns the extracted path if found, otherwise default_cwd.
+    """
+    # Pattern 1: cd <path> && or cd <path> ;
+    m = re.match(r'cd\s+(?:"([^"]+)"|(\S+))\s*(?:&&|;)', command.lstrip())
+    if m:
+        p = (m.group(1) or m.group(2) or "").strip()
+        if p:
+            return p
+
+    # Pattern 2: git -C <path>
+    m = re.search(r'\bgit\s+-C\s+(?:"([^"]+)"|(\S+))', command)
+    if m:
+        return m.group(1) or m.group(2)
+
+    return default_cwd
 
 
 def _current_branch(cwd: str | None) -> str | None:
@@ -74,7 +99,8 @@ def main() -> None:
             print("[branch-safety] Bypassed via BRANCH_SAFETY_BYPASS=1", file=sys.stderr)
         sys.exit(0)
 
-    cwd = event.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR")
+    default_cwd = event.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR")
+    cwd = _extract_effective_cwd(command, default_cwd)
     branch = _current_branch(cwd)
 
     if debug:
