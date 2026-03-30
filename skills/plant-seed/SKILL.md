@@ -1,11 +1,6 @@
 ---
 name: plant-seed
-description: |
-  Capture a forward-looking idea as a seed with trigger conditions, scope, and
-  rationale so it surfaces automatically during future feature design. Use for
-  "plant seed", "save this idea for later", "defer this idea", "remember this
-  for when", "seed", or "/plant-seed". Do NOT use for TODOs, immediate tasks,
-  bug reports, or work that should happen in the current session.
+description: "Capture forward-looking idea as a seed for future feature design."
 version: 1.0.0
 user-invocable: false
 argument-hint: "<idea description>"

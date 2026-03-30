@@ -1,12 +1,7 @@
 ---
 name: perses-query-builder
 user-invocable: false
-description: |
-  Build PromQL, LogQL, TraceQL queries for Perses panels. Validate query syntax,
-  suggest optimizations, handle variable templating with Perses interpolation formats.
-  Integrates with prometheus-grafana-engineer for deep PromQL expertise. Use for
-  "perses query", "promql perses", "logql perses", "perses panel query". Do NOT use
-  for datasource configuration (use perses-datasource-manage).
+description: "Build PromQL, LogQL, TraceQL queries for Perses panels."
 allowed-tools:
   - Read
   - Grep

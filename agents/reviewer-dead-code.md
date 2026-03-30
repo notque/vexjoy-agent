@@ -2,10 +2,7 @@
 name: reviewer-dead-code
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent for detecting dead code: unreachable branches, unused exports, orphaned files, stale feature flags, commented-out code, and obsolete TODOs. Reduces codebase surface area and maintenance burden. Wave 2 agent that uses Wave 1 code-quality and docs-validator findings to identify abandoned artifacts. Supports `--fix` mode.
-
-  Example: "Find all dead code, unused functions, and orphaned files in this Go project"
+description: "Dead code review: unreachable branches, unused exports, orphaned files, stale feature flags."
 color: gray
 routing:
   triggers:
