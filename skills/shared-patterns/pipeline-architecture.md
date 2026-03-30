@@ -296,7 +296,7 @@ When a pipeline step performs a deterministic operation (repo classification, fi
 - **Separates concerns**: `scripts/` = deterministic ops, `skills/` = LLM orchestration
 
 **Examples in this repo:**
-- `scripts/classify-repo.py` — deterministic repo classification (used by pr-pipeline, pr-sync)
+- `scripts/classify-repo.py` — deterministic repo classification (used by pr-workflow)
 - `scripts/usage-report.py` — skill/agent usage telemetry
 - `scripts/voice_validator.py` — deterministic voice validation
 

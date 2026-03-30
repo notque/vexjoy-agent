@@ -1,25 +1,3 @@
----
-name: pr-status
-description: |
-  Quick status check for current branch and PR state showing local changes,
-  CI results, reviews, and merge readiness. Use when user wants branch status,
-  PR state, CI check results, review status, or merge readiness. Use for
-  "pr status", "what's the status", "is my PR ready", "check CI". Do NOT use
-  for creating PRs, pushing changes, or fixing review comments.
-version: 2.0.0
-user-invocable: false
-allowed-tools:
-  - Bash
-  - Read
-routing:
-  force_route: true
-  triggers:
-    - "PR status"
-    - "branch status"
-    - "merge readiness"
-  category: git-workflow
----
-
 # PR Status Skill
 
 Collect git state, PR metadata, CI status, reviews, and merge readiness in ordered steps, then present a unified status report. This is a **read-only** skill -- it never modifies files, branches, or PR state because status checks that mutate state create surprising side effects and belong to other skills (pr-sync, pr-fix).

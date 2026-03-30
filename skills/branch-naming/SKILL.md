@@ -2,7 +2,7 @@
 name: branch-naming
 description: |
   Generate and validate Git branch names from commit messages or descriptions.
-  Use when creating branches, generating names for /pr-sync, validating existing
+  Use when creating branches, generating names for /pr-workflow, validating existing
   branch names, or converting conventional commits to branch prefixes. Triggers:
   "branch name", "create branch", "name this branch", "validate branch". Do NOT
   use for git operations (checkout, merge, delete), branching strategies, or

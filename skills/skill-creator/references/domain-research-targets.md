@@ -54,7 +54,7 @@ patterns have accumulated.
 the skill's last update date. Look for reviewer comments that establish new patterns
 not yet in the skill's references.
 
-**Primary source**: sapcc/keppel PR review history (via `skills/skill-creator/scripts/` pr-miner)
+**Primary source**: sapcc/keppel PR review history (via `skills/skill-creator/scripts/` pr-workflow (miner))
 
 **Extract**: reviewer comment → pattern name → before/after example, same format as
 existing sapcc references
@@ -257,7 +257,7 @@ Mine the validator's false-positive/false-negative log if one exists.
 
 ---
 
-## Git / PR workflows (pr-pipeline, pr-sync, git-commit-flow)
+## Git / PR workflows (pr-workflow (pipeline), pr-workflow (sync), git-commit-flow)
 
 **Primary sources**
 - [Conventional Commits spec](https://www.conventionalcommits.org) — extract:

@@ -4,7 +4,7 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 
 ## Simple Tier (300-600 lines)
 
-### pr-cleanup
+### pr-workflow (cleanup)
 **Lines**: ~350
 **Purpose**: Local branch cleanup after PR merge
 **Phases**: 4 (Identify, Switch, Delete, Prune)
@@ -16,7 +16,7 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 
 **Structure**:
 ```
-.claude/skills/pr-cleanup/
+.claude/skills/pr-workflow (cleanup)/
 └── SKILL.md (350 lines)
     - Frontmatter (40 lines)
     - Instructions - 4 phases (180 lines)
@@ -221,12 +221,12 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 
 **Single, focused operation?**
 → Simple tier
-- Examples: pr-cleanup, branch-naming, service-health-check
+- Examples: pr-workflow (cleanup), branch-naming, service-health-check
 - Characteristics: Linear workflow, minimal scripting, <5 errors
 
 **Multi-step with moderate coordination?**
 → Medium tier
-- Examples: systematic-debugging, git-commit-flow, pr-fix
+- Examples: systematic-debugging, git-commit-flow, pr-workflow (fix)
 - Characteristics: 2-4 phases, moderate scripting, 5-10 errors
 
 **Multi-agent coordination OR parallel execution?**
@@ -249,7 +249,7 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 - Error cases approaching 10
 - Users requesting more detailed workflows
 
-**Example**: pr-cleanup → pr-pipeline (added commit, push, create-pr phases)
+**Example**: pr-workflow (cleanup) → pr-workflow (pipeline) (added commit, push, create-pr phases)
 
 ---
 
@@ -278,7 +278,7 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 ## Anti-Patterns in Tier Selection
 
 ### ❌ Over-Tiering
-**What it looks like**: Simple workflow (pr-cleanup) implemented as Complex tier with references/, death loop prevention, 10+ error cases
+**What it looks like**: Simple workflow (pr-workflow (cleanup)) implemented as Complex tier with references/, death loop prevention, 10+ error cases
 
 **Why wrong**: Creates maintenance burden, confuses users, violates Over-Engineering Prevention
 
