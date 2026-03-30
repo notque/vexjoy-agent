@@ -65,10 +65,10 @@ This document maps which skills work well together, common input/output types, a
 **codebase-analyzer**
 - Inputs: `repository`, `directory`, `language`
 - Outputs: `code_patterns`, `statistics`, `analysis_report`
-- Compatible with: pr-miner, workflow-orchestrator, comment-quality
+- Compatible with: pr-workflow (miner), workflow-orchestrator, comment-quality
 - Notes: Statistical analysis of implementation patterns
 
-**pr-miner**
+**pr-workflow (miner)**
 - Inputs: `repository_url`, `organization`, `repo_name`
 - Outputs: `review_comments`, `tribal_knowledge`, `coding_standards`
 - Compatible with: codebase-analyzer, workflow-orchestrator
@@ -101,7 +101,7 @@ This document maps which skills work well together, common input/output types, a
 | workflow-orchestrator | → | test-driven-development | Perfect: breakdown feeds into TDD |
 | test-driven-development | → | verification-before-completion | Perfect: tests validate verification |
 | systematic-debugging | → | comment-quality | Perfect: fix docs need quality check |
-| pr-miner | → | codebase-analyzer | Perfect: PR knowledge + code patterns |
+| pr-workflow (miner) | → | codebase-analyzer | Perfect: PR knowledge + code patterns |
 | code-linting | ‖ | comment-quality | Perfect parallel: independent checks |
 | codebase-analyzer | → | workflow-orchestrator | Good: patterns inform planning |
 | test-driven-development | → | go-patterns | Perfect for Go: tests then gate |
@@ -117,14 +117,14 @@ This document maps which skills work well together, common input/output types, a
 | Skill A | → | Skill B | Notes |
 |---------|---|---------|-------|
 | workflow-orchestrator | → | systematic-debugging | Good if bug is complex |
-| pr-miner | → | test-driven-development | Good: learn then implement |
+| pr-workflow (miner) | → | test-driven-development | Good: learn then implement |
 | code-linting | → | verification-before-completion | Good: lint then verify |
 | codebase-analyzer | → | comment-quality | Good: analyze then doc |
 | go-patterns | → | verification-before-completion | Good: gate then verify |
 | python-quality-gate | → | verification-before-completion | Good: gate then verify |
 | universal-quality-gate | → | verification-before-completion | Good: gate then verify |
 | systematic-debugging | → | test-driven-development | Good: debug then add tests |
-| pr-mining-coordinator | → | codebase-analyzer | Good: mine patterns then analyze code |
+| pr-workflow (miner) | → | codebase-analyzer | Good: mine patterns then analyze code |
 
 ---
 
@@ -134,7 +134,7 @@ This document maps which skills work well together, common input/output types, a
 |---------|---|---------|-------|
 | verification-before-completion | → | test-driven-development | Backwards: verify should come last |
 | comment-quality | → | code-linting | Backwards: lint finds code issues first |
-| pr-miner | → | verification-before-completion | Skip step: need implementation in between |
+| pr-workflow (miner) | → | verification-before-completion | Skip step: need implementation in between |
 | test-driven-development | → | workflow-orchestrator | Backwards: plan before implement |
 
 ---
@@ -148,7 +148,7 @@ This document maps which skills work well together, common input/output types, a
 | python-quality-gate | → | code-linting | Redundant: gate includes linting |
 | universal-quality-gate | → | code-linting | Redundant: gate includes linting |
 | workflow-orchestrator | → | skill-composer | Circular: composer should call orchestrator |
-| pr-mining-coordinator | → | pr-miner | Redundant: coordinator calls pr-miner internally |
+| pr-workflow (miner) | → | pr-workflow (miner) | Redundant: coordinator calls pr-workflow (miner) internally |
 
 ---
 
@@ -174,7 +174,7 @@ This document maps which skills work well together, common input/output types, a
 
 **Code Analysis**:
 ```
-[codebase-analyzer, pr-miner]
+[codebase-analyzer, pr-workflow (miner)]
 ```
 - Different data sources (local files vs GitHub)
 - Independent outputs

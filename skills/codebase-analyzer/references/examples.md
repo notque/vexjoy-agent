@@ -69,13 +69,13 @@ CODEBASE ANALYSIS SUMMARY
 
 ```bash
 # Check if reviewers also mention error wrapping
-cd ~/.claude/skills/pr-miner
+cd ~/.claude/skills/pr-workflow
 grep -i "while.*%w" mined_data/senior-reviewer_go_all_2025-11-20.json
 ```
 
-**Result**: pr-miner shows Senior commenting "use fmt.Errorf with %w" in multiple PRs.
+**Result**: pr-workflow (miner) shows Senior commenting "use fmt.Errorf with %w" in multiple PRs.
 
-**Conclusion**: Both explicit (pr-miner) and implicit (codebase-analyzer) evidence confirm this rule.
+**Conclusion**: Both explicit (pr-workflow (miner)) and implicit (codebase-analyzer) evidence confirm this rule.
 
 ---
 
@@ -335,13 +335,13 @@ func (d *Database) Query(ctx context.Context) error {
 
 ---
 
-## Example 8: Combined pr-miner + codebase-analyzer Workflow
+## Example 8: Combined pr-workflow (miner) + codebase-analyzer Workflow
 
 ### Complete Analysis Workflow
 
 **Step 1**: Mine PR reviews (explicit rules)
 ```bash
-cd ~/.claude/skills/pr-miner
+cd ~/.claude/skills/pr-workflow
 ./venv/bin/python3 scripts/miner.py your-org/your-repo \
   mined_data/project_reviews.json \
   --limit 100 --all-comments
@@ -356,7 +356,7 @@ python3 ~/.claude/scripts/analyzer.py ~/repos/your-project \
 
 **Step 3**: Reconcile the findings
 
-| Pattern | pr-miner says | codebase-analyzer shows | Conclusion |
+| Pattern | pr-workflow (miner) says | codebase-analyzer shows | Conclusion |
 |---------|---------------|-------------------------|------------|
 | Error wrapping | "Use fmt.Errorf %w" (12 comments) | 89% use fmt.Errorf %w | ✅ Confirmed rule |
 | Guard clauses | "Prefer early returns" (8 comments) | 5.2x more guards than else | ✅ Confirmed rule |
@@ -374,13 +374,13 @@ Create `~/repos/your-project/CODING_STANDARDS.md`:
 **Rule**: All errors must be wrapped with fmt.Errorf("while X: %w", err)
 **Evidence**:
 - 89% of codebase follows this (codebase-analyzer)
-- 12 PR review comments enforcing this (pr-miner)
+- 12 PR review comments enforcing this (pr-workflow (miner))
 
 ## Control Flow ✅ HIGH CONFIDENCE
 **Rule**: Prefer guard clauses (early returns) over else blocks
 **Evidence**:
 - 5.2x more guard clauses than else blocks (codebase-analyzer)
-- 8 PR review comments requesting this (pr-miner)
+- 8 PR review comments requesting this (pr-workflow (miner))
 
 ## Receiver Naming ✅ MEDIUM CONFIDENCE
 **Rule**: Use single-letter receivers matching type's first letter
@@ -455,7 +455,7 @@ These examples demonstrate:
 5. **Reconciliation**: Resolve conflicting guidance
 6. **Evolution tracking**: Monitor pattern changes over time
 7. **Debugging**: Understand specific style requirements
-8. **Combined workflow**: pr-miner + codebase-analyzer
+8. **Combined workflow**: pr-workflow (miner) + codebase-analyzer
 9. **Onboarding**: Give new developers concrete standards
 
 **Key Insight**: Statistics don't lie. When code shows 89% consistency, that IS the standard, regardless of what anyone remembers or thinks.

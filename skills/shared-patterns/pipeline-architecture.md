@@ -215,7 +215,7 @@ Define Requirements
     Add to Routing
 ```
 
-**Skill**: `agent-creator-engineer` or `skill-creator`
+**Skill**: `skill-creator`
 
 ---
 
@@ -296,7 +296,7 @@ When a pipeline step performs a deterministic operation (repo classification, fi
 - **Separates concerns**: `scripts/` = deterministic ops, `skills/` = LLM orchestration
 
 **Examples in this repo:**
-- `scripts/classify-repo.py` — deterministic repo classification (used by pr-pipeline, pr-sync)
+- `scripts/classify-repo.py` — deterministic repo classification (used by pr-workflow)
 - `scripts/usage-report.py` — skill/agent usage telemetry
 - `scripts/voice_validator.py` — deterministic voice validation
 
@@ -433,7 +433,7 @@ Current pipelines in this repository:
 | Test-Driven Development | `test-driven-development` | 4 (RED→GREEN→REFACTOR→VERIFY) |
 | Systematic Debugging | `systematic-debugging` | 5 (REPRODUCE→ISOLATE→HYPOTHESIZE→TEST→FIX) |
 | Voice Calibration | `voice-calibrator` | 5 (COLLECT→ANALYZE→GENERATE→TEST→CALIBRATE) |
-| Agent Creation | `agent-creator-engineer` | 6 (DEFINE→RESEARCH→STRUCTURE→VERIFY→TEST→ROUTE) |
+| Agent Creation | `skill-creator` | 6 (DEFINE→RESEARCH→STRUCTURE→VERIFY→TEST→ROUTE) |
 
 ---
 

@@ -2,24 +2,6 @@
   "version": "1.0",
   "generated_by": "scripts/generate-agent-index.py",
   "agents": {
-    "agent-creator-engineer": {
-      "file": "agent-creator-engineer.md",
-      "short_description": "**DEPRECATED**: Use skill-creator agent instead",
-      "triggers": [
-        "create agent",
-        "new agent",
-        "agent template",
-        "agent design",
-        "agent architecture",
-        "legacy agent creation"
-      ],
-      "pairs_with": [
-        "skill-creator",
-        "agent-evaluation"
-      ],
-      "complexity": "Simple",
-      "category": "meta"
-    },
     "ansible-automation-engineer": {
       "file": "ansible-automation-engineer.md",
       "short_description": "Use this agent when you need expert assistance with Ansible automation for infrastructure management, configuration orchestration, and DevOps automation workflows",
@@ -299,70 +281,32 @@
       "complexity": "Medium-Complex",
       "category": "performance"
     },
-    "perses-core-engineer": {
-      "file": "perses-core-engineer.md",
-      "short_description": "Use this agent for Perses core development and contribution: Go backend (API handlers,\nstorage, auth), React/TypeScript frontend (dashboard editor, panel rendering), CUE schemas,\nand the overall Perses architecture",
+    "perses-engineer": {
+      "file": "perses-engineer.md",
+      "short_description": "Perses observability platform: dashboards, plugins, operator, core development.",
       "triggers": [
+        "perses",
+        "perses dashboard",
+        "perses plugin",
+        "perses operator",
+        "perses kubernetes",
+        "perses CRD",
+        "percli",
+        "perses migrate",
+        "perses dac",
+        "PersesDashboard",
         "perses core",
         "contribute perses",
         "perses backend",
         "perses frontend",
         "perses architecture",
-        "perses internals"
-      ],
-      "pairs_with": [
-        "perses-code-review",
-        "golang-general-engineer",
-        "typescript-frontend-engineer"
-      ],
-      "complexity": "Complex",
-      "category": "development"
-    },
-    "perses-dashboard-engineer": {
-      "file": "perses-dashboard-engineer.md",
-      "short_description": "Use this agent for Perses observability dashboard operations: creating/managing dashboards,\nconfiguring datasources, managing variables, writing PromQL/LogQL/TraceQL queries, deploying\nvia Dashboard-as-Code, and interacting with Perses API/MCP",
-      "triggers": [
-        "perses",
-        "percli",
-        "perses dashboard",
+        "perses internals",
         "perses project",
         "observability dashboard",
         "perses datasource",
-        "perses variable"
-      ],
-      "pairs_with": [
-        "perses-dashboard-create",
-        "perses-deploy",
-        "perses-grafana-migrate",
-        "perses-dac-pipeline",
-        "prometheus-grafana-engineer"
-      ],
-      "complexity": "Medium-Complex",
-      "category": "infrastructure"
-    },
-    "perses-operator-engineer": {
-      "file": "perses-operator-engineer.md",
-      "short_description": "Use this agent for Perses Kubernetes operator operations: deploying Perses via CRDs,\nmanaging PersesDashboard and PersesDatasource resources, Helm chart configuration, and\nK8s-native Perses management",
-      "triggers": [
-        "perses operator",
-        "perses kubernetes",
-        "perses CRD",
-        "PersesDashboard",
+        "perses variable",
         "perses helm",
-        "perses k8s"
-      ],
-      "pairs_with": [
-        "perses-deploy",
-        "kubernetes-helm-engineer"
-      ],
-      "complexity": "Medium-Complex",
-      "category": "infrastructure"
-    },
-    "perses-plugin-engineer": {
-      "file": "perses-plugin-engineer.md",
-      "short_description": "Use this agent for Perses plugin development: scaffolding plugins with percli plugin generate,\nCUE schema authoring, React component implementation, Module Federation integration, and the\nbuild/test/deploy workflow",
-      "triggers": [
-        "perses plugin",
+        "perses k8s",
         "create plugin",
         "panel plugin",
         "datasource plugin",
@@ -371,12 +315,23 @@
         "plugin schema"
       ],
       "pairs_with": [
+        "perses-onboard",
+        "perses-deploy",
+        "perses-lint",
+        "perses-code-review",
+        "perses-dashboard-create",
+        "perses-grafana-migrate",
+        "perses-dac-pipeline",
         "perses-plugin-create",
         "perses-cue-schema",
-        "perses-plugin-test"
+        "perses-plugin-test",
+        "golang-general-engineer",
+        "typescript-frontend-engineer",
+        "kubernetes-helm-engineer",
+        "prometheus-grafana-engineer"
       ],
       "complexity": "Medium-Complex",
-      "category": "development"
+      "category": "infrastructure"
     },
     "php-general-engineer": {
       "file": "php-general-engineer.md",
@@ -445,7 +400,7 @@
       ],
       "pairs_with": [
         "workflow-orchestrator",
-        "dispatching-parallel-agents"
+        "subagent-driven-development"
       ],
       "complexity": "Complex",
       "category": "meta"
@@ -556,7 +511,7 @@
       ],
       "pairs_with": [
         "workflow-orchestrator",
-        "dispatching-parallel-agents"
+        "subagent-driven-development"
       ],
       "complexity": "Complex",
       "category": "meta"
@@ -631,9 +586,9 @@
       "complexity": "Medium-Complex",
       "category": "review"
     },
-    "reviewer-code-quality": {
-      "file": "reviewer-code-quality.md",
-      "short_description": "Use this agent for code quality review against project conventions, style guides, and CLAUDE",
+    "reviewer-code": {
+      "file": "reviewer-code.md",
+      "short_description": "Code quality review: conventions, naming, dead code, performance, types, tests, comments, config safety",
       "triggers": [
         "code quality review",
         "style review",
@@ -641,50 +596,76 @@
         "CLAUDE.md compliance",
         "code quality",
         "style guide",
-        "coding standards"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "parallel-code-review",
-        "systematic-code-review"
-      ],
-      "complexity": "Medium",
-      "category": "review"
-    },
-    "reviewer-code-simplifier": {
-      "file": "reviewer-code-simplifier.md",
-      "short_description": "Use this agent for simplifying recently modified code for clarity and maintainability",
-      "triggers": [
+        "coding standards",
         "simplify code",
         "code clarity",
         "reduce complexity",
         "refactor for clarity",
         "code simplification",
         "too complex",
-        "readability"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "code-cleanup"
-      ],
-      "complexity": "Medium",
-      "category": "review"
-    },
-    "reviewer-comment-analyzer": {
-      "file": "reviewer-comment-analyzer.md",
-      "short_description": "Use this agent for analyzing code comments for accuracy, completeness, and long-term value",
-      "triggers": [
+        "readability",
+        "language idioms",
+        "modern stdlib",
+        "Go patterns",
+        "Python patterns",
+        "language-specific",
+        "anti-patterns",
+        "LLM code tells",
+        "naming consistency",
+        "naming conventions",
+        "naming drift",
+        "variable naming",
+        "acronym casing",
+        "convention drift",
+        "inconsistent naming",
+        "dead code",
+        "unused code",
+        "unreachable code",
+        "orphaned files",
+        "stale feature flags",
+        "commented-out code",
+        "unused exports",
         "comment accuracy",
         "documentation review",
         "comment rot",
         "verify comments",
         "stale comments",
         "misleading comments",
-        "comment quality"
+        "comment quality",
+        "performance review",
+        "hot paths",
+        "N+1 queries",
+        "allocations",
+        "O(n^2)",
+        "caching",
+        "slow code",
+        "performance optimization",
+        "type design",
+        "type invariants",
+        "encapsulation review",
+        "type quality",
+        "type safety",
+        "illegal states",
+        "constructor validation",
+        "test coverage",
+        "test quality",
+        "test gaps",
+        "missing tests",
+        "test completeness",
+        "test review",
+        "test analysis",
+        "config safety",
+        "hardcoded values",
+        "environment variables",
+        "secrets in code",
+        "unsafe defaults",
+        "configuration review",
+        "env var validation"
       ],
       "pairs_with": [
         "comprehensive-review",
-        "comment-quality"
+        "parallel-code-review",
+        "systematic-code-review"
       ],
       "complexity": "Medium",
       "category": "review"
@@ -711,26 +692,6 @@
       "complexity": "Medium",
       "category": "review"
     },
-    "reviewer-config-safety": {
-      "file": "reviewer-config-safety.md",
-      "short_description": "Use this agent for detecting configuration safety issues: hardcoded values that should be configurable, missing environment variable validation, secrets in source code, unsafe defaults, and configuration drift between environments",
-      "triggers": [
-        "config safety",
-        "hardcoded values",
-        "environment variables",
-        "secrets in code",
-        "unsafe defaults",
-        "configuration review",
-        "env var validation"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "reviewer-security",
-        "reviewer-docs-validator"
-      ],
-      "complexity": "Medium",
-      "category": "review"
-    },
     "reviewer-contrarian": {
       "file": "reviewer-contrarian.md",
       "short_description": "Use this agent for professional skepticism that challenges fundamental assumptions and\nexplores alternatives through systematic critique",
@@ -745,26 +706,6 @@
         "reviewer-skeptical-senior"
       ],
       "complexity": "Simple",
-      "category": "review"
-    },
-    "reviewer-dead-code": {
-      "file": "reviewer-dead-code.md",
-      "short_description": "Use this agent for detecting dead code: unreachable branches, unused exports, orphaned files, stale feature flags, commented-out code, and obsolete TODOs",
-      "triggers": [
-        "dead code",
-        "unused code",
-        "unreachable code",
-        "orphaned files",
-        "stale feature flags",
-        "commented-out code",
-        "unused exports"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "reviewer-code-quality",
-        "reviewer-docs-validator"
-      ],
-      "complexity": "Medium",
       "category": "review"
     },
     "reviewer-dependency-audit": {
@@ -825,27 +766,6 @@
       "complexity": "Medium",
       "category": "review"
     },
-    "reviewer-language-specialist": {
-      "file": "reviewer-language-specialist.md",
-      "short_description": "Use this agent for language-specific code review that adapts criteria based on the programming language",
-      "triggers": [
-        "language idioms",
-        "modern stdlib",
-        "Go patterns",
-        "Python patterns",
-        "language-specific",
-        "anti-patterns",
-        "LLM code tells"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "golang-general-engineer",
-        "python-general-engineer",
-        "typescript-frontend-engineer"
-      ],
-      "complexity": "Medium",
-      "category": "review"
-    },
     "reviewer-meta-process": {
       "file": "reviewer-meta-process.md",
       "short_description": "Meta-analysis of system design decisions \u2014 examines whether the SYSTEM ITSELF is creating\nproblems",
@@ -883,26 +803,6 @@
         "reviewer-api-contract",
         "reviewer-business-logic",
         "database-engineer"
-      ],
-      "complexity": "Medium",
-      "category": "review"
-    },
-    "reviewer-naming-consistency": {
-      "file": "reviewer-naming-consistency.md",
-      "short_description": "Use this agent for detecting naming inconsistencies: convention drift (userID vs userId vs user_id), package naming violations, verb inconsistency (Get vs Fetch vs Retrieve), acronym casing violations, and file naming mismatches",
-      "triggers": [
-        "naming consistency",
-        "naming conventions",
-        "naming drift",
-        "variable naming",
-        "acronym casing",
-        "convention drift",
-        "inconsistent naming"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "reviewer-code-quality",
-        "reviewer-language-specialist"
       ],
       "complexity": "Medium",
       "category": "review"
@@ -953,27 +853,6 @@
         "systematic-code-review"
       ],
       "complexity": "Simple",
-      "category": "review"
-    },
-    "reviewer-performance": {
-      "file": "reviewer-performance.md",
-      "short_description": "Use this agent for detecting performance issues, hot paths, algorithmic complexity problems, unnecessary allocations, N+1 queries, missing caching opportunities, and index usage gaps",
-      "triggers": [
-        "performance review",
-        "hot paths",
-        "N+1 queries",
-        "allocations",
-        "O(n\u00b2)",
-        "caching",
-        "slow code",
-        "performance optimization"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "reviewer-concurrency",
-        "golang-general-engineer"
-      ],
-      "complexity": "Medium",
       "category": "review"
     },
     "reviewer-pragmatic-builder": {
@@ -1063,45 +942,6 @@
         "systematic-code-review"
       ],
       "complexity": "Medium",
-      "category": "review"
-    },
-    "reviewer-test-analyzer": {
-      "file": "reviewer-test-analyzer.md",
-      "short_description": "Use this agent for reviewing test coverage quality, completeness, and resilience",
-      "triggers": [
-        "test coverage",
-        "test quality",
-        "test gaps",
-        "missing tests",
-        "test completeness",
-        "test review",
-        "test analysis"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "test-driven-development",
-        "go-patterns"
-      ],
-      "complexity": "Medium",
-      "category": "review"
-    },
-    "reviewer-type-design": {
-      "file": "reviewer-type-design.md",
-      "short_description": "Use this agent for evaluating type design quality, invariant expression, encapsulation, and type safety",
-      "triggers": [
-        "type design",
-        "type invariants",
-        "encapsulation review",
-        "type quality",
-        "type safety",
-        "illegal states",
-        "constructor validation"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "systematic-code-review"
-      ],
-      "complexity": "Medium-Complex",
       "category": "review"
     },
     "reviewer-user-advocate": {

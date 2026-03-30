@@ -19,8 +19,7 @@ routing:
     - plan-checker
     - pre-execution check
   pairs_with:
-    - feature-plan
-    - feature-implement
+    - feature-lifecycle
     - workflow-orchestrator
     - plan-manager
   complexity: Medium
@@ -53,7 +52,7 @@ Accept the plan from one of these sources (in priority order):
 
 If no plan is found:
 ```
-BLOCK: No plan found. Provide a plan file path, or run /feature-plan or
+BLOCK: No plan found. Provide a plan file path, or run /feature-lifecycle (plan phase) or
 workflow-orchestrator to create one first.
 ```
 
@@ -314,7 +313,7 @@ Fix hint: [specific suggestion for how to fix it]
 
 If verdict is PASS or PASS with warnings, suggest:
 ```
-Plan validated. Proceed to execution with /feature-implement or
+Plan validated. Proceed to execution with /feature-lifecycle (implement phase) or
 continue with workflow-orchestrator EXECUTE phase.
 ```
 
@@ -377,7 +376,7 @@ Run Phase 2 again on the revised plan. Only re-check dimensions that had finding
 
 | Error | Cause | Solution |
 |-------|-------|----------|
-| No plan found | No plan file at expected locations | Provide explicit path, or run /feature-plan first |
+| No plan found | No plan file at expected locations | Provide explicit path, or run /feature-lifecycle (plan phase) first |
 | No goal found | Plan lacks ## Goal or ## Success Criteria | Add a goal section to the plan before checking |
 | File verification fails | Referenced file doesn't exist in codebase | Fix the file path in the plan, or create the file first |
 | CLAUDE.md not found | No CLAUDE.md in target repo | Dimension 9 passes automatically; note in findings |
@@ -387,7 +386,6 @@ Run Phase 2 again on the revised plan. Only re-check dimensions that had finding
 ## References
 
 - [ADR-074: Plan Checker Pre-Execution Validation](/adr/074-plan-checker-pre-execution-validation.md)
-- [Feature Plan Skill](/skills/feature-plan/SKILL.md) -- produces plans this skill validates
-- [Feature Implement Skill](/skills/feature-implement/SKILL.md) -- executes plans after this skill validates
+- [Feature Lifecycle](/skills/feature-lifecycle/SKILL.md) -- plan phase produces plans this skill validates; implement phase executes plans after validation
 - [Workflow Orchestrator](/pipelines/workflow-orchestrator/SKILL.md) -- PLAN phase produces plans this skill can validate
 - [Verification Before Completion](/skills/verification-before-completion/SKILL.md) -- post-execution counterpart (validates results, not plans)

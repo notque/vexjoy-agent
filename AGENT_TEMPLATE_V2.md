@@ -17,44 +17,39 @@ agents/
 
 ---
 
+## Consolidation Check
+
+Before creating a new agent, answer these questions:
+
+1. **Does an umbrella agent already exist for this domain?** Search `agents/INDEX.json` and `ls agents/` for the domain name. If an agent exists, add a reference file to it instead of creating a new agent.
+2. **Could this be a reference file on an existing agent?** If the new agent covers a sub-concern of a broader domain (e.g., "Perses plugins" is a sub-concern of "Perses"), it MUST be a reference file, not a new agent.
+3. **Does this domain have multiple sub-concerns?** If yes, create the agent with a `references/` directory from the start. Do not create a flat agent that will need restructuring later.
+
+**One domain = one agent + many reference files. Never create multiple agents for the same domain.**
+
+---
+
+## Description Guidelines
+
+The `description` field appears in the system prompt for every session. It must be:
+
+- **A single quoted line, 60-100 characters.** No multi-line descriptions. No paragraphs.
+- **What it does, not how to use it.** No "Use when:", "Use for:", "Example:" in the description.
+- **No examples.** Examples belong in the agent body or `references/`.
+- **No routing context.** The `/do` router has its own routing tables. The description does not need trigger phrases.
+
+Good: `description: "Go backend development, testing, and code review"`
+Bad: `description: "Use this agent when working with Go files, .go extensions, or Go modules. Examples include..."`
+
+---
+
 ## Main Agent File Template
 
 ```yaml
 ---
 name: {domain}-{function}-engineer
 version: 2.0.0
-description: |
-  Use this agent when [trigger conditions]. This includes [capabilities].
-  The agent specializes in [specific areas].
-
-  Examples:
-
-  <example>
-  Context: [Scenario]
-  user: "[Sample request]"
-  assistant: "[How agent would respond]"
-  <commentary>
-  [Why this agent is appropriate - mention triggers and expertise]
-  </commentary>
-  </example>
-
-  <example>
-  Context: [Different scenario]
-  user: "[Sample request]"
-  assistant: "[How agent would respond]"
-  <commentary>
-  [Why this agent is appropriate]
-  </commentary>
-  </example>
-
-  <example>
-  Context: [Third scenario showing variety]
-  user: "[Sample request]"
-  assistant: "[How agent would respond]"
-  <commentary>
-  [Why this agent is appropriate]
-  </commentary>
-  </example>
+description: "{60-100 char single-line description of domain expertise}"
 
 color: blue | green | orange | red | purple
 hooks:

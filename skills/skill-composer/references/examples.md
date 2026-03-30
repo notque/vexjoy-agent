@@ -261,12 +261,12 @@ Task Analysis:
   Primary goals: implementation, analysis
   Quality requirements:
 
-Selected Skills (4): pr-miner, codebase-analyzer, workflow-orchestrator, test-driven-development
+Selected Skills (4): pr-workflow (miner), codebase-analyzer, workflow-orchestrator, test-driven-development
 
 Execution Plan:
 
 Phase 1 (PARALLEL):
-  → pr-miner
+  → pr-workflow (miner)
   → codebase-analyzer
 
 Phase 2:
@@ -283,7 +283,7 @@ Summary:
 
 ### Execution Result
 **Phase 1 (Parallel)**:
-- `pr-miner` (15 seconds): Found 12 PR comments about pagination patterns
+- `pr-workflow (miner)` (15 seconds): Found 12 PR comments about pagination patterns
   - Tribal knowledge: "Always use cursor-based for large datasets"
   - Standard: "Limit parameter max value: 100"
 - `codebase-analyzer` (12 seconds): Extracted pagination patterns from 3 existing implementations
@@ -680,7 +680,7 @@ Total Duration: 42 minutes (vs 30 minutes without adaptation)
 | Composition | Sequential | Parallel | Savings |
 |-------------|-----------|----------|---------|
 | [code-linting, comment-quality] | 12 min | 8 min | 33% |
-| [pr-miner, codebase-analyzer] | 28 min | 16 min | 43% |
+| [pr-workflow (miner), codebase-analyzer] | 28 min | 16 min | 43% |
 | [3 language-specific lints] | 18 min | 8 min | 56% |
 
 ### Skill Chain Duration Averages
@@ -702,7 +702,7 @@ Total Duration: 42 minutes (vs 30 minutes without adaptation)
 2. **code-linting → verification-before-completion** (23%)
 3. **systematic-debugging → comment-quality** (12%)
 4. **[code-linting, comment-quality] → verification** (8%)
-5. **pr-miner → workflow-orchestrator** (5%)
+5. **pr-workflow (miner) → workflow-orchestrator** (5%)
 
 ### Success Rates
 

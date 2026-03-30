@@ -21,11 +21,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `feature-design` | yes | Collaborative design phase — explore requirements and produce a design document |
-| `feature-plan` | yes | Break a design document into wave-ordered implementation tasks with agent assignments |
-| `feature-implement` | yes | Execute wave-ordered plan by dispatching tasks to domain agents |
-| `feature-validate` | yes | Run quality gates on implemented feature (tests, lint, type checks) |
-| `feature-release` | yes | Merge validated feature to main via PR, tag release, clean up worktree |
+| `feature-lifecycle` | no | Phase-gated feature workflow: design, plan, implement, validate, release. Routes to correct phase via references. |
 
 ---
 
@@ -53,7 +49,6 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `socratic-debugging` | no | Question-only debugging mode that guides users to find root causes themselves |
 | `pair-programming` | no | Collaborative coding with enforced micro-steps and user-controlled pace |
 | `subagent-driven-development` | no | Fresh-subagent-per-task execution with two-stage review (ADR compliance + code quality) |
-| `dispatching-parallel-agents` | no | Dispatch independent subagents in parallel for unrelated problems |
 | `condition-based-waiting` | no | Condition-based polling and retry patterns with exponential backoff |
 
 ---
@@ -169,11 +164,9 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `voice-orchestrator` (deprecated) | no | 7-phase voice content pipeline: LOAD, GROUND, GENERATE, VALIDATE, REFINE, OUTPUT, CLEANUP. Replaced by `voice-writer`. |
 | `voice-validator` | no | Critique-and-rewrite enforcement loop for voice fidelity |
 | `create-voice` | no | Create a new voice profile from writing samples (7-phase pipeline) |
 | `anti-ai-editor` | no | Review and revise content to remove AI-sounding patterns |
-| `blog-post-writer` (deprecated) | no | Voice-integrated blog post creation with 4-phase workflow. Replaced by `voice-writer`. |
 | `post-outliner` | no | Create structural blueprints for blog posts before writing |
 | `topic-brainstormer` | no | Generate blog post topic ideas through problem mining and gap analysis |
 | `series-planner` | no | Plan multi-part content series with structure and publishing cadence |
@@ -258,6 +251,5 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Description |
 |-------|-------------|
-| `_feature-shared` | Shared context and artifacts used across the feature lifecycle skills |
 | `shared-patterns` | Reusable prompt patterns referenced by multiple skills |
 | `install` | Toolkit installation helper |

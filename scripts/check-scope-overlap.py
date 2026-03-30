@@ -2,8 +2,8 @@
 """Check file scope overlaps between parallel agent tasks.
 
 Takes a list of tasks with file/directory scopes and detects conflicts,
-then recommends parallelization groupings. Used by dispatching-parallel-agents
-and parallel dispatch workflows to prevent merge conflicts.
+then recommends parallelization groupings. Used by parallel dispatch
+workflows to prevent merge conflicts.
 
 Usage:
     python3 scripts/check-scope-overlap.py --tasks '[...]' --json

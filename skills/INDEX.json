@@ -19,9 +19,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "feature-design",
-        "feature-plan",
-        "feature-implement"
+        "feature-lifecycle"
       ],
       "model": "sonnet"
     },
@@ -76,16 +74,6 @@
       "category": "content-publishing",
       "user_invocable": false,
       "version": "2.0.0"
-    },
-    "blog-post-writer": {
-      "file": "skills/blog-post-writer/SKILL.md",
-      "description": "Voice-integrated blog post creation with 4-phase workflow: Assess, Decide, Draft, Preview.",
-      "triggers": [],
-      "category": "content-creation",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "deprecated": true,
-      "deprecated_by": "voice-writer"
     },
     "bluesky-reader": {
       "file": "skills/bluesky-reader/SKILL.md",
@@ -333,22 +321,6 @@
       "user_invocable": false,
       "version": "1.0.0"
     },
-    "dispatching-parallel-agents": {
-      "file": "skills/dispatching-parallel-agents/SKILL.md",
-      "description": "Dispatch independent subagents in parallel for unrelated problems spanning different subsystems.",
-      "triggers": [
-        "parallel agents",
-        "independent failures",
-        "fan-out dispatch",
-        "do these simultaneously",
-        "handle all at once",
-        "run in parallel",
-        "split into tasks"
-      ],
-      "category": "process",
-      "user_invocable": false,
-      "version": "2.0.0"
-    },
     "distinctive-frontend-design": {
       "file": "skills/distinctive-frontend-design/SKILL.md",
       "description": "Context-driven aesthetic exploration with anti-cliche validation: typography, color, animation, atmosphere.",
@@ -439,105 +411,50 @@
       "version": "1.0.0",
       "pairs_with": []
     },
-    "feature-design": {
-      "file": "skills/feature-design/SKILL.md",
-      "description": "Collaborative design phase for feature lifecycle: explore requirements, discuss trade-offs, produce design document.",
+    "feature-lifecycle": {
+      "file": "skills/feature-lifecycle/SKILL.md",
+      "description": "Feature lifecycle: design, plan, implement, validate, release. Phase-gated workflow.",
       "triggers": [
         "feature design",
         "design feature",
         "think through",
         "explore approaches",
         "design first",
-        "feature-design"
-      ],
-      "category": "process",
-      "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "feature-plan",
-        "workflow-orchestrator"
-      ]
-    },
-    "feature-implement": {
-      "file": "skills/feature-implement/SKILL.md",
-      "description": "Execute wave-ordered implementation plan by dispatching tasks to domain agents.",
-      "triggers": [
-        "feature implement",
-        "implement feature",
-        "execute plan",
-        "start building",
-        "feature-implement"
-      ],
-      "category": "process",
-      "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "feature-plan",
-        "feature-validate",
-        "subagent-driven-development"
-      ]
-    },
-    "feature-plan": {
-      "file": "skills/feature-plan/SKILL.md",
-      "description": "Break a design document into wave-ordered implementation tasks with domain agent assignments.",
-      "triggers": [
         "feature plan",
         "plan feature",
         "break down design",
         "create tasks",
-        "feature-plan"
-      ],
-      "category": "process",
-      "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "feature-design",
-        "feature-implement",
-        "workflow-orchestrator"
-      ]
-    },
-    "feature-release": {
-      "file": "skills/feature-release/SKILL.md",
-      "description": "Merge validated feature to main via PR, tag release, cleanup worktree.",
-      "triggers": [
-        "feature release",
-        "release feature",
-        "merge feature",
-        "ship it",
-        "feature-release"
-      ],
-      "category": "process",
-      "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "feature-validate",
-        "pr-pipeline",
-        "git-commit-flow"
-      ]
-    },
-    "feature-validate": {
-      "file": "skills/feature-validate/SKILL.md",
-      "description": "Run quality gates on implemented feature: tests, lint, type checks, and custom validation.",
-      "triggers": [
+        "feature implement",
+        "implement feature",
+        "execute plan",
+        "start building",
         "feature validate",
         "validate feature",
         "run quality gates",
         "check feature",
-        "feature-validate"
+        "feature release",
+        "release feature",
+        "ship it",
+        "build feature end to end",
+        "full feature lifecycle",
+        "feature from scratch",
+        "design to release",
+        "complete feature pipeline",
+        "feature pipeline"
       ],
       "category": "process",
       "force_route": true,
       "user_invocable": false,
-      "version": "2.0.0",
+      "version": "3.0.0",
       "pairs_with": [
-        "feature-implement",
-        "feature-release",
+        "workflow-orchestrator",
+        "subagent-driven-development",
+        "pr-pipeline",
+        "git-commit-flow",
         "verification-before-completion",
-        "universal-quality-gate"
+        "universal-quality-gate",
+        "adr-consultation",
+        "spec-writer"
       ]
     },
     "fish-shell-config": {
@@ -815,8 +732,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "feature-implement",
-        "feature-validate",
+        "feature-lifecycle",
         "comprehensive-review"
       ]
     },
@@ -997,7 +913,7 @@
       "category": "code-review",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-core-engineer"
+      "agent": "perses-engineer"
     },
     "perses-cue-schema": {
       "file": "skills/perses-cue-schema/SKILL.md",
@@ -1009,7 +925,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-plugin-engineer"
+      "agent": "perses-engineer"
     },
     "perses-dashboard-create": {
       "file": "skills/perses-dashboard-create/SKILL.md",
@@ -1021,7 +937,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-dashboard-review": {
       "file": "skills/perses-dashboard-review/SKILL.md",
@@ -1033,7 +949,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-datasource-manage": {
       "file": "skills/perses-datasource-manage/SKILL.md",
@@ -1045,7 +961,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-deploy": {
       "file": "skills/perses-deploy/SKILL.md",
@@ -1068,7 +984,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-lint": {
       "file": "skills/perses-lint/SKILL.md",
@@ -1080,7 +996,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-onboard": {
       "file": "skills/perses-onboard/SKILL.md",
@@ -1092,7 +1008,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-plugin-create": {
       "file": "skills/perses-plugin-create/SKILL.md",
@@ -1104,7 +1020,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-plugin-engineer"
+      "agent": "perses-engineer"
     },
     "perses-plugin-test": {
       "file": "skills/perses-plugin-test/SKILL.md",
@@ -1116,7 +1032,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-plugin-engineer"
+      "agent": "perses-engineer"
     },
     "perses-project-manage": {
       "file": "skills/perses-project-manage/SKILL.md",
@@ -1128,7 +1044,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-query-builder": {
       "file": "skills/perses-query-builder/SKILL.md",
@@ -1141,7 +1057,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-variable-manage": {
       "file": "skills/perses-variable-manage/SKILL.md",
@@ -1153,7 +1069,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "php-quality": {
       "file": "skills/php-quality/SKILL.md",
@@ -1195,8 +1111,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "feature-plan",
-        "feature-implement",
+        "feature-lifecycle",
         "workflow-orchestrator",
         "plan-manager"
       ]
@@ -1225,17 +1140,6 @@
       "user_invocable": false,
       "version": "2.0.0"
     },
-    "plans": {
-      "file": "skills/plans/SKILL.md",
-      "description": "Deterministic plan lifecycle management via scripts/plan-manager.py: create, track, check, complete, and abandon task plans.",
-      "triggers": [
-        "manage plans",
-        "plan lifecycle"
-      ],
-      "category": "process",
-      "user_invocable": true,
-      "version": "2.0.0"
-    },
     "plant-seed": {
       "file": "skills/plant-seed/SKILL.md",
       "description": "Capture a forward-looking idea as a seed with trigger conditions, scope, and rationale so it surfaces automatically during future feature design.",
@@ -1251,7 +1155,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "feature-design"
+        "feature-lifecycle"
       ]
     },
     "post-outliner": {
@@ -1391,8 +1295,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "feature-design",
-        "feature-plan",
+        "feature-lifecycle",
         "workflow-orchestrator"
       ]
     },
@@ -1755,9 +1658,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "feature-design",
-        "feature-plan",
-        "feature-validate"
+        "feature-lifecycle"
       ]
     },
     "subagent-driven-development": {
@@ -1973,16 +1874,6 @@
       "category": "testing",
       "user_invocable": false,
       "version": "2.0.0"
-    },
-    "voice-orchestrator": {
-      "file": "skills/voice-orchestrator/SKILL.md",
-      "description": "Multi-step voice content generation with deterministic validation.",
-      "triggers": [],
-      "category": "voice",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "deprecated": true,
-      "deprecated_by": "voice-writer"
     },
     "voice-validator": {
       "file": "skills/voice-validator/SKILL.md",

@@ -39,10 +39,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **technical-journalist-writer** | User needs professional technical writing in a journalism style — articles, posts, or content with a specific authored voice. |
 | **testing-automation-engineer** | User needs comprehensive testing strategy, E2E test setup, Playwright tests, or test infrastructure design. NOT: writing Go unit tests (use go-patterns force-route). |
 | **ui-design-engineer** | User is designing or implementing UI/UX for web applications: layout, Tailwind styling, component design, or visual hierarchy. |
-| **perses-dashboard-engineer** | User is creating, managing, or configuring Perses observability dashboards, datasources, variables, or projects. |
-| **perses-plugin-engineer** | User is developing Perses plugins: panel plugins, datasource plugins, CUE schemas. |
-| **perses-core-engineer** | User is contributing to Perses core: Go backend, API handlers, or upstream Perses development. |
-| **perses-operator-engineer** | User is deploying Perses via Kubernetes operator, CRDs, or managing Perses in a k8s cluster. |
+| **perses-engineer** | User is working with the Perses observability platform: dashboards, plugins, operator/K8s deployment, or core development. |
 | **github-profile-rules-engineer** | User wants to extract coding conventions, programming rules, or style guidelines from a GitHub profile's repositories. |
 | **react-portfolio-engineer** | User is building a React portfolio or gallery website, typically for creative professionals. |
 | **nextjs-ecommerce-engineer** | User is building an e-commerce site with Next.js: product pages, cart, checkout flows. |
@@ -70,7 +67,6 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **testing-anti-patterns** | User wants to identify or fix flaky tests, or review tests for common anti-patterns. |
 | **subagent-driven-development** | User wants to execute a complex plan using subagents in fresh contexts, or needs a two-stage review/implementation cycle. |
 | **workflow-orchestrator** | User wants to execute an existing plan with structured phases, or says "run the plan", "execute this". |
-| **dispatching-parallel-agents** | User has 2+ independent failures, subtasks, or files that can be fixed simultaneously. |
 | **parallel-code-review** | User wants comprehensive review of a codebase from multiple reviewer perspectives simultaneously. |
 | **codex-code-review** | User wants a second-opinion code review from OpenAI Codex CLI (GPT-5.4 xhigh), a cross-model review, or says "codex review", "second opinion", "get another perspective". NOT: a standard Claude-only review (use systematic-code-review or parallel-code-review). |
 | **with-anti-rationalization** | User explicitly requests maximum rigor, thorough verification, or wants anti-rationalization patterns injected. |
@@ -114,8 +110,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **full-repo-review** | User wants a comprehensive 3-wave review of all source files in the entire repository. |
 | **repo-value-analysis** | User wants to systematically analyze an external repository to determine what ideas or patterns are worth adopting. |
 | **data-analysis** | User wants to analyze data: CSV files, metrics, A/B test results, cohort analysis, statistical distributions, KPIs, or funnel data. |
-| **pr-miner** | User wants to extract review comments or learnings from past GitHub PRs. |
-| **pr-mining-coordinator** | User wants to coordinate batch mining across multiple PRs. |
+| **pr-workflow** (miner mode) | User wants to extract review comments or learnings from past GitHub PRs, or coordinate batch mining. |
 | **skill-composer** | User wants to compose multiple skills into a multi-skill workflow. |
 | **routing-table-updater** | User wants to update routing tables after adding or changing agents/skills. |
 | **docs-sync-checker** | User wants to check if README files or documentation are in sync with the actual code. |
@@ -134,14 +129,9 @@ Route to these agents based on the user's task domain. Each entry describes what
 
 | Skill | When to Route Here |
 |-------|-------------------|
-| **pr-pipeline** | User wants the full structured PR workflow: stage, review, commit, push, create PR, verify. Use when the user wants the complete pipeline with all gates. |
-| **pr-sync (FORCE)** | User wants to get local code changes onto GitHub — pushing a branch, creating a PR, or syncing local commits to the remote. Common phrasings: "open a pull request", "create a PR", "make a PR", "submit PR", "push and PR". NOT: "push back" (disagree with a decision), "push the boundaries" (explore limits), "push back on this" (resistance), "push my luck" (risk-taking). The intent must be about git/GitHub synchronization. |
+| **pr-workflow (FORCE)** | User wants to get local code changes onto GitHub — pushing a branch, creating a PR, or syncing local commits to the remote. Also handles: PR status checks, fixing review comments, cleaning up branches after merge, addressing PR feedback, and mining tribal knowledge from PRs. Common phrasings: "open a pull request", "create a PR", "make a PR", "submit PR", "push and PR", "pr status", "fix PR comments", "clean up branches", "mine PRs". NOT: "push back" (disagree with a decision), "push the boundaries" (explore limits). The intent must be about git/GitHub operations. |
 | **git-commit-flow (FORCE)** | User wants to stage files and create a git commit from local changes. Common phrasings: "save my work", "commit this", "save progress", "checkpoint", "commit these changes". NOT: "commit to this approach" (deciding), "commit to the team" (dedication), "I'm committed to finishing" (resolve). The intent must be about creating a git commit object. |
 | **github-actions-check (FORCE)** | User wants to know if CI passed or check GitHub Actions run status. NOT: "check this code" (review), "check my logic" (analysis), "double-check this" (verify), "check the docs" (read documentation). The intent must be about CI/CD pipeline status. |
-| **pr-cleanup** | User wants to delete merged branches or clean up stale PRs after merging. |
-| **pr-fix** | User wants to address specific PR review comments left by human reviewers. |
-| **pr-review-address-feedback** | User wants to understand and respond to PR feedback, or asks what reviewers said. |
-| **pr-status** | User wants to know the current status of a PR or branch without taking action. |
 | **/pr-review command** | User wants a comprehensive code review of a PR with retro learning applied. This is a command, not a skill — invoke it directly. |
 
 ### PR Workflow Policies
@@ -155,11 +145,9 @@ Route to these agents based on the user's task domain. Each entry describes what
 
 ## Content Creation Skills
 
-**Deprecated**: `blog-post-writer` and `voice-orchestrator` are deprecated. All writing tasks route to `voice-writer`.
-
 | Skill | When to Route Here |
 |-------|-------------------|
-| **voice-writer** | User wants to write a blog post, article, or long-form content in a specific voice. Catches all content triggers previously handled by blog-post-writer (deprecated) and voice-orchestrator (deprecated). |
+| **voice-writer** | User wants to write a blog post, article, or long-form content in a specific voice. |
 | **anti-ai-editor** | User wants to edit content to remove AI-sounding patterns, genericness, or sterile phrasing. |
 | **de-ai-pipeline (FORCE)** | User wants to scan and systematically fix AI patterns across documentation or a content repository. |
 | **post-outliner** | User wants a structured outline for a blog post or article before writing. |
@@ -197,8 +185,6 @@ Route to these agents based on the user's task domain. Each entry describes what
 
 **Voice selection:** Use `create-voice` to build voice profiles from writing samples, then `voice-writer` for multi-step generation in that voice. Custom voice profiles are matched via their skill triggers.
 
-**Deprecated**: `blog-post-writer` and `voice-orchestrator` are deprecated. All writing tasks route to `voice-writer`.
-
 **Wabi-sabi principle:** Perfection is an AI tell. Natural imperfections are features. Don't over-polish.
 
 ---
@@ -209,15 +195,11 @@ Sequential pipeline: design → plan → implement → validate → release. Eac
 
 | Skill | Phase | When to Route Here |
 |-------|-------|--------------------|
-| **feature-design (FORCE)** | 1 - Design | User wants to think through a new feature, explore approaches, or design before committing to implementation. Entry point for all new features. |
-| **feature-plan (FORCE)** | 2 - Plan | User wants to break down an approved feature design into atomic implementation tasks. Requires design phase to be complete. |
-| **feature-implement (FORCE)** | 3 - Implement | User wants to execute the feature plan and build the code. Requires plan phase to be complete. |
-| **feature-validate (FORCE)** | 4 - Validate | User wants to run quality gates, tests, and review on the implemented feature. |
-| **feature-release (FORCE)** | 5 - Release | User wants to merge and ship a validated feature. Requires validate phase to be complete. |
+| **feature-lifecycle (FORCE)** | 1-5 | All feature lifecycle phases: design, plan, implement, validate, release. Routes to the correct phase based on feature state. Entry point for all new features. |
 
-**Auto-detection**: When `.feature/` exists, `feature-state.py status` determines current phase and routes to the matching skill automatically.
+**Auto-detection**: When `.feature/` exists, `feature-state.py status` determines current phase and feature-lifecycle routes to the matching phase reference automatically.
 
-**Entry point**: New features always enter via `feature-design`. Skipping phases is not supported.
+**Entry point**: New features always enter via feature-lifecycle (design phase). Skipping phases is not supported.
 
 ---
 
@@ -310,22 +292,22 @@ These pipelines create/manage other pipelines (meta-pipelines):
 
 | Skill | When to Route Here |
 |-------|-------------------|
-| **perses-dashboard-create** (perses-dashboard-engineer) | User wants to create a new Perses dashboard from scratch. |
-| **perses-deploy** (perses-dashboard-engineer) | User wants to deploy or install a Perses server instance. |
-| **perses-onboard** (perses-dashboard-engineer) | User wants to connect to or set up a new Perses environment. |
+| **perses-dashboard-create** (perses-engineer) | User wants to create a new Perses dashboard from scratch. |
+| **perses-deploy** (perses-engineer) | User wants to deploy or install a Perses server instance. |
+| **perses-onboard** (perses-engineer) | User wants to connect to or set up a new Perses environment. |
 | **perses-grafana-migrate (FORCE)** | User wants to migrate a Grafana dashboard to Perses format. NOT: any other migration or conversion task. |
 | **perses-dac-pipeline (FORCE)** | User wants dashboard-as-code: managing Perses dashboards via CUE, GitOps, or code-driven workflows. |
-| **perses-datasource-manage** (perses-dashboard-engineer) | User wants to add or configure a Prometheus or other datasource in Perses. |
-| **perses-variable-manage** (perses-dashboard-engineer) | User wants to add or edit variables or filters in a Perses dashboard. |
-| **perses-project-manage** (perses-dashboard-engineer) | User wants to create Perses projects, configure RBAC, or manage roles. |
+| **perses-datasource-manage** (perses-engineer) | User wants to add or configure a Prometheus or other datasource in Perses. |
+| **perses-variable-manage** (perses-engineer) | User wants to add or edit variables or filters in a Perses dashboard. |
+| **perses-project-manage** (perses-engineer) | User wants to create Perses projects, configure RBAC, or manage roles. |
 | **perses-lint (FORCE)** | User wants to validate or lint a Perses dashboard definition for correctness. NOT: "check the dashboard" meaning visual review. |
-| **perses-query-builder** (perses-dashboard-engineer) | User wants to build PromQL or LogQL queries for use in Perses panels. |
-| **perses-dashboard-review** (perses-dashboard-engineer) | User wants a review of an existing Perses dashboard for quality or correctness. |
+| **perses-query-builder** (perses-engineer) | User wants to build PromQL or LogQL queries for use in Perses panels. |
+| **perses-dashboard-review** (perses-engineer) | User wants a review of an existing Perses dashboard for quality or correctness. |
 | **perses-plugin-create (FORCE)** | User wants to create a new Perses plugin: a panel plugin or datasource plugin. |
-| **perses-plugin-pipeline** (perses-plugin-engineer) | User wants the full plugin development workflow with scaffolding, schema, testing. |
-| **perses-cue-schema** (perses-plugin-engineer) | User wants to work on Perses CUE schema definitions or plugin data models. |
-| **perses-plugin-test** (perses-plugin-engineer) | User wants to test a Perses plugin or validate its schema. |
-| **perses-code-review** (perses-core-engineer) | User wants a code review of a Perses-related PR or Go code in Perses repositories. |
+| **perses-plugin-pipeline** (perses-engineer) | User wants the full plugin development workflow with scaffolding, schema, testing. |
+| **perses-cue-schema** (perses-engineer) | User wants to work on Perses CUE schema definitions or plugin data models. |
+| **perses-plugin-test** (perses-engineer) | User wants to test a Perses plugin or validate its schema. |
+| **perses-code-review** (perses-engineer) | User wants a code review of a Perses-related PR or Go code in Perses repositories. |
 
 ---
 
@@ -360,16 +342,15 @@ Invoked via the roast skill or directly:
 | "review my K8s manifests" | kubernetes-helm-engineer + systematic-code-review | K8s domain, review task |
 | "roast this design doc" | roast skill (5 personas) | Multi-persona critique |
 | "execute plan with subagents" | subagent-driven-development | Explicit subagent execution |
-| "fix these 3 failing test files" | dispatching-parallel-agents | 3 independent failures = parallel |
 | "debug TypeScript race condition" | typescript-debugging-engineer + systematic-debugging | TS debugging domain |
 | "write in custom voice" | voice-writer + [your-voice-skill] | Voice generation task |
 | "comprehensive code review" | parallel-code-review (3 reviewers) | Multi-reviewer parallel review |
-| "design a rate limiter feature" | **feature-design (FORCE)** | New feature entry point |
-| "plan this feature" | **feature-plan (FORCE)** | Feature plan phase |
-| "build this feature" | **feature-implement (FORCE)** | Feature implementation phase |
+| "design a rate limiter feature" | **feature-lifecycle (FORCE)** | New feature entry point (design phase) |
+| "plan this feature" | **feature-lifecycle (FORCE)** | Feature plan phase |
+| "build this feature" | **feature-lifecycle (FORCE)** | Feature implementation phase |
 | "review this PR" | /pr-review command (retro-enabled) | PR review command |
-| "submit a PR" | pr-pipeline | Full PR workflow with gates |
-| "push my changes" | **pr-sync (FORCE)** | Intent: get local changes onto GitHub |
+| "submit a PR" | pr-workflow (pipeline mode) | Full PR workflow with gates |
+| "push my changes" | **pr-workflow (FORCE)** | Intent: get local changes onto GitHub |
 | "push back on this decision" | (not a routing target) | Intent: disagree — "push" is not a git push |
 | "commit this" | **git-commit-flow (FORCE)** | Intent: create a git commit |
 | "commit to this approach" | (not a routing target) | Intent: decide — "commit" is not a git commit |
@@ -399,8 +380,8 @@ Invoked via the roast skill or directly:
 | "work on sapcc Go code" | **go-patterns (FORCE)** | SAPCC conventions domain — auto-detected by hook |
 | "moderate reddit" | reddit-moderate | Reddit moderation |
 | "check my modqueue" | reddit-moderate | Reddit moderation |
-| "open a pull request" | **pr-sync (FORCE)** | Intent: create a PR on GitHub |
-| "make a PR" | **pr-sync (FORCE)** | Intent: create a PR on GitHub |
+| "open a pull request" | **pr-workflow (FORCE)** | Intent: create a PR on GitHub |
+| "make a PR" | **pr-workflow (FORCE)** | Intent: create a PR on GitHub |
 | "save my work" | **git-commit-flow (FORCE)** | Intent: commit current changes |
 | "checkpoint" | **git-commit-flow (FORCE)** | Intent: save progress as a commit |
 | "I'm stuck" | workflow-help | User is lost — guide them |
@@ -413,6 +394,6 @@ Invoked via the roast skill or directly:
 | "review this" | comprehensive-review | Multi-wave code review |
 | "look at this code" | comprehensive-review | Code review request |
 | "debug the goroutine leak" | golang-general-engineer + systematic-debugging | Go domain + diagnosis |
-| "write a blog post about X" | voice-writer | Blog content generation (was blog-post-writer, now deprecated) |
+| "write a blog post about X" | voice-writer | Blog content generation |
 | "article about kubernetes" | voice-writer | Long-form content in voice |
 | "write for the website" | voice-writer | Website content generation |

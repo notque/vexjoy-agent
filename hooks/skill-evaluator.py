@@ -42,7 +42,6 @@ AGENT_ROUTING = {
     "performance-optimization-engineer": "Core Web Vitals, bundle size, caching",
     "testing-automation-engineer": "Unit/E2E tests, Playwright, CI pipelines",
     # Meta/Creation
-    "agent-creator-engineer": "Create new specialized agents",
     "skill-creator": "Create new Claude skills",
     "hook-development-engineer": "Create Claude Code hooks, event handlers",
     "mcp-local-docs-engineer": "Build MCP servers for documentation",
@@ -151,7 +150,7 @@ def get_evaluation_prompt(complexity: str) -> str:
 - Docs: technical-documentation-engineer, technical-journalist-writer
 - UI: ui-design-engineer, performance-optimization-engineer
 - Testing: testing-automation-engineer
-- Meta: agent-creator-engineer, skill-creator, hook-development-engineer
+- Meta: skill-creator, hook-development-engineer
 - Research: research-coordinator-engineer, project-coordinator-engineer
 - Critique: roast skill (5 personas: contrarian, newcomer, builder, senior, pedant)"""
 

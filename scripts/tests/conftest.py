@@ -56,12 +56,6 @@ def expected_violations(fixtures_dir: Path) -> dict:
 
 
 @pytest.fixture
-def banned_words_path() -> Path:
-    """Path to the banned words reference file."""
-    return Path(__file__).parent.parent.parent / "skills" / "blog-post-writer" / "references" / "banned-words.md"
-
-
-@pytest.fixture
 def sample_text_short() -> str:
     """Short sample text for unit tests."""
     return "The fire burns bright. It warms the soul."

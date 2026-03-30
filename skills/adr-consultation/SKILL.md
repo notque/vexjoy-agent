@@ -21,16 +21,14 @@ routing:
     - "should we proceed"
     - "adr consultation"
   pairs_with:
-    - feature-design
-    - feature-plan
-    - feature-implement
+    - feature-lifecycle
   complexity: Medium
   category: meta
 ---
 
 # ADR Consultation Skill
 
-Multi-agent architecture consultation that dispatches 3 specialized reviewers in parallel against an ADR and synthesizes their findings into a PROCEED or BLOCKED verdict. This is the gate between feature-plan and feature-implement for Medium+ decisions because challenging architecture decisions before implementation prevents costly post-implementation rework.
+Multi-agent architecture consultation that dispatches 3 specialized reviewers in parallel against an ADR and synthesizes their findings into a PROCEED or BLOCKED verdict. This is the gate between feature-lifecycle plan and implement phases for Medium+ decisions because challenging architecture decisions before implementation prevents costly post-implementation rework.
 
 ## Instructions
 
@@ -361,7 +359,7 @@ Do not rationalize blocking concerns as "theoretical" because theoretical risk i
  Next Steps:
    - Address each blocking concern in the ADR
    - Re-run /adr-consultation to verify concerns are resolved
-   - Do NOT dispatch feature-implement until PROCEED verdict
+   - Do NOT dispatch feature-lifecycle implement phase until PROCEED verdict
 ═══════════════════════════════════════════════════════════════
 ```
 
@@ -457,5 +455,4 @@ concerns.md and factor it into the verdict.
 
 - [ADR: Multi-Agent Consultation](../../adr/multi-agent-consultation.md) — The architecture decision this skill implements
 - [parallel-code-review](../parallel-code-review/SKILL.md) — Fan-out/fan-in pattern this skill adapts
-- [dispatching-parallel-agents](../dispatching-parallel-agents/SKILL.md) — Core parallel dispatch mechanics
 - [reviewer-contrarian](../../agents/reviewer-contrarian.md) — Contrarian lens agent
