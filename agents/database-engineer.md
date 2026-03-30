@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent when you need expert assistance with database design, optimization, and query performance. This includes schema design, indexing strategies, query optimization, data modeling, migrations, and database best practices. The agent specializes in PostgreSQL, MySQL, SQLite patterns, and ORM usage.
 
-  Examples:
-
-  <example>
-  Context: User needs to design a database schema for a multi-tenant SaaS application.
-  user: "I need to design a database schema for a SaaS app with user organizations, roles, and permissions"
-  assistant: "I'll design a multi-tenant schema with proper foreign keys, indexes, and access patterns for efficient querying."
-  <commentary>
-  Multi-tenant schemas require careful design for data isolation, performance, scalability. Triggers: schema design, multi-tenant, database.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User has slow database queries that need optimization.
-  user: "My queries are slow - users table queries taking 5+ seconds on 100k rows"
-  assistant: "I'll analyze the query patterns, add appropriate indexes, and optimize the queries for better performance."
-  <commentary>
-  Query optimization requires index analysis, EXPLAIN plans, query rewriting. Triggers: slow query, performance, indexing.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs to perform a database migration safely.
-  user: "I need to add a new column to a large table without downtime"
-  assistant: "I'll create a safe migration strategy with zero-downtime deployment using nullable columns and backfill."
-  <commentary>
-  Safe migrations require understanding locking, backfill strategies, rollback plans. Triggers: migration, schema change, production.
-  </commentary>
-  </example>
+  Example: "I need to design a database schema for a SaaS app with user organizations, roles, and permissions"
 
 color: purple
 memory: project

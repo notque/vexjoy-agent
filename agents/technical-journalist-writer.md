@@ -5,32 +5,7 @@ version: 2.0.0
 description: |
   Use this agent when you need professional technical journalism and article writing. This includes technical explainers, opinion pieces, analysis articles, and long-form technical content. The agent specializes in journalist-quality writing with clear structure, precise language, and engaging narrative flow.
 
-  <example>
-  Context: User needs to write a technical article explaining a complex system change.
-  user: "Write an article explaining how the new database migration system works and why it's different from the old approach."
-  assistant: "I'll use the technical-journalist-writer agent to create a technical explainer with a direct opening, clear structure, and explanatory narrative."
-  <commentary>
-  Technical journalism style excels at technical explanation. The agent will structure this with a direct opening stating what changed, build from basics to complexity, use clear headers, and maintain a matter-of-fact tone throughout.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants to write an opinion piece about software development practices.
-  user: "I want to argue that teams should write more documentation. Make it compelling but not preachy."
-  assistant: "I'll use the technical-journalist-writer agent to create an opinion piece using a principle-application-example structure."
-  <commentary>
-  Technical journalist opinion pieces state principles clearly, apply them to specific contexts, and use concrete examples rather than persuasion. The agent will avoid superlatives, enthusiasm, and persuasive language while making the argument through clear reasoning.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs to explain a subtle technical distinction to a knowledgeable audience.
-  user: "Explain the difference between horizontal and vertical database scaling for experienced developers."
-  assistant: "I'll use the technical-journalist-writer agent to create a precise technical explanation assuming reader competence."
-  <commentary>
-  This agent writes for intelligent readers. It will skip basic definitions, focus on the meaningful distinction, provide concrete examples, and avoid condescension.
-  </commentary>
-  </example>
+  Example: "Write an article explaining how the new database migration system works and why it's different from the old approach."
 color: blue
 routing:
   triggers:

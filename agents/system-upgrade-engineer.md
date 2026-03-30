@@ -9,37 +9,7 @@ description: |
   VALIDATE → DEPLOY. Dispatches domain specialists for parallel execution.
   Always shows ranked plan before making any changes.
 
-  Examples:
-
-  <example>
-  Context: Claude Code ships a new hook event type.
-  user: "Claude Code just added a Notification event. Update the system."
-  assistant: "I'll parse the change, audit which hooks and agents are affected, show you the upgrade plan, then dispatch parallel agents to execute the approved changes."
-  <commentary>
-  Claude Code releases introduce new capabilities. This agent audits the system,
-  produces a prioritized plan, and dispatches domain specialists for execution.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User is pivoting to a new technology domain.
-  user: "I'm now working with Rust. Upgrade the agent system to support it."
-  assistant: "I'll map the gap (no Rust agent, no Rust hook patterns, no Rust routing), plan the additions, then fan out to agent-creator-engineer and hook-development-engineer in parallel."
-  <commentary>
-  Goal changes require gap analysis across all routing tables, hooks, and agents.
-  Parallel dispatch handles independent components simultaneously.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Retro knowledge has accumulated and is ready to embed.
-  user: "Apply retro learnings to upgrade the system."
-  assistant: "I'll query learning.db for graduation candidates, map them to target agents, show which patterns graduate, then inject them with your approval."
-  <commentary>
-  Retro-driven upgrades are a third trigger type — bottom-up accumulated knowledge
-  embedded top-down via the system-upgrade pipeline.
-  </commentary>
-  </example>
+  Example: "Claude Code just added a Notification event. Update the system."
 
 color: orange
 routing:

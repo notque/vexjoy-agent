@@ -5,43 +5,7 @@ version: 2.0.0
 description: |
   Use this agent for evaluating type design quality, invariant expression, encapsulation, and type safety. This includes analyzing constructor validation, immutability patterns, compile-time guarantees, and whether the type system prevents illegal states. Uses a 4-dimension rating system (1-10 each). Supports `--fix` mode to improve type designs.
 
-  Examples:
-
-  <example>
-  Context: Reviewing type design in a domain model.
-  user: "Review the type design quality of our Order and Payment domain models"
-  assistant: "I'll evaluate type design across 4 dimensions: encapsulation, invariant expression, invariant usefulness, and invariant enforcement, rating each 1-10."
-  <commentary>
-  Domain models are where type design matters most. Good type design makes illegal states unrepresentable and encodes business rules at the type level.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Checking if types enforce business rules.
-  user: "Can our types prevent invalid states at compile time?"
-  assistant: "I'll analyze your types for compile-time guarantees, checking whether illegal states are representable and whether invariants are enforced by constructors."
-  <commentary>
-  Compile-time prevention is the gold standard. If a type allows construction of invalid instances, the invariant enforcement is weak.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants comprehensive PR review.
-  user: "Run a comprehensive review on this PR"
-  assistant: "I'll use the reviewer-type-design agent as part of the comprehensive review."
-  <commentary>
-  This agent is typically dispatched by the comprehensive-review skill as part of a multi-agent review.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Improving type design.
-  user: "Improve the type design of the user account module"
-  assistant: "I'll analyze the current type design, then apply improvements in --fix mode focusing on encapsulation, constructor validation, and making illegal states unrepresentable."
-  <commentary>
-  In --fix mode, the agent improves type designs after completing the full 4-dimension analysis.
-  </commentary>
-  </example>
+  Example: "Review the type design quality of our Order and Payment domain models"
 color: pink
 routing:
   triggers:

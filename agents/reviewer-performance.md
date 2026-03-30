@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent for detecting performance issues, hot paths, algorithmic complexity problems, unnecessary allocations, N+1 queries, missing caching opportunities, and index usage gaps. Analyzes code for runtime efficiency across Go, Python, and TypeScript with language-specific performance patterns. Wave 2 agent that receives Wave 1 findings as context to focus on architecturally significant paths. Supports `--fix` mode.
 
-  Examples:
-
-  <example>
-  Context: Reviewing Go service for performance bottlenecks.
-  user: "Check this Go service for performance issues and unnecessary allocations"
-  assistant: "I'll analyze the Go code for hot path allocations, O(n²) loops, sync.Pool opportunities, string concatenation in loops, unnecessary interface conversions, and missing buffer reuse patterns."
-  <commentary>
-  Go performance reviews focus on allocation-heavy paths, escape analysis implications, and stdlib performance patterns (strings.Builder, sync.Pool, pre-allocated slices).
-  </commentary>
-  </example>
-
-  <example>
-  Context: Reviewing database access patterns.
-  user: "Check for N+1 queries and missing indexes in the API handlers"
-  assistant: "I'll trace data access patterns through the handlers, looking for N+1 query loops, missing batch operations, unindexed WHERE clauses, and SELECT * usage where column projection would reduce I/O."
-  <commentary>
-  N+1 detection follows call chains from handlers through service layers to data access, identifying loops that issue individual queries instead of batch operations.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Wave 2 dispatch with Wave 1 context.
-  user: "Run comprehensive review with performance focus"
-  assistant: "I'll use Wave 1 findings to identify architecturally significant code paths, then deep-dive on performance for those specific areas plus general hot path detection."
-  <commentary>
-  As a Wave 2 agent, this receives Wave 1's architecture and code quality findings to focus performance analysis on the most impactful code paths.
-  </commentary>
-  </example>
+  Example: "Check this Go service for performance issues and unnecessary allocations"
 color: orange
 routing:
   triggers:

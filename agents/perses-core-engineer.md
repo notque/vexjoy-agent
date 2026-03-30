@@ -7,34 +7,7 @@ description: |
   storage, auth), React/TypeScript frontend (dashboard editor, panel rendering), CUE schemas,
   and the overall Perses architecture. For engineers working on the perses/perses repository itself.
 
-  Examples:
-
-  <example>
-  Context: User contributing to Perses core backend.
-  user: "I want to add a new API endpoint to Perses for ephemeral dashboard management"
-  assistant: "I'll guide you through the Go handler, storage interface, and API registration patterns in Perses."
-  <commentary>
-  Core contribution requires understanding Perses Go architecture. Triggers: perses core, contribute perses.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User working on Perses frontend.
-  user: "I need to modify the dashboard editor component in Perses"
-  assistant: "I'll help you navigate the React component architecture in the ui/ directory using Perses plugin-system patterns."
-  <commentary>
-  Frontend work requires React/TypeScript and Perses plugin-system knowledge. Triggers: perses frontend, perses UI.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User investigating Perses architecture.
-  user: "How does the Perses plugin loading system work?"
-  assistant: "I'll trace the plugin loading from archive extraction through CUE schema validation to Module Federation registration."
-  <commentary>
-  Architecture questions require deep knowledge of Perses internals. Triggers: perses architecture.
-  </commentary>
-  </example>
+  Example: "I want to add a new API endpoint to Perses for ephemeral dashboard management"
 
 color: blue
 routing:

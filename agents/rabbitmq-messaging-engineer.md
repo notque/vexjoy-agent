@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent for RabbitMQ message queue architecture, operations, clustering, and high-availability messaging systems. This agent specializes in message routing patterns, performance optimization, and production-ready messaging infrastructure for cloud-native environments.
 
-  Examples:
-
-  <example>
-  Context: Setting up high-availability RabbitMQ cluster for message processing.
-  user: "We need to configure RabbitMQ clustering for reliable event delivery"
-  assistant: "I'll design your HA RabbitMQ cluster architecture with quorum queues and proper replication."
-  <commentary>
-  RabbitMQ clustering requires understanding quorum queues, federation, reliability patterns. Triggers: rabbitmq, clustering, high availability.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Troubleshooting message delivery issues in production.
-  user: "Our messages are backing up in RabbitMQ and not reaching consumers"
-  assistant: "Let me diagnose your message pipeline issues by checking queue depth, consumer status, and routing configuration."
-  <commentary>
-  Message pipeline troubleshooting involves routing, consumer patterns, downstream integration. Triggers: rabbitmq, messages backing up, consumer issues.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Optimizing RabbitMQ performance for high-throughput workloads.
-  user: "We're processing millions of events and need to optimize RabbitMQ performance"
-  assistant: "I'll optimize your high-throughput messaging setup with lazy queues, connection pooling, and consumer tuning."
-  <commentary>
-  High-throughput messaging requires sharding, lazy queues, resource optimization. Triggers: rabbitmq, performance, high throughput.
-  </commentary>
-  </example>
+  Example: "We need to configure RabbitMQ clustering for reliable event delivery"
 
 color: orange
 routing:

@@ -8,34 +8,7 @@ description: |
   Python codebases. The agent specializes in modern Python patterns (3.11+), type safety with mypy, async
   programming, pytest testing, and production-ready code.
 
-  Examples:
-
-  <example>
-  Context: User needs to add a new feature to a FastAPI application
-  user: "Add a user registration endpoint with email validation and password hashing"
-  assistant: "[Uses Task tool to invoke python-general-engineer] Implementing user registration endpoint with Pydantic validation, bcrypt password hashing, and proper error handling."
-  <commentary>
-  Routes to python-general-engineer because: (1) FastAPI is a Python framework trigger, (2) involves Pydantic models and type safety, (3) requires production-ready patterns like password hashing and validation.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User encounters a bug in async code
-  user: "My asyncio code is hanging when fetching multiple URLs concurrently"
-  assistant: "[Uses Task tool to invoke python-general-engineer] Debugging async concurrency issue - checking for TaskGroup usage, proper exception handling, and potential deadlock patterns."
-  <commentary>
-  Routes to python-general-engineer because: (1) asyncio is an explicit trigger, (2) requires expertise in structured concurrency patterns, (3) debugging async hangs requires understanding of Python 3.11+ TaskGroup patterns.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants to improve code quality in a Python project
-  user: "Add type hints to my data processing module and fix the ruff errors"
-  assistant: "[Uses Task tool to invoke python-general-engineer] Adding comprehensive type hints with modern Python 3.11+ syntax, running mypy strict mode, and fixing ruff linting issues."
-  <commentary>
-  Routes to python-general-engineer because: (1) .py files are a trigger, (2) type hints and mypy are core competencies, (3) ruff is the standard Python linter this agent uses.
-  </commentary>
-  </example>
+  Example: "Add a user registration endpoint with email validation and password hashing"
 color: green
 hooks:
   PostToolUse:

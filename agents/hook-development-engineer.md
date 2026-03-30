@@ -9,41 +9,7 @@ description: |
   specializes in sub-50ms performance requirements, atomic file operations, and
   non-blocking execution patterns.
 
-  Examples:
-
-  <example>
-  Context: Need to detect Edit tool multiple match errors and suggest solutions
-  user: "Create a hook that catches Edit tool errors where multiple matches are found"
-  assistant: "I'll implement a PostToolUse hook with pattern matching for Edit tool multiple match errors, learning database integration, and context injection..."
-  <commentary>
-  This requires hook expertise: event structure understanding, error classification,
-  learning database operations, and sub-50ms performance. Triggers: "create hook",
-  "PostToolUse", "error detection". The agent will apply non-blocking patterns,
-  atomic operations, and confidence tracking.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Hook causing performance issues and blocking Claude Code
-  user: "My error detection hook is taking too long and sometimes blocks Claude Code"
-  assistant: "I'll analyze the performance bottlenecks and implement non-blocking patterns with sub-50ms execution..."
-  <commentary>
-  This is a performance optimization task for hooks. Triggers: "hook performance",
-  "blocking", "optimize hook". The agent will apply performance-first design,
-  lazy loading, efficient data structures, and proper exit code handling.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Extend learning database for new error types
-  user: "Add support for API timeout errors in the learning database with confidence decay"
-  assistant: "I'll extend the learning database schema, implement the new error classification, and add confidence decay algorithms with atomic file operations..."
-  <commentary>
-  This requires learning database expertise: schema evolution, confidence tracking,
-  atomic operations. Triggers: "learning database", "confidence", "schema". The
-  agent will ensure backward compatibility and safe concurrent access.
-  </commentary>
-  </example>
+  Example: "Create a hook that catches Edit tool errors where multiple matches are found"
 
 color: purple
 routing:

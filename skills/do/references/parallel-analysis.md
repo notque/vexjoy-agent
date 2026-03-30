@@ -1,32 +1,4 @@
----
-name: do-parallel
-description: |
-  Spawn 10 independent parallel agents to analyze source material from
-  distinct perspectives, synthesize findings, and apply improvements to
-  a target agent or skill. Use when source material is complex and
-  multi-angle extraction reveals patterns that single-threaded analysis misses.
-  Use for "parallel analysis", "multi-perspective", or "deep extraction".
-  Route to other skills for routine improvements or simple source material.
-version: 2.0.0
-user-invocable: false
-argument-hint: "<target-name> <source-path>"
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-  - Task
-routing:
-  triggers:
-    - "parallel analysis"
-    - "multi-perspective"
-    - "10 perspectives"
-  category: meta-tooling
----
-
-# Parallel Multi-Perspective Analysis
+# Parallel Multi-Perspective Analysis (Reference for /do)
 
 $ARGUMENTS - Target agent/skill name + source material file path
 
@@ -192,7 +164,7 @@ Rules present in 1-3 perspectives OR moderate impact:
 Priority 3 rules are documented but NOT applied unless the user explicitly requests them. Applying all 30-50 extracted rules without filtering leads to target bloat and conflicts with existing patterns.
 
 **Step 5: Save synthesis document**
-- Write to `skills/do-parallel/artifacts/synthesis-{target}-{date}.md`
+- Write to `skills/do/artifacts/synthesis-{target}-{date}.md`
 - Include the cross-reference matrix, themes, and prioritized rules
 - This artifact persists for future reference and can inform later analyses (context is ephemeral; artifacts persist)
 
@@ -278,7 +250,7 @@ Use template from `references/perspective-prompts.md`. The report MUST include:
 - Recommendations for future improvements
 
 **Step 3: Save completion report**
-- Write to `skills/do-parallel/artifacts/report-{target}-{date}.md`
+- Write to `skills/do/artifacts/report-{target}-{date}.md`
 - Present summary to user in conversation
 
 **Step 4: Present results**
@@ -294,8 +266,8 @@ Rules applied: [Priority 1 count] Must-Have + [Priority 2 count] Should-Have
 Lines added: +[count]
 New sections: [count]
 
-Full report: skills/do-parallel/artifacts/report-{target}-{date}.md
-Synthesis: skills/do-parallel/artifacts/synthesis-{target}-{date}.md
+Full report: skills/do/artifacts/report-{target}-{date}.md
+Synthesis: skills/do/artifacts/synthesis-{target}-{date}.md
 ```
 
 **Gate**: Completion report exists. Target file is valid. All phases documented.

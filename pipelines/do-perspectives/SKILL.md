@@ -6,7 +6,7 @@ description: |
   user invokes /do-perspectives, wants comprehensive multi-angle analysis of
   source material, or needs cost-effective pattern extraction from articles,
   docs, or code. Do NOT use for simple single-target improvements,
-  parallel analysis (use /do-parallel), or tasks without source material.
+  parallel analysis (use /do with parallel-analysis reference), or tasks without source material.
 version: 2.0.0
 user-invocable: false
 argument-hint: "<target-name> <source-path>"
@@ -274,4 +274,4 @@ Solution:
 
 - [CLAUDE.md Compliance](../../../CLAUDE.md) - Verification over assumption, artifacts over memory, authentic over polished
 - Pipeline Architecture pattern - Phase-based execution with gates
-- Sequential analysis constraints - Cross-contamination inherent in sequential analysis (see /do-parallel for zero cross-contamination alternative)
+- Sequential analysis constraints - Cross-contamination inherent in sequential analysis (see skills/do/references/parallel-analysis.md for zero cross-contamination alternative)

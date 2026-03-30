@@ -265,6 +265,7 @@ Solution (ADR-093 -- Branch Convergence):
 
 ## References
 
+- `skills/_shared-patterns/fan-out-dispatch.md` -- Canonical fan-out/fan-in dispatch pattern (shared across parallel skills)
 - `scripts/check-scope-overlap.py` -- Deterministic scope overlap checker for parallel task dispatch
 - `pipelines/systematic-debugging/SKILL.md` -- Use instead for single complex bugs or related failures
 - `skills/workflow-orchestrator/SKILL.md` -- Use instead for planning implementation work

@@ -8,34 +8,7 @@ description: |
   via Dashboard-as-Code, and interacting with Perses API/MCP. This agent specializes in Perses
   dashboard lifecycle, CUE/Go SDK for DaC, percli CLI operations, and Perses MCP server integration.
 
-  Examples:
-
-  <example>
-  Context: User needs to create a new monitoring dashboard in Perses.
-  user: "Create a Perses dashboard for monitoring my Kubernetes cluster CPU and memory"
-  assistant: "I'll create a dashboard with TimeSeriesChart panels for CPU and memory metrics using Prometheus datasource."
-  <commentary>
-  Dashboard creation requires understanding Perses panel types, PromQL queries, and layout grid system. Triggers: perses, dashboard, create dashboard.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants to migrate Grafana dashboards to Perses.
-  user: "I have 50 Grafana dashboards I need to convert to Perses format"
-  assistant: "I'll use percli migrate for bulk conversion, validate each output, and fix any incompatibilities."
-  <commentary>
-  Migration requires percli migrate command, validation, and manual fixes for unsupported plugins. Triggers: migrate grafana, perses migrate.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants to set up Dashboard-as-Code with CUE.
-  user: "Set up a DaC workflow for our team's Perses dashboards using CUE"
-  assistant: "I'll initialize a CUE module with percli dac setup, create dashboard definitions, and set up CI/CD with perses/cli-actions."
-  <commentary>
-  DaC requires CUE SDK knowledge, percli dac commands, and CI/CD integration. Triggers: perses dac, dashboard as code.
-  </commentary>
-  </example>
+  Example: "Create a Perses dashboard for monitoring my Kubernetes cluster CPU and memory"
 
 color: purple
 routing:

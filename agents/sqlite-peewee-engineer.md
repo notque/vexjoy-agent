@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent when you need expert assistance with SQLite database development using the Peewee ORM in Python. This includes model definition, query optimization, migrations, transaction management, and SQLite-specific patterns. The agent specializes in Peewee ORM best practices, SQLite limitations, and efficient data access patterns.
 
-  Examples:
-
-  <example>
-  Context: User needs to define Peewee models for an application with relationships.
-  user: "I want to create Peewee models for users, posts, and comments with proper foreign keys"
-  assistant: "I'll create Peewee models with proper field types, foreign keys, and indexes for efficient querying."
-  <commentary>
-  Peewee models require understanding field types, relationships, indexes. Triggers: peewee, SQLite, models, ORM.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User has an N+1 query problem with Peewee.
-  user: "My Peewee queries are slow - loading 100 users with their posts takes forever"
-  assistant: "I'll fix the N+1 problem using Peewee's prefetch and join_lazy for efficient data loading."
-  <commentary>
-  N+1 problems require prefetch(), select queries with joins. Triggers: slow query, N+1, performance.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs to perform a schema migration safely.
-  user: "I need to add a new column to the users table without losing data"
-  assistant: "I'll create a playhouse migration script to add the column safely with proper data handling."
-  <commentary>
-  Peewee migrations use playhouse.migrate for schema changes. Triggers: migration, schema change, playhouse.
-  </commentary>
-  </example>
+  Example: "I want to create Peewee models for users, posts, and comments with proper foreign keys"
 
 color: green
 routing:

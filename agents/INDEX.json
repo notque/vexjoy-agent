@@ -112,6 +112,23 @@
       "complexity": "Medium",
       "category": "meta"
     },
+    "golang-general-engineer-compact": {
+      "file": "golang-general-engineer-compact.md",
+      "short_description": "Use this agent for focused Go development with tight context budgets",
+      "triggers": [
+        "go",
+        "golang",
+        "tight context",
+        "compact",
+        "focused go"
+      ],
+      "pairs_with": [
+        "go-pr-quality-gate",
+        "go-testing"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "language"
+    },
     "golang-general-engineer": {
       "file": "golang-general-engineer.md",
       "short_description": "Use this agent when you need expert assistance with Go development, including implementing features,\ndebugging issues, reviewing code quality, optimizing performance, or answering technical questions\nabout Go codebases",
@@ -127,23 +144,6 @@
       ],
       "pairs_with": [
         "go-pr-quality-gate"
-      ],
-      "complexity": "Medium-Complex",
-      "category": "language"
-    },
-    "golang-general-engineer-compact": {
-      "file": "golang-general-engineer-compact.md",
-      "short_description": "Use this agent for focused Go development with tight context budgets",
-      "triggers": [
-        "go",
-        "golang",
-        "tight context",
-        "compact",
-        "focused go"
-      ],
-      "pairs_with": [
-        "go-pr-quality-gate",
-        "go-testing"
       ],
       "complexity": "Medium-Complex",
       "category": "language"
@@ -170,7 +170,7 @@
     },
     "kotlin-general-engineer": {
       "file": "kotlin-general-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with Kotlin development, including implementing features, debugging issues, reviewing code quality, optimizing coroutine usage, or answering technical questions about Kotlin codebases",
+      "short_description": "Use this agent when you need expert assistance with Kotlin development, including implementing\nfeatures, debugging issues, reviewing code quality, optimizing coroutine usage, or answering\ntechnical questions about Kotlin codebases",
       "triggers": [
         "kotlin",
         "ktor",
@@ -381,7 +381,7 @@
     },
     "php-general-engineer": {
       "file": "php-general-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with PHP development, including implementing features, debugging issues, reviewing code quality, enforcing security posture, or answering technical questions about PHP codebases",
+      "short_description": "Use this agent when you need expert assistance with PHP development, including implementing features,\ndebugging issues, reviewing code quality, enforcing security posture, or answering technical questions\nabout PHP codebases",
       "triggers": [
         "php",
         "laravel",
@@ -849,7 +849,7 @@
     },
     "reviewer-meta-process": {
       "file": "reviewer-meta-process.md",
-      "short_description": "Meta-analysis of system design decisions — examines whether the SYSTEM ITSELF is creating\nproblems",
+      "short_description": "Meta-analysis of system design decisions \u2014 examines whether the SYSTEM ITSELF is creating\nproblems",
       "triggers": [
         "meta-process review",
         "system design review",
@@ -964,7 +964,7 @@
         "hot paths",
         "N+1 queries",
         "allocations",
-        "O(n²)",
+        "O(n\u00b2)",
         "caching",
         "slow code",
         "performance optimization"
@@ -1142,7 +1142,7 @@
     },
     "swift-general-engineer": {
       "file": "swift-general-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with Swift development, including implementing features for iOS, macOS, watchOS, tvOS, visionOS, or server-side Swift, debugging issues, reviewing code quality, or answering technical questions about Swift codebases",
+      "short_description": "Use this agent when you need expert assistance with Swift development, including implementing features\nfor iOS, macOS, watchOS, tvOS, visionOS, or server-side Swift (Vapor/Hummingbird), debugging issues,\nreviewing code quality, or answering technical questions about Swift codebases",
       "triggers": [
         "swift",
         "ios",
@@ -1244,7 +1244,8 @@
         "visual regression"
       ],
       "pairs_with": [
-        "test-driven-development"
+        "test-driven-development",
+        "e2e-testing"
       ],
       "complexity": "Medium-Complex",
       "category": "testing"

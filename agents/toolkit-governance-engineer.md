@@ -12,50 +12,7 @@ description: |
   to domain agents, new agent/skill creation to skill-creator, CI/CD to devops agents,
   and external PR reviews to reviewer agents.
 
-  Examples:
-
-  <example>
-  Context: User wants to update a skill's phases and gates
-  user: "Refactor the systematic-debugging skill to add a gate between Phase 2 and Phase 3"
-  assistant: "I'll read PHILOSOPHY.md and the skill, then add an explicit GATE checkpoint with validation criteria between those phases."
-  <commentary>
-  The request modifies an existing SKILL.md's workflow structure. Triggers: "edit skill",
-  "skill compliance". This agent reads PHILOSOPHY.md for design principles, then makes
-  targeted edits preserving the skill's existing architecture.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Routing tables need updating after new agents were added
-  user: "Update the routing tables to include the three new reviewer agents"
-  assistant: "I'll read the current routing tables and each new agent's frontmatter, then add entries with proper triggers, pairs_with, and complexity metadata."
-  <commentary>
-  Routing table maintenance is a core governance task. Triggers: "update routing",
-  "update routing tables". The agent ensures new entries follow the intent-based
-  description format established in the routing tables.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants to check if all agents have proper frontmatter
-  user: "Check which agents are missing allowed-tools in their frontmatter"
-  assistant: "I'll scan all agent files for YAML frontmatter compliance, reporting any that lack allowed-tools, routing metadata, or required fields."
-  <commentary>
-  Cross-component consistency check across the agents/ directory. Triggers: "skill compliance",
-  "cross-component consistency". The agent audits frontmatter against the v2.0 template
-  requirements documented in PHILOSOPHY.md and CLAUDE.md.
-  </commentary>
-  </example>
-
-  <example>
-  Context: ADR needs status update after implementation
-  user: "Mark ADR-063 as accepted and update its validation criteria"
-  assistant: "I'll read the ADR, update its status field, and ensure validation criteria reflect the implemented behavior."
-  <commentary>
-  ADR lifecycle management. Triggers: "ADR management". The agent handles status transitions,
-  validation criteria updates, and consultation orchestration for ADRs.
-  </commentary>
-  </example>
+  Example: "Refactor the systematic-debugging skill to add a gate between Phase 2 and Phase 3"
 
 color: blue
 routing:

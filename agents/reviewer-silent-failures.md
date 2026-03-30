@@ -5,43 +5,7 @@ version: 2.0.0
 description: |
   Use this agent for detecting silent failures, inadequate error handling, swallowed errors, and dangerous fallback behavior. This includes analyzing try-catch blocks, conditional error handling, fallback logic, error logging practices, and optional chaining risks. Zero tolerance for silent failures. Supports `--fix` mode to add proper error handling.
 
-  Examples:
-
-  <example>
-  Context: Reviewing error handling in a critical service.
-  user: "Check the payment service for swallowed errors and silent failures"
-  assistant: "I'll hunt for silent failures in the payment service, checking every catch block, fallback, conditional error handler, and optional chain for proper error surfacing."
-  <commentary>
-  Payment services are high-criticality. Silent failures here can cause lost transactions, incorrect balances, or undetected fraud. Zero tolerance applies.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Pre-merge error handling review.
-  user: "Review error handling quality in this PR"
-  assistant: "I'll analyze all error handling paths for silent failures, checking catch block specificity, logging adequacy, user communication, and fallback scrutiny."
-  <commentary>
-  Error handling review checks not just that errors are caught, but that they are properly logged, communicated, and not silently swallowed.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants comprehensive PR review.
-  user: "Run a comprehensive review on this PR"
-  assistant: "I'll use the reviewer-silent-failures agent as part of the comprehensive review."
-  <commentary>
-  This agent is typically dispatched by the comprehensive-review skill as part of a multi-agent review.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Fixing silent failures.
-  user: "Find and fix all silent error swallowing in the API handlers"
-  assistant: "I'll identify all silent failure patterns and apply proper error handling in --fix mode, adding logging, error propagation, and user-facing error responses."
-  <commentary>
-  In --fix mode, the agent adds proper error handling after completing the full silent failure analysis.
-  </commentary>
-  </example>
+  Example: "Check the payment service for swallowed errors and silent failures"
 color: red
 routing:
   triggers:

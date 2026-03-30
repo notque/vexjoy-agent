@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent for reviewing error message quality: actionable messages, sufficient context (IDs, states, operation names), consistent formatting, user-facing vs internal distinction, and localization readiness. Ensures errors help users and operators diagnose and resolve issues. Wave 2 agent that uses Wave 1 silent-failure findings to identify error paths and code-quality findings for consistency checks. Supports `--fix` mode.
 
-  Examples:
-
-  <example>
-  Context: Reviewing Go service error messages.
-  user: "Check that our error messages are actionable and include sufficient context"
-  assistant: "I'll audit all error messages for: actionable guidance (what to do next), context inclusion (request IDs, entity IDs, operation names), consistent format (lowercase, no period, verb-first in Go), and proper user-facing vs internal distinction."
-  <commentary>
-  Go error message conventions: lowercase first letter, no trailing period, verb-first ("cannot X" or "failed to X"), include entity identifiers, wrap with context using fmt.Errorf %w.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Reviewing API error responses.
-  user: "Are our API error messages helpful for API consumers?"
-  assistant: "I'll check that API errors include: human-readable message, machine-readable error code, affected resource identifier, suggested action, and request ID for support correlation."
-  <commentary>
-  API error messages need both human-readable descriptions and machine-readable codes. Include request IDs for support correlation and suggested actions for self-service resolution.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Wave 2 dispatch with Wave 1 context.
-  user: "Run comprehensive review with error message focus"
-  assistant: "I'll use Wave 1's silent-failure findings to identify error paths that need better messages, and code-quality findings to check error format consistency across the codebase."
-  <commentary>
-  As a Wave 2 agent, this receives Wave 1's silent-failure findings to focus on error paths that exist but have poor messages, and code-quality findings for consistency.
-  </commentary>
-  </example>
+  Example: "Check that our error messages are actionable and include sufficient context"
 color: orange
 routing:
   triggers:

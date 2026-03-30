@@ -7,34 +7,7 @@ description: |
   preferences from a GitHub user's public profile. This includes repo analysis via
   API, PR review mining, pattern synthesis, and rule validation.
 
-  Examples:
-
-  <example>
-  Context: User wants to understand a developer's coding style
-  user: "Extract programming rules from github user django"
-  assistant: "I'll analyze the public repos and PR reviews for 'django' via the GitHub API to extract coding patterns, then compile them into confidence-scored rules."
-  <commentary>
-  Triggers on "programming rules" + "github user". Routes to repo-analysis and pr-review subskills.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants CLAUDE.md rules for a contributor
-  user: "Generate CLAUDE.md coding guidelines from torvalds's GitHub profile"
-  assistant: "I'll fetch repos, sample code files, and PR reviews for 'torvalds' to synthesize actionable CLAUDE.md rules with confidence scores."
-  <commentary>
-  Triggers on "CLAUDE.md" + "GitHub profile". Covers full pipeline from fetch to output.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants to understand what a reviewer cares about
-  user: "What coding conventions does this developer enforce in PR reviews?"
-  assistant: "I'll mine their PR review comments to identify recurring patterns in what they approve, request changes on, and comment about."
-  <commentary>
-  Triggers on "PR reviews" + "coding conventions". Routes to pr-review-analysis subskill.
-  </commentary>
-  </example>
+  Example: "Extract programming rules from github user django"
 
 color: blue
 routing:

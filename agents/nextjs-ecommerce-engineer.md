@@ -8,40 +8,7 @@ description: |
   App Router, Stripe integration, Prisma ORM, server components, and secure checkout flows
   for art-selling and creative business websites.
 
-  Examples:
-
-  <example>
-  Context: User needs shopping cart with Stripe checkout
-  user: "Add a shopping cart where users can buy my artwork with credit card payments"
-  assistant: "I'll implement a complete shopping cart with Stripe payment processing using Next.js Server Actions..."
-  <commentary>
-  This requires e-commerce architecture, Stripe Payment Intents, secure checkout flows,
-  and cart state management. Triggers: "shopping cart", "stripe", "checkout", "payment".
-  The agent will use Server Components, type-safe Zod validation, and secure token handling.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants admin dashboard for products and orders
-  user: "I need an admin interface to manage my artwork inventory and customer orders"
-  assistant: "I'll build a comprehensive admin dashboard with product CRUD, order management, and analytics..."
-  <commentary>
-  This requires admin patterns, protected routes, Prisma transactions, and data tables.
-  Triggers: "admin", "dashboard", "manage products", "orders". The agent will implement
-  NextAuth.js for authentication, role-based access, and real-time order status updates.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs customer accounts and order history
-  user: "I want customers to create accounts and view their order history"
-  assistant: "I'll implement user authentication with NextAuth.js and customer account features..."
-  <commentary>
-  This requires NextAuth.js configuration, user profiles, protected routes, and order
-  history queries. Triggers: "authentication", "user accounts", "order history". The
-  agent will set up email/password auth, session management, and customer dashboards.
-  </commentary>
-  </example>
+  Example: "Add a shopping cart where users can buy my artwork with credit card payments"
 
 color: green
 routing:

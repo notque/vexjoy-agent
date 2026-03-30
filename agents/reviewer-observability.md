@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent for reviewing observability: missing metrics, logging quality, trace propagation, health checks, structured logging, and alerting gaps. Ensures code is debuggable and monitorable in production. Wave 2 agent that uses Wave 1 silent-failure and error-handling findings to identify observability gaps at failure points. Supports `--fix` mode.
 
-  Examples:
-
-  <example>
-  Context: Reviewing Go service for observability gaps.
-  user: "Check that this service has proper metrics, logging, and health checks"
-  assistant: "I'll audit the service for: Prometheus metrics on key operations (requests, errors, duration), structured logging with request context, health/readiness endpoints, trace ID propagation, and error rate alerting thresholds."
-  <commentary>
-  Go observability reviews check for prometheus/client_golang metrics, structured logging (slog or zerolog), OpenTelemetry trace propagation, and Kubernetes-compatible health endpoints.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Reviewing logging quality.
-  user: "Our logs aren't useful for debugging production issues"
-  assistant: "I'll audit log quality: structured vs unstructured, context inclusion (request IDs, user IDs, operation), log levels (INFO vs DEBUG vs ERROR), sensitive data exposure, and log volume (excessive logging in hot paths)."
-  <commentary>
-  Useful production logs need: structured format (JSON), context fields, appropriate levels, no sensitive data, and reasonable volume. Log lines without context are noise.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Wave 2 dispatch with Wave 1 context.
-  user: "Run comprehensive review with observability focus"
-  assistant: "I'll use Wave 1's silent-failure findings to identify error paths missing logging/metrics, and architecture findings to verify all service boundaries have trace propagation."
-  <commentary>
-  As a Wave 2 agent, this receives Wave 1's silent-failure findings to identify error paths that need metrics/logging, making observability review targeted rather than exhaustive.
-  </commentary>
-  </example>
+  Example: "Check that this service has proper metrics, logging, and health checks"
 color: cyan
 routing:
   triggers:

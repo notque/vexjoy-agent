@@ -3,7 +3,7 @@
 
 Takes a list of tasks with file/directory scopes and detects conflicts,
 then recommends parallelization groupings. Used by dispatching-parallel-agents
-and do-parallel skills to prevent merge conflicts.
+and parallel dispatch workflows to prevent merge conflicts.
 
 Usage:
     python3 scripts/check-scope-overlap.py --tasks '[...]' --json

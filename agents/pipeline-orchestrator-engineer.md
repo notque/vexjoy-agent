@@ -9,46 +9,7 @@ description: |
   pipelines into the routing system, and orchestrating domain-level pipeline
   generation that decomposes domains into subdomains with custom pipeline chains.
 
-  Examples:
-
-  <example>
-  Context: User wants to create a new automated workflow.
-  user: "Create a pipeline for automated code review on every push"
-  assistant: "I'll orchestrate the creation of a code-review pipeline: a detector hook to identify push events, a reviewer agent following AGENT_TEMPLATE_V2, and a review skill with phase gates."
-  <commentary>
-  Pipeline creation requires coordinated scaffolding of multiple components.
-  The orchestrator fans out to specialized creators and integrates results.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs a content publishing workflow.
-  user: "Build a pipeline for blog post publishing with voice validation"
-  assistant: "I'll discover existing voice and publishing components, then scaffold only the missing pieces — avoiding duplication of voice-validator and voice-writer."
-  <commentary>
-  The orchestrator uses codebase-analyzer to detect existing components before
-  scaffolding, preventing duplication and encouraging reuse.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants to extend the system with a new domain pipeline.
-  user: "Create a pipeline for database migration safety checks"
-  assistant: "I'll fan out creation of a migration-detector hook, a migration-safety agent, and a migration-validation skill, then wire them into the /do routing tables."
-  <commentary>
-  New domain pipelines follow the standard pattern: hook detects context,
-  agent coordinates execution, skill defines methodology.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants to create pipelines for a domain with subdomains.
-  user: "Create pipelines for Prometheus"
-  assistant: "I'll research the Prometheus domain to discover subdomains (metrics authoring, alerting, operations, dashboards, performance), compose custom pipeline chains for each, scaffold all skills and routing, then test the generated pipelines."
-  <commentary>
-  Domain pipeline requests trigger the full 7-phase flow: ADR → Domain Research → Chain Composition → Scaffold → Integrate → Test → Retro. The orchestrator discovers subdomains rather than scaffolding a single pipeline.
-  </commentary>
-  </example>
+  Example: "Create a pipeline for automated code review on every push"
 
 color: purple
 routing:

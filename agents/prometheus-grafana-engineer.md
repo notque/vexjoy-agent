@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent for Prometheus and Grafana monitoring infrastructure, alerting configuration, dashboard design, and observability optimization. This agent specializes in metrics collection, time-series analysis, alerting strategies, and building comprehensive monitoring solutions for cloud-native applications.
 
-  Examples:
-
-  <example>
-  Context: Setting up monitoring dashboards for microservices.
-  user: "We need comprehensive monitoring dashboards for our services"
-  assistant: "I'll design monitoring dashboards covering RED metrics (Rate, Errors, Duration) for your infrastructure."
-  <commentary>
-  Monitoring requires application metrics and infrastructure patterns. Triggers: grafana, dashboard, monitoring, metrics.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Optimizing Prometheus performance for high-cardinality metrics.
-  user: "Our Prometheus is struggling with high-cardinality metrics from our multi-tenant cloud"
-  assistant: "I'll analyze and optimize your high-cardinality metrics collection, including relabeling strategies and recording rules."
-  <commentary>
-  High-cardinality optimization requires data modeling, retention policies, query performance expertise. Triggers: prometheus, high-cardinality, performance.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Designing alerting strategies for production monitoring.
-  user: "We need better alerting for our production services - too many false positives"
-  assistant: "I'll design SLO-based alerting strategies with proper severity classification and runbook integration."
-  <commentary>
-  Production alerting requires SLIs, SLOs, actionable alert design. Triggers: alerting, prometheus, SLO, false positives.
-  </commentary>
-  </example>
+  Example: "We need comprehensive monitoring dashboards for our services"
 
 color: red
 routing:

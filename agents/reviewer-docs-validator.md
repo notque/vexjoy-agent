@@ -5,43 +5,7 @@ version: 2.0.0
 description: |
   Use this agent for validating project documentation, configuration completeness, dependency health, CI/CD setup, and project metadata. This includes analyzing README.md, CLAUDE.md, dependency files, build systems, CI workflows, and project hygiene. Ensures the project is world-class, not just the code. Supports `--fix` mode to create missing files and update stale documentation.
 
-  Examples:
-
-  <example>
-  Context: Full project health audit before a release.
-  user: "Run a full project health check on this repository"
-  assistant: "I'll audit the entire project surface: README, CLAUDE.md, dependencies, CI/CD, build system, and metadata. I'll grade each area and report issues by severity."
-  <commentary>
-  A full health check covers all six validation areas. The agent produces a score card with grades and actionable findings sorted by severity.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Validating README quality for a new contributor experience.
-  user: "Check if the README is complete and accurate"
-  assistant: "I'll validate the README against the actual codebase: installation instructions, usage examples, test commands, link validity, and structural completeness."
-  <commentary>
-  README validation cross-references documented commands and paths against what actually exists in the repo. Instructions that reference missing files or incorrect commands are flagged.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants comprehensive PR review.
-  user: "Run a comprehensive review on this PR"
-  assistant: "I'll use the reviewer-docs-validator agent as part of the comprehensive review to check documentation, configuration, and project health."
-  <commentary>
-  This agent is typically dispatched by the comprehensive-review skill as agent #10 in a multi-agent review. It covers the non-code dimensions that other agents skip.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Validating CLAUDE.md accuracy against codebase.
-  user: "Check if our CLAUDE.md is up to date and useful"
-  assistant: "I'll validate the CLAUDE.md against the actual codebase: do referenced files exist, are conventions described accurately, are architectural decisions current, and does it provide useful guidance beyond generic best practices."
-  <commentary>
-  CLAUDE.md validation checks for staleness by verifying that referenced patterns, files, and conventions actually match the current state of the codebase.
-  </commentary>
-  </example>
+  Example: "Run a full project health check on this repository"
 color: yellow
 routing:
   triggers:

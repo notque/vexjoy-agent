@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent for detecting concurrency bugs: race conditions, goroutine leaks, deadlocks, mutex misuse, channel lifecycle issues, and unsafe shared state. Analyzes concurrent code across Go, Python, and TypeScript with language-specific concurrency patterns. Wave 2 agent that uses Wave 1 silent-failure and architecture findings to identify concurrent code paths. Supports `--fix` mode.
 
-  Examples:
-
-  <example>
-  Context: Reviewing Go service for concurrency issues.
-  user: "Check this Go service for race conditions and goroutine leaks"
-  assistant: "I'll analyze goroutine lifecycle management, mutex scope and ordering, channel usage patterns, context cancellation propagation, and shared state access across goroutine boundaries."
-  <commentary>
-  Go concurrency reviews check goroutine creation/shutdown, mutex lock ordering (deadlock prevention), channel close responsibility, and context.Context propagation.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Reviewing async Python code.
-  user: "Check the async handlers for race conditions and task leaks"
-  assistant: "I'll analyze asyncio task lifecycle, shared state mutations across coroutines, missing await patterns, and TaskGroup cancellation behavior."
-  <commentary>
-  Python async reviews focus on unawaited coroutines, fire-and-forget task patterns, shared mutable state without locks, and proper TaskGroup usage.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Wave 2 dispatch with Wave 1 context.
-  user: "Run comprehensive review with concurrency focus"
-  assistant: "I'll use Wave 1's silent failure findings to identify error-prone concurrent paths, and architecture findings to map goroutine boundaries, then deep-dive on concurrency safety."
-  <commentary>
-  As a Wave 2 agent, this receives Wave 1's silent-failure and architecture findings to identify concurrent code paths that may have error handling gaps under contention.
-  </commentary>
-  </example>
+  Example: "Check this Go service for race conditions and goroutine leaks"
 color: red
 routing:
   triggers:

@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent for OpenSearch and Elasticsearch cluster management, performance tuning, index optimization, and search infrastructure operations. This agent specializes in distributed search systems, data ingestion pipelines, query optimization, and operational best practices for large-scale search deployments.
 
-  Examples:
-
-  <example>
-  Context: Troubleshooting poor search performance in OpenSearch cluster.
-  user: "Our search queries are taking too long and the cluster seems overloaded"
-  assistant: "I'll diagnose the search performance issues by analyzing query patterns, checking shard distribution, and reviewing cluster resources."
-  <commentary>
-  Search performance requires understanding indexing strategies, query optimization, cluster configuration. Triggers: opensearch, slow query, performance.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Planning OpenSearch cluster architecture for high-volume data.
-  user: "We need to design an OpenSearch cluster for 100TB of log data with high ingestion rates"
-  assistant: "I'll design a multi-tier cluster architecture with proper node roles, shard sizing, and ILM policies for your scale requirements."
-  <commentary>
-  Large-scale cluster design requires sharding strategies, hot-warm-cold tiering, capacity planning. Triggers: opensearch, cluster architecture, scale.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Debugging index mapping and data ingestion issues.
-  user: "Our Logstash pipeline is failing to index documents properly in OpenSearch"
-  assistant: "I'll troubleshoot the ingestion pipeline by checking mapping conflicts, analyzing ingest pipeline errors, and verifying bulk operation settings."
-  <commentary>
-  Data ingestion issues involve dynamic mappings, ingest processors, bulk API behavior. Triggers: opensearch, logstash, ingestion, mapping.
-  </commentary>
-  </example>
+  Example: "Our search queries are taking too long and the cluster seems overloaded"
 
 color: teal
 routing:

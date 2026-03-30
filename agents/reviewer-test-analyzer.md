@@ -5,43 +5,7 @@ version: 2.0.0
 description: |
   Use this agent for reviewing test coverage quality, completeness, and resilience. This includes identifying critical test gaps, evaluating behavioral coverage, assessing test resilience to refactoring, and checking negative case coverage. Uses a 1-10 scoring system with pragmatic focus on tests that actually catch bugs. Supports `--fix` mode to add missing tests or improve existing ones.
 
-  Examples:
-
-  <example>
-  Context: Reviewing test coverage for a new feature.
-  user: "Review the test coverage for the new payment processing module"
-  assistant: "I'll analyze test coverage quality for the payment module, scoring gaps by severity and focusing on behavioral coverage, critical paths, and negative cases."
-  <commentary>
-  Test analysis focuses on behavioral coverage (does behavior X get tested?) not line coverage (does line N execute?). Payment processing is high-criticality, so gap scoring will be strict.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Checking test quality before merge.
-  user: "Are the tests in this PR good enough to merge?"
-  assistant: "I'll evaluate test quality across behavioral coverage, resilience, negative cases, and critical path coverage with a 1-10 scoring system."
-  <commentary>
-  Pre-merge test review uses the full scoring system. Critical gaps (9-10) block merge, Important gaps (7-8) should fix, lower scores are noted as non-blocking.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants comprehensive PR review.
-  user: "Run a comprehensive review on this PR"
-  assistant: "I'll use the reviewer-test-analyzer agent as part of the comprehensive review."
-  <commentary>
-  This agent is typically dispatched by the comprehensive-review skill as part of a multi-agent review.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Adding missing tests.
-  user: "Find test gaps and write the missing tests"
-  assistant: "I'll analyze test coverage gaps, then write the missing tests in --fix mode, focusing on critical and important gaps first."
-  <commentary>
-  In --fix mode, the agent writes missing tests after completing the full analysis. Tests follow existing test patterns in the codebase.
-  </commentary>
-  </example>
+  Example: "Review the test coverage for the new payment processing module"
 color: cyan
 routing:
   triggers:

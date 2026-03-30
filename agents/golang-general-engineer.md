@@ -9,34 +9,7 @@ description: |
   testing strategies, and production-ready code. Includes gopls MCP integration for workspace-aware
   Go intelligence and JetBrains Modern Go Guidelines for version-specific idiom enforcement.
 
-  Examples:
-
-  <example>
-  Context: User needs to implement a new feature in a Go service
-  user: "Add a rate limiter middleware to the HTTP API that limits requests to 100/minute per IP"
-  assistant: "I'll route this to the golang-general-engineer agent to implement the rate limiter middleware with proper concurrency patterns."
-  <commentary>
-  Go development task involving HTTP middleware implementation, concurrency (sync.Map or mutex for tracking), and modern Go patterns. The golang-general-engineer agent specializes in production-ready Go implementations.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User is debugging a concurrency issue in Go code
-  user: "Our worker pool is leaking goroutines. The test passes but production shows increasing goroutine count over time."
-  assistant: "I'll route this to the golang-general-engineer agent to analyze the goroutine lifecycle and identify the leak using proper context cancellation and WaitGroup patterns."
-  <commentary>
-  Debugging concurrency issues requires deep Go expertise in goroutine lifecycle management, context propagation, and proper shutdown patterns. The golang-general-engineer agent has specific guidance on these patterns.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants a code review of Go changes
-  user: "Review this PR that adds a caching layer to our event storage"
-  assistant: "I'll route this to the golang-general-engineer agent to perform a comprehensive code review covering error handling, concurrency safety, and Go best practices."
-  <commentary>
-  Go code reviews require expertise in modern Go idioms (any vs interface{}, error wrapping), concurrency patterns, and production quality standards. The golang-general-engineer agent has detailed review checklists and anti-pattern detection.
-  </commentary>
-  </example>
+  Example: "Add a rate limiter middleware to the HTTP API that limits requests to 100/minute per IP"
 color: blue
 hooks:
   PostToolUse:

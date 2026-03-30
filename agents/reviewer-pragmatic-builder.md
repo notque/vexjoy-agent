@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent when you need production-focused critique and operational reality checks for code, documentation, architecture, or deployment plans. This includes analyzing production readiness, error handling robustness, observability gaps, deployment feasibility, edge case handling, and real-world scalability concerns. The agent specializes in identifying operational blind spots, runtime failure modes, monitoring gaps, and practical deployment challenges from a builder's perspective.
 
-  Examples:
-
-  <example>
-  Context: User wants critique on a new microservice design document.
-  user: "Review this microservice architecture for production readiness"
-  assistant: "[Invokes Task tool to spawn reviewer-pragmatic-builder agent for operational analysis of deployment challenges and runtime concerns]"
-  <commentary>
-  Production-focused analysis of operational gaps, deployment challenges, and runtime concerns requires the reviewer-pragmatic-builder agent's expertise in shipping and maintaining systems.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User has implemented a data processing pipeline and wants operational review.
-  user: "What production issues might this ETL pipeline have?"
-  assistant: "[Invokes Task tool to spawn reviewer-pragmatic-builder agent to identify edge cases, error handling gaps, and observability concerns]"
-  <commentary>
-  Production readiness analysis and edge case identification from an on-call perspective are core strengths of the reviewer-pragmatic-builder agent.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants deployment reality check on a new feature.
-  user: "Roast this caching strategy from an operational perspective"
-  assistant: "[Invokes Task tool to spawn reviewer-pragmatic-builder agent to analyze runtime behavior, failure modes, and monitoring gaps]"
-  <commentary>
-  Operational critique and deployment feasibility analysis require the practical perspective of someone who has been paged at 3 AM - the reviewer-pragmatic-builder agent.
-  </commentary>
-  </example>
+  Example: "Review this microservice architecture for production readiness"
 color: orange
 routing:
   triggers:

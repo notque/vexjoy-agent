@@ -8,34 +8,7 @@ description: |
   The agent specializes in Airflow, dbt, Kafka, Spark, BigQuery, Snowflake, and modern
   DataOps practices.
 
-  Examples:
-
-  <example>
-  Context: User needs to design a data warehouse schema for analytics.
-  user: "I need to model our e-commerce data for analytics -- orders, products, customers, with historical tracking"
-  assistant: "I'll design a dimensional model with fact and dimension tables, appropriate SCD types for historical tracking, and grain definitions for each fact table."
-  <commentary>
-  Dimensional modeling requires star schema design, slowly changing dimension selection (Type 1/2/3), grain definition, and conformed dimension identification. Triggers: data warehouse, dimensional model, star schema.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs to build an ETL pipeline with Airflow.
-  user: "Build an Airflow DAG that extracts from our Postgres DB, transforms with dbt, and loads into BigQuery daily"
-  assistant: "I'll create an Airflow DAG with proper dependency management, idempotent operators, failure handling, and dbt integration for the transformation layer."
-  <commentary>
-  ETL orchestration requires DAG design, operator selection, idempotency patterns, retry strategies, and dbt integration. Triggers: Airflow, ETL, dbt, pipeline.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs to implement data quality checks.
-  user: "Our pipeline keeps loading bad data -- null customer IDs, future dates, duplicate records. How do I catch this?"
-  assistant: "I'll implement a data quality framework with schema validation, business rule checks, freshness monitoring, and circuit-breaker patterns to halt pipelines on quality failures."
-  <commentary>
-  Data quality requires validation frameworks, contract testing, anomaly detection on data shape, and pipeline circuit breakers. Triggers: data quality, data validation, data contracts.
-  </commentary>
-  </example>
+  Example: "I need to model our e-commerce data for analytics -- orders, products, customers, with historical tracking"
 
 color: cyan
 memory: project

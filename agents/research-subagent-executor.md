@@ -5,32 +5,7 @@ version: 2.0.0
 description: |
   Use this agent when you need to execute individual research tasks as a subagent under research coordination. This includes systematic investigation using OODA loop methodology, intelligent tool selection with budget management, source quality assessment, and delivering condensed findings to the lead researcher. The agent specializes in parallel tool execution, epistemic honesty, diminishing returns detection, and efficient information gathering within strict resource constraints.
 
-  <example>
-  Context: Research coordinator delegates a specific technical investigation task.
-  user: "Research the current state of quantum computing hardware - specifically qubit counts, error rates, and commercial availability for 2025"
-  assistant: "I'll use the research-subagent-executor agent to conduct this focused technical investigation."
-  <commentary>
-  This is a medium-complexity task requiring systematic research with technical specificity, source quality assessment, and budget management (~10 tool calls).
-  </commentary>
-  </example>
-
-  <example>
-  Context: Lead researcher needs verification of specific factual claims with high-quality sources.
-  user: "What was the federal tax filing deadline for 2024 returns and were there any extensions granted?"
-  assistant: "I'll use the research-subagent-executor agent for this straightforward verification task."
-  <commentary>
-  This is a simple query requiring minimal tool calls (<5), focusing on authoritative sources and factual accuracy.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Coordinator needs investigation of complex multi-faceted business question.
-  user: "Analyze Nvidia's supply chain strategy for AI chips in 2024-2025, including manufacturing partners, capacity constraints, and competitive positioning"
-  assistant: "I'll use the research-subagent-executor agent to execute this comprehensive investigation."
-  <commentary>
-  This is a hard task requiring extensive research (~15 tool calls), careful source evaluation to distinguish facts from speculation, and tracking key data points across multiple dimensions.
-  </commentary>
-  </example>
+  Example: "Research the current state of quantum computing hardware - specifically qubit counts, error rates, and commercial ava..."
 color: purple
 background: true
 routing:

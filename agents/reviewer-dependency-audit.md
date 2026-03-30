@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent for auditing project dependencies: known CVEs, problematic licenses, deprecated packages, unnecessary transitive dependencies, version pinning issues, and supply chain risks. Runs govulncheck for Go, npm audit for Node.js, pip-audit for Python. Wave 2 agent that uses Wave 1 docs-validator findings to identify dependency documentation gaps. Supports `--fix` mode.
 
-  Examples:
-
-  <example>
-  Context: Reviewing Go project dependencies for vulnerabilities.
-  user: "Audit the Go module dependencies for CVEs and deprecated packages"
-  assistant: "I'll run govulncheck for known CVEs, check go.mod for deprecated modules, identify unnecessary transitive dependencies, and verify version pinning strategy."
-  <commentary>
-  Go dependency audits use govulncheck for CVE scanning, go list -m all for dependency tree analysis, and go.mod for version constraint checking.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Reviewing Node.js project for supply chain risks.
-  user: "Check our npm dependencies for security issues and license problems"
-  assistant: "I'll run npm audit for CVEs, check for GPL/AGPL licenses incompatible with your project license, identify abandoned packages (no updates >2 years), and flag packages with excessive transitive dependencies."
-  <commentary>
-  Node.js dependency audits check npm audit results, license compatibility, package maintenance status, and dependency tree depth to identify supply chain risks.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Wave 2 dispatch with Wave 1 context.
-  user: "Run comprehensive review with dependency audit"
-  assistant: "I'll use Wave 1's docs-validator findings to identify dependency documentation gaps, and check that all dependencies in the lockfile are actually imported in code."
-  <commentary>
-  As a Wave 2 agent, this receives Wave 1's docs-validator findings to cross-reference documented dependencies with actual usage and identify undocumented dependencies.
-  </commentary>
-  </example>
+  Example: "Audit the Go module dependencies for CVEs and deprecated packages"
 color: yellow
 routing:
   triggers:

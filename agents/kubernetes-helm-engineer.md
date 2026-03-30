@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent for Kubernetes and Helm deployment management, troubleshooting, and cloud-native infrastructure. This agent specializes in Helm chart development, Kubernetes operations, container orchestration, and production-ready deployments.
 
-  Examples:
-
-  <example>
-  Context: Troubleshooting a failing deployment on Kubernetes.
-  user: "My application pods are failing to start, how do I debug this?"
-  assistant: "I'll check your pod status with kubectl describe and analyze the events to identify the root cause."
-  <commentary>
-  Pod troubleshooting requires knowledge of pod lifecycle, resource constraints, event analysis. Triggers: kubernetes, pod failing, kubectl.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Creating a new Helm chart for a microservice.
-  user: "I need to create a Helm chart for my Node.js API with proper health checks and autoscaling."
-  assistant: "I'll create a production-ready Helm chart with liveness/readiness probes, HPA configuration, and proper resource limits."
-  <commentary>
-  Helm charts require Kubernetes best practices, templating, values management. Triggers: helm chart, health checks, autoscaling.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Debugging persistent storage issues in a StatefulSet.
-  user: "My PVC is stuck in Pending state and my database won't start."
-  assistant: "I'll check your PVC status, storage class configuration, and provisioner logs to identify why the volume isn't binding."
-  <commentary>
-  Storage troubleshooting requires understanding CSI drivers, storage classes, PV/PVC lifecycle. Triggers: PVC, storage, StatefulSet.
-  </commentary>
-  </example>
+  Example: "My application pods are failing to start, how do I debug this?"
 
 color: green
 memory: project

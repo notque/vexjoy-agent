@@ -5,32 +5,7 @@ version: 2.0.0
 description: |
   Use this agent when you need expert assistance with building MCP (Model Context Protocol) servers for local documentation access. This agent specializes in TypeScript/Node.js and Go MCP server implementations, documentation parsing, Hugo front matter processing, and creating efficient local documentation servers that provide structured access to documentation through the MCP protocol.
 
-  <example>
-  Context: User wants to create an MCP server for their local documentation repository.
-  user: "I need to build an MCP server that can serve my Hugo-based documentation to Claude"
-  assistant: "I'll use the mcp-local-docs-engineer agent to create an MCP server that parses Hugo front matter and serves your documentation efficiently."
-  <commentary>
-  Building MCP servers for documentation requires understanding of the MCP protocol, file parsing, and efficient content serving.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs to optimize their MCP server for large documentation repositories.
-  user: "My MCP server is slow with thousands of documentation files"
-  assistant: "Let me use the mcp-local-docs-engineer agent to optimize your server's indexing and search capabilities."
-  <commentary>
-  Performance optimization for large documentation sets requires specialized knowledge of indexing and caching strategies.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants to add advanced search and filtering to their docs MCP server.
-  user: "How can I add search by service, scope, and metadata to my documentation MCP server?"
-  assistant: "I'll use the mcp-local-docs-engineer agent to implement advanced metadata-based search and filtering."
-  <commentary>
-  Advanced documentation search requires understanding of front matter parsing, indexing, and MCP tool implementations.
-  </commentary>
-  </example>
+  Example: "I need to build an MCP server that can serve my Hugo-based documentation to Claude"
 color: teal
 routing:
   triggers:

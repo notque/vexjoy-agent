@@ -125,7 +125,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **routing-table-updater** | User wants to update routing tables after adding or changing agents/skills. |
 | **docs-sync-checker** | User wants to check if README files or documentation are in sync with the actual code. |
 | **do-perspectives** | User wants multi-perspective analysis of a problem from 10 different lenses simultaneously. |
-| **do-parallel** | User wants parallel multi-angle extraction of insights from a document or codebase. |
+| **do → parallel-analysis** | User wants parallel multi-angle extraction of insights from a document or codebase. Loaded from `skills/do/references/parallel-analysis.md`. |
 | **plans** | User wants to manage the plan lifecycle: create, track, or review plans. |
 | **learn** | User wants to teach Claude a new error pattern or record a reusable insight. |
 | **retro** | User wants to interact with the learning system: view stats, list accumulated knowledge, search learnings, or graduate mature entries into agents/skills. |

@@ -8,40 +8,7 @@ description: |
   alternative discovery, assumption auditing, lock-in detection, and complexity justification
   with evidence-based contrarian analysis. READ-ONLY reviewer with Reviewer Schema + VERDICT.
 
-  Examples:
-
-  <example>
-  Context: User considering complex microservices architecture
-  user: "We're planning to break our monolith into 15 microservices for better scalability"
-  assistant: "I'll challenge fundamental assumptions—is scalability the actual bottleneck? What simpler alternatives exist?..."
-  <commentary>
-  Requires systematic premise validation and alternative exploration. Triggers: "microservices",
-  "scalability", "break monolith". The contrarian agent questions whether scalability is
-  the real problem, explores simpler vertical scaling, evaluates 15-service complexity cost.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants to adopt new technology stack
-  user: "We should migrate everything to Kubernetes because it's industry standard"
-  assistant: "I'll examine hidden assumptions—does 'industry standard' justify migration costs? What are you actually solving?..."
-  <commentary>
-  Questioning "should" statements and industry trends. Triggers: "industry standard",
-  "migrate", "Kubernetes". The contrarian agent challenges bandwagon reasoning, surfaces
-  hidden migration costs, explores managed services as alternatives.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User evaluating proposed architectural change
-  user: "The team wants to add GraphQL to solve our API versioning problems"
-  assistant: "I'll explore whether this solves the right problem—is versioning the core issue? Simpler alternatives?..."
-  <commentary>
-  Validating that proposed solution addresses actual problem. Triggers: "add GraphQL",
-  "solve", "API versioning". The contrarian agent questions if GraphQL is appropriate
-  solution, explores API gateway versioning, REST HATEOAS alternatives.
-  </commentary>
-  </example>
+  Example: "We're planning to break our monolith into 15 microservices for better scalability"
 
 color: purple
 routing:

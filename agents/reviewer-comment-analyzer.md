@@ -5,43 +5,7 @@ version: 2.0.0
 description: |
   Use this agent for analyzing code comments for accuracy, completeness, and long-term value. This includes detecting comment rot (stale comments that no longer match code), misleading documentation, unnecessary comments, and missing critical documentation. Supports `--fix` mode to update or remove problematic comments.
 
-  Examples:
-
-  <example>
-  Context: Checking comments after a large refactor.
-  user: "Check if the comments in the auth package still match the code after my refactor"
-  assistant: "I'll analyze all comments in the auth package for accuracy against the current code, checking for comment rot and misleading documentation."
-  <commentary>
-  Post-refactor comment analysis is critical. Comments that described old behavior become actively harmful if not updated.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Reviewing documentation quality.
-  user: "Review the comments and docs in this file for quality"
-  assistant: "I'll run a 5-step comment analysis: verify factual accuracy, assess completeness, evaluate long-term value, identify misleading elements, and suggest improvements."
-  <commentary>
-  The 5-step analysis methodology ensures systematic coverage of all comment quality dimensions.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants comprehensive PR review.
-  user: "Run a comprehensive review on this PR"
-  assistant: "I'll use the reviewer-comment-analyzer agent as part of the comprehensive review."
-  <commentary>
-  This agent is typically dispatched by the comprehensive-review skill as part of a multi-agent review.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Fixing stale comments automatically.
-  user: "Find and fix all stale comments in the handlers directory"
-  assistant: "I'll analyze comments for staleness and apply corrections in --fix mode, updating or removing comments that no longer match the code."
-  <commentary>
-  In --fix mode, the agent updates stale comments and removes misleading ones after completing the full analysis.
-  </commentary>
-  </example>
+  Example: "Check if the comments in the auth package still match the code after my refactor"
 color: orange
 routing:
   triggers:
