@@ -1,12 +1,6 @@
 ---
 name: blog-post-writer
-description: |
-  Voice-integrated blog post creation with 4-phase workflow: Assess, Decide,
-  Draft, Preview. Use when user wants to write a blog post, create content
-  for a Hugo site, or draft an article using a specific voice profile.
-  Use for "write post", "blog about", "draft article", "create content",
-  or "write about [topic]". Do NOT use for editing existing posts, voice
-  profile creation, SEO optimization, or social media content.
+description: "Deprecated: voice-integrated blog post creation."
 version: 2.0.0
 deprecated: true
 deprecated_by: voice-writer

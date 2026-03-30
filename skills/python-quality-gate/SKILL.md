@@ -1,13 +1,6 @@
 ---
 name: python-quality-gate
-description: |
-  Run Python quality checks with ruff, pytest, mypy, and bandit in
-  deterministic order. Use WHEN user requests "quality gate", "lint",
-  "verify code quality", "check python", or "pre-commit check". Use for
-  pre-merge validation, CI/CD gating, or comprehensive code quality
-  reports. Do NOT use for single-tool runs (run tool directly), debugging
-  runtime bugs (use systematic-debugging), refactoring (use
-  systematic-refactoring), or architecture review.
+description: "Python quality checks: ruff, pytest, mypy, bandit in deterministic order."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

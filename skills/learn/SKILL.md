@@ -1,12 +1,6 @@
 ---
 name: learn
-description: |
-  Manually teach Claude Code an error pattern and its solution, storing it in
-  the learning database with high confidence. Use when user provides an
-  explicit "error -> solution" pair, wants to pre-load fix knowledge, or
-  corrects a previous bad fix. Use for "/learn", "teach pattern", "remember
-  this fix". Do NOT use for automatic error learning (that is the error-learner
-  hook), debugging live issues, or querying existing patterns.
+description: "Manually teach error pattern and solution to learning database."
 version: 2.0.0
 user-invocable: false
 argument-hint: '"error" -> "solution"'

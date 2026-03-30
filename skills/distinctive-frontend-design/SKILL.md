@@ -1,12 +1,6 @@
 ---
 name: distinctive-frontend-design
-description: |
-  Context-driven aesthetic exploration with anti-cliche validation: typography,
-  color, animation, atmosphere. Use when starting a frontend needing distinctive
-  aesthetics, refreshing generic designs, or auditing for "AI slop" patterns.
-  Use for "distinctive frontend", "unique aesthetics", "avoid generic design",
-  "creative frontend". Do NOT use for quick prototypes, strict brand compliance,
-  backend projects, or data visualization.
+description: "Context-driven aesthetic exploration with anti-cliche validation."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

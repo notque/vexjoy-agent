@@ -1,19 +1,6 @@
 ---
 name: frontend-slides
-description: |
-  Browser-based HTML presentation generation with viewport-fit enforcement.
-  Produces a single self-contained HTML file with full keyboard/touch/wheel
-  navigation, reduced-motion support, and deterministic overflow validation.
-  Three paths: new build from topic/notes, PPTX-to-HTML conversion, or
-  enhancement of an existing HTML deck.
-  Triggers: "HTML slides", "browser presentation", "web deck", "reveal-style",
-  "viewport presentation", "convert PPTX to web", "convert PPTX to HTML",
-  "slides for a browser", "kiosk presentation", "interactive presentation
-  with keyboard navigation", "projector with a browser".
-  Do NOT use when the user wants a .pptx output file, a PowerPoint deck,
-  a Keynote file, or "slides to upload to Google Drive / email as attachment"
-  (use pptx-generator instead). When the user says only "slides" or "deck"
-  without a format, ask one disambiguation question before routing.
+description: "Browser-based HTML presentation generation."
 version: 1.0.0
 user-invocable: false
 agent: typescript-frontend-engineer

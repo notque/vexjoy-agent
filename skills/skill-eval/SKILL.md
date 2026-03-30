@@ -1,13 +1,6 @@
 ---
 name: skill-eval
-description: |
-  Evaluate and improve skills through measured testing. Run trigger evaluations
-  to test whether skill descriptions cause correct activation, benchmark skill output quality
-  with A/B comparisons, and validate skill structure. Use when user says
-  "improve skill", "test skill triggers", "benchmark
-  skill", "eval skill", or "skill quality". Do NOT use for creating new skills
-  (use skill-creator). Route autoresearch loops for description/body optimization
-  to agent-comparison.
+description: "Evaluate skills: trigger testing, A/B benchmarks, structure validation."
 version: 1.0.0
 user-invocable: false
 argument-hint: "<skill-name>"

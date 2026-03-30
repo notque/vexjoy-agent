@@ -2,10 +2,7 @@
 name: reviewer-error-messages
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent for reviewing error message quality: actionable messages, sufficient context (IDs, states, operation names), consistent formatting, user-facing vs internal distinction, and localization readiness. Ensures errors help users and operators diagnose and resolve issues. Wave 2 agent that uses Wave 1 silent-failure findings to identify error paths and code-quality findings for consistency checks. Supports `--fix` mode.
-
-  Example: "Check that our error messages are actionable and include sufficient context"
+description: "Error message review: actionable messages, sufficient context, consistent formatting."
 color: orange
 routing:
   triggers:

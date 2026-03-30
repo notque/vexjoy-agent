@@ -1,12 +1,6 @@
 ---
 name: fish-shell-config
-description: |
-  Fish shell configuration: config.fish, functions, abbreviations, variable
-  scoping, conf.d modules, and PATH management. Use when user's $SHELL is fish,
-  editing .fish files, working in ~/.config/fish/, or migrating from Bash. Use
-  for "fish config", "fish function", "abbr", "conf.d", "fish_add_path", or
-  "funcsave". Do NOT use for Bash/Zsh-only scripts, POSIX shell portability, or
-  non-shell configuration tasks.
+description: "Fish shell configuration and PATH management."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

@@ -2,11 +2,7 @@
 name: reviewer-security
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent for security-focused code review. This includes OWASP Top 10 analysis, authentication/authorization review, input validation, secrets detection, and vulnerability identification. The agent is READ-ONLY and reports findings without modifying code.
-
-  Example: "Security review the new payment endpoint in api/payments.go"
-
+description: "Security review: OWASP Top 10, auth, input validation, secrets detection, vulnerabilities."
 color: red
 isolation: worktree
 routing:

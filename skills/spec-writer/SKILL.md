@@ -1,12 +1,6 @@
 ---
 name: spec-writer
-description: |
-  Structured specification with explicit scope boundaries: user stories,
-  acceptance criteria, out-of-scope definition, risks, and estimation.
-  Positions before feature-design in the feature lifecycle pipeline.
-
-  Use when: "write spec", "user stories", "define requirements", "scope this",
-  "what should this do", "acceptance criteria", "define scope"
+description: "Structured specification: user stories, acceptance criteria, scope."
 version: 1.0.0
 user-invocable: false
 routing:

@@ -2,11 +2,7 @@
 name: kubernetes-helm-engineer
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent for Kubernetes and Helm deployment management, troubleshooting, and cloud-native infrastructure. This agent specializes in Helm chart development, Kubernetes operations, container orchestration, and production-ready deployments.
-
-  Example: "My application pods are failing to start, how do I debug this?"
-
+description: "Kubernetes and Helm: deployments, troubleshooting, cloud-native infrastructure."
 color: green
 memory: project
 routing:

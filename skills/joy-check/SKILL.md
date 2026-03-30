@@ -1,15 +1,6 @@
 ---
 name: joy-check
-description: |
-  Validate content framing with mode-based rubrics. Two modes:
-  - **writing** (default for human-facing content): Joy-grievance spectrum for
-    blog posts, emails, articles. Flags defensive, accusatory, or bitter framing.
-  - **instruction** (auto-detected for agent/skill/pipeline markdown): Positive
-    framing validation per ADR-127. Flags prohibition-based instructions (NEVER,
-    do NOT, FORBIDDEN) and suggests action-based rewrites.
-  Use when user says "joy check", "check framing", "tone check", "positive
-  framing check", or "instruction framing". Route to voice-validator for voice
-  fidelity, anti-ai-editor for AI pattern detection.
+description: "Validate content framing on joy-grievance spectrum."
 version: 2.0.0
 user-invocable: false
 argument-hint: "[--fix] [--strict] [--mode writing|instruction] <file>"

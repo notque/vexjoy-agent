@@ -1,6 +1,6 @@
 ---
 name: worktree-agent
-description: Mandatory rules for agents running in git worktree isolation to prevent leaks, branch confusion, and cross-contamination
+description: "Mandatory rules for agents in git worktree isolation."
 version: 1.0.0
 user-invocable: false
 context: fork

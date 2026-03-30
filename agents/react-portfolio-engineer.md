@@ -2,14 +2,7 @@
 name: react-portfolio-engineer
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent when building React portfolio and gallery websites for artists, photographers,
-  and creative professionals. The agent specializes in React 18+, Next.js App Router, image
-  galleries with filtering/lightbox, responsive design for visual content, and performance
-  optimization for portfolio sites.
-
-  Example: "Create an image gallery showing my artwork with categories and lightbox view"
-
+description: "React portfolio/gallery sites for creatives: React 18+, Next.js App Router, image optimization."
 color: purple
 routing:
   triggers:

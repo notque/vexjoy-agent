@@ -1,12 +1,6 @@
 ---
 name: dispatching-parallel-agents
-description: |
-  Dispatch independent subagents in parallel for unrelated problems spanning
-  different subsystems. Use when 2+ failures have independent root causes,
-  multiple subsystems are broken independently, or user requests concurrent
-  investigation. Use for "parallel", "multiple failures", "independent bugs",
-  "fix these concurrently". Do NOT use for related failures, shared-state
-  problems, or exploratory debugging where root cause is unknown.
+description: "Dispatch independent subagents in parallel."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

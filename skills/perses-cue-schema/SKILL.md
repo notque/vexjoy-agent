@@ -1,13 +1,7 @@
 ---
 name: perses-cue-schema
 user-invocable: false
-description: |
-  CUE schema authoring for Perses plugins: define data models, write validation
-  constraints, create JSON examples, implement Grafana migration schemas in
-  migrate/migrate.cue. Educational skill that explains CUE patterns specific to
-  Perses plugin development. Use for "perses cue schema", "perses model",
-  "plugin schema", "cue validation perses". Do NOT use for dashboard CUE
-  definitions (use perses-dac-pipeline).
+description: "CUE schema authoring for Perses plugins: data models, validation."
 allowed-tools:
   - Read
   - Grep

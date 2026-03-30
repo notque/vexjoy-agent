@@ -1,12 +1,6 @@
 ---
 name: decision-helper
-description: |
-  Weighted decision scoring framework for architectural and technology choices.
-  Frames decisions with 2-4 options, scores against weighted criteria, detects
-  close calls, and records decisions in the active ADR or task plan.
-
-  Use when: "should I use X or Y", "which approach", "compare options",
-  "trade-offs between", "help me decide", "evaluate alternatives"
+description: "Weighted decision scoring for architectural choices."
 version: 1.0.0
 user-invocable: false
 allowed-tools:

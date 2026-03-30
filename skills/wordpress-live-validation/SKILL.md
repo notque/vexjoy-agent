@@ -1,15 +1,6 @@
 ---
 name: wordpress-live-validation
-description: |
-  Validate a published or draft-preview WordPress post in a real browser using
-  Playwright. Checks rendered title, heading structure, image loading, OG/meta
-  tags, JavaScript errors, and responsive layout at mobile/tablet/desktop
-  breakpoints. When Chrome DevTools MCP is available, can use it for live browser
-  inspection as an alternative to Playwright. Use for "validate wordpress post",
-  "check live post", "verify published post", "wordpress post looks right",
-  "check og tags live", "responsive check wordpress". Do NOT use for source
-  markdown validation (use pre-publish-checker), SEO keyword analysis
-  (use seo-optimizer), or uploading content (use wordpress-uploader).
+description: "Validate published WordPress posts in browser via Playwright."
 version: 1.0.0
 user-invocable: false
 allowed-tools:

@@ -2,15 +2,7 @@
 name: system-upgrade-engineer
 model: sonnet
 version: 1.0.0
-description: |
-  Use this agent for systematic upgrades to the agent/skill/hook ecosystem when
-  Claude Code ships updates, user goals change, or retro learnings accumulate.
-  Orchestrates a 6-phase pipeline: CHANGELOG → AUDIT → PLAN → IMPLEMENT →
-  VALIDATE → DEPLOY. Dispatches domain specialists for parallel execution.
-  Always shows ranked plan before making any changes.
-
-  Example: "Claude Code just added a Notification event. Update the system."
-
+description: "Systematic toolkit upgrades: adapt agents, skills, hooks when Claude Code ships updates."
 color: orange
 routing:
   triggers:

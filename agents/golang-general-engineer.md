@@ -2,14 +2,7 @@
 name: golang-general-engineer
 model: sonnet
 version: 3.0.0
-description: |
-  Use this agent when you need expert assistance with Go development, including implementing features,
-  debugging issues, reviewing code quality, optimizing performance, or answering technical questions
-  about Go codebases. The agent specializes in modern Go patterns (1.26+), interface design, concurrency,
-  testing strategies, and production-ready code. Includes gopls MCP integration for workspace-aware
-  Go intelligence and JetBrains Modern Go Guidelines for version-specific idiom enforcement.
-
-  Example: "Add a rate limiter middleware to the HTTP API that limits requests to 100/minute per IP"
+description: "Go development: features, debugging, code review, performance. Modern Go 1.26+ patterns."
 color: blue
 hooks:
   PostToolUse:

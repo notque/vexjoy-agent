@@ -1,13 +1,6 @@
 ---
 name: quick
-description: |
-  Tracked lightweight execution with composable rigor flags for tasks between
-  a typo fix and a full feature. Plan + execute with optional --discuss,
-  --research, and --full flags to add rigor incrementally. Use for "quick task",
-  "small change", "ad hoc task", "add a flag", "extract function", "small
-  refactor", "fix bug in X". Do NOT use for multi-component features,
-  architectural changes, or anything needing wave-based parallel execution —
-  those are Simple+ tier.
+description: "Tracked lightweight execution with composable rigor flags: --discuss, --research, --full."
 version: 1.0.0
 user-invocable: true
 argument-hint: "[--discuss] [--research] [--full] <task>"

@@ -1,12 +1,6 @@
 ---
 name: post-outliner
-description: |
-  Create structural blueprints for blog posts before writing. Analyzes topic
-  briefs, selects structure templates, generates outlines with word counts and
-  section summaries. Use when planning a new post, brainstorming structure,
-  or deciding scope before drafting. Use for "outline", "plan post",
-  "structure this topic", "how should I organize". Do NOT use for writing
-  actual post content, editing existing posts, or SEO keyword planning.
+description: "Create structural blueprints for blog posts: outlines, word counts."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

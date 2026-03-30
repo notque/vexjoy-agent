@@ -1,12 +1,6 @@
 ---
 name: pr-review-address-feedback
-description: |
-  Fetch PR feedback from all GitHub sources and validate every comment before
-  acting. Use when user needs to process PR review comments, address reviewer
-  feedback, or triage pull request discussions. Use for "review comments",
-  "PR feedback", "address reviews", "address feedback", or "what did reviewers
-  say". Do NOT use for creating new PRs, code review of local changes, or
-  general code analysis without an existing PR.
+description: "Fetch PR feedback from GitHub and validate comments before acting."
 version: 2.0.0
 user-invocable: false
 argument-hint: "[<PR-number>]"

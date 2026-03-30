@@ -1,12 +1,6 @@
 ---
 name: taxonomy-manager
-description: |
-  Audit and maintain blog taxonomy (categories/tags) for consistency, SEO,
-  and navigation: scan content, detect orphans and duplicates, merge and
-  rename terms, verify builds. Use when user asks to "audit tags", "fix
-  taxonomy", "consolidate categories", "merge tags", or "clean up taxonomy".
-  Do NOT use for writing new content, individual post SEO optimization, or
-  major content restructuring.
+description: "Audit and maintain blog taxonomy: categories, tags, orphans, duplicates."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

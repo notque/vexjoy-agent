@@ -1,14 +1,7 @@
 ---
 name: perses-dashboard-create
 user-invocable: false
-description: |
-  Guided Perses dashboard creation: gather requirements (metrics, datasource, layout),
-  generate CUE definition or JSON spec, validate with percli lint, deploy with percli
-  apply or MCP perses_create_dashboard. Use when user wants to create a new Perses
-  dashboard, build a monitoring dashboard, or generate dashboard definitions. Use for
-  "create perses dashboard", "new dashboard", "perses new dashboard", "build dashboard".
-  Do NOT use for Grafana migration (use perses-grafana-migrate) or plugin development
-  (use perses-plugin-create).
+description: "Guided Perses dashboard creation: requirements, CUE/JSON, validate, deploy."
 allowed-tools:
   - Read
   - Grep

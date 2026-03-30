@@ -1,10 +1,6 @@
 ---
 name: feature-release
-description: |
-  Merge validated feature to main via PR, tag release, cleanup worktree.
-  Use after /feature-validate passes. Use for "release feature", "merge
-  feature", "ship it", or "/feature-release". Do NOT use without passing
-  validation or for hotfixes that skip the pipeline.
+description: "Merge validated feature to main via PR and tag release."
 version: 2.0.0
 user-invocable: false
 command: /feature-release

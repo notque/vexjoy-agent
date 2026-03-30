@@ -1,12 +1,6 @@
 ---
 name: series-planner
-description: |
-  Plan multi-part content series with structure, cross-linking, and publishing
-  cadence. Use when user needs to plan a blog post series, structure a multi-part
-  tutorial, or design content with cross-linked navigation. Use for "plan series",
-  "series on [topic]", "multi-part blog", or "content series". Do NOT use for
-  writing individual posts, single-article outlines, or content calendar planning
-  without series structure.
+description: "Plan multi-part content series: structure, cross-linking, cadence."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

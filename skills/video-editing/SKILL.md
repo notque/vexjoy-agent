@@ -1,14 +1,6 @@
 ---
 name: video-editing
-description: |
-  Video editing workflow: 6-layer pipeline for cutting footage, assembling
-  demo videos, vlogs, screen recordings, and social media clips using FFmpeg
-  and Remotion. Handles EDL generation from transcripts, deterministic FFmpeg
-  cuts, Remotion TSX composition, and final polish handoff.
-  Triggered by "edit video", "cut footage", "make vlog", "screen recording",
-  "video workflow", "ffmpeg", "remotion", "demo video", "make a clip".
-  Do NOT use for audio-only tasks (no video track), static image generation,
-  or live streaming configuration.
+description: "Video editing pipeline: cut footage, assemble clips via FFmpeg and Remotion."
 version: 1.0.0
 user-invocable: false
 agent: python-general-engineer

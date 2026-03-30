@@ -1,12 +1,6 @@
 ---
 name: do
-description: |
-  Classify user requests and route to the correct agent + skill combination.
-  Use for any user request that needs delegation: code changes, debugging,
-  reviews, content creation, research, or multi-step workflows. Invoked as
-  the primary entry point via "/do [request]". Route all code changes to
-  domain agents. Route all requests beyond pure fact lookups and single
-  reads to agents and skills.
+description: "Classify user requests and route to the correct agent + skill. Primary entry point for all delegated work."
 version: 2.0.0
 user-invocable: true
 argument-hint: "<request>"

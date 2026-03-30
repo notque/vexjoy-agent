@@ -1,12 +1,6 @@
 ---
 name: codebase-overview
-description: |
-  Systematic 4-phase codebase exploration: Detect, Explore, Map, Summarize.
-  Use when starting work on an unfamiliar codebase, onboarding to a new project,
-  reviewing a repository for the first time, or building context before debugging
-  or code review. Use for "explore codebase", "what does this project do",
-  "understand architecture", or "onboard me". Route to other skills for modifying files,
-  running applications, performance optimization, or deep domain analysis.
+description: "Systematic codebase exploration and architecture mapping."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

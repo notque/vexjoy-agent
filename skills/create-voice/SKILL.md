@@ -1,15 +1,6 @@
 ---
 name: create-voice
-description: |
-  Create a new voice profile from writing samples. 7-phase pipeline:
-  Collect, Extract, Pattern, Rule, Generate, Validate, Iterate.
-  Wabi-sabi (natural imperfections as features) is the core principle.
-  Use when creating a new voice, starting voice calibration, or
-  building a voice profile from scratch. Use for "create voice",
-  "new voice", "build voice", "voice from samples", "calibrate voice".
-  Route to other skills for generating content in an existing voice (use
-  voice-writer), editing content (use anti-ai-editor), or
-  comparing voices (use voice-calibrator compare mode).
+description: "Create voice profiles from writing samples."
 version: 1.0.0
 user-invocable: false
 argument-hint: "<voice-name> <sample-files...>"

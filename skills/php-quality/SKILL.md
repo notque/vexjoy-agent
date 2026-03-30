@@ -1,6 +1,6 @@
 ---
 name: php-quality
-description: PHP code quality patterns including PSR standards, strict types, and framework idioms
+description: "PHP code quality: PSR standards, strict types, framework idioms."
 version: 1.0.0
 user-invocable: false
 context: fork

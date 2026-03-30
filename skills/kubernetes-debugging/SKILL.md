@@ -1,6 +1,6 @@
 ---
 name: kubernetes-debugging
-description: Kubernetes debugging methodology for pod failures, networking issues, and resource problems
+description: "Kubernetes debugging for pod failures and networking."
 version: 1.0.0
 user-invocable: false
 context: fork

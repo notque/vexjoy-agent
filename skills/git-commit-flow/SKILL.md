@@ -1,12 +1,6 @@
 ---
 name: git-commit-flow
-description: |
-  Phase-gated git commit workflow with validation, staging, and CLAUDE.md
-  compliance enforcement. Use when creating commits, staging changes, or
-  when PR workflows need standardized commits. Triggers: "commit changes",
-  "save work", "create commit", or internal skill invocation from PR
-  workflows. Route to other skills for merge commits, rebases, amends, cherry-picks,
-  or emergency rollbacks requiring raw git speed.
+description: "Phase-gated git commit workflow with validation."
 effort: low
 version: 2.0.0
 user-invocable: false

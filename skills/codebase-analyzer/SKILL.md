@@ -1,13 +1,6 @@
 ---
 name: codebase-analyzer
-description: |
-  Statistical rule discovery through measurement of Go codebases: Count
-  patterns, derive confidence-scored rules, produce Style Vector fingerprint.
-  Use when analyzing codebase conventions, extracting implicit coding rules,
-  profiling a repo before onboarding or PR automation. Use for "analyze
-  codebase", "find coding patterns", "what conventions does this repo use",
-  "extract rules", or "codebase DNA". Route to other skills for code review, bug
-  fixes, refactoring, or performance optimization.
+description: "Statistical rule discovery from Go codebase patterns."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

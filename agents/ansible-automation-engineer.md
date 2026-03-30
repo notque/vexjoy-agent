@@ -2,11 +2,7 @@
 name: ansible-automation-engineer
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent when you need expert assistance with Ansible automation for infrastructure management, configuration orchestration, and DevOps automation workflows. This includes writing idempotent playbooks, creating reusable roles and collections, implementing CI/CD integration, testing with Molecule, performance optimization, and security best practices with Ansible Vault. The agent specializes in agentless configuration management, YAML-based automation, and scalable enterprise deployments.
-
-  Example: "I need to create an Ansible setup for deploying a web application with database, load balancer, and monitoring across..."
-
+description: "Ansible automation: playbooks, roles, collections, Molecule testing, Vault security."
 color: orange
 routing:
   triggers:

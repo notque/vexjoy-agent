@@ -2,14 +2,7 @@
 name: php-general-engineer
 model: sonnet
 version: 1.0.0
-description: |
-  Use this agent when you need expert assistance with PHP development, including implementing features,
-  debugging issues, reviewing code quality, enforcing security posture, or answering technical questions
-  about PHP codebases. The agent specializes in modern PHP 8.2+ patterns, PSR-12 style enforcement,
-  Laravel/Symfony/Doctrine idioms, static analysis (PHPStan/Psalm), and production-ready code.
-  Also covers SAP Commerce Cloud (Hybris) PHP development.
-
-  Example: "Add a checkout endpoint that processes orders, sends a confirmation email, and updates inventory"
+description: "PHP development: features, debugging, code quality, security, modern PHP 8.x patterns."
 color: purple
 hooks:
   PostToolUse:

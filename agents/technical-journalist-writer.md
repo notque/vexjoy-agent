@@ -2,10 +2,7 @@
 name: technical-journalist-writer
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent when you need professional technical journalism and article writing. This includes technical explainers, opinion pieces, analysis articles, and long-form technical content. The agent specializes in journalist-quality writing with clear structure, precise language, and engaging narrative flow.
-
-  Example: "Write an article explaining how the new database migration system works and why it's different from the old approach."
+description: "Technical journalism: explainers, opinion pieces, analysis articles, long-form content."
 color: blue
 routing:
   triggers:
