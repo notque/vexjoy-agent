@@ -1,0 +1,16 @@
+{
+  "tasks": [
+    {
+      "name": "positive-read-only-report",
+      "query": "inspect this repository and report back without changing anything",
+      "should_trigger": true,
+      "split": "train"
+    },
+    {
+      "name": "negative-fix-tests",
+      "query": "fix the failing tests in this repository",
+      "should_trigger": false,
+      "split": "train"
+    }
+  ]
+}
