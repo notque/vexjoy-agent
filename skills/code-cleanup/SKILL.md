@@ -1,11 +1,6 @@
 ---
 name: code-cleanup
-description: |
-  Systematic detection and prioritization of neglected code quality issues:
-  stale TODOs, unused imports, deprecated functions, high complexity, dead code.
-  Use when user requests "code cleanup", "find TODOs", "technical debt scan",
-  or "quality of life fixes". Do NOT use for bug fixing (use systematic-debugging),
-  feature work (use test-driven-development), or formatting-only (use code-linting).
+description: "Detect stale TODOs, unused imports, and dead code."
 version: 2.0.0
 user-invocable: false
 argument-hint: "[<path-or-scope>]"

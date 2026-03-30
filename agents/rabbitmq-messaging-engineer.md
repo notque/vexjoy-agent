@@ -2,11 +2,7 @@
 name: rabbitmq-messaging-engineer
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent for RabbitMQ message queue architecture, operations, clustering, and high-availability messaging systems. This agent specializes in message routing patterns, performance optimization, and production-ready messaging infrastructure for cloud-native environments.
-
-  Example: "We need to configure RabbitMQ clustering for reliable event delivery"
-
+description: "RabbitMQ: message queue architecture, clustering, high-availability, routing patterns."
 color: orange
 routing:
   triggers:

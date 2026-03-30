@@ -1,13 +1,6 @@
 ---
 name: github-actions-check
-description: |
-  Check GitHub Actions workflow status after git push using gh CLI. Reports
-  CI status, identifies failing jobs, and suggests local reproduction
-  commands. Use after "git push", when user asks about CI status, workflow
-  failures, or build results. Use for "check CI", "workflow status",
-  "actions failing", or "build broken". Route to other skills for local linting
-  (use code-linting), debugging test failures locally (use
-  systematic-debugging), or setting up new workflows.
+description: "Check GitHub Actions CI status and report failures."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

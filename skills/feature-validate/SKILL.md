@@ -1,10 +1,6 @@
 ---
 name: feature-validate
-description: |
-  Run quality gates on implemented feature: tests, lint, type checks, and
-  custom validation. Use after /feature-implement completes. Use for "validate
-  feature", "run quality gates", "check feature", or "/feature-validate".
-  Do NOT use for ad-hoc linting or debugging.
+description: "Run quality gates on implemented features."
 version: 2.0.0
 user-invocable: false
 command: /feature-validate

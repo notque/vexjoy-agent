@@ -2,18 +2,7 @@
 name: toolkit-governance-engineer
 model: sonnet
 version: 1.0.0
-description: |
-  Maintain and govern the claude-code-toolkit's internal architecture: edit SKILL.md files,
-  update routing tables, manage ADR lifecycle, regenerate INDEX.json, enforce frontmatter
-  compliance, standardize hooks, and run cross-component consistency checks.
-
-  Use when a task targets the toolkit's own structure — editing skills, updating routing,
-  checking coverage, or enforcing conventions. Route Go/Python/TypeScript application code
-  to domain agents, new agent/skill creation to skill-creator, CI/CD to devops agents,
-  and external PR reviews to reviewer agents.
-
-  Example: "Refactor the systematic-debugging skill to add a gate between Phase 2 and Phase 3"
-
+description: "Toolkit governance: edit skills, update routing tables, manage ADR lifecycle, enforce standards."
 color: blue
 routing:
   triggers:

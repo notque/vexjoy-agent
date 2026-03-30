@@ -1,12 +1,7 @@
 ---
 name: perses-project-manage
 user-invocable: false
-description: |
-  Perses project lifecycle management: create, list, switch, and configure projects.
-  Manage RBAC with roles and role bindings per project. Uses MCP tools when available,
-  percli CLI as fallback. Use for "perses project", "create project", "perses rbac",
-  "perses roles", "perses permissions". Do NOT use for dashboard creation
-  (use perses-dashboard-create).
+description: "Perses project lifecycle: create, list, switch, configure, RBAC."
 allowed-tools:
   - Read
   - Grep

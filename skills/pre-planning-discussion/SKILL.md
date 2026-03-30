@@ -1,13 +1,6 @@
 ---
 name: pre-planning-discussion
-description: |
-  Resolve implementation ambiguities before planning begins. Two modes:
-  Discussion mode surfaces gray areas with concrete options for greenfield work.
-  Assumptions mode reads the codebase, forms evidence-based opinions, and asks
-  the user to correct only what's wrong (brownfield work). Use for "discuss
-  ambiguities", "resolve gray areas", "clarify before planning", "assumptions
-  mode", "what are the gray areas", "before we plan". Do NOT use for broad
-  design exploration (use feature-design) or for planning itself (use feature-plan).
+description: "Resolve implementation ambiguities before planning begins."
 version: 1.0.0
 user-invocable: false
 argument-hint: "[--assumptions] <topic>"

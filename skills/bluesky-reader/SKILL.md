@@ -1,9 +1,6 @@
 ---
 name: bluesky-reader
-description: |
-  Read public Bluesky feeds via the AT Protocol API. Fetch recent posts from any
-  public profile or search a profile's posts by keyword. No authentication required.
-  Use for "read bluesky", "check bluesky feed", "search bluesky posts".
+description: "Read public Bluesky feeds via AT Protocol API."
 version: 1.0.0
 user-invocable: false
 agent: python-general-engineer

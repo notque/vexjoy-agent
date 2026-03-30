@@ -1,6 +1,6 @@
 ---
 name: kotlin-testing
-description: Kotlin testing patterns with JUnit 5, Kotest, and coroutine test dispatchers
+description: "Kotlin testing with JUnit 5, Kotest, and coroutine dispatchers."
 version: 1.0.0
 user-invocable: false
 context: fork

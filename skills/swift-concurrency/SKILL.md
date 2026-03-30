@@ -1,6 +1,6 @@
 ---
 name: swift-concurrency
-description: Swift structured concurrency with async/await, Actor, Task, and Sendable patterns
+description: "Swift concurrency: async/await, Actor, Task, Sendable patterns."
 version: 1.0.0
 user-invocable: false
 context: fork

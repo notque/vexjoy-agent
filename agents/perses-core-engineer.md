@@ -2,13 +2,7 @@
 name: perses-core-engineer
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent for Perses core development and contribution: Go backend (API handlers,
-  storage, auth), React/TypeScript frontend (dashboard editor, panel rendering), CUE schemas,
-  and the overall Perses architecture. For engineers working on the perses/perses repository itself.
-
-  Example: "I want to add a new API endpoint to Perses for ephemeral dashboard management"
-
+description: "Perses core development: Go backend, React frontend, CUE schemas, plugin system."
 color: blue
 routing:
   triggers:

@@ -2,10 +2,7 @@
 name: reviewer-code-quality
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent for code quality review against project conventions, style guides, and CLAUDE.md compliance. This includes guideline adherence, bug detection, code quality assessment, and convention enforcement. Uses a confidence-scoring system (0-100) and only reports issues scoring 80 or above. Supports `--fix` mode to apply corrections directly.
-
-  Example: "Review my code changes for quality and style"
+description: "Code quality review: project conventions, style guides, CLAUDE.md compliance, bug detection."
 color: green
 routing:
   triggers:

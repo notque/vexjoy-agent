@@ -1,13 +1,6 @@
 ---
 name: resume-work
-description: |
-  Restore session state from handoff artifacts and route to the next action.
-  Priority cascade: HANDOFF.json (highest) > .continue-here.md > incomplete
-  task_plan.md > git log. Presents a status dashboard, then executes the next
-  action. Use for "resume", "continue", "pick up where I left off", "what was
-  I doing", "continue work". Do NOT use for starting new tasks (use /do),
-  reviewing past sessions (use /retro), or reading task plans (read task_plan.md
-  directly).
+description: "Restore session state from handoff artifacts (HANDOFF.json, .continue-here.md, task_plan.md) and resume."
 version: 1.0.0
 user-invocable: true
 allowed-tools:

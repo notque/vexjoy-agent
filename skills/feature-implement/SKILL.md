@@ -1,10 +1,6 @@
 ---
 name: feature-implement
-description: |
-  Execute wave-ordered implementation plan by dispatching tasks to domain agents.
-  Use after /feature-plan produces a plan. Use for "implement feature", "execute
-  plan", "start building", or "/feature-implement". Do NOT use without a plan
-  or for ad-hoc coding tasks.
+description: "Execute wave-ordered implementation plan via domain agents."
 version: 2.0.0
 user-invocable: false
 command: /feature-implement

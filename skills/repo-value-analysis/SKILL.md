@@ -1,12 +1,6 @@
 ---
 name: repo-value-analysis
-description: |
-  Systematic 6-phase analysis of external repositories for ideas worth adopting:
-  clone, parallel deep-read, self-inventory, synthesize gaps, targeted audit of
-  affected subsystems, reality-grounded report. Use when evaluating whether an
-  external repo provides value, analyzing repos for useful patterns, or
-  comparing approaches.
-  Do NOT use for general codebase exploration (use explore-pipeline instead).
+description: "Analyze external repositories for adoptable ideas and patterns."
 version: 1.0.0
 user-invocable: false
 argument-hint: "<repo-url-or-path>"

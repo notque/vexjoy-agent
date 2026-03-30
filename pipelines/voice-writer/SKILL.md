@@ -1,6 +1,6 @@
 ---
 name: voice-writer
-description: "Unified voice content generation with validation and joy-check. 8-phase pipeline for articles, blog posts, and voiced content."
+description: "Unified voice content generation with 8-phase pipeline: validation, joy-check, voice profile support."
 version: 1.0.0
 user-invocable: true
 argument-hint: "<topic or title>"

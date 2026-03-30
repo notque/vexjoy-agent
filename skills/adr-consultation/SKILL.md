@@ -1,12 +1,6 @@
 ---
 name: adr-consultation
-description: |
-  Multi-agent consultation for architecture decisions. Dispatches 3 specialized reviewers
-  in parallel (contrarian, user advocate, meta-process) to challenge a plan or ADR before
-  implementation begins, producing a synthesis with a PROCEED or BLOCKED verdict.
-  Use for "consult on this ADR", "challenge this design", "review before implementing",
-  "should we proceed", or any Medium+ architecture decision. Do NOT use for trivial
-  changes, simple bug fixes, or decisions already in implementation.
+description: "Multi-agent consultation for architecture decisions."
 version: 1.0.0
 model: sonnet
 user-invocable: false

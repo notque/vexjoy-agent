@@ -1,13 +1,6 @@
 ---
 name: go-error-handling
-description: |
-  Go error handling patterns: wrapping with context, sentinel errors, custom
-  error types, errors.Is/As chains, and HTTP error mapping. Use when
-  implementing error returns, defining package-level errors, creating custom
-  error types, wrapping errors with fmt.Errorf, or checking errors with
-  errors.Is/As. Use for "error handling", "fmt.Errorf", "errors.Is",
-  "errors.As", "sentinel error", "custom error", or "%w". Do NOT use for
-  general Go development, debugging runtime panics, or logging strategy.
+description: "Go error handling: wrapping, sentinel, and custom types."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

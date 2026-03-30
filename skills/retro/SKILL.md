@@ -1,11 +1,6 @@
 ---
 name: retro
-description: |
-  Interact with the learning system: show stats, list/search accumulated
-  knowledge, and graduate mature entries into agents/skills. Backed by
-  learning.db (SQLite + FTS5). Use when user says "retro", "retro list",
-  "retro search", "retro graduate", "check knowledge", "what have we learned",
-  "knowledge health", "graduate knowledge".
+description: "Learning system interface: stats, search, graduate learnings. Backed by learning.db (SQLite + FTS5)."
 version: 2.0.0
 user-invocable: true
 argument-hint: "[status|list|search <term>|graduate]"

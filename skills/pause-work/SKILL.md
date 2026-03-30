@@ -1,12 +1,6 @@
 ---
 name: pause-work
-description: |
-  Create session handoff artifacts (HANDOFF.json + .continue-here.md) that capture
-  completed work, remaining tasks, decisions, uncommitted files, and reasoning context
-  so the next session can resume without reconstruction overhead. Use for "pause",
-  "save progress", "handoff", "stopping for now", "end session", "pick this up later".
-  Route to other skills for task planning (use task_plan.md), session summaries (use /retro),
-  or committing work (use /commit or git directly).
+description: "Create session handoff artifacts for resumable work continuity."
 version: 1.0.0
 user-invocable: false
 allowed-tools:

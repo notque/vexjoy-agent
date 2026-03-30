@@ -1,15 +1,6 @@
 ---
 name: security-threat-model
-description: |
-  Phase-gated security threat model skill. Scans the active toolkit installation
-  for attack surface exposure, generates a deny-list config, audits installed
-  skills and hooks for supply-chain injection patterns, checks the learning DB
-  for poisoned entries, and synthesizes findings into an actionable threat model
-  document. Produces concrete artifacts in security/ at each phase. Use when
-  assessing security posture of the toolkit installation, onboarding to security
-  review, or running a point-in-time supply-chain audit.
-  Triggers: threat model, security audit, supply chain scan, deny list,
-  learning db sanitize, security posture, injection scan, surface scan.
+description: "Security threat model: scan toolkit for attack surface, supply-chain risks."
 effort: high
 version: 1.0.0
 user-invocable: false

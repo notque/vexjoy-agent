@@ -1,13 +1,6 @@
 ---
 name: nano-banana-builder
-description: |
-  Generate and post-process images using Google Gemini Nano Banana APIs via
-  deterministic Python scripts. Covers single generation, batch generation,
-  style transfer with reference images, and post-processing (smart crop,
-  background removal, watermark cleanup, format conversion). Use for "nano
-  banana", "generate image", "gemini image", "batch image generation",
-  "sprite generation", "card art", or "image post-processing". Do NOT use
-  for non-Gemini models, model fine-tuning, or image classification tasks.
+description: "Image generation and post-processing via Gemini Nano Banana APIs."
 version: 3.0.0
 user-invocable: false
 allowed-tools:

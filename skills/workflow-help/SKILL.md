@@ -1,13 +1,6 @@
 ---
 name: workflow-help
-description: |
-  Interactive guide to repository workflow system: agents, skills, routing,
-  and execution patterns. Use when user asks how the system works, what
-  commands are available, or how to use brainstorm/plan/execute phases.
-  Use for "how does this work", "what can you do", "explain workflow",
-  "help me understand", or "show me the process". Do NOT use for actually
-  executing workflows (use workflow-orchestrator) or debugging (use
-  systematic-debugging).
+description: "Interactive guide to workflow system: agents, skills, routing, execution patterns."
 effort: low
 version: 2.0.0
 user-invocable: true

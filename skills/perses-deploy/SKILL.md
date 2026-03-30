@@ -1,13 +1,7 @@
 ---
 name: perses-deploy
 user-invocable: false
-description: |
-  Deploy Perses server: Docker Compose for local dev, Helm chart for K8s, or binary
-  for bare metal. Configure database (file/SQL), auth (native/OIDC/OAuth), plugins,
-  provisioning folders, and frontend settings. Use when user wants to deploy, install,
-  set up, or configure a Perses server instance. Use for "deploy perses", "install
-  perses", "perses setup", "perses server", "run perses". Route to other skills for dashboard
-  creation (use perses-dashboard-create) or plugin development (use perses-plugin-create).
+description: "Deploy Perses server: Docker Compose, Helm, or binary installation."
 allowed-tools:
   - Read
   - Grep
