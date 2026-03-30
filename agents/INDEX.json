@@ -632,9 +632,9 @@
       "complexity": "Medium-Complex",
       "category": "review"
     },
-    "reviewer-code-quality": {
-      "file": "reviewer-code-quality.md",
-      "short_description": "Use this agent for code quality review against project conventions, style guides, and CLAUDE",
+    "reviewer-code": {
+      "file": "reviewer-code.md",
+      "short_description": "Code quality review: conventions, naming, dead code, performance, types, tests, comments, config safety",
       "triggers": [
         "code quality review",
         "style review",
@@ -642,50 +642,76 @@
         "CLAUDE.md compliance",
         "code quality",
         "style guide",
-        "coding standards"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "parallel-code-review",
-        "systematic-code-review"
-      ],
-      "complexity": "Medium",
-      "category": "review"
-    },
-    "reviewer-code-simplifier": {
-      "file": "reviewer-code-simplifier.md",
-      "short_description": "Use this agent for simplifying recently modified code for clarity and maintainability",
-      "triggers": [
+        "coding standards",
         "simplify code",
         "code clarity",
         "reduce complexity",
         "refactor for clarity",
         "code simplification",
         "too complex",
-        "readability"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "code-cleanup"
-      ],
-      "complexity": "Medium",
-      "category": "review"
-    },
-    "reviewer-comment-analyzer": {
-      "file": "reviewer-comment-analyzer.md",
-      "short_description": "Use this agent for analyzing code comments for accuracy, completeness, and long-term value",
-      "triggers": [
+        "readability",
+        "language idioms",
+        "modern stdlib",
+        "Go patterns",
+        "Python patterns",
+        "language-specific",
+        "anti-patterns",
+        "LLM code tells",
+        "naming consistency",
+        "naming conventions",
+        "naming drift",
+        "variable naming",
+        "acronym casing",
+        "convention drift",
+        "inconsistent naming",
+        "dead code",
+        "unused code",
+        "unreachable code",
+        "orphaned files",
+        "stale feature flags",
+        "commented-out code",
+        "unused exports",
         "comment accuracy",
         "documentation review",
         "comment rot",
         "verify comments",
         "stale comments",
         "misleading comments",
-        "comment quality"
+        "comment quality",
+        "performance review",
+        "hot paths",
+        "N+1 queries",
+        "allocations",
+        "O(n^2)",
+        "caching",
+        "slow code",
+        "performance optimization",
+        "type design",
+        "type invariants",
+        "encapsulation review",
+        "type quality",
+        "type safety",
+        "illegal states",
+        "constructor validation",
+        "test coverage",
+        "test quality",
+        "test gaps",
+        "missing tests",
+        "test completeness",
+        "test review",
+        "test analysis",
+        "config safety",
+        "hardcoded values",
+        "environment variables",
+        "secrets in code",
+        "unsafe defaults",
+        "configuration review",
+        "env var validation"
       ],
       "pairs_with": [
         "comprehensive-review",
-        "comment-quality"
+        "parallel-code-review",
+        "systematic-code-review"
       ],
       "complexity": "Medium",
       "category": "review"
@@ -712,26 +738,6 @@
       "complexity": "Medium",
       "category": "review"
     },
-    "reviewer-config-safety": {
-      "file": "reviewer-config-safety.md",
-      "short_description": "Use this agent for detecting configuration safety issues: hardcoded values that should be configurable, missing environment variable validation, secrets in source code, unsafe defaults, and configuration drift between environments",
-      "triggers": [
-        "config safety",
-        "hardcoded values",
-        "environment variables",
-        "secrets in code",
-        "unsafe defaults",
-        "configuration review",
-        "env var validation"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "reviewer-security",
-        "reviewer-docs-validator"
-      ],
-      "complexity": "Medium",
-      "category": "review"
-    },
     "reviewer-contrarian": {
       "file": "reviewer-contrarian.md",
       "short_description": "Use this agent for professional skepticism that challenges fundamental assumptions and\nexplores alternatives through systematic critique",
@@ -746,26 +752,6 @@
         "reviewer-skeptical-senior"
       ],
       "complexity": "Simple",
-      "category": "review"
-    },
-    "reviewer-dead-code": {
-      "file": "reviewer-dead-code.md",
-      "short_description": "Use this agent for detecting dead code: unreachable branches, unused exports, orphaned files, stale feature flags, commented-out code, and obsolete TODOs",
-      "triggers": [
-        "dead code",
-        "unused code",
-        "unreachable code",
-        "orphaned files",
-        "stale feature flags",
-        "commented-out code",
-        "unused exports"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "reviewer-code-quality",
-        "reviewer-docs-validator"
-      ],
-      "complexity": "Medium",
       "category": "review"
     },
     "reviewer-dependency-audit": {
@@ -826,27 +812,6 @@
       "complexity": "Medium",
       "category": "review"
     },
-    "reviewer-language-specialist": {
-      "file": "reviewer-language-specialist.md",
-      "short_description": "Use this agent for language-specific code review that adapts criteria based on the programming language",
-      "triggers": [
-        "language idioms",
-        "modern stdlib",
-        "Go patterns",
-        "Python patterns",
-        "language-specific",
-        "anti-patterns",
-        "LLM code tells"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "golang-general-engineer",
-        "python-general-engineer",
-        "typescript-frontend-engineer"
-      ],
-      "complexity": "Medium",
-      "category": "review"
-    },
     "reviewer-meta-process": {
       "file": "reviewer-meta-process.md",
       "short_description": "Meta-analysis of system design decisions \u2014 examines whether the SYSTEM ITSELF is creating\nproblems",
@@ -884,26 +849,6 @@
         "reviewer-api-contract",
         "reviewer-business-logic",
         "database-engineer"
-      ],
-      "complexity": "Medium",
-      "category": "review"
-    },
-    "reviewer-naming-consistency": {
-      "file": "reviewer-naming-consistency.md",
-      "short_description": "Use this agent for detecting naming inconsistencies: convention drift (userID vs userId vs user_id), package naming violations, verb inconsistency (Get vs Fetch vs Retrieve), acronym casing violations, and file naming mismatches",
-      "triggers": [
-        "naming consistency",
-        "naming conventions",
-        "naming drift",
-        "variable naming",
-        "acronym casing",
-        "convention drift",
-        "inconsistent naming"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "reviewer-code-quality",
-        "reviewer-language-specialist"
       ],
       "complexity": "Medium",
       "category": "review"
@@ -954,27 +899,6 @@
         "systematic-code-review"
       ],
       "complexity": "Simple",
-      "category": "review"
-    },
-    "reviewer-performance": {
-      "file": "reviewer-performance.md",
-      "short_description": "Use this agent for detecting performance issues, hot paths, algorithmic complexity problems, unnecessary allocations, N+1 queries, missing caching opportunities, and index usage gaps",
-      "triggers": [
-        "performance review",
-        "hot paths",
-        "N+1 queries",
-        "allocations",
-        "O(n\u00b2)",
-        "caching",
-        "slow code",
-        "performance optimization"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "reviewer-concurrency",
-        "golang-general-engineer"
-      ],
-      "complexity": "Medium",
       "category": "review"
     },
     "reviewer-pragmatic-builder": {
@@ -1064,45 +988,6 @@
         "systematic-code-review"
       ],
       "complexity": "Medium",
-      "category": "review"
-    },
-    "reviewer-test-analyzer": {
-      "file": "reviewer-test-analyzer.md",
-      "short_description": "Use this agent for reviewing test coverage quality, completeness, and resilience",
-      "triggers": [
-        "test coverage",
-        "test quality",
-        "test gaps",
-        "missing tests",
-        "test completeness",
-        "test review",
-        "test analysis"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "test-driven-development",
-        "go-testing"
-      ],
-      "complexity": "Medium",
-      "category": "review"
-    },
-    "reviewer-type-design": {
-      "file": "reviewer-type-design.md",
-      "short_description": "Use this agent for evaluating type design quality, invariant expression, encapsulation, and type safety",
-      "triggers": [
-        "type design",
-        "type invariants",
-        "encapsulation review",
-        "type quality",
-        "type safety",
-        "illegal states",
-        "constructor validation"
-      ],
-      "pairs_with": [
-        "comprehensive-review",
-        "systematic-code-review"
-      ],
-      "complexity": "Medium-Complex",
       "category": "review"
     },
     "reviewer-user-advocate": {
