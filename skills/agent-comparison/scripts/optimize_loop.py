@@ -1199,7 +1199,7 @@ def _run_single_behavioral_task(
             except OSError:
                 pass
 
-        # Clean up extra-dir artifacts (agents/, skills/, pipelines/, scripts/)
+        # Clean up extra-dir artifacts (agents/, skills/, scripts/)
         after_extra: set[str] = _snapshot_extra_dirs(worktree_path)
         new_extra = sorted(after_extra - before_extra)
         for path in new_extra:

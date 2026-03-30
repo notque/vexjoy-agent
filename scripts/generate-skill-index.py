@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 """
-Generate skill and pipeline routing indexes from YAML frontmatter.
+Generate skill routing index from YAML frontmatter.
 
-Reads skills/*/SKILL.md and pipelines/*/SKILL.md, extracts routing metadata
-from YAML frontmatter, and generates two separate dict-keyed index files:
+Reads skills/*/SKILL.md, extracts routing metadata
+from YAML frontmatter, and generates a dict-keyed index file:
   - skills/INDEX.json   (skills only, v2.0)
-  - pipelines/INDEX.json (pipelines only, v2.0 with phases)
 
 Usage:
     python scripts/generate-skill-index.py
 
 Output:
     skills/INDEX.json    - Skill routing index for /do router
-    pipelines/INDEX.json - Pipeline routing index for /do router
+
 
 Exit codes:
     0 - Success
@@ -333,17 +332,14 @@ def generate_index(
 
 def check_trigger_collisions(
     skills_index: dict,
-    pipelines_index: dict,
 ) -> list[str]:
     """Check for trigger collisions among force-routed entries.
 
-    Scans all entries across both indexes where force_route is true,
-    and reports any trigger phrase that appears in more than one
-    force-routed skill/pipeline.
+    Scans all entries where force_route is true, and reports any
+    trigger phrase that appears in more than one force-routed skill.
 
     Args:
         skills_index: The skills index dict (keyed under "skills").
-        pipelines_index: The pipelines index dict (keyed under "pipelines").
 
     Returns:
         List of collision warning strings (empty if no collisions).
@@ -352,13 +348,6 @@ def check_trigger_collisions(
     trigger_owners: dict[str, list[str]] = {}
 
     for name, entry in skills_index.get("skills", {}).items():
-        if not entry.get("force_route"):
-            continue
-        for trigger in entry.get("triggers", []):
-            trigger_lower = trigger.lower()
-            trigger_owners.setdefault(trigger_lower, []).append(name)
-
-    for name, entry in pipelines_index.get("pipelines", {}).items():
         if not entry.get("force_route"):
             continue
         for trigger in entry.get("triggers", []):
@@ -399,13 +388,12 @@ def main() -> int:
     script_dir = Path(__file__).parent
     repo_root = script_dir.parent
     skills_dir = repo_root / "skills"
-    pipelines_dir = repo_root / "pipelines"
 
     if not skills_dir.exists():
         print(f"Error: skills directory not found at {skills_dir}", file=sys.stderr)
         return 1
 
-    # Generate skills index (skills only)
+    # Generate skills index
     skills_index, skills_warnings = generate_index(
         source_dir=skills_dir,
         dir_prefix="skills",
@@ -413,34 +401,15 @@ def main() -> int:
         is_pipeline=False,
     )
 
-    # Generate pipelines index (pipelines only)
-    pipelines_warnings: list[str] = []
-    if pipelines_dir.exists() and any(pipelines_dir.iterdir()):
-        pipelines_index, pipelines_warnings = generate_index(
-            source_dir=pipelines_dir,
-            dir_prefix="pipelines",
-            collection_key="pipelines",
-            is_pipeline=True,
-        )
-    else:
-        pipelines_index = {
-            "version": "2.0",
-            "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "generated_by": "scripts/generate-skill-index.py",
-            "pipelines": {},
-        }
-
-    all_warnings = skills_warnings + pipelines_warnings
-
     # Report warnings if any
-    if all_warnings:
+    if skills_warnings:
         print("Warnings during index generation:", file=sys.stderr)
-        for warning in all_warnings:
+        for warning in skills_warnings:
             print(warning, file=sys.stderr)
 
-    # Validate indexes have content before writing
-    if not skills_index["skills"] and not pipelines_index["pipelines"]:
-        print("Error: No skills or pipelines found. Index files not written.", file=sys.stderr)
+    # Validate index has content before writing
+    if not skills_index["skills"]:
+        print("Error: No skills found. Index file not written.", file=sys.stderr)
         return 1
 
     # Write skills/INDEX.json
@@ -448,16 +417,8 @@ def main() -> int:
     if not write_index(skills_index, skills_index_path):
         return 1
 
-    # Write pipelines/INDEX.json (only if pipelines directory exists)
-    if pipelines_dir.exists():
-        pipelines_index_path = pipelines_dir / "INDEX.json"
-        if not write_index(pipelines_index, pipelines_index_path):
-            return 1
-    else:
-        pipelines_index_path = None
-
     # Check for trigger collisions among force-routed entries
-    collisions = check_trigger_collisions(skills_index, pipelines_index)
+    collisions = check_trigger_collisions(skills_index)
     if collisions:
         print("\nTrigger collisions detected (force-routed entries):", file=sys.stderr)
         for collision in collisions:
@@ -465,7 +426,6 @@ def main() -> int:
 
     # Summary (to stdout)
     skills_count = len(skills_index["skills"])
-    pipelines_count = len(pipelines_index["pipelines"])
 
     print(f"Generated {skills_index_path}")
     print(f"  Skills: {skills_count}")
@@ -480,21 +440,8 @@ def main() -> int:
         for cat, count in sorted(skill_categories.items()):
             print(f"    {cat}: {count}")
 
-    print(f"Generated {pipelines_index_path}")
-    print(f"  Pipelines: {pipelines_count}")
-
-    # Show pipelines breakdown by category
-    pipeline_categories: dict[str, int] = {}
-    for entry in pipelines_index["pipelines"].values():
-        cat = entry.get("category", "uncategorized")
-        pipeline_categories[cat] = pipeline_categories.get(cat, 0) + 1
-    if pipeline_categories:
-        print("  By category:")
-        for cat, count in sorted(pipeline_categories.items()):
-            print(f"    {cat}: {count}")
-
-    # Trigger stats across both indexes
-    all_named = list(skills_index["skills"].items()) + list(pipelines_index["pipelines"].items())
+    # Trigger stats
+    all_named = list(skills_index["skills"].items())
     with_explicit = sum(1 for name, e in all_named if (e.get("triggers") or [name])[0] != name)
     force_routed = sum(1 for _, e in all_named if e.get("force_route"))
     print(f"\nWith explicit triggers: {with_explicit}")
@@ -505,8 +452,8 @@ def main() -> int:
         return 2
 
     # Return warning exit code if there were parse issues
-    if all_warnings:
-        print(f"\nCompleted with {len(all_warnings)} warning(s)", file=sys.stderr)
+    if skills_warnings:
+        print(f"\nCompleted with {len(skills_warnings)} warning(s)", file=sys.stderr)
 
     return 0
 

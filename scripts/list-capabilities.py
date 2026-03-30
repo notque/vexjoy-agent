@@ -47,7 +47,7 @@ def load_skills_index() -> tuple[dict, str | None]:
 
 
 def load_pipelines_index() -> tuple[dict, str | None]:
-    """Load pipelines/INDEX.json and return the pipelines dict keyed by name."""
+    """Load skills/INDEX.json and return the pipelines dict keyed by name."""
     if not PIPELINES_INDEX.exists():
         return {}, None
     data = json.loads(PIPELINES_INDEX.read_text())

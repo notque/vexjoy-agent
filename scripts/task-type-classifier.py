@@ -7,7 +7,7 @@ matching, then returns the corresponding chain template from canonical-chains.md
 Usage:
     python3 scripts/task-type-classifier.py --request "create a new Helm chart"
     python3 scripts/task-type-classifier.py --request "debug failing tests" --json
-    python3 scripts/task-type-classifier.py --request "deploy to staging" --check-catalog pipelines/catalog.json
+    python3 scripts/task-type-classifier.py --request "deploy to staging" --check-catalog skills/workflow/catalog.json
 
 Exit codes:
     0 — Classification successful
@@ -346,7 +346,7 @@ def build_parser() -> argparse.ArgumentParser:
             '  python3 scripts/task-type-classifier.py --request "create a new Helm chart"\n'
             '  python3 scripts/task-type-classifier.py --request "debug failing tests" --json\n'
             '  python3 scripts/task-type-classifier.py --request "deploy to staging" '
-            "--check-catalog pipelines/catalog.json\n"
+            "--check-catalog skills/workflow/catalog.json\n"
         ),
     )
     parser.add_argument(

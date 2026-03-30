@@ -139,7 +139,7 @@ def scan_agents(base_dir: Path) -> list[dict]:
 
 def _skills_from_index(index_path: Path) -> list[dict] | None:
     """
-    Parse a skills/INDEX.json or pipelines/INDEX.json file.
+    Parse a skills/INDEX.json or skills/INDEX.json file.
 
     Returns a list of {name, user_invocable, agent} dicts on success,
     or None if the file is missing or unparseable.
@@ -148,7 +148,7 @@ def _skills_from_index(index_path: Path) -> list[dict] | None:
         return None
     try:
         data = json.loads(index_path.read_text(encoding="utf-8"))
-        # Both skills/INDEX.json and pipelines/INDEX.json store entries under
+        # Both skills/INDEX.json and skills/INDEX.json store entries under
         # a dict keyed by skill name ("skills" or "pipelines" top-level key).
         entries: dict = data.get("skills") or data.get("pipelines") or {}
         if not isinstance(entries, dict):
@@ -167,9 +167,9 @@ def _skills_from_index(index_path: Path) -> list[dict] | None:
 
 def scan_skills(base_dir: Path) -> list[dict]:
     """
-    Scan skills/ and pipelines/ directories for existing skill definitions.
+    Scan skills/ directory for existing skill definitions.
 
-    Reads skills/INDEX.json and pipelines/INDEX.json when available (single
+    Reads skills/INDEX.json and skills/INDEX.json when available (single
     JSON parse per directory replaces ~145 + ~30 SKILL.md reads + YAML parses).
     Falls back to filesystem walk per directory only when INDEX.json is
     missing or unparseable.

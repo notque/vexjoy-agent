@@ -105,7 +105,7 @@ def validate_test_case(
 
     expected_skill = case.get("expected_skill")
     if expected_skill and expected_skill not in skills and expected_skill not in pipelines:
-        errors.append(f"skill '{expected_skill}' not found in skills/INDEX.json or pipelines/INDEX.json")
+        errors.append(f"skill '{expected_skill}' not found in skills/INDEX.json")
 
     return errors
 

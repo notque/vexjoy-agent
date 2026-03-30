@@ -87,6 +87,7 @@ _CREATION_BYPASS_ENV = "CREATION_GATE_BYPASS"
 
 _AGENT_PATTERN = re.compile(r"/agents/[^/]+\.md$")
 _SKILL_PATTERN = re.compile(r"/(skills|pipelines)/[^/]+/SKILL\.md$")
+_WORKFLOW_REF_PATTERN = re.compile(r"/skills/workflow/references/[^/]+\.md$")
 
 # ═══════════════════════════════════════════════════════════════
 # 5. SENSITIVE FILE PATTERNS (pretool-sensitive-file-guard.py)
@@ -347,14 +348,15 @@ def check_creation_gate(file_path: str) -> None:
 
     is_agent = bool(_AGENT_PATTERN.search(file_path))
     is_skill = bool(_SKILL_PATTERN.search(file_path))
-    if not is_agent and not is_skill:
+    is_workflow_ref = bool(_WORKFLOW_REF_PATTERN.search(file_path))
+    if not is_agent and not is_skill and not is_workflow_ref:
         return
 
     # Allow overwrites of existing files (update, not creation)
     if os.path.exists(file_path):
         return
 
-    component_type = "agent" if is_agent else "skill"
+    component_type = "agent" if is_agent else "workflow reference" if is_workflow_ref else "skill"
     _block(
         f"[creation-gate] BLOCKED: New {component_type} must be created via skill-creator or skill-creation-pipeline.\n"
         f"[creation-gate] Path: {file_path}\n"

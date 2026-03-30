@@ -227,7 +227,7 @@ def main() -> None:
     parser.add_argument(
         "--pipelines-dir",
         default="pipelines",
-        help="Path to the pipelines directory (default: pipelines/)",
+        help="Path to the pipelines directory (default: skills/workflow/references/)",
     )
 
     args = parser.parse_args()
