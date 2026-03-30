@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Generate a description-optimized variant of an agent/skill file using Claude Code.
+"""Generate an optimized variant of an agent/skill file using Claude Code.
 
-Proposes a new frontmatter description based on the optimization goal and
-previous iteration failures, then applies that description back onto the
-original file. This keeps the optimization surface aligned with what the
-evaluator actually measures.
+Supports two optimization scopes:
+- description-only: mutate frontmatter description only
+- body-only: mutate the markdown body only
 
 Pattern: uses `claude -p` so generation runs through Claude Code directly.
 
@@ -173,6 +172,40 @@ def replace_description(content: str, new_description: str) -> str:
     return "\n".join(rebuilt_lines)
 
 
+def extract_body(content: str) -> str:
+    """Extract markdown body content after frontmatter."""
+    lines = content.split("\n")
+    if not lines or lines[0].strip() != "---":
+        raise ValueError("Content missing frontmatter opening delimiter")
+    end_idx = None
+    for i, line in enumerate(lines[1:], start=1):
+        if line.strip() == "---":
+            end_idx = i
+            break
+    if end_idx is None:
+        raise ValueError("Content missing frontmatter closing delimiter")
+    return "\n".join(lines[end_idx + 1 :])
+
+
+def replace_body(content: str, new_body: str) -> str:
+    """Replace the markdown body while preserving frontmatter verbatim."""
+    lines = content.split("\n")
+    if not lines or lines[0].strip() != "---":
+        raise ValueError("Content missing frontmatter opening delimiter")
+    end_idx = None
+    for i, line in enumerate(lines[1:], start=1):
+        if line.strip() == "---":
+            end_idx = i
+            break
+    if end_idx is None:
+        raise ValueError("Content missing frontmatter closing delimiter")
+    rebuilt_lines = [*lines[: end_idx + 1], *new_body.splitlines()]
+    rebuilt = "\n".join(rebuilt_lines)
+    if content.endswith("\n") and not rebuilt.endswith("\n"):
+        rebuilt += "\n"
+    return rebuilt
+
+
 # ---------------------------------------------------------------------------
 # Variant generation
 # ---------------------------------------------------------------------------
@@ -237,6 +270,7 @@ def generate_variant(
     current_content: str,
     failures: list[dict],
     model: str | None,
+    optimization_scope: str = "description-only",
     history: list[dict] | None = None,
     diversification_note: str | None = None,
 ) -> dict:
@@ -289,8 +323,10 @@ This is non-negotiable: protected sections contain safety gates that must not be
 removed even if removing them would improve test scores."""
 
     current_description = extract_description(current_content)
+    current_body = extract_body(current_content)
 
-    prompt = f"""You are optimizing an agent/skill file to improve its trigger performance.
+    if optimization_scope == "description-only":
+        prompt = f"""You are optimizing an agent/skill file to improve its trigger performance.
 
 Target file: {target_path}
 Optimization goal: {goal}
@@ -346,23 +382,72 @@ Do not return the full file.
 <deletion_justification>
 [why any removed section was replaced safely, or leave blank]
 </deletion_justification>"""
+        text, raw_result_text, tokens_used = _run_claude_code(prompt, model)
 
-    text, raw_result_text, tokens_used = _run_claude_code(prompt, model)
+        description_match = re.search(r"<description>(.*?)</description>", text, re.DOTALL)
+        if description_match:
+            new_payload = description_match.group(1).strip()
+        else:
+            variant_match = re.search(r"<variant>(.*?)</variant>", text, re.DOTALL)
+            if not variant_match:
+                print("Error: No <description> or <variant> tags in response", file=sys.stderr)
+                sys.exit(1)
+            legacy_variant = variant_match.group(1).strip()
+            new_payload = extract_description(legacy_variant)
 
-    # Parse improved description. Accept legacy <variant> output as a fallback
-    # so older prompt responses and tests remain parseable.
-    description_match = re.search(r"<description>(.*?)</description>", text, re.DOTALL)
-    if description_match:
-        new_description = description_match.group(1).strip()
+        variant = replace_description(current_content, new_payload)
+    elif optimization_scope == "body-only":
+        prompt = f"""You are optimizing an agent/skill file to improve its behavioral quality.
+
+Target file: {target_path}
+Optimization goal: {goal}
+
+Current content of the file:
+<current_content>
+{current_content}
+</current_content>
+Current body:
+<current_body>
+{current_body}
+</current_body>
+{failure_section}{history_section}{diversification_section}{protected_notice}
+
+SAFETY RULES:
+1. Optimize ONLY the markdown body after the YAML frontmatter.
+   Do not modify the frontmatter, skill name, description, routing, tools, or version.
+2. Keep the skill faithful to its current purpose. Improve how it behaves, not what broad domain it covers.
+3. Preserve headings and protected sections unless you have a clear reason to improve the body structure safely.
+4. Prefer the smallest body change that addresses the failed tasks and improves behavioral quality.
+
+Please respond with ONLY the improved body text inside <body> tags and a brief summary inside <summary> tags.
+Do not return the full file.
+
+<body>
+[improved markdown body only]
+</body>
+
+<summary>
+[1-2 sentence description of the change]
+</summary>
+
+<deletion_justification>
+[why any removed section was replaced safely, or leave blank]
+</deletion_justification>"""
+        text, raw_result_text, tokens_used = _run_claude_code(prompt, model)
+        body_match = re.search(r"<body>(.*?)</body>", text, re.DOTALL)
+        if body_match:
+            new_payload = body_match.group(1).strip("\n")
+        else:
+            variant_match = re.search(r"<variant>(.*?)</variant>", text, re.DOTALL)
+            if not variant_match:
+                print("Error: No <body> or <variant> tags in response", file=sys.stderr)
+                sys.exit(1)
+            legacy_variant = variant_match.group(1).strip()
+            new_payload = extract_body(legacy_variant)
+
+        variant = replace_body(current_content, new_payload)
     else:
-        variant_match = re.search(r"<variant>(.*?)</variant>", text, re.DOTALL)
-        if not variant_match:
-            print("Error: No <description> or <variant> tags in response", file=sys.stderr)
-            sys.exit(1)
-        legacy_variant = variant_match.group(1).strip()
-        new_description = extract_description(legacy_variant)
-
-    variant = replace_description(current_content, new_description)
+        raise ValueError(f"Unsupported optimization_scope: {optimization_scope}")
 
     # Parse summary
     summary_match = re.search(r"<summary>(.*?)</summary>", text, re.DOTALL)
@@ -404,6 +489,12 @@ def main():
     parser.add_argument("--history", default="[]", help="JSON list of previous iterations")
     parser.add_argument("--diversification-note", default=None, help="Optional search diversification hint")
     parser.add_argument("--model", default=None, help="Optional Claude Code model override")
+    parser.add_argument(
+        "--optimization-scope",
+        choices=["description-only", "body-only"],
+        default="description-only",
+        help="Which part of the file to mutate",
+    )
     args = parser.parse_args()
 
     try:
@@ -429,6 +520,7 @@ def main():
         current_content=current_content,
         failures=failures,
         model=args.model,
+        optimization_scope=args.optimization_scope,
         history=history if history else None,
         diversification_note=args.diversification_note,
     )

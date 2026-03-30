@@ -1,0 +1,12 @@
+{
+  "tasks": [
+    {
+      "name": "socratic-first-turn",
+      "query": "Help me think through this bug. My Python script sometimes returns None instead of a dict when the cache is warm. Please do not solve it for me directly.",
+      "eval_mode": "blind_compare",
+      "judge": "heuristic_socratic_debugging",
+      "min_score": 0.7,
+      "split": "train"
+    }
+  ]
+}
