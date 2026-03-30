@@ -47,9 +47,9 @@
     {
       "request": "submit a PR with full review gates",
       "expected_agent": null,
-      "expected_skill": "pr-pipeline",
+      "expected_skill": "workflow",
       "category": "git-operations",
-      "notes": "Full PR workflow with gates"
+      "notes": "Full PR workflow with gates (consolidated into workflow)"
     },
     {
       "request": "clean up my merged branches",
@@ -61,9 +61,9 @@
     {
       "request": "debug the goroutine leak in the worker pool",
       "expected_agent": "golang-general-engineer",
-      "expected_skill": "systematic-debugging",
+      "expected_skill": "workflow",
       "category": "go-development",
-      "notes": "Go domain + debug verb \u2014 agent + skill pairing"
+      "notes": "Go domain + debug verb \u2014 agent + workflow (systematic-debugging reference)"
     },
     {
       "request": "write table-driven tests for the parser",
@@ -131,9 +131,9 @@
     {
       "request": "debug the async race condition in TypeScript",
       "expected_agent": "typescript-debugging-engineer",
-      "expected_skill": "systematic-debugging",
+      "expected_skill": "workflow",
       "category": "frontend-development",
-      "notes": "TypeScript debugging \u2014 specialized TS debug agent"
+      "notes": "TypeScript debugging \u2014 specialized TS debug agent + workflow (systematic-debugging reference)"
     },
     {
       "request": "fix the typo in main.go",
@@ -243,9 +243,9 @@
     {
       "request": "research the topic thoroughly then write an article",
       "expected_agent": null,
-      "expected_skill": "research-to-article",
+      "expected_skill": "workflow",
       "category": "content-creation",
-      "notes": "Research-backed article \u2014 pipeline skill"
+      "notes": "Research-backed article \u2014 workflow (research-to-article reference)"
     },
     {
       "request": "remove AI patterns from this blog post",
@@ -284,9 +284,9 @@
     {
       "request": "create a new hook for PostToolUse events",
       "expected_agent": "hook-development-engineer",
-      "expected_skill": "hook-development-pipeline",
+      "expected_skill": "workflow",
       "category": "meta-tooling",
-      "notes": "Hook creation \u2014 agent + pipeline pairing"
+      "notes": "Hook creation \u2014 agent + workflow (hook-development-pipeline reference)"
     },
     {
       "request": "go ahead and fix the bug",
@@ -298,12 +298,12 @@
     {
       "request": "debug the goroutine leak causing memory issues",
       "expected_agent": "golang-general-engineer",
-      "expected_skill": "systematic-debugging",
+      "expected_skill": "workflow",
       "expected_stacked": [
         "go-concurrency"
       ],
       "category": "force-route-stacking",
-      "notes": "Go debug + goroutine force-route \u2014 primary skill is systematic-debugging, go-concurrency should be stacked via force-route"
+      "notes": "Go debug + goroutine force-route \u2014 primary skill is workflow (systematic-debugging reference), go-concurrency stacked via force-route"
     }
   ]
 }

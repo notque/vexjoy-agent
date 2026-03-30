@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-03-30T16:58:51Z",
+  "generated": "2026-03-30T22:08:30Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -27,7 +27,7 @@
     },
     "agent-comparison": {
       "file": "skills/agent-comparison/SKILL.md",
-      "description": "A/B test agent variants measuring quality and total session token cost across simple and complex benchmarks.",
+      "description": "A/B test agent variants for quality and token cost.",
       "triggers": [
         "compare agents",
         "A/B test agents",
@@ -42,7 +42,7 @@
     },
     "agent-evaluation": {
       "file": "skills/agent-evaluation/SKILL.md",
-      "description": "Evaluate agents and skills for quality, completeness, and standards compliance using a 6-step rubric: Identify, Structural, Content, Code, Integration, Report.",
+      "description": "Evaluate agents and skills for quality and standards compliance.",
       "triggers": [
         "evaluate agent",
         "audit agent",
@@ -55,7 +55,7 @@
     },
     "anti-ai-editor": {
       "file": "skills/anti-ai-editor/SKILL.md",
-      "description": "Review and revise content to remove AI-sounding patterns.",
+      "description": "Remove AI-sounding patterns from content.",
       "triggers": [
         "remove AI patterns",
         "de-AI content",
@@ -67,7 +67,7 @@
     },
     "batch-editor": {
       "file": "skills/batch-editor/SKILL.md",
-      "description": "Safe bulk editing across multiple Hugo markdown posts: find/replace, frontmatter updates, content transforms with mandatory preview before apply.",
+      "description": "Bulk find/replace and frontmatter updates across Hugo posts.",
       "triggers": [
         "batch edit posts",
         "bulk frontmatter update",
@@ -79,7 +79,7 @@
     },
     "bluesky-reader": {
       "file": "skills/bluesky-reader/SKILL.md",
-      "description": "Read public Bluesky feeds via the AT Protocol API.",
+      "description": "Read public Bluesky feeds via AT Protocol API.",
       "triggers": [
         "read Bluesky",
         "fetch Bluesky posts",
@@ -92,7 +92,7 @@
     },
     "branch-naming": {
       "file": "skills/branch-naming/SKILL.md",
-      "description": "Generate and validate Git branch names from commit messages or descriptions.",
+      "description": "Generate and validate Git branch names.",
       "triggers": [
         "generate branch name",
         "validate branch name"
@@ -103,7 +103,7 @@
     },
     "code-cleanup": {
       "file": "skills/code-cleanup/SKILL.md",
-      "description": "Systematic detection and prioritization of neglected code quality issues: stale TODOs, unused imports, deprecated functions, high complexity, dead code.",
+      "description": "Detect stale TODOs, unused imports, and dead code.",
       "triggers": [
         "find dead code",
         "stale TODOs",
@@ -119,7 +119,7 @@
     },
     "code-linting": {
       "file": "skills/code-linting/SKILL.md",
-      "description": "Run Python (ruff) and JavaScript (Biome) linting, formatting, and code quality checks with auto-fix support.",
+      "description": "Run Python (ruff) and JavaScript (Biome) linting.",
       "triggers": [
         "lint code",
         "run ruff",
@@ -132,7 +132,7 @@
     },
     "codebase-analyzer": {
       "file": "skills/codebase-analyzer/SKILL.md",
-      "description": "Statistical rule discovery through measurement of Go codebases: Count patterns, derive confidence-scored rules, produce Style Vector fingerprint.",
+      "description": "Statistical rule discovery from Go codebase patterns.",
       "triggers": [
         "analyze codebase",
         "discover patterns",
@@ -144,7 +144,7 @@
     },
     "codebase-overview": {
       "file": "skills/codebase-overview/SKILL.md",
-      "description": "Systematic 4-phase codebase exploration: Detect, Explore, Map, Summarize.",
+      "description": "Systematic codebase exploration and architecture mapping.",
       "triggers": [
         "onboard to codebase",
         "codebase structure",
@@ -159,7 +159,7 @@
     },
     "codex-code-review": {
       "file": "skills/codex-code-review/SKILL.md",
-      "description": "Get a second-opinion code review from OpenAI Codex CLI (GPT-5.4 xhigh reasoning).",
+      "description": "Second-opinion code review from OpenAI Codex CLI.",
       "triggers": [
         "codex review",
         "second opinion",
@@ -178,7 +178,7 @@
     },
     "comment-quality": {
       "file": "skills/comment-quality/SKILL.md",
-      "description": "Review and fix comments containing temporal references, development-activity language, or relative comparisons.",
+      "description": "Review and fix temporal references in code comments.",
       "triggers": [
         "review comments",
         "fix temporal references",
@@ -190,7 +190,7 @@
     },
     "condition-based-waiting": {
       "file": "skills/condition-based-waiting/SKILL.md",
-      "description": "Condition-based polling and retry patterns: exponential backoff, health checks, rate limit recovery, circuit breakers.",
+      "description": "Polling, retry, and backoff patterns.",
       "triggers": [
         "exponential backoff",
         "health check polling",
@@ -206,7 +206,7 @@
     },
     "content-calendar": {
       "file": "skills/content-calendar/SKILL.md",
-      "description": "Manage editorial content pipeline through 6 stages: Ideas, Outlined, Drafted, Editing, Ready, Published.",
+      "description": "Manage editorial content through 6 pipeline stages.",
       "triggers": [
         "content pipeline",
         "editorial calendar",
@@ -218,7 +218,7 @@
     },
     "content-engine": {
       "file": "skills/content-engine/SKILL.md",
-      "description": "Repurpose a source asset (article, demo, launch note, insight) into platform-native social content variants.",
+      "description": "Repurpose source assets into platform-native social content.",
       "triggers": [
         "repurpose this",
         "adapt for social",
@@ -242,7 +242,7 @@
     },
     "create-voice": {
       "file": "skills/create-voice/SKILL.md",
-      "description": "Create a new voice profile from writing samples.",
+      "description": "Create voice profiles from writing samples.",
       "triggers": [
         "create voice",
         "new voice",
@@ -263,7 +263,7 @@
     },
     "cron-job-auditor": {
       "file": "skills/cron-job-auditor/SKILL.md",
-      "description": "Deterministic audit of cron/scheduled job scripts for reliability, error handling, logging, cleanup, and concurrency safety.",
+      "description": "Audit cron scripts for reliability and safety.",
       "triggers": [
         "audit cron jobs",
         "review scheduled scripts",
@@ -307,7 +307,7 @@
     },
     "decision-helper": {
       "file": "skills/decision-helper/SKILL.md",
-      "description": "Weighted decision scoring framework for architectural and technology choices.",
+      "description": "Weighted decision scoring for architectural choices.",
       "triggers": [
         "weigh options",
         "decision matrix",
@@ -325,7 +325,7 @@
     },
     "distinctive-frontend-design": {
       "file": "skills/distinctive-frontend-design/SKILL.md",
-      "description": "Context-driven aesthetic exploration with anti-cliche validation: typography, color, animation, atmosphere.",
+      "description": "Context-driven aesthetic exploration with anti-cliche validation.",
       "triggers": [
         "frontend design",
         "typography exploration",
@@ -337,7 +337,7 @@
     },
     "do": {
       "file": "skills/do/SKILL.md",
-      "description": "Classify user requests and route to the correct agent + skill combination.",
+      "description": "Classify user requests and route to the correct agent + skill.",
       "triggers": [
         "route task",
         "classify request"
@@ -348,7 +348,7 @@
     },
     "docs-sync-checker": {
       "file": "skills/docs-sync-checker/SKILL.md",
-      "description": "Deterministic 4-phase documentation drift detector: Scan, Cross-Reference, Detect, Report.",
+      "description": "Detect documentation drift against filesystem state.",
       "triggers": [
         "check doc drift",
         "sync documentation",
@@ -360,7 +360,7 @@
     },
     "e2e-testing": {
       "file": "skills/e2e-testing/SKILL.md",
-      "description": "Playwright-based end-to-end testing workflow: Page Object Model structure, flaky test quarantine, CI/CD artifact management, and structured test reporting.",
+      "description": "Playwright-based end-to-end testing workflow.",
       "triggers": [
         "playwright",
         "E2E test",
@@ -382,7 +382,7 @@
     },
     "endpoint-validator": {
       "file": "skills/endpoint-validator/SKILL.md",
-      "description": "Deterministic API endpoint validation with structured pass/fail reporting.",
+      "description": "Deterministic API endpoint validation with pass/fail reporting.",
       "triggers": [
         "validate endpoints",
         "smoke test API",
@@ -397,7 +397,7 @@
     },
     "fast": {
       "file": "skills/fast/SKILL.md",
-      "description": "Zero-ceremony inline execution for tasks completable in 3 or fewer file edits.",
+      "description": "Zero-ceremony inline execution for 3 or fewer file edits.",
       "triggers": [
         "quick fix",
         "typo fix",
@@ -415,7 +415,7 @@
     },
     "feature-design": {
       "file": "skills/feature-design/SKILL.md",
-      "description": "Collaborative design phase for feature lifecycle: explore requirements, discuss trade-offs, produce design document.",
+      "description": "Collaborative design phase for feature lifecycle.",
       "triggers": [
         "feature design",
         "design feature",
@@ -435,7 +435,7 @@
     },
     "feature-implement": {
       "file": "skills/feature-implement/SKILL.md",
-      "description": "Execute wave-ordered implementation plan by dispatching tasks to domain agents.",
+      "description": "Execute wave-ordered implementation plan via domain agents.",
       "triggers": [
         "feature implement",
         "implement feature",
@@ -455,7 +455,7 @@
     },
     "feature-plan": {
       "file": "skills/feature-plan/SKILL.md",
-      "description": "Break a design document into wave-ordered implementation tasks with domain agent assignments.",
+      "description": "Break design docs into wave-ordered implementation tasks.",
       "triggers": [
         "feature plan",
         "plan feature",
@@ -475,7 +475,7 @@
     },
     "feature-release": {
       "file": "skills/feature-release/SKILL.md",
-      "description": "Merge validated feature to main via PR, tag release, cleanup worktree.",
+      "description": "Merge validated feature to main via PR and tag release.",
       "triggers": [
         "feature release",
         "release feature",
@@ -495,7 +495,7 @@
     },
     "feature-validate": {
       "file": "skills/feature-validate/SKILL.md",
-      "description": "Run quality gates on implemented feature: tests, lint, type checks, and custom validation.",
+      "description": "Run quality gates on implemented features.",
       "triggers": [
         "feature validate",
         "validate feature",
@@ -516,7 +516,7 @@
     },
     "fish-shell-config": {
       "file": "skills/fish-shell-config/SKILL.md",
-      "description": "Fish shell configuration: config.fish, functions, abbreviations, variable scoping, conf.d modules, and PATH management.",
+      "description": "Fish shell configuration and PATH management.",
       "triggers": [
         "fish",
         "fish shell",
@@ -540,7 +540,7 @@
     },
     "forensics": {
       "file": "skills/forensics/SKILL.md",
-      "description": "Post-mortem diagnostic analysis of failed or stuck workflows.",
+      "description": "Post-mortem diagnostic analysis of failed workflows.",
       "triggers": [
         "forensics",
         "what went wrong",
@@ -566,7 +566,7 @@
     },
     "frontend-slides": {
       "file": "skills/frontend-slides/SKILL.md",
-      "description": "Browser-based HTML presentation generation with viewport-fit enforcement.",
+      "description": "Browser-based HTML presentation generation.",
       "triggers": [
         "HTML slides",
         "browser presentation",
@@ -592,7 +592,7 @@
     },
     "full-repo-review": {
       "file": "skills/full-repo-review/SKILL.md",
-      "description": "Run comprehensive 3-wave review against all source files in the repo, producing a prioritized issue backlog.",
+      "description": "Comprehensive 3-wave review of all repo source files, producing a prioritized issue backlog.",
       "triggers": [
         "full repo review",
         "review entire repo",
@@ -610,7 +610,7 @@
     },
     "gemini-image-generator": {
       "file": "skills/gemini-image-generator/SKILL.md",
-      "description": "CLI-based image generation from text prompts using Google Gemini APIs via Python.",
+      "description": "Generate images from text prompts via Google Gemini.",
       "triggers": [
         "generate image",
         "create image with AI",
@@ -630,7 +630,7 @@
     },
     "generate-claudemd": {
       "file": "skills/generate-claudemd/SKILL.md",
-      "description": "Generate a project-specific CLAUDE.md by analyzing the current repository's code, build system, and architecture.",
+      "description": "Generate project-specific CLAUDE.md from repo analysis.",
       "triggers": [
         "generate claude.md",
         "create claude.md",
@@ -648,7 +648,7 @@
     },
     "git-commit-flow": {
       "file": "skills/git-commit-flow/SKILL.md",
-      "description": "Phase-gated git commit workflow with validation, staging, and CLAUDE.md compliance enforcement.",
+      "description": "Phase-gated git commit workflow with validation.",
       "triggers": [
         "commit",
         "stage and commit",
@@ -661,7 +661,7 @@
     },
     "github-actions-check": {
       "file": "skills/github-actions-check/SKILL.md",
-      "description": "Check GitHub Actions workflow status after git push using gh CLI.",
+      "description": "Check GitHub Actions CI status and report failures.",
       "triggers": [
         "check CI",
         "CI status",
@@ -675,7 +675,7 @@
     },
     "github-notification-triage": {
       "file": "skills/github-notification-triage/SKILL.md",
-      "description": "Triage GitHub notifications \u2014 report actions needed, clear noise.",
+      "description": "Triage GitHub notifications and report actions needed.",
       "triggers": [
         "github notifications",
         "triage notifications",
@@ -691,7 +691,7 @@
     },
     "go-anti-patterns": {
       "file": "skills/go-anti-patterns/SKILL.md",
-      "description": "Detect and remediate Go anti-patterns: premature interface abstraction, goroutine overkill, context soup, error wrapping mistakes, generic abuse, c...",
+      "description": "Detect and remediate Go anti-patterns.",
       "triggers": [
         "Go mistake",
         "bad Go",
@@ -715,7 +715,7 @@
     },
     "go-code-review": {
       "file": "skills/go-code-review/SKILL.md",
-      "description": "Go-specific code review with 6-phase methodology: Context, Automated Checks, Quality Analysis, Specific Analysis, Line-by-Line, Documentation.",
+      "description": "Go-specific 6-phase code review methodology.",
       "triggers": [
         "review Go",
         "Go PR",
@@ -736,7 +736,7 @@
     },
     "go-concurrency": {
       "file": "skills/go-concurrency/SKILL.md",
-      "description": "Go concurrency patterns and primitives: goroutines, channels, sync primitives, worker pools, rate limiting, context propagation.",
+      "description": "Go concurrency patterns: goroutines, channels, sync.",
       "triggers": [
         "goroutine",
         "channel",
@@ -765,7 +765,7 @@
     },
     "go-error-handling": {
       "file": "skills/go-error-handling/SKILL.md",
-      "description": "Go error handling patterns: wrapping with context, sentinel errors, custom error types, errors.Is/As chains, and HTTP error mapping.",
+      "description": "Go error handling: wrapping, sentinel, and custom types.",
       "triggers": [
         "error handling",
         "fmt.Errorf",
@@ -788,7 +788,7 @@
     },
     "go-pr-quality-gate": {
       "file": "skills/go-pr-quality-gate/SKILL.md",
-      "description": "Run Go quality checks via make check with intelligent error categorization and actionable fix suggestions.",
+      "description": "Run Go quality checks via make check.",
       "triggers": [
         "Go quality",
         "make check",
@@ -801,7 +801,7 @@
     },
     "go-sapcc-conventions": {
       "file": "skills/go-sapcc-conventions/SKILL.md",
-      "description": "SAP Converged Cloud Go coding conventions extracted from sapcc/keppel and sapcc/go-bits PR reviews.",
+      "description": "SAP Converged Cloud Go coding conventions.",
       "triggers": [
         "sapcc",
         "sap-cloud-infrastructure",
@@ -826,7 +826,7 @@
     },
     "go-testing": {
       "file": "skills/go-testing/SKILL.md",
-      "description": "Go testing patterns and methodology: table-driven tests, t.Run subtests, t.Helper helpers, mocking interfaces, benchmarks, race detection, and synctest.",
+      "description": "Go testing: table-driven, subtests, mocks, benchmarks.",
       "triggers": [
         "go test",
         "*_test.go",
@@ -849,7 +849,7 @@
     },
     "headless-cron-creator": {
       "file": "skills/headless-cron-creator/SKILL.md",
-      "description": "Generate headless Claude Code cron jobs from a task description and schedule.",
+      "description": "Generate headless Claude Code cron jobs with safety.",
       "triggers": [
         "create cron job",
         "scheduled task",
@@ -862,7 +862,7 @@
     },
     "image-auditor": {
       "file": "skills/image-auditor/SKILL.md",
-      "description": "Non-destructive 4-phase image validation: Discover, Validate, Analyze, Report.",
+      "description": "Non-destructive image validation for accessibility and health.",
       "triggers": [
         "audit images",
         "check broken images",
@@ -874,7 +874,7 @@
     },
     "image-to-video": {
       "file": "skills/image-to-video/SKILL.md",
-      "description": "FFmpeg-based 4-step video creation: Validate, Prepare, Encode, Verify.",
+      "description": "FFmpeg-based video creation from image and audio.",
       "triggers": [
         "image to video",
         "audio visualization",
@@ -897,7 +897,7 @@
     },
     "install": {
       "file": "skills/install/SKILL.md",
-      "description": "Verify Claude Code Toolkit installation, diagnose issues, and guide new users through first-time setup",
+      "description": "Verify Claude Code Toolkit installation, diagnose issues, and guide first-time setup.",
       "triggers": [
         "install toolkit",
         "verify installation",
@@ -910,7 +910,7 @@
     },
     "integration-checker": {
       "file": "skills/integration-checker/SKILL.md",
-      "description": "Verify cross-component wiring: exports are imported AND used, real data flows through connections, output shapes match input expectations.",
+      "description": "Verify cross-component wiring and data flow.",
       "triggers": [
         "integration check",
         "check integration",
@@ -931,7 +931,7 @@
     },
     "joy-check": {
       "file": "skills/joy-check/SKILL.md",
-      "description": "Validate content framing with mode-based rubrics.",
+      "description": "Validate content framing on joy-grievance spectrum.",
       "triggers": [
         "joy check",
         "check framing",
@@ -955,7 +955,7 @@
     },
     "kotlin-coroutines": {
       "file": "skills/kotlin-coroutines/SKILL.md",
-      "description": "Kotlin structured concurrency, Flow, Channel, and cancellation patterns",
+      "description": "Kotlin structured concurrency, Flow, and Channel patterns.",
       "triggers": [
         "kotlin-coroutines",
         "kotlin",
@@ -967,7 +967,7 @@
     },
     "kotlin-testing": {
       "file": "skills/kotlin-testing/SKILL.md",
-      "description": "Kotlin testing patterns with JUnit 5, Kotest, and coroutine test dispatchers",
+      "description": "Kotlin testing with JUnit 5, Kotest, and coroutine dispatchers.",
       "triggers": [
         "kotlin-testing",
         "kotlin",
@@ -979,7 +979,7 @@
     },
     "kubernetes-debugging": {
       "file": "skills/kubernetes-debugging/SKILL.md",
-      "description": "Kubernetes debugging methodology for pod failures, networking issues, and resource problems",
+      "description": "Kubernetes debugging for pod failures and networking.",
       "triggers": [
         "kubernetes-debugging",
         "kubernetes",
@@ -991,7 +991,7 @@
     },
     "kubernetes-security": {
       "file": "skills/kubernetes-security/SKILL.md",
-      "description": "Kubernetes security patterns including RBAC, PodSecurityStandards, network policies, and secret management",
+      "description": "Kubernetes security: RBAC, PodSecurity, network policies.",
       "triggers": [
         "kubernetes-security",
         "kubernetes",
@@ -1003,7 +1003,7 @@
     },
     "learn": {
       "file": "skills/learn/SKILL.md",
-      "description": "Manually teach Claude Code an error pattern and its solution, storing it in the learning database with high confidence.",
+      "description": "Manually teach error pattern and solution to learning database.",
       "triggers": [
         "teach pattern",
         "record learning",
@@ -1015,7 +1015,7 @@
     },
     "link-auditor": {
       "file": "skills/link-auditor/SKILL.md",
-      "description": "Hugo site link health analysis: scan markdown, build internal link graph, validate paths, and report issues.",
+      "description": "Hugo site link health: scan markdown, build link graph, validate paths.",
       "triggers": [
         "audit links",
         "find broken links",
@@ -1027,7 +1027,7 @@
     },
     "nano-banana-builder": {
       "file": "skills/nano-banana-builder/SKILL.md",
-      "description": "Generate and post-process images using Google Gemini Nano Banana APIs via deterministic Python scripts.",
+      "description": "Image generation and post-processing via Gemini Nano Banana APIs.",
       "triggers": [
         "nano banana",
         "gemini image generation",
@@ -1049,7 +1049,7 @@
     },
     "pair-programming": {
       "file": "skills/pair-programming/SKILL.md",
-      "description": "Collaborative coding with enforced micro-steps: announce, show diff, wait for confirmation, apply, verify.",
+      "description": "Collaborative coding with enforced micro-steps and user-paced control.",
       "triggers": [
         "pair program",
         "collaborative coding",
@@ -1066,7 +1066,7 @@
     },
     "parallel-code-review": {
       "file": "skills/parallel-code-review/SKILL.md",
-      "description": "Parallel 3-reviewer code review orchestration: launch Security, Business-Logic, and Architecture reviewers simultaneously, aggregate findings by se...",
+      "description": "Parallel 3-reviewer code review: Security, Business-Logic, Architecture.",
       "triggers": [
         "parallel review",
         "3-reviewer review",
@@ -1078,7 +1078,7 @@
     },
     "pause-work": {
       "file": "skills/pause-work/SKILL.md",
-      "description": "Create session handoff artifacts (HANDOFF.json + .continue-here.md) that capture completed work, remaining tasks, decisions, uncommitted files, and...",
+      "description": "Create session handoff artifacts for resumable work continuity.",
       "triggers": [
         "pause",
         "save progress",
@@ -1098,7 +1098,7 @@
     },
     "perses-code-review": {
       "file": "skills/perses-code-review/SKILL.md",
-      "description": "Perses-aware code review: check Go backend against Perses patterns, React components against Perses UI conventions, CUE schemas against plugin spec, and dashboard definitions against best practices.",
+      "description": "Perses-aware code review: Go backend, React UI, CUE schemas, dashboards.",
       "triggers": [
         "review Perses code",
         "Perses PR review"
@@ -1110,7 +1110,7 @@
     },
     "perses-cue-schema": {
       "file": "skills/perses-cue-schema/SKILL.md",
-      "description": "CUE schema authoring for Perses plugins: define data models, write validation constraints, create JSON examples, implement Grafana migration schemas in migrate/migrate.cue.",
+      "description": "CUE schema authoring for Perses plugins: data models, validation.",
       "triggers": [
         "Perses CUE schema",
         "plugin data model"
@@ -1122,7 +1122,7 @@
     },
     "perses-dashboard-create": {
       "file": "skills/perses-dashboard-create/SKILL.md",
-      "description": "Guided Perses dashboard creation: gather requirements (metrics, datasource, layout), generate CUE definition or JSON spec, validate with percli lin...",
+      "description": "Guided Perses dashboard creation: requirements, CUE/JSON, validate, deploy.",
       "triggers": [
         "create Perses dashboard",
         "new dashboard"
@@ -1134,7 +1134,7 @@
     },
     "perses-dashboard-review": {
       "file": "skills/perses-dashboard-review/SKILL.md",
-      "description": "Review existing Perses dashboards for quality: fetch via MCP or API, analyze panel layout, query efficiency, variable usage, datasource configuration.",
+      "description": "Review Perses dashboards: panel layout, query efficiency, variables.",
       "triggers": [
         "review Perses dashboard",
         "dashboard quality"
@@ -1146,7 +1146,7 @@
     },
     "perses-datasource-manage": {
       "file": "skills/perses-datasource-manage/SKILL.md",
-      "description": "Perses datasource lifecycle management: create, update, delete datasources at global, project, or dashboard scope.",
+      "description": "Perses datasource lifecycle: create, update, delete across scopes.",
       "triggers": [
         "manage datasource",
         "Perses datasource"
@@ -1158,7 +1158,7 @@
     },
     "perses-deploy": {
       "file": "skills/perses-deploy/SKILL.md",
-      "description": "Deploy Perses server: Docker Compose for local dev, Helm chart for K8s, or binary for bare metal.",
+      "description": "Deploy Perses server: Docker Compose, Helm, or binary installation.",
       "triggers": [
         "deploy Perses",
         "Perses server setup"
@@ -1169,7 +1169,7 @@
     },
     "perses-grafana-migrate": {
       "file": "skills/perses-grafana-migrate/SKILL.md",
-      "description": "Grafana-to-Perses dashboard migration: export Grafana dashboards, convert with percli migrate, validate converted output, fix incompatibilities, deploy to Perses.",
+      "description": "Grafana-to-Perses dashboard migration: export, convert, validate, deploy.",
       "triggers": [
         "migrate Grafana",
         "Grafana to Perses"
@@ -1181,7 +1181,7 @@
     },
     "perses-lint": {
       "file": "skills/perses-lint/SKILL.md",
-      "description": "Validate Perses resources: run percli lint locally or with --online against a server.",
+      "description": "Validate Perses resources via percli lint: dashboards, datasources, schemas.",
       "triggers": [
         "lint Perses",
         "validate Perses resources"
@@ -1193,7 +1193,7 @@
     },
     "perses-onboard": {
       "file": "skills/perses-onboard/SKILL.md",
-      "description": "First-time Perses setup pipeline: discover or deploy server, configure MCP connection, create initial project, add datasources, and verify connectivity.",
+      "description": "First-time Perses setup: discover server, configure MCP, add datasources.",
       "triggers": [
         "onboard Perses",
         "first-time Perses setup"
@@ -1205,7 +1205,7 @@
     },
     "perses-plugin-create": {
       "file": "skills/perses-plugin-create/SKILL.md",
-      "description": "Perses plugin scaffolding and creation: select plugin type (Panel, Datasource, Query, Variable, Explore), generate with percli plugin generate, imp...",
+      "description": "Perses plugin scaffolding: select type, generate, implement CUE + React.",
       "triggers": [
         "create Perses plugin",
         "scaffold plugin"
@@ -1217,7 +1217,7 @@
     },
     "perses-plugin-test": {
       "file": "skills/perses-plugin-test/SKILL.md",
-      "description": "Perses plugin testing: CUE schema unit tests with percli plugin test-schemas, React component tests, integration testing with local Perses server, and Grafana migration compatibility testing.",
+      "description": "Perses plugin testing: CUE schema tests, React tests, integration tests.",
       "triggers": [
         "test Perses plugin",
         "plugin testing"
@@ -1229,7 +1229,7 @@
     },
     "perses-project-manage": {
       "file": "skills/perses-project-manage/SKILL.md",
-      "description": "Perses project lifecycle management: create, list, switch, and configure projects.",
+      "description": "Perses project lifecycle: create, list, switch, configure, RBAC.",
       "triggers": [
         "manage Perses project",
         "Perses RBAC"
@@ -1254,7 +1254,7 @@
     },
     "perses-variable-manage": {
       "file": "skills/perses-variable-manage/SKILL.md",
-      "description": "Perses variable lifecycle management: create Text and List variables at global, project, or dashboard scope.",
+      "description": "Perses variable lifecycle: Text/List variables, chains, interpolation.",
       "triggers": [
         "manage Perses variables",
         "dashboard variables"
@@ -1266,7 +1266,7 @@
     },
     "php-quality": {
       "file": "skills/php-quality/SKILL.md",
-      "description": "PHP code quality patterns including PSR standards, strict types, and framework idioms",
+      "description": "PHP code quality: PSR standards, strict types, framework idioms.",
       "triggers": [
         "php-quality",
         "php",
@@ -1278,7 +1278,7 @@
     },
     "php-testing": {
       "file": "skills/php-testing/SKILL.md",
-      "description": "PHP testing patterns with PHPUnit, test doubles, and database testing",
+      "description": "PHP testing patterns: PHPUnit, test doubles, database testing.",
       "triggers": [
         "php-testing",
         "php",
@@ -1290,7 +1290,7 @@
     },
     "plan-checker": {
       "file": "skills/plan-checker/SKILL.md",
-      "description": "Validate plans against 10 verification dimensions before execution begins.",
+      "description": "Validate plans against 10 dimensions: PASS/BLOCK verdict before execution.",
       "triggers": [
         "check plan",
         "validate plan",
@@ -1312,7 +1312,7 @@
     },
     "plan-manager": {
       "file": "skills/plan-manager/SKILL.md",
-      "description": "Deterministic plan lifecycle management via scripts/plan-manager.py CLI.",
+      "description": "Plan lifecycle management via plan-manager.py: list, create, check, complete, abandon plans.",
       "triggers": [
         "list plans",
         "show plan",
@@ -1324,7 +1324,7 @@
     },
     "planning-with-files": {
       "file": "skills/planning-with-files/SKILL.md",
-      "description": "Persistent markdown files as working memory for complex tasks: plan, track progress, store findings.",
+      "description": "Persistent markdown files as working memory for complex multi-phase tasks.",
       "triggers": [
         "create plan",
         "task plan",
@@ -1336,7 +1336,7 @@
     },
     "plant-seed": {
       "file": "skills/plant-seed/SKILL.md",
-      "description": "Capture a forward-looking idea as a seed with trigger conditions, scope, and rationale so it surfaces automatically during future feature design.",
+      "description": "Capture forward-looking idea as a seed for future feature design.",
       "triggers": [
         "plant seed",
         "save idea for later",
@@ -1354,7 +1354,7 @@
     },
     "post-outliner": {
       "file": "skills/post-outliner/SKILL.md",
-      "description": "Create structural blueprints for blog posts before writing.",
+      "description": "Create structural blueprints for blog posts: outlines, word counts.",
       "triggers": [
         "outline post",
         "blog structure",
@@ -1366,7 +1366,7 @@
     },
     "pptx-generator": {
       "file": "skills/pptx-generator/SKILL.md",
-      "description": "6-phase PPTX presentation generation with visual QA: Gather, Design, Generate, Convert, QA, Output.",
+      "description": "PPTX presentation generation with visual QA: slides, pitch decks.",
       "triggers": [
         "presentation",
         "powerpoint",
@@ -1390,7 +1390,7 @@
     },
     "pr-cleanup": {
       "file": "skills/pr-cleanup/SKILL.md",
-      "description": "Local branch cleanup after PR merge: identify, switch, delete, prune in 4 steps.",
+      "description": "Local branch cleanup after PR merge: identify, switch, delete, prune.",
       "triggers": [
         "cleanup branches",
         "delete merged branch",
@@ -1402,7 +1402,7 @@
     },
     "pr-fix": {
       "file": "skills/pr-fix/SKILL.md",
-      "description": "Validate-then-fix workflow for PR review comments: Fetch, Validate, Plan, Fix, Commit.",
+      "description": "Validate-then-fix workflow for PR review comments.",
       "triggers": [
         "fix PR comments",
         "resolve PR feedback",
@@ -1414,7 +1414,7 @@
     },
     "pr-miner": {
       "file": "skills/pr-miner/SKILL.md",
-      "description": "Deterministic 3-phase GitHub PR review comment extraction: Authenticate, Mine, Validate.",
+      "description": "GitHub PR review comment extraction: mine tribal knowledge, standards.",
       "triggers": [
         "extract PR comments",
         "mine PR reviews"
@@ -1425,7 +1425,7 @@
     },
     "pr-mining-coordinator": {
       "file": "skills/pr-mining-coordinator/SKILL.md",
-      "description": "Coordinate PR mining to extract tribal knowledge and coding standards from GitHub PR history.",
+      "description": "Coordinate PR mining for tribal knowledge and coding standards extraction.",
       "triggers": [
         "coordinate PR mining",
         "extract tribal knowledge"
@@ -1436,7 +1436,7 @@
     },
     "pr-review-address-feedback": {
       "file": "skills/pr-review-address-feedback/SKILL.md",
-      "description": "Fetch PR feedback from all GitHub sources and validate every comment before acting.",
+      "description": "Fetch PR feedback from GitHub and validate comments before acting.",
       "triggers": [
         "process PR feedback",
         "address review comments"
@@ -1447,7 +1447,7 @@
     },
     "pr-status": {
       "file": "skills/pr-status/SKILL.md",
-      "description": "Quick status check for current branch and PR state showing local changes, CI results, reviews, and merge readiness.",
+      "description": "Quick status check: branch state, CI results, reviews, merge readiness.",
       "triggers": [
         "PR status",
         "branch status",
@@ -1496,7 +1496,7 @@
     },
     "pre-publish-checker": {
       "file": "skills/pre-publish-checker/SKILL.md",
-      "description": "Pre-publication validation for Hugo posts: front matter, SEO, links, images, draft status, and taxonomy.",
+      "description": "Pre-publication validation for Hugo posts: front matter, SEO, links, images.",
       "triggers": [
         "pre-publish check",
         "Hugo validation",
@@ -1508,7 +1508,7 @@
     },
     "professional-communication": {
       "file": "skills/professional-communication/SKILL.md",
-      "description": "Transform dense technical communication into clear, structured business formats using proposition extraction and deterministic templates.",
+      "description": "Transform technical communication into structured business formats.",
       "triggers": [
         "business communication",
         "structured format",
@@ -1525,7 +1525,7 @@
     },
     "python-quality-gate": {
       "file": "skills/python-quality-gate/SKILL.md",
-      "description": "Run Python quality checks with ruff, pytest, mypy, and bandit in deterministic order.",
+      "description": "Python quality checks: ruff, pytest, mypy, bandit in deterministic order.",
       "triggers": [
         "Python quality",
         "ruff check",
@@ -1544,7 +1544,7 @@
     },
     "quick": {
       "file": "skills/quick/SKILL.md",
-      "description": "Tracked lightweight execution with composable rigor flags for tasks between a typo fix and a full feature.",
+      "description": "Tracked lightweight execution with composable rigor flags: --discuss, --research, --full.",
       "triggers": [
         "quick task",
         "small change",
@@ -1575,7 +1575,7 @@
     },
     "reddit-moderate": {
       "file": "skills/reddit-moderate/SKILL.md",
-      "description": "Reddit community moderation via PRAW with LLM-powered report classification: fetch modqueue, classify reports against subreddit rules and author history, and take mod actions (approve, remove, lock).",
+      "description": "Reddit moderation via PRAW: fetch modqueue, classify reports, take actions.",
       "triggers": [
         "moderate Reddit",
         "modqueue",
@@ -1588,7 +1588,7 @@
     },
     "repo-value-analysis": {
       "file": "skills/repo-value-analysis/SKILL.md",
-      "description": "Systematic 6-phase analysis of external repositories for ideas worth adopting: clone, parallel deep-read, self-inventory, synthesize gaps, targeted...",
+      "description": "Analyze external repositories for adoptable ideas and patterns.",
       "triggers": [
         "repo value analysis",
         "does repo add value",
@@ -1606,9 +1606,21 @@
       "agent": "research-coordinator-engineer",
       "model": "opus"
     },
+    "research-pipeline": {
+      "file": "skills/research-pipeline/SKILL.md",
+      "description": "Formal 5-phase research pipeline with artifact saving and source quality gates: SCOPE, GATHER, SYNTHESIZE, VALIDATE, DELIVER.",
+      "triggers": [
+        "research-pipeline",
+        "research"
+      ],
+      "user_invocable": true,
+      "version": "2.0.0",
+      "agent": "research-coordinator-engineer",
+      "model": "sonnet"
+    },
     "resume-work": {
       "file": "skills/resume-work/SKILL.md",
-      "description": "Restore session state from handoff artifacts and route to the next action.",
+      "description": "Restore session state from handoff artifacts (HANDOFF.json, .continue-here.md, task_plan.md) and resume.",
       "triggers": [
         "resume",
         "continue",
@@ -1627,7 +1639,7 @@
     },
     "retro": {
       "file": "skills/retro/SKILL.md",
-      "description": "Interact with the learning system: show stats, list/search accumulated knowledge, and graduate mature entries into agents/skills.",
+      "description": "Learning system interface: stats, search, graduate learnings.",
       "triggers": [
         "retro stats",
         "list learnings",
@@ -1639,7 +1651,7 @@
     },
     "roast": {
       "file": "skills/roast/SKILL.md",
-      "description": "Constructive critique through 5 HackerNews commenter personas with evidence-based claim validation.",
+      "description": "Constructive critique via 5 HackerNews personas with claim validation.",
       "triggers": [
         "roast code",
         "devil's advocate",
@@ -1654,7 +1666,7 @@
     },
     "routing-table-updater": {
       "file": "skills/routing-table-updater/SKILL.md",
-      "description": "Maintain /do routing tables and command references when skills or agents are added, modified, or removed.",
+      "description": "Maintain /do routing tables when skills or agents change.",
       "triggers": [
         "update routing",
         "sync routing tables"
@@ -1665,7 +1677,7 @@
     },
     "sapcc-audit": {
       "file": "skills/sapcc-audit/SKILL.md",
-      "description": "Full-repo SAP Converged Cloud Go compliance audit.",
+      "description": "Full-repo SAP CC Go compliance audit against review standards.",
       "triggers": [
         "sapcc audit",
         "sapcc compliance",
@@ -1686,7 +1698,7 @@
     },
     "sapcc-review": {
       "file": "skills/sapcc-review/SKILL.md",
-      "description": "Gold-standard code review for SAP CC Go repositories against the project's lead review standards.",
+      "description": "Gold-standard SAP CC Go code review: 10 parallel domain specialists.",
       "triggers": [
         "sapcc review",
         "sapcc lead review",
@@ -1708,7 +1720,7 @@
     },
     "security-threat-model": {
       "file": "skills/security-threat-model/SKILL.md",
-      "description": "Phase-gated security threat model skill.",
+      "description": "Security threat model: scan toolkit for attack surface, supply-chain risks.",
       "triggers": [
         "threat model",
         "security audit",
@@ -1731,7 +1743,7 @@
     },
     "seo-optimizer": {
       "file": "skills/seo-optimizer/SKILL.md",
-      "description": "Analyze and optimize blog post SEO: keywords, titles, meta descriptions, headers, and internal linking.",
+      "description": "Blog post SEO: keywords, titles, meta descriptions, internal linking.",
       "triggers": [
         "check SEO",
         "optimize SEO",
@@ -1743,7 +1755,7 @@
     },
     "series-planner": {
       "file": "skills/series-planner/SKILL.md",
-      "description": "Plan multi-part content series with structure, cross-linking, and publishing cadence.",
+      "description": "Plan multi-part content series: structure, cross-linking, cadence.",
       "triggers": [
         "plan series",
         "multi-part content",
@@ -1755,7 +1767,7 @@
     },
     "service-health-check": {
       "file": "skills/service-health-check/SKILL.md",
-      "description": "Deterministic 3-phase service health monitoring: Discover, Check, Report.",
+      "description": "Service health monitoring: Discover, Check, Report in 3 phases.",
       "triggers": [
         "service status",
         "process health",
@@ -1769,7 +1781,7 @@
     },
     "skill-composer": {
       "file": "skills/skill-composer/SKILL.md",
-      "description": "DAG-based multi-skill orchestration: Discover, Plan, Validate, Execute.",
+      "description": "DAG-based multi-skill orchestration with dependency resolution.",
       "triggers": [
         "compose skills",
         "DAG orchestration",
@@ -1781,7 +1793,7 @@
     },
     "skill-creator": {
       "file": "skills/skill-creator/SKILL.md",
-      "description": "Create new skills and iteratively improve them through eval-driven validation.",
+      "description": "Create and iteratively improve skills through eval-driven validation.",
       "triggers": [
         "create skill",
         "new skill",
@@ -1802,7 +1814,7 @@
     },
     "skill-eval": {
       "file": "skills/skill-eval/SKILL.md",
-      "description": "Evaluate and improve skills through measured testing.",
+      "description": "Evaluate skills: trigger testing, A/B benchmarks, structure validation.",
       "triggers": [
         "improve skill",
         "test skill",
@@ -1821,7 +1833,7 @@
     },
     "socratic-debugging": {
       "file": "skills/socratic-debugging/SKILL.md",
-      "description": "Question-only debugging mode that guides users to find root causes themselves through structured questioning.",
+      "description": "Question-only debugging: guide users to find root causes themselves.",
       "triggers": [
         "guide debugging",
         "question-based",
@@ -1838,7 +1850,7 @@
     },
     "spec-writer": {
       "file": "skills/spec-writer/SKILL.md",
-      "description": "Structured specification with explicit scope boundaries: user stories, acceptance criteria, out-of-scope definition, risks, and estimation.",
+      "description": "Structured specification: user stories, acceptance criteria, scope.",
       "triggers": [
         "write spec",
         "user stories",
@@ -1860,7 +1872,7 @@
     },
     "subagent-driven-development": {
       "file": "skills/subagent-driven-development/SKILL.md",
-      "description": "Fresh-subagent-per-task execution with two-stage review (ADR compliance + code quality).",
+      "description": "Fresh-subagent-per-task execution with two-stage review gates.",
       "triggers": [
         "subagent per task",
         "fresh context execution",
@@ -1872,7 +1884,7 @@
     },
     "swift-concurrency": {
       "file": "skills/swift-concurrency/SKILL.md",
-      "description": "Swift structured concurrency with async/await, Actor, Task, and Sendable patterns",
+      "description": "Swift concurrency: async/await, Actor, Task, Sendable patterns.",
       "triggers": [
         "swift-concurrency",
         "swift",
@@ -1884,7 +1896,7 @@
     },
     "swift-testing": {
       "file": "skills/swift-testing/SKILL.md",
-      "description": "Swift testing patterns with XCTest, Swift Testing framework, and async test patterns",
+      "description": "Swift testing: XCTest, Swift Testing framework, async patterns.",
       "triggers": [
         "swift-testing",
         "swift",
@@ -1896,7 +1908,7 @@
     },
     "systematic-code-review": {
       "file": "skills/systematic-code-review/SKILL.md",
-      "description": "4-phase code review methodology: UNDERSTAND changes, VERIFY claims against code, ASSESS security/performance/architecture risks, DOCUMENT findings with severity classification.",
+      "description": "4-phase code review: UNDERSTAND, VERIFY, ASSESS risks, DOCUMENT findings.",
       "triggers": [
         "review code",
         "code review methodology"
@@ -1907,7 +1919,7 @@
     },
     "taxonomy-manager": {
       "file": "skills/taxonomy-manager/SKILL.md",
-      "description": "Audit and maintain blog taxonomy (categories/tags) for consistency, SEO, and navigation: scan content, detect orphans and duplicates, merge and rename terms, verify builds.",
+      "description": "Audit and maintain blog taxonomy: categories, tags, orphans, duplicates.",
       "triggers": [
         "audit taxonomy",
         "fix tags",
@@ -1919,7 +1931,7 @@
     },
     "test-driven-development": {
       "file": "skills/test-driven-development/SKILL.md",
-      "description": "RED-GREEN-REFACTOR cycle with strict phase gates.",
+      "description": "RED-GREEN-REFACTOR cycle with strict phase gates for TDD.",
       "triggers": [
         "TDD",
         "test first",
@@ -1935,7 +1947,7 @@
     },
     "testing-agents-with-subagents": {
       "file": "skills/testing-agents-with-subagents/SKILL.md",
-      "description": "RED-GREEN-REFACTOR testing for agents: dispatch subagents with known inputs, capture verbatim outputs, verify against expectations.",
+      "description": "Test agents via subagents: known inputs, captured outputs, verification.",
       "triggers": [
         "test agents",
         "agent testing",
@@ -1947,7 +1959,7 @@
     },
     "testing-anti-patterns": {
       "file": "skills/testing-anti-patterns/SKILL.md",
-      "description": "Identify and fix common testing mistakes across unit, integration, and E2E test suites.",
+      "description": "Identify and fix testing mistakes: flaky, brittle, over-mocked tests.",
       "triggers": [
         "flaky test",
         "brittle test",
@@ -1970,7 +1982,7 @@
     },
     "threejs-builder": {
       "file": "skills/threejs-builder/SKILL.md",
-      "description": "Scene-graph-driven 4-phase Three.js app builder: Design, Build, Animate, Polish.",
+      "description": "Three.js app builder: Design, Build, Animate, Polish in 4 phases.",
       "triggers": [
         "threejs",
         "three.js",
@@ -1989,7 +2001,7 @@
     },
     "topic-brainstormer": {
       "file": "skills/topic-brainstormer/SKILL.md",
-      "description": "Generate blog post topic ideas through problem mining, gap analysis, and technology expansion.",
+      "description": "Generate blog topic ideas: problem mining, gap analysis, expansion.",
       "triggers": [
         "brainstorm topics",
         "content ideas",
@@ -2001,7 +2013,7 @@
     },
     "typescript-check": {
       "file": "skills/typescript-check/SKILL.md",
-      "description": "Run TypeScript type checking with tsc --noEmit and parse errors into actionable, file-grouped output.",
+      "description": "TypeScript type checking via tsc --noEmit with actionable error output.",
       "triggers": [
         "TypeScript check",
         "tsc noEmit",
@@ -2014,7 +2026,7 @@
     },
     "universal-quality-gate": {
       "file": "skills/universal-quality-gate/SKILL.md",
-      "description": "Multi-language code quality gate with auto-detection and language-specific linters.",
+      "description": "Multi-language code quality gate with auto-detection and linters.",
       "triggers": [
         "quality gate",
         "lint check",
@@ -2038,7 +2050,7 @@
     },
     "video-editing": {
       "file": "skills/video-editing/SKILL.md",
-      "description": "Video editing workflow: 6-layer pipeline for cutting footage, assembling demo videos, vlogs, screen recordings, and social media clips using FFmpeg and Remotion.",
+      "description": "Video editing pipeline: cut footage, assemble clips via FFmpeg and Remotion.",
       "triggers": [
         "edit video",
         "cut footage",
@@ -2074,7 +2086,7 @@
     },
     "voice-validator": {
       "file": "skills/voice-validator/SKILL.md",
-      "description": "Critique-and-rewrite enforcement loop for voice fidelity.",
+      "description": "Critique-and-rewrite loop for voice fidelity validation.",
       "triggers": [
         "validate voice",
         "check voice fidelity",
@@ -2084,9 +2096,21 @@
       "user_invocable": false,
       "version": "2.0.0"
     },
+    "voice-writer": {
+      "file": "skills/voice-writer/SKILL.md",
+      "description": "Unified voice content generation pipeline with mandatory validation and joy-check.",
+      "triggers": [
+        "voice-writer",
+        "voice",
+        "writer"
+      ],
+      "user_invocable": true,
+      "version": "2.0.0",
+      "model": "sonnet"
+    },
     "with-anti-rationalization": {
       "file": "skills/with-anti-rationalization/SKILL.md",
-      "description": "Explicit anti-rationalization enforcement for maximum-rigor task execution.",
+      "description": "Anti-rationalization enforcement for maximum-rigor task execution.",
       "triggers": [
         "maximum rigor",
         "anti-rationalization",
@@ -2098,7 +2122,7 @@
     },
     "wordpress-live-validation": {
       "file": "skills/wordpress-live-validation/SKILL.md",
-      "description": "Validate a published or draft-preview WordPress post in a real browser using Playwright.",
+      "description": "Validate published WordPress posts in browser via Playwright.",
       "triggers": [
         "validate wordpress post",
         "check live post",
@@ -2120,7 +2144,7 @@
     },
     "wordpress-uploader": {
       "file": "skills/wordpress-uploader/SKILL.md",
-      "description": "WordPress REST API integration for posts and media via deterministic Python scripts.",
+      "description": "WordPress REST API integration for posts and media uploads.",
       "triggers": [
         "upload to wordpress",
         "create wordpress draft",
@@ -2141,9 +2165,20 @@
         "anti-ai-editor"
       ]
     },
+    "workflow": {
+      "file": "skills/workflow/SKILL.md",
+      "description": "Structured multi-phase workflows: review, debug, refactor, deploy, create, research, and more.",
+      "triggers": [
+        "workflow",
+        "workflow"
+      ],
+      "user_invocable": false,
+      "version": "2.0.0",
+      "model": "sonnet"
+    },
     "workflow-help": {
       "file": "skills/workflow-help/SKILL.md",
-      "description": "Interactive guide to repository workflow system: agents, skills, routing, and execution patterns.",
+      "description": "Interactive guide to workflow system: agents, skills, routing, execution patterns.",
       "triggers": [
         "how does routing work",
         "what skills exist",
@@ -2155,7 +2190,7 @@
     },
     "worktree-agent": {
       "file": "skills/worktree-agent/SKILL.md",
-      "description": "Mandatory rules for agents running in git worktree isolation to prevent leaks, branch confusion, and cross-contamination",
+      "description": "Mandatory rules for agents in git worktree isolation.",
       "triggers": [
         "worktree-agent",
         "worktree",
@@ -2166,7 +2201,7 @@
     },
     "x-api": {
       "file": "skills/x-api/SKILL.md",
-      "description": "Post tweets, build threads, upload media, and read timelines via the X API.",
+      "description": "Post tweets, build threads, upload media via the X API.",
       "triggers": [
         "post to X",
         "post tweet",
