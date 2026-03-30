@@ -1,19 +1,3 @@
----
-name: pr-cleanup
-description: "Local branch cleanup after PR merge: identify, switch, delete, prune."
-version: 2.0.0
-user-invocable: false
-allowed-tools:
-  - Bash
-  - Read
-routing:
-  triggers:
-    - "cleanup branches"
-    - "delete merged branch"
-    - "prune branches"
-  category: git-workflow
----
-
 # PR Cleanup Skill
 
 ## Overview

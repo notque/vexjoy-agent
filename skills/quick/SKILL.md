@@ -282,7 +282,7 @@ If the task was escalated from `/fast`, note the tier as `fast->quick`.
  Logged: STATE.md
 
  Next steps:
-   - Push: /pr-sync
+   - Push: /pr-workflow
    - More work: /quick <next task>
    - Merge to parent: git merge quick/<task-id>-...
 

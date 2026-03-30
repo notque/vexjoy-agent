@@ -1,23 +1,3 @@
----
-name: pr-sync
-description: "Sync local changes to GitHub in one command: detect state, branch, commit, push, create PR."
-version: 2.0.0
-user-invocable: true
-allowed-tools:
-  - Bash
-  - Read
-  - Grep
-  - Glob
-routing:
-  force_route: true
-  triggers:
-    - "push"
-    - "push changes"
-    - "create PR"
-    - "sync to GitHub"
-  category: git-workflow
----
-
 # PR Sync Skill
 
 Sync local changes to GitHub in a single command. Detects current state (main vs feature branch, staged vs unstaged changes, existing PRs), then executes the minimum steps needed: branch, commit, push, and create PR. Execute only the steps needed for the current state -- do not add extra commits, rebase, or reorganize history beyond what is required to sync.

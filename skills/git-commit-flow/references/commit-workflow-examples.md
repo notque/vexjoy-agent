@@ -4,7 +4,7 @@ Integration examples and advanced patterns for the git-commit-flow skill.
 
 ## Integration with PR Commands
 
-### Using in /pr-sync
+### Using in /pr-workflow (sync)
 
 When local changes exist during PR sync:
 
@@ -19,7 +19,7 @@ git pull --rebase origin $(git branch --show-current)
 git push origin $(git branch --show-current)
 ```
 
-### Using in /pr-fix
+### Using in /pr-workflow (fix)
 
 After applying PR review feedback:
 

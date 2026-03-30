@@ -89,7 +89,7 @@ This document describes proven patterns for composing multiple skills into effec
 
 ### 4. Research-Driven Implementation
 
-**Pattern**: `pr-miner → codebase-analyzer → workflow-orchestrator → test-driven-development`
+**Pattern**: `pr-workflow (miner) → codebase-analyzer → workflow-orchestrator → test-driven-development`
 
 **When to Use**:
 - Implementing features in unfamiliar codebase
@@ -100,7 +100,7 @@ This document describes proven patterns for composing multiple skills into effec
 **Example Task**: "Add rate limiting following existing patterns"
 
 **Execution Flow**:
-1. **pr-miner**: Mine GitHub PR review comments for tribal knowledge
+1. **pr-workflow (miner)**: Mine GitHub PR review comments for tribal knowledge
 2. **codebase-analyzer**: Extract implementation patterns from existing code
 3. **workflow-orchestrator**: Plan implementation based on learned patterns
 4. **test-driven-development**: Implement following discovered conventions
@@ -328,7 +328,7 @@ Combine patterns for complex workflows:
 
 ```
 Research-Driven Implementation + Style Compliance:
-  pr-miner → codebase-analyzer → workflow-orchestrator →
+  pr-workflow (miner) → codebase-analyzer → workflow-orchestrator →
   verification-before-completion
 ```
 

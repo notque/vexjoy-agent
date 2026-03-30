@@ -115,8 +115,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **full-repo-review** | User wants a comprehensive 3-wave review of all source files in the entire repository. |
 | **repo-value-analysis** | User wants to systematically analyze an external repository to determine what ideas or patterns are worth adopting. |
 | **data-analysis** | User wants to analyze data: CSV files, metrics, A/B test results, cohort analysis, statistical distributions, KPIs, or funnel data. |
-| **pr-miner** | User wants to extract review comments or learnings from past GitHub PRs. |
-| **pr-mining-coordinator** | User wants to coordinate batch mining across multiple PRs. |
+| **pr-workflow** (miner mode) | User wants to extract review comments or learnings from past GitHub PRs, or coordinate batch mining. |
 | **skill-composer** | User wants to compose multiple skills into a multi-skill workflow. |
 | **routing-table-updater** | User wants to update routing tables after adding or changing agents/skills. |
 | **docs-sync-checker** | User wants to check if README files or documentation are in sync with the actual code. |
@@ -135,14 +134,9 @@ Route to these agents based on the user's task domain. Each entry describes what
 
 | Skill | When to Route Here |
 |-------|-------------------|
-| **pr-pipeline** | User wants the full structured PR workflow: stage, review, commit, push, create PR, verify. Use when the user wants the complete pipeline with all gates. |
-| **pr-sync (FORCE)** | User wants to get local code changes onto GitHub — pushing a branch, creating a PR, or syncing local commits to the remote. Common phrasings: "open a pull request", "create a PR", "make a PR", "submit PR", "push and PR". NOT: "push back" (disagree with a decision), "push the boundaries" (explore limits), "push back on this" (resistance), "push my luck" (risk-taking). The intent must be about git/GitHub synchronization. |
+| **pr-workflow (FORCE)** | User wants to get local code changes onto GitHub — pushing a branch, creating a PR, or syncing local commits to the remote. Also handles: PR status checks, fixing review comments, cleaning up branches after merge, addressing PR feedback, and mining tribal knowledge from PRs. Common phrasings: "open a pull request", "create a PR", "make a PR", "submit PR", "push and PR", "pr status", "fix PR comments", "clean up branches", "mine PRs". NOT: "push back" (disagree with a decision), "push the boundaries" (explore limits). The intent must be about git/GitHub operations. |
 | **git-commit-flow (FORCE)** | User wants to stage files and create a git commit from local changes. Common phrasings: "save my work", "commit this", "save progress", "checkpoint", "commit these changes". NOT: "commit to this approach" (deciding), "commit to the team" (dedication), "I'm committed to finishing" (resolve). The intent must be about creating a git commit object. |
 | **github-actions-check (FORCE)** | User wants to know if CI passed or check GitHub Actions run status. NOT: "check this code" (review), "check my logic" (analysis), "double-check this" (verify), "check the docs" (read documentation). The intent must be about CI/CD pipeline status. |
-| **pr-cleanup** | User wants to delete merged branches or clean up stale PRs after merging. |
-| **pr-fix** | User wants to address specific PR review comments left by human reviewers. |
-| **pr-review-address-feedback** | User wants to understand and respond to PR feedback, or asks what reviewers said. |
-| **pr-status** | User wants to know the current status of a PR or branch without taking action. |
 | **/pr-review command** | User wants a comprehensive code review of a PR with retro learning applied. This is a command, not a skill — invoke it directly. |
 
 ### PR Workflow Policies
@@ -360,8 +354,8 @@ Invoked via the roast skill or directly:
 | "plan this feature" | **feature-lifecycle (FORCE)** | Feature plan phase |
 | "build this feature" | **feature-lifecycle (FORCE)** | Feature implementation phase |
 | "review this PR" | /pr-review command (retro-enabled) | PR review command |
-| "submit a PR" | pr-pipeline | Full PR workflow with gates |
-| "push my changes" | **pr-sync (FORCE)** | Intent: get local changes onto GitHub |
+| "submit a PR" | pr-workflow (pipeline mode) | Full PR workflow with gates |
+| "push my changes" | **pr-workflow (FORCE)** | Intent: get local changes onto GitHub |
 | "push back on this decision" | (not a routing target) | Intent: disagree — "push" is not a git push |
 | "commit this" | **git-commit-flow (FORCE)** | Intent: create a git commit |
 | "commit to this approach" | (not a routing target) | Intent: decide — "commit" is not a git commit |
@@ -391,8 +385,8 @@ Invoked via the roast skill or directly:
 | "work on sapcc Go code" | **go-sapcc-conventions (FORCE)** | SAPCC repo — auto-detected by hook |
 | "moderate reddit" | reddit-moderate | Reddit moderation |
 | "check my modqueue" | reddit-moderate | Reddit moderation |
-| "open a pull request" | **pr-sync (FORCE)** | Intent: create a PR on GitHub |
-| "make a PR" | **pr-sync (FORCE)** | Intent: create a PR on GitHub |
+| "open a pull request" | **pr-workflow (FORCE)** | Intent: create a PR on GitHub |
+| "make a PR" | **pr-workflow (FORCE)** | Intent: create a PR on GitHub |
 | "save my work" | **git-commit-flow (FORCE)** | Intent: commit current changes |
 | "checkpoint" | **git-commit-flow (FORCE)** | Intent: save progress as a commit |
 | "I'm stuck" | workflow-help | User is lost — guide them |

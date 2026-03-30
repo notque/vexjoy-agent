@@ -140,7 +140,7 @@ description: |
 ## ❌ Anti-Pattern: Over-Engineering Simple Workflows
 
 **What it looks like**:
-Simple skill (pr-cleanup) with:
+Simple skill (pr-workflow (cleanup)) with:
 - 6 phases with complex gates
 - 15 error cases with detailed recovery
 - 8 anti-patterns
@@ -154,7 +154,7 @@ Simple skill (pr-cleanup) with:
 - Confuses users
 
 **✅ Correct approach**:
-Simple skill (pr-cleanup) with:
+Simple skill (pr-workflow (cleanup)) with:
 - 4 phases with basic gates
 - 3-5 common errors inline
 - 2-3 anti-patterns inline

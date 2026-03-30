@@ -1,23 +1,3 @@
----
-name: pr-review-address-feedback
-description: "Fetch PR feedback from GitHub and validate comments before acting."
-version: 2.0.0
-user-invocable: false
-argument-hint: "[<PR-number>]"
-allowed-tools:
-  - Read
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-  - Write
-routing:
-  triggers:
-    - "process PR feedback"
-    - "address review comments"
-  category: git-workflow
----
-
 # PR Review Address Feedback Skill
 
 ## Overview

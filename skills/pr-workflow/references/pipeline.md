@@ -1,37 +1,3 @@
----
-name: pr-pipeline
-description: "End-to-end pull request pipeline with review-fix loop."
-version: 2.0.0
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-  - Task
-  - Skill
-context: fork
-command: /pr
-routing:
-  force_route: true
-  triggers:
-    - submit PR
-    - create pull request
-    - send for review
-    - push and PR
-    - submit changes
-    - open PR
-  pairs_with:
-    - git-commit-flow
-    - branch-naming
-    - github-actions-check
-    - parallel-code-review
-  complexity: medium
-  category: devops
----
-
 # PR Pipeline
 
 A structured pipeline for creating high-quality pull requests with proper staging, meaningful commits, parallel review, and CI verification.
@@ -428,3 +394,390 @@ Solution:
 2. Provide the PR URL so user can monitor manually
 3. Suggest: `gh run watch [run-id]` for manual monitoring
 4. Mark pipeline as complete with "CI pending" status
+
+
+---
+
+# Appendix: Reference Details
+
+The following sections were previously loaded on-demand from separate reference files.
+
+---
+
+# Preflight Checklist
+
+Full details for Phase 0.5 of the PR Pipeline.
+
+## Check Table
+
+Run all checks sequentially. Abort on the first failure.
+
+| # | Check | Command | Failure Action |
+|---|-------|---------|---------------|
+| 1 | Verification status (did quality gates pass?) | Check for recent test/build output or verification artifacts | Abort: "Run verification first -- no evidence that quality gates passed." |
+| 2 | Clean working tree (no uncommitted changes) | `git status --porcelain` | Abort: "Working tree is dirty. Uncommitted files:\n{list}. Stage or stash before running PR pipeline." |
+| 3 | Correct branch (not main/master) | `git branch --show-current` | Abort: "Currently on {branch}. Create a feature branch first: `git checkout -b type/description`" |
+| 4 | Remote configured for current branch | `git config --get branch.$(git branch --show-current).remote` | Abort: "No remote configured for branch. Push with: `git push -u origin $(git branch --show-current)`" |
+| 5 | `gh` CLI authenticated | `gh auth status 2>&1` | Abort: "GitHub CLI not authenticated. Run: `gh auth login`" |
+
+## Bash Script
+
+```bash
+# Preflight check sequence
+echo "Running preflight checklist..."
+
+# Check 1: Verification status
+# Look for verification artifacts (test output, build logs) — if the project
+# has a test suite and no recent verification evidence exists, warn.
+# This is a soft gate: skip if no test infrastructure is detected.
+
+# Check 2: Clean working tree
+DIRTY=$(git status --porcelain)
+if [ -n "$DIRTY" ]; then
+    echo "PREFLIGHT FAIL: Working tree is dirty."
+    echo "$DIRTY"
+    echo "Stage or stash uncommitted changes before running PR pipeline."
+    exit 1
+fi
+
+# Check 3: Not on main/master
+BRANCH=$(git branch --show-current)
+if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+    echo "PREFLIGHT FAIL: On branch '$BRANCH'."
+    echo "Create a feature branch: git checkout -b type/description"
+    exit 1
+fi
+
+# Check 4: Remote configured
+REMOTE=$(git config --get "branch.$BRANCH.remote" 2>/dev/null)
+if [ -z "$REMOTE" ]; then
+    echo "PREFLIGHT FAIL: No remote configured for branch '$BRANCH'."
+    echo "Push with: git push -u origin $BRANCH"
+    exit 1
+fi
+
+# Check 5: gh CLI authenticated
+if ! gh auth status >/dev/null 2>&1; then
+    echo "PREFLIGHT FAIL: GitHub CLI not authenticated."
+    echo "Run: gh auth login"
+    exit 1
+fi
+
+echo "Preflight checklist PASSED."
+```
+
+## Note on Check 1 (Verification Status)
+
+This is context-dependent. If the project has a test suite (`go test`, `npm test`, `pytest`, etc.), look for evidence that tests were run recently (e.g., verification report files, recent test output in the session). If no test infrastructure exists, this check passes by default. The goal is to prevent submitting code that was never tested, not to block projects without tests.
+
+
+---
+
+# Review-Fix Loop
+
+Full details for Phase 4b of the PR Pipeline (personal repos only).
+
+## Loop Logic
+
+Up to 3 iterations of `/pr-review` -> fix -> amend commit -> push.
+
+```
+ITERATION = 0
+MAX_ITERATIONS = 3
+
+while ITERATION < MAX_ITERATIONS:
+    ITERATION += 1
+
+    Step 1: Run /pr-review
+    Step 2: If no issues found -> EXIT LOOP (proceed to Phase 5)
+    Step 3: Fix all reported issues
+    Step 4: Stage fixes, amend commit, force push to branch
+    Step 5: Report iteration results
+```
+
+## Step 1: Run `/pr-review`
+
+Invoke the `/pr-review` command, which launches specialized review agents (code-reviewer, silent-failure-hunter, comment-analyzer, etc.) and captures retro learnings.
+
+## Step 2: Evaluate Results
+
+| Result | Action |
+|--------|--------|
+| No issues found | **Exit loop**. Proceed to Phase 5 (CREATE PR). |
+| Issues found (iteration < 3) | Fix issues in Step 3, then re-review. |
+| Issues remaining after iteration 3 | **Exit loop**. Include remaining issues in PR body as known items. Proceed to Phase 5. |
+
+## Step 3: Fix Reported Issues
+
+Address each issue found by the review. This includes:
+- Code quality fixes (naming, style, error handling)
+- Documentation updates (stale references, missing README entries)
+- Test gaps (if flagged)
+
+## Step 4: Amend and Push
+
+```bash
+git add [fixed files]
+git commit --amend --no-edit
+CLAUDE_GATE_BYPASS=1 git push --force-with-lease
+```
+
+## Step 5: Iteration Report Format
+
+```
+REVIEW-FIX ITERATION [N/3]
+  Found: [X issues]
+  Fixed: [Y issues]
+  Remaining: [Z issues]
+  Status: [CLEAN | FIXING | MAX ITERATIONS REACHED]
+```
+
+
+---
+
+# Retro and ADR Validation Phases
+
+Full details for Phase 4c (RETRO) and Phase 4d (ADR VALIDATION) of the PR Pipeline.
+Both phases apply to the claude-code-toolkit repo only.
+
+---
+
+## Phase 4c: RETRO
+
+**Detection**: Both `agents/` and `skills/` directories exist at project root.
+
+```bash
+# Detect toolkit repo
+if [ -d "agents" ] && [ -d "skills" ]; then
+    echo "Toolkit repo detected -- RETRO phase required"
+else
+    echo "Not toolkit repo -- skipping RETRO phase"
+    # Skip to Phase 5
+fi
+```
+
+### Step 1: Collect Review Findings
+
+Gather all findings from Phase 2 (REVIEW) and Phase 4b (REVIEW-FIX LOOP) that were identified and fixed. Include:
+- Security findings that were addressed
+- Code quality issues that were corrected
+- Business logic errors that were fixed
+- Methodology gaps that were exposed
+
+For each finding, identify the **responsible agent or skill** -- the component whose instructions should have prevented the issue.
+
+### Step 2: Record Learnings
+
+For each finding, record a retro entry scoped to the responsible agent or skill:
+
+```bash
+# For agent-scoped findings (e.g., python-general-engineer produced bad code)
+python3 ~/.claude/scripts/learning-db.py learn --agent {agent-name} "pattern description from review finding"
+
+# For skill-scoped findings (e.g., reddit-moderate missed a test requirement)
+python3 ~/.claude/scripts/learning-db.py learn --skill {skill-name} "pattern description from review finding"
+```
+
+### Step 3: Immediate Graduation
+
+Per /do Phase 5 policy, boost each entry to 1.0 confidence and graduate immediately. This is NOT a slow-burn learning -- review findings in this repo are structural fixes.
+
+```bash
+# Boost confidence to 1.0 (run boost 3x -- each boost applies a multiplier)
+python3 ~/.claude/scripts/learning-db.py boost "agent:{agent-name}" "{key}"
+python3 ~/.claude/scripts/learning-db.py boost "agent:{agent-name}" "{key}"
+python3 ~/.claude/scripts/learning-db.py boost "agent:{agent-name}" "{key}"
+
+# Graduate -- marks as embedded, excludes from future prompt injection
+python3 ~/.claude/scripts/learning-db.py graduate "agent:{agent-name}" "{key}" "agents/{agent-name}.md"
+# Or for skills:
+python3 ~/.claude/scripts/learning-db.py graduate "skill:{skill-name}" "{key}" "skills/{skill-name}/SKILL.md"
+```
+
+### Step 4: Embed in Agent/Skill
+
+Update the responsible agent or skill file with the graduated pattern:
+
+| Finding Target | Update Location | Section to Modify |
+|---------------|----------------|-------------------|
+| Agent produced bad code | `agents/{name}.md` | FORBIDDEN patterns or Anti-Patterns |
+| Skill methodology gap | `skills/{name}/SKILL.md` | Instructions or Anti-Patterns |
+| Router missed a pattern | `skills/do/SKILL.md` | Routing tables or Force-Routes |
+| Hook failed to catch | `hooks/{name}.py` | Detection logic |
+
+Write the pattern at the right abstraction level -- generalize from the specific bug to the class of bug (e.g., "validate all CLI inputs" not "validate subreddit names in _cmd_classify").
+
+### Step 5: Stage Retro Changes
+
+```bash
+# Stage updated agent/skill files alongside the code changes
+git add agents/{updated-agent}.md
+git add skills/{updated-skill}/SKILL.md
+```
+
+These changes will be included in the existing commit (amend in next push cycle) or in a new commit if Phase 4b already completed cleanly.
+
+---
+
+## Phase 4d: ADR VALIDATION
+
+**Detection**: Same as Phase 4c -- only runs in the toolkit repo (both `agents/` and `skills/` directories exist at root).
+
+### Step 1: Run ADR Format Check
+
+```bash
+python3 ~/.claude/scripts/adr-status.py check
+```
+
+If exit code 1 (warnings found):
+- Review each warning (missing headings, empty status)
+- Fix formatting issues in the ADR files
+- Stage the fixes: `git add adr/`
+
+### Step 2: Run ADR Status Report
+
+```bash
+python3 ~/.claude/scripts/adr-status.py status
+```
+
+Include the status summary in the PR body if the PR touches any `adr/*.md` files. This gives reviewers an at-a-glance view of ADR state.
+
+
+---
+
+# PR Templates and Examples
+
+Full details for Phase 5 (CREATE PR) of the PR Pipeline: artifact-driven body generation, templates, and all usage examples.
+
+---
+
+## Artifact-Driven PR Body Generation
+
+When planning artifacts exist, generate the PR body from them rather than writing freeform. Artifacts capture *intent* (why the change was made), which is more valuable to reviewers than a mechanical diff summary.
+
+Check for artifacts in this order and build the PR body from what's available:
+
+| Artifact | PR Section Generated | How to Extract |
+|----------|---------------------|----------------|
+| `task_plan.md` | **Summary** (from Goal section) and **Changes** (from completed tasks) | Read the Goal and Phases sections; list completed items as change bullets |
+| Verification reports (`*-verification.md`, test output) | **Test Plan** (from verification output) | Extract pass/fail counts and key assertions verified |
+| Review summaries (Phase 2 / Phase 4b output) | **Review Findings** (from reviewer results) | Summarize security/logic/quality verdicts |
+| Deviation logs (ADR-076 repair actions) | **Deviations** section | List repair actions taken and why the original plan changed |
+
+**Fallback**: If no artifacts exist, fall back to diff-based generation -- summarize changes from the diff and commit messages. This is the existing behavior and remains the default for ad-hoc PRs without planning artifacts.
+
+## PR Body Template (Artifact-Driven)
+
+```markdown
+## Summary
+<!-- From task_plan.md Goal section, or from commit messages if no plan -->
+- [Goal statement]
+- [Key change 1 from completed tasks]
+- [Key change 2 from completed tasks]
+
+## Changes
+<!-- From task_plan.md completed phases/tasks -->
+- [Completed task description]
+- [Completed task description]
+
+## Test Plan
+<!-- From verification reports, or manual checklist if no reports -->
+- [ ] [Verification result 1]
+- [ ] [Verification result 2]
+
+## Review Findings
+<!-- From Phase 2 / Phase 4b review output -->
+Security: PASS
+Business Logic: PASS
+Code Quality: PASS
+
+## Deviations
+<!-- From deviation logs, omit section if none -->
+- [Deviation description and rationale]
+```
+
+---
+
+## Examples
+
+### Example 1: Standard PR Submission (personal repo)
+
+User says: "Submit a PR for these changes"
+
+Actions:
+1. Classify repo from remote URL (CLASSIFY REPO)
+2. `git status`, review changes, stage files (STAGE)
+3. Launch 3 parallel reviewers on staged diff (REVIEW)
+4. Create conventional commit from staged changes (COMMIT)
+5. Push branch to remote with tracking (PUSH)
+6. Run review-fix loop: `/pr-review` -> fix -> re-review, up to 3 iterations (REVIEW-FIX LOOP)
+7. Record and graduate review findings, embed in responsible agents/skills (RETRO, toolkit repo only)
+8. Validate ADR format consistency (ADR VALIDATION, toolkit repo only)
+9. Create PR with summary and review findings (CREATE PR)
+10. Wait for CI, report status (VERIFY)
+
+Result: PR URL with CI status and review-fix iteration count
+
+### Example 2: Draft PR for Work in Progress (personal repo)
+
+User says: "Open a draft PR for what I have so far"
+
+Actions:
+1. Classify repo (CLASSIFY REPO)
+2. Stage current changes, skip incomplete files if noted (STAGE)
+3. Run parallel review (REVIEW)
+4. Commit with `wip:` or appropriate prefix (COMMIT)
+5. Push to feature branch (PUSH)
+6. Run review-fix loop (REVIEW-FIX LOOP)
+7. Record and graduate review findings (RETRO, toolkit repo only)
+8. Validate ADR format consistency (ADR VALIDATION, toolkit repo only)
+9. Create PR with `--draft` flag (CREATE PR)
+10. Report PR URL, skip CI wait if `--no-wait` (VERIFY)
+
+Result: Draft PR URL
+
+### Example 3: Trivial Change with Skip Parallel Review (personal repo)
+
+User says: "Quick PR for this typo fix, skip review"
+
+Actions:
+1. Classify repo (CLASSIFY REPO)
+2. Stage the single file change (STAGE)
+3. Skip Phase 2 parallel review (--skip-review)
+4. Commit: `fix(docs): correct typo in README` (COMMIT)
+5. Push to branch (PUSH)
+6. Run review-fix loop -- Phase 4b still runs even with --skip-review (REVIEW-FIX LOOP)
+7. Record and graduate review findings (RETRO, toolkit repo only)
+8. Validate ADR format consistency (ADR VALIDATION, toolkit repo only)
+9. Create PR with minimal body (CREATE PR)
+10. Wait for CI (VERIFY)
+
+Result: PR URL for typo fix
+
+### Example 4: Protected-Org Repo (human-gated workflow)
+
+User says: "Submit a PR for these changes" (in a protected-org repo)
+
+Actions:
+1. Classify repo -> protected-org detected (CLASSIFY REPO)
+2. Stage files (STAGE)
+3. Run parallel review (REVIEW)
+4. Present commit message -> user confirms -> create commit (COMMIT, human-gated)
+5. Present push details -> user confirms -> push to remote (PUSH, human-gated)
+6. Skip Phase 4b (protected-org repos use their own review gates)
+7. Present PR title/body -> user confirms -> create PR (CREATE PR, human-gated)
+8. **STOP**. No CI wait, no merge. Report PR URL.
+
+Result: PR URL. Next steps handled by org CI gates and human reviewers.
+
+---
+
+## Options Reference
+
+| Option | Effect | Default |
+|--------|--------|---------|
+| `--skip-review` | Skip Phase 2 (parallel subagent review) for trivial changes. Phase 4b review-fix loop still runs. | OFF (review runs) |
+| `--draft` | Create draft PR instead of ready PR | OFF (ready PR) |
+| `--no-wait` | Skip Phase 6 CI verification | OFF (waits for CI) |
+| `--title "..."` | Override generated PR title | Auto-generated |
+| `--files "pattern"` | Stage only files matching pattern | All changed files |

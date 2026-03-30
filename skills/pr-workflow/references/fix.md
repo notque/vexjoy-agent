@@ -1,23 +1,3 @@
----
-name: pr-fix
-description: "Validate-then-fix workflow for PR review comments."
-version: 2.0.0
-user-invocable: false
-argument-hint: "[<PR-number>]"
-allowed-tools:
-  - Read
-  - Edit
-  - Bash
-  - Grep
-  - Glob
-routing:
-  triggers:
-    - "fix PR comments"
-    - "resolve PR feedback"
-    - "pr-fix"
-  category: git-workflow
----
-
 # PR Fix Skill
 
 ## Overview
