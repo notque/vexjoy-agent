@@ -1,11 +1,6 @@
 ---
 name: go-pr-quality-gate
-description: |
-  Run Go quality checks via make check with intelligent error categorization
-  and actionable fix suggestions. Use when user requests "run quality checks",
-  "check PR quality", "verify code quality", or "run make check". Use before
-  creating commits or during PR review. Do NOT use for non-Go repositories,
-  repositories without a Makefile, or manual linter invocation.
+description: "Run Go quality checks via make check."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

@@ -1,12 +1,6 @@
 ---
 name: endpoint-validator
-description: |
-  Deterministic API endpoint validation with structured pass/fail reporting.
-  Use when endpoints need smoke testing, health checks are required before
-  deployment, or CI/CD pipelines need HTTP validation gates. Use for
-  "validate endpoints", "check api health", "api smoke test", or
-  "are endpoints working". Route to other skills for load testing, browser testing,
-  full integration suites, or OAuth/complex authentication flows.
+description: "Deterministic API endpoint validation with pass/fail reporting."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

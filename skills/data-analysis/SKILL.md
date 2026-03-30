@@ -1,12 +1,6 @@
 ---
 name: data-analysis
-description: |
-  Decision-first data analysis with statistical rigor gates. Use when
-  analyzing CSV, JSON, database exports, API responses, logs, or any
-  structured data to support a business decision. Handles: trend analysis,
-  cohort comparison, A/B test evaluation, distribution profiling, anomaly
-  detection. Route to other skills for codebase analysis (use codebase-analyzer),
-  codebase exploration (use explore-pipeline), or ML model training.
+description: "Decision-first data analysis with statistical rigor gates."
 version: 1.0.0
 user-invocable: false
 allowed-tools:

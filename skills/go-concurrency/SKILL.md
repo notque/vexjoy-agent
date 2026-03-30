@@ -1,15 +1,6 @@
 ---
 name: go-concurrency
-description: |
-  Go concurrency patterns and primitives: goroutines, channels, sync
-  primitives, worker pools, rate limiting, context propagation. Use when
-  writing concurrent Go code, implementing worker pools, fan-out/fan-in
-  pipelines, rate limiters, or debugging race conditions and goroutine
-  leaks. Triggers: goroutine, channel, sync.Mutex, sync.WaitGroup,
-  worker pool, fan-out, fan-in, rate limit, concurrent, parallel,
-  context.Context, race condition, deadlock. Do NOT use for sequential
-  Go code, general Go syntax, error handling patterns, or HTTP routing
-  without concurrency concerns.
+description: "Go concurrency patterns: goroutines, channels, sync."
 version: 2.0.0
 user-invocable: false
 allowed-tools:
