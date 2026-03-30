@@ -197,7 +197,7 @@ keep modifications out of scope — voice_analyzer.py, voice_validator.py, banne
 
 Before generating, show users any existing voice implementation in `skills/voice-*/` as a concrete example of "done", because reference implementations ground expectations.
 
-Follow the template structure from voice-calibrator (lines 1063-1512 of `pipelines/voice-calibrator/SKILL.md`), because it was refined over 10 iterations and embeds prompt engineering best practices (attention anchoring, probability dampening, XML context tags, few-shot examples for prohibitions). Deviating from the template means losing those lessons.
+Follow the template structure from voice-calibrator (lines 1063-1512 of `skills/workflow/references/voice-calibrator.md`), because it was refined over 10 iterations and embeds prompt engineering best practices (attention anchoring, probability dampening, XML context tags, few-shot examples for prohibitions). Deviating from the template means losing those lessons.
 
 See `references/skill-generation.md` for "Files to Create", the "SKILL.md Structure" table (sections by line count), "SKILL.md Frontmatter", "Sample Organization" (by length and by pattern type), "Voice Metrics Section" format, "Two-Layer Architecture", "Prompt Engineering Techniques" (5 validated techniques), and the `config.json` template.
 
@@ -441,4 +441,4 @@ Study any existing voice profile in `skills/voice-*/` to understand what "done" 
 | `scripts/voice_validator.py validate` | Script | Validate generated content against voice profile | Step 6: VALIDATE |
 | `scripts/voice_validator.py check-banned` | Script | Quick banned pattern check | Step 6: VALIDATE |
 | `scripts/data/banned-patterns.json` | Data | AI pattern database used by validator | Step 6 (via validator) |
-| `pipelines/voice-calibrator/SKILL.md` | Skill | Voice skill template (lines 1063-1554, including the validation checklist) | Step 5: GENERATE (template reference) |
+| `skills/workflow/references/voice-calibrator.md` | Skill | Voice skill template (lines 1063-1554, including the validation checklist) | Step 5: GENERATE (template reference) |

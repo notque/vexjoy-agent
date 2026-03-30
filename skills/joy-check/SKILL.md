@@ -62,7 +62,7 @@ This skill checks *framing*, not *topic* and not *voice*. Voice fidelity belongs
 1. Explicit `--mode writing|instruction` flag → use that mode
 2. File in `agents/*.md` → **instruction**
 3. File in `skills/*/SKILL.md` → **instruction**
-4. File in `pipelines/*/SKILL.md` → **instruction**
+4. File in `skills/workflow/references/*.md` → **instruction**
 5. File is `CLAUDE.md` or `README.md` → **instruction**
 6. Everything else → **writing**
 

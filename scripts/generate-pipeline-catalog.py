@@ -2,7 +2,7 @@
 """
 Generate pipeline catalog from YAML frontmatter in pipeline SKILL.md files.
 
-Scans all pipelines/*/SKILL.md files, extracts phase metadata, and generates
+Scans all skills/workflow/references/*.md files, extracts phase metadata, and generates
 a markdown reference catalog for auto-pipeline dedup checks.
 
 Usage:
@@ -245,11 +245,11 @@ def extract_triggers(frontmatter: dict, description: str) -> list[str]:
     return triggers
 
 
-def scan_pipelines(pipelines_dir: Path) -> tuple[list[dict], list[str]]:
-    """Scan all pipeline directories and extract catalog entries.
+def scan_pipelines(references_dir: Path) -> tuple[list[dict], list[str]]:
+    """Scan all workflow reference files and extract catalog entries.
 
     Args:
-        pipelines_dir: Path to the pipelines/ directory.
+        references_dir: Path to the skills/workflow/references/ directory.
 
     Returns:
         Tuple of (list of pipeline entry dicts, list of warning messages).
@@ -257,26 +257,22 @@ def scan_pipelines(pipelines_dir: Path) -> tuple[list[dict], list[str]]:
     entries: list[dict] = []
     warnings: list[str] = []
 
-    for pipeline_dir in sorted(pipelines_dir.iterdir()):
-        if not pipeline_dir.is_dir():
-            continue
-
-        skill_file = pipeline_dir / "SKILL.md"
-        if not skill_file.exists():
+    for skill_file in sorted(references_dir.glob("*.md")):
+        if not skill_file.is_file():
             continue
 
         try:
             content = skill_file.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError) as e:
-            warnings.append(f"  - {pipeline_dir.name}: Failed to read: {e}")
+            warnings.append(f"  - {skill_file.stem}: Failed to read: {e}")
             continue
 
         frontmatter = extract_frontmatter(content)
         if not frontmatter:
-            warnings.append(f"  - {pipeline_dir.name}: No valid frontmatter found")
+            warnings.append(f"  - {skill_file.stem}: No valid frontmatter found")
             continue
 
-        name = frontmatter.get("name", pipeline_dir.name)
+        name = frontmatter.get("name", skill_file.stem)
         description = frontmatter.get("description", "")
         description_line = extract_description_first_line(description)
 
@@ -341,7 +337,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         Parsed argument namespace.
     """
     parser = argparse.ArgumentParser(
-        description="Generate pipeline catalog from pipelines/*/SKILL.md frontmatter.",
+        description="Generate pipeline catalog from skills/workflow/references/*.md frontmatter.",
     )
     parser.add_argument(
         "--output",
@@ -372,13 +368,13 @@ def main(argv: list[str] | None = None) -> int:
 
     script_dir = Path(__file__).parent
     repo_root = script_dir.parent
-    pipelines_dir = repo_root / "pipelines"
+    references_dir = repo_root / "skills" / "workflow" / "references"
 
-    if not pipelines_dir.exists():
-        print(f"Error: pipelines directory not found at {pipelines_dir}", file=sys.stderr)
+    if not references_dir.exists():
+        print(f"Error: workflow references directory not found at {references_dir}", file=sys.stderr)
         return 1
 
-    entries, warnings = scan_pipelines(pipelines_dir)
+    entries, warnings = scan_pipelines(references_dir)
 
     if warnings:
         print("Warnings during catalog generation:", file=sys.stderr)

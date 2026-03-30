@@ -42,7 +42,6 @@ _CONTEXT_PATH_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"/skills/[^/]+/SKILL\.md$"),
     re.compile(r"/hooks/[^/]+\.py$"),
     re.compile(r"/commands/[^/]+/SKILL\.md$"),
-    re.compile(r"/pipelines/[^/]+/SKILL\.md$"),
     re.compile(r"/adr/[^/]+\.md$"),
     re.compile(r"CLAUDE\.md$"),
     re.compile(r"task_plan\.md$"),

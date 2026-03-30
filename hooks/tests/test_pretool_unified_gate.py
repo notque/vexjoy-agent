@@ -313,7 +313,7 @@ class TestCheckCreationGate:
 
     def test_new_pipeline_skill_md_blocked(self):
         """Writing a new pipeline SKILL.md must be blocked."""
-        payload = _make_write_event("/project/pipelines/my-pipeline/SKILL.md")
+        payload = _make_write_event("/project/skills/workflow/references/my-pipeline.md")
         with patch("os.path.exists", return_value=False):
             assert _run_main(payload) == 2
 

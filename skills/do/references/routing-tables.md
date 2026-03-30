@@ -228,7 +228,7 @@ Sequential pipeline: design → plan → implement → validate → release. Eac
 
 ## Pipeline Skills
 
-All pipelines live in the `pipelines/` directory (synced to `~/.claude/skills/` at install time).
+All workflow pipelines live in `skills/workflow/references/` and are accessed via the workflow umbrella skill.
 
 | Pipeline | When to Route Here | Phases |
 |----------|--------------------|--------|

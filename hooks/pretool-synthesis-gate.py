@@ -46,7 +46,7 @@ _BYPASS_ENV = "SYNTHESIS_GATE_BYPASS"
 _GATED_PREFIXES = (
     "/agents/",
     "/skills/",
-    "/pipelines/",
+    
 )
 
 # Source code extensions that are implementation code.
@@ -143,7 +143,7 @@ def main() -> None:
     if not file_path:
         sys.exit(0)
 
-    # Only gate implementation code (agents/, skills/, pipelines/).
+    # Only gate implementation code (agents/, skills/).
     # Everything else (docs, config, CI, plans, tests, scripts) passes through.
     if not _is_gated(file_path):
         if debug:

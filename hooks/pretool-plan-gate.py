@@ -10,11 +10,11 @@ This is a HARD GATE — exit 2 blocks the Write/Edit tool.
 
 Detection logic:
 - Tool is Write or Edit
-- Target path is in agents/, skills/, or pipelines/
+- Target path is in agents/, skills/
 - task_plan.md does not exist in the project root
 
 Allow-through conditions:
-- Target file is NOT in agents/, skills/, or pipelines/
+- Target file is NOT in agents/, skills/
 - task_plan.md exists in the project root
 - PLAN_GATE_BYPASS=1 env var (for use by the plans skill itself)
 """
@@ -35,7 +35,7 @@ _BYPASS_ENV = "PLAN_GATE_BYPASS"
 _GATED_PREFIXES = (
     "/agents/",
     "/skills/",
-    "/pipelines/",
+    
 )
 
 

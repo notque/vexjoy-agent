@@ -106,7 +106,7 @@ Trigger phrases must contain only user-language keywords, never sibling skill na
 
 **Step 2: Select agent + skill**
 
-Read the routing tables in `references/routing-tables.md` and the INDEX files (`agents/INDEX.json`, `skills/INDEX.json`, `pipelines/INDEX.json`) to identify candidates by trigger-overlap. Select the best match; use LLM judgment to tiebreak when multiple candidates fit equally well.
+Read the routing tables in `references/routing-tables.md` and the INDEX files (`agents/INDEX.json`, `skills/INDEX.json`) to identify candidates by trigger-overlap. Select the best match; use LLM judgment to tiebreak when multiple candidates fit equally well.
 
 Route to the simplest agent+skill that satisfies the request, because over-engineering the routing itself (stacking unnecessary skills) creates more overhead than it prevents.
 
@@ -129,7 +129,7 @@ This banner MUST be the FIRST visible output for EVERY /do invocation. Display B
  Selected:
    -> Agent: [name] - [why]
    -> Skill: [name] - [why]
-   -> Pipeline: PHASE1 → PHASE2 → ... (if pipeline; phases from pipelines/INDEX.json)
+   -> Pipeline: PHASE1 → PHASE2 → ... (if workflow; phases from skills/workflow/SKILL.md)
    -> Anti-Rationalization: [auto-injected for code/security/testing]
  Invoking...
 ===================================================================
@@ -281,6 +281,6 @@ Solution: Stop execution. Create `task_plan.md`. Resume routing after plan is in
 - `${CLAUDE_SKILL_DIR}/references/routing-tables.md`: Complete category-specific skill routing
 - `agents/INDEX.json`: Agent triggers and metadata
 - `skills/INDEX.json`: Skill triggers, force-route flags, pairs_with
-- `pipelines/INDEX.json`: Pipeline phases, triggers, composition chains
+- `skills/workflow/SKILL.md`: Workflow phases, triggers, composition chains
 
 <!-- END DO NOT OPTIMIZE -->
