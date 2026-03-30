@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-03-30T22:08:30Z",
+  "generated": "2026-03-30T22:22:18Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -411,112 +411,30 @@
       "version": "1.0.0",
       "pairs_with": []
     },
-<<<<<<< HEAD
-    "feature-design": {
-      "file": "skills/feature-design/SKILL.md",
-      "description": "Collaborative design phase for feature lifecycle.",
-=======
     "feature-lifecycle": {
       "file": "skills/feature-lifecycle/SKILL.md",
-      "description": "Feature lifecycle: design, plan, implement, validate, release. Phase-gated workflow.",
->>>>>>> origin/main
+      "description": "Feature lifecycle: design, plan, implement, validate, release.",
       "triggers": [
         "feature design",
         "design feature",
         "think through",
         "explore approaches",
         "design first",
-<<<<<<< HEAD
-        "feature-design"
-      ],
-      "category": "process",
-      "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "feature-plan",
-        "workflow-orchestrator"
-      ]
-    },
-    "feature-implement": {
-      "file": "skills/feature-implement/SKILL.md",
-      "description": "Execute wave-ordered implementation plan via domain agents.",
-      "triggers": [
-        "feature implement",
-        "implement feature",
-        "execute plan",
-        "start building",
-        "feature-implement"
-      ],
-      "category": "process",
-      "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "feature-plan",
-        "feature-validate",
-        "subagent-driven-development"
-      ]
-    },
-    "feature-plan": {
-      "file": "skills/feature-plan/SKILL.md",
-      "description": "Break design docs into wave-ordered implementation tasks.",
-      "triggers": [
-=======
->>>>>>> origin/main
         "feature plan",
         "plan feature",
         "break down design",
         "create tasks",
-<<<<<<< HEAD
-        "feature-plan"
-      ],
-      "category": "process",
-      "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "feature-design",
-        "feature-implement",
-        "workflow-orchestrator"
-      ]
-    },
-    "feature-release": {
-      "file": "skills/feature-release/SKILL.md",
-      "description": "Merge validated feature to main via PR and tag release.",
-      "triggers": [
-        "feature release",
-        "release feature",
-        "merge feature",
-        "ship it",
-        "feature-release"
-      ],
-      "category": "process",
-      "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "feature-validate",
-        "pr-pipeline",
-        "git-commit-flow"
-      ]
-    },
-    "feature-validate": {
-      "file": "skills/feature-validate/SKILL.md",
-      "description": "Run quality gates on implemented features.",
-      "triggers": [
-=======
         "feature implement",
         "implement feature",
         "execute plan",
         "start building",
->>>>>>> origin/main
         "feature validate",
         "validate feature",
         "run quality gates",
         "check feature",
         "feature release",
         "release feature",
+        "merge feature",
         "ship it",
         "build feature end to end",
         "full feature lifecycle",
@@ -715,56 +633,19 @@
       "pairs_with": [],
       "model": "sonnet"
     },
-<<<<<<< HEAD
-    "go-anti-patterns": {
-      "file": "skills/go-anti-patterns/SKILL.md",
-      "description": "Detect and remediate Go anti-patterns.",
+    "go-patterns": {
+      "file": "skills/go-patterns/SKILL.md",
+      "description": "Go development patterns: testing, concurrency, errors, review, and conventions.",
       "triggers": [
-        "Go mistake",
-        "bad Go",
-        "Go smell",
-        "code smell",
-        "premature abstraction",
-        "over-engineering",
-        "unnecessary complexity",
-        "Go anti-pattern",
-        "Go code smell"
-      ],
-      "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "golang-general-engineer",
-        "golang-general-engineer-compact",
-        "go-code-review"
-      ],
-      "agent": "golang-general-engineer"
-    },
-    "go-code-review": {
-      "file": "skills/go-code-review/SKILL.md",
-      "description": "Go-specific 6-phase code review methodology.",
-      "triggers": [
-        "review Go",
-        "Go PR",
-        "Go code review",
-        "review .go",
-        "check Go code",
-        "Go quality"
-      ],
-      "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "golang-general-engineer",
-        "golang-general-engineer-compact",
-        "systematic-code-review"
-      ],
-      "agent": "golang-general-engineer"
-    },
-    "go-concurrency": {
-      "file": "skills/go-concurrency/SKILL.md",
-      "description": "Go concurrency patterns: goroutines, channels, sync.",
-      "triggers": [
+        "go test",
+        "*_test.go",
+        "table-driven",
+        "t.Run",
+        "t.Helper",
+        "benchmark",
+        "mock",
+        "test coverage",
+        "race detection",
         "goroutine",
         "channel",
         "chan",
@@ -779,21 +660,7 @@
         "deadlock",
         "goroutine parallel",
         "Go parallel",
-        "goroutine fan-out"
-      ],
-      "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "golang-general-engineer",
-        "golang-general-engineer-compact"
-      ],
-      "agent": "golang-general-engineer"
-    },
-    "go-error-handling": {
-      "file": "skills/go-error-handling/SKILL.md",
-      "description": "Go error handling: wrapping, sentinel, and custom types.",
-      "triggers": [
+        "goroutine fan-out",
         "error handling",
         "fmt.Errorf",
         "errors.Is",
@@ -802,34 +669,22 @@
         "%w",
         "sentinel error",
         "custom error",
-        "error context"
-      ],
-      "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "golang-general-engineer",
-        "golang-general-engineer-compact"
-      ],
-      "agent": "golang-general-engineer"
-    },
-    "go-pr-quality-gate": {
-      "file": "skills/go-pr-quality-gate/SKILL.md",
-      "description": "Run Go quality checks via make check.",
-      "triggers": [
+        "error context",
+        "Go mistake",
+        "bad Go",
+        "Go smell",
+        "code smell",
+        "premature abstraction",
+        "over-engineering",
+        "unnecessary complexity",
+        "Go anti-pattern",
+        "Go code smell",
+        "review Go",
+        "Go PR",
+        "Go code review",
+        "review .go",
+        "check Go code",
         "Go quality",
-        "make check",
-        "Go lint"
-      ],
-      "category": "code-quality",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "agent": "golang-general-engineer"
-    },
-    "go-sapcc-conventions": {
-      "file": "skills/go-sapcc-conventions/SKILL.md",
-      "description": "SAP Converged Cloud Go coding conventions.",
-      "triggers": [
         "sapcc",
         "sap-cloud-infrastructure",
         "go-bits",
@@ -837,45 +692,17 @@
         "go-api-declarations",
         "go-makefile-maker",
         "sapcc/go-bits",
-        "sap-cloud-infrastructure/go-bits"
+        "sap-cloud-infrastructure/go-bits",
+        "make check",
+        "Go lint"
       ],
-      "category": "language",
       "force_route": true,
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
         "golang-general-engineer",
         "golang-general-engineer-compact",
-        "go-testing",
-        "go-error-handling"
-      ],
-      "agent": "golang-general-engineer"
-    },
-    "go-testing": {
-      "file": "skills/go-testing/SKILL.md",
-      "description": "Go testing: table-driven, subtests, mocks, benchmarks.",
-=======
-    "go-patterns": {
-      "file": "skills/go-patterns/SKILL.md",
-      "description": "Go testing patterns and methodology: table-driven tests, t.Run subtests, t.Helper helpers, mocking interfaces, benchmarks, race detection, and synctest.",
->>>>>>> origin/main
-      "triggers": [
-        "go test",
-        "*_test.go",
-        "table-driven",
-        "t.Run",
-        "t.Helper",
-        "benchmark",
-        "mock",
-        "test coverage",
-        "race detection"
-      ],
-      "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "golang-general-engineer",
-        "golang-general-engineer-compact"
+        "systematic-code-review"
       ],
       "agent": "golang-general-engineer"
     },
@@ -1127,173 +954,34 @@
         "resume-work"
       ]
     },
-    "perses-code-review": {
-      "file": "skills/perses-code-review/SKILL.md",
-      "description": "Perses-aware code review: Go backend, React UI, CUE schemas, dashboards.",
+    "perses": {
+      "file": "skills/perses/SKILL.md",
+      "description": "Perses platform operations: dashboards, plugins, deployment, migration, and quality.",
       "triggers": [
-        "review Perses code",
-        "Perses PR review"
+        "perses",
+        "perses dashboard",
+        "perses plugin",
+        "perses lint",
+        "perses migrate",
+        "percli",
+        "Grafana to Perses",
+        "perses deploy",
+        "perses datasource",
+        "perses variable",
+        "perses project",
+        "perses CUE",
+        "dashboard-as-code"
       ],
-      "category": "code-review",
+      "category": "infrastructure",
+      "force_route": true,
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-engineer"
-    },
-    "perses-cue-schema": {
-      "file": "skills/perses-cue-schema/SKILL.md",
-      "description": "CUE schema authoring for Perses plugins: data models, validation.",
-      "triggers": [
-        "Perses CUE schema",
-        "plugin data model"
+      "pairs_with": [
+        "perses-engineer",
+        "prometheus-grafana-engineer"
       ],
-      "category": "perses",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "agent": "perses-engineer"
-    },
-    "perses-dashboard-create": {
-      "file": "skills/perses-dashboard-create/SKILL.md",
-      "description": "Guided Perses dashboard creation: requirements, CUE/JSON, validate, deploy.",
-      "triggers": [
-        "create Perses dashboard",
-        "new dashboard"
-      ],
-      "category": "perses",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "agent": "perses-engineer"
-    },
-    "perses-dashboard-review": {
-      "file": "skills/perses-dashboard-review/SKILL.md",
-      "description": "Review Perses dashboards: panel layout, query efficiency, variables.",
-      "triggers": [
-        "review Perses dashboard",
-        "dashboard quality"
-      ],
-      "category": "perses",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "agent": "perses-engineer"
-    },
-    "perses-datasource-manage": {
-      "file": "skills/perses-datasource-manage/SKILL.md",
-      "description": "Perses datasource lifecycle: create, update, delete across scopes.",
-      "triggers": [
-        "manage datasource",
-        "Perses datasource"
-      ],
-      "category": "perses",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "agent": "perses-engineer"
-    },
-    "perses-deploy": {
-      "file": "skills/perses-deploy/SKILL.md",
-      "description": "Deploy Perses server: Docker Compose, Helm, or binary installation.",
-      "triggers": [
-        "deploy Perses",
-        "Perses server setup"
-      ],
-      "category": "perses",
-      "user_invocable": false,
-      "version": "2.0.0"
-    },
-    "perses-grafana-migrate": {
-      "file": "skills/perses-grafana-migrate/SKILL.md",
-      "description": "Grafana-to-Perses dashboard migration: export, convert, validate, deploy.",
-      "triggers": [
-        "migrate Grafana",
-        "Grafana to Perses"
-      ],
-      "category": "perses",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "agent": "perses-engineer"
-    },
-    "perses-lint": {
-      "file": "skills/perses-lint/SKILL.md",
-      "description": "Validate Perses resources via percli lint: dashboards, datasources, schemas.",
-      "triggers": [
-        "lint Perses",
-        "validate Perses resources"
-      ],
-      "category": "perses",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "agent": "perses-engineer"
-    },
-    "perses-onboard": {
-      "file": "skills/perses-onboard/SKILL.md",
-      "description": "First-time Perses setup: discover server, configure MCP, add datasources.",
-      "triggers": [
-        "onboard Perses",
-        "first-time Perses setup"
-      ],
-      "category": "perses",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "agent": "perses-engineer"
-    },
-    "perses-plugin-create": {
-      "file": "skills/perses-plugin-create/SKILL.md",
-      "description": "Perses plugin scaffolding: select type, generate, implement CUE + React.",
-      "triggers": [
-        "create Perses plugin",
-        "scaffold plugin"
-      ],
-      "category": "perses",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "agent": "perses-engineer"
-    },
-    "perses-plugin-test": {
-      "file": "skills/perses-plugin-test/SKILL.md",
-      "description": "Perses plugin testing: CUE schema tests, React tests, integration tests.",
-      "triggers": [
-        "test Perses plugin",
-        "plugin testing"
-      ],
-      "category": "perses",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "agent": "perses-engineer"
-    },
-    "perses-project-manage": {
-      "file": "skills/perses-project-manage/SKILL.md",
-      "description": "Perses project lifecycle: create, list, switch, configure, RBAC.",
-      "triggers": [
-        "manage Perses project",
-        "Perses RBAC"
-      ],
-      "category": "perses",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "agent": "perses-engineer"
-    },
-    "perses-query-builder": {
-      "file": "skills/perses-query-builder/SKILL.md",
-      "description": "Build PromQL, LogQL, TraceQL queries for Perses panels.",
-      "triggers": [
-        "build PromQL",
-        "Perses query",
-        "LogQL query"
-      ],
-      "category": "perses",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "agent": "perses-engineer"
-    },
-    "perses-variable-manage": {
-      "file": "skills/perses-variable-manage/SKILL.md",
-      "description": "Perses variable lifecycle: Text/List variables, chains, interpolation.",
-      "triggers": [
-        "manage Perses variables",
-        "dashboard variables"
-      ],
-      "category": "perses",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "agent": "perses-engineer"
+      "agent": "perses-engineer",
+      "model": "sonnet"
     },
     "php-quality": {
       "file": "skills/php-quality/SKILL.md",
@@ -1418,89 +1106,37 @@
         "gemini-image-generator"
       ]
     },
-    "pr-cleanup": {
-      "file": "skills/pr-cleanup/SKILL.md",
-      "description": "Local branch cleanup after PR merge: identify, switch, delete, prune.",
-      "triggers": [
-        "cleanup branches",
-        "delete merged branch",
-        "prune branches"
-      ],
-      "category": "git-workflow",
-      "user_invocable": false,
-      "version": "2.0.0"
-    },
-    "pr-fix": {
-      "file": "skills/pr-fix/SKILL.md",
-      "description": "Validate-then-fix workflow for PR review comments.",
-      "triggers": [
-        "fix PR comments",
-        "resolve PR feedback",
-        "pr-fix"
-      ],
-      "category": "git-workflow",
-      "user_invocable": false,
-      "version": "2.0.0"
-    },
-    "pr-miner": {
-      "file": "skills/pr-miner/SKILL.md",
-      "description": "GitHub PR review comment extraction: mine tribal knowledge, standards.",
-      "triggers": [
-        "extract PR comments",
-        "mine PR reviews"
-      ],
-      "category": "git-workflow",
-      "user_invocable": false,
-      "version": "2.0.0"
-    },
-    "pr-mining-coordinator": {
-      "file": "skills/pr-mining-coordinator/SKILL.md",
-      "description": "Coordinate PR mining for tribal knowledge and coding standards extraction.",
-      "triggers": [
-        "coordinate PR mining",
-        "extract tribal knowledge"
-      ],
-      "category": "git-workflow",
-      "user_invocable": false,
-      "version": "2.0.0"
-    },
-    "pr-review-address-feedback": {
-      "file": "skills/pr-review-address-feedback/SKILL.md",
-      "description": "Fetch PR feedback from GitHub and validate comments before acting.",
-      "triggers": [
-        "process PR feedback",
-        "address review comments"
-      ],
-      "category": "git-workflow",
-      "user_invocable": false,
-      "version": "2.0.0"
-    },
-    "pr-status": {
-      "file": "skills/pr-status/SKILL.md",
-      "description": "Quick status check: branch state, CI results, reviews, merge readiness.",
-      "triggers": [
-        "PR status",
-        "branch status",
-        "merge readiness"
-      ],
-      "category": "git-workflow",
-      "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0"
-    },
-    "pr-sync": {
-      "file": "skills/pr-sync/SKILL.md",
-      "description": "Sync local changes to GitHub in one command: detect state, branch, commit, push, create PR.",
+    "pr-workflow": {
+      "file": "skills/pr-workflow/SKILL.md",
+      "description": "Pull request lifecycle: sync, review, fix, status, cleanup, and PR mining.",
       "triggers": [
         "push",
         "push changes",
         "create PR",
-        "sync to GitHub"
+        "sync to GitHub",
+        "PR status",
+        "branch status",
+        "merge readiness",
+        "fix PR comments",
+        "resolve PR feedback",
+        "pr-fix",
+        "cleanup branches",
+        "delete merged branch",
+        "prune branches",
+        "mine PRs",
+        "extract review comments",
+        "tribal knowledge",
+        "process PR feedback",
+        "address review comments",
+        "submit PR",
+        "create pull request",
+        "send for review",
+        "open PR"
       ],
       "category": "git-workflow",
       "force_route": true,
       "user_invocable": true,
-      "version": "2.0.0"
+      "version": "1.0.0"
     },
     "pre-planning-discussion": {
       "file": "skills/pre-planning-discussion/SKILL.md",
@@ -2254,43 +1890,5 @@
       "agent": "python-general-engineer",
       "model": "sonnet"
     }
-  },
-  "go-patterns": {
-    "file": "skills/go-patterns/SKILL.md",
-    "short_description": "Go development patterns: testing, concurrency, errors, review, and conventions.",
-    "triggers": [
-      "go test",
-      "*_test.go",
-      "table-driven",
-      "t.Run",
-      "benchmark",
-      "goroutine",
-      "channel",
-      "sync.Mutex",
-      "worker pool",
-      "concurrent",
-      "error handling",
-      "fmt.Errorf",
-      "errors.Is",
-      "errors.As",
-      "Go mistake",
-      "code smell",
-      "premature abstraction",
-      "review Go",
-      "Go PR",
-      "Go code review",
-      "sapcc",
-      "go-bits",
-      "keppel",
-      "make check",
-      "Go lint"
-    ],
-    "pairs_with": [
-      "golang-general-engineer",
-      "golang-general-engineer-compact",
-      "systematic-code-review"
-    ],
-    "force_route": true,
-    "agent": "golang-general-engineer"
   }
 }

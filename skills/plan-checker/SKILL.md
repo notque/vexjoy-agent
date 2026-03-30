@@ -386,12 +386,6 @@ Run Phase 2 again on the revised plan. Only re-check dimensions that had finding
 ## References
 
 - [ADR-074: Plan Checker Pre-Execution Validation](/adr/074-plan-checker-pre-execution-validation.md)
-<<<<<<< HEAD
-- [Feature Plan Skill](/skills/feature-plan/SKILL.md) -- produces plans this skill validates
-- [Feature Implement Skill](/skills/feature-implement/SKILL.md) -- executes plans after this skill validates
-- [Workflow Orchestrator](skills/workflow/references/workflow-orchestrator.md) -- PLAN phase produces plans this skill can validate
-=======
 - [Feature Lifecycle](/skills/feature-lifecycle/SKILL.md) -- plan phase produces plans this skill validates; implement phase executes plans after validation
 - [Workflow Orchestrator](/pipelines/workflow-orchestrator/SKILL.md) -- PLAN phase produces plans this skill can validate
->>>>>>> origin/main
 - [Verification Before Completion](/skills/verification-before-completion/SKILL.md) -- post-execution counterpart (validates results, not plans)
