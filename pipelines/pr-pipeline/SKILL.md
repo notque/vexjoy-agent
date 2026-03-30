@@ -2,7 +2,7 @@
 name: pr-pipeline
 description: |
   End-to-end pipeline for creating pull requests: Classify Repo, Stage,
-  Review, Commit, Push, Review-Fix Loop (max 3), Create, Verify. For personal repos,
+  Review, Cross-Model Review (Codex), Commit, Push, Review-Fix Loop (max 3), Create, Verify. For personal repos,
   runs iterative /pr-review + fix cycles before PR creation. For protected-org
   repos, human-gated workflow with user confirmation at every step.
   Use when user says "submit PR", "create pull request", "push and PR",
@@ -144,6 +144,26 @@ All findings are auto-fixed. The fix commit is applied to the staged changes bef
 **If comprehensive-review finds CRITICAL issues that cannot be auto-fixed**: STOP and report to user. Do not proceed to commit.
 
 **Gate**: Comprehensive review complete. All findings fixed or explained. No unresolved CRITICAL issues.
+
+### Phase 2b: CROSS-MODEL REVIEW (optional)
+
+**Goal**: Get an independent second opinion from OpenAI Codex CLI to catch issues that same-model review might miss.
+
+**Skip condition**: Skip if `codex` CLI is not installed (`which codex` fails), or if user passes `--skip-codex`. This phase is additive -- it never blocks the pipeline, only adds signal.
+
+**Invoke the codex-code-review skill:**
+
+```
+Invoke: /codex-code-review
+Scope: git diff --cached (staged changes)
+```
+
+Codex runs in read-only sandbox mode with GPT-5.4 xhigh reasoning. It produces structured findings (CRITICAL / IMPROVEMENTS / POSITIVE / SUMMARY). Claude assesses each finding before incorporating -- Codex feedback is a second opinion, not authoritative.
+
+**If Codex finds CRITICAL issues that Claude agrees with**: Fix them and re-stage before proceeding.
+**If Codex is unavailable or errors**: Log the skip reason and proceed. This phase must never block the pipeline.
+
+**Gate**: Cross-model review complete (or skipped). Any agreed-upon findings fixed.
 
 ### Phase 3: COMMIT
 
