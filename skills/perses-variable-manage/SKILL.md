@@ -1,13 +1,7 @@
 ---
 name: perses-variable-manage
 user-invocable: false
-description: |
-  Perses variable lifecycle management: create Text and List variables at global,
-  project, or dashboard scope. Handle variable chains with dependencies (A depends
-  on B depends on C). Supports 14+ interpolation formats. Uses MCP tools when
-  available, percli CLI as fallback. Use for "perses variable", "dashboard variable",
-  "perses filter", "add variable". Route to other skills for datasource management
-  (use perses-datasource-manage).
+description: "Perses variable lifecycle: Text/List variables, chains, interpolation."
 allowed-tools:
   - Read
   - Grep

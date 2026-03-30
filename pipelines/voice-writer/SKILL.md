@@ -1,13 +1,6 @@
 ---
 name: voice-writer
-description: |
-  Unified voice content generation pipeline with mandatory validation and
-  joy-check. 8-phase pipeline: LOAD, GROUND, GENERATE, VALIDATE, REFINE, JOY-CHECK,
-  OUTPUT, CLEANUP. Use when writing articles, blog posts, or any content
-  that uses a voice profile. Use for "write article", "blog post", "write
-  in voice", "generate content", "draft article", "write about". Do NOT
-  use for voice profile creation (use create-voice), voice analysis
-  (use voice-calibrator), or non-voiced documentation (use doc-pipeline).
+description: "Unified voice content generation with 8-phase pipeline: validation, joy-check, voice profile support."
 version: 1.0.0
 user-invocable: true
 argument-hint: "<topic or title>"

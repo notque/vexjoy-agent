@@ -1,12 +1,6 @@
 ---
 name: cron-job-auditor
-description: |
-  Deterministic audit of cron/scheduled job scripts for reliability,
-  error handling, logging, cleanup, and concurrency safety. Use when
-  user says "audit cron", "check cron script", "cron best practices",
-  "scheduled job review", or "bash script audit". Do NOT use for
-  crontab scheduling syntax, systemd timers, or general shell linting
-  without a cron/scheduled-job context.
+description: "Audit cron scripts for reliability and safety."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

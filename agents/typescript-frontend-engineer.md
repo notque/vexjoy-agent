@@ -2,11 +2,7 @@
 name: typescript-frontend-engineer
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent when you need expert assistance with TypeScript frontend architecture and optimization for modern web applications. This includes implementing type-safe component development, state management, form validation, API client integration, and performance optimization. The agent specializes in TypeScript 5+, React 19 patterns, Zod validation, and modern frontend development practices.
-
-  Example: "I want to create a type-safe API client for my Next.js app with proper TypeScript types"
-
+description: "TypeScript frontend architecture: type-safe components, state management, build optimization."
 color: blue
 memory: project
 routing:

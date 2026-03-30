@@ -1,12 +1,6 @@
 ---
 name: image-to-video
-description: |
-  FFmpeg-based 4-step video creation: Validate, Prepare, Encode, Verify.
-  Use when user wants to combine a static image with audio to create an MP4
-  video, create a music video from cover art, or produce podcast/YouTube
-  video from an image and audio file. Use for "image to video", "static
-  video", "mp4 from image", "album art video", or "audio visualization".
-  Do NOT use for video editing, live streaming, or generating images.
+description: "FFmpeg-based video creation from image and audio."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

@@ -2,10 +2,7 @@
 name: reviewer-newcomer
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent when you need code review from an enthusiastic newcomer perspective. This persona provides fresh-eyes critique focusing on documentation gaps, confusing code, and accessibility for developers new to the codebase. READ-ONLY review agent using Reviewer Schema with VERDICT.
-
-  Example: "Review this authentication middleware implementation"
+description: "Newcomer perspective review: documentation gaps, confusing code, accessibility issues."
 color: yellow
 routing:
   triggers:

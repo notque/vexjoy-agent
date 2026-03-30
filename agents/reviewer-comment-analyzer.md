@@ -2,10 +2,7 @@
 name: reviewer-comment-analyzer
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent for analyzing code comments for accuracy, completeness, and long-term value. This includes detecting comment rot (stale comments that no longer match code), misleading documentation, unnecessary comments, and missing critical documentation. Supports `--fix` mode to update or remove problematic comments.
-
-  Example: "Check if the comments in the auth package still match the code after my refactor"
+description: "Comment quality review: detect stale comments, misleading docs, missing context."
 color: orange
 routing:
   triggers:

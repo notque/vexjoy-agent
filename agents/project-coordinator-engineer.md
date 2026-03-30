@@ -2,15 +2,7 @@
 name: project-coordinator-engineer
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent when orchestrating multi-agent software development projects across
-  specialized agents. This includes breaking down complex tasks into agent-specific work
-  items, managing parallel execution, coordinating handoffs, and maintaining project
-  visibility through structured markdown documentation. The agent specializes in TodoWrite
-  integration, death loop prevention, and markdown-based communication protocols.
-
-  Example: "Implement an audit pipeline feature requiring database changes, API endpoints, frontend components, and testing - coo..."
-
+description: "Multi-agent project coordination: task breakdown, dependency management, progress tracking."
 color: teal
 routing:
   triggers:

@@ -1,14 +1,6 @@
 ---
 name: skill-creator
-description: |
-  Create new skills and iteratively improve them through eval-driven validation.
-  Draft a skill, test it against real prompts, review the outputs, improve based
-  on measured results, repeat. Use when creating new skills, improving existing
-  skills, testing skill quality, or optimizing descriptions for triggering accuracy.
-  Use for "create skill", "new skill", "test skill", "improve skill", "optimize
-  description", "skill eval", "turn this into a skill". Do NOT use for agent
-  creation (this skill also handles agents) or hook development (use
-  hook-development-engineer).
+description: "Create and iteratively improve skills through eval-driven validation."
 version: 2.0.0
 routing:
   triggers:

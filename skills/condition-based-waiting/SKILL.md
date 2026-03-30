@@ -1,12 +1,6 @@
 ---
 name: condition-based-waiting
-description: |
-  Condition-based polling and retry patterns: exponential backoff, health
-  checks, rate limit recovery, circuit breakers. Use when replacing arbitrary
-  sleeps with condition checks, implementing retry logic, waiting for service
-  availability, or handling API rate limits. Use for "wait for", "poll until",
-  "retry with backoff", "health check", or "rate limit". Do NOT use for async
-  event-driven architectures, distributed locking, or real-time guarantees.
+description: "Polling, retry, and backoff patterns."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

@@ -2,13 +2,7 @@
 name: python-general-engineer
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent when you need expert assistance with Python development, including implementing features,
-  debugging issues, reviewing code quality, optimizing performance, or answering technical questions about
-  Python codebases. The agent specializes in modern Python patterns (3.11+), type safety with mypy, async
-  programming, pytest testing, and production-ready code.
-
-  Example: "Add a user registration endpoint with email validation and password hashing"
+description: "Python development: features, debugging, code review, performance. Modern Python 3.12+ patterns."
 color: green
 hooks:
   PostToolUse:
