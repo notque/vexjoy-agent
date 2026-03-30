@@ -1,0 +1,98 @@
+[
+  {
+    "query": "help me think through this bug step by step",
+    "should_trigger": true,
+    "complexity": "simple",
+    "description": "explicit request for guided reasoning"
+  },
+  {
+    "query": "walk me through debugging this",
+    "should_trigger": true,
+    "complexity": "simple",
+    "description": "guided debugging with user doing the work"
+  },
+  {
+    "query": "I need coaching on how to debug this problem",
+    "should_trigger": true,
+    "complexity": "simple",
+    "description": "coaching/teaching framing"
+  },
+  {
+    "query": "teach me to find the root cause myself",
+    "should_trigger": true,
+    "complexity": "simple",
+    "description": "explicit teach-me framing"
+  },
+  {
+    "query": "guide me to the root cause with questions",
+    "should_trigger": true,
+    "complexity": "simple",
+    "description": "question-based guidance request"
+  },
+  {
+    "query": "rubber duck debug with me",
+    "should_trigger": true,
+    "complexity": "simple",
+    "description": "rubber duck debugging is a known trigger"
+  },
+  {
+    "query": "ask me questions to help me figure out the bug",
+    "should_trigger": true,
+    "complexity": "simple",
+    "description": "explicit ask-me-questions pattern"
+  },
+  {
+    "query": "help me learn to find bugs myself instead of just telling me the answer",
+    "should_trigger": true,
+    "complexity": "simple",
+    "description": "pedagogical debugging preference"
+  },
+  {
+    "query": "just fix this bug for me",
+    "should_trigger": false,
+    "complexity": "simple",
+    "description": "direct fix request, not guided learning"
+  },
+  {
+    "query": "what's wrong with this code",
+    "should_trigger": false,
+    "complexity": "simple",
+    "description": "direct answer expected, not guided"
+  },
+  {
+    "query": "debug this crash and tell me what to change",
+    "should_trigger": false,
+    "complexity": "simple",
+    "description": "wants answer, not coaching"
+  },
+  {
+    "query": "review my code for bugs",
+    "should_trigger": false,
+    "complexity": "simple",
+    "description": "code review, not debugging coaching"
+  },
+  {
+    "query": "run the tests and find what's failing",
+    "should_trigger": false,
+    "complexity": "simple",
+    "description": "automated test run, not guided debugging"
+  },
+  {
+    "query": "investigate this production failure and give me a root cause analysis",
+    "should_trigger": false,
+    "complexity": "medium",
+    "description": "wants RCA output, not teaching"
+  },
+  {
+    "query": "check for performance bugs in this service",
+    "should_trigger": false,
+    "complexity": "simple",
+    "description": "performance audit, not debugging coaching"
+  },
+  {
+    "query": "find the security issue in this authentication code",
+    "should_trigger": false,
+    "complexity": "simple",
+    "description": "security review, not pedagogical debugging"
+  }
+]

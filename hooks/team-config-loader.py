@@ -66,6 +66,7 @@ def load_yaml(path: Path) -> dict:
 
     try:
         import yaml  # pyyaml
+
         return yaml.safe_load(text) or {}
     except ImportError:
         debug("pyyaml not available, using fallback parser")
