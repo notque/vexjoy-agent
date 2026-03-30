@@ -46,7 +46,7 @@ routing:
     - concurrency
     - debugging
   pairs_with:
-    - go-pr-quality-gate
+    - go-patterns
   complexity: Medium-Complex
   category: language
 allowed-tools:
@@ -143,7 +143,7 @@ This agent operates as an operator for Go software development, configuring Clau
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `go-pr-quality-gate` | Run Go quality checks via make check with intelligent error categorization and actionable fix suggestions. Use when u... |
+| `go-patterns` | Run Go quality checks via make check with intelligent error categorization and actionable fix suggestions. Use when u... |
 
 **Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
 

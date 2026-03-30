@@ -208,7 +208,7 @@ Format each rule as:
 ```
 
 **Step 4: Recommend next steps**
-- Compare with pr-miner data if available (explicit vs implicit rules)
+- Compare with pr-workflow (miner) data if available (explicit vs implicit rules)
 - Suggest CLAUDE.md updates for high-confidence rules
 - Identify golangci-lint rules that could enforce discovered patterns
 - Suggest quarterly re-analysis schedule -- coding patterns evolve with team growth and new Go versions, so a one-time snapshot becomes stale within months
@@ -246,12 +246,12 @@ Format each rule as:
 
 | Skill | Extracts | Combined Value |
 |-------|----------|----------------|
-| pr-miner | Explicit rules (what people argue about in reviews) | Agreement = HIGH confidence; Silence + consistency = implicit rule |
-| codebase-analyzer | Implicit rules (what they actually do) | pr-miner says X but code does Y = rule not followed |
+| pr-workflow (miner) | Explicit rules (what people argue about in reviews) | Agreement = HIGH confidence; Silence + consistency = implicit rule |
+| codebase-analyzer | Implicit rules (what they actually do) | pr-workflow (miner) says X but code does Y = rule not followed |
 
 ### Reconciliation Matrix
 
-| pr-miner | codebase-analyzer | Conclusion |
+| pr-workflow (miner) | codebase-analyzer | Conclusion |
 |----------|-------------------|------------|
 | Says X | Shows X at >85% | Confirmed rule (both explicit and practiced) |
 | Silent | Shows X at >85% | Implicit rule (nobody argues because everyone agrees) |

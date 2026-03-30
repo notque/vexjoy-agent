@@ -10,7 +10,7 @@ Include this block in every agent prompt:
 
 ```
 REFERENCE FILES TO READ FIRST (mandatory):
-1. Read ~/.claude/skills/go-sapcc-conventions/references/sapcc-code-patterns.md
+1. Read ~/.claude/skills/go-patterns/references/sapcc-conventions/sapcc-code-patterns.md
    (Focus on sections listed below, but skim all for context)
 2. Read [domain-specific reference file]
 

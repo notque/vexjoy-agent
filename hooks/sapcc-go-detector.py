@@ -4,7 +4,7 @@
 SessionStart Hook: SAP Converged Cloud Go Project Detection
 
 Detects when the working directory is an sapcc Go project and injects
-the go-sapcc-conventions skill context. Runs once at session start.
+the go-patterns skill context. Runs once at session start.
 
 Detection Logic:
 - Check for go.mod in CWD (searches up to 3 parent directories)
@@ -14,7 +14,7 @@ Detection Logic:
 
 Output Format:
 - [sapcc-go] Detected SAP CC Go project: {module}
-- [auto-skill] go-sapcc-conventions
+- [auto-skill] go-patterns
 
 Design Principles:
 - Lightweight detection (reads go.mod only, no subprocess)
@@ -108,7 +108,7 @@ def get_sapcc_injection(module_name: str) -> str:
     """Get the context injection for SAP CC Go projects."""
     return f"""
 [sapcc-go] Detected SAP CC Go project: {module_name}
-[auto-skill] go-sapcc-conventions
+[auto-skill] go-patterns
 
 This project uses SAP Converged Cloud Go conventions. Key rules:
 - Use sapcc/go-bits (assert, must, logg, easypg, respondwith, errext)
@@ -120,7 +120,7 @@ This project uses SAP Converged Cloud Go conventions. Key rules:
 - Pluggable driver pattern via go-bits/pluggable for extensibility
 - Lead review rejects unnecessary abstractions; secondary review catches config safety gaps
 
-Load the go-sapcc-conventions skill for comprehensive rules.
+Load the go-patterns skill for comprehensive rules.
 """
 
 

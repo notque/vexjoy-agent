@@ -19,9 +19,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "feature-design",
-        "feature-plan",
-        "feature-implement"
+        "feature-lifecycle"
       ],
       "model": "sonnet"
     },
@@ -173,7 +171,7 @@
       "pairs_with": [
         "systematic-code-review",
         "parallel-code-review",
-        "go-code-review"
+        "go-patterns"
       ]
     },
     "comment-quality": {
@@ -413,15 +411,22 @@
       "version": "1.0.0",
       "pairs_with": []
     },
+<<<<<<< HEAD
     "feature-design": {
       "file": "skills/feature-design/SKILL.md",
       "description": "Collaborative design phase for feature lifecycle.",
+=======
+    "feature-lifecycle": {
+      "file": "skills/feature-lifecycle/SKILL.md",
+      "description": "Feature lifecycle: design, plan, implement, validate, release. Phase-gated workflow.",
+>>>>>>> origin/main
       "triggers": [
         "feature design",
         "design feature",
         "think through",
         "explore approaches",
         "design first",
+<<<<<<< HEAD
         "feature-design"
       ],
       "category": "process",
@@ -457,10 +462,13 @@
       "file": "skills/feature-plan/SKILL.md",
       "description": "Break design docs into wave-ordered implementation tasks.",
       "triggers": [
+=======
+>>>>>>> origin/main
         "feature plan",
         "plan feature",
         "break down design",
         "create tasks",
+<<<<<<< HEAD
         "feature-plan"
       ],
       "category": "process",
@@ -497,21 +505,39 @@
       "file": "skills/feature-validate/SKILL.md",
       "description": "Run quality gates on implemented features.",
       "triggers": [
+=======
+        "feature implement",
+        "implement feature",
+        "execute plan",
+        "start building",
+>>>>>>> origin/main
         "feature validate",
         "validate feature",
         "run quality gates",
         "check feature",
-        "feature-validate"
+        "feature release",
+        "release feature",
+        "ship it",
+        "build feature end to end",
+        "full feature lifecycle",
+        "feature from scratch",
+        "design to release",
+        "complete feature pipeline",
+        "feature pipeline"
       ],
       "category": "process",
       "force_route": true,
       "user_invocable": false,
-      "version": "2.0.0",
+      "version": "3.0.0",
       "pairs_with": [
-        "feature-implement",
-        "feature-release",
+        "workflow-orchestrator",
+        "subagent-driven-development",
+        "pr-pipeline",
+        "git-commit-flow",
         "verification-before-completion",
-        "universal-quality-gate"
+        "universal-quality-gate",
+        "adr-consultation",
+        "spec-writer"
       ]
     },
     "fish-shell-config": {
@@ -642,7 +668,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "go-sapcc-conventions",
+        "go-patterns",
         "codebase-overview"
       ]
     },
@@ -689,6 +715,7 @@
       "pairs_with": [],
       "model": "sonnet"
     },
+<<<<<<< HEAD
     "go-anti-patterns": {
       "file": "skills/go-anti-patterns/SKILL.md",
       "description": "Detect and remediate Go anti-patterns.",
@@ -827,6 +854,11 @@
     "go-testing": {
       "file": "skills/go-testing/SKILL.md",
       "description": "Go testing: table-driven, subtests, mocks, benchmarks.",
+=======
+    "go-patterns": {
+      "file": "skills/go-patterns/SKILL.md",
+      "description": "Go testing patterns and methodology: table-driven tests, t.Run subtests, t.Helper helpers, mocking interfaces, benchmarks, race detection, and synctest.",
+>>>>>>> origin/main
       "triggers": [
         "go test",
         "*_test.go",
@@ -924,8 +956,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "feature-implement",
-        "feature-validate",
+        "feature-lifecycle",
         "comprehensive-review"
       ]
     },
@@ -1304,8 +1335,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "feature-plan",
-        "feature-implement",
+        "feature-lifecycle",
         "workflow-orchestrator",
         "plan-manager"
       ]
@@ -1349,7 +1379,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "feature-design"
+        "feature-lifecycle"
       ]
     },
     "post-outliner": {
@@ -1489,8 +1519,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "feature-design",
-        "feature-plan",
+        "feature-lifecycle",
         "workflow-orchestrator"
       ]
     },
@@ -1692,7 +1721,7 @@
       "pairs_with": [
         "golang-general-engineer",
         "golang-general-engineer-compact",
-        "go-sapcc-conventions"
+        "go-patterns"
       ],
       "agent": "golang-general-engineer"
     },
@@ -1712,7 +1741,7 @@
       "version": "1.0.0",
       "pairs_with": [
         "golang-general-engineer",
-        "go-sapcc-conventions",
+        "go-patterns",
         "sapcc-audit"
       ],
       "agent": "golang-general-engineer",
@@ -1865,9 +1894,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "feature-design",
-        "feature-plan",
-        "feature-validate"
+        "feature-lifecycle"
       ]
     },
     "subagent-driven-development": {
@@ -1976,7 +2003,7 @@
       "version": "2.0.0",
       "pairs_with": [
         "test-driven-development",
-        "go-testing",
+        "go-patterns",
         "vitest-runner"
       ]
     },
@@ -2227,5 +2254,43 @@
       "agent": "python-general-engineer",
       "model": "sonnet"
     }
+  },
+  "go-patterns": {
+    "file": "skills/go-patterns/SKILL.md",
+    "short_description": "Go development patterns: testing, concurrency, errors, review, and conventions.",
+    "triggers": [
+      "go test",
+      "*_test.go",
+      "table-driven",
+      "t.Run",
+      "benchmark",
+      "goroutine",
+      "channel",
+      "sync.Mutex",
+      "worker pool",
+      "concurrent",
+      "error handling",
+      "fmt.Errorf",
+      "errors.Is",
+      "errors.As",
+      "Go mistake",
+      "code smell",
+      "premature abstraction",
+      "review Go",
+      "Go PR",
+      "Go code review",
+      "sapcc",
+      "go-bits",
+      "keppel",
+      "make check",
+      "Go lint"
+    ],
+    "pairs_with": [
+      "golang-general-engineer",
+      "golang-general-engineer-compact",
+      "systematic-code-review"
+    ],
+    "force_route": true,
+    "agent": "golang-general-engineer"
   }
 }

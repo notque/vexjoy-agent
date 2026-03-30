@@ -169,7 +169,7 @@ def _trigger_matches(trigger: str, request_lower: str) -> bool:
     full phrase must appear.
 
     Note: ``\b`` treats hyphens as word boundaries, so a trigger like
-    "go-testing" is effectively matched as the phrase "go-testing" appearing
+    "go-patterns" is effectively matched as the phrase "go-patterns" appearing
     between word boundaries on each end. This is the desired behavior for
     hyphenated compound triggers.
 

@@ -19,8 +19,7 @@ routing:
     - integration-checker
     - wiring check
   pairs_with:
-    - feature-implement
-    - feature-validate
+    - feature-lifecycle
     - comprehensive-review
   complexity: Medium
   category: process
@@ -32,7 +31,7 @@ routing:
 
 This skill catches the most common class of real-world bugs in AI-generated code: components that are individually correct but not connected to each other. A function can exist, contain real logic, pass correctness verification, and never be imported or called. An API endpoint can be defined but never wired into the router. An event handler can be registered but never receive events.
 
-This is a read-only analysis skill -- it reads and reports but does not fix wiring issues. Fixes route back to /feature-implement or the user, because integration fixes often require design decisions about which component should call which.
+This is a read-only analysis skill -- it reads and reports but does not fix wiring issues. Fixes route back to /feature-lifecycle (implement phase) or the user, because integration fixes often require design decisions about which component should call which.
 
 ---
 
@@ -276,9 +275,9 @@ Only fail the verdict on high-confidence contract mismatches. Low-confidence fin
 
 | Verdict | Next Step |
 |---------|-----------|
-| **PASS** | Proceed to /feature-validate |
+| **PASS** | Proceed to /feature-lifecycle (validate phase) |
 | **WARN** | Review warnings. Proceed if warnings are intentional (unused imports for future use, etc.). Fix if unintentional. |
-| **FAIL** | Route back to /feature-implement with specific wiring tasks. Do NOT proceed to validation. |
+| **FAIL** | Route back to /feature-lifecycle (implement phase) with specific wiring tasks. Do NOT proceed to validation. |
 
 **Gate**: Report produced with verdict and actionable recommendations.
 
@@ -297,5 +296,5 @@ Only fail the verdict on high-confidence contract mismatches. Low-confidence fin
 
 ## References
 
-- [Feature State Conventions](../_feature-shared/state-conventions.md)
+- [Feature State Conventions](../feature-lifecycle/references/shared.md)
 - [ADR-078: Integration Checker](../../adr/078-integration-checker.md)

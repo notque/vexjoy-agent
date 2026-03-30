@@ -19,7 +19,7 @@ routing:
     - bootstrap claude.md
     - make claude.md
   pairs_with:
-    - go-sapcc-conventions
+    - go-patterns
     - codebase-overview
   complexity: Medium
   category: documentation
@@ -182,7 +182,7 @@ grep -i 'sapcc\|sap-' go.mod 2>/dev/null
 grep -r 'github.com/sapcc' --include='*.go' -l 2>/dev/null | head -5
 ```
 
-If sapcc imports found, load enrichment from `go-sapcc-conventions` skill patterns:
+If sapcc imports found, load enrichment from `go-patterns` skill patterns:
 - Anti-over-engineering principles
 - Error wrapping conventions (`fmt.Errorf("...: %w", err)`)
 - `must.Return` scope rules
@@ -461,5 +461,5 @@ Result: CLAUDE.md.generated alongside existing file, with diff for comparison
 - Official Anthropic `claude-md-management:claude-md-improver`: Companion skill for improving existing CLAUDE.md files (use after generation for refinement)
 
 ### Companion Skills
-- `go-sapcc-conventions`: Domain-specific patterns for sapcc Go repositories (loaded during Phase 2 enrichment)
+- `go-patterns`: Domain-specific patterns for sapcc Go repositories (loaded during Phase 2 enrichment)
 - `codebase-overview`: Deeper codebase exploration when CLAUDE.md generation needs more architectural context

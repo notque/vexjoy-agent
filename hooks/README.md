@@ -27,7 +27,7 @@ User prompt → UserPromptSubmit → Claude picks tool → PreToolUse → Tool r
 | `mcp-health-check` | Probes MCP servers before tool calls; blocks if a server is in backoff window |
 | `operator-context-detector` | Detects operator context (personal/work/ci/production) and injects behavioral profile |
 | `rules-distill-injector` | Injects pending rules-distillation candidates from `learning/rules-distill-pending.json` |
-| `sapcc-go-detector` | Detects SAP Converged Cloud Go projects and injects `go-sapcc-conventions` skill |
+| `sapcc-go-detector` | Detects SAP Converged Cloud Go projects and injects `go-patterns` skill |
 | `session-context` | Loads high-confidence learned patterns (>0.7) from the learning DB into context |
 | `sync-to-user-claude` | Syncs agents, skills, hooks, commands, and scripts from the repo to `~/.claude/` |
 
