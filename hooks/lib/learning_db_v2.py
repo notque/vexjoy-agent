@@ -28,7 +28,7 @@ from pathlib import Path
 
 _DEFAULT_DB_DIR = Path.home() / ".claude" / "learning"
 
-_CURRENT_SCHEMA_VERSION = 2
+_CURRENT_SCHEMA_VERSION = 3
 
 CATEGORY_DEFAULTS = {
     "error": 0.55,
@@ -130,6 +130,26 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
         conn.execute(
             "INSERT OR IGNORE INTO schema_migrations (version, description) "
             "VALUES (2, 'add graduation_proposed_at column to learnings')"
+        )
+
+    if current < 3:
+        # v2 -> v3: Add performance indexes for timestamp range queries and ROI cohort scans
+        for ddl in (
+            "CREATE INDEX IF NOT EXISTS idx_learnings_last_seen ON learnings(last_seen)",
+            "CREATE INDEX IF NOT EXISTS idx_learnings_first_seen ON learnings(first_seen)",
+            "CREATE INDEX IF NOT EXISTS idx_sessions_start_time ON sessions(start_time)",
+            "CREATE INDEX IF NOT EXISTS idx_activations_timestamp ON activations(timestamp)",
+            "CREATE INDEX IF NOT EXISTS idx_session_stats_had_retro ON session_stats(had_retro_knowledge)",
+            "CREATE INDEX IF NOT EXISTS idx_session_stats_created_at ON session_stats(created_at)",
+        ):
+            try:
+                conn.execute(ddl)
+            except sqlite3.OperationalError:
+                pass  # Index already exists
+        conn.execute("PRAGMA user_version = 3")
+        conn.execute(
+            "INSERT OR IGNORE INTO schema_migrations (version, description) "
+            "VALUES (3, 'add timestamp and cohort indexes for query performance')"
         )
 
     conn.commit()
@@ -235,7 +255,10 @@ CREATE INDEX IF NOT EXISTS idx_learnings_tags ON learnings(tags);
 CREATE INDEX IF NOT EXISTS idx_learnings_project ON learnings(project_path);
 CREATE INDEX IF NOT EXISTS idx_learnings_graduated ON learnings(graduated_to);
 CREATE INDEX IF NOT EXISTS idx_learnings_error_sig ON learnings(error_signature);
+CREATE INDEX IF NOT EXISTS idx_learnings_last_seen ON learnings(last_seen);
+CREATE INDEX IF NOT EXISTS idx_learnings_first_seen ON learnings(first_seen);
 CREATE INDEX IF NOT EXISTS idx_sessions_project ON sessions(project_path);
+CREATE INDEX IF NOT EXISTS idx_sessions_start_time ON sessions(start_time);
 
 CREATE VIRTUAL TABLE IF NOT EXISTS learnings_fts USING fts5(
     topic,
@@ -267,7 +290,10 @@ CREATE TABLE IF NOT EXISTS session_stats (
 
 CREATE INDEX IF NOT EXISTS idx_activations_topic_key ON activations(topic, key);
 CREATE INDEX IF NOT EXISTS idx_activations_session ON activations(session_id);
+CREATE INDEX IF NOT EXISTS idx_activations_timestamp ON activations(timestamp);
 CREATE INDEX IF NOT EXISTS idx_session_stats_session ON session_stats(session_id);
+CREATE INDEX IF NOT EXISTS idx_session_stats_had_retro ON session_stats(had_retro_knowledge);
+CREATE INDEX IF NOT EXISTS idx_session_stats_created_at ON session_stats(created_at);
 
 CREATE TRIGGER IF NOT EXISTS learnings_ai AFTER INSERT ON learnings BEGIN
     INSERT INTO learnings_fts(rowid, topic, key, value, tags)

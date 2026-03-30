@@ -1,0 +1,6 @@
+{
+  "kind": "ExamplePanel",
+  "spec": {
+    "query": "up{job=\"prometheus\"}"
+  }
+}

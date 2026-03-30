@@ -1,0 +1,12 @@
+{
+  "kind": "CustomPanel",
+  "spec": {
+    "title": "Request Latency",
+    "unit": "ms",
+    "thresholds": [
+      { "value": 0, "color": "green" },
+      { "value": 200, "color": "#ff9900" },
+      { "value": 500, "color": "#e02f44" }
+    ]
+  }
+}
