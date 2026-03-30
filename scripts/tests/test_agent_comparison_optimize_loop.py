@@ -642,7 +642,9 @@ def test_assess_target_scores_blind_compare_results(tmp_path, monkeypatch):
     target.write_text("---\ndescription: blind compare test\n---\n")
     tasks = [{"query": "help me debug this", "eval_mode": "blind_compare", "judge": "socratic_question_only"}]
 
-    def fake_run_blind_compare_eval(target_path, candidate_content, tasks, baseline_content=None, timeout=180, verbose=False):
+    def fake_run_blind_compare_eval(
+        target_path, candidate_content, tasks, baseline_content=None, timeout=180, verbose=False
+    ):
         assert baseline_content == "---\ndescription: baseline\n---\n"
         return [
             {
@@ -719,9 +721,7 @@ def test_socratic_question_only_heuristic_penalizes_preamble():
         "skills/agent-comparison/scripts/optimize_loop.py",
     )
 
-    clean_score, _ = optimize_loop._score_socratic_question_only_output(
-        "What did you expect the test to do?"
-    )
+    clean_score, _ = optimize_loop._score_socratic_question_only_output("What did you expect the test to do?")
     preamble_score, _ = optimize_loop._score_socratic_question_only_output(
         "Let me read the skill first. What did you expect the test to do?"
     )
@@ -1133,8 +1133,20 @@ def test_run_optimization_loop_forwards_parallel_eval_to_assessments(tmp_path, m
         json.dumps(
             {
                 "tasks": [
-                    {"name": "train-positive", "query": "make a skill", "should_trigger": True, "eval_mode": "behavioral", "split": "train"},
-                    {"name": "test-negative", "query": "debug kubernetes", "should_trigger": False, "eval_mode": "behavioral", "split": "test"},
+                    {
+                        "name": "train-positive",
+                        "query": "make a skill",
+                        "should_trigger": True,
+                        "eval_mode": "behavioral",
+                        "split": "train",
+                    },
+                    {
+                        "name": "test-negative",
+                        "query": "debug kubernetes",
+                        "should_trigger": False,
+                        "eval_mode": "behavioral",
+                        "split": "test",
+                    },
                 ]
             }
         )
@@ -1219,7 +1231,9 @@ def test_tiny_end_to_end_autoresearch_improves_real_weak_skill_copy(tmp_path, mo
 
     trigger_query = "help me think through this bug step by step"
     tasks_file = tmp_path / "tasks.json"
-    tasks_file.write_text(json.dumps({"tasks": [{"name": "positive", "query": trigger_query, "should_trigger": True, "split": "train"}]}))
+    tasks_file.write_text(
+        json.dumps({"tasks": [{"name": "positive", "query": trigger_query, "should_trigger": True, "split": "train"}]})
+    )
 
     def fake_generate_variant_output(
         current_content,

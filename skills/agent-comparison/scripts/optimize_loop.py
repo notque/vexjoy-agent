@@ -632,7 +632,9 @@ def _validate_task_set(tasks: list[dict]) -> None:
         )
 
     if sum(1 for n in [behavioral_tasks > 0, pure_trigger_tasks > 0, blind_compare_tasks > 0] if n) > 1:
-        raise ValueError("Task file mixes trigger-rate, behavioral, and blind-compare eval modes. Use one eval_mode per run.")
+        raise ValueError(
+            "Task file mixes trigger-rate, behavioral, and blind-compare eval modes. Use one eval_mode per run."
+        )
 
     if blind_compare_tasks == len(tasks):
         return
@@ -744,6 +746,7 @@ def _run_trigger_rate(
     finally:
         if task_file:
             Path(task_file).unlink(missing_ok=True)
+
 
 # ---------------------------------------------------------------------------
 # Blind comparative behavioral evaluator
@@ -1019,19 +1022,13 @@ def _run_blind_compare_eval(
         query = task["query"]
         if baseline_source == candidate_content:
             with _candidate_worktree(project_root, relpath, candidate_content) as candidate_wt:
-                candidate_capture = _run_query_capture_output(
-                    query, candidate_wt, candidate_skill_ids, timeout=timeout
-                )
+                candidate_capture = _run_query_capture_output(query, candidate_wt, candidate_skill_ids, timeout=timeout)
             baseline_capture = dict(candidate_capture)
         else:
             with _candidate_worktree(project_root, relpath, baseline_source) as baseline_wt:
-                baseline_capture = _run_query_capture_output(
-                    query, baseline_wt, baseline_skill_ids, timeout=timeout
-                )
+                baseline_capture = _run_query_capture_output(query, baseline_wt, baseline_skill_ids, timeout=timeout)
             with _candidate_worktree(project_root, relpath, candidate_content) as candidate_wt:
-                candidate_capture = _run_query_capture_output(
-                    query, candidate_wt, candidate_skill_ids, timeout=timeout
-                )
+                candidate_capture = _run_query_capture_output(query, candidate_wt, candidate_skill_ids, timeout=timeout)
 
         baseline_output = baseline_capture["output"]
         candidate_output = candidate_capture["output"]

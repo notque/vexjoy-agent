@@ -102,7 +102,9 @@ def load_eval_set(path: Path) -> list[dict]:
         test = payload.get("test")
         if isinstance(train, list) or isinstance(test, list):
             return [*(train or []), *(test or [])]
-    raise ValueError("Unsupported eval set format; expected list, {tasks:[...]}, {queries:[...]}, or {train:[...], test:[...]}")
+    raise ValueError(
+        "Unsupported eval set format; expected list, {tasks:[...]}, {queries:[...]}, or {train:[...], test:[...]}"
+    )
 
 
 @contextlib.contextmanager
@@ -275,9 +277,10 @@ def run_single_query(
                                 continue
                             tool_name = content_item.get("name", "")
                             tool_input = content_item.get("input", {})
-                            if (tool_name == "Skill" and any(
-                                skill_id in tool_input.get("skill", "") for skill_id in accepted_skill_ids
-                            )) or (
+                            if (
+                                tool_name == "Skill"
+                                and any(skill_id in tool_input.get("skill", "") for skill_id in accepted_skill_ids)
+                            ) or (
                                 tool_name == "Read"
                                 and any(skill_id in tool_input.get("file_path", "") for skill_id in accepted_skill_ids)
                             ):
