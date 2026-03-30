@@ -144,7 +144,7 @@ python3 scripts/voice_validator.py validate --content draft.md --voice your-voic
 ### Step 4: Integration
 
 Once calibrated, the voice is available to:
-- `voice-writer`:unified 8-phase pipeline for blog posts and articles with mandatory validation (replaces deprecated `blog-post-writer` and `voice-orchestrator`)
+- `voice-writer`:unified 8-phase pipeline for blog posts and articles with mandatory validation
 - `anti-ai-editor`:reviews content for AI tells relative to your voice
 - `article-evaluation-pipeline`:evaluates articles for voice fidelity
 
@@ -166,7 +166,7 @@ skills/
   anti-ai-editor/        # AI tell detection and removal
 
 pipelines/
-  voice-writer/          # Unified 8-phase content generation pipeline (replaces voice-orchestrator and blog-post-writer)
+  voice-writer/          # Unified 8-phase content generation pipeline
 ```
 
 ---

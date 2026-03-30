@@ -108,7 +108,7 @@ This agent operates as an operator for meta-pipeline creation, configuring Claud
 ### What This Agent CAN Do
 - Orchestrate creation of complete pipelines with **multiple** agents, skills, hooks, scripts, and reference docs
 - Plan a component graph: a pipeline may need N agents (e.g., coordinator + domain workers), M skills (methodology + validation), K hooks (detection + integration), and reference documentation for each
-- Fan out scaffolding tasks to `agent-creator-engineer`, `skill-creator`, and `hook-development-engineer` in parallel — dispatching multiple instances when the pipeline requires multiple components of the same type
+- Fan out scaffolding tasks to `skill-creator` and `hook-development-engineer` in parallel — dispatching multiple instances when the pipeline requires multiple components of the same type
 - Detect and reuse existing components via `codebase-analyzer`
 - Integrate new pipelines into `/do` routing via `routing-table-updater`
 - Generate Python scripts for deterministic operations within the pipeline
@@ -246,8 +246,7 @@ The scaffolder's Phase 1 gate verifies this hash — a missing hash skips the ga
 
 | Creator Sub-Agent | Components It Creates | Template |
 |-------------------|----------------------|----------|
-| `agent-creator-engineer` | All new agent manifests (1..N) | `AGENT_TEMPLATE_V2.md` |
-| `skill-creator` | All new skill SKILL.md files + references (1..M) | Standard skill format |
+| `skill-creator` | All new agent manifests (1..N) and skill SKILL.md files + references (1..M) | `AGENT_TEMPLATE_V2.md` / Standard skill format |
 | `hook-development-engineer` | All new Python hooks (1..K) | `hooks/lib/hook_utils.py` conventions |
 | Direct (this agent) | Python scripts (1..J) | `scripts/` conventions |
 
@@ -255,7 +254,7 @@ For domain pipelines, the Pipeline Spec tells exactly what to create: agents, sk
 
 **Fan-out strategy**: Dispatch one sub-agent per creator type. Each sub-agent receives the full list of components it must create. If a single creator needs to produce 3 agents, it creates all 3 in sequence within its context. This keeps fan-out to 3-4 parallel tasks while supporting N components.
 
-For large pipelines (5+ total components), consider dispatching additional parallel sub-agents — e.g., one `agent-creator-engineer` per agent if they are complex enough to warrant isolation.
+For large pipelines (5+ total components), consider dispatching additional parallel sub-agents — e.g., one `skill-creator` per agent if they are complex enough to warrant isolation.
 
 **For domain pipelines (full creation)**: Invoke the `pipeline-scaffolder` skill
 directly with the Pipeline Spec path. The scaffolder performs Phase 1 validation
@@ -411,7 +410,7 @@ This notice applies even if the pipeline has no new agent (skill-only pipelines 
 
 ### Error: Template Validation Failure
 **Cause**: Scaffolded agent doesn't follow AGENT_TEMPLATE_V2.md structure.
-**Solution**: Re-run the agent-creator-engineer sub-agent with explicit template reference. Validate required sections: frontmatter, operator context, capabilities, error handling, anti-patterns, blocker criteria.
+**Solution**: Re-run the skill-creator sub-agent with explicit template reference. Validate required sections: frontmatter, operator context, capabilities, error handling, anti-patterns, blocker criteria.
 
 ### Error: Routing Conflict
 **Cause**: New trigger keywords overlap with existing force-route entries.
@@ -461,7 +460,7 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 | Rationalization Attempt | Why It's Wrong | Required Action |
 |------------------------|----------------|-----------------|
 | "This pipeline is simple, skip discovery" | Simple pipelines still overlap with existing components | Run discovery anyway |
-| "I'll create the agent inline instead of fanning out" | Inline creation bypasses template validation | Fan out to agent-creator-engineer |
+| "I'll create the agent inline instead of fanning out" | Inline creation bypasses template validation | Fan out to skill-creator |
 | "Routing integration can be done later" | Unroutable pipelines are undiscoverable dead code | Integrate in the same session |
 | "This component needs two responsibilities" | Dual-purpose components are harder to test and reuse | Split into two components |
 | "This domain is simple enough for one skill" | Most domains have 3+ subdomains with distinct task types | Run domain research to verify before deciding |

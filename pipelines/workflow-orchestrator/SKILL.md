@@ -1,13 +1,7 @@
 ---
 name: workflow-orchestrator
 user-invocable: false
-description: |
-  Three-phase task orchestration: BRAINSTORM requirements and approaches,
-  WRITE-PLAN with atomic verifiable tasks, EXECUTE-PLAN with progress
-  tracking. Use for complex multi-step tasks requiring coordination across
-  multiple files or systems. Use for "orchestrate", "complex task", "plan
-  and execute", "break this down", or "multi-step implementation". Do NOT
-  use for single-file edits or tasks completable in under 2 minutes.
+description: "Three-phase task orchestration: BRAINSTORM, WRITE-PLAN, EXECUTE-PLAN."
 version: 3.0.0
 success-criteria:
   - "Plan validated by plan-checker before execution"

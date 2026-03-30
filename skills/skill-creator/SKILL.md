@@ -60,11 +60,35 @@ contain a workflow worth capturing ("turn this into a skill"). If so, extract:
    or subjective (writing quality, design aesthetics)? Objectively verifiable outputs
    benefit from test cases. Subjective outputs are better evaluated by human review.
 
-### Research
+### Duplicate Domain Check
 
-Check for existing skills that overlap — run `grep -r "trigger-keyword" skills/*/SKILL.md`
-to avoid duplicating what already exists. If a similar skill exists, offer to improve
-it rather than create a new one.
+Before creating any new skill, check whether an existing umbrella skill already
+covers this domain. This is mandatory -- skipping it leads to system prompt bloat
+and routing degradation.
+
+**Step 1**: Search for existing domain coverage.
+```bash
+grep -i "<domain-keyword>" skills/INDEX.json
+ls skills/ | grep "<domain-prefix>"
+```
+
+**Step 2**: If a domain skill exists, determine whether the new skill's scope is a
+sub-concern of the existing skill. Sub-concerns MUST be added as reference files
+on the existing skill, not created as separate skills.
+
+Pattern (correct): `skills/perses/references/plugins.md`
+Anti-pattern (wrong): `skills/perses-plugin-creator/SKILL.md`
+
+**Step 3**: If no domain skill exists and the domain has multiple sub-concerns,
+create the skill with a `references/` directory from the start.
+
+**One domain = one skill + many reference files. Never create multiple skills for
+the same domain.**
+
+Only proceed to writing a new SKILL.md if no existing skill covers the domain, or
+if the user explicitly confirms creating a new skill after reviewing the overlap.
+
+### Research
 
 Read the repository CLAUDE.md before writing anything. Project conventions override
 default patterns.
@@ -86,12 +110,16 @@ skill-name/
 
 **Frontmatter** — name, description, routing metadata:
 
+Description caps:
+- Non-invocable skills (`user-invocable: false`): **60 chars max**, single quoted line
+- User-invocable skills: **120 chars max**, single quoted line
+- No "Use when:", "Use for:", "Example:" in the description — those belong in the body
+- The `/do` router has its own routing tables; descriptions don't need trigger phrases
+
 ```yaml
 ---
 name: skill-slug-name
-description: |
-  [What it does — 1-2 sentences]. Use when [trigger conditions].
-  Use for "[phrase 1]", "[phrase 2]". Do NOT use for [exclusions].
+description: "[60-120 char single-line description of what this skill does]"
 version: 1.0.0
 routing:
   triggers:

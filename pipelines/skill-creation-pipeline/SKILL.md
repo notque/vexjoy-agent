@@ -1,11 +1,6 @@
 ---
 name: skill-creation-pipeline
-description: |
-  Formal 5-phase pipeline for creating new skills with quality gates:
-  DISCOVER → DESIGN → SCAFFOLD → VALIDATE → INTEGRATE. Prevents skill
-  duplication, enforces complexity tier selection, validates quality before
-  routing integration. Use when creating new skills for the agent system.
-  Use for "create skill pipeline", "new skill formal", "skill with gates".
+description: "5-phase skill creation pipeline with quality gates."
 version: 1.0.0
 user-invocable: false
 allowed-tools:
@@ -70,13 +65,35 @@ an active session exists, read relevant sections via
 `adr-query.py context --role skill-creator`. If creating a skill as part of
 a pipeline, verify the ADR hash before proceeding.
 
-**Step 4**: For each potentially overlapping skill, read its SKILL.md description
-and phase list. Estimate overlap percentage based on:
+**Step 4**: **Umbrella domain check** (consolidation gate). Before estimating
+overlap percentages, check whether the requested skill's domain is already covered
+by an umbrella skill with a `references/` directory.
+
+```bash
+# Check for existing umbrella skills in the domain
+ls skills/ | grep "<domain-prefix>"
+ls skills/<domain-skill>/references/ 2>/dev/null
+```
+
+If an umbrella skill exists for this domain:
+- The new skill MUST be added as a reference file on the existing umbrella skill,
+  not created as a separate skill
+- Pattern: `skills/{domain}/references/{sub-concern}.md`
+- Anti-pattern: `skills/{domain}-{sub-concern}/SKILL.md`
+- Report: "Domain umbrella exists at skills/{name}/. Adding reference file instead
+  of creating new skill."
+- Skip to a modified Phase 3 that writes the reference file and updates the
+  umbrella SKILL.md with a pointer to it
+
+If no umbrella skill exists, continue with overlap estimation below.
+
+**Step 4b**: For each potentially overlapping skill (that is NOT an umbrella match),
+read its SKILL.md description and phase list. Estimate overlap percentage based on:
 - Same domain verbs (review, create, debug, deploy)
 - Same target artifact (Go files, PRs, branches, agents)
 - Same phase structure (does the existing skill already cover what's needed?)
 
-If an existing skill covers ≥70% of the requested domain, surface the overlap
+If an existing skill covers >=70% of the requested domain, surface the overlap
 and recommend extending rather than creating. Proceed only after a deliberate
 "create new" decision (threshold is 70% overlap).
 
@@ -98,12 +115,19 @@ Keywords: [extracted keywords]
 Group/Prefix: [identified prefix, e.g., voice-, go-, pr-]
 ADRs checked: [Y/N, count if any found]
 Existing skills checked: [N]
+Umbrella domain check: [No umbrella found | Umbrella exists: skills/{name}/]
+
+[If umbrella domain exists:]
+  Domain umbrella found: skills/{name}/
+  Existing references: [list of references/*.md files]
+  Action: Adding reference file skills/{name}/references/{sub-concern}.md
+  Skipping DESIGN/SCAFFOLD — writing reference file directly.
 
 [If no overlap found:]
   No overlap found. Safe to create new skill.
   Proceeding to DESIGN.
 
-[If overlap found:]
+[If overlap found (no umbrella):]
   Overlap detected:
 
   skills/[name]/SKILL.md — [estimated overlap]% overlap

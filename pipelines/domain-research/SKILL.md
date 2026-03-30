@@ -1,13 +1,6 @@
 ---
 name: domain-research
-description: |
-  Discover and classify subdomains within a target domain for pipeline generation.
-  Dispatches 4 parallel research agents (Rule 12 mandatory — validated by A/B test),
-  classifies task types, maps subdomains to step menu chains, and produces a Component
-  Manifest for the chain-composer. Use for "research domain", "discover subdomains",
-  "domain decomposition", "what pipelines does X need". Route scaffolding to
-  pipeline-scaffolder, modifications to existing pipelines to their owners, and
-  single-skill creation to skill-creator.
+description: "Discover and classify subdomains for pipeline generation."
 version: 1.0.0
 user-invocable: false
 agent: pipeline-orchestrator-engineer
