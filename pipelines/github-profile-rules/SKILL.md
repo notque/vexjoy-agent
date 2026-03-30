@@ -1,11 +1,6 @@
 ---
 name: github-profile-rules
-description: |
-  Extract programming rules and coding conventions from a GitHub user's public
-  profile via API. Analyzes repos, code files, commit messages, and PR reviews
-  to produce confidence-scored rules formatted for CLAUDE.md or JSON output.
-  Use for "github rules", "profile analysis", "coding style extraction",
-  "github conventions", or "programming rules extraction".
+description: "Extract coding conventions from a GitHub user's public profile."
 version: 1.0.0
 user-invocable: false
 argument-hint: "<github-username>"
