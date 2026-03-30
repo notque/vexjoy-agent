@@ -436,7 +436,7 @@ Exit 0 = clean. Exit 1 = patterns found.
 | Data | database-engineer, sqlite-peewee-engineer, data-engineer |
 | Content | technical-documentation-engineer, technical-journalist-writer |
 | Meta | skill-creator, system-upgrade-engineer, pipeline-orchestrator-engineer, research-coordinator-engineer |
-| Perses | perses-core-engineer, perses-dashboard-engineer, perses-operator-engineer, perses-plugin-engineer |
+| Perses | perses-engineer |
 | UI/Perf | ui-design-engineer, performance-optimization-engineer, react-portfolio-engineer |
 | Research | research-coordinator-engineer, research-subagent-executor |
 

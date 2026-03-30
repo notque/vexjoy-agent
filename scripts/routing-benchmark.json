@@ -7,42 +7,42 @@
       "expected_agent": null,
       "expected_skill": "pr-sync",
       "category": "git-operations",
-      "notes": "Git push intent — force-route to pr-sync"
+      "notes": "Git push intent \u2014 force-route to pr-sync"
     },
     {
       "request": "push back on this approach",
       "expected_agent": null,
       "expected_skill": null,
       "category": "false-positive-guard",
-      "notes": "Disagreement, not git push — must NOT route to pr-sync"
+      "notes": "Disagreement, not git push \u2014 must NOT route to pr-sync"
     },
     {
       "request": "commit these files",
       "expected_agent": null,
       "expected_skill": "git-commit-flow",
       "category": "git-operations",
-      "notes": "Git commit intent — force-route to git-commit-flow"
+      "notes": "Git commit intent \u2014 force-route to git-commit-flow"
     },
     {
       "request": "commit to this approach and move forward",
       "expected_agent": null,
       "expected_skill": null,
       "category": "false-positive-guard",
-      "notes": "Decision/dedication, not git commit — must NOT route to git-commit-flow"
+      "notes": "Decision/dedication, not git commit \u2014 must NOT route to git-commit-flow"
     },
     {
       "request": "did CI pass on my PR?",
       "expected_agent": null,
       "expected_skill": "github-actions-check",
       "category": "git-operations",
-      "notes": "CI status check — force-route to github-actions-check"
+      "notes": "CI status check \u2014 force-route to github-actions-check"
     },
     {
       "request": "check my logic in this function",
       "expected_agent": null,
       "expected_skill": null,
       "category": "false-positive-guard",
-      "notes": "Code review, not CI check — must NOT route to github-actions-check"
+      "notes": "Code review, not CI check \u2014 must NOT route to github-actions-check"
     },
     {
       "request": "submit a PR with full review gates",
@@ -63,161 +63,161 @@
       "expected_agent": "golang-general-engineer",
       "expected_skill": "systematic-debugging",
       "category": "go-development",
-      "notes": "Go domain + debug verb — agent + skill pairing"
+      "notes": "Go domain + debug verb \u2014 agent + skill pairing"
     },
     {
       "request": "write table-driven tests for the parser",
       "expected_agent": null,
       "expected_skill": "go-testing",
       "category": "go-development",
-      "notes": "Go tests — force-route to go-testing"
+      "notes": "Go tests \u2014 force-route to go-testing"
     },
     {
       "request": "add a worker pool with goroutines",
       "expected_agent": null,
       "expected_skill": "go-concurrency",
       "category": "go-development",
-      "notes": "Go concurrency — force-route to go-concurrency"
+      "notes": "Go concurrency \u2014 force-route to go-concurrency"
     },
     {
       "request": "wrap errors with fmt.Errorf and %w",
       "expected_agent": null,
       "expected_skill": "go-error-handling",
       "category": "go-development",
-      "notes": "Go error handling — force-route to go-error-handling"
+      "notes": "Go error handling \u2014 force-route to go-error-handling"
     },
     {
       "request": "review this Go PR for quality",
       "expected_agent": null,
       "expected_skill": "go-code-review",
       "category": "go-development",
-      "notes": "Go code review — force-route to go-code-review"
+      "notes": "Go code review \u2014 force-route to go-code-review"
     },
     {
       "request": "work on the SAPCC Go repository go-bits",
       "expected_agent": null,
       "expected_skill": "go-sapcc-conventions",
       "category": "go-development",
-      "notes": "SAPCC Go repo — force-route to go-sapcc-conventions"
+      "notes": "SAPCC Go repo \u2014 force-route to go-sapcc-conventions"
     },
     {
       "request": "add auth middleware to the Python Flask API",
       "expected_agent": "python-general-engineer",
       "expected_skill": null,
       "category": "python-development",
-      "notes": "Python domain task — routes to Python agent"
+      "notes": "Python domain task \u2014 routes to Python agent"
     },
     {
       "request": "run ruff and mypy on this Python project",
       "expected_agent": null,
       "expected_skill": "python-quality-gate",
       "category": "python-development",
-      "notes": "Python quality checks — routes to python-quality-gate"
+      "notes": "Python quality checks \u2014 routes to python-quality-gate"
     },
     {
       "request": "write pytest fixtures for the database layer",
       "expected_agent": "python-general-engineer",
       "expected_skill": null,
       "category": "python-development",
-      "notes": "Python testing — routes to Python agent"
+      "notes": "Python testing \u2014 routes to Python agent"
     },
     {
       "request": "fix the React component rendering bug",
       "expected_agent": "typescript-frontend-engineer",
       "expected_skill": null,
       "category": "frontend-development",
-      "notes": "React/frontend domain — routes to TS frontend agent"
+      "notes": "React/frontend domain \u2014 routes to TS frontend agent"
     },
     {
       "request": "debug the async race condition in TypeScript",
       "expected_agent": "typescript-debugging-engineer",
       "expected_skill": "systematic-debugging",
       "category": "frontend-development",
-      "notes": "TypeScript debugging — specialized TS debug agent"
+      "notes": "TypeScript debugging \u2014 specialized TS debug agent"
     },
     {
       "request": "fix the typo in main.go",
       "expected_agent": null,
       "expected_skill": "fast",
       "category": "trivial-operations",
-      "notes": "Mechanical one-character fix — force-route to fast"
+      "notes": "Mechanical one-character fix \u2014 force-route to fast"
     },
     {
       "request": "rename this variable across the file",
       "expected_agent": null,
       "expected_skill": "fast",
       "category": "trivial-operations",
-      "notes": "Trivial rename — force-route to fast"
+      "notes": "Trivial rename \u2014 force-route to fast"
     },
     {
       "request": "add a --verbose flag to the CLI",
       "expected_agent": null,
       "expected_skill": "quick",
       "category": "trivial-operations",
-      "notes": "Small self-contained change — force-route to quick"
+      "notes": "Small self-contained change \u2014 force-route to quick"
     },
     {
       "request": "extract this block into a helper function",
       "expected_agent": null,
       "expected_skill": "quick",
       "category": "trivial-operations",
-      "notes": "Contained refactor — force-route to quick"
+      "notes": "Contained refactor \u2014 force-route to quick"
     },
     {
       "request": "design a rate limiter feature for the API",
       "expected_agent": null,
       "expected_skill": "feature-lifecycle",
       "category": "feature-lifecycle",
-      "notes": "New feature entry point — force-route to feature-lifecycle (design phase)"
+      "notes": "New feature entry point \u2014 force-route to feature-lifecycle (design phase)"
     },
     {
       "request": "plan the implementation for this feature",
       "expected_agent": null,
       "expected_skill": "feature-lifecycle",
       "category": "feature-lifecycle",
-      "notes": "Feature plan phase — force-route to feature-lifecycle (plan phase)"
+      "notes": "Feature plan phase \u2014 force-route to feature-lifecycle (plan phase)"
     },
     {
       "request": "build the feature from the plan",
       "expected_agent": null,
       "expected_skill": "feature-lifecycle",
       "category": "feature-lifecycle",
-      "notes": "Feature implementation — force-route to feature-lifecycle (implement phase)"
+      "notes": "Feature implementation \u2014 force-route to feature-lifecycle (implement phase)"
     },
     {
       "request": "run quality gates on the implemented feature",
       "expected_agent": null,
       "expected_skill": "feature-lifecycle",
       "category": "feature-lifecycle",
-      "notes": "Feature validation — force-route to feature-lifecycle (validate phase)"
+      "notes": "Feature validation \u2014 force-route to feature-lifecycle (validate phase)"
     },
     {
       "request": "migrate our Grafana dashboards to Perses",
       "expected_agent": null,
       "expected_skill": "perses-grafana-migrate",
       "category": "perses-domain",
-      "notes": "Grafana-to-Perses migration — force-route"
+      "notes": "Grafana-to-Perses migration \u2014 force-route"
     },
     {
       "request": "create a new Perses dashboard for API latency",
-      "expected_agent": "perses-dashboard-engineer",
+      "expected_agent": "perses-engineer",
       "expected_skill": "perses-dashboard-create",
       "category": "perses-domain",
-      "notes": "Perses dashboard creation — agent + skill pairing"
+      "notes": "Perses dashboard creation \u2014 agent + skill pairing"
     },
     {
       "request": "lint this Perses dashboard definition",
       "expected_agent": null,
       "expected_skill": "perses-lint",
       "category": "perses-domain",
-      "notes": "Perses lint — force-route to perses-lint"
+      "notes": "Perses lint \u2014 force-route to perses-lint"
     },
     {
       "request": "create a new Perses panel plugin",
       "expected_agent": null,
       "expected_skill": "perses-plugin-create",
       "category": "perses-domain",
-      "notes": "Perses plugin creation — force-route"
+      "notes": "Perses plugin creation \u2014 force-route"
     },
     {
       "request": "comprehensive code review from multiple perspectives",
@@ -234,13 +234,6 @@
       "notes": "Multi-persona critique via roast skill"
     },
     {
-      "request": "fix these 3 failing test files simultaneously",
-      "expected_agent": null,
-      "expected_skill": "dispatching-parallel-agents",
-      "category": "parallel-execution",
-      "notes": "Multiple independent failures — parallel dispatch"
-    },
-    {
       "request": "execute the plan using subagents",
       "expected_agent": null,
       "expected_skill": "subagent-driven-development",
@@ -252,7 +245,7 @@
       "expected_agent": null,
       "expected_skill": "research-to-article",
       "category": "content-creation",
-      "notes": "Research-backed article — pipeline skill"
+      "notes": "Research-backed article \u2014 pipeline skill"
     },
     {
       "request": "remove AI patterns from this blog post",
@@ -266,14 +259,14 @@
       "expected_agent": "kubernetes-helm-engineer",
       "expected_skill": null,
       "category": "infrastructure",
-      "notes": "K8s domain — routes to kubernetes-helm-engineer"
+      "notes": "K8s domain \u2014 routes to kubernetes-helm-engineer"
     },
     {
       "request": "set up Prometheus alerting rules",
       "expected_agent": "prometheus-grafana-engineer",
       "expected_skill": null,
       "category": "infrastructure",
-      "notes": "Monitoring domain — routes to prometheus-grafana-engineer"
+      "notes": "Monitoring domain \u2014 routes to prometheus-grafana-engineer"
     },
     {
       "request": "moderate the subreddit modqueue",
@@ -286,29 +279,31 @@
       "request": "create a new Claude Code skill with quality gates",
       "expected_skill": "skill-creator",
       "category": "meta-tooling",
-      "notes": "Skill creation — skill-creator handles the full eval-driven workflow"
+      "notes": "Skill creation \u2014 skill-creator handles the full eval-driven workflow"
     },
     {
       "request": "create a new hook for PostToolUse events",
       "expected_agent": "hook-development-engineer",
       "expected_skill": "hook-development-pipeline",
       "category": "meta-tooling",
-      "notes": "Hook creation — agent + pipeline pairing"
+      "notes": "Hook creation \u2014 agent + pipeline pairing"
     },
     {
       "request": "go ahead and fix the bug",
       "expected_agent": null,
       "expected_skill": null,
       "category": "false-positive-guard",
-      "notes": "'go' as verb, not Go language — must NOT route to golang-general-engineer"
+      "notes": "'go' as verb, not Go language \u2014 must NOT route to golang-general-engineer"
     },
     {
       "request": "debug the goroutine leak causing memory issues",
       "expected_agent": "golang-general-engineer",
       "expected_skill": "systematic-debugging",
-      "expected_stacked": ["go-concurrency"],
+      "expected_stacked": [
+        "go-concurrency"
+      ],
       "category": "force-route-stacking",
-      "notes": "Go debug + goroutine force-route — primary skill is systematic-debugging, go-concurrency should be stacked via force-route"
+      "notes": "Go debug + goroutine force-route \u2014 primary skill is systematic-debugging, go-concurrency should be stacked via force-route"
     }
   ]
 }

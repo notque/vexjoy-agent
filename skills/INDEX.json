@@ -75,16 +75,6 @@
       "user_invocable": false,
       "version": "2.0.0"
     },
-    "blog-post-writer": {
-      "file": "skills/blog-post-writer/SKILL.md",
-      "description": "Voice-integrated blog post creation with 4-phase workflow: Assess, Decide, Draft, Preview.",
-      "triggers": [],
-      "category": "content-creation",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "deprecated": true,
-      "deprecated_by": "voice-writer"
-    },
     "bluesky-reader": {
       "file": "skills/bluesky-reader/SKILL.md",
       "description": "Read public Bluesky feeds via the AT Protocol API.",
@@ -330,22 +320,6 @@
       "category": "process",
       "user_invocable": false,
       "version": "1.0.0"
-    },
-    "dispatching-parallel-agents": {
-      "file": "skills/dispatching-parallel-agents/SKILL.md",
-      "description": "Dispatch independent subagents in parallel for unrelated problems spanning different subsystems.",
-      "triggers": [
-        "parallel agents",
-        "independent failures",
-        "fan-out dispatch",
-        "do these simultaneously",
-        "handle all at once",
-        "run in parallel",
-        "split into tasks"
-      ],
-      "category": "process",
-      "user_invocable": false,
-      "version": "2.0.0"
     },
     "distinctive-frontend-design": {
       "file": "skills/distinctive-frontend-design/SKILL.md",
@@ -1074,7 +1048,7 @@
       "category": "code-review",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-core-engineer"
+      "agent": "perses-engineer"
     },
     "perses-cue-schema": {
       "file": "skills/perses-cue-schema/SKILL.md",
@@ -1086,7 +1060,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-plugin-engineer"
+      "agent": "perses-engineer"
     },
     "perses-dashboard-create": {
       "file": "skills/perses-dashboard-create/SKILL.md",
@@ -1098,7 +1072,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-dashboard-review": {
       "file": "skills/perses-dashboard-review/SKILL.md",
@@ -1110,7 +1084,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-datasource-manage": {
       "file": "skills/perses-datasource-manage/SKILL.md",
@@ -1122,7 +1096,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-deploy": {
       "file": "skills/perses-deploy/SKILL.md",
@@ -1145,7 +1119,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-lint": {
       "file": "skills/perses-lint/SKILL.md",
@@ -1157,7 +1131,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-onboard": {
       "file": "skills/perses-onboard/SKILL.md",
@@ -1169,7 +1143,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-plugin-create": {
       "file": "skills/perses-plugin-create/SKILL.md",
@@ -1181,7 +1155,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-plugin-engineer"
+      "agent": "perses-engineer"
     },
     "perses-plugin-test": {
       "file": "skills/perses-plugin-test/SKILL.md",
@@ -1193,7 +1167,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-plugin-engineer"
+      "agent": "perses-engineer"
     },
     "perses-project-manage": {
       "file": "skills/perses-project-manage/SKILL.md",
@@ -1205,7 +1179,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-query-builder": {
       "file": "skills/perses-query-builder/SKILL.md",
@@ -1218,7 +1192,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-variable-manage": {
       "file": "skills/perses-variable-manage/SKILL.md",
@@ -1230,7 +1204,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "php-quality": {
       "file": "skills/php-quality/SKILL.md",
@@ -1299,17 +1273,6 @@
       ],
       "category": "process",
       "user_invocable": false,
-      "version": "2.0.0"
-    },
-    "plans": {
-      "file": "skills/plans/SKILL.md",
-      "description": "Deterministic plan lifecycle management via scripts/plan-manager.py: create, track, check, complete, and abandon task plans.",
-      "triggers": [
-        "manage plans",
-        "plan lifecycle"
-      ],
-      "category": "process",
-      "user_invocable": true,
       "version": "2.0.0"
     },
     "plant-seed": {
@@ -2046,16 +2009,6 @@
       "category": "testing",
       "user_invocable": false,
       "version": "2.0.0"
-    },
-    "voice-orchestrator": {
-      "file": "skills/voice-orchestrator/SKILL.md",
-      "description": "Multi-step voice content generation with deterministic validation.",
-      "triggers": [],
-      "category": "voice",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "deprecated": true,
-      "deprecated_by": "voice-writer"
     },
     "voice-validator": {
       "file": "skills/voice-validator/SKILL.md",

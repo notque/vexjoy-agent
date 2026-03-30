@@ -1,12 +1,6 @@
 ---
 name: systematic-debugging
-description: |
-  Evidence-based 5-phase debugging pipeline with mandatory reproduction, testing,
-  and learning gates: OBSERVE, HYPOTHESIZE, TEST, FIX, RECORD. Use when user
-  reports a bug, tests are failing, code introduced regressions, or production
-  issues need investigation. Use for "debug", "fix bug", "why is this failing",
-  "root cause", or "tests broken". Do NOT use for feature requests, refactoring,
-  or performance optimization without a specific bug symptom.
+description: "Evidence-based 5-phase debugging: OBSERVE, HYPOTHESIZE, TEST, FIX, RECORD."
 effort: high
 version: 2.0.0
 user-invocable: false

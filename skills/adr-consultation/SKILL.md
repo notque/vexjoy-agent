@@ -455,5 +455,4 @@ concerns.md and factor it into the verdict.
 
 - [ADR: Multi-Agent Consultation](../../adr/multi-agent-consultation.md) — The architecture decision this skill implements
 - [parallel-code-review](../parallel-code-review/SKILL.md) — Fan-out/fan-in pattern this skill adapts
-- [dispatching-parallel-agents](../dispatching-parallel-agents/SKILL.md) — Core parallel dispatch mechanics
 - [reviewer-contrarian](../../agents/reviewer-contrarian.md) — Contrarian lens agent
