@@ -1,14 +1,6 @@
 ---
 name: with-anti-rationalization
-description: |
-  Explicit anti-rationalization enforcement for maximum-rigor task execution.
-  Loads all anti-rationalization patterns, gate enforcement, and pressure
-  resistance as a composable modifier on any task. Use when executing critical
-  production changes, security-sensitive code, complex multi-file refactors,
-  or any task where shortcuts could cause harm. Use for "with rigor",
-  "carefully", "maximum verification", or "no shortcuts". Do NOT use for
-  trivial lookups, documentation-only edits, or simple typo fixes where
-  full gate enforcement would be disproportionate overhead.
+description: "Anti-rationalization enforcement for maximum-rigor task execution."
 version: 2.0.0
 user-invocable: false
 argument-hint: "<task>"

@@ -2,14 +2,7 @@
 name: python-openstack-engineer
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent when developing OpenStack services, plugins, or components in Python.
-  The agent specializes in OpenStack architecture (Nova, Neutron, Cinder), Oslo libraries
-  (config, messaging, db, policy), Tempest testing, and OpenStack development workflow
-  (Gerrit, Zuul, DevStack).
-
-  Example: "I need to implement a new neutron ML2 driver for my networking solution"
-
+description: "OpenStack Python development: Nova, Neutron, Cinder, Oslo libraries, WSGI middleware."
 color: red
 memory: project
 routing:

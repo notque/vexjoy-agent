@@ -1,12 +1,7 @@
 ---
 name: perses-datasource-manage
 user-invocable: false
-description: |
-  Perses datasource lifecycle management: create, update, delete datasources at
-  global, project, or dashboard scope. Supports Prometheus, Tempo, Loki, Pyroscope,
-  ClickHouse, and VictoriaLogs. Uses MCP tools when available, percli CLI as fallback.
-  Use for "perses datasource", "add datasource", "configure prometheus perses",
-  "perses data source". Route to other skills for dashboard creation (use perses-dashboard-create).
+description: "Perses datasource lifecycle: create, update, delete across scopes."
 allowed-tools:
   - Read
   - Grep

@@ -1,12 +1,6 @@
 ---
 name: link-auditor
-description: |
-  Hugo site link health analysis: scan markdown, build internal link graph,
-  validate paths, and report issues. Use when auditing site link structure,
-  finding orphan pages, checking for broken internal/external links, or
-  validating image paths. Use for "link audit", "orphan pages", "broken links",
-  "link health", or "site link structure". Do NOT use for single-post
-  pre-publish checks or content editing.
+description: "Hugo site link health: scan markdown, build link graph, validate paths."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

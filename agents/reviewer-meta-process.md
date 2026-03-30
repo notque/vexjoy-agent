@@ -2,22 +2,7 @@
 name: reviewer-meta-process
 model: sonnet
 version: 1.0.0
-description: |
-  Meta-analysis of system design decisions — examines whether the SYSTEM ITSELF is creating
-  problems. Asks: Does this create a single point of failure? Does it make one component
-  indispensable? Is complexity proportional to value? Does this concentrate authority
-  inappropriately? Can we reverse this if it's wrong? READ-ONLY reviewer with structured
-  HEALTHY/CONCERN/FRAGILE verdict.
-
-  Use for: "meta-process review", "system design review", "architecture health",
-  "single point of failure", "is this too centralized", "can we undo this",
-  "complexity audit", "indispensable component check".
-
-  Route code quality review to reviewer-code-quality, security analysis
-  to reviewer-security, and premise/alternative challenges to reviewer-contrarian.
-
-  Example: "We want all agents to route through a central orchestrator before executing"
-
+description: "Meta-process review: detect systemic design issues, single points of failure, coupling."
 color: orange
 routing:
   triggers:
