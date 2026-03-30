@@ -1,6 +1,6 @@
 ---
 name: php-testing
-description: PHP testing patterns with PHPUnit, test doubles, and database testing
+description: "PHP testing patterns: PHPUnit, test doubles, database testing."
 version: 1.0.0
 user-invocable: false
 context: fork

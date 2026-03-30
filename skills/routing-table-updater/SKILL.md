@@ -1,12 +1,6 @@
 ---
 name: routing-table-updater
-description: |
-  Maintain /do routing tables and command references when skills or agents
-  are added, modified, or removed. Use when skill/agent metadata changes,
-  after skill-creator or agent-creator-engineer runs, or when
-  routing tables need synchronization. Use for "update routes", "sync
-  routing", "routing table", or "refresh /do". Do NOT use for creating
-  new skills/agents, modifying skill logic, or manual /do table edits.
+description: "Maintain /do routing tables when skills or agents change."
 version: 2.1.0
 user-invocable: false
 allowed-tools:

@@ -1,11 +1,6 @@
 ---
 name: plans
-description: |
-  Deterministic plan lifecycle management via scripts/plan-manager.py: create,
-  track, check, complete, and abandon task plans. Use when user says "/plans",
-  needs to create a multi-phase plan, track progress on active plans, or manage
-  plan lifecycle (complete, abandon, audit). Route one-off tasks that
-  need no tracking, feature implementation, or debugging workflows to other skills.
+description: "Plan lifecycle management via plan-manager.py: create, track, check, complete, and abandon task plans."
 version: 2.0.0
 user-invocable: true
 argument-hint: "[status|list|show|check|complete|abandon]"

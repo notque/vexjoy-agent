@@ -2,14 +2,7 @@
 name: data-engineer
 model: sonnet
 version: 1.0.0
-description: |
-  Use this agent when you need expert assistance with data pipelines, ETL/ELT processes,
-  data warehouse design, dimensional modeling, stream processing, or data quality frameworks.
-  The agent specializes in Airflow, dbt, Kafka, Spark, BigQuery, Snowflake, and modern
-  DataOps practices.
-
-  Example: "I need to model our e-commerce data for analytics -- orders, products, customers, with historical tracking"
-
+description: "Data pipelines, ETL/ELT, warehouse design, dimensional modeling, stream processing."
 color: cyan
 memory: project
 routing:

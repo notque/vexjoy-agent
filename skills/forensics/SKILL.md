@@ -1,15 +1,6 @@
 ---
 name: forensics
-description: |
-  Post-mortem diagnostic analysis of failed or stuck workflows. Detects stuck
-  loops, missing artifacts, abandoned work, scope drift, and crash/interruption
-  patterns through git history and plan file analysis. Produces a structured
-  diagnostic report with anomaly confidence levels, root cause hypotheses, and
-  recommended remediation. READ-ONLY: never modifies files. Use for "forensics",
-  "what went wrong", "why did this fail", "stuck loop", "diagnose workflow",
-  "post-mortem", "workflow failure", or "session crashed". Do NOT use for
-  debugging code bugs (use systematic-debugging), reviewing code quality (use
-  systematic-code-review), or fixing issues (forensics only diagnoses).
+description: "Post-mortem diagnostic analysis of failed workflows."
 version: 1.0.0
 user-invocable: false
 command: /forensics

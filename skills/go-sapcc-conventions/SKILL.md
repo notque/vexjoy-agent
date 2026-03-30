@@ -1,13 +1,6 @@
 ---
 name: go-sapcc-conventions
-description: |
-  SAP Converged Cloud Go coding conventions extracted from sapcc/keppel and
-  sapcc/go-bits PR reviews. Enforces architecture
-  patterns, library usage rules, error handling conventions, testing patterns,
-  and anti-over-engineering principles. Use when working in sapcc/* repos,
-  when code imports github.com/sapcc/go-bits, or when targeting SAP CC
-  code review standards. Route to other skills for general Go projects without
-  sapcc dependencies.
+description: "SAP Converged Cloud Go coding conventions."
 version: 1.0.0
 user-invocable: false
 agent: golang-general-engineer
