@@ -67,7 +67,7 @@ SKILL_ROUTING = {
     "code-cleanup": "Stale TODOs, unused imports, missing types",
     "comment-quality": "Fix temporal/development-activity comments",
     # Language-Specific Quality
-    "go-pr-quality-gate": "Go linting, tests, vet, staticcheck",
+    "go-patterns": "Go testing, concurrency, errors, review, quality, sapcc conventions",
     "python-quality-gate": "ruff, pytest, mypy, bandit",
     "universal-quality-gate": "Multi-language quality checks",
     "code-linting": "Python (ruff) + JavaScript (Biome) linting",
@@ -158,7 +158,7 @@ def get_evaluation_prompt(complexity: str) -> str:
     skill_sections = """
 **Skills by Purpose:**
 - Code Review: systematic-code-review, systematic-debugging, systematic-refactoring
-- Quality Gates: go-pr-quality-gate, python-quality-gate, universal-quality-gate
+- Quality Gates: go-patterns, python-quality-gate, universal-quality-gate
 - Git: branch-naming, git-commit-flow, github-actions-check
 - Process: workflow-orchestrator, verification-before-completion, test-driven-development
 - Analysis: codebase-overview, codebase-analyzer, agent-evaluation

@@ -18,7 +18,7 @@ routing:
     - empty catch
   pairs_with:
     - comprehensive-review
-    - go-error-handling
+    - go-patterns
     - systematic-code-review
   complexity: Medium
   category: review
@@ -97,7 +97,7 @@ This agent operates as an operator for silent failure detection, configuring Cla
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `go-error-handling` | Go error handling patterns: wrapping with context, sentinel errors, custom error types, errors.Is/As chains, and HTTP... |
+| `go-patterns` | Go error handling patterns: wrapping with context, sentinel errors, custom error types, errors.Is/As chains, and HTTP... |
 | `systematic-code-review` | 4-phase code review methodology: UNDERSTAND changes, VERIFY claims against code, ASSESS security/performance/architec... |
 
 **Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
@@ -332,7 +332,7 @@ This agent defaults to **REVIEW mode** (READ-ONLY) but supports **FIX mode** whe
 ## References
 
 For detailed error handling patterns:
-- **Go Error Handling**: [go-error-handling skill](../skills/go-error-handling/SKILL.md)
+- **Go Error Handling**: [go-patterns skill](../skills/go-patterns/SKILL.md)
 - **Severity Classification**: [shared-patterns/severity-classification.md](../skills/shared-patterns/severity-classification.md)
 - **Anti-Rationalization**: [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md)
 - **Output Schemas**: [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md)

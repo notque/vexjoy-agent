@@ -28,7 +28,7 @@ routing:
   pairs_with:
     - systematic-code-review
     - parallel-code-review
-    - go-code-review
+    - go-patterns
   complexity: Medium
   category: code-review
 ---

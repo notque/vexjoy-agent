@@ -1,40 +1,3 @@
----
-name: go-code-review
-description: |
-  Go-specific code review with 6-phase methodology: Context, Automated Checks,
-  Quality Analysis, Specific Analysis, Line-by-Line, Documentation. Use when
-  reviewing Go code, PRs, or auditing Go codebases for quality and best practices.
-  Use for "review Go", "Go PR", "check Go code", "Go quality", "review .go".
-  Route to other skills for writing new Go code, debugging Go bugs, or refactoring --
-  use golang-general-engineer, systematic-debugging, or systematic-refactoring
-  for those tasks.
-version: 2.0.0
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-  - Task
-  - Skill
-agent: golang-general-engineer
-command: /go-code-review
-routing:
-  force_route: true
-  triggers:
-    - review Go
-    - Go PR
-    - Go code review
-    - review .go
-    - check Go code
-    - Go quality
-  pairs_with:
-    - golang-general-engineer
-    - golang-general-engineer-compact
-    - systematic-code-review
----
 
 # Go Code Review Skill
 
@@ -371,4 +334,4 @@ Solution:
 ## References
 
 ### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/common-review-comments.md`: Go code patterns with good/bad examples for error handling, concurrency, and testing
+- `${CLAUDE_SKILL_DIR}/references/code-review/common-review-comments.md`: Go code patterns with good/bad examples for error handling, concurrency, and testing

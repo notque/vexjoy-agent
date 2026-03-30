@@ -392,9 +392,9 @@ scores 81/100 (grade B). Phase 5 adds to INDEX.json, notes routing trigger
 
 ### Example 2: Overlap detected, extend recommended
 User: "Create a skill for reviewing Go PRs."
-Actions: Phase 1 scans INDEX — finds `go-code-review` with 85% overlap (same
+Actions: Phase 1 scans INDEX — finds `go-patterns` with 85% overlap (same
 domain, same artifact, same review steps). DISCOVER gate fires: recommends
-extending `go-code-review` rather than creating a duplicate. User agrees and
+extending `go-patterns` rather than creating a duplicate. User agrees and
 redirects to editing the existing skill instead.
 
 ### Example 3: Complex tier, multiple iterations

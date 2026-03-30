@@ -164,7 +164,7 @@ Use this checklist for ANY code change, regardless of language or domain:
 
 Use this when running language-specific quality gates:
 
-### Go Quality Gate (go-pr-quality-gate)
+### Go Quality Gate (go-patterns)
 - [ ] **golangci-lint**: All linters pass without violations
 - [ ] **go test**: All tests pass with `-v` flag
 - [ ] **Race detector**: `go test -race` passes without issues

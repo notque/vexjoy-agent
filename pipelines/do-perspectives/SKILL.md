@@ -234,7 +234,7 @@ Actions:
 Result: Agent enhanced with patterns extracted from expert writing
 
 ### Example 2: Improve Skill from Documentation
-User says: "/do-perspectives go-testing golang-testing-guide.md"
+User says: "/do-perspectives go-patterns golang-testing-guide.md"
 Actions:
 1. Verify skill exists, load guide (VALIDATE)
 2. Analyze guide through structural, technical, complexity lenses etc. (ANALYZE)

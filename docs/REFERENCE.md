@@ -167,20 +167,11 @@ Loaded automatically or via `Skill("name")`.
 | Skill | Purpose |
 |-------|---------|
 | `code-linting` | Python (ruff) + JS (Biome) |
-| `go-pr-quality-gate` | Go quality checks |
+| `go-patterns` | Go testing, concurrency, errors, review, conventions |
 | `python-quality-gate` | Python quality checks |
 | `universal-quality-gate` | Multi-language quality checking |
 | `comment-quality` | Timeless documentation |
 | `roast` | Devil's advocate critique via HN personas |
-
-### Go-Specific (Force-Routed)
-| Skill | Purpose |
-|-------|---------|
-| `go-testing` | Table-driven tests, mocking, benchmarks |
-| `go-concurrency` | Goroutines, channels, sync primitives |
-| `go-error-handling` | Error wrapping, context, sentinels |
-| `go-code-review` | Go PR review methodology |
-| `go-anti-patterns` | Common Go mistakes to avoid |
 
 ### Voice System
 | Skill | Purpose |

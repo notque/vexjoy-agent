@@ -53,7 +53,7 @@ routing:
     - concurrency
     - debugging
   pairs_with:
-    - go-pr-quality-gate
+    - go-patterns
   complexity: Medium-Complex
   category: language
 allowed-tools:
@@ -150,7 +150,7 @@ This agent operates as an operator for Go software development, configuring Clau
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `go-pr-quality-gate` | Run Go quality checks via make check with intelligent error categorization and actionable fix suggestions. Use when u... |
+| `go-patterns` | Run Go quality checks via make check with intelligent error categorization and actionable fix suggestions. Use when u... |
 
 **Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
 
@@ -551,7 +551,7 @@ Common Go errors and solutions. See [references/go-errors.md](references/go-erro
 
 ## Preferred Patterns
 
-Common Go patterns to follow. See [references/go-anti-patterns.md](references/go-anti-patterns.md) for full catalog.
+Common Go patterns to follow. See [references/go-patterns.md](references/go-patterns.md) for full catalog.
 
 ### Modern Idiom Patterns
 
@@ -717,9 +717,9 @@ STOP and ask the user (get explicit confirmation) before proceeding when:
 
 For detailed Go patterns and examples:
 - **Error Catalog**: [references/go-errors.md](references/go-errors.md)
-- **Pattern Guide**: [references/go-anti-patterns.md](references/go-anti-patterns.md)
-- **Concurrency Patterns**: [references/go-concurrency.md](references/go-concurrency.md)
-- **Testing Patterns**: [references/go-testing.md](references/go-testing.md)
+- **Pattern Guide**: [references/go-patterns.md](references/go-patterns.md)
+- **Concurrency Patterns**: [references/go-patterns.md](references/go-patterns.md)
+- **Testing Patterns**: [references/go-patterns.md](references/go-patterns.md)
 - **Modern Features**: [references/go-modern-features.md](references/go-modern-features.md)
 
 ## Changelog

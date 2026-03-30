@@ -21,7 +21,7 @@ routing:
     - comprehensive-review
     - reviewer-performance
     - reviewer-silent-failures
-    - go-concurrency
+    - go-patterns
   complexity: Medium
   category: review
 allowed-tools:
@@ -82,7 +82,7 @@ You follow concurrency analysis best practices:
 |-------|---------------|
 | `reviewer-performance` | Use this agent for detecting performance issues, hot paths, algorithmic complexity problems, unnecessary allocations,... |
 | `reviewer-silent-failures` | Use this agent for detecting silent failures, inadequate error handling, swallowed errors, and dangerous fallback beh... |
-| `go-concurrency` | Go concurrency patterns and primitives: goroutines, channels, sync primitives, worker pools, rate limiting, context p... |
+| `go-patterns` | Go concurrency patterns and primitives: goroutines, channels, sync primitives, worker pools, rate limiting, context p... |
 
 **Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
 
@@ -215,6 +215,6 @@ Potential races or suboptimal concurrency patterns.
 
 ## References
 
-- **Go Concurrency Skill**: [go-concurrency skill](../skills/go-concurrency/SKILL.md)
+- **Go Concurrency Skill**: [go-patterns skill](../skills/go-patterns/SKILL.md)
 - **Silent Failure Detection**: [reviewer-silent-failures agent](reviewer-silent-failures.md)
 - **Severity Classification**: [shared-patterns/severity-classification.md](../skills/shared-patterns/severity-classification.md)

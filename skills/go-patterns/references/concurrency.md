@@ -1,50 +1,3 @@
----
-name: go-concurrency
-description: |
-  Go concurrency patterns and primitives: goroutines, channels, sync
-  primitives, worker pools, rate limiting, context propagation. Use when
-  writing concurrent Go code, implementing worker pools, fan-out/fan-in
-  pipelines, rate limiters, or debugging race conditions and goroutine
-  leaks. Triggers: goroutine, channel, sync.Mutex, sync.WaitGroup,
-  worker pool, fan-out, fan-in, rate limit, concurrent, parallel,
-  context.Context, race condition, deadlock. Do NOT use for sequential
-  Go code, general Go syntax, error handling patterns, or HTTP routing
-  without concurrency concerns.
-version: 2.0.0
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-  - Task
-  - Skill
-agent: golang-general-engineer
-command: /go-concurrency
-routing:
-  force_route: true
-  triggers:
-    - goroutine
-    - channel
-    - chan
-    - sync.Mutex
-    - sync.WaitGroup
-    - worker pool
-    - fan-in
-    - rate limit
-    - concurrent
-    - context.Context
-    - race condition
-    - deadlock
-    - "goroutine parallel"
-    - "Go parallel"
-    - "goroutine fan-out"
-  pairs_with:
-    - golang-general-engineer
-    - golang-general-engineer-compact
----
 
 # Go Concurrency Skill
 
@@ -241,9 +194,9 @@ ch := make(chan int, 100)
 
 **Graceful Shutdown**
 
-Workers and servers must implement clean shutdown with a drain timeout because abrupt termination can lose in-flight work and corrupt state. See `references/concurrency-patterns.md` for the full graceful shutdown pattern.
+Workers and servers must implement clean shutdown with a drain timeout because abrupt termination can lose in-flight work and corrupt state. See `${CLAUDE_SKILL_DIR}/references/concurrency/concurrency-patterns.md` for the full graceful shutdown pattern.
 
-For worker pool, fan-out/fan-in, pipeline, and rate limiter patterns, see `references/concurrency-patterns.md`.
+For worker pool, fan-out/fan-in, pipeline, and rate limiter patterns, see `${CLAUDE_SKILL_DIR}/references/concurrency/concurrency-patterns.md`.
 
 When profiling goroutine counts and channel contention under load, use `runtime.NumGoroutine()` and pprof to identify bottlenecks. For container deployments, configure `GOMAXPROCS` to match container CPU limits when needed.
 
@@ -320,4 +273,4 @@ Solution:
 ## References
 
 ### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/concurrency-patterns.md`: Worker pool, fan-out/fan-in, pipeline, rate limiter, and graceful shutdown patterns with full code examples
+- `${CLAUDE_SKILL_DIR}/references/concurrency/concurrency-patterns.md`: Worker pool, fan-out/fan-in, pipeline, rate limiter, and graceful shutdown patterns with full code examples

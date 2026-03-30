@@ -522,7 +522,7 @@ class TestRouteRequest:
     def test_force_route_populates_result(self) -> None:
         result = index_router.route_request("write Go test for the handler")
         assert result.force_route is not None
-        assert result.force_route.get("skill") == "go-testing"
+        assert result.force_route.get("skill") == "go-patterns"
         assert result.force_route.get("agent") == "golang-general-engineer"
 
     def test_force_only_skips_candidates(self) -> None:
@@ -580,7 +580,7 @@ class TestFormatting:
         result = index_router.route_request("write Go test for auth")
         output = index_router.format_text_output(result)
         assert "force_route:" in output
-        assert "go-testing" in output
+        assert "go-patterns" in output
 
     def test_text_output_no_match(self) -> None:
         result = index_router.route_request("xyzzy zzzzz")
@@ -616,7 +616,7 @@ class TestCLI:
             text=True,
         )
         assert result.returncode == 0
-        assert "go-testing" in result.stdout
+        assert "go-patterns" in result.stdout
 
     def test_force_only_flag(self) -> None:
         result = subprocess.run(

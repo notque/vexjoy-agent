@@ -216,5 +216,5 @@ User-facing errors that expose internal details.
 
 - **Silent Failure Agent**: [reviewer-silent-failures agent](reviewer-silent-failures.md)
 - **Code Quality Agent**: [reviewer-code-quality agent](reviewer-code-quality.md)
-- **Go Error Handling**: [go-error-handling skill](../skills/go-error-handling/SKILL.md)
+- **Go Error Handling**: [go-patterns skill](../skills/go-patterns/SKILL.md)
 - **Severity Classification**: [shared-patterns/severity-classification.md](../skills/shared-patterns/severity-classification.md)

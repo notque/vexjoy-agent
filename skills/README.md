@@ -99,13 +99,13 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `go-testing` | no | Go testing patterns: table-driven tests, subtests, mocks, benchmarks, race detection |
-| `go-concurrency` | no | Go concurrency patterns: goroutines, channels, worker pools, rate limiting, race conditions |
-| `go-error-handling` | no | Go error handling: wrapping, sentinel errors, custom types, errors.Is/As chains |
-| `go-code-review` | no | Go-specific 6-phase code review methodology |
-| `go-anti-patterns` | no | Detect and remediate Go anti-patterns: premature abstraction, goroutine overkill, interface pollution |
-| `go-pr-quality-gate` | no | Run `make check` with intelligent error categorization and actionable fix suggestions |
-| `go-sapcc-conventions` | no | SAP Converged Cloud Go coding conventions from sapcc/keppel and go-bits PR reviews |
+| `go-patterns` | no | Go testing patterns: table-driven tests, subtests, mocks, benchmarks, race detection |
+| `go-patterns` | no | Go concurrency patterns: goroutines, channels, worker pools, rate limiting, race conditions |
+| `go-patterns` | no | Go error handling: wrapping, sentinel errors, custom types, errors.Is/As chains |
+| `go-patterns` | no | Go-specific 6-phase code review methodology |
+| `go-patterns` | no | Detect and remediate Go anti-patterns: premature abstraction, goroutine overkill, interface pollution |
+| `go-patterns` | no | Run `make check` with intelligent error categorization and actionable fix suggestions |
+| `go-patterns` | no | SAP Converged Cloud Go coding conventions from sapcc/keppel and go-bits PR reviews |
 | `sapcc-audit` | yes | Full-repo SAP CC Go compliance audit with parallel agents dispatched by package group |
 | `sapcc-review` | yes | Gold-standard SAP CC Go review dispatching 10 domain-specialist agents in parallel |
 | `codebase-analyzer` | no | Statistical rule discovery through Go codebase measurement, producing a Style Vector |

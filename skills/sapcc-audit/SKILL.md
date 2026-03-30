@@ -31,7 +31,7 @@ routing:
   pairs_with:
     - golang-general-engineer
     - golang-general-engineer-compact
-    - go-sapcc-conventions
+    - go-patterns
   force_route: false
   complexity: Complex
   category: language
@@ -322,5 +322,5 @@ Show the verdict, must-fix count, and top 5 findings inline. Point to the full r
 ### Integration
 
 - **Router**: `/do` routes via "sapcc audit", "sapcc compliance", "sapcc lead review"
-- **Pairs with**: `go-sapcc-conventions` (the rules), `golang-general-engineer` (the executor)
-- **Prerequisite**: `go-sapcc-conventions` must be loaded so agents have the rules
+- **Pairs with**: `go-patterns` (the rules), `golang-general-engineer` (the executor)
+- **Prerequisite**: `go-patterns` must be loaded so agents have the rules

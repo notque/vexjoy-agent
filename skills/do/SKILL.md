@@ -248,7 +248,7 @@ Record only observable facts (tool_errors, user_rerouted) — routing outcome qu
 
 **Skill-scoped recording** (preferred — one-liner):
 ```bash
-python3 ~/.claude/scripts/learning-db.py learn --skill go-testing "insight about testing"
+python3 ~/.claude/scripts/learning-db.py learn --skill go-patterns "insight about testing"
 python3 ~/.claude/scripts/learning-db.py learn --agent golang-general-engineer "insight about agent"
 python3 ~/.claude/scripts/learning-db.py learn "general insight without scope"
 ```

@@ -32,7 +32,7 @@ routing:
     - testing implementation details
   pairs_with:
     - test-driven-development
-    - go-testing
+    - go-patterns
     - vitest-runner
   complementary: test-driven-development
 ---

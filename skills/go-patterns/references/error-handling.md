@@ -1,42 +1,3 @@
----
-name: go-error-handling
-description: |
-  Go error handling patterns: wrapping with context, sentinel errors, custom
-  error types, errors.Is/As chains, and HTTP error mapping. Use when
-  implementing error returns, defining package-level errors, creating custom
-  error types, wrapping errors with fmt.Errorf, or checking errors with
-  errors.Is/As. Use for "error handling", "fmt.Errorf", "errors.Is",
-  "errors.As", "sentinel error", "custom error", or "%w". Do NOT use for
-  general Go development, debugging runtime panics, or logging strategy.
-version: 2.0.0
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-  - Task
-  - Skill
-agent: golang-general-engineer
-command: /go-error-handling
-routing:
-  force_route: true
-  triggers:
-    - error handling
-    - fmt.Errorf
-    - errors.Is
-    - errors.As
-    - error wrapping
-    - "%w"
-    - sentinel error
-    - custom error
-    - error context
-  pairs_with:
-    - golang-general-engineer
-    - golang-general-engineer-compact
----
 
 # Go Error Handling Skill
 
@@ -282,4 +243,4 @@ Solution:
 ## References
 
 ### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/patterns.md`: Extended patterns -- gopls tracing, HTTP handler patterns, error wrapping in middleware
+- `${CLAUDE_SKILL_DIR}/references/error-handling/patterns.md`: Extended patterns -- gopls tracing, HTTP handler patterns, error wrapping in middleware

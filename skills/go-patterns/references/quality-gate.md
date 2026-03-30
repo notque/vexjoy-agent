@@ -1,30 +1,3 @@
----
-name: go-pr-quality-gate
-description: |
-  Run Go quality checks via make check with intelligent error categorization
-  and actionable fix suggestions. Use when user requests "run quality checks",
-  "check PR quality", "verify code quality", or "run make check". Use before
-  creating commits or during PR review. Do NOT use for non-Go repositories,
-  repositories without a Makefile, or manual linter invocation.
-version: 2.0.0
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-  - Task
-  - Skill
-agent: golang-general-engineer
-routing:
-  triggers:
-    - "Go quality"
-    - "make check"
-    - "Go lint"
-  category: code-quality
----
 
 # Go PR Quality Gate Skill
 
@@ -42,7 +15,7 @@ Never skip validation, even if you think you know what the error is -- assumptio
 
 Run the validation script to check prerequisites:
 ```bash
-python3 ~/.claude/skills/go-pr-quality-gate/scripts/quality_checker.py --validate-only
+python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py --validate-only
 ```
 
 The repository needs:
@@ -74,7 +47,7 @@ Always use `make check` through the script -- never bypass it by running golangc
 
 Execute the quality gate:
 ```bash
-python3 ~/.claude/skills/go-pr-quality-gate/scripts/quality_checker.py
+python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py
 ```
 
 The script will:
@@ -85,7 +58,7 @@ The script will:
 
 For verbose progress output:
 ```bash
-python3 ~/.claude/skills/go-pr-quality-gate/scripts/quality_checker.py --verbose
+python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py --verbose
 ```
 
 ### Step 4: Interpret Results
@@ -129,7 +102,7 @@ When failures occur:
    - Import issues: `make goimports`
    - Dependency issues: `make tidy-deps`
    - License headers: `make license-headers`
-   - Specific linter guidance: check `references/common-lint-errors.json`
+   - Specific linter guidance: check `${CLAUDE_SKILL_DIR}/references/quality-gate/common-lint-errors.json`
 4. **Provide context**: file paths, line numbers, error descriptions
 5. **Report exact exit codes** from make -- never mask or modify them
 
@@ -180,17 +153,17 @@ Only use individual make targets for focused investigation after `make check` ha
 
 Custom coverage threshold enforcement:
 ```bash
-python3 ~/.claude/skills/go-pr-quality-gate/scripts/quality_checker.py --min-coverage 80.0
+python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py --min-coverage 80.0
 ```
 
 JSON output for automation pipelines:
 ```bash
-python3 ~/.claude/skills/go-pr-quality-gate/scripts/quality_checker.py --format json
+python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py --format json
 ```
 
 Combined options for thorough debugging:
 ```bash
-python3 ~/.claude/skills/go-pr-quality-gate/scripts/quality_checker.py --min-coverage 80.0 --verbose
+python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py --min-coverage 80.0 --verbose
 ```
 
 ### Cleanup
@@ -206,7 +179,7 @@ Cause: One or more quality checks failed (linting, tests, or build)
 Solution:
 1. Review error categorization in JSON output
 2. Apply suggested fixes from `fix_commands` array
-3. Check `references/common-lint-errors.json` for specific linter guidance
+3. Check `${CLAUDE_SKILL_DIR}/references/quality-gate/common-lint-errors.json` for specific linter guidance
 4. Re-run checks after each fix
 
 ### Error: "golangci-lint: command not found"
@@ -234,7 +207,7 @@ Solution:
 
 ## References
 
-- `${CLAUDE_SKILL_DIR}/references/common-lint-errors.json`: Linter descriptions, severities, and fix suggestions
-- `${CLAUDE_SKILL_DIR}/references/makefile-targets.json`: Available make targets and when to use them
-- `${CLAUDE_SKILL_DIR}/references/expert-review-patterns.md`: Manual review patterns beyond automated linting
-- `${CLAUDE_SKILL_DIR}/references/examples.md`: Detailed usage examples with expected output
+- `${CLAUDE_SKILL_DIR}/references/quality-gate/common-lint-errors.json`: Linter descriptions, severities, and fix suggestions
+- `${CLAUDE_SKILL_DIR}/references/quality-gate/makefile-targets.json`: Available make targets and when to use them
+- `${CLAUDE_SKILL_DIR}/references/quality-gate/expert-review-patterns.md`: Manual review patterns beyond automated linting
+- `${CLAUDE_SKILL_DIR}/references/quality-gate/examples.md`: Detailed usage examples with expected output

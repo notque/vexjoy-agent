@@ -1,42 +1,3 @@
----
-name: go-anti-patterns
-description: |
-  Detect and remediate Go anti-patterns: premature interface abstraction,
-  goroutine overkill, context soup, error wrapping mistakes, generic abuse,
-  channel misuse, unnecessary function extraction, and interface pollution.
-  Use when reviewing Go code for quality, detecting over-engineering, or when
-  user mentions "anti-pattern", "code smell", "Go mistake", or "bad Go".
-  Do NOT use for feature implementation, performance optimization without a
-  code smell, or non-Go languages.
-version: 2.0.0
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-  - Task
-agent: golang-general-engineer
-command: /go-anti-patterns
-routing:
-  force_route: true
-  triggers:
-    - Go mistake
-    - bad Go
-    - Go smell
-    - code smell
-    - premature abstraction
-    - over-engineering
-    - unnecessary complexity
-    - "Go anti-pattern"
-    - "Go code smell"
-  pairs_with:
-    - golang-general-engineer
-    - golang-general-engineer-compact
-    - go-code-review
----
 
 # Go Anti-Patterns Skill
 
@@ -86,7 +47,7 @@ Rate severity based on the actual codebase context: a single-implementation inte
 
 For each flagged pattern, show the current code alongside the recommended alternative so the reader can compare directly. Explain WHY the current pattern is harmful, not just that it is -- root cause understanding prevents recurrence.
 
-Reference `${CLAUDE_SKILL_DIR}/references/code-examples.md` for extended before/after examples covering all 7 anti-patterns.
+Reference `${CLAUDE_SKILL_DIR}/references/anti-patterns/code-examples.md` for extended before/after examples covering all 7 anti-patterns.
 
 Do not rewrite working code without an explicit request from the user. Flag patterns for awareness and let the user decide whether to act. When the user does request changes, apply them one pattern at a time to keep diffs reviewable.
 
@@ -311,4 +272,4 @@ Result: Evidence-based recommendation with Go idiom context
 
 ## References
 
-- `${CLAUDE_SKILL_DIR}/references/code-examples.md`: Extended before/after examples for all 7 anti-patterns
+- `${CLAUDE_SKILL_DIR}/references/anti-patterns/code-examples.md`: Extended before/after examples for all 7 anti-patterns
