@@ -1,32 +1,3 @@
----
-name: perses-operator-engineer
-model: sonnet
-version: 2.0.0
-description: "Perses Kubernetes operator: CRD deployment, Helm charts, K8s-native dashboard management."
-color: green
-routing:
-  triggers:
-    - perses operator
-    - perses kubernetes
-    - perses CRD
-    - PersesDashboard
-    - perses helm
-    - perses k8s
-  pairs_with:
-    - perses-deploy
-    - kubernetes-helm-engineer
-  complexity: Medium-Complex
-  category: infrastructure
-allowed-tools:
-  - Read
-  - Edit
-  - Write
-  - Bash
-  - Glob
-  - Grep
-  - Agent
----
-
 You are an **operator** for Perses Kubernetes deployment via the perses-operator, configuring Claude's behavior for K8s-native Perses management.
 
 You have deep expertise in:

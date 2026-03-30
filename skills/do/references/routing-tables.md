@@ -39,10 +39,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **technical-journalist-writer** | User needs professional technical writing in a journalism style — articles, posts, or content with a specific authored voice. |
 | **testing-automation-engineer** | User needs comprehensive testing strategy, E2E test setup, Playwright tests, or test infrastructure design. NOT: writing Go unit tests (use go-testing force-route). |
 | **ui-design-engineer** | User is designing or implementing UI/UX for web applications: layout, Tailwind styling, component design, or visual hierarchy. |
-| **perses-dashboard-engineer** | User is creating, managing, or configuring Perses observability dashboards, datasources, variables, or projects. |
-| **perses-plugin-engineer** | User is developing Perses plugins: panel plugins, datasource plugins, CUE schemas. |
-| **perses-core-engineer** | User is contributing to Perses core: Go backend, API handlers, or upstream Perses development. |
-| **perses-operator-engineer** | User is deploying Perses via Kubernetes operator, CRDs, or managing Perses in a k8s cluster. |
+| **perses-engineer** | User is working with the Perses observability platform: dashboards, plugins, operator/K8s deployment, or core development. |
 | **github-profile-rules-engineer** | User wants to extract coding conventions, programming rules, or style guidelines from a GitHub profile's repositories. |
 | **react-portfolio-engineer** | User is building a React portfolio or gallery website, typically for creative professionals. |
 | **nextjs-ecommerce-engineer** | User is building an e-commerce site with Next.js: product pages, cart, checkout flows. |
@@ -315,22 +312,22 @@ These pipelines create/manage other pipelines (meta-pipelines):
 
 | Skill | When to Route Here |
 |-------|-------------------|
-| **perses-dashboard-create** (perses-dashboard-engineer) | User wants to create a new Perses dashboard from scratch. |
-| **perses-deploy** (perses-dashboard-engineer) | User wants to deploy or install a Perses server instance. |
-| **perses-onboard** (perses-dashboard-engineer) | User wants to connect to or set up a new Perses environment. |
+| **perses-dashboard-create** (perses-engineer) | User wants to create a new Perses dashboard from scratch. |
+| **perses-deploy** (perses-engineer) | User wants to deploy or install a Perses server instance. |
+| **perses-onboard** (perses-engineer) | User wants to connect to or set up a new Perses environment. |
 | **perses-grafana-migrate (FORCE)** | User wants to migrate a Grafana dashboard to Perses format. NOT: any other migration or conversion task. |
 | **perses-dac-pipeline (FORCE)** | User wants dashboard-as-code: managing Perses dashboards via CUE, GitOps, or code-driven workflows. |
-| **perses-datasource-manage** (perses-dashboard-engineer) | User wants to add or configure a Prometheus or other datasource in Perses. |
-| **perses-variable-manage** (perses-dashboard-engineer) | User wants to add or edit variables or filters in a Perses dashboard. |
-| **perses-project-manage** (perses-dashboard-engineer) | User wants to create Perses projects, configure RBAC, or manage roles. |
+| **perses-datasource-manage** (perses-engineer) | User wants to add or configure a Prometheus or other datasource in Perses. |
+| **perses-variable-manage** (perses-engineer) | User wants to add or edit variables or filters in a Perses dashboard. |
+| **perses-project-manage** (perses-engineer) | User wants to create Perses projects, configure RBAC, or manage roles. |
 | **perses-lint (FORCE)** | User wants to validate or lint a Perses dashboard definition for correctness. NOT: "check the dashboard" meaning visual review. |
-| **perses-query-builder** (perses-dashboard-engineer) | User wants to build PromQL or LogQL queries for use in Perses panels. |
-| **perses-dashboard-review** (perses-dashboard-engineer) | User wants a review of an existing Perses dashboard for quality or correctness. |
+| **perses-query-builder** (perses-engineer) | User wants to build PromQL or LogQL queries for use in Perses panels. |
+| **perses-dashboard-review** (perses-engineer) | User wants a review of an existing Perses dashboard for quality or correctness. |
 | **perses-plugin-create (FORCE)** | User wants to create a new Perses plugin: a panel plugin or datasource plugin. |
-| **perses-plugin-pipeline** (perses-plugin-engineer) | User wants the full plugin development workflow with scaffolding, schema, testing. |
-| **perses-cue-schema** (perses-plugin-engineer) | User wants to work on Perses CUE schema definitions or plugin data models. |
-| **perses-plugin-test** (perses-plugin-engineer) | User wants to test a Perses plugin or validate its schema. |
-| **perses-code-review** (perses-core-engineer) | User wants a code review of a Perses-related PR or Go code in Perses repositories. |
+| **perses-plugin-pipeline** (perses-engineer) | User wants the full plugin development workflow with scaffolding, schema, testing. |
+| **perses-cue-schema** (perses-engineer) | User wants to work on Perses CUE schema definitions or plugin data models. |
+| **perses-plugin-test** (perses-engineer) | User wants to test a Perses plugin or validate its schema. |
+| **perses-code-review** (perses-engineer) | User wants a code review of a Perses-related PR or Go code in Perses repositories. |
 
 ---
 

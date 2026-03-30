@@ -1132,7 +1132,7 @@
       "category": "code-review",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-core-engineer"
+      "agent": "perses-engineer"
     },
     "perses-cue-schema": {
       "file": "skills/perses-cue-schema/SKILL.md",
@@ -1144,7 +1144,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-plugin-engineer"
+      "agent": "perses-engineer"
     },
     "perses-dashboard-create": {
       "file": "skills/perses-dashboard-create/SKILL.md",
@@ -1156,7 +1156,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-dashboard-review": {
       "file": "skills/perses-dashboard-review/SKILL.md",
@@ -1168,7 +1168,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-datasource-manage": {
       "file": "skills/perses-datasource-manage/SKILL.md",
@@ -1180,7 +1180,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-deploy": {
       "file": "skills/perses-deploy/SKILL.md",
@@ -1203,7 +1203,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-lint": {
       "file": "skills/perses-lint/SKILL.md",
@@ -1215,7 +1215,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-onboard": {
       "file": "skills/perses-onboard/SKILL.md",
@@ -1227,7 +1227,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-plugin-create": {
       "file": "skills/perses-plugin-create/SKILL.md",
@@ -1239,7 +1239,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-plugin-engineer"
+      "agent": "perses-engineer"
     },
     "perses-plugin-test": {
       "file": "skills/perses-plugin-test/SKILL.md",
@@ -1251,7 +1251,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-plugin-engineer"
+      "agent": "perses-engineer"
     },
     "perses-project-manage": {
       "file": "skills/perses-project-manage/SKILL.md",
@@ -1263,7 +1263,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-query-builder": {
       "file": "skills/perses-query-builder/SKILL.md",
@@ -1276,7 +1276,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "perses-variable-manage": {
       "file": "skills/perses-variable-manage/SKILL.md",
@@ -1288,7 +1288,7 @@
       "category": "perses",
       "user_invocable": false,
       "version": "2.0.0",
-      "agent": "perses-dashboard-engineer"
+      "agent": "perses-engineer"
     },
     "php-quality": {
       "file": "skills/php-quality/SKILL.md",

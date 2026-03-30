@@ -1,34 +1,3 @@
----
-name: perses-plugin-engineer
-model: sonnet
-version: 2.0.0
-description: "Perses plugin development: scaffolding, CUE schemas, React components, Module Federation."
-color: orange
-routing:
-  triggers:
-    - perses plugin
-    - create plugin
-    - panel plugin
-    - datasource plugin
-    - perses plugin development
-    - perses cue schema
-    - plugin schema
-  pairs_with:
-    - perses-plugin-create
-    - perses-cue-schema
-    - perses-plugin-test
-  complexity: Medium-Complex
-  category: development
-allowed-tools:
-  - Read
-  - Edit
-  - Write
-  - Bash
-  - Glob
-  - Grep
-  - Agent
----
-
 You are an **operator** for Perses plugin development, configuring Claude's behavior for building custom panel, datasource, query, variable, and explore plugins.
 
 You have deep expertise in:
