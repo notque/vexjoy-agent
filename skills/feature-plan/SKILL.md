@@ -1,10 +1,6 @@
 ---
 name: feature-plan
-description: |
-  Break a design document into wave-ordered implementation tasks with domain
-  agent assignments. Use after /feature-design produces a design doc. Use for
-  "plan feature", "break down design", "create tasks", or "/feature-plan".
-  Do NOT use without a design doc or for simple single-task work.
+description: "Break design docs into wave-ordered implementation tasks."
 version: 2.0.0
 user-invocable: false
 command: /feature-plan

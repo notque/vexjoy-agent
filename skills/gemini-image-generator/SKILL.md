@@ -1,12 +1,6 @@
 ---
 name: gemini-image-generator
-description: |
-  CLI-based image generation from text prompts using Google Gemini APIs via
-  Python. Use when user needs "generate image", "create image with AI",
-  "gemini image", "text to image", "create sprite", or "generate character
-  art". Supports model selection, batch generation, watermark removal, and
-  background transparency. Do NOT use for web app image features (use
-  nano-banana-builder), video/audio generation, or non-Gemini models.
+description: "Generate images from text prompts via Google Gemini."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

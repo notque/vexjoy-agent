@@ -1,13 +1,6 @@
 ---
 name: parallel-code-review
-description: |
-  Parallel 3-reviewer code review orchestration: launch Security, Business-Logic,
-  and Architecture reviewers simultaneously, aggregate findings by severity, and
-  produce a unified BLOCK/FIX/APPROVE verdict. Use when reviewing PRs with 5+
-  files, security-sensitive changes, new features needing broad coverage, or when
-  user requests "parallel review", "comprehensive review", or "full review".
-  Do NOT use for single-file fixes, documentation-only changes, or when
-  systematic-code-review (sequential) is sufficient.
+description: "Parallel 3-reviewer code review: Security, Business-Logic, Architecture."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

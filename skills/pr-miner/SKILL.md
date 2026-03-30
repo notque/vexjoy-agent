@@ -1,13 +1,6 @@
 ---
 name: pr-miner
-description: |
-  Deterministic 3-phase GitHub PR review comment extraction: Authenticate,
-  Mine, Validate. Use when mining tribal knowledge from PR reviews, extracting
-  coding standards from review history, or building datasets for the Code
-  Archaeologist agent. Use for "mine PRs", "extract review comments", "tribal
-  knowledge", or "PR review history". Do NOT use for analyzing patterns,
-  generating rules, or interpreting comments — that is the Code Archaeologist
-  agent's responsibility.
+description: "GitHub PR review comment extraction: mine tribal knowledge, standards."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

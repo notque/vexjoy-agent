@@ -1,6 +1,6 @@
 ---
 name: research-pipeline
-description: "Formal 5-phase research pipeline with parallel agents and artifact saving. Produces citable, resumable research artifacts."
+description: "Formal 5-phase research pipeline with artifact saving and source quality gates. Min 3 parallel agents."
 version: 1.0.0
 user-invocable: true
 argument-hint: "<research topic>"

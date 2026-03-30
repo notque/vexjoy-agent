@@ -1,12 +1,7 @@
 ---
 name: perses-dashboard-review
 user-invocable: false
-description: |
-  Review existing Perses dashboards for quality: fetch via MCP or API, analyze panel
-  layout, query efficiency, variable usage, datasource configuration. Generate
-  improvement report. Optional --fix mode. 4-phase pipeline: FETCH, ANALYZE, REPORT, FIX.
-  Use for "review perses dashboard", "audit dashboard", "perses dashboard quality".
-  Do NOT use for creating new dashboards (use perses-dashboard-create).
+description: "Review Perses dashboards: panel layout, query efficiency, variables."
 allowed-tools:
   - Read
   - Grep
