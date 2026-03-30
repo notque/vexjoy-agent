@@ -368,21 +368,15 @@ These are mandatory. When triggers match, the skill fires before any other routi
 
 Pipeline skills have explicit phases with gates between them.
 
-| Pipeline Skill | Phases |
+| Workflow Skill | Phases |
 |----------------|--------|
 | `system-upgrade` | CHANGELOG -> AUDIT -> PLAN -> IMPLEMENT -> VALIDATE -> DEPLOY |
-| `skill-creation-pipeline` | DISCOVER -> DESIGN -> SCAFFOLD -> VALIDATE -> INTEGRATE |
-| `hook-development-pipeline` | SPEC -> IMPLEMENT -> TEST -> REGISTER -> DOCUMENT |
 | `research-pipeline` | SCOPE -> GATHER -> SYNTHESIZE -> VALIDATE -> DELIVER |
-| `agent-upgrade` | AUDIT -> DIFF -> PLAN -> IMPLEMENT -> RE-EVALUATE |
-| `explore-pipeline` | SCAN -> MAP -> ANALYZE -> REPORT |
-| `research-to-article` | RESEARCH -> COMPILE -> GROUND -> GENERATE -> VALIDATE -> REFINE -> OUTPUT |
-| `pr-pipeline` | CLASSIFY -> STAGE -> REVIEW -> COMMIT -> PUSH -> CREATE -> VERIFY -> CLEANUP |
+| `workflow` | Multi-phase workflows with references for specific types (review, debug, refactor, deploy, create, research) |
 | `voice-writer` | LOAD -> GROUND -> GENERATE -> VALIDATE -> REFINE -> JOY-CHECK -> OUTPUT -> CLEANUP |
 | `github-profile-rules` | PROFILE-SCAN -> CODE-ANALYSIS -> REVIEW-MINING -> PATTERN-SYNTHESIS -> RULES-GENERATION -> VALIDATION -> OUTPUT |
-| `doc-pipeline` | RESEARCH -> OUTLINE -> GENERATE -> VERIFY -> OUTPUT |
-| `workflow-orchestrator` | BRAINSTORM -> WRITE-PLAN -> EXECUTE-PLAN |
-| `de-ai-pipeline` | SCAN -> FIX -> VERIFY (loop max 3) -> REPORT |
+
+Old pipeline names (explore-pipeline, research-to-article, pr-pipeline, doc-pipeline, workflow-orchestrator, de-ai-pipeline) are now reference files within `skills/workflow/references/`.
 
 ---
 
@@ -427,10 +421,10 @@ Exit 0 = clean. Exit 1 = patterns found.
 |----------|----------|
 | Language | golang-general-engineer, python-general-engineer, typescript-frontend-engineer, nodejs-api-engineer |
 | Infrastructure | kubernetes-helm-engineer, ansible-automation-engineer, prometheus-grafana-engineer, rabbitmq-messaging-engineer |
-| Review | reviewer-security, reviewer-business-logic, reviewer-performance, reviewer-concurrency, reviewer-dead-code |
+| Review | reviewer-code, reviewer-system, reviewer-domain, reviewer-perspectives |
 | Data | database-engineer, sqlite-peewee-engineer, data-engineer |
 | Content | technical-documentation-engineer, technical-journalist-writer |
-| Meta | skill-creator, system-upgrade-engineer, pipeline-orchestrator-engineer, research-coordinator-engineer |
+| Meta | skill-creator, system-upgrade-engineer, toolkit-governance-engineer, research-coordinator-engineer |
 | Perses | perses-engineer |
 | UI/Perf | ui-design-engineer, performance-optimization-engineer, react-portfolio-engineer |
 | Research | research-coordinator-engineer, research-subagent-executor |

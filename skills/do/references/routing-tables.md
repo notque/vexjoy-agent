@@ -116,7 +116,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **docs-sync-checker** | User wants to check if README files or documentation are in sync with the actual code. |
 | **do-perspectives** | User wants multi-perspective analysis of a problem from 10 different lenses simultaneously. |
 | **do → parallel-analysis** | User wants parallel multi-angle extraction of insights from a document or codebase. Loaded from `skills/do/references/parallel-analysis.md`. |
-| **plans** | User wants to manage the plan lifecycle: create, track, or review plans. |
+| **plan-manager** | User wants to manage the plan lifecycle: create, track, or review plans. |
 | **learn** | User wants to teach Claude a new error pattern or record a reusable insight. |
 | **retro** | User wants to interact with the learning system: view stats, list accumulated knowledge, search learnings, or graduate mature entries into agents/skills. |
 | **generate-claudemd** | User wants to generate a project-specific CLAUDE.md by analyzing the current repository's structure and conventions. |
@@ -209,56 +209,33 @@ All workflow pipelines live in `skills/workflow/references/` and are accessed vi
 
 | Pipeline | When to Route Here | Phases |
 |----------|--------------------|--------|
+| **workflow** (umbrella) | All structured multi-phase workflows. Routes to the correct workflow based on intent. Includes: toolkit-improvement, system-upgrade, research-to-article, explore, doc-generation, comprehensive-review, article-evaluation, voice-calibrator, de-ai, auto-pipeline, and more. Each workflow lives in `skills/workflow/references/`. |
 | **toolkit-improvement** (FORCE) | User wants to evaluate, audit, or improve the toolkit itself. Dispatches 30+ reviewer agents in waves, synthesizes findings, has a skeptical grader challenge them, creates ADRs, implements fixes, and validates. Use for: "improve the toolkit", "evaluate the repo", "audit the system", "find issues", "self-improvement", "repo health check", "what can be better", "how can we improve", "make the toolkit better". NOT: reviewing a single PR (use /pr-review) or fixing one bug (use /systematic-debugging). | EVALUATE → RESEARCH → SYNTHESIZE → CRITIQUE → REPORT → ADR → IMPLEMENT → VALIDATE → REMEDIATE → RECORD |
-| **pipeline-scaffolder** (pipeline-orchestrator-engineer) | User wants to create a new pipeline, scaffold a new structured workflow from a spec. | LOAD → SCAFFOLD → INTEGRATE → REPORT |
 | **system-upgrade** (system-upgrade-engineer) | User wants to upgrade the Claude Code toolkit after a model update, apply system-wide changes, or roll out agent improvements. NOT: upgrading a specific library dependency in user code. | CHANGELOG → AUDIT → PLAN → IMPLEMENT → VALIDATE → DEPLOY |
-| **skill-creation-pipeline** (skill-creator) | User wants to create a new skill with formal quality gates, phase structure, and integration. | DISCOVER → DESIGN → SCAFFOLD → VALIDATE → INTEGRATE |
-| **hook-development-pipeline** (hook-development-engineer) | User wants to create a new hook with formal spec, performance testing, and registration. | SPEC → IMPLEMENT → TEST → REGISTER → DOCUMENT |
+| **workflow** (skill-creation, skill-creator) | User wants to create a new skill with formal quality gates, phase structure, and integration. | DISCOVER → DESIGN → SCAFFOLD → VALIDATE → INTEGRATE |
 | **research-pipeline** (research-coordinator-engineer) | User wants formal research with saved artifacts, multiple sources, and a synthesized deliverable. NOT: a quick lookup or single-source check. | SCOPE → GATHER → SYNTHESIZE → VALIDATE → DELIVER |
 | **agent-upgrade** (skill-creator) | User wants to audit and improve a specific agent to bring it up to current template standards. | AUDIT → DIFF → PLAN → IMPLEMENT → RE-EVALUATE |
-| **research-to-article** | User wants to research a topic and turn the findings into a written article. | RESEARCH → COMPILE → GROUND → GENERATE → VALIDATE → REFINE → OUTPUT |
-| **doc-pipeline** | User wants to generate documentation for a codebase, create a README, or write technical docs from scratch. | RESEARCH → OUTLINE → GENERATE → VERIFY → OUTPUT |
-| **pr-pipeline** | User wants the full structured PR workflow with review gates. | CLASSIFY → STAGE → REVIEW → COMMIT → PUSH → CREATE → VERIFY → CLEANUP |
-| **explore-pipeline** | User wants to understand a codebase: its structure, patterns, quality, and architecture. | SCAN → MAP → ANALYZE → [COMPILE → ASSESS → SYNTHESIZE → REFINE] → REPORT |
-| **article-evaluation-pipeline** | User wants to evaluate whether an article sounds authentic or has AI patterns. | FETCH → VALIDATE → ANALYZE → REPORT |
-| **mcp-pipeline-builder** (mcp-local-docs-engineer) | User wants to turn a repository into an MCP documentation server. | ANALYZE → DESIGN → GENERATE → VALIDATE → EVALUATE → REGISTER |
+| **pr-workflow** (pipeline mode) | User wants the full structured PR workflow with review gates. | CLASSIFY → STAGE → REVIEW → COMMIT → PUSH → CREATE → VERIFY → CLEANUP |
 | **voice-writer** | User wants to write content in a specific voice with multi-step generation and validation. | LOAD → GROUND → GENERATE → VALIDATE → REFINE → JOY-CHECK → OUTPUT → CLEANUP |
-| **comprehensive-review** | User wants a thorough review from multiple reviewer waves simultaneously. Common phrasings: "review this", "look at this code", "check this". | WAVE-0 → WAVE-1 → WAVE-2 → AGGREGATE → FIX |
-| **do-perspectives** | User wants multi-lens analysis of a problem from 10 different perspectives. | VALIDATE → ANALYZE → SYNTHESIZE → APPLY → VERIFY |
 | **github-profile-rules** (github-profile-rules-engineer) | User wants to extract programming rules or coding conventions from a GitHub user's repositories. | ADR → FETCH → RESEARCH → SAMPLE → COMPILE → GENERATE → VALIDATE → OUTPUT |
-| **voice-calibrator** | User wants to calibrate or refine a voice profile from samples. | VOICE-GROUNDING → VOICE-METRICS → THINKING-PATTERNS → VALIDATION |
 | **workflow-orchestrator** | User wants to orchestrate a plan with structured phases — brainstorm, plan, execute. | BRAINSTORM → WRITE-PLAN → EXECUTE-PLAN |
-| **de-ai-pipeline** | User wants to scan and fix AI patterns across documentation systematically. | SCAN → FIX → VERIFY (loop max 3) → REPORT |
-| **auto-pipeline** | No agent or skill matched — auto-fallback that classifies and executes with phase gates. | DEDUP → CLASSIFY → SELECT → ADAPT → EXECUTE/CRYSTALLIZE |
+| **do-perspectives** | User wants multi-lens analysis of a problem from 10 different perspectives. | VALIDATE → ANALYZE → SYNTHESIZE → APPLY → VERIFY |
 
-### Pipeline Companion Map
+### Workflow Companion Map
 
-Pipelines that work together in common workflows:
+Workflows that work together in common sequences:
 
-| Workflow | Pipeline Sequence | When |
-|----------|-------------------|------|
-| **Pipeline creation** | domain-research → chain-composer → pipeline-scaffolder → pipeline-test-runner → pipeline-retro | Creating new domain pipelines |
+| Workflow | Sequence | When |
+|----------|----------|------|
 | **Content creation** | research-pipeline → voice-writer | Research-backed articles in a specific voice |
-| **Feature lifecycle** | explore-pipeline → workflow-orchestrator → pr-pipeline | Understand → implement → ship |
-| **Code review** | comprehensive-review → pr-pipeline | Review then submit |
-| **Agent improvement** | agent-upgrade → skill-creation-pipeline | Audit agent, then scaffold missing skills |
-| **Toolkit improvement** | toolkit-improvement → system-upgrade → agent-upgrade | Evaluate → fix → upgrade system → upgrade agents |
+| **Feature lifecycle** | workflow (explore) → workflow-orchestrator → pr-workflow | Understand → implement → ship |
+| **Code review** | workflow (comprehensive-review) → pr-workflow | Review then submit |
+| **Agent improvement** | agent-upgrade → skill-creator | Audit agent, then scaffold missing skills |
+| **Toolkit improvement** | workflow (toolkit-improvement) → system-upgrade → agent-upgrade | Evaluate → fix → upgrade system → upgrade agents |
 | **System upgrade** | system-upgrade → agent-upgrade | Upgrade system, then individual agents |
-| **Voice development** | voice-calibrator → voice-writer → article-evaluation-pipeline | Calibrate → write → evaluate |
-| **Documentation** | explore-pipeline → doc-pipeline | Understand codebase → generate docs |
-| **Perses** | perses-dac-pipeline → perses-plugin-pipeline | Dashboard-as-Code + plugin development |
-
-### Pipeline Infrastructure
-
-These pipelines create/manage other pipelines (meta-pipelines):
-
-| Pipeline | Purpose |
-|----------|---------|
-| domain-research | Discover subdomains within a domain for pipeline generation |
-| chain-composer | Compose type-safe pipeline chains from the step menu |
-| pipeline-scaffolder | Scaffold skills/agents/hooks from Pipeline Spec JSON |
-| pipeline-test-runner | Test generated pipeline skills against real targets |
-| pipeline-retro | Trace test failures to generator root causes (Three-Layer Pattern) |
+| **Voice development** | workflow (voice-calibrator) → voice-writer → workflow (article-evaluation) | Calibrate → write → evaluate |
+| **Documentation** | workflow (explore) → workflow (doc-generation) | Understand codebase → generate docs |
+| **Perses** | perses (dac mode) → perses (plugin mode) | Dashboard-as-Code + plugin development |
 
 ---
 
@@ -292,38 +269,20 @@ These pipelines create/manage other pipelines (meta-pipelines):
 
 | Skill | When to Route Here |
 |-------|-------------------|
-| **perses-dashboard-create** (perses-engineer) | User wants to create a new Perses dashboard from scratch. |
-| **perses-deploy** (perses-engineer) | User wants to deploy or install a Perses server instance. |
-| **perses-onboard** (perses-engineer) | User wants to connect to or set up a new Perses environment. |
-| **perses-grafana-migrate (FORCE)** | User wants to migrate a Grafana dashboard to Perses format. NOT: any other migration or conversion task. |
-| **perses-dac-pipeline (FORCE)** | User wants dashboard-as-code: managing Perses dashboards via CUE, GitOps, or code-driven workflows. |
-| **perses-datasource-manage** (perses-engineer) | User wants to add or configure a Prometheus or other datasource in Perses. |
-| **perses-variable-manage** (perses-engineer) | User wants to add or edit variables or filters in a Perses dashboard. |
-| **perses-project-manage** (perses-engineer) | User wants to create Perses projects, configure RBAC, or manage roles. |
-| **perses-lint (FORCE)** | User wants to validate or lint a Perses dashboard definition for correctness. NOT: "check the dashboard" meaning visual review. |
-| **perses-query-builder** (perses-engineer) | User wants to build PromQL or LogQL queries for use in Perses panels. |
-| **perses-dashboard-review** (perses-engineer) | User wants a review of an existing Perses dashboard for quality or correctness. |
-| **perses-plugin-create (FORCE)** | User wants to create a new Perses plugin: a panel plugin or datasource plugin. |
-| **perses-plugin-pipeline** (perses-engineer) | User wants the full plugin development workflow with scaffolding, schema, testing. |
-| **perses-cue-schema** (perses-engineer) | User wants to work on Perses CUE schema definitions or plugin data models. |
-| **perses-plugin-test** (perses-engineer) | User wants to test a Perses plugin or validate its schema. |
-| **perses-code-review** (perses-engineer) | User wants a code review of a Perses-related PR or Go code in Perses repositories. |
+| **perses (FORCE)** (perses-engineer) | User wants to work with the Perses observability platform: dashboards, plugins, deployment, migration, linting, datasources, variables, projects, CUE schemas, or code review. Routes to the correct sub-workflow based on intent. NOT: general Prometheus/Grafana work (use prometheus-grafana-engineer). |
 
 ---
 
-## Roaster Agents
+## Reviewer Agents
 
-Invoked via the roast skill or directly:
+Consolidated reviewer agents, each covering multiple review perspectives:
 
 | Agent | When to Route Here |
 |-------|-------------------|
-| **reviewer-contrarian** | Reviewer that challenges fundamental assumptions, proposes alternatives, and questions premises. |
-| **reviewer-newcomer** | Reviewer that critiques from a fresh-eyes perspective: onboarding friction, accessibility, missing context. |
-| **reviewer-pragmatic-builder** | Reviewer focused on operational reality: production readiness, ops burden, deployment concerns. |
-| **reviewer-skeptical-senior** | Reviewer focused on long-term sustainability, maintenance cost, and technical debt. |
-| **reviewer-pedant** | Reviewer focused on technical precision, spec compliance, and terminology accuracy. |
-| **reviewer-meta-process** | Reviewer that analyzes the system design itself: single points of failure, inappropriate authority concentration, complexity vs. value, reversibility. Use for "architecture health", "meta-process review", "is this too centralized", "complexity audit". NOT: code quality, security, or premise challenges. |
-| **reviewer-user-advocate** | Reviewer that evaluates decisions from the end-user's perspective: complexity burden, confusing UX, benefit vs. cost. Use for user-facing design reviews, configuration complexity, or "is this worth it for users". |
+| **reviewer-code** | Code quality review: conventions, naming, dead code, performance, types, tests, comments, config safety. Use for code style, readability, simplification, language idioms, naming consistency, unused code, comment accuracy, hot paths, type design, test coverage, and configuration review. |
+| **reviewer-system** | System review: security, concurrency, errors, observability, APIs, migrations, dependencies, docs. Use for vulnerability scans, race conditions, goroutine leaks, silent failures, error messages, logging quality, API contracts, migration safety, dependency audits, and documentation validation. |
+| **reviewer-perspectives** | Multi-perspective review: newcomer, senior, pedant, contrarian, user advocate, meta-process. Use for fresh-eyes critique, skeptical senior review, technical precision, assumption challenges, user impact analysis, and system design meta-review. |
+| **reviewer-domain** | Domain-specific review: ADR compliance, business logic, SAP CC structural, pragmatic builder. Use for architecture decision compliance, domain correctness, sapcc Go conventions, and production readiness critique. |
 
 ---
 
@@ -358,8 +317,8 @@ Invoked via the roast skill or directly:
 | "check my logic here" | (domain agent + review) | Intent: review — not CI |
 | "get a second opinion on this code" | codex-code-review | Cross-model review via Codex CLI |
 | "codex review this PR" | codex-code-review | Explicit Codex review request |
-| "research then write article" | research-to-article pipeline | Research-backed content creation |
-| "create a pipeline for X" | pipeline-orchestrator-engineer + pipeline-scaffolder | Pipeline creation |
+| "research then write article" | research-pipeline → voice-writer | Research-backed content creation |
+| "create a pipeline for X" | pipeline-orchestrator-engineer + workflow | Pipeline creation |
 | "improve the toolkit" | toolkit-improvement (FORCE) | Full 10-phase evaluation + improvement |
 | "evaluate the repo" | toolkit-improvement (FORCE) | Full 10-phase evaluation + improvement |
 | "audit the system" | toolkit-improvement (FORCE) | Full 10-phase evaluation + improvement |
@@ -367,8 +326,8 @@ Invoked via the roast skill or directly:
 | "what can be better" | toolkit-improvement (FORCE) | Full 10-phase evaluation + improvement |
 | "self-improvement" | toolkit-improvement (FORCE) | Full 10-phase evaluation + improvement |
 | "upgrade system for new Claude version" | system-upgrade-engineer + system-upgrade | System-wide upgrade |
-| "create skill with quality gates" | skill-creator + skill-creation-pipeline | Formal skill creation |
-| "create hook (formal, with perf test)" | hook-development-engineer + hook-development-pipeline | Formal hook creation |
+| "create skill with quality gates" | skill-creator + workflow (skill-creation) | Formal skill creation |
+| "create hook (formal, with perf test)" | hook-development-engineer + workflow (hook-development) | Formal hook creation |
 | "research with saved artifacts" | research-coordinator-engineer + research-pipeline | Formal research pipeline |
 | "upgrade this specific agent" | skill-creator + agent-upgrade | Single agent improvement |
 | "create a 3D scene" | typescript-frontend-engineer + threejs-builder | Frontend domain, 3D task |

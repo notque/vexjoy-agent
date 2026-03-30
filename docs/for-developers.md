@@ -16,7 +16,7 @@ User request
   Agent (*.md)          -- domain expert (Go, Python, K8s, review...)
      |
      v
-  Skill (SKILL.md)      -- workflow methodology (TDD, debugging, PR pipeline...)
+  Skill (SKILL.md)      -- workflow methodology (TDD, debugging, PR workflow...)
      |
      v
   Script (*.py)         -- deterministic operations (no LLM judgment)
@@ -95,20 +95,14 @@ Describe the event type, what it should detect or inject, and any performance co
 
 Hooks must meet a **50ms performance target** since they fire on every tool call or prompt.
 
-### Creating a Pipeline
-
-```
-/do create a pipeline for [your domain]
-```
-
-The `pipeline-orchestrator-engineer` decomposes the domain into subdomains, composes pipeline chains, scaffolds skills, and wires routing. See `commands/create-pipeline.md` for details.
-
 ### Key Architecture Points
 
 - **Agents** (`agents/*.md`) know *what* to do -- domain expertise, patterns, anti-patterns
 - **Skills** (`skills/*/SKILL.md`) know *how* to structure work -- phases, gates, methodology
 - **Hooks** (`hooks/*.py`) fire on lifecycle events -- JSON in, JSON out, 50ms budget
 - **Scripts** (`scripts/*.py`) do deterministic work -- linting, indexing, validation
+
+Multi-phase workflows that were previously standalone pipelines (in `pipelines/`) are now reference files within the `workflow` skill (`skills/workflow/references/`). If you need a structured multi-phase workflow, add a reference to `skills/workflow/references/` rather than creating a standalone pipeline.
 
 The `/do` router connects everything. After creating any component, test it:
 
@@ -127,7 +121,7 @@ This repo uses a structured workflow for changes. It's more than "branch, commit
 1. **Branch** -- create a feature branch off main. Convention: `feature/description`, `fix/description`, `refactor/description`.
 2. **Implement** -- make your changes. Agents, skills, hooks, scripts, whatever.
 3. **Wave review** -- run `/pr-review` which dispatches parallel reviewer agents against your changes. They check code quality, naming, security, dead code, error handling, and more.
-4. **Fix** -- address reviewer findings. The PR pipeline does up to 3 review-fix iterations automatically.
+4. **Fix** -- address reviewer findings. The PR workflow does up to 3 review-fix iterations automatically.
 5. **Retro** -- after significant work, the system captures learnings into the learning database. These get injected into future sessions.
 6. **Graduate** -- mature retro entries (high confidence, validated multiple times) get promoted into agent and skill files permanently.
 7. **Commit** -- conventional commit format. No AI attribution lines. Focus on what and why.
@@ -136,9 +130,9 @@ This repo uses a structured workflow for changes. It's more than "branch, commit
 10. **CI** -- wait for CI checks to pass.
 11. **Merge** -- after CI and any human review.
 
-The `pr-pipeline` skill automates steps 3-10. You can invoke it with `/pr` or let `/do` route to it when you say "create a PR" or "submit changes."
+The `pr-workflow` skill automates steps 3-10. You can invoke it with `/pr-workflow` or let `/do` route to it when you say "create a PR" or "submit changes."
 
-For repos under protected organizations (configured in `scripts/classify-repo.py`), every git action requires user confirmation. The pipeline won't auto-commit, auto-push, or auto-create PRs for those repos.
+For repos under protected organizations (configured in `scripts/classify-repo.py`), every git action requires user confirmation. The workflow won't auto-commit, auto-push, or auto-create PRs for those repos.
 
 ## Testing
 

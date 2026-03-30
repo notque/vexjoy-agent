@@ -97,7 +97,7 @@ Even when there is time pressure, do not skip consultation because blocking conc
 
 **Standard mode (3 agents)**: Always dispatch all three.
 
-**Complex mode (5 agents)**: For Complex decisions (new subsystem, major API change), add `reviewer-security` and a second domain expert. Enable with "complex consultation" or "full consultation".
+**Complex mode (5 agents)**: For Complex decisions (new subsystem, major API change), add `reviewer-system` and a second domain expert. Enable with "complex consultation" or "full consultation".
 
 Each agent receives:
 1. The full ADR content as context
@@ -105,7 +105,7 @@ Each agent receives:
 3. Explicit output path: `adr/{adr-name}/{agent-name}.md`
 4. The structured output format defined below
 
-**Agent 1: reviewer-contrarian**
+**Agent 1: reviewer-perspectives (contrarian lens)**
 
 Lens: Challenge assumptions, find simpler alternatives, validate premises.
 
@@ -118,7 +118,7 @@ solving the wrong problem.
 ADR Content:
 {full adr content}
 
-Write your consultation response to: adr/{adr-name}/reviewer-contrarian.md
+Write your consultation response to: adr/{adr-name}/reviewer-perspectives-contrarian.md
 
 Structure your response as:
 
@@ -145,7 +145,7 @@ Structure your response as:
 [Concrete recommendation with rationale.]
 ```
 
-**Agent 2: reviewer-user-advocate**
+**Agent 2: reviewer-perspectives (user-advocate lens)**
 
 Lens: Evaluate user impact, UX complexity cost, whether this makes the system harder to use.
 
@@ -158,7 +158,7 @@ user value? Who bears the cognitive load of this change?
 ADR Content:
 {full adr content}
 
-Write your consultation response to: adr/{adr-name}/reviewer-user-advocate.md
+Write your consultation response to: adr/{adr-name}/reviewer-perspectives-user-advocate.md
 
 Structure your response as:
 
@@ -185,7 +185,7 @@ Structure your response as:
 [Concrete recommendation with rationale.]
 ```
 
-**Agent 3: reviewer-meta-process**
+**Agent 3: reviewer-perspectives (meta-process lens)**
 
 Lens: System health, single points of failure, whether this makes one component indispensable, whether it aligns with established architecture principles.
 
@@ -201,7 +201,7 @@ ADR Content:
 
 Also read the repository's CLAUDE.md for established principles before analyzing.
 
-Write your consultation response to: adr/{adr-name}/reviewer-meta-process.md
+Write your consultation response to: adr/{adr-name}/reviewer-perspectives-meta-process.md
 
 Structure your response as:
 
@@ -244,9 +244,9 @@ Structure your response as:
 Read the response files from disk, not from Task return context, because files persist across sessions while context does not — synthesis from context is not reproducible.
 
 ```bash
-cat adr/{adr-name}/reviewer-contrarian.md
-cat adr/{adr-name}/reviewer-user-advocate.md
-cat adr/{adr-name}/reviewer-meta-process.md
+cat adr/{adr-name}/reviewer-perspectives-contrarian.md
+cat adr/{adr-name}/reviewer-perspectives-user-advocate.md
+cat adr/{adr-name}/reviewer-perspectives-meta-process.md
 ```
 
 **Step 2: Extract all concerns**
@@ -257,7 +257,7 @@ Track every concern raised by any agent in `adr/{adr-name}/concerns.md` with sev
 # Concerns: {adr-name}
 
 ## Concern 1: [Title]
-- **Raised by**: reviewer-contrarian | reviewer-user-advocate | reviewer-meta-process
+- **Raised by**: reviewer-perspectives (contrarian) | reviewer-perspectives (user-advocate) | reviewer-perspectives (meta-process)
 - **Severity**: blocking | important | minor
 - **Description**: [What's wrong or at risk]
 - **Resolution**: UNRESOLVED
@@ -299,9 +299,9 @@ Write `adr/{adr-name}/synthesis.md`:
 ## Agent Verdicts
 | Agent | Verdict |
 |-------|---------|
-| reviewer-contrarian | [verdict] |
-| reviewer-user-advocate | [verdict] |
-| reviewer-meta-process | [verdict] |
+| reviewer-perspectives (contrarian) | [verdict] |
+| reviewer-perspectives (user-advocate) | [verdict] |
+| reviewer-perspectives (meta-process) | [verdict] |
 
 ## Areas of Agreement
 [Where all agents agree — positive or negative.]
@@ -376,17 +376,17 @@ Do not rationalize blocking concerns as "theoretical" because theoretical risk i
  Verdict: PROCEED — no blocking concerns found.
 
  Agent Verdicts:
-   - reviewer-contrarian:    [verdict]
-   - reviewer-user-advocate: [verdict]
-   - reviewer-meta-process:  [verdict]
+   - reviewer-perspectives (contrarian):    [verdict]
+   - reviewer-perspectives (user-advocate): [verdict]
+   - reviewer-perspectives (meta-process):  [verdict]
 
  Important Concerns (non-blocking):
    [{raised by}] {concern title} — {brief description}
 
  Consultation artifacts:
-   - adr/{adr-name}/reviewer-contrarian.md
-   - adr/{adr-name}/reviewer-user-advocate.md
-   - adr/{adr-name}/reviewer-meta-process.md
+   - adr/{adr-name}/reviewer-perspectives-contrarian.md
+   - adr/{adr-name}/reviewer-perspectives-user-advocate.md
+   - adr/{adr-name}/reviewer-perspectives-meta-process.md
    - adr/{adr-name}/synthesis.md
    - adr/{adr-name}/concerns.md
 ═══════════════════════════════════════════════════════════════
@@ -455,4 +455,4 @@ concerns.md and factor it into the verdict.
 
 - [ADR: Multi-Agent Consultation](../../adr/multi-agent-consultation.md) — The architecture decision this skill implements
 - [parallel-code-review](../parallel-code-review/SKILL.md) — Fan-out/fan-in pattern this skill adapts
-- [reviewer-contrarian](../../agents/reviewer-contrarian.md) — Contrarian lens agent
+- [reviewer-perspectives](../../agents/reviewer-perspectives.md) — Perspectives agent (contrarian, user-advocate, meta-process lenses)

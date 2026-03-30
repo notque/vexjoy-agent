@@ -21,10 +21,7 @@ routing:
     - three-layer fix
     - fix generator
   pairs_with:
-    - pipeline-test-runner
-    - pipeline-scaffolder
-    - chain-composer
-    - domain-research
+    - workflow
   complexity: Medium
   category: meta
 ---
@@ -33,7 +30,7 @@ routing:
 
 ## Purpose
 
-Close the self-improvement loop for the pipeline generator. When `pipeline-test-runner` reports failures, this skill traces each failure to its root cause in the generation chain, proposes fixes at the **generator** level (not the artifact level), then regenerates and re-tests to prove the fix works.
+Close the self-improvement loop for the pipeline generator. When the workflow test-runner phase reports failures, this skill traces each failure to its root cause in the generation chain, proposes fixes at the **generator** level (not the artifact level), then regenerates and re-tests to prove the fix works.
 
 This skill implements the **Three-Layer Pattern** from `adr/self-improving-pipeline-generator.md`:
 
@@ -57,7 +54,7 @@ The critical discipline: route every fix through the generator so all future pip
 ### Input
 
 This skill requires:
-- **Test Report Path**: Path to the pipeline-test-runner output directory containing `manifest.json` and `content.md`
+- **Test Report Path**: Path to the workflow test-runner output directory containing `manifest.json` and `content.md`
 - **Pipeline Spec Path**: Path to the Pipeline Spec JSON used to generate the pipelines
 - **Domain**: The domain name (e.g., `prometheus`, `rabbitmq`)
 
@@ -110,11 +107,11 @@ The generation chain has 5 links. Each link is a component of the pipeline gener
 
 | Link | Component | What It Controls | Files to Examine |
 |------|-----------|-----------------|-----------------|
-| 1. Domain Research | `domain-research` skill | Subdomain discovery, task type classification | The domain research artifact from Phase 1 |
-| 2. Chain Composition | `chain-composer` skill | Step selection, step ordering, type compatibility | The Pipeline Spec JSON |
-| 3. Scaffolder Template | `generated-skill-template.md` | Phase implementation patterns, chain-to-phase mapping | `pipelines/pipeline-scaffolder/references/generated-skill-template.md` |
-| 4. Architecture Rules | `architecture-rules.md` | Structural constraints on generated components | `pipelines/pipeline-scaffolder/references/architecture-rules.md` |
-| 5. Step Menu | `step-menu.md` | Available step types, output schemas, type compatibility | `pipelines/pipeline-scaffolder/references/step-menu.md` |
+| 1. Domain Research | `workflow` skill (research phase) | Subdomain discovery, task type classification | The domain research artifact from Phase 1 |
+| 2. Chain Composition | `workflow` skill (composition phase) | Step selection, step ordering, type compatibility | The Pipeline Spec JSON |
+| 3. Scaffolder Template | `generated-skill-template.md` | Phase implementation patterns, chain-to-phase mapping | `skills/workflow/references/generated-skill-template.md` |
+| 4. Architecture Rules | `architecture-rules.md` | Structural constraints on generated components | `skills/workflow/references/architecture-rules.md` |
+| 5. Step Menu | `step-menu.md` | Available step types, output schemas, type compatibility | `skills/workflow/references/step-menu.md` |
 
 **For each failure**:
 
@@ -162,27 +159,27 @@ Save the trace analysis to `/tmp/pipeline-retro-{domain}/trace-analysis.md`.
 **Fix Proposals by Classification**:
 
 **`research-miss`** -- Domain research failed to discover the right information.
-- Target: `pipelines/domain-research/SKILL.md`
+- Target: `skills/workflow/SKILL.md` (research phase)
 - Propose: Adding a new research agent aspect, modifying discovery prompts, or expanding the subdomain classification criteria
 - Evidence required: Show what the research missed and how it led to the downstream failure
 
 **`chain-error`** -- Chain composition selected wrong steps or wrong order.
-- Target: `pipelines/chain-composer/references/canonical-chains.md` (pattern library) or `pipelines/pipeline-scaffolder/references/step-menu.md` (step definitions)
+- Target: `skills/workflow/references/canonical-chains.md` (pattern library) or `skills/workflow/references/step-menu.md` (step definitions)
 - Propose: Adding a new canonical chain pattern, modifying step ordering rules, or adding a profile gate
 - Evidence required: Show the chain that was composed, the step that was wrong, and the correct alternative
 
 **`template-bug`** -- The generated-skill-template produced an incorrect phase implementation.
-- Target: `pipelines/pipeline-scaffolder/references/generated-skill-template.md`
+- Target: `skills/workflow/references/generated-skill-template.md`
 - Propose: Fixing the chain-to-phase mapping for the affected step family, correcting template variable substitution, or adding missing template sections
 - Evidence required: Show the template output vs. what it should have produced
 
 **`missing-rule`** -- Architecture rules lack coverage for this case.
-- Target: `pipelines/pipeline-scaffolder/references/architecture-rules.md`
+- Target: `skills/workflow/references/architecture-rules.md`
 - Propose: A new rule with full format: Rule N, BANNED/REQUIRED statement, evidence citation, test/enforcement guidance
 - Evidence required: The failure trace that proves the rule is necessary. Per the ADR: "Rules earn their place through data."
 
 **`missing-step`** -- The step menu lacks a step type that was needed.
-- Target: `pipelines/pipeline-scaffolder/references/step-menu.md`
+- Target: `skills/workflow/references/step-menu.md`
 - Propose: A new step entry with: name, output schema, consumes, parallel flag, when-to-use description
 - Evidence required: Show the gap in the chain that a new step type would fill, and why existing steps cannot cover it
 - NOTE: Step menu changes are always presented for review, never auto-applied. Step menu changes affect the type system of ALL pipeline composition. A bad step type is worse than a missing one.
@@ -227,18 +224,18 @@ If the user rejects a complex fix, log the rejection and skip regeneration for t
 
 After applying generator fixes:
 
-1. Invoke `chain-composer` for the affected subdomains only (not the entire domain, unless a step menu change affects all chains)
+1. Invoke the `workflow` skill (composition phase) for the affected subdomains only (not the entire domain, unless a step menu change affects all chains)
 2. Validate the new chains with `scripts/artifact-utils.py validate-chain`
 3. If validation fails: the fix introduced a type incompatibility. Revert the fix and investigate further.
 
 **Step 3: Re-run scaffolder for affected skills**
 
-1. Invoke `pipeline-scaffolder` for the affected subdomain skills only
+1. Invoke the `workflow` skill (scaffolder phase) for the affected subdomain skills only
 2. The scaffolder reads the updated generator components (template, rules, step menu) automatically
 
 **Step 4: Re-run test runner for regenerated skills**
 
-1. Invoke `pipeline-test-runner` for the regenerated skills
+1. Invoke the `workflow` skill (test-runner phase) for the regenerated skills
 2. Collect new test results
 
 **Step 5: Compare before/after**
@@ -395,7 +392,7 @@ Save the report to the pipeline run directory alongside the test runner output.
 
 ### Error: No Test Runner Report Found
 **Cause**: The test runner was not invoked before the retro, or the report path is wrong.
-**Solution**: Verify the test runner report path. If the report doesn't exist, this skill cannot run -- report the error to the orchestrator and suggest re-running `pipeline-test-runner` first.
+**Solution**: Verify the test runner report path. If the report doesn't exist, this skill cannot run -- report the error to the orchestrator and suggest re-running the `workflow` skill (test-runner phase) first.
 
 ### Error: Generated Skill File Missing
 **Cause**: During Phase 2 trace analysis, the generated skill file doesn't exist at the expected path.
@@ -419,7 +416,4 @@ Save the report to the pipeline run directory alongside the test runner output.
 
 - **Pipeline Orchestrator**: [agents/pipeline-orchestrator-engineer.md](../../agents/pipeline-orchestrator-engineer.md) -- The agent that invokes this skill as Phase 6
 - **Three-Layer Pattern ADR**: [adr/self-improving-pipeline-generator.md](../../adr/self-improving-pipeline-generator.md) -- Design rationale for Layer 1/2/3 discipline
-- **Chain Composer**: [pipelines/chain-composer/SKILL.md](../chain-composer/SKILL.md) -- Creates Pipeline Spec from domain research
-- **Pipeline Scaffolder**: [pipelines/pipeline-scaffolder/SKILL.md](../pipeline-scaffolder/SKILL.md) -- Generates skills from Pipeline Spec
-- **Pipeline Test Runner**: [pipelines/pipeline-test-runner/SKILL.md](../pipeline-test-runner/SKILL.md) -- Tests generated pipelines and produces retro input
-- **Domain Research**: [pipelines/domain-research/SKILL.md](../domain-research/SKILL.md) -- Link 1 in the generation chain
+- **Workflow Skill**: [skills/workflow/SKILL.md](../SKILL.md) -- Consolidated workflow skill (replaces chain-composer, pipeline-scaffolder, pipeline-test-runner, domain-research)
