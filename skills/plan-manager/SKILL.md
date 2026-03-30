@@ -1,12 +1,6 @@
 ---
 name: plan-manager
-description: |
-  Deterministic plan lifecycle management via scripts/plan-manager.py CLI.
-  Use when user asks to list, show, create, check, complete, or abandon plans,
-  or when session starts and stale plans need surfacing. Use for "check plans",
-  "what's on our plan", "mark task done", "finish this plan", or "create a plan".
-  Do NOT use for executing plan tasks, modifying plan content directly, or
-  performance/refactoring work unrelated to plan tracking.
+description: "Plan lifecycle management via plan-manager.py: list, create, check, complete, abandon plans."
 version: 2.0.0
 user-invocable: true
 allowed-tools:

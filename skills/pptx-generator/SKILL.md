@@ -1,12 +1,6 @@
 ---
 name: pptx-generator
-description: |
-  6-phase PPTX presentation generation with visual QA: Gather, Design,
-  Generate, Convert, QA, Output. Use when user needs a PowerPoint deck,
-  slide presentation, pitch deck, or conference talk slides.
-  Triggers: "create a presentation", "make slides", "pitch deck", "powerpoint",
-  "pptx", "slide deck", "generate presentation".
-  Route to other skills for Google Slides, Keynote, or PDF-only documents.
+description: "PPTX presentation generation with visual QA: slides, pitch decks."
 version: 1.0.0
 user-invocable: false
 allowed-tools:

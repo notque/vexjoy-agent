@@ -2,15 +2,7 @@
 name: golang-general-engineer-compact
 model: sonnet
 version: 3.0.0
-description: |
-  Use this agent for focused Go development with tight context budgets. Specializes in
-  modern Go patterns (1.26+), concurrency, testing, and production-ready code. Compact
-  variant provides streamlined expertise without verbose explanations, ideal for targeted
-  implementations, quick refactoring, and efficient code reviews. Includes gopls MCP
-  awareness and version-specific modern Go idiom enforcement.
-
-  Example: "I need to create a worker pool that processes events from a queue"
-
+description: "Compact Go development for tight context budgets. Modern Go 1.26+ patterns."
 color: blue
 memory: project
 routing:

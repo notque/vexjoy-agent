@@ -1,12 +1,6 @@
 ---
 name: topic-brainstormer
-description: |
-  Generate blog post topic ideas through problem mining, gap analysis, and
-  technology expansion. Use when user needs content ideas, wants to brainstorm
-  articles, asks "what should I write about", or needs to fill content gaps.
-  Use for "brainstorm", "topic ideas", "what to write", "content gaps", or
-  "blog ideas". Do NOT use for writing posts, creating outlines, or SEO
-  optimization without a specific ideation need.
+description: "Generate blog topic ideas: problem mining, gap analysis, expansion."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

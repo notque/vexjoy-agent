@@ -2,10 +2,7 @@
 name: reviewer-pragmatic-builder
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent when you need production-focused critique and operational reality checks for code, documentation, architecture, or deployment plans. This includes analyzing production readiness, error handling robustness, observability gaps, deployment feasibility, edge case handling, and real-world scalability concerns. The agent specializes in identifying operational blind spots, runtime failure modes, monitoring gaps, and practical deployment challenges from a builder's perspective.
-
-  Example: "Review this microservice architecture for production readiness"
+description: "Pragmatic review: production readiness, operational reality, deployment concerns."
 color: orange
 routing:
   triggers:

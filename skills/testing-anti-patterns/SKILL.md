@@ -1,13 +1,6 @@
 ---
 name: testing-anti-patterns
-description: |
-  Identify and fix common testing mistakes across unit, integration, and E2E
-  test suites. Use when tests are flaky, brittle, over-mocked, order-dependent,
-  slow, poorly named, or providing false confidence. Use for "test smell",
-  "fragile test", "flaky test", "over-mocking", "test quality issue", or
-  "skipped tests". Route to other skills for writing new tests from scratch (use
-  test-driven-development), refactoring architecture (use systematic-refactoring),
-  or performance profiling without a specific test quality symptom.
+description: "Identify and fix testing mistakes: flaky, brittle, over-mocked tests."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

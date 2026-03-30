@@ -1,13 +1,6 @@
 ---
 name: roast
-description: |
-  Constructive critique through 5 HackerNews commenter personas with
-  evidence-based claim validation. Use when user wants devil's advocacy,
-  stress testing, or critical review of ideas, docs, architecture, or code.
-  Use for "roast", "critique this", "poke holes", "devil's advocate",
-  "stress test", or "what's wrong with". Do NOT use for code review
-  (use systematic-code-review), implementation changes, or performance
-  profiling without a specific critique request.
+description: "Constructive critique via 5 HackerNews personas with claim validation."
 version: 2.0.0
 user-invocable: false
 argument-hint: "<target to critique>"

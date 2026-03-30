@@ -1,12 +1,6 @@
 ---
 name: pr-mining-coordinator
-description: |
-  Coordinate PR mining to extract tribal knowledge and coding standards from
-  GitHub PR history. Use when mining review comments, extracting coding rules,
-  tracking mining jobs, or analyzing reviewer patterns across repositories.
-  Use for "mine PRs", "extract standards", "coding rules from reviews", or
-  "reviewer patterns". Route to other skills for code review, linting, static analysis,
-  or writing new coding standards from scratch without PR data.
+description: "Coordinate PR mining for tribal knowledge and coding standards extraction."
 version: 2.0.0
 user-invocable: false
 allowed-tools:
