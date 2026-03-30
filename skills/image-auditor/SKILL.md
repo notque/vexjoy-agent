@@ -1,12 +1,6 @@
 ---
 name: image-auditor
-description: |
-  Non-destructive 4-phase image validation: Discover, Validate, Analyze,
-  Report. Use when auditing web images for accessibility, broken references,
-  oversized files, or format mismatches. Use for "image audit", "check alt
-  text", "find broken images", "optimize images", or "page weight". Do NOT
-  use for image creation, editing pixels, CDN configuration, or automated
-  image conversion without explicit user consent.
+description: "Non-destructive image validation for accessibility and health."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

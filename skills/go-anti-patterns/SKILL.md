@@ -1,13 +1,6 @@
 ---
 name: go-anti-patterns
-description: |
-  Detect and remediate Go anti-patterns: premature interface abstraction,
-  goroutine overkill, context soup, error wrapping mistakes, generic abuse,
-  channel misuse, unnecessary function extraction, and interface pollution.
-  Use when reviewing Go code for quality, detecting over-engineering, or when
-  user mentions "anti-pattern", "code smell", "Go mistake", or "bad Go".
-  Do NOT use for feature implementation, performance optimization without a
-  code smell, or non-Go languages.
+description: "Detect and remediate Go anti-patterns."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

@@ -1,12 +1,6 @@
 ---
 name: content-calendar
-description: |
-  Manage editorial content pipeline through 6 stages: Ideas, Outlined, Drafted,
-  Editing, Ready, Published. Use when user wants to view pipeline status, add
-  ideas, move content between stages, schedule posts, or archive published
-  content. Use for "content calendar", "pipeline status", "add idea", "schedule
-  post", or "move to drafted". Do NOT use for creating Hugo content files,
-  deploying posts, or modifying site configuration.
+description: "Manage editorial content through 6 pipeline stages."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

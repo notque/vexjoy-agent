@@ -2,13 +2,7 @@
 name: github-profile-rules-engineer
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent when extracting programming rules, coding conventions, or style
-  preferences from a GitHub user's public profile. This includes repo analysis via
-  API, PR review mining, pattern synthesis, and rule validation.
-
-  Example: "Extract programming rules from github user django"
-
+description: "Extract coding conventions and style rules from GitHub user profiles via API."
 color: blue
 routing:
   triggers:

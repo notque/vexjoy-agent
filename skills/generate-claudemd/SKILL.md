@@ -1,13 +1,6 @@
 ---
 name: generate-claudemd
-description: |
-  Generate a project-specific CLAUDE.md by analyzing the current repository's
-  code, build system, and architecture. 4-phase pipeline: SCAN, DETECT,
-  GENERATE, VALIDATE. Auto-detects language/framework and enriches output with
-  domain-specific conventions (e.g., go-sapcc-conventions for sapcc Go repos).
-  Use for "generate claude.md", "create claude.md", "init claude.md",
-  "bootstrap claude.md", "make claude.md". Do NOT use for improving an existing
-  CLAUDE.md (use claude-md-improver instead).
+description: "Generate project-specific CLAUDE.md from repo analysis."
 version: 1.0.0
 user-invocable: false
 command: /generate-claudemd

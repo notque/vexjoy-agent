@@ -1,12 +1,7 @@
 ---
 name: perses-code-review
 user-invocable: false
-description: |
-  Perses-aware code review: check Go backend against Perses patterns, React components
-  against Perses UI conventions, CUE schemas against plugin spec, and dashboard
-  definitions against best practices. Dispatches appropriate sub-reviewers. Use for
-  "review perses", "perses pr", "perses code review". Do NOT use for general Go/React
-  review without Perses context.
+description: "Perses-aware code review: Go backend, React UI, CUE schemas, dashboards."
 allowed-tools:
   - Read
   - Grep

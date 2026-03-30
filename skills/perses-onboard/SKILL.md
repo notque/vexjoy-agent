@@ -1,14 +1,7 @@
 ---
 name: perses-onboard
 user-invocable: false
-description: |
-  First-time Perses setup pipeline: discover or deploy server, configure MCP connection,
-  create initial project, add datasources, and verify connectivity. 4-phase pipeline:
-  DISCOVER, CONNECT, CONFIGURE, VALIDATE. Use when setting up Perses for the first time,
-  connecting Claude Code to an existing Perses instance, or onboarding a new team to Perses.
-  Use for "perses onboard", "setup perses", "connect to perses", "perses getting started".
-  Do NOT use for dashboard creation (use perses-dashboard-create) or server deployment
-  details (use perses-deploy).
+description: "First-time Perses setup: discover server, configure MCP, add datasources."
 allowed-tools:
   - Read
   - Grep

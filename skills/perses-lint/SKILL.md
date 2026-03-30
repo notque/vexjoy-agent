@@ -1,11 +1,7 @@
 ---
 name: perses-lint
 user-invocable: false
-description: |
-  Validate Perses resources: run percli lint locally or with --online against a server.
-  Check dashboard definitions, datasource configs, variable schemas. Report errors with
-  actionable fixes. Use for "perses lint", "validate perses", "check dashboard",
-  "perses validate". Do NOT use for plugin schema testing (use perses-plugin-test).
+description: "Validate Perses resources via percli lint: dashboards, datasources, schemas."
 allowed-tools:
   - Read
   - Grep

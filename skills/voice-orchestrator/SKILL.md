@@ -1,13 +1,6 @@
 ---
 name: voice-orchestrator
-description: |
-  Multi-step voice content generation with deterministic validation. Orchestrates
-  a 7-phase pipeline: LOAD, GROUND, GENERATE, VALIDATE, REFINE, OUTPUT, CLEANUP.
-  Use when generating content in a specific voice, writing as a persona, or
-  validating existing content against a voice profile. Use for "voice write",
-  "write as", "generate in voice", or "voice content". Route to other skills for creating
-  new voice profiles (use voice-calibrator), analyzing writing samples (use
-  voice_analyzer.py), or general content without a voice target.
+description: "Deprecated: voice content generation pipeline. Use voice-writer instead."
 version: 2.0.0
 deprecated: true
 deprecated_by: voice-writer

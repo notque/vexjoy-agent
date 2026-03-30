@@ -1,6 +1,6 @@
 ---
 name: kubernetes-security
-description: Kubernetes security patterns including RBAC, PodSecurityStandards, network policies, and secret management
+description: "Kubernetes security: RBAC, PodSecurity, network policies."
 version: 1.0.0
 user-invocable: false
 context: fork

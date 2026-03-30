@@ -1,11 +1,7 @@
 ---
 name: perses-plugin-test
 user-invocable: false
-description: |
-  Perses plugin testing: CUE schema unit tests with percli plugin test-schemas, React
-  component tests, integration testing with local Perses server, and Grafana migration
-  compatibility testing. Use for "test perses plugin", "perses plugin test",
-  "perses schema test". Do NOT use for dashboard validation (use perses-lint).
+description: "Perses plugin testing: CUE schema tests, React tests, integration tests."
 allowed-tools:
   - Read
   - Grep
