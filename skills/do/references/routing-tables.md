@@ -72,6 +72,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **workflow-orchestrator** | User wants to execute an existing plan with structured phases, or says "run the plan", "execute this". |
 | **dispatching-parallel-agents** | User has 2+ independent failures, subtasks, or files that can be fixed simultaneously. |
 | **parallel-code-review** | User wants comprehensive review of a codebase from multiple reviewer perspectives simultaneously. |
+| **codex-code-review** | User wants a second-opinion code review from OpenAI Codex CLI (GPT-5.4 xhigh), a cross-model review, or says "codex review", "second opinion", "get another perspective". NOT: a standard Claude-only review (use systematic-code-review or parallel-code-review). |
 | **with-anti-rationalization** | User explicitly requests maximum rigor, thorough verification, or wants anti-rationalization patterns injected. |
 | **plan-manager** | User wants to see the status of plans, audit existing plans, or manage the plan lifecycle. |
 | **planning-with-files** | User needs persistent planning with file-backed state across a long multi-session task. |
@@ -379,6 +380,8 @@ Invoked via the roast skill or directly:
 | "commit to this approach" | (not a routing target) | Intent: decide — "commit" is not a git commit |
 | "did CI pass?" | **github-actions-check (FORCE)** | Intent: check CI status |
 | "check my logic here" | (domain agent + review) | Intent: review — not CI |
+| "get a second opinion on this code" | codex-code-review | Cross-model review via Codex CLI |
+| "codex review this PR" | codex-code-review | Explicit Codex review request |
 | "research then write article" | research-to-article pipeline | Research-backed content creation |
 | "create a pipeline for X" | pipeline-orchestrator-engineer + pipeline-scaffolder | Pipeline creation |
 | "improve the toolkit" | toolkit-improvement (FORCE) | Full 10-phase evaluation + improvement |
