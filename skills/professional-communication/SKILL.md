@@ -1,14 +1,6 @@
 ---
 name: professional-communication
-description: |
-  Transform dense technical communication into clear, structured business
-  formats using proposition extraction and deterministic templates. Use when
-  user needs to convert technical updates, debugging narratives, status
-  reports, or dependency discussions into executive-ready summaries. Use for
-  "transform this update", "make this executive-ready", "summarize for my
-  manager", "professional format", or "status report". Route to other skills for
-  writing new content from scratch, creative writing, or generating
-  documentation that doesn't transform an existing input.
+description: "Transform technical communication into structured business formats."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

@@ -1,11 +1,6 @@
 ---
 name: pr-status
-description: |
-  Quick status check for current branch and PR state showing local changes,
-  CI results, reviews, and merge readiness. Use when user wants branch status,
-  PR state, CI check results, review status, or merge readiness. Use for
-  "pr status", "what's the status", "is my PR ready", "check CI". Do NOT use
-  for creating PRs, pushing changes, or fixing review comments.
+description: "Quick status check: branch state, CI results, reviews, merge readiness."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

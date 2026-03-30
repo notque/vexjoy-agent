@@ -1,6 +1,6 @@
 ---
 name: swift-testing
-description: Swift testing patterns with XCTest, Swift Testing framework, and async test patterns
+description: "Swift testing: XCTest, Swift Testing framework, async patterns."
 version: 1.0.0
 user-invocable: false
 context: fork

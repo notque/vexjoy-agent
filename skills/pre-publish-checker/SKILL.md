@@ -1,12 +1,6 @@
 ---
 name: pre-publish-checker
-description: |
-  Pre-publication validation for Hugo posts: front matter, SEO, links, images,
-  draft status, and taxonomy. Use when user wants to check a post before
-  publishing, validate blog content, or run pre-publish checks. Use for
-  "pre-publish", "check post", "ready to publish", "validate post", or
-  "publication check". Route to other skills for content writing, editing prose, or
-  generating new posts.
+description: "Pre-publication validation for Hugo posts: front matter, SEO, links, images."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

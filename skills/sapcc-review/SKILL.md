@@ -1,13 +1,6 @@
 ---
 name: sapcc-review
-description: |
-  Gold-standard code review for SAP CC Go repositories against the project's
-  lead review standards. Dispatches 10 domain-specialist agents in parallel —
-  each loads domain-specific references and scans
-  ALL packages for violations in their assigned domain. Produces a prioritized
-  report with REJECTED/CORRECT code examples. Optional --fix mode applies
-  corrections on a worktree branch. This is the definitive "would this code
-  pass lead review?" assessment.
+description: "Gold-standard SAP CC Go code review: 10 parallel domain specialists."
 version: 1.0.0
 user-invocable: false
 argument-hint: "[--fix]"

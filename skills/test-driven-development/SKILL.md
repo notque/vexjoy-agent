@@ -1,14 +1,7 @@
 ---
 name: test-driven-development
 user-invocable: false
-description: |
-  RED-GREEN-REFACTOR cycle with strict phase gates. Write failing test first,
-  implement minimum code to pass, then refactor while keeping tests green.
-  Use when implementing new features, fixing bugs with test-first approach,
-  improving test coverage, or when user mentions TDD. Use for "TDD", "test
-  first", "red green refactor", "write tests", or "implement with tests".
-  Do NOT use for debugging existing failures (use systematic-debugging) or
-  for refactoring without new tests (use systematic-refactoring).
+description: "RED-GREEN-REFACTOR cycle with strict phase gates for TDD."
 version: 2.0.0
 success-criteria:
   - "Failing test written before implementation code"

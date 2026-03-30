@@ -1,11 +1,6 @@
 ---
 name: testing-agents-with-subagents
-description: |
-  RED-GREEN-REFACTOR testing for agents: dispatch subagents with known inputs,
-  capture verbatim outputs, verify against expectations. Use when creating,
-  modifying, or validating agents and skills. Use for "test agent", "validate
-  agent", "verify agent works", or pre-deployment checks. Route feature requests to other skills, simple prompt edits without behavioral impact, or agents
-  with no structured output to verify.
+description: "Test agents via subagents: known inputs, captured outputs, verification."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

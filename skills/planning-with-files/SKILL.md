@@ -1,12 +1,6 @@
 ---
 name: planning-with-files
-description: |
-  Persistent markdown files as working memory for complex tasks: plan,
-  track progress, store findings. Use when tasks have 3+ phases, require
-  research, span many tool calls, or risk context drift. Use for "plan",
-  "break down", "track progress", "multi-step", or complex tasks. Do NOT
-  use for simple lookups, single-file edits, or questions answerable in
-  one response.
+description: "Persistent markdown files as working memory for complex multi-phase tasks."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

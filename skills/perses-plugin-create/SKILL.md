@@ -1,12 +1,7 @@
 ---
 name: perses-plugin-create
 user-invocable: false
-description: |
-  Perses plugin scaffolding and creation: select plugin type (Panel, Datasource, Query,
-  Variable, Explore), generate with percli plugin generate, implement CUE schema and React
-  component, test with percli plugin start, build archive with percli plugin build. Use for
-  "create perses plugin", "new panel plugin", "new datasource plugin", "perses plugin scaffold".
-  Do NOT use for dashboard creation (use perses-dashboard-create).
+description: "Perses plugin scaffolding: select type, generate, implement CUE + React."
 allowed-tools:
   - Read
   - Grep

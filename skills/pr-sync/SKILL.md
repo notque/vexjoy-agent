@@ -1,12 +1,6 @@
 ---
 name: pr-sync
-description: |
-  Sync local changes to GitHub in one command: detect state, branch, commit,
-  push, create PR. Use when user wants to push work to GitHub, create a PR,
-  or sync a feature branch. Use for "push my changes", "create a PR",
-  "sync to GitHub", "open pull request", or "ship this". Do NOT use for
-  reviewing PRs (use /pr-review), cleaning up after merge (use pr-cleanup),
-  or CI checks (use ci).
+description: "Sync local changes to GitHub in one command: detect state, branch, commit, push, create PR."
 version: 2.0.0
 user-invocable: true
 allowed-tools:

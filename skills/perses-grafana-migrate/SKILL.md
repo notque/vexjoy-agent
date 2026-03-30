@@ -1,12 +1,7 @@
 ---
 name: perses-grafana-migrate
 user-invocable: false
-description: |
-  Grafana-to-Perses dashboard migration: export Grafana dashboards, convert with
-  percli migrate, validate converted output, fix incompatibilities, deploy to Perses.
-  Handles bulk migration with parallel processing. Use for "migrate grafana",
-  "grafana to perses", "perses migrate", "convert grafana". Do NOT use for creating
-  new dashboards from scratch (use perses-dashboard-create).
+description: "Grafana-to-Perses dashboard migration: export, convert, validate, deploy."
 allowed-tools:
   - Read
   - Grep
