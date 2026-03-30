@@ -5,9 +5,9 @@
     {
       "request": "push my changes to GitHub",
       "expected_agent": null,
-      "expected_skill": "pr-sync",
+      "expected_skill": "pr-workflow",
       "category": "git-operations",
-      "notes": "Git push intent \u2014 force-route to pr-sync"
+      "notes": "Git push intent \u2014 force-route to pr-workflow (consolidated)"
     },
     {
       "request": "push back on this approach",
@@ -54,9 +54,9 @@
     {
       "request": "clean up my merged branches",
       "expected_agent": null,
-      "expected_skill": "pr-cleanup",
+      "expected_skill": "pr-workflow",
       "category": "git-operations",
-      "notes": "Post-merge branch cleanup"
+      "notes": "Post-merge branch cleanup (consolidated into pr-workflow)"
     },
     {
       "request": "debug the goroutine leak in the worker pool",
@@ -194,30 +194,30 @@
     {
       "request": "migrate our Grafana dashboards to Perses",
       "expected_agent": null,
-      "expected_skill": "perses-grafana-migrate",
+      "expected_skill": "perses",
       "category": "perses-domain",
-      "notes": "Grafana-to-Perses migration \u2014 force-route"
+      "notes": "Grafana-to-Perses migration (consolidated into perses)"
     },
     {
       "request": "create a new Perses dashboard for API latency",
       "expected_agent": "perses-engineer",
-      "expected_skill": "perses-dashboard-create",
+      "expected_skill": "perses",
       "category": "perses-domain",
-      "notes": "Perses dashboard creation \u2014 agent + skill pairing"
+      "notes": "Perses dashboard creation (consolidated into perses)"
     },
     {
       "request": "lint this Perses dashboard definition",
       "expected_agent": null,
-      "expected_skill": "perses-lint",
+      "expected_skill": "perses",
       "category": "perses-domain",
-      "notes": "Perses lint \u2014 force-route to perses-lint"
+      "notes": "Perses lint (consolidated into perses)"
     },
     {
       "request": "create a new Perses panel plugin",
       "expected_agent": null,
-      "expected_skill": "perses-plugin-create",
+      "expected_skill": "perses",
       "category": "perses-domain",
-      "notes": "Perses plugin creation \u2014 force-route"
+      "notes": "Perses plugin creation (consolidated into perses)"
     },
     {
       "request": "comprehensive code review from multiple perspectives",
@@ -298,19 +298,10 @@
     {
       "request": "debug the goroutine leak causing memory issues",
       "expected_agent": "golang-general-engineer",
-<<<<<<< HEAD
       "expected_skill": "workflow",
-      "expected_stacked": [
-        "go-concurrency"
-      ],
-      "category": "force-route-stacking",
-      "notes": "Go debug + goroutine force-route \u2014 primary skill is workflow (systematic-debugging reference), go-concurrency stacked via force-route"
-=======
-      "expected_skill": "systematic-debugging",
       "expected_stacked": ["go-patterns"],
       "category": "force-route-stacking",
-      "notes": "Go debug + goroutine force-route — primary skill is systematic-debugging, go-patterns should be stacked via force-route"
->>>>>>> origin/main
+      "notes": "Go debug + goroutine force-route — primary skill is workflow (systematic-debugging reference), go-patterns stacked via force-route"
     }
   ]
 }

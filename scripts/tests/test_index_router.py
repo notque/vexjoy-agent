@@ -27,7 +27,16 @@ SAMPLE_SKILLS_INDEX = {
         "go-patterns": {
             "file": "skills/go-patterns/SKILL.md",
             "description": "Go patterns: testing, concurrency, error handling, code review, conventions.",
-            "triggers": ["Go test", "_test.go", "table-driven", "goroutine", "channel", "sync.Mutex", "error handling", "fmt.Errorf"],
+            "triggers": [
+                "Go test",
+                "_test.go",
+                "table-driven",
+                "goroutine",
+                "channel",
+                "sync.Mutex",
+                "error handling",
+                "fmt.Errorf",
+            ],
             "force_route": True,
             "agent": "golang-general-engineer",
             "pairs_with": [],
@@ -454,9 +463,7 @@ class TestSuggestPairs:
     """Tests for suggest_pairs."""
 
     def test_collects_pairs(self) -> None:
-        entry = index_router.IndexEntry(
-            name="go-patterns", entry_type="skill", pairs_with=["systematic-debugging"]
-        )
+        entry = index_router.IndexEntry(name="go-patterns", entry_type="skill", pairs_with=["systematic-debugging"])
         pairs = index_router.suggest_pairs([entry])
         assert pairs == ["systematic-debugging"]
 

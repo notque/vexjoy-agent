@@ -13,6 +13,26 @@ allowed-tools:
   - Glob
   - Grep
   - Agent
+routing:
+  force_route: true
+  triggers:
+    - "perses"
+    - "perses dashboard"
+    - "perses plugin"
+    - "perses lint"
+    - "perses migrate"
+    - "percli"
+    - "Grafana to Perses"
+    - "perses deploy"
+    - "perses datasource"
+    - "perses variable"
+    - "perses project"
+    - "perses CUE"
+    - "dashboard-as-code"
+  category: infrastructure
+  pairs_with:
+    - "perses-engineer"
+    - "prometheus-grafana-engineer"
 ---
 
 # Perses Operations
