@@ -2,15 +2,7 @@
 name: hook-development-engineer
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent when developing Python hooks for Claude Code's event-driven system.
-  This includes PostToolUse/PreToolUse/SessionStart event handlers, learning database
-  management, error pattern detection, and context injection mechanisms. The agent
-  specializes in sub-50ms performance requirements, atomic file operations, and
-  non-blocking execution patterns.
-
-  Example: "Create a hook that catches Edit tool errors where multiple matches are found"
-
+description: "Python hook development for Claude Code event-driven system and learning database."
 color: purple
 routing:
   triggers:

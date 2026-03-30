@@ -2,15 +2,7 @@
 name: swift-general-engineer
 model: sonnet
 version: 1.0.0
-description: |
-  Use this agent when you need expert assistance with Swift development, including implementing features
-  for iOS, macOS, watchOS, tvOS, visionOS, or server-side Swift (Vapor/Hummingbird), debugging issues,
-  reviewing code quality, or answering technical questions about Swift codebases. The agent specializes
-  in Swift 6 strict concurrency, protocol-oriented design, Apple platform security (Keychain, ATS,
-  certificate pinning), SwiftUI/UIKit/AppKit, Swift Testing framework, and SwiftFormat/SwiftLint toolchain
-  integration. Enforces let-over-var, struct-over-class immutability discipline.
-
-  Example: "Add a profile screen that loads user data asynchronously and shows a loading/error/content state"
+description: "Swift development: iOS, macOS, server-side Swift, SwiftUI, concurrency, testing."
 color: orange
 hooks:
   PostToolUse:

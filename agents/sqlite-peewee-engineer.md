@@ -2,11 +2,7 @@
 name: sqlite-peewee-engineer
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent when you need expert assistance with SQLite database development using the Peewee ORM in Python. This includes model definition, query optimization, migrations, transaction management, and SQLite-specific patterns. The agent specializes in Peewee ORM best practices, SQLite limitations, and efficient data access patterns.
-
-  Example: "I want to create Peewee models for users, posts, and comments with proper foreign keys"
-
+description: "SQLite with Peewee ORM: model definition, query optimization, migrations, transactions."
 color: green
 routing:
   triggers:

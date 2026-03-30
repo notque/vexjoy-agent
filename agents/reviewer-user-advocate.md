@@ -2,13 +2,7 @@
 name: reviewer-user-advocate
 model: sonnet
 version: 1.0.0
-description: |
-  Evaluates architecture decisions and feature designs from the user's perspective.
-  Asks: does this add complexity without proportional user value? Will this confuse users?
-  Is the benefit worth the cost? READ-ONLY reviewer with Reviewer Schema + VERDICT.
-
-  Example: "We're adding a TOML config file with 40 fields to control the system's behavior"
-
+description: "User advocate review: evaluate decisions from user perspective, complexity vs value."
 color: teal
 routing:
   triggers:
