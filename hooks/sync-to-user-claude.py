@@ -576,19 +576,9 @@ def main():
                         codex_count += 1
             except Exception as e:
                 errors.append(f"codex-voice-{voice_name}: {e}")
-    # Stale cleanup for Codex skills
-    if codex_skills_dst.is_dir() and codex_src_paths:
-        try:
-            for item in codex_skills_dst.rglob("*"):
-                if item.is_file():
-                    rel = item.relative_to(codex_skills_dst)
-                    if rel not in codex_src_paths:
-                        item.unlink()
-            for dirpath in sorted(codex_skills_dst.rglob("*"), reverse=True):
-                if dirpath.is_dir() and not any(dirpath.iterdir()):
-                    dirpath.rmdir()
-        except Exception as e:
-            errors.append(f"codex-stale-cleanup: {e}")
+    # No stale cleanup for Codex — additive only. Users or Codex itself may
+    # create skills in ~/.codex/skills/ that we don't own. We only copy ours in;
+    # we never delete theirs.
     if codex_count > 0:
         synced.append(f".codex/skills({codex_count} updated)")
     elif codex_skills_dst.is_dir():
