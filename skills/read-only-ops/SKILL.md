@@ -1,10 +1,12 @@
 ---
 name: read-only-ops
 description: |
-  Read-only exploration, status checks, and reporting without modifications.
-  Use when user asks to check status, find files, search code, show state,
-  or explicitly requests read-only investigation. Route to other skills when user wants
-  changes, fixes, refactoring, or any write operation.
+  Read-only exploration, inspection, and reporting without modifications.
+  Use when the user wants to inspect, investigate, audit, survey, or analyze code/files/state
+  without making changes. Common triggers: "inspect this", "report back without changing anything",
+  "show me", "look at", "tell me about", "find files", "check status", "list all", "how many",
+  "where is", or "what is the current state of". Route away when the user wants fixes,
+  refactors, writing, or any write operation.
 version: 2.0.0
 user-invocable: false
 allowed-tools:
