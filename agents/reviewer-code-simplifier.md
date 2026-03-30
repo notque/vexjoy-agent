@@ -5,43 +5,7 @@ version: 2.0.0
 description: |
   Use this agent for simplifying recently modified code for clarity and maintainability. This includes reducing complexity, eliminating nested logic, improving readability, and ensuring standards compliance from CLAUDE.md. Unlike read-only reviewers, this agent IS allowed to modify code directly as its primary function is simplification.
 
-  Examples:
-
-  <example>
-  Context: Simplifying recently modified code for clarity.
-  user: "Simplify the code I just changed for better readability"
-  assistant: "I'll analyze your recent changes and simplify them for clarity, preserving all existing functionality while improving readability."
-  <commentary>
-  Default scope is recently modified code (git diff). Simplification preserves functionality - no behavioral changes allowed.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Reducing complexity in a specific file.
-  user: "This function is too complex, simplify it"
-  assistant: "I'll analyze the function's complexity, identify simplification opportunities, and refactor for clarity while preserving exact behavior."
-  <commentary>
-  When targeting specific code, the agent focuses on that scope. Clarity over brevity is the guiding principle.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants comprehensive PR review.
-  user: "Run a comprehensive review on this PR"
-  assistant: "I'll use the reviewer-code-simplifier agent as part of the comprehensive review."
-  <commentary>
-  This agent is typically dispatched by the comprehensive-review skill as part of a multi-agent review.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Reviewing without modifying.
-  user: "Just tell me what could be simplified, don't change anything"
-  assistant: "I'll analyze complexity and report simplification opportunities without modifying any code."
-  <commentary>
-  When asked for review-only, the agent reports findings without applying changes. Explicit user control over modification.
-  </commentary>
-  </example>
+  Example: "Simplify the code I just changed for better readability"
 color: blue
 routing:
   triggers:

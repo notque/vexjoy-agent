@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent when you need expert assistance with comprehensive testing strategy and automation for modern web applications. This includes implementing unit tests, integration tests, E2E testing, visual regression testing, and CI/CD pipeline automation. The agent specializes in Vitest, Playwright, React Testing Library, and modern testing best practices.
 
-  Examples:
-
-  <example>
-  Context: User needs to set up comprehensive testing for their React application.
-  user: "I want to implement unit tests, integration tests, and E2E tests for my portfolio website"
-  assistant: "I'll create a comprehensive testing strategy with unit, integration, and E2E tests using Vitest, React Testing Library, and Playwright."
-  <commentary>
-  Comprehensive testing requires understanding of different testing layers, test automation tools, and testing best practices with 80% coverage minimum.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants to implement visual regression testing for their UI components.
-  user: "I need visual regression testing to catch UI changes and ensure consistent design"
-  assistant: "Let me implement automated visual testing for your components using Playwright screenshot comparison."
-  <commentary>
-  Visual regression testing involves screenshot comparison, test automation, and CI/CD integration for consistent UI testing.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs to set up CI/CD pipeline with automated testing.
-  user: "I want automated testing to run on every pull request and deployment"
-  assistant: "I'll create a CI/CD pipeline with comprehensive automated testing including unit, integration, E2E, and visual regression tests."
-  <commentary>
-  CI/CD testing automation requires understanding of GitHub Actions, test parallelization, and deployment workflows with quality gates.
-  </commentary>
-  </example>
+  Example: "I want to implement unit tests, integration tests, and E2E tests for my portfolio website"
 color: yellow
 routing:
   triggers:

@@ -9,40 +9,7 @@ description: |
   visibility through structured markdown documentation. The agent specializes in TodoWrite
   integration, death loop prevention, and markdown-based communication protocols.
 
-  Examples:
-
-  <example>
-  Context: Large feature requiring multiple agents on different components
-  user: "Implement an audit pipeline feature requiring database changes, API endpoints, frontend components, and testing - coordinate across multiple agents"
-  assistant: "I'll orchestrate this multi-component feature using parallel agent execution with dependency management..."
-  <commentary>
-  This requires multi-agent coordination across technical domains (database, API, frontend,
-  testing) with parallel execution. Triggers: "coordinate", "multi-agent", "orchestrate".
-  The agent will create agent-specific tasks, manage dependencies, and prevent death loops.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Project with multiple blockers and unclear dependencies
-  user: "Several incomplete tasks, some agents waiting on others, unclear status - help organize and move forward"
-  assistant: "I'll analyze current state, identify dependencies and blockers, create clear execution plan..."
-  <commentary>
-  This is project state analysis and dependency resolution. Triggers: "blockers",
-  "dependencies", "status". The agent will use STATUS.md, BLOCKERS.md, and TodoWrite
-  to create visibility and execution strategy.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Need visibility across concurrent agent workflows
-  user: "Several agents working on different parts - need better progress visibility, decision tracking, handoff documentation"
-  assistant: "I'll establish structured documentation workflows with STATUS.md, PROGRESS.md, HANDOFF.md for agent coordination..."
-  <commentary>
-  This is communication protocol establishment. Triggers: "visibility", "tracking",
-  "documentation", "handoff". The agent will create markdown-based communication
-  system for multi-agent projects.
-  </commentary>
-  </example>
+  Example: "Implement an audit pipeline feature requiring database changes, API endpoints, frontend components, and testing - coo..."
 
 color: teal
 routing:

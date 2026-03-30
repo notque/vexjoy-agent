@@ -5,32 +5,7 @@ version: 2.0.0
 description: |
   Use this agent when you need code review from a skeptical senior engineer perspective. This persona provides experienced critique focusing on production readiness, edge cases, failure modes, and long-term maintenance. READ-ONLY review agent using Reviewer Schema with VERDICT.
 
-  <example>
-  Context: Code review for production deployment.
-  user: "Is this ready for production?"
-  assistant: "I'll use reviewer-skeptical-senior to review with a critical eye for edge cases, failure modes, and production readiness."
-  <commentary>
-  Senior skeptical lens catches issues that could cause production problems - unhandled edge cases, missing error handling, race conditions.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Review pull request for system stability.
-  user: "Review this change for potential issues in production"
-  assistant: "Let me use reviewer-skeptical-senior to evaluate production readiness and failure scenarios."
-  <commentary>
-  This agent specifically checks for edge cases, error handling, monitoring, rollback strategies, and long-term maintenance concerns.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Architecture review for distributed system.
-  user: "What could go wrong with this distributed lock implementation?"
-  assistant: "I'll use reviewer-skeptical-senior to identify failure modes, race conditions, and edge cases."
-  <commentary>
-  Skeptical senior perspective reveals subtle bugs, network failure scenarios, and edge cases that optimistic reviews miss.
-  </commentary>
-  </example>
+  Example: "Is this ready for production?"
 color: gray
 routing:
   triggers:

@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent for detecting breaking API changes, backward compatibility issues, schema validation gaps, HTTP status code misuse, and API versioning problems. Analyzes REST, gRPC, and internal API contracts for correctness and stability. Wave 2 agent that uses Wave 1 business-logic and type-design findings to identify contract-sensitive code. Supports `--fix` mode.
 
-  Examples:
-
-  <example>
-  Context: Reviewing API endpoint changes in a PR.
-  user: "Check if this PR introduces any breaking API changes"
-  assistant: "I'll analyze all endpoint changes for backward compatibility: removed fields, renamed parameters, changed response shapes, new required fields, altered status codes, and header changes."
-  <commentary>
-  Breaking change detection traces the full API surface: request params, request body, response body, headers, status codes, and error formats. Any removal or type change in these is a potential break.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Reviewing API error responses.
-  user: "Check that our API error responses are consistent and use correct HTTP status codes"
-  assistant: "I'll audit all error responses for HTTP status code correctness (4xx vs 5xx), consistent error body format, actionable error messages, and proper content-type headers."
-  <commentary>
-  API contract review ensures 400 for client errors, 404 for not found, 409 for conflicts, 422 for validation, 500 only for unexpected server errors. Consistent error body shape across all endpoints.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Wave 2 dispatch with Wave 1 context.
-  user: "Run comprehensive review with API contract focus"
-  assistant: "I'll use Wave 1's business-logic findings to identify domain state transitions that affect API behavior, and type-design findings to check API type safety at boundaries."
-  <commentary>
-  As a Wave 2 agent, this receives Wave 1's business-logic and type-design findings to identify API endpoints with domain-sensitive contracts.
-  </commentary>
-  </example>
+  Example: "Check if this PR introduces any breaking API changes"
 color: blue
 routing:
   triggers:

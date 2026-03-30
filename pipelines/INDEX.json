@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-03-28T04:44:21Z",
+  "generated": "2026-03-30T16:58:52Z",
   "generated_by": "scripts/generate-skill-index.py",
   "pipelines": {
     "agent-upgrade": {
@@ -107,7 +107,7 @@
     },
     "comprehensive-review": {
       "file": "pipelines/comprehensive-review/SKILL.md",
-      "description": "Unified 4-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per package for deep per-package analysis.",
+      "description": "Four-wave code review pipeline for large or high-risk changes.",
       "triggers": [
         "comprehensive review",
         "full review",
@@ -518,7 +518,7 @@
     },
     "pr-pipeline": {
       "file": "pipelines/pr-pipeline/SKILL.md",
-      "description": "End-to-end pipeline for creating pull requests: Classify Repo, Stage, Review, Commit, Push, Review-Fix Loop (max 3), Create, Verify.",
+      "description": "End-to-end pipeline for creating pull requests: Classify Repo, Stage, Review, Cross-Model Review (Codex), Commit, Push, Review-Fix Loop (max 3), Create, Verify.",
       "triggers": [
         "submit PR",
         "create pull request",
@@ -536,6 +536,7 @@
         "PREFLIGHT CHECKLIST",
         "STAGE",
         "REVIEW",
+        "CROSS-MODEL REVIEW",
         "COMMIT",
         "PUSH",
         "REVIEW-FIX LOOP",

@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent when you need expert assistance with TypeScript frontend architecture and optimization for modern web applications. This includes implementing type-safe component development, state management, form validation, API client integration, and performance optimization. The agent specializes in TypeScript 5+, React 19 patterns, Zod validation, and modern frontend development practices.
 
-  Examples:
-
-  <example>
-  Context: User needs to implement type-safe API client with proper error handling.
-  user: "I want to create a type-safe API client for my Next.js app with proper TypeScript types"
-  assistant: "I'll use the typescript-frontend-engineer agent to implement a comprehensive type-safe API client with proper error handling and TypeScript integration."
-  <commentary>
-  This involves advanced TypeScript patterns, API client architecture, and type safety across the frontend application. Triggers: typescript, api client, type safety.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants to implement complex form validation with TypeScript.
-  user: "I need a form system with TypeScript validation and error handling for user registration"
-  assistant: "Let me use the typescript-frontend-engineer agent to create a robust form system with TypeScript validation and comprehensive error handling."
-  <commentary>
-  Form validation requires understanding of TypeScript patterns, Zod schemas, and React Hook Form integration. Triggers: typescript, form validation, react hook form.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs to migrate from React 18 to React 19 with TypeScript.
-  user: "My TypeScript compilation is failing after upgrading to React 19 - forwardRef errors"
-  assistant: "I'll use the typescript-frontend-engineer agent to migrate your components to React 19 patterns, replacing forwardRef with ref props."
-  <commentary>
-  React 19 migration involves deprecated patterns (forwardRef, Context.Provider) and new hooks (useActionState, useOptimistic). Triggers: react 19, typescript, migration.
-  </commentary>
-  </example>
+  Example: "I want to create a type-safe API client for my Next.js app with proper TypeScript types"
 
 color: blue
 memory: project

@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent for detecting naming inconsistencies: convention drift (userID vs userId vs user_id), package naming violations, verb inconsistency (Get vs Fetch vs Retrieve), acronym casing violations, and file naming mismatches. Ensures consistent naming across the codebase to reduce cognitive load. Wave 2 agent that uses Wave 1 code-quality and language-specialist findings for convention baselines. Supports `--fix` mode.
 
-  Examples:
-
-  <example>
-  Context: Reviewing Go project for naming consistency.
-  user: "Check naming consistency across the Go codebase"
-  assistant: "I'll analyze naming patterns for: ID/Id/id consistency, HTTP/Http/http casing, Get/Fetch/List verb alignment, package naming conventions (lowercase, no underscores), and file naming patterns (snake_case vs camelCase)."
-  <commentary>
-  Go naming conventions: MixedCaps (exported), mixedCaps (unexported), ID not Id, HTTP not Http, URL not Url. Package names are single lowercase words. Files are lowercase with underscores.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Reviewing TypeScript project for naming drift.
-  user: "Our variable naming is inconsistent - some use camelCase, some use snake_case"
-  assistant: "I'll scan all identifiers for casing convention violations, establish the dominant pattern, and flag deviations. I'll check: variables (camelCase), types (PascalCase), constants (SCREAMING_SNAKE_CASE), and file names (kebab-case vs camelCase)."
-  <commentary>
-  TypeScript naming conventions: camelCase for variables/functions, PascalCase for types/classes/interfaces, SCREAMING_SNAKE_CASE for constants. File naming convention should be consistent (pick one).
-  </commentary>
-  </example>
-
-  <example>
-  Context: Wave 2 dispatch with Wave 1 context.
-  user: "Run comprehensive review with naming consistency focus"
-  assistant: "I'll use Wave 1's code-quality findings to identify the established convention baseline, and language-specialist findings for language-specific naming rules, then audit all naming for drift from those conventions."
-  <commentary>
-  As a Wave 2 agent, this receives Wave 1's code-quality and language-specialist findings to establish convention baselines before checking for drift.
-  </commentary>
-  </example>
+  Example: "Check naming consistency across the Go codebase"
 color: teal
 routing:
   triggers:

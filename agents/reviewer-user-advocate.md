@@ -7,40 +7,7 @@ description: |
   Asks: does this add complexity without proportional user value? Will this confuse users?
   Is the benefit worth the cost? READ-ONLY reviewer with Reviewer Schema + VERDICT.
 
-  Examples:
-
-  <example>
-  Context: Team proposing new configuration file format for users
-  user: "We're adding a TOML config file with 40 fields to control the system's behavior"
-  assistant: "I'll evaluate this from the user's perspective—40 fields is a significant learning burden. What do users actually need to configure?..."
-  <commentary>
-  Requires user-impact evaluation of configuration complexity. Triggers: "config",
-  "user-facing", "40 fields". The user advocate questions whether all 40 fields are
-  necessary, explores sensible defaults, and evaluates documentation burden.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Proposal to change existing CLI command structure
-  user: "We're renaming all our CLI flags to be more consistent with POSIX conventions"
-  assistant: "I'll assess the user impact—consistency is good, but existing users have muscle memory. What's the migration path?..."
-  <commentary>
-  Workflow disruption for existing users. Triggers: "renaming", "CLI", "convention".
-  The user advocate weighs consistency value against disruption cost, asks about
-  deprecation path, and evaluates whether users were actually confused by old names.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Architecture proposal for internal system change
-  user: "We want to add a new routing layer between the user and the agent"
-  assistant: "I'll ask what changes for the person invoking the command—does latency increase? Do error messages get worse? Is this invisible to users?..."
-  <commentary>
-  Internal changes can have invisible user impact. Triggers: "routing layer", "user advocate",
-  "usability". The user advocate checks for latency, error message degradation, and
-  whether the abstraction leaks complexity into the user experience.
-  </commentary>
-  </example>
+  Example: "We're adding a TOML config file with 40 fields to control the system's behavior"
 
 color: teal
 routing:

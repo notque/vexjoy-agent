@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent for reviewing migration safety: reversible database migrations, API deprecation paths, feature flag lifecycle, backward-compatible schema changes, and safe rollback strategies. Ensures changes can be deployed and rolled back without data loss or service disruption. Wave 2 agent that uses Wave 1 api-contract and business-logic findings to identify migration-sensitive changes. Supports `--fix` mode.
 
-  Examples:
-
-  <example>
-  Context: Reviewing database migration for safety.
-  user: "Check if this database migration can be safely rolled back"
-  assistant: "I'll analyze the migration for: reversibility (can it be undone without data loss?), backward compatibility (does the old code work with the new schema?), data preservation (are destructive operations guarded?), and deployment ordering (can code deploy before or after migration?)."
-  <commentary>
-  Safe database migrations must be reversible, backward-compatible with currently-deployed code, and not destroy data. Column renames, type changes, and NOT NULL additions on populated columns are high-risk.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Reviewing API deprecation strategy.
-  user: "Check that our API deprecation follows a safe path"
-  assistant: "I'll verify: deprecated endpoints have sunset headers and dates, new endpoints are available before old ones are removed, migration guides exist for consumers, and removal is planned after sufficient deprecation period."
-  <commentary>
-  API deprecation paths: announce → add sunset headers → document migration → wait deprecation period → monitor usage → remove. Never remove without the full path.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Wave 2 dispatch with Wave 1 context.
-  user: "Run comprehensive review with migration safety focus"
-  assistant: "I'll use Wave 1's api-contract findings to identify breaking changes that need migration paths, and business-logic findings to identify state transitions that affect data migration."
-  <commentary>
-  As a Wave 2 agent, this receives Wave 1's api-contract and business-logic findings to focus on changes that have migration implications.
-  </commentary>
-  </example>
+  Example: "Check if this database migration can be safely rolled back"
 color: yellow
 routing:
   triggers:

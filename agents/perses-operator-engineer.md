@@ -7,34 +7,7 @@ description: |
   managing PersesDashboard and PersesDatasource resources, Helm chart configuration, and
   K8s-native Perses management. Specializes in the perses-operator CRDs (v1alpha2).
 
-  Examples:
-
-  <example>
-  Context: User deploying Perses on Kubernetes with the operator.
-  user: "Deploy Perses on our Kubernetes cluster using the operator"
-  assistant: "I'll install the perses-operator via Helm and create a Perses CR for your deployment."
-  <commentary>
-  Operator deployment requires Helm install + CR creation. Triggers: perses operator, perses kubernetes.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User managing dashboards as Kubernetes resources.
-  user: "I want to deploy dashboards as Kubernetes CRDs in my application namespace"
-  assistant: "I'll create PersesDashboard resources with instanceSelector targeting your Perses instance."
-  <commentary>
-  K8s-native dashboards use PersesDashboard CRDs with namespace-to-project mapping. Triggers: PersesDashboard, perses CRD.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User configuring global datasources via operator.
-  user: "Set up a cluster-wide Prometheus datasource using the Perses operator"
-  assistant: "I'll create a PersesGlobalDatasource cluster-scoped resource targeting your Perses instances."
-  <commentary>
-  Global datasources use cluster-scoped CRDs. Triggers: perses operator, datasource CRD.
-  </commentary>
-  </example>
+  Example: "Deploy Perses on our Kubernetes cluster using the operator"
 
 color: green
 routing:

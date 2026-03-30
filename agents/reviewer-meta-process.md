@@ -16,35 +16,7 @@ description: |
   Route code quality review to reviewer-code-quality, security analysis
   to reviewer-security, and premise/alternative challenges to reviewer-contrarian.
 
-  <example>
-  Context: Team adds a new coordinator agent that all other agents must call
-  user: "We want all agents to route through a central orchestrator before executing"
-  assistant: "I'll analyze whether centralizing through one orchestrator creates a single point of failure and whether authority concentration is proportional to value..."
-  <commentary>
-  Triggers: "central orchestrator", "all agents route through". Meta-process agent checks
-  SPOF risk, indispensability, authority concentration, and whether this can be undone.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Proposal to make routing decisions depend on a single index file
-  user: "The router should read from one canonical index to classify all requests"
-  assistant: "I'll examine what breaks if the index is wrong or missing, and whether this index becomes load-bearing in ways that resist change..."
-  <commentary>
-  Triggers: "canonical index", "single source". Meta-process checks SPOF, reversibility,
-  and whether complexity budget is earned.
-  </commentary>
-  </example>
-
-  <example>
-  Context: New pipeline that all feature work must pass through
-  user: "Every feature must go through the feature-lifecycle pipeline before implementation"
-  assistant: "I'll assess whether this mandatory gate concentrates control appropriately and whether teams can bypass it when the pipeline itself is broken..."
-  <commentary>
-  Triggers: "every feature must", "mandatory gate". Meta-process checks authority
-  concentration and what happens when the gate itself fails.
-  </commentary>
-  </example>
+  Example: "We want all agents to route through a central orchestrator before executing"
 
 color: orange
 routing:

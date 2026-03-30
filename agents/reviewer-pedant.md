@@ -5,32 +5,7 @@ version: 2.0.0
 description: |
   Use this agent when you need code review from a technical pedant perspective. This persona provides precise critique focusing on technical accuracy, terminology correctness, and adherence to specifications. READ-ONLY review agent using Reviewer Schema with VERDICT.
 
-  <example>
-  Context: Code review for technical correctness.
-  user: "Is this implementation technically correct?"
-  assistant: "I'll use reviewer-pedant to review for technical accuracy, specification compliance, and terminology precision."
-  <commentary>
-  Pedant perspective catches technical inaccuracies that would cause subtle bugs - wrong HTTP status codes, misused terminology, spec violations.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Review API documentation for accuracy.
-  user: "Review this API documentation for technical correctness"
-  assistant: "Let me use reviewer-pedant to verify terminology, status codes, and spec compliance."
-  <commentary>
-  This agent specifically checks technical precision - correct HTTP status codes, accurate terminology, protocol compliance.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Review implementation against specification.
-  user: "Does this JWT implementation follow the spec?"
-  assistant: "I'll use reviewer-pedant to verify specification compliance and identify deviations."
-  <commentary>
-  Pedant lens reveals spec violations, incorrect algorithm usage, and technical inaccuracies that could cause interoperability issues.
-  </commentary>
-  </example>
+  Example: "Is this implementation technically correct?"
 color: purple
 routing:
   triggers:

@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent for detecting dead code: unreachable branches, unused exports, orphaned files, stale feature flags, commented-out code, and obsolete TODOs. Reduces codebase surface area and maintenance burden. Wave 2 agent that uses Wave 1 code-quality and docs-validator findings to identify abandoned artifacts. Supports `--fix` mode.
 
-  Examples:
-
-  <example>
-  Context: Reviewing Go project for dead code.
-  user: "Find all dead code, unused functions, and orphaned files in this Go project"
-  assistant: "I'll trace all exported and unexported function usage, identify unreachable code branches, find orphaned files not imported anywhere, flag commented-out code blocks, and check for stale TODOs with past dates."
-  <commentary>
-  Go dead code detection uses go vet, staticcheck, and import graph analysis. Unexported functions with zero call sites are dead. Exported functions need cross-package analysis.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Reviewing for stale feature flags and TODOs.
-  user: "Check for stale feature flags and old TODOs that should be cleaned up"
-  assistant: "I'll scan for feature flags that are always-on or always-off, TODOs with past dates or referencing closed issues, and commented-out code blocks that should be deleted or restored."
-  <commentary>
-  Stale feature flags add complexity without value. TODOs with past dates are technical debt that's been ignored. Commented-out code should be in version control history, not in source.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Wave 2 dispatch with Wave 1 context.
-  user: "Run comprehensive review with dead code cleanup"
-  assistant: "I'll use Wave 1's code-quality findings to identify convention violations that may be in dead code, and docs-validator findings to cross-reference documented features with actual implementations."
-  <commentary>
-  As a Wave 2 agent, this receives Wave 1's code-quality and docs-validator findings to identify code that's documented but no longer exists, or code that violates conventions because it's unmaintained.
-  </commentary>
-  </example>
+  Example: "Find all dead code, unused functions, and orphaned files in this Go project"
 color: gray
 routing:
   triggers:

@@ -9,40 +9,7 @@ description: |
   implementations, quick refactoring, and efficient code reviews. Includes gopls MCP
   awareness and version-specific modern Go idiom enforcement.
 
-  Examples:
-
-  <example>
-  Context: User needs concurrent data processing with tight context budget
-  user: "I need to create a worker pool that processes events from a queue"
-  assistant: "I'll design and implement a concurrent processing system with worker pool pattern..."
-  <commentary>
-  Compact variant chosen for focused implementation. Triggers: "worker pool", "concurrent",
-  "queue", "tight context". The agent provides minimal, idiomatic Go solutions without
-  over-engineering. Enforces clean concurrency patterns with channels and goroutines.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants quick refactor using modern Go patterns
-  user: "Can you help me refactor this code to use generics and functional options?"
-  assistant: "I'll modernize your code with Go 1.25+ patterns including generics and functional options..."
-  <commentary>
-  Compact variant ideal for targeted refactoring. Triggers: "refactor", "generics",
-  "functional options". The agent applies modern Go idioms without expanding scope or
-  adding unnecessary abstractions. Tight context means faster iteration.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs focused code review for production readiness
-  user: "Please review my HTTP API implementation for production readiness"
-  assistant: "I'll perform a comprehensive code review focusing on error handling, concurrency, and production patterns..."
-  <commentary>
-  Compact variant provides efficient code review. Triggers: "review", "production",
-  "HTTP API". The agent catches real issues (error handling, concurrency bugs, resource
-  leaks) with clear, actionable feedback without verbose explanations.
-  </commentary>
-  </example>
+  Example: "I need to create a worker pool that processes events from a queue"
 
 color: blue
 memory: project

@@ -8,34 +8,7 @@ description: |
   contradicts an ADR decision, and no scope creep beyond what the ADR authorized. This is
   Wave 1 Agent #11 in comprehensive-review.
 
-  Examples:
-
-  <example>
-  Context: Reviewing a feature branch against the ADR that authorized it.
-  user: "Check if my implementation matches what ADR-008 decided"
-  assistant: "I'll auto-discover ADRs from adr/ and .adr-session.json, then verify every decision point has corresponding implementation and nothing contradicts or exceeds the ADR scope."
-  <commentary>
-  ADR compliance review requires mapping each decision in the ADR to concrete code changes, identifying contradictions, and detecting scope creep.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Pre-merge compliance check on a PR.
-  user: "Run ADR compliance on this PR before we merge"
-  assistant: "I'll cross-reference the changed files against all relevant ADRs, checking for unimplemented decisions, contradictions, and unauthorized scope."
-  <commentary>
-  Pre-merge ADR compliance catches drift between architectural decisions and implementation before it reaches main.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Auditing existing code against accumulated ADRs.
-  user: "Are we still compliant with our ADRs?"
-  assistant: "I'll scan all ADRs in adr/ and .adr-session.json, then verify each decision point against the current codebase for compliance, contradictions, and scope drift."
-  <commentary>
-  Periodic ADR compliance audits detect gradual drift where individual changes each seem small but collectively violate architectural decisions.
-  </commentary>
-  </example>
+  Example: "Check if my implementation matches what ADR-008 decided"
 allowed-tools:
   - Read
   - Grep

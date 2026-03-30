@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent for security-focused code review. This includes OWASP Top 10 analysis, authentication/authorization review, input validation, secrets detection, and vulnerability identification. The agent is READ-ONLY and reports findings without modifying code.
 
-  Examples:
-
-  <example>
-  Context: Reviewing a new API endpoint for security issues.
-  user: "Security review the new payment endpoint in api/payments.go"
-  assistant: "I'll analyze the payment endpoint for OWASP Top 10 vulnerabilities, focusing on injection, broken access control, and cryptographic issues."
-  <commentary>
-  Payment endpoints require thorough security analysis including auth, input validation, injection prevention. Triggers: security review, payment, API endpoint.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Pre-merge security check on authentication changes.
-  user: "Check this auth PR for security issues before we merge"
-  assistant: "Let me review the authentication changes for vulnerabilities including session management, credential handling, and potential bypass risks."
-  <commentary>
-  Authentication code requires specialized security review for session management, credential handling, bypass risks. Triggers: security review, authentication, auth.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User suspects XSS vulnerability in user-generated content handling.
-  user: "Can you check our comment rendering for XSS vulnerabilities?"
-  assistant: "I'll analyze the comment rendering code for XSS vulnerabilities, checking input sanitization, output encoding, and dangerous DOM APIs."
-  <commentary>
-  XSS is OWASP Top 10 A03: Injection requiring analysis of user input flow to output. Triggers: XSS, user input, rendering.
-  </commentary>
-  </example>
+  Example: "Security review the new payment endpoint in api/payments.go"
 
 color: red
 isolation: worktree

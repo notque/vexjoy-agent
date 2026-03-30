@@ -8,40 +8,7 @@ description: |
   galleries with filtering/lightbox, responsive design for visual content, and performance
   optimization for portfolio sites.
 
-  Examples:
-
-  <example>
-  Context: User needs image gallery with filtering and lightbox
-  user: "Create an image gallery showing my artwork with categories and lightbox view"
-  assistant: "I'll implement a professional image gallery with category filtering and lightbox using Next.js Image component..."
-  <commentary>
-  This requires React component architecture, image optimization, lightbox interactions,
-  and URL-based filtering. Triggers: "gallery", "portfolio", "lightbox", "categories".
-  The agent will use next/image, lazy loading, and responsive design patterns.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants to optimize portfolio loading performance
-  user: "My portfolio images are loading slowly and affecting user experience"
-  assistant: "I'll optimize your portfolio's image loading with next/image, blur placeholders, and lazy loading..."
-  <commentary>
-  This is performance optimization for visual content. Triggers: "optimize", "slow loading",
-  "performance". The agent will implement WebP/AVIF formats, responsive images, priority
-  loading for above-the-fold content.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs responsive portfolio layout for mobile
-  user: "My portfolio doesn't look good on mobile devices and tablets"
-  assistant: "I'll create a responsive portfolio layout with mobile-optimized images and touch interactions..."
-  <commentary>
-  This requires responsive design, mobile-first CSS, touch-friendly interactions. Triggers:
-  "responsive", "mobile", "tablet". The agent will use CSS Grid/Flexbox, touch gestures,
-  and mobile-optimized image sizes.
-  </commentary>
-  </example>
+  Example: "Create an image gallery showing my artwork with categories and lightbox view"
 
 color: purple
 routing:

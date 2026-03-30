@@ -8,42 +8,7 @@ description: |
   specializes in Tailwind CSS, Headless UI, ARIA patterns, WCAG 2.1 AA compliance, and
   modern design principles. For new projects, invokes distinctive-frontend-design skill.
 
-  Examples:
-
-  <example>
-  Context: User needs cohesive design system for application
-  user: "I want to build a design system with consistent colors, typography, and component styles"
-  assistant: "I'll create a comprehensive design system with Tailwind CSS configuration, design tokens, and reusable components..."
-  <commentary>
-  This requires design system expertise including design tokens, typography scales,
-  component libraries, and visual hierarchy. Triggers: "design system", "tailwind",
-  "components". The agent will create Tailwind config with custom theme, component
-  library, and design token documentation.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants accessibility and mobile responsiveness improvements
-  user: "My website isn't accessible and doesn't work well on mobile devices"
-  assistant: "I'll implement accessibility improvements with WCAG 2.1 AA compliance and create responsive layouts..."
-  <commentary>
-  This requires WCAG guidelines, semantic HTML, ARIA patterns, mobile-first design.
-  Triggers: "accessibility", "responsive", "mobile". The agent will ensure proper
-  color contrast, keyboard navigation, screen reader support, and mobile breakpoints.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs animations and micro-interactions
-  user: "I want to add subtle animations and better hover states to make my site feel more polished"
-  assistant: "I'll implement smooth animations and micro-interactions with Framer Motion and CSS transitions..."
-  <commentary>
-  This requires animation expertise, performance optimization, and accessibility
-  (prefers-reduced-motion). Triggers: "animations", "interactions", "hover". The
-  agent will use Framer Motion for complex animations and CSS transitions for
-  simple effects.
-  </commentary>
-  </example>
+  Example: "I want to build a design system with consistent colors, typography, and component styles"
 
 color: orange
 routing:
