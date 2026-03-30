@@ -116,7 +116,7 @@ def extract_principles_from_text(text: str, source_label: str) -> list[dict]:
 
 
 def collect_skill_files() -> list[Path]:
-    """Return all SKILL.md files under skills/ and pipelines/ (not shared-patterns/)."""
+    """Return all SKILL.md files under skills/ (not shared-patterns/)."""
     paths: list[Path] = []
     for root in (SKILLS_DIR, PIPELINES_DIR):
         if not root.exists():

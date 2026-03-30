@@ -2,7 +2,7 @@
 """Add Companion Skills and Companion Pipelines sections to agents.
 
 Scans agents/*.md, parses YAML frontmatter for routing.pairs_with, classifies
-each paired entry as a skill (in skills/) or pipeline (in pipelines/), and
+each paired entry as a skill (in skills/) or workflow (in skills/workflow/references/), and
 injects separate '### Companion Skills' and '### Companion Pipelines' markdown
 tables before '### Optional Behaviors' or '### Default Behaviors'.
 
@@ -20,7 +20,7 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parent.parent
 AGENTS_DIR = REPO_ROOT / "agents"
 SKILLS_DIR = REPO_ROOT / "skills"
-PIPELINES_DIR = REPO_ROOT / "pipelines"
+PIPELINES_DIR = REPO_ROOT / "skills" / "workflow" / "references"
 
 SKILLS_MARKER = "### Companion Skills"
 PIPELINES_MARKER = "### Companion Pipelines"

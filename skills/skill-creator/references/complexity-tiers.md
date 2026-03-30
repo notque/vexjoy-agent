@@ -138,7 +138,7 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 
 **Structure**:
 ```
-.claude/pipelines/workflow-orchestrator/
+.claude/skills/workflow/references/workflow-orchestrator.md
 ├── SKILL.md (1500 lines)
 │   - Frontmatter (70 lines)
 │   - Instructions - 4 phases (800 lines)

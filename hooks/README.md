@@ -64,7 +64,7 @@ User prompt → UserPromptSubmit → Claude picks tool → PreToolUse → Tool r
 | `pretool-creation-gate` | Write | Blocks direct creation of new agent/skill files that bypass the creation pipeline |
 | `pretool-dangerous-command-guard` | Bash | Blocks destructive shell commands (`rm -rf`, `DROP DATABASE`, `kubectl delete namespace`, etc.) |
 | `pretool-git-submission-gate` | Bash | Blocks raw `git push`, `gh pr create`, and `gh pr merge` to force routing through quality-gate skills |
-| `pretool-plan-gate` | Write, Edit | Blocks implementation in `agents/`, `skills/`, or `pipelines/` when `task_plan.md` does not exist |
+| `pretool-plan-gate` | Write, Edit | Blocks implementation in `agents/`, `skills/` when `task_plan.md` does not exist |
 | `pretool-sensitive-file-guard` | Write, Edit | Blocks writes to `.env`, credential files, SSH keys, certificates, and token files |
 | `pretool-synthesis-gate` | Write, Edit | Blocks feature implementation when ADR consultation synthesis is missing or blocked |
 

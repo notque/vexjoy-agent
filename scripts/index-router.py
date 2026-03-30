@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Deterministic routing from INDEX files for the /do router.
 
-Reads skills/INDEX.json, pipelines/INDEX.json, and agents/INDEX.json to produce
+Reads skills/INDEX.json, skills/INDEX.json, and agents/INDEX.json to produce
 structured routing decisions: force-routes, scored candidates, pair suggestions,
 model preferences, and composition chains.
 

@@ -602,7 +602,7 @@ def find_all_agents() -> list[Path]:
 
 
 def find_all_skills() -> list[Path]:
-    """Find all skill SKILL.md files (from skills/ and pipelines/)."""
+    """Find all skill SKILL.md files (from skills/)."""
     results = []
     for dirname in ("skills", "pipelines"):
         d = REPO_ROOT / dirname

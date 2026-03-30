@@ -66,7 +66,7 @@ SAMPLE_PIPELINES_INDEX = {
     "version": "2.0",
     "pipelines": {
         "pr-pipeline": {
-            "file": "pipelines/pr-pipeline/SKILL.md",
+            "file": "skills/workflow/references/pr-pipeline.md",
             "description": "Submit PR.",
             "triggers": ["submit PR", "create pull request", "push and PR"],
             "force_route": True,
@@ -74,14 +74,14 @@ SAMPLE_PIPELINES_INDEX = {
             "pairs_with": ["git-commit-flow"],
         },
         "doc-pipeline": {
-            "file": "pipelines/doc-pipeline/SKILL.md",
+            "file": "skills/workflow/references/doc-pipeline.md",
             "description": "Create documentation.",
             "triggers": ["document this", "create documentation", "write docs"],
             "force_route": True,
             "pairs_with": ["generate-claudemd"],
         },
         "explore-pipeline": {
-            "file": "pipelines/explore-pipeline/SKILL.md",
+            "file": "skills/workflow/references/explore-pipeline.md",
             "description": "Explore codebase.",
             "triggers": ["understand codebase", "explore repo", "how does this work"],
             "model": "opus",

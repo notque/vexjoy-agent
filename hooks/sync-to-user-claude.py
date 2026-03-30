@@ -305,9 +305,6 @@ def main():
 
     # Check if CWD is the agents repo (has skills/, agents/, and hooks/ dirs)
     is_agents_repo = (cwd / "skills").is_dir() and (cwd / "agents").is_dir() and (cwd / "hooks").is_dir()
-    # Also accept repos that have pipelines/ instead of or alongside skills/
-    if not is_agents_repo:
-        is_agents_repo = (cwd / "pipelines").is_dir() and (cwd / "agents").is_dir() and (cwd / "hooks").is_dir()
     if not is_agents_repo:
         return
 
@@ -319,7 +316,6 @@ def main():
     components = [
         ("agents", "agents"),
         ("skills", "skills"),
-        ("pipelines", "skills"),  # Pipelines are skills — sync into ~/.claude/skills/
         ("hooks", "hooks"),
         ("commands", "commands"),  # Still needed for slash menu discovery
         ("retro", "retro"),  # Knowledge store for retro-knowledge-injector hook
@@ -401,8 +397,7 @@ def main():
 
     # Deferred stale cleanup: remove files from destinations that no longer
     # exist in ANY source mapping to that destination. This must run AFTER
-    # all sources have been synced, otherwise ("pipelines", "skills") cleanup
-    # deletes files that ("skills", "skills") just synced.
+    # all sources have been synced.
     for dst_name, all_paths in dst_all_paths.items():
         dst = user_claude / dst_name
         if not dst.is_dir():
@@ -561,11 +556,10 @@ def main():
         if voice_count > 0:
             synced.append(f"private-voices({voice_count})")
 
-    # Sync skills + pipelines to ~/.codex/skills/ for OpenAI Codex CLI.
-    # Codex only supports skills (no agents, hooks, or scripts), and both
-    # repo skills/ and pipelines/ map to the same destination directory.
+    # Sync skills to ~/.codex/skills/ for OpenAI Codex CLI.
+    # Codex only supports skills (no agents, hooks, or scripts).
     codex_skills_dst = Path.home() / ".codex" / "skills"
-    codex_sources = [("skills", repo_root / "skills"), ("pipelines", repo_root / "pipelines")]
+    codex_sources = [("skills", repo_root / "skills")]
     codex_count = 0
     codex_src_paths: set[Path] = set()
     for label, src in codex_sources:

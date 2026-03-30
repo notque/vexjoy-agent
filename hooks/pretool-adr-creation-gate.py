@@ -11,7 +11,6 @@ This is a HARD GATE — exit 2 blocks the Write tool.
 Detection logic:
 - Tool is Write (edits to existing files pass through)
 - Target path matches /agents/<name>.md, /skills/<name>/SKILL.md,
-  or /pipelines/<name>/SKILL.md
 - The target file does not already exist on disk (new creation only)
 - adr/{name}.md does not exist in the project root
 
@@ -40,7 +39,6 @@ _AGENT_RE = re.compile(r"/agents/([^/]+)\.md$")
 # Match skills/foo-bar/SKILL.md → "foo-bar"
 _SKILL_RE = re.compile(r"/skills/([^/]+)/SKILL\.md$")
 # Match pipelines/foo-bar/SKILL.md → "foo-bar"
-_PIPELINE_RE = re.compile(r"/pipelines/([^/]+)/SKILL\.md$")
 
 
 def _extract_component_name(file_path: str) -> str | None:
