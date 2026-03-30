@@ -1,6 +1,6 @@
 # Go Test Patterns Reference
 
-Detailed examples for the go-testing skill. See SKILL.md for methodology and workflow.
+Detailed examples for the go-patterns skill (testing section). See SKILL.md for methodology and workflow.
 
 ---
 
