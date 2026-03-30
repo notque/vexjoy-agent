@@ -1,12 +1,6 @@
 ---
 name: integration-checker
-description: |
-  Verify cross-component wiring: exports are imported AND used, real data
-  flows through connections, output shapes match input expectations. Use
-  after /feature-implement, before /feature-validate, or standalone on any
-  codebase. Use for "check integration", "verify wiring", "are components
-  connected", "integration check", or "/integration-checker". Do NOT use
-  for unit test failures, linting, or single-file correctness issues.
+description: "Verify cross-component wiring and data flow."
 version: 1.0.0
 user-invocable: false
 command: /integration-checker

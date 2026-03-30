@@ -2,14 +2,7 @@
 name: perses-dashboard-engineer
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent for Perses observability dashboard operations: creating/managing dashboards,
-  configuring datasources, managing variables, writing PromQL/LogQL/TraceQL queries, deploying
-  via Dashboard-as-Code, and interacting with Perses API/MCP. This agent specializes in Perses
-  dashboard lifecycle, CUE/Go SDK for DaC, percli CLI operations, and Perses MCP server integration.
-
-  Example: "Create a Perses dashboard for monitoring my Kubernetes cluster CPU and memory"
-
+description: "Perses dashboard operations: create dashboards, configure datasources, write queries."
 color: purple
 routing:
   triggers:

@@ -1,24 +1,6 @@
 ---
 name: content-engine
-description: |
-  Repurpose a source asset (article, demo, launch note, insight) into
-  platform-native social content variants. Use when the user provides a
-  source asset and wants it adapted for X, LinkedIn, TikTok, YouTube, or
-  newsletter. Triggered by: "repurpose this", "adapt for social", "turn
-  this into posts", "content from [article/doc/demo]", "write variants
-  for", "social content from".
-
-  ROUTING DISAMBIGUATION vs voice-writer:
-  - content-engine: user supplies a source asset to adapt → use this skill
-  - voice-writer: user wants to write in a specific voice profile with no
-    source asset → use voice-writer instead
-  - Both specified: content-engine runs Phase 3 DRAFT first, then
-    voice-writer applies the voice profile to the resulting drafts
-
-  Do NOT use for: writing original content from scratch with a voice
-  profile (use voice-writer), managing a content pipeline (use
-  content-calendar), scheduling or publishing posts (use x-api or
-  crosspost downstream).
+description: "Repurpose source assets into platform-native social content."
 version: 1.0.0
 user-invocable: false
 model: sonnet

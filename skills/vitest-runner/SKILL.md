@@ -1,12 +1,6 @@
 ---
 name: vitest-runner
-description: |
-  Run Vitest tests and parse results into actionable output. Use WHEN
-  user needs to run JavaScript/TypeScript tests in a Vitest-configured
-  project, verify test suites pass, or get structured failure reports.
-  Use for "run tests", "vitest", "check if tests pass", or "test results".
-  Do NOT use for Jest/Mocha projects, installing dependencies, writing
-  new tests, or auto-fixing failing assertions.
+description: "Run Vitest tests and parse results into actionable output."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

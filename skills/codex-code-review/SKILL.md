@@ -1,13 +1,6 @@
 ---
 name: codex-code-review
-description: |
-  Get a second-opinion code review from OpenAI Codex CLI (GPT-5.4 xhigh reasoning).
-  Invokes codex exec in read-only sandbox mode, structures feedback as CRITICAL /
-  IMPROVEMENTS / POSITIVE / SUMMARY, and requires Claude to assess before presenting.
-  Use when user says "codex review", "second opinion", "code review codex",
-  "GPT review", "get another perspective on this code", or "cross-model review".
-  Do NOT use for writing code, implementing features, or reviews that don't
-  involve the Codex CLI.
+description: "Second-opinion code review from OpenAI Codex CLI. Structures feedback as CRITICAL/IMPROVEMENTS/POSITIVE."
 version: 1.0.0
 user-invocable: true
 allowed-tools:

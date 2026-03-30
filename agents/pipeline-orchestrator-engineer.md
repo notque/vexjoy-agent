@@ -2,15 +2,7 @@
 name: pipeline-orchestrator-engineer
 model: sonnet
 version: 3.0.0
-description: |
-  Use this agent when building new pipelines that require coordinated creation
-  of agents, skills, and hooks. This includes scaffolding multi-component
-  workflows, creating fan-out/fan-in execution patterns, integrating new
-  pipelines into the routing system, and orchestrating domain-level pipeline
-  generation that decomposes domains into subdomains with custom pipeline chains.
-
-  Example: "Create a pipeline for automated code review on every push"
-
+description: "Pipeline orchestration: scaffold multi-component workflows, fan-out/fan-in patterns."
 color: purple
 routing:
   triggers:

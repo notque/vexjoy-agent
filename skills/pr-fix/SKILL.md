@@ -1,11 +1,6 @@
 ---
 name: pr-fix
-description: |
-  Validate-then-fix workflow for PR review comments: Fetch, Validate, Plan,
-  Fix, Commit. Use when user wants to address PR feedback, fix review comments,
-  or resolve reviewer requests. Use for "fix PR comments", "address review",
-  "pr-fix", or "resolve feedback". Route to other skills for creating PRs, reviewing code
-  without fixing, or general debugging unrelated to PR comments.
+description: "Validate-then-fix workflow for PR review comments."
 version: 2.0.0
 user-invocable: false
 argument-hint: "[<PR-number>]"
