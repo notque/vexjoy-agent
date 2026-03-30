@@ -359,11 +359,7 @@ These are mandatory. When triggers match, the skill fires before any other routi
 | `python-quality-gate` | bandit, Python security scan, Python SAST |
 | `create-voice` | create voice, new voice, build voice, voice from samples, calibrate voice |
 | `voice-writer` | write article, blog post, write in voice, generate voice content |
-| `feature-design` | design feature, feature design, think through feature |
-| `feature-plan` | plan feature, feature plan, break down design |
-| `feature-implement` | implement feature, execute plan, start building |
-| `feature-validate` | validate feature, run quality gates |
-| `feature-release` | release feature, merge feature, ship it |
+| `feature-lifecycle` | design feature, plan feature, implement feature, validate feature, release feature, feature pipeline, full feature lifecycle |
 | `system-upgrade` | upgrade agents, system upgrade, claude update, upgrade skills |
 | `de-ai-pipeline` | de-ai docs, clean ai patterns, fix ai writing, scan and fix docs |
 | `pr-sync` | push, push this, commit and push, create a PR, create PR, open PR |

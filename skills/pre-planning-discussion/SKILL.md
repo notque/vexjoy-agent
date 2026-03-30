@@ -7,7 +7,7 @@ description: |
   the user to correct only what's wrong (brownfield work). Use for "discuss
   ambiguities", "resolve gray areas", "clarify before planning", "assumptions
   mode", "what are the gray areas", "before we plan". Do NOT use for broad
-  design exploration (use feature-design) or for planning itself (use feature-plan).
+  design exploration (use feature-lifecycle design phase) or for planning itself (use feature-lifecycle plan phase).
 version: 1.0.0
 user-invocable: false
 argument-hint: "[--assumptions] <topic>"
@@ -30,8 +30,7 @@ routing:
     - before we plan
     - pre-planning discussion
   pairs_with:
-    - feature-design
-    - feature-plan
+    - feature-lifecycle
     - workflow-orchestrator
   complexity: Medium
   category: process
@@ -52,7 +51,7 @@ The cost of a wrong assumption compounds: a silently wrong assumption at the pla
 1. **Read repository CLAUDE.md** and follow its requirements throughout execution. This happens before any other work.
 
 2. **Load prior context**: Check for existing artifacts that contain decisions:
-   - `.feature/state/design/` — design documents from feature-design
+   - `.feature/state/design/` — design documents from feature-lifecycle design phase
    - `adr/` — architecture decision records relevant to this work
    - `task_plan.md` — any existing plan context
    - Prior ambiguity resolution output (if re-running)
@@ -184,7 +183,7 @@ Throughout this phase, track every file you reference as a canonical reference f
 
 **Goal**: Produce the structured context document that downstream skills consume.
 
-Both modes converge here and MUST produce the identical format. Downstream consumers (feature-plan, workflow-orchestrator) depend on a predictable structure regardless of which mode produced it.
+Both modes converge here and MUST produce the identical format. Downstream consumers (feature-lifecycle plan phase, workflow-orchestrator) depend on a predictable structure regardless of which mode produced it.
 
 Produce a single document with this exact structure:
 
@@ -229,7 +228,7 @@ Save this document:
 1. Summarize: "[N] decisions resolved, [M] carried forward, [K] canonical references accumulated."
 
 2. Suggest next step based on context:
-   - If in feature lifecycle: "Run `/feature-plan` to create the implementation plan."
+   - If in feature lifecycle: "Run `/feature-lifecycle` to create the implementation plan."
    - If standalone: "Proceed to planning. The context document is at [path]."
 
 3. If any assumptions were marked "Unclear" and not resolved by the user, flag them:
@@ -241,7 +240,7 @@ Save this document:
 
 | Error | Cause | Solution |
 |-------|-------|----------|
-| No gray areas found | Task is unambiguous or too vague to analyze | If unambiguous, skip this skill and go to planning. If too vague, return to feature-design |
+| No gray areas found | Task is unambiguous or too vague to analyze | If unambiguous, skip this skill and go to planning. If too vague, return to feature-lifecycle design phase |
 | User defers all decisions | User wants the agent to decide everything | Accept all recommendations, record as "defaulted." Proceed. |
 | Scope expansion detected | A gray area implies new capabilities | Classify as OUT in scope boundary. Do not resolve it. |
 | Too many gray areas (>10) | Task scope is too broad | Group related gray areas or suggest breaking the task into smaller pieces |
