@@ -1,35 +1,3 @@
----
-name: go-error-handling
-description: "Go error handling: wrapping, sentinel, and custom types."
-version: 2.0.0
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-  - Task
-  - Skill
-agent: golang-general-engineer
-command: /go-error-handling
-routing:
-  force_route: true
-  triggers:
-    - error handling
-    - fmt.Errorf
-    - errors.Is
-    - errors.As
-    - error wrapping
-    - "%w"
-    - sentinel error
-    - custom error
-    - error context
-  pairs_with:
-    - golang-general-engineer
-    - golang-general-engineer-compact
----
 
 # Go Error Handling Skill
 
@@ -275,4 +243,4 @@ Solution:
 ## References
 
 ### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/patterns.md`: Extended patterns -- gopls tracing, HTTP handler patterns, error wrapping in middleware
+- `${CLAUDE_SKILL_DIR}/references/error-handling/patterns.md`: Extended patterns -- gopls tracing, HTTP handler patterns, error wrapping in middleware

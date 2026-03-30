@@ -160,7 +160,7 @@ CRITICAL (must fix):
 
 IMPORTANT (should fix):
   3. agents/hook-development-engineer.md — Document Notification event type [inject-pattern, ~15min]
-  4. skills/go-testing/SKILL.md — Apply new pattern from retro L2 [inject-pattern, ~10min]
+  4. skills/go-patterns/SKILL.md — Apply new pattern from retro L2 [inject-pattern, ~10min]
 
 MINOR (nice to have):
   5. agents/skill-creator.md — Add new frontmatter field docs [upgrade, ~5min]

@@ -68,37 +68,37 @@
     {
       "request": "write table-driven tests for the parser",
       "expected_agent": null,
-      "expected_skill": "go-testing",
+      "expected_skill": "go-patterns",
       "category": "go-development",
-      "notes": "Go tests \u2014 force-route to go-testing"
+      "notes": "Go tests — force-route to go-patterns"
     },
     {
       "request": "add a worker pool with goroutines",
       "expected_agent": null,
-      "expected_skill": "go-concurrency",
+      "expected_skill": "go-patterns",
       "category": "go-development",
-      "notes": "Go concurrency \u2014 force-route to go-concurrency"
+      "notes": "Go concurrency — force-route to go-patterns"
     },
     {
       "request": "wrap errors with fmt.Errorf and %w",
       "expected_agent": null,
-      "expected_skill": "go-error-handling",
+      "expected_skill": "go-patterns",
       "category": "go-development",
-      "notes": "Go error handling \u2014 force-route to go-error-handling"
+      "notes": "Go error handling — force-route to go-patterns"
     },
     {
       "request": "review this Go PR for quality",
       "expected_agent": null,
-      "expected_skill": "go-code-review",
+      "expected_skill": "go-patterns",
       "category": "go-development",
-      "notes": "Go code review \u2014 force-route to go-code-review"
+      "notes": "Go code review — force-route to go-patterns"
     },
     {
       "request": "work on the SAPCC Go repository go-bits",
       "expected_agent": null,
-      "expected_skill": "go-sapcc-conventions",
+      "expected_skill": "go-patterns",
       "category": "go-development",
-      "notes": "SAPCC Go repo \u2014 force-route to go-sapcc-conventions"
+      "notes": "SAPCC Go repo — force-route to go-patterns"
     },
     {
       "request": "add auth middleware to the Python Flask API",
@@ -299,11 +299,9 @@
       "request": "debug the goroutine leak causing memory issues",
       "expected_agent": "golang-general-engineer",
       "expected_skill": "systematic-debugging",
-      "expected_stacked": [
-        "go-concurrency"
-      ],
+      "expected_stacked": ["go-patterns"],
       "category": "force-route-stacking",
-      "notes": "Go debug + goroutine force-route \u2014 primary skill is systematic-debugging, go-concurrency should be stacked via force-route"
+      "notes": "Go debug + goroutine force-route — primary skill is systematic-debugging, go-patterns should be stacked via force-route"
     }
   ]
 }

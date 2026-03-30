@@ -1,35 +1,3 @@
----
-name: go-testing
-description: "Go testing: table-driven, subtests, mocks, benchmarks."
-version: 2.0.0
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-  - Task
-  - Skill
-agent: golang-general-engineer
-command: /go-testing
-routing:
-  force_route: true
-  triggers:
-    - go test
-    - "*_test.go"
-    - table-driven
-    - t.Run
-    - t.Helper
-    - benchmark
-    - mock
-    - test coverage
-    - race detection
-  pairs_with:
-    - golang-general-engineer
-    - golang-general-engineer-compact
----
 
 # Go Testing Skill
 
@@ -161,7 +129,7 @@ func (m *MockStore) Get(key string) ([]byte, error) {
 }
 ```
 
-See `references/go-test-patterns.md` for complete mock patterns with call tracking.
+See `${CLAUDE_SKILL_DIR}/references/testing/go-test-patterns.md` for complete mock patterns with call tracking.
 
 **Step 4: Parallel tests**
 
@@ -279,7 +247,7 @@ func BenchmarkBuilder(b *testing.B) {
 
 Run: `go test -bench=. -benchmem ./...`
 
-See `references/go-benchmark-and-concurrency.md` for benchstat comparison workflow and synctest patterns.
+See `${CLAUDE_SKILL_DIR}/references/testing/go-benchmark-and-concurrency.md` for benchstat comparison workflow and synctest patterns.
 
 ---
 
@@ -317,7 +285,7 @@ Solution:
 1. Use `sync.Mutex` or `atomic` operations for shared state
 2. Use channels for goroutine communication
 3. Ensure mock call tracking uses mutex protection
-4. See `references/go-benchmark-and-concurrency.md` for patterns
+4. See `${CLAUDE_SKILL_DIR}/references/testing/go-benchmark-and-concurrency.md` for patterns
 
 ### Error: "test passes locally but fails in CI"
 Cause: Environment dependency, timing assumption, or file path difference
@@ -338,5 +306,5 @@ Solution:
 
 ## References
 
-- `${CLAUDE_SKILL_DIR}/references/go-test-patterns.md`: Full examples for table-driven tests, helpers, mocking, interface deduplication
-- `${CLAUDE_SKILL_DIR}/references/go-benchmark-and-concurrency.md`: b.Loop() benchmarks, benchstat, synctest, race detection patterns
+- `${CLAUDE_SKILL_DIR}/references/testing/go-test-patterns.md`: Full examples for table-driven tests, helpers, mocking, interface deduplication
+- `${CLAUDE_SKILL_DIR}/references/testing/go-benchmark-and-concurrency.md`: b.Loop() benchmarks, benchstat, synctest, race detection patterns

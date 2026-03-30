@@ -38,8 +38,7 @@ SKILL_TRIGGERS = {
     "test-driven-development": {"tdd", "test first", "red green refactor"},
     "systematic-code-review": {"review", "check code", "pr review"},
     "workflow-orchestrator": {"implement", "build feature"},
-    "go-testing": {"go test", "_test.go", "table-driven", "t.run"},
-    "go-concurrency": {"goroutine", "channel", "sync.mutex", "waitgroup"},
+    "go-patterns": {"go test", "_test.go", "table-driven", "t.run", "goroutine", "channel", "sync.mutex", "waitgroup"},
 }
 
 # Trivial task patterns (should NOT route)
@@ -211,8 +210,8 @@ def test_routes_tdd_to_tdd_skill():
         )
 
 
-def test_routes_go_test_to_go_testing_skill():
-    """Go test prompts should pair with go-testing skill (forced)."""
+def test_routes_go_test_to_go_patterns_skill():
+    """Go test prompts should pair with go-patterns skill (forced)."""
     prompts = [
         "add table-driven tests",
         "write Go test for this function",
@@ -220,7 +219,7 @@ def test_routes_go_test_to_go_testing_skill():
     ]
     for prompt in prompts:
         result = route(prompt)
-        assert result.skill == "go-testing", f"Expected go-testing for '{prompt}', got {result.skill}"
+        assert result.skill == "go-patterns", f"Expected go-patterns for '{prompt}', got {result.skill}"
 
 
 # =============================================================================

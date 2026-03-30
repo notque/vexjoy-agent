@@ -171,7 +171,7 @@
       "pairs_with": [
         "systematic-code-review",
         "parallel-code-review",
-        "go-code-review"
+        "go-patterns"
       ]
     },
     "comment-quality": {
@@ -585,7 +585,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "go-sapcc-conventions",
+        "go-patterns",
         "codebase-overview"
       ]
     },
@@ -632,143 +632,8 @@
       "pairs_with": [],
       "model": "sonnet"
     },
-    "go-anti-patterns": {
-      "file": "skills/go-anti-patterns/SKILL.md",
-      "description": "Detect and remediate Go anti-patterns: premature interface abstraction, goroutine overkill, context soup, error wrapping mistakes, generic abuse, c...",
-      "triggers": [
-        "Go mistake",
-        "bad Go",
-        "Go smell",
-        "code smell",
-        "premature abstraction",
-        "over-engineering",
-        "unnecessary complexity",
-        "Go anti-pattern",
-        "Go code smell"
-      ],
-      "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "golang-general-engineer",
-        "golang-general-engineer-compact",
-        "go-code-review"
-      ],
-      "agent": "golang-general-engineer"
-    },
-    "go-code-review": {
-      "file": "skills/go-code-review/SKILL.md",
-      "description": "Go-specific code review with 6-phase methodology: Context, Automated Checks, Quality Analysis, Specific Analysis, Line-by-Line, Documentation.",
-      "triggers": [
-        "review Go",
-        "Go PR",
-        "Go code review",
-        "review .go",
-        "check Go code",
-        "Go quality"
-      ],
-      "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "golang-general-engineer",
-        "golang-general-engineer-compact",
-        "systematic-code-review"
-      ],
-      "agent": "golang-general-engineer"
-    },
-    "go-concurrency": {
-      "file": "skills/go-concurrency/SKILL.md",
-      "description": "Go concurrency patterns and primitives: goroutines, channels, sync primitives, worker pools, rate limiting, context propagation.",
-      "triggers": [
-        "goroutine",
-        "channel",
-        "chan",
-        "sync.Mutex",
-        "sync.WaitGroup",
-        "worker pool",
-        "fan-in",
-        "rate limit",
-        "concurrent",
-        "context.Context",
-        "race condition",
-        "deadlock",
-        "goroutine parallel",
-        "Go parallel",
-        "goroutine fan-out"
-      ],
-      "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "golang-general-engineer",
-        "golang-general-engineer-compact"
-      ],
-      "agent": "golang-general-engineer"
-    },
-    "go-error-handling": {
-      "file": "skills/go-error-handling/SKILL.md",
-      "description": "Go error handling patterns: wrapping with context, sentinel errors, custom error types, errors.Is/As chains, and HTTP error mapping.",
-      "triggers": [
-        "error handling",
-        "fmt.Errorf",
-        "errors.Is",
-        "errors.As",
-        "error wrapping",
-        "%w",
-        "sentinel error",
-        "custom error",
-        "error context"
-      ],
-      "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "golang-general-engineer",
-        "golang-general-engineer-compact"
-      ],
-      "agent": "golang-general-engineer"
-    },
-    "go-pr-quality-gate": {
-      "file": "skills/go-pr-quality-gate/SKILL.md",
-      "description": "Run Go quality checks via make check with intelligent error categorization and actionable fix suggestions.",
-      "triggers": [
-        "Go quality",
-        "make check",
-        "Go lint"
-      ],
-      "category": "code-quality",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "agent": "golang-general-engineer"
-    },
-    "go-sapcc-conventions": {
-      "file": "skills/go-sapcc-conventions/SKILL.md",
-      "description": "SAP Converged Cloud Go coding conventions extracted from sapcc/keppel and sapcc/go-bits PR reviews.",
-      "triggers": [
-        "sapcc",
-        "sap-cloud-infrastructure",
-        "go-bits",
-        "keppel",
-        "go-api-declarations",
-        "go-makefile-maker",
-        "sapcc/go-bits",
-        "sap-cloud-infrastructure/go-bits"
-      ],
-      "category": "language",
-      "force_route": true,
-      "user_invocable": false,
-      "version": "1.0.0",
-      "pairs_with": [
-        "golang-general-engineer",
-        "golang-general-engineer-compact",
-        "go-testing",
-        "go-error-handling"
-      ],
-      "agent": "golang-general-engineer"
-    },
-    "go-testing": {
-      "file": "skills/go-testing/SKILL.md",
+    "go-patterns": {
+      "file": "skills/go-patterns/SKILL.md",
       "description": "Go testing patterns and methodology: table-driven tests, t.Run subtests, t.Helper helpers, mocking interfaces, benchmarks, race detection, and synctest.",
       "triggers": [
         "go test",
@@ -1620,7 +1485,7 @@
       "pairs_with": [
         "golang-general-engineer",
         "golang-general-engineer-compact",
-        "go-sapcc-conventions"
+        "go-patterns"
       ],
       "agent": "golang-general-engineer"
     },
@@ -1640,7 +1505,7 @@
       "version": "1.0.0",
       "pairs_with": [
         "golang-general-engineer",
-        "go-sapcc-conventions",
+        "go-patterns",
         "sapcc-audit"
       ],
       "agent": "golang-general-engineer",
@@ -1902,7 +1767,7 @@
       "version": "2.0.0",
       "pairs_with": [
         "test-driven-development",
-        "go-testing",
+        "go-patterns",
         "vitest-runner"
       ]
     },
@@ -2130,5 +1995,43 @@
       "agent": "python-general-engineer",
       "model": "sonnet"
     }
+  },
+  "go-patterns": {
+    "file": "skills/go-patterns/SKILL.md",
+    "short_description": "Go development patterns: testing, concurrency, errors, review, and conventions.",
+    "triggers": [
+      "go test",
+      "*_test.go",
+      "table-driven",
+      "t.Run",
+      "benchmark",
+      "goroutine",
+      "channel",
+      "sync.Mutex",
+      "worker pool",
+      "concurrent",
+      "error handling",
+      "fmt.Errorf",
+      "errors.Is",
+      "errors.As",
+      "Go mistake",
+      "code smell",
+      "premature abstraction",
+      "review Go",
+      "Go PR",
+      "Go code review",
+      "sapcc",
+      "go-bits",
+      "keppel",
+      "make check",
+      "Go lint"
+    ],
+    "pairs_with": [
+      "golang-general-engineer",
+      "golang-general-engineer-compact",
+      "systematic-code-review"
+    ],
+    "force_route": true,
+    "agent": "golang-general-engineer"
   }
 }

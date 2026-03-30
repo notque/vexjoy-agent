@@ -24,13 +24,13 @@ index_router = importlib.import_module("index-router")
 SAMPLE_SKILLS_INDEX = {
     "version": "2.0",
     "skills": {
-        "go-testing": {
-            "file": "skills/go-testing/SKILL.md",
-            "description": "Go testing patterns.",
-            "triggers": ["Go test", "_test.go", "table-driven"],
+        "go-patterns": {
+            "file": "skills/go-patterns/SKILL.md",
+            "description": "Go patterns: testing, concurrency, error handling, code review, conventions.",
+            "triggers": ["Go test", "_test.go", "table-driven", "goroutine", "channel", "sync.Mutex", "error handling", "fmt.Errorf"],
             "force_route": True,
             "agent": "golang-general-engineer",
-            "pairs_with": ["go-error-handling"],
+            "pairs_with": [],
             "category": "language",
         },
         "systematic-debugging": {
@@ -96,7 +96,7 @@ SAMPLE_AGENTS_INDEX = {
             "file": "golang-general-engineer.md",
             "short_description": "Go development expert.",
             "triggers": ["go", "golang", ".go files", "gofmt"],
-            "pairs_with": ["go-pr-quality-gate"],
+            "pairs_with": ["go-patterns"],
             "complexity": "Medium-Complex",
             "category": "language",
         },
@@ -162,12 +162,11 @@ class TestLoadIndexes:
 
     def test_skill_entry_fields(self) -> None:
         entries = index_router.load_indexes()
-        go_testing = next(e for e in entries if e.name == "go-testing")
-        assert go_testing.entry_type == "skill"
-        assert go_testing.force_route is True
-        assert go_testing.agent == "golang-general-engineer"
-        assert "Go test" in go_testing.triggers
-        assert "go-error-handling" in go_testing.pairs_with
+        go_patterns = next(e for e in entries if e.name == "go-patterns")
+        assert go_patterns.entry_type == "skill"
+        assert go_patterns.force_route is True
+        assert go_patterns.agent == "golang-general-engineer"
+        assert "Go test" in go_patterns.triggers
 
     def test_pipeline_entry_fields(self) -> None:
         entries = index_router.load_indexes()
@@ -219,7 +218,7 @@ class TestCheckForceRoutes:
         entries = index_router.load_indexes()
         match = index_router.check_force_routes("write Go test for auth", entries)
         assert match is not None
-        assert match.name == "go-testing"
+        assert match.name == "go-patterns"
         assert match.agent == "golang-general-engineer"
 
     def test_matches_force_route_pipeline(self) -> None:
@@ -248,10 +247,10 @@ class TestCheckForceRoutes:
 
     def test_substring_match(self) -> None:
         entries = index_router.load_indexes()
-        # "table-driven" is a trigger for go-testing
+        # "table-driven" is a trigger for go-patterns
         match = index_router.check_force_routes("write table-driven tests for auth", entries)
         assert match is not None
-        assert match.name == "go-testing"
+        assert match.name == "go-patterns"
 
 
 # ---------------------------------------------------------------------------
@@ -301,14 +300,14 @@ class TestWordBoundaryMatching:
         entries = index_router.load_indexes()
         match = index_router.check_force_routes("write Go test for auth", entries)
         assert match is not None
-        assert match.name == "go-testing"
+        assert match.name == "go-patterns"
 
     def test_hyphenated_trigger_matches(self) -> None:
         """'table-driven' should match at word boundaries."""
         entries = index_router.load_indexes()
         match = index_router.check_force_routes("write table-driven tests", entries)
         assert match is not None
-        assert match.name == "go-testing"
+        assert match.name == "go-patterns"
 
     def test_single_word_not_embedded_in_larger_word(self) -> None:
         """Single-word trigger should not match inside a larger word.
@@ -425,7 +424,7 @@ class TestResolveAgent:
     def test_returns_existing_agent(self) -> None:
         entries = index_router.load_indexes()
         candidate = index_router.Candidate(
-            entry_type="skill", name="go-testing", score=0.9, agent="golang-general-engineer"
+            entry_type="skill", name="go-patterns", score=0.9, agent="golang-general-engineer"
         )
         assert index_router.resolve_agent(candidate, entries) == "golang-general-engineer"
 
@@ -456,10 +455,10 @@ class TestSuggestPairs:
 
     def test_collects_pairs(self) -> None:
         entry = index_router.IndexEntry(
-            name="go-testing", entry_type="skill", pairs_with=["go-error-handling", "go-concurrency"]
+            name="go-patterns", entry_type="skill", pairs_with=["systematic-debugging"]
         )
         pairs = index_router.suggest_pairs([entry])
-        assert pairs == ["go-error-handling", "go-concurrency"]
+        assert pairs == ["systematic-debugging"]
 
     def test_deduplicates(self) -> None:
         entries = [
@@ -522,7 +521,7 @@ class TestRouteRequest:
     def test_force_route_populates_result(self) -> None:
         result = index_router.route_request("write Go test for the handler")
         assert result.force_route is not None
-        assert result.force_route.get("skill") == "go-testing"
+        assert result.force_route.get("skill") == "go-patterns"
         assert result.force_route.get("agent") == "golang-general-engineer"
 
     def test_force_only_skips_candidates(self) -> None:
@@ -580,7 +579,7 @@ class TestFormatting:
         result = index_router.route_request("write Go test for auth")
         output = index_router.format_text_output(result)
         assert "force_route:" in output
-        assert "go-testing" in output
+        assert "go-patterns" in output
 
     def test_text_output_no_match(self) -> None:
         result = index_router.route_request("xyzzy zzzzz")
@@ -616,7 +615,7 @@ class TestCLI:
             text=True,
         )
         assert result.returncode == 0
-        assert "go-testing" in result.stdout
+        assert "go-patterns" in result.stdout
 
     def test_force_only_flag(self) -> None:
         result = subprocess.run(

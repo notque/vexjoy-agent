@@ -11,7 +11,7 @@ Format per entry:
 
 ---
 
-## Go general (go-testing, go-concurrency, go-error-handling, go-anti-patterns, go-code-review)
+## Go general (go-patterns, go-patterns, go-patterns, go-patterns, go-patterns)
 
 **Primary sources**
 - [Effective Go](https://go.dev/doc/effective_go) — canonical idioms; extract named
@@ -44,7 +44,7 @@ Format per entry:
 
 ---
 
-## Go SAPCC (go-sapcc-conventions)
+## Go SAPCC (go-patterns)
 
 This skill is already rich — it was built from extracted PR review comments from
 sapcc/keppel and sapcc/go-bits. Enrichment is low-value unless new PR review

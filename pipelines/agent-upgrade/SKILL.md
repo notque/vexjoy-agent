@@ -49,7 +49,7 @@ multi-component changes driven by external events.
 # Common target patterns:
 agents/golang-general-engineer.md
 agents/python-general-engineer.md
-skills/go-testing/SKILL.md
+skills/go-patterns/SKILL.md
 ```
 
 If the user names an agent without a path, resolve it:

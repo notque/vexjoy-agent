@@ -25,7 +25,7 @@ Use the repository's existing quality gate skills -- do not re-implement linting
 
 | Language | Quality Gate | Command |
 |----------|-------------|---------|
-| Go | go-pr-quality-gate | `make check` or `go test ./... && go vet ./...` |
+| Go | go-patterns | `make check` or `go test ./... && go vet ./...` |
 | Python | python-quality-gate | `ruff check && pytest && mypy` |
 | TypeScript | universal-quality-gate | `npm run typecheck && npm run lint && npm test` |
 | Other | universal-quality-gate | Detect and run project-specific checks |
