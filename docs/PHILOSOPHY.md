@@ -275,6 +275,62 @@ Skill documents place the workflow (Instructions/Phases) immediately after the f
 
 **Progressive disclosure completes the picture:** Workflow-first ordering keeps SKILL.md navigable. For skills exceeding ~500 lines, detailed catalogs, agent rosters, and specification tables move to `references/` files. The SKILL.md workflow tells the model when to load each reference — "Read `references/wave-1-foundation.md` for the agent list and dispatch prompts." The model gets the orchestration logic upfront and loads deep context only when the current phase needs it.
 
+## One Domain, One Component
+
+The system prompt token budget is finite. Every agent description and every skill description appears in the system prompt at session start. With 68 agents and 171 skills, description bloat directly degrades routing quality and consumes tokens before any work begins.
+
+The consolidation principle: **one domain = one agent or skill + many reference files loaded on demand.** Never create multiple agents or skills for the same domain.
+
+```
+PROGRESSIVE DISCLOSURE ARCHITECTURE
+====================================
+
+Session Start (system prompt):
+  - Agent descriptions: 60-100 chars each, loaded always
+  - Skill descriptions: 60-120 chars each, loaded always
+  - Total budget: <15k tokens
+
+Agent/Skill Invocation (on-demand):
+  - Full agent body: loaded when agent is dispatched
+  - references/*.md: loaded when agent reads them based on task context
+  - Full skill body: loaded when skill is invoked via Skill tool
+
+NEVER put in descriptions what can go in the body.
+NEVER put in the body what can go in references/.
+NEVER create a new component when a reference file on an existing one suffices.
+```
+
+**The pattern:** When a domain has multiple sub-concerns (e.g., Perses has dashboards, plugins, operator, core), create ONE umbrella component with a `references/` subdirectory. Each sub-concern gets its own reference file, loaded only when the task touches that sub-concern.
+
+```
+agents/
+├── perses-engineer.md                    # One umbrella agent
+└── perses-engineer/
+    └── references/
+        ├── dashboards.md                 # Loaded when task is about dashboards
+        ├── plugins.md                    # Loaded when task is about plugins
+        ├── operator.md                   # Loaded when task is about the operator
+        └── cue-schemas.md               # Loaded when task is about CUE
+```
+
+**The anti-pattern:** Creating separate agents or skills for each sub-concern.
+
+```
+agents/
+├── perses-dashboard-engineer.md          # NO — split pollutes system prompt
+├── perses-plugin-engineer.md             # NO — each adds 60-100 chars to every session
+├── perses-operator-engineer.md           # NO — routing quality degrades with count
+└── perses-cue-engineer.md               # NO — use references/ instead
+```
+
+**Why this matters:**
+
+- Each additional component adds its description to every session's system prompt, whether or not that session will ever touch that domain
+- The `/do` router has its own routing tables. Descriptions do not need to carry routing context -- the router matches intent to the right component without help from the description
+- Reference files cost zero tokens at session start and full tokens only when the task requires them. This is the correct trade-off
+
+**Before creating any new agent or skill:** Check whether an existing umbrella component already covers the domain. If it does, add a reference file. If it does not, create the umbrella component with references/ from the start.
+
 ## Open Sharing Over Individual Ownership
 
 Ideas matter less than open sharing. In an AI-assisted world, provenance becomes invisible. The toolkit is open source because:
