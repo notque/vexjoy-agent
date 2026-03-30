@@ -22,7 +22,7 @@ routing:
     - agent coordination
   pairs_with:
     - workflow-orchestrator
-    - dispatching-parallel-agents
+    - subagent-driven-development
   complexity: Complex
   category: meta
 allowed-tools:
@@ -99,7 +99,7 @@ This agent operates as an operator for multi-agent project orchestration, config
 
 | Skill | When to Invoke |
 |-------|---------------|
-| `dispatching-parallel-agents` | Dispatch independent subagents in parallel for unrelated problems spanning different subsystems. Use when 2+ failures... |
+| `subagent-driven-development` | Fresh-subagent-per-task execution with two-stage review for independent tasks. |
 
 **Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
 

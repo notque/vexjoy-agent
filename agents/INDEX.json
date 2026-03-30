@@ -2,24 +2,6 @@
   "version": "1.0",
   "generated_by": "scripts/generate-agent-index.py",
   "agents": {
-    "agent-creator-engineer": {
-      "file": "agent-creator-engineer.md",
-      "short_description": "**DEPRECATED**: Use skill-creator agent instead",
-      "triggers": [
-        "create agent",
-        "new agent",
-        "agent template",
-        "agent design",
-        "agent architecture",
-        "legacy agent creation"
-      ],
-      "pairs_with": [
-        "skill-creator",
-        "agent-evaluation"
-      ],
-      "complexity": "Simple",
-      "category": "meta"
-    },
     "ansible-automation-engineer": {
       "file": "ansible-automation-engineer.md",
       "short_description": "Use this agent when you need expert assistance with Ansible automation for infrastructure management, configuration orchestration, and DevOps automation workflows",
@@ -446,7 +428,7 @@
       ],
       "pairs_with": [
         "workflow-orchestrator",
-        "dispatching-parallel-agents"
+        "subagent-driven-development"
       ],
       "complexity": "Complex",
       "category": "meta"
@@ -557,7 +539,7 @@
       ],
       "pairs_with": [
         "workflow-orchestrator",
-        "dispatching-parallel-agents"
+        "subagent-driven-development"
       ],
       "complexity": "Complex",
       "category": "meta"

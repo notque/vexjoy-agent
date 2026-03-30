@@ -101,7 +101,6 @@ Each agent is defined in `agents/*.md` with YAML frontmatter specifying model, v
 | `pipeline-orchestrator-engineer` | Build pipelines: multi-component scaffolding, fan-out/fan-in patterns, routing integration |
 | `system-upgrade-engineer` | Ecosystem upgrades: 6-phase pipeline for adapting to Claude Code releases or goal shifts |
 | `toolkit-governance-engineer` | Toolkit internal architecture: SKILL.md edits, routing tables, ADR lifecycle, INDEX.json, hook compliance |
-| `agent-creator-engineer` | **DEPRECATED** — use `skill-creator` instead |
 
 ---
 

@@ -75,7 +75,7 @@ All routing tables in commands/do.md follow markdown pipe table format:
 
 **Example:**
 ```
-| "create agent", "new agent", "design agent" | agent-creator-engineer agent | Complex | [AUTO-GENERATED]
+| "create agent", "new agent", "design agent" | skill-creator | Complex | [AUTO-GENERATED]
 ```
 
 ## Combination Routing Table

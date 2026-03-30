@@ -7,7 +7,7 @@ description: |
   skills, testing skill quality, or optimizing descriptions for triggering accuracy.
   Use for "create skill", "new skill", "test skill", "improve skill", "optimize
   description", "skill eval", "turn this into a skill". Do NOT use for agent
-  creation (use agent-creator-engineer) or hook development (use
+  creation (this skill also handles agents) or hook development (use
   hook-development-engineer).
 version: 2.0.0
 routing:

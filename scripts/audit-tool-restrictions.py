@@ -108,7 +108,6 @@ AGENT_ROLES = {
     "technical-documentation-engineer": "documentation",
     "technical-journalist-writer": "documentation",
     # Code modifiers - full access (their job is to write code)
-    "agent-creator-engineer": "code-modifier",
     "ansible-automation-engineer": "code-modifier",
     "data-engineer": "code-modifier",
     "database-engineer": "code-modifier",
