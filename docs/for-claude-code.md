@@ -244,7 +244,7 @@ FTS5 virtual table `learnings_fts` indexes `topic`, `key`, `value`, `tags` for f
 
 ```bash
 # Record a learning scoped to a skill
-python3 scripts/learning-db.py learn --skill go-testing "table tests need t.Parallel()"
+python3 scripts/learning-db.py learn --skill go-patterns "table tests need t.Parallel()"
 
 # Record scoped to an agent
 python3 scripts/learning-db.py learn --agent golang-general-engineer "always check go.sum"
@@ -350,12 +350,7 @@ These are mandatory. When triggers match, the skill fires before any other routi
 
 | Skill | Triggers |
 |-------|----------|
-| `go-testing` | Go test, *_test.go, table-driven, t.Run, t.Helper, benchmark, mock |
-| `go-concurrency` | goroutine, channel, sync.Mutex, WaitGroup, worker pool, fan-out, rate limit |
-| `go-error-handling` | error handling, fmt.Errorf, errors.Is, errors.As, %w, sentinel error |
-| `go-code-review` | review Go, Go PR, Go code review, check Go quality |
-| `go-anti-patterns` | anti-pattern, code smell, over-engineering, premature abstraction |
-| `go-sapcc-conventions` | sapcc, sap-cloud-infrastructure, go-bits, keppel, go-api-declarations |
+| `go-patterns` | Go test, *_test.go, table-driven, goroutine, channel, sync.Mutex, error handling, fmt.Errorf, review Go, anti-pattern, sapcc, make check |
 | `python-quality-gate` | bandit, Python security scan, Python SAST |
 | `create-voice` | create voice, new voice, build voice, voice from samples, calibrate voice |
 | `voice-writer` | write article, blog post, write in voice, generate voice content |
@@ -461,11 +456,11 @@ MCP instructions are injected into the main session only. Subagents must use `To
 User says "fix the failing Go tests"
 
 1. /do classifies: Simple (code change)
-2. Force-route check: "Go test" matches -> go-testing (MANDATORY)
+2. Force-route check: "Go test" matches -> go-patterns (MANDATORY)
 3. Agent: golang-general-engineer
-4. Skill: go-testing (force-routed)
+4. Skill: go-patterns (force-routed, loads testing reference)
 5. Enhancements: anti-rationalization-testing auto-injected
 6. Plan: task_plan.md created (Simple+ complexity)
-7. Dispatch: agent executes with go-testing methodology
+7. Dispatch: agent executes with go-patterns testing methodology
 8. Learn: record outcome to learning.db
 ```

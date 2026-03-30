@@ -73,13 +73,13 @@ systematic-debugging -> comment-quality
 ### Pattern 5: Language-Specific Quality Gate
 
 ```
-test-driven-development -> (if Go: go-pr-quality-gate, else: code-linting) -> verification-before-completion
+test-driven-development -> (if Go: go-patterns, else: code-linting) -> verification-before-completion
 ```
 
 **When to use**: Projects requiring language-appropriate quality validation tools.
 
 **Conditional branches**:
-- Go: go-pr-quality-gate (golangci-lint, go test -race, go build)
+- Go: go-patterns (golangci-lint, go test -race, go build)
 - Python: python-quality-gate (ruff, pytest, mypy, bandit)
 - Multi-language: universal-quality-gate (auto-detect)
 

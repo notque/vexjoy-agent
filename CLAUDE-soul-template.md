@@ -296,9 +296,7 @@ These skills **MUST** be invoked when their triggers appear:
 
 | Triggers | Skill |
 |----------|-------|
-| Go test, _test.go, table-driven | `go-testing` |
-| goroutine, channel, sync.Mutex | `go-concurrency` |
-| error handling, fmt.Errorf | `go-error-handling` |
+| Go test, _test.go, table-driven, goroutine, channel, error handling, fmt.Errorf, sapcc, make check | `go-patterns` |
 
 ---
 

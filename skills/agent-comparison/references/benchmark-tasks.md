@@ -197,7 +197,7 @@ Flat list with optional split markers:
 {
   "tasks": [
     {
-      "name": "go-testing-positive",
+      "name": "go-patterns-positive",
       "split": "train",
       "complexity": "complex",
       "query": "write table-driven tests for a Go parser with subtests and helpers",

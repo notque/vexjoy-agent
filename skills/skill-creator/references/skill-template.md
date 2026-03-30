@@ -89,7 +89,7 @@ Consider who will use the skill. Claude Code users range from experienced engine
 | User follows tutorials, asks about basics | Briefly define technical terms on first use |
 | No clear signal | Default to clear language, define terms that aren't universally known |
 
-In skill instructions, explain jargon if the skill might serve a broad audience. For domain-specific skills (go-testing, kubernetes-helm), assume domain competence.
+In skill instructions, explain jargon if the skill might serve a broad audience. For domain-specific skills (go-patterns, kubernetes-helm), assume domain competence.
 
 ## File Structure
 

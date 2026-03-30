@@ -37,7 +37,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **system-upgrade-engineer** | User wants to upgrade the agent/skill/hook ecosystem after a Claude model update or system-wide change. |
 | **technical-documentation-engineer** | User needs technical documentation created, maintained, or validated — API docs, READMEs, architecture guides. |
 | **technical-journalist-writer** | User needs professional technical writing in a journalism style — articles, posts, or content with a specific authored voice. |
-| **testing-automation-engineer** | User needs comprehensive testing strategy, E2E test setup, Playwright tests, or test infrastructure design. NOT: writing Go unit tests (use go-testing force-route). |
+| **testing-automation-engineer** | User needs comprehensive testing strategy, E2E test setup, Playwright tests, or test infrastructure design. NOT: writing Go unit tests (use go-patterns force-route). |
 | **ui-design-engineer** | User is designing or implementing UI/UX for web applications: layout, Tailwind styling, component design, or visual hierarchy. |
 | **perses-engineer** | User is working with the Perses observability platform: dashboards, plugins, operator/K8s deployment, or core development. |
 | **github-profile-rules-engineer** | User wants to extract coding conventions, programming rules, or style guidelines from a GitHub profile's repositories. |
@@ -61,7 +61,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **vitest-runner** | User wants to run Vitest tests, parse test results, or check if Vitest tests pass. NOT: running Jest, Mocha, or other test runners. |
 | **github-actions-check** | User wants to know if CI passed, check GitHub Actions status, or see build results. NOT: "check this out" (browsing), "check my work" (review), "check the logic" (analysis) — those do not involve CI. |
 | **read-only-ops** | User explicitly wants read-only operations: browsing, exploring, or examining without any modifications. |
-| **go-pr-quality-gate** | User wants to run Go-specific quality checks before submitting a PR: vet, staticcheck, test coverage. |
+| **go-patterns** | User wants Go development patterns: testing, concurrency, errors, review, quality checks, or conventions. |
 | **python-quality-gate** | User wants Python quality checks: ruff linting, mypy type checking, or combined Python quality validation. |
 | **condition-based-waiting** | User needs retry logic, backoff strategies, polling loops, or health check patterns in their code. |
 | **testing-anti-patterns** | User wants to identify or fix flaky tests, or review tests for common anti-patterns. |
@@ -72,12 +72,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **with-anti-rationalization** | User explicitly requests maximum rigor, thorough verification, or wants anti-rationalization patterns injected. |
 | **plan-manager** | User wants to see the status of plans, audit existing plans, or manage the plan lifecycle. |
 | **planning-with-files** | User needs persistent planning with file-backed state across a long multi-session task. |
-| **go-testing (FORCE)** | User wants to write, run, or fix Go tests — _test.go files, table-driven tests, test helpers, testify assertions, or benchmarks. NOT: "test this idea" (exploration), "test my theory" (validation) — those are not Go test code. |
-| **go-concurrency (FORCE)** | User is working with Go concurrency primitives: goroutines, channels, sync.Mutex, WaitGroups, context cancellation, or concurrent data structures. |
-| **go-error-handling (FORCE)** | User is working with Go error handling: fmt.Errorf, errors.Is, errors.As, %w wrapping, sentinel errors, or error type design. |
-| **go-code-review (FORCE)** | User wants a review of Go code, a Go PR, or Go-specific code quality assessment. |
-| **go-anti-patterns** | User wants to identify anti-patterns, code smells, or over-engineering in Go code. |
-| **go-sapcc-conventions (FORCE)** | User is working on SAP Converged Cloud Go repositories (go-bits, keppel, go-api-declarations, sap-cloud-infrastructure) where SAPCC-specific conventions apply. |
+| **go-patterns (FORCE)** | User wants Go development patterns: testing (_test.go, table-driven, benchmarks), concurrency (goroutines, channels, sync), error handling (fmt.Errorf, errors.Is/As, sentinels), anti-patterns (code smells, over-engineering), code review (Go PR quality), SAP CC conventions (sapcc, go-bits, keppel), or quality gates (make check, lint). |
 | **sapcc-review** | User wants a SAPCC compliance review of a Go PR or repository for SAP Converged Cloud conventions. |
 | **sapcc-audit** | User wants a full SAPCC audit of an entire repository against SAP Converged Cloud standards. |
 | **fish-shell-config** | User is configuring fish shell: editing config.fish, writing fish functions, or fixing fish-specific syntax. |
@@ -341,8 +336,8 @@ Invoked via the roast skill or directly:
 | "add a --verbose flag to the CLI" | **quick (FORCE)** | Small self-contained change |
 | "small refactor: extract helper function" | **quick (FORCE)** | Contained, no design ambiguity |
 | "debug Go tests" | golang-general-engineer + systematic-debugging | Debugging task in Go domain |
-| "write Go tests for X" | **go-testing (FORCE)** | Creating _test.go files — force-route |
-| "add worker pool" | **go-concurrency (FORCE)** | Goroutines and concurrency — force-route |
+| "write Go tests for X" | **go-patterns (FORCE)** | Go testing domain — force-route |
+| "add worker pool" | **go-patterns (FORCE)** | Go concurrency domain — force-route |
 | "add auth to Python API" | python-general-engineer + workflow-orchestrator | Python domain, multi-step implementation |
 | "review my K8s manifests" | kubernetes-helm-engineer + systematic-code-review | K8s domain, review task |
 | "roast this design doc" | roast skill (5 personas) | Multi-persona critique |
@@ -382,7 +377,7 @@ Invoked via the roast skill or directly:
 | "analyze github profile conventions" | github-profile-rules-engineer + github-profile-rules | Convention extraction |
 | "review sapcc Go repo" | golang-general-engineer + sapcc-review | SAPCC domain review |
 | "audit sapcc conventions" | golang-general-engineer + sapcc-audit | SAPCC full audit |
-| "work on sapcc Go code" | **go-sapcc-conventions (FORCE)** | SAPCC repo — auto-detected by hook |
+| "work on sapcc Go code" | **go-patterns (FORCE)** | SAPCC conventions domain — auto-detected by hook |
 | "moderate reddit" | reddit-moderate | Reddit moderation |
 | "check my modqueue" | reddit-moderate | Reddit moderation |
 | "open a pull request" | **pr-workflow (FORCE)** | Intent: create a PR on GitHub |

@@ -433,7 +433,7 @@ description: |
   General code quality analysis: style, complexity, maintainability. Use for
   "code review", "check quality", "analyze code". Do NOT use for security
   audits (use reviewer-security), performance analysis (use performance-
-  optimization-engineer), or language-specific reviews (use go-code-review,
+  optimization-engineer), or language-specific reviews (use go-patterns,
   python-code-review).
 ```
 

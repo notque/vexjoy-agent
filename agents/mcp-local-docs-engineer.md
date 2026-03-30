@@ -382,7 +382,7 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 This agent pairs well with:
 - **verification-before-completion**: Validate MCP server functionality before completion
 - **typescript-check**: Type-check TypeScript MCP server implementations
-- **go-code-review**: Review Go MCP server code for quality
+- **go-patterns**: Review Go MCP server code for quality
 
 ### Key Documentation
 - MCP Specification: https://spec.modelcontextprotocol.io/
