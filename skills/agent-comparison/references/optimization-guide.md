@@ -80,7 +80,28 @@ Explicit train/test sets:
 If no split markers are present, the loop performs a reproducible random split
 using `--train-split` and seed `42`.
 
+`run_eval.py` now accepts the same common task-file wrappers:
+
+- raw list: `[{"query": "...", "should_trigger": true}]`
+- task wrapper: `{"tasks": [...]}`
+- query wrapper: `{"queries": [...]}`
+- split wrapper: `{"train": [...], "test": [...]}`
+
 ## Command
+
+Short default run:
+
+```bash
+python3 skills/agent-comparison/scripts/optimize_loop.py \
+  --target skills/go-testing/SKILL.md \
+  --goal "improve routing precision without losing recall" \
+  --benchmark-tasks skills/agent-comparison/references/optimization-tasks.example.json \
+  --report optimization-report.html \
+  --output-dir evals/iterations \
+  --verbose
+```
+
+Longer search:
 
 ```bash
 python3 skills/agent-comparison/scripts/optimize_loop.py \
@@ -106,19 +127,44 @@ Useful flags:
 - `--dry-run`: exercise the loop mechanics without calling Claude Code
 - `--report`: write a live HTML report
 - `--output-dir`: persist iteration snapshots and `results.json`
+- `--eval-mode auto|registered|alias`: choose how live trigger eval is isolated
 - `--beam-width`: retain the best K improving candidates per round
 - `--candidates-per-parent`: generate multiple sibling variants from each frontier candidate
-- `--revert-streak-limit`: stop after N rounds without any KEEP candidates
+- `--revert-streak-limit`: stop after N rounds without any ACCEPT candidates
 - `--holdout-check-cadence`: evaluate the global best on held-out tasks every N rounds
+- `--parallel-eval N`: run behavioral eval tasks in parallel isolated worktrees
+
+Short defaults:
+
+- `--max-iterations 1`
+- `--revert-streak-limit 1`
+- `--holdout-check-cadence 0`
+- trigger eval `--num-workers 1`
+- trigger eval `--runs-per-query 1`
 
 Recommended search presets:
 
+- Short proof run:
+  - default flags only
 - Single-path local search:
-  - `--beam-width 1 --candidates-per-parent 1`
+  - `--beam-width 1 --candidates-per-parent 1 --max-iterations 3 --revert-streak-limit 3`
 - Balanced beam search:
   - `--beam-width 3 --candidates-per-parent 2`
 - Aggressive exploration:
   - `--beam-width 5 --candidates-per-parent 3 --min-gain 0.0`
+
+## Live Eval Isolation Modes
+
+`run_eval.py` now has three modes:
+
+- `auto`: default. If the target is a real repo skill at `skills/<name>/SKILL.md`, live eval runs in an isolated git worktree with the candidate content patched into the real path. Otherwise it falls back to alias mode.
+- `registered`: force isolated worktree evaluation of a real registered skill.
+- `alias`: force legacy dynamic command-file evaluation.
+
+For real registered skills, `auto` is the preferred mode. It prevents the evaluator
+from accidentally scoring the installed skill instead of the candidate under test.
+It also patches the current working-copy skill content into the isolated worktree,
+so local uncommitted edits are evaluated correctly.
 
 ## Evaluation Model
 
@@ -131,11 +177,10 @@ The loop follows the ADR-131 structure:
 
 ### Layer 1: Hard Gates
 
-An iteration is rejected immediately if any of these fail:
+An iteration is rejected immediately if any of these mechanical validity gates fail:
 
 - `parses`
 - `compiles`
-- `tests_pass`
 - `protected_intact`
 
 For description optimization, `parses` and `protected_intact` are the most
@@ -144,9 +189,13 @@ preserved verbatim.
 
 ### Layer 2: Composite Score
 
-The loop converts trigger-rate evaluation results into a weighted composite
-score using the built-in weights in `optimize_loop.py`. A candidate is kept only
-if it beats its parent by more than `--min-gain`.
+The loop converts evaluation results into a weighted composite score using the
+built-in weights in `optimize_loop.py`. Task accuracy affects the component
+dimensions (`correctness`, `error_handling`, `language_idioms`, `testing`,
+`efficiency`) without zeroing the entire score. This preserves optimization
+signal for incremental improvements when a task set is not yet perfect.
+
+A candidate is accepted only if it beats its parent by more than `--min-gain`.
 
 ### Layer 3: Held-Out Regression Check
 
@@ -161,21 +210,22 @@ When beam search is enabled:
 
 - each frontier candidate generates `--candidates-per-parent` siblings
 - every sibling is scored independently
-- the top `--beam-width` KEEP candidates become the next frontier
+- the top `--beam-width` ACCEPT candidates become the next frontier
 - `best_variant.md` still tracks the single best candidate seen anywhere in the run
 
 When `--beam-width 1 --candidates-per-parent 1`, the behavior collapses back to
 the original single-path optimizer.
 
-## Deletion Safety Rule
+## Description-Only Scope
 
-Deleting sections is allowed only with explicit justification.
+The current optimizer mutates only the YAML frontmatter `description`.
 
-- `generate_variant.py` detects removed `##` headings
-- the model must return a `deletion_justification`
-- `optimize_loop.py` rejects deletions without one
+- `generate_variant.py` asks the model for an improved description, not a full-file rewrite
+- the variant file is reconstructed by replacing that one field in the original content
+- eval results therefore measure the same surface area that generation changes
 
-This enforces ADR-131's "no deletion without justification" rule.
+This avoids false negatives where the model improves routing blocks or body text
+that the evaluator does not read.
 
 ## Iteration Artifacts
 
@@ -193,10 +243,25 @@ When `--output-dir` is set, the loop writes:
 
 When `--report` is set, it also writes a live HTML dashboard showing:
 
-- status, baseline, best score, kept/reverted counts
+- status, baseline, best score, accepted/rejected counts
 - convergence chart
 - iteration table with diffs
-- review/export controls for kept snapshot diffs from the original target
+- review/export controls for accepted snapshot diffs from the original target
+
+## Current Validation Status
+
+What is currently demonstrated:
+- deterministic end-to-end improvement runs with readable artifacts
+- isolated live optimization for existing registered skills via temporary git worktrees
+- score calculations and accept/reject decisions that match the weighted rubric
+- short live proof on `skills/read-only-ops/SKILL.md` using
+  `references/read-only-ops-short-tasks.json`, improving from one failed positive
+  to `2/2` live passes after the accepted description update
+
+What remains imperfect:
+- live optimization of temporary renamed skill copies still fails to show measured improvement through the dynamic command alias path
+
+So the current tooling is operational for real registered skills and deterministic proof runs, but not yet fully proven for arbitrary temporary renamed clones.
 
 ## Choosing Good Eval Tasks
 

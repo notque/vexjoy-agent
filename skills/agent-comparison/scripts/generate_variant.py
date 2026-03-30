@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Generate a variant of an agent/skill file using Claude Code.
+"""Generate a description-optimized variant of an agent/skill file using Claude Code.
 
-Proposes modifications to improve the target file based on the optimization
-goal and previous iteration failures. Preserves protected sections marked
-with DO NOT OPTIMIZE markers.
+Proposes a new frontmatter description based on the optimization goal and
+previous iteration failures, then applies that description back onto the
+original file. This keeps the optimization surface aligned with what the
+evaluator actually measures.
 
 Pattern: uses `claude -p` so generation runs through Claude Code directly.
 
@@ -17,8 +18,8 @@ Usage:
 
 Output (JSON to stdout):
     {
-        "variant": "full file content...",
-        "summary": "Added CRITICAL warning for error wrapping",
+        "variant": "full file content with updated description...",
+        "summary": "Added concrete trigger phrases to the description",
         "deletion_justification": "",
         "reasoning": "Extended thinking content...",
         "tokens_used": 12345
@@ -84,6 +85,92 @@ def detect_deletions(original: str, variant: str) -> list[str]:
     orig_headings = set(re.findall(r"^##\s+(.+)$", original, re.MULTILINE))
     var_headings = set(re.findall(r"^##\s+(.+)$", variant, re.MULTILINE))
     return sorted(orig_headings - var_headings)
+
+
+# ---------------------------------------------------------------------------
+# Description-only optimization helpers
+# ---------------------------------------------------------------------------
+
+
+def extract_description(content: str) -> str:
+    """Extract frontmatter description text from a markdown file."""
+    lines = content.split("\n")
+    if not lines or lines[0].strip() != "---":
+        raise ValueError("Content missing frontmatter opening delimiter")
+
+    end_idx = None
+    for i, line in enumerate(lines[1:], start=1):
+        if line.strip() == "---":
+            end_idx = i
+            break
+    if end_idx is None:
+        raise ValueError("Content missing frontmatter closing delimiter")
+
+    fm_lines = lines[1:end_idx]
+    idx = 0
+    while idx < len(fm_lines):
+        line = fm_lines[idx]
+        if line.startswith("description:"):
+            value = line[len("description:") :].strip()
+            if value in (">", "|", ">-", "|-"):
+                parts: list[str] = []
+                idx += 1
+                while idx < len(fm_lines) and (fm_lines[idx].startswith("  ") or fm_lines[idx].startswith("\t")):
+                    parts.append(fm_lines[idx].strip())
+                    idx += 1
+                return "\n".join(parts).strip()
+            return value.strip('"').strip("'").strip()
+        idx += 1
+
+    raise ValueError("Content missing frontmatter description")
+
+
+def replace_description(content: str, new_description: str) -> str:
+    """Replace the frontmatter description while preserving all other content verbatim."""
+    lines = content.split("\n")
+    if not lines or lines[0].strip() != "---":
+        raise ValueError("Content missing frontmatter opening delimiter")
+
+    end_idx = None
+    for i, line in enumerate(lines[1:], start=1):
+        if line.strip() == "---":
+            end_idx = i
+            break
+    if end_idx is None:
+        raise ValueError("Content missing frontmatter closing delimiter")
+
+    fm_lines = lines[1:end_idx]
+    start_idx = None
+    stop_idx = None
+    idx = 0
+    while idx < len(fm_lines):
+        line = fm_lines[idx]
+        if line.startswith("description:"):
+            start_idx = idx
+            value = line[len("description:") :].strip()
+            stop_idx = idx + 1
+            if value in (">", "|", ">-", "|-"):
+                stop_idx = idx + 1
+                while stop_idx < len(fm_lines) and (
+                    fm_lines[stop_idx].startswith("  ") or fm_lines[stop_idx].startswith("\t")
+                ):
+                    stop_idx += 1
+            break
+        idx += 1
+
+    if start_idx is None or stop_idx is None:
+        raise ValueError("Content missing frontmatter description")
+
+    normalized = new_description.strip()
+    replacement = ["description: |"]
+    if normalized:
+        replacement.extend(f"  {line}" if line else "  " for line in normalized.splitlines())
+    else:
+        replacement.append("  ")
+
+    new_fm_lines = fm_lines[:start_idx] + replacement + fm_lines[stop_idx:]
+    rebuilt_lines = ["---", *new_fm_lines, "---", *lines[end_idx + 1 :]]
+    return "\n".join(rebuilt_lines)
 
 
 # ---------------------------------------------------------------------------
@@ -162,7 +249,20 @@ def generate_variant(
     if failures:
         failure_section = "\n\nFailed tasks from the last iteration:\n"
         for f in failures:
-            failure_section += f"  - {f.get('name', 'unnamed')}: {f.get('details', 'failed')}\n"
+            label = f.get("query") or f.get("name", "unnamed")
+            should_trigger = f.get("should_trigger")
+            expectation = ""
+            if should_trigger is True:
+                expectation = " (expected: SHOULD trigger)"
+            elif should_trigger is False:
+                expectation = " (expected: should NOT trigger)"
+            detail_bits = []
+            if f.get("details"):
+                detail_bits.append(str(f["details"]))
+            if "trigger_rate" in f:
+                detail_bits.append(f"raw_trigger_rate={f['trigger_rate']:.2f}")
+            details = "; ".join(detail_bits) if detail_bits else "failed"
+            failure_section += f"  - {label}{expectation}: {details}\n"
 
     history_section = ""
     if history:
@@ -188,7 +288,9 @@ Do not add, remove, or modify anything between these markers.
 This is non-negotiable: protected sections contain safety gates that must not be
 removed even if removing them would improve test scores."""
 
-    prompt = f"""You are optimizing an agent/skill file to improve its performance.
+    current_description = extract_description(current_content)
+
+    prompt = f"""You are optimizing an agent/skill file to improve its trigger performance.
 
 Target file: {target_path}
 Optimization goal: {goal}
@@ -197,36 +299,45 @@ Current content of the file:
 <current_content>
 {current_content}
 </current_content>
+Current description:
+<current_description>
+{current_description}
+</current_description>
 {failure_section}{history_section}{diversification_section}{protected_notice}
 
 SAFETY RULES:
-1. Do NOT delete sections without replacing them with equivalent or better content.
-   If you remove a section heading that exists in the original, you must explain what
-   replaces the removed functionality. Pure deletion degrades unmeasured capabilities.
+1. Optimize ONLY the YAML frontmatter `description` field.
+   Do not modify any other part of the file. The optimizer evaluates description-trigger
+   quality only, so changing routing blocks, body text, or headings is out of scope.
 
-2. Do NOT change the tools, SDKs, or interfaces the agent uses. The variant must work
-   in the same environment as the original (no switching from SDK to curl, etc.).
+2. Keep the description faithful to the file's actual purpose. Improve routing precision
+   by making the description clearer and more triggerable, not by changing the behavior
+   or scope of the skill.
 
-3. Keep YAML frontmatter structure intact (name, description, routing, etc.).
+3. Keep the skill name, routing, tools, instructions, and all protected sections unchanged.
 
-4. Focus on making the agent/skill better at achieving the stated goal. Common
+4. Focus on making the description better at achieving the stated goal. Common
    improvements include:
-   - Moving critical information to more prominent positions (CRITICAL banners)
-   - Adding explicit planning steps before code generation
-   - Improving error handling instructions with specific patterns
-   - Adding concrete examples for ambiguous instructions
-   - Restructuring for clarity when sections are dense
+   - Including natural user phrasings that should trigger this skill
+   - Making the first sentence more concrete and specific
+   - Removing vague wording that overlaps with unrelated skills
+   - Adding concise usage examples when they help routing
 
-Please respond with the complete modified file content inside <variant> tags,
-and a brief summary of what you changed and why inside <summary> tags.
+5. Treat failed eval tasks as primary routing evidence:
+   - If a task SHOULD have triggered but did not, strongly prefer copying the exact
+     user phrasing or a very close paraphrase into the description.
+   - If a task should NOT have triggered, add clarifying language that separates this
+     skill from that request without expanding scope.
+   - Optimize for the smallest description change that would make the failed tasks
+     more likely to score correctly on the next run.
 
-If you removed any existing `##` section heading, include a brief justification
-inside <deletion_justification> tags. If you did not remove a section, return
-empty tags.
+Please respond with ONLY the improved description text inside <description> tags,
+without YAML quoting or frontmatter delimiters, and a brief summary inside <summary> tags.
+Do not return the full file.
 
-<variant>
-[complete file content here]
-</variant>
+<description>
+[improved description only]
+</description>
 
 <summary>
 [1-2 sentence description of the change]
@@ -238,13 +349,20 @@ empty tags.
 
     text, raw_result_text, tokens_used = _run_claude_code(prompt, model)
 
-    # Parse variant content
-    variant_match = re.search(r"<variant>(.*?)</variant>", text, re.DOTALL)
-    if not variant_match:
-        print("Error: No <variant> tags in response", file=sys.stderr)
-        sys.exit(1)
+    # Parse improved description. Accept legacy <variant> output as a fallback
+    # so older prompt responses and tests remain parseable.
+    description_match = re.search(r"<description>(.*?)</description>", text, re.DOTALL)
+    if description_match:
+        new_description = description_match.group(1).strip()
+    else:
+        variant_match = re.search(r"<variant>(.*?)</variant>", text, re.DOTALL)
+        if not variant_match:
+            print("Error: No <description> or <variant> tags in response", file=sys.stderr)
+            sys.exit(1)
+        legacy_variant = variant_match.group(1).strip()
+        new_description = extract_description(legacy_variant)
 
-    variant = variant_match.group(1).strip()
+    variant = replace_description(current_content, new_description)
 
     # Parse summary
     summary_match = re.search(r"<summary>(.*?)</summary>", text, re.DOTALL)
@@ -253,13 +371,12 @@ empty tags.
     deletion_match = re.search(r"<deletion_justification>(.*?)</deletion_justification>", text, re.DOTALL)
     deletion_justification = deletion_match.group(1).strip() if deletion_match else ""
 
-    # Restore protected sections (safety net)
+    # Restore protected sections (safety net); should be a no-op when only the
+    # description changes, but keep it as belt-and-suspenders protection.
     variant = restore_protected(current_content, variant)
 
-    # Check for unauthorized deletions
+    # Description-only optimization should never delete sections.
     deletions = detect_deletions(current_content, variant)
-    if deletions:
-        print(f"Warning: Deleted sections: {deletions}", file=sys.stderr)
 
     return {
         "variant": variant,
