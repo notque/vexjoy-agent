@@ -1,12 +1,6 @@
 ---
 name: mcp-pipeline-builder
-description: |
-  Convert any repository into a registered MCP server: ANALYZE → DESIGN →
-  GENERATE → VALIDATE → EVALUATE → REGISTER. Point at a repo URL or local
-  path, get a working MCP server registered with Claude Code. Use for "mcp
-  pipeline", "repo to mcp", "create mcp from repo", "generate mcp",
-  "mcp builder", "mcp from repo". Do NOT use for modifying an existing MCP
-  server or building against a known API specification (use mcp-builder instead).
+description: "Convert any repository into a registered MCP server."
 version: 1.0.0
 user-invocable: false
 argument-hint: "<repo-url-or-path>"

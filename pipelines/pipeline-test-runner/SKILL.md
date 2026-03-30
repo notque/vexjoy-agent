@@ -1,13 +1,6 @@
 ---
 name: pipeline-test-runner
-description: |
-  Test generated pipeline skills against real targets. Discovers test targets
-  (fixtures, codebase files, or synthetic inputs), runs each subdomain skill
-  in parallel, validates dual-layer artifacts, and produces a pass/fail report
-  with failure traces. Use after pipeline-scaffolder completes, for "test
-  generated pipelines", "run pipeline tests", "validate scaffolded skills".
-  Do NOT use for testing hand-written skills, unit testing scripts, or
-  evaluating voice/content quality.
+description: "Test generated pipeline skills against real targets."
 version: 1.0.0
 user-invocable: false
 agent: pipeline-orchestrator-engineer

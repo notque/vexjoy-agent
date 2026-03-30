@@ -1,13 +1,6 @@
 ---
 name: research-to-article
-description: |
-  Multi-agent research pipeline for voice content generation. Parallel
-  research agents gather data, compile findings, then voice pipeline
-  generates validated article. Use for "research then write", "article
-  with research", "write about [topic]", "full article pipeline", or any
-  content needing fact-gathering before voice generation. Do NOT use for
-  simple writing without research, editing existing articles, or content
-  that does not require a voice profile.
+description: "Multi-agent research pipeline for voice content generation."
 version: 2.0.0
 user-invocable: false
 context: fork

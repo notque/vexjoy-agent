@@ -1,12 +1,6 @@
 ---
 name: systematic-refactoring
-description: |
-  Safe 5-phase refactoring pipeline with test characterization, incremental
-  changes, and learning gates: CHARACTERIZE, PLAN, REFACTOR, VERIFY, RECORD.
-  Use when renaming functions/variables, extracting modules, changing signatures,
-  restructuring directories, or consolidating duplicate code. Use for "refactor",
-  "rename", "extract", "restructure", or "migrate pattern". Do NOT use for bug
-  fixes or new feature implementation.
+description: "Safe 5-phase refactoring with test characterization and learning."
 version: 2.0.0
 user-invocable: false
 context: fork

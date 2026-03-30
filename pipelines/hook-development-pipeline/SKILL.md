@@ -1,11 +1,6 @@
 ---
 name: hook-development-pipeline
-description: |
-  Formal 5-phase pipeline for creating production-quality hooks with mandatory
-  performance gates: SPEC → IMPLEMENT → TEST → REGISTER → DOCUMENT. Enforces
-  sub-50ms execution, non-blocking exit-0 pattern, and proper event type selection.
-  Use when creating new hooks or upgrading existing ones. Use for
-  "create hook pipeline", "new hook formal", "hook with gates".
+description: "5-phase hook creation pipeline with performance gates."
 version: 1.0.0
 user-invocable: false
 agent: hook-development-engineer

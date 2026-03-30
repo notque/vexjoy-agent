@@ -1,11 +1,6 @@
 ---
 name: de-ai-pipeline
-description: |
-  Scan-fix-verify loop for removing AI writing patterns from docs. Runs
-  scan-ai-patterns.py to find errors, dispatches fix agents per file,
-  re-scans to verify, repeats until zero errors or max 3 iterations.
-  Use for "de-ai docs", "clean ai patterns", "fix ai writing",
-  "scan and fix docs", "remove ai tells from docs".
+description: "Scan-fix-verify loop for removing AI writing patterns from docs."
 version: 1.0.0
 user-invocable: false
 argument-hint: "[<path-or-glob>]"

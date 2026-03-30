@@ -1,13 +1,6 @@
 ---
 name: pr-pipeline
-description: |
-  End-to-end pipeline for creating pull requests: Classify Repo, Stage,
-  Review, Cross-Model Review (Codex), Commit, Push, Review-Fix Loop (max 3), Create, Verify. For personal repos,
-  runs iterative /pr-review + fix cycles before PR creation. For protected-org
-  repos, human-gated workflow with user confirmation at every step.
-  Use when user says "submit PR", "create pull request", "push and PR",
-  "send for review", or "open PR". Do NOT use for commits without PR
-  creation, branch management alone, or code review without submission intent.
+description: "End-to-end pull request pipeline with review-fix loop."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

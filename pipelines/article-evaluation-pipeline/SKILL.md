@@ -1,13 +1,6 @@
 ---
 name: article-evaluation-pipeline
-description: |
-  Wabi-sabi-aware 4-phase article evaluation: Fetch, Validate, Analyze,
-  Report. Use when user wants to evaluate an article for voice authenticity,
-  check voice quality, review article voice patterns, or validate content
-  against a voice profile. Use for "evaluate article", "check voice",
-  "is this authentic", "review my article", or "voice evaluation". Do NOT
-  use for writing articles, editing content, or generating voice profiles
-  without an existing article to evaluate.
+description: "Wabi-sabi-aware 4-phase article evaluation for voice authenticity."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

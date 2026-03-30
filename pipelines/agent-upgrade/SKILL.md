@@ -1,12 +1,6 @@
 ---
 name: agent-upgrade
-description: |
-  5-phase pipeline for systematically improving an existing agent or skill:
-  AUDIT → DIFF → PLAN → IMPLEMENT → RE-EVALUATE. Scores before and after,
-  gaps against current templates, and gates on user approval before changes.
-  Use when an agent needs quality improvement, template alignment, or
-  retro knowledge graduation. Use for "upgrade agent", "improve agent",
-  "agent upgrade", "fix agent quality", "align agent to template".
+description: "5-phase agent/skill improvement: AUDIT, DIFF, PLAN, IMPLEMENT, RE-EVALUATE."
 version: 1.0.0
 user-invocable: false
 argument-hint: "<agent-or-skill-name>"

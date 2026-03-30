@@ -1,12 +1,6 @@
 ---
 name: pipeline-scaffolder
-description: |
-  Scaffold pipeline components from a Pipeline Spec JSON: N subdomain skills,
-  0-1 agents, reference files, scripts, hooks, and routing entries. Consumes
-  output from chain-composer skill. Use for "scaffold pipeline", "create
-  pipeline components", "generate pipeline from spec", or "build pipeline
-  skills". Do NOT use for modifying existing pipelines, creating standalone
-  agents, ad-hoc skill creation, or domain research.
+description: "Scaffold pipeline components from a Pipeline Spec JSON."
 version: 2.0.0
 user-invocable: false
 agent: pipeline-orchestrator-engineer
