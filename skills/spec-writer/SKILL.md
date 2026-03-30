@@ -3,7 +3,7 @@ name: spec-writer
 description: |
   Structured specification with explicit scope boundaries: user stories,
   acceptance criteria, out-of-scope definition, risks, and estimation.
-  Positions before feature-design in the feature lifecycle pipeline.
+  Positions before feature-lifecycle (design phase) in the feature lifecycle pipeline.
 
   Use when: "write spec", "user stories", "define requirements", "scope this",
   "what should this do", "acceptance criteria", "define scope"
@@ -20,9 +20,7 @@ routing:
     - define scope
     - spec out
   pairs_with:
-    - feature-design
-    - feature-plan
-    - feature-validate
+    - feature-lifecycle
   complexity: Simple
   category: process
 ---
@@ -52,7 +50,7 @@ Produce the spec with all 5 sections in order. Out-of-scope is MANDATORY and mus
 
 **Acceptance criteria must be testable**—no subjective language ("should feel fast", "user-friendly", "intuitive"). Every criterion must have a verifiable assertion. WHY: untestable criteria become opinion debates during review.
 
-**Spec says WHAT, not HOW**—no code, no architecture, no database schemas, no implementation details. Those belong in feature-design.
+**Spec says WHAT, not HOW**—no code, no architecture, no database schemas, no implementation details. Those belong in the feature-lifecycle design phase.
 
 Use this structure:
 
@@ -114,7 +112,7 @@ This feature does NOT:
    - Otherwise: save to `SPEC.md` in project root
 5. Report the artifact location and suggest next step:
    ```
-   Spec saved to [path]. Run /feature-design to begin design exploration.
+   Spec saved to [path]. Run /feature-lifecycle to begin design exploration.
    ```
 
 ### Step 4: Optional Behaviors
@@ -137,9 +135,9 @@ This feature does NOT:
 - Spec Writer Integration: This skill produces the input artifact for the feature lifecycle pipeline:
   ```
   spec-writer (SPEC.md)
-    --> feature-design (reads stories + scope boundaries)
-      --> feature-plan (reads acceptance criteria for test requirements)
-        --> feature-implement
-          --> feature-validate (checks acceptance criteria as quality gates)
-            --> feature-release
+    --> feature-lifecycle/design (reads stories + scope boundaries)
+      --> feature-lifecycle/plan (reads acceptance criteria for test requirements)
+        --> feature-lifecycle/implement
+          --> feature-lifecycle/validate (checks acceptance criteria as quality gates)
+            --> feature-lifecycle/release
   ```

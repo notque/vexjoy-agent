@@ -280,29 +280,6 @@
         "technical-documentation-engineer"
       ]
     },
-    "feature-pipeline": {
-      "file": "pipelines/feature-pipeline/SKILL.md",
-      "description": "End-to-end feature lifecycle pipeline coordinating design through release: DESIGN, PLAN, IMPLEMENT, VALIDATE, RELEASE, RECORD.",
-      "triggers": [
-        "build feature end to end",
-        "full feature lifecycle",
-        "feature from scratch",
-        "design to release",
-        "complete feature pipeline",
-        "feature pipeline"
-      ],
-      "category": "process",
-      "user_invocable": false,
-      "version": "1.0.0",
-      "phases": [
-        "DESIGN",
-        "PLAN",
-        "IMPLEMENT",
-        "VALIDATE",
-        "RELEASE",
-        "RECORD"
-      ]
-    },
     "github-profile-rules": {
       "file": "pipelines/github-profile-rules/SKILL.md",
       "description": "Extract programming rules and coding conventions from a GitHub user's public profile via API.",
