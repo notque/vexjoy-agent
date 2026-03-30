@@ -59,7 +59,7 @@ Read and follow the repository CLAUDE.md before making any routing decision, bec
 
 **Maximize skill/agent/pipeline usage.** If a skill or pipeline exists for the task, USE IT — even if handling directly seems faster, because skills encode domain patterns that prevent common mistakes.
 
-**Check for parallel patterns FIRST** because independent work items can run concurrently, saving significant time — sequential dispatch when parallel is possible wastes wall-clock time needlessly: 2+ independent failures or 3+ subtasks → `dispatching-parallel-agents`; broad research → `research-coordinator-engineer`; multi-agent coordination → `project-coordinator-engineer`; plan exists + "execute" → `subagent-driven-development`; new feature → `feature-design` (check `.feature/` directory; if present, use `feature-state.py status` for current phase).
+**Check for parallel patterns FIRST** because independent work items can run concurrently, saving significant time — sequential dispatch when parallel is possible wastes wall-clock time needlessly: broad research → `research-coordinator-engineer`; multi-agent coordination → `project-coordinator-engineer`; plan exists + "execute" → `subagent-driven-development`; new feature → `feature-design` (check `.feature/` directory; if present, use `feature-state.py status` for current phase).
 
 **Optional: Force Direct** — OFF by default. When explicitly enabled, overrides routing for trivial operations. Only applies when the user explicitly requests it.
 
@@ -163,7 +163,6 @@ Auto-inject retro knowledge from `learning.db` for any substantive work (benchma
 | "comprehensive" / "thorough" / "full" | Add parallel reviewers (security + business + quality) |
 | "with tests" / "production ready" | Append test-driven-development + verification-before-completion |
 | "research needed" / "investigate first" | Prepend research-coordinator-engineer |
-| Multiple independent problems (2+) | Use dispatching-parallel-agents |
 | "review" with 5+ files | Use parallel-code-review (3 reviewers) |
 | Complex implementation | Offer subagent-driven-development |
 

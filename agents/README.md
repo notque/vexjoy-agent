@@ -59,10 +59,7 @@ Each agent is defined in `agents/*.md` with YAML frontmatter specifying model, v
 
 | Agent | Description |
 |-------|-------------|
-| `perses-core-engineer` | Perses core development: Go backend, React/TypeScript frontend, CUE schemas, overall architecture |
-| `perses-dashboard-engineer` | Perses dashboard operations: create/manage dashboards, CUE/Go SDK, percli CLI, MCP integration |
-| `perses-operator-engineer` | Perses Kubernetes operator: CRDs (v1alpha2), PersesDashboard/PersesDatasource resources, Helm |
-| `perses-plugin-engineer` | Perses plugin development: scaffolding, CUE schemas, React components, Module Federation |
+| `perses-engineer` | Perses observability platform: dashboards, plugins, operator, core development |
 
 ---
 
@@ -101,7 +98,6 @@ Each agent is defined in `agents/*.md` with YAML frontmatter specifying model, v
 | `pipeline-orchestrator-engineer` | Build pipelines: multi-component scaffolding, fan-out/fan-in patterns, routing integration |
 | `system-upgrade-engineer` | Ecosystem upgrades: 6-phase pipeline for adapting to Claude Code releases or goal shifts |
 | `toolkit-governance-engineer` | Toolkit internal architecture: SKILL.md edits, routing tables, ADR lifecycle, INDEX.json, hook compliance |
-| `agent-creator-engineer` | **DEPRECATED** — use `skill-creator` instead |
 
 ---
 
@@ -123,6 +119,18 @@ Each agent is defined in `agents/*.md` with YAML frontmatter specifying model, v
 
 ---
 
+## Reviewers — Code Quality (Umbrella)
+
+Single umbrella agent covering 10 code review dimensions via reference files.
+
+| Agent | Description |
+|-------|-------------|
+| `reviewer-code` | Code quality review: conventions, naming, dead code, performance, types, tests, comments, config safety |
+
+Dimensions (loaded on demand): code-quality, simplifier, language-specialist, naming, dead-code, comments, performance, type-design, test-analyzer, config-safety.
+
+---
+
 ## Reviewers — Wave 1 (Foundation)
 
 These agents run in parallel during the first review wave, each covering a distinct concern.
@@ -131,13 +139,8 @@ These agents run in parallel during the first review wave, each covering a disti
 |-------|-------------|
 | `reviewer-security` | OWASP Top 10, authentication, input validation, secrets detection — read-only |
 | `reviewer-business-logic` | Domain correctness, edge cases, state machine verification, data validation — read-only |
-| `reviewer-code-quality` | Style guide adherence, convention enforcement, bug detection (confidence ≥ 80) |
-| `reviewer-language-specialist` | Language-specific idioms, modern stdlib usage, anti-patterns for Go/Python/TypeScript |
 | `reviewer-silent-failures` | Swallowed errors, inadequate error handling, dangerous fallbacks — zero tolerance |
-| `reviewer-test-analyzer` | Test coverage quality, behavioral coverage, resilience to refactoring, negative cases |
 | `reviewer-docs-validator` | README, CLAUDE.md, dependency health, CI setup, project metadata — supports `--fix` |
-| `reviewer-type-design` | Type design quality, invariant expression, encapsulation, compile-time guarantees |
-| `reviewer-performance` | Hot paths, algorithmic complexity, N+1 queries, allocations, missing caching |
 | `reviewer-observability` | Missing metrics, logging quality, trace propagation, health checks, alerting gaps |
 | `reviewer-adr-compliance` | Verifies every ADR decision point has implementation; no scope creep |
 | `reviewer-sapcc-structural` | SAP CC structural review: type exports, unnecessary wrappers, go-bits usage, test structure |
@@ -152,13 +155,9 @@ These agents receive Wave 1 findings as context for targeted follow-on analysis.
 |-------|-------------|
 | `reviewer-concurrency` | Race conditions, goroutine leaks, deadlocks, mutex misuse, channel lifecycle |
 | `reviewer-api-contract` | Breaking API changes, backward compatibility, schema validation, HTTP status code misuse |
-| `reviewer-config-safety` | Hardcoded values, missing env var validation, secrets in source, unsafe defaults |
-| `reviewer-dead-code` | Unreachable branches, unused exports, orphaned files, stale feature flags, commented-out code |
 | `reviewer-dependency-audit` | CVEs, problematic licenses, deprecated packages, supply chain risks; runs govulncheck/npm audit |
 | `reviewer-error-messages` | Error message quality: actionable, sufficient context, consistent formatting, localization-ready |
 | `reviewer-migration-safety` | Reversible migrations, API deprecation paths, feature flag lifecycle, rollback strategies |
-| `reviewer-naming-consistency` | Convention drift (userID vs userId), verb inconsistency, acronym casing, file naming |
-| `reviewer-comment-analyzer` | Comment rot, misleading docs, unnecessary comments, missing critical documentation |
 
 ---
 
@@ -175,4 +174,3 @@ These reviewers provide a specific human perspective rather than a technical dom
 | `reviewer-contrarian` | Professional skepticism: challenges assumptions, explores alternatives, audits for lock-in |
 | `reviewer-user-advocate` | User perspective: complexity vs. user value, confusion risks, proportional benefit |
 | `reviewer-meta-process` | System design analysis: single points of failure, authority concentration, reversibility |
-| `reviewer-code-simplifier` | Simplify recently modified code for clarity and maintainability — actively modifies code |

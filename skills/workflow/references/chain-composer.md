@@ -1,13 +1,6 @@
 ---
 name: chain-composer
-description: |
-  Compose valid pipeline chains from the step menu for each subdomain in a
-  Component Manifest. Validates type compatibility using artifact-utils.py.
-  Produces Pipeline Spec JSON as the intermediate representation consumed by
-  pipeline-scaffolder. Use when domain-research has completed and produced a
-  Component Manifest with subdomains and task types. Do NOT use for scaffolding
-  (that is pipeline-scaffolder), domain discovery (that is domain-research), or
-  modifying existing pipelines.
+description: "Compose valid pipeline chains from the step menu per subdomain."
 version: 1.0.0
 user-invocable: false
 agent: pipeline-orchestrator-engineer

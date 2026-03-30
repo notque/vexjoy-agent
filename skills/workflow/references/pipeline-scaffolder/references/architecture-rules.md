@@ -83,7 +83,7 @@ Pipelines are **component graphs**, not fixed triples. A pipeline may require mu
 Phase 1: DISCOVER (sequential — needs full context)
     ↓
 Phase 2: SCAFFOLD (fan-out — group by creator type)
-    ├─ agent-creator-engineer:   Agent A, Agent B, Agent C (1..N)
+    ├─ skill-creator:             Agent A, Agent B, Agent C (1..N)
     ├─ skill-creator:   Skill X, Skill Y (1..M)
     ├─ hook-development-engineer: Hook 1, Hook 2 (1..K)
     └─ Direct:                    Script 1, Script 2 (1..J)

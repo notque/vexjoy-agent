@@ -386,7 +386,7 @@ The scaffolder provides a component list (from the Pipeline Spec):
 | Scan | All skills/* and agents/* | Only listed components |
 | Conflict check | Against existing entries | Against existing AND within batch |
 | OUTPUT | One entry at a time | N entries in one pass |
-| Invoked by | skill-creator, agent-creator-engineer | pipeline-scaffolder Phase 4 |
+| Invoked by | skill-creator | pipeline-scaffolder Phase 4 |
 
 ---
 
@@ -395,7 +395,6 @@ The scaffolder provides a component list (from the Pipeline Spec):
 This skill is typically invoked after other creation skills complete:
 
 - **After skill-creator**: New skill created, routing tables need updated entry
-- **After agent-creator-engineer**: New agent created, domain routing needs expansion
 - **After skill/agent modification**: Description or trigger changes require routing refresh
 - **During repository maintenance**: Periodic sync to catch manual drift
 - **After pipeline-scaffolder Phase 3**: N skills created for a domain, all need routing (batch mode)

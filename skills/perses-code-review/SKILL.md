@@ -10,7 +10,7 @@ allowed-tools:
   - Edit
   - Write
   - Agent
-agent: perses-core-engineer
+agent: perses-engineer
 version: 2.0.0
 routing:
   triggers:
