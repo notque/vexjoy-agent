@@ -1482,7 +1482,7 @@ def assess_target(
                 {
                     "name": r.get("query", "unnamed")[:40],
                     "query": r.get("query", ""),
-                    "should_trigger": r.get("should_trigger", task_expectations.get(r.get("query", ""), None)),
+                    "should_trigger": r.get("should_trigger", task_expectations.get(r.get("query", ""))),
                     "trigger_rate": r.get("trigger_rate", 0.0),
                     "passed": r.get("pass", False),
                     "score": 1.0 if r.get("pass", False) else 0.0,
@@ -1521,7 +1521,7 @@ def assess_target(
                 {
                     "name": r.get("query", "unnamed")[:40],
                     "query": r.get("query", ""),
-                    "should_trigger": r.get("should_trigger", task_expectations.get(r.get("query", ""), None)),
+                    "should_trigger": r.get("should_trigger", task_expectations.get(r.get("query", ""))),
                     "passed": r.get("pass", False),
                     "score": 1.0 if r.get("pass", False) else 0.0,
                     "details": f"triggered={r.get('triggered')}, artifacts={artifact_summary}",

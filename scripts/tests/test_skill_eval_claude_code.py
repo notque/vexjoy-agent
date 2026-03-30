@@ -101,7 +101,11 @@ def test_run_single_query_ignores_unrelated_stream_tool_use_before_matching_read
     payload = ("\n".join(json.dumps(line) for line in stream_lines) + "\n").encode()
 
     monkeypatch.setattr(mod.uuid, "uuid4", lambda: _FakeUUID())
-    monkeypatch.setattr(mod.subprocess, "Popen", lambda *args, **kwargs: _FakePopen(payload))
+
+    def fake_popen(*_args, **_kwargs):
+        return _FakePopen(payload)
+
+    monkeypatch.setattr(mod.subprocess, "Popen", fake_popen)
     monkeypatch.setattr(mod.select, "select", lambda readables, *_args: (readables, [], []))
 
     triggered = mod.run_single_query(
@@ -139,7 +143,11 @@ def test_run_single_query_scans_all_assistant_tool_uses_before_returning(monkeyp
     payload = ("\n".join(json.dumps(line) for line in assistant_lines) + "\n").encode()
 
     monkeypatch.setattr(mod.uuid, "uuid4", lambda: _FakeUUID())
-    monkeypatch.setattr(mod.subprocess, "Popen", lambda *args, **kwargs: _FakePopen(payload))
+
+    def fake_popen(*_args, **_kwargs):
+        return _FakePopen(payload)
+
+    monkeypatch.setattr(mod.subprocess, "Popen", fake_popen)
     monkeypatch.setattr(mod.select, "select", lambda readables, *_args: (readables, [], []))
 
     triggered = mod.run_single_query(
@@ -175,7 +183,11 @@ def test_run_single_query_accepts_real_skill_name_not_just_temporary_alias(monke
     payload = ("\n".join(json.dumps(line) for line in assistant_lines) + "\n").encode()
 
     monkeypatch.setattr(mod.uuid, "uuid4", lambda: _FakeUUID())
-    monkeypatch.setattr(mod.subprocess, "Popen", lambda *args, **kwargs: _FakePopen(payload))
+
+    def fake_popen(*_args, **_kwargs):
+        return _FakePopen(payload)
+
+    monkeypatch.setattr(mod.subprocess, "Popen", fake_popen)
     monkeypatch.setattr(mod.select, "select", lambda readables, *_args: (readables, [], []))
 
     triggered = mod.run_single_query(

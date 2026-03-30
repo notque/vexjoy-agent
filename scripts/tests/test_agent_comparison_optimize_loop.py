@@ -1093,8 +1093,12 @@ def test_final_report_uses_post_selection_test_scores(tmp_path, monkeypatch):
             "task_results": [{"name": "task", "passed": True}],
         }
 
+    def fake_generate_optimization_report(data, auto_refresh=False):
+        _ = auto_refresh
+        return json.dumps(data)
+
     monkeypatch.setattr(optimize_loop, "assess_target", fake_assess_target)
-    monkeypatch.setattr(optimize_loop, "generate_optimization_report", lambda data, auto_refresh=False: json.dumps(data))
+    monkeypatch.setattr(optimize_loop, "generate_optimization_report", fake_generate_optimization_report)
 
     report_path = tmp_path / "out" / "report.html"
     optimize_loop.run_optimization_loop(
