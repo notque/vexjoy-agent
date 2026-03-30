@@ -1,0 +1,6 @@
+{
+  "kind": "ExamplePanel",
+  "spec": {
+    "text": "Hello from ExamplePanel"
+  }
+}
