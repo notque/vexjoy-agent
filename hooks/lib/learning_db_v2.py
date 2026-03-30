@@ -370,7 +370,7 @@ def sanitize_fts_query(term: str) -> str:
     import re as _re
 
     # Remove FTS5 special characters
-    term = _re.sub(r'["\(\)\*:\-]', "", term)
+    term = _re.sub(r'["\(\)\*:\-\^\+]', "", term)
     # Remove FTS5 keyword operators (case-insensitive, whole word)
     term = _re.sub(r"\b(NOT|NEAR|AND|OR)\b", "", term, flags=_re.IGNORECASE)
     return term.strip()
@@ -1130,74 +1130,73 @@ def import_from_patterns_db(db_path: str) -> dict:
     errors = []
 
     try:
-        conn_old = sqlite3.connect(patterns_path)
-        conn_old.row_factory = sqlite3.Row
+        with sqlite3.connect(patterns_path) as conn_old:
+            conn_old.row_factory = sqlite3.Row
 
-        rows = conn_old.execute("SELECT * FROM patterns").fetchall()
-        for row in rows:
-            try:
-                error_type = row["error_type"]
-                signature = row["signature"]
-                message = row["error_message"]
-                solution = row["solution"] or ""
-                value = f"{message[:200]}"
-                if solution:
-                    value += f" → {solution}"
+            rows = conn_old.execute("SELECT * FROM patterns").fetchall()
+            for row in rows:
+                try:
+                    error_type = row["error_type"]
+                    signature = row["signature"]
+                    message = row["error_message"]
+                    solution = row["solution"] or ""
+                    value = f"{message[:200]}"
+                    if solution:
+                        value += f" → {solution}"
 
-                record_learning(
-                    topic=error_type,
-                    key=signature,
-                    value=value,
-                    category="error",
-                    confidence=row["confidence"],
-                    source="migrated:patterns-db",
-                    project_path=row["project_path"],
-                    error_signature=signature,
-                    error_type=error_type,
-                    fix_type=row["fix_type"],
-                    fix_action=row["fix_action"],
-                )
-
-                # Set counts directly
-                with get_connection() as conn:
-                    conn.execute(
-                        """
-                        UPDATE learnings SET
-                            success_count = ?, failure_count = ?,
-                            observation_count = ?
-                        WHERE topic = ? AND key = ?
-                        """,
-                        (
-                            row["success_count"],
-                            row["failure_count"],
-                            row["success_count"] + row["failure_count"],
-                            error_type,
-                            signature,
-                        ),
+                    record_learning(
+                        topic=error_type,
+                        key=signature,
+                        value=value,
+                        category="error",
+                        confidence=row["confidence"],
+                        source="migrated:patterns-db",
+                        project_path=row["project_path"],
+                        error_signature=signature,
+                        error_type=error_type,
+                        fix_type=row["fix_type"],
+                        fix_action=row["fix_action"],
                     )
-                    conn.commit()
 
-                imported += 1
-            except Exception as e:
-                errors.append(f"pattern {row['signature']}: {e}")
-                skipped += 1
+                    # Set counts directly
+                    with get_connection() as conn:
+                        conn.execute(
+                            """
+                            UPDATE learnings SET
+                                success_count = ?, failure_count = ?,
+                                observation_count = ?
+                            WHERE topic = ? AND key = ?
+                            """,
+                            (
+                                row["success_count"],
+                                row["failure_count"],
+                                row["success_count"] + row["failure_count"],
+                                error_type,
+                                signature,
+                            ),
+                        )
+                        conn.commit()
 
-        # Import sessions too
-        try:
-            session_rows = conn_old.execute("SELECT * FROM sessions").fetchall()
-            for srow in session_rows:
-                record_session(
-                    srow["session_id"],
-                    files_modified=srow["files_modified"] or 0,
-                    tools_used=srow["tools_used"] or 0,
-                    errors_encountered=srow["errors_encountered"] or 0,
-                    errors_resolved=srow["errors_resolved"] or 0,
-                    project_path=srow["project_path"],
-                )
-        except Exception:
-            pass  # Sessions are nice-to-have
+                    imported += 1
+                except Exception as e:
+                    errors.append(f"pattern {row['signature']}: {e}")
+                    skipped += 1
 
-        conn_old.close()
+            # Import sessions too
+            try:
+                session_rows = conn_old.execute("SELECT * FROM sessions").fetchall()
+                for srow in session_rows:
+                    record_session(
+                        srow["session_id"],
+                        files_modified=srow["files_modified"] or 0,
+                        tools_used=srow["tools_used"] or 0,
+                        errors_encountered=srow["errors_encountered"] or 0,
+                        errors_resolved=srow["errors_resolved"] or 0,
+                        project_path=srow["project_path"],
+                    )
+            except Exception:
+                pass  # Sessions are nice-to-have
+
     except Exception as e:
         errors.append(f"database: {e}")
 
