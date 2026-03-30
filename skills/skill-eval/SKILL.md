@@ -2,12 +2,12 @@
 name: skill-eval
 description: |
   Evaluate and improve skills through measured testing. Run trigger evaluations
-  to test whether skill descriptions cause correct activation, optimize
-  descriptions via automated train/test loops, benchmark skill output quality
+  to test whether skill descriptions cause correct activation, benchmark skill output quality
   with A/B comparisons, and validate skill structure. Use when user says
-  "improve skill", "test skill triggers", "optimize description", "benchmark
+  "improve skill", "test skill triggers", "benchmark
   skill", "eval skill", or "skill quality". Do NOT use for creating new skills
-  (use skill-creator).
+  (use skill-creator). Route autoresearch loops for description/body optimization
+  to agent-comparison.
 version: 1.0.0
 user-invocable: false
 argument-hint: "<skill-name>"
@@ -23,7 +23,6 @@ routing:
     - improve skill
     - test skill
     - eval skill
-    - optimize description
     - benchmark skill
     - skill triggers
     - skill quality
@@ -56,7 +55,7 @@ This checks: SKILL.md exists, valid frontmatter, required fields (name, descript
 | Intent | Mode | Script |
 |--------|------|--------|
 | "Test if description triggers correctly" | Trigger eval | `run_eval.py` |
-| "Optimize/improve the description" | Description optimization | `run_loop.py` |
+| "Optimize/improve the description through autoresearch" | Route to `agent-comparison` | `optimize_loop.py` |
 | "Compare skill vs no-skill output" | Output benchmark | Manual + `aggregate_benchmark.py` |
 | "Validate skill structure" | Quick validate | `quick_validate.py` |
 

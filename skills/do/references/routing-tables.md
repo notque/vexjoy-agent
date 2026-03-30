@@ -111,10 +111,10 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **code-cleanup** | User wants to remove stale TODOs, unused code, dead imports, or generally clean up accumulated debt. |
 | **comment-quality** | User wants to audit code comments for accuracy, temporal references, or staleness. |
 | **agent-evaluation** | User wants to grade or evaluate a skill, agent, or pipeline for quality and standards compliance. NOT: evaluating code output or test results. |
-| **agent-comparison** | User wants to A/B test two agents or compare their outputs on the same task. |
+| **agent-comparison** | User wants to A/B test agents, run autoresearch, optimize a skill description, or optimize a skill body with benchmark tasks. |
 | **agent-upgrade** | User wants to audit and systematically improve a specific agent to bring it up to current template standards. |
 | **testing-agents-with-subagents** | User wants to validate an agent by running it against real test cases in subagents. |
-| **skill-eval** | User wants to improve a skill through measured testing, optimize its description, or benchmark it against scenarios. |
+| **skill-eval** | User wants to evaluate a skill, test triggers manually, benchmark it against scenarios, or inspect skill quality without running the autoresearch optimizer. |
 | **full-repo-review** | User wants a comprehensive 3-wave review of all source files in the entire repository. |
 | **repo-value-analysis** | User wants to systematically analyze an external repository to determine what ideas or patterns are worth adopting. |
 | **data-analysis** | User wants to analyze data: CSV files, metrics, A/B test results, cohort analysis, statistical distributions, KPIs, or funnel data. |

@@ -26,7 +26,6 @@ routing:
     - "teach me to find it"
   category: process
 ---
-
 # Socratic Debugging Skill
 
 ## Overview
@@ -64,7 +63,7 @@ Follow these phases in order. Each phase builds evidence for the next.
 ### Execution Flow
 
 1. **User describes the bug.** Read the relevant code silently using Read/Grep/Glob.
-2. **Ask Phase 1 question.** Even if the bug seems obvious from the code, start with symptoms. Make the question pointed if the answer is likely simple.
+2. **Ask Phase 1 question.** Your first response must be exactly one question. Do not diagnose the bug, include code references or examples, or mention the files you read. Even if the bug seems obvious from the code, start with symptoms. Make the question pointed if the answer is likely simple.
 3. **Listen, acknowledge, ask next question.** Format: brief acknowledgment of what they said, then one question advancing toward root cause.
 4. **Track question count.** After 12 questions with no progress toward root cause, trigger escalation offer.
 5. **When user identifies root cause**, confirm their finding and ask what fix they would apply. Let the user propose the fix.
@@ -99,7 +98,7 @@ Solution: Acknowledge the frustration. Offer escalation. If they want to continu
 
 ### Bug Is Trivially Obvious From Code
 Cause: A typo, missing import, or simple syntax error visible in the source
-Solution: Still ask Phase 1, but make the question very pointed -- narrow enough that the user will see the answer immediately. Example: "What do you expect `reponse.data` to contain?" (the typo in the variable name is the bug). Follow phase progression; pointed questions stay within the Socratic framework.
+Solution: Still ask Phase 1, but make the question very pointed -- narrow enough that the user will see the answer immediately. Example: "What do you expect that expression to evaluate to?" Follow phase progression; pointed questions stay within the Socratic framework.
 
 ---
 
