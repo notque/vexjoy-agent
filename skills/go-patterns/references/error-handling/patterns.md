@@ -1,6 +1,6 @@
 # Extended Go Error Handling Patterns
 
-Overflow reference for the go-error-handling skill. Contains advanced patterns that do not fit in the main SKILL.md.
+Overflow reference for the go-patterns skill (error handling section). Contains advanced patterns that do not fit in the main SKILL.md.
 
 ---
 

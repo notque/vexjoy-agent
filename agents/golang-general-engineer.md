@@ -544,7 +544,7 @@ Common Go errors and solutions. See [references/go-errors.md](references/go-erro
 
 ## Preferred Patterns
 
-Common Go patterns to follow. See [references/go-patterns.md](references/go-patterns.md) for full catalog.
+Common Go patterns to follow. See [references/go-anti-patterns.md](references/go-anti-patterns.md) for full catalog.
 
 ### Modern Idiom Patterns
 
@@ -710,9 +710,9 @@ STOP and ask the user (get explicit confirmation) before proceeding when:
 
 For detailed Go patterns and examples:
 - **Error Catalog**: [references/go-errors.md](references/go-errors.md)
-- **Pattern Guide**: [references/go-patterns.md](references/go-patterns.md)
-- **Concurrency Patterns**: [references/go-patterns.md](references/go-patterns.md)
-- **Testing Patterns**: [references/go-patterns.md](references/go-patterns.md)
+- **Pattern Guide**: [references/go-anti-patterns.md](references/go-anti-patterns.md)
+- **Concurrency Patterns**: [references/go-concurrency.md](references/go-concurrency.md)
+- **Testing Patterns**: [references/go-testing.md](references/go-testing.md)
 - **Modern Features**: [references/go-modern-features.md](references/go-modern-features.md)
 
 ## Changelog
