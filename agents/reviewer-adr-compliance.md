@@ -2,13 +2,7 @@
 name: reviewer-adr-compliance
 model: sonnet
 version: 1.0.0
-description: |
-  Use this agent when reviewing implementations against Architecture Decision Records.
-  Checks that every ADR decision point has corresponding implementation, no implementation
-  contradicts an ADR decision, and no scope creep beyond what the ADR authorized. This is
-  Wave 1 Agent #11 in comprehensive-review.
-
-  Example: "Check if my implementation matches what ADR-008 decided"
+description: "ADR compliance review: verify implementations match Architecture Decision Records."
 allowed-tools:
   - Read
   - Grep

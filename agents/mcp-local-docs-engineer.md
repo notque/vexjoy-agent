@@ -2,10 +2,7 @@
 name: mcp-local-docs-engineer
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent when you need expert assistance with building MCP (Model Context Protocol) servers for local documentation access. This agent specializes in TypeScript/Node.js and Go MCP server implementations, documentation parsing, Hugo front matter processing, and creating efficient local documentation servers that provide structured access to documentation through the MCP protocol.
-
-  Example: "I need to build an MCP server that can serve my Hugo-based documentation to Claude"
+description: "MCP server development for local documentation access in TypeScript/Node.js and Go."
 color: teal
 routing:
   triggers:
