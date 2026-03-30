@@ -428,7 +428,7 @@ The current optimizer is in a solid state for:
 - deterministic proof runs
 - isolated live evaluation of existing registered skills
 - short live optimization of `read-only-ops`, with the accepted description change now applied and validated against `references/read-only-ops-short-tasks.json`
-- short live body optimization of `socratic-debugging`, with the accepted instruction-body update now applied and validated against `references/socratic-debugging-body-short-tasks.json`
+- short live body optimization of `socratic-debugging`, with the accepted instruction-body update now applied and validated against `references/socratic-debugging-body-short-tasks.json`, now producing clean skill-triggered first-turn outputs instead of fallback chatter
 
 One live-harness caveat remains:
 - temporary renamed skill copies do not yet show reliable live trigger improvements through the dynamic command alias path

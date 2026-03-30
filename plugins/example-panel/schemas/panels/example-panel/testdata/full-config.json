@@ -1,0 +1,9 @@
+{
+  "kind": "ExamplePanel",
+  "spec": {
+    "text": "System Status: Nominal",
+    "color": "#1a7f37",
+    "fontSize": 24,
+    "align": "center"
+  }
+}

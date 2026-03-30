@@ -308,7 +308,8 @@ What is currently demonstrated:
   to `2/2` live passes after the accepted description update
 - short live body optimization on `skills/socratic-debugging/SKILL.md` using
   `references/socratic-debugging-body-short-tasks.json`, improving from `7.85`
-  to `8.45` after the accepted instruction-body update
+  to `8.45` after the accepted instruction-body update; the current baseline now
+  evaluates cleanly and non-improving body variants are rejected
 
 What remains imperfect:
 - live optimization of temporary renamed skill copies still fails to show measured improvement through the dynamic command alias path

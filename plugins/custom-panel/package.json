@@ -1,0 +1,30 @@
+{
+  "name": "@perses-dev/custom-panel-plugin",
+  "version": "0.1.0",
+  "description": "Custom panel plugin for Perses",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "rsbuild dev",
+    "build": "rsbuild build",
+    "preview": "rsbuild preview",
+    "type-check": "tsc --noEmit",
+    "test-schemas": "percli plugin test-schemas"
+  },
+  "dependencies": {
+    "@perses-dev/core": "^0.48.0",
+    "@perses-dev/plugin-system": "^0.48.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@rsbuild/core": "^0.7.0",
+    "@rsbuild/plugin-react": "^0.7.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "typescript": "^5.4.0"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}

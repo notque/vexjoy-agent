@@ -4,7 +4,7 @@
   "agents": {
     "agent-creator-engineer": {
       "file": "agent-creator-engineer.md",
-      "short_description": "**DEPRECATED**: Use skill-creator skill instead",
+      "short_description": "**DEPRECATED**: Use skill-creator agent instead",
       "triggers": [
         "create agent",
         "new agent",
@@ -107,10 +107,7 @@
         "programming rules"
       ],
       "pairs_with": [
-        "github-profile-rules-repo-analysis",
-        "github-profile-rules-pr-review",
-        "github-profile-rules-synthesis",
-        "github-profile-rules-validation"
+        "github-profile-rules"
       ],
       "complexity": "Medium",
       "category": "meta"
