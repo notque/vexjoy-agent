@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent when you need expert assistance with Node.js backend API development for web applications. This includes implementing RESTful APIs, authentication systems, file upload handling, email services, webhook processing, and server-side business logic. The agent specializes in Next.js API routes, Express.js patterns, middleware development, and secure backend architecture.
 
-  Examples:
-
-  <example>
-  Context: User needs to implement authentication with JWT and session management.
-  user: "I want to create a secure authentication system with login, registration, and password reset"
-  assistant: "I'll implement a comprehensive authentication system with JWT tokens and secure session management."
-  <commentary>
-  Authentication requires security best practices, token management, session handling. Triggers: authentication, JWT, login, session.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants to set up file upload handling for images.
-  user: "I need to handle image uploads with validation and cloud storage integration"
-  assistant: "Let me create a secure file upload system with validation, image processing, and cloud storage integration."
-  <commentary>
-  File uploads involve security (validation, size limits), image processing (Sharp), cloud storage. Triggers: file upload, image processing, cloud storage.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs to integrate webhook processing for payment systems.
-  user: "I want to handle Stripe webhooks for payment confirmations and order updates"
-  assistant: "I'll implement secure webhook processing for Stripe payment events with signature verification and idempotency handling."
-  <commentary>
-  Webhooks require signature verification, idempotency keys, retry logic, proper error handling. Triggers: webhook, Stripe, payment.
-  </commentary>
-  </example>
+  Example: "I want to create a secure authentication system with login, registration, and password reset"
 
 color: red
 memory: project

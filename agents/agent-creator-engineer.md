@@ -16,40 +16,7 @@ description: |
   - Anti-rationalization and blocker criteria
   - Output schema selection
 
-  Examples:
-
-  <example>
-  Context: Developer wants to create new specialized agent
-  user: "I need to create a new agent for PostgreSQL database management"
-  assistant: "Use skill-creator agent instead - it follows v2.0 standards with progressive disclosure..."
-  <commentary>
-  Agent creation now follows v2.0 patterns from AGENT_TEMPLATE_V2.md. The
-  skill-creator agent provides proper structure, behavior frameworks,
-  and progressive disclosure. This legacy agent predates those standards.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Team needs code review agent template
-  user: "Can you help me build an agent template for Python code reviews?"
-  assistant: "Use skill-creator agent - it applies v2.0 structure with reviewer schema, capabilities/limitations..."
-  <commentary>
-  Modern agent creation uses skill-creator which knows reviewer-specific
-  patterns (VERDICT requirement, READ-ONLY tools, severity classification).
-  This legacy agent lacks v2.0 template knowledge.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants to understand agent design patterns
-  user: "What's the right structure for a complex agent with multiple workflows?"
-  assistant: "Use skill-creator agent - it explains v2.0 complexity tiers, phase gates, and progressive disclosure..."
-  <commentary>
-  Agent architecture questions should use skill-creator which understands
-  current v2.0 patterns, operator context, and references/ structure. This legacy
-  agent predates those frameworks.
-  </commentary>
-  </example>
+  Example: "I need to create a new agent for PostgreSQL database management"
 
 color: red
 routing:

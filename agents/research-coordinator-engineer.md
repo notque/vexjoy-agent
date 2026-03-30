@@ -9,41 +9,7 @@ description: |
   streams, and synthesizing findings into high-quality reports. The agent specializes
   in query classification, Task tool orchestration, and lead agent synthesis.
 
-  Examples:
-
-  <example>
-  Context: Comprehensive analysis across multiple domains
-  user: "Research AI infrastructure - compute availability, semiconductor supply chains, energy requirements for 2025-2030"
-  assistant: "I'll coordinate systematic investigation using Task tool to deploy parallel research subagents for each domain, then synthesize findings into comprehensive report..."
-  <commentary>
-  This is breadth-first query requiring independent research streams. Triggers:
-  "research", "investigate", "comprehensive". The agent will classify query type,
-  deploy 3 parallel subagents with detailed instructions, synthesize findings, and
-  save to research/{topic}/report.md.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Deep analysis from multiple perspectives
-  user: "Most effective approaches to implementing zero-trust security architecture in enterprise environments?"
-  assistant: "I'll deploy parallel research subagents exploring zero-trust from different methodological lenses: theoretical frameworks, implementations, best practices, case studies..."
-  <commentary>
-  This is depth-first query benefiting from parallel investigation using different
-  perspectives on same issue. Triggers: "effective approaches", "research". The agent
-  will deploy subagents with specific perspectives, synthesize diverse viewpoints.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Specific factual information with verification
-  user: "Current market share of cloud providers in Asia-Pacific by country?"
-  assistant: "I'll deploy focused research subagent with specific instructions for market share data from authoritative sources with cross-validation..."
-  <commentary>
-  This is straightforward query requiring single-stream research with clear data points.
-  Triggers: "current", "data", "market share". The agent will deploy one subagent with
-  precise instructions and source prioritization.
-  </commentary>
-  </example>
+  Example: "Research AI infrastructure - compute availability, semiconductor supply chains, energy requirements for 2025-2030"
 
 color: purple
 background: true

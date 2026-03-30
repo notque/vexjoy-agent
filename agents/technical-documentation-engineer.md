@@ -5,32 +5,7 @@ version: 2.0.0
 description: |
   Use this agent when you need expert assistance with creating, maintaining, and validating technical documentation for enterprise software systems. This includes API documentation, system integration guides, troubleshooting manuals, and comprehensive user documentation. The agent specializes in source code verification, cross-service validation using MCP, professional quality standards, and systematic accuracy assurance.
 
-  <example>
-  Context: User needs comprehensive API documentation for their service with professional quality.
-  user: "I need to create curl documentation for our REST API that matches Google Cloud quality standards"
-  assistant: "I'll use the technical-documentation-engineer agent to create comprehensive API documentation with professional curl examples, authentication flows, and troubleshooting guides."
-  <commentary>
-  This requires professional-grade technical writing, source code verification of API endpoints, and enterprise-quality documentation standards.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User has existing documentation that needs accuracy verification.
-  user: "Can you validate our service documentation against the actual implementation and fix any inaccuracies?"
-  assistant: "Let me use the technical-documentation-engineer agent to perform source code verification and cross-service validation of your documentation."
-  <commentary>
-  Documentation validation requires systematic source code analysis, MCP cross-reference checking, and accuracy assurance methodologies.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs enterprise-grade integration documentation.
-  user: "Create complete integration documentation for our microservices architecture with examples and troubleshooting"
-  assistant: "I'll use the technical-documentation-engineer agent to create systematic integration documentation with verified examples and comprehensive troubleshooting guides."
-  <commentary>
-  Integration documentation requires understanding of service dependencies, API contracts, and practical troubleshooting scenarios.
-  </commentary>
-  </example>
+  Example: "I need to create curl documentation for our REST API that matches Google Cloud quality standards"
 color: blue
 routing:
   triggers:

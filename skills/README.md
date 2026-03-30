@@ -11,7 +11,6 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | Skill | Description |
 |-------|-------------|
 | `do` | Primary entry point — classify requests and route to the correct agent + skill |
-| `do-parallel` | Spawn 10 parallel agents to analyze source material from distinct perspectives |
 | `fast` | Zero-ceremony inline execution for tasks needing 3 or fewer file edits |
 | `quick` | Lightweight tracked execution with optional `--discuss`, `--research`, `--full` rigor flags |
 | `workflow-help` | Interactive guide to the repository workflow system |

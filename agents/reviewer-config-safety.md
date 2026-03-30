@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent for detecting configuration safety issues: hardcoded values that should be configurable, missing environment variable validation, secrets in source code, unsafe defaults, and configuration drift between environments. Wave 2 agent that uses Wave 1 reviewer-security and docs-validator findings to identify config-related security gaps. Supports `--fix` mode.
 
-  Examples:
-
-  <example>
-  Context: Reviewing Go service for configuration safety.
-  user: "Check for hardcoded values, missing env var validation, and secrets in source"
-  assistant: "I'll scan for: hardcoded connection strings, API keys, passwords, or tokens in source; environment variables used without validation or defaults; configuration that differs between dev/staging/prod without clear management; and unsafe defaults (debug mode on, TLS disabled)."
-  <commentary>
-  Configuration safety audits trace all configuration loading to ensure: no secrets in source, env vars are validated at startup, defaults are production-safe, and configuration is documented.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Reviewing for environment variable hygiene.
-  user: "Make sure all our env vars are validated and have safe defaults"
-  assistant: "I'll trace all os.Getenv/os.LookupEnv calls, check for missing validation (empty string checks), verify defaults are production-safe (not 'localhost'), and ensure required vars fail fast at startup rather than at runtime."
-  <commentary>
-  Env var hygiene: validate at startup, fail fast for required vars, use safe defaults for optional vars, never use 'localhost' or 'debug' as production defaults.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Wave 2 dispatch with Wave 1 context.
-  user: "Run comprehensive review with config safety focus"
-  assistant: "I'll use Wave 1's reviewer-security findings to identify potential secret exposure paths, and docs-validator findings to verify configuration is documented."
-  <commentary>
-  As a Wave 2 agent, this receives Wave 1's security and docs findings to focus on configuration paths that have security implications.
-  </commentary>
-  </example>
+  Example: "Check for hardcoded values, missing env var validation, and secrets in source"
 color: red
 routing:
   triggers:

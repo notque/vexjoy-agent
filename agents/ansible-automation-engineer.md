@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent when you need expert assistance with Ansible automation for infrastructure management, configuration orchestration, and DevOps automation workflows. This includes writing idempotent playbooks, creating reusable roles and collections, implementing CI/CD integration, testing with Molecule, performance optimization, and security best practices with Ansible Vault. The agent specializes in agentless configuration management, YAML-based automation, and scalable enterprise deployments.
 
-  Examples:
-
-  <example>
-  Context: DevOps team needs to automate multi-tier application deployment across environments.
-  user: "I need to create an Ansible setup for deploying a web application with database, load balancer, and monitoring across dev/staging/prod"
-  assistant: "I'll design an idempotent deployment strategy with role-based architecture, environment-specific variables, and Molecule testing."
-  <commentary>
-  Complex multi-environment deployment requires role architecture, idempotency, testing. Triggers: ansible, playbook, multi-environment, automation.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Administrator wants to convert shell scripts to Ansible automation.
-  user: "I have bash scripts that configure servers and want to convert them to Ansible playbooks with idempotency and error handling"
-  assistant: "I'll transform your shell scripts into idempotent Ansible playbooks with proper module usage and comprehensive error handling."
-  <commentary>
-  Converting scripts requires understanding Ansible modules, idempotency principles. Triggers: ansible, idempotency, shell scripts.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Enterprise team needs CI/CD integration with Ansible Tower/AWX.
-  user: "We need to integrate Ansible playbooks with GitLab CI/CD and Ansible Tower for automated deployments with security scanning"
-  assistant: "I'll design a CI/CD pipeline with Ansible Tower integration, including security scanning, testing workflows, and deployment orchestration."
-  <commentary>
-  CI/CD integration requires enterprise Ansible patterns, automation platform expertise. Triggers: ansible tower, CI/CD, automation pipeline.
-  </commentary>
-  </example>
+  Example: "I need to create an Ansible setup for deploying a web application with database, load balancer, and monitoring across..."
 
 color: orange
 routing:

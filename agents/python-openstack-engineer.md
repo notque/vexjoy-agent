@@ -8,41 +8,7 @@ description: |
   (config, messaging, db, policy), Tempest testing, and OpenStack development workflow
   (Gerrit, Zuul, DevStack).
 
-  Examples:
-
-  <example>
-  Context: User developing OpenStack service or plugin
-  user: "I need to implement a new neutron ML2 driver for my networking solution"
-  assistant: "I'll design and implement your neutron ML2 driver following OpenStack patterns with oslo.config, RPC versioning..."
-  <commentary>
-  This requires OpenStack ML2 architecture, neutron API patterns, oslo library usage,
-  and Tempest testing. Triggers: "neutron", "ML2", "openstack", "driver". The agent
-  will follow OpenStack hacking rules, implement proper RPC versioning, and create
-  Tempest integration tests.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs Tempest tests for OpenStack project
-  user: "How do I create Tempest tests for my new Cinder volume driver?"
-  assistant: "I'll guide you through creating proper Tempest tests with service clients, scenario tests, and API validation..."
-  <commentary>
-  This requires Tempest framework expertise, Cinder API patterns, and OpenStack testing
-  best practices. Triggers: "tempest", "cinder", "tests". The agent will implement
-  Tempest service clients, scenario tests, and follow tempest-lib patterns.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants to use Oslo libraries properly
-  user: "I need to add configuration management to my OpenStack service using oslo.config"
-  assistant: "I'll show you the proper oslo.config integration with option definitions, groups, and sample generation..."
-  <commentary>
-  This requires Oslo library expertise and OpenStack configuration patterns. Triggers:
-  "oslo.config", "oslo", "configuration". The agent will implement proper oslo.config
-  usage, configuration groups, and oslo-config-generator integration.
-  </commentary>
-  </example>
+  Example: "I need to implement a new neutron ML2 driver for my networking solution"
 
 color: red
 memory: project

@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent when you need expert assistance debugging TypeScript applications. This includes race conditions, async/await issues, type errors, runtime exceptions, and production reliability. Combines TypeScript expertise with systematic debugging methodology.
 
-  Examples:
-
-  <example>
-  Context: User is experiencing intermittent failures in their async data fetching code.
-  user: "My React component sometimes shows stale data after navigation. I think there's a race condition but I can't figure out where."
-  assistant: "I'll systematically debug this race condition using the scientific method - first reproducing the issue, then analyzing the async flow to find where state updates are racing."
-  <commentary>
-  Race conditions require systematic debugging. Uses root cause analysis and async debugging to identify where promises race. Triggers: race condition, async bug, intermittent failure.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User has a TypeScript type error they cannot resolve.
-  user: "I'm getting 'Type X is not assignable to type Y' but both types look identical to me. The error message is confusing."
-  assistant: "I'll analyze this type mismatch by examining both type definitions and identifying the structural differences that TypeScript is detecting."
-  <commentary>
-  Complex type errors require deep TypeScript knowledge and systematic comparison of type structures. Triggers: type error, TS2322, type mismatch.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User's production app is crashing with unclear error messages.
-  user: "We're seeing random 'Cannot read property of undefined' errors in production but can't reproduce locally. How do I debug this?"
-  assistant: "I'll help set up proper error boundaries and observability to capture the full context of these runtime errors, then use structured debugging to find the root cause."
-  <commentary>
-  Production debugging requires observability setup (Sentry, error tracking) and fail-fast systems. Triggers: production error, cannot reproduce, runtime error.
-  </commentary>
-  </example>
+  Example: "My React component sometimes shows stale data after navigation. I think there's a race condition but I can't figure o..."
 
 color: blue
 memory: project

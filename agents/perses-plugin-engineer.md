@@ -8,34 +8,7 @@ description: |
   build/test/deploy workflow. Knows both Go backend patterns and React/TypeScript frontend patterns
   for Perses plugin architecture.
 
-  Examples:
-
-  <example>
-  Context: User wants to create a custom panel plugin for Perses.
-  user: "I need a custom heatmap panel plugin for Perses"
-  assistant: "I'll scaffold the plugin with percli plugin generate, then implement the CUE schema and React component."
-  <commentary>
-  Plugin creation requires percli plugin generate, CUE schema definition, and React component implementation. Triggers: perses plugin, panel plugin.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs to write a CUE schema for a Perses plugin.
-  user: "Define the data model for my custom datasource plugin"
-  assistant: "I'll create the CUE schema in schemas/datasources/<name>/<name>.cue with proper model package constraints."
-  <commentary>
-  CUE schemas define plugin data models for validation. Triggers: perses cue, plugin schema.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants to test and build a Perses plugin.
-  user: "Build and test my Perses plugin module"
-  assistant: "I'll run percli plugin test-schemas for CUE validation, then percli plugin build to create the archive."
-  <commentary>
-  Plugin testing and building uses percli plugin subcommands. Triggers: perses plugin test, plugin build.
-  </commentary>
-  </example>
+  Example: "I need a custom heatmap panel plugin for Perses"
 
 color: orange
 routing:

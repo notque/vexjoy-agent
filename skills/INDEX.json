@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-03-28T04:44:21Z",
+  "generated": "2026-03-30T16:58:51Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -31,11 +31,14 @@
       "triggers": [
         "compare agents",
         "A/B test agents",
-        "benchmark agents"
+        "benchmark agents",
+        "optimize skill",
+        "optimize description",
+        "run autoresearch"
       ],
       "category": "meta-tooling",
       "user_invocable": false,
-      "version": "2.0.0"
+      "version": "2.2.0"
     },
     "agent-evaluation": {
       "file": "skills/agent-evaluation/SKILL.md",
@@ -166,7 +169,7 @@
     },
     "codex-code-review": {
       "file": "skills/codex-code-review/SKILL.md",
-      "description": "Get a second-opinion code review from OpenAI Codex CLI (GPT-5.4 xhigh reasoning). Invokes codex exec in read-only sandbox mode, structures feedback as CRITICAL / IMPROVEMENTS / POSITIVE / SUMMARY.",
+      "description": "Get a second-opinion code review from OpenAI Codex CLI (GPT-5.4 xhigh reasoning).",
       "triggers": [
         "codex review",
         "second opinion",
@@ -367,18 +370,6 @@
       ],
       "category": "meta-tooling",
       "user_invocable": true,
-      "version": "2.0.0"
-    },
-    "do-parallel": {
-      "file": "skills/do-parallel/SKILL.md",
-      "description": "Spawn 10 independent parallel agents to analyze source material from distinct perspectives, synthesize findings, and apply improvements to a target agent or skill.",
-      "triggers": [
-        "parallel analysis",
-        "multi-perspective",
-        "10 perspectives"
-      ],
-      "category": "meta-tooling",
-      "user_invocable": false,
       "version": "2.0.0"
     },
     "docs-sync-checker": {
@@ -966,7 +957,7 @@
     },
     "joy-check": {
       "file": "skills/joy-check/SKILL.md",
-      "description": "Validate content for joy-centered tonal framing.",
+      "description": "Validate content framing with mode-based rubrics.",
       "triggers": [
         "joy check",
         "check framing",
@@ -974,15 +965,18 @@
         "negative framing",
         "joy validation",
         "too negative",
-        "reframe positively"
+        "reframe positively",
+        "positive framing check",
+        "instruction framing"
       ],
       "category": "content",
       "user_invocable": false,
-      "version": "1.0.0",
+      "version": "2.0.0",
       "pairs_with": [
         "voice-writer",
         "anti-ai-editor",
-        "voice-validator"
+        "voice-validator",
+        "skill-creator"
       ]
     },
     "kotlin-coroutines": {
@@ -1606,7 +1600,7 @@
     },
     "read-only-ops": {
       "file": "skills/read-only-ops/SKILL.md",
-      "description": "Read-only exploration, status checks, and reporting without modifications.",
+      "description": "Read-only exploration, inspection, and reporting without modifications.",
       "triggers": [
         "check status",
         "explore code",
@@ -1850,7 +1844,6 @@
         "improve skill",
         "test skill",
         "eval skill",
-        "optimize description",
         "benchmark skill",
         "skill triggers",
         "skill quality"
@@ -1996,7 +1989,7 @@
         "flaky test",
         "brittle test",
         "test smell",
-        "test anti-pattern",
+        "test quality issue",
         "slow tests",
         "skipped test",
         "test depends on order",

@@ -5,43 +5,7 @@ version: 2.0.0
 description: |
   Use this agent for code quality review against project conventions, style guides, and CLAUDE.md compliance. This includes guideline adherence, bug detection, code quality assessment, and convention enforcement. Uses a confidence-scoring system (0-100) and only reports issues scoring 80 or above. Supports `--fix` mode to apply corrections directly.
 
-  Examples:
-
-  <example>
-  Context: Reviewing unstaged changes for convention compliance.
-  user: "Review my code changes for quality and style"
-  assistant: "I'll review your unstaged changes against CLAUDE.md and project conventions, reporting issues with confidence 80+."
-  <commentary>
-  Default behavior reviews unstaged changes (git diff). Confidence scoring prevents noise from uncertain findings. Only high-confidence issues are reported.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Checking specific files against project guidelines.
-  user: "Check api/handler.go and api/router.go for convention compliance"
-  assistant: "I'll review those files against CLAUDE.md guidelines, project conventions, and detect any actual bugs or quality issues."
-  <commentary>
-  When files are specified, the agent reviews those files directly rather than using git diff. Same confidence threshold applies.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants comprehensive PR review.
-  user: "Run a comprehensive review on this PR"
-  assistant: "I'll use the reviewer-code-quality agent as part of the comprehensive review."
-  <commentary>
-  This agent is typically dispatched by the comprehensive-review skill as part of a multi-agent review.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User wants issues fixed automatically.
-  user: "Review and fix code quality issues in the auth package"
-  assistant: "I'll review the auth package for quality issues and apply corrections directly using --fix mode."
-  <commentary>
-  In --fix mode, the agent applies corrections after review. This is a key difference from read-only plugin reviewers.
-  </commentary>
-  </example>
+  Example: "Review my code changes for quality and style"
 color: green
 routing:
   triggers:

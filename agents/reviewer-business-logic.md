@@ -5,34 +5,7 @@ version: 2.0.0
 description: |
   Use this agent for domain correctness and business logic review. This includes requirements coverage, edge case analysis, state machine verification, data validation rules, and failure mode analysis. The agent is READ-ONLY and reports findings without modifying code.
 
-  Examples:
-
-  <example>
-  Context: Reviewing order processing logic for correctness.
-  user: "Review the order state machine in orders/processor.go for edge cases"
-  assistant: "I'll analyze the order processing logic for domain correctness, checking state transitions, edge cases, and requirement coverage."
-  <commentary>
-  Order processing involves complex state transitions that need verification for edge cases, failure modes, and requirement coverage.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Checking payment calculation logic.
-  user: "Verify the discount calculation logic handles all our pricing rules"
-  assistant: "Let me verify the discount calculations cover all business rules, checking for edge cases, rounding errors, and validation."
-  <commentary>
-  Financial calculations require careful review for boundary conditions, rounding, and business rule compliance.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Validating user registration requirements.
-  user: "Check if the user signup flow handles all the edge cases in our requirements doc"
-  assistant: "I'll verify the signup flow covers all specified requirements and edge cases, including validation rules and state transitions."
-  <commentary>
-  User registration involves data validation rules, state transitions (pending, verified, active), and requirement coverage verification.
-  </commentary>
-  </example>
+  Example: "Review the order state machine in orders/processor.go for edge cases"
 color: purple
 isolation: worktree
 routing:
