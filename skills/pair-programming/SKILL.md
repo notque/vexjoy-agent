@@ -1,12 +1,6 @@
 ---
 name: pair-programming
-description: |
-  Collaborative coding with enforced micro-steps: announce, show diff,
-  wait for confirmation, apply, verify. User controls pace with commands.
-  Works with any domain agent as the executor.
-
-  Use when: "pair program", "pair with me", "let's code together",
-  "step by step coding", "walk me through implementing", "code with me"
+description: "Collaborative coding with enforced micro-steps and user-paced control."
 version: 1.0.0
 user-invocable: false
 allowed-tools:

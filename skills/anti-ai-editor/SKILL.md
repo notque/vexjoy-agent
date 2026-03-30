@@ -1,13 +1,6 @@
 ---
 name: anti-ai-editor
-description: |
-  Review and revise content to remove AI-sounding patterns. Voice-agnostic
-  editor that detects cliches, passive voice, structural monotony, and
-  meta-commentary. Use when content sounds robotic, needs de-AIing, or
-  voice validation flags synthetic patterns. Use for "edit for AI",
-  "remove AI patterns", "make it sound human", or "de-AI this".
-  Route to other skills for grammar checking, factual editing, or full rewrites.
-  Route to other skills for voice generation (use voice skills instead).
+description: "Remove AI-sounding patterns from content."
 version: 2.1.0
 user-invocable: false
 command: /edit

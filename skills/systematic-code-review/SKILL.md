@@ -1,12 +1,6 @@
 ---
 name: systematic-code-review
-description: |
-  4-phase code review methodology: UNDERSTAND changes, VERIFY claims against
-  code, ASSESS security/performance/architecture risks, DOCUMENT findings with
-  severity classification. Use when reviewing pull requests, auditing code
-  before release, evaluating external contributions, or pre-merge verification.
-  Use for "review PR", "code review", "audit code", "check this PR", or
-  "review my changes". Do NOT use for writing new code or implementing features.
+description: "4-phase code review: UNDERSTAND, VERIFY, ASSESS risks, DOCUMENT findings."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

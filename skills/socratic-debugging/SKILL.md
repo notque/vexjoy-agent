@@ -1,12 +1,6 @@
 ---
 name: socratic-debugging
-description: |
-  Question-only debugging mode that guides users to find root causes
-  themselves through structured questioning. Guides users to discover answers themselves.
-  Escalates to systematic-debugging after 12 questions if no progress.
-
-  Use when: "rubber duck", "help me think through this bug", "debug with me",
-  "walk me through debugging", "socratic debug", "think through this issue"
+description: "Question-only debugging: guide users to find root causes themselves."
 version: 1.0.0
 user-invocable: false
 allowed-tools:

@@ -1,13 +1,6 @@
 ---
 name: plan-checker
-description: |
-  Validate plans against 10 verification dimensions before execution begins.
-  Uses goal-backward analysis to catch dropped requirements, vague tasks,
-  missing dependencies, and scope overreach. Produces PASS/BLOCK verdict
-  with structured findings. Use for "check plan", "validate plan",
-  "is this plan ready", "review plan before executing", or "/plan-checker".
-  Do NOT use for plan creation (use feature-plan or workflow-orchestrator)
-  or plan lifecycle management (use plan-manager).
+description: "Validate plans against 10 dimensions: PASS/BLOCK verdict before execution."
 version: 1.0.0
 user-invocable: false
 command: /plan-checker

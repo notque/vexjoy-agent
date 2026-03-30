@@ -2,10 +2,7 @@
 name: reviewer-naming-consistency
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent for detecting naming inconsistencies: convention drift (userID vs userId vs user_id), package naming violations, verb inconsistency (Get vs Fetch vs Retrieve), acronym casing violations, and file naming mismatches. Ensures consistent naming across the codebase to reduce cognitive load. Wave 2 agent that uses Wave 1 code-quality and language-specialist findings for convention baselines. Supports `--fix` mode.
-
-  Example: "Check naming consistency across the Go codebase"
+description: "Naming consistency review: convention drift, verb inconsistency, acronym handling."
 color: teal
 routing:
   triggers:

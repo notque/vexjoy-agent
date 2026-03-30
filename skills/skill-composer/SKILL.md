@@ -1,14 +1,6 @@
 ---
 name: skill-composer
-description: |
-  DAG-based multi-skill orchestration: Discover, Plan, Validate, Execute.
-  Builds execution graphs for tasks requiring multiple skills in sequence
-  or parallel with dependency resolution and context passing. Use when a
-  task requires 2+ skills chained together, parallel skill execution, or
-  conditional branching between skills. Use for "compose skills", "chain
-  workflow", "multi-skill", or "orchestrate skills". Route to other skills when a
-  single skill can handle the request, or for simple sequential invocation
-  that needs no dependency management.
+description: "DAG-based multi-skill orchestration with dependency resolution."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

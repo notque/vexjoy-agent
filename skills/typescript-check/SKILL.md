@@ -1,12 +1,6 @@
 ---
 name: typescript-check
-description: |
-  Run TypeScript type checking with tsc --noEmit and parse errors into
-  actionable, file-grouped output. Use when validating TypeScript code before
-  commits, after refactors, or when checking for type regressions. Use for
-  "type check", "tsc", "TypeScript errors", "type validation", or pre-commit
-  TypeScript verification. Do NOT use for linting, test execution, runtime
-  errors, or JavaScript-only projects without tsconfig.json.
+description: "TypeScript type checking via tsc --noEmit with actionable error output."
 version: 2.0.0
 user-invocable: false
 allowed-tools:
