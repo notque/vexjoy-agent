@@ -215,7 +215,7 @@ Define Requirements
     Add to Routing
 ```
 
-**Skill**: `agent-creator-engineer` or `skill-creator`
+**Skill**: `skill-creator`
 
 ---
 
@@ -433,7 +433,7 @@ Current pipelines in this repository:
 | Test-Driven Development | `test-driven-development` | 4 (RED→GREEN→REFACTOR→VERIFY) |
 | Systematic Debugging | `systematic-debugging` | 5 (REPRODUCE→ISOLATE→HYPOTHESIZE→TEST→FIX) |
 | Voice Calibration | `voice-calibrator` | 5 (COLLECT→ANALYZE→GENERATE→TEST→CALIBRATE) |
-| Agent Creation | `agent-creator-engineer` | 6 (DEFINE→RESEARCH→STRUCTURE→VERIFY→TEST→ROUTE) |
+| Agent Creation | `skill-creator` | 6 (DEFINE→RESEARCH→STRUCTURE→VERIFY→TEST→ROUTE) |
 
 ---
 

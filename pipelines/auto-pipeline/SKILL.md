@@ -1,14 +1,6 @@
 ---
 name: auto-pipeline
-description: |
-  Automatic pipeline generation for unrouted tasks. Two tiers: Tier 1 classifies
-  the task type, selects a canonical chain (8-12 steps), and executes it inline
-  with phase gates. Tier 2 auto-crystallizes the ephemeral pattern into a permanent
-  pipeline when in the toolkit repo (immediate) or after 3+ runs elsewhere.
-  Invoked automatically by /do when no existing route matches. Includes dedup gate
-  to prevent creating pipelines that duplicate existing ones.
-  Use when /do finds no matching route for a non-trivial request.
-  Do NOT invoke directly — /do routes here automatically.
+description: "Automatic pipeline generation for unrouted tasks via /do."
 version: 1.0.0
 user-invocable: false
 allowed-tools:

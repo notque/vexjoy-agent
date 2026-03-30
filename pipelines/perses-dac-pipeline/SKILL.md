@@ -1,13 +1,7 @@
 ---
 name: perses-dac-pipeline
 user-invocable: false
-description: |
-  Dashboard-as-Code pipeline: initialize CUE or Go module with percli dac setup,
-  write dashboard definitions, build with percli dac build, validate, apply, and
-  integrate with CI/CD via GitHub Actions (perses/cli-actions). Use for "dashboard
-  as code", "perses dac", "perses cue", "perses gitops", "perses ci/cd". Do NOT
-  use for one-off dashboard creation (use perses-dashboard-create) or Grafana
-  migration (use perses-grafana-migrate).
+description: "Dashboard-as-Code pipeline for Perses with CUE and percli."
 allowed-tools:
   - Read
   - Grep
@@ -15,7 +9,7 @@ allowed-tools:
   - Bash
   - Edit
   - Write
-agent: perses-dashboard-engineer
+agent: perses-engineer
 version: 2.0.0
 routing:
   triggers:

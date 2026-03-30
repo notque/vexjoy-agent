@@ -61,7 +61,7 @@ The toolkit has specialized creator agents for each component type. Tell `/do` w
 /do create an agent for [your domain]
 ```
 
-Describe what the agent should specialize in, what triggers should route to it, and what patterns it should enforce. The `agent-creator-engineer` handles the rest: file creation, frontmatter, operator context, anti-patterns, index registration, and routing table integration.
+Describe what the agent should specialize in, what triggers should route to it, and what patterns it should enforce. The `skill-creator` handles the rest: file creation, frontmatter, operator context, anti-patterns, index registration, and routing table integration.
 
 **Example prompts:**
 - `/do create an agent for Terraform infrastructure management that knows HCL, state management, and module patterns`
