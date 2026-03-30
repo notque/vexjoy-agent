@@ -1,13 +1,6 @@
 ---
 name: pipeline-retro
-description: |
-  Trace pipeline test failures to generator root causes and propose fixes using
-  the Three-Layer Pattern: skip artifact fixes (Layer 1), propose generator fixes
-  (Layer 2), regenerate and re-test to prove the fix works (Layer 3). Consumes
-  pipeline-test-runner output. Use for "pipeline retro", "trace failures",
-  "generator improvement", "three-layer fix", or when pipeline-test-runner
-  produces FAIL/PARTIAL results. Do NOT use for feature-lifecycle retros (use
-  /retro graduate instead) or for ad-hoc skill editing.
+description: "Trace pipeline test failures to generator root causes."
 version: 1.0.0
 user-invocable: false
 agent: pipeline-orchestrator-engineer

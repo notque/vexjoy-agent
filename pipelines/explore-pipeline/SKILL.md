@@ -1,15 +1,6 @@
 ---
 name: explore-pipeline
-description: |
-  Systematic codebase exploration pipeline with parallel subagents and
-  tiered depth. Quick: 1 phase (targeted lookup). Standard: 4 phases
-  (Scan, Map, Analyze, Report). Deep: 8 phases (Scan, Map, Analyze,
-  Compile, Assess, Synthesize, Refine, Report) for quality evaluation,
-  consistency assessment, and pattern analysis across the codebase.
-  Use when user asks to "understand codebase", "explore repo", "how does
-  X work", "map architecture", "explain this code", "analyze quality of",
-  "assess consistency of", or "evaluate patterns in". Do NOT use for code
-  changes, debugging, refactoring, or any task that modifies files.
+description: "Systematic codebase exploration with parallel subagents."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

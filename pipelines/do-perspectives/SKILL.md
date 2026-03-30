@@ -1,12 +1,6 @@
 ---
 name: do-perspectives
-description: |
-  Inline multi-perspective analysis: 10 analytical lenses applied sequentially
-  in a single session to extract patterns and improve agents or skills. Use when
-  user invokes /do-perspectives, wants comprehensive multi-angle analysis of
-  source material, or needs cost-effective pattern extraction from articles,
-  docs, or code. Do NOT use for simple single-target improvements,
-  parallel analysis (use /do with parallel-analysis reference), or tasks without source material.
+description: "Inline multi-perspective analysis with 10 analytical lenses."
 version: 2.0.0
 user-invocable: false
 argument-hint: "<target-name> <source-path>"

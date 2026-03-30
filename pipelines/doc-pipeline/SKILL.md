@@ -1,12 +1,6 @@
 ---
 name: doc-pipeline
-description: |
-  Structured 5-phase documentation pipeline: Research, Outline, Generate,
-  Verify, Output. Use when user asks to "document this", "create README",
-  "write documentation", "generate docs", or any technical documentation
-  task requiring research and accuracy. Use for new documentation only —
-  for editing existing docs, writing blog posts, or non-technical content,
-  use the appropriate specialized skill.
+description: "Structured 5-phase documentation pipeline with research."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

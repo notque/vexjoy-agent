@@ -1,11 +1,6 @@
 ---
 name: skill-creation-pipeline
-description: |
-  Formal 5-phase pipeline for creating new skills with quality gates:
-  DISCOVER → DESIGN → SCAFFOLD → VALIDATE → INTEGRATE. Prevents skill
-  duplication, enforces complexity tier selection, validates quality before
-  routing integration. Use when creating new skills for the agent system.
-  Use for "create skill pipeline", "new skill formal", "skill with gates".
+description: "5-phase skill creation pipeline with quality gates."
 version: 1.0.0
 user-invocable: false
 allowed-tools:

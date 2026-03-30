@@ -1,13 +1,6 @@
 ---
 name: system-upgrade
-description: |
-  Systematic 6-phase pipeline for adapting agents, skills, hooks, and scripts to
-  external changes: Claude Code releases, user goal shifts, or retro-driven upgrades.
-  CHANGELOG → AUDIT → PLAN → IMPLEMENT → VALIDATE → DEPLOY. Always shows ranked
-  plan to user before executing any changes. Use when Claude Code ships a new version,
-  user's workflow preferences change, or retro accumulation warrants system-wide
-  embedding. Use for "upgrade agents", "system upgrade", "claude update",
-  "upgrade skills", "adapt workflow", "apply claude update", "system health".
+description: "6-phase pipeline for adapting agents, skills, and hooks to changes."
 version: 1.0.0
 user-invocable: false
 agent: system-upgrade-engineer

@@ -1,16 +1,6 @@
 ---
 name: comprehensive-review
-description: |
-  Four-wave code review pipeline for large or high-risk changes. Wave 0
-  auto-discovers packages/modules and runs per-package specialist review. Wave
-  1 runs broad foundation reviewers in parallel. Wave 2 runs targeted deep-dive
-  reviewers using earlier findings as context. Wave 3 runs adversarial reviewers
-  that challenge consensus and surface missed risks. Aggregates findings by
-  severity and agreement level, deduplicates them, and can auto-fix issues
-  unless review-only mode is used. Use for "comprehensive review", "full
-  review", "review everything", "review and fix", or "thorough code review".
-  Do NOT use for narrow single-concern reviews; use smaller review skills
-  instead.
+description: "Four-wave code review pipeline for large or high-risk changes."
 effort: high
 version: 4.0.0
 user-invocable: false

@@ -1,11 +1,6 @@
 ---
 name: voice-calibrator
-description: |
-  Analyze writing samples and extract voice patterns to create or update
-  voice skills with deterministic metrics and authorship-matching validation.
-  Use when calibrating a new voice, refining an existing voice profile,
-  validating content against a voice profile, or comparing two voices.
-  Do NOT use for content generation, general writing, or non-voice editing.
+description: "Analyze writing samples and extract voice patterns for profiles."
 version: 2.0.0
 user-invocable: false
 command: /voice
