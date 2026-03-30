@@ -1,12 +1,7 @@
 ---
 name: code-linting
 user-invocable: false
-description: |
-  Run Python (ruff) and JavaScript (Biome) linting, formatting, and code
-  quality checks with auto-fix support. Use when code needs linting,
-  formatting, or style checking before commits. Use for "lint", "format",
-  "ruff", "biome", "code style", or "check quality". Do NOT use for
-  comprehensive code review (use systematic-code-review).
+description: "Run Python (ruff) and JavaScript (Biome) linting."
 allowed-tools:
   - Read
   - Grep

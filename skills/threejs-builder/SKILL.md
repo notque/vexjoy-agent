@@ -1,12 +1,6 @@
 ---
 name: threejs-builder
-description: |
-  Scene-graph-driven 4-phase Three.js app builder: Design, Build, Animate,
-  Polish. Use when user wants a 3D web app, interactive scene, WebGL
-  visualization, or product viewer. Use for "create a threejs scene",
-  "build 3D web app", "make a 3D animation", or "interactive 3D showcase".
-  Do NOT use for full game engines, 3D model creation, VR/AR experiences,
-  or CAD workflows.
+description: "Three.js app builder: Design, Build, Animate, Polish in 4 phases."
 version: 2.0.0
 user-invocable: false
 command: /threejs

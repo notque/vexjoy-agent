@@ -1,12 +1,6 @@
 ---
 name: docs-sync-checker
-description: |
-  Deterministic 4-phase documentation drift detector: Scan, Cross-Reference,
-  Detect, Report. Use when skills/agents/commands are added, removed, or
-  renamed, when README files seem outdated, or before committing documentation
-  changes. Use for "check docs", "sync README", "documentation audit", or
-  "stale entries". Do NOT use for writing documentation content, improving
-  descriptions, or generating new README files.
+description: "Detect documentation drift against filesystem state."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

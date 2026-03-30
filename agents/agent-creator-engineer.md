@@ -2,22 +2,7 @@
 name: agent-creator-engineer
 model: sonnet
 version: 2.0.0
-description: |
-  **DEPRECATED**: Use skill-creator agent instead. This agent predates the
-  v2.0 agent architecture patterns. For creating Claude Code agents, use the
-  skill-creator agent which follows current AGENT_TEMPLATE_V2.md standards
-  with progressive disclosure, operator context, and comprehensive behavior frameworks.
-
-  The skill-creator agent provides:
-  - v2.0 agent template compliance
-  - Progressive disclosure (main file + references/)
-  - Operator Context (Hardcoded/Default/Optional behaviors)
-  - Complexity tier selection (Simple/Medium/Complex/Comprehensive)
-  - Anti-rationalization and blocker criteria
-  - Output schema selection
-
-  Example: "I need to create a new agent for PostgreSQL database management"
-
+description: "DEPRECATED: Use skill-creator agent instead. Predates v2.0 agent architecture."
 color: red
 routing:
   triggers:

@@ -2,14 +2,7 @@
 name: reviewer-contrarian
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent for professional skepticism that challenges fundamental assumptions and
-  explores alternatives through systematic critique. Specializes in premise validation,
-  alternative discovery, assumption auditing, lock-in detection, and complexity justification
-  with evidence-based contrarian analysis. READ-ONLY reviewer with Reviewer Schema + VERDICT.
-
-  Example: "We're planning to break our monolith into 15 microservices for better scalability"
-
+description: "Contrarian review: challenge assumptions, explore alternatives, systematic skepticism."
 color: purple
 routing:
   triggers:
