@@ -1,12 +1,7 @@
 ---
 name: perses-plugin-pipeline
 user-invocable: false
-description: |
-  End-to-end Perses plugin development pipeline: SCAFFOLD, SCHEMA, IMPLEMENT, TEST,
-  BUILD, DEPLOY. From percli plugin generate through CUE schema authoring, React
-  component implementation, testing, and archive deployment. Use for comprehensive
-  plugin development workflows. Use for "perses plugin pipeline", "full plugin
-  development". Do NOT use for quick scaffolding only (use perses-plugin-create).
+description: "End-to-end Perses plugin development pipeline."
 allowed-tools:
   - Read
   - Grep

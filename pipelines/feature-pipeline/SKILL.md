@@ -1,13 +1,6 @@
 ---
 name: feature-pipeline
-description: |
-  End-to-end feature lifecycle pipeline coordinating design through release:
-  DESIGN, PLAN, IMPLEMENT, VALIDATE, RELEASE, RECORD. Wraps the existing
-  feature-design, feature-plan, feature-implement, feature-validate, and
-  feature-release skills into a single phase-gated pipeline. Use for "build
-  feature end to end", "full feature lifecycle", "feature from scratch", or
-  "design to release". Do NOT use for single-phase feature work (use the
-  individual feature-* skills instead).
+description: "End-to-end feature lifecycle: design through release."
 version: 1.0.0
 user-invocable: false
 context: fork

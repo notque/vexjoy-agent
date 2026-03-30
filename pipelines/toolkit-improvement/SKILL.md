@@ -1,18 +1,6 @@
 ---
 name: toolkit-improvement
-description: |
-  Evaluate the entire toolkit from every angle, synthesize findings, challenge them
-  with a skeptical grader, create validated ADRs for confirmed issues, implement
-  fixes via domain agents, and validate results — then record learnings. Use when
-  you want to improve the toolkit, audit the system, find issues, evaluate the repo,
-  or run a comprehensive health check on the toolkit itself.
-  Use for "improve the toolkit", "evaluate the repo", "find ways to improve",
-  "repo health check", "toolkit audit", "comprehensive improvement",
-  "self-improvement", "meta improvement", "improve yourself", "what can be better",
-  "how can we improve", "evaluate everything", "full evaluation", "toolkit evaluation",
-  "repo evaluation", "find issues", "improvement pipeline", "continuous improvement",
-  "make the toolkit better", "audit the system", "system health", "upgrade the toolkit".
-  Do NOT use for single-file reviews (use /comprehensive-review) or one-off bug fixes.
+description: "Multi-angle toolkit evaluation, ADR creation, and fix pipeline."
 version: 1.0.0
 effort: high
 model: opus
