@@ -261,6 +261,13 @@ def _build_report_data(
     }
 
 
+def _iteration_entry_by_number(iterations: list[dict], number: int) -> dict | None:
+    for entry in iterations:
+        if entry.get("number") == number:
+            return entry
+    return None
+
+
 def generate_optimization_report(data: dict, auto_refresh: bool = False) -> str:
     """Generate iteration history HTML report.
 
@@ -660,6 +667,7 @@ def _run_trigger_rate(
     eval_mode: str = "auto",
     num_workers: int = 1,
     timeout: int = 30,
+    runs_per_query: int = 3,
     verbose: bool = False,
 ) -> dict:
     """Run trigger-rate assessment using the skill_eval infrastructure.
@@ -696,7 +704,7 @@ def _run_trigger_rate(
             "--timeout",
             str(timeout),
             "--runs-per-query",
-            "1",
+            str(runs_per_query),
         ]
         if candidate_content is not None:
             with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as candidate_file:
@@ -1341,14 +1349,14 @@ def _run_behavioral_eval(
                     }
         return results
 
-    # Sequential path (parallel_workers <= 1): run tasks one at a time in project_root.
+    # Sequential path: still use isolated worktrees so tasks cannot mutate the real repo
+    # or contaminate each other by editing tracked files.
     sequential_results = []
     for task in tasks:
         sequential_results.append(
-            _run_single_behavioral_task(
+            _run_single_behavioral_task_in_worktree(
                 task=task,
                 project_root=project_root,
-                worktree_path=project_root,
                 env=env,
                 timeout=timeout,
                 verbose=verbose,
@@ -1449,6 +1457,7 @@ def assess_target(
             tasks,
             candidate_content=content,
             eval_mode=eval_mode,
+            runs_per_query=max(1, behavioral_runs_per_task),
             verbose=verbose,
         )
         summary = results.get("summary", {})
@@ -1997,8 +2006,10 @@ def run_optimization_loop(
                 eval_mode=eval_mode,
             )
             holdout_composite = composite_score(holdout_scores)
-            if iterations:
-                iterations[-1]["score"]["test"] = holdout_composite
+            if best_iteration > 0:
+                best_iteration_entry = _iteration_entry_by_number(iterations, best_iteration)
+                if best_iteration_entry is not None:
+                    best_iteration_entry["score"]["test"] = holdout_composite
 
             if holdout_diverges(best_score, holdout_composite, baseline_holdout, baseline_composite):
                 if verbose:
@@ -2040,7 +2051,59 @@ def run_optimization_loop(
         exit_reason = f"max_iterations ({max_iterations})"
         status = "COMPLETE"
 
-    # Final report
+    # Best-by-test selection: if test tasks exist, prefer the ACCEPT iteration with the
+    # highest held-out test score rather than the highest training score (anti-Goodhart).
+    best_test_score: float | None = None
+    if test_tasks and keep_contents:
+        for keep_iter, keep_content in keep_contents.items():
+            entry = _iteration_entry_by_number(iterations, keep_iter)
+            if entry is not None and entry["score"].get("test") is not None:
+                continue
+            final_test_scores = assess_target(
+                target_path,
+                test_tasks,
+                goal,
+                verbose,
+                dry_run,
+                behavioral_runs_per_task,
+                behavioral_trigger_threshold,
+                effective_parallel_eval,
+                candidate_content=keep_content,
+                baseline_content=original_content,
+                eval_mode=eval_mode,
+            )
+            keep_test_score = composite_score(final_test_scores)
+            if entry is not None:
+                entry["score"]["test"] = keep_test_score
+            if verbose:
+                print(f"Recorded final test eval for iter {keep_iter}: test={keep_test_score:.4f}", file=sys.stderr)
+
+        scored_keeps = [
+            (it["number"], it["score"]["test"])
+            for it in iterations
+            if it["verdict"] == "ACCEPT" and it["score"].get("test") is not None and it["number"] in keep_contents
+        ]
+        if scored_keeps:
+            best_test_iter, best_test_score = max(scored_keeps, key=lambda x: x[1])
+            if best_test_iter != best_iteration:
+                if verbose:
+                    print(
+                        f"\nBest-by-test: switching from train-best iter {best_iteration} "
+                        f"(train={best_score:.4f}) to test-best iter {best_test_iter} "
+                        f"(test={best_test_score:.4f})",
+                        file=sys.stderr,
+                    )
+                best_content = keep_contents[best_test_iter]
+                best_iteration = best_test_iter
+
+    if best_iteration > 0:
+        best_path = output_dir / "best_variant.md"
+        best_path.write_text(best_content)
+        if verbose:
+            print(f"\nBest variant saved to: {best_path}", file=sys.stderr)
+
+    # Final report: write only after any final held-out evaluations and best-by-test
+    # selection so the HTML matches the finalized iterations/results.json state.
     if report_path:
         rd = _build_report_data(
             target_label,
@@ -2061,54 +2124,6 @@ def run_optimization_loop(
             "holdout_check_cadence": holdout_check_cadence,
         }
         report_path.write_text(generate_optimization_report(rd, auto_refresh=False))
-
-    # Best-by-test selection: if test tasks exist, prefer the ACCEPT iteration with the
-    # highest held-out test score rather than the highest training score (anti-Goodhart).
-    best_test_score: float | None = None
-    if test_tasks and keep_contents:
-        # Find iterations with a recorded test score (set during holdout cadence checks)
-        scored_keeps = [
-            (it["number"], it["score"]["test"])
-            for it in iterations
-            if it["verdict"] == "ACCEPT" and it["score"].get("test") is not None and it["number"] in keep_contents
-        ]
-        if scored_keeps:
-            best_test_iter, best_test_score = max(scored_keeps, key=lambda x: x[1])
-            if best_test_iter != best_iteration:
-                if verbose:
-                    print(
-                        f"\nBest-by-test: switching from train-best iter {best_iteration} "
-                        f"(train={best_score:.4f}) to test-best iter {best_test_iter} "
-                        f"(test={best_test_score:.4f})",
-                        file=sys.stderr,
-                    )
-                best_content = keep_contents[best_test_iter]
-                best_iteration = best_test_iter
-        else:
-            # No holdout-checked ACCEPT iterations — run a final test eval on best_content
-            if best_iteration > 0:
-                final_test_scores = assess_target(
-                    target_path,
-                    test_tasks,
-                    goal,
-                    verbose,
-                    dry_run,
-                    behavioral_runs_per_task,
-                    behavioral_trigger_threshold,
-                    effective_parallel_eval,
-                    candidate_content=best_content,
-                    baseline_content=original_content,
-                    eval_mode=eval_mode,
-                )
-                best_test_score = composite_score(final_test_scores)
-                if verbose:
-                    print(f"Final test eval on best_content: test={best_test_score:.4f}", file=sys.stderr)
-
-    if best_iteration > 0:
-        best_path = output_dir / "best_variant.md"
-        best_path.write_text(best_content)
-        if verbose:
-            print(f"\nBest variant saved to: {best_path}", file=sys.stderr)
 
     result = {
         "exit_reason": exit_reason,

@@ -2,9 +2,15 @@
 
 ## Scope
 
-The current autoresearch loop optimizes a markdown target's frontmatter
-`description` using trigger-rate eval tasks. This is useful for improving
-skill routing accuracy and similar description-driven dispatch behavior.
+The current autoresearch loop supports two optimization scopes:
+
+- `description-only`: mutate the frontmatter `description` and score it with
+  trigger-rate eval tasks
+- `body-only`: mutate the instruction body and score it with `blind_compare`
+  behavioral tasks
+
+This is useful for improving skill routing accuracy and for short, repeatable
+instruction-body improvements on real registered skills.
 
 It is not a replacement for the manual agent benchmark workflow in Phases 1-4.
 If you want to compare real code-generation quality across benchmark tasks, use
@@ -22,7 +28,11 @@ drives routing.
 
 ## Supported Task Formats
 
-Every task must include:
+Two task families are supported:
+
+### Trigger-rate tasks
+
+Every trigger-rate task must include:
 
 - `query`: the prompt to test
 - `should_trigger`: whether the target should trigger for that prompt
@@ -76,6 +86,40 @@ Explicit train/test sets:
   ]
 }
 ```
+
+### Blind body-compare tasks
+
+Every blind body-compare task must include:
+
+- `query`: the prompt to test
+- `eval_mode: blind_compare`
+- `judge`: currently `heuristic_socratic_debugging`
+
+Optional fields:
+
+- `name`: label shown in logs and reports
+- `split`: `train` or `test`
+- `min_score`: minimum candidate score required for the task to count as passed
+
+Example:
+
+```json
+{
+  "tasks": [
+    {
+      "name": "socratic-first-turn",
+      "query": "Help me think through this bug. My Python script sometimes returns None instead of a dict when the cache is warm. Please do not solve it for me directly.",
+      "eval_mode": "blind_compare",
+      "judge": "heuristic_socratic_debugging",
+      "min_score": 0.7,
+      "split": "train"
+    }
+  ]
+}
+```
+
+Within one run, tasks must all belong to the same family. The optimizer rejects
+mixed trigger-rate and blind body-compare task sets.
 
 If no split markers are present, the loop performs a reproducible random split
 using `--train-split` and seed `42`.
@@ -262,9 +306,10 @@ What is currently demonstrated:
 - short live proof on `skills/read-only-ops/SKILL.md` using
   `references/read-only-ops-short-tasks.json`, improving from one failed positive
   to `2/2` live passes after the accepted description update
-- short live body benchmark on `skills/socratic-debugging/SKILL.md` using
-  `references/socratic-debugging-body-short-tasks.json`, where the current
-  baseline now evaluates cleanly and non-improving body variants are rejected
+- short live body optimization on `skills/socratic-debugging/SKILL.md` using
+  `references/socratic-debugging-body-short-tasks.json`, improving from `7.85`
+  to `8.45` after the accepted instruction-body update; the current baseline now
+  evaluates cleanly and non-improving body variants are rejected
 
 What remains imperfect:
 - live optimization of temporary renamed skill copies still fails to show measured improvement through the dynamic command alias path

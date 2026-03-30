@@ -348,7 +348,7 @@ Recommended modes:
 
 Live eval defaults are intentionally short:
 - one optimization round
-- one trigger-eval run per query
+- three trigger-eval runs per query
 - one trigger-eval worker
 - no holdout cadence unless explicitly requested
 
@@ -357,7 +357,7 @@ The registered-skill path also evaluates the current working copy, not just `HEA
 
 **Step 5: Present results in UI**
 
-Open the generated `optimization-report.html` in a browser. The report shows:
+If you passed `--report optimization-report.html`, open the generated file in a browser. The report shows:
 - Progress dashboard (status, baseline vs best, accepted/rejected counts)
 - Convergence chart (train solid line, held-out dashed line, baseline dotted)
 - Iteration table with verdict, composite score, delta, and change summary
@@ -367,7 +367,7 @@ Open the generated `optimization-report.html` in a browser. The report shows:
 
 Not all ACCEPT iterations are real improvements — some may be harness artifacts. The user reviews the accepted iterations as candidate snapshots from the original target:
 - Inspect each accepted iteration's diff in the report
-- Use "Preview Selected Snapshot" only as a comparison aid in the UI
+- Use "Preview Combined" only as a comparison aid in the UI
 - Use "Export Selected" to download a review JSON describing the selected snapshot diff
 - In beam mode, review the retained frontier candidates first; they are the strongest candidates from the latest round
 
@@ -392,10 +392,17 @@ cp evals/iterations/best_variant.md skills/{target}/SKILL.md
 
 **Step 8: Run final evaluation on FULL task set (train + test)**
 
-After applying improvements, run a final evaluation on ALL tasks (not just train) to verify the improvements generalize:
+After applying improvements, run a final evaluation on ALL tasks (not just train) to verify the improvements generalize. Use evaluation-only mode by rerunning the optimizer with `--max-iterations 0`, which records the baseline for the current file without generating fresh variants:
 
 ```bash
-# Re-run optimize_loop.py against the same task file and inspect results.json/report output
+python3 skills/agent-comparison/scripts/optimize_loop.py \
+  --target skills/{target}/SKILL.md \
+  --goal "{same goal}" \
+  --benchmark-tasks {full-task-file}.json \
+  --max-iterations 0 \
+  --report optimization-report.html \
+  --output-dir evals/final-check \
+  --verbose
 ```
 
 Compare final scores to the baseline to confirm net improvement. In beam mode, the final report and `results.json` also include:
@@ -421,8 +428,7 @@ The current optimizer is in a solid state for:
 - deterministic proof runs
 - isolated live evaluation of existing registered skills
 - short live optimization of `read-only-ops`, with the accepted description change now applied and validated against `references/read-only-ops-short-tasks.json`
-- short live body evaluation of `socratic-debugging`, with `references/socratic-debugging-body-short-tasks.json`
-  now producing clean skill-triggered first-turn outputs instead of fallback chatter
+- short live body optimization of `socratic-debugging`, with the accepted instruction-body update now applied and validated against `references/socratic-debugging-body-short-tasks.json`, now producing clean skill-triggered first-turn outputs instead of fallback chatter
 
 One live-harness caveat remains:
 - temporary renamed skill copies do not yet show reliable live trigger improvements through the dynamic command alias path
