@@ -1,12 +1,6 @@
 ---
 name: service-health-check
-description: |
-  Deterministic 3-phase service health monitoring: Discover, Check, Report.
-  Use when user asks about service status, process health, uptime, or
-  whether services are running. Use for "health check", "is service up",
-  "service status", "what's running", or "check if alive". Do NOT use for
-  HTTP endpoint validation, performance profiling, or log analysis without
-  a specific health concern.
+description: "Service health monitoring: Discover, Check, Report in 3 phases."
 version: 2.0.0
 user-invocable: false
 allowed-tools:
