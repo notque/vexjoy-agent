@@ -166,30 +166,30 @@
     {
       "request": "design a rate limiter feature for the API",
       "expected_agent": null,
-      "expected_skill": "feature-design",
+      "expected_skill": "feature-lifecycle",
       "category": "feature-lifecycle",
-      "notes": "New feature entry point \u2014 force-route to feature-design"
+      "notes": "New feature entry point \u2014 force-route to feature-lifecycle (design phase)"
     },
     {
       "request": "plan the implementation for this feature",
       "expected_agent": null,
-      "expected_skill": "feature-plan",
+      "expected_skill": "feature-lifecycle",
       "category": "feature-lifecycle",
-      "notes": "Feature plan phase \u2014 force-route to feature-plan"
+      "notes": "Feature plan phase \u2014 force-route to feature-lifecycle (plan phase)"
     },
     {
       "request": "build the feature from the plan",
       "expected_agent": null,
-      "expected_skill": "feature-implement",
+      "expected_skill": "feature-lifecycle",
       "category": "feature-lifecycle",
-      "notes": "Feature implementation \u2014 force-route to feature-implement"
+      "notes": "Feature implementation \u2014 force-route to feature-lifecycle (implement phase)"
     },
     {
       "request": "run quality gates on the implemented feature",
       "expected_agent": null,
-      "expected_skill": "feature-validate",
+      "expected_skill": "feature-lifecycle",
       "category": "feature-lifecycle",
-      "notes": "Feature validation \u2014 force-route to feature-validate"
+      "notes": "Feature validation \u2014 force-route to feature-lifecycle (validate phase)"
     },
     {
       "request": "migrate our Grafana dashboards to Perses",

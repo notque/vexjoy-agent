@@ -19,9 +19,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "feature-design",
-        "feature-plan",
-        "feature-implement"
+        "feature-lifecycle"
       ],
       "model": "sonnet"
     },
@@ -413,105 +411,50 @@
       "version": "1.0.0",
       "pairs_with": []
     },
-    "feature-design": {
-      "file": "skills/feature-design/SKILL.md",
-      "description": "Collaborative design phase for feature lifecycle: explore requirements, discuss trade-offs, produce design document.",
+    "feature-lifecycle": {
+      "file": "skills/feature-lifecycle/SKILL.md",
+      "description": "Feature lifecycle: design, plan, implement, validate, release. Phase-gated workflow.",
       "triggers": [
         "feature design",
         "design feature",
         "think through",
         "explore approaches",
         "design first",
-        "feature-design"
-      ],
-      "category": "process",
-      "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "feature-plan",
-        "workflow-orchestrator"
-      ]
-    },
-    "feature-implement": {
-      "file": "skills/feature-implement/SKILL.md",
-      "description": "Execute wave-ordered implementation plan by dispatching tasks to domain agents.",
-      "triggers": [
-        "feature implement",
-        "implement feature",
-        "execute plan",
-        "start building",
-        "feature-implement"
-      ],
-      "category": "process",
-      "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "feature-plan",
-        "feature-validate",
-        "subagent-driven-development"
-      ]
-    },
-    "feature-plan": {
-      "file": "skills/feature-plan/SKILL.md",
-      "description": "Break a design document into wave-ordered implementation tasks with domain agent assignments.",
-      "triggers": [
         "feature plan",
         "plan feature",
         "break down design",
         "create tasks",
-        "feature-plan"
-      ],
-      "category": "process",
-      "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "feature-design",
-        "feature-implement",
-        "workflow-orchestrator"
-      ]
-    },
-    "feature-release": {
-      "file": "skills/feature-release/SKILL.md",
-      "description": "Merge validated feature to main via PR, tag release, cleanup worktree.",
-      "triggers": [
-        "feature release",
-        "release feature",
-        "merge feature",
-        "ship it",
-        "feature-release"
-      ],
-      "category": "process",
-      "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "feature-validate",
-        "pr-pipeline",
-        "git-commit-flow"
-      ]
-    },
-    "feature-validate": {
-      "file": "skills/feature-validate/SKILL.md",
-      "description": "Run quality gates on implemented feature: tests, lint, type checks, and custom validation.",
-      "triggers": [
+        "feature implement",
+        "implement feature",
+        "execute plan",
+        "start building",
         "feature validate",
         "validate feature",
         "run quality gates",
         "check feature",
-        "feature-validate"
+        "feature release",
+        "release feature",
+        "ship it",
+        "build feature end to end",
+        "full feature lifecycle",
+        "feature from scratch",
+        "design to release",
+        "complete feature pipeline",
+        "feature pipeline"
       ],
       "category": "process",
       "force_route": true,
       "user_invocable": false,
-      "version": "2.0.0",
+      "version": "3.0.0",
       "pairs_with": [
-        "feature-implement",
-        "feature-release",
+        "workflow-orchestrator",
+        "subagent-driven-development",
+        "pr-pipeline",
+        "git-commit-flow",
         "verification-before-completion",
-        "universal-quality-gate"
+        "universal-quality-gate",
+        "adr-consultation",
+        "spec-writer"
       ]
     },
     "fish-shell-config": {
@@ -924,8 +867,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "feature-implement",
-        "feature-validate",
+        "feature-lifecycle",
         "comprehensive-review"
       ]
     },
@@ -1304,8 +1246,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "feature-plan",
-        "feature-implement",
+        "feature-lifecycle",
         "workflow-orchestrator",
         "plan-manager"
       ]
@@ -1349,7 +1290,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "feature-design"
+        "feature-lifecycle"
       ]
     },
     "post-outliner": {
@@ -1489,8 +1430,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "feature-design",
-        "feature-plan",
+        "feature-lifecycle",
         "workflow-orchestrator"
       ]
     },
@@ -1853,9 +1793,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "feature-design",
-        "feature-plan",
-        "feature-validate"
+        "feature-lifecycle"
       ]
     },
     "subagent-driven-development": {

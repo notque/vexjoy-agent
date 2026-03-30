@@ -1,33 +1,4 @@
----
-name: feature-release
-description: "Merge validated feature to main via PR and tag release."
-version: 2.0.0
-user-invocable: false
-command: /feature-release
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-routing:
-  force_route: true
-  triggers:
-    - feature release
-    - release feature
-    - merge feature
-    - ship it
-    - feature-release
-  pairs_with:
-    - feature-validate
-    - pr-pipeline
-    - git-commit-flow
-  complexity: Medium
-  category: process
----
-
-# Feature Release Skill
+# Feature Release Phase
 
 Merge the validated feature to main branch via PR, optionally tag a release, and clean up the feature worktree. Phase 5 of the feature lifecycle (design → plan → implement → validate → **release**).
 
@@ -44,7 +15,7 @@ Merge the validated feature to main branch via PR, optionally tag a release, and
 
 3. Load all artifacts: design document, plan, implementation summary, and validation report. These provide the raw material for PR content in the next phase; skipping any artifact risks an incomplete PR description.
 
-4. Confirm validation passed before proceeding. A feature with failing validation cannot be released -- there are no exceptions. If validation has not passed, stop and direct the user to run `/feature-validate` first.
+4. Confirm validation passed before proceeding. A feature with failing validation cannot be released -- there are no exceptions. If validation has not passed, stop and direct the user to run the validate phase first.
 
 **Gate**: All artifacts loaded. Validation passed. State confirmed as `release`. Proceed.
 
@@ -132,13 +103,7 @@ Do not begin cleanup until the PR merge is confirmed. Deleting the branch or wor
 
 | Scenario | Action |
 |----------|--------|
-| Validation not passed | Stop. Direct user to `/feature-validate`. Do not proceed. |
+| Validation not passed | Stop. Direct user to run the validate phase. Do not proceed. |
 | PR creation fails | Check branch is pushed, `gh` is authenticated, and target branch exists. Retry once. |
 | Worktree cleanup fails | Log the error but do not block completion. User can clean up manually. |
 | State script errors | Report the exact error. Do not fall back to manual file manipulation. |
-
-## References
-
-- [PR Pipeline](../pr-pipeline/SKILL.md)
-- [Git Commit Flow](../git-commit-flow/SKILL.md)
-- [State Conventions](../_feature-shared/state-conventions.md)

@@ -1,41 +1,13 @@
----
-name: feature-validate
-description: "Run quality gates on implemented features."
-version: 2.0.0
-user-invocable: false
-command: /feature-validate
-allowed-tools:
-  - Read
-  - Bash
-  - Grep
-  - Glob
-routing:
-  force_route: true
-  triggers:
-    - feature validate
-    - validate feature
-    - run quality gates
-    - check feature
-    - feature-validate
-  pairs_with:
-    - feature-implement
-    - feature-release
-    - verification-before-completion
-    - universal-quality-gate
-  complexity: Medium
-  category: process
----
+# Feature Validate Phase
 
-# Feature Validate Skill
-
-Run comprehensive quality gates on the implemented feature. Phase 4 of the feature lifecycle (design → plan → implement → **validate** → release).
+Run comprehensive quality gates on the implemented feature. Phase 4 of the feature lifecycle (design > plan > implement > **validate** > release).
 
 ## Instructions
 
 ### Phase 0: PRIME
 
-1. Read and follow the repository CLAUDE.md before any other action — it may override defaults for linting, test commands, or gate criteria.
-2. Verify feature state is `validate` and `implement` is completed. All state operations go through `python3 ~/.claude/scripts/feature-state.py` — never modify state files directly.
+1. Read and follow the repository CLAUDE.md before any other action -- it may override defaults for linting, test commands, or gate criteria.
+2. Verify feature state is `validate` and `implement` is completed. All state operations go through `python3 ~/.claude/scripts/feature-state.py` -- never modify state files directly.
 3. Load implementation artifact from `.feature/state/implement/`. Validation cannot proceed without implementation artifacts; if missing, stop and report.
 4. Load L0, L1, and implementation context so quality gates run against the correct scope.
 
@@ -49,7 +21,7 @@ Auto-detect project language(s) from file extensions, build files, and the imple
 
 **Step 2: Run Quality Gates**
 
-Use the repository's existing quality gate skills — do not re-implement linting or test runners inline. Route to the appropriate skill per language:
+Use the repository's existing quality gate skills -- do not re-implement linting or test runners inline. Route to the appropriate skill per language:
 
 | Language | Quality Gate | Command |
 |----------|-------------|---------|
@@ -58,7 +30,7 @@ Use the repository's existing quality gate skills — do not re-implement lintin
 | TypeScript | universal-quality-gate | `npm run typecheck && npm run lint && npm test` |
 | Other | universal-quality-gate | Detect and run project-specific checks |
 
-Show the full, unedited command output for every gate — never summarize or truncate test results, because summaries hide the exact failure details needed for diagnosis.
+Show the full, unedited command output for every gate -- never summarize or truncate test results, because summaries hide the exact failure details needed for diagnosis.
 
 **Step 3: Regression Check**
 
@@ -78,9 +50,9 @@ If explicitly enabled by the user:
 - **Security scan**: Run security-focused review agent
 - **Performance check**: Run benchmarks against baseline
 
-These are off by default — do not run them unless the user requests it.
+These are off by default -- do not run them unless the user requests it.
 
-**Gate**: Every gate must pass. No gate may be skipped and no failure may be approved — a single failing gate blocks advancement to release. Proceed only when all results are green.
+**Gate**: Every gate must pass. No gate may be skipped and no failure may be approved -- a single failing gate blocks advancement to release. Proceed only when all results are green.
 
 ### Phase 2: VALIDATE (Report)
 
@@ -107,9 +79,9 @@ Produce the validation report:
 ## Verdict: PASS / NEEDS_FIXES / BLOCK
 ```
 
-The verdict must reflect actual gate results — never mark PASS if any gate failed.
+The verdict must reflect actual gate results -- never mark PASS if any gate failed.
 
-If `NEEDS_FIXES`: suggest running `/feature-implement` with specific fix tasks. This skill does not fix failing tests; it reports them and routes back.
+If `NEEDS_FIXES`: suggest routing back to the implement phase with specific fix tasks. This phase does not fix failing tests; it reports them and routes back.
 If `BLOCK`: explain blocking issues.
 
 **Gate**: Report produced. Proceed to Checkpoint.
@@ -121,7 +93,7 @@ If `BLOCK`: explain blocking issues.
    echo "VALIDATION_REPORT" | python3 ~/.claude/scripts/feature-state.py checkpoint FEATURE validate
    ```
 
-2. **Record learnings** — if this phase produced non-obvious insights, record them:
+2. **Record learnings** -- if this phase produced non-obvious insights, record them:
    ```bash
    python3 ~/.claude/scripts/learning-db.py record TOPIC KEY "VALUE" --category design
    ```
@@ -133,17 +105,13 @@ If `BLOCK`: explain blocking issues.
 
 4. Suggest next step:
    ```
-   Validation passed. Run /feature-release to merge and release.
+   Validation passed. Run /feature-lifecycle to continue to the release phase.
    ```
 
 ## Error Handling
 
 | Error | Cause | Solution |
 |-------|-------|----------|
-| Tests fail | Implementation bugs | Route back to /feature-implement with failure details |
+| Tests fail | Implementation bugs | Route back to implement phase with failure details |
 | No test framework detected | Project setup incomplete | Report gap, suggest setup |
 | Lint failures | Style issues | Auto-fix if trivial, otherwise route back |
-
-## References
-
-- [State Conventions](../_feature-shared/state-conventions.md)

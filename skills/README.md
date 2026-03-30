@@ -21,11 +21,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `feature-design` | yes | Collaborative design phase — explore requirements and produce a design document |
-| `feature-plan` | yes | Break a design document into wave-ordered implementation tasks with agent assignments |
-| `feature-implement` | yes | Execute wave-ordered plan by dispatching tasks to domain agents |
-| `feature-validate` | yes | Run quality gates on implemented feature (tests, lint, type checks) |
-| `feature-release` | yes | Merge validated feature to main via PR, tag release, clean up worktree |
+| `feature-lifecycle` | no | Phase-gated feature workflow: design, plan, implement, validate, release. Routes to correct phase via references. |
 
 ---
 
@@ -255,6 +251,5 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Description |
 |-------|-------------|
-| `_feature-shared` | Shared context and artifacts used across the feature lifecycle skills |
 | `shared-patterns` | Reusable prompt patterns referenced by multiple skills |
 | `install` | Toolkit installation helper |

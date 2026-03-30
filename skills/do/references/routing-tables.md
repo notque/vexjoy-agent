@@ -206,15 +206,11 @@ Sequential pipeline: design → plan → implement → validate → release. Eac
 
 | Skill | Phase | When to Route Here |
 |-------|-------|--------------------|
-| **feature-design (FORCE)** | 1 - Design | User wants to think through a new feature, explore approaches, or design before committing to implementation. Entry point for all new features. |
-| **feature-plan (FORCE)** | 2 - Plan | User wants to break down an approved feature design into atomic implementation tasks. Requires design phase to be complete. |
-| **feature-implement (FORCE)** | 3 - Implement | User wants to execute the feature plan and build the code. Requires plan phase to be complete. |
-| **feature-validate (FORCE)** | 4 - Validate | User wants to run quality gates, tests, and review on the implemented feature. |
-| **feature-release (FORCE)** | 5 - Release | User wants to merge and ship a validated feature. Requires validate phase to be complete. |
+| **feature-lifecycle (FORCE)** | 1-5 | All feature lifecycle phases: design, plan, implement, validate, release. Routes to the correct phase based on feature state. Entry point for all new features. |
 
-**Auto-detection**: When `.feature/` exists, `feature-state.py status` determines current phase and routes to the matching skill automatically.
+**Auto-detection**: When `.feature/` exists, `feature-state.py status` determines current phase and feature-lifecycle routes to the matching phase reference automatically.
 
-**Entry point**: New features always enter via `feature-design`. Skipping phases is not supported.
+**Entry point**: New features always enter via feature-lifecycle (design phase). Skipping phases is not supported.
 
 ---
 
@@ -360,9 +356,9 @@ Invoked via the roast skill or directly:
 | "debug TypeScript race condition" | typescript-debugging-engineer + systematic-debugging | TS debugging domain |
 | "write in custom voice" | voice-writer + [your-voice-skill] | Voice generation task |
 | "comprehensive code review" | parallel-code-review (3 reviewers) | Multi-reviewer parallel review |
-| "design a rate limiter feature" | **feature-design (FORCE)** | New feature entry point |
-| "plan this feature" | **feature-plan (FORCE)** | Feature plan phase |
-| "build this feature" | **feature-implement (FORCE)** | Feature implementation phase |
+| "design a rate limiter feature" | **feature-lifecycle (FORCE)** | New feature entry point (design phase) |
+| "plan this feature" | **feature-lifecycle (FORCE)** | Feature plan phase |
+| "build this feature" | **feature-lifecycle (FORCE)** | Feature implementation phase |
 | "review this PR" | /pr-review command (retro-enabled) | PR review command |
 | "submit a PR" | pr-pipeline | Full PR workflow with gates |
 | "push my changes" | **pr-sync (FORCE)** | Intent: get local changes onto GitHub |

@@ -1,34 +1,4 @@
----
-name: feature-implement
-description: "Execute wave-ordered implementation plan via domain agents."
-version: 2.0.0
-user-invocable: false
-command: /feature-implement
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-  - Agent
-routing:
-  force_route: true
-  triggers:
-    - feature implement
-    - implement feature
-    - execute plan
-    - start building
-    - feature-implement
-  pairs_with:
-    - feature-plan
-    - feature-validate
-    - subagent-driven-development
-  complexity: Complex
-  category: process
----
-
-# Feature Implement Skill
+# Feature Implement Phase
 
 Execute the implementation plan by dispatching tasks to domain agents wave by wave. Phase 3 of the feature lifecycle (design > plan > **implement** > validate > release).
 
@@ -158,21 +128,16 @@ Quick validation before the formal validation phase:
 
 4. Suggest next step:
    ```
-   Implementation complete. Run /feature-validate for quality gates.
+   Implementation complete. Run /feature-lifecycle to continue to the validate phase.
    ```
 
 ## Error Handling
 
 | Error | Cause | Solution |
 |-------|-------|----------|
-| No plan found | Plan phase not completed | Run /feature-plan first |
+| No plan found | Plan phase not completed | Run plan phase first |
 | Consultation not completed | Medium+ feature has ADR but no synthesis | Run /adr-consultation first |
 | Consultation blocked | synthesis.md verdict is BLOCKED | Resolve concerns in adr/{name}/concerns.md |
 | Agent dispatch fails | Agent not available or task malformed | Retry with more context, escalate if 3 failures |
 | Wave test failure | Task broke existing tests | Route back to responsible agent for fix |
 | Tier 3 deviation | Architectural decision needed | Stop, present options to user |
-
-## References
-
-- [State Conventions](../_feature-shared/state-conventions.md)
-- [Subagent-Driven Development](../subagent-driven-development/SKILL.md)

@@ -1,35 +1,4 @@
----
-name: feature-design
-description: "Collaborative design phase for feature lifecycle."
-version: 2.0.0
-user-invocable: false
-argument-hint: "<feature description>"
-command: /feature-design
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-  - Agent
-routing:
-  force_route: true
-  triggers:
-    - feature design
-    - design feature
-    - think through
-    - explore approaches
-    - design first
-    - feature-design
-  pairs_with:
-    - feature-plan
-    - workflow-orchestrator
-  complexity: Medium
-  category: process
----
-
-# Feature Design Skill
+# Feature Design Phase
 
 Transform a feature idea into a structured design document through collaborative dialogue. This is Phase 1 of the feature lifecycle pipeline (design > plan > implement > validate > release).
 
@@ -45,7 +14,7 @@ Transform a feature idea into a structured design document through collaborative
    ```bash
    python3 ~/.claude/scripts/feature-state.py init "FEATURE_NAME"
    ```
-   All state operations throughout this skill go through `feature-state.py` -- direct file manipulation risks state corruption and breaks downstream skills (feature-plan, feature-implement) that depend on consistent state format.
+   All state operations throughout this skill go through `feature-state.py` -- direct file manipulation risks state corruption and breaks downstream phases (plan, implement) that depend on consistent state format.
 
 3. Load L0 context -- skipping existing context discards previous learnings and causes redundant design work:
    ```bash
@@ -158,7 +127,7 @@ Create the design document:
 
 Check gate: `python3 ~/.claude/scripts/feature-state.py gate FEATURE design.design-approval`
 
-This phase cannot complete without a design document artifact in `.feature/state/design/` -- feature-plan reads from this path, so a missing document causes the next skill to fail silently or plan against stale data.
+This phase cannot complete without a design document artifact in `.feature/state/design/` -- the plan phase reads from this path, so a missing document causes the next skill to fail silently or plan against stale data.
 
 Validation checklist:
 - [ ] Problem statement is clear
@@ -182,7 +151,7 @@ If gate is `auto`: verify checklist passes.
    echo "DESIGN_CONTENT" | python3 ~/.claude/scripts/feature-state.py checkpoint FEATURE design
    ```
 
-2. Write an ADR to `adr/{feature-name}.md` documenting the architectural decisions made during design exploration. Register the ADR so sub-phase skills (feature-plan, feature-implement) receive design context via hook injection -- without registration, downstream skills operate without awareness of the design rationale:
+2. Write an ADR to `adr/{feature-name}.md` documenting the architectural decisions made during design exploration. Register the ADR so sub-phase skills receive design context via hook injection -- without registration, downstream skills operate without awareness of the design rationale:
    ```bash
    python3 ~/.claude/scripts/adr-query.py register --adr adr/{name}.md
    ```
@@ -199,7 +168,7 @@ If gate is `auto`: verify checklist passes.
 
 5. Suggest next step:
    ```
-   Design complete. Run /feature-plan to break this into implementation tasks.
+   Design complete. Run /feature-lifecycle to continue to the plan phase.
    ```
 
 **Gate**: Artifacts saved. Learnings recorded. Phase finished.
@@ -211,8 +180,3 @@ If gate is `auto`: verify checklist passes.
 | Feature already exists | `init` called twice | Use `status` to check, work with existing state |
 | Gate returns exit 2 | Human input required | Present decision to user, wait for response |
 | No design doc produced | Skipped design dialogue | Return to Phase 1, complete all steps |
-
-## References
-
-- [State Conventions](../_feature-shared/state-conventions.md)
-- [Plant Seed](../plant-seed/SKILL.md) -- seed-based deferred work surfaced in Phase 0 (ADR-075)

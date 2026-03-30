@@ -1,40 +1,14 @@
----
-name: feature-pipeline
-description: "End-to-end feature lifecycle: design through release."
-version: 1.0.0
-user-invocable: false
-context: fork
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-  - Agent
-  - Task
-routing:
-  triggers:
-    - "build feature end to end"
-    - "full feature lifecycle"
-    - "feature from scratch"
-    - "design to release"
-    - "complete feature pipeline"
-    - "feature pipeline"
-  category: process
----
+# Feature Pipeline (End-to-End)
 
-# Feature Pipeline
-
-End-to-end feature lifecycle pipeline that coordinates the five existing feature skills (feature-design, feature-plan, feature-implement, feature-validate, feature-release) into a single phase-gated workflow with a final RECORD phase for learning.
+End-to-end feature lifecycle pipeline that coordinates all five phases (design, plan, implement, validate, release) into a single phase-gated workflow with a final RECORD phase for learning.
 
 ## Overview
 
-This pipeline orchestrates the full feature lifecycle by invoking feature-* skills in sequence: DESIGN, PLAN, IMPLEMENT, VALIDATE, RELEASE, RECORD. Each phase must pass its gate before the next begins (enforced because skipping design or plan steps causes rework, and testing without validation creates merged bugs).
+This pipeline orchestrates the full feature lifecycle by invoking phases in sequence: DESIGN, PLAN, IMPLEMENT, VALIDATE, RELEASE, RECORD. Each phase must pass its gate before the next begins (enforced because skipping design or plan steps causes rework, and testing without validation creates merged bugs).
 
 **Before starting**: Read and follow your repository's CLAUDE.md because it contains essential context and conventions.
 
-**Scope**: Use for end-to-end feature work only. For single-phase work (e.g., "just validate this feature"), use the individual feature-* skills instead.
+**Scope**: Use for end-to-end feature work only. For single-phase work (e.g., "just validate this feature"), load the individual phase reference instead.
 
 **Optional flags** (OFF by default):
 - `--skip-design` — Skip Phase 1 if design document already exists
@@ -47,12 +21,12 @@ This pipeline orchestrates the full feature lifecycle by invoking feature-* skil
 
 ### Phase 1: DESIGN
 
-**Goal**: Invoke the `feature-design` skill to explore requirements, discuss trade-offs, and produce a design document.
+**Goal**: Load the design phase reference to explore requirements, discuss trade-offs, and produce a design document.
 
-**Skill**: `/feature-design`
+**Skill**: `the design phase`
 
 **Actions:**
-1. Invoke feature-design with the feature description
+1. Start design phase with the feature description
 2. Explore requirements and constraints collaboratively
 3. Discuss trade-offs between approaches
 4. Produce a design document with chosen approach, rationale, and scope
@@ -65,9 +39,9 @@ This pipeline orchestrates the full feature lifecycle by invoking feature-* skil
 
 ### Phase 2: PLAN
 
-**Goal**: Invoke the `feature-plan` skill to break the design into wave-ordered implementation tasks with domain agent assignments.
+**Goal**: Load the plan phase reference to break the design into wave-ordered implementation tasks with domain agent assignments.
 
-**Skill**: `/feature-plan`
+**Skill**: `the plan phase`
 
 **Actions:**
 1. Read the design document from Phase 1
@@ -84,9 +58,9 @@ This pipeline orchestrates the full feature lifecycle by invoking feature-* skil
 
 ### Phase 3: IMPLEMENT
 
-**Goal**: Invoke the `feature-implement` skill to execute the wave-ordered plan by dispatching tasks to domain agents.
+**Goal**: Load the implement phase reference to execute the wave-ordered plan by dispatching tasks to domain agents.
 
-**Skill**: `/feature-implement`
+**Skill**: `the implement phase`
 
 **Actions:**
 1. Read the implementation plan from Phase 2
@@ -103,9 +77,9 @@ This pipeline orchestrates the full feature lifecycle by invoking feature-* skil
 
 ### Phase 4: VALIDATE
 
-**Goal**: Invoke the `feature-validate` skill to run quality gates on the implemented feature.
+**Goal**: Load the validate phase reference to run quality gates on the implemented feature.
 
-**Skill**: `/feature-validate`
+**Skill**: `the validate phase`
 
 **Actions:**
 1. Run test suite (unit, integration, e2e as applicable)
@@ -122,9 +96,9 @@ This pipeline orchestrates the full feature lifecycle by invoking feature-* skil
 
 ### Phase 5: RELEASE
 
-**Goal**: Invoke the `feature-release` skill to merge the validated feature via PR, tag release, and clean up.
+**Goal**: Load the release phase reference to merge the validated feature via PR, tag release, and clean up.
 
-**Skill**: `/feature-release`
+**Skill**: `the release phase`
 
 **Actions:**
 1. Create pull request with feature summary
@@ -188,12 +162,3 @@ Cause: Merge conflicts, CI failures, or review feedback
 Solution: Address each blocker. Return to Phase 4 (VALIDATE) if code changes were needed because changes risk introducing new failures.
 
 ---
-
-## References
-
-This pipeline coordinates:
-- `/feature-design` — Explore requirements, discuss trade-offs, produce design document
-- `/feature-plan` — Break design into wave-ordered tasks with domain agent assignments
-- `/feature-implement` — Execute plan by dispatching tasks to domain agents
-- `/feature-validate` — Run quality gates (tests, lint, type checks, custom validation)
-- `/feature-release` — Merge via PR, tag release, clean up branch
