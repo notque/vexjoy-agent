@@ -164,6 +164,25 @@
       "user_invocable": false,
       "version": "2.0.0"
     },
+    "codex-code-review": {
+      "file": "skills/codex-code-review/SKILL.md",
+      "description": "Get a second-opinion code review from OpenAI Codex CLI (GPT-5.4 xhigh reasoning). Invokes codex exec in read-only sandbox mode, structures feedback as CRITICAL / IMPROVEMENTS / POSITIVE / SUMMARY.",
+      "triggers": [
+        "codex review",
+        "second opinion",
+        "code review codex",
+        "gpt review",
+        "cross-model review"
+      ],
+      "category": "code-review",
+      "user_invocable": true,
+      "version": "1.0.0",
+      "pairs_with": [
+        "systematic-code-review",
+        "parallel-code-review",
+        "go-code-review"
+      ]
+    },
     "comment-quality": {
       "file": "skills/comment-quality/SKILL.md",
       "description": "Review and fix comments containing temporal references, development-activity language, or relative comparisons.",
