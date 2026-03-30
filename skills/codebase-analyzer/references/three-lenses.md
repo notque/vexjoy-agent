@@ -223,22 +223,22 @@ Rules are derived when statistical evidence is strong:
 ## Reconciling with PR Miner
 
 ### Scenario 1: Agreement (Both Say Same Thing)
-**pr-miner**: "Please wrap errors with fmt.Errorf %w"
+**pr-workflow (miner)**: "Please wrap errors with fmt.Errorf %w"
 **code-cartographer**: 89% use fmt.Errorf with %w
 **Conclusion**: HIGH confidence rule - both explicit and practiced
 
 ### Scenario 2: PR Miner Silent, Code Consistent
-**pr-miner**: No comments about receiver naming
+**pr-workflow (miner)**: No comments about receiver naming
 **code-cartographer**: 94% use single-letter receivers
 **Conclusion**: Implicit rule - nobody argues because everyone agrees
 
 ### Scenario 3: PR Miner Says X, Code Does Y
-**pr-miner**: "Should use testify for tests"
+**pr-workflow (miner)**: "Should use testify for tests"
 **code-cartographer**: 85% use standard testing
 **Conclusion**: Rule stated but not followed - needs enforcement OR rule is outdated
 
 ### Scenario 4: Both Inconsistent
-**pr-miner**: Mixed comments about logging
+**pr-workflow (miner)**: Mixed comments about logging
 **code-cartographer**: 45% use logg.Info, 40% use log.Info, 15% other
 **Conclusion**: No clear standard - opportunity to establish one
 
@@ -305,8 +305,8 @@ Let's walk through a real analysis:
 grep -i "error" pr_miner_data/project_reviews.json | grep -i "wrap"
 ```
 
-If pr-miner also shows error wrapping comments → **Rule confirmed**
-If pr-miner is silent → **Implicit rule discovered**
+If pr-workflow (miner) also shows error wrapping comments → **Rule confirmed**
+If pr-workflow (miner) is silent → **Implicit rule discovered**
 
 ## Summary
 

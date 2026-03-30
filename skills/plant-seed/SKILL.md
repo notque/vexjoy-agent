@@ -21,7 +21,7 @@ routing:
     - seed this
     - plant-seed
   pairs_with:
-    - feature-design
+    - feature-lifecycle
   complexity: Simple
   category: process
 ---
@@ -32,7 +32,7 @@ routing:
 
 Capture forward-looking ideas with trigger conditions so they resurface at the right time. Seeds carry WHY (rationale) and WHEN (trigger), making them far more valuable than bare TODO comments.
 
-Seeds are stored locally in `.seeds/` (gitignored) and automatically surfaced during feature-design when their trigger conditions match. This workflow is designed for deferred ideas only — if the user describes work that should happen now, suggest creating a task or issue instead.
+Seeds are stored locally in `.seeds/` (gitignored) and automatically surfaced during feature-lifecycle design phase when their trigger conditions match. This workflow is designed for deferred ideas only — if the user describes work that should happen now, suggest creating a task or issue instead.
 
 ---
 
@@ -159,7 +159,7 @@ Seed planted: seed-YYYY-MM-DD-slug [Scope]
 Trigger: "condition"
 Status: dormant
 
-This seed will surface automatically during /feature-design when the
+This seed will surface automatically during /feature-lifecycle (design phase) when the
 trigger condition matches. Review all seeds with: /plant-seed "list seeds"
 ```
 
@@ -206,11 +206,11 @@ To archive: remove the seed from `index.json` and write it as a standalone file 
 | Duplicate seed ID | Two seeds planted same day with same slug | Append `-2`, `-3` to slug |
 | No breadcrumbs found | Idea is forward-looking, no related code yet | Plant with empty breadcrumbs -- still valuable |
 | User describes immediate work | Seed system is for deferred work | Suggest creating a task or doing the work now |
-| Vague trigger like "someday" or "eventually" | Cannot be matched during feature-design | Ask for a specific, observable condition |
+| Vague trigger like "someday" or "eventually" | Cannot be matched during feature-lifecycle design phase | Ask for a specific, observable condition |
 | Missing rationale ("it would be nice") | Without WHY, the seed loses value when surfaced months later | Capture the specific insight or observation |
 
 ---
 
 ## References
 
-- [Feature Design](../feature-design/SKILL.md) - Seeds are surfaced during feature-design Phase 0
+- [Feature Lifecycle](../feature-lifecycle/SKILL.md) - Seeds are surfaced during feature-lifecycle design phase (Phase 0)

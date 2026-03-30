@@ -56,13 +56,13 @@ systematic-debugging -> comment-quality
 ### Pattern 4: Research-Driven Implementation
 
 ```
-[pr-miner, codebase-analyzer] -> workflow-orchestrator -> test-driven-development
+[pr-workflow (miner), codebase-analyzer] -> workflow-orchestrator -> test-driven-development
 ```
 
 **When to use**: Implementing features in unfamiliar codebases where existing patterns should be followed.
 
 **Flow**:
-1. Phase 1 (Parallel): pr-miner + codebase-analyzer discover conventions
+1. Phase 1 (Parallel): pr-workflow (miner) + codebase-analyzer discover conventions
 2. Phase 2: workflow-orchestrator plans implementation based on learned patterns
 3. Phase 3: test-driven-development implements following discovered conventions
 
@@ -73,13 +73,13 @@ systematic-debugging -> comment-quality
 ### Pattern 5: Language-Specific Quality Gate
 
 ```
-test-driven-development -> (if Go: go-pr-quality-gate, else: code-linting) -> verification-before-completion
+test-driven-development -> (if Go: go-patterns, else: code-linting) -> verification-before-completion
 ```
 
 **When to use**: Projects requiring language-appropriate quality validation tools.
 
 **Conditional branches**:
-- Go: go-pr-quality-gate (golangci-lint, go test -race, go build)
+- Go: go-patterns (golangci-lint, go test -race, go build)
 - Python: python-quality-gate (ruff, pytest, mypy, bandit)
 - Multi-language: universal-quality-gate (auto-detect)
 
@@ -119,7 +119,7 @@ Can skills run independently?
 | Composition | Sequential | Parallel | Savings |
 |-------------|-----------|----------|---------|
 | [code-linting, comment-quality] | 12 min | 8 min | 33% |
-| [pr-miner, codebase-analyzer] | 28 min | 16 min | 43% |
+| [pr-workflow (miner), codebase-analyzer] | 28 min | 16 min | 43% |
 | [3 language-specific lints] | 18 min | 8 min | 56% |
 
 ## Chain Length Guidelines

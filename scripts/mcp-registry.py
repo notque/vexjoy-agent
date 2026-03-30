@@ -70,7 +70,7 @@ REGISTRY: dict[str, dict[str, Any]] = {
         "install_command": "claude mcp add gopls -- gopls mcp",
         "docs_url": "https://pkg.go.dev/golang.org/x/tools/gopls",
         "tool_prefix": "mcp__gopls__",
-        "paired_skills": ["go-code-review", "go-testing", "go-concurrency"],
+        "paired_skills": ["go-patterns"],
         "use_cases": ["Go workspace", ".go files", "go.mod", "Go symbols", "Go diagnostics"],
         "category": "language",
         "requires": "gopls installed (go install golang.org/x/tools/gopls@latest)",

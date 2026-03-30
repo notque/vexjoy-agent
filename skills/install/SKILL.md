@@ -147,7 +147,7 @@ MCP Servers:
   [✓] Playwright MCP       — Automated browser testing
       Paired skills: wordpress-live-validation
   [✓] gopls MCP            — Go workspace intelligence
-      Paired skills: go-code-review, go-testing, go-concurrency
+      Paired skills: go-patterns
   [✗] Context7 MCP         — Library documentation lookups
       Install: claude mcp add context7 -- npx @anthropic-ai/mcp-context7@latest
 ```

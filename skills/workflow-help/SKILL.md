@@ -100,7 +100,7 @@ Then show key workflow:
 | Debug a bug | `/do debug [issue]` |
 | Review code | `/do review [code]` |
 | Execute an existing plan | `skill: subagent-driven-development` |
-| Create a PR | `/pr-sync` |
+| Create a PR | `/pr-workflow` |
 
 **Constraint (Show Real Examples)**: Reference actual skill names, commands, and file paths from this repository. Use tables for lists when presenting available skills, agents, and commands. Include invocation syntax for each component mentioned. Apply progressive disclosure: start with overview, offer deeper detail on request. Cross-reference related skills and agents when explaining one component.
 

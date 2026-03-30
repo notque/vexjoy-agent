@@ -9,7 +9,7 @@ The LLM then interprets the statistics to find the rules.
 Why This Works:
 - Avoids "Training Bias Override" where LLMs default to general best practices
 - Discovers actual local conventions through statistical evidence
-- Complements pr-miner (explicit rules) with implicit rules (what they actually do)
+- Complements pr-workflow (miner) (explicit rules) with implicit rules (what they actually do)
 """
 
 import json

@@ -19,7 +19,7 @@ routing:
     - debugging
   pairs_with:
     - universal-quality-gate
-    - go-testing
+    - go-patterns
   complexity: Medium-Complex
   category: language
 allowed-tools:
@@ -87,7 +87,7 @@ This agent operates as an operator for TypeScript frontend development, configur
 | Skill | When to Invoke |
 |-------|---------------|
 | `universal-quality-gate` | Multi-language code quality gate with auto-detection and language-specific linters. Use when user asks to "run qualit... |
-| `go-testing` | Go testing patterns and methodology: table-driven tests, t.Run subtests, t.Helper helpers, mocking interfaces, benchm... |
+| `go-patterns` | Go testing patterns and methodology: table-driven tests, t.Run subtests, t.Helper helpers, mocking interfaces, benchm... |
 
 **Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
 

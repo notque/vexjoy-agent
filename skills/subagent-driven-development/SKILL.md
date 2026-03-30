@@ -162,7 +162,7 @@ Dispatch a reviewer subagent for the entire changeset (diff from BASE_SHA to HEA
 **Step 2: Complete development workflow**
 
 Use the appropriate completion path:
-- `/pr-sync` to create PR
+- `/pr-workflow` to create PR
 - Manual merge
 - Keep branch for further work
 

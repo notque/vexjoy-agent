@@ -217,7 +217,7 @@ Always check `composer.json` `require.php` before using features. Use only featu
 | `verification-before-completion` | Final verification gate before marking any implementation complete |
 | `systematic-code-review` | Structured multi-pass code review for PRs |
 
-> **Roadmap**: Planned companion skills `php-testing` (force-routed on PHPUnit/Pest) and `php-error-handling` (exception hierarchy patterns) will mirror the Go `go-testing`/`go-error-handling` pair. These will be force-routed once created.
+> **Roadmap**: Planned companion skills `php-testing` (force-routed on PHPUnit/Pest) and `php-error-handling` (exception hierarchy patterns) will mirror the Go `go-patterns`/`go-patterns` pair. These will be force-routed once created.
 
 **Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
 

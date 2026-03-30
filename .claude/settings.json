@@ -35,7 +35,7 @@
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/sapcc-go-detector.py\"",
-            "description": "Auto-detect SAP CC Go projects and inject go-sapcc-conventions skill",
+            "description": "Auto-detect SAP CC Go projects and inject go-patterns skill",
             "timeout": 1000,
             "once": true
           },

@@ -218,13 +218,13 @@ Branch: docs/comprehensive-documentation-update
 
 **Suggestion**: Add specificity - `fix/login-timeout-30s`
 
-## Integration with /pr-sync
+## Integration with /pr-workflow
 
 ### Example: Auto-Generate Branch from Commit
 
 ```bash
 # User on main branch
-$ /pr-sync
+$ /pr-workflow
 
 # System prompts for commit message
 Commit message: feat: add branch naming skill
