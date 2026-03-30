@@ -77,6 +77,8 @@ def init_db():
             CREATE INDEX IF NOT EXISTS idx_agent_type ON agent_invocations(agent_type);
             CREATE INDEX IF NOT EXISTS idx_skill_ts ON skill_invocations(timestamp);
             CREATE INDEX IF NOT EXISTS idx_agent_ts ON agent_invocations(timestamp);
+            CREATE INDEX IF NOT EXISTS idx_skill_name_ts ON skill_invocations(skill_name, timestamp);
+            CREATE INDEX IF NOT EXISTS idx_agent_type_ts ON agent_invocations(agent_type, timestamp);
         """)
         conn.commit()
 
