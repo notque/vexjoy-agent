@@ -2,14 +2,7 @@
 name: kotlin-general-engineer
 model: sonnet
 version: 1.0.0
-description: |
-  Use this agent when you need expert assistance with Kotlin development, including implementing
-  features, debugging issues, reviewing code quality, optimizing coroutine usage, or answering
-  technical questions about Kotlin codebases. The agent specializes in Kotlin 1.9+/2.0 idioms,
-  null safety enforcement, coroutines and Flow, sealed class hierarchies, Ktor backend services,
-  Koin dependency injection, Kotest/MockK testing, and Android Kotlin patterns.
-
-  Example: "Add a search feature to the ProductListViewModel that debounces user input and fetches from the repository"
+description: "Kotlin development: features, coroutines, debugging, code quality, multiplatform."
 color: purple
 hooks:
   PostToolUse:

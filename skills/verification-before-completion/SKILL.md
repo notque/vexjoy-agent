@@ -1,13 +1,6 @@
 ---
 name: verification-before-completion
-description: |
-  Defense-in-depth verification before declaring any task complete. Run tests,
-  check build, validate changed files, verify no regressions. Applies 4-level
-  adversarial artifact verification (EXISTS > SUBSTANTIVE > WIRED > DATA FLOWS)
-  with goal-backward framing. Use before saying "done", "fixed", or "complete"
-  on any code change. Use for "verify", "make sure it works", "check before
-  committing", or "validate changes". Route to other skills for debugging
-  (use systematic-debugging) or code review (use systematic-code-review).
+description: "Defense-in-depth verification before declaring any task complete."
 version: 3.0.0
 user-invocable: false
 success-criteria:

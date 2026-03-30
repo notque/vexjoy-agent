@@ -1,11 +1,6 @@
 ---
 name: subagent-driven-development
-description: |
-  Fresh-subagent-per-task execution with two-stage review (ADR compliance +
-  code quality). Use when an implementation plan exists with mostly independent
-  tasks and you want quality gates between each. Use for "execute plan",
-  "subagent", "dispatch tasks", or multi-task implementation runs. Route single simple tasks to other skills, tightly coupled work needing shared context, or when
-  the user wants manual review after each task.
+description: "Fresh-subagent-per-task execution with two-stage review gates."
 version: 2.0.0
 user-invocable: false
 allowed-tools:

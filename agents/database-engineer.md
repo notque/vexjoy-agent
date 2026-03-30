@@ -2,11 +2,7 @@
 name: database-engineer
 model: sonnet
 version: 2.0.0
-description: |
-  Use this agent when you need expert assistance with database design, optimization, and query performance. This includes schema design, indexing strategies, query optimization, data modeling, migrations, and database best practices. The agent specializes in PostgreSQL, MySQL, SQLite patterns, and ORM usage.
-
-  Example: "I need to design a database schema for a SaaS app with user organizations, roles, and permissions"
-
+description: "Database design, optimization, query performance, migrations, indexing strategies."
 color: purple
 memory: project
 routing:

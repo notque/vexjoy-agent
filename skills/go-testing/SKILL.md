@@ -1,15 +1,6 @@
 ---
 name: go-testing
-description: |
-  Go testing patterns and methodology: table-driven tests, t.Run subtests,
-  t.Helper helpers, mocking interfaces, benchmarks, race detection, and
-  synctest. Use when writing new Go tests, modifying existing tests, adding
-  coverage, fixing failing tests, writing benchmarks, or creating mocks.
-  Triggered by "go test", "_test.go", "table-driven", "t.Run", "benchmark",
-  "mock", "race detection", "test coverage". Do NOT use for non-Go testing
-  (use test-driven-development instead), debugging test failures (use
-  systematic-debugging), or general Go development without test focus (use
-  golang-general-engineer directly).
+description: "Go testing: table-driven, subtests, mocks, benchmarks."
 version: 2.0.0
 user-invocable: false
 allowed-tools:
