@@ -137,7 +137,7 @@ Short default run:
 
 ```bash
 python3 skills/agent-comparison/scripts/optimize_loop.py \
-  --target skills/go-testing/SKILL.md \
+  --target skills/go-patterns/SKILL.md \
   --goal "improve routing precision without losing recall" \
   --benchmark-tasks skills/agent-comparison/references/optimization-tasks.example.json \
   --report optimization-report.html \
@@ -149,7 +149,7 @@ Longer search:
 
 ```bash
 python3 skills/agent-comparison/scripts/optimize_loop.py \
-  --target skills/go-testing/SKILL.md \
+  --target skills/go-patterns/SKILL.md \
   --goal "improve routing precision without losing recall" \
   --benchmark-tasks skills/agent-comparison/references/optimization-tasks.example.json \
   --train-split 0.6 \

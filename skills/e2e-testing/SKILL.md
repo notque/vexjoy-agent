@@ -6,7 +6,7 @@ description: |
   reporting. Use when writing E2E tests against a running application through
   a real browser, validating full user flows, or fixing flaky Playwright tests.
   Do NOT use for unit/component tests (use vitest-runner), Go testing (use
-  go-testing), or writing tests before implementation (use test-driven-development).
+  go-patterns), or writing tests before implementation (use test-driven-development).
   Triggered by "playwright", "E2E test", "end-to-end", "browser test",
   "page object model", "POM", "test flakiness".
 version: 1.0.0

@@ -1,35 +1,3 @@
----
-name: go-sapcc-conventions
-description: |
-  SAP Converged Cloud Go coding conventions extracted from sapcc/keppel and
-  sapcc/go-bits PR reviews. Enforces architecture
-  patterns, library usage rules, error handling conventions, testing patterns,
-  and anti-over-engineering principles. Use when working in sapcc/* repos,
-  when code imports github.com/sapcc/go-bits, or when targeting SAP CC
-  code review standards. Route to other skills for general Go projects without
-  sapcc dependencies.
-version: 1.0.0
-user-invocable: false
-agent: golang-general-engineer
-routing:
-  force_route: true
-  triggers:
-    - sapcc
-    - sap-cloud-infrastructure
-    - go-bits
-    - keppel
-    - go-api-declarations
-    - go-makefile-maker
-    - sapcc/go-bits
-    - sap-cloud-infrastructure/go-bits
-  pairs_with:
-    - golang-general-engineer
-    - golang-general-engineer-compact
-    - go-testing
-    - go-error-handling
-  complexity: Comprehensive
-  category: language
----
 
 # SAP Converged Cloud Go Conventions
 
@@ -48,10 +16,10 @@ Read project context and reference files before writing any code. Project conven
 **1c. Detect Go version from go.mod** because sapcc projects typically target Go 1.22+. Use version-appropriate features: `t.Context()` (1.24+), `b.Loop()` (1.24+), `strings.SplitSeq` (1.24+), `wg.Go()` (1.25+), `errors.AsType[T]` (1.26+).
 
 **1d. Load reference files** — this is NON-NEGOTIABLE. Read the actual references instead of relying on training data for sapcc conventions; read the actual references because they contain real rules from actual PR reviews. Load in this order because each builds on the previous:
-1. **[references/sapcc-code-patterns.md](${CLAUDE_SKILL_DIR}/references/sapcc-code-patterns.md)** -- actual function signatures, constructors, interfaces, HTTP handlers, error handling, DB access, testing, package organization
-2. **[references/library-reference.md](${CLAUDE_SKILL_DIR}/references/library-reference.md)** -- complete library table: 30 approved, 10+ restricted, with versions and usage counts
-3. **[references/architecture-patterns.md](${CLAUDE_SKILL_DIR}/references/architecture-patterns.md)** -- full 102-rule architecture specification (when working on architecture, handlers, or DB access)
-4. Load others as needed: [references/review-standards-lead.md](${CLAUDE_SKILL_DIR}/references/review-standards-lead.md) (21 lead review comments), [references/review-standards-secondary.md](${CLAUDE_SKILL_DIR}/references/review-standards-secondary.md) (15 secondary review comments), [references/anti-patterns.md](${CLAUDE_SKILL_DIR}/references/quality-issues.md) (20+ quality issues with BAD/GOOD examples), [references/extended-patterns.md](${CLAUDE_SKILL_DIR}/references/extended-patterns.md) (security micro-patterns, K8s namespace isolation, PR hygiene, changelog format)
+1. **[references/sapcc-code-patterns.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/sapcc-code-patterns.md)** -- actual function signatures, constructors, interfaces, HTTP handlers, error handling, DB access, testing, package organization
+2. **[references/library-reference.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/library-reference.md)** -- complete library table: 30 approved, 10+ restricted, with versions and usage counts
+3. **[references/architecture-patterns.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/architecture-patterns.md)** -- full 102-rule architecture specification (when working on architecture, handlers, or DB access)
+4. Load others as needed: [references/review-standards-lead.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/review-standards-lead.md) (21 lead review comments), [references/review-standards-secondary.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/review-standards-secondary.md) (15 secondary review comments), [references/anti-patterns.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/quality-issues.md) (20+ quality issues with BAD/GOOD examples), [references/extended-patterns.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/extended-patterns.md) (security micro-patterns, K8s namespace isolation, PR hygiene, changelog format)
 
 **Gate**: go.mod contains `github.com/sapcc/go-bits`. If absent, this skill does not apply -- use general Go conventions instead.
 
@@ -169,7 +137,7 @@ Use only approved libraries because the lead reviewer will reject PRs that intro
 | `http.DefaultServeMux` | Global mutable state | `http.NewServeMux()` |
 | `gopkg.in/square/go-jose.v2` | Archived, has CVEs | `gopkg.in/go-jose/go-jose.v2` |
 
-See [references/library-reference.md](references/library-reference.md) for the complete table with versions and usage counts.
+See [references/library-reference.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/library-reference.md) for the complete table with versions and usage counts.
 
 **Import grouping convention** -- three groups, separated by blank lines. Enforced by `goimports -local github.com/sapcc/keppel`:
 
@@ -200,7 +168,7 @@ import (
 
 #### 2c. Architecture
 
-Keppel uses a strict layered architecture. See [references/architecture-patterns.md](references/architecture-patterns.md) for the complete 102-rule set with code examples.
+Keppel uses a strict layered architecture. See [references/architecture-patterns.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/architecture-patterns.md) for the complete 102-rule set with code examples.
 
 **Directory structure**:
 
@@ -270,7 +238,7 @@ debug := osext.GetenvBool("KEPPEL_DEBUG")
 
 #### 2d. Error Handling
 
-See [references/architecture-patterns.md](references/architecture-patterns.md) for the complete 27-rule error handling specification.
+See [references/architecture-patterns.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/architecture-patterns.md) for the complete 27-rule error handling specification.
 
 **Error wrapping conventions** -- use these prefixes consistently because lead review checks for consistency across the codebase:
 
@@ -576,7 +544,7 @@ These scripts only apply to sapcc repos (detected by `github.com/sapcc/go-bits` 
 
 Two complementary review styles govern sapcc code review.
 
-**Lead review** is directive -- statements, not suggestions. Top concerns: simplicity, API design, error handling. See [references/review-standards-lead.md](references/review-standards-lead.md) for all 21 PR comments with full context.
+**Lead review** is directive -- statements, not suggestions. Top concerns: simplicity, API design, error handling. See [references/review-standards-lead.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/review-standards-lead.md) for all 21 PR comments with full context.
 
 | Rule | Summary |
 |------|---------|
@@ -601,7 +569,7 @@ How lead review works:
 - Corrects misconceptions directly -- states correct behavior without softening
 - Pushes fixes directly -- sometimes pushes commits to address review concerns directly
 
-**Secondary review** is inquisitive -- questions where lead review makes statements. Top concerns: configuration safety, migration paths, test completeness. See [references/review-standards-secondary.md](references/review-standards-secondary.md) for full details.
+**Secondary review** is inquisitive -- questions where lead review makes statements. Top concerns: configuration safety, migration paths, test completeness. See [references/review-standards-secondary.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/review-standards-secondary.md) for full details.
 
 | Rule | Summary |
 |------|---------|
@@ -620,7 +588,7 @@ How lead review works:
 
 ## go-bits Design Philosophy
 
-The go-bits library design rules govern all of `sapcc/go-bits`. Understanding these rules helps predict what code will pass review. See [references/go-bits-philosophy-detailed.md](references/go-bits-philosophy-detailed.md) for extended discussion.
+The go-bits library design rules govern all of `sapcc/go-bits`. Understanding these rules helps predict what code will pass review. See [references/go-bits-philosophy-detailed.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/go-bits-philosophy-detailed.md) for extended discussion.
 
 **Rule 1: One Package = One Concept** -- `must` = fatal errors. `logg` = logging. `respondwith` = HTTP responses. No package does two things.
 
@@ -700,10 +668,10 @@ These are reasoning patterns that sound correct but lead to rejected PRs in sapc
 
 | File | What It Contains | When to Read |
 |------|-----------------|--------------|
-| [references/sapcc-code-patterns.md](${CLAUDE_SKILL_DIR}/references/sapcc-code-patterns.md) | **Actual code patterns** -- function signatures, constructors, interfaces, HTTP handlers, error handling, DB access, testing, package organization | **ALWAYS** -- this is the primary reference |
-| [references/library-reference.md](${CLAUDE_SKILL_DIR}/references/library-reference.md) | Complete library table: 30 approved, 10+ restricted, with versions and usage counts | **ALWAYS** -- need to know approved/restricted imports |
-| [references/architecture-patterns.md](${CLAUDE_SKILL_DIR}/references/architecture-patterns.md) | Full 102-rule architecture specification with code examples | When working on architecture, handlers, DB access |
-| [references/review-standards-lead.md](${CLAUDE_SKILL_DIR}/references/review-standards-lead.md) | All 21 lead review comments with full context and quotes | For reviews and understanding lead review reasoning |
-| [references/review-standards-secondary.md](${CLAUDE_SKILL_DIR}/references/review-standards-secondary.md) | All 15 secondary review comments with PR context | For reviews and understanding secondary review patterns |
-| [references/anti-patterns.md](${CLAUDE_SKILL_DIR}/references/quality-issues.md) | 20+ SAP CC anti-patterns with BAD/GOOD code examples | For code review and avoiding common mistakes |
-| [references/extended-patterns.md](${CLAUDE_SKILL_DIR}/references/extended-patterns.md) | Extended patterns from related repos -- security micro-patterns, visual section separators, copyright format, K8s namespace isolation, PR hygiene | For security-conscious code, K8s helm work, or PR hygiene |
+| [references/sapcc-code-patterns.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/sapcc-code-patterns.md) | **Actual code patterns** -- function signatures, constructors, interfaces, HTTP handlers, error handling, DB access, testing, package organization | **ALWAYS** -- this is the primary reference |
+| [references/library-reference.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/library-reference.md) | Complete library table: 30 approved, 10+ restricted, with versions and usage counts | **ALWAYS** -- need to know approved/restricted imports |
+| [references/architecture-patterns.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/architecture-patterns.md) | Full 102-rule architecture specification with code examples | When working on architecture, handlers, DB access |
+| [references/review-standards-lead.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/review-standards-lead.md) | All 21 lead review comments with full context and quotes | For reviews and understanding lead review reasoning |
+| [references/review-standards-secondary.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/review-standards-secondary.md) | All 15 secondary review comments with PR context | For reviews and understanding secondary review patterns |
+| [references/anti-patterns.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/quality-issues.md) | 20+ SAP CC anti-patterns with BAD/GOOD code examples | For code review and avoiding common mistakes |
+| [references/extended-patterns.md](${CLAUDE_SKILL_DIR}/references/sapcc-conventions/extended-patterns.md) | Extended patterns from related repos -- security micro-patterns, visual section separators, copyright format, K8s namespace isolation, PR hygiene | For security-conscious code, K8s helm work, or PR hygiene |

@@ -19,7 +19,7 @@ routing:
   pairs_with:
     - comprehensive-review
     - test-driven-development
-    - go-testing
+    - go-patterns
   complexity: Medium
   category: review
 allowed-tools:
@@ -96,7 +96,7 @@ This agent operates as an operator for test coverage analysis, configuring Claud
 | Skill | When to Invoke |
 |-------|---------------|
 | `test-driven-development` | RED-GREEN-REFACTOR cycle with strict phase gates. Write failing test first, implement minimum code to pass, then refa... |
-| `go-testing` | Go testing patterns and methodology: table-driven tests, t.Run subtests, t.Helper helpers, mocking interfaces, benchm... |
+| `go-patterns` | Go testing patterns and methodology: table-driven tests, t.Run subtests, t.Helper helpers, mocking interfaces, benchm... |
 
 **Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
 

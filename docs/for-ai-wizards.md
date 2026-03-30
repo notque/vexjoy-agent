@@ -44,11 +44,9 @@ The `skill-evaluator` maintains a hardcoded `AGENT_ROUTING` dict that maps agent
 
 Some skills MUST be invoked when their triggers appear. These aren't suggestions -- CLAUDE.md declares them as mandatory:
 
-- Go test, `_test.go`, table-driven -> `go-testing`
-- goroutine, channel, `sync.Mutex` -> `go-concurrency`
-- error handling, `fmt.Errorf` -> `go-error-handling`
+- Go test, `_test.go`, table-driven, goroutine, channel, `sync.Mutex`, error handling, `fmt.Errorf`, sapcc, make check -> `go-patterns`
 
-Force-routes override the evaluator's recommendation. If someone says "add a goroutine pool" and the evaluator would have suggested `workflow-orchestrator`, the force-route to `go-concurrency` wins.
+Force-routes override the evaluator's recommendation. If someone says "add a goroutine pool" and the evaluator would have suggested `workflow-orchestrator`, the force-route to `go-patterns` wins.
 
 ## Agent Architecture
 

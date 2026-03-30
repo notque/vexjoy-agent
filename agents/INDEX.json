@@ -123,8 +123,7 @@
         "focused go"
       ],
       "pairs_with": [
-        "go-pr-quality-gate",
-        "go-testing"
+        "go-patterns"
       ],
       "complexity": "Medium-Complex",
       "category": "language"
@@ -143,7 +142,7 @@
         "gopls"
       ],
       "pairs_with": [
-        "go-pr-quality-gate"
+        "go-patterns"
       ],
       "complexity": "Medium-Complex",
       "category": "language"
@@ -707,7 +706,7 @@
         "comprehensive-review",
         "reviewer-performance",
         "reviewer-silent-failures",
-        "go-concurrency"
+        "go-patterns"
       ],
       "complexity": "Medium",
       "category": "review"
@@ -1007,7 +1006,7 @@
         "comprehensive-review",
         "reviewer-language-specialist",
         "reviewer-code-quality",
-        "go-sapcc-conventions"
+        "go-patterns"
       ],
       "complexity": "Medium",
       "category": "review"
@@ -1046,7 +1045,7 @@
       ],
       "pairs_with": [
         "comprehensive-review",
-        "go-error-handling",
+        "go-patterns",
         "systematic-code-review"
       ],
       "complexity": "Medium",
@@ -1081,7 +1080,7 @@
       "pairs_with": [
         "comprehensive-review",
         "test-driven-development",
-        "go-testing"
+        "go-patterns"
       ],
       "complexity": "Medium",
       "category": "review"
@@ -1304,7 +1303,7 @@
       ],
       "pairs_with": [
         "universal-quality-gate",
-        "go-testing"
+        "go-patterns"
       ],
       "complexity": "Medium-Complex",
       "category": "language"

@@ -21,7 +21,7 @@ routing:
     - comprehensive-review
     - reviewer-language-specialist
     - reviewer-code-quality
-    - go-sapcc-conventions
+    - go-patterns
   complexity: Medium
   category: review
 allowed-tools:
@@ -52,7 +52,7 @@ You review with a directive review tone — statements not suggestions, correcti
 
 ### Hardcoded Behaviors (Always Apply)
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md before analysis.
-- **Load go-bits Context**: Always load `skills/go-sapcc-conventions/references/library-reference.md` and `skills/go-sapcc-conventions/references/go-bits-philosophy-detailed.md` as reference context before reviewing.
+- **Load go-bits Context**: Always load `skills/go-patterns/references/library-reference.md` and `skills/go-patterns/references/go-bits-philosophy-detailed.md` as reference context before reviewing.
 - **All 9 Categories**: Check ALL 9 structural categories for every review. Apply all categories regardless of change size. Structural issues exist at every scale.
 - **Design Over Correctness**: Flag findings even when the code "works." Structural issues are about design, not correctness. Working code with bad structure is still bad code.
 - **Directive Review Voice**: Use the directive review tone from review-standards-lead.md. Make statements, not suggestions. "Delete this" not "consider removing this."
@@ -85,7 +85,7 @@ You review with a directive review tone — statements not suggestions, correcti
 |-------|---------------|
 | `reviewer-language-specialist` | Use this agent for language-specific code review that adapts criteria based on the programming language. This include... |
 | `reviewer-code-quality` | Use this agent for code quality review against project conventions, style guides, and CLAUDE.md compliance. This incl... |
-| `go-sapcc-conventions` | SAP Converged Cloud Go coding conventions extracted from sapcc/keppel and sapcc/go-bits PR reviews. Enforces architec... |
+| `go-patterns` | SAP Converged Cloud Go coding conventions extracted from sapcc/keppel and sapcc/go-bits PR reviews. Enforces architec... |
 
 **Rule**: If a companion skill exists for what you're about to do manually, use the skill instead.
 
@@ -305,7 +305,7 @@ When `--fix` is active, append:
 ### Preferred Pattern 5: Load Context Files First
 **What it looks like**: Reviewing without loading library-reference.md, missing go-bits patterns.
 **Why wrong**: Category 7 (go-bits usage) requires the complete list of go-bits packages and functions.
-**Do instead**: Always load library-reference.md and go-sapcc-conventions/references/go-bits-philosophy-detailed.md before reviewing.
+**Do instead**: Always load library-reference.md and go-patterns/references/go-bits-philosophy-detailed.md before reviewing.
 
 ## Anti-Rationalization
 
@@ -345,8 +345,8 @@ STOP and ask the user (always get explicit approval) before proceeding when:
 
 - **Language Specialist**: [reviewer-language-specialist agent](reviewer-language-specialist.md) — syntax/idiom level (complementary)
 - **Code Quality**: [reviewer-code-quality agent](reviewer-code-quality.md) — convention level (complementary)
-- **Lead Review Standards**: [review-standards-lead.md](../skills/go-sapcc-conventions/references/review-standards-lead.md) — 15 rules + 7 meta-rules
-- **Code Patterns**: [sapcc-code-patterns.md](../skills/go-sapcc-conventions/references/sapcc-code-patterns.md) — 36 sections
-- **go-bits Reference**: [library-reference.md](../skills/go-sapcc-conventions/references/library-reference.md) — complete subpackage reference
-- **go-bits Patterns**: [go-bits philosophy](../skills/go-sapcc-conventions/references/go-bits-philosophy-detailed.md) — testWithEachTypeOf, PedanticRegistry, must.ReturnT
+- **Lead Review Standards**: [review-standards-lead.md](../skills/go-patterns/references/review-standards-lead.md) — 15 rules + 7 meta-rules
+- **Code Patterns**: [sapcc-code-patterns.md](../skills/go-patterns/references/sapcc-code-patterns.md) — 36 sections
+- **go-bits Reference**: [library-reference.md](../skills/go-patterns/references/library-reference.md) — complete subpackage reference
+- **go-bits Patterns**: [go-bits philosophy](../skills/go-patterns/references/go-bits-philosophy-detailed.md) — testWithEachTypeOf, PedanticRegistry, must.ReturnT
 - **Severity Classification**: [shared-patterns/severity-classification.md](../skills/shared-patterns/severity-classification.md)

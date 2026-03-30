@@ -319,7 +319,7 @@ Task Analysis:
   Quality requirements: quality_checks
   Domain hints: golang
 
-Selected Skills (3): test-driven-development, go-pr-quality-gate, verification-before-completion
+Selected Skills (3): test-driven-development, go-patterns, verification-before-completion
 
 Execution Plan:
 
@@ -327,7 +327,7 @@ Phase 1:
   → test-driven-development
 
 Phase 2:
-  → go-pr-quality-gate
+  → go-patterns
 
 Phase 3:
   → verification-before-completion
@@ -338,7 +338,7 @@ Phase 3:
 - Implemented feature with tests
 - All tests pass (RED → GREEN → REFACTOR)
 
-**Phase 2**: go-pr-quality-gate (Go-specific)
+**Phase 2**: go-patterns (Go-specific)
 - golangci-lint: 0 violations
 - go test -race: No race conditions
 - go build: Successful

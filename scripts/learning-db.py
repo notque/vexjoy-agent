@@ -3,7 +3,7 @@
 Learning Database CLI — Deterministic operations on the unified knowledge store.
 
 Usage:
-    python3 scripts/learning-db.py learn --skill go-testing "insight text"
+    python3 scripts/learning-db.py learn --skill go-patterns "insight text"
     python3 scripts/learning-db.py learn --agent golang-general-engineer "insight text"
     python3 scripts/learning-db.py record TOPIC KEY VALUE --category error
     python3 scripts/learning-db.py query --topic debugging --min-confidence 0.6

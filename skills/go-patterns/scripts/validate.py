@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Validation script for go-pr-quality-gate skill.
+Validation script for go-patterns skill.
 Tests skill structure and functionality.
 """
 
@@ -62,10 +62,10 @@ def validate_yaml_frontmatter() -> List[Tuple[str, bool, str]]:
             results.append((f"YAML field {field}", False, f"Missing {field}"))
 
     # Validate name
-    if "name: go-pr-quality-gate" in frontmatter:
+    if "name: go-patterns" in frontmatter:
         results.append(("Skill name correct", True, "OK"))
     else:
-        results.append(("Skill name correct", False, "Expected 'go-pr-quality-gate'"))
+        results.append(("Skill name correct", False, "Expected 'go-patterns'"))
 
     return results
 
@@ -81,8 +81,8 @@ def validate_reference_files() -> List[Tuple[str, bool, str]]:
 
     results.append(("References directory exists", True, "OK"))
 
-    # Expected reference files
-    expected_files = ["common-lint-errors.json", "makefile-targets.json"]
+    # Expected reference files (now in sub-directories)
+    expected_files = ["quality-gate/common-lint-errors.json", "quality-gate/makefile-targets.json"]
 
     for ref_file in expected_files:
         ref_path = references_dir / ref_file
@@ -153,7 +153,7 @@ def run_all_validations() -> bool:
     all_results = []
 
     print("=" * 60)
-    print("GO PR QUALITY GATE SKILL VALIDATION")
+    print("GO PATTERNS SKILL VALIDATION")
     print("=" * 60)
     print()
 

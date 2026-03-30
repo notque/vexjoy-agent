@@ -40,7 +40,7 @@ This document maps which skills work well together, common input/output types, a
 - Compatible with: All code-producing skills
 - Notes: Language-specific (ruff for Python, Biome for JS)
 
-**go-pr-quality-gate**
+**go-patterns**
 - Inputs: `repository`, `directory` (Go projects only)
 - Outputs: `quality_report`, `lint_results`, `test_results`, `build_status`
 - Compatible with: Go-specific skills, verification-before-completion
@@ -104,7 +104,7 @@ This document maps which skills work well together, common input/output types, a
 | pr-miner | → | codebase-analyzer | Perfect: PR knowledge + code patterns |
 | code-linting | ‖ | comment-quality | Perfect parallel: independent checks |
 | codebase-analyzer | → | workflow-orchestrator | Good: patterns inform planning |
-| test-driven-development | → | go-pr-quality-gate | Perfect for Go: tests then gate |
+| test-driven-development | → | go-patterns | Perfect for Go: tests then gate |
 | test-driven-development | → | python-quality-gate | Perfect for Python: tests then gate |
 | test-driven-development | → | universal-quality-gate | Perfect: tests then multi-language gate |
 
@@ -120,7 +120,7 @@ This document maps which skills work well together, common input/output types, a
 | pr-miner | → | test-driven-development | Good: learn then implement |
 | code-linting | → | verification-before-completion | Good: lint then verify |
 | codebase-analyzer | → | comment-quality | Good: analyze then doc |
-| go-pr-quality-gate | → | verification-before-completion | Good: gate then verify |
+| go-patterns | → | verification-before-completion | Good: gate then verify |
 | python-quality-gate | → | verification-before-completion | Good: gate then verify |
 | universal-quality-gate | → | verification-before-completion | Good: gate then verify |
 | systematic-debugging | → | test-driven-development | Good: debug then add tests |
@@ -144,7 +144,7 @@ This document maps which skills work well together, common input/output types, a
 | Skill A | → | Skill B | Reason |
 |---------|---|---------|--------|
 | pr-miner | → | comment-quality | Type mismatch: PR data ≠ code files |
-| go-pr-quality-gate | → | code-linting | Redundant: gate includes linting |
+| go-patterns | → | code-linting | Redundant: gate includes linting |
 | python-quality-gate | → | code-linting | Redundant: gate includes linting |
 | universal-quality-gate | → | code-linting | Redundant: gate includes linting |
 | workflow-orchestrator | → | skill-composer | Circular: composer should call orchestrator |
@@ -209,17 +209,17 @@ This document maps which skills work well together, common input/output types, a
 | Type | Description | Skills That Accept |
 |------|-------------|-------------------|
 | `file_path` | Path to single file | code-linting, comment-quality, test-driven-development |
-| `directory` | Path to directory | code-linting, codebase-analyzer, go-pr-quality-gate |
+| `directory` | Path to directory | code-linting, codebase-analyzer, go-patterns |
 | `repository` | Git repository path/URL | pr-miner, codebase-analyzer, workflow-orchestrator |
 | `task_description` | Natural language task | workflow-orchestrator, skill-composer |
 | `code_changes` | Modified code | verification-before-completion, comment-quality |
-| `configuration` | Config file/object | code-linting, go-pr-quality-gate |
+| `configuration` | Config file/object | code-linting, go-patterns |
 
 ### Common Output Types
 
 | Type | Description | Skills That Produce |
 |------|-------------|-------------------|
-| `test_results` | Test execution results | test-driven-development, go-pr-quality-gate |
+| `test_results` | Test execution results | test-driven-development, go-patterns |
 | `report` | Analysis report | All quality/analysis skills |
 | `task_breakdown` | Subtask list | workflow-orchestrator |
 | `code_patterns` | Implementation patterns | codebase-analyzer |
@@ -259,12 +259,12 @@ Transformation: Summarize patterns as context for planning
 ```
 workflow-orchestrator →
 test-driven-development →
-go-pr-quality-gate →
+go-patterns →
 verification-before-completion
 ```
 
 **Avoid**:
-- Using generic code-linting (use go-pr-quality-gate instead)
+- Using generic code-linting (use go-patterns instead)
 - Using Python-specific skills with Go code
 
 ### Python Projects
@@ -375,7 +375,7 @@ Before composing skills, verify:
 **Pattern**: Language-based skill selection
 ```
 IF language == "go":
-  → go-pr-quality-gate
+  → go-patterns
 ELSE IF language == "python":
   → code-linting (ruff)
 ELSE:

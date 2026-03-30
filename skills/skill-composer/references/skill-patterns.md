@@ -117,7 +117,7 @@ This document describes proven patterns for composing multiple skills into effec
 
 ### 5. Language-Specific Quality Gate
 
-**Pattern**: `test-driven-development → (if Go: go-pr-quality-gate, else: code-linting)`
+**Pattern**: `test-driven-development → (if Go: go-patterns, else: code-linting)`
 
 **When to Use**:
 - Multi-language projects
@@ -129,7 +129,7 @@ This document describes proven patterns for composing multiple skills into effec
 **Execution Flow**:
 1. **test-driven-development**: Implement feature with tests
 2. **Conditional Branch**:
-   - If Go: `go-pr-quality-gate` (golangci-lint, go test, go build)
+   - If Go: `go-patterns` (golangci-lint, go test, go build)
    - Else: `code-linting` (ruff for Python, Biome for JS)
 
 **Expected Duration**: 20-35 minutes
@@ -182,7 +182,7 @@ This document describes proven patterns for composing multiple skills into effec
 **Execution Flow**:
 1. **test-driven-development**: Implement with RED-GREEN-REFACTOR
 2. **Language-specific gate**:
-   - Go projects: `go-pr-quality-gate` (golangci-lint, tests, race detector, build)
+   - Go projects: `go-patterns` (golangci-lint, tests, race detector, build)
    - Python projects: `python-quality-gate` (ruff, pytest, mypy, bandit)
    - Multi-language: `universal-quality-gate` (auto-detect and run appropriate tools)
 3. **verification-before-completion**: Final validation

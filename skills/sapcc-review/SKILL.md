@@ -36,7 +36,7 @@ routing:
     - review sapcc standards
   pairs_with:
     - golang-general-engineer
-    - go-sapcc-conventions
+    - go-patterns
     - sapcc-audit
   force_route: false
   complexity: Complex
@@ -264,6 +264,6 @@ Update `sapcc-review-report.md` with:
 
 **Integration notes**:
 - Complements `/sapcc-audit` (package-level generalist) — use both for maximum coverage
-- Prerequisite: go-sapcc-conventions skill must be installed at `~/.claude/skills/go-sapcc-conventions/`
+- Prerequisite: go-patterns skill must be installed at `~/.claude/skills/go-patterns/`
 - Sync: After creating, run `cp -r skills/sapcc-review ~/.claude/skills/sapcc-review` for global access
 - Router: `/do` routes via "sapcc review", "sapcc lead review", "comprehensive sapcc audit"

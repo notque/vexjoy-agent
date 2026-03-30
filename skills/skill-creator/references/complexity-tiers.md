@@ -155,7 +155,7 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 
 ## Comprehensive Tier (2500-4000 lines)
 
-### go-testing
+### go-patterns
 **Lines**: ~3800
 **Purpose**: Go testing patterns and methodology
 **Phases**: Multiple workflows (table-driven, subtests, helpers, mocks, benchmarks)
@@ -168,7 +168,7 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 
 **Structure**:
 ```
-.claude/skills/go-testing/
+.claude/skills/go-patterns/
 ├── SKILL.md (2000 lines)
 │   - Frontmatter (90 lines)
 │   - Core Workflows (800 lines)
@@ -185,7 +185,7 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 
 ---
 
-### go-concurrency
+### go-patterns
 **Lines**: ~3500
 **Purpose**: Go concurrency patterns and primitives
 **Phases**: Multiple workflows (goroutines, channels, sync primitives, worker pools)
@@ -198,7 +198,7 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 
 **Structure**:
 ```
-.claude/skills/go-concurrency/
+.claude/skills/go-patterns/
 ├── SKILL.md (1800 lines)
 │   - Frontmatter (100 lines)
 │   - Core Patterns (700 lines)
@@ -236,7 +236,7 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 
 **Reference-quality with multiple complex workflows?**
 → Comprehensive tier
-- Examples: go-testing, go-concurrency, go-error-handling
+- Examples: go-patterns, go-patterns, go-patterns
 - Characteristics: Multiple workflows, 30+ code examples, extensive catalogs
 
 ---
@@ -271,7 +271,7 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 - Reference files exceeding 1500 total lines
 - Becoming reference documentation
 
-**Example**: testing-patterns → go-testing (added table-driven, mocks, benchmarks workflows)
+**Example**: testing-patterns → go-patterns (added table-driven, mocks, benchmarks workflows)
 
 ---
 
