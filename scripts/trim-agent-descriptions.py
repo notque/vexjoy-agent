@@ -34,11 +34,13 @@ def trim_description(description: str) -> tuple[str, dict]:
     }
 
     # Count examples
-    examples = list(re.finditer(
-        r"<example>\s*\n(.*?)</example>",
-        description,
-        re.DOTALL,
-    ))
+    examples = list(
+        re.finditer(
+            r"<example>\s*\n(.*?)</example>",
+            description,
+            re.DOTALL,
+        )
+    )
     stats["examples_found"] = len(examples)
 
     if not examples:
@@ -101,7 +103,7 @@ def process_agent_file(filepath: Path, dry_run: bool = False) -> dict | None:
         return None
 
     frontmatter = fm_match.group(2)
-    after_frontmatter = content[fm_match.end():]
+    after_frontmatter = content[fm_match.end() :]
 
     # Find description field in frontmatter
     # Description starts with "description: |" or "description:" and continues
@@ -126,12 +128,7 @@ def process_agent_file(filepath: Path, dry_run: bool = False) -> dict | None:
         return None
 
     # Rebuild frontmatter with trimmed description
-    new_frontmatter = (
-        frontmatter[: desc_match.start()]
-        + desc_header
-        + trimmed_body
-        + frontmatter[desc_match.end():]
-    )
+    new_frontmatter = frontmatter[: desc_match.start()] + desc_header + trimmed_body + frontmatter[desc_match.end() :]
 
     new_content = f"---\n{new_frontmatter}\n---{after_frontmatter}"
 
@@ -182,8 +179,10 @@ def main():
     print("=" * 60)
 
     for r in results:
-        print(f"  {r['file']}: {r['lines_before']} → {r['lines_after']} lines "
-              f"(-{r['saved_lines']}) [{r['examples_found']} examples → 1 inline]")
+        print(
+            f"  {r['file']}: {r['lines_before']} → {r['lines_after']} lines "
+            f"(-{r['saved_lines']}) [{r['examples_found']} examples → 1 inline]"
+        )
 
     print(f"\n{mode}Summary:")
     print(f"  Agents processed: {len(files)}")
