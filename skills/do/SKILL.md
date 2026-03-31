@@ -1,7 +1,7 @@
 ---
 name: do
 description: "Classify user requests and route to the correct agent + skill. Primary entry point for all delegated work."
-version: 2.0.0
+version: 2.1.0
 user-invocable: true
 argument-hint: "<request>"
 allowed-tools:
@@ -88,19 +88,25 @@ This early detection exists because Phase 4 Step 0 is the most frequently skippe
 
 **Goal**: Select the correct agent + skill combination from the INDEX files and routing tables.
 
-**Step 1: Check force-route triggers**
+**Step 1: Run deterministic pre-pass**
 
-Force-route triggers are in `skills/INDEX.json` (field: `force_route: true`). If a force-route trigger matches the request, invoke that skill BEFORE any other action, because force-routes encode critical domain patterns that prevent common mistakes — skipping them causes the exact class of bugs they were designed to prevent.
+Call `scripts/index-router.py` as the FIRST routing action — it performs trigger matching and candidate scoring in <100ms, saving ~26K tokens vs reading INDEX files manually:
 
-Check triggers literally against the request text. If triggers match, force-route applies — no exceptions, no judgment calls about whether "it applies here."
+```bash
+python3 scripts/index-router.py --request "{user_request}" --json
+```
 
-Trigger phrases must contain only user-language keywords, never sibling skill names, because the router matches triggers against request text and a sibling skill name would cause false matches. Each trigger phrase must map to exactly one skill — duplicates across skills make deterministic routing impossible.
+The script returns: `force_route` (definitive trigger match or null), `candidates` (top-10 scored by trigger overlap, each with name/score/agent/model), `pairs_with` (companion skills), `model_preference`, and `composition_chains`.
+
+**Step 2: Apply force-route or select from candidates**
+
+**If `force_route` is set**: Use it directly — the script found a definitive trigger match. No need to read INDEX files. Force-routes encode critical domain patterns; skipping them causes the exact class of bugs they were designed to prevent. Force-route applies with no exceptions, no judgment calls about whether "it applies here."
+
+**If `force_route` is null but `candidates` are present**: Use the script's scored candidate list to select the best match. Use LLM judgment to tiebreak when multiple candidates have similar scores. When multiple candidates have similar trigger overlap, use `category` to prefer domain-matched entries and `complexity` to gauge expected scope.
+
+**If candidates are empty or no match**: Fall back to reading INDEX files (`agents/INDEX.json`, `skills/INDEX.json`) and `references/routing-tables.md` to identify candidates manually. This path consumes more tokens but covers requests that don't match any trigger vocabulary.
 
 **Critical**: "push", "commit", "create PR", "merge" are NOT trivial git commands. They MUST route through skills that run quality gates, because running raw `git push`, `git commit`, `gh pr create`, or `gh pr merge` directly bypasses lint checks, test runs, review loops, CI verification, and repo classification.
-
-**Step 2: Select agent + skill**
-
-Read the routing tables in `references/routing-tables.md` and the INDEX files (`agents/INDEX.json`, `skills/INDEX.json`) to identify candidates by trigger-overlap. Select the best match; use LLM judgment to tiebreak when multiple candidates fit equally well.
 
 Route to the simplest agent+skill that satisfies the request, because over-engineering the routing itself (stacking unnecessary skills) creates more overhead than it prevents.
 
@@ -155,7 +161,7 @@ Tags: `force-route`, `llm-override`, `auto-pipeline` (as applicable). This call 
 
 **Goal**: Stack additional skills based on signals in the request.
 
-Auto-inject retro knowledge from `learning.db` for any substantive work (benchmark: +5.3 avg, 67% win rate), because historical patterns prevent repeat mistakes. Relevance-gated by FTS5 keyword matching — only inject when keywords overlap.
+Retro knowledge is auto-injected by the `retro-knowledge-injector` hook (fires on `UserPromptSubmit`, before /do runs). If a `<retro-knowledge>` block is already in conversation context, skip — the hook handled it. Only manually inject if the hook did not fire (benchmark: +5.3 avg, 67% win rate). Relevance-gated by FTS5 keyword matching — only inject when keywords overlap.
 
 | Signal in Request | Enhancement to Add |
 |-------------------|-------------------|
