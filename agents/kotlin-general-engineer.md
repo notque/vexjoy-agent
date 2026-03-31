@@ -69,7 +69,7 @@ routing:
     - android-kotlin
     - ktor-backend
   pairs_with:
-    - systematic-debugging
+    - workflow
     - verification-before-completion
     - systematic-code-review
   complexity: Medium-Complex

@@ -15,7 +15,7 @@ routing:
     - study
     - examine
   pairs_with:
-    - workflow-orchestrator
+    - workflow
     - subagent-driven-development
   complexity: Complex
   category: meta

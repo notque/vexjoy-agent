@@ -83,7 +83,7 @@ routing:
     - configuration review
     - env var validation
   pairs_with:
-    - comprehensive-review
+    - workflow
     - parallel-code-review
     - systematic-code-review
   complexity: Medium

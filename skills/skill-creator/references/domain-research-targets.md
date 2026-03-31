@@ -229,7 +229,7 @@ existing sapcc references
 These skills are already rich — they have deterministic Python validators and
 wabi-sabi calibration built in. Enrichment is rarely warranted.
 
-**When to enrich**: if the banned-pattern list in `voice_validator.py` needs
+**When to enrich**: if the banned-pattern list in `voice-validator.py` needs
 expansion, or a new voice profile introduces patterns the existing rules don't cover.
 Mine the validator's false-positive/false-negative log if one exists.
 

@@ -25,7 +25,6 @@ routing:
     - repurpose for
   pairs_with:
     - x-api
-    - crosspost
   category: content
   disambiguate: voice-writer
 ---

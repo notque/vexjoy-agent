@@ -2,7 +2,7 @@
 name: nodejs-api-engineer
 model: sonnet
 version: 2.0.0
-description: "Node.js backend API development: REST, authentication, file uploads, database integration."
+description: "Use this agent when you need expert assistance with NodeJS backend API development: REST endpoints, authentication, file uploads, webhooks, middleware, and database integration"
 color: red
 memory: project
 routing:

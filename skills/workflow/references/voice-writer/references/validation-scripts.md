@@ -7,7 +7,7 @@ Command reference and output schema for Phase 4 (VALIDATE) of the voice-writer p
 ## Primary Validation Command
 
 ```bash
-python3 $HOME/claude-code-toolkit/scripts/voice_validator.py validate \
+python3 $HOME/claude-code-toolkit/scripts/voice-validator.py validate \
   --content /tmp/voice-content-draft.md \
   --profile $HOME/claude-code-toolkit/skills/voice-{name}/profile.json \
   --voice {name} \
@@ -75,7 +75,7 @@ If this script is unavailable, skip the regex pre-filter and proceed directly to
 ## Validator Help
 
 ```bash
-python3 $HOME/claude-code-toolkit/scripts/voice_validator.py --help
+python3 $HOME/claude-code-toolkit/scripts/voice-validator.py --help
 ```
 
 Use this to check available flags if the command syntax above fails.

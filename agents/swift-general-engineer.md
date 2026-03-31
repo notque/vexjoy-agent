@@ -77,7 +77,7 @@ routing:
     - security
     - testing
   pairs_with:
-    - systematic-debugging
+    - workflow
     - verification-before-completion
     - systematic-code-review
   complexity: Medium-Complex

@@ -33,7 +33,7 @@ routing:
 
 # Create Voice
 
-Create a complete voice profile from writing samples through a 7-phase pipeline. This skill is the user-facing entry point for the voice system. It orchestrates existing tools (voice_analyzer.py, voice_validator.py, voice-calibrator template) into a guided, phase-gated workflow.
+Create a complete voice profile from writing samples through a 7-phase pipeline. This skill is the user-facing entry point for the voice system. It orchestrates existing tools (voice-analyzer.py, voice-validator.py, voice-calibrator template) into a guided, phase-gated workflow.
 
 **Architecture**: This skill is a GUIDE and ORCHESTRATOR. It delegates all deterministic work to existing scripts and all template structure to the voice-calibrator skill. It does not duplicate or replace any existing component.
 
@@ -80,14 +80,14 @@ Phase 1/7: COLLECT
 
 ### Step 2: EXTRACT -- Run Deterministic Analysis
 
-**Goal**: Extract quantitative voice metrics from the samples using `voice_analyzer.py`.
+**Goal**: Extract quantitative voice metrics from the samples using `voice-analyzer.py`.
 
 Always run script-based analysis before AI interpretation, because scripts produce reproducible, quantitative baselines. AI interpretation without data drifts toward "sounds like a normal person" rather than capturing what makes THIS person distinctive. The numbers ground everything that follows.
 
 #### Run the Analyzer
 
 ```bash
-python3 ~/.claude/scripts/voice_analyzer.py analyze \
+python3 ~/.claude/scripts/voice-analyzer.py analyze \
   --samples skills/voice-{name}/references/samples/*.md \
   --output skills/voice-{name}/profile.json
 ```
@@ -95,7 +95,7 @@ python3 ~/.claude/scripts/voice_analyzer.py analyze \
 #### Also Get the Text Report
 
 ```bash
-python3 ~/.claude/scripts/voice_analyzer.py analyze \
+python3 ~/.claude/scripts/voice-analyzer.py analyze \
   --samples skills/voice-{name}/references/samples/*.md \
   --format text
 ```
@@ -184,7 +184,7 @@ Phase 4/7: RULE
 
 **Goal**: Generate the complete voice skill files following the voice-calibrator template.
 
-keep modifications out of scope — voice_analyzer.py, voice_validator.py, banned-patterns.json, voice-calibrator, voice-writer, or any existing skill/script, because the existing tools work. This skill only creates new files in `skills/voice-{name}/`.
+keep modifications out of scope — voice-analyzer.py, voice-validator.py, banned-patterns.json, voice-calibrator, voice-writer, or any existing skill/script, because the existing tools work. This skill only creates new files in `skills/voice-{name}/`.
 
 Before generating, show users any existing voice implementation in `skills/voice-*/` as a concrete example of "done", because reference implementations ground expectations.
 
@@ -211,7 +211,7 @@ Phase 5/7: GENERATE
 
 Validate with scripts, not self-assessment, because self-assessment drifts. The model will convince itself the output sounds right. Scripts measure whether sentence length, punctuation density, and contraction rate actually match the targets. Objective measurement prevents rationalization.
 
-Run both `voice_validator.py validate` and `voice_validator.py check-banned` during this step.
+Run both `voice-validator.py validate` and `voice-validator.py check-banned` during this step.
 
 #### Generate Test Content
 
@@ -227,7 +227,7 @@ Save each to a temp file.
 For each test piece:
 
 ```bash
-python3 ~/.claude/scripts/voice_validator.py validate \
+python3 ~/.claude/scripts/voice-validator.py validate \
   --content /tmp/voice-test-{name}-{N}.md \
   --profile skills/voice-{name}/profile.json \
   --voice {name} \
@@ -238,7 +238,7 @@ python3 ~/.claude/scripts/voice_validator.py validate \
 #### Run Banned Pattern Check
 
 ```bash
-python3 ~/.claude/scripts/voice_validator.py check-banned \
+python3 ~/.claude/scripts/voice-validator.py check-banned \
   --content /tmp/voice-test-{name}-{N}.md \
   --voice {name}
 ```
@@ -370,12 +370,12 @@ After all phases complete:
 2. Suggest specific sources based on what's already provided (e.g., "You have 20 Reddit comments. Try also pulling from HN history, blog posts, or email")
 3. Stop and resolve before proceeding past Step 1. The system does not work with fewer than 50 samples.
 
-### Error: "voice_analyzer.py fails"
+### Error: "voice-analyzer.py fails"
 
 **Cause**: Script execution error.
 **Solution**:
 1. Check Python 3 is available: `python3 --version`
-2. Check script exists: `ls scripts/voice_analyzer.py`
+2. Check script exists: `ls scripts/voice-analyzer.py`
 3. Check file paths: Glob expansion may not work as expected in all shells. Try listing files first: `ls skills/voice-{name}/references/samples/*.md`
 4. Try with explicit file list instead of glob: `--samples file1.md file2.md file3.md`
 
@@ -421,15 +421,15 @@ Study any existing voice profile in `skills/voice-*/` to understand what "done" 
 | `skills/voice-{name}/SKILL.md` | 2000+ lines | Voice rules, samples, patterns, metrics |
 | `skills/voice-{name}/references/samples/` | 5-10 files | How samples should be organized by source and date |
 | `skills/voice-{name}/config.json` | ~20 lines | Validation configuration structure |
-| `skills/voice-{name}/profile.json` | ~80 lines | Profile structure from voice_analyzer.py |
+| `skills/voice-{name}/profile.json` | ~80 lines | Profile structure from voice-analyzer.py |
 
 ### Components This Skill Delegates To
 
 | Component | Type | What It Does | When Called |
 |-----------|------|-------------|-------------|
-| `scripts/voice_analyzer.py analyze` | Script | Extract quantitative metrics from writing samples | Step 2: EXTRACT |
-| `scripts/voice_analyzer.py compare` | Script | Compare two voice profiles | Optional (cross-voice comparison) |
-| `scripts/voice_validator.py validate` | Script | Validate generated content against voice profile | Step 6: VALIDATE |
-| `scripts/voice_validator.py check-banned` | Script | Quick banned pattern check | Step 6: VALIDATE |
+| `scripts/voice-analyzer.py analyze` | Script | Extract quantitative metrics from writing samples | Step 2: EXTRACT |
+| `scripts/voice-analyzer.py compare` | Script | Compare two voice profiles | Optional (cross-voice comparison) |
+| `scripts/voice-validator.py validate` | Script | Validate generated content against voice profile | Step 6: VALIDATE |
+| `scripts/voice-validator.py check-banned` | Script | Quick banned pattern check | Step 6: VALIDATE |
 | `scripts/data/banned-patterns.json` | Data | AI pattern database used by validator | Step 6 (via validator) |
 | `skills/workflow/references/voice-calibrator.md` | Skill | Voice skill template (lines 1063-1554, including the validation checklist) | Step 5: GENERATE (template reference) |

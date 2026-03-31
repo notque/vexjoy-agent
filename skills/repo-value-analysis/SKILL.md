@@ -22,7 +22,7 @@ routing:
     - compare against repo
     - read every file in repo
   pairs_with:
-    - explore-pipeline
+    - workflow
   complexity: Complex
   category: analysis
 ---

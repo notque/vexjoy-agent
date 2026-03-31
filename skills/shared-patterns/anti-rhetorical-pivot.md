@@ -110,4 +110,4 @@ State what things ARE directly. Avoid negation-setup structures.
 See also:
 - `banned-patterns.json`: Machine-readable pattern list
 - Voice-specific SKILL.md files: Per-voice implementation
-- `voice_validator.py`: Automated detection
+- `voice-validator.py`: Automated detection

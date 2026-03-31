@@ -4,7 +4,7 @@
   "agents": {
     "ansible-automation-engineer": {
       "file": "ansible-automation-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with Ansible automation for infrastructure management, configuration orchestration, and DevOps automation workflows",
+      "short_description": "Ansible automation: playbooks, roles, collections, Molecule testing, Vault security",
       "triggers": [
         "ansible",
         "playbook",
@@ -22,7 +22,7 @@
     },
     "data-engineer": {
       "file": "data-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with data pipelines, ETL/ELT processes,\ndata warehouse design, dimensional modeling, stream processing, or data quality frameworks",
+      "short_description": "Data pipelines, ETL/ELT, warehouse design, dimensional modeling, stream processing",
       "triggers": [
         "data pipeline",
         "ETL",
@@ -60,7 +60,7 @@
     },
     "database-engineer": {
       "file": "database-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with database design, optimization, and query performance",
+      "short_description": "Database design, optimization, query performance, migrations, indexing strategies",
       "triggers": [
         "database",
         "schema",
@@ -80,7 +80,7 @@
     },
     "github-profile-rules-engineer": {
       "file": "github-profile-rules-engineer.md",
-      "short_description": "Use this agent when extracting programming rules, coding conventions, or style\npreferences from a GitHub user's public profile",
+      "short_description": "Extract coding conventions and style rules from GitHub user profiles via API",
       "triggers": [
         "github rules",
         "profile analysis",
@@ -94,9 +94,26 @@
       "complexity": "Medium",
       "category": "meta"
     },
+    "golang-general-engineer-compact": {
+      "file": "golang-general-engineer-compact.md",
+      "short_description": "Compact Go development for tight context budgets",
+      "triggers": [
+        "go",
+        "golang",
+        "tight context",
+        "compact",
+        "focused go"
+      ],
+      "pairs_with": [
+        "go-patterns",
+        "go-patterns"
+      ],
+      "complexity": "Medium-Complex",
+      "category": "language"
+    },
     "golang-general-engineer": {
       "file": "golang-general-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with Go development, including implementing features,\ndebugging issues, reviewing code quality, optimizing performance, or answering technical questions\nabout Go codebases",
+      "short_description": "Go development: features, debugging, code review, performance",
       "triggers": [
         "go",
         "golang",
@@ -113,25 +130,9 @@
       "complexity": "Medium-Complex",
       "category": "language"
     },
-    "golang-general-engineer-compact": {
-      "file": "golang-general-engineer-compact.md",
-      "short_description": "Use this agent for focused Go development with tight context budgets",
-      "triggers": [
-        "go",
-        "golang",
-        "tight context",
-        "compact",
-        "focused go"
-      ],
-      "pairs_with": [
-        "go-patterns"
-      ],
-      "complexity": "Medium-Complex",
-      "category": "language"
-    },
     "hook-development-engineer": {
       "file": "hook-development-engineer.md",
-      "short_description": "Use this agent when developing Python hooks for Claude Code's event-driven system",
+      "short_description": "Python hook development for Claude Code event-driven system and learning database",
       "triggers": [
         "create hook",
         "hook development",
@@ -151,7 +152,7 @@
     },
     "kotlin-general-engineer": {
       "file": "kotlin-general-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with Kotlin development, including implementing\nfeatures, debugging issues, reviewing code quality, optimizing coroutine usage, or answering\ntechnical questions about Kotlin codebases",
+      "short_description": "Kotlin development: features, coroutines, debugging, code quality, multiplatform",
       "triggers": [
         "kotlin",
         "ktor",
@@ -170,7 +171,7 @@
         "kotlin-multiplatform"
       ],
       "pairs_with": [
-        "systematic-debugging",
+        "workflow",
         "verification-before-completion",
         "systematic-code-review"
       ],
@@ -179,7 +180,7 @@
     },
     "kubernetes-helm-engineer": {
       "file": "kubernetes-helm-engineer.md",
-      "short_description": "Use this agent for Kubernetes and Helm deployment management, troubleshooting, and cloud-native infrastructure",
+      "short_description": "Kubernetes and Helm: deployments, troubleshooting, cloud-native infrastructure",
       "triggers": [
         "kubernetes",
         "helm",
@@ -198,7 +199,7 @@
     },
     "mcp-local-docs-engineer": {
       "file": "mcp-local-docs-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with building MCP (Model Context Protocol) servers for local documentation access",
+      "short_description": "MCP server development for local documentation access in TypeScript/Node",
       "triggers": [
         "MCP",
         "docs server",
@@ -213,7 +214,7 @@
     },
     "nextjs-ecommerce-engineer": {
       "file": "nextjs-ecommerce-engineer.md",
-      "short_description": "Use this agent when building Next",
+      "short_description": "Use this agent when building a NextJS e-commerce site: shopping cart, Stripe payments, product catalogs, order management, and checkout flows",
       "triggers": [
         "next.js e-commerce",
         "nextjs ecommerce",
@@ -232,7 +233,7 @@
     },
     "nodejs-api-engineer": {
       "file": "nodejs-api-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with Node",
+      "short_description": "Use this agent when you need expert assistance with NodeJS backend API development: REST endpoints, authentication, file uploads, webhooks, middleware, and database integration",
       "triggers": [
         "node.js",
         "nodejs",
@@ -251,7 +252,7 @@
     },
     "opensearch-elasticsearch-engineer": {
       "file": "opensearch-elasticsearch-engineer.md",
-      "short_description": "Use this agent for OpenSearch and Elasticsearch cluster management, performance tuning, index optimization, and search infrastructure operations",
+      "short_description": "OpenSearch/Elasticsearch: cluster management, performance tuning, index optimization",
       "triggers": [
         "opensearch",
         "elasticsearch",
@@ -268,7 +269,7 @@
     },
     "performance-optimization-engineer": {
       "file": "performance-optimization-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with web performance optimization, Core Web Vitals, and advanced performance monitoring for modern web applications",
+      "short_description": "Web performance optimization: Core Web Vitals, rendering, bundle analysis, monitoring",
       "triggers": [
         "performance",
         "optimization",
@@ -283,7 +284,7 @@
     },
     "perses-engineer": {
       "file": "perses-engineer.md",
-      "short_description": "Perses observability platform: dashboards, plugins, operator, core development.",
+      "short_description": "Perses observability platform: dashboards, plugins, operator, core development",
       "triggers": [
         "perses",
         "perses dashboard",
@@ -315,6 +316,7 @@
         "plugin schema"
       ],
       "pairs_with": [
+        "perses-onboard",
         "perses",
         "golang-general-engineer",
         "typescript-frontend-engineer",
@@ -326,7 +328,7 @@
     },
     "php-general-engineer": {
       "file": "php-general-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with PHP development, including implementing features,\ndebugging issues, reviewing code quality, enforcing security posture, or answering technical questions\nabout PHP codebases",
+      "short_description": "PHP development: features, debugging, code quality, security, modern PHP 8",
       "triggers": [
         "php",
         "laravel",
@@ -349,7 +351,7 @@
         "psalm"
       ],
       "pairs_with": [
-        "systematic-debugging",
+        "workflow",
         "verification-before-completion",
         "systematic-code-review"
       ],
@@ -358,7 +360,7 @@
     },
     "pipeline-orchestrator-engineer": {
       "file": "pipeline-orchestrator-engineer.md",
-      "short_description": "Use this agent when building new pipelines that require coordinated creation\nof agents, skills, and hooks",
+      "short_description": "Pipeline orchestration: scaffold multi-component workflows, fan-out/fan-in patterns",
       "triggers": [
         "create pipeline",
         "new pipeline",
@@ -376,7 +378,7 @@
     },
     "project-coordinator-engineer": {
       "file": "project-coordinator-engineer.md",
-      "short_description": "Use this agent when orchestrating multi-agent software development projects across\nspecialized agents",
+      "short_description": "Multi-agent project coordination: task breakdown, dependency management, progress tracking",
       "triggers": [
         "coordinate",
         "multi-agent",
@@ -386,7 +388,7 @@
         "agent coordination"
       ],
       "pairs_with": [
-        "workflow-orchestrator",
+        "workflow",
         "subagent-driven-development"
       ],
       "complexity": "Complex",
@@ -394,7 +396,7 @@
     },
     "prometheus-grafana-engineer": {
       "file": "prometheus-grafana-engineer.md",
-      "short_description": "Use this agent for Prometheus and Grafana monitoring infrastructure, alerting configuration, dashboard design, and observability optimization",
+      "short_description": "Prometheus and Grafana: monitoring, alerting, dashboard design, PromQL optimization",
       "triggers": [
         "prometheus",
         "grafana",
@@ -413,7 +415,7 @@
     },
     "python-general-engineer": {
       "file": "python-general-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with Python development, including implementing features,\ndebugging issues, reviewing code quality, optimizing performance, or answering technical questions about\nPython codebases",
+      "short_description": "Python development: features, debugging, code review, performance",
       "triggers": [
         "python",
         ".py files",
@@ -432,7 +434,7 @@
     },
     "python-openstack-engineer": {
       "file": "python-openstack-engineer.md",
-      "short_description": "Use this agent when developing OpenStack services, plugins, or components in Python",
+      "short_description": "OpenStack Python development: Nova, Neutron, Cinder, Oslo libraries, WSGI middleware",
       "triggers": [
         "openstack",
         "oslo",
@@ -452,7 +454,7 @@
     },
     "rabbitmq-messaging-engineer": {
       "file": "rabbitmq-messaging-engineer.md",
-      "short_description": "Use this agent for RabbitMQ message queue architecture, operations, clustering, and high-availability messaging systems",
+      "short_description": "RabbitMQ: message queue architecture, clustering, high-availability, routing patterns",
       "triggers": [
         "rabbitmq",
         "messaging",
@@ -468,7 +470,7 @@
     },
     "react-portfolio-engineer": {
       "file": "react-portfolio-engineer.md",
-      "short_description": "Use this agent when building React portfolio and gallery websites for artists, photographers,\nand creative professionals",
+      "short_description": "React portfolio/gallery sites for creatives: React 18+, Next",
       "triggers": [
         "portfolio",
         "gallery",
@@ -486,7 +488,7 @@
     },
     "research-coordinator-engineer": {
       "file": "research-coordinator-engineer.md",
-      "short_description": "Use this agent when conducting complex research requiring systematic investigation,\nmulti-source analysis, and comprehensive synthesis",
+      "short_description": "Research coordination: systematic investigation, multi-source analysis, synthesis",
       "triggers": [
         "research",
         "investigate",
@@ -497,7 +499,7 @@
         "examine"
       ],
       "pairs_with": [
-        "workflow-orchestrator",
+        "workflow",
         "subagent-driven-development"
       ],
       "complexity": "Complex",
@@ -505,7 +507,7 @@
     },
     "research-subagent-executor": {
       "file": "research-subagent-executor.md",
-      "short_description": "Use this agent when you need to execute individual research tasks as a subagent under research coordination",
+      "short_description": "Research subagent execution: OODA-loop investigation, intelligence gathering, source evaluation",
       "triggers": [
         "research subtask",
         "delegated research"
@@ -593,7 +595,7 @@
         "env var validation"
       ],
       "pairs_with": [
-        "comprehensive-review",
+        "workflow",
         "parallel-code-review",
         "systematic-code-review"
       ],
@@ -602,20 +604,25 @@
     },
     "reviewer-domain": {
       "file": "reviewer-domain.md",
-      "short_description": "Domain-specific review: ADR compliance, business logic, SAP CC structural, pragmatic builder.",
+      "short_description": "Domain-specific review: ADR compliance, business logic, SAP CC structural, pragmatic builder",
       "triggers": [
         "adr compliance",
         "adr review",
         "architecture decision",
+        "decision record",
+        "adr check",
         "scope creep",
         "business logic",
         "domain review",
         "requirements",
         "correctness",
         "edge cases",
+        "state machine",
         "sapcc structural",
         "go-bits design",
+        "sapcc structural review",
         "type export",
+        "anti-over-engineering",
         "go-bits usage",
         "builder",
         "production",
@@ -623,7 +630,7 @@
         "operational"
       ],
       "pairs_with": [
-        "comprehensive-review",
+        "workflow",
         "parallel-code-review",
         "systematic-code-review"
       ],
@@ -632,10 +639,11 @@
     },
     "reviewer-perspectives": {
       "file": "reviewer-perspectives.md",
-      "short_description": "Multi-perspective review: newcomer, senior, pedant, contrarian, user advocate, meta-process.",
+      "short_description": "Multi-perspective review: newcomer, senior, pedant, contrarian, user advocate, meta-process",
       "triggers": [
         "newcomer perspective",
         "fresh eyes review",
+        "documentation review",
         "production readiness",
         "senior review",
         "skeptical review",
@@ -650,68 +658,106 @@
         "user impact",
         "user advocate",
         "usability review",
+        "is this worth the complexity",
+        "user perspective",
+        "user experience",
         "meta-process review",
         "system design review",
         "architecture health",
+        "single point of failure",
+        "indispensable component",
         "complexity audit",
+        "authority concentration",
         "reversibility check"
       ],
       "pairs_with": [
         "systematic-code-review",
-        "comprehensive-review"
+        "workflow"
       ],
       "complexity": "Medium",
       "category": "review"
     },
     "reviewer-system": {
       "file": "reviewer-system.md",
-      "short_description": "System review: security, concurrency, errors, observability, APIs, migrations, dependencies, docs.",
+      "short_description": "System review: security, concurrency, errors, observability, APIs, migrations, dependencies, docs",
       "triggers": [
         "security review",
         "vulnerability",
         "OWASP",
         "auth check",
         "injection",
+        "XSS",
+        "CSRF",
+        "security scan",
         "concurrency review",
         "race condition",
         "goroutine leak",
         "deadlock",
         "mutex",
+        "channel safety",
+        "async safety",
+        "thread safety",
         "silent failures",
         "error handling review",
+        "catch blocks",
+        "fallback behavior",
         "swallowed errors",
+        "error swallowing",
+        "empty catch",
         "error messages",
         "error text quality",
         "actionable errors",
+        "error format",
+        "user-facing errors",
+        "error context",
         "observability review",
         "metrics",
         "logging quality",
         "trace propagation",
+        "health checks",
+        "structured logging",
+        "monitoring gaps",
         "API contract",
         "breaking changes",
         "backward compatibility",
+        "API versioning",
+        "HTTP status codes",
+        "schema validation",
+        "API review",
         "migration safety",
         "database migration",
         "schema change",
+        "API deprecation",
+        "rollback strategy",
+        "backward compatible",
+        "feature flag lifecycle",
         "dependency audit",
         "CVE check",
         "vulnerability scan",
+        "license check",
+        "deprecated packages",
+        "supply chain",
+        "dependency review",
         "documentation review",
         "README check",
-        "CLAUDE.md validation"
+        "CLAUDE.md validation",
+        "project completeness",
+        "config validation",
+        "CI check"
       ],
       "pairs_with": [
-        "comprehensive-review",
+        "workflow",
         "systematic-code-review",
         "parallel-code-review",
-        "go-patterns"
+        "go-concurrency",
+        "go-error-handling"
       ],
       "complexity": "Medium-Complex",
       "category": "review"
     },
     "sqlite-peewee-engineer": {
       "file": "sqlite-peewee-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with SQLite database development using the Peewee ORM in Python",
+      "short_description": "SQLite with Peewee ORM: model definition, query optimization, migrations, transactions",
       "triggers": [
         "peewee",
         "sqlite",
@@ -728,7 +774,7 @@
     },
     "swift-general-engineer": {
       "file": "swift-general-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with Swift development, including implementing features\nfor iOS, macOS, watchOS, tvOS, visionOS, or server-side Swift (Vapor/Hummingbird), debugging issues,\nreviewing code quality, or answering technical questions about Swift codebases",
+      "short_description": "Swift development: iOS, macOS, server-side Swift, SwiftUI, concurrency, testing",
       "triggers": [
         "swift",
         "ios",
@@ -754,7 +800,7 @@
         "coredata"
       ],
       "pairs_with": [
-        "systematic-debugging",
+        "workflow",
         "verification-before-completion",
         "systematic-code-review"
       ],
@@ -763,7 +809,7 @@
     },
     "system-upgrade-engineer": {
       "file": "system-upgrade-engineer.md",
-      "short_description": "Use this agent for systematic upgrades to the agent/skill/hook ecosystem when\nClaude Code ships updates, user goals change, or retro learnings accumulate",
+      "short_description": "Systematic toolkit upgrades: adapt agents, skills, hooks when Claude Code ships updates",
       "triggers": [
         "upgrade agents",
         "system upgrade",
@@ -782,14 +828,14 @@
         "agent-evaluation",
         "codebase-analyzer",
         "routing-table-updater",
-        "pr-workflow"
+        "pr-pipeline"
       ],
       "complexity": "Complex",
       "category": "meta"
     },
     "technical-documentation-engineer": {
       "file": "technical-documentation-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with creating, maintaining, and validating technical documentation for enterprise software systems",
+      "short_description": "Technical documentation: API docs, system architecture, runbooks, enterprise standards",
       "triggers": [
         "API documentation",
         "technical docs",
@@ -804,7 +850,7 @@
     },
     "technical-journalist-writer": {
       "file": "technical-journalist-writer.md",
-      "short_description": "Use this agent when you need professional technical journalism and article writing",
+      "short_description": "Technical journalism: explainers, opinion pieces, analysis articles, long-form content",
       "triggers": [
         "technical article",
         "technical writing",
@@ -820,7 +866,7 @@
     },
     "testing-automation-engineer": {
       "file": "testing-automation-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with comprehensive testing strategy and automation for modern web applications",
+      "short_description": "Testing strategy and automation: unit, integration, E2E, CI/CD, coverage analysis",
       "triggers": [
         "testing",
         "E2E",
@@ -838,7 +884,7 @@
     },
     "toolkit-governance-engineer": {
       "file": "toolkit-governance-engineer.md",
-      "short_description": "Maintain and govern the claude-code-toolkit's internal architecture: edit SKILL",
+      "short_description": "Toolkit governance: edit skills, update routing tables, manage ADR lifecycle, enforce standards",
       "triggers": [
         "edit skill",
         "update routing",
@@ -860,7 +906,7 @@
     },
     "typescript-debugging-engineer": {
       "file": "typescript-debugging-engineer.md",
-      "short_description": "Use this agent when you need expert assistance debugging TypeScript applications",
+      "short_description": "TypeScript debugging: race conditions, async/await issues, type errors, runtime exceptions",
       "triggers": [
         "typescript debug",
         "async bug",
@@ -870,7 +916,7 @@
         "memory leak"
       ],
       "pairs_with": [
-        "systematic-debugging",
+        "workflow",
         "typescript-frontend-engineer"
       ],
       "complexity": "Medium-Complex",
@@ -878,7 +924,7 @@
     },
     "typescript-frontend-engineer": {
       "file": "typescript-frontend-engineer.md",
-      "short_description": "Use this agent when you need expert assistance with TypeScript frontend architecture and optimization for modern web applications",
+      "short_description": "TypeScript frontend architecture: type-safe components, state management, build optimization",
       "triggers": [
         "typescript",
         "react",
@@ -897,7 +943,7 @@
     },
     "ui-design-engineer": {
       "file": "ui-design-engineer.md",
-      "short_description": "Use this agent when designing and implementing UI/UX for modern web applications with\ndesign systems, responsive layouts, accessibility compliance, and animations",
+      "short_description": "UI/UX design: design systems, responsive layouts, accessibility, animations",
       "triggers": [
         "UI",
         "design",

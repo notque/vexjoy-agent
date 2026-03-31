@@ -87,7 +87,7 @@ Launch **all 4 agents simultaneously** using the Task tool. Each agent receives 
 
 **Agent 3: Workflow Patterns**
 - Investigate: For each candidate subdomain (or domain-level if subdomains aren't yet known), what pipeline patterns from the step menu fit?
-- Method: Read `pipelines/pipeline-scaffolder/references/step-menu.md`. For each step family, assess whether the domain's tasks match the "When To Use" criteria. Identify which step families are most relevant.
+- Method: Read `skills/workflow/references/pipeline-scaffolder/references/step-menu.md`. For each step family, assess whether the domain's tasks match the "When To Use" criteria. Identify which step families are most relevant.
 - Output: Mapping of domain task patterns to step menu families, with reasoning
 - Save to: `/tmp/pipeline-{run-id}/phase-1-research/agent-3-workflow-patterns.md`
 
@@ -141,7 +141,7 @@ If fewer than 3 agents completed: set `status: "partial"`, report which agents f
 
 **Step 1: Load classification reference**
 
-Read `pipelines/domain-research/references/task-type-guide.md` for task type definitions and canonical chain patterns. This file defines the 8 task types and provides examples of how each maps to step menu families.
+Read `skills/workflow/references/domain-research/references/task-type-guide.md` for task type definitions and canonical chain patterns. This file defines the 8 task types and provides examples of how each maps to step menu families.
 
 **Step 2: Classify each subdomain**
 
@@ -245,7 +245,7 @@ Create the Phase 2 dual-layer artifact:
 
 **Step 1: Load step menu**
 
-Read `pipelines/pipeline-scaffolder/references/step-menu.md` for the complete step inventory with output schemas and type compatibility.
+Read `skills/workflow/references/pipeline-scaffolder/references/step-menu.md` for the complete step inventory with output schemas and type compatibility.
 
 **Step 2: Compose chains**
 

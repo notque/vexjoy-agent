@@ -33,9 +33,8 @@ routing:
     - "CSV analysis"
     - "explore dataset"
   pairs_with:
-    - explore-pipeline
+    - workflow
     - codebase-analyzer
-    - research-to-article
   complexity: medium
   category: analysis
 ---
