@@ -22,7 +22,7 @@ routing:
   force_route: true
   triggers:
     - comprehensive review
-    - full review
+    - full code review
     - review everything
     - review and fix
     - thorough review

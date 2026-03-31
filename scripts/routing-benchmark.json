@@ -318,10 +318,10 @@
     {
       "request": "create a new Claude Code skill with quality gates",
       "expected_agent": null,
-      "expected_skill": "skill-creator",
+      "expected_skill": "skill-creation-pipeline",
       "category": "meta-tooling",
       "routing_tier": "candidate",
-      "notes": "Skill creation — skill-creator should appear in top-3 candidates"
+      "notes": "Skill creation — skill-creation-pipeline (wraps skill-creator) should appear in top-3 candidates"
     },
     {
       "request": "create a new hook for PostToolUse events",

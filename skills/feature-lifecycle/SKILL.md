@@ -32,7 +32,7 @@ routing:
     - start building
     - feature validate
     - validate feature
-    - run quality gates
+    - run feature quality gates
     - check feature
     - feature release
     - release feature

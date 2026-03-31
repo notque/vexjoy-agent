@@ -18,7 +18,7 @@ routing:
   force_route: true
   triggers:
     - write article
-    - blog post
+    - write blog post
     - write in voice
     - generate voice content
     - voice workflow

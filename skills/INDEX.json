@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-03-31T17:56:07Z",
+  "generated": "2026-03-31T18:18:30Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -428,7 +428,7 @@
         "start building",
         "feature validate",
         "validate feature",
-        "run quality gates",
+        "run feature quality gates",
         "check feature",
         "feature release",
         "release feature",
