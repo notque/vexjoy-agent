@@ -360,16 +360,21 @@ elif [ -f "${SCRIPT_DIR}/.claude/settings.json" ]; then
 
     # Sync hooks and attribution from repo settings — repo is authoritative
     $PYTHON_CMD -c "
-import json, sys
+import json, os
 repo = json.load(open('${SCRIPT_DIR}/.claude/settings.json'))
 dst = '${SETTINGS_FILE}'
 try:
-    glob = json.load(open(dst))
+    glob = json.load(open(dst, encoding='utf-8'))
 except (FileNotFoundError, json.JSONDecodeError):
     glob = {}
 glob['hooks'] = repo.get('hooks', {})
 glob.setdefault('attribution', repo.get('attribution', {'commit': '', 'pr': ''}))
-json.dump(glob, open(dst, 'w'), indent=2)
+tmp = dst + '.tmp'
+with open(tmp, 'w', encoding='utf-8') as f:
+    json.dump(glob, f, indent=2)
+    f.flush()
+    os.fsync(f.fileno())
+os.rename(tmp, dst)
 print('  Hooks configured from .claude/settings.json')
 "
 else

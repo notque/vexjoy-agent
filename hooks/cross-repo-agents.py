@@ -19,6 +19,13 @@ import re
 import sys
 from pathlib import Path
 
+# Add lib directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent / "lib"))
+
+from hook_utils import context_output, empty_output
+
+EVENT_NAME = "SessionStart"
+
 
 def extract_agent_info(agent_path: Path) -> dict | None:
     """Extract agent metadata from markdown file.
@@ -106,29 +113,29 @@ def main():
         agents = discover_local_agents(cwd)
 
         if not agents:
-            return  # Silent when no local agents
+            empty_output(EVENT_NAME).print_and_exit()
 
-        # Print discovery information
-        print(f"[cross-repo] Found {len(agents)} local agent(s) in .claude/agents/")
-
-        # Print agent summaries for routing
-        print("[cross-repo] Available local agents:")
+        # Aggregate output lines
+        lines = []
+        lines.append(f"[cross-repo] Found {len(agents)} local agent(s) in .claude/agents/")
+        lines.append("[cross-repo] Available local agents:")
         for agent in agents:
             triggers = ", ".join(agent["triggers"][:3])
-            print(f"  - {agent['name']}: {agent['description']}")
-            print(f"    Triggers: {triggers}")
-            print(f"    File: {agent['file']}")
+            lines.append(f"  - {agent['name']}: {agent['description']}")
+            lines.append(f"    Triggers: {triggers}")
+            lines.append(f"    File: {agent['file']}")
 
-        # Print routing instruction
-        print("\n[cross-repo] To use local agents, read the agent file and follow its instructions.")
-        print("[cross-repo] The /do router can invoke these via: Task tool with prompt referencing agent file")
+        lines.append("")
+        lines.append("[cross-repo] To use local agents, read the agent file and follow its instructions.")
+        lines.append("[cross-repo] The /do router can invoke these via: Task tool with prompt referencing agent file")
+
+        context_output(EVENT_NAME, "\n".join(lines)).print_and_exit()
 
     except Exception as e:
         # Log to stderr if debug enabled, but never fail
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             print(f"[cross-repo] Error: {e}", file=sys.stderr)
-    finally:
-        sys.exit(0)
+        empty_output(EVENT_NAME).print_and_exit()
 
 
 if __name__ == "__main__":

@@ -407,7 +407,10 @@ def main():
                 if item.is_file():
                     rel = item.relative_to(dst)
                     if rel not in all_paths:
-                        item.unlink()
+                        try:
+                            item.unlink()
+                        except OSError:
+                            pass
             # Clean up empty directories left behind
             for dirpath in sorted(dst.rglob("*"), reverse=True):
                 if dirpath.is_dir() and not any(dirpath.iterdir()):

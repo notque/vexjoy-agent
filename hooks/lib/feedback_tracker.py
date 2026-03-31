@@ -113,6 +113,7 @@ def check_pending_feedback(current_error: Optional[str]) -> Optional[dict]:
         # No error = fix worked
         return {
             "signature": state["signature"],
+            "error_type": state.get("error_type", "unknown"),
             "success": True,
             "reason": f"No error after applying {state['fix_action']}",
         }
@@ -124,6 +125,7 @@ def check_pending_feedback(current_error: Optional[str]) -> Optional[dict]:
         # Conservative: count as failure since original issue may not be fixed
         return {
             "signature": state["signature"],
+            "error_type": state.get("error_type", "unknown"),
             "success": False,
             "reason": f"Different error after {state['fix_action']}: {current_error[:100]}",
         }
@@ -131,6 +133,7 @@ def check_pending_feedback(current_error: Optional[str]) -> Optional[dict]:
     # Same error persists = fix didn't work
     return {
         "signature": state["signature"],
+        "error_type": state.get("error_type", "unknown"),
         "success": False,
         "reason": f"Same error persists after {state['fix_action']}",
     }
