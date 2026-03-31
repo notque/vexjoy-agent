@@ -323,7 +323,7 @@ def resolve_agent(candidate: Candidate, entries: list[IndexEntry]) -> str | None
             return None
 
     # Step 3: trigger-word overlap fallback (only when no pairs_with metadata)
-    # Require >50% of candidate name words to overlap with agent triggers.
+    # Require strict majority overlap (minimum 2 words, scales with name length).
     candidate_words = set(candidate.name.lower().replace("-", " ").split())
     min_overlap = max(2, len(candidate_words) // 2 + 1)
     best_agent: str | None = None
