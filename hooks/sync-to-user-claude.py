@@ -561,7 +561,6 @@ def main():
     codex_skills_dst = Path.home() / ".codex" / "skills"
     codex_sources = [("skills", repo_root / "skills")]
     codex_count = 0
-    codex_src_paths: set[Path] = set()
     for label, src in codex_sources:
         if not src.is_dir():
             continue
@@ -570,7 +569,6 @@ def main():
             for item in src.rglob("*"):
                 if item.is_file():
                     rel = item.relative_to(src)
-                    codex_src_paths.add(rel)
                     target = codex_skills_dst / rel
                     target.parent.mkdir(parents=True, exist_ok=True)
                     if target.exists() and filecmp.cmp(item, target, shallow=False):
@@ -594,7 +592,6 @@ def main():
                 for item in skill_src.rglob("*"):
                     if item.is_file():
                         rel = item.relative_to(skill_src)
-                        codex_src_paths.add(Path(f"voice-{voice_name}") / rel)
                         target = codex_voice_dst / rel
                         target.parent.mkdir(parents=True, exist_ok=True)
                         if target.exists() and filecmp.cmp(item, target, shallow=False):
