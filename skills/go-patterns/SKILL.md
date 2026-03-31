@@ -22,10 +22,6 @@ routing:
     - table-driven
     - t.Run
     - t.Helper
-    - benchmark
-    - mock
-    - test coverage
-    - race detection
     # concurrency triggers
     - goroutine
     - channel
@@ -34,32 +30,20 @@ routing:
     - sync.WaitGroup
     - worker pool
     - fan-in
-    - rate limit
-    - concurrent
     - context.Context
-    - race condition
-    - deadlock
     - "goroutine parallel"
     - "Go parallel"
     - "goroutine fan-out"
     # error handling triggers
-    - error handling
     - fmt.Errorf
     - errors.Is
     - errors.As
-    - error wrapping
     - "%w"
     - sentinel error
-    - custom error
-    - error context
     # anti-patterns triggers
     - Go mistake
     - bad Go
     - Go smell
-    - code smell
-    - premature abstraction
-    - over-engineering
-    - unnecessary complexity
     - "Go anti-pattern"
     - "Go code smell"
     # code review triggers
