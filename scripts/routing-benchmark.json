@@ -268,12 +268,20 @@
       "notes": "Niche skill requiring intent understanding — script does not force-route. LLM must recognize 'roast' as multi-persona critique."
     },
     {
+      "request": "execute plan for the API redesign",
+      "expected_agent": null,
+      "expected_skill": "feature-lifecycle",
+      "category": "feature-lifecycle",
+      "routing_tier": "force_route",
+      "notes": "Exact 'execute plan' trigger — force-route to feature-lifecycle is correct for unqualified plan execution."
+    },
+    {
       "request": "execute the plan using subagents",
       "expected_agent": null,
       "expected_skill": null,
       "category": "parallel-execution",
       "routing_tier": "llm_only",
-      "notes": "Script force-routes to feature-lifecycle via 'execute plan' trigger — false positive. LLM should route to subagent-driven-development. No expected_skill/agent set since we verify no false-positive force-route."
+      "notes": "'the' breaks 'execute plan' substring match — no false positive. LLM should route to subagent-driven-development."
     },
     {
       "request": "research the topic thoroughly then write an article",

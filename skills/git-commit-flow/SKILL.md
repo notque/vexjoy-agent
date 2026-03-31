@@ -19,7 +19,8 @@ routing:
     - "stage and commit"
     - "commit changes"
     - "commit these"
-    - "commit my"
+    - "commit my changes"
+    - "commit my files"
   category: git-workflow
 ---
 

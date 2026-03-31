@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-03-31T18:18:30Z",
+  "generated": "2026-03-31T18:56:13Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -340,7 +340,7 @@
       ],
       "category": "meta-tooling",
       "user_invocable": true,
-      "version": "2.0.0"
+      "version": "2.1.0"
     },
     "docs-sync-checker": {
       "file": "skills/docs-sync-checker/SKILL.md",
@@ -594,7 +594,8 @@
         "stage and commit",
         "commit changes",
         "commit these",
-        "commit my"
+        "commit my changes",
+        "commit my files"
       ],
       "category": "git-workflow",
       "force_route": true,

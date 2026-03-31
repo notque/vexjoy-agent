@@ -153,6 +153,12 @@ class TestCandidates:
         expected_skill = case.get("expected_skill")
         expected_agent = case.get("expected_agent")
 
+        if expected_skill is None and expected_agent is None:
+            pytest.fail(
+                f"Candidate-tier case {case['request']!r} has no expected_skill or expected_agent. "
+                f"Every candidate case must assert something — add an expectation or reclassify."
+            )
+
         if expected_skill is not None:
             assert expected_skill in top_n_names, (
                 f"Expected skill {expected_skill!r} in top-{depth} candidates: {top_n_names}\n"
