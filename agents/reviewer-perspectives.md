@@ -42,7 +42,7 @@ routing:
     - reversibility check
   pairs_with:
     - systematic-code-review
-    - comprehensive-review
+    - workflow
   complexity: Medium
   category: review
 allowed-tools:

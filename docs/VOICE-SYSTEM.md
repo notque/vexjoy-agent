@@ -15,7 +15,7 @@ Gather 3-5 pieces of writing (blog posts, articles, emails) from the person whos
 ### 2. Analyze the Samples
 
 ```bash
-python3 scripts/voice_analyzer.py analyze --samples your-samples.md
+python3 scripts/voice-analyzer.py analyze --samples your-samples.md
 ```
 
 This produces a voice profile: sentence length distribution, opening patterns, distinctive elements (comma density, contraction rate, fragment usage, etc.).
@@ -48,7 +48,7 @@ The system loads the voice profile and generates content matching those patterns
 ### 5. Validate the Output
 
 ```bash
-python3 scripts/voice_validator.py validate --content draft.md --voice your-voice-name
+python3 scripts/voice-validator.py validate --content draft.md --voice your-voice-name
 ```
 
 The validator checks:
@@ -62,7 +62,7 @@ The validator checks:
 
 ## How It Works
 
-### Voice Analyzer (`scripts/voice_analyzer.py`)
+### Voice Analyzer (`scripts/voice-analyzer.py`)
 
 Extracts quantitative metrics from writing samples:
 
@@ -76,19 +76,19 @@ Extracts quantitative metrics from writing samples:
 | Em-dash usage | Punctuation preferences |
 | Function word signature | Word frequency fingerprint |
 
-### Voice Validator (`scripts/voice_validator.py`)
+### Voice Validator (`scripts/voice-validator.py`)
 
 Validates content against a voice profile:
 
 ```bash
 # Basic validation
-python3 scripts/voice_validator.py validate --content draft.md --voice your-voice
+python3 scripts/voice-validator.py validate --content draft.md --voice your-voice
 
 # Check for banned AI patterns only
-python3 scripts/voice_validator.py check-banned --content draft.md
+python3 scripts/voice-validator.py check-banned --content draft.md
 
 # Compare two voice profiles
-python3 scripts/voice_analyzer.py compare --profile1 voice1.json --profile2 voice2.json
+python3 scripts/voice-analyzer.py compare --profile1 voice1.json --profile2 voice2.json
 ```
 
 ### Voice Calibrator (`skills/workflow/references/voice-calibrator.md`)
@@ -135,7 +135,7 @@ The first calibration is rarely perfect. Use:
 
 ```bash
 # See what patterns the validator catches
-python3 scripts/voice_validator.py validate --content draft.md --voice your-voice --verbose
+python3 scripts/voice-validator.py validate --content draft.md --voice your-voice --verbose
 
 # Refine with additional samples
 /do refine voice your-voice with additional samples
@@ -154,8 +154,8 @@ Once calibrated, the voice is available to:
 
 ```
 scripts/
-  voice_analyzer.py      # Extract metrics from writing samples
-  voice_validator.py     # Validate content against voice profiles
+  voice-analyzer.py      # Extract metrics from writing samples
+  voice-validator.py     # Validate content against voice profiles
   data/
     banned-patterns.json # AI writing patterns to avoid
 

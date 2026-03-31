@@ -88,7 +88,7 @@ granular enough to complete in a single agent dispatch._
 | ... | ... | ... | ... |
 
 _Select agents from `agents/INDEX.json`. Select skills from `skills/INDEX.json`
-and `pipelines/INDEX.json`. Prefer specialized agents over general-purpose.
+and `skills/INDEX.json (workflow section)`. Prefer specialized agents over general-purpose.
 If no suitable agent exists, note the gap — it may itself warrant a new agent._
 
 ### Implementation Task List

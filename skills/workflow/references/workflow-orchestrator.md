@@ -236,7 +236,7 @@ Zone transitions trigger explicit log entries: "Entering DEGRADING zone at ~52% 
 
 #### Step 1: Run Plan-Checker
 
-Invoke the [plan-checker](../plan-checker/SKILL.md) against the saved plan. The plan-checker evaluates the plan across its verification dimensions, including:
+Invoke the [plan-checker](../../plan-checker/SKILL.md) against the saved plan. The plan-checker evaluates the plan across its verification dimensions, including:
 - Every task has a clear completion criterion
 - Task dependencies are explicit (no implicit ordering)
 - No task depends on an artifact that no prior task produces
@@ -427,7 +427,7 @@ This skill uses these shared patterns:
 - [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
 
 Related skills and ADRs:
-- [Plan Checker](../plan-checker/SKILL.md) - Pre-execution plan validation (ADR-074)
+- [Plan Checker](../../plan-checker/SKILL.md) - Pre-execution plan validation (ADR-074)
 - [ADR-076: Autonomous Repair Mechanism](../../adr/076-autonomous-repair-mechanism.md) - Repair strategies and budget enforcement
 - [ADR-079: Workflow Orchestrator Enhancements](../../adr/079-workflow-orchestrator-enhancements.md) - Plan validation, context budget, deviation rules, regression gates
 - [ADR-069: Session Handoff System](../../adr/069-session-handoff-system.md) - Handoff artifacts for POOR context zone

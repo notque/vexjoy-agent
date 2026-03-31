@@ -144,7 +144,7 @@ CONTENT
 
 This phase is non-negotiable. Do not skip validation for "good enough" content. Human perception drifts. Deterministic validation catches patterns you miss. Self-assessment is not validation. Use `--skip-validation` only for true drafts the user explicitly requests as drafts.
 
-**Step 1: Execute validation** — Run `voice_validator.py validate` against the draft. See `references/validation-scripts.md` for full command syntax and output schema.
+**Step 1: Execute validation** — Run `voice-validator.py validate` against the draft. See `references/validation-scripts.md` for full command syntax and output schema.
 
 **Step 2: Decision logic** — Pass → JOY-CHECK. Fail + iterations < 3 → REFINE. Fail + iterations ≥ 3 → JOY-CHECK with failure report. See `references/validation-scripts.md` for the full decision table.
 
@@ -243,7 +243,7 @@ Actions:
 1. Load voice-myvoice SKILL.md, profile.json, config.json (LOAD)
 2. Assess topic: awards, community audience. Plan structure: opening pattern, 5 sections, callback closing. Establish emotional anchor: celebration, community recognition (GROUND)
 3. Generate awards content matching the voice's metrics, patterns, and architectural patterns (GENERATE)
-4. Run voice_validator.py, score: 58, 3 violations found (VALIDATE)
+4. Run voice-validator.py, score: 58, 3 violations found (VALIDATE)
 5. Fix "delve into" banned phrase, em-dash, rhythm violation (REFINE)
 6. Re-validate: score 82, PASSED. Run scan-negative-framing.py: clean. Evaluate paragraphs: all JOY/NEUTRAL (JOY-CHECK)
 7. Display with validation and joy-check report (OUTPUT)
@@ -255,7 +255,7 @@ User says: "/voice-writer --validate --voice myvoice --content /path/to/draft.md
 Actions:
 1. Load voice-myvoice profile.json and config.json (LOAD)
 2. Skip GROUND and GENERATE phases (validate-only mode)
-3. Run voice_validator.py against provided content (VALIDATE)
+3. Run voice-validator.py against provided content (VALIDATE)
 4. Skip REFINE (validate-only mode)
 5. Run joy-check against provided content (JOY-CHECK)
 6. Display validation and joy-check report with metrics comparison (OUTPUT)

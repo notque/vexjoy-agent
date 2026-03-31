@@ -50,13 +50,13 @@ This skill composes valid pipeline chains for each subdomain in a Component Mani
 - The agent decision (new_agent or reuse_agent)
 - Per-subdomain metadata: references_needed, scripts_needed, routing_triggers
 
-**Step 2**: Load `pipelines/pipeline-scaffolder/references/step-menu.md`. This file contains:
+**Step 2**: Load `skills/workflow/references/pipeline-scaffolder/references/step-menu.md`. This file contains:
 - Step families with output schemas and consumption rules
 - The type compatibility matrix
 - Composition rules (structural, profile-aware, optimization, delegation, type)
 - Operator profile definitions and chain examples
 
-**Step 3**: Load `pipelines/chain-composer/references/canonical-chains.md`. This contains the 8 canonical chain templates per task type, including common variants.
+**Step 3**: Load `skills/workflow/references/chain-composer/references/canonical-chains.md`. This contains the 8 canonical chain templates per task type, including common variants.
 
 **Step 4**: Identify the operator profile from the Component Manifest. Valid profiles: `personal`, `work`, `ci`, `production`.
 
@@ -236,7 +236,7 @@ rm -f /tmp/pipeline-{run-id}/chain-*.json
 
 **Why the Pipeline Spec is JSON, not markdown**: *Constraint: The scaffolder needs machine-readable data to derive build targets (skills, references, scripts, agents, routing). JSON is the contract format defined in `pipeline-spec-format.md`.* The human-readable summary is a companion, not a replacement. *Constraint: Do NOT produce markdown instead of JSON. The scaffolder consumes JSON. It parses field names, iterates subdomain arrays, and extracts step objects programmatically.*
 
-**Step 1**: Load `pipelines/pipeline-scaffolder/references/pipeline-spec-format.md` for the exact format contract. Verify every field requirement against what you will produce.
+**Step 1**: Load `skills/workflow/references/pipeline-scaffolder/references/pipeline-spec-format.md` for the exact format contract. Verify every field requirement against what you will produce.
 
 **Step 1a**: Compute the ADR hash for integrity binding:
 ```bash
@@ -372,4 +372,4 @@ Total steps across all chains: {total}
 - **Artifact Utils Script**: `scripts/artifact-utils.py validate-chain` -- Deterministic chain validator
 - **Step Menu**: [../pipeline-scaffolder/references/step-menu.md](../pipeline-scaffolder/references/step-menu.md) -- Step families, type compatibility matrix, composition rules, operator profiles
 - **Pipeline Spec Format**: [../pipeline-scaffolder/references/pipeline-spec-format.md](../pipeline-scaffolder/references/pipeline-spec-format.md) -- Machine-readable contract format
-- **Domain Research**: [../domain-research/SKILL.md](../domain-research/SKILL.md) -- Input skill that produces Component Manifest
+- **Domain Research**: [./domain-research.md](./domain-research.md) -- Input skill that produces Component Manifest

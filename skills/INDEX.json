@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-03-30T22:22:18Z",
+  "generated": "2026-03-31T00:20:32Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -233,8 +233,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "x-api",
-        "crosspost"
+        "x-api"
       ],
       "model": "sonnet"
     },
@@ -255,6 +254,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
+        "voice-calibrator",
         "voice-writer"
       ]
     },
@@ -446,9 +446,9 @@
       "user_invocable": false,
       "version": "3.0.0",
       "pairs_with": [
-        "workflow-orchestrator",
+        "workflow",
         "subagent-driven-development",
-        "pr-workflow",
+        "pr-pipeline",
         "git-commit-flow",
         "verification-before-completion",
         "universal-quality-gate",
@@ -501,8 +501,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "systematic-debugging",
-        "workflow-orchestrator",
+        "workflow",
         "plan-checker"
       ]
     },
@@ -546,7 +545,7 @@
       "user_invocable": true,
       "version": "1.0.0",
       "pairs_with": [
-        "workflow"
+        "comprehensive-review"
       ],
       "model": "opus"
     },
@@ -567,7 +566,7 @@
       "version": "2.0.0",
       "pairs_with": [
         "python-general-engineer",
-        "workflow-orchestrator"
+        "workflow"
       ]
     },
     "generate-claudemd": {
@@ -749,7 +748,7 @@
       "version": "2.0.0",
       "pairs_with": [
         "gemini-image-generator",
-        "workflow-orchestrator"
+        "workflow"
       ]
     },
     "install": {
@@ -782,7 +781,7 @@
       "version": "1.0.0",
       "pairs_with": [
         "feature-lifecycle",
-        "workflow"
+        "comprehensive-review"
       ]
     },
     "joy-check": {
@@ -1022,7 +1021,7 @@
       "version": "1.0.0",
       "pairs_with": [
         "feature-lifecycle",
-        "workflow-orchestrator",
+        "workflow",
         "plan-manager"
       ]
     },
@@ -1099,7 +1098,6 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "workflow-orchestrator",
         "workflow",
         "gemini-image-generator"
       ]
@@ -1154,7 +1152,7 @@
       "version": "1.0.0",
       "pairs_with": [
         "feature-lifecycle",
-        "workflow-orchestrator"
+        "workflow"
       ]
     },
     "pre-publish-checker": {
@@ -1882,8 +1880,7 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "content-engine",
-        "crosspost"
+        "content-engine"
       ],
       "agent": "python-general-engineer",
       "model": "sonnet"

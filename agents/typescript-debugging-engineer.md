@@ -17,7 +17,7 @@ routing:
     - typescript-patterns
     - debugging
   pairs_with:
-    - systematic-debugging
+    - workflow
     - typescript-frontend-engineer
   complexity: Medium-Complex
   category: language

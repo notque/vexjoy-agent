@@ -93,7 +93,7 @@ routing:
     - laravel
     - symfony
   pairs_with:
-    - systematic-debugging
+    - workflow
     - verification-before-completion
     - systematic-code-review
   complexity: Medium-Complex

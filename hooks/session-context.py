@@ -21,7 +21,10 @@ from pathlib import Path
 # Add lib directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
+from hook_utils import context_output, empty_output
 from learning_db_v2 import get_stats, query_learnings
+
+EVENT_NAME = "SessionStart"
 
 
 def main():
@@ -38,10 +41,11 @@ def main():
         )
 
         if not learnings:
-            return  # Silent when no relevant patterns
+            empty_output(EVENT_NAME).print_and_exit()
 
-        # Print context information
-        print(f"[learned-context] Loaded {len(learnings)} high-confidence patterns")
+        # Aggregate context lines
+        lines = []
+        lines.append(f"[learned-context] Loaded {len(learnings)} high-confidence patterns")
 
         # Group by error type
         by_type = {}
@@ -50,21 +54,22 @@ def main():
             by_type[et] = by_type.get(et, 0) + 1
 
         type_summary = ", ".join(f"{et}({count})" for et, count in sorted(by_type.items()))
-        print(f"[learned-context] Types: {type_summary}")
+        lines.append(f"[learned-context] Types: {type_summary}")
 
         # Show stats
         stats = get_stats()
         total = stats.get("total_learnings", 0)
         if total > 0:
             high_conf = stats.get("high_confidence", 0)
-            print(f"[learned-context] {high_conf}/{total} patterns at high confidence")
+            lines.append(f"[learned-context] {high_conf}/{total} patterns at high confidence")
+
+        context_output(EVENT_NAME, "\n".join(lines)).print_and_exit()
 
     except Exception as e:
         # Log to stderr if debug enabled, but never fail
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             print(f"[learned-context] Error: {e}", file=sys.stderr)
-    finally:
-        sys.exit(0)
+        empty_output(EVENT_NAME).print_and_exit()
 
 
 if __name__ == "__main__":

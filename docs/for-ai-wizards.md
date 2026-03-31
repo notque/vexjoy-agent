@@ -269,7 +269,7 @@ PHASE 6: REFINE    -> Fix validation errors (max 3 iterations)
 PHASE 7: OUTPUT    -> Final content with validation report
 ```
 
-The `research-to-article` workflow reference (now in `skills/workflow/references/`) uses all seven phases. It launches 5 parallel research agents in GATHER (primary domain, narrative arcs, external context, community reaction, business context), compiles findings with story arc emphasis in COMPILE, selects voice mode in GROUND, generates via voice-writer in GENERATE, validates with `voice_validator.py` in VALIDATE, iterates in REFINE, and outputs with a validation report.
+The `research-to-article` workflow reference (now in `skills/workflow/references/`) uses all seven phases. It launches 5 parallel research agents in GATHER (primary domain, narrative arcs, external context, community reaction, business context), compiles findings with story arc emphasis in COMPILE, selects voice mode in GROUND, generates via voice-writer in GENERATE, validates with `voice-validator.py` in VALIDATE, iterates in REFINE, and outputs with a validation report.
 
 `parallel-code-review` uses a compressed version: IDENTIFY SCOPE -> DISPATCH (3 reviewers in parallel) -> AGGREGATE -> VERDICT. The fan-out/fan-in pattern -- dispatch independent subagents, collect results, merge by severity.
 

@@ -253,7 +253,6 @@ def purge_flagged(db_path: Path, flagged: list[dict], verbose: bool) -> int:
 
 
 def _default_db_path() -> Path:
-    env = Path(sys.argv[0]).parent  # just a sentinel
     import os
 
     env_dir = os.environ.get("CLAUDE_LEARNING_DIR")

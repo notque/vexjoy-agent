@@ -24,7 +24,7 @@ routing:
     - pre-planning discussion
   pairs_with:
     - feature-lifecycle
-    - workflow-orchestrator
+    - workflow
   complexity: Medium
   category: process
 ---

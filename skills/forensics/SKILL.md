@@ -23,8 +23,7 @@ routing:
     - "why did this break"
     - "incident review"
   pairs_with:
-    - systematic-debugging
-    - workflow-orchestrator
+    - workflow
     - plan-checker
   complexity: Medium
   category: process

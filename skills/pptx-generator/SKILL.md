@@ -24,8 +24,7 @@ routing:
     - make a deck
     - conference talk slides
   pairs_with:
-    - workflow-orchestrator
-    - research-to-article
+    - workflow
     - gemini-image-generator
   complexity: Medium-Complex
   category: content-generation
@@ -628,6 +627,6 @@ For detailed information:
 - **QA Checklist**: [references/qa-checklist.md](references/qa-checklist.md) -- visual QA criteria for the subagent, severity levels, and output format
 
 ### Complementary Skills
-- [research-to-article](../research-to-article/SKILL.md) -- research output can feed slide content
+- [research-to-article](../workflow/references/research-to-article.md) -- research output can feed slide content
 - [gemini-image-generator](../gemini-image-generator/SKILL.md) -- generate images for slides
 - [workflow-orchestrator](../workflow-orchestrator/SKILL.md) -- orchestrate multi-step pipelines

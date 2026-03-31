@@ -24,7 +24,7 @@ routing:
     - cover art video
   pairs_with:
     - gemini-image-generator
-    - workflow-orchestrator
+    - workflow
   complexity: simple
   category: video-creation
 ---

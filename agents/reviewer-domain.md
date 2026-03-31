@@ -34,7 +34,7 @@ routing:
     - ops
     - operational
   pairs_with:
-    - comprehensive-review
+    - workflow
     - parallel-code-review
     - systematic-code-review
   complexity: Medium-Complex
