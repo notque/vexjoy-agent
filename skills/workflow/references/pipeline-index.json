@@ -110,7 +110,7 @@
       "description": "Unified 4-wave code review: Wave 0 auto-discovers packages/modules and dispatches one language-specialist agent per package for deep per-package analysis.",
       "triggers": [
         "comprehensive review",
-        "full review",
+        "full code review",
         "review everything",
         "review and fix",
         "thorough review",
@@ -808,7 +808,7 @@
       "description": "Unified voice content generation pipeline with mandatory validation and joy-check.",
       "triggers": [
         "write article",
-        "blog post",
+        "write blog post",
         "write in voice",
         "generate voice content",
         "voice workflow",
