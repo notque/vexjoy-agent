@@ -27,7 +27,6 @@ routing:
     - publish to twitter
   pairs_with:
     - content-engine
-    - crosspost
   complexity: Medium
   category: content-publishing
 ---

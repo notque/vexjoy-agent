@@ -33,7 +33,6 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **project-coordinator-engineer** | User needs multi-agent coordination for a large project: spawning parallel agents, tracking cross-cutting tasks, or orchestrating a multi-phase effort. |
 | **pipeline-orchestrator-engineer** | User wants to create a new pipeline, scaffold a new structured workflow, or compose pipeline phases. |
 | **hook-development-engineer** | User wants to create or modify Python hooks for Claude Code's event-driven system (SessionStart, PostToolUse, etc.). |
-| **skill-creator** | User wants to create or improve a Claude Code skill, workflow automation, or agent configuration. |
 | **system-upgrade-engineer** | User wants to upgrade the agent/skill/hook ecosystem after a Claude model update or system-wide change. |
 | **technical-documentation-engineer** | User needs technical documentation created, maintained, or validated — API docs, READMEs, architecture guides. |
 | **technical-journalist-writer** | User needs professional technical writing in a journalism style — articles, posts, or content with a specific authored voice. |
@@ -89,6 +88,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **socratic-debugging** | User wants to be guided to find the root cause themselves through questions rather than being given the answer directly: coaching mode, "teach me to find it". |
 | **plant-seed** | User wants to capture a forward-looking idea with trigger conditions so it surfaces automatically during future feature design. |
 | **install** | User wants to verify Claude Code Toolkit installation, diagnose setup issues, or check if the toolkit is correctly configured. |
+| **skill-creator** | User wants to create or improve a Claude Code skill, workflow automation, or agent configuration. |
 | **systematic-debugging** | User wants to diagnose why something is broken or not working as expected — root cause analysis, reproduce-isolate-identify-verify. Common phrasings: "why is this broken", "what's wrong with", "figure out why", "can't figure out", "not working", "slow", "performance", "taking too long", "optimize". NOT: debugging a past session (use forensics), guided self-discovery (use socratic-debugging). |
 | **systematic-refactoring** | User wants to improve existing code structure without changing behavior — extract, rename, simplify, restructure. Common phrasings: "clean this up", "improve this code", "make this better", "code quality". NOT: adding new features (use a domain agent), fixing a bug (use systematic-debugging). |
 

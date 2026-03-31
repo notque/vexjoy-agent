@@ -22,7 +22,7 @@ routing:
     - generate character art
   pairs_with:
     - python-general-engineer
-    - workflow-orchestrator
+    - workflow
   complexity: simple
   category: image-generation
 ---

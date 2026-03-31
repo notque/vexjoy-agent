@@ -363,6 +363,6 @@ Solution: Check if prior `report.md` exists. If it does, ask the user: re-run (o
 
 ## References
 
-- [domain-research](../domain-research/SKILL.md) - Subdomain discovery pipeline that uses similar parallel research patterns
-- [explore-pipeline](../explore-pipeline/SKILL.md) - Systematic codebase exploration pipeline for research within a repository
+- [domain-research](./domain-research.md) - Subdomain discovery pipeline that uses similar parallel research patterns
+- [explore-pipeline](./explore-pipeline.md) - Systematic codebase exploration pipeline for research within a repository
 - [research-subagent-executor](../../agents/research-subagent-executor.md) - Agent dispatched in Phase 2 for parallel research execution

@@ -121,7 +121,7 @@ When asked to perform unavailable actions, explain the limitation and suggest th
 
 ### Cross-Component Consistency Check
 
-1. **SCAN**: Glob for all agents (`agents/*.md`) and skills (`skills/*/SKILL.md`, `pipelines/*/SKILL.md`)
+1. **SCAN**: Glob for all agents (`agents/*.md`) and skills (`skills/*/SKILL.md`, `skills/workflow/references/*.md`)
 2. **EXTRACT**: Parse YAML frontmatter from each component
 3. **CHECK**: Compare against required fields, validate cross-references, check routing coverage
 4. **REPORT**: Output compliance summary with specific issues and suggested fixes

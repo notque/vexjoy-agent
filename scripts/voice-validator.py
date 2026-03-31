@@ -128,10 +128,13 @@ def find_script_dir() -> Path:
 
 def load_banned_patterns(path: Path | None = None) -> BannedPatterns:
     """Load banned patterns from JSON file."""
+    is_default = path is None
     if path is None:
         path = find_script_dir() / "data" / "banned-patterns.json"
 
     if not path.exists():
+        if is_default:
+            print(f"Warning: banned-patterns file not found: {path}", file=sys.stderr)
         return BannedPatterns()
 
     content = path.read_text(encoding="utf-8")
@@ -414,12 +417,15 @@ def check_rhythm(content: str, profile: dict[str, Any] | None = None) -> list[Vi
         if diff <= SENTENCE_LENGTH_VARIANCE:
             consecutive_similar += 1
             if consecutive_similar >= MONOTONY_THRESHOLD:
-                # Find the line number for this sentence
+                # Find the line number for the current sentence (index i)
                 line = 1
+                last_pos = 0
                 for _j, s in enumerate(sentences[: i + 1]):
-                    pos = content.find(s)
+                    pos = content.find(s, last_pos)
                     if pos >= 0:
-                        line = content[:pos].count("\n") + 1
+                        if _j == i:
+                            line = content[:pos].count("\n") + 1
+                        last_pos = pos + len(s)
 
                 avg_length = sum(sentence_lengths[i - MONOTONY_THRESHOLD : i + 1]) // (MONOTONY_THRESHOLD + 1)
                 violations.append(

@@ -95,7 +95,7 @@ Key rule: fix one violation at a time. Do not rewrite entire sections — fix th
 ### If profile.json is missing
 
 ```bash
-python3 ~/.claude/scripts/voice_analyzer.py analyze \
+python3 ~/.claude/scripts/voice-analyzer.py analyze \
   --samples [writing-sample-files] \
   --output skills/voice-{name}/profile.json
 ```

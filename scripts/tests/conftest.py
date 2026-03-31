@@ -32,18 +32,6 @@ def sample_voice_bad(fixtures_dir: Path) -> str:
 
 
 @pytest.fixture
-def sample_voice_good(fixtures_dir: Path) -> str:
-    """Load sample content that should pass Voice B validation."""
-    return (fixtures_dir / "sample_voice_good.md").read_text()
-
-
-@pytest.fixture
-def sample_voice_bad(fixtures_dir: Path) -> str:
-    """Load sample content that should fail Voice B validation."""
-    return (fixtures_dir / "sample_voice_bad.md").read_text()
-
-
-@pytest.fixture
 def expected_voice_profile(fixtures_dir: Path) -> dict:
     """Load expected voice analysis profile for Voice A sample."""
     return json.loads((fixtures_dir / "expected_voice_profile.json").read_text())

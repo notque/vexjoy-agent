@@ -354,21 +354,27 @@ fi
 if [ "$DRY_RUN" = true ]; then
     echo -e "${BLUE}  Would sync hooks from ${SCRIPT_DIR}/.claude/settings.json${NC}"
 elif [ -f "${SCRIPT_DIR}/.claude/settings.json" ]; then
-    # Create a backup before modifying
-    cp "$SETTINGS_FILE" "${SETTINGS_FILE}.backup"
+    # Create a timestamped backup before modifying
+    BACKUP_TS=$(date +%Y%m%d-%H%M%S)
+    cp "$SETTINGS_FILE" "${SETTINGS_FILE}.backup.${BACKUP_TS}"
 
     # Sync hooks and attribution from repo settings — repo is authoritative
     $PYTHON_CMD -c "
-import json, sys
+import json, os
 repo = json.load(open('${SCRIPT_DIR}/.claude/settings.json'))
 dst = '${SETTINGS_FILE}'
 try:
-    glob = json.load(open(dst))
+    glob = json.load(open(dst, encoding='utf-8'))
 except (FileNotFoundError, json.JSONDecodeError):
     glob = {}
 glob['hooks'] = repo.get('hooks', {})
 glob.setdefault('attribution', repo.get('attribution', {'commit': '', 'pr': ''}))
-json.dump(glob, open(dst, 'w'), indent=2)
+tmp = dst + '.tmp'
+with open(tmp, 'w', encoding='utf-8') as f:
+    json.dump(glob, f, indent=2)
+    f.flush()
+    os.fsync(f.fileno())
+os.rename(tmp, dst)
 print('  Hooks configured from .claude/settings.json')
 "
 else
@@ -409,7 +415,7 @@ else
     # Harden ~/.claude/ sensitive files (ADR-122)
     chmod 700 "${CLAUDE_DIR}" 2>/dev/null || true
     chmod 600 "${SETTINGS_FILE}" 2>/dev/null || true
-    chmod 600 "${SETTINGS_FILE}.backup" 2>/dev/null || true
+    chmod 600 "$(ls -1t "${SETTINGS_FILE}.backup."* 2>/dev/null | head -1)" 2>/dev/null || true
     chmod 700 "${CLAUDE_DIR}/learning" 2>/dev/null || true
     chmod 600 "${CLAUDE_DIR}/history.jsonl" 2>/dev/null || true
 fi

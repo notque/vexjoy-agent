@@ -319,8 +319,8 @@ Solution: Manually copy modified files to `~/.claude/` equivalent directories. R
 
 ## References
 
-- [agent-upgrade](../agent-upgrade/SKILL.md) - Bottom-up single-agent upgrade pipeline (complements this top-down system pipeline)
+- [agent-upgrade](./agent-upgrade.md) - Bottom-up single-agent upgrade pipeline (complements this top-down system pipeline)
 - [agent-evaluation](../../skills/agent-evaluation/SKILL.md) - Objective scoring skill used in Phase 5 validation
-- [pr-pipeline](../pr-pipeline/SKILL.md) - PR creation pipeline used in Phase 6 deploy
+- [pr-pipeline](./pr-pipeline.md) - PR creation pipeline used in Phase 6 deploy
 - [upgrade-diff.py](../../scripts/upgrade-diff.py) - Incremental diff script for scoping audits
 - [learning-db.py](../../scripts/learning-db.py) - Script for querying retro graduation candidates

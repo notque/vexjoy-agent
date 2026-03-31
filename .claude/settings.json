@@ -373,7 +373,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/post-compact-handler.py\"",
+            "command": "python3 \"$HOME/.claude/hooks/postcompact-handler.py\"",
             "description": "Re-inject plan context after context compaction",
             "timeout": 3000
           }

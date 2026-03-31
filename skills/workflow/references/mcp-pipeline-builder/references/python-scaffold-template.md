@@ -329,7 +329,7 @@ pip install -e .
 ### Register with Claude Code
 
 \`\`\`bash
-python3 pipelines/mcp-pipeline-builder/scripts/register_mcp.py \
+python3 skills/workflow/references/mcp-pipeline-builder/scripts/register_mcp.py \
   --name {service}-mcp-server \
   --command python3 \
   --args $(pwd)/src/main.py \

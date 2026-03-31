@@ -79,7 +79,7 @@ routing:
     - config validation
     - CI check
   pairs_with:
-    - comprehensive-review
+    - workflow
     - systematic-code-review
     - parallel-code-review
     - go-concurrency

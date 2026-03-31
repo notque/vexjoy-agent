@@ -372,7 +372,9 @@ def cmd_generate_wrapper(args: argparse.Namespace) -> int:
     """Generate a headless Claude Code cron wrapper script."""
     name = args.name
     tag = name  # tag matches name
-    prompt = args.prompt
+    # Sanitize prompt: replace any occurrence of the heredoc delimiter
+    # to prevent heredoc injection if prompt contains 'PROMPT_END' on its own line.
+    prompt = args.prompt.replace("PROMPT_END", "PROMPT_EN" + "D_ESC")
     workdir = args.workdir or os.getcwd()
     schedule = args.schedule
     budget = args.budget

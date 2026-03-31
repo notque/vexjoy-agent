@@ -76,7 +76,7 @@ python3 ~/.claude/scripts/task-type-classifier.py --request "{user_request}" --c
 
 **Why sequential?** Every step must complete before the next begins. No skipping, no parallel steps unless the step explicitly supports parallelism (RESEARCH, REVIEW). Phase gates enforce ordering and prevent state leakage between phases.
 
-**Step 1**: Read `pipelines/chain-composer/references/canonical-chains.md` for the full canonical chain and its variants.
+**Step 1**: Read `skills/workflow/references/chain-composer/references/canonical-chains.md` for the full canonical chain and its variants.
 
 **Step 2**: Select the best variant based on request analysis:
 - Does the request involve unstructured input? → add EXTRACT
@@ -106,11 +106,11 @@ python3 ~/.claude/scripts/task-type-classifier.py --request "{user_request}" --c
 
 **Goal**: Determine whether to crystallize immediately or run ephemeral.
 
-**Toolkit repo rule**: If running in this repo (detected by `pipelines/auto-pipeline/SKILL.md` existing in CWD), crystallize on first encounter. This repo IS the pipeline system — every pattern we extract becomes part of the toolkit. Capture the pattern immediately on the first run.
+**Toolkit repo rule**: If running in this repo (detected by `skills/workflow/references/auto-pipeline.md` existing in CWD), crystallize on first encounter. This repo IS the pipeline system — every pattern we extract becomes part of the toolkit. Capture the pattern immediately on the first run.
 
 **Outside toolkit repo rule**: Wait for 3+ ephemeral executions in the same domain before crystallizing. This ensures the pattern is stable and not a one-off.
 
-**Step 1**: Check if `pipelines/auto-pipeline/SKILL.md` exists in CWD (indicates toolkit repo).
+**Step 1**: Check if `skills/workflow/references/auto-pipeline.md` exists in CWD (indicates toolkit repo).
 
 **Step 2**: If toolkit repo:
 - Check learning.db for any prior ephemeral runs in this domain (informational only — crystallize regardless)
@@ -150,8 +150,8 @@ python3 ~/.claude/scripts/task-type-classifier.py --request "{user_request}" --c
 **Step 5 — VALIDATE**: Run `python3 ~/.claude/scripts/artifact-utils.py validate-chain` against the composed chain. If validation fails, fall back to unmodified canonical chain and log the adaptation failure.
 
 **Step 6 — SCAFFOLD**: Create the pipeline skill:
-- Create `pipelines/{pipeline-name}/SKILL.md` with full operator context
-- Create `pipelines/{pipeline-name}/references/` if domain references are needed
+- Create `skills/workflow/references/{pipeline-name}.md` with full operator context
+- Create `skills/workflow/references/{pipeline-name}/references/` if domain references are needed
 - Follow the existing pipeline SKILL.md format (frontmatter + operator context + phases)
 
 **Step 7 — INTEGRATE**: Wire into routing:
@@ -160,7 +160,7 @@ python3 ~/.claude/scripts/task-type-classifier.py --request "{user_request}" --c
 
 **Step 8 — VERIFY**: Confirm the new pipeline is discoverable:
 - Check `skills/INDEX.json` contains the new pipeline
-- Verify `pipelines/{name}/SKILL.md` exists and parses
+- Verify `skills/workflow/references/{name}.md` exists and parses
 
 **Step 9 — REGISTER**: Record in learning.db:
 - Mark all contributing ephemeral learnings as graduated

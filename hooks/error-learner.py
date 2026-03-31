@@ -105,6 +105,38 @@ def detect_error(event: dict) -> tuple[bool, str]:
         if any(indicator in output_lower for indicator in error_indicators):
             # Avoid false positives for success messages
             if "0 errors" not in output_lower and "no errors" not in output_lower:
+                # Avoid false positives for benign text patterns
+                false_positive_phrases = [
+                    "error handling",
+                    "error handler",
+                    "failed over",
+                    "failover",
+                    "not found in cache",
+                ]
+                if any(phrase in output_lower for phrase in false_positive_phrases):
+                    return False, ""
+                # Avoid false positives for error keywords inside code identifiers
+                # e.g., ErrorType, handle_error, on_error, etc.
+                import re as _re
+
+                if _re.search(r"[A-Z][a-z]*[Ee]rror[A-Z]|[a-z_][Ee]rror[A-Za-z_]|[Hh]andle[_]?[Ee]rror", output):
+                    # Only suppress if ALL error indicators are inside identifiers
+                    plain_indicators = [
+                        "failed",
+                        "permission denied",
+                        "access denied",
+                        "no such file",
+                        "cannot find",
+                        "does not exist",
+                        "syntax error",
+                        "unexpected token",
+                        "module not found",
+                        "no module named",
+                        "traceback",
+                        "exception",
+                    ]
+                    if not any(indicator in output_lower for indicator in plain_indicators):
+                        return False, ""
                 return True, output
 
     # Check for non-zero exit code mention in Bash tool

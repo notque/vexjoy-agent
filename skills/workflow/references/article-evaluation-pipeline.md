@@ -32,7 +32,7 @@ routing:
 
 ## Overview
 
-This skill evaluates articles for voice authenticity through a deterministic 4-phase pipeline: **Fetch**, **Validate**, **Analyze**, **Report**. It combines voice pattern validation via `voice_validator.py` with wabi-sabi-aware analysis to distinguish authentic imperfections from actual violations. The evaluation produces a structured report with verdict (AUTHENTIC / NEEDS WORK / FAILED) and line-specific recommendations.
+This skill evaluates articles for voice authenticity through a deterministic 4-phase pipeline: **Fetch**, **Validate**, **Analyze**, **Report**. It combines voice pattern validation via `voice-validator.py` with wabi-sabi-aware analysis to distinguish authentic imperfections from actual violations. The evaluation produces a structured report with verdict (AUTHENTIC / NEEDS WORK / FAILED) and line-specific recommendations.
 
 **Default behaviors (always enabled)**:
 - All 4 phases execute in sequence with explicit gates between phases
@@ -78,12 +78,12 @@ Do not guess voice profiles. Wrong profile produces meaningless scores and inval
 
 ### Phase 2: VALIDATE
 
-**Goal**: Run deterministic validation against voice profile and banned patterns using `scripts/voice_validator.py`.
+**Goal**: Run deterministic validation against voice profile and banned patterns using `scripts/voice-validator.py`.
 
 **Step 1: Voice pattern validation**
 
 ```bash
-python3 $HOME/claude-code-toolkit/scripts/voice_validator.py validate \
+python3 $HOME/claude-code-toolkit/scripts/voice-validator.py validate \
   --content /tmp/article-evaluation.md \
   --voice [voice-name] \
   --format json
@@ -94,7 +94,7 @@ Pass criteria: Score >= 60, zero hard errors.
 **Step 2: Banned pattern check**
 
 ```bash
-python3 $HOME/claude-code-toolkit/scripts/voice_validator.py check-banned \
+python3 $HOME/claude-code-toolkit/scripts/voice-validator.py check-banned \
   --content /tmp/article-evaluation.md
 ```
 
@@ -163,7 +163,7 @@ User says: "Evaluate this article https://example.com/posts/my-article/"
 
 Actions:
 1. Fetch article content, save to temp file, detect voice from context (FETCH)
-2. Run voice_validator.py validate + check-banned (VALIDATE)
+2. Run voice-validator.py validate + check-banned (VALIDATE)
 3. Classify imperfections as wabi-sabi or violations (ANALYZE)
 4. Generate report with verdict (REPORT)
 
@@ -185,10 +185,10 @@ Result: Fast pass/fail with scores, no wabi-sabi breakdown
 ## Error Handling
 
 ### Error: "Voice validator script not found"
-Cause: `scripts/voice_validator.py` not at expected path or not executable
+Cause: `scripts/voice-validator.py` not at expected path or not executable
 
 Solution:
-1. Verify path: `ls $HOME/claude-code-toolkit/scripts/voice_validator.py`
+1. Verify path: `ls $HOME/claude-code-toolkit/scripts/voice-validator.py`
 2. Check permissions: `chmod +x` if needed
 3. If missing, cannot proceed — deterministic validation via the script is a non-negotiable requirement
 

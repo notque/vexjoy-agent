@@ -315,11 +315,11 @@ def check_routing_registration(component_type: str, file_path: Path, fm: dict | 
 
 def check_reference_files(component_type: str, file_path: Path) -> CheckResult:
     """Check: Has reference files directory (10 pts)."""
+    # Agents: refs live in {agent-name}/references/ (e.g., golang-general-engineer/references/)
+    # Skills: refs live in the skill directory (e.g., skills/do/references/)
     if component_type == "agent":
-        # Agents share agents/references/
-        refs_dir = REPO_ROOT / "agents" / "references"
+        refs_dir = file_path.parent / file_path.stem / "references"
     else:
-        # Skills have per-skill references/
         refs_dir = file_path.parent / "references"
 
     if refs_dir.is_dir():
@@ -410,7 +410,9 @@ def check_broken_internal_links(content: str, file_path: Path) -> CheckResult:
         # Also try relative to repo root (some links use repo-relative paths)
         resolved_from_root = (REPO_ROOT / link).resolve()
 
-        if resolved.exists() or resolved_from_root.exists():
+        # Also try relative to the component subdir (e.g., golang-general-engineer/ for golang-general-engineer.md)
+        resolved_from_component = (base_dir / file_path.stem / link).resolve()
+        if resolved.exists() or resolved_from_root.exists() or resolved_from_component.exists():
             valid += 1
         else:
             broken.append(link)

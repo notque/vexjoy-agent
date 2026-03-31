@@ -34,7 +34,7 @@ routing:
 
 This skill orchestrates a complete content pipeline from research to publication. The pipeline operates in six distinct phases, each with defined inputs and gate criteria that must pass before proceeding to the next phase. Each phase produces persistent artifacts (files saved to disk) because context is ephemeral but files remain.
 
-The core principle: research informs the article while the narrative stays in control. Raw data transforms into story before reaching the final output. Always run deterministic validation with `voice_validator.py` at the end because self-assessment is unreliable.
+The core principle: research informs the article while the narrative stays in control. Raw data transforms into story before reaching the final output. Always run deterministic validation with `voice-validator.py` at the end because self-assessment is unreliable.
 
 ## Instructions
 
@@ -156,14 +156,14 @@ content/[site]/test/[subject]-article.md
 **Step 1: Run validator**
 
 ```bash
-python3 $HOME/claude-code-toolkit/scripts/voice_validator.py validate \
+python3 $HOME/claude-code-toolkit/scripts/voice-validator.py validate \
   --content /path/to/article-draft.md \
   --profile $HOME/claude-code-toolkit/skills/voice-[name]/profile.json \
   --voice [name] \
   --format json
 ```
 
-Run `voice_validator.py` every time because self-assessment is unreliable — validation is mandatory, not optional.
+Run `voice-validator.py` every time because self-assessment is unreliable — validation is mandatory, not optional.
 
 **Step 2: Check pass criteria**
 
@@ -234,7 +234,7 @@ Actions:
 2. Compile findings into story arc (COMPILE)
 3. Ground: celebration, community, profile mode (GROUND)
 4. Generate with appropriate voice skill, research as context (GENERATE)
-5. Validate with voice_validator.py, score 97/100 (VALIDATE)
+5. Validate with voice-validator.py, score 97/100 (VALIDATE)
 6. Output article with validation report, both files saved (OUTPUT)
 Result: Published-quality article with deterministic validation
 

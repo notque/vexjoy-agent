@@ -250,12 +250,8 @@ def _ensure_archive_table(conn: sqlite3.Connection) -> None:
 def cmd_stale(args):
     """Show entries that appear stale (old, low-confidence, not graduated)."""
     init_db()
-    db_path = get_db_path()
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-
-    entries = _query_stale_entries(conn, args.min_age_days)
-    conn.close()
+    with get_connection() as conn:
+        entries = _query_stale_entries(conn, args.min_age_days)
 
     if args.json:
         print(json.dumps(entries, indent=2, default=str))
@@ -289,58 +285,52 @@ def cmd_stale(args):
 def cmd_stale_prune(args):
     """Archive stale entries to learning_archive table."""
     init_db()
-    db_path = get_db_path()
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
+    with get_connection() as conn:
+        entries = _query_stale_entries(conn, args.min_age_days)
 
-    entries = _query_stale_entries(conn, args.min_age_days)
+        if not entries:
+            print(f"No stale entries to archive (age > {args.min_age_days} days, confidence < 0.5, not graduated).")
+            return
 
-    if not entries:
-        print(f"No stale entries to archive (age > {args.min_age_days} days, confidence < 0.5, not graduated).")
-        conn.close()
-        return
+        if args.dry_run:
+            print(f"DRY RUN: Would archive {len(entries)} stale entries:")
+            print()
+            now = datetime.now()
+            for entry in entries:
+                first_seen = datetime.fromisoformat(entry["first_seen"]) if entry["first_seen"] else now
+                age_days = (now - first_seen).days
+                print(f"  {entry['topic']}/{entry['key']} (confidence: {entry['confidence']:.2f}, age: {age_days}d)")
+            print()
+            print(f"Run with --confirm to archive these {len(entries)} entries.")
+            return
 
-    if args.dry_run:
-        print(f"DRY RUN: Would archive {len(entries)} stale entries:")
-        print()
-        now = datetime.now()
+        # --confirm: actually archive
+        _ensure_archive_table(conn)
+        archived_at = datetime.now().isoformat()
+        archived_count = 0
+
         for entry in entries:
-            first_seen = datetime.fromisoformat(entry["first_seen"]) if entry["first_seen"] else now
-            age_days = (now - first_seen).days
-            print(f"  {entry['topic']}/{entry['key']} (confidence: {entry['confidence']:.2f}, age: {age_days}d)")
-        print()
-        print(f"Run with --confirm to archive these {len(entries)} entries.")
-        conn.close()
-        return
+            conn.execute(
+                """
+                INSERT INTO learning_archive (id, topic, key, value, confidence, category, created_at, updated_at, archived_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    entry["id"],
+                    entry["topic"],
+                    entry["key"],
+                    entry["value"],
+                    entry["confidence"],
+                    entry["category"],
+                    entry["first_seen"],
+                    entry["last_seen"],
+                    archived_at,
+                ),
+            )
+            conn.execute("DELETE FROM learnings WHERE id = ?", (entry["id"],))
+            archived_count += 1
 
-    # --confirm: actually archive
-    _ensure_archive_table(conn)
-    archived_at = datetime.now().isoformat()
-    archived_count = 0
-
-    for entry in entries:
-        conn.execute(
-            """
-            INSERT INTO learning_archive (id, topic, key, value, confidence, category, created_at, updated_at, archived_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                entry["id"],
-                entry["topic"],
-                entry["key"],
-                entry["value"],
-                entry["confidence"],
-                entry["category"],
-                entry["first_seen"],
-                entry["last_seen"],
-                archived_at,
-            ),
-        )
-        conn.execute("DELETE FROM learnings WHERE id = ?", (entry["id"],))
-        archived_count += 1
-
-    conn.commit()
-    conn.close()
+        conn.commit()
     print(f"Archived {archived_count} stale entries to learning_archive table.")
 
 
@@ -659,12 +649,11 @@ def cmd_learn(args):
 
 def cmd_purge(args):
     """Delete all entries matching a topic."""
-    db_path = get_db_path()
-    conn = sqlite3.connect(db_path)
-    cursor = conn.execute("DELETE FROM learnings WHERE topic = ?", (args.topic,))
-    count = cursor.rowcount
-    conn.commit()
-    conn.close()
+    init_db()
+    with get_connection() as conn:
+        cursor = conn.execute("DELETE FROM learnings WHERE topic = ?", (args.topic,))
+        count = cursor.rowcount
+        conn.commit()
     print(f"Purged {count} entries with topic '{args.topic}'")
 
 

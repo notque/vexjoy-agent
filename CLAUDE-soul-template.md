@@ -118,11 +118,11 @@ This repository contains agents, skills, and hooks for Claude Code.
 |-----------|----------|---------|--------|
 | **Agent** | `agents/*.md` | Domain expert (e.g., Go, Python, K8s) | Markdown with YAML frontmatter |
 | **Skill** | `skills/*/SKILL.md` | Workflow methodology (e.g., TDD, debugging) | Markdown with YAML frontmatter |
-| **Pipeline** | `pipelines/*/SKILL.md` | Multi-phase structured workflow (same format as skills) | Markdown with YAML frontmatter |
+| **Pipeline** | `skills/workflow/references/*.md` | Multi-phase structured workflow (same format as skills) | Markdown with YAML frontmatter |
 | **Hook** | `hooks/*.py` | Event-driven automation | Python script |
 | **Script** | `scripts/*.py` | Deterministic operations | Python CLI |
 
-> **Note**: Pipelines are skills with explicit numbered phases and gates. They live in `pipelines/` for organizational clarity but are synced to `~/.claude/skills/` at install time, so Claude Code discovers them as regular skills.
+> **Note**: Pipelines are skills with explicit numbered phases and gates. They live in `skills/workflow/references/` for organizational clarity but are synced to `~/.claude/skills/` at install time, so Claude Code discovers them as regular skills.
 
 ### Key Frontmatter Fields
 
@@ -172,8 +172,8 @@ PHASE 7: OUTPUT    → Final content with validation report
 
 ### Available Pipelines
 
-Pipelines live in `pipelines/*/SKILL.md`. Each pipeline's frontmatter contains its
-description and phase count. Run `ls pipelines/` for the current inventory.
+Pipelines live in `skills/workflow/references/*.md`. Each pipeline's frontmatter contains its
+description and phase count. Run `ls skills/workflow/references/` for the current inventory.
 
 Key pipelines referenced elsewhere in this document:
 - `workflow-orchestrator`: Task orchestration (BRAINSTORM → WRITE-PLAN → VALIDATE-PLAN → EXECUTE-PLAN)
@@ -246,8 +246,8 @@ Deterministic voice validation using Python scripts + AI generation.
 
 | Component | Type | Purpose |
 |-----------|------|---------|
-| `voice_analyzer.py` | Script | Extract metrics from writing samples |
-| `voice_validator.py` | Script | Validate content against voice profiles |
+| `voice-analyzer.py` | Script | Extract metrics from writing samples |
+| `voice-validator.py` | Script | Validate content against voice profiles |
 | `voice-writer` | Skill | Unified voice content generation with validation |
 | `voice-{name}` | Skill | Apply specific voice patterns |
 
@@ -255,13 +255,13 @@ Deterministic voice validation using Python scripts + AI generation.
 
 ```bash
 # Analyze writing samples
-python3 ~/.claude/scripts/voice_analyzer.py analyze --samples file.md
+python3 ~/.claude/scripts/voice-analyzer.py analyze --samples file.md
 
 # Validate against voice profile
-python3 ~/.claude/scripts/voice_validator.py validate --content draft.md --voice your-profile
+python3 ~/.claude/scripts/voice-validator.py validate --content draft.md --voice your-profile
 
 # Quick banned pattern check
-python3 ~/.claude/scripts/voice_validator.py check-banned --content draft.md
+python3 ~/.claude/scripts/voice-validator.py check-banned --content draft.md
 ```
 
 ### Wabi-Sabi Principle

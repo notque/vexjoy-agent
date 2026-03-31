@@ -45,7 +45,7 @@ routing:
     - complete feature pipeline
     - feature pipeline
   pairs_with:
-    - workflow-orchestrator
+    - workflow
     - subagent-driven-development
     - pr-pipeline
     - git-commit-flow

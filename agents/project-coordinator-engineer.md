@@ -13,7 +13,7 @@ routing:
     - task management
     - agent coordination
   pairs_with:
-    - workflow-orchestrator
+    - workflow
     - subagent-driven-development
   complexity: Complex
   category: meta

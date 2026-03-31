@@ -193,7 +193,7 @@ STOP and ask the user when:
 
 ## References
 
-- **Skill**: [pipelines/system-upgrade/SKILL.md](../pipelines/system-upgrade/SKILL.md)
+- **Skill**: [skills/workflow/references/system-upgrade.md](..skills/workflow/references/system-upgrade.md)
 - **Agent Evaluation**: [skills/agent-evaluation/SKILL.md](../skills/agent-evaluation/SKILL.md)
 - **Learning DB**: [scripts/learning-db.py](../scripts/learning-db.py)
 - **Routing Table Updater**: [skills/routing-table-updater/SKILL.md](../skills/routing-table-updater/SKILL.md)

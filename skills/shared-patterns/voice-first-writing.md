@@ -57,7 +57,7 @@ A reference article achieved 97/100 validation using this exact pipeline:
    - Never expose raw data
 
 5. VALIDATE - Check quality
-   - Run voice_validator.py
+   - Run voice-validator.py
    - Score >= 60 for pass
    - Fix errors, accept warnings
 ```
@@ -144,7 +144,7 @@ See: `skills/shared-patterns/wabi-sabi-authenticity.md`
 All voice content must pass validation:
 
 ```bash
-python3 ~/.claude/scripts/voice_validator.py validate \
+python3 ~/.claude/scripts/voice-validator.py validate \
   --content [file] \
   --voice [voice-name] \
   --format json
