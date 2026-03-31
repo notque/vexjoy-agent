@@ -108,15 +108,11 @@ class TestForceRoutes:
         if expected_skill is not None:
             # force_route dict may use 'skill' or 'pipeline' as key
             routed_skill = fr.get("skill") or fr.get("pipeline")
-            assert routed_skill == expected_skill, (
-                f"Expected force_route skill={expected_skill!r}, got {fr}"
-            )
+            assert routed_skill == expected_skill, f"Expected force_route skill={expected_skill!r}, got {fr}"
 
         if expected_agent is not None:
             routed_agent = fr.get("agent")
-            assert routed_agent == expected_agent, (
-                f"Expected force_route agent={expected_agent!r}, got {fr}"
-            )
+            assert routed_agent == expected_agent, f"Expected force_route agent={expected_agent!r}, got {fr}"
 
 
 class TestCandidates:
@@ -161,8 +157,7 @@ class TestCandidates:
 
         if expected_skill is not None:
             assert expected_skill in top_n_names, (
-                f"Expected skill {expected_skill!r} in top-{depth} candidates: {top_n_names}\n"
-                f"Full top-{depth}: {top_n}"
+                f"Expected skill {expected_skill!r} in top-{depth} candidates: {top_n_names}\nFull top-{depth}: {top_n}"
             )
 
         if expected_agent is not None:
