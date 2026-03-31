@@ -139,7 +139,7 @@ def scan_agents(base_dir: Path) -> list[dict]:
 
 def _skills_from_index(index_path: Path) -> list[dict] | None:
     """
-    Parse a skills/INDEX.json or skills/INDEX.json file.
+    Parse a skills/INDEX.json or pipeline-index.json file.
 
     Returns a list of {name, user_invocable, agent} dicts on success,
     or None if the file is missing or unparseable.
@@ -148,8 +148,8 @@ def _skills_from_index(index_path: Path) -> list[dict] | None:
         return None
     try:
         data = json.loads(index_path.read_text(encoding="utf-8"))
-        # Both skills/INDEX.json and skills/INDEX.json store entries under
-        # a dict keyed by skill name ("skills" or "pipelines" top-level key).
+        # Both skills/INDEX.json and pipeline-index.json store entries under
+        # a dict keyed by component name ("skills" or "pipelines" top-level key).
         entries: dict = data.get("skills") or data.get("pipelines") or {}
         if not isinstance(entries, dict):
             return None
@@ -169,7 +169,7 @@ def scan_skills(base_dir: Path) -> list[dict]:
     """
     Scan skills/ directory for existing skill definitions.
 
-    Reads skills/INDEX.json and skills/INDEX.json when available (single
+    Reads skills/INDEX.json and pipeline-index.json when available (single
     JSON parse per directory replaces ~145 + ~30 SKILL.md reads + YAML parses).
     Falls back to filesystem walk per directory only when INDEX.json is
     missing or unparseable.
@@ -178,19 +178,24 @@ def scan_skills(base_dir: Path) -> list[dict]:
     """
     skills: list[dict] = []
 
-    for dirname in ("skills", "pipelines"):
-        d = base_dir / dirname
-        if not d.is_dir():
-            continue
-
-        # Fast path: read pre-built index
-        index_entries = _skills_from_index(d / "INDEX.json")
+    # Skills INDEX
+    skills_dir = base_dir / "skills"
+    if skills_dir.is_dir():
+        index_entries = _skills_from_index(skills_dir / "INDEX.json")
         if index_entries is not None:
             skills.extend(index_entries)
-            continue
 
+    # Pipeline INDEX (relocated into workflow skill)
+    pipeline_index = base_dir / "skills" / "workflow" / "references" / "pipeline-index.json"
+    if pipeline_index.is_file():
+        index_entries = _skills_from_index(pipeline_index)
+        if index_entries is not None:
+            skills.extend(index_entries)
+
+    # Fallback: walk skills/ subdirectories if INDEX wasn't available
+    if not skills and skills_dir.is_dir():
         # Slow path: walk subdirectories and parse SKILL.md frontmatter
-        for skill_dir in sorted(d.iterdir()):
+        for skill_dir in sorted(skills_dir.iterdir()):
             if not skill_dir.is_dir():
                 continue
             skill_md = skill_dir / "SKILL.md"

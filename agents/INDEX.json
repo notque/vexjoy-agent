@@ -749,8 +749,7 @@
         "workflow",
         "systematic-code-review",
         "parallel-code-review",
-        "go-concurrency",
-        "go-error-handling"
+        "go-patterns"
       ],
       "complexity": "Medium-Complex",
       "category": "review"

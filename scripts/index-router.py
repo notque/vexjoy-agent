@@ -31,7 +31,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 INDEX_PATHS: dict[str, Path] = {
     "skills": REPO_ROOT / "skills" / "INDEX.json",
-    "pipelines": REPO_ROOT / "pipelines" / "INDEX.json",
+    "pipelines": REPO_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json",
     "agents": REPO_ROOT / "agents" / "INDEX.json",
 }
 

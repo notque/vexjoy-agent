@@ -128,9 +128,9 @@ def mock_indexes(tmp_path: Path) -> Path:
     skills_dir.mkdir()
     (skills_dir / "INDEX.json").write_text(json.dumps(SAMPLE_SKILLS_INDEX))
 
-    pipelines_dir = tmp_path / "pipelines"
-    pipelines_dir.mkdir()
-    (pipelines_dir / "INDEX.json").write_text(json.dumps(SAMPLE_PIPELINES_INDEX))
+    pipelines_dir = tmp_path / "skills" / "workflow" / "references"
+    pipelines_dir.mkdir(parents=True, exist_ok=True)
+    (pipelines_dir / "pipeline-index.json").write_text(json.dumps(SAMPLE_PIPELINES_INDEX))
 
     agents_dir = tmp_path / "agents"
     agents_dir.mkdir()
@@ -144,7 +144,7 @@ def _patch_repo_root(mock_indexes: Path) -> None:
     """Patch INDEX_PATHS to use temporary files."""
     patched_paths = {
         "skills": mock_indexes / "skills" / "INDEX.json",
-        "pipelines": mock_indexes / "pipelines" / "INDEX.json",
+        "pipelines": mock_indexes / "skills" / "workflow" / "references" / "pipeline-index.json",
         "agents": mock_indexes / "agents" / "INDEX.json",
     }
     with patch.object(index_router, "INDEX_PATHS", patched_paths):
@@ -193,7 +193,7 @@ class TestLoadIndexes:
         (mock_indexes / "agents" / "INDEX.json").unlink()
         patched_paths = {
             "skills": mock_indexes / "skills" / "INDEX.json",
-            "pipelines": mock_indexes / "pipelines" / "INDEX.json",
+            "pipelines": mock_indexes / "skills" / "workflow" / "references" / "pipeline-index.json",
             "agents": mock_indexes / "agents" / "INDEX.json",
         }
         with patch.object(index_router, "INDEX_PATHS", patched_paths):
@@ -206,7 +206,7 @@ class TestLoadIndexes:
         (mock_indexes / "skills" / "INDEX.json").write_text("not json {{{")
         patched_paths = {
             "skills": mock_indexes / "skills" / "INDEX.json",
-            "pipelines": mock_indexes / "pipelines" / "INDEX.json",
+            "pipelines": mock_indexes / "skills" / "workflow" / "references" / "pipeline-index.json",
             "agents": mock_indexes / "agents" / "INDEX.json",
         }
         with patch.object(index_router, "INDEX_PATHS", patched_paths):
