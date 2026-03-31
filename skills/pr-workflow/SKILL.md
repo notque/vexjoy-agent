@@ -20,8 +20,10 @@ allowed-tools:
 routing:
   force_route: true
   triggers:
-    - "push"
     - "push changes"
+    - "push my changes"
+    - "push to GitHub"
+    - "push to remote"
     - "create PR"
     - "sync to GitHub"
     - "PR status"
@@ -31,6 +33,8 @@ routing:
     - "resolve PR feedback"
     - "pr-fix"
     - "cleanup branches"
+    - "clean up branches"
+    - "merged branches"
     - "delete merged branch"
     - "prune branches"
     - "mine PRs"

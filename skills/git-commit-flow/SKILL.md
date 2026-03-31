@@ -16,9 +16,10 @@ allowed-tools:
 routing:
   force_route: true
   triggers:
-    - "commit"
     - "stage and commit"
     - "commit changes"
+    - "commit these"
+    - "commit my"
   category: git-workflow
 ---
 

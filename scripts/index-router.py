@@ -289,8 +289,12 @@ def score_candidates(request: str, entries: list[IndexEntry]) -> list[Candidate]
 def resolve_agent(candidate: Candidate, entries: list[IndexEntry]) -> str | None:
     """Resolve the agent for a candidate.
 
-    If the candidate already has an agent, return it. Otherwise, look through
-    agent entries for the best trigger-word match against the candidate name.
+    Resolution order:
+    1. If the candidate already declares an agent field, return it.
+    2. Look up the candidate's full IndexEntry; if its pairs_with list contains
+       an agent name, return the first such match.
+    3. Fall back to trigger-word overlap against agent entries, but require at
+       least 2 words overlap. If no match meets that threshold, return None.
 
     Args:
         candidate: The candidate to resolve an agent for.
@@ -302,7 +306,19 @@ def resolve_agent(candidate: Candidate, entries: list[IndexEntry]) -> str | None
     if candidate.agent:
         return candidate.agent
 
-    # Try to match candidate name words against agent triggers
+    # Build a fast lookup: name → entry
+    entry_by_name: dict[str, IndexEntry] = {e.name: e for e in entries}
+    agent_names: set[str] = {e.name for e in entries if e.entry_type == "agent"}
+
+    # Step 2: check pairs_with on the candidate's own IndexEntry
+    candidate_entry = entry_by_name.get(candidate.name)
+    if candidate_entry:
+        for paired in candidate_entry.pairs_with:
+            if paired in agent_names:
+                return paired
+
+    # Step 3: trigger-word overlap fallback — require at least 2 words overlap
+    MIN_OVERLAP = 2
     candidate_words = set(candidate.name.lower().replace("-", " ").split())
     best_agent: str | None = None
     best_overlap = 0
@@ -314,7 +330,7 @@ def resolve_agent(candidate: Candidate, entries: list[IndexEntry]) -> str | None
         if not trigger_words:
             continue
         overlap = len(candidate_words & trigger_words)
-        if overlap > best_overlap:
+        if overlap >= MIN_OVERLAP and overlap > best_overlap:
             best_overlap = overlap
             best_agent = entry.name
 
