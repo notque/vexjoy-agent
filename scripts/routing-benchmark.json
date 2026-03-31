@@ -76,7 +76,7 @@
     },
     {
       "request": "write table-driven tests for the parser",
-      "expected_agent": null,
+      "expected_agent": "golang-general-engineer",
       "expected_skill": "go-patterns",
       "category": "go-development",
       "routing_tier": "force_route",
@@ -84,7 +84,7 @@
     },
     {
       "request": "add a worker pool with goroutines",
-      "expected_agent": null,
+      "expected_agent": "golang-general-engineer",
       "expected_skill": "go-patterns",
       "category": "go-development",
       "routing_tier": "force_route",
@@ -92,7 +92,7 @@
     },
     {
       "request": "wrap errors with fmt.Errorf and %w",
-      "expected_agent": null,
+      "expected_agent": "golang-general-engineer",
       "expected_skill": "go-patterns",
       "category": "go-development",
       "routing_tier": "force_route",
@@ -100,7 +100,7 @@
     },
     {
       "request": "review this Go PR for quality",
-      "expected_agent": null,
+      "expected_agent": "golang-general-engineer",
       "expected_skill": "go-patterns",
       "category": "go-development",
       "routing_tier": "force_route",
@@ -108,7 +108,7 @@
     },
     {
       "request": "work on the SAPCC Go repository go-bits",
-      "expected_agent": null,
+      "expected_agent": "golang-general-engineer",
       "expected_skill": "go-patterns",
       "category": "go-development",
       "routing_tier": "force_route",
@@ -217,11 +217,11 @@
       "expected_skill": null,
       "category": "feature-lifecycle",
       "routing_tier": "llm_only",
-      "notes": "State-dependent routing — script force-routes to feature-lifecycle via 'run quality gates' trigger, but this is a false positive: the correct answer is context-dependent. Tracked as llm_only to catch regression."
+      "notes": "State-dependent routing — after trigger narrowing to 'run feature quality gates', script correctly returns no force-route. The correct answer is context-dependent. Tracked as llm_only."
     },
     {
       "request": "migrate our Grafana dashboards to Perses",
-      "expected_agent": null,
+      "expected_agent": "perses-engineer",
       "expected_skill": "perses",
       "category": "perses-domain",
       "routing_tier": "force_route",
@@ -237,7 +237,7 @@
     },
     {
       "request": "lint this Perses dashboard definition",
-      "expected_agent": null,
+      "expected_agent": "perses-engineer",
       "expected_skill": "perses",
       "category": "perses-domain",
       "routing_tier": "force_route",
@@ -245,7 +245,7 @@
     },
     {
       "request": "create a new Perses panel plugin",
-      "expected_agent": null,
+      "expected_agent": "perses-engineer",
       "expected_skill": "perses",
       "category": "perses-domain",
       "routing_tier": "force_route",

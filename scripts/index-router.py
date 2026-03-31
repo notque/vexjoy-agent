@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Deterministic routing from INDEX files for the /do router.
 
-Reads skills/INDEX.json, skills/INDEX.json, and agents/INDEX.json to produce
+Reads skills/INDEX.json, pipeline-index.json, and agents/INDEX.json to produce
 structured routing decisions: force-routes, scored candidates, pair suggestions,
 model preferences, and composition chains.
 
@@ -316,10 +316,16 @@ def resolve_agent(candidate: Candidate, entries: list[IndexEntry]) -> str | None
         for paired in candidate_entry.pairs_with:
             if paired in agent_names:
                 return paired
+        # If pairs_with exists and is non-empty but contains no agent,
+        # the skill author deliberately didn't pair it with one — return None
+        # rather than guessing via word-bag overlap.
+        if candidate_entry.pairs_with:
+            return None
 
-    # Step 3: trigger-word overlap fallback — require at least 2 words overlap
-    MIN_OVERLAP = 2
+    # Step 3: trigger-word overlap fallback (only when no pairs_with metadata)
+    # Require >50% of candidate name words to overlap with agent triggers.
     candidate_words = set(candidate.name.lower().replace("-", " ").split())
+    min_overlap = max(2, len(candidate_words) // 2 + 1)
     best_agent: str | None = None
     best_overlap = 0
 
@@ -330,7 +336,7 @@ def resolve_agent(candidate: Candidate, entries: list[IndexEntry]) -> str | None
         if not trigger_words:
             continue
         overlap = len(candidate_words & trigger_words)
-        if overlap >= MIN_OVERLAP and overlap > best_overlap:
+        if overlap >= min_overlap and overlap > best_overlap:
             best_overlap = overlap
             best_agent = entry.name
 
