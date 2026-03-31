@@ -354,8 +354,9 @@ fi
 if [ "$DRY_RUN" = true ]; then
     echo -e "${BLUE}  Would sync hooks from ${SCRIPT_DIR}/.claude/settings.json${NC}"
 elif [ -f "${SCRIPT_DIR}/.claude/settings.json" ]; then
-    # Create a backup before modifying
-    cp "$SETTINGS_FILE" "${SETTINGS_FILE}.backup"
+    # Create a timestamped backup before modifying
+    BACKUP_TS=$(date +%Y%m%d-%H%M%S)
+    cp "$SETTINGS_FILE" "${SETTINGS_FILE}.backup.${BACKUP_TS}"
 
     # Sync hooks and attribution from repo settings — repo is authoritative
     $PYTHON_CMD -c "
@@ -409,7 +410,7 @@ else
     # Harden ~/.claude/ sensitive files (ADR-122)
     chmod 700 "${CLAUDE_DIR}" 2>/dev/null || true
     chmod 600 "${SETTINGS_FILE}" 2>/dev/null || true
-    chmod 600 "${SETTINGS_FILE}.backup" 2>/dev/null || true
+    chmod 600 "$(ls -1t "${SETTINGS_FILE}.backup."* 2>/dev/null | head -1)" 2>/dev/null || true
     chmod 700 "${CLAUDE_DIR}/learning" 2>/dev/null || true
     chmod 600 "${CLAUDE_DIR}/history.jsonl" 2>/dev/null || true
 fi
