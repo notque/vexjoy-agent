@@ -82,8 +82,7 @@ routing:
     - workflow
     - systematic-code-review
     - parallel-code-review
-    - go-concurrency
-    - go-error-handling
+    - go-patterns
   complexity: Medium-Complex
   category: review
 allowed-tools:
@@ -151,8 +150,7 @@ Based on the review request, load the appropriate reference(s):
 | `parallel-code-review` | Multi-reviewer parallel orchestration |
 | `systematic-code-review` | 4-phase structured code review |
 | `comprehensive-review` | Unified 3-wave code review pipeline |
-| `go-concurrency` | Go concurrency patterns (when concurrency domain is active) |
-| `go-error-handling` | Go error handling patterns (when silent-failures or error-messages domain is active) |
+| `go-patterns` | Go patterns: concurrency, error handling, testing (when Go code is in scope) |
 
 ## Tool Restrictions
 

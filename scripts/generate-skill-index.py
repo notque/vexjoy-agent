@@ -27,9 +27,9 @@ from pathlib import Path
 
 import yaml
 
-# Phase header regex: matches "### Phase 1:", "### Phase 0.5:", "### Phase 4b:", etc.
+# Phase header regex: matches "## Phase 1:" or "### Phase 1:", "### Phase 0.5:", "### Phase 4b:", etc.
 # Captures the NAME part after the colon, stopping before parenthetical or em-dash suffixes.
-PHASE_HEADER_RE = re.compile(r"^### Phase [\d]+[a-z.]?[\d]*:\s*(.+?)(?:\s*\(|\s*--|\s*\u2014|$)")
+PHASE_HEADER_RE = re.compile(r"^##+ Phase [\d]+[a-z.]?[\d]*:\s*(.+?)(?:\s*\(|\s*--|\s*\u2014|$)")
 
 
 def extract_frontmatter(content: str) -> tuple[dict | None, bool]:

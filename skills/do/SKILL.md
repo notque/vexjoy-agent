@@ -123,7 +123,7 @@ This banner MUST be the FIRST visible output for EVERY /do invocation. Display B
  Selected:
    -> Agent: [name] - [why]
    -> Skill: [name] - [why]
-   -> Pipeline: PHASE1 → PHASE2 → ... (if workflow; phases from skills/workflow/SKILL.md)
+   -> Pipeline: PHASE1 → PHASE2 → ... (if pipeline; phases from skills/workflow/references/pipeline-index.json)
    -> Anti-Rationalization: [auto-injected for code/security/testing]
  Invoking...
 ===================================================================
@@ -201,6 +201,8 @@ Create `task_plan.md` before execution, because executing without a plan produce
 
 Dispatch the agent. MCP tool discovery is the agent's responsibility — each agent's markdown declares which MCP tools it needs. Do not inject MCP instructions from /do.
 
+**MANDATORY: Inject reference loading instruction.** When dispatching an agent with an umbrella component — whether an umbrella skill (workflow, go-patterns, pr-workflow, feature-lifecycle, perses) or an umbrella agent (reviewer-code, reviewer-system, reviewer-domain, reviewer-perspectives) — include in the agent prompt: "Before executing, read the skill's SKILL.md or agent's .md file to identify which reference file applies to your task, then load that reference file and follow its methodology exactly." This is required because umbrella components store domain-specific instructions in reference files, not in the main definition — skipping this step means the agent operates without the actual methodology.
+
 Route to agents that create feature branches for all commits, because main branch commits affect everyone and bypassing branch protection causes cascading problems.
 
 When dispatching agents for file modifications, explicitly include "commit your changes on the branch" in the agent prompt, because otherwise the agent completes file edits but changes sit unstaged — the orchestrator assumes committed work and moves on, and changes are lost.
@@ -275,5 +277,6 @@ Solution: Stop execution. Create `task_plan.md`. Resume routing after plan is in
 - `agents/INDEX.json`: Agent triggers and metadata
 - `skills/INDEX.json`: Skill triggers, force-route flags, pairs_with
 - `skills/workflow/SKILL.md`: Workflow phases, triggers, composition chains
+- `skills/workflow/references/pipeline-index.json`: Pipeline metadata, triggers, phases
 
 <!-- END DO NOT OPTIMIZE -->

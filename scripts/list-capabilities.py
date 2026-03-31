@@ -24,7 +24,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 SKILLS_INDEX = REPO_ROOT / "skills" / "INDEX.json"
-PIPELINES_INDEX = REPO_ROOT / "pipelines" / "INDEX.json"
+PIPELINES_INDEX = REPO_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json"
 AGENTS_INDEX = REPO_ROOT / "agents" / "INDEX.json"
 ROUTING_CONFIG = REPO_ROOT / "scripts" / "routing-config.json"
 

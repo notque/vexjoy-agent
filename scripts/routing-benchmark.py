@@ -29,7 +29,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_FIXTURE = REPO_ROOT / "scripts" / "routing-benchmark.json"
 AGENTS_INDEX = REPO_ROOT / "agents" / "INDEX.json"
 SKILLS_INDEX = REPO_ROOT / "skills" / "INDEX.json"
-PIPELINES_INDEX = REPO_ROOT / "pipelines" / "INDEX.json"
+PIPELINES_INDEX = REPO_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json"
 
 
 def load_json(path: Path) -> dict:

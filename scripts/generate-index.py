@@ -6,7 +6,7 @@ Reads component directories, extracts YAML frontmatter, and generates
 INDEX.json files matching the format of the existing per-type generators.
 
 Usage:
-    python3 scripts/generate-index.py [--type agents|skills|pipelines|all] [--check]
+    python3 scripts/generate-index.py [--type agents|skills|all] [--check]
     python3 scripts/generate-index.py --coverage [--routing-tables PATH]
 
 Options:
@@ -34,7 +34,7 @@ import yaml
 # Shared helpers
 # ---------------------------------------------------------------------------
 
-PHASE_HEADER_RE = re.compile(r"^### Phase [\d]+[a-z.]?[\d]*:\s*(.+?)(?:\s*\(|\s*--|\s*\u2014|$)")
+PHASE_HEADER_RE = re.compile(r"^##+ Phase [\d]+[a-z.]?[\d]*:\s*(.+?)(?:\s*\(|\s*--|\s*\u2014|$)")
 
 
 def extract_frontmatter(content: str) -> dict | None:
@@ -485,9 +485,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Generate INDEX.json files for agents, skills, and pipelines.")
     parser.add_argument(
         "--type",
-        choices=["agents", "skills", "pipelines", "all"],
+        choices=["agents", "skills", "all"],
         default="all",
-        help="Component type to generate (default: all)",
+        help="Component type to generate (default: all). Pipeline INDEX is hand-maintained.",
     )
     parser.add_argument(
         "--check",
@@ -510,9 +510,11 @@ def main() -> int:
     repo_root = Path(__file__).parent.parent
     agents_dir = repo_root / "agents"
     skills_dir = repo_root / "skills"
-    pipelines_dir = repo_root / "pipelines"
+    pipelines_dir = repo_root / "skills" / "workflow" / "references"
 
-    types = [args.type] if args.type != "all" else ["agents", "skills", "pipelines"]
+    # Pipeline INDEX is now hand-maintained at skills/workflow/references/pipeline-index.json
+    # (flat .md files, not subdirectory-per-pipeline). Exclude from auto-generation.
+    types = [args.type] if args.type != "all" else ["agents", "skills"]
 
     indexes: dict[str, tuple[dict, Path]] = {}
 
@@ -529,11 +531,6 @@ def main() -> int:
             return 1
         idx = generate_skill_or_pipeline_index(skills_dir, "skills", "skills")
         indexes["Skills"] = (idx, skills_dir / "INDEX.json")
-
-    if "pipelines" in types:
-        if pipelines_dir.exists():
-            idx = generate_skill_or_pipeline_index(pipelines_dir, "pipelines", "pipelines", is_pipeline=True)
-            indexes["Pipelines"] = (idx, pipelines_dir / "INDEX.json")
 
     if args.coverage:
         return run_coverage_report(indexes, args.routing_tables)
