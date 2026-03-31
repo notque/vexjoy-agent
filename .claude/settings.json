@@ -9,12 +9,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/sync-to-user-claude.py\"",
-            "description": "Sync agents/skills/hooks/commands to ~/.claude",
-            "once": true
-          },
-          {
-            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/session-context.py\"",
             "description": "Load learned patterns from previous sessions",
             "once": true
@@ -52,6 +46,12 @@
     "UserPromptSubmit": [
       {
         "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/sync-to-user-claude.py\"",
+            "description": "Sync agents/skills/hooks/commands to ~/.claude",
+            "once": true
+          },
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/userprompt-datetime-inject.py\"",
