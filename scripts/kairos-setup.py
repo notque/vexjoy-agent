@@ -28,13 +28,6 @@ CONFIG_FILE = CONFIG_DIR / "kairos.json"
 LOG_DIR = Path.home() / ".claude" / "logs"
 TOOLKIT_DIR = Path("/home/feedgen/claude-code-toolkit")
 
-CRON_BLOCK = """\
-# KAIROS-lite: Quick check every 4 hours during business hours
-0 8,12,16,20 * * * cd /home/feedgen/claude-code-toolkit && CLAUDE_KAIROS_ENABLED=true claude -p "$(cat skills/kairos-lite/monitor-prompt.md)" --model sonnet >> /tmp/claude-kairos.log 2>&1
-
-# KAIROS-lite: Deep scan nightly at 2:30 AM
-30 2 * * * cd /home/feedgen/claude-code-toolkit && CLAUDE_KAIROS_ENABLED=true KAIROS_MODE=deep claude -p "$(cat skills/kairos-lite/monitor-prompt.md)" --model sonnet >> /tmp/claude-kairos.log 2>&1"""
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -190,6 +183,11 @@ def build_config(owner: str, repo: str) -> dict:
             "hook_error_rate_pct": 10,
             "pr_review_wait_hours": 24,
         },
+        "schedule": {
+            "quick_cron": "0 8,12,16,20 * * *",
+            "deep_cron": "30 2 * * *",
+            "log_rotate_cron": "0 3 * * 0",
+        },
     }
 
 
@@ -225,6 +223,27 @@ def write_crontab(content: str) -> bool:
     return result.returncode == 0
 
 
+def build_cron_block() -> str:
+    """Build the KAIROS-lite cron block.
+
+    Uses TOOLKIT_DIR for the project directory and $HOME shell variable for the
+    log path. Note: TOOLKIT_DIR is set at module level — update it if the
+    toolkit is installed at a different path.
+    """
+    log = "$HOME/.claude/logs/kairos-lite.log"
+    toolkit = str(TOOLKIT_DIR)
+    return (
+        f"# KAIROS-lite: Quick check every 4 hours during business hours\n"
+        f'0 8,12,16,20 * * * cd {toolkit} && CLAUDE_KAIROS_ENABLED=true claude -p "$(cat skills/kairos-lite/monitor-prompt.md)" --model sonnet >> {log} 2>&1\n'
+        f"\n"
+        f"# KAIROS-lite: Deep scan nightly at 2:30 AM\n"
+        f'30 2 * * * cd {toolkit} && CLAUDE_KAIROS_ENABLED=true KAIROS_MODE=deep claude -p "$(cat skills/kairos-lite/monitor-prompt.md)" --model sonnet >> {log} 2>&1\n'
+        f"\n"
+        f"# KAIROS-lite: Weekly log rotation (Sunday 03:00)\n"
+        f'0 3 * * 0 cd $HOME/.claude/logs && [ -f kairos-lite.log ] && mv kairos-lite.log "kairos-lite.$(date +\\%Y\\%m\\%d).log" 2>/dev/null'
+    )
+
+
 def install_cron_jobs() -> None:
     """Add KAIROS-lite cron entries if not already present."""
     existing = read_crontab()
@@ -233,8 +252,9 @@ def install_cron_jobs() -> None:
         info("Cron jobs already installed — skipping.")
         return
 
+    cron_block = build_cron_block()
     separator = "\n" if existing and not existing.endswith("\n") else ""
-    new_crontab = existing + separator + CRON_BLOCK + "\n"
+    new_crontab = existing + separator + cron_block + "\n"
 
     if write_crontab(new_crontab):
         info("Cron jobs installed.")
@@ -265,11 +285,12 @@ def print_summary(owner: str, repo: str) -> None:
     print()
     print(f"  Config:   {CONFIG_FILE}")
     print(f"  Repo:     {owner}/{repo}")
-    print(f"  Logs:     /tmp/claude-kairos.log")
+    print(f"  Logs:     {LOG_DIR}/kairos-lite.log")
     print()
     print("  Cron schedule:")
     print("    Every 4 h (08:00, 12:00, 16:00, 20:00 UTC)  — quick check")
     print("    Daily at 02:30 UTC                           — deep scan")
+    print("    Weekly Sunday 03:00 UTC                      — log rotation")
     print()
     print("  Manual check:")
     print(

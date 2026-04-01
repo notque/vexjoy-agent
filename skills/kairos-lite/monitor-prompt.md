@@ -93,6 +93,13 @@ gh api repos/{owner}/{repo}/dependabot/alerts \
   2>/dev/null
 ```
 
+### Code Scanning Alerts (Category B)
+For each repo in `config.repos`:
+```bash
+gh api repos/{owner}/{repo}/code-scanning/alerts --jq '[.[] | select(.state=="open")] | length' 2>/dev/null
+```
+Report count of open code scanning alerts. This captures GitHub Advanced Security findings (SAST, secret scanning) that Dependabot doesn't cover. If the API returns 404 (Advanced Security not enabled), skip silently.
+
 ---
 
 ## PHASE 4: REPO CHECKS (Category B — deep scan only)
@@ -123,7 +130,7 @@ Report if there are uncommitted changes (non-zero porcelain output) or stashed c
 Skip this phase entirely for quick scans.
 
 ### Hook Error Rate
-Query learning.db for governance events and error patterns from the last 7 days:
+Query learning.db for governance events and error patterns from the last 7 days, with 7-day trend analysis:
 
 ```python
 import sqlite3
@@ -133,48 +140,76 @@ from datetime import datetime, timedelta
 db_path = Path.home() / ".claude" / "state" / "learning.db"
 if db_path.exists():
     conn = sqlite3.connect(str(db_path))
-    cutoff = (datetime.utcnow() - timedelta(days=7)).isoformat()
-    
-    # Hook error rate
+    cutoff_7d = (datetime.utcnow() - timedelta(days=7)).isoformat()
+
+    # Total and blocked over full 7-day window (for rate)
     cursor = conn.execute(
         "SELECT COUNT(*) FROM governance_events WHERE blocked=1 AND created_at > ?",
-        (cutoff,)
+        (cutoff_7d,)
     )
     blocked_count = cursor.fetchone()[0]
-    
+
     cursor = conn.execute(
         "SELECT COUNT(*) FROM governance_events WHERE created_at > ?",
-        (cutoff,)
+        (cutoff_7d,)
     )
     total_count = cursor.fetchone()[0]
+
+    # 7-day trend: compare last 3.5 days vs previous 3.5 days
+    cutoff_recent = (datetime.utcnow() - timedelta(days=3.5)).isoformat()
+    cutoff_old = (datetime.utcnow() - timedelta(days=7)).isoformat()
+
+    cursor = conn.execute(
+        "SELECT COUNT(*) FROM governance_events WHERE blocked=1 AND created_at > ?",
+        (cutoff_recent,)
+    )
+    recent_blocked = cursor.fetchone()[0]
+
+    cursor = conn.execute(
+        "SELECT COUNT(*) FROM governance_events WHERE blocked=1 AND created_at > ? AND created_at <= ?",
+        (cutoff_old, cutoff_recent)
+    )
+    older_blocked = cursor.fetchone()[0]
+
     conn.close()
-    
+
     error_rate = (blocked_count / total_count * 100) if total_count > 0 else 0
-    print(f"blocked={blocked_count} total={total_count} rate={error_rate:.1f}%")
+
+    # Trend detection
+    if recent_blocked > older_blocked * 1.5:
+        trend = "INCREASING"
+    elif recent_blocked < older_blocked * 0.5:
+        trend = "DECREASING"
+    else:
+        trend = "STABLE"
+
+    print(f"blocked={blocked_count} total={total_count} rate={error_rate:.1f}% trend={trend}")
+    # Example briefing output: [HEALTH] Hook error rate: 12% (trending INCREASING — was 5% last week)
 ```
 
-Flag if error rate exceeds 20%.
+Flag if error rate exceeds 20% or trend is INCREASING.
 
 ### Stale Memory Files
 ```python
-import os
 from pathlib import Path
 from datetime import datetime, timedelta
 
-memory_dir = Path("/home/feedgen/claude-code-toolkit/.claude/agent-memory")
-stale_threshold = timedelta(days=14)  # from config.thresholds.stale_memory_days
+stale_threshold = timedelta(days=14)  # from config if available
 now = datetime.utcnow()
-
 stale_files = []
-for md_file in memory_dir.rglob("*.md"):
-    if md_file.name == "MEMORY.md":
-        continue
-    mtime = datetime.utcfromtimestamp(md_file.stat().st_mtime)
-    if now - mtime > stale_threshold:
-        stale_files.append((md_file.name, (now - mtime).days))
 
-for name, age_days in sorted(stale_files, key=lambda x: -x[1]):
-    print(f"{name}: {age_days} days old")
+# Scan all project memory directories
+for memory_dir in Path.home().joinpath(".claude", "projects").glob("*/memory"):
+    for md_file in memory_dir.glob("*.md"):
+        if md_file.name == "MEMORY.md":
+            continue
+        mtime = datetime.utcfromtimestamp(md_file.stat().st_mtime)
+        if now - mtime > stale_threshold:
+            project_name = md_file.parent.parent.name
+            stale_files.append((md_file.name, (now - mtime).days, project_name))
+
+for name, age_days, project_name in sorted(stale_files, key=lambda x: -x[1]):
+    print(f"{name}: {age_days} days old (project: {project_name})")
 ```
 
 Flag if more than 5 stale memory files.
@@ -206,35 +241,27 @@ Aggregate all findings. Apply these rules:
 
 Format each finding as a bullet:
 - `[CRITICAL]` — dependabot critical, CI failure on main
-- `[HIGH]` — dependabot high, PR assigned > 3 days ago
-- `[INFO]` — new issues, stale branches, FYI items
-- `[HEALTH]` — toolkit health items
+- `[HIGH]` — dependabot high, PR assigned > 3 days, hook error rate INCREASING
+- `[INFO]` — new issues, stale branches, code scanning alerts
+- `[HEALTH]` — toolkit health items with trend
 
 ---
 
 ## PHASE 7: DETERMINE OUTPUT PATH
 
-Compute the project hash using the same encoding as `~/.claude/projects/` directory names.
-
-The `~/.claude/projects/` directories are named by URL-encoding the project path and replacing `/` with `-`. Replicate this:
+Compute the project hash from the current working directory. The `~/.claude/projects/` directory names are the absolute project path with every `/` replaced by `-`.
 
 ```python
-from urllib.parse import quote
-
-project_path = "/home/feedgen/claude-code-toolkit"
-# Claude Code uses the full path, URL-encoded, with / replaced by -
-encoded = quote(project_path, safe="")
-project_hash = encoded.replace("%2F", "-").replace("%", "%")
-# Actual directory name format observed in ~/.claude/projects/
-# Check: ls ~/.claude/projects/ to find the matching directory
+import os
+project_path = os.getcwd()  # The cron cd's into the project directory
+project_hash = project_path.replace("/", "-")
+scan_date = "YYYY-MM-DD"  # from PHASE 1
+output_path = Path.home() / ".claude" / "state" / f"briefing{project_hash}-{scan_date}.md"
 ```
 
-Alternatively, find it directly:
-```bash
-ls ~/.claude/projects/ | grep -i feedgen | head -1
-```
+For example: `/home/feedgen/claude-code-toolkit` → `project_hash = -home-feedgen-claude-code-toolkit`, producing `briefing-home-feedgen-claude-code-toolkit-2026-04-01.md`.
 
-Output path: `~/.claude/state/briefing-{project_hash}-{SCAN_DATE}.md`
+Note: `project_hash` starts with `-`, which joins directly to `briefing` without a separator.
 
 ---
 
@@ -249,7 +276,7 @@ Write the briefing atomically:
 import os
 from pathlib import Path
 
-output_path = Path.home() / ".claude" / "state" / f"briefing-{project_hash}-{scan_date}.md"
+output_path = Path.home() / ".claude" / "state" / f"briefing{project_hash}-{scan_date}.md"
 tmp_path = Path(str(output_path) + ".tmp")
 
 briefing_content = """# KAIROS-lite Briefing — {date}
@@ -286,6 +313,31 @@ os.replace(str(tmp_path), str(output_path))
 
 ---
 
+## PHASE 8.5: CLEANUP
+
+Remove briefing files older than 30 days to prevent unbounded accumulation.
+
+```python
+import time
+from pathlib import Path
+
+state_dir = Path.home() / ".claude" / "state"
+cutoff_seconds = 30 * 24 * 3600  # 30 days
+now = time.time()
+
+for briefing in state_dir.glob("briefing*.md"):
+    if now - briefing.stat().st_mtime > cutoff_seconds:
+        briefing.unlink()
+        # Also remove sidecar if present
+        sidecar = briefing.parent / (briefing.name + ".meta.json")
+        if sidecar.exists():
+            sidecar.unlink()
+```
+
+This cleanup runs on every monitoring execution, keeping the state directory tidy.
+
+---
+
 ## PHASE 9: EXIT
 
 - Exit 0 on success.
@@ -314,8 +366,9 @@ Scan type: quick | deep
 - No informational items found.
 
 ## Toolkit Health
-- [HEALTH] Hook error rate: 23% (46/200 events blocked, last 7 days) — above 20% threshold
-- [HEALTH] 8 stale memory files (oldest: user_role.md, 31 days)
+- [HIGH] Hook error rate: 12% (trending INCREASING — was 5% last week)
+- [HEALTH] Hook error rate: 23% (46/200 events blocked, last 7 days) — above 20% threshold, trending STABLE
+- [HEALTH] 8 stale memory files (oldest: user_role.md, 31 days, project: -home-feedgen-claude-code-toolkit)
 - [HEALTH] State directory: 67 files (threshold: 50)
 - All systems nominal.
 
