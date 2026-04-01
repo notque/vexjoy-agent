@@ -135,4 +135,4 @@ These phrases automatically activate the right tools:
 
 - **Ready to work?** Just start. Describe your task.
 - **Want the full command list?** See [REFERENCE.md](./REFERENCE.md)
-- **Building your own tools?** See [CLAUDE-soul-template.md](../CLAUDE-soul-template.md)
+- **Building your own tools?** See [CLAUDE.md](../CLAUDE.md)

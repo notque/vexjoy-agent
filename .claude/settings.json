@@ -39,6 +39,13 @@
             "description": "Detect operator context (pipeline session, ADR session) and inject context",
             "timeout": 2000,
             "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/retro-knowledge-injector.py\"",
+            "description": "Inject top accumulated retro knowledge once at session start for cache-stable context",
+            "timeout": 2000,
+            "once": true
           }
         ]
       }
@@ -73,11 +80,6 @@
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/instruction-reminder.py\"",
             "description": "Re-inject instruction files to combat context drift"
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/retro-knowledge-injector.py\"",
-            "description": "Auto-inject accumulated L1/L2 retro knowledge for cross-feature learning"
           },
           {
             "type": "command",

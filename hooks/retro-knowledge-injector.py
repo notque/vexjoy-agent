@@ -1,27 +1,28 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 2.0.0
 """
-UserPromptSubmit Hook: Retro Knowledge Auto-Injection
+SessionStart Hook: Retro Knowledge Auto-Injection
 
-Queries learning.db (SQLite + FTS5) for relevant accumulated knowledge
-and injects it into agent context for cross-feature learning.
+Fires ONCE per session. Queries learning.db for the top N highest-confidence
+patterns and injects them into agent context for cross-feature learning.
 
-Benchmark results (7 trials):
+Design:
+- Fires once at SessionStart — injected content is static and cache-stable
+- No prompt keyword matching (no prompt exists at SessionStart)
+- Selection: top 20 entries by confidence DESC, last_seen DESC as tiebreak
+- Token budget: ~2000 tokens (~8000 chars) to stay cache-friendly
+- Noise topics filtered (worktree-branches telemetry, etc.)
+- Output: same <retro-knowledge> block format as before
+
+Benchmark results (from UserPromptSubmit era, still valid):
 - Win rate: 67% when retro knowledge is relevant
 - Avg margin: +5.3 points (8-dimension rubric)
 - Knowledge Transfer dimension: 5-0 win record
 - Token efficiency: 23.5K vs 34.5K (retro agents use LESS context)
-
-Design:
-- Single source: learning.db via FTS5 search
-- Relevance gate: keyword matching + work-intent detection
-- Fast path: skip entirely for trivial prompts (< 5 words)
-- Token budget: ~2000 tokens per injection
 """
 
 import json
 import os
-import re
 import sys
 import traceback
 from pathlib import Path
@@ -34,8 +35,8 @@ from stdin_timeout import read_stdin
 
 # Try to import learning_db_v2 for SQLite-based injection
 try:
+    from learning_db_v2 import query_learnings as _query_learnings
     from learning_db_v2 import sanitize_for_context as _sanitize_for_context
-    from learning_db_v2 import search_learnings as _search_db
 
     _HAS_LEARNING_DB = True
 except ImportError:
@@ -45,219 +46,58 @@ except ImportError:
 # Configuration
 # =============================================================================
 
-EVENT_NAME = "UserPromptSubmit"
+EVENT_NAME = "SessionStart"
 
-# Minimum prompt length to consider for retro injection (skip trivial)
-MIN_PROMPT_WORDS = 4
+# Maximum entries to select from learning.db
+TOP_N = 20
 
-# Tags that indicate code/design/plan work (trigger retro consideration)
-WORK_INDICATORS = {
-    "implement",
-    "build",
-    "create",
-    "design",
-    "plan",
-    "add",
-    "feature",
-    "middleware",
-    "service",
-    "api",
-    "handler",
-    "endpoint",
-    "refactor",
-    "architecture",
-    "debug",
-    "fix",
-    "test",
-    "review",
-    "deploy",
-    "migrate",
-    "upgrade",
-    "optimize",
-    "delete",
-    "remove",
-    "update",
-}
+# Token budget: ~2000 tokens ≈ 8000 chars
+TOKEN_BUDGET_CHARS = 8000
 
-# Prompts starting with these are trivial (skip retro)
-SKIP_PREFIXES = [
-    re.compile(r"^(what|how|show|read|cat|ls|git|explain|help)\b", re.IGNORECASE),
-    # Note: slash commands no longer skipped here. The work-intent filter
-    # (has_work_intent) gates injection for trivial commands. Substantive
-    # slash commands like /pr-review and /comprehensive-review should receive
-    # retro knowledge. Only /do had its own injection — all others were silently
-    # missing retro context.
-]
+# Topics to filter out as low-signal noise
+NOISE_TOPICS = {"worktree-branches"}
 
-# =============================================================================
-# Relevance Gate
-# =============================================================================
-
-
-def extract_prompt_keywords(prompt: str) -> set[str]:
-    """Extract meaningful keywords from the prompt for relevance matching."""
-    # Normalize and split — exclude hyphens from token chars because
-    # FTS5 interprets '-' as NOT operator, so 'force-route' would become
-    # 'force NOT route' and poison the entire OR query
-    words = set(re.findall(r"\b[a-z][a-z0-9_]+\b", prompt.lower()))
-    # Remove very common stop words
-    stop_words = {
-        "the",
-        "a",
-        "an",
-        "is",
-        "are",
-        "was",
-        "were",
-        "be",
-        "been",
-        "this",
-        "that",
-        "these",
-        "those",
-        "it",
-        "its",
-        "and",
-        "or",
-        "but",
-        "not",
-        "for",
-        "with",
-        "from",
-        "into",
-        "can",
-        "will",
-        "should",
-        "would",
-        "could",
-        "have",
-        "has",
-        "had",
-        "do",
-        "does",
-        "did",
-        "to",
-        "of",
-        "in",
-        "on",
-        "at",
-        "by",
-        "as",
-        "if",
-        "so",
-        "up",
-        "out",
-        "about",
-        "all",
-        "some",
-        "any",
-        "no",
-        "my",
-        "your",
-        "we",
-        "us",
-        "our",
-        "they",
-        "them",
-        "their",
-        "me",
-        "you",
-        "he",
-        "she",
-        "him",
-        "her",
-        "also",
-        "just",
-        "like",
-        "need",
-        "want",
-        "make",
-        "new",
-        "use",
-        "using",
-        "please",
-        "let",
-        "get",
-    }
-    return words - stop_words
-
-
-def has_work_intent(prompt_keywords: set[str]) -> bool:
-    """Check if the prompt indicates substantive work (not just questions/reads)."""
-    return bool(prompt_keywords & WORK_INDICATORS)
-
-
-def is_trivial(prompt: str) -> bool:
-    """Check if prompt is trivial and should skip retro injection."""
-    # Too short
-    if len(prompt.split()) < MIN_PROMPT_WORDS:
-        return True
-
-    # Starts with trivial prefix
-    return any(pattern.search(prompt) for pattern in SKIP_PREFIXES)
+# Minimum confidence to include an entry
+MIN_CONFIDENCE = 0.55
 
 
 # =============================================================================
-# Knowledge Injection (learning_db_v2)
+# Knowledge Query
 # =============================================================================
 
 
-def _agent_type_tags(agent_type: str) -> set[str]:
-    """Derive search tags from agent_type name for relevance boosting.
+def query_top_patterns(debug: bool = False) -> str | None:
+    """Query the top N highest-confidence patterns from learning.db.
 
-    Maps agent names like 'golang-general-engineer' to language tags
-    that improve knowledge retrieval specificity.
+    Uses confidence DESC as primary sort and last_seen DESC as tiebreak so
+    recently-updated entries appear first among equals. No FTS5 / no prompt
+    required — results are fully deterministic for cache stability.
+
+    Returns the <retro-knowledge> injection string, or None if nothing useful.
     """
-    if not agent_type:
-        return set()
-
-    agent_lower = agent_type.lower()
-    tag_map = {
-        "go": {"go", "golang"},
-        "python": {"python"},
-        "typescript": {"typescript", "javascript"},
-        "javascript": {"javascript"},
-        "rust": {"rust"},
-        "java": {"java"},
-        "kubernetes": {"kubernetes", "k8s", "helm"},
-        "react": {"react", "typescript", "frontend"},
-    }
-
-    tags: set[str] = set()
-    for keyword, derived_tags in tag_map.items():
-        if keyword in agent_lower:
-            tags.update(derived_tags)
-    return tags
-
-
-def query_knowledge_from_db(prompt_keywords: set[str], debug: bool = False, agent_type: str = "") -> str | None:
-    """Query learning.db for relevant knowledge. Returns injection string or None."""
     if not _HAS_LEARNING_DB:
         return None
 
     try:
-        # Enrich search tags with agent-type-derived tags
-        search_tags = set(prompt_keywords)
-        agent_tags = _agent_type_tags(agent_type)
-        search_tags.update(agent_tags)
-
-        # Build FTS5 query: OR-join top tags for broad matching with stemming
-        query_str = " OR ".join(list(search_tags)[:10])
-        results = _search_db(
-            query_str,
-            min_confidence=0.5,
+        results = _query_learnings(
+            min_confidence=MIN_CONFIDENCE,
             exclude_graduated=True,
-            limit=15,
+            order_by="confidence DESC",
+            limit=TOP_N,
         )
 
         if not results:
             if debug:
-                print("[retro] DB query: no results", file=sys.stderr)
+                print("[retro] No results above confidence threshold", file=sys.stderr)
             return None
 
-        # Token budget: ~2000 tokens ≈ 8000 chars
-        TOKEN_BUDGET_CHARS = 8000
-        chars_used = 0
+        # Filter noise topics
+        results = [r for r in results if r.get("topic") not in NOISE_TOPICS]
+
+        if not results:
+            if debug:
+                print("[retro] All results filtered as noise", file=sys.stderr)
+            return None
 
         parts = [
             "<retro-knowledge>",
@@ -266,15 +106,7 @@ def query_knowledge_from_db(prompt_keywords: set[str], debug: bool = False, agen
             "",
         ]
 
-        # Filter out noise topics (worktree telemetry, etc.)
-        NOISE_TOPICS = {"worktree-branches"}
-        results = [r for r in results if r.get("topic") not in NOISE_TOPICS]
-
-        if not results:
-            if debug:
-                print("[retro] DB query: all results filtered as noise", file=sys.stderr)
-            return None
-
+        chars_used = 0
         selected = []
         for r in results:
             entry_chars = len(r["value"]) + 80  # overhead for heading
@@ -306,12 +138,17 @@ def query_knowledge_from_db(prompt_keywords: set[str], debug: bool = False, agen
         parts.append("</retro-knowledge>")
 
         if debug:
-            print(f"[retro] DB: injecting {len(selected)} entries from {len(by_topic)} topics", file=sys.stderr)
+            print(
+                f"[retro] Injecting {len(selected)} entries from {len(by_topic)} topics",
+                file=sys.stderr,
+            )
 
         return "\n".join(parts)
+
     except Exception as e:
         if debug:
-            print(f"[retro] DB query error: {e}", file=sys.stderr)
+            print(f"[retro] Query error: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
         return None
 
 
@@ -324,37 +161,19 @@ def main():
     debug = os.environ.get("CLAUDE_HOOKS_DEBUG")
 
     try:
-        # Parse hook input
+        # Parse hook input (SessionStart sends minimal JSON — just consume it)
         try:
-            hook_input = json.loads(read_stdin(timeout=2))
+            raw = read_stdin(timeout=2)
+            hook_input = json.loads(raw) if raw.strip() else {}
             if not isinstance(hook_input, dict):
-                empty_output(EVENT_NAME).print_and_exit()
-            prompt = hook_input.get("prompt", "").strip()
-            agent_type = hook_input.get("agent_type", "")
-        except json.JSONDecodeError:
-            empty_output(EVENT_NAME).print_and_exit()
+                hook_input = {}
+        except (json.JSONDecodeError, Exception):
+            hook_input = {}
 
-        if not prompt:
-            empty_output(EVENT_NAME).print_and_exit()
+        # Query top patterns — no prompt needed
+        injection = query_top_patterns(debug=bool(debug))
 
-        # Fast path: skip trivial prompts
-        if is_trivial(prompt):
-            if debug:
-                print("[retro] Skipped: trivial prompt", file=sys.stderr)
-            empty_output(EVENT_NAME).print_and_exit()
-
-        # Extract prompt keywords for relevance matching
-        prompt_keywords = extract_prompt_keywords(prompt)
-
-        # Check work intent — only inject for substantive tasks
-        if not has_work_intent(prompt_keywords):
-            if debug:
-                print(f"[retro] Skipped: no work intent in keywords {prompt_keywords}", file=sys.stderr)
-            empty_output(EVENT_NAME).print_and_exit()
-
-        # Query learning.db for relevant knowledge
-        db_injection = query_knowledge_from_db(prompt_keywords, debug=bool(debug), agent_type=agent_type)
-        if db_injection:
+        if injection:
             # Set marker for record-activation.py ROI tracking (ADR-032)
             try:
                 session_id = get_session_id()
@@ -362,10 +181,10 @@ def main():
                 marker.write_text("1")
             except OSError:
                 pass  # Non-critical — don't block injection
-            context_output(EVENT_NAME, db_injection).print_and_exit()
+            context_output(EVENT_NAME, injection).print_and_exit()
 
         if debug:
-            print("[retro] Skipped: no DB results for prompt keywords", file=sys.stderr)
+            print("[retro] Skipped: no patterns above threshold", file=sys.stderr)
         empty_output(EVENT_NAME).print_and_exit()
 
     except Exception as e:
@@ -378,4 +197,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"[retro] Fatal: {type(e).__name__}: {e}", file=sys.stderr)
+    finally:
+        sys.exit(0)  # ALWAYS exit 0 — non-blocking requirement

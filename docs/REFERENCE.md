@@ -258,4 +258,4 @@ docs/              ← This documentation
 
 - **Don't know what to use?** → `/do [what you want]`
 - **Want to see commands?** → Check this file
-- **Building new tools?** → [../CLAUDE-soul-template.md](../CLAUDE-soul-template.md)
+- **Building new tools?** → [../CLAUDE.md](../CLAUDE.md)
