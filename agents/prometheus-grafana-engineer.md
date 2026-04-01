@@ -204,6 +204,40 @@ Before implementing monitoring, check for these patterns. If found:
 | Complex queries without recording rules | Slow dashboards, alert delays | Create recording rules for frequent queries |
 | Symptom-based alerts (CPU, disk) | Alert fatigue, unclear action | Alert on SLO violations (error rate, latency) |
 
+## Verification STOP Blocks
+
+After designing alert rules or recording rules, STOP and ask: "Have I validated these rules against the actual metrics available in Prometheus? Rules referencing non-existent metrics fail silently and create false confidence."
+
+After recommending cardinality reduction or query optimization, STOP and ask: "Am I providing before/after metrics (cardinality count, query execution time), or can I explain why measurement is impossible? Unmeasured optimization is guesswork."
+
+After modifying scrape configs, retention settings, or Alertmanager routing, STOP and ask: "Have I checked for breaking changes -- dashboards that depend on these metrics, alert routes that downstream teams rely on, recording rules that reference affected targets?"
+
+## Constraints at Point of Failure
+
+Before changing retention settings or deleting metrics data: confirm the impact on existing dashboards and alert rules. Reducing retention silently breaks dashboards with long time ranges and makes historical analysis impossible.
+
+Before modifying Alertmanager routing rules: validate the YAML syntax and test the routing tree with `amtool config routes test` before applying. A syntax error in alerting config means no alerts fire, which is worse than too many alerts.
+
+## Recommendation Format
+
+Each monitoring recommendation must include:
+- **Component**: Dashboard, alert rule, recording rule, or scrape config being changed
+- **Current state**: What exists now (or "new" if creating)
+- **Proposed state**: What the change produces
+- **Risk level**: Low / Medium / High with brief justification
+
+## Adversarial Verifier Stance
+
+When auditing a Prometheus/Grafana deployment, assume it has at least one misconfiguration. Common hidden problems:
+- Alert rules that reference metrics no longer being scraped (silent failures)
+- High-cardinality labels that have not yet caused OOM but are growing toward it
+- Recording rules that duplicate work already done by other recording rules
+- Dashboards with queries that scan far more data than needed (no recording rules)
+- Alertmanager routes that silently swallow alerts due to incorrect matchers
+- Retention set too high for available disk, causing eventual storage exhaustion
+
+Do not report "monitoring looks healthy" without checking each of these. An alert system that fails silently is worse than no alert system.
+
 ## Blocker Criteria
 
 STOP and ask the user (get explicit confirmation) before proceeding when:

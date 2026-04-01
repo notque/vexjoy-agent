@@ -236,6 +236,15 @@ Gate on reliable reproduction before proceeding.
 - [ ] Root cause understood
 - [ ] Prevention added (test, better types, validation)
 
+### Verification STOP Blocks
+These checkpoints are mandatory. Do not skip them even when confident.
+
+- **After writing a fix**: STOP. Run the reproduction test and show the output. A fix without a passing test is a guess.
+- **After claiming root cause found**: STOP. Can you explain WHY the bug happened, not just WHERE? If you can only point to a line but not the mechanism, keep investigating.
+- **After completing the debug**: STOP. Run `npx tsc --noEmit` and the full test suite before reporting completion. Show the actual output.
+- **Before editing a file**: Read the file first. Blind edits in debugging cause new bugs that mask the original one.
+- **Before committing a fix**: Do not commit to main. Create a feature branch. Main branch commits affect everyone.
+
 ## References
 
 For detailed debugging workflows:
