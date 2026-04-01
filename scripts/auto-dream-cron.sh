@@ -60,6 +60,7 @@ export DREAM_LEARNING_DB="$HOME/.claude/learning/learning.db"
 export DREAM_STATE_DIR="$HOME/.claude/state"
 export DREAM_REPO_DIR="$PROJECT_PATH"
 export DREAM_PROJECT_HASH="$PROJECT_HASH"
+export DREAM_DATE="$(date +%Y-%m-%d)"
 
 # Ensure state directory exists
 mkdir -p "$DREAM_STATE_DIR"
@@ -79,7 +80,7 @@ if [ -z "$EXECUTE" ]; then
     echo "Dry-run mode: CONSOLIDATE and SYNTHESIZE will describe but not execute changes"
 fi
 
-PROMPT=$(envsubst '${DREAM_MEMORY_DIR} ${DREAM_LEARNING_DB} ${DREAM_STATE_DIR} ${DREAM_REPO_DIR} ${DREAM_PROJECT_HASH} ${DREAM_DRY_RUN_MODE}' < "$PROMPT_TEMPLATE")
+PROMPT=$(envsubst '${DREAM_MEMORY_DIR} ${DREAM_LEARNING_DB} ${DREAM_STATE_DIR} ${DREAM_REPO_DIR} ${DREAM_PROJECT_HASH} ${DREAM_DRY_RUN_MODE} ${DREAM_DATE}' < "$PROMPT_TEMPLATE")
 
 cd "$REPO_DIR"
 
@@ -97,6 +98,14 @@ set -e
 
 echo ""
 echo "=== Dream complete: $(date -Iseconds) | exit: $EXIT_CODE ==="
+
+# Ensure we're back on main after dream cycle (graduation phase may have switched branches)
+cd "$REPO_DIR"
+CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+if [[ "$CURRENT_BRANCH" == dream/graduate-* ]]; then
+    echo "WARNING: Dream left repo on graduation branch $CURRENT_BRANCH, switching back to main"
+    git checkout main 2>/dev/null || true
+fi
 
 # Rotate old logs and state files (keep last 30 days)
 find "$LOG_DIR" -name "run-*.log" -mtime +30 -delete 2>/dev/null || true

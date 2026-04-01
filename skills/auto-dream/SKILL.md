@@ -1,6 +1,6 @@
 ---
 name: auto-dream
-description: Background memory consolidation — reviews past sessions and deduplicates memories.
+description: Background memory consolidation and learning graduation — overnight knowledge lifecycle.
 version: 1.0.0
 user-invocable: true
 command: dream
@@ -21,6 +21,8 @@ routing:
     - memory maintenance
     - memory consolidation
     - deduplicate memories
+    - graduate learnings
+    - promote learnings
   category: meta-tooling
   pairs_with: []
 ---
@@ -35,7 +37,7 @@ Background memory consolidation cycle. Scans memory files, finds stale/duplicate
 
 ## Instructions
 
-When invoked interactively (not via cron), read `skills/auto-dream/dream-prompt.md` and execute its phases directly. The prompt is self-contained — it describes the full six-phase cycle including safety constraints, file paths, and output formats.
+When invoked interactively (not via cron), read `skills/auto-dream/dream-prompt.md` and execute its phases directly. The prompt is self-contained — it describes the full seven-phase cycle including safety constraints, file paths, and output formats.
 
 For cron invocation: the dream prompt is passed directly to `claude -p` and runs as a standalone headless session with no CLAUDE.md, no hooks, no project context. All instructions are embedded in the prompt.
 
@@ -45,8 +47,9 @@ For cron invocation: the dream prompt is passed directly to `claude -p` and runs
 2. **ANALYZE** — Identify stale, duplicate, conflicting memories and cross-session patterns. Write analysis to `~/.claude/state/dream-analysis-{date}.md`.
 3. **CONSOLIDATE** — Apply consolidation actions (max 5 changes). Archive stale/merged files, update MEMORY.md atomically.
 4. **SYNTHESIZE** — Create insight memories from cross-session patterns (max 2 new memories per cycle).
-5. **SELECT** — Build injection-ready payload for session start. Write to `~/.claude/state/dream-injection-{project-hash}.md`.
-6. **REPORT** — Write dream summary to `~/.claude/state/last-dream.md`.
+5. **GRADUATE** — Promote mature learning DB entries (confidence >= 0.9, 3+ observations) into agent/skill files as permanent anti-patterns. Commits on `dream/graduate-YYYY-MM-DD` branch for human review. Max 3 per cycle. (ADR-159)
+6. **SELECT** — Build injection-ready payload for session start. Write to `~/.claude/state/dream-injection-{project-hash}.md`.
+7. **REPORT** — Write dream summary to `~/.claude/state/last-dream.md`.
 
 ## Safety constraints (always enforced)
 
@@ -55,7 +58,9 @@ For cron invocation: the dream prompt is passed directly to `claude -p` and runs
 - Maximum 5 memory changes per cycle — excess items deferred to next cycle
 - Flag conflicts for human review, never auto-resolve
 - Preserve YAML frontmatter when merging; use `merged_from` field for provenance
-- If `CLAUDE_DREAM_DRY_RUN=1`, CONSOLIDATE and SYNTHESIZE describe proposed changes only — no filesystem writes
+- If `CLAUDE_DREAM_DRY_RUN=1`, CONSOLIDATE, SYNTHESIZE, and GRADUATE describe proposed changes only — no filesystem writes or git operations
+- GRADUATE commits on a feature branch (`dream/graduate-*`), never on main — user reviews and merges
+- Maximum 3 graduations per cycle — only entries with confidence >= 0.9 and 3+ observations
 
 ## Testing
 
@@ -68,6 +73,12 @@ For cron invocation: the dream prompt is passed directly to `claude -p` and runs
 
 # Check output
 cat ~/.claude/state/last-dream.md
+
+# Check graduation candidates (what dream would graduate)
+python3 ~/.claude/scripts/learning-db.py graduate-candidates
+
+# Check if a graduation branch exists
+git branch --list 'dream/graduate-*'
 
 # Verify cron registration
 python3 ~/.claude/scripts/crontab-manager.py list
