@@ -6,7 +6,7 @@ PreToolUse:Write,Edit Hook: Plan Gate
 Blocks implementation when task_plan.md doesn't exist in the project root.
 Forces agents to create a plan before writing implementation code.
 
-This is a HARD GATE — exit 2 blocks the Write/Edit tool.
+This is a HARD GATE — exits 0 with JSON permissionDecision:deny to block the Write/Edit tool.
 
 Detection logic:
 - Tool is Write or Edit
@@ -90,18 +90,29 @@ def main() -> None:
         file=sys.stderr,
     )
     print("[fix-with-skill] plans", file=sys.stderr)
-    sys.exit(2)
+    print(json.dumps({
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": (
+                "Create task_plan.md before modifying implementation code in agents/ or skills/. "
+                "Use the plan-manager skill to create one."
+            ),
+        }
+    }))
+    sys.exit(0)
 
 
 if __name__ == "__main__":
     try:
         main()
     except SystemExit:
-        raise  # Let sys.exit(2) propagate for blocks
+        raise  # Let sys.exit(0) propagate normally
     except Exception as e:
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             traceback.print_exc(file=sys.stderr)
         else:
             print(f"[plan-gate] Error: {type(e).__name__}: {e}", file=sys.stderr)
-        # A crashed hook must fail OPEN — never exit 2 on unexpected errors.
+        # A crashed hook must fail OPEN — never block tools.
+    finally:
         sys.exit(0)
