@@ -60,6 +60,12 @@
           },
           {
             "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/afk-mode.py\"",
+            "description": "Inject autonomous behavioral posture for SSH/tmux/headless sessions",
+            "timeout": 1000
+          },
+          {
+            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/auto-plan-detector.py\"",
             "description": "Auto-detect complex tasks and inject planning reminders (Manus methodology)"
           },
