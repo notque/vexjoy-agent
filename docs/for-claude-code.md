@@ -117,7 +117,7 @@ Trivial = reading a file the user named by exact path. Everything else routes th
 | `fish-shell-detector.py` | SessionStart | Detect fish shell, inject bash workarounds |
 | `skill-evaluator.py` | UserPromptSubmit | Inject agent/skill routing hints |
 | `auto-plan-detector.py` | UserPromptSubmit | Inject `<auto-plan-required>` for complex tasks |
-| `retro-knowledge-injector.py` | UserPromptSubmit | FTS5 query learning.db, inject relevant knowledge |
+| `session-context.py` (dream payload) | SessionStart | Inject pre-built dream payload (LLM-curated by nightly auto-dream, ADR-147) |
 | `instruction-reminder.py` | UserPromptSubmit | Re-inject CLAUDE.md instructions periodically |
 | `capability-catalog-injector.py` | UserPromptSubmit | Inject available capabilities list |
 | `operator-context-detector.py` | SessionStart | Detect operator context in prompts |
@@ -274,7 +274,7 @@ python3 scripts/learning-db.py stale-prune --confirm
 
 1. **Record**: hooks capture errors, review findings, session patterns automatically
 2. **Boost/Decay**: confidence adjusts -- success boosts, failure decays, inactivity decays
-3. **Inject**: `retro-knowledge-injector.py` queries FTS5 on every `UserPromptSubmit`, injects relevant entries above confidence threshold
+3. **Inject**: `session-context.py` injects the pre-built dream payload at SessionStart (LLM-curated by nightly auto-dream cycle, ADR-147). Falls back to direct learning.db queries for high-confidence patterns if no fresh payload exists.
 4. **Graduate**: high-confidence entries get promoted into agent/skill files via `learning-db.py graduate`
 
 ---

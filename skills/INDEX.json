@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-03-31T18:56:13Z",
+  "generated": "2026-04-01T03:23:29Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -62,6 +62,23 @@
       "category": "content-creation",
       "user_invocable": false,
       "version": "2.1.0"
+    },
+    "auto-dream": {
+      "file": "skills/auto-dream/SKILL.md",
+      "description": "Background memory consolidation \u2014 reviews past sessions and deduplicates memories.",
+      "triggers": [
+        "dream",
+        "consolidate memories",
+        "clean up memories",
+        "memory maintenance",
+        "memory consolidation",
+        "deduplicate memories"
+      ],
+      "category": "meta-tooling",
+      "user_invocable": true,
+      "version": "1.0.0",
+      "pairs_with": [],
+      "model": "sonnet"
     },
     "batch-editor": {
       "file": "skills/batch-editor/SKILL.md",

@@ -42,8 +42,16 @@ _GIT_SUBMISSION_BYPASS = "CLAUDE_GATE_BYPASS=1"
 
 _GIT_SUBMISSION_PATTERNS = [
     (re.compile(r"^(?:\w+=\S+\s+)*git\s+push\b"), "pr-sync", "Use /pr-sync to push (runs review loop first)"),
-    (re.compile(r"^(?:\w+=\S+\s+)*gh\s+pr\s+create\b"), "pr-pipeline", "Use /pr-pipeline to create PR (runs review loop first)"),
-    (re.compile(r"^(?:\w+=\S+\s+)*gh\s+pr\s+merge\b"), "pr-pipeline", "Use /pr-pipeline to merge (requires review to pass first)"),
+    (
+        re.compile(r"^(?:\w+=\S+\s+)*gh\s+pr\s+create\b"),
+        "pr-pipeline",
+        "Use /pr-pipeline to create PR (runs review loop first)",
+    ),
+    (
+        re.compile(r"^(?:\w+=\S+\s+)*gh\s+pr\s+merge\b"),
+        "pr-pipeline",
+        "Use /pr-pipeline to merge (requires review to pass first)",
+    ),
 ]
 
 # ═══════════════════════════════════════════════════════════════

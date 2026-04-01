@@ -60,8 +60,8 @@ Categories:  [breakdown by category]
 Graduated:   [N] entries embedded in agents/skills
 
 Injection:
-  Hook: retro-knowledge-injector.py (DB-backed, FTS5 search)
-  Gate: work-intent + keyword relevance
+  Hook: session-context.py (SessionStart, ADR-147 dream system)
+  Method: pre-built payload from nightly auto-dream cycle + learning.db high-confidence patterns
 
 Next actions:
   /retro list              — see all entries
@@ -232,5 +232,5 @@ Solution: Report the stats and suggest recording more learnings via normal work.
 ## References
 
 - `~/.claude/scripts/learning-db.py` — Python CLI for all database operations
-- `hooks/retro-knowledge-injector.py` — Hook that injects graduated knowledge into prompt context
+- `hooks/session-context.py` — Hook that injects the pre-built dream payload and high-confidence patterns at session start (ADR-147, supersedes retro-knowledge-injector.py)
 - `scripts/learning.db` — SQLite database with FTS5 search index
