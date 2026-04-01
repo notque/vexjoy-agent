@@ -750,6 +750,7 @@ def mark_graduated(topic: str, key: str, target: str) -> bool:
         conn.commit()
         if cursor.rowcount == 0:
             import sys
+
             print(f"WARNING: mark_graduated found no entry for topic={topic!r} key={key!r}", file=sys.stderr)
             return False
         return True

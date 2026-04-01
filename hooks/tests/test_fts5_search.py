@@ -330,7 +330,9 @@ class TestBackwardCompatibility:
         assert query_results[0]["key"] == search_results[0]["key"]
 
 
-def _insert_candidate(topic: str, key: str, value: str, confidence: float, observation_count: int, graduated_to: str | None = None):
+def _insert_candidate(
+    topic: str, key: str, value: str, confidence: float, observation_count: int, graduated_to: str | None = None
+):
     """Helper to insert a graduation candidate with exact confidence and observation_count."""
     _record(topic, key, value, tags=["test"], confidence=confidence)
     with db.get_connection() as conn:
@@ -346,8 +348,12 @@ class TestQueryGraduationCandidates:
 
     def test_returns_qualified_candidates(self):
         """Entries meeting all criteria are returned."""
-        _insert_candidate("skill:go-patterns", "mutex-guard", "Always use mutex guards", confidence=0.95, observation_count=5)
-        _insert_candidate("agent:python-eng", "type-hints", "Use type hints everywhere", confidence=0.92, observation_count=3)
+        _insert_candidate(
+            "skill:go-patterns", "mutex-guard", "Always use mutex guards", confidence=0.95, observation_count=5
+        )
+        _insert_candidate(
+            "agent:python-eng", "type-hints", "Use type hints everywhere", confidence=0.92, observation_count=3
+        )
 
         results = db.query_graduation_candidates()
         assert len(results) == 2
@@ -374,7 +380,14 @@ class TestQueryGraduationCandidates:
 
     def test_excludes_already_graduated(self):
         """Entries with graduated_to set are excluded."""
-        _insert_candidate("skill:graduated", "entry-a", "Already graduated", confidence=0.95, observation_count=5, graduated_to="agent:target")
+        _insert_candidate(
+            "skill:graduated",
+            "entry-a",
+            "Already graduated",
+            confidence=0.95,
+            observation_count=5,
+            graduated_to="agent:target",
+        )
         _insert_candidate("skill:active", "entry-b", "Not yet graduated", confidence=0.95, observation_count=5)
 
         results = db.query_graduation_candidates()
@@ -415,7 +428,9 @@ class TestQueryGraduationCandidates:
         """Results sorted by confidence DESC, then observation_count DESC."""
         _insert_candidate("skill:medium", "k1", "Medium confidence, high obs", confidence=0.92, observation_count=10)
         _insert_candidate("skill:highest", "k2", "Highest confidence, low obs", confidence=0.99, observation_count=3)
-        _insert_candidate("skill:high-obs", "k3", "Same as highest conf, more obs", confidence=0.99, observation_count=8)
+        _insert_candidate(
+            "skill:high-obs", "k3", "Same as highest conf, more obs", confidence=0.99, observation_count=8
+        )
         _insert_candidate("agent:low", "k4", "Lower confidence", confidence=0.91, observation_count=5)
 
         results = db.query_graduation_candidates()
