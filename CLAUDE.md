@@ -15,9 +15,9 @@ When goals conflict, prioritize in this order:
 
 The toolkit uses **agents, skills, hooks, and scripts** to absorb complexity that would otherwise fall on the user. Behavioral enforcement lives in these mechanisms, not in this file.
 
-**Route, don't handle.** The main thread is an orchestrator. It classifies requests, dispatches agents, and evaluates results. It does not read source code, edit files, or do analysis directly. If you're about to do work instead of routing it, stop and dispatch an agent.
+**Route to agents.** The main thread is an orchestrator. It classifies requests, dispatches agents, and evaluates results. It delegates source code reading, file edits, and analysis to specialized agents. Dispatch an agent for all work — the main thread orchestrates, agents execute.
 
-**Load only what you need.** Context is a scarce resource. Agents carry domain knowledge, skills carry methodology, and reference files carry deep content — all loaded on demand. Never stuff context that isn't needed for the current task.
+**Load only what you need.** Context is a scarce resource. Agents carry domain knowledge, skills carry methodology, and reference files carry deep content — all loaded on demand. Load only the context required for the current task.
 
 **LLMs orchestrate, programs execute.** If a process is deterministic and measurable (file searching, test execution, build validation, frontmatter checking), use a script. Reserve LLM judgment for contextual diagnosis, design decisions, and code review.
 
