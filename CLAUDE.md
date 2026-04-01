@@ -37,6 +37,12 @@ Act on these immediately:
 
 ---
 
+## Local-Only Directories
+
+The `adr/` directory is gitignored — ADR files are local development artifacts that exist on disk but are excluded from git. Use `ls adr/` to find them, not `git diff`. These files drive architectural decisions but are never pushed to the remote.
+
+---
+
 ## Reference Documentation
 
 Domain-specific reference content lives in skill reference files, loaded on demand:
