@@ -203,7 +203,6 @@ def sync_settings(repo_settings: dict, global_settings: dict) -> dict:
     return result
 
 
-
 def _backup_settings_json(settings_path: Path, keep: int = 3) -> None:
     """Write a timestamped backup of settings.json before overwriting.
 

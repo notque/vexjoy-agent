@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # hook-version: 2.0.0
 """UserPromptSubmit: ADR context injector — DISABLED pending redesign."""
+
 import sys
 from pathlib import Path
 
