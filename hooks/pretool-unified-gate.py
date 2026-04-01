@@ -316,8 +316,9 @@ def check_git_submission(command: str) -> None:
     if operator == "personal":
         return
 
+    cmd = command.lstrip()
     for pattern, skill_name, message in _GIT_SUBMISSION_PATTERNS:
-        if pattern.search(command):
+        if pattern.search(cmd):
             # Allow git push from worktree directories on feature branches
             if pattern is _GIT_SUBMISSION_PATTERNS[0][0]:  # git push pattern
                 effective_cwd = _extract_effective_cwd(command)

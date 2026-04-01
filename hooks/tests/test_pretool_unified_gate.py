@@ -56,6 +56,8 @@ def _run_main(stdin_payload: str, env: dict | None = None) -> int:
     # Strip all bypass vars for a clean baseline
     for var in ("CLAUDE_GATE_BYPASS", "DANGEROUS_GUARD_BYPASS", "CREATION_GATE_BYPASS", "SENSITIVE_FILE_GUARD_BYPASS"):
         base_env.pop(var, None)
+    # Activate gate: default "personal" profile bypasses; tests need "work"
+    base_env["CLAUDE_OPERATOR_PROFILE"] = "work"
     if env:
         base_env.update(env)
 
