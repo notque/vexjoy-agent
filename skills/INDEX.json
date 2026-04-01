@@ -65,14 +65,16 @@
     },
     "auto-dream": {
       "file": "skills/auto-dream/SKILL.md",
-      "description": "Background memory consolidation \u2014 reviews past sessions and deduplicates memories.",
+      "description": "Background memory consolidation and learning graduation \u2014 overnight knowledge lifecycle.",
       "triggers": [
         "dream",
         "consolidate memories",
         "clean up memories",
         "memory maintenance",
         "memory consolidation",
-        "deduplicate memories"
+        "deduplicate memories",
+        "graduate learnings",
+        "promote learnings"
       ],
       "category": "meta-tooling",
       "user_invocable": true,

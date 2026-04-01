@@ -626,6 +626,50 @@ def search_learnings(
             return []
 
 
+def query_graduation_candidates(
+    *,
+    min_confidence: float = 0.9,
+    min_observations: int = 3,
+    limit: int = 10,
+) -> list[dict]:
+    """Return learning entries that are candidates for graduation into agent/skill files.
+
+    Graduation criteria (all must be met):
+    - confidence >= min_confidence
+    - observation_count >= min_observations
+    - graduated_to IS NULL (not already graduated)
+    - topic is scoped (starts with 'skill:' or 'agent:')
+
+    Args:
+        min_confidence: Minimum confidence threshold (default 0.9).
+        min_observations: Minimum observation count (default 3).
+        limit: Maximum number of results to return (default 10).
+
+    Returns:
+        List of learning dicts sorted by confidence DESC, then observation_count DESC.
+        Each dict contains: id, topic, key, value, category, confidence,
+        observation_count, first_seen, last_seen, tags.
+    """
+    init_db()
+
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT id, topic, key, value, category, confidence,
+                   observation_count, first_seen, last_seen, tags
+            FROM learnings
+            WHERE confidence >= ?
+              AND observation_count >= ?
+              AND graduated_to IS NULL
+              AND (topic LIKE 'skill:%' OR topic LIKE 'agent:%')
+            ORDER BY confidence DESC, observation_count DESC
+            LIMIT ?
+            """,
+            (min_confidence, min_observations, limit),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
 def lookup_error_solution(
     error_message: str,
     min_confidence: float = 0.7,
@@ -691,15 +735,25 @@ def decay_confidence(topic: str, key: str, delta: float = 0.10) -> float:
         return new_conf
 
 
-def mark_graduated(topic: str, key: str, target: str) -> None:
-    """Mark entry as graduated to a permanent location."""
+def mark_graduated(topic: str, key: str, target: str) -> bool:
+    """Mark entry as graduated to a permanent location.
+
+    Returns:
+        True if an entry was updated, False if no matching entry was found.
+    """
     init_db()
     with get_connection() as conn:
-        conn.execute(
+        cursor = conn.execute(
             "UPDATE learnings SET graduated_to = ? WHERE topic = ? AND key = ?",
             (target, topic, key),
         )
         conn.commit()
+        if cursor.rowcount == 0:
+            import sys
+
+            print(f"WARNING: mark_graduated found no entry for topic={topic!r} key={key!r}", file=sys.stderr)
+            return False
+        return True
 
 
 VALID_EVENT_TYPES = {

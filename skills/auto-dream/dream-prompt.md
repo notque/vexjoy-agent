@@ -6,7 +6,7 @@ All instructions are contained in this prompt.
 
 Do NOT execute phases in numbered order. The correct execution sequence is:
 
-**SCAN (1) → ANALYZE (2) → REPORT (6, first write: planned changes) → CONSOLIDATE (3) → SYNTHESIZE (4) → SELECT (5) → REPORT (6, second write: actual results)**
+**SCAN (1) → ANALYZE (2) → REPORT (7, first write: planned changes) → CONSOLIDATE (3) → SYNTHESIZE (4) → GRADUATE (5) → SELECT (6) → REPORT (7, second write: actual results)**
 
 The REPORT must be written BEFORE CONSOLIDATE begins any filesystem operations. This is a hard safety rule — the report is the audit trail. If the cycle is interrupted after writing the report but before consolidation completes, the report shows exactly what was planned.
 
@@ -29,15 +29,16 @@ Current dry-run setting: ${DREAM_DRY_RUN_MODE}
 If `${DREAM_DRY_RUN_MODE}` is `yes`:
 - Phases 1 (SCAN) and 2 (ANALYZE) run normally and write their output files.
 - Phase 3 (CONSOLIDATE) and Phase 4 (SYNTHESIZE) describe proposed changes in the report but make NO filesystem writes.
-- Phase 5 (SELECT) runs normally (read-only).
-- Phase 6 (REPORT) writes the report file normally.
+- Phase 5 (GRADUATE) describes proposed graduations in the report but makes NO file edits and NO git operations.
+- Phase 6 (SELECT) runs normally (read-only).
+- Phase 7 (REPORT) writes the report file normally.
 
 If `${DREAM_DRY_RUN_MODE}` is `no`, run all phases fully.
 
 ## Safety constraints — these are hard rules, never deviate
 
 1. **Never delete files.** Archiving means moving to the `archive/` subdirectory, not deleting. If `archive/` does not exist, create it first.
-2. **Write the REPORT (Phase 6) before Phase 3 executes any filesystem operations.** The report is the audit trail. If the cycle is interrupted after writing the report, the report shows exactly what was planned.
+2. **Write the REPORT (Phase 7) before Phase 3 executes any filesystem operations.** The report is the audit trail. If the cycle is interrupted after writing the report, the report shows exactly what was planned.
 3. **Maximum 5 memory changes per cycle.** If analysis identifies more than 5 actionable items, prioritize: (1) clear duplicates first, (2) stale project memories, (3) synthesis. Excess items go in the report as "deferred to next cycle."
 4. **Flag conflicts, never auto-resolve.** Conflicting memories require human judgment. Leave both files untouched, flag in the report.
 5. **Preserve YAML frontmatter when merging.** The merged file carries frontmatter from the more-recently-modified source, plus a `merged_from` list of source filenames.
@@ -151,12 +152,12 @@ Analysis document format:
 
 ## Phase 3: CONSOLIDATE
 
-**STOP — Before executing this phase**, verify that the REPORT (Phase 6) has already been written with the planned changes from Phase 2. The report must exist as an audit trail before any filesystem operations begin. If you have not yet written the report, go to Phase 6 and write the initial report first, then return here.
+**STOP — Before executing this phase**, verify that the REPORT (Phase 7) has already been written with the planned changes from Phase 2. The report must exist as an audit trail before any filesystem operations begin. If you have not yet written the report, go to Phase 7 and write the initial report first, then return here.
 
 Apply the prioritized action list from Phase 2. Maximum 5 changes.
 
 **IMPORTANT**: If `${DREAM_DRY_RUN_MODE}` is `yes`, skip all filesystem operations in this phase.
-Describe what WOULD be done in the report (Phase 6) but make no changes.
+Describe what WOULD be done in the report (Phase 7) but make no changes.
 
 For each archive action:
 1. Create `archive/` directory if it does not exist:
@@ -212,7 +213,112 @@ Write to: `${DREAM_MEMORY_DIR}/insight_{topic}_{YYYY-MM-DD}.md`
 
 Add each new insight to MEMORY.md (write to MEMORY.md.tmp, then rename).
 
-## Phase 5: SELECT
+## Phase 5: GRADUATE
+
+Promote mature learning DB entries into permanent agent/skill knowledge.
+
+This phase queries the learning database for entries that have been confirmed enough times
+to warrant embedding directly into agent or skill files. Graduation makes the knowledge
+permanent — it becomes part of the agent's instructions rather than injected context.
+
+**IMPORTANT**: If `${DREAM_DRY_RUN_MODE}` is "yes", describe
+proposed graduations in the report but make NO file edits and NO git operations.
+
+Steps:
+
+1. Query for graduation candidates:
+   ```bash
+   cd ${DREAM_REPO_DIR} && python3 -c "
+   import sys
+   sys.path.insert(0, 'hooks/lib')
+   from learning_db_v2 import query_graduation_candidates
+   import json
+   candidates = query_graduation_candidates(min_confidence=0.9, min_observations=3, limit=10)
+   print(json.dumps(candidates, indent=2))
+   "
+   ```
+   If no candidates are found or the query fails, skip this phase and note "No graduation candidates" in the report.
+
+2. For each candidate, evaluate graduation readiness using these criteria:
+   - **REJECT** if the learning is generic advice the agent already knows (e.g., "use proper error handling")
+   - **REJECT** if the target file doesn't exist at `${DREAM_REPO_DIR}`
+   - **ACCEPT** if the learning encodes a specific, actionable pattern from a real incident
+
+   Maximum 3 graduations per cycle. If more candidates qualify, defer the rest to the next cycle.
+
+3. For each accepted candidate, determine where to insert it:
+   - If topic starts with `skill:` → target is `${DREAM_REPO_DIR}/skills/{skill_name}/SKILL.md`
+   - If topic starts with `agent:` → target is the agent's markdown file (search `${DREAM_REPO_DIR}/agents/` for it, or check `~/.claude/agents/`)
+   - Read the target file. Find an appropriate insertion point:
+     - If an "Anti-Patterns" or "Common Mistakes" section exists, add there
+     - If an "Error Handling" section exists, add there
+     - Otherwise, add a new "## Learned Patterns" section before the last section
+   - Format the learning as a bullet point with context:
+     ```
+     - **{brief title}**: {learning content} _(graduated from learning DB, {observation_count} observations)_
+     ```
+
+4. Create a git branch and commit the changes:
+   ```bash
+   cd ${DREAM_REPO_DIR}
+   GRAD_BRANCH="dream/graduate-${DREAM_DATE}"
+
+   # Ensure clean working tree before branch switch
+   if [ -n "$(git status --porcelain)" ]; then
+       git stash --quiet
+   fi
+
+   # Check if branch already exists (from a previous graduation in this cycle)
+   if git rev-parse --verify "$GRAD_BRANCH" >/dev/null 2>&1; then
+       git checkout "$GRAD_BRANCH"
+   else
+       git checkout -b "$GRAD_BRANCH" main
+   fi
+   ```
+
+   After editing each target file:
+   ```bash
+   git add <specific-file>
+   ```
+
+   After all edits:
+   ```bash
+   git commit -m "dream: graduate N learnings into agent/skill files
+
+   Graduated entries:
+   - {topic}/{key}: {one-line summary}
+   ...
+
+   ADR-159: automated dream graduation"
+
+   git push origin "$GRAD_BRANCH"
+   ```
+
+   If `git push` fails, do NOT proceed to step 5 (mark_graduated). Record the push failure in the report, leave entries ungraduated so they can be retried next cycle, and skip to `git checkout main`.
+
+   ```bash
+   # Return to original branch/detached state for remaining phases
+   git checkout main
+   ```
+
+5. Mark each graduated entry in the learning DB:
+   ```bash
+   cd ${DREAM_REPO_DIR} && python3 -c "
+   import sys
+   sys.path.insert(0, 'hooks/lib')
+   from learning_db_v2 import mark_graduated
+   mark_graduated('{topic}', '{key}', '{target_file}')
+   "
+   ```
+
+6. Record graduations in the report (Phase 7). Include:
+   - Number of candidates evaluated
+   - Number accepted/rejected with reasons
+   - Files modified
+   - Branch name for review
+   - Deferred candidates (if any)
+
+## Phase 6: SELECT
 
 Build an injection-ready payload for the next session start.
 
@@ -257,11 +363,11 @@ Create the state directory if it does not exist:
 mkdir -p ${DREAM_STATE_DIR}/
 ```
 
-## Phase 6: REPORT
+## Phase 7: REPORT
 
 Write the dream summary. This phase runs twice: once before CONSOLIDATE as a pre-execution
 plan (written after ANALYZE), and again after all phases complete with actual results.
-If Phases 3-4 made filesystem changes, describe them here for audit purposes. If running
+If Phases 3-5 made filesystem changes, describe them here for audit purposes. If running
 dry-run, describe what WOULD have been done.
 
 Write to: `${DREAM_STATE_DIR}/last-dream-{YYYY-MM-DD}.md`
@@ -292,6 +398,14 @@ Report format:
 ## Conflicts Requiring Review
 - [memory-name] vs [memory-name]: [description of conflict]
 
+## Graduations
+- Candidates evaluated: N
+- Graduated: K (max 3)
+- Branch: dream/graduate-{YYYY-MM-DD} (if any graduations occurred)
+- Details:
+  - [{topic}/{key}] → {target_file}: {one-line summary}
+- Deferred to next cycle: [list if any]
+
 ## Injection Payload
 - File: ${DREAM_STATE_DIR}/dream-injection-${DREAM_PROJECT_HASH}.md
 - Entries selected: N
@@ -305,11 +419,11 @@ Report format:
 ```
 
 After writing both report files, output a one-line summary to stdout:
-`[dream] {K} memories consolidated, {synthesis_count} insights synthesized — {YYYY-MM-DD}`
+`[dream] {K} memories consolidated, {synthesis_count} insights synthesized, {grad_count} learnings graduated — {YYYY-MM-DD}`
 
 ## Execution sequence
 
-Execute phases in order: SCAN → ANALYZE → REPORT (write planned changes) → CONSOLIDATE → SYNTHESIZE → SELECT → REPORT (update with actual results) → done.
+Execute phases in order: SCAN → ANALYZE → REPORT (write planned changes) → CONSOLIDATE → SYNTHESIZE → GRADUATE → SELECT → REPORT (update with actual results) → done.
 
 The REPORT is written twice:
 1. Before CONSOLIDATE: write the planned changes as a "pre-execution plan"

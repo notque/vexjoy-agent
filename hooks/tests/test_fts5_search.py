@@ -328,3 +328,118 @@ class TestBackwardCompatibility:
         # Both should find the same entry
         assert query_results[0]["topic"] == search_results[0]["topic"]
         assert query_results[0]["key"] == search_results[0]["key"]
+
+
+def _insert_candidate(
+    topic: str, key: str, value: str, confidence: float, observation_count: int, graduated_to: str | None = None
+):
+    """Helper to insert a graduation candidate with exact confidence and observation_count."""
+    _record(topic, key, value, tags=["test"], confidence=confidence)
+    with db.get_connection() as conn:
+        conn.execute(
+            "UPDATE learnings SET observation_count = ?, graduated_to = ? WHERE topic = ? AND key = ?",
+            (observation_count, graduated_to, topic, key),
+        )
+        conn.commit()
+
+
+class TestQueryGraduationCandidates:
+    """Test the query_graduation_candidates() function."""
+
+    def test_returns_qualified_candidates(self):
+        """Entries meeting all criteria are returned."""
+        _insert_candidate(
+            "skill:go-patterns", "mutex-guard", "Always use mutex guards", confidence=0.95, observation_count=5
+        )
+        _insert_candidate(
+            "agent:python-eng", "type-hints", "Use type hints everywhere", confidence=0.92, observation_count=3
+        )
+
+        results = db.query_graduation_candidates()
+        assert len(results) == 2
+        topics = {r["topic"] for r in results}
+        assert topics == {"skill:go-patterns", "agent:python-eng"}
+
+    def test_filters_by_confidence(self):
+        """Entries below the confidence threshold are excluded."""
+        _insert_candidate("skill:low-conf", "entry-a", "Low confidence entry", confidence=0.85, observation_count=5)
+        _insert_candidate("skill:high-conf", "entry-b", "High confidence entry", confidence=0.95, observation_count=5)
+
+        results = db.query_graduation_candidates(min_confidence=0.9)
+        assert len(results) == 1
+        assert results[0]["topic"] == "skill:high-conf"
+
+    def test_filters_by_observation_count(self):
+        """Entries below the observation count threshold are excluded."""
+        _insert_candidate("skill:few-obs", "entry-a", "Too few observations", confidence=0.95, observation_count=2)
+        _insert_candidate("skill:enough-obs", "entry-b", "Enough observations", confidence=0.95, observation_count=3)
+
+        results = db.query_graduation_candidates(min_observations=3)
+        assert len(results) == 1
+        assert results[0]["topic"] == "skill:enough-obs"
+
+    def test_excludes_already_graduated(self):
+        """Entries with graduated_to set are excluded."""
+        _insert_candidate(
+            "skill:graduated",
+            "entry-a",
+            "Already graduated",
+            confidence=0.95,
+            observation_count=5,
+            graduated_to="agent:target",
+        )
+        _insert_candidate("skill:active", "entry-b", "Not yet graduated", confidence=0.95, observation_count=5)
+
+        results = db.query_graduation_candidates()
+        assert len(results) == 1
+        assert results[0]["topic"] == "skill:active"
+
+    def test_requires_scoped_topic(self):
+        """Entries without 'skill:' or 'agent:' prefix are excluded."""
+        _insert_candidate("go-patterns", "unscoped-a", "No prefix", confidence=0.99, observation_count=10)
+        _insert_candidate("design", "unscoped-b", "Plain topic", confidence=0.99, observation_count=10)
+        _insert_candidate("skill:scoped", "scoped-entry", "Has skill prefix", confidence=0.95, observation_count=5)
+        _insert_candidate("agent:scoped", "agent-entry", "Has agent prefix", confidence=0.95, observation_count=5)
+
+        results = db.query_graduation_candidates()
+        assert len(results) == 2
+        topics = {r["topic"] for r in results}
+        assert topics == {"skill:scoped", "agent:scoped"}
+
+    def test_respects_limit(self):
+        """The limit parameter caps the number of results."""
+        for i in range(5):
+            _insert_candidate(f"skill:topic-{i}", f"key-{i}", f"Entry {i}", confidence=0.95, observation_count=5)
+
+        results = db.query_graduation_candidates(limit=2)
+        assert len(results) == 2
+
+    def test_empty_when_no_candidates(self):
+        """Returns empty list when nothing qualifies."""
+        # Insert entries that fail various criteria
+        _insert_candidate("skill:low-conf", "k1", "Low confidence", confidence=0.5, observation_count=5)
+        _insert_candidate("skill:low-obs", "k2", "Low observations", confidence=0.95, observation_count=1)
+        _insert_candidate("plain-topic", "k3", "Unscoped topic", confidence=0.95, observation_count=5)
+
+        results = db.query_graduation_candidates()
+        assert results == []
+
+    def test_sort_order(self):
+        """Results sorted by confidence DESC, then observation_count DESC."""
+        _insert_candidate("skill:medium", "k1", "Medium confidence, high obs", confidence=0.92, observation_count=10)
+        _insert_candidate("skill:highest", "k2", "Highest confidence, low obs", confidence=0.99, observation_count=3)
+        _insert_candidate(
+            "skill:high-obs", "k3", "Same as highest conf, more obs", confidence=0.99, observation_count=8
+        )
+        _insert_candidate("agent:low", "k4", "Lower confidence", confidence=0.91, observation_count=5)
+
+        results = db.query_graduation_candidates()
+        assert len(results) == 4
+        # First: confidence=0.99, observation_count=8
+        assert results[0]["topic"] == "skill:high-obs"
+        # Second: confidence=0.99, observation_count=3
+        assert results[1]["topic"] == "skill:highest"
+        # Third: confidence=0.92, observation_count=10
+        assert results[2]["topic"] == "skill:medium"
+        # Fourth: confidence=0.91, observation_count=5
+        assert results[3]["topic"] == "agent:low"
