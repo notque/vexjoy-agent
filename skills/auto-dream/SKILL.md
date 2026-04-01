@@ -58,7 +58,7 @@ For cron invocation: the dream prompt is passed directly to `claude -p` and runs
 - Maximum 5 memory changes per cycle — excess items deferred to next cycle
 - Flag conflicts for human review, never auto-resolve
 - Preserve YAML frontmatter when merging; use `merged_from` field for provenance
-- If `CLAUDE_DREAM_DRY_RUN=1`, CONSOLIDATE, SYNTHESIZE, and GRADUATE describe proposed changes only — no filesystem writes or git operations
+- In dry-run mode (the default), CONSOLIDATE, SYNTHESIZE, and GRADUATE describe proposed changes only — no filesystem writes or git operations. The wrapper script sets `DREAM_DRY_RUN_MODE=yes` which is substituted into the prompt at runtime.
 - GRADUATE commits on a feature branch (`dream/graduate-*`), never on main — user reviews and merges
 - Maximum 3 graduations per cycle — only entries with confidence >= 0.9 and 3+ observations
 
