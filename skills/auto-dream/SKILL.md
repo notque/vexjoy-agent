@@ -75,7 +75,13 @@ For cron invocation: the dream prompt is passed directly to `claude -p` and runs
 cat ~/.claude/state/last-dream.md
 
 # Check graduation candidates (what dream would graduate)
-python3 ~/.claude/scripts/learning-db.py graduate-candidates
+python3 -c "
+import sys; sys.path.insert(0, 'hooks/lib')
+from learning_db_v2 import query_graduation_candidates
+import json
+candidates = query_graduation_candidates()
+print(json.dumps(candidates, indent=2))
+"
 
 # Check if a graduation branch exists
 git branch --list 'dream/graduate-*'
