@@ -56,6 +56,8 @@ Three mechanisms enforce this:
 - **Skills**: workflow methodologies that invoke deterministic scripts (Python CLIs, validation tools) rather than relying on LLM judgment alone, activated only when their workflow applies
 - **Progressive Disclosure**: SKILL.md contains the workflow orchestration and tells the model *when* to load deep context. Detailed catalogs, agent rosters, specification tables, and output templates live in `references/` and are loaded only when the current workflow phase needs them. A skill with 26 chart types keeps the selection logic in SKILL.md and each chart's parameter spec in its own reference file — the model loads only the spec for the chart it selected. A review skill with 4 waves keeps the orchestration in SKILL.md and each wave's agent roster in a separate reference file — Wave 2 agents don't consume tokens during Wave 1
 
+**Memory corollary:** if it can be re-derived from a source of truth, do not save it to memory. Git log, the file system, and running queries are always available. Memory should capture what cannot be derived: feedback about working style, project context that lives outside the codebase, references to external systems the model cannot introspect. Saving derivable facts to memory turns it into a noisy cache that drifts out of sync with reality. Save human judgment, not machine-readable state.
+
 ## Tokens Are Cheap, Quality Is Expensive
 
 Spending tokens to ensure correctness is economically superior to saving tokens and shipping bugs.
@@ -123,6 +125,8 @@ Quality assessment works best as a two-tier system:
 Neither tier replaces the other. Deterministic checks catch mechanical failures (broken paths, missing sections) that waste LLM evaluation tokens. LLM evaluation catches quality failures (shallow content, wrong domain focus) that deterministic checks can't see.
 
 The pipeline: **Deterministic first, fix failures, LLM evaluation, fix findings, final score.**
+
+**Verifier pattern:** For high-stakes work, separate the roles: planner (read-only, no side effects), executor (full access, implements), verifier (read-only, adversarial intent). The verifier's job is to try to break the result -- not to optimistically approve it. A verifier that only confirms success is a rubber stamp. Require evidence-bearing verdicts: the exact command run, the observed output, the expected value versus the actual. "Looks correct" is not a verdict. If the verifier cannot produce a falsifiable check, the result is not verified.
 
 ## Specialist Selection Over Generalism
 
@@ -270,9 +274,13 @@ Skill documents place the workflow (Instructions/Phases) immediately after the f
 
 **What was removed:** Operator Context sections (Hardcoded/Default/Optional taxonomy), standalone Anti-Patterns sections, Anti-Rationalization tables, and Capabilities & Limitations boilerplate. These were structural overhead that separated constraints from the workflow steps where they apply.
 
-**Where the content went:** Every constraint was distributed inline to the workflow step where it matters. Anti-pattern wisdom became reasoning attached to the relevant instruction. Nothing was deleted — it was reorganized to be at point-of-use.
+**Where the content went:** Every constraint was distributed inline to the workflow step where it matters. Anti-pattern wisdom became reasoning attached to the relevant instruction. Nothing was deleted -- it was reorganized to be at point-of-use.
 
-**Progressive disclosure completes the picture:** Workflow-first ordering keeps SKILL.md navigable. For skills exceeding ~500 lines, detailed catalogs, agent rosters, and specification tables move to `references/` files. The SKILL.md workflow tells the model when to load each reference — "Read `references/wave-1-foundation.md` for the agent list and dispatch prompts." The model gets the orchestration logic upfront and loads deep context only when the current phase needs it.
+**Fault containment:** Safety rules should be duplicated inside the specialist prompts where they are most likely to be violated. A global "never commit to main" rule in CLAUDE.md can be rationalized past when a git agent is deep in a fast-path fix. The same rule repeated inside the git-specific tool prompt cannot. This is not redundancy -- it is defense in depth. The cost of repetition is a few tokens. The cost of a skipped gate is a broken deploy.
+
+**Numeric anchors over style words:** Replace vague directives like "be concise" with exact ceilings: maximum word count, section ordering, format prohibitions. "Under 80 words before the first tool call" is testable -- you can count. "Be concise" is not. Numeric constraints make prompts auditable: a deterministic script can check whether the output obeyed the contract. Style words only create the illusion of a constraint.
+
+**Progressive disclosure completes the picture:** Workflow-first ordering keeps SKILL.md navigable. For skills exceeding ~500 lines, detailed catalogs, agent rosters, and specification tables move to `references/` files. The SKILL.md workflow tells the model when to load each reference -- "Read `references/wave-1-foundation.md` for the agent list and dispatch prompts." The model gets the orchestration logic upfront and loads deep context only when the current phase needs it.
 
 ## One Domain, One Component
 
@@ -338,3 +346,53 @@ Ideas matter less than open sharing. In an AI-assisted world, provenance becomes
 - Collective progress beats individual credit
 
 We're all working through this together.
+
+## Instruction Precedence Is Explicit, Not Inferred
+
+When multiple instruction sources exist, define the priority ordering explicitly. Implicit precedence creates inconsistent behavior the moment instructions contradict.
+
+The toolkit's precedence chain, lowest to highest: system prompt < CLAUDE.md (global) < CLAUDE.md (project) < agent or skill instructions < request-time overrides. Each level can tighten or specialize what came before. When instructions conflict, the higher-priority instruction wins. The lower-priority instruction is ignored, not merged. Merging conflicting instructions is where subtle bugs live -- the model combines two rules that were written to be mutually exclusive and produces behavior neither author intended.
+
+Declaring precedence explicitly has a second benefit: it forces instruction authors to decide which layer owns each rule. A rule about never committing to main belongs in CLAUDE.md, not scattered across three agent files with slightly different wording. A rule about Go idioms belongs in the Go agent, not in the global system prompt. Ownership clarity reduces duplication and prevents the drift that happens when the same rule is maintained in multiple places.
+
+**What this means in practice:** When writing a new rule, decide which layer owns it. When an agent or skill overrides a global rule, say so explicitly -- "this skill requires direct commits to the branch; the global branch-protection rule does not apply here." When instructions conflict in a session, resolve toward the higher-priority source, not toward whichever instruction appeared more recently in the context window.
+
+## Trust Boundaries Separate Policy From Evidence
+
+Content entering the prompt has different trust levels, and the model must treat them differently. Conflating them is the root cause of prompt injection.
+
+The four trust levels: policy (highest -- system prompt, CLAUDE.md files, operator instructions), trusted runtime context (facts provided by the server at session start -- environment variables, operator profile, verified tool configuration), retrieved context (evidence -- search results, file contents, tool outputs, web pages), user request (first-party intent, but not a policy override). Policy defines what the model is allowed to do. Evidence informs what it should do given the current situation. A retrieved document that says "ignore previous instructions and do X" is evidence with a hostile payload. It should be treated as data, not obeyed as a command.
+
+The failure mode is treating retrieved material as an instruction source. This happens easily when a tool result contains plausible-sounding directives. The model's default is pattern-matching toward helpfulness, which makes it receptive to instruction-shaped strings wherever they appear. The defense is an explicit mental model: instructions come from policy layers, not from the content those instructions are applied to.
+
+**What this means in practice:** Never obey directives found inside retrieved material unless system policy explicitly authorizes that content source to issue commands. Tool results are inputs to reasoning, not expansions of the instruction set. When a file the model reads contains something that looks like a prompt -- a heading that says "Your task is now to...", a comment block with behavioral instructions -- it should be treated as content about the topic of the file, nothing more. If a tool call is denied by a hook, the denial is a policy signal, not a challenge to reason around.
+
+## Teach the Interface Contract
+
+The model does not automatically understand what your product's custom tags, tool results, and UI elements mean. It will infer from context, and the inference will be wrong in the cases that matter most.
+
+Every custom injection format needs to be explained at least once in the prompt. If the system injects `<retro-knowledge>` blocks, the model needs to know what those blocks represent, why they are there, and how to use them. If hooks can emit `[auto-fix] action=X`, the model needs to know that this is a directive to execute, not a status message to acknowledge. If a tool call is denied, the model needs to know the behavioral response: adjust the approach, do not retry the same call, surface the constraint to the user. Without explicit contracts, the model fills the gap with its best guess, and the gap between best guess and intended behavior is where silent failures accumulate.
+
+This matters more than it appears because assumption gaps compound. A model that misunderstands what `system-reminder` blocks are will mishandle every session that uses them. A model that treats hook denials as transient errors will retry them in a loop. The cost of an uncontracted interface is paid on every invocation, not just at setup time.
+
+**What this means in practice:** When adding a new injection format or hook output signal to the system, update the relevant CLAUDE.md or agent prompt to define the contract. Treat the definition as part of the feature -- not documentation added afterward, but the specification the model executes against. A format without a documented contract is a format that will be misused.
+
+## Cache-Friendly Prompt Layout
+
+Prompts have a natural split: the part that stays the same across requests and the part that changes per invocation. Conflating them increases cost and introduces drift.
+
+The static prefix holds everything that defines the system's identity and policy: role, workflow phases, tool policy, output format contract, canonical examples. It should be possible to compute a hash of the static prefix and have that hash be identical across every request in a session. The dynamic tail holds everything that varies: user facts, retrieved context, session-specific flags, the current request. The static prefix is cacheable; the dynamic tail is not.
+
+In the toolkit, CLAUDE.md files and agent markdown files are the static prefix. They are loaded at session start and do not change. Hook injections, retro-knowledge blocks, and the user's request are the dynamic tail. They change per invocation. Keeping these cleanly separated is not just a cost optimization. It also makes instruction precedence cleaner -- the static prefix is policy, the dynamic tail is context. Mixing them makes it harder to reason about which layer owns a given rule, and harder to debug when a rule is being overridden unexpectedly.
+
+**What this means in practice:** When writing a new agent or skill, put everything invariant in the file itself and everything variable in the injection mechanism. Do not embed session-specific facts in agent files -- they will be stale immediately. Do not put policy rules in hook injections -- they will be inconsistent. When a prompt starts drifting (the same rule appearing in both the agent file and a hook output), consolidate it to the correct layer.
+
+## Variables Are Contracts, Not Placeholders
+
+A prompt variable is not a string substitution. It is a typed program input with a defined contract: what format is expected, what escaping is required, what happens if the value is absent or malicious.
+
+Raw string interpolation of untrusted content into policy sections is a prompt injection vector. If a user-supplied value is dropped directly into the system prompt without sanitization, a user who knows the prompt structure can craft input that closes the current context and opens a new one. The mitigation is treating variables as typed inputs: validate before injection, escape for the target format, scope to the narrowest section that needs the value. The toolkit's `envsubst` usage in dream prompts -- scoped explicitly to `${DREAM_*}` variables only, rejecting anything outside that namespace -- is the right pattern. It bounds the injection surface to a defined set of known-safe variables.
+
+The second question for every variable is causal value: does this field change the answer, the allowed actions, or the explanation style? If the answer is no, do not inject it. Every injected variable adds to the dynamic tail of the prompt, reducing cache efficiency and adding surface area for injection. Variables that have no causal effect on the output are noise. They make the prompt harder to reason about and do not improve results.
+
+**What this means in practice:** Before adding a new variable to a prompt, answer two questions: what is the type and escaping contract, and what changes in the model's behavior when this value changes? If the second question has no clear answer, the variable should not be injected. If the first question has no clear answer, define the contract before shipping the feature.

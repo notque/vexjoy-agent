@@ -27,7 +27,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
 from hook_utils import context_output, empty_output
-from learning_db_v2 import get_stats, query_learnings
+from learning_db_v2 import get_stats, query_learnings, sanitize_for_context
 
 EVENT_NAME = "SessionStart"
 
@@ -52,7 +52,8 @@ def inject_dream_payload(cwd: str) -> str:
     """Return the pre-built dream injection payload, or empty string if absent/stale.
 
     Reads ~/.claude/state/dream-injection-{project-hash}.md.
-    Returns the file contents as-is if it exists and is less than 48 hours old.
+    Returns the file contents if it exists and is less than DREAM_PAYLOAD_MAX_AGE_HOURS old.
+    Sanitizes content before return since dream payloads are LLM-generated.
     This is a pure file read — no LLM work, no learning.db queries.
     """
     try:
@@ -67,7 +68,7 @@ def inject_dream_payload(cwd: str) -> str:
             return ""
 
         content = payload_file.read_text().strip()
-        return content if content else ""
+        return sanitize_for_context(content) if content else ""
 
     except Exception:
         return ""
@@ -100,12 +101,12 @@ def surface_dream_report() -> str:
                 if in_section and line.startswith("##"):
                     break
                 if in_section and line.strip() and not line.startswith("#"):
-                    return f"[dream] {line.strip()}"
+                    return f"[dream] {sanitize_for_context(line.strip())}"
 
         # Fallback: return first non-empty, non-header line in the whole file
         for line in text.splitlines():
             if line.strip() and not line.startswith("#"):
-                return f"[dream] {line.strip()}"
+                return f"[dream] {sanitize_for_context(line.strip())}"
 
         return ""
 
