@@ -1,15 +1,18 @@
-You are running the Auto-Dream memory consolidation cycle for the claude-code-toolkit project.
+You are running the Auto-Dream memory consolidation cycle.
 This is a headless background job — no interactive session, no CLAUDE.md, no hooks.
 All instructions are contained in this prompt.
 
 ## Context
 
-Project memory directory: /home/feedgen/.claude/projects/-home-feedgen-claude-code-toolkit/memory/
-Learning database: /home/feedgen/.claude/learning/learning.db
-State output directory: /home/feedgen/.claude/state/
-Git repository: /home/feedgen/claude-code-toolkit/
+The wrapper script provides these paths as environment variables. Use them exactly as shown:
 
-All paths are absolute. Use them exactly as written — do not use ~/ or relative paths.
+Project memory directory: ${DREAM_MEMORY_DIR}
+Learning database: ${DREAM_LEARNING_DB}
+State output directory: ${DREAM_STATE_DIR}
+Git repository: ${DREAM_REPO_DIR}
+Project hash (for injection file naming): ${DREAM_PROJECT_HASH}
+
+All paths are absolute. These are substituted by the wrapper script at runtime via `envsubst`.
 
 ## Dry-run mode
 
@@ -34,26 +37,26 @@ If `CLAUDE_DREAM_DRY_RUN` is not set or is not `1`, run all phases fully.
 
 Read the following and compile a scan document:
 
-1. Read `/home/feedgen/.claude/projects/-home-feedgen-claude-code-toolkit/memory/MEMORY.md` to get the list of all memory files.
+1. Read `${DREAM_MEMORY_DIR}/MEMORY.md` to get the list of all memory files.
 2. For each memory file listed in MEMORY.md:
    - Read the file (or first 30 lines if it is long)
    - Note: filename, type (from YAML frontmatter `type:` field), last-modified date, and a one-line summary
 3. Query learning.db for sessions from the last 7 days:
    ```bash
-   sqlite3 /home/feedgen/.claude/learning/learning.db "SELECT session_id, start_time, project_path FROM sessions WHERE start_time > datetime('now', '-7 days') ORDER BY start_time DESC LIMIT 50;"
+   sqlite3 ${DREAM_LEARNING_DB} "SELECT session_id, start_time, project_path FROM sessions WHERE start_time > datetime('now', '-7 days') ORDER BY start_time DESC LIMIT 50;"
    ```
    If learning.db does not exist or the query fails, note the failure and continue.
 4. Read the recent git log:
    ```bash
-   git -C /home/feedgen/claude-code-toolkit log --oneline -20
+   git -C ${DREAM_REPO_DIR} log --oneline -20
    ```
 
 Write the scan document to:
-`/home/feedgen/.claude/state/dream-scan-{YYYY-MM-DD}.md`
+`${DREAM_STATE_DIR}/dream-scan-{YYYY-MM-DD}.md`
 
 where `{YYYY-MM-DD}` is today's date. Create the state directory if it does not exist:
 ```bash
-mkdir -p /home/feedgen/.claude/state/
+mkdir -p ${DREAM_STATE_DIR}/
 ```
 
 Scan document format:
@@ -104,7 +107,7 @@ Examples: same error type appears repeatedly, same file modified in most session
 same skill invoked every session.
 
 Write the analysis document to:
-`/home/feedgen/.claude/state/dream-analysis-{YYYY-MM-DD}.md`
+`${DREAM_STATE_DIR}/dream-analysis-{YYYY-MM-DD}.md`
 
 Analysis document format:
 ```markdown
@@ -146,12 +149,12 @@ Describe what WOULD be done in the report (Phase 6) but make no changes.
 For each archive action:
 1. Create `archive/` directory if it does not exist:
    ```bash
-   mkdir -p /home/feedgen/.claude/projects/-home-feedgen-claude-code-toolkit/memory/archive/
+   mkdir -p ${DREAM_MEMORY_DIR}/archive/
    ```
 2. Move the file to archive/:
    ```bash
-   mv /home/feedgen/.claude/projects/-home-feedgen-claude-code-toolkit/memory/{filename}.md \
-      /home/feedgen/.claude/projects/-home-feedgen-claude-code-toolkit/memory/archive/{filename}.md
+   mv ${DREAM_MEMORY_DIR}/{filename}.md \
+      ${DREAM_MEMORY_DIR}/archive/{filename}.md
    ```
 3. Remove the entry from MEMORY.md (write to MEMORY.md.tmp, then rename).
 
@@ -193,7 +196,7 @@ and why it matters for future sessions. Write in the same voice as other memory 
 in the project — first-person observations, concrete and specific.}
 ```
 
-Write to: `/home/feedgen/.claude/projects/-home-feedgen-claude-code-toolkit/memory/insight_{topic}_{YYYY-MM-DD}.md`
+Write to: `${DREAM_MEMORY_DIR}/insight_{topic}_{YYYY-MM-DD}.md`
 
 Add each new insight to MEMORY.md (write to MEMORY.md.tmp, then rename).
 
@@ -231,16 +234,14 @@ Adapt, don't copy. Note where patterns do NOT apply to the current task.
 </retro-knowledge>
 ```
 
-Derive the project hash from the project path `/home/feedgen/claude-code-toolkit`:
-Replace `/` with `-` and strip the leading `-`:
-`/home/feedgen/claude-code-toolkit` → `-home-feedgen-claude-code-toolkit` → `home-feedgen-claude-code-toolkit`
+The project hash is provided as `${DREAM_PROJECT_HASH}` by the wrapper script.
 
 Write the injection payload to:
-`/home/feedgen/.claude/state/dream-injection-home-feedgen-claude-code-toolkit.md`
+`${DREAM_STATE_DIR}/dream-injection-${DREAM_PROJECT_HASH}.md`
 
 Create the state directory if it does not exist:
 ```bash
-mkdir -p /home/feedgen/.claude/state/
+mkdir -p ${DREAM_STATE_DIR}/
 ```
 
 ## Phase 6: REPORT
@@ -249,8 +250,8 @@ Write the dream summary. This is the LAST step, but for safety: if Phases 3-4 ma
 filesystem changes, describe them here for audit purposes. If running dry-run, describe
 what WOULD have been done.
 
-Write to: `/home/feedgen/.claude/state/last-dream-{YYYY-MM-DD}.md`
-Also write the same content to: `/home/feedgen/.claude/state/last-dream.md`
+Write to: `${DREAM_STATE_DIR}/last-dream-{YYYY-MM-DD}.md`
+Also write the same content to: `${DREAM_STATE_DIR}/last-dream.md`
 (last-dream.md is the latest-pointer that the session-start hook reads)
 
 Report format:
@@ -275,7 +276,7 @@ Report format:
 - [memory-name] vs [memory-name]: [description of conflict]
 
 ## Injection Payload
-- File: /home/feedgen/.claude/state/dream-injection-home-feedgen-claude-code-toolkit.md
+- File: ${DREAM_STATE_DIR}/dream-injection-${DREAM_PROJECT_HASH}.md
 - Entries selected: N
 - Token estimate: ~N tokens
 

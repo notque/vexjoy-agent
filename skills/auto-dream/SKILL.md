@@ -30,8 +30,8 @@ Background memory consolidation cycle. Scans memory files, finds stale/duplicate
 ## When to invoke
 
 - User says "run dream", "consolidate memories", "clean up memories", "memory maintenance", "deduplicate memories"
-- Cron job at 2 AM nightly (headless, via `claude -p "$(cat skills/auto-dream/dream-prompt.md)"`)
-- Manual trigger for testing: `CLAUDE_DREAM_DRY_RUN=1 claude -p "$(cat skills/auto-dream/dream-prompt.md)"`
+- Cron job at 2 AM nightly via wrapper script: `scripts/auto-dream-cron.sh --execute`
+- Manual trigger for testing: `./scripts/auto-dream-cron.sh` (dry-run by default)
 
 ## Instructions
 
@@ -60,28 +60,55 @@ For cron invocation: the dream prompt is passed directly to `claude -p` and runs
 ## Testing
 
 ```bash
-# Dry run (read-only, no filesystem changes)
-CLAUDE_DREAM_DRY_RUN=1 claude -p "$(cat skills/auto-dream/dream-prompt.md)" --model sonnet
+# Dry run (read-only, no filesystem changes — dry-run is the default)
+./scripts/auto-dream-cron.sh
 
-# Full run
-claude -p "$(cat skills/auto-dream/dream-prompt.md)" --model sonnet
+# Full run (execute consolidation)
+./scripts/auto-dream-cron.sh --execute
 
 # Check output
 cat ~/.claude/state/last-dream.md
 
 # Verify cron registration
-crontab -l | grep dream
+python3 ~/.claude/scripts/crontab-manager.py list
 ```
 
 ## Cost estimate
 
-~$0.09 per nightly run with 50 memory files (~20-30K input tokens at Sonnet pricing). ~$33/year for automated overnight operation.
+~$0.09 per nightly run with 50 memory files (~20-30K input tokens at Sonnet pricing). ~$33/year for automated overnight operation. Budget capped at $3.00/run via wrapper script.
 
 ## Cron setup
 
-```cron
-# Auto-Dream: nightly memory consolidation at 2 AM
-0 2 * * * claude -p "$(cat skills/auto-dream/dream-prompt.md)" --model sonnet 2>>/tmp/claude-dream.log
+Use `crontab-manager.py` (not raw `crontab -e`) to install. The wrapper script handles PATH, lockfile, logging, budget cap, and dry-run/execute toggle.
+
+```bash
+# Preview the cron entry
+python3 ~/.claude/scripts/crontab-manager.py add \
+  --tag "auto-dream" \
+  --schedule "7 2 * * *" \
+  --command "/home/feedgen/claude-code-toolkit/scripts/auto-dream-cron.sh --execute >> /home/feedgen/claude-code-toolkit/cron-logs/auto-dream/cron.log 2>&1" \
+  --dry-run
+
+# Install (after dry-run testing passes)
+python3 ~/.claude/scripts/crontab-manager.py add \
+  --tag "auto-dream" \
+  --schedule "7 2 * * *" \
+  --command "/home/feedgen/claude-code-toolkit/scripts/auto-dream-cron.sh --execute >> /home/feedgen/claude-code-toolkit/cron-logs/auto-dream/cron.log 2>&1"
+
+# Verify
+python3 ~/.claude/scripts/crontab-manager.py verify --tag auto-dream
 ```
 
-Add via `crontab -e`. Verify prompt file exists at `~/.claude/skills/auto-dream/dream-prompt.md` before activating.
+Note: schedule uses 2:07 AM (off-minute) per cron best practice — avoids load spikes from jobs firing at :00.
+
+## Wrapper script details
+
+`scripts/auto-dream-cron.sh` follows the established headless cron pattern (see `scripts/reddit-automod-cron.sh`):
+- `flock` lockfile prevents concurrent runs
+- `--permission-mode auto` (never `--dangerously-skip-permissions`)
+- `--max-budget-usd 3.00` caps spend per run
+- `--no-session-persistence` for clean headless operation
+- `envsubst` templates `dream-prompt.md` with project-specific paths at runtime
+- `tee` to timestamped per-run log file
+- Dry-run by default, `--execute` for live runs
+- Exit code propagation via `PIPESTATUS[0]`
