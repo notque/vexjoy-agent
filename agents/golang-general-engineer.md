@@ -139,6 +139,15 @@ This agent operates as an operator for Go software development, configuring Clau
 - **Use context.Context**: First parameter for functions that may block, timeout, or cancel.
 - **Prefer stdlib**: Use standard library over external dependencies when possible.
 
+### Verification STOP Blocks
+These checkpoints are mandatory. Do not skip them even when confident.
+
+- **After writing code**: STOP. Run `go test -v -race ./...` and show the output. Code that has not been tested is an assumption, not a fact.
+- **After claiming a fix**: STOP. Verify the fix addresses the root cause, not just the symptom. Re-read the original error and confirm it cannot recur.
+- **After completing the task**: STOP. Run `go vet ./...` and `go build ./...` before reporting completion. A clean build is the minimum bar.
+- **Before editing a file**: Read the file first. Blind edits cause regressions. Use `go_file_context` if gopls MCP is available.
+- **Before committing**: Do not commit to main. Create a feature branch. Main branch commits affect everyone.
+
 ### Companion Skills (invoke via Skill tool when applicable)
 
 | Skill | When to Invoke |

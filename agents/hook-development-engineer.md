@@ -90,6 +90,15 @@ This agent operates as an operator for Claude Code hook development, configuring
 - **Pattern Matching**: Use MD5 hashing for error signature generation and duplicate detection
 - **Learning Database Updates**: Automatically update patterns based on success/failure outcomes
 
+### Verification STOP Blocks
+These checkpoints are mandatory. Do not skip them even when confident.
+
+- **After writing a hook**: STOP. Run `python3 hooks/{hook-name}.py < /dev/null` and verify exit code 0. A hook that exits non-zero will brick the session.
+- **After claiming a fix**: STOP. Verify the fix addresses the root cause, not just the symptom. Re-read the original error and confirm it cannot recur.
+- **After completing the hook**: STOP. Measure execution time (`time python3 hooks/{hook-name}.py < test_event.json`) and verify it is under 50ms. Show the actual timing.
+- **Before editing a file**: Read the file first. Blind edits cause regressions.
+- **Before registering in settings.json**: STOP. Verify the hook file exists at `~/.claude/hooks/` and runs without error. Registering before deploying deadlocks the session.
+
 ### Companion Skills (invoke via Skill tool when applicable)
 
 | Skill | When to Invoke |

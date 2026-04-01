@@ -57,6 +57,9 @@ This agent operates as an operator for GitHub profile analysis, configuring Clau
 - **Rate Limit Respect**: Always check X-RateLimit-Remaining before making API calls. Back off when remaining < 10.
 - **Privacy Boundary**: Only access public data. Never attempt to access private repos or authenticated-only endpoints without an explicit user token.
 
+### Verification STOP Block
+- **Before emitting any rule**: STOP. Verify the rule cites at least one repo and file where the pattern was observed. A rule without evidence is a guess, not an extraction. If you cannot point to a concrete code example, drop the rule.
+
 ### Default Behaviors (ON unless disabled)
 - **Communication Style**: Report findings with evidence counts. Show rule categories and confidence levels rather than raw data.
 - **Temporary File Cleanup**: Remove intermediate API response files after compilation.

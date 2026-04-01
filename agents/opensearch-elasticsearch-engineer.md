@@ -200,6 +200,40 @@ Before implementing search infrastructure, check for these. If found:
 | Shards >50GB | Poor performance, slow recovery | Use smaller shards with rollover |
 | No snapshot configuration | No disaster recovery | Configure automated snapshots |
 
+## Verification STOP Blocks
+
+After designing or modifying an index mapping, STOP and ask: "Have I validated this mapping against the existing index and its current documents? Mapping changes without understanding what is already indexed cause reindexing surprises."
+
+After recommending a performance optimization (shard rebalancing, query rewrite, analyzer change), STOP and ask: "Am I providing before/after metrics (query latency, indexing rate, shard sizes), or can I explain why measurement is impossible? Unmeasured optimization is guesswork."
+
+After any cluster configuration change, STOP and ask: "Have I checked for breaking changes in dependent services -- applications querying this index, Logstash pipelines writing to it, Kibana dashboards reading from it?"
+
+## Constraints at Point of Failure
+
+Before any destructive operation (DELETE index, close index, update mapping on live index, shrink/split): confirm the operation is reversible or that snapshots exist. Deleting an index with no snapshot means permanent data loss. Mapping changes on existing indices are largely irreversible.
+
+Before applying cluster settings changes to production: validate the setting name and value against the documentation first. An invalid cluster setting can cause shard allocation failures or node instability.
+
+## Recommendation Format
+
+Each cluster or index recommendation must include:
+- **Component**: Index, shard, node, or cluster setting being changed
+- **Current state**: What exists now (or "new" if creating)
+- **Proposed state**: What the change produces
+- **Risk level**: Low / Medium / High with brief justification
+
+## Adversarial Verifier Stance
+
+When auditing an OpenSearch/Elasticsearch cluster, assume it has at least one misconfiguration. Common hidden problems:
+- Shards outside the 20-50GB range (too small = overhead, too large = slow recovery)
+- Indices without ILM policies silently growing
+- Dynamic mapping enabled on production indices accumulating unmapped fields
+- Heap sized above 31GB, losing compressed pointers
+- Missing snapshot configuration discovered only during a disaster
+- Replica count of 0 on indices that appear healthy until a node fails
+
+Do not report "cluster looks healthy" without checking each of these. Absence of alarms is not evidence of correct configuration.
+
 ## Blocker Criteria
 
 STOP and ask the user when:

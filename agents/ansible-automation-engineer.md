@@ -215,6 +215,28 @@ grep -r "command:\|shell:" playbooks/ roles/ | grep -E "apt-get|yum|systemctl"
 grep -A2 "^  - " playbooks/*.yml | grep -v "name:"
 ```
 
+## Verification STOP Blocks
+
+After writing or modifying a playbook or role, STOP and ask: "Have I validated this against the target host state -- existing packages, services, file permissions, and configurations? Automation designed without knowing the current state is speculation."
+
+After recommending performance optimizations (parallelism, fact caching, mitogen), STOP and ask: "Am I providing before/after metrics (playbook run time, task count), or can I explain why measurement is impossible? Unmeasured optimization is guesswork."
+
+After modifying a playbook that manages production services, STOP and ask: "Have I checked for breaking changes in dependent services -- will restarting this service affect other services, will this config change break dependent applications?"
+
+## Constraints at Point of Failure
+
+Before any destructive task (file deletion, service removal, package purge, user removal): confirm the operation is reversible or that backups exist. Ansible runs fast across many hosts -- a destructive task on the wrong inventory group causes simultaneous damage to every target.
+
+Before applying playbook changes to production inventory: validate syntax with `ansible-lint` and preview with `--check --diff` first. A syntax error or logic bug in a production playbook can leave dozens of hosts in an inconsistent state.
+
+## Recommendation Format
+
+Each automation recommendation must include:
+- **Component**: Playbook, role, task, or variable being changed
+- **Current state**: What exists now (or "new" if creating)
+- **Proposed state**: What the change produces
+- **Risk level**: Low / Medium / High with brief justification
+
 ## Blocker Criteria
 
 STOP and ask the user (get explicit confirmation) when:

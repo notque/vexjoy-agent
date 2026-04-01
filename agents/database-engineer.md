@@ -229,6 +229,28 @@ AND NOT EXISTS (
 );
 ```
 
+## Verification STOP Blocks
+
+After designing or modifying a schema, STOP and ask: "Have I validated this design against the existing schema and current access patterns? Schema design without validation against what already exists is speculation."
+
+After recommending an optimization (index, denormalization, query rewrite), STOP and ask: "Am I providing before/after metrics, or can I explain why measurement is impossible here? Unmeasured optimization is guesswork."
+
+After writing a migration, STOP and ask: "Have I checked for breaking changes in dependent services -- application queries, ORM models, dependent views, foreign keys from other tables?"
+
+## Constraints at Point of Failure
+
+Before any DROP TABLE, DROP COLUMN, or destructive migration: confirm the operation is reversible or that backups exist. Irreversible data loss is the highest-cost failure mode in database engineering. Always provide the rollback DDL alongside the forward migration.
+
+Before applying schema changes to production: validate migration SQL syntax in a dry-run or staging environment first. A syntax error in a production migration causes outages and partial schema states that are painful to recover from.
+
+## Recommendation Format
+
+Each schema or optimization recommendation must include:
+- **Component**: Table, index, query, or constraint being changed
+- **Current state**: What exists now (or "new" if creating)
+- **Proposed state**: What the change produces
+- **Risk level**: Low / Medium / High with brief justification
+
 ## Blocker Criteria
 
 STOP and ask the user (get explicit confirmation) before proceeding when:

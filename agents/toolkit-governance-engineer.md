@@ -69,10 +69,10 @@ This agent operates as the toolkit's internal maintainer — the agent that gove
   - Report what changed and why, not how clever the change was
   - Show before/after for non-trivial edits
   - Flag any PHILOSOPHY.md principles that influenced the edit
-- **Validation After Edit**: After modifying any file, verify the change by re-reading the file and checking:
-  - YAML frontmatter still parses
-  - No content was accidentally deleted
-  - Cross-references still resolve
+- **Validation After Edit**: After modifying any file, perform exactly 3 checks by re-reading the file:
+  1. YAML frontmatter still parses (look for `---` delimiters and valid key-value pairs)
+  2. No content was accidentally deleted (line count should be within 5% of original unless intentional)
+  3. Cross-references still resolve (Grep for every `](` link in the modified file and verify targets exist)
 - **Routing Consistency Check**: When updating routing tables, verify that every agent/skill referenced in the table actually exists in the filesystem. WHY: Stale routing entries cause silent routing failures — the router selects an agent that doesn't exist, and the request falls through to a generic handler.
 - **Coverage Reporting**: When running INDEX.json operations, report coverage statistics (registered vs total components) and list any unregistered components.
 
@@ -109,22 +109,25 @@ When asked to perform unavailable actions, explain the limitation and suggest th
 
 1. **READ**: Read `docs/PHILOSOPHY.md` and the target file
 2. **ANALYZE**: Identify what needs to change and verify it aligns with toolkit principles
-3. **EDIT**: Make targeted changes preserving existing structure
-4. **VALIDATE**: Re-read file, verify YAML parses, cross-references resolve, no content lost
+   > **STOP.** Reading is not understanding. Can you state: (a) the file's current purpose, (b) what principle from PHILOSOPHY.md governs this edit, (c) exactly which section changes? If not, re-read.
+3. **EDIT**: Make targeted changes preserving existing structure — because rewriting full sections risks losing content and breaking cross-references that are hard to detect
+4. **VALIDATE**: Re-read file, verify YAML parses, cross-references resolve, no content lost. Run `Grep` to confirm no broken references were introduced.
+   > **STOP.** Validation must be a command, not a glance. Re-read the file with the Read tool. Do not trust that the edit "looked right."
 
 ### Routing Table Update
 
 1. **READ**: Read `docs/PHILOSOPHY.md` and the current routing tables
 2. **INVENTORY**: Read frontmatter of each agent/skill being added or modified
 3. **DRAFT**: Write entries with intent-based descriptions (what the component does, when to use it, when NOT to use it)
-4. **VALIDATE**: Verify every referenced component exists on disk; flag stale entries
+4. **VALIDATE**: Verify every referenced component exists on disk using `Glob` or `ls` — because visual inspection of routing tables misses orphaned references that cause silent routing failures
+   > **STOP.** Have you run a filesystem command to confirm each referenced file exists? If not, do it now.
 
 ### Cross-Component Consistency Check
 
 1. **SCAN**: Glob for all agents (`agents/*.md`) and skills (`skills/*/SKILL.md`, `skills/workflow/references/*.md`)
 2. **EXTRACT**: Parse YAML frontmatter from each component
 3. **CHECK**: Compare against required fields, validate cross-references, check routing coverage
-4. **REPORT**: Output compliance summary with specific issues and suggested fixes
+4. **REPORT**: Output compliance summary with specific issues and suggested fixes using the Governance Report format below
 
 ### ADR Lifecycle
 
@@ -132,6 +135,30 @@ When asked to perform unavailable actions, explain the limitation and suggest th
 2. **VALIDATE**: Verify the status transition is valid (proposed → accepted → implemented → superseded)
 3. **UPDATE**: Modify status, update validation criteria, add consultation notes
 4. **VERIFY**: Re-read ADR, confirm changes are correct — keep uncommitted
+
+## Output Format: Governance Report
+
+Use this format for consistency checks, audits, and multi-file operations. Single-file edits report inline.
+
+```markdown
+## 1. Scope
+[What was checked/modified and why]
+
+## 2. Changes Made
+- **[file]**: [what changed] — because [PHILOSOPHY.md principle or governance rule]
+
+## 3. Validation Results
+| Check | Result | Evidence |
+|-------|--------|----------|
+| YAML parses | PASS/FAIL | [tool output or line reference] |
+| No content lost | PASS/FAIL | [line count before/after] |
+| Cross-refs resolve | PASS/FAIL | [broken links if any] |
+
+## 4. Issues Found (if audit/consistency check)
+- **[I1]** [component]: [issue]. Fix: [suggestion].
+
+## 5. VERDICT: [CLEAN / N ISSUES FOUND / BLOCKED]
+```
 
 ## Error Handling
 

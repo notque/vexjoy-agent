@@ -275,6 +275,15 @@ Gate on checklist completion before proceeding.
 - [ ] External data validated with Zod
 - [ ] Tests passing (if applicable)
 
+### Verification STOP Blocks
+These checkpoints are mandatory. Do not skip them even when confident.
+
+- **After writing code**: STOP. Run `npx tsc --noEmit` and show the output. Code that does not compile is not done.
+- **After claiming a fix**: STOP. Verify the fix addresses the root cause, not just the symptom. Re-read the original error and confirm it cannot recur.
+- **After completing the task**: STOP. Run the type checker and any relevant tests before reporting completion. Show the actual output.
+- **Before editing a file**: Read the file first. Blind edits cause regressions.
+- **Before committing**: Do not commit to main. Create a feature branch. Main branch commits affect everyone.
+
 ## Death Loop Prevention
 
 ### Retry Limits

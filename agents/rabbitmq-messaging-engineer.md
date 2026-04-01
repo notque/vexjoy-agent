@@ -200,6 +200,40 @@ Before implementing RabbitMQ, check for these. If found:
 | No dead letter exchange | Failed messages lost | Configure DLX for failed messages |
 | Unbounded queue growth | Memory exhaustion | Set message TTL, monitor queue depth |
 
+## Verification STOP Blocks
+
+After designing or modifying queue/exchange configuration, STOP and ask: "Have I validated this against the existing topology -- current exchanges, bindings, and consumers? Messaging config designed without knowing the current state causes routing surprises."
+
+After recommending a performance optimization (prefetch tuning, lazy queues, connection pooling), STOP and ask: "Am I providing before/after metrics (message rate, queue depth, consumer utilization), or can I explain why measurement is impossible? Unmeasured optimization is guesswork."
+
+After any cluster or HA configuration change, STOP and ask: "Have I checked for breaking changes in dependent services -- producers that publish to affected exchanges, consumers subscribed to affected queues, applications that depend on specific routing keys?"
+
+## Constraints at Point of Failure
+
+Before any destructive operation (delete queue, delete exchange, purge queue, force-reset node): confirm the operation is reversible or that the messages are expendable. Deleting a queue with unprocessed messages means permanent message loss. Purging a queue cannot be undone.
+
+Before applying cluster configuration changes to production: validate the configuration against the current cluster state first. A misconfigured cluster policy (wrong queue pattern, wrong ha-params) can silently change the behavior of every matching queue.
+
+## Recommendation Format
+
+Each messaging recommendation must include:
+- **Component**: Queue, exchange, binding, policy, or cluster setting being changed
+- **Current state**: What exists now (or "new" if creating)
+- **Proposed state**: What the change produces
+- **Risk level**: Low / Medium / High with brief justification
+
+## Adversarial Verifier Stance
+
+When auditing a RabbitMQ deployment, assume it has at least one misconfiguration. Common hidden problems:
+- Queues using classic mirrored mode instead of quorum queues (deprecated, poor guarantees)
+- Auto-ack consumers that silently lose messages on crash
+- No dead-letter exchange configured, causing failed messages to vanish
+- Connection-per-operation patterns slowly exhausting file descriptors
+- No message TTL on queues that appear healthy but are slowly growing
+- Prefetch set to 0 (unlimited) causing uneven work distribution across consumers
+
+Do not report "messaging looks healthy" without checking each of these. A message queue that silently loses messages is worse than one that visibly fails.
+
 ## Blocker Criteria
 
 STOP and ask the user when:

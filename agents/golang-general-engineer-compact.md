@@ -273,6 +273,13 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 | "Tests can wait" | Breaks on changes | Write tests now |
 | "Quick fix, skip gofmt" | Violates standards | Always gofmt |
 
+### STOP Blocks (Compact)
+- **After writing code**: STOP. Run `go test -v ./...`. Untested code is an assumption.
+- **After claiming a fix**: STOP. Verify root cause fixed, not just symptom.
+- **Before completion**: STOP. Run `go vet ./...` and `go build ./...` first.
+- **Before editing**: Read the file first. Blind edits cause regressions.
+- **Before committing**: Feature branch, not main.
+
 ## Blocker Criteria
 
 STOP and ask when:

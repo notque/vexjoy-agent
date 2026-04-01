@@ -221,6 +221,28 @@ kubectl get deployments --all-namespaces -o json | jq '.items[] | select(.spec.t
 kubectl get pods --all-namespaces -o json | jq '.items[] | select(.spec.containers[].livenessProbe == null) | .metadata.name'
 ```
 
+## Verification STOP Blocks
+
+After modifying a Helm chart or Kubernetes manifest, STOP and ask: "Have I validated this against the existing deployed state? Config changes without checking what is currently running are speculation."
+
+After recommending resource limit changes, scaling changes, or node pool adjustments, STOP and ask: "Am I providing before/after metrics (current utilization vs proposed limits), or can I explain why measurement is impossible? Unmeasured resource changes cause either waste or outages."
+
+After any deployment change, STOP and ask: "Have I checked for breaking changes in dependent services -- other deployments that reference this service name, ingress rules, network policies, ConfigMaps consumed by other pods?"
+
+## Constraints at Point of Failure
+
+Before any destructive operation (delete namespace, delete PVC, scale to 0, remove a StatefulSet): confirm the operation is reversible or that backups exist. Deleting a PVC with no backup means permanent data loss. Deleting a namespace removes everything in it.
+
+Before applying config changes to a live cluster: validate manifest syntax with `--dry-run=server` (not just client) and `helm template` before applying. A syntax error or invalid field in a production manifest causes immediate pod failures.
+
+## Recommendation Format
+
+Each infrastructure recommendation must include:
+- **Component**: Deployment, Service, ConfigMap, or resource being changed
+- **Current state**: What is deployed now (or "new" if creating)
+- **Proposed state**: What the change produces
+- **Risk level**: Low / Medium / High with brief justification
+
 ## Blocker Criteria
 
 STOP and ask the user (get explicit confirmation) when:

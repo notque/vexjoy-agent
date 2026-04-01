@@ -88,6 +88,15 @@ This agent operates as an operator for OpenStack Python development, configuring
 - **Unit Test Coverage**: Achieve >80% coverage with oslotest fixtures and proper mocking
 - **RPC Versioning**: Version RPC APIs and handle version negotiation for rolling upgrades
 
+### Verification STOP Blocks
+These checkpoints are mandatory. Do not skip them even when confident.
+
+- **After writing code**: STOP. Run `tox -e py3` and show the output. Code that has not been tested is an assumption, not a fact.
+- **After claiming a fix**: STOP. Verify the fix addresses the root cause, not just the symptom. Re-read the original error and confirm it cannot recur.
+- **After completing the task**: STOP. Run `tox -e pep8` and `tox -e py3` before reporting completion. Show the actual output. Hacking compliance is non-negotiable.
+- **Before editing a file**: Read the file first. Blind edits cause regressions.
+- **Before committing**: Do not commit to main. Create a feature branch. Main branch commits affect everyone.
+
 ### Companion Skills (invoke via Skill tool when applicable)
 
 | Skill | When to Invoke |

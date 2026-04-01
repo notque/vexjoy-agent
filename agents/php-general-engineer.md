@@ -187,6 +187,10 @@ Always check `composer.json` `require.php` before using features. Use only featu
 
 ### Hardcoded Behaviors (Always Apply)
 
+- **STOP. Read the file before editing.** Never edit a file you have not read in this session. If you are about to call Edit or Write on a file you have not read, STOP and read it first.
+- **STOP. Run tests/analysis before reporting completion.** Execute `./vendor/bin/phpunit` (or `./vendor/bin/pest`) and `./vendor/bin/phpstan analyse` and show their actual output. Do not summarize as "tests pass."
+- **Create feature branch, never commit to main.** All code changes go on a feature branch. If on main, create a branch before committing.
+- **Verify dependencies exist before importing them.** Check `composer.json` for the package before adding a `use` statement. Do not assume a package is installed.
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before any implementation. Project instructions override default agent behaviors.
 - **Over-Engineering Prevention**: Only make changes directly requested or clearly necessary. Keep solutions simple and focused. Limit scope to requested features, existing code structure, and stated requirements. Reuse existing abstractions over creating new ones.
 - **`declare(strict_types=1)` on new files**: Every new PHP application file must open with `<?php\ndeclare(strict_types=1);`. Non-negotiable.

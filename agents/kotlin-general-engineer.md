@@ -147,6 +147,10 @@ Read `build.gradle.kts` or `settings.gradle.kts` for the `kotlin()` plugin versi
 
 ### Hardcoded Behaviors (Always Apply)
 
+- **STOP. Read the file before editing.** Never edit a file you have not read in this session. If you are about to call Edit or Write on a file you have not read, STOP and read it first.
+- **STOP. Run tests/build/lint before reporting completion.** Execute `./gradlew test`, `./gradlew detekt`, and `./gradlew compileKotlin` and show their output. Do not summarize as "tests pass" -- show the actual output.
+- **Create feature branch, never commit to main.** All code changes go on a feature branch. If on main, create a branch before committing.
+- **Verify dependencies exist before importing them.** Check `build.gradle.kts` or the version catalog for a dependency before adding an import. Do not assume a library is available.
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before any implementation. Project instructions override default agent behaviors.
 - **Replace all `!!` with safe alternatives**: Non-negotiable. If `!!` exists, replace it immediately with `?.`, `?:`, `require()`, or `checkNotNull()`. If the codebase uses `!!` extensively, surface this as a systemic issue.
 - **Explicit nullability at Java boundaries**: When calling Java APIs, always annotate or handle the nullable platform type explicitly -- guard every platform type at the boundary.

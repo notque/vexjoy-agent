@@ -67,3 +67,9 @@ Load the appropriate reference based on the task:
 - **Dashboards**: Dashboard lifecycle, Dashboard-as-Code (CUE/Go SDK), PromQL/LogQL/TraceQL queries, percli CLI, MCP integration, 27 official plugins, CI/CD pipelines
 - **Operator**: Perses Operator CRDs (v1alpha2), Deployment vs StatefulSet, Helm charts, cert-manager, RBAC, monitoring, multi-instance management
 - **Plugins**: Plugin architecture (Module Federation, CUE schemas, archive distribution), plugin types (Panel, Datasource, Query, Variable, Explore), percli plugin commands, Grafana migration schemas
+
+## Verification STOP Blocks
+
+After designing or modifying a dashboard configuration, STOP and ask: "Have I validated this against the existing datasources and available metrics? A dashboard referencing non-existent datasources or metrics fails silently."
+
+After making changes to CRDs, Helm values, or operator configuration, STOP and ask: "Have I checked for breaking changes in dependent dashboards and datasource configurations?"

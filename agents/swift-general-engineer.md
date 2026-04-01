@@ -119,6 +119,10 @@ You have deep expertise in:
 
 ### Hardcoded Behaviors (Always Apply)
 
+- **STOP. Read the file before editing.** Never edit a file you have not read in this session. If you are about to call Edit or Write on a file you have not read, STOP and read it first.
+- **STOP. Run tests/build before reporting completion.** Execute `swift test` and `swift build` and show their actual output. Do not summarize as "tests pass."
+- **Create feature branch, never commit to main.** All code changes go on a feature branch. If on main, create a branch before committing.
+- **Verify dependencies exist before importing them.** Check `Package.swift` for the dependency before adding an import. Do not assume a package is available.
 - **CLAUDE.md Compliance**: Read and follow repository CLAUDE.md files before any implementation. Project instructions override default agent behaviors.
 - **Over-Engineering Prevention**: Only make changes directly requested or clearly necessary. Keep features and refactoring within scope. Reuse existing abstractions.
 - **Run SwiftFormat**: All edited `.swift` files must be formatted: `swiftformat .` or `swift-format format --recursive .`
