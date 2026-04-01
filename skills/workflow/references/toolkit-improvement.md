@@ -336,8 +336,7 @@ Proceed to Phase 6 only on explicit operator approval.
 **Goal**: For each approved finding cluster, write one ADR. ADRs are proposals — the
 operator reviews them before implementation begins.
 
-Read `references/adr-template.md` for the exact format, required sections, and the
-standard Validation Requirements and Failure Remediation Protocol text.
+Read `../adr-template.md` for the exact format and required sections.
 
 **One ADR per logical cluster** — not one per finding. The synthesis clusters from
 Phase 3 are the natural boundaries.
@@ -350,8 +349,8 @@ For each ADR:
    not describe issues you have not verified by reading the file
 3. Include both the original finding and the critique disposition in the Context section
 4. Write a concrete Decision section — vague direction is not implementable
-5. Copy the Validation Requirements and Failure Remediation Protocol sections from
-   `references/adr-template.md` verbatim
+5. Write concrete Validation Requirements — exact runnable commands with expected
+   output (see `../adr-template.md` for the section format)
 
 **Dispatch all ADR-writing agents in a single message** — one agent per cluster,
 all in parallel.
@@ -562,5 +561,4 @@ Exit cleanly. The comparison report can inform future manual decisions.
 
 - `references/agent-roster.md` — Evaluation agent personas, focus areas, file targets,
   and dispatch prompts organized by wave
-- `references/adr-template.md` — Standard ADR format with the required Validation
-  Requirements and Failure Remediation Protocol sections
+- `../adr-template.md` — Standard ADR format (`skills/workflow/references/adr-template.md`)

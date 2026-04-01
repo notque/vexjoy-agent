@@ -38,6 +38,7 @@ User prompt → UserPromptSubmit → Claude picks tool → PreToolUse → Tool r
 | Hook | Description |
 |------|-------------|
 | `adr-context-injector` | Injects active ADR session context when `.adr-session.json` exists in the project |
+| `afk-mode` | Injects autonomous behavioral posture for unattended sessions (SSH, tmux, or `CLAUDE_AFK_MODE=always`). See [AFK Mode docs](afk-mode/README.md) |
 | `auto-plan-detector` | Detects complex tasks and injects Manus-style planning instructions |
 | `capability-catalog-injector` | Injects full skill/agent catalog into `/do` routing context |
 | `instruction-reminder` | Periodically re-injects CLAUDE.md, AGENTS.md, and RULES.md to combat context drift |
