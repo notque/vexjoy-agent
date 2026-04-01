@@ -12,7 +12,7 @@ Consolidates 5 PreToolUse gate hooks into a single entry point:
 
 Attribution blocking removed: use settings.json {"attribution": {"commit": "", "pr": ""}} instead.
 Each check preserves its original stderr prefix and bypass mechanism.
-Exit 2 = block. Exit 0 = allow. Entire main() wrapped in try/except to fail OPEN.
+Exit 0 always. Blocks emit JSON permissionDecision:deny to stdout. Entire main() wrapped in try/except to fail OPEN.
 
 Performance: <50ms. Early-exit for non-matching tools. Only gitignore bypass uses subprocess.
 """
@@ -199,14 +199,28 @@ def _is_sensitive_exception(file_path: str) -> bool:
     return any(p.search(file_path) for p in _SENSITIVE_EXCEPTIONS)
 
 
-def _block(message: str, tool_name: str = "") -> None:
-    """Print block message to stderr and exit 2."""
+def _block(message: str, tool_name: str = "", reason: str = "") -> None:
+    """Emit a structured deny decision and exit 0.
+
+    Keeps the stderr message for debug visibility (Ctrl+O verbose mode)
+    and emits JSON permissionDecision to stdout so Claude Code surfaces
+    the reason to the model rather than a generic error.
+    """
     print(message, file=sys.stderr)
     try:
         record_governance_event("hook_blocked", tool_name=tool_name, hook_phase="pre", severity="high", blocked=True)
     except Exception:
         pass  # Never let recording prevent a block
-    sys.exit(2)
+    deny_reason = reason if reason else message
+    deny_output = {
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": deny_reason,
+        }
+    }
+    print(json.dumps(deny_output))
+    sys.exit(0)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -225,7 +239,8 @@ def check_gitignore_bypass(command: str) -> None:
     ):
         _block(
             "[gitignore-bypass] BLOCKED: Agents must not modify .gitignore.\n"
-            "[gitignore-bypass] This file controls repository safety boundaries."
+            "[gitignore-bypass] This file controls repository safety boundaries.",
+            reason="Agents must not modify .gitignore. This file controls repository safety boundaries.",
         )
 
     # Fast path: no git add in command
@@ -271,7 +286,8 @@ def check_gitignore_bypass(command: str) -> None:
     if ignored:
         _block(
             f"[gitignore-bypass] BLOCKED: git add -f on gitignored paths: {', '.join(ignored)}\n"
-            "[gitignore-bypass] These paths are gitignored for a reason. Do not force-add them."
+            "[gitignore-bypass] These paths are gitignored for a reason. Do not force-add them.",
+            reason=f"Cannot force-add gitignored paths: {', '.join(ignored)}. These paths are gitignored for a reason. Stage only tracked files.",
         )
 
 
@@ -333,7 +349,10 @@ def check_git_submission(command: str) -> None:
                 project_dir = os.environ.get("CLAUDE_PROJECT_DIR", "")
                 if effective_cwd and effective_cwd != project_dir and _is_worktree_on_feature_branch(effective_cwd):
                     return
-            _block(f"[git-submission-gate] BLOCKED: {message}\n[fix-with-skill] {skill_name}")
+            _block(
+                f"[git-submission-gate] BLOCKED: {message}\n[fix-with-skill] {skill_name}",
+                reason=f"{message} Use the {skill_name} skill instead.",
+            )
 
 
 def check_dangerous_command(command: str) -> None:
@@ -351,7 +370,8 @@ def check_dangerous_command(command: str) -> None:
             _block(
                 f"[dangerous-command] BLOCKED: {description} ({category})\n"
                 f"[dangerous-command] Command: {command}\n"
-                f"[dangerous-command] To allow: add pattern to .guard-whitelist"
+                f"[dangerous-command] To allow: add pattern to .guard-whitelist",
+                reason=f"Dangerous command blocked: {description} (category: {category}). To allow, add a pattern to .guard-whitelist.",
             )
 
 
@@ -374,7 +394,8 @@ def check_creation_gate(file_path: str) -> None:
     _block(
         f"[creation-gate] BLOCKED: New {component_type} must be created via skill-creator or skill-creation-pipeline.\n"
         f"[creation-gate] Path: {file_path}\n"
-        f"[fix-with-agent] skill-creator"
+        f"[fix-with-agent] skill-creator",
+        reason=f"New {component_type} files must be created via the skill-creator agent, not written directly. Use [fix-with-agent] skill-creator.",
     )
 
 
@@ -393,7 +414,8 @@ def check_sensitive_file(file_path: str) -> None:
                 f"[sensitive-file-guard] BLOCKED: Write to sensitive file ({category})\n"
                 f"[sensitive-file-guard] Path: {file_path}\n"
                 f"[sensitive-file-guard] Pattern: {description}\n"
-                f"[sensitive-file-guard] To allow: set SENSITIVE_FILE_GUARD_BYPASS=1 or add exception to .guard-patterns"
+                f"[sensitive-file-guard] To allow: set SENSITIVE_FILE_GUARD_BYPASS=1 or add exception to .guard-patterns",
+                reason=f"Write to sensitive file blocked ({category}: {description}). Path: {file_path}. Set SENSITIVE_FILE_GUARD_BYPASS=1 or add an exception to .guard-patterns to allow.",
             )
 
 
@@ -439,8 +461,9 @@ if __name__ == "__main__":
     try:
         main()
     except SystemExit:
-        raise  # Let sys.exit(2) propagate for blocks
+        raise  # Let sys.exit(0) propagate normally
     except Exception as e:
-        # Fail OPEN — a crashed hook must never exit 2.
+        # Fail OPEN — a crashed hook must never block tools.
         print(f"[unified-gate] HOOK-CRASH: {type(e).__name__}: {e}", file=sys.stderr)
+    finally:
         sys.exit(0)
