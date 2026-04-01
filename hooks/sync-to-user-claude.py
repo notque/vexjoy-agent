@@ -15,7 +15,6 @@ L1.md is regenerated from merged L2 files at the destination.
 Settings.json hooks use repo as source-of-truth (replace, not merge)
 to prevent phantom hook errors when switching branches.
 Unchanged files are skipped via content comparison.
-CLAUDE.md backups are capped at 3; identical content skips backup.
 """
 
 import filecmp
@@ -203,61 +202,6 @@ def sync_settings(repo_settings: dict, global_settings: dict) -> dict:
 
     return result
 
-
-def sync_soul_document(repo_root: Path, user_claude: Path) -> tuple[str | None, str | None]:
-    """
-    Sync soul document (CLAUDE-soul-template.md) to ~/.claude/CLAUDE.md.
-
-    Behavior:
-    - If CLAUDE.md doesn't exist: copy template directly
-    - If CLAUDE.md exists and content identical: skip (no backup churn)
-    - If CLAUDE.md exists and content differs: backup, then copy template
-    - Keeps only the 3 most recent backups, deletes older ones
-
-    Returns:
-        Tuple of (success_message, error_message) - one will be None
-    """
-    import datetime
-
-    template_path = repo_root / "CLAUDE-soul-template.md"
-    target_path = user_claude / "CLAUDE.md"
-
-    if not template_path.exists():
-        return None, None  # No template to sync, silent skip
-
-    try:
-        if target_path.exists():
-            # Skip if content is identical — no backup needed
-            if filecmp.cmp(template_path, target_path, shallow=False):
-                _cleanup_old_backups(user_claude, keep=3)
-                return "CLAUDE.md(unchanged)", None
-
-            # Content differs — create backup then overwrite
-            timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-            backup_path = user_claude / f"CLAUDE.md.backup.{timestamp}"
-            shutil.copy2(target_path, backup_path)
-            shutil.copy2(template_path, target_path)
-            _cleanup_old_backups(user_claude, keep=3)
-            return f"CLAUDE.md(updated, backup: {backup_path.name})", None
-        else:
-            # No existing file, copy directly
-            shutil.copy2(template_path, target_path)
-            return "CLAUDE.md(created)", None
-
-    except Exception as e:
-        return None, f"CLAUDE.md: {e}"
-
-
-def _cleanup_old_backups(user_claude: Path, keep: int = 3) -> None:
-    """Keep only the N most recent CLAUDE.md.backup.* files, delete the rest."""
-    backups = sorted(user_claude.glob("CLAUDE.md.backup.*"))
-    if len(backups) <= keep:
-        return
-    for old_backup in backups[:-keep]:
-        try:
-            old_backup.unlink()
-        except OSError:
-            pass
 
 
 def _backup_settings_json(settings_path: Path, keep: int = 3) -> None:
@@ -611,13 +555,6 @@ def main():
     elif codex_skills_dst.is_dir():
         total = sum(1 for _ in codex_skills_dst.rglob("*") if _.is_file())
         synced.append(f".codex/skills({total} current)")
-
-    # Sync soul document (CLAUDE-soul-template.md -> CLAUDE.md)
-    soul_result, soul_error = sync_soul_document(repo_root, user_claude)
-    if soul_result:
-        synced.append(soul_result)
-    if soul_error:
-        errors.append(soul_error)
 
     # Output for hook feedback
     if synced:

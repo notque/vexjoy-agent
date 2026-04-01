@@ -157,7 +157,6 @@ Trivial = reading a file the user named by exact path. Everything else routes th
 | `hooks/` | `~/.claude/hooks/` | File-by-file copy, stale files removed |
 | `scripts/` | `~/.claude/scripts/` | File-by-file copy, stale files removed |
 | `commands/` | `~/.claude/commands/` | Additive only (never removes) |
-| `CLAUDE-soul-template.md` | `~/.claude/CLAUDE.md` | Overwrite with backup (max 3 backups) |
 | `.claude/settings.json` hooks | `~/.claude/settings.json` hooks | Replace hook section entirely |
 | `.mcp.json` | `~/.mcp.json` | Merge servers (don't overwrite existing) |
 
@@ -171,8 +170,7 @@ Unchanged files are skipped via content comparison.
 |------|----------|----------|---------|
 | `settings.json` | `~/.claude/settings.json` | No (runtime) | Hook registrations, permissions. Repo hooks replace on sync. |
 | `settings.local.json` | `.claude/settings.local.json` | No (gitignored) | Repo-local overrides (e.g. MCP tool permissions) |
-| `CLAUDE.md` | `~/.claude/CLAUDE.md` | No (synced from template) | Soul document -- global instructions for all sessions |
-| `CLAUDE-soul-template.md` | Repo root | Yes | Source of truth for CLAUDE.md |
+| `CLAUDE.md` | Repo root | Yes | Soul document -- global instructions for all sessions |
 
 The `.claude/` directory inside the repo is gitignored. Only `settings.local.json` lives there. The `~/.claude/` directory is the runtime home -- hooks, agents, skills all resolve from there when working in external repos.
 
@@ -182,7 +180,7 @@ The `.claude/` directory inside the repo is gitignored. Only `settings.local.jso
 
 | Path | Purpose |
 |------|---------|
-| `CLAUDE-soul-template.md` | Soul document template, synced to `~/.claude/CLAUDE.md` |
+| `CLAUDE.md` | Soul document -- global instructions for all sessions |
 | `agents/INDEX.json` | Auto-generated agent registry (triggers, pairs_with, complexity) |
 | `skills/INDEX.json` | Auto-generated skill registry |
 | `install.sh` | One-shot installer: `--symlink` or `--copy` to `~/.claude/` |
