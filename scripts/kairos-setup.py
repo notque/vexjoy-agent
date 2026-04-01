@@ -224,10 +224,11 @@ def write_crontab(content: str) -> bool:
 
 
 def build_cron_block() -> str:
-    """Build the KAIROS-lite cron block using dynamic paths.
+    """Build the KAIROS-lite cron block.
 
-    Uses TOOLKIT_DIR and Path.home() so the entries are correct regardless of
-    the username or installation prefix.
+    Uses TOOLKIT_DIR for the project directory and $HOME shell variable for the
+    log path. Note: TOOLKIT_DIR is set at module level — update it if the
+    toolkit is installed at a different path.
     """
     log = "$HOME/.claude/logs/kairos-lite.log"
     toolkit = str(TOOLKIT_DIR)

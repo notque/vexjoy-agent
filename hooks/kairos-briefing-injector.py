@@ -41,7 +41,10 @@ def _compute_project_hash(project_path: str | None = None) -> str:
 def _find_most_recent_briefing(state_dir: Path, project_hash: str) -> Path | None:
     """Return the most recently modified briefing for this project, or None."""
     try:
-        pattern = f"briefing{project_hash}-*.md"
+        import glob as glob_mod
+
+        safe_hash = glob_mod.escape(project_hash)
+        pattern = f"briefing{safe_hash}-*.md"
         candidates = list(state_dir.glob(pattern))
     except OSError as e:
         _debug(f"Failed to glob {state_dir}: {e}")

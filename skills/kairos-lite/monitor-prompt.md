@@ -276,7 +276,7 @@ Write the briefing atomically:
 import os
 from pathlib import Path
 
-output_path = Path.home() / ".claude" / "state" / f"briefing-{project_hash}-{scan_date}.md"
+output_path = Path.home() / ".claude" / "state" / f"briefing{project_hash}-{scan_date}.md"
 tmp_path = Path(str(output_path) + ".tmp")
 
 briefing_content = """# KAIROS-lite Briefing — {date}
@@ -325,7 +325,7 @@ state_dir = Path.home() / ".claude" / "state"
 cutoff_seconds = 30 * 24 * 3600  # 30 days
 now = time.time()
 
-for briefing in state_dir.glob("briefing-*.md"):
+for briefing in state_dir.glob("briefing*.md"):
     if now - briefing.stat().st_mtime > cutoff_seconds:
         briefing.unlink()
         # Also remove sidecar if present
