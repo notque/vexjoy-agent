@@ -16,13 +16,16 @@ All paths are absolute. These are substituted by the wrapper script at runtime v
 
 ## Dry-run mode
 
-Check the environment variable `CLAUDE_DREAM_DRY_RUN`. If it equals `1`:
+Current dry-run setting: ${DREAM_DRY_RUN_MODE}
+
+Check the environment variable `CLAUDE_DREAM_DRY_RUN`. If it equals `1`, OR if
+`${DREAM_DRY_RUN_MODE}` is `yes`:
 - Phases 1 (SCAN) and 2 (ANALYZE) run normally and write their output files.
 - Phase 3 (CONSOLIDATE) and Phase 4 (SYNTHESIZE) describe proposed changes in the report but make NO filesystem writes.
 - Phase 5 (SELECT) runs normally (read-only).
 - Phase 6 (REPORT) writes the report file normally.
 
-If `CLAUDE_DREAM_DRY_RUN` is not set or is not `1`, run all phases fully.
+If neither condition is set, run all phases fully.
 
 ## Safety constraints — these are hard rules, never deviate
 
@@ -236,8 +239,9 @@ Adapt, don't copy. Note where patterns do NOT apply to the current task.
 
 The project hash is provided as `${DREAM_PROJECT_HASH}` by the wrapper script.
 
-Write the injection payload to:
-`${DREAM_STATE_DIR}/dream-injection-${DREAM_PROJECT_HASH}.md`
+Write the injection payload atomically to avoid partial writes if interrupted:
+1. Write to: `${DREAM_STATE_DIR}/dream-injection-${DREAM_PROJECT_HASH}.md.tmp`
+2. Rename: `mv ${DREAM_STATE_DIR}/dream-injection-${DREAM_PROJECT_HASH}.md.tmp ${DREAM_STATE_DIR}/dream-injection-${DREAM_PROJECT_HASH}.md`
 
 Create the state directory if it does not exist:
 ```bash
@@ -246,9 +250,10 @@ mkdir -p ${DREAM_STATE_DIR}/
 
 ## Phase 6: REPORT
 
-Write the dream summary. This is the LAST step, but for safety: if Phases 3-4 made
-filesystem changes, describe them here for audit purposes. If running dry-run, describe
-what WOULD have been done.
+Write the dream summary. This phase runs twice: once before CONSOLIDATE as a pre-execution
+plan (written after ANALYZE), and again after all phases complete with actual results.
+If Phases 3-4 made filesystem changes, describe them here for audit purposes. If running
+dry-run, describe what WOULD have been done.
 
 Write to: `${DREAM_STATE_DIR}/last-dream-{YYYY-MM-DD}.md`
 Also write the same content to: `${DREAM_STATE_DIR}/last-dream.md`
@@ -257,6 +262,9 @@ Also write the same content to: `${DREAM_STATE_DIR}/last-dream.md`
 Report format:
 ```markdown
 # Dream Report: {YYYY-MM-DD}
+
+## One-Line Summary
+{Single natural language sentence summarizing the dream outcome. Examples: "Scanned 12 memories, no changes needed (dry-run)." or "Consolidated 3 memories, synthesized 1 insight."}
 
 ## Summary
 - Memories scanned: N

@@ -161,11 +161,11 @@ Tags: `force-route`, `llm-override`, `auto-pipeline` (as applicable). This call 
 
 **Goal**: Stack additional skills based on signals in the request.
 
-Retro knowledge is auto-injected by the `retro-knowledge-injector` hook (fires on `UserPromptSubmit`, before /do runs). If a `<retro-knowledge>` block is already in conversation context, skip — the hook handled it. Only manually inject if the hook did not fire (benchmark: +5.3 avg, 67% win rate). Relevance-gated by FTS5 keyword matching — only inject when keywords overlap.
+Retro knowledge is auto-injected by the `session-context` hook at SessionStart via the dream system's pre-built payload (nightly consolidation by `auto-dream`). If a `<retro-knowledge>` block is already in conversation context, skip — the hook handled it. Only manually inject if the hook did not fire (benchmark: +5.3 avg, 67% win rate). Relevance-gated by LLM curation during the nightly dream cycle.
 
 | Signal in Request | Enhancement to Add |
 |-------------------|-------------------|
-| Any substantive work (code, design, plan) | **Auto-inject retro knowledge** (via `retro-knowledge-injector` hook) |
+| Any substantive work (code, design, plan) | **Auto-inject retro knowledge** (via `session-context` hook, pre-built by nightly `auto-dream`) |
 | "comprehensive" / "thorough" / "full" | Add parallel reviewers (security + business + quality) |
 | "with tests" / "production ready" | Append test-driven-development + verification-before-completion |
 | "research needed" / "investigate first" | Prepend research-coordinator-engineer |

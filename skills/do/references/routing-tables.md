@@ -170,6 +170,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **bluesky-reader** | User wants to read public Bluesky feeds, fetch posts, or interact with the AT Protocol API. |
 | **image-to-video** | User wants to combine a static image with audio to create a video file (album art video, podcast video, music visualization). |
 | **headless-cron-creator** | User wants to generate a headless Claude Code cron job that runs a task on a schedule. |
+| **auto-dream** | User wants to run or configure the background memory consolidation system: trigger a dream cycle manually, check dream status, review the last dream report, or configure the nightly cron. Triggers: "dream", "memory consolidation", "consolidate memories", "auto-dream", "last dream". Category: meta-tooling. |
 | **nano-banana-builder** | User wants to build a Next.js web application using Google Gemini Nano Banana image generation APIs. |
 
 ---

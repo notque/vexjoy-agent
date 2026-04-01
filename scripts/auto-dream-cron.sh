@@ -71,16 +71,19 @@ if [ ! -f "$PROMPT_TEMPLATE" ]; then
     exit 1
 fi
 
-PROMPT=$(envsubst < "$PROMPT_TEMPLATE")
-
-# In dry-run mode, set the env var that the prompt checks
+# Set dry-run mode variables before envsubst so ${DREAM_DRY_RUN_MODE} is substituted correctly
+export DREAM_DRY_RUN_MODE="no"
 if [ -z "$EXECUTE" ]; then
     export CLAUDE_DREAM_DRY_RUN=1
+    export DREAM_DRY_RUN_MODE="yes"
     echo "Dry-run mode: CONSOLIDATE and SYNTHESIZE will describe but not execute changes"
 fi
 
+PROMPT=$(envsubst '${DREAM_MEMORY_DIR} ${DREAM_LEARNING_DB} ${DREAM_STATE_DIR} ${DREAM_REPO_DIR} ${DREAM_PROJECT_HASH} ${DREAM_DRY_RUN_MODE}' < "$PROMPT_TEMPLATE")
+
 cd "$REPO_DIR"
 
+set +e
 claude -p "$PROMPT" \
     --output-format text \
     --permission-mode auto \
@@ -89,11 +92,16 @@ claude -p "$PROMPT" \
     --no-session-persistence \
     --model sonnet \
     2>&1 | tee "$LOG_DIR/run-$(date +%Y%m%d-%H%M%S).log"
-
 EXIT_CODE=${PIPESTATUS[0]}
+set -e
 
 echo ""
 echo "=== Dream complete: $(date -Iseconds) | exit: $EXIT_CODE ==="
+
+# Rotate old logs and state files (keep last 30 days)
+find "$LOG_DIR" -name "run-*.log" -mtime +30 -delete 2>/dev/null || true
+find "$DREAM_STATE_DIR" -name "dream-scan-*.md" -mtime +30 -delete 2>/dev/null || true
+find "$DREAM_STATE_DIR" -name "dream-analysis-*.md" -mtime +30 -delete 2>/dev/null || true
 
 # Release lock
 exec 9>&-

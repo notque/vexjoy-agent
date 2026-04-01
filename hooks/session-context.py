@@ -31,8 +31,8 @@ from learning_db_v2 import get_stats, query_learnings
 
 EVENT_NAME = "SessionStart"
 
-# Dream injection payload is considered fresh for 48 hours (covers weekends/missed nights)
-DREAM_PAYLOAD_MAX_AGE_HOURS = 48
+# Dream injection payload is considered fresh for 96 hours (covers full weekend + holiday Monday)
+DREAM_PAYLOAD_MAX_AGE_HOURS = 96
 
 # Dream report notice is surfaced if dream ran within the last 24 hours
 DREAM_REPORT_MAX_AGE_HOURS = 24
@@ -88,19 +88,19 @@ def surface_dream_report() -> str:
         if age_hours > DREAM_REPORT_MAX_AGE_HOURS:
             return ""
 
-        # Read just the summary section — find the first non-empty, non-header line
-        # after the ## Summary header
+        # First try ## One-Line Summary (a single natural-language sentence added by ADR-147)
+        # Fall back to ## Summary (older reports or dry-run with no one-liner)
         text = dream_file.read_text()
-        in_summary = False
-        for line in text.splitlines():
-            if line.strip() == "## Summary":
-                in_summary = True
-                continue
-            if in_summary and line.startswith("##"):
-                # Left the summary section without finding content
-                break
-            if in_summary and line.strip() and not line.startswith("#"):
-                return f"[dream] {line.strip()}"
+        for target_header in ("## One-Line Summary", "## Summary"):
+            in_section = False
+            for line in text.splitlines():
+                if line.strip() == target_header:
+                    in_section = True
+                    continue
+                if in_section and line.startswith("##"):
+                    break
+                if in_section and line.strip() and not line.startswith("#"):
+                    return f"[dream] {line.strip()}"
 
         # Fallback: return first non-empty, non-header line in the whole file
         for line in text.splitlines():

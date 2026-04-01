@@ -13,8 +13,8 @@ CAPTURE (automatic)     → learning.db entries
   session-learning-recorder.py  Stop: gap detection
 
 INJECTION (automatic)   → <retro-knowledge> blocks
-  retro-knowledge-injector.py   UserPromptSubmit: FTS5 search → context injection
-  session-context.py            SessionStart: high-confidence pattern loading
+  session-context.py            SessionStart: injects pre-built dream payload (ADR-147)
+                                + high-confidence pattern loading from learning.db
 
 GRADUATION (manual)     → permanent agent/skill edits
   /retro graduate               LLM-driven: propose edits, user approves
@@ -38,13 +38,16 @@ Hooks automatically record learnings during normal work:
 
 ### Injection
 
-The `retro-knowledge-injector` hook fires on every `UserPromptSubmit`:
+The `session-context` hook fires at `SessionStart` (ADR-147 dream system):
 
-1. Fast-path skip for trivial prompts (< 4 words, questions, reads)
-2. Checks work intent (implement, build, design, plan, etc.)
-3. Queries learning.db via FTS5 with prompt keywords
-4. Injects relevant entries as `<retro-knowledge>` block (~2000 token budget)
-5. Graduated entries are excluded (`graduated_to IS NULL` filter)
+1. Reads the pre-built dream injection payload from `~/.claude/state/dream-injection-{hash}.md`
+2. Payload was LLM-curated during the nightly `auto-dream` cycle (top memories by relevance)
+3. Injects as `<retro-knowledge>` block (~2000 token budget)
+4. Falls back to querying learning.db directly for high-confidence patterns if no fresh payload
+
+Note: `retro-knowledge-injector.py` (UserPromptSubmit FTS5 injection) was superseded by this
+session-start approach in ADR-147. The file still exists for reference but is no longer the
+primary injection mechanism.
 
 **Benchmark validation** (7 trials, blind grading):
 - Win rate: 67% when knowledge is relevant
@@ -78,8 +81,8 @@ Focus on non-obvious, specific insights — not generic best practices.
 | Component | Role |
 |-----------|------|
 | `scripts/learning-db.py` | CLI for all DB operations (record, query, search, graduate) |
-| `hooks/retro-knowledge-injector.py` | Auto-inject relevant knowledge into agent context |
-| `hooks/session-context.py` | Load high-confidence patterns at session start |
+| `hooks/session-context.py` | Inject pre-built dream payload + high-confidence patterns at session start (ADR-147) |
+| `scripts/auto-dream-cron.sh` | Nightly LLM-curated memory consolidation; builds injection payload |
 | `hooks/error-learner.py` | Auto-capture tool errors and solutions |
 | `hooks/review-capture.py` | Capture review findings from subagents |
 | `hooks/confidence-decay.py` | Prune stale low-confidence entries |

@@ -76,7 +76,7 @@ routing:
 ---
 ```
 
-Key fields: `name` identifies it in routing. `hooks` lets agents register their own PostToolUse handlers -- the Go agent reminds you to run `gofmt` after editing `.go` files. `routing.triggers` feeds the evaluator. `routing.retro-topics` tells the retro-knowledge-injector which learning DB topics are relevant when this agent runs. `memory: project` scopes learned context to the current project.
+Key fields: `name` identifies it in routing. `hooks` lets agents register their own PostToolUse handlers -- the Go agent reminds you to run `gofmt` after editing `.go` files. `routing.triggers` feeds the evaluator. `routing.retro-topics` tells the dream system which learning DB topics are relevant when this agent runs (used during nightly auto-dream curation, ADR-147). `memory: project` scopes learned context to the current project.
 
 ### The Operator Context Pattern
 
@@ -144,7 +144,7 @@ Eight event types, registered in settings.json:
 | Event | When | Hooks Registered |
 |-------|------|-----------------|
 | `SessionStart` | Session begins | sync-to-user-claude, session-context, cross-repo-agents, fish-shell-detector, sapcc-go-detector, operator-context-detector |
-| `UserPromptSubmit` | Before processing each prompt | skill-evaluator, auto-plan-detector, instruction-reminder, retro-knowledge-injector, adr-context-injector, pipeline-context-detector, capability-catalog-injector |
+| `UserPromptSubmit` | Before processing each prompt | skill-evaluator, auto-plan-detector, instruction-reminder, adr-context-injector, pipeline-context-detector, capability-catalog-injector |
 | `PreToolUse` | Before tool execution | pretool-learning-injector, block-attribution |
 | `PostToolUse` | After tool execution | post-tool-lint-hint, error-learner, agent-grade-on-change, adr-enforcement, routing-gap-recorder, retro-graduation-gate |
 | `PreCompact` | Before context compression | precompact-archive |
@@ -185,7 +185,7 @@ All hooks target sub-50ms execution. `once: true` in settings means the hook fir
 
 **error-learner** (PostToolUse): Detects errors in tool output by scanning for indicators like "permission denied", "not found", "traceback". Classifies the error type, generates a signature, checks learning.db for known solutions. If found, emits `[auto-fix]`, `[fix-with-skill]`, or `[fix-with-agent]` directives. Sets pending feedback so the *next* PostToolUse can check whether the fix worked -- automatic reinforcement learning without human intervention.
 
-**retro-knowledge-injector** (UserPromptSubmit): Queries learning.db via FTS5 for knowledge relevant to the current prompt. Has a fast-path skip for trivial prompts (<4 words) and questions. Only injects for prompts with "work intent" -- verbs like `implement`, `build`, `create`, `refactor`. Budgets ~2000 tokens per injection. Groups results by topic. Win rate: 67% in A/B testing when retro knowledge is relevant.
+**session-context** (SessionStart, ADR-147): At session start, reads the pre-built dream payload from `~/.claude/state/dream-injection-{project-hash}.md` and injects it as a `<retro-knowledge>` block. The payload was LLM-curated during the nightly auto-dream cycle — top memories selected by relevance, ~2000 token budget. Also loads high-confidence patterns directly from learning.db as fallback. Win rate: 67% in A/B testing when retro knowledge is relevant.
 
 **block-attribution** (PreToolUse): Scans Bash commands for AI attribution patterns. Exits 2 to block. This enforces the CLAUDE.md rule that commits carry no AI watermarks.
 
@@ -227,13 +227,13 @@ session_stats (per-session ROI cohort data), learning_archive (archived stale en
 
 Entries start at category-specific defaults (errors: 0.55, reviews: 0.70, gotchas: 0.70). The error-learner boosts confidence by 0.15 when a fix works, decays by 0.10 when it doesn't. The `confidence-decay` hook runs at session end -- entries untouched for 30+ days decay by 0.05, entries below 0.3 and older than 90 days get pruned.
 
-Manually taught patterns (via `/learn`) enter at 0.9 confidence. The retro-knowledge-injector only surfaces entries above 0.5 confidence and excludes graduated entries.
+Manually taught patterns (via `/learn`) enter at 0.9 confidence. The dream system only surfaces entries above 0.5 confidence and excludes graduated entries when building the nightly injection payload.
 
 ### The Retro Cycle
 
 1. **Capture**: Hooks record learnings automatically. `error-learner` captures error patterns. `review-capture` captures PR review findings. `task-completed-learner` records effectiveness data. `user-correction-capture` records when you correct Claude.
 2. **Accumulate**: Entries gain confidence through repeated observation and successful fixes.
-3. **Inject**: `retro-knowledge-injector` surfaces relevant knowledge on each prompt. `session-context` loads high-confidence patterns at session start.
+3. **Inject**: `session-context` injects the pre-built dream payload at session start (ADR-147). Falls back to direct learning.db queries for high-confidence patterns.
 4. **Graduate**: When an entry is mature (high confidence, multiple observations), the `/retro graduate` command embeds it directly into an agent or skill file. The `graduated_to` column records where it went.
 5. **Decay**: Unused knowledge fades. The confidence-decay hook ensures the DB doesn't fill with stale advice.
 
