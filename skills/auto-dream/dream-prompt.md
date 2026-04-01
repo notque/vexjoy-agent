@@ -6,7 +6,7 @@ All instructions are contained in this prompt.
 
 Do NOT execute phases in numbered order. The correct execution sequence is:
 
-**SCAN (1) → ANALYZE (2) → REPORT (6, first write: planned changes) → CONSOLIDATE (3) → SYNTHESIZE (4) → SELECT (5) → REPORT (6, second write: actual results)**
+**SCAN (1) → ANALYZE (2) → REPORT (7, first write: planned changes) → CONSOLIDATE (3) → SYNTHESIZE (4) → GRADUATE (5) → SELECT (6) → REPORT (7, second write: actual results)**
 
 The REPORT must be written BEFORE CONSOLIDATE begins any filesystem operations. This is a hard safety rule — the report is the audit trail. If the cycle is interrupted after writing the report but before consolidation completes, the report shows exactly what was planned.
 
@@ -152,7 +152,7 @@ Analysis document format:
 
 ## Phase 3: CONSOLIDATE
 
-**STOP — Before executing this phase**, verify that the REPORT (Phase 6) has already been written with the planned changes from Phase 2. The report must exist as an audit trail before any filesystem operations begin. If you have not yet written the report, go to Phase 6 and write the initial report first, then return here.
+**STOP — Before executing this phase**, verify that the REPORT (Phase 7) has already been written with the planned changes from Phase 2. The report must exist as an audit trail before any filesystem operations begin. If you have not yet written the report, go to Phase 7 and write the initial report first, then return here.
 
 Apply the prioritized action list from Phase 2. Maximum 5 changes.
 
@@ -221,7 +221,7 @@ This phase queries the learning database for entries that have been confirmed en
 to warrant embedding directly into agent or skill files. Graduation makes the knowledge
 permanent — it becomes part of the agent's instructions rather than injected context.
 
-**IMPORTANT**: If `CLAUDE_DREAM_DRY_RUN=1` (or `${DREAM_DRY_RUN_MODE}` is "yes"), describe
+**IMPORTANT**: If `${DREAM_DRY_RUN_MODE}` is "yes", describe
 proposed graduations in the report but make NO file edits and NO git operations.
 
 Steps:
@@ -261,7 +261,12 @@ Steps:
 4. Create a git branch and commit the changes:
    ```bash
    cd ${DREAM_REPO_DIR}
-   GRAD_BRANCH="dream/graduate-$(date +%Y-%m-%d)"
+   GRAD_BRANCH="dream/graduate-${DREAM_DATE}"
+
+   # Ensure clean working tree before branch switch
+   if [ -n "$(git status --porcelain)" ]; then
+       git stash --quiet
+   fi
 
    # Check if branch already exists (from a previous graduation in this cycle)
    if git rev-parse --verify "$GRAD_BRANCH" >/dev/null 2>&1; then
@@ -287,7 +292,11 @@ Steps:
    ADR-159: automated dream graduation"
 
    git push origin "$GRAD_BRANCH"
+   ```
 
+   If `git push` fails, do NOT proceed to step 5 (mark_graduated). Record the push failure in the report, leave entries ungraduated so they can be retried next cycle, and skip to `git checkout main`.
+
+   ```bash
    # Return to original branch/detached state for remaining phases
    git checkout main
    ```

@@ -85,7 +85,7 @@ fi
 export DREAM_DRY_RUN_MODE="no"
 if [ -z "$EXECUTE" ]; then
     export DREAM_DRY_RUN_MODE="yes"
-    echo "Dry-run mode: CONSOLIDATE and SYNTHESIZE will describe but not execute changes"
+    echo "Dry-run mode: CONSOLIDATE, SYNTHESIZE, and GRADUATE will describe but not execute changes"
 fi
 
 PROMPT=$(envsubst '${DREAM_MEMORY_DIR} ${DREAM_LEARNING_DB} ${DREAM_STATE_DIR} ${DREAM_REPO_DIR} ${DREAM_PROJECT_HASH} ${DREAM_DRY_RUN_MODE} ${DREAM_DATE}' < "$PROMPT_TEMPLATE")

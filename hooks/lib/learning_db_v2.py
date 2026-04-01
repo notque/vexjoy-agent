@@ -652,8 +652,6 @@ def query_graduation_candidates(
     """
     init_db()
 
-    params: list = [min_confidence, min_observations]
-
     with get_connection() as conn:
         rows = conn.execute(
             """
@@ -667,7 +665,7 @@ def query_graduation_candidates(
             ORDER BY confidence DESC, observation_count DESC
             LIMIT ?
             """,
-            (*params, limit),
+            (min_confidence, min_observations, limit),
         ).fetchall()
         return [dict(row) for row in rows]
 
@@ -737,15 +735,24 @@ def decay_confidence(topic: str, key: str, delta: float = 0.10) -> float:
         return new_conf
 
 
-def mark_graduated(topic: str, key: str, target: str) -> None:
-    """Mark entry as graduated to a permanent location."""
+def mark_graduated(topic: str, key: str, target: str) -> bool:
+    """Mark entry as graduated to a permanent location.
+
+    Returns:
+        True if an entry was updated, False if no matching entry was found.
+    """
     init_db()
     with get_connection() as conn:
-        conn.execute(
+        cursor = conn.execute(
             "UPDATE learnings SET graduated_to = ? WHERE topic = ? AND key = ?",
             (target, topic, key),
         )
         conn.commit()
+        if cursor.rowcount == 0:
+            import sys
+            print(f"WARNING: mark_graduated found no entry for topic={topic!r} key={key!r}", file=sys.stderr)
+            return False
+        return True
 
 
 VALID_EVENT_TYPES = {
