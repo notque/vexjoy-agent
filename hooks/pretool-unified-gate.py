@@ -40,8 +40,10 @@ from stdin_timeout import read_stdin
 
 _GIT_SUBMISSION_BYPASS = "CLAUDE_GATE_BYPASS=1"
 
+_GIT_PUSH_PATTERN = re.compile(r"^(?:\w+=\S+\s+)*git\s+push\b")
+
 _GIT_SUBMISSION_PATTERNS = [
-    (re.compile(r"^(?:\w+=\S+\s+)*git\s+push\b"), "pr-sync", "Use /pr-sync to push (runs review loop first)"),
+    (_GIT_PUSH_PATTERN, "pr-sync", "Use /pr-sync to push (runs review loop first)"),
     (
         re.compile(r"^(?:\w+=\S+\s+)*gh\s+pr\s+create\b"),
         "pr-pipeline",
@@ -224,7 +226,7 @@ def _block(message: str, tool_name: str = "", reason: str = "") -> None:
 
 
 # ═══════════════════════════════════════════════════════════════
-# CHECK FUNCTIONS — each returns normally (allow) or calls _block (exit 2)
+# CHECK FUNCTIONS — each returns normally (allow) or calls _block (JSON deny + exit 0)
 # ═══════════════════════════════════════════════════════════════
 
 
@@ -344,7 +346,7 @@ def check_git_submission(command: str) -> None:
     for pattern, skill_name, message in _GIT_SUBMISSION_PATTERNS:
         if pattern.search(cmd):
             # Allow git push from worktree directories on feature branches
-            if pattern is _GIT_SUBMISSION_PATTERNS[0][0]:  # git push pattern
+            if pattern is _GIT_PUSH_PATTERN:
                 effective_cwd = _extract_effective_cwd(command)
                 project_dir = os.environ.get("CLAUDE_PROJECT_DIR", "")
                 if effective_cwd and effective_cwd != project_dir and _is_worktree_on_feature_branch(effective_cwd):
@@ -360,11 +362,13 @@ def check_dangerous_command(command: str) -> None:
     if os.environ.get(_DANGEROUS_BYPASS_ENV) == "1":
         return
 
+    # Load whitelist once before scanning rather than on each match.
+    whitelist = _load_guard_whitelist()
+
     # Intentionally scans full command including heredoc bodies.
     # Over-blocking preferred for destructive commands.
     for pattern, category, description in _DANGEROUS_PATTERNS:
         if pattern.search(command):
-            whitelist = _load_guard_whitelist()
             if _is_whitelisted(command, whitelist):
                 return
             _block(

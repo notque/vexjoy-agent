@@ -148,16 +148,31 @@ def load_indexes() -> list[IndexEntry]:
 # ---------------------------------------------------------------------------
 
 
+_BOUNDARY_SAFE_RE = re.compile(r"^\w[\w-]*$")
+
+
 def _is_single_word(trigger: str) -> bool:
-    """Check if a trigger is a single word (no spaces).
+    """Check if a trigger is safe for ``\\b`` word-boundary matching.
+
+    A trigger is boundary-safe when it starts with a ``\\w`` character and
+    contains only ``\\w`` characters and hyphens.  This covers plain words
+    (``push``, ``goroutine``) and hyphenated compounds (``table-driven``,
+    ``go-bits``).  ``\\b`` works correctly for these because the first and
+    last characters are always ``\\w``, guaranteeing a word-boundary
+    transition against surrounding whitespace or punctuation.
+
+    Triggers starting or ending with non-word characters (``%w``,
+    ``*_test.go``) fall through to substring containment, which avoids the
+    ``\\b`` problem: ``\\b`` requires a ``\\w``/``\\W`` transition, so
+    ``\\b%w\\b`` silently fails when preceded by a space (``\\W``→``\\W``).
 
     Args:
         trigger: The trigger string to check.
 
     Returns:
-        True if the trigger contains no spaces after stripping.
+        True if the trigger is safe for ``\\b`` word-boundary matching.
     """
-    return " " not in trigger.strip()
+    return bool(_BOUNDARY_SAFE_RE.match(trigger.strip()))
 
 
 def _trigger_matches(trigger: str, request_lower: str) -> bool:
@@ -200,23 +215,34 @@ def check_force_routes(request: str, entries: list[IndexEntry]) -> IndexEntry | 
     (e.g. "go" should not match "let's go ahead"). Multi-word triggers use
     substring containment which is safe since the full phrase must appear.
 
+    When multiple entries match, the entry with the **longest** matching
+    trigger wins (longer trigger = more specific).  This prevents load-order
+    dependent results when triggers overlap (e.g. "health check" vs
+    "health check toolkit").
+
     Args:
         request: The user request text.
         entries: All loaded INDEX entries.
 
     Returns:
-        The first matching force-route entry, or None.
+        The most specific matching force-route entry, or None.
     """
     lowered = request.lower()
+
+    best_match: IndexEntry | None = None
+    best_specificity = -1
 
     for entry in entries:
         if not entry.force_route:
             continue
         for trigger in entry.triggers:
             if _trigger_matches(trigger, lowered):
-                return entry
+                specificity = len(trigger)
+                if specificity > best_specificity:
+                    best_specificity = specificity
+                    best_match = entry
 
-    return None
+    return best_match
 
 
 # ---------------------------------------------------------------------------

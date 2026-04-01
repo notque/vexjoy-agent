@@ -105,7 +105,6 @@
         "focused go"
       ],
       "pairs_with": [
-        "go-patterns",
         "go-patterns"
       ],
       "complexity": "Medium-Complex",

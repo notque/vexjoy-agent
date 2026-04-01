@@ -377,13 +377,13 @@ class TestIsSingleWord:
         assert index_router._is_single_word("create voice") is False
 
     def test_hyphenated(self) -> None:
-        assert index_router._is_single_word("table-driven") is True
+        assert index_router._is_single_word("table-driven") is True  # word chars + hyphens
 
     def test_with_whitespace(self) -> None:
         assert index_router._is_single_word("  push  ") is True
 
     def test_empty(self) -> None:
-        assert index_router._is_single_word("") is True
+        assert index_router._is_single_word("") is False  # no \w chars
 
 
 # ---------------------------------------------------------------------------
