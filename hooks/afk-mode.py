@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "lib"))
 
 from hook_utils import context_output, empty_output
 
-EVENT_NAME = "UserPromptSubmit"
+EVENT_NAME = "SessionStart"
 
 AFK_CONTEXT = """<afk-mode>
 The terminal is unfocused — the user is not actively watching.

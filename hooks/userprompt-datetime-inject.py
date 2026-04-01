@@ -1,20 +1,36 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
-"""UserPromptSubmit hook: inject current date/time into model context.
+# hook-version: 2.0.0
+"""
+UserPromptSubmit hook — stub retained for settings.json compatibility.
 
-Prints the current date and time so the model has a timestamp reference
-on every user prompt. This enables time-awareness within a session —
-understanding elapsed time, giving reasonable estimates, and knowing
-whether an operation is taking seconds or hours.
+Previously injected current date/time on every prompt. Removed because
+Claude Code natively injects currentDate via getUserContext() in context.ts,
+making this hook redundant and wasteful (~50 tokens per prompt).
+
+File kept so settings.json registration does not break. Hook does nothing.
 """
 
+import os
 import sys
-from datetime import datetime, timezone
+from pathlib import Path
 
-try:
-    now = datetime.now(timezone.utc).astimezone()
-    print(f"[datetime] {now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-except Exception:
-    pass
+sys.path.insert(0, str(Path(__file__).parent / "lib"))
 
-sys.exit(0)
+from hook_utils import empty_output
+
+
+def main():
+    empty_output("UserPromptSubmit").print_and_exit()
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            print(f"[userprompt-datetime-inject] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
+    finally:
+        sys.exit(0)

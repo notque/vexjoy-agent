@@ -9,6 +9,19 @@
         "hooks": [
           {
             "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/sync-to-user-claude.py\"",
+            "description": "Sync agents/skills/hooks/commands to ~/.claude",
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/afk-mode.py\"",
+            "description": "Inject autonomous behavioral posture for SSH/tmux/headless sessions",
+            "timeout": 1000,
+            "once": true
+          },
+          {
+            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/session-context.py\"",
             "description": "Load learned patterns from previous sessions",
             "once": true
@@ -55,29 +68,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/sync-to-user-claude.py\"",
-            "description": "Sync agents/skills/hooks/commands to ~/.claude",
-            "once": true
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/userprompt-datetime-inject.py\"",
-            "description": "Inject current date/time for session time-awareness",
-            "timeout": 1000
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/afk-mode.py\"",
-            "description": "Inject autonomous behavioral posture for SSH/tmux/headless sessions",
-            "timeout": 1000
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/auto-plan-detector.py\"",
-            "description": "Auto-detect complex tasks and inject planning reminders (Manus methodology)"
-          },
-          {
-            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/instruction-reminder.py\"",
             "description": "Re-inject instruction files to combat context drift"
           },
@@ -98,18 +88,6 @@
             "command": "python3 \"$HOME/.claude/hooks/user-correction-capture.py\"",
             "description": "Detect user corrections and record to learning DB",
             "timeout": 3000
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/anti-rationalization-injector.py\"",
-            "description": "Inject anti-rationalization warnings based on task-type keywords",
-            "timeout": 1000
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/creation-request-enforcer-userprompt.py\"",
-            "description": "Early ADR enforcement: detect creation requests before model processing begins",
-            "timeout": 5000
           }
         ]
       }

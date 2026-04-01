@@ -1,59 +1,36 @@
 #!/usr/bin/env python3
-"""UserPromptSubmit hook: inject anti-rationalization warnings based on task keywords.
+# hook-version: 2.0.0
+"""
+UserPromptSubmit hook — stub retained for settings.json compatibility.
 
-Scans the user prompt for task-type keywords and injects relevant warnings
-to combat rationalization patterns (ADR-125).
+Previously injected anti-rationalization warnings based on task-type keywords.
+Removed because the /do skill already handles anti-rationalization injection in
+Phase 3 (ENHANCE) based on task type, making this a duplicate injection point.
 
-Environment: CLAUDE_USER_PROMPT (set by UserPromptSubmit hooks)
-Always exits 0 (advisory, never blocking).
+File kept so settings.json registration does not break. Hook does nothing.
 """
 
 import os
-import re
 import sys
+from pathlib import Path
 
-# Pre-compiled patterns for speed (<50ms target)
-PATTERNS = [
-    (
-        re.compile(r"\b(?:fix|debug|broken|error|failing)\b", re.IGNORECASE),
-        "[anti-rationalization] Task type: FIX. Required: run tests and show output. Do not mark complete without test evidence.",
-    ),
-    (
-        re.compile(r"\b(?:refactor|clean\s*up|restructure|simplify)\b", re.IGNORECASE),
-        "[anti-rationalization] Task type: REFACTOR. Tests must pass before AND after. No behavior change allowed.",
-    ),
-    (
-        re.compile(r"\b(?:add\s+feature|implement|create|build)\b", re.IGNORECASE),
-        "[anti-rationalization] Task type: IMPLEMENT. Only build what was asked. YAGNI applies. No phantom features.",
-    ),
-    (
-        re.compile(r"\b(?:complete|done|finish|finalize)\b", re.IGNORECASE),
-        "[anti-rationalization] Task type: COMPLETE. Provide evidence of completion (test output, file paths, validation results).",
-    ),
-    (
-        re.compile(r"\b(?:quick|simple|easy|just)\b", re.IGNORECASE),
-        "[anti-rationalization] CAUTION: 'Simple changes' cause complex bugs. Full verification required regardless.",
-    ),
-]
+sys.path.insert(0, str(Path(__file__).parent / "lib"))
+
+from hook_utils import empty_output
 
 
 def main():
-    try:
-        prompt = os.environ.get("CLAUDE_USER_PROMPT", "")
-        if not prompt:
-            return
-
-        messages = []
-        for pattern, message in PATTERNS:
-            if pattern.search(prompt):
-                messages.append(message)
-
-        if messages:
-            print("\n".join(messages))
-    except Exception as e:
-        print(f"[anti-rationalization] HOOK-CRASH: {type(e).__name__}: {e}", file=sys.stderr)
+    empty_output("UserPromptSubmit").print_and_exit()
 
 
 if __name__ == "__main__":
-    main()
-    sys.exit(0)
+    try:
+        main()
+    except Exception as e:
+        if os.environ.get("CLAUDE_HOOKS_DEBUG"):
+            import traceback
+
+            print(f"[anti-rationalization-injector] HOOK-ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
+    finally:
+        sys.exit(0)
