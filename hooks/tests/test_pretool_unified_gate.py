@@ -6,6 +6,7 @@ Run with: python3 -m pytest hooks/tests/test_pretool_unified_gate.py -v
 """
 
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
@@ -43,14 +44,18 @@ def _make_edit_event(file_path: str) -> str:
 
 
 def _run_main(stdin_payload: str, env: dict | None = None) -> int:
-    """Invoke mod.main() in-process, capturing the exit code.
+    """Invoke mod.main() in-process, returning a logical block/allow code.
 
     Args:
         stdin_payload: JSON string to supply as stdin.
         env: Optional environment variable overrides.
 
     Returns:
-        Integer exit code: 0 = allow, 2 = block.
+        2 if the hook denied the request (permissionDecision:deny in stdout),
+        0 if the hook allowed the request.
+
+    Note: The hook now always exits 0. This helper detects the deny decision
+    from the JSON stdout output so existing test assertions remain valid.
     """
     base_env = dict(os.environ)
     # Strip all bypass vars for a clean baseline
@@ -61,15 +66,27 @@ def _run_main(stdin_payload: str, env: dict | None = None) -> int:
     if env:
         base_env.update(env)
 
+    stdout_capture = io.StringIO()
     with (
         patch.dict(os.environ, base_env, clear=True),
         patch.object(mod, "read_stdin", return_value=stdin_payload),
+        patch("sys.stdout", stdout_capture),
     ):
         try:
             mod.main()
-            return 0
-        except SystemExit as e:
-            return int(e.code) if e.code is not None else 0
+        except SystemExit:
+            pass
+
+    output = stdout_capture.getvalue().strip()
+    if output:
+        try:
+            parsed = json.loads(output)
+            hook_out = parsed.get("hookSpecificOutput", {})
+            if hook_out.get("permissionDecision") == "deny":
+                return 2  # Logical block
+        except (json.JSONDecodeError, AttributeError):
+            pass
+    return 0
 
 
 # ---------------------------------------------------------------------------

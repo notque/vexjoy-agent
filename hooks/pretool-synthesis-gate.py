@@ -7,7 +7,7 @@ Blocks feature implementation when an ADR exists but consultation
 synthesis is missing or BLOCKED. Forces agents to complete consultation
 before writing implementation code.
 
-This is a HARD GATE — exit 2 blocks the Write/Edit tool.
+This is a HARD GATE — exits 0 with JSON permissionDecision:deny to block the Write/Edit tool.
 
 Detection logic:
 - Tool is Write or Edit
@@ -178,7 +178,17 @@ def main() -> None:
             f"[synthesis-gate] Expected: {synthesis_path}",
             file=sys.stderr,
         )
-        sys.exit(2)
+        print(json.dumps({
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "deny",
+                "permissionDecisionReason": (
+                    f"ADR consultation required before implementing {adr_name}. "
+                    f"Run /adr-consultation on {adr_name} first to generate {synthesis_path}."
+                ),
+            }
+        }))
+        sys.exit(0)
 
     if verdict == "BLOCKED":
         print(
@@ -186,7 +196,17 @@ def main() -> None:
             f"[synthesis-gate] Review {synthesis_path} and resolve concerns before implementing.",
             file=sys.stderr,
         )
-        sys.exit(2)
+        print(json.dumps({
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "deny",
+                "permissionDecisionReason": (
+                    f"ADR consultation verdict is BLOCKED for {adr_name}. "
+                    f"Review {synthesis_path} and resolve all concerns before implementing."
+                ),
+            }
+        }))
+        sys.exit(0)
 
     if verdict == "UNKNOWN":
         print(
@@ -195,7 +215,18 @@ def main() -> None:
             f"[synthesis-gate] Review {synthesis_path} and ensure it contains an explicit PROCEED or BLOCKED verdict.",
             file=sys.stderr,
         )
-        sys.exit(2)
+        print(json.dumps({
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "deny",
+                "permissionDecisionReason": (
+                    f"ADR synthesis.md for {adr_name} has no clear PROCEED or BLOCKED verdict. "
+                    f"The consultation may be incomplete or truncated. "
+                    f"Review {synthesis_path} and ensure it contains an explicit verdict."
+                ),
+            }
+        }))
+        sys.exit(0)
 
     # Explicit PROCEED — allow through.
     if debug:
@@ -207,11 +238,12 @@ if __name__ == "__main__":
     try:
         main()
     except SystemExit:
-        raise  # Let sys.exit(2) propagate for blocks
+        raise  # Let sys.exit(0) propagate normally
     except Exception as e:
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             traceback.print_exc(file=sys.stderr)
         else:
             print(f"[synthesis-gate] Error: {type(e).__name__}: {e}", file=sys.stderr)
-        # A crashed hook must fail OPEN — never exit 2 on unexpected errors.
+        # A crashed hook must fail OPEN — never block tools.
+    finally:
         sys.exit(0)

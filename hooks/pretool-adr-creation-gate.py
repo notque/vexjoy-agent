@@ -6,7 +6,7 @@ PreToolUse:Write Hook: ADR Creation Gate
 Blocks creation of new agent/skill/pipeline component files when no ADR
 exists for that component in the adr/ directory.
 
-This is a HARD GATE — exit 2 blocks the Write tool.
+This is a HARD GATE — exits 0 with JSON permissionDecision:deny to block the Write tool.
 
 Detection logic:
 - Tool is Write (edits to existing files pass through)
@@ -39,6 +39,7 @@ _AGENT_RE = re.compile(r"/agents/([^/]+)\.md$")
 # Match skills/foo-bar/SKILL.md → "foo-bar"
 _SKILL_RE = re.compile(r"/skills/([^/]+)/SKILL\.md$")
 # Match pipelines/foo-bar/SKILL.md → "foo-bar"
+_PIPELINE_RE = re.compile(r"/pipelines/([^/]+)/SKILL\.md$")
 
 
 def _extract_component_name(file_path: str) -> str | None:
@@ -111,18 +112,29 @@ def main() -> None:
         file=sys.stderr,
     )
     print("[fix-with-skill] plans", file=sys.stderr)
-    sys.exit(2)
+    print(json.dumps({
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": (
+                f"Create adr/{component_name}.md before creating this new component. "
+                "Use the plans skill to draft the ADR first."
+            ),
+        }
+    }))
+    sys.exit(0)
 
 
 if __name__ == "__main__":
     try:
         main()
     except SystemExit:
-        raise  # Let sys.exit(2) propagate for blocks
+        raise  # Let sys.exit(0) propagate normally
     except Exception as e:
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             traceback.print_exc(file=sys.stderr)
         else:
             print(f"[adr-creation-gate] Error: {type(e).__name__}: {e}", file=sys.stderr)
-        # A crashed hook must fail OPEN — never exit 2 on unexpected errors.
+        # A crashed hook must fail OPEN — never block tools.
+    finally:
         sys.exit(0)

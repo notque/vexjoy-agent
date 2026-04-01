@@ -88,28 +88,49 @@ def main() -> None:
 
     if failing:
         names = ", ".join(c["name"] for c in failing)
-        print(f"[ci-merge-gate] BLOCKED: CI checks failing: {names}")
-        print(f"[ci-merge-gate] Fix the failing checks before merging PR #{pr_number}.")
+        print(f"[ci-merge-gate] BLOCKED: CI checks failing: {names}", file=sys.stderr)
+        print(f"[ci-merge-gate] Fix the failing checks before merging PR #{pr_number}.", file=sys.stderr)
         try:
             record_governance_event(
                 "approval_requested", tool_name="Bash", hook_phase="pre", severity="medium", blocked=True
             )
         except Exception:
             pass  # Never let recording prevent a block
-        # Exit non-zero to block the tool call
-        sys.exit(2)
+        deny_output = {
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "deny",
+                "permissionDecisionReason": (
+                    f"CI checks are failing for PR #{pr_number}: {names}. "
+                    "Fix the failing checks before merging."
+                ),
+            }
+        }
+        print(json.dumps(deny_output))
+        sys.exit(0)
 
     if pending:
         names = ", ".join(c["name"] for c in pending)
-        print(f"[ci-merge-gate] BLOCKED: CI checks still running: {names}")
-        print(f"[ci-merge-gate] Wait for checks to complete before merging PR #{pr_number}.")
+        print(f"[ci-merge-gate] BLOCKED: CI checks still running: {names}", file=sys.stderr)
+        print(f"[ci-merge-gate] Wait for checks to complete before merging PR #{pr_number}.", file=sys.stderr)
         try:
             record_governance_event(
                 "approval_requested", tool_name="Bash", hook_phase="pre", severity="medium", blocked=True
             )
         except Exception:
             pass  # Never let recording prevent a block
-        sys.exit(2)
+        deny_output = {
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "deny",
+                "permissionDecisionReason": (
+                    f"CI checks are still running for PR #{pr_number}: {names}. "
+                    "Wait for all checks to complete before merging."
+                ),
+            }
+        }
+        print(json.dumps(deny_output))
+        sys.exit(0)
 
     # All checks passed
     print(f"[ci-merge-gate] CI checks passed for PR #{pr_number}. Merge allowed.")
@@ -119,7 +140,8 @@ if __name__ == "__main__":
     try:
         main()
     except SystemExit:
-        raise  # Let intentional exit(2) blocks propagate
+        raise  # Let sys.exit(0) propagate normally
     except Exception as e:
         print(f"[ci-merge-gate] HOOK-CRASH: {type(e).__name__}: {e}", file=sys.stderr)
+    finally:
         sys.exit(0)  # Fail-open: crashed hook must never block tools
