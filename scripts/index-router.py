@@ -148,26 +148,31 @@ def load_indexes() -> list[IndexEntry]:
 # ---------------------------------------------------------------------------
 
 
-_PLAIN_WORD_RE = re.compile(r"^\w+$")
+_BOUNDARY_SAFE_RE = re.compile(r"^\w[\w-]*$")
 
 
 def _is_single_word(trigger: str) -> bool:
-    """Check if a trigger is a plain word (only alphanumeric/underscore chars).
+    """Check if a trigger is safe for ``\\b`` word-boundary matching.
 
-    Triggers containing non-word characters (``%``, ``*``, ``.``, ``/``, etc.)
-    are *not* treated as single words.  They fall through to substring
-    containment matching, which avoids the ``\\b`` word-boundary problem:
-    ``\\b`` requires a transition between ``\\w`` and ``\\W`` characters, so
-    patterns like ``\\b%w\\b`` silently fail to match because both the
-    preceding space and the ``%`` are ``\\W``.
+    A trigger is boundary-safe when it starts with a ``\\w`` character and
+    contains only ``\\w`` characters and hyphens.  This covers plain words
+    (``push``, ``goroutine``) and hyphenated compounds (``table-driven``,
+    ``go-bits``).  ``\\b`` works correctly for these because the first and
+    last characters are always ``\\w``, guaranteeing a word-boundary
+    transition against surrounding whitespace or punctuation.
+
+    Triggers starting or ending with non-word characters (``%w``,
+    ``*_test.go``) fall through to substring containment, which avoids the
+    ``\\b`` problem: ``\\b`` requires a ``\\w``/``\\W`` transition, so
+    ``\\b%w\\b`` silently fails when preceded by a space (``\\W``→``\\W``).
 
     Args:
         trigger: The trigger string to check.
 
     Returns:
-        True if the trigger consists entirely of ``\\w`` characters.
+        True if the trigger is safe for ``\\b`` word-boundary matching.
     """
-    return bool(_PLAIN_WORD_RE.match(trigger.strip()))
+    return bool(_BOUNDARY_SAFE_RE.match(trigger.strip()))
 
 
 def _trigger_matches(trigger: str, request_lower: str) -> bool:

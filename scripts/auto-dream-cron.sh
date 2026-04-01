@@ -83,7 +83,6 @@ fi
 # Set dry-run mode variables before envsubst so ${DREAM_DRY_RUN_MODE} is substituted correctly
 export DREAM_DRY_RUN_MODE="no"
 if [ -z "$EXECUTE" ]; then
-    export CLAUDE_DREAM_DRY_RUN=1
     export DREAM_DRY_RUN_MODE="yes"
     echo "Dry-run mode: CONSOLIDATE and SYNTHESIZE will describe but not execute changes"
 fi
