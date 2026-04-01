@@ -409,3 +409,25 @@ def log_warning(message: str) -> None:
 def log_error(message: str) -> None:
     """Log error message to stderr."""
     print(f"[error] {message}", file=sys.stderr)
+
+
+def deny_tool_use(event_name: str, reason: str) -> None:
+    """Output a structured deny decision for PreToolUse/SubagentStop hooks.
+
+    Prints the JSON permissionDecision format that Claude Code expects to stdout,
+    then returns. The caller is responsible for calling sys.exit(0) afterwards.
+
+    The reason is surfaced to the model so it can adapt its approach.
+
+    Args:
+        event_name: Hook event name (e.g. "PreToolUse", "SubagentStop").
+        reason: Human-readable explanation shown to the model.
+    """
+    output = {
+        "hookSpecificOutput": {
+            "hookEventName": event_name,
+            "permissionDecision": "deny",
+            "permissionDecisionReason": reason,
+        }
+    }
+    print(json.dumps(output))

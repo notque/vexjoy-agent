@@ -6,7 +6,7 @@ PreToolUse:Bash Hook: Branch Safety Gate
 Blocks git commit commands when the current working branch is main or master.
 Forces agents to create a feature branch before committing.
 
-This is a HARD GATE — exit 2 blocks the Bash tool.
+This is a HARD GATE — exits 0 with JSON permissionDecision:deny to block the Bash tool.
 
 Detection logic:
 - Tool is Bash
@@ -124,7 +124,18 @@ def main() -> None:
             )
         except Exception:
             pass  # Never let recording prevent a block
-        sys.exit(2)
+        deny_output = {
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "deny",
+                "permissionDecisionReason": (
+                    f"Cannot commit directly to {branch}. Create a feature branch first. "
+                    "Use the git-commit-flow skill to commit safely."
+                ),
+            }
+        }
+        print(json.dumps(deny_output))
+        sys.exit(0)
 
     if debug:
         print(f"[branch-safety] Branch {branch!r} is not protected — allowing through", file=sys.stderr)
@@ -135,11 +146,12 @@ if __name__ == "__main__":
     try:
         main()
     except SystemExit:
-        raise  # Let sys.exit(2) propagate for blocks
+        raise  # Let sys.exit(0) propagate normally
     except Exception as e:
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             traceback.print_exc(file=sys.stderr)
         else:
             print(f"[branch-safety] Error: {type(e).__name__}: {e}", file=sys.stderr)
-        # A crashed hook must fail OPEN — never exit 2 on unexpected errors.
+        # A crashed hook must fail OPEN — never block tools.
+    finally:
         sys.exit(0)
