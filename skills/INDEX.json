@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-01T03:23:29Z",
+  "generated": "2026-04-01T19:17:41Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -812,6 +812,28 @@
         "voice-validator",
         "skill-creator"
       ]
+    },
+    "kairos-lite": {
+      "file": "skills/kairos-lite/SKILL.md",
+      "description": "Proactive monitoring \u2014 checks GitHub, CI, and toolkit health, produces briefings.",
+      "triggers": [
+        "morning briefing",
+        "what happened",
+        "check notifications",
+        "check CI",
+        "project status",
+        "what's new",
+        "monitoring",
+        "health check",
+        "kairos"
+      ],
+      "category": "meta-tooling",
+      "user_invocable": true,
+      "version": "1.0.0",
+      "pairs_with": [
+        "auto-dream"
+      ],
+      "model": "sonnet"
     },
     "kotlin-coroutines": {
       "file": "skills/kotlin-coroutines/SKILL.md",

@@ -110,6 +110,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **full-repo-review** | User wants a comprehensive 3-wave review of all source files in the entire repository. |
 | **repo-value-analysis** | User wants to systematically analyze an external repository to determine what ideas or patterns are worth adopting. |
 | **data-analysis** | User wants to analyze data: CSV files, metrics, A/B test results, cohort analysis, statistical distributions, KPIs, or funnel data. |
+| **kairos-lite** | User wants a project status briefing, health check, or to see what happened overnight — GitHub notifications, CI status, toolkit health. Common phrasings: "what happened", "morning briefing", "check notifications", "project status", "health check". NOT: specific PR status (use github-actions-check), specific CI debugging (use systematic-debugging). |
 | **pr-workflow** (miner mode) | User wants to extract review comments or learnings from past GitHub PRs, or coordinate batch mining. |
 | **skill-composer** | User wants to compose multiple skills into a multi-skill workflow. |
 | **routing-table-updater** | User wants to update routing tables after adding or changing agents/skills. |
