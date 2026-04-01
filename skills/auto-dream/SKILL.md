@@ -55,7 +55,7 @@ For cron invocation: the dream prompt is passed directly to `claude -p` and runs
 - Maximum 5 memory changes per cycle — excess items deferred to next cycle
 - Flag conflicts for human review, never auto-resolve
 - Preserve YAML frontmatter when merging; use `merged_from` field for provenance
-- If `CLAUDE_DREAM_DRY_RUN=1`, CONSOLIDATE and SYNTHESIZE describe proposed changes only — no filesystem writes
+- In dry-run mode (the default), CONSOLIDATE and SYNTHESIZE describe proposed changes only — no filesystem writes. The wrapper script sets `DREAM_DRY_RUN_MODE=yes` which is substituted into the prompt at runtime.
 
 ## Testing
 

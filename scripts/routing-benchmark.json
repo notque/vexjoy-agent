@@ -355,6 +355,14 @@
       "routing_tier": "force_route",
       "expected_stacked": ["go-patterns"],
       "notes": "Go debug + goroutine — force-routes to go-patterns via goroutine trigger. Previously expected 'workflow' but script correctly fires go-patterns."
+    },
+    {
+      "request": "wrap the error with %w for stack preservation",
+      "expected_agent": "golang-general-engineer",
+      "expected_skill": "go-patterns",
+      "category": "go-development",
+      "routing_tier": "force_route",
+      "notes": "Isolates %w trigger without fmt.Errorf as backup"
     }
   ]
 }

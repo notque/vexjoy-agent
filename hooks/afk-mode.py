@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""UserPromptSubmit hook: inject autonomous behavioral context for AFK sessions.
+"""SessionStart hook: inject autonomous behavioral context for AFK sessions.
 
 Detects SSH/tmux/screen/headless sessions and injects a posture block that
 instructs Claude to work proactively without requiring confirmation (ADR-143).

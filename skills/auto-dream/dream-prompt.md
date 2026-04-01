@@ -2,6 +2,14 @@ You are running the Auto-Dream memory consolidation cycle.
 This is a headless background job — no interactive session, no CLAUDE.md, no hooks.
 All instructions are contained in this prompt.
 
+## Execution order — READ THIS FIRST
+
+Do NOT execute phases in numbered order. The correct execution sequence is:
+
+**SCAN (1) → ANALYZE (2) → REPORT (6, first write: planned changes) → CONSOLIDATE (3) → SYNTHESIZE (4) → SELECT (5) → REPORT (6, second write: actual results)**
+
+The REPORT must be written BEFORE CONSOLIDATE begins any filesystem operations. This is a hard safety rule — the report is the audit trail. If the cycle is interrupted after writing the report but before consolidation completes, the report shows exactly what was planned.
+
 ## Context
 
 The wrapper script provides these paths as environment variables. Use them exactly as shown:
@@ -18,14 +26,13 @@ All paths are absolute. These are substituted by the wrapper script at runtime v
 
 Current dry-run setting: ${DREAM_DRY_RUN_MODE}
 
-Check the environment variable `CLAUDE_DREAM_DRY_RUN`. If it equals `1`, OR if
-`${DREAM_DRY_RUN_MODE}` is `yes`:
+If `${DREAM_DRY_RUN_MODE}` is `yes`:
 - Phases 1 (SCAN) and 2 (ANALYZE) run normally and write their output files.
 - Phase 3 (CONSOLIDATE) and Phase 4 (SYNTHESIZE) describe proposed changes in the report but make NO filesystem writes.
 - Phase 5 (SELECT) runs normally (read-only).
 - Phase 6 (REPORT) writes the report file normally.
 
-If neither condition is set, run all phases fully.
+If `${DREAM_DRY_RUN_MODE}` is `no`, run all phases fully.
 
 ## Safety constraints — these are hard rules, never deviate
 
@@ -144,9 +151,11 @@ Analysis document format:
 
 ## Phase 3: CONSOLIDATE
 
+**STOP — Before executing this phase**, verify that the REPORT (Phase 6) has already been written with the planned changes from Phase 2. The report must exist as an audit trail before any filesystem operations begin. If you have not yet written the report, go to Phase 6 and write the initial report first, then return here.
+
 Apply the prioritized action list from Phase 2. Maximum 5 changes.
 
-**IMPORTANT**: If `CLAUDE_DREAM_DRY_RUN=1`, skip all filesystem operations in this phase.
+**IMPORTANT**: If `${DREAM_DRY_RUN_MODE}` is `yes`, skip all filesystem operations in this phase.
 Describe what WOULD be done in the report (Phase 6) but make no changes.
 
 For each archive action:
@@ -181,7 +190,7 @@ For each conflict: leave files unchanged. Record in report.
 Create new insight memories from cross-session patterns identified in Phase 2.
 Maximum 2 new insight memories per cycle.
 
-**IMPORTANT**: If `CLAUDE_DREAM_DRY_RUN=1`, skip all filesystem writes.
+**IMPORTANT**: If `${DREAM_DRY_RUN_MODE}` is `yes`, skip all filesystem writes.
 Describe what WOULD be synthesized in the report but make no writes.
 
 Each insight memory format:

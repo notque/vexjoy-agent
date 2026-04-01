@@ -148,16 +148,26 @@ def load_indexes() -> list[IndexEntry]:
 # ---------------------------------------------------------------------------
 
 
+_PLAIN_WORD_RE = re.compile(r"^\w+$")
+
+
 def _is_single_word(trigger: str) -> bool:
-    """Check if a trigger is a single word (no spaces).
+    """Check if a trigger is a plain word (only alphanumeric/underscore chars).
+
+    Triggers containing non-word characters (``%``, ``*``, ``.``, ``/``, etc.)
+    are *not* treated as single words.  They fall through to substring
+    containment matching, which avoids the ``\\b`` word-boundary problem:
+    ``\\b`` requires a transition between ``\\w`` and ``\\W`` characters, so
+    patterns like ``\\b%w\\b`` silently fail to match because both the
+    preceding space and the ``%`` are ``\\W``.
 
     Args:
         trigger: The trigger string to check.
 
     Returns:
-        True if the trigger contains no spaces after stripping.
+        True if the trigger consists entirely of ``\\w`` characters.
     """
-    return " " not in trigger.strip()
+    return bool(_PLAIN_WORD_RE.match(trigger.strip()))
 
 
 def _trigger_matches(trigger: str, request_lower: str) -> bool:
@@ -200,23 +210,34 @@ def check_force_routes(request: str, entries: list[IndexEntry]) -> IndexEntry | 
     (e.g. "go" should not match "let's go ahead"). Multi-word triggers use
     substring containment which is safe since the full phrase must appear.
 
+    When multiple entries match, the entry with the **longest** matching
+    trigger wins (longer trigger = more specific).  This prevents load-order
+    dependent results when triggers overlap (e.g. "health check" vs
+    "health check toolkit").
+
     Args:
         request: The user request text.
         entries: All loaded INDEX entries.
 
     Returns:
-        The first matching force-route entry, or None.
+        The most specific matching force-route entry, or None.
     """
     lowered = request.lower()
+
+    best_match: IndexEntry | None = None
+    best_specificity = -1
 
     for entry in entries:
         if not entry.force_route:
             continue
         for trigger in entry.triggers:
             if _trigger_matches(trigger, lowered):
-                return entry
+                specificity = len(trigger)
+                if specificity > best_specificity:
+                    best_specificity = specificity
+                    best_match = entry
 
-    return None
+    return best_match
 
 
 # ---------------------------------------------------------------------------

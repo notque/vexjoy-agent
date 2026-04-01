@@ -414,6 +414,10 @@ def log_error(message: str) -> None:
 def deny_tool_use(event_name: str, reason: str) -> None:
     """Output a structured deny decision for PreToolUse/SubagentStop hooks.
 
+    Public utility for simpler hooks that only need a deny decision without
+    the governance recording and stderr logging that pretool-unified-gate's
+    ``_block()`` provides.
+
     Prints the JSON permissionDecision format that Claude Code expects to stdout,
     then returns. The caller is responsible for calling sys.exit(0) afterwards.
 

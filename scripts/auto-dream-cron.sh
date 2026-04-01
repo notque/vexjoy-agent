@@ -25,6 +25,12 @@ LOCKFILE="/tmp/auto-dream.lock"
 MAX_BUDGET="${MAX_BUDGET_USD:-3.00}"
 EXECUTE=""
 
+# Cleanup function: release lock FD and remove lockfile on any exit
+cleanup() {
+    exec 9>&- 2>/dev/null
+    rm -f "$LOCKFILE"
+}
+
 # Parse args
 for arg in "$@"; do
     case "$arg" in
@@ -43,6 +49,9 @@ if ! flock -n 9; then
     exit 0
 fi
 
+# Now that we hold the lock, register cleanup for any exit path
+trap cleanup EXIT
+
 TIMESTAMP="$(date -Iseconds)"
 echo "=== Auto-Dream run: $TIMESTAMP ==="
 
@@ -55,7 +64,7 @@ echo "Mode: $MODE | Budget: \$${MAX_BUDGET}"
 PROJECT_PATH="$REPO_DIR"
 PROJECT_HASH=$(echo "$PROJECT_PATH" | sed 's|/|-|g' | sed 's|^-||')
 
-export DREAM_MEMORY_DIR="$HOME/.claude/projects/-$(echo "$PROJECT_PATH" | sed 's|^/||' | sed 's|/|-|g')/memory"
+export DREAM_MEMORY_DIR="$HOME/.claude/projects/-${PROJECT_HASH}/memory"
 export DREAM_LEARNING_DB="$HOME/.claude/learning/learning.db"
 export DREAM_STATE_DIR="$HOME/.claude/state"
 export DREAM_REPO_DIR="$PROJECT_PATH"
@@ -103,8 +112,5 @@ find "$LOG_DIR" -name "run-*.log" -mtime +30 -delete 2>/dev/null || true
 find "$DREAM_STATE_DIR" -name "dream-scan-*.md" -mtime +30 -delete 2>/dev/null || true
 find "$DREAM_STATE_DIR" -name "dream-analysis-*.md" -mtime +30 -delete 2>/dev/null || true
 
-# Release lock
-exec 9>&-
-rm -f "$LOCKFILE"
-
+# Lock is released by the EXIT trap (cleanup function)
 exit $EXIT_CODE
