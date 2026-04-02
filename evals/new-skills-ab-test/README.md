@@ -18,7 +18,7 @@ Randomize which output is labeled A vs B before passing to the evaluator.
 
 **Sample size**: 5-7 test cases per skill (17 total across all three skills).
 
-**Runs per case**: 3 runs per variant per case (for statistical reliability, matching `run_eval.py` defaults).
+**Runs per case**: 3 runs per variant per case (for statistical reliability; pass `--runs-per-query 3` to `run_eval.py`).
 
 ## Skills Under Test
 
