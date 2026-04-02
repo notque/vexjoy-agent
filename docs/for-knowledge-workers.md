@@ -2,7 +2,7 @@
 
 ## What This Gives You
 
-This toolkit turns Claude Code into a multi-tool for knowledge work. Not just coding -- writing, research, community moderation, data analysis, content publishing. You describe what you want in plain language, and it figures out which specialized workflow to run. There are 130+ skills behind the scenes, but you don't need to know any of them. You just talk to it.
+This toolkit turns Claude Code into a multi-tool for knowledge work. Not just coding -- writing, research, community moderation, data analysis, content publishing. You describe what you want in plain language, and it figures out which specialized workflow to run. There are 110+ skills behind the scenes, but you don't need to know any of them. You just talk to it.
 
 ## Getting Started
 
@@ -41,7 +41,7 @@ Say you want to write a blog post. Here's what happens when you type:
 /do write a blog post about debugging production incidents
 ```
 
-The router dispatches to the voice-writer skill, which runs a multi-phase workflow: Assess the topic, Decide on structure, Draft the content, Preview before saving. It picks a structure template, enforces banned-word lists (no "delve" or "leverage" slipping through), and writes the final post in Hugo-compatible format with proper frontmatter.
+The router dispatches to the voice-writer skill, which runs an 8-phase pipeline: Load voice infrastructure, Ground the emotional and structural context, Generate content, Validate against your voice profile, Refine if needed, Joy-check the tonal framing, Output, Cleanup. It enforces banned-word lists (no "delve" or "leverage" slipping through), and writes the final post in Hugo-compatible format with proper frontmatter.
 
 Want research baked in? Say so:
 
@@ -49,7 +49,7 @@ Want research baked in? Say so:
 /do research then write an article about Kubernetes cost optimization
 ```
 
-Now it hits the research-to-article workflow -- a bigger multi-phase process. It launches 5 parallel research agents that gather information simultaneously, compiles their findings, then writes the article grounded in what they found. Research informs the narrative but doesn't dominate it.
+Now it hits the research-to-article workflow -- a bigger multi-phase process. It defines 6 research dimensions and launches 5 parallel research agents that gather information simultaneously, compiles their findings, then writes the article grounded in what they found. Research informs the narrative but doesn't dominate it.
 
 ### Writing in Your Voice
 
@@ -73,7 +73,7 @@ Already have content that sounds too robotic? The anti-AI editor catches it:
 /do make this article sound more human
 ```
 
-It scans for AI writing patterns -- cliches, passive voice, structural monotony, meta-commentary, the usual tells -- using a pattern database of 323 patterns across 24 categories. Then it makes minimal, targeted fixes. Changes the phrasing, not the meaning. Shows you every edit with a reason before applying.
+It scans for AI writing patterns -- cliches, passive voice, structural monotony, meta-commentary, the usual tells -- using a pattern database of 381 patterns across 30 categories. Then it makes minimal, targeted fixes. Changes the phrasing, not the meaning. Shows you every edit with a reason before applying.
 
 There's also a full pipeline version (`de-ai-pipeline`) that runs scan-fix-verify in a loop, up to 3 iterations, until the content reads clean.
 
@@ -158,7 +158,7 @@ Three modes:
 Before first use, run the setup:
 
 ```bash
-python3 scripts/reddit_mod.py setup
+python3 ~/.claude/scripts/reddit_mod.py setup
 ```
 
 This bootstraps your subreddit data -- auto-generates rules files, pulls mod log summaries, builds a repeat offender list. The classifier uses all of this for context when evaluating reports.
