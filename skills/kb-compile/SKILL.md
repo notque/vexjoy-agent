@@ -141,6 +141,28 @@ sources:
 
 ---
 
+## Phase 2b: FLYWHEEL — Incorporate query outputs
+
+**Goal**: Feed filed query answers back into concept articles, compounding accumulated knowledge.
+
+Check `wiki/queries/` for any query files with `filed: true` in their frontmatter (and without `incorporated: true`, which marks already-processed queries).
+
+For **each unprocessed filed query**:
+
+1. Read the query file. Note the `query` field (the original question) and `sources_consulted` (the articles the query drew from).
+2. Read each article listed in `sources_consulted`.
+3. Review the query answer body for insights, connections, or synthesized knowledge that do not already appear in the concept articles. Look for:
+   - Explicit answers or conclusions not currently stated in any concept article
+   - Cross-concept connections the query identified
+   - Clarifications or nuances added during synthesis
+4. For each concept article that should be updated:
+   - Make targeted additions only — do NOT rewrite from scratch
+   - Add a "See also" reference at the bottom of the article's Sources section: `- [Query: {original question}](../queries/{query-filename}.md)`
+5. Do NOT delete the query file — it is a permanent record.
+6. Mark the query as processed by adding `incorporated: true` to its frontmatter.
+
+If `wiki/queries/` does not exist or contains no unprocessed filed queries, skip this phase and proceed to Phase 3.
+
 ## Phase 3: INDEX
 
 **Goal**: Rebuild `wiki/_index.md` to reflect current state.

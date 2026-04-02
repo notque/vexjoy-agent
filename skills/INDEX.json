@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-02T22:18:17Z",
+  "generated": "2026-04-02T22:27:10Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -863,6 +863,21 @@
         "compile wiki",
         "build knowledge base",
         "compile raw sources"
+      ],
+      "category": "research",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "agent": "general-purpose"
+    },
+    "kb-query": {
+      "file": "skills/kb-query/SKILL.md",
+      "description": "Query a knowledge base topic and optionally file the answer.",
+      "triggers": [
+        "query knowledge base",
+        "kb query",
+        "ask knowledge base",
+        "search kb",
+        "kb question"
       ],
       "category": "research",
       "user_invocable": false,
