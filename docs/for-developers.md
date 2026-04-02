@@ -44,12 +44,10 @@ commands/            Slash command definitions (markdown files that wire up user
 
 templates/           Template directories for scaffolding (e.g., reddit data templates)
 
-evals/               Evaluation harness -- task definitions, rubrics, fixtures, results
-
 adr/                 Architecture Decision Records. Numbered markdown files tracking why decisions were made
 ```
 
-A few things that aren't obvious from the listing: `agents/` and `skills/` both have INDEX.json files that are *generated* by scripts (`scripts/generate-agent-index.py` and `scripts/generate-skill-index.py`). The `hooks/lib/` directory is where shared code lives -- hooks import from there, not from each other. And the `services/` directory exists for optional service integrations.
+A few things that aren't obvious from the listing: `agents/` and `skills/` both have INDEX.json files that are *generated* by scripts (`scripts/generate-agent-index.py` and `scripts/generate-skill-index.py`). The `hooks/lib/` directory is where shared code lives -- hooks import from there, not from each other. The eval system lives in `skills/skill-eval/` (methodology) and `scripts/skill_eval/` (runner scripts). And the `services/` directory exists for optional service integrations.
 
 ## Creating Components
 
@@ -166,11 +164,11 @@ pytest --cov=hooks --cov=scripts -v
 
 - **Hooks**: Feed JSON input, assert JSON output. Test the happy path and the silent path (when the hook has nothing to say). Mock external dependencies like the learning database.
 - **Scripts**: Test CLI interfaces. Scripts are deterministic -- given input X, they should always produce output Y. No LLM judgment to worry about.
-- **Agents/Skills**: The `evals/` directory has an evaluation harness for testing agent quality. Task definitions live in `evals/tasks/`, rubrics in `evals/rubrics/`. This is more about quality assessment than unit testing.
+- **Agents/Skills**: The `skills/skill-eval/` skill and `scripts/skill_eval/` runner provide an evaluation harness for testing agent and skill quality. This is more about quality assessment than unit testing.
 
 ### Test fixtures
 
-`scripts/tests/fixtures/` contains test data. `hooks/tests/` has its own fixtures inlined in conftest or test files. The eval system has `evals/fixtures/` and `evals/calibration/`.
+`scripts/tests/fixtures/` contains test data. `hooks/tests/` has its own fixtures inlined in test files.
 
 ## Key Conventions
 
@@ -178,7 +176,7 @@ pytest --cov=hooks --cov=scripts -v
 
 **No AI attribution.** Don't add "Generated with Claude Code" or "Co-Authored-By: Claude" to commits. The CLAUDE.md is explicit about this.
 
-**Branch safety.** Never commit directly to main. Always work on a feature branch. The hooks and skills enforce this -- `pretool-git-submission-gate.py` will block commits to protected branches.
+**Branch safety.** Never commit directly to main. Always work on a feature branch. The hooks and skills enforce this -- `pretool-branch-safety.py` will block commits to protected branches.
 
 **Wabi-sabi in docs.** Documentation should read like a human wrote it. Contractions are fine. Sentence fragments where they're clear. Varied sentence length -- short punchy ones mixed with longer explanatory ones. Never use "delve", "leverage", "comprehensive", "robust", "streamline", or "empower." The `scripts/scan-ai-patterns.py` script catches these.
 
