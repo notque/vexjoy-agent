@@ -102,5 +102,8 @@ evals/*
 # But track A/B test design files (cases, rubrics, methodology)
 !evals/new-skills-ab-test/
 
+# Evolution reports (weekly toolkit-evolution cycle output)
+evolution-reports/
+
 # Feature state (ephemeral, per-session feature lifecycle)
 .feature/
