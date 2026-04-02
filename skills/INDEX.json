@@ -65,7 +65,7 @@
     },
     "auto-dream": {
       "file": "skills/auto-dream/SKILL.md",
-      "description": "Background memory consolidation and learning graduation \u2014 overnight knowledge lifecycle.",
+      "description": "Background memory consolidation and learning graduation — overnight knowledge lifecycle.",
       "triggers": [
         "dream",
         "consolidate memories",
@@ -815,7 +815,7 @@
     },
     "kairos-lite": {
       "file": "skills/kairos-lite/SKILL.md",
-      "description": "Proactive monitoring \u2014 checks GitHub, CI, and toolkit health, produces briefings.",
+      "description": "Proactive monitoring — checks GitHub, CI, and toolkit health, produces briefings.",
       "triggers": [
         "morning briefing",
         "what happened",
@@ -1687,6 +1687,27 @@
       "pairs_with": [
         "typescript-frontend-engineer",
         "distinctive-frontend-design"
+      ]
+    },
+    "toolkit-evolution": {
+      "file": "skills/toolkit-evolution/SKILL.md",
+      "description": "Closed-loop toolkit self-improvement: diagnose, propose, critique, build, test, evolve.",
+      "triggers": [
+        "evolve toolkit",
+        "improve the system",
+        "self-improve",
+        "toolkit evolution",
+        "what should we improve",
+        "find improvement opportunities",
+        "systematic improvement"
+      ],
+      "category": "meta-tooling",
+      "force_route": true,
+      "user_invocable": true,
+      "version": "1.0.0",
+      "pairs_with": [
+        "multi-persona-critique",
+        "skill-eval"
       ]
     },
     "topic-brainstormer": {
