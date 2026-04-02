@@ -10,15 +10,15 @@ Each agent is defined in `agents/*.md` with YAML frontmatter specifying model, v
 
 | Agent | Description |
 |-------|-------------|
-| `golang-general-engineer` | Go development (1.26+): concurrency, testing, interfaces, production-ready code; includes gopls MCP integration |
-| `golang-general-engineer-compact` | Focused Go development with tight context budgets; streamlined for targeted implementations |
-| `python-general-engineer` | Python development (3.11+): type safety, async, pytest, modern patterns |
-| `typescript-frontend-engineer` | TypeScript 5+ frontend: React 19, Zod validation, state management, type-safe component development |
-| `typescript-debugging-engineer` | TypeScript debugging specialist: race conditions, async/await, type errors, runtime exceptions |
-| `kotlin-general-engineer` | Kotlin 1.9+/2.0: null safety, coroutines, Flow, Ktor, Koin, Kotest/MockK |
-| `swift-general-engineer` | Swift 6: iOS/macOS/visionOS, strict concurrency, SwiftUI/UIKit, Keychain, Swift Testing |
-| `php-general-engineer` | PHP 8.2+: PSR-12, Laravel/Symfony/Doctrine, PHPStan/Psalm, SAP Commerce Cloud (Hybris) |
-| `nodejs-api-engineer` | Node.js backend: RESTful APIs, authentication, file uploads, webhooks, Next.js API routes |
+| `golang-general-engineer` | Go development: features, debugging, code review, performance. Modern Go 1.26+ patterns |
+| `golang-general-engineer-compact` | Compact Go development for tight context budgets. Modern Go 1.26+ patterns |
+| `python-general-engineer` | Python development: features, debugging, code review, performance. Modern Python 3.12+ patterns |
+| `typescript-frontend-engineer` | TypeScript frontend architecture: type-safe components, state management, build optimization |
+| `typescript-debugging-engineer` | TypeScript debugging: race conditions, async/await issues, type errors, runtime exceptions |
+| `kotlin-general-engineer` | Kotlin development: features, coroutines, debugging, code quality, multiplatform |
+| `swift-general-engineer` | Swift development: iOS, macOS, server-side Swift, SwiftUI, concurrency, testing |
+| `php-general-engineer` | PHP development: features, debugging, code quality, security, modern PHP 8.x patterns |
+| `nodejs-api-engineer` | Node.js backend API development: REST endpoints, authentication, file uploads, webhooks, middleware, database integration |
 
 ---
 
@@ -26,10 +26,10 @@ Each agent is defined in `agents/*.md` with YAML frontmatter specifying model, v
 
 | Agent | Description |
 |-------|-------------|
-| `ui-design-engineer` | UI/UX design systems: Tailwind CSS, Headless UI, ARIA, WCAG 2.1 AA, modern design principles |
-| `react-portfolio-engineer` | React portfolio/gallery sites for creative professionals: Next.js App Router, image galleries, lightbox |
-| `nextjs-ecommerce-engineer` | Next.js e-commerce: shopping cart, Stripe, Prisma ORM, server components, checkout flows |
-| `performance-optimization-engineer` | Web performance: Core Web Vitals, bundle analysis, caching strategies, Next.js optimization |
+| `ui-design-engineer` | UI/UX design: design systems, responsive layouts, accessibility, animations |
+| `react-portfolio-engineer` | React portfolio/gallery sites for creatives: React 18+, Next.js App Router, image optimization |
+| `nextjs-ecommerce-engineer` | Next.js e-commerce: shopping cart, Stripe payments, product catalogs, order management, checkout flows |
+| `performance-optimization-engineer` | Web performance optimization: Core Web Vitals, rendering, bundle analysis, monitoring |
 
 ---
 
@@ -37,11 +37,11 @@ Each agent is defined in `agents/*.md` with YAML frontmatter specifying model, v
 
 | Agent | Description |
 |-------|-------------|
-| `kubernetes-helm-engineer` | Kubernetes and Helm: chart development, cluster operations, container orchestration, production deployments |
-| `ansible-automation-engineer` | Ansible: idempotent playbooks, roles, collections, CI/CD integration, Molecule testing, Vault |
-| `prometheus-grafana-engineer` | Prometheus and Grafana: metrics collection, alerting, dashboard design, cloud-native observability |
-| `opensearch-elasticsearch-engineer` | OpenSearch/Elasticsearch: cluster management, index optimization, query tuning, search infrastructure |
-| `rabbitmq-messaging-engineer` | RabbitMQ: message routing patterns, clustering, HA messaging, performance optimization |
+| `kubernetes-helm-engineer` | Kubernetes and Helm: deployments, troubleshooting, cloud-native infrastructure |
+| `ansible-automation-engineer` | Ansible automation: playbooks, roles, collections, Molecule testing, Vault security |
+| `prometheus-grafana-engineer` | Prometheus and Grafana: monitoring, alerting, dashboard design, PromQL optimization |
+| `opensearch-elasticsearch-engineer` | OpenSearch/Elasticsearch: cluster management, performance tuning, index optimization |
+| `rabbitmq-messaging-engineer` | RabbitMQ: message queue architecture, clustering, high-availability, routing patterns |
 
 ---
 
@@ -49,9 +49,9 @@ Each agent is defined in `agents/*.md` with YAML frontmatter specifying model, v
 
 | Agent | Description |
 |-------|-------------|
-| `data-engineer` | Data pipelines, ETL/ELT, data warehouse design, Airflow, dbt, Kafka, Spark, BigQuery, Snowflake |
-| `database-engineer` | Database design and optimization: schema design, indexing, query optimization, PostgreSQL/MySQL/SQLite |
-| `sqlite-peewee-engineer` | SQLite with Peewee ORM: model definition, query optimization, migrations, transaction management |
+| `data-engineer` | Data pipelines, ETL/ELT, warehouse design, dimensional modeling, stream processing |
+| `database-engineer` | Database design, optimization, query performance, migrations, indexing strategies |
+| `sqlite-peewee-engineer` | SQLite with Peewee ORM: model definition, query optimization, migrations, transactions |
 
 ---
 
@@ -67,7 +67,7 @@ Each agent is defined in `agents/*.md` with YAML frontmatter specifying model, v
 
 | Agent | Description |
 |-------|-------------|
-| `python-openstack-engineer` | OpenStack services/plugins: Nova, Neutron, Cinder, Oslo libraries, Tempest, Gerrit/Zuul/DevStack |
+| `python-openstack-engineer` | OpenStack Python development: Nova, Neutron, Cinder, Oslo libraries, WSGI middleware |
 
 ---
 
@@ -75,7 +75,7 @@ Each agent is defined in `agents/*.md` with YAML frontmatter specifying model, v
 
 | Agent | Description |
 |-------|-------------|
-| `mcp-local-docs-engineer` | Build MCP servers for local documentation: TypeScript/Node.js and Go implementations, Hugo front matter |
+| `mcp-local-docs-engineer` | MCP server development for local documentation access in TypeScript/Node.js and Go |
 
 ---
 
@@ -83,9 +83,9 @@ Each agent is defined in `agents/*.md` with YAML frontmatter specifying model, v
 
 | Agent | Description |
 |-------|-------------|
-| `research-coordinator-engineer` | Complex research: systematic investigation, multi-source analysis, Task tool orchestration |
-| `research-subagent-executor` | Individual research subagent: OODA loop methodology, tool selection with budget management |
-| `project-coordinator-engineer` | Multi-agent project orchestration: task breakdown, parallel execution, handoffs, TodoWrite integration |
+| `research-coordinator-engineer` | Research coordination: systematic investigation, multi-source analysis, synthesis |
+| `research-subagent-executor` | Research subagent execution: OODA-loop investigation, intelligence gathering, source evaluation |
+| `project-coordinator-engineer` | Multi-agent project coordination: task breakdown, dependency management, progress tracking |
 
 ---
 
@@ -93,11 +93,10 @@ Each agent is defined in `agents/*.md` with YAML frontmatter specifying model, v
 
 | Agent | Description |
 |-------|-------------|
-| `skill-creator` | Create Claude Code skills: progressive disclosure, SKILL.md structure, complexity tier selection |
-| `hook-development-engineer` | Python hooks: PostToolUse/PreToolUse/SessionStart handlers, sub-50ms performance, learning DB |
-| `pipeline-orchestrator-engineer` | Build pipelines: multi-component scaffolding, fan-out/fan-in patterns, routing integration |
-| `system-upgrade-engineer` | Ecosystem upgrades: 6-phase pipeline for adapting to Claude Code releases or goal shifts |
-| `toolkit-governance-engineer` | Toolkit internal architecture: SKILL.md edits, routing tables, ADR lifecycle, INDEX.json, hook compliance |
+| `hook-development-engineer` | Python hook development for Claude Code event-driven system and learning database |
+| `pipeline-orchestrator-engineer` | Pipeline orchestration: scaffold multi-component workflows, fan-out/fan-in patterns |
+| `system-upgrade-engineer` | Systematic toolkit upgrades: adapt agents, skills, hooks when Claude Code ships updates |
+| `toolkit-governance-engineer` | Toolkit governance: edit skills, update routing tables, manage ADR lifecycle, enforce standards |
 
 ---
 
@@ -105,9 +104,9 @@ Each agent is defined in `agents/*.md` with YAML frontmatter specifying model, v
 
 | Agent | Description |
 |-------|-------------|
-| `technical-documentation-engineer` | Technical documentation: API docs, integration guides, source-code-verified accuracy |
-| `technical-journalist-writer` | Technical journalism: explainers, opinion pieces, long-form articles with journalist-quality structure |
-| `github-profile-rules-engineer` | Extract programming rules and coding conventions from a GitHub user's public profile |
+| `technical-documentation-engineer` | Technical documentation: API docs, system architecture, runbooks, enterprise standards |
+| `technical-journalist-writer` | Technical journalism: explainers, opinion pieces, analysis articles, long-form content |
+| `github-profile-rules-engineer` | Extract coding conventions and style rules from GitHub user profiles via API |
 
 ---
 
@@ -115,7 +114,7 @@ Each agent is defined in `agents/*.md` with YAML frontmatter specifying model, v
 
 | Agent | Description |
 |-------|-------------|
-| `testing-automation-engineer` | Testing strategy and automation: Vitest, Playwright, React Testing Library, CI/CD pipeline |
+| `testing-automation-engineer` | Testing automation: Vitest, Playwright, React Testing Library, CI/CD pipeline integration |
 
 ---
 
@@ -125,9 +124,9 @@ Four umbrella agents covering all review dimensions via reference files loaded o
 
 | Agent | Description |
 |-------|-------------|
-| `reviewer-code` | Code quality: conventions, naming, dead code, performance, types, tests, comments, config safety (10 dimensions) |
-| `reviewer-system` | System review: security, concurrency, errors, observability, APIs, migrations, dependencies, docs |
-| `reviewer-domain` | Domain-specific: ADR compliance, business logic, SAP CC structural, pragmatic builder |
-| `reviewer-perspectives` | Multi-perspective: newcomer, senior, pedant, contrarian, user advocate, meta-process |
+| `reviewer-code` | Code quality review across 10 dimensions: conventions, naming, dead code, performance, types, tests, comments, config safety |
+| `reviewer-system` | System-level review: security, concurrency, errors, observability, APIs, migrations, dependencies, docs |
+| `reviewer-domain` | Domain-specific review: ADR compliance, business logic, SAP CC structural, pragmatic builder |
+| `reviewer-perspectives` | Multi-perspective review: newcomer, senior, pedant, contrarian, user advocate, meta-process |
 
 Each umbrella agent loads the appropriate reference file based on the review focus. For example, `reviewer-system` loads its security reference when the task involves OWASP or authentication, and its concurrency reference when the task involves race conditions or goroutine leaks.
