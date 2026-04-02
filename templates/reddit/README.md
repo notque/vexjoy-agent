@@ -7,7 +7,7 @@ This directory contains template files for the `reddit-data/{subreddit}/` local 
 When you run the setup command for a new subreddit:
 
 ```bash
-python3 scripts/reddit_mod.py setup --subreddit mysubreddit
+python3 scripts/reddit-mod.py setup --subreddit mysubreddit
 ```
 
 The script:
@@ -41,10 +41,10 @@ The script:
 | `confidence_auto_remove` | int (0-100) | 90 | Minimum confidence to auto-remove rule-violating content |
 | `trust_reporters` | bool | true | Default to trusting community reports |
 | `community_type` | string | "professional-technical" | Community tone for classifier calibration |
-| `max_auto_actions_per_run` | int | 25 | Safety cap on auto-actions per run |
-| `required_language` | string or null | null | ISO 639-1 code for required language, or null for any (planned — not yet implemented) |
-| `scan_recent_hours` | int | 24 | Default time window for proactive scanning (planned — not yet implemented) |
-| `scan_limit` | int | 50 | Default item limit for proactive scanning (planned — not yet implemented) |
+| `max_auto_actions_per_run` | int | 0 | Safety cap on auto-actions per run (0 = no limit) |
+| `required_language` | string or null | null | ISO 639-1 code for required language, or null for any |
+| `scan_recent_hours` | int | 24 | Default time window (hours) for proactive scanning |
+| `scan_limit` | int | 50 | Default item limit for proactive scanning |
 
 **Note:** The template file uses `_comment_*` keys to document each field inline. These comment keys are ignored by the scripts -- only the actual config keys are read. When the `setup` command generates `config.json`, it produces a clean file without the comment keys.
 
@@ -66,8 +66,8 @@ reddit-data/
 Each subreddit gets its own directory under `reddit-data/`. Run `setup` once per subreddit:
 
 ```bash
-python3 scripts/reddit_mod.py setup --subreddit subreddit_one
-python3 scripts/reddit_mod.py setup --subreddit subreddit_two
+python3 scripts/reddit-mod.py setup --subreddit subreddit_one
+python3 scripts/reddit-mod.py setup --subreddit subreddit_two
 ```
 
 Switch between subreddits via the `REDDIT_SUBREDDIT` environment variable or the `--subreddit` CLI flag.
