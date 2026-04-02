@@ -6,7 +6,7 @@ description: |
 version: 1.0.0
 route_to:
   agent: pipeline-orchestrator-engineer
-  skill: pipeline-scaffolder
+  skill: workflow
   enhancements:
     - codebase-analyzer
     - routing-table-updater
@@ -39,7 +39,7 @@ Entry point command for the Pipeline Creator meta-pipeline.
 
 1. **Context Detection** (`pipeline-context-detector` hook): Scans the repository for existing agents, skills, and hooks related to the task. Builds a JSON environment snapshot.
 2. **Discovery** (`codebase-analyzer`): Analyzes existing components to prevent duplication and identify reusable patterns.
-3. **Scaffolding** (fan-out via `pipeline-scaffolder`): Dispatches 3 parallel sub-agents to create:
+3. **Scaffolding** (fan-out via `workflow` skill, scaffolder phase): Dispatches parallel sub-agents to create:
    - Python detector hook (environment evaluation before LLM invocation)
    - Agent manifest (following `AGENT_TEMPLATE_V2.md`)
    - Skill definition (`SKILL.md` with phases and gates)
@@ -55,7 +55,7 @@ Entry point command for the Pipeline Creator meta-pipeline.
 
 ## Routing
 
-This command routes to `pipeline-orchestrator-engineer` with the `pipeline-scaffolder` skill. The `/do` router recognizes these triggers:
+This command routes to `pipeline-orchestrator-engineer` with the `workflow` skill. The `/do` router recognizes these triggers:
 
 - "create pipeline", "new pipeline", "scaffold pipeline"
 - "build a pipeline for", "pipeline for"
