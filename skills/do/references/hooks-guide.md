@@ -5,10 +5,15 @@
 | Event | When Fires | Use Case |
 |-------|------------|----------|
 | `SessionStart` | Session begins | Load context, sync files |
-| `UserPromptSubmit` | Before processing prompt | Inject skills, detect complexity |
-| `PostToolUse` | After tool execution | Learn from errors, suggest fixes |
+| `UserPromptSubmit` | Before processing prompt | Inject context, detect corrections |
+| `PreToolUse` | Before tool execution | Gate dangerous ops, inject learnings |
+| `PostToolUse` | After tool execution | Learn from errors, lint, security scan |
 | `PreCompact` | Before context compression | Archive learnings |
-| `Stop` | Session ends | Generate summary |
+| `PostCompact` | After context compression | Re-inject plan context |
+| `TaskCompleted` | After task completion | Record completion metadata |
+| `SubagentStop` | After subagent finishes | Enforce branch safety, reviewer contracts |
+| `StopFailure` | Session ends with error | Record failure for pattern analysis |
+| `Stop` | Session ends | Generate summary, decay stale learnings |
 
 ## Key Hook Features
 
