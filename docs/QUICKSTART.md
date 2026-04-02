@@ -13,7 +13,7 @@ cd ~/claude-code-toolkit
 ./install.sh
 ```
 
-**Alternative (bootstrap via Claude):** Start Claude Code in the claude-code-toolkit directory. The sync hook will automatically copy agents, skills, hooks, and commands to `~/.claude/`.
+**Alternative (bootstrap via Claude):** Start Claude Code in the claude-code-toolkit directory. The sync hook will automatically copy agents, skills, hooks, commands, and scripts to `~/.claude/`.
 
 ```bash
 cd ~/claude-code-toolkit
