@@ -55,6 +55,8 @@ Read and follow the repository CLAUDE.md before making any routing decision, bec
 
 **Trivial = reading a file the user named by exact path.** Everything else is Simple+ and MUST use an agent, skill, or pipeline. When uncertain, classify UP not down — because under-routing wastes implementations while over-routing only wastes tokens, and tokens are cheap but bad code is expensive.
 
+**Progressive Depth**: For requests where complexity is ambiguous, consider starting at a shallower depth and allowing the agent to escalate. See `references/progressive-depth.md` for the escalation protocol and signal format.
+
 **Common misclassifications** (these are NOT Trivial — route them): evaluating repos/URLs, any opinion/recommendation, git operations, codebase questions (`explore-pipeline`), retro lookups (`retro` skill), comparing approaches.
 
 **Maximize skill/agent/pipeline usage.** If a skill or pipeline exists for the task, USE IT — even if handling directly seems faster, because skills encode domain patterns that prevent common mistakes.
@@ -280,6 +282,7 @@ Solution: Stop execution. Create `task_plan.md`. Resume routing after plan is in
 
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/routing-tables.md`: Complete category-specific skill routing
+- `${CLAUDE_SKILL_DIR}/references/progressive-depth.md`: Progressive depth escalation protocol
 - `agents/INDEX.json`: Agent triggers and metadata
 - `skills/INDEX.json`: Skill triggers, force-route flags, pairs_with
 - `skills/workflow/SKILL.md`: Workflow phases, triggers, composition chains
