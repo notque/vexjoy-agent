@@ -48,14 +48,15 @@ The system loads the voice profile and generates content matching those patterns
 ### 5. Validate the Output
 
 ```bash
-python3 scripts/voice-validator.py validate --content draft.md --voice your-voice-name
+python3 scripts/voice-validator.py validate --content draft.md --profile your-voice-profile.json --voice your-voice-name
 ```
 
 The validator checks:
-- Sentence length distribution matches the profile
-- Opening patterns match (direct fact vs. question vs. story)
 - Banned patterns are avoided (AI tells like "It's not X, it's Y")
-- Voice-specific markers are present
+- Rhetorical pivot patterns detected ("It's not X. It's Y" variants)
+- Sentence rhythm for monotony (consecutive similar-length sentences)
+- Metric deviations from profile (contraction rate, comma density, sentence length)
+- Architectural patterns (analogy domains, argument direction, concession structure, bookends)
 - Overall score (pass threshold: 60/100)
 
 ---
@@ -81,11 +82,14 @@ Extracts quantitative metrics from writing samples:
 Validates content against a voice profile:
 
 ```bash
-# Basic validation
-python3 scripts/voice-validator.py validate --content draft.md --voice your-voice
+# Full validation against a profile
+python3 scripts/voice-validator.py validate --content draft.md --profile your-voice-profile.json --voice your-voice-name
 
 # Check for banned AI patterns only
 python3 scripts/voice-validator.py check-banned --content draft.md
+
+# Check sentence rhythm only
+python3 scripts/voice-validator.py check-rhythm --content draft.md --profile your-voice-profile.json
 
 # Compare two voice profiles
 python3 scripts/voice-analyzer.py compare --profile1 voice1.json --profile2 voice2.json
@@ -135,7 +139,7 @@ The first calibration is rarely perfect. Use:
 
 ```bash
 # See what patterns the validator catches
-python3 scripts/voice-validator.py validate --content draft.md --voice your-voice --verbose
+python3 scripts/voice-validator.py validate --content draft.md --profile your-voice-profile.json --format text --verbose
 
 # Refine with additional samples
 /do refine voice your-voice with additional samples
