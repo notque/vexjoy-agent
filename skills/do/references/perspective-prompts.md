@@ -160,30 +160,35 @@ After all 10 agents return results, create this synthesis document:
 **Source Material**: {source_path}
 **Token Budget Used**: ~{estimated_tokens} tokens
 
-## Phase 1: Multi-Perspective Analysis
+## Phase 1: Validation
+
+- Target: [confirmed]
+- Source: [confirmed, word count]
+
+## Phase 2: Multi-Perspective Analysis
 
 Successfully analyzed from 10 perspectives:
 1. Structural Analysis - [Key insight]
 2. Clarity and Precision - [Key insight]
 3. Technical Explanation Patterns - [Key insight]
-4. Audience Assumptions - [Key insight]
-5. Evidence and Citations - [Key insight]
+4. Audience Assumption Patterns - [Key insight]
+5. Evidence and Citation Strategy - [Key insight]
 6. Narrative Progression - [Key insight]
 7. Paragraph and Sentence Architecture - [Key insight]
-8. Headers and Signposting - [Key insight]
+8. Header and Signposting Strategy - [Key insight]
 9. Complexity Management - [Key insight]
-10. Limitations and Nuance - [Key insight]
+10. Limitation and Nuance Handling - [Key insight]
 
 **Total Rules Extracted**: {count}
 
-## Phase 2: Synthesis
+## Phase 3: Synthesis
 
 **Common Themes**: {count} patterns
 **Priority 1 (Must-Have)**: {count} rules
 **Priority 2 (Should-Have)**: {count} rules
 **Priority 3 (Nice-to-Have)**: {count} rules
 
-## Phase 3: Application
+## Phase 4: Application
 
 **Target Updated**: {target_name}
 **Lines Added**: +{count}
@@ -194,7 +199,7 @@ Successfully analyzed from 10 perspectives:
 2. [Improvement - contributing perspectives]
 3. [Improvement - contributing perspectives]
 
-## Impact Assessment
+## Phase 5: Verification
 
 **Depth Increase**: {before} lines -> {after} lines (+{percent}%)
 **New Capabilities**: [List new patterns/rules]
