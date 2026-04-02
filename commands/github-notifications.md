@@ -1,7 +1,7 @@
 ---
 description: "Triage GitHub notifications: fetch, classify, report actions needed."
 argument-hint: "[--mark-read] [--save]"
-allowed-tools: ["Bash"]
+allowed-tools: ["Bash", "Read", "Write"]
 ---
 
 Triage GitHub notifications: fetch, classify, report actions needed.

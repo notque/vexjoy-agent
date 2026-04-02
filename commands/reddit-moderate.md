@@ -1,6 +1,6 @@
 ---
 description: "Reddit moderation: fetch modqueue, classify content, take mod actions"
-argument-hint: "[--auto]"
+argument-hint: "[--auto] [--dry-run]"
 allowed-tools: ["Read", "Bash"]
 ---
 
@@ -12,8 +12,9 @@ subreddit rules, and recommends actions for your approval.
 ## Usage
 
 ```
-/reddit-moderate           # Interactive: fetch, analyze, confirm, act
+/reddit-moderate           # Interactive: fetch, classify, present, confirm, act
 /reddit-moderate --auto    # Auto mode: remove clear spam, skip uncertain
+/reddit-moderate --dry-run # Dry-run: show recommendations without acting
 ```
 
 ## Loop Mode
@@ -25,5 +26,6 @@ subreddit rules, and recommends actions for your approval.
 When invoked, load and follow the skill at `skills/reddit-moderate/SKILL.md`.
 
 Parse the argument:
-- No argument → run interactive mode (Phase 1-4)
+- No argument → run interactive mode (Phase 1-5)
 - "--auto" → run auto mode
+- "--dry-run" → run dry-run mode
