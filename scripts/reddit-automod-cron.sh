@@ -86,8 +86,7 @@ fi
 
 claude -p "$PROMPT" \
     --output-format text \
-    --permission-mode auto \
-    --allowedTools "Bash Read" \
+    --dangerously-skip-permissions \
     --max-budget-usd "$MAX_BUDGET" \
     --no-session-persistence \
     2>&1 | tee "$LOG_DIR/run-$(date +%Y%m%d-%H%M%S).log"

@@ -95,8 +95,7 @@ cd "$REPO_DIR"
 set +e
 claude -p "$PROMPT" \
     --output-format text \
-    --permission-mode auto \
-    --allowedTools "Bash Read Write Edit Glob Grep" \
+    --dangerously-skip-permissions \
     --max-budget-usd "$MAX_BUDGET" \
     --no-session-persistence \
     --model sonnet \
