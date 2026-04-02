@@ -30,7 +30,7 @@ cd claude-code-toolkit
 
 The installer asks one question -- symlink or copy -- then sets everything up. Pick symlink if you want updates via `git pull`, copy if you want a stable snapshot. Either works fine.
 
-What just happened: the installer linked agents, skills, hooks, and scripts into `~/.claude/`, which is where Claude Code looks for extensions. It also configured hooks in your settings so they activate automatically.
+What just happened: the installer linked agents, skills, hooks, commands, and scripts into `~/.claude/`, which is where Claude Code looks for extensions. It also configured hooks in your settings so they activate automatically.
 
 ## Your First Commands
 
@@ -76,11 +76,12 @@ Routes to a systematic debugging skill. It'll gather evidence before guessing, w
 
 ## What You Just Installed
 
-Four kinds of things got copied to `~/.claude/`:
+Five kinds of things got copied to `~/.claude/`:
 
 - **Agents** -- domain experts for Go, Python, Kubernetes, data engineering, content, and more
 - **Skills** -- reusable workflows like TDD, debugging, code review, article writing, research pipelines
 - **Hooks** -- automation that fires on session start, after errors, before context compression
+- **Commands** -- slash command definitions that wire up user-facing entry points like `/do`
 - **Scripts** -- Python utilities the agents call for deterministic operations
 
 These load automatically when you start Claude Code in any directory. You don't need to configure anything else.
