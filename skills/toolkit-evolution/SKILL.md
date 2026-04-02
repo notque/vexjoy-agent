@@ -52,9 +52,9 @@ This is the weekly sibling of `auto-dream`. Auto-dream (nightly) consolidates me
 **Step 1: Query the learning database for recent failures and routing mismatches**
 
 ```bash
-python3 ~/.claude/scripts/learning-db.py search --category routing-decision --min-confidence 0.3 --limit 20
-python3 ~/.claude/scripts/learning-db.py search --category error-pattern --min-confidence 0.3 --limit 20
-python3 ~/.claude/scripts/learning-db.py search --category skill-gap --min-confidence 0.3 --limit 20
+python3 ~/.claude/scripts/learning-db.py search "routing decision mismatch reroute" --min-confidence 0.3 --limit 20
+python3 ~/.claude/scripts/learning-db.py search "error pattern failure bug" --min-confidence 0.3 --limit 20
+python3 ~/.claude/scripts/learning-db.py search "skill gap missing improvement" --min-confidence 0.3 --limit 20
 ```
 
 Look for: recurring failures, routing mismatches where the user had to reroute, skills that consistently underperform, error patterns without automated fixes.
@@ -116,7 +116,7 @@ For each opportunity from Phase 1, propose 1-2 concrete solutions. Each proposal
 
 ```bash
 # Verify proposals don't duplicate existing capabilities
-cat skills/INDEX.json | python3 -c "import sys,json; idx=json.load(sys.stdin); [print(s['name'],'-',s.get('description','')) for s in idx.get('skills',idx) if isinstance(s,dict)]" 2>/dev/null || echo "INDEX.json parse failed -- check manually"
+cat skills/INDEX.json | python3 -c "import sys,json; idx=json.load(sys.stdin); [print(k,'-',v.get('description','')) for k,v in idx.get('skills',{}).items()]" 2>/dev/null || echo "INDEX.json parse failed -- check manually"
 ```
 
 Drop any proposal that duplicates an existing skill or capability. If an existing skill could be extended instead, frame the proposal as an extension.
@@ -303,7 +303,7 @@ Record what was tried and why it failed:
 
 ```bash
 python3 ~/.claude/scripts/learning-db.py learn \
-  --category "evolution-result" \
+  --topic "evolution-result" \
   "Failed proposal: {description}. Hypothesis: {what we expected}. Result: {what happened}. Lesson: {what we learned}."
 ```
 
@@ -313,7 +313,7 @@ Failed experiments are valuable data -- they prevent the same idea from being re
 
 ```bash
 python3 ~/.claude/scripts/learning-db.py learn \
-  --category "evolution-cycle" \
+  --topic "evolution-cycle" \
   "toolkit-evolution cycle: {N} proposals evaluated, {M} built, {W} winners, {L} losses. Top win: {description}. Focus: {area or 'general'}."
 ```
 
