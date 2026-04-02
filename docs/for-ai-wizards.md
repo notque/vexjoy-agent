@@ -4,22 +4,22 @@ You know Claude Code. You've written agents, maybe built a skill or two. This do
 
 ## The Router
 
-Every `/do` request hits the `skill-evaluator` hook on `UserPromptSubmit`. It doesn't route -- it *injects routing context* so Claude picks the right agent and skill. The actual dispatch happens when Claude reads the injected `<skill-evaluation-protocol>` block and decides to invoke `Task` or `Skill`.
+Every `/do` request is handled by the `/do` skill itself (`skills/do/SKILL.md`). The skill's Phase 1 classifies complexity, Phase 2 runs `scripts/index-router.py` for deterministic trigger matching and candidate scoring, and then Claude selects the agent + skill combination. A `skill-evaluator` hook exists but is **disabled** -- its routing cheat sheet was redundant once the `/do` skill got its own routing tables.
 
 ### Complexity Classification
 
-The evaluator classifies every prompt into four tiers:
+The evaluator (in `skill-evaluator.py`'s `classify_complexity` function, also mirrored in the `/do` skill's Phase 1) classifies every prompt into four tiers:
 
 | Tier | Heuristic | What Gets Injected |
 |------|-----------|-------------------|
 | **Trivial** | <10 words + has `?` | Nothing. No routing. |
-| **Simple** | 1 complex signal or 20+ words | `UNDERSTAND -> EXECUTE -> VERIFY` |
-| **Medium** | 1+ signal + 20-50 words | `UNDERSTAND -> PLAN -> EXECUTE -> VERIFY` |
-| **Complex** | 2+ signals or 50+ words | Full 4-phase with requirements, risks, criteria |
+| **Simple** | 0 signals AND <=20 words (fallback) | `UNDERSTAND -> EXECUTE -> VERIFY` |
+| **Medium** | 1+ signal OR >20 words | `UNDERSTAND -> PLAN -> EXECUTE -> VERIFY` |
+| **Complex** | 2+ signals OR >50 words | Full 4-phase with requirements, risks, criteria |
 
-Complex signals are verbs like `implement`, `create`, `refactor`, `debug`, plus multi-step indicators like `and also`, `first`, `after that`. Word count is a rough proxy for scope.
+Complex signals are verbs like `implement`, `create`, `build`, `refactor`, `review`, `analyze`, `debug`, `fix`, `add feature`, plus multi-step indicators like `and also`, `then`, `first`, `after that`. Word count is a rough proxy for scope.
 
-The `auto-plan-detector` hook runs in parallel on the same event. When it sees code modification verbs, research intent, or multi-step patterns, it injects `<auto-plan-required>` -- a Manus-style directive to create `task_plan.md` before doing anything. This fires independently from the skill evaluator.
+An `auto-plan-detector` hook exists but is a **disabled stub** -- plan detection is now handled by the `/do` skill's Phase 1 (CLASSIFY) and Phase 4 Step 1, making per-prompt injection redundant. The `pretool-plan-gate` hook (PreToolUse) enforces the plan requirement by blocking Write/Edit without a `task_plan.md`.
 
 ### Agent Selection
 
@@ -38,7 +38,7 @@ routing:
     - concurrency
 ```
 
-The `skill-evaluator` maintains a hardcoded `AGENT_ROUTING` dict that maps agent names to one-line descriptions. When injected, it's grouped by domain -- Go, Python, TypeScript, Infra, Data, Meta, Critique. Claude reads the list, matches the request, and dispatches via `Task` tool with `subagent_type`.
+The `skill-evaluator` maintains a hardcoded `AGENT_ROUTING` dict that maps agent names to one-line descriptions, grouped by domain -- Language/Framework Experts, Infrastructure, Data & Docs, UI/Performance, Meta/Creation, Coordination, and consolidated Reviewers. In practice, this dict is unused since the hook is disabled; routing now runs through `scripts/index-router.py` and the `/do` skill's routing tables. Claude reads the routing decision, matches the request, and dispatches via `Task` tool with `subagent_type`.
 
 ### Force-Route Triggers
 
@@ -139,18 +139,20 @@ Hooks are Python scripts registered in `~/.claude/settings.json` under event typ
 
 ### Event Types
 
-Eight event types, registered in settings.json:
+Ten event types, registered in settings.json:
 
 | Event | When | Hooks Registered |
 |-------|------|-----------------|
-| `SessionStart` | Session begins | sync-to-user-claude, session-context, cross-repo-agents, fish-shell-detector, sapcc-go-detector, operator-context-detector |
-| `UserPromptSubmit` | Before processing each prompt | skill-evaluator, auto-plan-detector, instruction-reminder, adr-context-injector, pipeline-context-detector, capability-catalog-injector |
-| `PreToolUse` | Before tool execution | pretool-learning-injector, block-attribution |
-| `PostToolUse` | After tool execution | post-tool-lint-hint, error-learner, agent-grade-on-change, adr-enforcement, routing-gap-recorder, retro-graduation-gate |
+| `SessionStart` | Session begins | sync-to-user-claude, afk-mode, session-context, cross-repo-agents, fish-shell-detector, sapcc-go-detector, operator-context-detector, retro-knowledge-injector |
+| `UserPromptSubmit` | Before processing each prompt | instruction-reminder, adr-context-injector, pipeline-context-detector, user-correction-capture |
+| `PreToolUse` | Before tool execution | pretool-unified-gate, pretool-branch-safety, ci-merge-gate, pretool-learning-injector, pretool-synthesis-gate, pretool-plan-gate, pretool-prompt-injection-scanner, pretool-adr-creation-gate, pretool-file-backup, pretool-subagent-warmstart |
+| `PostToolUse` | After tool execution | posttool-lint-hint, agent-grade-on-change, adr-enforcement, posttool-security-scan, retro-graduation-gate, record-activation, posttool-session-reads, usage-tracker, review-capture, error-learner, routing-gap-recorder, record-waste, completion-evidence-check, sql-injection-detector |
 | `PreCompact` | Before context compression | precompact-archive |
+| `PostCompact` | After context compression | postcompact-handler |
 | `TaskCompleted` | After a Task tool finishes | task-completed-learner |
 | `SubagentStop` | When a subagent exits | subagent-completion-guard |
-| `Stop` | Session ends | session-summary, confidence-decay |
+| `Stop` | Session ends | session-summary, confidence-decay, session-learning-recorder, knowledge-graduation-proposer, rules-distill-trigger |
+| `StopFailure` | Session ends abnormally | stop-failure-handler |
 
 ### Execution Model
 
@@ -177,7 +179,7 @@ Every hook receives JSON on stdin, emits JSON on stdout. The contract:
 }
 ```
 
-**Exit codes**: `0` = pass (always for non-blocking hooks). `2` = block the tool (PreToolUse only). The `block-attribution` hook exits 2 when it detects "Generated with Claude Code" or "Co-Authored-By: Claude" in a git command -- physically preventing the tool call.
+**Exit codes**: `0` = pass (always for non-blocking hooks). `2` = block the tool (PreToolUse only). Several PreToolUse hooks use exit 2: `pretool-unified-gate` blocks gitignore bypass, raw git push/merge, dangerous commands, and sensitive file writes; `pretool-branch-safety` blocks git commits on main/master; `ci-merge-gate` blocks merges when CI checks are red. AI attribution is no longer blocked by a hook -- it's handled via `settings.json` `attribution` config (empty strings suppress all AI watermarks).
 
 All hooks target sub-50ms execution. `once: true` in settings means the hook fires only on the first event of that type per session. Every hook wraps its main logic in try/except and exits 0 in `finally` -- a crashed hook must never block Claude.
 
@@ -187,7 +189,7 @@ All hooks target sub-50ms execution. `once: true` in settings means the hook fir
 
 **session-context** (SessionStart, ADR-147): At session start, reads the pre-built dream payload from `~/.claude/state/dream-injection-{project-hash}.md` and injects it as a `<retro-knowledge>` block. The payload was LLM-curated during the nightly auto-dream cycle — top memories selected by relevance, ~2000 token budget. Also loads high-confidence patterns directly from learning.db as fallback. Win rate: 67% in A/B testing when retro knowledge is relevant.
 
-**block-attribution** (PreToolUse): Scans Bash commands for AI attribution patterns. Exits 2 to block. This enforces the CLAUDE.md rule that commits carry no AI watermarks.
+**pretool-unified-gate** (PreToolUse): Consolidates five blocking checks into one hook: gitignore-bypass detection, raw git submission blocking (push, PR create/merge), dangerous command guard, creation gate (new agent/skill without ADR), and sensitive file guard (.env, credentials, SSH keys). Exits 2 to block when violations are detected. AI attribution blocking was removed from hooks and is now handled declaratively via `settings.json` `attribution` config.
 
 **retro-graduation-gate** (PostToolUse): Fires after `gh pr create`. Checks learning.db for ungraduated high-confidence entries from the current session. Emits an advisory warning -- doesn't block, but nags you to graduate findings before merging.
 
@@ -203,14 +205,18 @@ CREATE TABLE learnings (
     topic TEXT NOT NULL,
     key TEXT NOT NULL,
     value TEXT NOT NULL,
-    category TEXT NOT NULL,        -- error, pivot, review, design, debug, gotcha, effectiveness
+    category TEXT NOT NULL,        -- error, pivot, review, design, debug, gotcha, effectiveness, misroute (8 categories)
     confidence REAL DEFAULT 0.5,
+    tags TEXT,
     source TEXT NOT NULL,           -- hook:error-learner, hook:review-capture, skill:learn
     source_detail TEXT,             -- e.g. "Bash:golang-general-engineer"
     project_path TEXT,
+    session_id TEXT,
     observation_count INTEGER DEFAULT 1,
     success_count INTEGER DEFAULT 0,
     failure_count INTEGER DEFAULT 0,
+    first_seen TEXT DEFAULT (datetime('now')),
+    last_seen TEXT DEFAULT (datetime('now')),
     graduated_to TEXT,              -- NULL until embedded in an agent/skill file
     error_signature TEXT,
     error_type TEXT,
@@ -220,12 +226,14 @@ CREATE TABLE learnings (
 );
 ```
 
-Additional tables: activations (learning activation tracking),
-session_stats (per-session ROI cohort data), learning_archive (archived stale entries).
+Additional tables: sessions (per-session metrics), activations (learning activation tracking),
+session_stats (per-session ROI cohort data), governance_events (security/policy event log),
+learnings_fts (FTS5 full-text search index), schema_migrations (version tracking).
+The `learning_archive` table is created on demand by `scripts/learning-db.py stale-prune`.
 
 ### Confidence Scoring
 
-Entries start at category-specific defaults (errors: 0.55, reviews: 0.70, gotchas: 0.70). The error-learner boosts confidence by 0.15 when a fix works, decays by 0.10 when it doesn't. The `confidence-decay` hook runs at session end -- entries untouched for 30+ days decay by 0.05, entries below 0.3 and older than 90 days get pruned.
+Entries start at category-specific defaults (errors: 0.55, pivots: 0.60, reviews: 0.70, design: 0.65, debug: 0.60, gotchas: 0.70, effectiveness: 0.50, misroutes: 0.80). The error-learner boosts confidence by 0.15 when a fix works, decays by 0.10 when it doesn't. The `confidence-decay` hook runs at session end -- entries untouched for 30+ days decay by 0.05, entries below 0.3 and older than 90 days get pruned.
 
 Manually taught patterns (via `/learn`) enter at 0.9 confidence. The dream system only surfaces entries above 0.5 confidence and excludes graduated entries when building the nightly injection payload.
 
