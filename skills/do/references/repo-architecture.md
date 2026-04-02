@@ -6,11 +6,11 @@ This repository contains agents, skills, and hooks for Claude Code.
 
 | Component | Location | Purpose | Format |
 |-----------|----------|---------|--------|
-| **Agent** | `agents/*.md` | Domain expert (e.g., Go, Python, K8s) | Markdown with YAML frontmatter |
+| **Agent** | `agents/*.md` or `agents/<name>/` | Domain expert (e.g., Go, Python, K8s) | Markdown with YAML frontmatter |
 | **Skill** | `skills/*/SKILL.md` | Workflow methodology (e.g., TDD, debugging) | Markdown with YAML frontmatter |
 | **Pipeline** | `skills/workflow/references/*.md` | Multi-phase structured workflow (same format as skills) | Markdown with YAML frontmatter |
 | **Hook** | `hooks/*.py` | Event-driven automation | Python script |
-| **Script** | `scripts/*.py` | Deterministic operations | Python CLI |
+| **Script** | `scripts/*.py`, `scripts/*.sh` | Deterministic operations | Python or shell script |
 
 > **Note**: Pipelines are skills with explicit numbered phases and gates. They live in `skills/workflow/references/` for organizational clarity but are synced to `~/.claude/skills/` at install time, so Claude Code discovers them as regular skills.
 

@@ -1,6 +1,6 @@
 # Manus-Style Planning
 
-The `auto-plan-detector` hook automatically injects planning reminders for complex tasks.
+The `pretool-plan-gate` hook (PreToolUse) blocks Write/Edit to `agents/` and `skills/` when `task_plan.md` is missing, enforcing plan-first development.
 
 ## When Plans Are Required
 
