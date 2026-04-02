@@ -1,0 +1,438 @@
+---
+name: toolkit-evolution
+description: "Closed-loop toolkit self-improvement: diagnose, propose, critique, build, test, evolve."
+version: 1.0.0
+user-invocable: true
+argument-hint: "<optional: focus area like 'routing' or 'hooks'>"
+command: evolve
+context: fork
+allowed-tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Agent
+  - Skill
+routing:
+  triggers:
+    - "evolve toolkit"
+    - "improve the system"
+    - "self-improve"
+    - "toolkit evolution"
+    - "what should we improve"
+    - "find improvement opportunities"
+    - "systematic improvement"
+  pairs_with:
+    - multi-persona-critique
+    - skill-eval
+  complexity: Complex
+  category: meta-tooling
+---
+
+# Toolkit Evolution
+
+Schedulable (weekly) or manually-invoked pipeline that drives continuous improvement of the toolkit itself. Chains existing skills into a full closed-loop improvement cycle: diagnose problems from evidence, propose solutions, critique them from multiple perspectives, build the winners, A/B test against baselines, and promote winners via PR.
+
+This is the weekly sibling of `auto-dream`. Auto-dream (nightly) consolidates memories, graduates learnings, and prunes stale data. Toolkit-evolution (weekly) diagnoses gaps, proposes features, builds and tests improvements. They feed each other: dream's graduated learnings inform evolution's diagnosis; evolution's results become dream's input for consolidation.
+
+## When to invoke
+
+- User says "evolve toolkit", "improve the system", "self-improve", "what should we improve"
+- Cron job weekly (Sunday 3 AM) via wrapper script
+- Manual trigger with optional focus area: `/evolve routing`, `/evolve hooks`
+
+## Instructions
+
+### Phase 1: DIAGNOSE -- Find improvement opportunities
+
+**Goal**: Identify 5-10 evidence-backed improvement opportunities from multiple data sources.
+
+**Step 1: Query the learning database for recent failures and routing mismatches**
+
+```bash
+python3 ~/.claude/scripts/learning-db.py search --category routing-decision --min-confidence 0.3 --limit 20
+python3 ~/.claude/scripts/learning-db.py search --category error-pattern --min-confidence 0.3 --limit 20
+python3 ~/.claude/scripts/learning-db.py search --category skill-gap --min-confidence 0.3 --limit 20
+```
+
+Look for: recurring failures, routing mismatches where the user had to reroute, skills that consistently underperform, error patterns without automated fixes.
+
+**Step 2: Scan recent git history for patterns**
+
+```bash
+# Frequent fixes to same areas suggest chronic issues
+git log --oneline --since="2 weeks ago" | head -40
+
+# Files changed most frequently (churn = potential problems)
+git log --since="2 weeks ago" --pretty=format: --name-only | sort | uniq -c | sort -rn | head -20
+```
+
+**Step 3: Check auto-dream reports for accumulated insights**
+
+```bash
+ls -t ~/.claude/state/dream-* 2>/dev/null | head -5
+# Read the most recent dream report for synthesized insights
+```
+
+If dream reports exist, read the latest one -- it contains cross-session patterns and graduation candidates that may point to improvement opportunities.
+
+**Step 4: Narrow by focus area (if provided)**
+
+If the user specified a focus area (e.g., "routing", "hooks", "agents"), filter all findings to that domain. If no focus area, analyze broadly.
+
+**Step 5: Compile opportunity list**
+
+Output a numbered list of 5-10 improvement opportunities. Each entry must include:
+- **What**: One-sentence description of the problem or gap
+- **Evidence**: Which data source surfaced it (learning DB entry, git churn, dream report)
+- **Impact**: Estimated user impact (High/Medium/Low)
+
+**Gate**: At least 3 evidence-backed opportunities identified. If fewer than 3, expand the time window or broaden the data sources. Do not proceed with speculative opportunities that lack evidence.
+
+---
+
+### Phase 2: PROPOSE -- Generate concrete solutions
+
+**Goal**: Transform opportunities into actionable proposals with clear scope.
+
+**Step 1: Generate proposals**
+
+For each opportunity from Phase 1, propose 1-2 concrete solutions. Each proposal must be actionable:
+- "Add anti-pattern X to agent Y's prompt" (not "improve agent Y")
+- "Create a reference file for Z in skill W" (not "enhance skill W")
+- "Modify Phase 3 of skill V to include check for Q" (not "make skill V better")
+
+**Step 2: Estimate effort**
+
+| Effort | Definition |
+|--------|-----------|
+| Small | Single file edit, <30 lines changed |
+| Medium | 2-5 files, new reference or script, <200 lines |
+| Large | New skill or agent, multiple components, >200 lines |
+
+**Step 3: Check for duplicates**
+
+```bash
+# Verify proposals don't duplicate existing capabilities
+cat skills/INDEX.json | python3 -c "import sys,json; idx=json.load(sys.stdin); [print(s['name'],'-',s.get('description','')) for s in idx.get('skills',idx) if isinstance(s,dict)]" 2>/dev/null || echo "INDEX.json parse failed -- check manually"
+```
+
+Drop any proposal that duplicates an existing skill or capability. If an existing skill could be extended instead, frame the proposal as an extension.
+
+**Step 4: Rank proposals**
+
+Rank by: (Impact score) x (1 / Effort score), where High=3, Medium=2, Low=1 and Small=1, Medium=2, Large=3. Higher rank = better return on investment.
+
+Output: ranked list of 5-10 proposals, each with:
+- **Proposal**: 2-4 sentence description
+- **Scope**: What files/skills are affected
+- **Effort**: Small/Medium/Large
+- **Expected outcome**: What measurably improves
+
+**Gate**: All proposals are concrete (specific files/skills named), non-duplicative (verified against INDEX.json), and ranked. Proceed with the top 5.
+
+---
+
+### Phase 3: CRITIQUE -- Multi-persona evaluation
+
+**Goal**: Evaluate proposals from multiple perspectives to surface blind spots.
+
+**Step 1: Check for multi-persona-critique skill**
+
+```bash
+test -f skills/multi-persona-critique/SKILL.md && echo "AVAILABLE" || echo "NOT AVAILABLE"
+```
+
+**Step 2a: If multi-persona-critique is available**
+
+Invoke it with the ranked proposals:
+
+```
+Skill(skill="multi-persona-critique", args="Evaluate these toolkit improvement proposals: {proposals}")
+```
+
+Collect consensus ratings and proceed to Step 3.
+
+**Step 2b: If multi-persona-critique is NOT available -- use inline fallback**
+
+Dispatch 3 parallel agents, each with a distinct evaluator perspective:
+
+**Pragmatist**: "You are a pragmatist engineer. Evaluate each proposal on: implementation feasibility, time-to-value, and risk of unintended side effects. Rate each STRONG/MODERATE/WEAK with one sentence of justification."
+
+**Purist**: "You are an architecture purist. Evaluate each proposal on: design coherence with existing toolkit patterns, long-term maintainability, and whether it solves a root cause vs a symptom. Rate each STRONG/MODERATE/WEAK with one sentence of justification."
+
+**User Advocate**: "You are a user advocate. Evaluate each proposal on: how often real users hit this problem, whether the solution reduces friction, and whether it introduces new complexity users must learn. Rate each STRONG/MODERATE/WEAK with one sentence of justification."
+
+**Step 3: Synthesize consensus**
+
+For each proposal, compute a consensus score:
+- STRONG = 3, MODERATE = 2, WEAK = 1
+- Average across personas
+- Score >= 2.5 = STRONG consensus
+- Score 1.5-2.4 = MODERATE consensus
+- Score < 1.5 = WEAK consensus (shelve)
+
+Output: ranked proposals with consensus scores, key concerns from each persona, and notable disagreements.
+
+**Gate**: All personas have reported. Synthesis complete. At least 1 proposal rated STRONG. If no STRONG proposals, revisit Phase 2 with the critique feedback, or report to user that no high-confidence improvements were found this cycle.
+
+---
+
+### Phase 4: BUILD -- Implement winners
+
+**Goal**: Implement the top 1-3 STRONG-rated proposals on isolated feature branches.
+
+**Constraint**: Maximum 3 implementations per cycle. Focus over breadth -- doing 3 well beats doing 7 poorly.
+
+**Step 1: Select winners**
+
+Take the top 1-3 proposals rated STRONG by consensus. If fewer than 3 are STRONG, take only the STRONG ones -- do not pad with MODERATE proposals.
+
+**Step 2: Dispatch implementation agents**
+
+For each winner, dispatch an appropriate agent in an isolated context:
+
+| Proposal type | Implementation approach |
+|--------------|----------------------|
+| New skill | Use skill-creator methodology: draft SKILL.md, create references, structure directory |
+| Skill modification | Read the target skill, apply the specific change, validate structure |
+| New hook | Create hook script, register in settings.json (deploy hook files BEFORE registering) |
+| Routing change | Update routing tables, verify with routing-table-updater |
+| New reference file | Write the reference, add pointer in the parent skill's SKILL.md |
+| Agent modification | Edit agent prompt, preserve frontmatter and routing metadata |
+
+Each implementation must:
+- Create a feature branch: `feat/evolve-{proposal-slug}`
+- Make the minimal set of changes described in the proposal
+- Commit with a descriptive message explaining what and why
+
+**Step 3: Validate implementations**
+
+For each implementation:
+```bash
+# Verify the skill structure if a skill was created/modified
+python3 -m scripts.skill_eval.quick_validate skills/{skill-name} 2>/dev/null || echo "Validation script not available -- manual review"
+
+# Verify no syntax errors in Python scripts
+python3 -m py_compile {script} 2>/dev/null
+
+# Verify shell scripts
+bash -n {script} 2>/dev/null
+```
+
+**Gate**: All implementations committed on feature branches. Basic validation passed. Proceed to testing.
+
+---
+
+### Phase 5: VALIDATE -- A/B test implementations
+
+**Goal**: Empirically verify that each implementation improves outcomes vs baseline.
+
+**Step 1: Create test cases**
+
+For each implementation, create 3-5 realistic test prompts that exercise the changed behavior. These should be the kind of input that would trigger the relevant skill or agent in production.
+
+**Step 2: Run comparisons**
+
+Use the skill-eval or agent-comparison methodology:
+- **Baseline**: Run test prompts against the current (unmodified) toolkit
+- **Candidate**: Run test prompts against the branch with the implementation
+
+If skill-eval's evaluation modes are available:
+```bash
+python3 -m scripts.skill_eval.run_eval \
+  --eval-set test-cases.json \
+  --skill-path skills/{skill-name} \
+  --runs-per-query 3 \
+  --verbose
+```
+
+If automated comparison is not available, fall back to:
+- Run each test prompt manually with and without the change
+- Use a grader agent to score both outputs on relevant dimensions (correctness, completeness, actionability)
+
+**Step 3: Evaluate results**
+
+Win condition for each implementation:
+- 60%+ of test cases show improvement on at least one dimension
+- No dimension regressed by more than 1 point (on a 5-point scale)
+- No new failures introduced
+
+Mark each implementation as WIN or LOSS.
+
+**Gate**: All implementations tested. Win/loss determined for each. Evidence recorded.
+
+---
+
+### Phase 6: EVOLVE -- Promote winners and record learnings
+
+**Goal**: Create PRs for winners, record all outcomes in the learning database.
+
+**Step 1: Handle winners (WIN status)**
+
+For each winning implementation, create a PR for human review:
+
+```bash
+git push -u origin feat/evolve-{proposal-slug}
+gh pr create \
+  --title "feat: {short description of improvement}" \
+  --body "## Summary
+- Evolution cycle proposal: {proposal description}
+- Consensus score: {score} (Pragmatist: {rating}, Purist: {rating}, User Advocate: {rating})
+- A/B result: {win rate}% improvement across {N} test cases
+
+## Changes
+{list of specific changes}
+
+## Test Results
+| Test Case | Baseline | Candidate | Delta |
+|-----------|----------|-----------|-------|
+| ... | ... | ... | ... |
+
+## Evolution Cycle
+This PR was generated by the toolkit-evolution skill. Human review required before merge."
+```
+
+Never auto-merge to main. Every PR requires human review.
+
+**Step 2: Handle losers (LOSS status)**
+
+Record what was tried and why it failed:
+
+```bash
+python3 ~/.claude/scripts/learning-db.py learn \
+  --category "evolution-result" \
+  "Failed proposal: {description}. Hypothesis: {what we expected}. Result: {what happened}. Lesson: {what we learned}."
+```
+
+Failed experiments are valuable data -- they prevent the same idea from being re-proposed in future cycles.
+
+**Step 3: Record the full cycle**
+
+```bash
+python3 ~/.claude/scripts/learning-db.py learn \
+  --category "evolution-cycle" \
+  "toolkit-evolution cycle: {N} proposals evaluated, {M} built, {W} winners, {L} losses. Top win: {description}. Focus: {area or 'general'}."
+```
+
+**Step 4: Write evolution report**
+
+Write a dated report using the template in `references/evolution-report-template.md`:
+
+```bash
+# Write to state directory
+# Path: ~/.claude/state/evolution-report-{YYYY-MM-DD}.md
+```
+
+Read the template, fill in all sections with data from this cycle, and write the report.
+
+**Gate**: PRs created for all winners. Learnings recorded for all proposals (wins and losses). Evolution report written. Cycle complete.
+
+---
+
+## Scheduling
+
+### Manual invocation
+
+```
+/evolve
+/evolve routing
+/do evolve toolkit
+/do evolve hooks
+```
+
+### Cron setup (weekly)
+
+Use `headless-cron-creator` patterns for a weekly cron job:
+
+```bash
+# Generate the wrapper script
+python3 ~/.claude/scripts/crontab-manager.py generate-wrapper \
+  --name "toolkit-evolution" \
+  --prompt "Run the toolkit-evolution skill. Analyze the toolkit for improvement opportunities, propose solutions, critique them, build winners, test them, and create PRs for human review. Write the evolution report to ~/.claude/state/evolution-report-$(date +%Y-%m-%d).md" \
+  --schedule "7 3 * * 0" \
+  --workdir "/home/feedgen/claude-code-toolkit" \
+  --budget "5.00" \
+  --allowed-tools "Read Write Edit Bash Glob Grep"
+
+# Preview the cron entry
+python3 ~/.claude/scripts/crontab-manager.py add \
+  --tag "toolkit-evolution" \
+  --schedule "7 3 * * 0" \
+  --command "/home/feedgen/claude-code-toolkit/scripts/toolkit-evolution-cron.sh --execute >> /home/feedgen/claude-code-toolkit/cron-logs/toolkit-evolution/cron.log 2>&1" \
+  --dry-run
+
+# Install (after dry-run review)
+python3 ~/.claude/scripts/crontab-manager.py add \
+  --tag "toolkit-evolution" \
+  --schedule "7 3 * * 0" \
+  --command "/home/feedgen/claude-code-toolkit/scripts/toolkit-evolution-cron.sh --execute >> /home/feedgen/claude-code-toolkit/cron-logs/toolkit-evolution/cron.log 2>&1"
+
+# Verify
+python3 ~/.claude/scripts/crontab-manager.py verify --tag toolkit-evolution
+```
+
+Schedule uses Sunday 3:07 AM (off-minute per cron best practice). Budget set to $5.00 per run since evolution cycles are heavier than dream cycles.
+
+---
+
+## Anti-Patterns
+
+- **Improving without measuring** -- every change must have a baseline and A/B result. "It looks better" is not evidence.
+- **Auto-merging winners** -- always create a PR for human review. The evolution skill proposes; the human decides.
+- **Ignoring negative results** -- failed experiments are valuable data. Record them in the learning DB so the same idea is not re-proposed.
+- **Improving everything at once** -- max 3 implementations per cycle. Focus compounds; scatter dissipates.
+- **Running without diagnosis** -- do not propose solutions without evidence of problems first. Solutions looking for problems create phantom work.
+- **Proposing duplicates** -- always check INDEX.json before proposing a new skill or capability. Extend existing skills when possible.
+
+---
+
+## Error Handling
+
+### Error: "learning-db.py not found"
+Cause: Learning database scripts not installed.
+Solution: The learning DB is at `~/.claude/scripts/learning-db.py`. If missing, skip learning DB queries and rely on git log + dream reports for diagnosis. Record this gap as an improvement opportunity.
+
+### Error: "No dream reports found"
+Cause: Auto-dream has not run yet or state directory is empty.
+Solution: Proceed without dream insights. Use git log and learning DB as primary data sources. Note that enabling auto-dream would improve future evolution cycles.
+
+### Error: "No STRONG proposals after critique"
+Cause: All proposals received MODERATE or WEAK consensus.
+Solution: Report to the user that no high-confidence improvements were found this cycle. Record the proposals and critique feedback in the evolution report for future reference.
+
+### Error: "A/B test inconclusive"
+Cause: Test cases don't discriminate between baseline and candidate.
+Solution: Review test case quality. Non-discriminating tests ("file exists") provide false signal. Write tests that exercise the specific behavior the proposal changes. If still inconclusive after better tests, shelve the proposal.
+
+### Error: "Feature branch conflicts"
+Cause: Multiple evolution implementations touch the same files.
+Solution: Reduce to 1 implementation per cycle when conflicts arise. Alternatively, sequence implementations so later ones branch from earlier ones.
+
+---
+
+## Cost Estimate
+
+A full evolution cycle runs all 6 phases and may dispatch multiple subagents. Estimated cost:
+- Diagnosis + Proposal: ~$0.15 (reading files, querying DBs)
+- Critique: ~$0.30 (3 persona agents evaluating proposals)
+- Build: ~$0.50-1.50 (1-3 implementation agents)
+- Validate: ~$0.50-1.50 (A/B test runs)
+- Evolve: ~$0.10 (PR creation, learning DB writes)
+
+Total: ~$1.50-3.50 per cycle. Budget capped at $5.00 via wrapper script.
+Weekly cost at full utilization: ~$6-14/month.
+
+---
+
+## References
+
+- `references/evolution-report-template.md` -- Template for the weekly evolution report
+- `skills/auto-dream/SKILL.md` -- Nightly sibling: memory consolidation and learning graduation
+- `skills/skill-eval/SKILL.md` -- Skill testing and benchmarking
+- `skills/multi-persona-critique/SKILL.md` -- Multi-persona evaluation (may not exist yet; inline fallback provided)
+- `skills/skill-creator/SKILL.md` -- Skill creation methodology
+- `skills/agent-comparison/SKILL.md` -- A/B testing methodology
+- `skills/headless-cron-creator/SKILL.md` -- Cron job creation patterns
