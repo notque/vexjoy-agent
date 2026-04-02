@@ -68,9 +68,9 @@ DIAGNOSE → PROPOSE → CRITIQUE → BUILD → VALIDATE → EVOLVE
 Key constraints:
 - Budget cap: \$${MAX_BUDGET} for this entire cycle
 - Maximum 3 implementations per cycle (focus over breadth)
-- Never auto-merge to main — create PRs for human review
+- Winners that pass critique (STRONG consensus) AND A/B testing (WIN) should be merged via PR
 - Record all outcomes (wins AND losses) to the learning DB
-- Write evolution report to ~/.claude/state/evolution-report-$(date +%Y-%m-%d).md"
+- Write evolution report to evolution-reports/evolution-report-$(date +%Y-%m-%d).md"
 
 if [ -z "$EXECUTE" ]; then
     PROMPT="$PROMPT
