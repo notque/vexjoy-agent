@@ -417,7 +417,7 @@ When upgrading an agent to v2.0:
 - [ ] All routing metadata preserved (triggers, pairs_with, complexity, category)
 - [ ] Hooks preserved
 - [ ] Color preserved
-- [ ] 3 example blocks in description
+- [ ] Description: single quoted line, 60-100 characters
 
 ### Core Sections
 - [ ] Operator declaration present
