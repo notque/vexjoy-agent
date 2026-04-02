@@ -10,10 +10,12 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Description |
 |-------|-------------|
-| `do` | Primary entry point — classify requests and route to the correct agent + skill |
-| `fast` | Zero-ceremony inline execution for tasks needing 3 or fewer file edits |
-| `quick` | Lightweight tracked execution with optional `--discuss`, `--research`, `--full` rigor flags |
-| `workflow-help` | Interactive guide to the repository workflow system |
+| `do` | Classify user requests and route to the correct agent + skill. Primary entry point for all delegated work. |
+| `fast` | Zero-ceremony inline execution for 3 or fewer file edits |
+| `quick` | Tracked lightweight execution with composable rigor flags: --discuss, --research, --full |
+| `workflow` | Structured multi-phase workflows: review, debug, refactor, deploy, create, research, and more |
+| `workflow-help` | Interactive guide to workflow system: agents, skills, routing, execution patterns |
+| `install` | Verify Claude Code Toolkit installation, diagnose issues, and guide first-time setup |
 
 ---
 
@@ -21,7 +23,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `feature-lifecycle` | no | Phase-gated feature workflow: design, plan, implement, validate, release. Routes to correct phase via references. |
+| `feature-lifecycle` | no | Feature lifecycle: design, plan, implement, validate, release. Phase-gated workflow. |
 
 ---
 
@@ -29,13 +31,13 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `plans` | yes | Deterministic plan lifecycle management via `plan-manager.py` CLI |
-| `plan-checker` | yes | Validate plans against 10 verification dimensions before execution |
-| `plan-manager` | no | Programmatic plan lifecycle — list, show, create, check, complete, abandon |
+| `plan-manager` | yes | Plan lifecycle management via plan-manager.py: list, create, check, complete, abandon plans |
+| `plan-checker` | no | Validate plans against 10 dimensions: PASS/BLOCK verdict before execution |
 | `planning-with-files` | no | Persistent markdown files as working memory for complex multi-phase tasks |
-| `pre-planning-discussion` | yes | Resolve implementation ambiguities before planning begins (discussion or assumptions mode) |
-| `spec-writer` | no | Structured specification with user stories, acceptance criteria, and scope boundaries |
-| `decision-helper` | no | Weighted decision scoring framework for architectural and technology choices |
+| `pre-planning-discussion` | no | Resolve implementation ambiguities before planning begins |
+| `spec-writer` | no | Structured specification: user stories, acceptance criteria, scope |
+| `decision-helper` | no | Weighted decision scoring for architectural choices |
+| `plant-seed` | no | Capture forward-looking idea as a seed for future feature design |
 
 ---
 
@@ -43,13 +45,11 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `test-driven-development` | no | RED-GREEN-REFACTOR cycle with strict phase gates |
-| `systematic-debugging` | no | Evidence-based 4-phase root cause analysis: Reproduce, Isolate, Identify, Verify |
-| `systematic-refactoring` | no | Safe phase-gated refactoring with characterization tests |
-| `socratic-debugging` | no | Question-only debugging mode that guides users to find root causes themselves |
-| `pair-programming` | no | Collaborative coding with enforced micro-steps and user-controlled pace |
-| `subagent-driven-development` | no | Fresh-subagent-per-task execution with two-stage review (ADR compliance + code quality) |
-| `condition-based-waiting` | no | Condition-based polling and retry patterns with exponential backoff |
+| `test-driven-development` | no | RED-GREEN-REFACTOR cycle with strict phase gates for TDD |
+| `socratic-debugging` | no | Question-only debugging: guide users to find root causes themselves |
+| `pair-programming` | no | Collaborative coding with enforced micro-steps and user-paced control |
+| `subagent-driven-development` | no | Fresh-subagent-per-task execution with two-stage review gates |
+| `condition-based-waiting` | no | Polling, retry, and backoff patterns |
 
 ---
 
@@ -57,18 +57,19 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `systematic-code-review` | no | 4-phase code review: Understand, Verify, Assess, Document with severity classification |
-| `parallel-code-review` | no | Parallel 3-reviewer orchestration (Security + Business-Logic + Architecture) — unified verdict |
-| `full-repo-review` | yes | 3-wave review against all source files, producing a prioritized issue backlog |
-| `code-cleanup` | yes | Systematic detection of stale TODOs, unused imports, dead code, and high complexity |
-| `code-linting` | no | Run Python (ruff) and JavaScript (Biome) linting and formatting with auto-fix |
-| `comment-quality` | no | Analyze and improve code comment quality, detect comment rot |
-| `universal-quality-gate` | no | Multi-language quality gate with auto-detection and language-specific linters |
-| `python-quality-gate` | no | Python-specific quality checks with ruff, mypy, and pytest |
-| `verification-before-completion` | no | Defense-in-depth 4-level artifact verification before declaring any task complete |
-| `with-anti-rationalization` | no | Explicit anti-rationalization enforcement for maximum-rigor task execution |
-| `testing-anti-patterns` | no | Identify and fix common testing mistakes across unit, integration, and E2E suites |
-| `roast` | no | Constructive critique through 5 HackerNews commenter personas with evidence-based validation |
+| `systematic-code-review` | no | 4-phase code review: UNDERSTAND, VERIFY, ASSESS risks, DOCUMENT findings |
+| `parallel-code-review` | no | Parallel 3-reviewer code review: Security, Business-Logic, Architecture |
+| `full-repo-review` | yes | Comprehensive 3-wave review of all repo source files, producing a prioritized issue backlog |
+| `codex-code-review` | yes | Second-opinion code review from OpenAI Codex CLI. Structures feedback as CRITICAL/IMPROVEMENTS/POSITIVE. |
+| `code-cleanup` | no | Detect stale TODOs, unused imports, and dead code |
+| `code-linting` | no | Run Python (ruff) and JavaScript (Biome) linting |
+| `comment-quality` | no | Review and fix temporal references in code comments |
+| `universal-quality-gate` | no | Multi-language code quality gate with auto-detection and linters |
+| `python-quality-gate` | no | Python quality checks: ruff, pytest, mypy, bandit in deterministic order |
+| `verification-before-completion` | no | Defense-in-depth verification before declaring any task complete |
+| `with-anti-rationalization` | no | Anti-rationalization enforcement for maximum-rigor task execution |
+| `testing-anti-patterns` | no | Identify and fix testing mistakes: flaky, brittle, over-mocked tests |
+| `roast` | no | Constructive critique via 5 HackerNews personas with claim validation |
 
 ---
 
@@ -76,11 +77,11 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `pr-workflow` | yes | Pull request lifecycle: sync, review, fix, status, cleanup, and PR mining. Loads the appropriate reference based on task (push, create PR, fix review comments, check status, etc.). |
-| `git-commit-flow` | no | Phase-gated git commit workflow with validation and CLAUDE.md compliance |
-| `branch-naming` | no | Generate and validate Git branch names from descriptions or commit messages |
-| `github-actions-check` | no | Check GitHub Actions workflow status after push and report CI results |
-| `github-notification-triage` | yes | Triage GitHub notifications — report actions needed, clear noise |
+| `pr-workflow` | yes | Pull request lifecycle: sync, review, fix, status, cleanup, and PR mining |
+| `git-commit-flow` | no | Phase-gated git commit workflow with validation |
+| `branch-naming` | no | Generate and validate Git branch names |
+| `github-actions-check` | no | Check GitHub Actions CI status and report failures |
+| `github-notification-triage` | no | Triage GitHub notifications and report actions needed |
 
 ---
 
@@ -88,10 +89,10 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `go-patterns` | no | Go development patterns: testing, concurrency, errors, review, anti-patterns, quality gates, and SAP CC conventions. Loads the appropriate reference based on task context. |
-| `sapcc-audit` | yes | Full-repo SAP CC Go compliance audit with parallel agents dispatched by package group |
-| `sapcc-review` | yes | Gold-standard SAP CC Go review dispatching 10 domain-specialist agents in parallel |
-| `codebase-analyzer` | no | Statistical rule discovery through Go codebase measurement, producing a Style Vector |
+| `go-patterns` | no | Go development patterns: testing, concurrency, errors, review, and conventions |
+| `sapcc-audit` | no | Full-repo SAP CC Go compliance audit against review standards |
+| `sapcc-review` | no | Gold-standard SAP CC Go code review: 10 parallel domain specialists |
+| `codebase-analyzer` | no | Statistical rule discovery from Go codebase patterns |
 
 ---
 
@@ -99,13 +100,13 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `typescript-check` | no | Run `tsc --noEmit` and parse errors into actionable, file-grouped output |
-| `vitest-runner` | no | Run Vitest tests and parse results into structured failure reports |
-| `e2e-testing` | no | Playwright-based E2E testing with Page Object Model and flaky test quarantine |
-| `distinctive-frontend-design` | no | Design system and UI/UX generation with opinionated visual differentiation |
-| `frontend-slides` | no | Build interactive browser-based slide presentations |
-| `threejs-builder` | no | Three.js scene construction and interactive 3D web experiences |
-| `nano-banana-builder` | no | Image generation and post-processing via Google Gemini Nano Banana APIs |
+| `typescript-check` | no | TypeScript type checking via tsc --noEmit with actionable error output |
+| `vitest-runner` | no | Run Vitest tests and parse results into actionable output |
+| `e2e-testing` | no | Playwright-based end-to-end testing workflow |
+| `distinctive-frontend-design` | no | Context-driven aesthetic exploration with anti-cliche validation |
+| `frontend-slides` | no | Browser-based HTML presentation generation |
+| `threejs-builder` | no | Three.js app builder: Design, Build, Animate, Polish in 4 phases |
+| `nano-banana-builder` | no | Image generation and post-processing via Gemini Nano Banana APIs |
 
 ---
 
@@ -113,9 +114,9 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `integration-checker` | no | Verify cross-component wiring: exports used, data flows, output/input shape matching |
-| `endpoint-validator` | no | Deterministic API endpoint validation with structured pass/fail reporting |
-| `testing-agents-with-subagents` | no | RED-GREEN-REFACTOR testing for agents using subagent dispatch |
+| `integration-checker` | no | Verify cross-component wiring and data flow |
+| `endpoint-validator` | no | Deterministic API endpoint validation with pass/fail reporting |
+| `testing-agents-with-subagents` | no | Test agents via subagents: known inputs, captured outputs, verification |
 
 ---
 
@@ -123,7 +124,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `perses` | no | Perses platform operations: dashboards, plugins, deployment, migration, and quality. Loads the appropriate reference based on task (onboarding, dashboard creation, plugin development, etc.). |
+| `perses` | no | Perses platform operations: dashboards, plugins, deployment, migration, and quality |
 
 ---
 
@@ -131,7 +132,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `security-threat-model` | no | Phase-gated threat model: attack surface scan, deny-list config, supply-chain audit, learning DB check |
+| `security-threat-model` | no | Security threat model: scan toolkit for attack surface, supply-chain risks |
 
 ---
 
@@ -139,23 +140,25 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `voice-validator` | no | Critique-and-rewrite enforcement loop for voice fidelity |
-| `create-voice` | no | Create a new voice profile from writing samples (7-phase pipeline) |
-| `anti-ai-editor` | no | Review and revise content to remove AI-sounding patterns |
-| `post-outliner` | no | Create structural blueprints for blog posts before writing |
-| `topic-brainstormer` | no | Generate blog post topic ideas through problem mining and gap analysis |
-| `series-planner` | no | Plan multi-part content series with structure and publishing cadence |
-| `seo-optimizer` | no | Analyze and optimize blog post SEO: keywords, titles, headers, internal linking |
-| `content-engine` | no | Repurpose source assets into platform-native social content variants |
-| `content-calendar` | no | Manage editorial content pipeline through 6 stages (Ideas to Published) |
-| `joy-check` | no | Validate content for joy-centered tonal framing; flag defensive or bitter framing |
-| `professional-communication` | no | Transform technical updates into executive-ready summaries using deterministic templates |
-| `batch-editor` | no | Safe bulk editing across Hugo markdown posts with mandatory preview before apply |
-| `pptx-generator` | no | 6-phase PPTX presentation generation with visual QA |
-| `image-auditor` | no | Non-destructive 4-phase image validation: accessibility, broken references, oversized files |
-| `gemini-image-generator` | no | CLI-based image generation from text prompts using Google Gemini APIs |
-| `image-to-video` | no | FFmpeg-based static image + audio to MP4 video creation |
-| `video-editing` | no | FFmpeg/Remotion video editing pipeline for demos, vlogs, and screen recordings |
+| `voice-writer` | yes | Unified voice content generation pipeline with mandatory validation and joy-check |
+| `voice-validator` | no | Critique-and-rewrite loop for voice fidelity validation |
+| `create-voice` | no | Create voice profiles from writing samples |
+| `anti-ai-editor` | no | Remove AI-sounding patterns from content |
+| `post-outliner` | no | Create structural blueprints for blog posts: outlines, word counts |
+| `topic-brainstormer` | no | Generate blog topic ideas: problem mining, gap analysis, expansion |
+| `series-planner` | no | Plan multi-part content series: structure, cross-linking, cadence |
+| `seo-optimizer` | no | Blog post SEO: keywords, titles, meta descriptions, internal linking |
+| `content-engine` | no | Repurpose source assets into platform-native social content |
+| `content-calendar` | no | Manage editorial content through 6 pipeline stages |
+| `joy-check` | no | Validate content framing on joy-grievance spectrum |
+| `professional-communication` | no | Transform technical communication into structured business formats |
+| `batch-editor` | no | Bulk find/replace and frontmatter updates across Hugo posts |
+| `pre-publish-checker` | no | Pre-publication validation for Hugo posts: front matter, SEO, links, images |
+| `pptx-generator` | no | PPTX presentation generation with visual QA: slides, pitch decks |
+| `image-auditor` | no | Non-destructive image validation for accessibility and health |
+| `gemini-image-generator` | no | Generate images from text prompts via Google Gemini |
+| `image-to-video` | no | FFmpeg-based video creation from image and audio |
+| `video-editing` | no | Video editing pipeline: cut footage, assemble clips via FFmpeg and Remotion |
 
 ---
 
@@ -163,9 +166,9 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `x-api` | yes | Post tweets, build threads, upload media, and read timelines via the X API |
-| `bluesky-reader` | no | Read public Bluesky feeds via the AT Protocol API |
-| `reddit-moderate` | yes | Reddit community moderation with LLM-powered report classification |
+| `x-api` | no | Post tweets, build threads, upload media via the X API |
+| `bluesky-reader` | no | Read public Bluesky feeds via AT Protocol API |
+| `reddit-moderate` | no | Reddit moderation via PRAW: fetch modqueue, classify reports, take actions |
 
 ---
 
@@ -173,13 +176,14 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `codebase-overview` | no | Systematic 4-phase codebase exploration: Detect, Explore, Map, Summarize |
-| `repo-value-analysis` | no | 6-phase analysis of external repositories for ideas worth adopting |
-| `forensics` | no | Post-mortem diagnostic analysis of failed or stuck workflows (read-only) |
+| `codebase-overview` | no | Systematic codebase exploration and architecture mapping |
+| `repo-value-analysis` | no | Analyze external repositories for adoptable ideas and patterns |
+| `research-pipeline` | yes | Formal 5-phase research pipeline with artifact saving and source quality gates |
+| `forensics` | no | Post-mortem diagnostic analysis of failed workflows |
 | `data-analysis` | no | Decision-first data analysis with statistical rigor gates |
-| `docs-sync-checker` | no | Deterministic 4-phase documentation drift detector |
-| `link-auditor` | no | Hugo site link health analysis: orphan pages, broken links, image paths |
-| `taxonomy-manager` | no | Audit and maintain blog taxonomy for consistency, SEO, and navigation |
+| `docs-sync-checker` | no | Detect documentation drift against filesystem state |
+| `link-auditor` | no | Hugo site link health: scan markdown, build link graph, validate paths |
+| `taxonomy-manager` | no | Audit and maintain blog taxonomy: categories, tags, orphans, duplicates |
 
 ---
 
@@ -187,15 +191,18 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `adr-consultation` | yes | Multi-agent ADR consultation: 3 parallel reviewers produce PROCEED/BLOCKED verdict |
-| `retro` | yes | Interact with the learning system: stats, search, and graduate entries to agents/skills |
-| `learn` | no | Manually teach Claude Code an error pattern and solution with high confidence |
-| `skill-eval` | yes | Evaluate and improve skills: trigger testing, description optimization, A/B benchmarks |
-| `skill-composer` | no | DAG-based multi-skill orchestration with dependency resolution and context passing |
-| `agent-evaluation` | no | Evaluate agents/skills for quality and standards compliance using a 6-step rubric |
-| `agent-comparison` | no | A/B test agent variants measuring quality and token cost across benchmarks |
-| `routing-table-updater` | no | Maintain `/do` routing tables when skills or agents are added or modified |
-| `generate-claudemd` | no | Generate a project-specific CLAUDE.md by analyzing repo code and build system |
+| `adr-consultation` | no | Multi-agent consultation for architecture decisions |
+| `retro` | yes | Learning system interface: stats, search, graduate learnings. Backed by learning.db (SQLite + FTS5). |
+| `learn` | no | Manually teach error pattern and solution to learning database |
+| `auto-dream` | yes | Background memory consolidation and learning graduation -- overnight knowledge lifecycle |
+| `kairos-lite` | yes | Proactive monitoring -- checks GitHub, CI, and toolkit health, produces briefings |
+| `skill-eval` | no | Evaluate skills: trigger testing, A/B benchmarks, structure validation |
+| `skill-creator` | no | Create and iteratively improve skills through eval-driven validation |
+| `skill-composer` | no | DAG-based multi-skill orchestration with dependency resolution |
+| `agent-evaluation` | no | Evaluate agents and skills for quality and standards compliance |
+| `agent-comparison` | no | A/B test agent variants for quality and token cost |
+| `routing-table-updater` | no | Maintain /do routing tables when skills or agents change |
+| `generate-claudemd` | no | Generate project-specific CLAUDE.md from repo analysis |
 
 ---
 
@@ -203,9 +210,9 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `pause-work` | no | Create session handoff artifacts (HANDOFF.json + .continue-here.md) |
-| `resume-work` | no | Restore session state from handoff artifacts and route to next action |
-| `read-only-ops` | no | Read-only exploration, status checks, and reporting without modifications |
+| `pause-work` | no | Create session handoff artifacts for resumable work continuity |
+| `resume-work` | yes | Restore session state from handoff artifacts (HANDOFF.json, .continue-here.md, task_plan.md) and resume |
+| `read-only-ops` | no | Read-only exploration, inspection, and reporting without modifications |
 
 ---
 
@@ -213,12 +220,56 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `headless-cron-creator` | no | Generate headless Claude Code cron jobs with lockfile, budget cap, and dry-run safety |
-| `cron-job-auditor` | no | Deterministic audit of cron/scheduled job scripts for reliability and error handling |
-| `service-health-check` | no | Validate service health, endpoint availability, and dependency status |
-| `fish-shell-config` | no | Fish shell configuration: config.fish, functions, abbreviations, PATH management |
-| `wordpress-uploader` | no | WordPress REST API integration for posts and media via deterministic Python scripts |
-| `wordpress-live-validation` | no | Validate published WordPress posts in a real browser using Playwright |
+| `headless-cron-creator` | no | Generate headless Claude Code cron jobs with safety |
+| `cron-job-auditor` | no | Audit cron scripts for reliability and safety |
+| `service-health-check` | no | Service health monitoring: Discover, Check, Report in 3 phases |
+| `fish-shell-config` | no | Fish shell configuration and PATH management |
+| `wordpress-uploader` | no | WordPress REST API integration for posts and media uploads |
+| `wordpress-live-validation` | no | Validate published WordPress posts in browser via Playwright |
+
+---
+
+## Kotlin Development
+
+| Skill | Invocable | Description |
+|-------|-----------|-------------|
+| `kotlin-coroutines` | no | Kotlin structured concurrency, Flow, and Channel patterns |
+| `kotlin-testing` | no | Kotlin testing with JUnit 5, Kotest, and coroutine dispatchers |
+
+---
+
+## PHP Development
+
+| Skill | Invocable | Description |
+|-------|-----------|-------------|
+| `php-quality` | no | PHP code quality: PSR standards, strict types, framework idioms |
+| `php-testing` | no | PHP testing patterns: PHPUnit, test doubles, database testing |
+
+---
+
+## Swift Development
+
+| Skill | Invocable | Description |
+|-------|-----------|-------------|
+| `swift-concurrency` | no | Swift concurrency: async/await, Actor, Task, Sendable patterns |
+| `swift-testing` | no | Swift testing: XCTest, Swift Testing framework, async patterns |
+
+---
+
+## Kubernetes
+
+| Skill | Invocable | Description |
+|-------|-----------|-------------|
+| `kubernetes-debugging` | no | Kubernetes debugging for pod failures and networking |
+| `kubernetes-security` | no | Kubernetes security: RBAC, PodSecurity, network policies |
+
+---
+
+## Worktree Isolation
+
+| Skill | Invocable | Description |
+|-------|-----------|-------------|
+| `worktree-agent` | no | Mandatory rules for agents in git worktree isolation |
 
 ---
 
@@ -227,4 +278,3 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | Skill | Description |
 |-------|-------------|
 | `shared-patterns` | Reusable prompt patterns referenced by multiple skills |
-| `install` | Toolkit installation helper |
