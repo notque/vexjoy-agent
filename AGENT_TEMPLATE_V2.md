@@ -9,11 +9,13 @@ agents/
 ├── {agent-name}.md           # Main agent file (under 10k words)
 └── {agent-name}/
     └── references/
-        ├── error-catalog.md     # Error patterns with cause/solution
-        ├── anti-patterns.md     # What/Why/Instead format
-        ├── code-examples.md     # Detailed code samples
-        └── workflows.md         # Complex multi-step processes
+        ├── {domain}-errors.md       # Error patterns with cause/solution
+        ├── {domain}-anti-patterns.md # What/Why/Instead format
+        ├── {domain}-patterns.md     # Detailed code samples and patterns
+        └── {domain}-*.md            # Additional domain-specific references
 ```
+
+Reference file names are domain-prefixed (e.g., `go-errors.md`, `python-anti-patterns.md`). Non-language agents may use topic-based names instead (e.g., `code-quality.md`, `security.md`).
 
 ---
 
@@ -48,10 +50,11 @@ Bad: `description: "Use this agent when working with Go files, .go extensions, o
 ```yaml
 ---
 name: {domain}-{function}-engineer
+model: sonnet
 version: 2.0.0
 description: "{60-100 char single-line description of domain expertise}"
 
-color: blue | green | orange | red | purple
+color: blue | green | orange | red | purple | teal | cyan | yellow
 hooks:
   PostToolUse:
     - type: command
@@ -65,15 +68,27 @@ hooks:
             pass
         "
       timeout: 3000
+memory: project
 routing:
   triggers:
     - keyword1
     - keyword2
     - ".extension"
+  retro-topics:
+    - topic1
+    - topic2
   pairs_with:
     - related-skill
   complexity: Simple | Medium | Medium-Complex | Complex
-  category: language | infrastructure | review | meta
+  category: language | infrastructure | review | meta | testing | content | documentation | devops | performance | research
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Agent
 ---
 
 You are an **operator** for [domain], configuring Claude's behavior for [specific context].
@@ -162,7 +177,7 @@ This agent uses the **[Implementation | Reviewer | Analysis | Planning | Explora
 
 ## Error Handling
 
-Common errors and their solutions. See [references/error-catalog.md](references/error-catalog.md) for comprehensive catalog.
+Common errors and their solutions. See [references/{domain}-errors.md](references/{domain}-errors.md) for comprehensive catalog.
 
 ### Error Category 1
 **Cause**: [What causes this error]
@@ -178,7 +193,7 @@ Common errors and their solutions. See [references/error-catalog.md](references/
 
 ## Anti-Patterns
 
-Common mistakes to avoid. See [references/anti-patterns.md](references/anti-patterns.md) for full catalog.
+Common mistakes to avoid. See [references/{domain}-anti-patterns.md](references/{domain}-anti-patterns.md) for full catalog.
 
 ### ❌ Anti-Pattern 1 Name
 **What it looks like**: [Code example or description]
@@ -254,10 +269,10 @@ STOP and ask the user (do NOT proceed autonomously) when:
 ## References
 
 For detailed information:
-- **Error Catalog**: [references/error-catalog.md](references/error-catalog.md)
-- **Anti-Patterns**: [references/anti-patterns.md](references/anti-patterns.md)
-- **Code Examples**: [references/code-examples.md](references/code-examples.md)
-- **Workflows**: [references/workflows.md](references/workflows.md) [if complex agent]
+- **Error Catalog**: [references/{domain}-errors.md](references/{domain}-errors.md)
+- **Anti-Patterns**: [references/{domain}-anti-patterns.md](references/{domain}-anti-patterns.md)
+- **Code Examples**: [references/{domain}-patterns.md](references/{domain}-patterns.md)
+- **Modern Features**: [references/{domain}-modern-features.md](references/{domain}-modern-features.md) [if language agent]
 
 [Add domain-specific reference links as needed]
 ```
@@ -266,7 +281,9 @@ For detailed information:
 
 ## References Directory Structure
 
-### references/error-catalog.md
+Reference files use domain-prefixed names (e.g., `go-errors.md`, `python-anti-patterns.md`) rather than generic names. Non-language agents may use topic-based names (e.g., `code-quality.md`, `security.md`).
+
+### references/{domain}-errors.md
 
 ```markdown
 # [Agent Name] Error Catalog
@@ -301,7 +318,7 @@ command2
 [Continue pattern...]
 ```
 
-### references/anti-patterns.md
+### references/{domain}-anti-patterns.md
 
 ```markdown
 # [Agent Name] Anti-Patterns
@@ -336,7 +353,7 @@ Common mistakes and their corrections.
 [Repeat for each anti-pattern]
 ```
 
-### references/code-examples.md
+### references/{domain}-patterns.md
 
 ```markdown
 # [Agent Name] Code Examples
@@ -367,7 +384,7 @@ Real-world code patterns and implementations.
 [Repeat for each pattern]
 ```
 
-### references/workflows.md
+### references/{domain}-workflows.md
 
 ```markdown
 # [Agent Name] Workflows
@@ -414,10 +431,13 @@ When upgrading an agent to v2.0:
 
 ### YAML Frontmatter
 - [ ] Version updated to 2.0.0
-- [ ] All routing metadata preserved (triggers, pairs_with, complexity, category)
+- [ ] Model specified (e.g., `model: sonnet`)
+- [ ] All routing metadata preserved (triggers, retro-topics, pairs_with, complexity, category)
 - [ ] Hooks preserved
 - [ ] Color preserved
 - [ ] Description: single quoted line, 60-100 characters
+- [ ] Memory setting preserved (e.g., `memory: project`)
+- [ ] Allowed-tools list preserved
 
 ### Core Sections
 - [ ] Operator declaration present
@@ -441,10 +461,10 @@ When upgrading an agent to v2.0:
 - [ ] ## Death Loop Prevention (coding agents)
 
 ### References Directory
-- [ ] Created error-catalog.md if applicable
-- [ ] Created anti-patterns.md if applicable
-- [ ] Created code-examples.md if applicable
-- [ ] Created workflows.md if needed
+- [ ] Created {domain}-errors.md if applicable
+- [ ] Created {domain}-anti-patterns.md if applicable
+- [ ] Created {domain}-patterns.md if applicable
+- [ ] Created additional {domain}-*.md files as needed
 
 ### Validation
 - [ ] Word count under 10k
@@ -464,24 +484,24 @@ When upgrading an agent to v2.0:
 - Domain-specific rationalizations
 - Blocker criteria
 
-### What Moves to references/error-catalog.md
+### What Moves to references/{domain}-errors.md
 - Detailed error symptoms and causes
 - Multi-step solutions
 - Error prevention strategies
 - Full error listings (keep top 3 in main)
 
-### What Moves to references/anti-patterns.md
+### What Moves to references/{domain}-anti-patterns.md
 - Detailed code examples
 - Anti-pattern variations
 - Extended explanations (keep top 3 in main)
 
-### What Moves to references/code-examples.md
+### What Moves to references/{domain}-patterns.md
 - Working code examples
 - File references from real codebases
 - Pattern implementations
 - Variation examples
 
-### What Moves to references/workflows.md
+### What Moves to references/{domain}-workflows.md
 - Multi-phase processes
 - Complex procedures
 - Phase gates and checklists
