@@ -8,10 +8,10 @@ A self-improving hook system that learns from errors across Claude Code sessions
 
 1. **You encounter an error** (e.g., "Found 3 matches, use replace_all")
 2. **System learns the pattern** (stores in unified learning database with initial confidence 0.55)
-3. **You fix it and it works** (automatic feedback: confidence increases by +0.12 to 0.52)
-4. **After multiple successful fixes** (confidence reaches 0.7 threshold - typically 3-4 successes)
+3. **You fix it and it works** (automatic feedback: confidence increases by +0.15 to 0.70)
+4. **After reaching 0.7 threshold** (typically 1-2 successes from initial 0.55)
 5. **System auto-suggests solution** next time you encounter similar error
-6. **Automatic feedback continues** (success +0.12, failure -0.18)
+6. **Automatic feedback continues** (success +0.15, failure -0.10)
 
 ## Quick Commands
 
@@ -44,7 +44,7 @@ python3 test_learning_system.py
 | `~/.claude/learning/learning.db-shm` | SQLite shared memory file |
 | `~/.claude/learning/learning.db-wal` | SQLite write-ahead log |
 | `~/.claude/learning/pending_feedback.json` | Automatic feedback state (60s expiry) |
-| `/tmp/claude_error_learner_debug.log` | Debug logs (if enabled) |
+| stderr (when `CLAUDE_HOOKS_DEBUG=1`) | Debug output from hooks |
 
 **Note**: The database format is SQLite, not JSON. Use `sqlite3` to query.
 
@@ -53,13 +53,14 @@ python3 test_learning_system.py
 The system automatically learns from these error types:
 
 - **missing_file** - File not found errors
-- **missing_command** - Command not found errors
 - **permissions** - Permission denied errors
 - **multiple_matches** - Edit tool ambiguous matches
 - **syntax_error** - Code syntax errors
 - **type_error** - Python type errors
 - **import_error** - Module import errors
 - **timeout** - Timeout errors
+- **connection** - Connection refused / network errors
+- **memory** - Out of memory errors
 
 ## Confidence Levels
 
@@ -70,9 +71,9 @@ The system automatically learns from these error types:
 | 0.7 - 1.0 | High-Confidence | Auto-suggested on errors |
 
 **Confidence Adjustments**:
-- Success: +0.12 (capped at 1.0)
-- Failure: -0.18 (floored at 0.0)
-- Initial: 0.4 (failure) or 0.6 (success)
+- Success: +0.15 (capped at 1.0)
+- Failure: -0.10 (floored at 0.0)
+- Initial: 0.55 (error category default from CATEGORY_DEFAULTS)
 
 ## Example Session
 
@@ -98,17 +99,13 @@ Session End:
 
 ## Debugging
 
-Enable debug logging in any hook:
+Enable debug logging via environment variable:
 
-```python
-# In error-learner.py, session-context.py, etc.
-DEBUG = True
-```
-
-Then view logs:
 ```bash
-tail -f /tmp/claude_error_learner_debug.log
+export CLAUDE_HOOKS_DEBUG=1
 ```
+
+Then view debug output on stderr during hook execution.
 
 ## Database Schema (SQLite)
 
@@ -117,7 +114,7 @@ Each learning entry contains:
 - **topic**: Category grouping (e.g., error type or domain)
 - **key**: Unique identifier within topic (e.g., error signature)
 - **value**: Human-readable description and solution
-- **category**: Learning type (error, pivot, review, design, debug, gotcha)
+- **category**: Learning type (error, pivot, review, design, debug, gotcha, effectiveness, misroute)
 - **confidence**: Reliability score (0.0 - 1.0, category-specific defaults)
 - **tags**: Comma-separated tags for search
 - **source**: Origin (error-learner, manual, migrated, etc.)
@@ -134,12 +131,10 @@ Each learning entry contains:
 ```
 Error: "Found 5 matches of the string to replace"
 
-First encounter: Recorded with confidence = 0.4 (no success yet)
-Attempt 1: Fix it → Success (+0.12) → confidence = 0.52
-Attempt 2: Fix it → Success (+0.12) → confidence = 0.64
-Attempt 3: Fix it → Failure (-0.18) → confidence = 0.46
-Attempt 4: Fix it → Success (+0.12) → confidence = 0.58
-Attempt 5: Fix it → Success (+0.12) → confidence = 0.70 ✓ HIGH-CONFIDENCE
+First encounter: Recorded with confidence = 0.55 (error category default)
+Attempt 1: Fix it → Success (+0.15) → confidence = 0.70 ✓ HIGH-CONFIDENCE
+Attempt 2: Fix it → Failure (-0.10) → confidence = 0.60
+Attempt 3: Fix it → Success (+0.15) → confidence = 0.75 ✓ HIGH-CONFIDENCE
 
 Next error → System auto-suggests: "Use replace_all=true or provide more unique context"
            → Automatic feedback tracks if fix works
@@ -166,9 +161,9 @@ rm ~/.claude/learning/learning.db
 
 ## Tips
 
-1. **Let it learn gradually** - New patterns start at 0.4 or 0.6 confidence
-2. **3-4 successes** typically needed to reach 0.7 auto-suggestion threshold
-3. **Failures count more** (-0.18) than successes (+0.12) - conservative learning
+1. **Let it learn gradually** - New error patterns start at 0.55 confidence
+2. **1-2 successes** typically needed to reach 0.7 auto-suggestion threshold
+3. **Successes boost more** (+0.15) than failures decay (-0.10) - progressive learning
 4. **Global patterns** (NULL project_path) work everywhere
 5. **Project patterns** only suggest in relevant directories
 6. **Automatic feedback** tracks fix outcomes - no manual intervention needed
@@ -253,8 +248,8 @@ for p in patterns:
 - Check Claude Code supports hook events
 
 **Q: No patterns being learned?**
-- Enable DEBUG mode
-- Check `/tmp/claude_error_learner_debug.log`
+- Set `CLAUDE_HOOKS_DEBUG=1` environment variable
+- Check stderr output from hook execution
 - Verify errors are being detected in tool output
 
 **Q: Database corrupted?**

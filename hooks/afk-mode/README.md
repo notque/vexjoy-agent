@@ -44,7 +44,7 @@ This text is the same behavioral trigger that Claude Code's internal `PROACTIVE`
 
 ## How It Works
 
-- **Hook**: `hooks/afk-mode.py` (UserPromptSubmit)
+- **Hook**: `hooks/afk-mode.py` (SessionStart)
 - **Registration**: `.claude/settings.json`, fires after datetime inject, before plan detector
 - **Performance**: ~95ms (Python startup + hook_utils import; own logic is sub-ms)
 - **Cache stable**: Injected text is identical on every prompt within a session
