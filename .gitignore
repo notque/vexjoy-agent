@@ -98,7 +98,9 @@ scratch/
 # Eval workspaces (A/B/C test outputs, generated code, grading artifacts)
 # These are ephemeral experiment data — not committed
 *-workspace/
-evals/
+evals/*
+# But track A/B test design files (cases, rubrics, methodology)
+!evals/new-skills-ab-test/
 
 # Feature state (ephemeral, per-session feature lifecycle)
 .feature/
