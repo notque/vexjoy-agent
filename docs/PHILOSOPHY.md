@@ -251,7 +251,7 @@ Making a skill shorter by deleting content is not progressive disclosure — it'
 - Reviewed as a single unit — all the tooling is visible in one tree
 - Deleted without orphaning dependencies elsewhere
 
-**Repo-level `scripts/`** is reserved for toolkit-wide operations (learning-db.py, sync-to-user-claude.py, INDEX generation) — tools that operate on the system as a whole, not on a single skill's workflow.
+**Repo-level `scripts/`** is reserved for toolkit-wide operations (learning-db.py, INDEX generation) — tools that operate on the system as a whole, not on a single skill's workflow.
 
 ## Workflow First, Constraints Inline
 
@@ -284,7 +284,7 @@ Skill documents place the workflow (Instructions/Phases) immediately after the f
 
 ## One Domain, One Component
 
-The system prompt token budget is finite. Every agent description and every skill description appears in the system prompt at session start. With 68 agents and 171 skills, description bloat directly degrades routing quality and consumes tokens before any work begins.
+The system prompt token budget is finite. Every agent description and every skill description appears in the system prompt at session start. As agent and skill counts grow, description bloat directly degrades routing quality and consumes tokens before any work begins.
 
 The consolidation principle: **one domain = one agent or skill + many reference files loaded on demand.** Never create multiple agents or skills for the same domain.
 
