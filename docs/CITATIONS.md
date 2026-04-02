@@ -41,7 +41,7 @@ The toolkit author's prior agent system, built January 2026 when Claude Code age
 - Coordinator-as-facilitator, not manager. The consensus-coordinator had zero decision authority — it ensured all agents were consulted, it couldn't override. Reinforced our coordination layer pattern where /do routes but never implements.
 
 **Patterns noted but not adopted:**
-- Political philosophy agents (Chomsky, Graeber). Their governance analysis function was adapted into `reviewer-meta-process` (system health analysis) without the political framing.
+- Political philosophy agents (Chomsky, Graeber). Their governance analysis function was adapted into the meta-process lens of `reviewer-perspectives` (system health analysis) without the political framing.
 - Full consensus requirement (unanimous agreement). Too heavy for our pace. We use 3-agent consultation with blocking-concern gates instead.
 - CollectiveFlow CLI (Go tool for proposal management). Our ADR system + consultation directories serve the same function without a separate tool.
 
@@ -70,8 +70,8 @@ Auto-injected anti-rationalization tables that make it structurally difficult to
 ### Learning Graduation Pipeline
 Record at 0.7 confidence, boost on validation, graduate into agent/skill markdown, ship together. The insight that review findings should be immediately embedded as permanent behavior changes, not passively recorded for "multiple observations." Developed after noticing that deferred learnings never got acted on.
 
-### Three-Wave Comprehensive Review
-20+ specialized reviewer agents in 3 cascading waves: per-package deep review (Wave 0), cross-cutting foundation (Wave 1, 11 agents), context-aware deep-dive (Wave 2, 10 agents). Each wave's findings enrich the next. Evolved from single-agent reviews that kept missing cross-cutting concerns.
+### Four-Wave Comprehensive Review
+26+ specialized reviewer agents in 4 cascading waves: per-package deep review (Wave 0), cross-cutting foundation (Wave 1, 12 agents), context-aware deep-dive (Wave 2, 10 agents), adversarial challenge (Wave 3, 4-5 agents). Each wave's findings enrich the next. Evolved from single-agent reviews that kept missing cross-cutting concerns.
 
 ### Pipeline-First Architecture
 The principle that any task with 3+ phases should be a pipeline with gates, artifacts, and parallelization. Emerged from observing that ad-hoc execution skips steps under time pressure but pipelines with explicit phase gates don't.
