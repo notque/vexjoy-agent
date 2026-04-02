@@ -6,6 +6,11 @@ Event-driven automations that fire at Claude Code lifecycle boundaries. They enf
 
 ```
 User prompt → UserPromptSubmit → Claude picks tool → PreToolUse → Tool runs → PostToolUse → Response → Stop
+                                                                                                   ↓
+                                                                                              StopFailure (on API error)
+Context: PreCompact → compact → PostCompact
+Subagent finishes: SubagentStop
+Task completes: TaskCompleted
 ```
 
 - **PreToolUse** hooks run before a tool executes. They can **block** (exit 2) or **warn** (exit 0 with stderr).
@@ -13,8 +18,11 @@ User prompt → UserPromptSubmit → Claude picks tool → PreToolUse → Tool r
 - **UserPromptSubmit** hooks inject context before Claude processes a prompt.
 - **SessionStart** hooks run once when a session begins.
 - **Stop** hooks run after each Claude response.
+- **StopFailure** hooks fire when a session ends due to an API error.
 - **SubagentStop** hooks fire when a spawned subagent finishes.
+- **TaskCompleted** hooks fire when a task is marked as completed.
 - **PreCompact** hooks run before context compression.
+- **PostCompact** hooks run after context compression.
 
 ---
 
@@ -22,14 +30,17 @@ User prompt → UserPromptSubmit → Claude picks tool → PreToolUse → Tool r
 
 | Hook | Description |
 |------|-------------|
+| `afk-mode` | Injects autonomous behavioral posture for unattended sessions (SSH, tmux, or `CLAUDE_AFK_MODE=always`). See [AFK Mode docs](afk-mode/README.md) |
 | `cross-repo-agents` | Discovers local `.claude/agents/` in the working directory and injects them for `/do` routing |
 | `fish-shell-detector` | Detects Fish shell users and injects the `fish-shell-config` skill |
-| `mcp-health-check` | Probes MCP servers before tool calls; blocks if a server is in backoff window |
+| `kairos-briefing-injector` | Injects the most recent KAIROS monitoring briefing into session context (opt-in: `CLAUDE_KAIROS_ENABLED=true`) |
 | `operator-context-detector` | Detects operator context (personal/work/ci/production) and injects behavioral profile |
+| `retro-knowledge-injector` | Stub — previously injected retro knowledge; replaced by auto-dream via `session-context.py` |
 | `rules-distill-injector` | Injects pending rules-distillation candidates from `learning/rules-distill-pending.json` |
 | `sapcc-go-detector` | Detects SAP Converged Cloud Go projects and injects `go-patterns` skill |
-| `session-context` | Loads high-confidence learned patterns (>0.7) from the learning DB into context |
+| `session-context` | Loads high-confidence learned patterns (>0.7) from the learning DB and auto-dream payload into context |
 | `sync-to-user-claude` | Syncs agents, skills, hooks, commands, and scripts from the repo to `~/.claude/` |
+| `team-config-loader` | Discovers `team-config.yaml` from priority-ordered locations and injects team configuration into context |
 
 ---
 
@@ -37,16 +48,17 @@ User prompt → UserPromptSubmit → Claude picks tool → PreToolUse → Tool r
 
 | Hook | Description |
 |------|-------------|
-| `adr-context-injector` | Injects active ADR session context when `.adr-session.json` exists in the project |
-| `afk-mode` | Injects autonomous behavioral posture for unattended sessions (SSH, tmux, or `CLAUDE_AFK_MODE=always`). See [AFK Mode docs](afk-mode/README.md) |
-| `auto-plan-detector` | Detects complex tasks and injects Manus-style planning instructions |
+| `adr-context-injector` | Stub — previously injected ADR session context; disabled pending redesign |
+| `anti-rationalization-injector` | Stub — previously injected anti-rationalization warnings; now handled by `/do` Phase 3 |
+| `auto-plan-detector` | Stub — previously detected complex tasks; now handled by `/do` Phase 1/Phase 4 |
 | `capability-catalog-injector` | Injects full skill/agent catalog into `/do` routing context |
-| `instruction-reminder` | Periodically re-injects CLAUDE.md, AGENTS.md, and RULES.md to combat context drift |
+| `creation-request-enforcer-userprompt` | Stub — previously detected creation requests; now handled by `/do` Phase 1 |
+| `instruction-reminder` | Stub — previously re-injected CLAUDE.md; now handled natively by Claude Code |
 | `perses-mcp-injector` | Detects Perses-related prompts and injects MCP tool discovery instructions |
 | `pipeline-context-detector` | Detects pipeline creation requests and injects an environmental state snapshot |
-| `retro-knowledge-injector` | Queries `learning.db` (FTS5) and injects relevant accumulated knowledge |
 | `skill-evaluator` | Discovers skills/agents and injects a targeted evaluation protocol |
 | `user-correction-capture` | Records user corrections and capability-gap signals to `learning.db` |
+| `userprompt-datetime-inject` | Stub — previously injected date/time; now handled natively by Claude Code |
 
 ---
 
@@ -56,23 +68,20 @@ User prompt → UserPromptSubmit → Claude picks tool → PreToolUse → Tool r
 
 | Hook | Matcher | Description |
 |------|---------|-------------|
-| `pretool-unified-gate` | Bash, Write, Edit | Consolidated gate: gitignore bypass, git submission, dangerous commands, creation gate, sensitive file guard |
-| `block-attribution` | Bash | Blocks AI attribution strings (`Co-Authored-By: Claude`, `Generated with Claude Code`) in git operations |
+| `pretool-unified-gate` | Bash, Write, Edit | Consolidated gate (ADR-068): gitignore bypass, git submission, dangerous commands, creation gate, sensitive file guard |
 | `ci-merge-gate` | Bash | Blocks `gh pr merge` when CI checks have not passed |
+| `mcp-health-check` | MCP tools | Probes MCP servers before tool calls; blocks (exit 2) if unhealthy and within backoff window. Also records failures in PostToolUse |
 | `pretool-adr-creation-gate` | Write | Blocks new agent/skill/pipeline creation when no corresponding ADR exists |
 | `pretool-branch-safety` | Bash | Blocks `git commit` when on `main` or `master` branch |
 | `pretool-config-protection` | Write, Edit, MultiEdit | Blocks modifications to linter/formatter config files (ESLint, Prettier, Biome, Ruff, golangci-lint, etc.) |
-| `pretool-creation-gate` | Write | Blocks direct creation of new agent/skill files that bypass the creation pipeline |
-| `pretool-dangerous-command-guard` | Bash | Blocks destructive shell commands (`rm -rf`, `DROP DATABASE`, `kubectl delete namespace`, etc.) |
-| `pretool-git-submission-gate` | Bash | Blocks raw `git push`, `gh pr create`, and `gh pr merge` to force routing through quality-gate skills |
 | `pretool-plan-gate` | Write, Edit | Blocks implementation in `agents/`, `skills/` when `task_plan.md` does not exist |
-| `pretool-sensitive-file-guard` | Write, Edit | Blocks writes to `.env`, credential files, SSH keys, certificates, and token files |
 | `pretool-synthesis-gate` | Write, Edit | Blocks feature implementation when ADR consultation synthesis is missing or blocked |
 
 ### Advisory Hooks (exit 0 = warn)
 
 | Hook | Matcher | Description |
 |------|---------|-------------|
+| `creation-protocol-enforcer` | Agent | Soft-warns when an Agent dispatch appears to be a creation request without a recent ADR session |
 | `perses-lint-gate` | Bash | Redirects raw `percli apply` to the `perses-lint` skill for pre-deployment validation |
 | `pretool-file-backup` | Edit | Silently copies edited files to `/tmp/.claude-backups/{session_id}/` before each edit |
 | `pretool-learning-injector` | Bash, Edit | Injects high-confidence error patterns from `learning.db` before tools run |
@@ -88,16 +97,19 @@ User prompt → UserPromptSubmit → Claude picks tool → PreToolUse → Tool r
 |------|---------|-------------|
 | `adr-enforcement` | Write, Edit | Runs ADR compliance check after pipeline component files are written |
 | `agent-grade-on-change` | Edit, Write | Automatically grades agent files when they are created or modified |
+| `completion-evidence-check` | Any | Detects completion claims without test evidence and prints an advisory warning |
 | `error-learner` | Any | Detects tool errors, learns patterns, and injects fix suggestions via SQLite |
-| `mcp-health-check` | MCP tools | Records MCP failures and marks servers unhealthy for backoff management |
-| `post-tool-lint-hint` | Write, Edit | Suggests available linters after file writes (silent when no linter applies) |
+| `posttool-bash-injection-scan` | Bash | Scans files written by Bash commands for LLM-level prompt injection patterns |
+| `posttool-lint-hint` | Write, Edit | Suggests available linters after file writes (silent when no linter applies) |
+| `posttool-rename-sweep` | Bash | After `git mv`, scans for stale references to the old filename and warns |
 | `posttool-security-scan` | Write, Edit | Scans edited code for hardcoded credentials, injection risks, and path traversal |
 | `posttool-session-reads` | Read | Tracks files read during the session to `.claude/session-reads.txt` for subagent warmstart |
-| `record-activation` | Any | Records retro knowledge activation for ROI cohort tracking (batched, silent) |
+| `record-activation` | Edit, Write, Bash | Records retro knowledge activation for ROI cohort tracking (batched, silent) |
 | `record-waste` | Any (failures) | Estimates token waste on tool failures and records to `learning.db` |
 | `retro-graduation-gate` | Bash | Warns after `gh pr create` if ungraduated retro entries exist in the toolkit repo |
 | `review-capture` | Agent | Captures severity-tagged review findings from subagent output to `learning.db` |
 | `routing-gap-recorder` | Any | Records `/do` routing gaps to `learning.db` when no agent matches a domain |
+| `sql-injection-detector` | Write, Edit | Scans edited code for SQL injection anti-patterns (string concatenation, format strings) |
 | `usage-tracker` | Skill, Agent | Tracks Skill and Agent invocations to SQLite for usage analytics |
 
 ---
@@ -107,8 +119,25 @@ User prompt → UserPromptSubmit → Claude picks tool → PreToolUse → Tool r
 | Hook | Description |
 |------|-------------|
 | `confidence-decay` | Decays stale learning entries and prunes low-confidence dead entries from `learning.db` |
+| `knowledge-graduation-proposer` | Proposes graduation of high-confidence learnings into agent/skill files for human review |
+| `rules-distill-trigger` | Auto-triggers rules distillation when last run was >7 days ago |
 | `session-learning-recorder` | Warns if a substantive session recorded zero learnings; summarizes captured count |
 | `session-summary` | Generates session summary and persists metrics to the unified learning database |
+
+---
+
+## StopFailure Hooks
+
+| Hook | Description |
+|------|-------------|
+| `stop-failure-handler` | Records session failure metadata to `~/.claude/state/session-failures.jsonl` for pattern analysis |
+
+---
+
+## TaskCompleted Hooks
+
+| Hook | Description |
+|------|-------------|
 | `task-completed-learner` | Captures subagent/task completion metadata for routing effectiveness tracking |
 
 ---
@@ -129,27 +158,34 @@ User prompt → UserPromptSubmit → Claude picks tool → PreToolUse → Tool r
 
 ---
 
+## PostCompact Hooks
+
+| Hook | Description |
+|------|-------------|
+| `postcompact-handler` | Re-injects plan context and ADR session info after context compaction |
+
+---
+
 ## Development
 
 Tests live in `hooks/tests/` and cover the major hooks:
 
 ```
 hooks/tests/
-├── test_auto_plan_detector.py      test_record_activation.py
-├── test_config_protection.py       test_record_waste.py
-├── test_cross_repo_agents.py       test_settings_validator.py
-├── test_do_routing.py              test_skill_evaluator.py
-├── test_feedback_tracker.py        test_stale_pruner.py
-├── test_fts5_search.py             test_subagent_completion_guard.py
-├── test_integration.py             test_suggest_compact.py
-├── test_learning_system.py
-├── test_mcp_health_check.py
-├── test_post_tool_lint.py
-├── test_posttool_session_reads.py
-└── test_pretool_subagent_warmstart.py
+├── test_config_protection.py        test_pretool_subagent_warmstart.py
+├── test_cross_repo_agents.py        test_pretool_unified_gate.py
+├── test_do_routing.py               test_record_activation.py
+├── test_feedback_tracker.py         test_record_waste.py
+├── test_fts5_search.py              test_settings_validator.py
+├── test_integration.py              test_skill_evaluator.py
+├── test_learning_system.py          test_sql_injection_detector.py
+├── test_mcp_health_check.py         test_stale_pruner.py
+├── test_post_tool_lint.py           test_subagent_completion_guard.py
+├── test_posttool_rename_sweep.py    test_suggest_compact.py
+└── test_posttool_session_reads.py
 ```
 
-Shared utilities in `hooks/lib/` include `hook_utils.py` (output formatting helpers `context_output()` / `empty_output()`), `stdin_timeout.py` (safe stdin reading), and the unified learning database interface (`learning_db_v2.py`).
+Shared utilities in `hooks/lib/` include `hook_utils.py` (output formatting helpers `context_output()` / `empty_output()`), `stdin_timeout.py` (safe stdin reading), the unified learning database interface (`learning_db_v2.py`), `injection_patterns.py` (shared prompt injection detection patterns), and `usage_db.py` (SQLite-based skill/agent invocation tracking).
 
 ### Writing a New Hook
 
@@ -169,12 +205,12 @@ The sections below cover the learning system internals, shared library API, and 
 |------|-------|---------|
 | [`sync-to-user-claude.py`](#sync-hook) | SessionStart | Sync repo to ~/.claude (bootstrap) |
 | [`error-learner.py`](#error-learning-system) | PostToolUse | Learn from errors, suggest fixes |
-| [`instruction-reminder.py`](#instruction-reminder) | UserPromptSubmit | Re-inject CLAUDE.md files to combat context drift |
+| [`instruction-reminder.py`](#instruction-reminder) | UserPromptSubmit | Stub — previously re-injected CLAUDE.md (now handled natively) |
 | [`skill-evaluator.py`](#skill-evaluation) | UserPromptSubmit | Inject skill/agent evaluation |
 | [`session-context.py`](#session-context) | SessionStart | Load learned patterns |
 | [`session-summary.py`](#session-summary) | Stop | Generate session metrics |
 | [`precompact-archive.py`](#precompact-archive) | PreCompact | Archive learnings |
-| [`post-tool-lint-hint.py`](#lint-hints) | PostToolUse | Suggest linting |
+| [`posttool-lint-hint.py`](#lint-hints) | PostToolUse | Suggest linting |
 
 ---
 
@@ -486,6 +522,34 @@ Built-in quality checks:
 - Pre-defined code quality validators
 - Used by quality gate skill
 
+### `lib/injection_patterns.py`
+
+Shared prompt injection detection patterns:
+- Compiled regex list for LLM-level injection (instruction overrides, role hijacking, prompt extraction, fake message boundaries)
+- Invisible Unicode codepoint detection
+- Used by `pretool-prompt-injection-scanner` and `posttool-bash-injection-scan`
+
+### `lib/usage_db.py`
+
+Usage database for skill and agent invocation tracking:
+- SQLite-based concurrent access
+- Records which skills and agents are invoked across sessions
+- Used by `usage-tracker`
+
+### `lib/hook_utils.py`
+
+Shared utilities for all hooks (documented in detail [below](#shared-utilities-library)):
+- JSON output formatting (`context_output()`, `empty_output()`, `user_message_output()`)
+- Cascading fallback patterns
+- Environment utilities, file discovery, YAML frontmatter parsing
+
+### `lib/stdin_timeout.py`
+
+Safe stdin reading with timeout:
+- Prevents hook deadlocks when the parent process pipe hangs
+- Uses `signal.alarm` on Unix
+- Returns empty string on timeout for clean hook exit
+
 ---
 
 ## Design Principles
@@ -539,12 +603,16 @@ hooks/
 ├── session-context.py        # SessionStart: Load patterns
 ├── session-summary.py        # Stop: Generate metrics
 ├── precompact-archive.py     # PreCompact: Archive learnings
-├── post-tool-lint-hint.py    # PostToolUse: Lint hints
+├── posttool-lint-hint.py     # PostToolUse: Lint hints
 ├── lib/
 │   ├── learning_db_v2.py     # Unified learning database library
 │   ├── feedback_tracker.py   # Automatic feedback tracking
 │   ├── quality_gate.py       # Quality gate utilities
-│   └── builtin_checks.py     # Built-in quality checks
+│   ├── builtin_checks.py     # Built-in quality checks
+│   ├── injection_patterns.py # Shared prompt injection detection patterns
+│   ├── usage_db.py           # SQLite-based skill/agent invocation tracking
+│   ├── hook_utils.py         # Output formatting, env utilities, file discovery
+│   └── stdin_timeout.py      # Safe stdin reading with timeout
 └── tests/
     └── test_learning_system.py
 ```
