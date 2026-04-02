@@ -932,12 +932,17 @@ Examples:
         "--build-only", action="store_true", help="Generate static HTML in research/{topic}/site/ and exit"
     )
     parser.add_argument("--stop", action="store_true", help="Stop a running kb-serve for this topic")
+    parser.add_argument(
+        "--output-root", default=None,
+        help="Root research directory (default: research/ relative to repo root)",
+    )
 
     args = parser.parse_args()
 
     topic: str = args.topic
-    wiki_dir = _REPO_ROOT / "research" / topic / "wiki"
-    site_dir = _REPO_ROOT / "research" / topic / "site"
+    research_root = Path(args.output_root) if args.output_root else _REPO_ROOT / "research"
+    wiki_dir = research_root / topic / "wiki"
+    site_dir = research_root / topic / "site"
 
     if args.stop:
         return _stop_server(topic)

@@ -30,7 +30,10 @@ from pathlib import Path
 # ─── Constants ────────────────────────────────────────────────────────────────
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
-_RESEARCH_DIR = _REPO_ROOT / "research"
+_DEFAULT_RESEARCH_DIR = _REPO_ROOT / "research"
+
+# Mutable module-level reference, overridden by --output-root CLI flag.
+_RESEARCH_DIR = _DEFAULT_RESEARCH_DIR
 
 _DB_FILENAME = ".kb-search.db"
 
@@ -491,6 +494,10 @@ def _build_parser() -> argparse.ArgumentParser:
     # index subcommand
     idx = sub.add_parser("index", help="Build or rebuild FTS5 index for a topic.")
     idx.add_argument("--topic", required=True, help="Topic slug under research/")
+    idx.add_argument(
+        "--output-root", default=None,
+        help="Root research directory (default: research/ relative to repo root)",
+    )
 
     # search subcommand
     srch = sub.add_parser("search", help="Search indexed wiki content.")
@@ -500,14 +507,22 @@ def _build_parser() -> argparse.ArgumentParser:
     srch.add_argument("--query", required=True, help="Search terms")
     srch.add_argument("--limit", type=int, default=10, help="Maximum results (default: 10)")
     srch.add_argument("--json", action="store_true", help="Emit JSON output")
+    srch.add_argument(
+        "--output-root", default=None,
+        help="Root research directory (default: research/ relative to repo root)",
+    )
 
     return parser
 
 
 def main() -> None:
     """Entry point for kb-search.py CLI."""
+    global _RESEARCH_DIR
     parser = _build_parser()
     args = parser.parse_args()
+
+    if getattr(args, "output_root", None):
+        _RESEARCH_DIR = Path(args.output_root)
 
     if args.command == "index":
         cmd_index(args)
