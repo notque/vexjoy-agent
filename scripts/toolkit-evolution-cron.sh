@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit Evolution: weekly self-improvement cycle via Claude Code headless mode.
+# Toolkit Evolution: nightly self-improvement cycle via Claude Code headless mode.
 # Diagnoses improvement opportunities, proposes solutions, critiques them via
 # multi-persona review, builds winners, A/B tests, and creates PRs for review.
 #
@@ -10,8 +10,8 @@
 #   # Full run (execute full evolution cycle)
 #   ./scripts/toolkit-evolution-cron.sh --execute
 #
-# Cron example (weekly Sunday at 3:07 AM):
-#   7 3 * * 0 /home/feedgen/claude-code-toolkit/scripts/toolkit-evolution-cron.sh --execute >> /home/feedgen/claude-code-toolkit/cron-logs/toolkit-evolution/cron.log 2>&1
+# Cron example (nightly at 3:07 AM, after auto-dream at 2:07 AM):
+#   7 3 * * * /home/feedgen/claude-code-toolkit/scripts/toolkit-evolution-cron.sh --execute >> /home/feedgen/claude-code-toolkit/cron-logs/toolkit-evolution/cron.log 2>&1
 
 # Ensure claude CLI is in PATH (cron doesn't inherit user PATH)
 export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node/ 2>/dev/null | tail -1)/bin:$PATH"
@@ -60,7 +60,7 @@ MODE="dry-run"
 echo "Mode: $MODE | Budget: \$${MAX_BUDGET}"
 
 # Build the prompt
-PROMPT="You are running the weekly toolkit evolution cycle for the claude-code-toolkit.
+PROMPT="You are running the nightly toolkit evolution cycle for the claude-code-toolkit.
 
 Read and execute the skill at skills/toolkit-evolution/SKILL.md — it defines the full 6-phase pipeline:
 DIAGNOSE → PROPOSE → CRITIQUE → BUILD → VALIDATE → EVOLVE
@@ -102,7 +102,7 @@ if [[ "$CURRENT_BRANCH" != "main" && "$CURRENT_BRANCH" != feat/toolkit-evolution
     git checkout main 2>/dev/null || true
 fi
 
-# Rotate old logs (keep last 90 days — weekly cadence means fewer logs)
-find "$LOG_DIR" -name "run-*.log" -mtime +90 -delete 2>/dev/null || true
+# Rotate old logs (keep last 30 days)
+find "$LOG_DIR" -name "run-*.log" -mtime +30 -delete 2>/dev/null || true
 
 exit $EXIT_CODE

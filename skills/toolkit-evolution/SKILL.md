@@ -33,9 +33,9 @@ routing:
 
 # Toolkit Evolution
 
-Schedulable (weekly) or manually-invoked pipeline that drives continuous improvement of the toolkit itself. Chains existing skills into a full closed-loop improvement cycle: diagnose problems from evidence, propose solutions, critique them from multiple perspectives, build the winners, A/B test against baselines, and promote winners via PR.
+Schedulable (nightly) or manually-invoked pipeline that drives continuous improvement of the toolkit itself. Chains existing skills into a full closed-loop improvement cycle: diagnose problems from evidence, propose solutions, critique them from multiple perspectives, build the winners, A/B test against baselines, and promote winners via PR.
 
-This is the weekly sibling of `auto-dream`. Auto-dream (nightly) consolidates memories, graduates learnings, and prunes stale data. Toolkit-evolution (weekly) diagnoses gaps, proposes features, builds and tests improvements. They feed each other: dream's graduated learnings inform evolution's diagnosis; evolution's results become dream's input for consolidation.
+This is the nightly sibling of `auto-dream`. Auto-dream (2:07 AM) consolidates memories, graduates learnings, and prunes stale data. Toolkit-evolution (3:07 AM) diagnoses gaps, proposes features, builds and tests improvements. They feed each other: dream's graduated learnings inform evolution's diagnosis; evolution's results become dream's input for consolidation.
 
 ## When to invoke
 
@@ -351,38 +351,18 @@ Read the template, fill in all sections with data from this cycle, and write the
 /do evolve hooks
 ```
 
-### Cron setup (weekly)
+### Cron setup (nightly)
 
-Use `headless-cron-creator` patterns for a weekly cron job:
+Runs nightly at 3:07 AM, after auto-dream (2:07 AM) finishes consolidating learnings:
 
 ```bash
-# Generate the wrapper script
-python3 ~/.claude/scripts/crontab-manager.py generate-wrapper \
-  --name "toolkit-evolution" \
-  --prompt "Run the toolkit-evolution skill. Analyze the toolkit for improvement opportunities, propose solutions, critique them, build winners, test them, and create PRs for human review. Write the evolution report to ~/.claude/state/evolution-report-$(date +%Y-%m-%d).md" \
-  --schedule "7 3 * * 0" \
-  --workdir "/home/feedgen/claude-code-toolkit" \
-  --budget "5.00" \
-  --allowed-tools "Read Write Edit Bash Glob Grep"
-
-# Preview the cron entry
 python3 ~/.claude/scripts/crontab-manager.py add \
   --tag "toolkit-evolution" \
-  --schedule "7 3 * * 0" \
-  --command "/home/feedgen/claude-code-toolkit/scripts/toolkit-evolution-cron.sh --execute >> /home/feedgen/claude-code-toolkit/cron-logs/toolkit-evolution/cron.log 2>&1" \
-  --dry-run
-
-# Install (after dry-run review)
-python3 ~/.claude/scripts/crontab-manager.py add \
-  --tag "toolkit-evolution" \
-  --schedule "7 3 * * 0" \
+  --schedule "7 3 * * *" \
   --command "/home/feedgen/claude-code-toolkit/scripts/toolkit-evolution-cron.sh --execute >> /home/feedgen/claude-code-toolkit/cron-logs/toolkit-evolution/cron.log 2>&1"
-
-# Verify
-python3 ~/.claude/scripts/crontab-manager.py verify --tag toolkit-evolution
 ```
 
-Schedule uses Sunday 3:07 AM (off-minute per cron best practice). Budget set to $5.00 per run since evolution cycles are heavier than dream cycles.
+Schedule uses 3:07 AM (off-minute per cron best practice, 1 hour after auto-dream). Budget set to $5.00 per run.
 
 ---
 
@@ -431,13 +411,13 @@ A full evolution cycle runs all 6 phases and may dispatch multiple subagents. Es
 - Evolve: ~$0.10 (PR creation, learning DB writes)
 
 Total: ~$1.50-3.50 per cycle. Budget capped at $5.00 via wrapper script.
-Weekly cost at full utilization: ~$6-14/month.
+Nightly cost at full utilization: ~$45-105/month. Cycles with no STRONG proposals exit early (diagnosis + proposal only: ~$0.45).
 
 ---
 
 ## References
 
-- `references/evolution-report-template.md` -- Template for the weekly evolution report
+- `references/evolution-report-template.md` -- Template for the evolution report
 - `skills/auto-dream/SKILL.md` -- Nightly sibling: memory consolidation and learning graduation
 - `skills/skill-eval/SKILL.md` -- Skill testing and benchmarking
 - `skills/multi-persona-critique/SKILL.md` -- Multi-persona evaluation (may not exist yet; inline fallback provided)
