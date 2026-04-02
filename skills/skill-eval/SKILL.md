@@ -19,6 +19,9 @@ routing:
     - benchmark skill
     - skill triggers
     - skill quality
+    - self-improve skill
+    - skill self-improvement
+    - improve skill with variants
   pairs_with:
     - agent-evaluation
     - verification-before-completion
@@ -51,6 +54,7 @@ This checks: SKILL.md exists, valid frontmatter, required fields (name, descript
 | "Optimize/improve the description through autoresearch" | Route to `agent-comparison` | `optimize_loop.py` |
 | "Compare skill vs no-skill output" | Output benchmark | Manual + `aggregate_benchmark.py` |
 | "Validate skill structure" | Quick validate | `quick_validate.py` |
+| "Self-improve skill" / "optimize skill" / "improve skill with A/B" | Self-improvement loop | `references/self-improve-loop.md` |
 
 **GATE**: Skill path confirmed, mode selected.
 
@@ -160,6 +164,16 @@ python3 -m scripts.skill_eval.quick_validate <path/to/skill>
 
 Checks: SKILL.md exists, valid frontmatter, required fields (name, description), kebab-case naming, description under 1024 chars, no angle brackets.
 
+#### Mode E: Self-Improvement Loop
+
+Automatically generate variants of a skill, A/B test them against the original, and promote winners. This is a closed-loop pipeline — baseline, hypothesize, generate, test, promote.
+
+Read the full protocol: `${CLAUDE_SKILL_DIR}/references/self-improve-loop.md`
+
+The loop runs 5 phases: BASELINE (establish metrics with 3+ test cases), HYPOTHESIZE (2-3 single-variable changes), GENERATE VARIANTS (minimal diffs), BLIND A/B TEST (paired comparison via `agents/comparator.md`), PROMOTE OR KEEP (60%+ win rate required, no regressions). All outcomes — wins and losses — are recorded to the learning DB to prevent re-testing failed hypotheses.
+
+**GATE**: Self-improvement protocol loaded from reference. Proceed through the 5 phases.
+
 ### Phase 3: IMPROVE — Apply results
 
 **Step 1: Review results**
@@ -229,3 +243,4 @@ If description optimization found a better description:
 
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/schemas.md` — JSON schemas for evals.json, grading.json, benchmark.json
+- `${CLAUDE_SKILL_DIR}/references/self-improve-loop.md` — Self-improvement loop protocol: variant generation, blind A/B testing, promotion criteria
