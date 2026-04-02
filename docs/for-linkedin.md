@@ -42,7 +42,7 @@ You say "debug this Go test" — a Go engineer loads a debugging methodology wit
 
 You say "write a blog post about observability" — a content pipeline launches parallel research agents, then generates with voice validation.
 
-You say "review this PR" — five reviewers run simultaneously, each focused on a different dimension. Security. Performance. Business logic. Naming consistency. Dead code.
+You say "review this PR" — three reviewers run simultaneously, each focused on a different dimension. Security. Business logic. Architecture.
 
 The router handles the dispatch. You describe the work. That's it.
 
@@ -56,7 +56,7 @@ Here are 7 things I learned building this:
 
 🚀 **Agents need methodology, not just knowledge.** Every agent pairs with a skill — TDD, systematic debugging, code review pipelines. Knowledge without process produces inconsistent results.
 
-🔥 **Review at scale needs parallel execution.** Five specialist reviewers running simultaneously catches things one generalist never would.
+🔥 **Review at scale needs parallel execution.** Three specialist reviewers running simultaneously catches things one generalist never would.
 
 💡 **Self-improvement is the real advantage.** The system captures learnings from every session and graduates them into permanent agent instructions. Every review finding becomes a structural improvement.
 
