@@ -27,7 +27,7 @@ parameters:
         description of goal change, or "retro" to use learning.db graduation candidates
   optional:
     - name: scope
-      description: "comprehensive | default (default: recent 10 agents + all hooks)"
+      description: "comprehensive | default (default: recent 10 agents + all hooks + all routing tables)"
       default: "default"
     - name: auto
       description: "Skip Phase 3 approval gate and apply all changes automatically"

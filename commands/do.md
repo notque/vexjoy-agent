@@ -1,7 +1,7 @@
 ---
 description: "Smart router: classify requests and route to the correct agent + skill"
 argument-hint: "[request]"
-allowed-tools: ["Read", "Bash", "Grep", "Glob", "Skill", "Task", "Agent"]
+allowed-tools: ["Read", "Bash", "Grep", "Glob", "Skill", "Task"]
 ---
 
 # /do - Smart Router
@@ -33,7 +33,7 @@ The routing banner MUST be the first visible output:
    -> Agent: [name]
    -> Skill: [name]
 
- Executing...
+ Invoking...
 ===================================================================
 ```
 
