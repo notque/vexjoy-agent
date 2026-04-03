@@ -264,3 +264,14 @@ For detailed performance patterns and implementation examples:
 - **Pattern Guide**: [performance-optimization/anti-patterns.md](performance-optimization-engineer/anti-patterns.md)
 
 See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for Implementation Schema details.
+
+## Reference Loading Table
+
+Load these reference files when the task matches the keyword category. References contain implementation patterns, code examples, and quantified impact — load on demand rather than upfront.
+
+| Task Keywords | Reference File | Content |
+|---------------|---------------|---------|
+| async, waterfall, parallel, Promise.all, fetch, Suspense, streaming, API route | `references/react-async-patterns.md` | CRITICAL — 6 waterfall elimination patterns |
+| bundle, import, code split, tree shak, barrel, lazy load, dynamic import, third-party script | `references/react-bundle-optimization.md` | CRITICAL — 5 bundle size patterns |
+| render, CLS, layout shift, hydration, SVG, content-visibility, script defer, conditional render, resource hint, Activity, useTransition | `references/react-rendering-performance.md` | MEDIUM — 10 rendering performance patterns |
+| loop, Set, Map, RegExp, flatMap, toSorted, requestIdleCallback, localStorage, DOM read, DOM write, min, max, index map, early return | `references/js-micro-optimizations.md` | LOW-MEDIUM — 14 hot path micro-optimizations |
