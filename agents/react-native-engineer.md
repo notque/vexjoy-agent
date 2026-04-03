@@ -49,6 +49,7 @@ Works with both Expo managed workflow and bare React Native. Patterns apply to b
 
 ### UNDERSTAND
 - Read and follow repository CLAUDE.md before any implementation — project conventions override agent defaults
+- Check injected retro-knowledge for react-native-patterns, mobile-performance, and animation learnings before starting.
 - Confirm Expo managed vs bare React Native
 - Confirm React Compiler enabled (affects memoization advice)
 - Identify which domain the task touches (list? animation? navigation? UI?)

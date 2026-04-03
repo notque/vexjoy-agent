@@ -44,7 +44,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **ui-design-engineer** | User is designing or implementing UI/UX for web applications: layout, Tailwind styling, component design, or visual hierarchy. |
 | **perses-engineer** | User is working with the Perses observability platform: dashboards, plugins, operator/K8s deployment, or core development. |
 | **github-profile-rules-engineer** | User wants to extract coding conventions, programming rules, or style guidelines from a GitHub profile's repositories. |
-| **react-native-engineer** | User is building or optimizing React Native or Expo mobile apps: list performance (FlashList, LegendList), animations (Reanimated, gesture handler), navigation (native-stack, expo-router), native UI patterns, or mobile-specific state management. NOT: React web apps (use typescript-frontend-engineer), React Native animation design mockups (use ui-design-engineer for design, then react-native-engineer for implementation). |
+| **react-native-engineer** | User is building or optimizing React Native or Expo mobile apps: list performance (FlashList, LegendList), animations (Reanimated, gesture handler), navigation (native-stack, expo-router), native UI patterns, or mobile-specific state management. NOT: React web apps (use typescript-frontend-engineer). NOT: React Native animation design mockups (use ui-design-engineer for design, then react-native-engineer for Reanimated implementation). NOT: mobile list virtualization or JS thread optimization (performance-optimization-engineer covers web Core Web Vitals only — react-native-engineer covers mobile performance). NOT: React Native apps targeting iOS/Android with Swift/Kotlin native modules (use swift-general-engineer or kotlin-general-engineer for native layer). |
 | **react-portfolio-engineer** | User is building a React portfolio or gallery website, typically for creative professionals. |
 | **nextjs-ecommerce-engineer** | User is building an e-commerce site with Next.js: product pages, cart, checkout flows. |
 | **toolkit-governance-engineer** | User wants to maintain or modify the toolkit's own internal structure: editing skill/agent files, updating routing tables, managing ADRs, regenerating INDEX.json, or enforcing frontmatter compliance. NOT: creating brand-new agents (use skill-creator), writing application code (domain agents), or reviewing external PRs (reviewer agents). |
@@ -300,22 +300,6 @@ Workflows that work together in common sequences:
 | Skill | When to Route Here |
 |-------|-------------------|
 | **perses (FORCE)** (perses-engineer) | User wants to work with the Perses observability platform: dashboards, plugins, deployment, migration, linting, datasources, variables, projects, CUE schemas, or code review. Routes to the correct sub-workflow based on intent. NOT: general Prometheus/Grafana work (use prometheus-grafana-engineer). |
-
----
-
-## Mobile Skills
-
-| Skill / Agent | When to Route Here |
-|---------------|-------------------|
-| **react-native-engineer** | User is building or optimizing React Native or Expo mobile apps. Covers: list performance (FlashList, LegendList, virtualization), animations (Reanimated, shared values, gesture handler), navigation (native-stack, expo-router, react-navigation), native UI patterns (expo-image, modals, Pressable, safe area), state management (Zustand, dispatch updaters), rendering patterns (React Compiler, conditional rendering safety), and monorepo configuration (autolinking, dependency versions). |
-| **swift-general-engineer** | User is building native iOS/macOS apps with Swift, SwiftUI, or UIKit. NOT: React Native apps that target iOS (use react-native-engineer). |
-| **kotlin-general-engineer** | User is building native Android apps with Kotlin. NOT: React Native apps that target Android (use react-native-engineer). |
-
-### Mobile Cross-Reference Notes
-
-- **React Native animation** → react-native-engineer (not ui-design-engineer). The ui-design-engineer handles design mockups; react-native-engineer handles Reanimated implementation.
-- **React Native performance** → react-native-engineer (not performance-optimization-engineer). The performance-optimization-engineer covers web Core Web Vitals; react-native-engineer covers mobile list virtualization, JS thread optimization, and native bridge performance.
-- **React Native TypeScript** → react-native-engineer (not typescript-frontend-engineer). While both use TypeScript, react-native-engineer understands native platform constraints. The typescript-frontend-engineer pairs_with react-native-engineer for shared type patterns.
 
 ---
 

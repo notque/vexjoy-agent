@@ -1,5 +1,5 @@
-# Component Library Reference
-<!-- Loaded by ui-design-engineer when task involves reusable components, buttons, modals, dropdowns, tabs, form inputs, or validation states -->
+# Component Library: Interactive Components Reference
+<!-- Loaded by ui-design-engineer when task involves buttons, inputs, form controls, modals, dropdowns, tooltips, toasts, tabs, or accordions -->
 
 Accessible components are built once and reused everywhere. Every component here has keyboard navigation, proper ARIA, and visible focus states baked in — not added as an afterthought.
 
