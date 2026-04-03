@@ -43,7 +43,7 @@ export function useLightboxKeyboard({
 }
 ```
 
-**Anti-pattern:** Registering keyboard handlers without cleanup — causes duplicate listeners after re-renders.
+**Instead of:** Registering keyboard handlers without cleanup — causes duplicate listeners after re-renders.
 
 ---
 
@@ -335,7 +335,7 @@ export function GalleryGrid({ images, onImageClick }: GalleryGridProps) {
 }
 ```
 
-**Anti-pattern:** Using `<div onClick>` for gallery items — breaks keyboard navigation and screen reader access.
+**Instead of:** Using `<div onClick>` for gallery items — breaks keyboard navigation and screen reader access.
 
 ---
 

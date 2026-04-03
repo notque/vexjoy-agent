@@ -44,7 +44,7 @@ module.exports = nextConfig
 
 AVIF achieves ~50% smaller files than JPEG at equivalent quality. WebP achieves ~30%.
 
-**Anti-pattern:** Manually converting images to WebP before deploying — next/image handles this at the CDN/cache layer, and static pre-conversion locks you into one format.
+**Instead of:** Manually converting images to WebP before deploying — next/image handles this at the CDN/cache layer, and static pre-conversion locks you into one format.
 
 ---
 
@@ -158,7 +158,7 @@ Correct `sizes` can reduce mobile image download sizes by 50-75% versus the defa
 ))}
 ```
 
-**Anti-pattern:** Setting `priority` on all images — defeats lazy loading, blocks bandwidth for above-fold content, and worsens LCP.
+**Instead of:** Setting `priority` on all images — defeats lazy loading, blocks bandwidth for above-fold content, and worsens LCP.
 
 ---
 
@@ -236,7 +236,7 @@ const nextConfig = {
 }
 ```
 
-**Anti-pattern:** Using `domains` (deprecated in Next.js 13+, removed in 15+) instead of `remotePatterns`.
+**Instead of:** Using `domains` (deprecated in Next.js 13+, removed in 15+) instead of `remotePatterns`.
 
 ---
 

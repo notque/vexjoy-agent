@@ -86,7 +86,7 @@ When using the React Compiler, destructure functions from hooks and props at the
 function SaveButton(props) {
   const router = useRouter()
 
-  // bad: compiler keys on "props" and "router" — both change each render
+  // compiler keys on "props" and "router" — both change each render
   const handlePress = () => {
     props.onSave()
     router.push('/success')

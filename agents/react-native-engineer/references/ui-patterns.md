@@ -317,7 +317,7 @@ function MeasuredBox({ children }: { children: React.ReactNode }) {
 ## Use Compound Components for Flexible Button Composition
 **Impact:** MEDIUM — explicit, composable API without polymorphic type gymnastics
 
-Avoid components that accept `string | ReactNode` children. Use compound components so each part has a clear role.
+Compound components give each part a clear role and a typed API — consumers compose exactly what they need.
 
 **Instead of:**
 ```tsx

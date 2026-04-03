@@ -4,7 +4,7 @@
 ## Animate Transform and Opacity for 60fps Animations
 **Impact:** HIGH — GPU-accelerated animations with no layout recalculation
 
-Transform (`scale`, `translate`, `rotate`) and `opacity` run on the GPU without triggering layout recalculation. Animating `width`, `height`, `top`, `left`, `margin`, or `padding` recalculates layout on every frame — the main cause of animation jank.
+Transform and opacity operations run entirely on the GPU, leaving the JS thread free and the UI thread unblocked at 60fps. Animating `width`, `height`, `top`, `left`, `margin`, or `padding` recalculates layout on every frame instead of using the GPU fast path.
 
 **Instead of:**
 ```tsx

@@ -172,7 +172,7 @@ const brandColors = {
 }
 ```
 
-**Anti-pattern:** Eyeballing a color scale from a single brand color. Use a tool (Radix Colors, Palette by Cloudflare) to generate perceptually uniform steps.
+**Instead of:** Eyeballing a color scale from a single brand color. Use a tool (Radix Colors, Palette by Cloudflare) to generate perceptually uniform steps.
 
 ---
 

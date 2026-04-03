@@ -37,7 +37,7 @@ Requirements:
 
 ```css
 /* Never suppress outlines without replacement */
-/* Bad: */
+/* Without replacement: */
 :focus { outline: none; }
 
 /* Good: custom ring that works on all backgrounds */

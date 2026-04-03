@@ -364,7 +364,7 @@ const chatAuthors = await Promise.all(
 
 ---
 
-## Avoid Duplicate Serialization in RSC Props
+## Move Client Transformations to Client Components
 **Impact:** LOW — reduces network payload for primitive arrays
 
 RSC serialization deduplicates by object reference. Transforming an array on the server (`.toSorted()`, `.filter()`, `.map()`) creates a new reference and forces both arrays to serialize. Move transformations to the client component.

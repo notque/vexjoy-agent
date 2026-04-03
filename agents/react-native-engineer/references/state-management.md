@@ -132,7 +132,7 @@ The same principle applies to Reanimated shared values — see `animation-patter
 
 ---
 
-## Never Track Scroll Position in useState
+## Track Scroll Position in Shared Values or Refs
 **Impact:** HIGH — prevents render thrashing during scroll
 
 Scroll events fire 60 times per second. Storing scroll position in `useState` triggers a re-render on every scroll event — this causes dropped frames.

@@ -65,7 +65,7 @@ Tailwind equivalent using arbitrary values:
 </h1>
 ```
 
-**Anti-pattern:** Separate font sizes for every breakpoint with `text-2xl md:text-3xl lg:text-4xl xl:text-5xl` — produces visible jumps at each breakpoint. `clamp()` interpolates smoothly.
+**Instead of:** Separate font sizes for every breakpoint with `text-2xl md:text-3xl lg:text-4xl xl:text-5xl` — produces visible jumps at each breakpoint. `clamp()` interpolates smoothly.
 
 ---
 
@@ -156,7 +156,7 @@ module.exports = {
 </button>
 ```
 
-**Anti-pattern:** Small icon-only buttons without padding — `<button className="p-1">` creates a ~24px target that's hard to tap accurately.
+**Instead of:** Small icon-only buttons without padding — `<button className="p-1">` creates a ~24px target that's hard to tap accurately.
 
 ---
 

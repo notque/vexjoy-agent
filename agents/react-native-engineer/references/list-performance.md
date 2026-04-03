@@ -89,7 +89,7 @@ const sorted = tlds.toSorted((a, b) => a.name.localeCompare(b.name))
 
 ---
 
-## Avoid Inline Objects in renderItem
+## Pass Primitives and Stable References to List Items
 **Impact:** HIGH — prevents unnecessary re-renders of memoized list items
 
 Inline objects and inline style objects inside `renderItem` create new references on every render, breaking `memo()` comparison.
@@ -265,7 +265,7 @@ TypeScript can narrow the item type in each switch branch automatically.
 ---
 
 ## Use Compressed, Appropriately-Sized Images in Lists
-**Impact:** HIGH — reduces memory and prevents scroll jank from oversized images
+**Impact:** HIGH — reduces memory usage; thumbnails load in display-native dimensions
 
 Loading full-resolution images for small thumbnails consumes excessive memory. Request images sized to their display dimensions (2x for retina).
 

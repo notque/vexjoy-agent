@@ -45,7 +45,7 @@ const MonacoEditor = dynamic(
 
 ---
 
-## Avoid Barrel File Re-exports
+## Use Direct Imports for Tree-Shaking Efficiency
 **Impact:** CRITICAL — 200-800ms import cost, slow builds
 
 Direct imports enable tree-shaking — bundlers can eliminate unused exports when import paths are specific. Barrel files (index files that re-export many modules) force the bundler to load every module in the barrel before it can determine what to eliminate. Popular libraries can have up to 10,000 re-exports, adding 200-800ms on every cold start.
