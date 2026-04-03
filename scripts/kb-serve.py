@@ -933,7 +933,8 @@ Examples:
     )
     parser.add_argument("--stop", action="store_true", help="Stop a running kb-serve for this topic")
     parser.add_argument(
-        "--output-root", default=None,
+        "--output-root",
+        default=None,
         help="Root research directory (default: research/ relative to repo root)",
     )
 
