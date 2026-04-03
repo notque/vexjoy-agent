@@ -50,6 +50,17 @@ Never write to paths outside your worktree directory. Never run `git checkout` i
 
 Use the commit message specified in your prompt. No attribution lines.
 
+## Rule 8: Run Both ruff Checks Before Declaring CI-Ready
+
+For any Python code changes, run both checks before pushing or creating a PR:
+
+```bash
+ruff check . --config pyproject.toml
+ruff format --check . --config pyproject.toml
+```
+
+Running only `ruff check` misses formatting violations. The `Tests / lint` CI job runs both — if you skip `ruff format --check`, the PR will fail CI and cannot merge due to branch protection.
+
 ## Failure Modes This Prevents
 
 | Failure | Rule | Without It |
@@ -59,3 +70,4 @@ Use the commit message specified in your prompt. No attribution lines.
 | Commit on wrong branch | 2 | Orchestrator merges wrong content |
 | PR has changes from 2 ADRs | 5, 6 | Cross-contamination between agents |
 | Branch locked by worktree | 2 | Fatal error on checkout |
+| PR fails CI on format | 8 | Merge blocked; `ruff format --check` was skipped |

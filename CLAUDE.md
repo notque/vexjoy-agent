@@ -37,6 +37,14 @@ Act on these immediately:
 
 ---
 
+## CI Must Pass Before Merging
+
+GitHub Actions (`Tests` workflow) must pass before any PR can be merged. Branch protection is enforced at the GitHub layer — the merge API physically fails if `Tests / lint` or `Tests / test` checks have not passed.
+
+For Python changes: run `ruff check . --config pyproject.toml` AND `ruff format --check . --config pyproject.toml` locally before pushing. Running only `ruff check` misses formatting violations.
+
+---
+
 ## Local-Only Directories
 
 The `adr/` directory is gitignored — ADR files are local development artifacts that exist on disk but are excluded from git. Use `ls adr/` to find them, not `git diff`. These files drive architectural decisions but are never pushed to the remote.
