@@ -59,6 +59,13 @@
             "description": "Inject top accumulated retro knowledge once at session start for cache-stable context",
             "timeout": 2000,
             "once": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/kairos-briefing-injector.py\"",
+            "description": "Inject most recent KAIROS monitoring briefing (opt-in: CLAUDE_KAIROS_ENABLED=true)",
+            "timeout": 2000,
+            "once": true
           }
         ]
       }
@@ -88,6 +95,11 @@
             "command": "python3 \"$HOME/.claude/hooks/user-correction-capture.py\"",
             "description": "Detect user corrections and record to learning DB",
             "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/auto-plan-detector.py\"",
+            "description": "Detect complex tasks requiring a plan (stub — /do handles plan detection)"
           }
         ]
       }
@@ -185,6 +197,12 @@
             "command": "python3 \"$HOME/.claude/hooks/pretool-subagent-warmstart.py\"",
             "description": "Inject parent session context into subagent prompts (ADR-088)",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/creation-protocol-enforcer.py\"",
+            "description": "Soft-warn when Agent dispatch is a creation request without a recent ADR session",
+            "timeout": 3000
           }
         ]
       }
