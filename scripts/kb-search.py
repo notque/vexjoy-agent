@@ -495,7 +495,8 @@ def _build_parser() -> argparse.ArgumentParser:
     idx = sub.add_parser("index", help="Build or rebuild FTS5 index for a topic.")
     idx.add_argument("--topic", required=True, help="Topic slug under research/")
     idx.add_argument(
-        "--output-root", default=None,
+        "--output-root",
+        default=None,
         help="Root research directory (default: research/ relative to repo root)",
     )
 
@@ -508,7 +509,8 @@ def _build_parser() -> argparse.ArgumentParser:
     srch.add_argument("--limit", type=int, default=10, help="Maximum results (default: 10)")
     srch.add_argument("--json", action="store_true", help="Emit JSON output")
     srch.add_argument(
-        "--output-root", default=None,
+        "--output-root",
+        default=None,
         help="Root research directory (default: research/ relative to repo root)",
     )
 
