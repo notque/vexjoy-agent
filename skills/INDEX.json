@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-01T19:17:41Z",
+  "generated": "2026-04-02T22:30:47Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -65,7 +65,7 @@
     },
     "auto-dream": {
       "file": "skills/auto-dream/SKILL.md",
-      "description": "Background memory consolidation and learning graduation — overnight knowledge lifecycle.",
+      "description": "Background memory consolidation and learning graduation \u2014 overnight knowledge lifecycle.",
       "triggers": [
         "dream",
         "consolidate memories",
@@ -409,6 +409,25 @@
       "category": "infrastructure",
       "user_invocable": false,
       "version": "2.0.0"
+    },
+    "explanation-traces": {
+      "file": "skills/explanation-traces/SKILL.md",
+      "description": "Query and display structured decision traces from routing, agent selection, and skill execution.",
+      "triggers": [
+        "why did you",
+        "explain routing",
+        "show trace",
+        "decision log",
+        "why that agent",
+        "explain decision",
+        "show decisions",
+        "trace log"
+      ],
+      "category": "analysis",
+      "force_route": true,
+      "user_invocable": true,
+      "version": "1.0.0",
+      "pairs_with": []
     },
     "fast": {
       "file": "skills/fast/SKILL.md",
@@ -815,7 +834,7 @@
     },
     "kairos-lite": {
       "file": "skills/kairos-lite/SKILL.md",
-      "description": "Proactive monitoring — checks GitHub, CI, and toolkit health, produces briefings.",
+      "description": "Proactive monitoring \u2014 checks GitHub, CI, and toolkit health, produces briefings.",
       "triggers": [
         "morning briefing",
         "what happened",
@@ -834,6 +853,51 @@
         "auto-dream"
       ],
       "model": "sonnet"
+    },
+    "kb-compile": {
+      "file": "skills/kb-compile/SKILL.md",
+      "description": "Compile raw knowledge base sources into structured wiki articles.",
+      "triggers": [
+        "compile knowledge base",
+        "kb compile",
+        "compile wiki",
+        "build knowledge base",
+        "compile raw sources"
+      ],
+      "category": "research",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "agent": "general-purpose"
+    },
+    "kb-lint": {
+      "file": "skills/kb-lint/SKILL.md",
+      "description": "Health check and lint a knowledge base wiki for consistency and gaps.",
+      "triggers": [
+        "lint knowledge base",
+        "kb lint",
+        "check kb health",
+        "knowledge base health",
+        "kb consistency"
+      ],
+      "category": "research",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "agent": "general-purpose"
+    },
+    "kb-query": {
+      "file": "skills/kb-query/SKILL.md",
+      "description": "Query a knowledge base topic and optionally file the answer.",
+      "triggers": [
+        "query knowledge base",
+        "kb query",
+        "ask knowledge base",
+        "search kb",
+        "kb question"
+      ],
+      "category": "research",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "agent": "general-purpose"
     },
     "kotlin-coroutines": {
       "file": "skills/kotlin-coroutines/SKILL.md",
@@ -906,6 +970,27 @@
       "category": "content-publishing",
       "user_invocable": false,
       "version": "2.0.0"
+    },
+    "multi-persona-critique": {
+      "file": "skills/multi-persona-critique/SKILL.md",
+      "description": "Parallel critique of proposals via 5 philosophical personas with consensus synthesis.",
+      "triggers": [
+        "critique these ideas",
+        "multi-persona review",
+        "philosophical critique",
+        "devil's advocate on ideas",
+        "stress test proposals",
+        "evaluate from multiple perspectives",
+        "get different viewpoints",
+        "critique proposals"
+      ],
+      "category": "analysis",
+      "user_invocable": true,
+      "version": "1.0.0",
+      "pairs_with": [
+        "roast",
+        "decision-helper"
+      ]
     },
     "nano-banana-builder": {
       "file": "skills/nano-banana-builder/SKILL.md",
@@ -1513,7 +1598,10 @@
         "eval skill",
         "benchmark skill",
         "skill triggers",
-        "skill quality"
+        "skill quality",
+        "self-improve skill",
+        "skill self-improvement",
+        "improve skill with variants"
       ],
       "category": "meta",
       "user_invocable": false,
@@ -1702,7 +1790,6 @@
         "systematic improvement"
       ],
       "category": "meta-tooling",
-      "force_route": true,
       "user_invocable": true,
       "version": "1.0.0",
       "pairs_with": [
