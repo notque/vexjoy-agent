@@ -10,18 +10,10 @@ routing:
     - expo
     - reanimated
     - flashlist
-    - legendlist
-    - metro
     - hermes
     - react-navigation
-    - expo-router
     - gesture handler
     - native stack
-    - mobile
-    - react native ios
-    - react native android
-    - expo ios
-    - expo android
   retro-topics:
     - react-native-patterns
     - mobile-performance
