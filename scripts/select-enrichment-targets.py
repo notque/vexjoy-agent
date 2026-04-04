@@ -31,8 +31,10 @@ def select_targets(audit_data: dict, max_targets: int) -> list[dict]:
     """
     components = audit_data.get("components", [])
 
-    # Filter to Level 0-1 only (below the --min-level threshold)
-    gaps = [c for c in components if c.get("level", 0) < 2]
+    # The audit's --min-level flag already filters the output, so all
+    # components in the audit data are below the target level. Pass them
+    # through without a second hardcoded filter.
+    gaps = components
 
     # Separate agents and skills
     agents = sorted(
