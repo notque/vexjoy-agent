@@ -1,7 +1,7 @@
 ---
 name: do
 description: "Classify user requests and route to the correct agent + skill. Primary entry point for all delegated work."
-version: 2.1.0
+version: 2.2.0
 user-invocable: true
 argument-hint: "<request>"
 allowed-tools:
@@ -88,21 +88,11 @@ This early detection exists because Phase 4 Step 0 is the most frequently skippe
 
 ### Phase 2: ROUTE
 
-**Goal**: Select the correct agent + skill combination from the INDEX files and routing tables.
+**Goal**: Select the correct agent + skill combination via the Haiku routing agent.
 
-**Step 1: Check force routes (deterministic)**
+All routing goes through a single Haiku agent dispatch. The manifest includes `FORCE`-labeled entries that the Haiku agent must prefer when intent matches — but matching is semantic, not keyword-based. This replaced the prior two-tier system (deterministic keyword check + LLM fallback) after A/B testing showed Haiku-only scored 10/10 vs 9/10 for the two-tier approach, with the keyword matcher producing false positives on ambiguous words (e.g. "fish for bugs" → `fish-shell-config`).
 
-Force routes are unambiguous, deterministic matches — run them via script first because they should never involve LLM judgment:
-
-```bash
-python3 scripts/index-router.py --request "{user_request}" --force-only --json
-```
-
-If `force_route` is set: use it directly. Force-routes encode critical domain patterns; skipping them causes the exact class of bugs they were designed to prevent. Force-route applies with no exceptions, no judgment calls about whether "it applies here."
-
-**Step 2: Haiku routing agent (semantic matching)**
-
-If no force route matched, dispatch a Haiku agent to select the best agent+skill combination. The Haiku agent understands intent, synonyms, and context — it can match "make my 3D scene look better" to `threejs-builder` even though no trigger keywords overlap.
+**Step 1: Dispatch Haiku routing agent**
 
 Generate the routing manifest, then dispatch the Haiku agent:
 
@@ -129,6 +119,14 @@ Return your answer as JSON:
   "confidence": "high/medium/low"
 }
 
+FORCE-ROUTE RULE: Entries marked "FORCE" in the manifest MUST be selected when their domain clearly matches the user's intent. However, FORCE matching is SEMANTIC, not keyword-based. Match on what the user MEANS, not individual words. Examples:
+- "push my changes" → pr-workflow (FORCE) ✓ (user means git push)
+- "push back on this design" → NOT pr-workflow (user means resist/argue)
+- "configure my fish shell" → fish-shell-config (FORCE) ✓ (user means Fish shell)
+- "fish for bugs" → NOT fish-shell-config (user means search for bugs)
+- "quick fix to the login page" → quick (FORCE) ✓ (user wants a small edit)
+- "quick overview of the architecture" → NOT quick (user wants exploration)
+
 Rules:
 - Pick the most specific match. "Go tests" → golang-general-engineer + go-patterns, not general-purpose.
 - Agent handles the domain. Skill handles the methodology. Pick both when possible.
@@ -136,9 +134,10 @@ Rules:
 - If nothing matches well, return all nulls with reasoning.
 - Prefer entries whose description semantically matches the request, not just keyword overlap.
 - For git operations (push, commit, PR, merge), ALWAYS select pr-workflow skill — these need quality gates.
+- Return a single skill name as a string, not an array. If multiple skills are needed, pick the primary one.
 ```
 
-**Step 2b: Apply the Haiku agent's recommendation**
+**Step 1b: Apply the Haiku agent's recommendation**
 
 Use the Haiku agent's `agent` and `skill` fields directly. If `confidence` is "low", fall back to reading INDEX files (`agents/INDEX.json`, `skills/INDEX.json`) and `references/routing-tables.md` to verify or override manually.
 
@@ -150,11 +149,11 @@ When `[cross-repo]` output is present, route to `.claude/agents/` local agents b
 
 Route all code modifications to domain agents, because domain agents carry language-specific expertise, testing methodology, and quality gates that the router lacks.
 
-**Step 3: Apply skill override** (task verb overrides default skill)
+**Step 2: Apply skill override** (task verb overrides default skill)
 
 When the request verb implies a specific methodology, override the agent's default skill. Common overrides: "review" → systematic-code-review, "debug" → systematic-debugging, "refactor" → systematic-refactoring, "TDD" → test-driven-development. Full override table in `references/routing-tables.md`.
 
-**Step 4: Display routing decision** (MANDATORY — do this NOW, before anything else)
+**Step 3: Display routing decision** (MANDATORY — do this NOW, before anything else)
 
 This banner MUST be the FIRST visible output for EVERY /do invocation. Display BEFORE creating plans, BEFORE invoking agents, BEFORE any work begins. No exceptions.
 
@@ -177,17 +176,17 @@ For Trivial: show `Classification: Trivial - [reason]` and `Handling directly (n
 
 **Optional: Verbose Routing** — OFF by default. When enabled, explain why each alternative was rejected.
 
-**Step 5: Record routing decision** (Simple+ only — skip Trivial):
+**Step 4: Record routing decision** (Simple+ only — skip Trivial):
 
 ```bash
 python3 ~/.claude/scripts/learning-db.py record \
     routing "{selected_agent}:{selected_skill}" \
-    "request: {first_200_chars} | complexity: {complexity} | force_used: {0|1} | llm_override: {0|1} | enhancements: {comma_separated_list}" \
+    "request: {first_200_chars} | complexity: {complexity} | enhancements: {comma_separated_list}" \
     --category routing-decision \
     --tags "{applicable_flags}"
 ```
 
-Tags: `force-route`, `llm-override`, `auto-pipeline` (as applicable). This call is advisory — if it fails, continue.
+Tags: `auto-pipeline` (as applicable). This call is advisory — if it fails, continue.
 
 **Gate**: Agent and skill selected. Banner displayed. Routing decision recorded. Proceed to Phase 3.
 
