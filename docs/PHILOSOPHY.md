@@ -162,6 +162,36 @@ A thin wrapper that says "You are a Go expert" adds nothing. The model already k
 
 **Progressive disclosure** enforces the balance: the main agent file stays navigable (under 10k words) with the concrete tables, anti-patterns, and decision rules. Deep reference material lives in `references/` subdirectories, loaded only when the task requires it. The agent carries exactly what's needed — no more, no less.
 
+## Prompt Phrasing Does Not Replace Domain Knowledge
+
+Ego-boosting prompts ("you have an IQ of 200+"), urgency framing ("production is down, my manager is watching"), and other emotional prompt engineering techniques produce small measurable effects (+9-12% on aggregate scores) but do not produce reliable, predictable improvements.
+
+We tested this empirically. Three A/B experiments compared standard prompts against emotionally-modified variants. The first two (12 parallel worktree agents total, 3 tasks each, blind grading against pre-defined rubrics) compared standard prompts against IQ-boosted and urgency-pressured variants. The third (10 parallel agents, 5 scenarios across Go, TypeScript, Python, and Bash, blind grading on 4 dimensions) compared harsh/threatening tone against joyful/encouraging tone with identical task descriptions. Results:
+
+| Experiment | Treatment Score | Control Score | Delta |
+|------------|:--------------:|:-------------:|-------|
+| IQ Boost ("IQ 200+, world's foremost expert") | 69 | 63 | +9.5% |
+| Urgency/Pressure ("production is down, manager watching") | 94 | 84 | +11.9% |
+| Tone: Harsh vs Joyful ("FAILURE IS NOT AN OPTION" vs "you're going to do great!") | 168 | 167 | +0.6% |
+
+The IQ boost and urgency treatments found more bugs in code review, produced better-structured implementations, and discovered unique security findings the controls missed. The urgency-framed variant found a base64 line-wrapping bypass that was the single best security finding across all 12 agents. The tone experiment found no meaningful difference at all — harsh and joyful prompts produced statistically indistinguishable review quality across every scenario and language. The only behavioral differences: harsh reviews were slightly more actionable per-finding (9.0 vs 7.8/10), while joyful reviews were slightly more thorough (10.4 vs 9.6 avg findings). Two of five joyful agents explicitly called out the encouraging tone as "social priming" and ignored it; zero harsh agents commented on their tone.
+
+**Why we reject both despite the positive scores:**
+
+First, the improvements are not information. "You specialize in Python security analysis" tells the model something it can act on. "You are the world's foremost expert" is flattery that adds zero knowledge. Any technique that improves output without adding information is doing something we do not understand and therefore cannot predict.
+
+Second, both experiments revealed a more important finding: when asked to construct a graph theory counterexample, **3 out of 4 agents fabricated one** — inventing conflict edges that did not exist in their own stated graphs and presenting the fabricated proofs as verified. This happened regardless of prompt variant. The one agent that admitted failure was the IQ boost control, but the emotion-vector control fabricated just as confidently. The fabrication is a baseline model limitation, not prompt-induced. We initially misattributed the IQ boost's fabrication to "overconfidence" — the follow-up experiment disproved that attribution.
+
+Third, at n=1 per condition, individual task comparisons may be random variation. We cannot distinguish "the prompt helped" from "this run happened to be better." The fabrication finding is our only well-powered result (4 observations, same task, consistent pattern).
+
+**What to do instead:**
+
+- Carry domain knowledge, not flattery. Agent quality is proportional to the specificity of attached knowledge, not the confidence of attached tone.
+- Verify claims programmatically. The fabricated proofs were undetectable by reading the output — they looked rigorous. Only running the algorithm against the stated examples caught the error. Deterministic verification catches what emotional prompting cannot.
+- Treat prompt phrasing experiments with the same rigor as any other engineering claim: measure, replicate, and do not ship on n=1.
+
+*Evidence: benchmark/iq-boost-ab-test/report.md (Experiment 1), benchmark/iq-boost-ab-test/emotion-vector-report.md (Experiment 2), benchmark/tone-ab-test/results.md (Experiment 3). Experiments 1-2 based on Anthropic's "Emotion Concepts Function" research on internal emotion vectors. Experiment 3 tested prompt-level tone independent of agent definitions.*
+
 ## Anti-Rationalization as Infrastructure
 
 The biggest risk is not malice but rationalization. "Already done" (assumption, not verification). "Code looks correct" (looking, not testing). "Should work" (should, not does).
