@@ -29,7 +29,8 @@ def select_targets(audit_data: dict, max_targets: int) -> list[dict]:
     Priority: agents before skills (agents are the primary knowledge carriers
     per PHILOSOPHY.md), then alphabetical within each group.
     """
-    components = audit_data.get("components", [])
+    # The audit JSON uses "gaps" for filtered results, "all" for everything
+    components = audit_data.get("gaps", audit_data.get("components", []))
 
     # The audit's --min-level flag already filters the output, so all
     # components in the audit data are below the target level. Pass them
