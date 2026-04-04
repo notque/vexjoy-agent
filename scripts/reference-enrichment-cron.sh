@@ -71,15 +71,16 @@ if command -v gh &>/dev/null; then
     echo "Open enrichment PRs: ${OPEN_PRS}/${MAX_OPEN_PRS}"
 fi
 
-# Run audit to find agents/skills below Level 2
-AUDIT_JSON=$(python3 "$REPO_DIR/scripts/audit-reference-depth.py" --json --min-level 2 2>/dev/null)
+# Run audit to find agents/skills below Level 3 (the goal is continuous
+# improvement toward Level 3, not just backfilling missing references)
+AUDIT_JSON=$(python3 "$REPO_DIR/scripts/audit-reference-depth.py" --json --min-level 3 2>/dev/null)
 
 # Select targets using the deterministic script (extracted per ADR consultation concern #4)
 TARGETS_TRIMMED=$(echo "$AUDIT_JSON" | python3 "$REPO_DIR/scripts/select-enrichment-targets.py" --max-targets "$MAX_TARGETS" --names-only)
 TARGETS_COUNT=$(echo "$TARGETS_TRIMMED" | python3 -c "import json,sys; print(len(json.load(sys.stdin)))")
 
 if [ "$TARGETS_COUNT" -eq 0 ]; then
-    echo "$(date -Iseconds) No gaps found (all components at Level 2+). Exiting cleanly."
+    echo "$(date -Iseconds) No gaps found (all components at Level 3). Exiting cleanly."
     exit 0
 fi
 
