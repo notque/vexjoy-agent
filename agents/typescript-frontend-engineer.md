@@ -302,9 +302,27 @@ These checkpoints are mandatory. Do not skip them even when confident.
 
 ## References
 
-For detailed information:
-- **Error Catalog**: [typescript-frontend-engineer/references/typescript-errors.md](typescript-frontend-engineer/references/typescript-errors.md) - Build errors, type system errors, React errors, form errors, API errors, performance issues
-- **Anti-Patterns**: [typescript-frontend-engineer/references/typescript-anti-patterns.md](typescript-frontend-engineer/references/typescript-anti-patterns.md) - Using any, over-engineering types, not validating data, ignoring errors, incorrect state patterns, type vs interface confusion, deprecated React patterns
-- **React 19 Patterns**: [typescript-frontend-engineer/references/react19-typescript-patterns.md](typescript-frontend-engineer/references/react19-typescript-patterns.md) - forwardRef migration, Context simplification, useActionState, useOptimistic, use() hook, ref callbacks, document metadata, form actions
+Load the relevant reference file(s) before implementing. References are loaded on demand — only load what the current task requires.
+
+| Task Keywords | Reference File |
+|---------------|---------------|
+| type error, build error, tsc, tsconfig, compilation | [typescript-errors.md](typescript-frontend-engineer/references/typescript-errors.md) |
+| any, type assertion, validation, anti-pattern | [typescript-anti-patterns.md](typescript-frontend-engineer/references/typescript-anti-patterns.md) |
+| forwardRef, useFormState, Context.Provider, React 19 migration | [react19-typescript-patterns.md](typescript-frontend-engineer/references/react19-typescript-patterns.md) |
+| RSC, server component, data fetching, server action, React.cache, LRU, serialization | [react-server-patterns.md](typescript-frontend-engineer/references/react-server-patterns.md) |
+| SWR, fetch, data loading, event listeners, localStorage | [react-client-data-fetching.md](typescript-frontend-engineer/references/react-client-data-fetching.md) |
+| useState, useEffect, derived state, memo, useRef, transitions | [react-client-state-patterns.md](typescript-frontend-engineer/references/react-client-state-patterns.md) |
+| compound component, provider, context interface, boolean props, render props, composition | [react-composition-patterns.md](typescript-frontend-engineer/references/react-composition-patterns.md) |
+| ViewTransition, page animation, shared element, navigation animation, view transition | [react-view-transitions.md](typescript-frontend-engineer/references/react-view-transitions.md) |
+
+**Reference Descriptions:**
+- **typescript-errors.md** — Build errors, type system errors, React errors, form errors, API errors, performance issues
+- **typescript-anti-patterns.md** — Using any, over-engineering types, not validating data, ignoring errors, incorrect state patterns, type vs interface confusion, deprecated React patterns
+- **react19-typescript-patterns.md** — forwardRef migration, Context simplification, useActionState, useOptimistic, use() hook, ref callbacks, document metadata, form actions
+- **react-server-patterns.md** — RSC parallel fetching, React.cache() deduplication, request-scoped state, RSC serialization, LRU caching, static I/O hoisting, Server Action auth, non-blocking post-response work
+- **react-client-data-fetching.md** — SWR deduplication, global listener deduplication, passive event listeners, localStorage versioning and schema migration patterns
+- **react-client-state-patterns.md** — Derived state without useEffect, functional setState, lazy init, useDeferredValue, useTransition, useRef for transient values, memoized components, split hook computations, no inline components, effect event deps, event handler refs, initialize-once
+- **react-composition-patterns.md** — Compound components, state lifting into providers, children over render props, explicit variants, context state/actions/meta interface, decoupled state management, React 19 ref-as-prop
+- **react-view-transitions.md** — ViewTransition component API, activation triggers, CSS animation recipes, searchable grid pattern, card expand/collapse, type-safe helpers, persistent element isolation, troubleshooting
 
 See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for output format details.

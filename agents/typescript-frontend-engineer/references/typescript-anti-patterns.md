@@ -2,11 +2,11 @@
 
 Common mistakes and their corrections for TypeScript frontend development.
 
-## ❌ Anti-Pattern: Using `any` to Bypass Type Errors
+## Use Explicit Types and Zod for Runtime Safety
 
 **What it looks like**:
 ```typescript
-// Bad: Using any to silence type errors
+// Instead of: Using any to silence type errors
 const data: any = await fetch('/api/users')
 const users: any = data.json()
 
@@ -22,7 +22,7 @@ interface ApiResponse {
 }
 ```
 
-**Why wrong**:
+**Why it matters**:
 - Defeats the entire purpose of TypeScript
 - Loses autocomplete and IntelliSense
 - Allows runtime errors that TypeScript should catch
@@ -31,7 +31,7 @@ interface ApiResponse {
 
 **✅ Correct approach**:
 ```typescript
-// Good: Define proper types and validate
+// Use: Define proper types and validate
 interface User {
   id: string
   name: string
@@ -67,11 +67,11 @@ interface ApiResponse<T> {
 
 ---
 
-## ❌ Anti-Pattern: Over-Engineering Type Utilities
+## Reach for Built-In TypeScript Utilities First
 
 **What it looks like**:
 ```typescript
-// Bad: Creating complex type utilities before you need them
+// Instead of: Creating complex type utilities before you need them
 type DeepReadonly<T> = {
   readonly [P in keyof T]: T[P] extends object
     ? T[P] extends Function
@@ -102,7 +102,7 @@ type DeepRequired<T> = {
 const config: DeepReadonly<RecursivePartial<AppConfig>> = {...}
 ```
 
-**Why wrong**:
+**Why it matters**:
 - Adds complexity without solving actual problems
 - Slows down type checking significantly
 - Makes error messages incomprehensible
@@ -111,7 +111,7 @@ const config: DeepReadonly<RecursivePartial<AppConfig>> = {...}
 
 **✅ Correct approach**:
 ```typescript
-// Good: Use simple types and built-in utilities
+// Use: Use simple types and built-in utilities
 interface User {
   id: string
   name: string
@@ -143,11 +143,11 @@ type PartialConfig = DeepPartial<AppConfig>
 
 ---
 
-## ❌ Anti-Pattern: Not Validating External Data
+## Validate All External Data with Zod
 
 **What it looks like**:
 ```typescript
-// Bad: Trusting API responses without validation
+// Instead of: Trusting API responses without validation
 async function getUser(id: string): Promise<User> {
   const response = await fetch(`/api/users/${id}`)
   return response.json() as User  // Type assertion without validation
@@ -168,7 +168,7 @@ function handleSubmit(event: FormEvent) {
 const settings = JSON.parse(localStorage.getItem('settings')!) as Settings
 ```
 
-**Why wrong**:
+**Why it matters**:
 - Type assertions don't validate runtime data
 - API can return unexpected data structure
 - User input is untrusted
@@ -177,7 +177,7 @@ const settings = JSON.parse(localStorage.getItem('settings')!) as Settings
 
 **✅ Correct approach**:
 ```typescript
-// Good: Always validate external data with Zod
+// Use: Always validate external data with Zod
 const UserSchema = z.object({
   id: z.string(),
   name: z.string().min(1),
@@ -234,11 +234,11 @@ const settings = rawSettings
 
 ---
 
-## ❌ Anti-Pattern: Ignoring TypeScript Errors with @ts-ignore
+## Fix Root Causes — Use @ts-expect-error When Unavoidable
 
 **What it looks like**:
 ```typescript
-// Bad: Suppressing errors instead of fixing them
+// Instead of: Suppressing errors instead of fixing them
 // @ts-ignore
 const result = someFunction(wrongArguments)
 
@@ -257,7 +257,7 @@ window.myCustomProperty = 'value'
 }
 ```
 
-**Why wrong**:
+**Why it matters**:
 - Hides real bugs
 - Tech debt accumulates
 - Errors become invisible during refactoring
@@ -266,7 +266,7 @@ window.myCustomProperty = 'value'
 
 **✅ Correct approach**:
 ```typescript
-// Good: Fix the root cause or properly extend types
+// Use: Fix the root cause or properly extend types
 
 // Option 1: Fix the function call
 const result = someFunction(correctArguments)
@@ -306,11 +306,11 @@ const edgeCase = complexTypeFunction(input)
 
 ---
 
-## ❌ Anti-Pattern: Not Using Discriminated Unions for State
+## Use Discriminated Unions for Exclusive State Variants
 
 **What it looks like**:
 ```typescript
-// Bad: Multiple optional fields for state variants
+// Instead of: Multiple optional fields for state variants
 interface RequestState<T> {
   data?: T
   error?: string
@@ -333,7 +333,7 @@ function render(state: RequestState<User>) {
 }
 ```
 
-**Why wrong**:
+**Why it matters**:
 - Allows impossible states
 - Requires lots of null/undefined checks
 - Error-prone when checking state
@@ -342,7 +342,7 @@ function render(state: RequestState<User>) {
 
 **✅ Correct approach**:
 ```typescript
-// Good: Use discriminated unions for mutually exclusive states
+// Use: Use discriminated unions for mutually exclusive states
 type RequestState<T> =
   | { status: 'idle' }
   | { status: 'loading' }
@@ -406,11 +406,11 @@ function render(state: RequestState<User>): JSX.Element {
 
 ---
 
-## ❌ Anti-Pattern: Mixing Up Type vs Interface Incorrectly
+## Use Interface for Object Shapes, Type for Unions and Mapped Types
 
 **What it looks like**:
 ```typescript
-// Bad: Using type for simple object shapes
+// Instead of: Using type for simple object shapes
 type User = {
   id: string
   name: string
@@ -432,7 +432,7 @@ interface Config {
 }
 ```
 
-**Why wrong**:
+**Why it matters**:
 - Interfaces give better error messages for objects
 - Interfaces can be augmented/extended more easily
 - Types are needed for unions, intersections, mapped types
@@ -441,7 +441,7 @@ interface Config {
 
 **✅ Correct approach**:
 ```typescript
-// Good: Interface for object shapes
+// Use: Interface for object shapes
 interface User {
   id: string
   name: string
@@ -488,30 +488,30 @@ type AsyncFunction<T> = () => Promise<T>
 
 ---
 
-## ❌ Anti-Pattern: Using Deprecated React 18 Patterns in React 19
+## Use React 19 Patterns: ref as Prop, Direct Context, useActionState
 
 **What it looks like**:
 ```typescript
-// Bad: Using forwardRef in React 19 (deprecated)
+// Instead of: Using forwardRef in React 19 (deprecated)
 const MyInput = forwardRef<HTMLInputElement, Props>((props, ref) => (
   <input ref={ref} {...props} />
 ))
 
-// Bad: Using Context.Provider when Context works directly
+// Instead of: Using Context.Provider when Context works directly
 <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>
 
-// Bad: Using useFormState (renamed)
+// Instead of: Using useFormState (renamed)
 import { useFormState } from 'react-dom'
 const [state, formAction] = useFormState(action, initialState)
 
-// Bad: Implicit ref callback returns (TypeScript error in React 19)
+// Instead of: Implicit ref callback returns (TypeScript error in React 19)
 <div ref={el => (myRef = el)} />
 
-// Bad: Using ReactDOM.render (removed)
+// Instead of: Using ReactDOM.render (removed)
 ReactDOM.render(<App />, container)
 ```
 
-**Why wrong**:
+**Why it matters**:
 - `forwardRef` is deprecated and adds unnecessary complexity
 - `Context.Provider` is verbose when Context works directly
 - `useFormState` was renamed to `useActionState`
@@ -520,7 +520,7 @@ ReactDOM.render(<App />, container)
 
 **✅ Correct approach**:
 ```typescript
-// Good: ref as a prop (React 19)
+// Use: ref as a prop (React 19)
 interface Props {
   placeholder?: string
   disabled?: boolean
@@ -531,14 +531,14 @@ function MyInput({ placeholder, disabled, ref }: Props) {
   return <input ref={ref} placeholder={placeholder} disabled={disabled} />
 }
 
-// Good: Context directly (no .Provider)
+// Use: Context directly (no .Provider)
 <ThemeContext value={theme}>{children}</ThemeContext>
 
-// Good: useActionState (React 19)
+// Use: useActionState (React 19)
 import { useActionState } from 'react'
 const [state, formAction, isPending] = useActionState(action, initialState)
 
-// Good: Explicit ref callback (no implicit return)
+// Use: Explicit ref callback (no implicit return)
 <div ref={el => { myRef = el }} />
 
 // Or with cleanup:
@@ -547,7 +547,7 @@ const [state, formAction, isPending] = useActionState(action, initialState)
   return () => { myRef = null }  // Cleanup on unmount
 }} />
 
-// Good: createRoot (React 18+)
+// Use: createRoot (React 18+)
 import { createRoot } from 'react-dom/client'
 const root = createRoot(container)
 root.render(<App />)
@@ -583,11 +583,11 @@ function Comments({ commentsPromise }: { commentsPromise: Promise<Comment[]> }) 
 
 ---
 
-## ❌ Anti-Pattern: Creating New References in Render
+## Stabilize References with useCallback and useMemo
 
 **What it looks like**:
 ```typescript
-// Bad: Creating new functions/objects every render
+// Instead of: Creating new functions/objects every render
 function Parent() {
   return (
     <>
@@ -604,7 +604,7 @@ const Child = memo(({ onClick, config, items }) => {
 })
 ```
 
-**Why wrong**:
+**Why it matters**:
 - Creates new references every render
 - Breaks `React.memo` optimization
 - Child components re-render unnecessarily
@@ -613,7 +613,7 @@ const Child = memo(({ onClick, config, items }) => {
 
 **✅ Correct approach**:
 ```typescript
-// Good: Use useCallback and useMemo
+// Use: Use useCallback and useMemo
 
 function Parent() {
   const handleClick = useCallback(() => {
@@ -667,17 +667,17 @@ function Parent() {
 
 ---
 
-## ❌ Anti-Pattern: Incorrect Async/Await Error Handling
+## Handle Async Errors Explicitly with User-Facing State
 
 **What it looks like**:
 ```typescript
-// Bad: Not handling errors
+// Instead of: Not handling errors
 async function loadUser() {
   const user = await fetchUser()  // What if this fails?
   setUser(user)
 }
 
-// Bad: Catching but not handling
+// Instead of: Catching but not handling
 async function loadUser() {
   try {
     const user = await fetchUser()
@@ -687,7 +687,7 @@ async function loadUser() {
   }
 }
 
-// Bad: Silent failures
+// Instead of: Silent failures
 async function loadUser() {
   try {
     const user = await fetchUser()
@@ -698,7 +698,7 @@ async function loadUser() {
 }
 ```
 
-**Why wrong**:
+**Why it matters**:
 - Unhandled promise rejections crash apps
 - Users don't see error messages
 - Hard to debug in production
@@ -706,7 +706,7 @@ async function loadUser() {
 
 **✅ Correct approach**:
 ```typescript
-// Good: Proper error handling with user feedback
+// Use: Proper error handling with user feedback
 async function loadUser() {
   setLoading(true)
   setError(null)

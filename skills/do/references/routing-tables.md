@@ -15,7 +15,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **golang-general-engineer** | User is working on Go code, .go files, Go modules, or any Go-language task that isn't covered by a force-route skill. NOT: tasks that merely mention "go" as a verb ("go ahead", "go fix this"). |
 | **golang-general-engineer-compact** | Same as golang-general-engineer but explicitly requested for tight context budgets or large-scale Go tasks where conciseness matters. |
 | **python-general-engineer** | User is working on Python code, .py files, pip packages, virtual environments, pytest, or any Python-language task. NOT: tasks that mention Python only as context ("this is like Python"). |
-| **typescript-frontend-engineer** | User is building or fixing TypeScript frontend code: React components, Next.js pages, UI logic, browser APIs, or frontend state management. |
+| **typescript-frontend-engineer** | User is building or fixing TypeScript frontend code: React components, Next.js pages, UI logic, browser APIs, or frontend state management. Now includes expanded React architecture references (component patterns, hooks, state management, rendering optimization). NOT: React Native mobile apps (use react-native-engineer). |
 | **typescript-debugging-engineer** | User needs to debug TypeScript-specific issues: async bugs, race conditions, type errors at runtime, or hard-to-reproduce frontend failures. |
 | **nodejs-api-engineer** | User is building or maintaining Node.js backends: Express APIs, REST endpoints, middleware, or server-side JavaScript. |
 | **kotlin-general-engineer** | User is working on Kotlin code, coroutines, Ktor, Compose Multiplatform, Gradle KTS, or any Kotlin-language task. NOT: tasks that merely mention Kotlin as context. |
@@ -28,8 +28,8 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **opensearch-elasticsearch-engineer** | User needs search cluster work: index management, query optimization, Elasticsearch/OpenSearch operations. |
 | **python-openstack-engineer** | User is developing OpenStack services, plugins, or components — specifically within the OpenStack ecosystem. |
 | **sqlite-peewee-engineer** | User is working with SQLite databases via the Peewee ORM in Python. |
-| **swift-general-engineer** | User is working on Swift code, iOS, macOS, SwiftUI, server-side Swift, or any Swift-language task including concurrency and testing. NOT: tasks that merely mention Swift as context. |
-| **performance-optimization-engineer** | User wants to improve web performance: Core Web Vitals, load times, bundle size, rendering optimization. |
+| **swift-general-engineer** | User is working on Swift code, iOS, macOS, SwiftUI, server-side Swift, or any Swift-language task including concurrency and testing. NOT: tasks that merely mention Swift as context. NOT: React Native apps targeting iOS (use react-native-engineer). |
+| **performance-optimization-engineer** | User wants to improve web performance: Core Web Vitals, load times, bundle size, rendering optimization. Now includes expanded React performance references (React Compiler, memoization, concurrent features, profiling). NOT: React Native mobile performance (use react-native-engineer). |
 | **php-general-engineer** | User is working on PHP code, Laravel, Symfony, Composer, or any PHP-language task including modern PHP 8.x patterns and security. NOT: tasks that merely mention PHP as context. |
 | **mcp-local-docs-engineer** | User wants to build an MCP (Model Context Protocol) server or turn a repository into an MCP documentation source. |
 | **research-coordinator-engineer** | User needs systematic research with multiple sources, parallel investigation, or evidence synthesis before acting. NOT: a quick web lookup or single-source check. |
@@ -44,6 +44,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **ui-design-engineer** | User is designing or implementing UI/UX for web applications: layout, Tailwind styling, component design, or visual hierarchy. |
 | **perses-engineer** | User is working with the Perses observability platform: dashboards, plugins, operator/K8s deployment, or core development. |
 | **github-profile-rules-engineer** | User wants to extract coding conventions, programming rules, or style guidelines from a GitHub profile's repositories. |
+| **react-native-engineer** | User is building or optimizing React Native or Expo mobile apps: list performance (FlashList, LegendList), animations (Reanimated, gesture handler), navigation (native-stack, expo-router), native UI patterns, or mobile-specific state management. NOT: React web apps (use typescript-frontend-engineer). NOT: React Native animation design mockups (use ui-design-engineer for design, then react-native-engineer for Reanimated implementation). NOT: mobile list virtualization or JS thread optimization (performance-optimization-engineer covers web Core Web Vitals only — react-native-engineer covers mobile performance). NOT: React Native apps targeting iOS/Android with Swift/Kotlin native modules (use swift-general-engineer or kotlin-general-engineer for native layer). |
 | **react-portfolio-engineer** | User is building a React portfolio or gallery website, typically for creative professionals. |
 | **nextjs-ecommerce-engineer** | User is building an e-commerce site with Next.js: product pages, cart, checkout flows. |
 | **toolkit-governance-engineer** | User wants to maintain or modify the toolkit's own internal structure: editing skill/agent files, updating routing tables, managing ADRs, regenerating INDEX.json, or enforcing frontmatter compliance. NOT: creating brand-new agents (use skill-creator), writing application code (domain agents), or reviewing external PRs (reviewer agents). |
@@ -382,6 +383,9 @@ Consolidated reviewer agents, each covering multiple review perspectives:
 | "review this" | comprehensive-review | Multi-wave code review |
 | "look at this code" | comprehensive-review | Code review request |
 | "debug the goroutine leak" | golang-general-engineer + systematic-debugging | Go domain + diagnosis |
+| "optimize FlatList scroll performance" | react-native-engineer | React Native list performance domain |
+| "add Reanimated spring animation" | react-native-engineer | React Native animation domain |
+| "set up expo-router navigation" | react-native-engineer | React Native navigation domain |
 | "write a blog post about X" | voice-writer | Blog content generation |
 | "article about kubernetes" | voice-writer | Long-form content in voice |
 | "write for the website" | voice-writer | Website content generation |

@@ -51,6 +51,16 @@ The `adr/` directory is gitignored — ADR files are local development artifacts
 
 ---
 
+## Agent Reference Files
+
+When creating or modifying agents with `references/` directories, run validation before committing:
+- `python3 scripts/validate-references.py --agent {name}` — structural checks
+- `python3 -m pytest scripts/tests/test_reference_loading.py -k {name}` — progressive disclosure tests
+
+Standards: reference files <= 500 lines, joy-checked framing, loading table in agent body. Full spec in `skills/do/references/repo-architecture.md`.
+
+---
+
 ## Reference Documentation
 
 Domain-specific reference content lives in skill reference files, loaded on demand:

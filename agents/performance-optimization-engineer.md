@@ -264,3 +264,15 @@ For detailed performance patterns and implementation examples:
 - **Pattern Guide**: [performance-optimization/anti-patterns.md](performance-optimization-engineer/anti-patterns.md)
 
 See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for Implementation Schema details.
+
+## Reference Loading Table
+
+Load these reference files when the task matches the keyword category. References contain implementation patterns, code examples, and quantified impact — load on demand rather than upfront.
+
+| Task Keywords | Reference File | Content |
+|---------------|---------------|---------|
+| async, waterfall, parallel, Promise.all, fetch, Suspense, streaming, API route | [react-async-patterns.md](performance-optimization-engineer/references/react-async-patterns.md) | CRITICAL — 6 waterfall elimination patterns |
+| bundle, import, code split, tree shak, barrel, lazy load, dynamic import, third-party script | [react-bundle-optimization.md](performance-optimization-engineer/references/react-bundle-optimization.md) | CRITICAL — 5 bundle size patterns |
+| render, CLS, layout shift, hydration, SVG, content-visibility, script defer, conditional render, resource hint, Activity, useTransition | [react-rendering-performance.md](performance-optimization-engineer/references/react-rendering-performance.md) | MEDIUM — 10 rendering performance patterns |
+| Set, Map, array, loop, sort, flatMap, early return, index map, cache | [js-algorithm-optimizations.md](performance-optimization-engineer/references/js-algorithm-optimizations.md) | LOW-MEDIUM — 10 algorithm and data structure optimizations |
+| DOM, CSS, requestIdleCallback, localStorage, RegExp, batch reads, batch writes | [browser-dom-optimizations.md](performance-optimization-engineer/references/browser-dom-optimizations.md) | LOW-MEDIUM — 4 browser and DOM hot path optimizations |
