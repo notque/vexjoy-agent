@@ -90,23 +90,57 @@ This early detection exists because Phase 4 Step 0 is the most frequently skippe
 
 **Goal**: Select the correct agent + skill combination from the INDEX files and routing tables.
 
-**Step 1: Run deterministic pre-pass**
+**Step 1: Check force routes (deterministic)**
 
-Call `scripts/index-router.py` as the FIRST routing action — it performs trigger matching and candidate scoring in <100ms, saving ~26K tokens vs reading INDEX files manually:
+Force routes are unambiguous, deterministic matches — run them via script first because they should never involve LLM judgment:
 
 ```bash
-python3 scripts/index-router.py --request "{user_request}" --json
+python3 scripts/index-router.py --request "{user_request}" --force-only --json
 ```
 
-The script returns: `force_route` (definitive trigger match or null), `candidates` (top-10 scored by trigger overlap, each with name/score/agent/model), `pairs_with` (companion skills), `model_preference`, and `composition_chains`.
+If `force_route` is set: use it directly. Force-routes encode critical domain patterns; skipping them causes the exact class of bugs they were designed to prevent. Force-route applies with no exceptions, no judgment calls about whether "it applies here."
 
-**Step 2: Apply force-route or select from candidates**
+**Step 2: Haiku routing agent (semantic matching)**
 
-**If `force_route` is set**: Use it directly — the script found a definitive trigger match. No need to read INDEX files. Force-routes encode critical domain patterns; skipping them causes the exact class of bugs they were designed to prevent. Force-route applies with no exceptions, no judgment calls about whether "it applies here."
+If no force route matched, dispatch a Haiku agent to select the best agent+skill combination. The Haiku agent understands intent, synonyms, and context — it can match "make my 3D scene look better" to `threejs-builder` even though no trigger keywords overlap.
 
-**If `force_route` is null but `candidates` are present**: Use the script's scored candidate list to select the best match. Use LLM judgment to tiebreak when multiple candidates have similar scores. When multiple candidates have similar trigger overlap, use `category` to prefer domain-matched entries and `complexity` to gauge expected scope.
+Generate the routing manifest, then dispatch the Haiku agent:
 
-**If candidates are empty or no match**: Fall back to reading INDEX files (`agents/INDEX.json`, `skills/INDEX.json`) and `references/routing-tables.md` to identify candidates manually. This path consumes more tokens but covers requests that don't match any trigger vocabulary.
+```bash
+python3 scripts/routing-manifest.py
+```
+
+Dispatch the Agent tool with `model: "haiku"` and this prompt structure:
+
+```
+You are a routing agent. Given a user request and a manifest of available agents, skills, and pipelines, select the BEST agent+skill combination.
+
+USER REQUEST: {user_request}
+
+ROUTING MANIFEST:
+{output of routing-manifest.py}
+
+Return your answer as JSON:
+{
+  "agent": "agent-name or null",
+  "skill": "skill-name or null",
+  "pipeline": "pipeline-name or null",
+  "reasoning": "one sentence why",
+  "confidence": "high/medium/low"
+}
+
+Rules:
+- Pick the most specific match. "Go tests" → golang-general-engineer + go-patterns, not general-purpose.
+- Agent handles the domain. Skill handles the methodology. Pick both when possible.
+- If the request implies a task verb (review, debug, refactor, test), prefer skills that match that verb.
+- If nothing matches well, return all nulls with reasoning.
+- Prefer entries whose description semantically matches the request, not just keyword overlap.
+- For git operations (push, commit, PR, merge), ALWAYS select pr-workflow skill — these need quality gates.
+```
+
+**Step 2b: Apply the Haiku agent's recommendation**
+
+Use the Haiku agent's `agent` and `skill` fields directly. If `confidence` is "low", fall back to reading INDEX files (`agents/INDEX.json`, `skills/INDEX.json`) and `references/routing-tables.md` to verify or override manually.
 
 **Critical**: "push", "commit", "create PR", "merge" are NOT trivial git commands. They MUST route through skills that run quality gates, because running raw `git push`, `git commit`, `gh pr create`, or `gh pr merge` directly bypasses lint checks, test runs, review loops, CI verification, and repo classification.
 
