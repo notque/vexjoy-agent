@@ -333,11 +333,17 @@ STOP and ask the user (get explicit confirmation) when:
 
 ## References
 
-For detailed data engineering patterns:
-- **Dimensional Modeling**: Kimball methodology, star vs snowflake trade-offs, data vault 2.0
-- **Pipeline Orchestration**: DAG design patterns, retry strategies, backfill procedures
-- **Data Quality**: Validation frameworks, contract testing, freshness monitoring
-- **Stream Processing**: Kafka architecture, windowing strategies, exactly-once semantics
+Load these reference files when the task type matches:
+
+| Task Type | Reference File |
+|-----------|---------------|
+| MERGE, INSERT ON CONFLICT, partition overwrite, deduplication, incremental SQL | [references/sql.md](references/sql.md) |
+| dbt tests, Great Expectations, source freshness, row count reconciliation | [references/testing.md](references/testing.md) |
+| Partitioning, clustering, materialized views, incremental processing, warehouse cost | [references/performance.md](references/performance.md) |
+
+- **Pipeline SQL Patterns**: [references/sql.md](references/sql.md) — Idempotent SQL: MERGE, ON CONFLICT, partition overwrite, deduplication, SELECT * anti-patterns
+- **Data Quality Testing**: [references/testing.md](references/testing.md) — dbt schema tests, singular tests, freshness checks, row count reconciliation
+- **Warehouse Performance**: [references/performance.md](references/performance.md) — Partitioning strategies, clustering keys, materialized views, incremental processing
 
 See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for output format details.
 See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md) for universal rationalization patterns.

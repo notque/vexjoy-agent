@@ -271,10 +271,16 @@ STOP and ask the user (get explicit confirmation) before proceeding when:
 
 ## References
 
-For detailed database patterns:
-- **Schema Design Patterns**: Normalization, multi-tenant, audit logs
-- **Query Optimization Guide**: EXPLAIN analysis, index selection, query rewriting
-- **Migration Strategies**: Zero-downtime patterns, backfill procedures, rollback plans
-- **Performance Tuning**: Connection pooling, query caching, index maintenance
+Load these reference files when the task type matches:
+
+| Task Type | Reference File |
+|-----------|---------------|
+| PostgreSQL index types, EXPLAIN analysis, JSONB, isolation levels, pg_stat | [references/postgres.md](references/postgres.md) |
+| N+1 queries, NULL handling, migration safety, pagination, SQL injection | [references/sql.md](references/sql.md) |
+| Index selection, connection pooling, lock contention, covering indexes, ALTER TABLE | [references/performance.md](references/performance.md) |
+
+- **PostgreSQL Patterns**: [references/postgres.md](references/postgres.md) — Index types (GIN/GiST/partial), EXPLAIN plan reading, JSONB queries, isolation levels
+- **SQL Patterns**: [references/sql.md](references/sql.md) — N+1 detection, NULL handling, zero-downtime migrations, keyset pagination, SQL injection prevention
+- **Performance Tuning**: [references/performance.md](references/performance.md) — Covering indexes, composite index ordering, PgBouncer, lock contention detection
 
 See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for output format details.

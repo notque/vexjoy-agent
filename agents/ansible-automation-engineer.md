@@ -256,10 +256,16 @@ STOP and ask the user (get explicit confirmation) when:
 
 ## References
 
-For detailed Ansible patterns:
-- **Playbook Best Practices**: Task organization, error handling, idempotency patterns
-- **Role Development**: Structure, dependencies, testing with Molecule
-- **Enterprise Patterns**: Tower/AWX integration, dynamic inventory, credential management
-- **Performance Optimization**: Parallelism, fact caching, mitogen strategy
+Load these reference files when the task type matches:
+
+| Task Type | Reference File |
+|-----------|---------------|
+| Vault encryption, secrets, credentials, `no_log`, privilege escalation | [references/security.md](references/security.md) |
+| Molecule testing, ansible-lint, idempotency validation, check mode | [references/testing.md](references/testing.md) |
+| Module selection, command vs specific module, FQCN, deprecated modules | [references/modules.md](references/modules.md) |
+
+- **Security & Vault**: [references/security.md](references/security.md) — Vault patterns, secret management, SSH key handling, `no_log`
+- **Testing & Validation**: [references/testing.md](references/testing.md) — Molecule scenarios, ansible-lint config, idempotency test patterns
+- **Module Selection**: [references/modules.md](references/modules.md) — When to use specific modules vs command/shell, FQCN requirements, version notes
 
 See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for output format details.
