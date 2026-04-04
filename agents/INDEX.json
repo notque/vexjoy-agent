@@ -20,6 +20,30 @@
       "complexity": "Medium-Complex",
       "category": "infrastructure"
     },
+    "combat-effects-upgrade": {
+      "file": "combat-effects-upgrade.md",
+      "short_description": "Zero-dependency combat visual upgrades: CSS particle replacement, Framer Motion combat juice, CSS 3D card transforms",
+      "triggers": [
+        "combat effects",
+        "CSS particles",
+        "particle replacement",
+        "framer motion combat",
+        "combat animations",
+        "card transforms",
+        "CSS 3D",
+        "combat juice",
+        "visual effects upgrade",
+        "effects.ts",
+        "combat polish"
+      ],
+      "pairs_with": [
+        "typescript-frontend-engineer",
+        "ui-design-engineer",
+        "pixijs-combat-renderer"
+      ],
+      "complexity": "Medium",
+      "category": "frontend"
+    },
     "data-engineer": {
       "file": "data-engineer.md",
       "short_description": "Data pipelines, ETL/ELT, warehouse design, dimensional modeling, stream processing",
@@ -105,6 +129,7 @@
         "focused go"
       ],
       "pairs_with": [
+        "go-patterns",
         "go-patterns"
       ],
       "complexity": "Medium-Complex",
@@ -375,6 +400,29 @@
       "complexity": "Complex",
       "category": "meta"
     },
+    "pixijs-combat-renderer": {
+      "file": "pixijs-combat-renderer.md",
+      "short_description": "PixiJS v8 2D WebGL combat rendering: @pixi/react hybrid canvas, normal maps, GPU particles, post-processing",
+      "triggers": [
+        "pixijs",
+        "pixi.js",
+        "pixi react",
+        "@pixi/react",
+        "2D WebGL",
+        "GPU particles",
+        "combat renderer",
+        "normal map 2D",
+        "pixi filters",
+        "sprite rendering GPU"
+      ],
+      "pairs_with": [
+        "typescript-frontend-engineer",
+        "ui-design-engineer",
+        "combat-effects-upgrade"
+      ],
+      "complexity": "Medium",
+      "category": "frontend"
+    },
     "project-coordinator-engineer": {
       "file": "project-coordinator-engineer.md",
       "short_description": "Multi-agent project coordination: task breakdown, dependency management, progress tracking",
@@ -636,6 +684,29 @@
       "complexity": "Medium-Complex",
       "category": "review"
     },
+    "rive-skeletal-animator": {
+      "file": "rive-skeletal-animator.md",
+      "short_description": "Rive skeletal animation: @rive-app/react-canvas, state machines, character pipelines, combat integration",
+      "triggers": [
+        "rive",
+        "rive-app",
+        "skeletal animation",
+        "character animation",
+        "spine animation",
+        "animation state machine",
+        "idle animation",
+        "hit reaction animation",
+        "@rive-app/react-canvas",
+        ".riv files"
+      ],
+      "pairs_with": [
+        "typescript-frontend-engineer",
+        "ui-design-engineer",
+        "pixijs-combat-renderer"
+      ],
+      "complexity": "Medium",
+      "category": "frontend"
+    },
     "sqlite-peewee-engineer": {
       "file": "sqlite-peewee-engineer.md",
       "short_description": "SQLite with Peewee ORM: model definition, query optimization, migrations, transactions",
@@ -840,6 +911,95 @@
       ],
       "complexity": "Medium",
       "category": "language"
+    },
+    "wrestlejoy-amy-writer-compact": {
+      "file": "wrestlejoy-amy-writer-compact.md",
+      "short_description": "Use this agent when you need to write WrestleJoy content in Amy Nemmity's voice with context optimization",
+      "triggers": [
+        "WrestleJoy",
+        "Amy voice",
+        "Amy compact"
+      ],
+      "pairs_with": [
+        "voice-writer",
+        "wrestlejoy-mmr-research"
+      ],
+      "complexity": "Comprehensive",
+      "category": "content"
+    },
+    "wrestlejoy-amy-writer-expanded": {
+      "file": "wrestlejoy-amy-writer-expanded.md",
+      "short_description": "Use this agent when you need to write WrestleJoy content in Amy Nemmity's voice with maximum depth and extensive examples",
+      "triggers": [
+        "WrestleJoy",
+        "Amy voice",
+        "Amy expanded"
+      ],
+      "pairs_with": [
+        "voice-writer",
+        "wrestlejoy-mmr-research"
+      ],
+      "complexity": "Comprehensive",
+      "category": "content"
+    },
+    "wrestlejoy-amy-writer": {
+      "file": "wrestlejoy-amy-writer.md",
+      "short_description": "Use this agent when writing WrestleJoy content in Amy Nemmity's voice",
+      "triggers": [
+        "WrestleJoy",
+        "Amy voice",
+        "Amy's voice",
+        "Amy Nemmity",
+        "wrestling article",
+        "wrestling awards",
+        "Amy style"
+      ],
+      "pairs_with": [
+        "voice-writer",
+        "wrestlejoy-mmr-research",
+        "wrestlejoy-research-transform"
+      ],
+      "complexity": "Comprehensive",
+      "category": "content"
+    },
+    "wrestlejoy-news-editor": {
+      "file": "wrestlejoy-news-editor.md",
+      "short_description": "Editorial review agent for WrestleJoy automated news pipeline",
+      "triggers": [
+        "wrestlejoy edit",
+        "review article",
+        "editorial check",
+        "news review",
+        "check article tone",
+        "wrestlejoy quality check",
+        "pre-publish review"
+      ],
+      "pairs_with": [
+        "wrestlejoy-news-producer",
+        "wrestlejoy-news-pipeline",
+        "voice-andy-nemmity"
+      ],
+      "complexity": "Simple",
+      "category": "content"
+    },
+    "wrestlejoy-news-producer": {
+      "file": "wrestlejoy-news-producer.md",
+      "short_description": "Orchestrator agent for the WrestleJoy automated news production pipeline",
+      "triggers": [
+        "wrestlejoy news",
+        "aew news",
+        "wrestling news pipeline",
+        "news automation"
+      ],
+      "pairs_with": [
+        "wrestlejoy-news-pipeline",
+        "wrestlejoy-news-editor",
+        "voice-andy-nemmity",
+        "wordpress-uploader",
+        "seo-optimizer"
+      ],
+      "complexity": "Complex",
+      "category": "content"
     }
   }
 }

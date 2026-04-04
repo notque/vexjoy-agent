@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-04T17:34:35Z",
+  "generated": "2026-04-04T18:51:18Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -587,6 +587,71 @@
       ],
       "model": "opus"
     },
+    "game-asset-generator": {
+      "file": "skills/game-asset-generator/SKILL.md",
+      "description": "AI game asset generation: 3D models, environments, sprites, images.",
+      "triggers": [
+        "meshy",
+        "meshyai",
+        "generate 3d model",
+        "text to 3d",
+        "image to 3d",
+        "world labs",
+        "gaussian splat",
+        "splat environment",
+        "game asset",
+        "generate sprite",
+        "pixel art",
+        "fal ai",
+        "fal.ai",
+        "generate texture",
+        "generate image for game",
+        "3d character",
+        "game model",
+        "rig model",
+        "animate model",
+        "game environment",
+        "sketchfab",
+        "poly pizza",
+        "poly haven"
+      ],
+      "category": "game-development",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "pairs_with": [
+        "threejs-builder",
+        "typescript-frontend-engineer"
+      ]
+    },
+    "game-pipeline": {
+      "file": "skills/game-pipeline/SKILL.md",
+      "description": "Game lifecycle orchestrator: scaffold, assets, audio, QA, deploy.",
+      "triggers": [
+        "make game",
+        "game pipeline",
+        "game audio",
+        "add audio game",
+        "game testing",
+        "game qa",
+        "playtest",
+        "deploy game",
+        "ship game",
+        "promo video",
+        "record gameplay",
+        "game polish",
+        "add juice",
+        "screen shake",
+        "capacitor ios"
+      ],
+      "category": "game-development",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "pairs_with": [
+        "threejs-builder",
+        "phaser-gamedev",
+        "game-asset-generator"
+      ]
+    },
     "gemini-image-generator": {
       "file": "skills/gemini-image-generator/SKILL.md",
       "description": "Generate images from text prompts via Google Gemini.",
@@ -1091,6 +1156,26 @@
       ],
       "agent": "perses-engineer",
       "model": "sonnet"
+    },
+    "phaser-gamedev": {
+      "file": "skills/phaser-gamedev/SKILL.md",
+      "description": "Phaser 3 2D game dev: scenes, physics, tilemaps, sprites, polish.",
+      "triggers": [
+        "phaser",
+        "2d game",
+        "platformer",
+        "arcade physics",
+        "tilemap",
+        "sprite sheet",
+        "side scroller"
+      ],
+      "category": "game-development",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "pairs_with": [
+        "typescript-frontend-engineer",
+        "game-asset-generator"
+      ]
     },
     "php-quality": {
       "file": "skills/php-quality/SKILL.md",
@@ -1797,11 +1882,18 @@
         "three shading language",
         "compute shader three",
         "WebGPURenderer",
-        "node material three"
+        "node material three",
+        "game architecture three",
+        "gltf loading",
+        "glb model",
+        "animation state machine three",
+        "eventbus game",
+        "game state management three",
+        "three.js game"
       ],
       "category": "frontend",
       "user_invocable": false,
-      "version": "3.0.0",
+      "version": "3.1.0",
       "pairs_with": [
         "typescript-frontend-engineer",
         "react-native-engineer",
@@ -1936,6 +2028,29 @@
       "user_invocable": true,
       "version": "2.0.0",
       "model": "sonnet"
+    },
+    "webgl-card-effects": {
+      "file": "skills/webgl-card-effects/SKILL.md",
+      "description": "Standalone WebGL fragment shaders for card visual effects: holographic foil, shimmer, rarity glow.",
+      "triggers": [
+        "card effects",
+        "holographic",
+        "foil effect",
+        "card shimmer",
+        "card glow",
+        "shader card",
+        "WebGL card",
+        "rarity effects",
+        "Balatro effect",
+        "card visual effects"
+      ],
+      "category": "frontend",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "pairs_with": [
+        "typescript-frontend-engineer",
+        "ui-design-engineer"
+      ]
     },
     "with-anti-rationalization": {
       "file": "skills/with-anti-rationalization/SKILL.md",
