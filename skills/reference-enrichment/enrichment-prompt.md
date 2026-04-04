@@ -54,8 +54,9 @@ For each target name in the targets list:
 1. Stage only the files you created/modified (reference files, agent/skill body updates)
 2. Commit with: `feat(refs): nightly enrichment — {names} (Level {before}→{after})`
 3. Push: `git push -u origin enrich/refs-${ENRICH_DATE}`
-4. Create PR: `gh pr create --title "feat(refs): nightly reference enrichment ${ENRICH_DATE}" --body "..."`
+4. Create PR and auto-merge: `gh pr create --title "feat(refs): nightly reference enrichment ${ENRICH_DATE}" --body "..."` then `gh pr merge --squash --auto --delete-branch`
    - PR body should include: targets processed, level before/after for each, list of new reference files
+   - The `--auto` flag merges once CI passes — no human review needed for reference-only changes
 5. Switch back to main: `git checkout main`
 
 ## Safety Constraints
