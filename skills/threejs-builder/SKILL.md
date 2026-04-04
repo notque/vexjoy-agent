@@ -1,7 +1,7 @@
 ---
 name: threejs-builder
 description: "Three.js app builder: imperative, React Three Fiber, and WebGPU in 4 phases."
-version: 3.0.0
+version: 3.1.0
 user-invocable: false
 command: /threejs
 allowed-tools:
@@ -33,6 +33,13 @@ routing:
     - compute shader three
     - WebGPURenderer
     - node material three
+    - game architecture three
+    - gltf loading
+    - glb model
+    - animation state machine three
+    - eventbus game
+    - game state management three
+    - three.js game
   pairs_with:
     - typescript-frontend-engineer
     - react-native-engineer
@@ -68,13 +75,17 @@ This skill builds complete Three.js web applications using a **Phased Constructi
 
 Scan the user's request, existing project files (package.json, imports), and stated requirements to identify which paradigm applies:
 
-| Signal | Paradigm | Reference to Load |
-|--------|----------|-------------------|
+| Signal | Paradigm / Context | Reference to Load |
+|--------|-------------------|-------------------|
 | `@react-three/fiber`, `r3f`, `drei`, `useFrame`, `<Canvas>`, `<mesh>`, React project with 3D | **React Three Fiber** | `references/react-three-fiber.md` |
 | `WebGPURenderer`, `TSL`, `tsl`, `compute shader`, `wgsl`, `node material`, WebGPU mentioned | **WebGPU** | `references/webgpu.md` |
 | Standalone HTML, CDN imports, `new THREE.Scene()`, no React, vanilla JS/TS | **Imperative** | `references/advanced-topics.md` (load as needed) |
+| Game project: `EventBus`, `GameState`, player controller, enemies, scoring, multiple game systems | **Game architecture** | `references/game-architecture.md` + `references/game-patterns.md` (alongside paradigm reference) |
+| GLTF/GLB model loading, `.glb` files, animated characters, skeletal rigs, model import | **GLTF loading** | `references/gltf-loading.md` (alongside paradigm reference) |
 
 If ambiguous (e.g., user says "3D scene" with no project context), ask which paradigm — don't guess, because imperative Three.js patterns actively conflict with R3F patterns (OrbitControls setup, animation loops, component lifecycle).
+
+Game and GLTF references load **alongside** the paradigm reference — they are complementary, not alternative. A game project using R3F loads both `react-three-fiber.md` and the relevant game references.
 
 **After detecting paradigm**: Read the corresponding reference file. The reference contains paradigm-specific patterns, anti-patterns, and component selection guidance that override the generic steps below.
 
@@ -282,3 +293,6 @@ Solution:
 | `references/react-three-fiber.md` | R3F paradigm | Declarative patterns, Drei helpers, camera pitfalls, post-processing, Zustand, performance |
 | `references/webgpu.md` | WebGPU paradigm | WebGPURenderer, TSL shaders, compute shaders, version-specific changes, device loss |
 | `references/visual-polish.md` | Visual quality signal | Material recipes, dramatic lighting, post-processing stacking, HDR environments, shadow quality |
+| `references/gltf-loading.md` | GLTF/GLB model loading signal | Coordinate system contract, SkeletonUtils.clone, model caching, auto-centering, bone hierarchy, asset manifest |
+| `references/game-patterns.md` | Game project signal | Animation state machine, camera-relative movement, delta capping, mobile input, player controller |
+| `references/game-architecture.md` | Game project signal | EventBus, GameState singleton, Constants module, restart-safety, pre-ship checklist |
