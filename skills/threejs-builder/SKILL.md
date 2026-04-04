@@ -1,7 +1,7 @@
 ---
 name: threejs-builder
-description: "Three.js app builder: Design, Build, Animate, Polish in 4 phases."
-version: 2.0.0
+description: "Three.js app builder: imperative, React Three Fiber, and WebGPU in 4 phases."
+version: 3.0.0
 user-invocable: false
 command: /threejs
 allowed-tools:
@@ -19,20 +19,35 @@ routing:
     - 3D web
     - 3D scene
     - WebGL
+    - WebGPU
     - 3D animation
     - 3D graphics
+    - react three fiber
+    - r3f
+    - drei
+    - react-three
+    - "@react-three/fiber"
+    - postprocessing 3D
+    - TSL shader
+    - three shading language
+    - compute shader three
+    - WebGPURenderer
+    - node material three
   pairs_with:
     - typescript-frontend-engineer
+    - react-native-engineer
     - distinctive-frontend-design
+  complexity: Medium
+  category: frontend
 ---
 
 # Three.js Builder Skill
 
 ## Overview
 
-This skill builds complete Three.js web applications using a **Phased Construction** pattern with four phases: Design, Build, Animate, Polish. It is designed for modern Three.js (r150+) ES module patterns and produces scene-graph-driven 3D visualizations.
+This skill builds complete Three.js web applications using a **Phased Construction** pattern with four phases: Design, Build, Animate, Polish. It supports three paradigms — imperative Three.js, React Three Fiber (R3F), and WebGPU — detected automatically from project context. Only the relevant paradigm's reference is loaded.
 
-**Scope**: Use for 3D web apps, interactive scenes, WebGL visualizations, and product viewers. Do NOT use for game engines, 3D model creation, VR/AR experiences, or CAD workflows.
+**Scope**: Use for 3D web apps, interactive scenes, WebGL/WebGPU visualizations, R3F declarative 3D, and product viewers. Do NOT use for game engines, 3D model creation, VR/AR experiences, or CAD workflows.
 
 ---
 
@@ -40,14 +55,30 @@ This skill builds complete Three.js web applications using a **Phased Constructi
 
 ### Phase 1: DESIGN
 
-**Goal**: Understand what the user wants and select appropriate Three.js components.
+**Goal**: Detect the paradigm, understand what the user wants, and select appropriate components.
 
 **Core Constraints**:
 - **Build only what the user asked for** — no speculative features or "while I'm here" additions
-- **Use modern Three.js (r150+) ES modules only** — always import from CDN (`https://unpkg.com/three@0.160.0/build/three.module.js`) or npm, never use legacy global `THREE` variable or CommonJS
+- **Detect the paradigm before selecting components** — imperative, R3F, and WebGPU have fundamentally different patterns; using the wrong one is the #1 source of bugs
 - **Structure through the scene graph** — use `Group` for logical groupings and maintain proper hierarchy
 - **Vary style by context** — portfolio/showcase use elegant muted palettes; games use bright colors; data viz uses clean lines; backgrounds use subtle slow movement; product viewers use realistic PBR lighting
 - **Read repository CLAUDE.md before building** — ensure compliance with local development standards
+
+**Step 0: Detect paradigm**
+
+Scan the user's request, existing project files (package.json, imports), and stated requirements to identify which paradigm applies:
+
+| Signal | Paradigm | Reference to Load |
+|--------|----------|-------------------|
+| `@react-three/fiber`, `r3f`, `drei`, `useFrame`, `<Canvas>`, `<mesh>`, React project with 3D | **React Three Fiber** | `references/react-three-fiber.md` |
+| `WebGPURenderer`, `TSL`, `tsl`, `compute shader`, `wgsl`, `node material`, WebGPU mentioned | **WebGPU** | `references/webgpu.md` |
+| Standalone HTML, CDN imports, `new THREE.Scene()`, no React, vanilla JS/TS | **Imperative** | `references/advanced-topics.md` (load as needed) |
+
+If ambiguous (e.g., user says "3D scene" with no project context), ask which paradigm — don't guess, because imperative Three.js patterns actively conflict with R3F patterns (OrbitControls setup, animation loops, component lifecycle).
+
+**After detecting paradigm**: Read the corresponding reference file. The reference contains paradigm-specific patterns, anti-patterns, and component selection guidance that override the generic steps below.
+
+**Visual quality signal**: If the user's request implies high visual quality (portfolio, game, showcase, "make it look good", "impressive", "polished"), also load `references/visual-polish.md` alongside the paradigm reference. It contains specific material recipes, lighting setups, and post-processing configurations that bridge the gap between technically correct and visually impressive.
 
 **Step 1: Identify the core visual element**
 
@@ -79,7 +110,9 @@ Record the visual direction for this scene (e.g., "elegant minimal portfolio sty
 
 **Goal**: Construct the scene with proper structure and modern patterns.
 
-**Core Constraints**:
+**Paradigm-specific build instructions**: If you loaded a paradigm reference in Step 0, follow its build patterns instead of the imperative defaults below. R3F uses JSX components and `<Canvas>`, not manual renderer setup. WebGPU uses `WebGPURenderer` with different initialization. The reference file is authoritative for its paradigm.
+
+**Core Constraints (imperative paradigm)**:
 - **Single HTML file output by default** unless user specifies otherwise
 - **Include resize handling** that caps `devicePixelRatio` at 2 and updates camera aspect on window change
 - **Use a top-level `CONFIG` object** for all visual constants (colors, speeds, sizes) — no magic numbers scattered through code
@@ -150,10 +183,12 @@ Build each component from the Phase 1 plan. Create geometry once and reuse where
 
 **Goal**: Add motion, interaction, and life to the scene.
 
-**Core Constraints**:
+**Paradigm-specific animation**: R3F uses `useFrame` hooks (never `requestAnimationFrame` or `setAnimationLoop`). WebGPU may use compute shaders for GPU-driven animation. See the loaded paradigm reference for patterns.
+
+**Core Constraints (imperative paradigm)**:
 - **Never allocate geometry or materials inside the animation loop** — this causes garbage collection pauses and frame rate collapse
 - **Use the `time` parameter (in milliseconds) for time-based animation** — multiply by small factors (0.001, 0.0005) for smooth motion
-- **Include OrbitControls by default** for interactive scenes (unless user requests a specific control scheme)
+- **Include OrbitControls by default** for interactive scenes (unless user requests a specific control scheme) — but in R3F, OrbitControls from `@react-three/drei` conflicts with custom camera controllers; see the R3F reference for when to use which
 - **Transform only position, rotation, and scale per frame** — all geometry and materials are static
 
 **Step 1: Set up animation loop**
@@ -241,4 +276,9 @@ Solution:
 
 ## References
 
-- `${CLAUDE_SKILL_DIR}/references/advanced-topics.md`: GLTF loading, post-processing, shaders, raycasting, physics, InstancedMesh, TypeScript support
+| Reference | When to Load | Content |
+|-----------|-------------|---------|
+| `references/advanced-topics.md` | Imperative paradigm | GLTF loading, post-processing, shaders, raycasting, physics, InstancedMesh, TypeScript |
+| `references/react-three-fiber.md` | R3F paradigm | Declarative patterns, Drei helpers, camera pitfalls, post-processing, Zustand, performance |
+| `references/webgpu.md` | WebGPU paradigm | WebGPURenderer, TSL shaders, compute shaders, version-specific changes, device loss |
+| `references/visual-polish.md` | Visual quality signal | Material recipes, dramatic lighting, post-processing stacking, HDR environments, shadow quality |

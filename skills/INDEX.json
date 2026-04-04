@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-02T22:30:47Z",
+  "generated": "2026-04-04T17:34:35Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -1363,6 +1363,23 @@
       "version": "1.0.0",
       "agent": "python-general-engineer"
     },
+    "reference-enrichment": {
+      "file": "skills/reference-enrichment/SKILL.md",
+      "description": "Analyze agent/skill reference depth and generate missing domain-specific reference files.",
+      "triggers": [
+        "enrich references",
+        "improve reference depth",
+        "generate references",
+        "add reference files",
+        "reference enrichment"
+      ],
+      "category": "meta-tooling",
+      "user_invocable": true,
+      "version": "1.0.0",
+      "pairs_with": [
+        "verification-before-completion"
+      ]
+    },
     "repo-value-analysis": {
       "file": "skills/repo-value-analysis/SKILL.md",
       "description": "Analyze external repositories for adoptable ideas and patterns.",
@@ -1760,20 +1777,34 @@
     },
     "threejs-builder": {
       "file": "skills/threejs-builder/SKILL.md",
-      "description": "Three.js app builder: Design, Build, Animate, Polish in 4 phases.",
+      "description": "Three.js app builder: imperative, React Three Fiber, and WebGPU in 4 phases.",
       "triggers": [
         "threejs",
         "three.js",
         "3D web",
         "3D scene",
         "WebGL",
+        "WebGPU",
         "3D animation",
-        "3D graphics"
+        "3D graphics",
+        "react three fiber",
+        "r3f",
+        "drei",
+        "react-three",
+        "@react-three/fiber",
+        "postprocessing 3D",
+        "TSL shader",
+        "three shading language",
+        "compute shader three",
+        "WebGPURenderer",
+        "node material three"
       ],
+      "category": "frontend",
       "user_invocable": false,
-      "version": "2.0.0",
+      "version": "3.0.0",
       "pairs_with": [
         "typescript-frontend-engineer",
+        "react-native-engineer",
         "distinctive-frontend-design"
       ]
     },
