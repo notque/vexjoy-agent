@@ -227,17 +227,21 @@ def _collect_ref_files(ref_dir: Path) -> list[RefFileMetrics]:
 
 def _scan_component(md_path: Path, kind: str) -> ComponentResult:
     """Scan a single agent or skill .md file and its optional references/ dir."""
-    name = md_path.stem
-    # References live at <parent>/<name>/references/ next to <name>.md
-    ref_dir_candidate = md_path.parent / name / "references"
-    # Also allow references/ as a sibling of the .md inside a named directory
-    if not ref_dir_candidate.is_dir():
-        # e.g. ~/.claude/agents/golang-general-engineer/references/
-        ref_dir_candidate2 = md_path.parent / "references"
-        if md_path.parent.name == name and ref_dir_candidate2.is_dir():
-            ref_dir_candidate = ref_dir_candidate2
-        else:
-            ref_dir_candidate = None  # type: ignore[assignment]
+    # For SKILL.md, the component name is the parent directory (e.g., skills/go-patterns/SKILL.md → "go-patterns")
+    name = md_path.parent.name if md_path.stem == "SKILL" else md_path.stem
+    # References can live in several locations depending on the component layout:
+    # 1. agents/name.md with agents/name/references/  (flat agent)
+    # 2. agents/name/name.md with agents/name/references/  (named agent dir)
+    # 3. skills/name/SKILL.md with skills/name/references/  (skill)
+    ref_dir_candidate: Path | None = None
+    candidates = [
+        md_path.parent / "references",  # sibling (named dir or skill)
+        md_path.parent / name / "references",  # flat .md with named subdir
+    ]
+    for c in candidates:
+        if c.is_dir():
+            ref_dir_candidate = c
+            break
 
     if ref_dir_candidate and ref_dir_candidate.is_dir():
         ref_dir: Path | None = ref_dir_candidate
@@ -266,9 +270,13 @@ def _scan_directory(base_dir: Path, kind: str) -> list[ComponentResult]:
     for item in sorted(base_dir.iterdir()):
         if item.is_file() and item.suffix == ".md" and item.stem not in ("INDEX", "README"):
             results.append(_scan_component(item, kind))
-        elif item.is_dir() and (item / (item.name + ".md")).is_file():
-            # Named dir pattern: agents/golang-general-engineer/golang-general-engineer.md
+        elif item.is_dir():
+            # Named dir pattern: agents/name/name.md OR skills/name/SKILL.md
             md_path = item / (item.name + ".md")
+            if not md_path.is_file():
+                md_path = item / "SKILL.md"
+            if not md_path.is_file():
+                continue
             result = _scan_component(md_path, kind)
             # Override ref_dir resolution: check inside the named dir directly
             ref_dir_inner = item / "references"
