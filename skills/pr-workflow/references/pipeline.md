@@ -104,11 +104,13 @@ All findings are auto-fixed. The fix commit is applied to the staged changes bef
 
 **Gate**: Comprehensive review complete. All findings fixed or explained. No unresolved CRITICAL issues.
 
-### Phase 2b: CROSS-MODEL REVIEW (optional)
+### Phase 2b: CROSS-MODEL REVIEW (auto-injected)
 
 **Goal**: Get an independent second opinion from OpenAI Codex CLI to catch issues that same-model review might miss.
 
-**Skip condition**: Skip if `codex` CLI is not installed (`which codex` fails), or if user passes `--skip-codex`. This phase is additive -- it never blocks the pipeline, only adds signal.
+**Note**: The `codex-auto-review` UserPromptSubmit hook now automatically injects a reminder to run this phase whenever any review skill is invoked (`/systematic-code-review`, `/parallel-code-review`, `/pr-review`, `/full-repo-review`, etc.). This makes cross-model review standard across all review workflows, not just pr-workflow.
+
+**Skip condition**: Skip if `codex` CLI is not installed (`which codex` fails), if user passes `--skip-codex`, or if `/codex-code-review` was already invoked as part of the current pipeline. This phase is additive -- it never blocks the pipeline, only adds signal.
 
 **Invoke the codex-code-review skill:**
 
