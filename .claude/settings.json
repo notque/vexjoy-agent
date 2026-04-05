@@ -99,7 +99,7 @@
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/auto-plan-detector.py\"",
-            "description": "Detect complex tasks requiring a plan (stub — /do handles plan detection)"
+            "description": "Detect complex tasks requiring a plan (stub \u2014 /do handles plan detection)"
           }
         ]
       }
@@ -243,6 +243,12 @@
             "command": "python3 \"$HOME/.claude/hooks/retro-graduation-gate.py\"",
             "description": "Warn about ungraduated retro entries when creating PRs in toolkit repo",
             "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/adr-lifecycle-on-merge.py\"",
+            "description": "Check ADR implementation status after merge operations",
+            "timeout": 5000
           }
         ]
       },
