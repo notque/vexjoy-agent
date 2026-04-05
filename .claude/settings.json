@@ -99,7 +99,6 @@
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/auto-plan-detector.py\"",
-<<<<<<< HEAD
             "description": "Detect complex tasks requiring a plan (stub \u2014 /do handles plan detection)"
           },
           {
