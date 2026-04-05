@@ -99,7 +99,14 @@
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/auto-plan-detector.py\"",
+<<<<<<< HEAD
             "description": "Detect complex tasks requiring a plan (stub \u2014 /do handles plan detection)"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/codex-auto-review.py\"",
+            "description": "Auto-inject Codex cross-model review for PR review operations",
+            "timeout": 3000
           }
         ]
       }
