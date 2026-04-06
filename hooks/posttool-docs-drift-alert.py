@@ -91,8 +91,7 @@ def _fallback_count_check() -> tuple[bool, str]:
 
     # Count .md files in agents/, excluding INDEX.md and README.md
     disk_files = [
-        f for f in agents_dir.iterdir()
-        if f.is_file() and f.suffix == ".md" and f.name not in {"INDEX.md", "README.md"}
+        f for f in agents_dir.iterdir() if f.is_file() and f.suffix == ".md" and f.name not in {"INDEX.md", "README.md"}
     ]
     disk_count = len(disk_files)
 
