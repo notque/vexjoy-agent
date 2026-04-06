@@ -14,6 +14,12 @@ Complete reference of AI-sounding phrases and their natural replacements.
 | embark on a journey | [Remove entirely] | Pretentious metaphor |
 | It's important to note that | [Remove, start with the note] | Throat-clearing |
 | It's worth noting that | [Remove, start with the note] | Same issue |
+| Interestingly, | [Remove -- state the fact] | Emphasis stacking |
+| Surprisingly, | [Remove -- if surprising, the fact shows it] | Emphasis stacking |
+| Importantly, | [Remove -- if important, the fact shows it] | Emphasis stacking |
+| Certainly, | [Remove] | False certainty |
+| Here's what's interesting | [Remove -- let the reader decide] | Meta-significance |
+| Notably, | [Keep 1 per 2000 words max] | OK in moderation |
 | At the end of the day | [Remove] | Meaningless filler |
 | robust and comprehensive | [Pick one specific word] | Double fluff |
 | This begs the question | This raises the question | Grammatically wrong usage |
@@ -122,6 +128,20 @@ AI uses fragments and staccato for artificial drama.
 
 ---
 
+## Tier 1g: Novelty Inflation / Engagement Bait
+
+AI treats established concepts as newly invented or uses "nobody talks about this" clickbait framing.
+
+| AI Phrase | Replacement | Notes |
+|-----------|-------------|-------|
+| the failure mode nobody's naming | [state the actual pattern] | Clickbait framing |
+| what nobody tells you about | [just write the content] | Engagement bait |
+| the insight everyone's missing | [state the insight directly] | False exclusivity |
+| introduced a term | used the term X (dates to [origin]) | Unless genuinely new |
+| the thing most people miss | [state what they miss] | Engagement bait |
+
+---
+
 ## Tier 2: Meta-Commentary (Usually Remove)
 
 | Phrase | Action | Better Alternative |
@@ -159,6 +179,19 @@ Trailing participial phrases that add fake analytical depth. Usually best remove
 | , fostering a sense of | [Remove] | "This builds..." |
 | , cultivating a | [Remove] | "This creates..." |
 | , encompassing a wide range | [Remove] | "...which covers X, Y, and Z" |
+
+---
+
+## Tier 2f: Emotional Flatline
+
+AI announces emotions instead of conveying them through specific facts. Earn the emotion; don't declare it.
+
+| Phrase | Action | Better Alternative |
+|--------|--------|-------------------|
+| what surprised me most | [state the surprising fact] | Let the reader be surprised |
+| I was fascinated to discover | [state the discovery] | Earn the emotion |
+| what really stands out | [state the standout fact] | Facts, not feelings |
+| the most surprising thing | [state the thing] | Present it, don't label it |
 
 ---
 

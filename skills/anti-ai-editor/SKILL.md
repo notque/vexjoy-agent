@@ -1,7 +1,7 @@
 ---
 name: anti-ai-editor
 description: "Remove AI-sounding patterns from content."
-version: 2.1.0
+version: 2.2.0
 user-invocable: false
 command: /edit
 allowed-tools:
@@ -35,6 +35,8 @@ Detect and remove AI-generated writing patterns through targeted, minimal edits.
 
 Read the target file. Identify file type (blog post, docs, README). Skip frontmatter (YAML between `---` markers), code blocks, inline code, and blockquotes -- edits to these zones corrupt structure and would corrupt structure.
 
+Auto-detect the content profile (linkedin, blog, technical-blog, investor-email, docs, casual) per `references/context-profiles.md`. Apply profile-specific tolerance rules throughout the scan.
+
 If a voice profile is specified, also check voice-specific anti-patterns alongside the standard categories.
 
 **Step 2: Scan for issues by category**
@@ -51,6 +53,10 @@ If a voice profile is specified, also check voice-specific anti-patterns alongsi
 | Puffery/Legacy | "testament to", "indelible mark", "enduring legacy" | `references/detection-patterns.md` |
 | Generic Closers | "future looks bright", "continues to evolve" | `references/detection-patterns.md` |
 | Curly Quotes | \u201C \u201D \u2018 \u2019 (ChatGPT-specific) | `references/detection-patterns.md` |
+| Novelty Inflation | "nobody's naming", "what nobody tells you", engagement bait | `references/detection-patterns.md` |
+| Synonym Cycling | 3+ synonyms for same concept in one paragraph | `references/detection-patterns.md` |
+| False Concession | "While X is impressive, Y remains" (both vague) | `references/detection-patterns.md` |
+| Emotional Flatline | "What surprised me most", "I was fascinated" | `references/detection-patterns.md` |
 
 Some flagged words are appropriate in technical contexts. "Leverage" in "Use a lever to leverage mechanical advantage" is correct -- only flag words when used as corporate-speak, not in their literal or technical sense.
 
@@ -70,6 +76,12 @@ Record each issue with line number, category, and severity weight:
 - Passive voice: weight 1
 - Redundant modifier: weight 1
 - Curly quotes (Tier 3b): weight 1
+- Novelty inflation (Tier 1g): weight 3
+- Synonym cycling (Tier 1h): weight 2
+- False concession (Tier 2e): weight 2
+- Emotional flatline (Tier 2f): weight 2
+- Reasoning chain artifact (Tier 2g): weight 2
+- Parenthetical hedging (Tier 3c): weight 1
 
 **Gate**: Issues documented with line numbers and categories. Total severity score calculated. Proceed only when gate passes.
 
@@ -85,6 +97,8 @@ Record each issue with line number, category, and severity weight:
 | 6-15 | Apply targeted fixes |
 | 16-30 | Group by paragraph, fix systematically |
 | 30+ | Paragraph-by-paragraph review |
+
+**Step 1b: Rewrite-vs-patch threshold** -- If severity score exceeds 30 AND 3+ distinct pattern categories are flagged AND structural rhythm is uniform, advise the user to consider a full rewrite rather than patching individual issues. Patching high-density AI text often introduces new patterns while fixing old ones.
 
 **Step 2: Prioritize fixes**
 
@@ -228,4 +242,5 @@ Solution:
 - `${CLAUDE_SKILL_DIR}/references/cliche-replacements.md`: Complete list of 80+ AI phrases with replacements
 - `${CLAUDE_SKILL_DIR}/references/detection-patterns.md`: Regex patterns for automated detection
 - `${CLAUDE_SKILL_DIR}/references/detection-rules.md`: Inline detection rules and structural checks
+- `${CLAUDE_SKILL_DIR}/references/context-profiles.md`: Content type profiles and tolerance matrix
 - `${CLAUDE_SKILL_DIR}/references/examples.md`: Before/after examples from real edits
