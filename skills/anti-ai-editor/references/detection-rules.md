@@ -20,6 +20,8 @@ Quick-reference for inline detection during editing. For full regex patterns, se
 | "As we've discussed" | Meta | Remove |
 | "Let me explain" | Meta | Just explain |
 | "at the end of the day" | Cliche | cut, or be specific |
+| "the failure mode nobody's naming" | Novelty inflation | State the actual pattern |
+| "what nobody tells you about" | Engagement bait | Just write the content |
 
 ## High-Priority Flags: Copula Avoidance (Almost Always Fix)
 
@@ -109,6 +111,32 @@ Quick-reference for inline detection during editing. For full regex patterns, se
 ### List Overuse
 - Check: More than 2 bulleted lists in 500 words?
 - Fix: Convert some to prose, especially if items need context
+
+### Synonym Cycling
+- Check: Do 3+ synonyms for the same concept appear in one paragraph? (e.g., "challenges", "obstacles", "hurdles")
+- Fix: Repeat the clearest word. Real writers say "the bug" five times; AI rotates through "the issue", "the defect", "the problem", "the anomaly".
+- Example: "We faced challenges. These obstacles required solutions. The hurdles were overcome." -> "We faced challenges. The challenges required solutions. We overcame them."
+
+### False Concession
+- Check: Does text use "While X is impressive, Y remains a challenge" where both halves are vague?
+- Fix: Make both sides specific. "While the progress is impressive, challenges remain" -> "They shipped 3 features but broke the API twice"
+- Note: Legitimate concessions have specific claims on both sides. Flag only when both halves are vague.
+
+### Over-Polishing Warning
+Aggressive de-AI editing can paradoxically push human writing TOWARD AI statistical profiles by removing natural disfluency. Per Pangram Labs research (trained on 28M documents), structural regularity is the #1 signal AI detectors weight -- above vocabulary.
+
+Rules:
+- Fix rhythm alongside words -- never words alone
+- If editing makes every sentence 15-20 words, you've created an AI tell
+- Preserve deliberate fragments, uneven pacing, idiosyncratic word choices
+- After editing, verify sentence length still varies (5-50 word range)
+- The wabi-sabi check exists for this reason: imperfections are features
+
+## Structural Regularity Warning
+
+Structural regularity (sentence/paragraph rhythm uniformity) is the #1 signal AI detectors weight, above vocabulary. This finding comes from Pangram Labs research on 28M documents. Fixing word choices while leaving uniform sentence length untouched leaves text classifiable as AI-generated.
+
+**Implication:** Always fix rhythm alongside or before fixing individual words. Never apply word-level fixes alone and declare content de-AI'd. A document with zero AI cliches but perfectly uniform 18-word sentences will still flag as AI-generated.
 
 ---
 
