@@ -78,11 +78,37 @@ ls -t ~/.claude/state/dream-* 2>/dev/null | head -5
 
 If dream reports exist, read the latest one -- it contains cross-session patterns and graduation candidates that may point to improvement opportunities.
 
-**Step 4: Narrow by focus area (if provided)**
+**Step 4: Check routing-table drift**
+
+Skills present in `skills/INDEX.json` but absent from `skills/do/references/routing-tables.md` represent a documentation gap — the router can find them via index but they are invisible to any process that consults the reference docs. This gap has been missed in two consecutive cycles before being manually caught. Detect it programmatically:
+
+```bash
+python3 -c "
+import json, re
+with open('skills/INDEX.json') as f:
+    idx = json.load(f)
+index_skills = set(idx.get('skills', {}).keys())
+
+with open('skills/do/references/routing-tables.md') as f:
+    table_text = f.read()
+
+missing = [s for s in sorted(index_skills) if s not in table_text]
+if missing:
+    print(f'{len(missing)} skill(s) in INDEX.json absent from routing-tables.md:')
+    for s in missing:
+        print(f'  {s}')
+else:
+    print('routing-tables.md is in sync with INDEX.json')
+"
+```
+
+Any skill absent from routing-tables.md is a candidate improvement opportunity — especially new skills added in the past two weeks.
+
+**Step 5: Narrow by focus area (if provided)**
 
 If the user specified a focus area (e.g., "routing", "hooks", "agents"), filter all findings to that domain. If no focus area, analyze broadly.
 
-**Step 5: Compile opportunity list**
+**Step 6: Compile opportunity list**
 
 Output a numbered list of 5-10 improvement opportunities. Each entry must include:
 - **What**: One-sentence description of the problem or gap
