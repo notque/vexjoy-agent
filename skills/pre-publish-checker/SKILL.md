@@ -122,7 +122,17 @@ Preamble detection phrases: "In this post, I will...", "Today I'm going to...", 
 
 Hugo image path patterns: `/images/filename.png` (absolute from static/), `images/filename.png` (relative), `{{< figure src="..." >}}` (shortcode).
 
-**Step 6: Draft status validation**
+**Step 6: Anti-AI pattern validation**
+
+| Check | Requirement | Severity | Reasoning |
+|-------|-------------|----------|-----------|
+| AI pattern scan | Run anti-AI editor skill scan | BLOCKER | AI-sounding content damages voice authenticity and reader trust |
+
+Invoke the anti-AI editor skill (not a script) by reading `skills/anti-ai-editor/SKILL.md` and applying its ASSESS phase. At minimum, load `skills/anti-ai-editor/references/detection-patterns.md` and scan for all 14 detection categories. A severity score above 15 is a BLOCKER. Score 6-15 is a WARNING with specific line numbers and suggested fixes. Score 0-5 is a PASS.
+
+This check exists because voice validation and joy-check do not catch AI writing patterns. Content can pass both gates while containing emotional flatlines ("This is the part I find most interesting"), false concessions, synonym cycling, and other patterns that signal AI-generated text. The anti-AI editor catches these through regex patterns and contextual analysis.
+
+**Step 7: Draft status validation**
 
 | Check | Requirement | Severity | Reasoning |
 |-------|-------------|----------|-----------|
@@ -178,6 +188,9 @@ Format the report as:
 
  IMAGES:
    [status] check: result
+
+ AI PATTERNS:
+   [status] anti-ai-editor score: N (threshold: 15)
 
  DRAFT STATUS:
    [status] check: result

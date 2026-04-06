@@ -1,6 +1,6 @@
 ---
 name: voice-writer
-description: "Unified voice content generation with 8-phase pipeline: validation, joy-check, voice profile support."
+description: "Unified voice content generation with 9-phase pipeline: validation, joy-check, voice profile support."
 version: 1.0.0
 user-invocable: true
 argument-hint: "<topic or title>"
@@ -50,7 +50,7 @@ routing:
 
 # Voice Writer Skill
 
-This skill operates as the unified entry point for all voiced content generation. It implements an 8-phase pipeline architecture with deterministic validation at quality gates, joy-check enforcement before output, and strict iteration limits.
+This skill operates as the unified entry point for all voiced content generation. It implements an 9-phase pipeline architecture with deterministic validation at quality gates, joy-check enforcement before output, and strict iteration limits.
 
 ---
 
@@ -206,7 +206,37 @@ See `references/joy-check-rubric.md` for the full rubric table, scoring system, 
 
 **Gate**: No GRIEVANCE paragraphs remain. Joy-check passes. Proceed only when gate passes.
 
-### Phase 7: OUTPUT
+### Phase 7: ANTI-AI CHECK (Mandatory)
+
+**Goal**: Run the anti-AI editor skill to catch AI-generated writing patterns that voice validation and joy-check do not detect.
+
+Voice validation checks stylistic fidelity. Joy-check checks tonal framing. Neither catches AI tells: emotional flatline ("This is the part I find most interesting"), false concessions, synonym cycling, puffery, dangling -ing clauses, or reasoning chain artifacts. The anti-AI editor has 14 detection categories with regex patterns and LLM analysis that catch patterns invisible to the other gates. This phase is not optional.
+
+**Step 1: Invoke the anti-AI editor skill**
+
+The anti-AI editor is a **skill**, not a script. Do not attempt to run `scripts/anti-ai-editor.py` (it does not exist). Invoke the skill by dispatching an agent with the `anti-ai-editor` skill, or by reading `skills/anti-ai-editor/SKILL.md` and following its ASSESS phase against the draft content.
+
+At minimum, load and apply the detection patterns from `skills/anti-ai-editor/references/detection-patterns.md` against the draft. Scan all 14 categories:
+- Tier 1: AI Cliches, News AI Tells, Copula Avoidance, Novelty Inflation
+- Tier 2: Meta-commentary, Dangling -ing, Puffery, Generic Closers, Synonym Cycling, False Concession, Emotional Flatline, Reasoning Chain Artifacts
+- Tier 3: Structural monotony, Curly quotes
+
+**Step 2: Decision logic**
+
+- Score 0-5 (clean): Proceed to OUTPUT
+- Score 6-15: Apply targeted fixes, one per violation, then re-scan
+- Score 16-30: Fix systematically by paragraph, then re-scan
+- Score 30+: Flag for rewrite consideration
+
+Maximum 2 anti-AI iterations. If issues persist after 2 passes, proceed to OUTPUT with a warning noting remaining patterns.
+
+**Step 3: Verify no new violations introduced**
+
+After fixes, re-scan to confirm edits did not introduce new AI patterns. A common failure mode: replacing one AI phrase with another AI phrase.
+
+**Gate**: Anti-AI scan score is 5 or below, OR maximum iterations reached with best attempt. Proceed only when gate passes.
+
+### Phase 8: OUTPUT
 
 **Goal**: Format and display final content with validation report.
 
@@ -216,7 +246,7 @@ See `references/output-format.md` for the full report template and status indica
 
 **Gate**: Output displayed with validation report. Proceed only when gate passes.
 
-### Phase 8: CLEANUP
+### Phase 9: CLEANUP
 
 **Goal**: Remove temporary files created during the pipeline.
 
@@ -246,8 +276,9 @@ Actions:
 4. Run voice-validator.py, score: 58, 3 violations found (VALIDATE)
 5. Fix "delve into" banned phrase, em-dash, rhythm violation (REFINE)
 6. Re-validate: score 82, PASSED. Run scan-negative-framing.py: clean. Evaluate paragraphs: all JOY/NEUTRAL (JOY-CHECK)
-7. Display with validation and joy-check report (OUTPUT)
-8. Remove temp files (CLEANUP)
+7. Run anti-AI editor skill: scan 14 categories, score 3 (clean). No fixes needed (ANTI-AI CHECK)
+8. Display with validation and joy-check report (OUTPUT)
+9. Remove temp files (CLEANUP)
 Result: Voice-consistent blog post with validation report showing PASSED at 82/100, joy score 88/100
 
 ### Example 2: Validate Existing Content
@@ -258,8 +289,9 @@ Actions:
 3. Run voice-validator.py against provided content (VALIDATE)
 4. Skip REFINE (validate-only mode)
 5. Run joy-check against provided content (JOY-CHECK)
-6. Display validation and joy-check report with metrics comparison (OUTPUT)
-7. No temp files to clean (CLEANUP)
+6. Run anti-AI editor scan against provided content (ANTI-AI CHECK)
+7. Display validation, joy-check, and anti-AI report with metrics comparison (OUTPUT)
+8. No temp files to clean (CLEANUP)
 Result: Validation report showing pass/fail status, specific violations, and joy scores
 
 ### Example 3: Voice Content (Non-Blog)
@@ -271,8 +303,9 @@ Actions:
 4. Validate against profile (VALIDATE)
 5. Fix violations if any (REFINE)
 6. Run scan-negative-framing.py, evaluate paragraphs against rubric (JOY-CHECK)
-7. Display with reports (OUTPUT)
-8. Clean up (CLEANUP)
+7. Run anti-AI editor: scan 14 detection categories, fix any flagged patterns (ANTI-AI CHECK)
+8. Display with reports (OUTPUT)
+9. Clean up (CLEANUP)
 Result: Voice-consistent technical piece with full validation
 
 ---
