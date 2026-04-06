@@ -431,6 +431,148 @@ ChatGPT outputs curly/smart quotes by default. In code-adjacent, Markdown, and p
 
 **False positive note:** Curly quotes ARE correct in typeset documents (books, PDFs, formal publications). Only flag in Markdown, README, code comments, blog posts, and plain-text contexts. Do NOT flag in `.docx`, `.pdf`, or formal publishing formats.
 
+### Tier 1g: Novelty Inflation / Engagement Bait
+
+AI treats established concepts as newly invented or uses "nobody talks about this" clickbait framing. Real writers cite prior art; AI manufactures exclusivity.
+
+```regex
+\b(the (failure mode|insight|pattern|problem) nobody'?s (naming|talking about|discussing))\b
+\bwhat nobody tells you about\b
+\bthe insight everyone'?s missing\b
+\b(introduced|coined|invented) a term\b
+\bthe thing (most people|nobody|few people) (get|miss|overlook)\b
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "**The failure mode nobody's naming**" | "A common failure mode in distributed systems" |
+| "**What nobody tells you about** Kubernetes" | "Kubernetes networking trips up most developers" |
+| "He **introduced a term** I hadn't heard before" | "He used the term X, which dates back to [origin]" |
+| "**The thing most people miss**" | [State what they miss] |
+| "**The insight everyone's missing**" | [State the insight directly] |
+
+**Fix strategy:** If the concept is established, cite prior art. If it's genuinely new, let the novelty speak for itself without "nobody's talking about this" framing. Real discoveries don't need engagement bait.
+
+**False positive note:** Legitimate when the writer genuinely coined a term (with evidence) or when referencing a documented gap in coverage. Flag when used as generic clickbait framing.
+
+### Tier 1h: Synonym Cycling
+
+AI rotates synonyms within paragraphs to avoid word repetition. Real writers repeat the clearest word. This is a structural tell -- the fix is counterintuitive.
+
+**Detection heuristic (structural, not regex):**
+```
+1. Within each paragraph, extract key nouns and verbs
+2. Identify synonym clusters (e.g., "challenges", "obstacles", "hurdles")
+3. Flag when 3+ synonyms for the same concept appear in one paragraph
+4. The fix is counterintuitive: repeat the clearest word
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "We faced **challenges**. These **obstacles** required creative solutions. The **hurdles** were eventually overcome." | "We faced challenges. The challenges required creative solutions. We overcame them." |
+| "The system has **issues**. These **problems** cause errors. Such **difficulties** are hard to debug." | "The system has issues. The issues cause errors. The issues are hard to debug." |
+
+**Fix strategy:** Pick the clearest word and repeat it. Real writers say "the bug" five times in a paragraph because "the bug" is what they mean. AI says "the bug", "the issue", "the defect", "the problem", "the anomaly" because it was trained to avoid repetition.
+
+**False positive note:** Legitimate synonym variation exists -- "the API" and "the endpoint" may refer to different things. Flag only when synonyms clearly refer to the same concept within one paragraph.
+
+### Tier 2e: False Concession
+
+AI creates fake balanced analysis: "While X is impressive, Y remains a challenge" where both halves are vague. Real balanced analysis has specific claims on both sides.
+
+```regex
+\bwhile .+ (is|are|was|were) (impressive|notable|significant|remarkable|commendable),?\s+.+\s+(remains?|continues?|persists?|presents?)\s+(a )?(challenge|concern|issue|question)\b
+\bdespite .+ (achievements?|progress|advances?|successes?),?\s+.+\s+(still|yet|nevertheless)\b
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "**While the progress is impressive, challenges remain**" | "They shipped 3 features but broke the API twice" |
+| "**Despite notable achievements, concerns persist**" | "Revenue grew 20% but churn doubled" |
+
+**Fix strategy:** Make both sides specific and falsifiable. If you can't name what's impressive or what the challenge is, the sentence contains no information. Replace with concrete claims on both sides of the "but".
+
+**False positive note:** Legitimate concessions exist -- "While latency improved to 12ms, throughput dropped 15%" is real analysis with specific numbers. Flag only when both halves are vague.
+
+### Tier 2f: Emotional Flatline
+
+AI announces emotions instead of conveying them through the writing itself. "What surprised me most" tells; presenting the surprising fact shows.
+
+```regex
+\bwhat (surprised|struck|impressed|fascinated) me (most|was)\b
+\bi was (fascinated|surprised|impressed|struck) (to discover|to learn|by|that)\b
+\bwhat (really )?stands out (is|here)\b
+\bthe most (surprising|fascinating|striking|impressive) (thing|part|aspect)\b
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "**What surprised me most** was the latency improvement" | "Latency dropped from 200ms to 12ms" |
+| "**I was fascinated to discover** the architecture" | "The architecture uses an unusual event-sourcing pattern" |
+| "**What really stands out** is the team's dedication" | "The team shipped three weekends in a row to hit the deadline" |
+| "**The most surprising thing** was the error rate" | "The error rate was 0.001% -- lower than the monitoring threshold" |
+
+**Fix strategy:** Earn the emotion through specific facts, not by declaring it. If the reader should be surprised, present the surprising fact. The feeling follows. If you need to tell the reader you were fascinated, the facts aren't doing their job.
+
+**False positive note:** First-person emotional language is fine in personal essays and memoirs where the writer's inner experience IS the subject. Flag only in analytical, technical, or news content where facts should do the emotional work.
+
+### Tier 2g: Reasoning Chain Artifacts
+
+LLM scaffolding leaking into published output. Distinct from meta-commentary -- these are specifically chatbot thought-process markers that survive into final copy.
+
+```regex
+\blet me (think|break this down|walk through)\b
+\bhere'?s my (thought process|reasoning|thinking)\b
+\b(step [0-9]+|first,? let'?s)\s+(consider|think about|examine|look at)\b
+\bbreaking this down\b
+\bto (summarize|recap) (my|the) (thinking|analysis|reasoning)\b
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "**Let me think** step by step about this" | [Remove -- state the conclusion] |
+| "**Breaking this down**, we can see..." | "The system has three components:" |
+| "**Here's my thought process:**" | [Remove -- present the analysis directly] |
+| "**To summarize my reasoning**" | [Remove -- the conclusion IS the summary] |
+
+**Fix strategy:** Delete the scaffolding and present the conclusion or analysis directly. If the reasoning matters, structure it as an argument with evidence, not as a narrated thought process. Real writers don't annotate their cognition.
+
+**False positive note:** Legitimate in educational content where showing the thought process IS the point (e.g., "Here's how I debug this kind of issue:"). Flag only when the scaffolding adds no instructional value.
+
+### Tier 3c: Parenthetical Hedging
+
+AI inserts hedge-parentheticals that add false precision or unnecessary qualification. These parenthetical asides create an illusion of nuance without adding information.
+
+```regex
+\(and,?\s+(increasingly|crucially|critically|notably),?\s+\w+\)
+\(or,?\s+more precisely,?\s+.+?\)
+\(and this is (key|important|crucial|critical)\)
+\(though,?\s+(admittedly|arguably|perhaps),?\s+.+?\)
+```
+
+**Before/After Examples:**
+
+| AI Pattern | Human Version |
+|-----------|---------------|
+| "The API supports JSON **(and, increasingly, Protocol Buffers)**" | "The API supports JSON and Protocol Buffers" |
+| "**(or, more precisely, a directed acyclic graph)**" | "-- technically a directed acyclic graph" |
+| "**(and this is key)** the latency dropped" | "The latency dropped" |
+| "**(though, admittedly, not without trade-offs)**" | "The trade-off: higher memory usage" |
+
+**Fix strategy:** Remove the parenthetical. If the hedged information matters, state it directly as its own clause or sentence. If "increasingly" is meaningful, say when the increase started and how much. If "admittedly" qualifies something, state the specific qualification.
+
+**False positive note:** Parenthetical asides are a legitimate stylistic device. Flag only when the aside contains hedge-words (increasingly, crucially, admittedly, arguably) that substitute for specifics.
+
 ### News Article AI Tells (Tier 1)
 
 AI writing in news articles and event recaps produces distinct tells that differ from general prose. These patterns emerge when AI tries to sound like a journalist but lacks actual editorial instinct -- it substitutes pseudo-profundity for analysis and dramatic rhythm for real storytelling.
@@ -616,6 +758,12 @@ Each issue type has a severity weight:
 | Passive voice | 1 | Context-dependent |
 | Redundant modifier | 1 | Easy fix |
 | Curly quotes (Tier 3b) | 1 | ChatGPT-specific typography |
+| Novelty inflation (Tier 1g) | 3 | Engagement bait / clickbait framing |
+| Synonym cycling (Tier 1h) | 2 | Structural tell, counterintuitive fix |
+| False concession (Tier 2e) | 2 | Fake balanced analysis |
+| Emotional flatline (Tier 2f) | 2 | Declared vs demonstrated emotion |
+| Reasoning chain artifact (Tier 2g) | 2 | LLM scaffolding in output |
+| Parenthetical hedging (Tier 3c) | 1 | Unnecessary qualification |
 | Structural issue | 2 | Affects readability |
 | Boldface overuse (structural) | 2 | Mechanical emphasis patterns |
 
@@ -672,9 +820,11 @@ Run detection in this order for best results:
 3. **Tier 1-News scan** (news article AI tells -- pseudo-profound, philosophizing, meta-significance)
 4. **Tier 1b scan** (copula avoidance -- "serves as a", "boasts a")
 5. **Meta-commentary scan** (usually at start/end)
-6. **Tier 2b-2d scan** (dangling -ing, puffery, generic closers)
-7. **Structural analysis** (requires full document, includes boldface overuse, dramatic AI rhythm)
+5b. **Novelty inflation / engagement bait scan** (Tier 1g)
+6. **Tier 2b-2g scan** (dangling -ing, puffery, generic closers, false concession, emotional flatline, reasoning chains)
+7. **Structural analysis** (requires full document, includes boldface overuse, dramatic AI rhythm, synonym cycling)
 8. **Tier 3-5 scan** (lower priority, includes curly quote detection)
+8b. **Tier 3c scan** (parenthetical hedging)
 9. **Passive voice analysis** (context-dependent)
 
 Report issues grouped by paragraph for easier review.
