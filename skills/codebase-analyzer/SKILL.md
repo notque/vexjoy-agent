@@ -17,6 +17,9 @@ routing:
     - "analyze codebase"
     - "discover patterns"
     - "style vector"
+    - "code cartographer"
+    - "pattern frequency"
+    - "structural metrics"
   category: analysis
 ---
 

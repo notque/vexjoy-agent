@@ -12,6 +12,10 @@ routing:
   triggers:
     - "review code"
     - "code review methodology"
+    - "structured review"
+    - "code audit"
+    - "review methodology"
+    - "comprehensive review"
   category: code-review
 ---
 

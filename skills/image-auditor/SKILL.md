@@ -16,6 +16,8 @@ routing:
     - "audit images"
     - "check broken images"
     - "image accessibility"
+    - "alt text check"
+    - "image optimization"
   category: content-publishing
 ---
 

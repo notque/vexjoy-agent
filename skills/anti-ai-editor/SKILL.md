@@ -18,6 +18,8 @@ routing:
     - "remove AI patterns"
     - "de-AI content"
     - "make it sound human"
+    - "remove AI voice"
+    - "humanize text"
   category: content-creation
 ---
 

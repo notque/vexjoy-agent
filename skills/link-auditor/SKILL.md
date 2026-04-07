@@ -15,6 +15,8 @@ routing:
     - "audit links"
     - "find broken links"
     - "link health"
+    - "broken links"
+    - "dead links"
   category: content-publishing
 ---
 

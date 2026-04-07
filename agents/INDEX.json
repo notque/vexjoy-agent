@@ -3,7 +3,7 @@
   "generated_by": "scripts/generate-agent-index.py",
   "agents": {
     "ansible-automation-engineer": {
-      "file": "ansible-automation-engineer.md",
+      "file": "agents/ansible-automation-engineer.md",
       "short_description": "Ansible automation: playbooks, roles, collections, Molecule testing, Vault security",
       "triggers": [
         "ansible",
@@ -21,7 +21,7 @@
       "category": "infrastructure"
     },
     "combat-effects-upgrade": {
-      "file": "combat-effects-upgrade.md",
+      "file": "agents/combat-effects-upgrade.md",
       "short_description": "Zero-dependency combat visual upgrades: CSS particle replacement, Framer Motion combat juice, CSS 3D card transforms",
       "triggers": [
         "combat effects",
@@ -45,7 +45,7 @@
       "category": "frontend"
     },
     "data-engineer": {
-      "file": "data-engineer.md",
+      "file": "agents/data-engineer.md",
       "short_description": "Data pipelines, ETL/ELT, warehouse design, dimensional modeling, stream processing",
       "triggers": [
         "data pipeline",
@@ -83,7 +83,7 @@
       "category": "infrastructure"
     },
     "database-engineer": {
-      "file": "database-engineer.md",
+      "file": "agents/database-engineer.md",
       "short_description": "Database design, optimization, query performance, migrations, indexing strategies",
       "triggers": [
         "database",
@@ -103,7 +103,7 @@
       "category": "infrastructure"
     },
     "github-profile-rules-engineer": {
-      "file": "github-profile-rules-engineer.md",
+      "file": "agents/github-profile-rules-engineer.md",
       "short_description": "Extract coding conventions and style rules from GitHub user profiles via API",
       "triggers": [
         "github rules",
@@ -119,7 +119,7 @@
       "category": "meta"
     },
     "golang-general-engineer-compact": {
-      "file": "golang-general-engineer-compact.md",
+      "file": "agents/golang-general-engineer-compact.md",
       "short_description": "Compact Go development for tight context budgets",
       "triggers": [
         "go",
@@ -136,7 +136,7 @@
       "category": "language"
     },
     "golang-general-engineer": {
-      "file": "golang-general-engineer.md",
+      "file": "agents/golang-general-engineer.md",
       "short_description": "Go development: features, debugging, code review, performance",
       "triggers": [
         "go",
@@ -155,7 +155,7 @@
       "category": "language"
     },
     "hook-development-engineer": {
-      "file": "hook-development-engineer.md",
+      "file": "agents/hook-development-engineer.md",
       "short_description": "Python hook development for Claude Code event-driven system and learning database",
       "triggers": [
         "create hook",
@@ -175,7 +175,7 @@
       "category": "meta"
     },
     "kotlin-general-engineer": {
-      "file": "kotlin-general-engineer.md",
+      "file": "agents/kotlin-general-engineer.md",
       "short_description": "Kotlin development: features, coroutines, debugging, code quality, multiplatform",
       "triggers": [
         "kotlin",
@@ -203,7 +203,7 @@
       "category": "language"
     },
     "kubernetes-helm-engineer": {
-      "file": "kubernetes-helm-engineer.md",
+      "file": "agents/kubernetes-helm-engineer.md",
       "short_description": "Kubernetes and Helm: deployments, troubleshooting, cloud-native infrastructure",
       "triggers": [
         "kubernetes",
@@ -222,7 +222,7 @@
       "category": "infrastructure"
     },
     "mcp-local-docs-engineer": {
-      "file": "mcp-local-docs-engineer.md",
+      "file": "agents/mcp-local-docs-engineer.md",
       "short_description": "MCP server development for local documentation access in TypeScript/Node",
       "triggers": [
         "MCP",
@@ -237,7 +237,7 @@
       "category": "devops"
     },
     "nextjs-ecommerce-engineer": {
-      "file": "nextjs-ecommerce-engineer.md",
+      "file": "agents/nextjs-ecommerce-engineer.md",
       "short_description": "Use this agent when building a NextJS e-commerce site: shopping cart, Stripe payments, product catalogs, order management, and checkout flows",
       "triggers": [
         "next.js e-commerce",
@@ -256,7 +256,7 @@
       "category": "language"
     },
     "nodejs-api-engineer": {
-      "file": "nodejs-api-engineer.md",
+      "file": "agents/nodejs-api-engineer.md",
       "short_description": "Use this agent when you need expert assistance with NodeJS backend API development: REST endpoints, authentication, file uploads, webhooks, middleware, and database integration",
       "triggers": [
         "node.js",
@@ -275,7 +275,7 @@
       "category": "language"
     },
     "opensearch-elasticsearch-engineer": {
-      "file": "opensearch-elasticsearch-engineer.md",
+      "file": "agents/opensearch-elasticsearch-engineer.md",
       "short_description": "OpenSearch/Elasticsearch: cluster management, performance tuning, index optimization",
       "triggers": [
         "opensearch",
@@ -292,7 +292,7 @@
       "category": "infrastructure"
     },
     "performance-optimization-engineer": {
-      "file": "performance-optimization-engineer.md",
+      "file": "agents/performance-optimization-engineer.md",
       "short_description": "Web performance optimization: Core Web Vitals, rendering, bundle analysis, monitoring",
       "triggers": [
         "performance",
@@ -307,7 +307,7 @@
       "category": "performance"
     },
     "perses-engineer": {
-      "file": "perses-engineer.md",
+      "file": "agents/perses-engineer.md",
       "short_description": "Perses observability platform: dashboards, plugins, operator, core development",
       "triggers": [
         "perses",
@@ -351,7 +351,7 @@
       "category": "infrastructure"
     },
     "php-general-engineer": {
-      "file": "php-general-engineer.md",
+      "file": "agents/php-general-engineer.md",
       "short_description": "PHP development: features, debugging, code quality, security, modern PHP 8",
       "triggers": [
         "php",
@@ -383,7 +383,7 @@
       "category": "language"
     },
     "pipeline-orchestrator-engineer": {
-      "file": "pipeline-orchestrator-engineer.md",
+      "file": "agents/pipeline-orchestrator-engineer.md",
       "short_description": "Pipeline orchestration: scaffold multi-component workflows, fan-out/fan-in patterns",
       "triggers": [
         "create pipeline",
@@ -401,7 +401,7 @@
       "category": "meta"
     },
     "pixijs-combat-renderer": {
-      "file": "pixijs-combat-renderer.md",
+      "file": "agents/pixijs-combat-renderer.md",
       "short_description": "PixiJS v8 2D WebGL combat rendering: @pixi/react hybrid canvas, normal maps, GPU particles, post-processing",
       "triggers": [
         "pixijs",
@@ -424,7 +424,7 @@
       "category": "frontend"
     },
     "project-coordinator-engineer": {
-      "file": "project-coordinator-engineer.md",
+      "file": "agents/project-coordinator-engineer.md",
       "short_description": "Multi-agent project coordination: task breakdown, dependency management, progress tracking",
       "triggers": [
         "coordinate",
@@ -442,7 +442,7 @@
       "category": "meta"
     },
     "prometheus-grafana-engineer": {
-      "file": "prometheus-grafana-engineer.md",
+      "file": "agents/prometheus-grafana-engineer.md",
       "short_description": "Prometheus and Grafana: monitoring, alerting, dashboard design, PromQL optimization",
       "triggers": [
         "prometheus",
@@ -461,7 +461,7 @@
       "category": "infrastructure"
     },
     "python-general-engineer": {
-      "file": "python-general-engineer.md",
+      "file": "agents/python-general-engineer.md",
       "short_description": "Python development: features, debugging, code review, performance",
       "triggers": [
         "python",
@@ -480,7 +480,7 @@
       "category": "language"
     },
     "python-openstack-engineer": {
-      "file": "python-openstack-engineer.md",
+      "file": "agents/python-openstack-engineer.md",
       "short_description": "OpenStack Python development: Nova, Neutron, Cinder, Oslo libraries, WSGI middleware",
       "triggers": [
         "openstack",
@@ -500,7 +500,7 @@
       "category": "language"
     },
     "rabbitmq-messaging-engineer": {
-      "file": "rabbitmq-messaging-engineer.md",
+      "file": "agents/rabbitmq-messaging-engineer.md",
       "short_description": "RabbitMQ: message queue architecture, clustering, high-availability, routing patterns",
       "triggers": [
         "rabbitmq",
@@ -516,7 +516,7 @@
       "category": "infrastructure"
     },
     "react-native-engineer": {
-      "file": "react-native-engineer.md",
+      "file": "agents/react-native-engineer.md",
       "short_description": "React Native and Expo development: performance, animations, navigation, native UI patterns",
       "triggers": [
         "react native",
@@ -535,7 +535,7 @@
       "category": "language"
     },
     "react-portfolio-engineer": {
-      "file": "react-portfolio-engineer.md",
+      "file": "agents/react-portfolio-engineer.md",
       "short_description": "React portfolio/gallery sites for creatives: React 18+, Next",
       "triggers": [
         "portfolio",
@@ -553,7 +553,7 @@
       "category": "language"
     },
     "research-coordinator-engineer": {
-      "file": "research-coordinator-engineer.md",
+      "file": "agents/research-coordinator-engineer.md",
       "short_description": "Research coordination: systematic investigation, multi-source analysis, synthesis",
       "triggers": [
         "research",
@@ -572,7 +572,7 @@
       "category": "meta"
     },
     "research-subagent-executor": {
-      "file": "research-subagent-executor.md",
+      "file": "agents/research-subagent-executor.md",
       "short_description": "Research subagent execution: OODA-loop investigation, intelligence gathering, source evaluation",
       "triggers": [
         "research subtask",
@@ -585,9 +585,19 @@
       "category": "research"
     },
     "reviewer-code-playbook": {
-      "file": "reviewer-code.md",
+      "file": "agents/reviewer-code.md",
       "short_description": "Playbook-enhanced variant of reviewer-code for A/B testing (ADR-160)",
-      "triggers": [],
+      "triggers": [
+        "code review",
+        "review code quality",
+        "code conventions",
+        "naming review",
+        "dead code review",
+        "performance review",
+        "type design review",
+        "test coverage review",
+        "config safety review"
+      ],
       "pairs_with": [
         "workflow",
         "parallel-code-review",
@@ -597,7 +607,7 @@
       "category": "review"
     },
     "reviewer-domain": {
-      "file": "reviewer-domain.md",
+      "file": "agents/reviewer-domain.md",
       "short_description": "Domain-specific review: ADR compliance, business logic, SAP CC structural, pragmatic builder",
       "triggers": [
         "adr compliance",
@@ -632,7 +642,7 @@
       "category": "review"
     },
     "reviewer-perspectives": {
-      "file": "reviewer-perspectives.md",
+      "file": "agents/reviewer-perspectives.md",
       "short_description": "Multi-perspective review: newcomer, senior, pedant, contrarian, user advocate, meta-process",
       "triggers": [
         "newcomer perspective",
@@ -672,9 +682,19 @@
       "category": "review"
     },
     "reviewer-system-playbook": {
-      "file": "reviewer-system.md",
+      "file": "agents/reviewer-system.md",
       "short_description": "Playbook-enhanced variant of reviewer-system for A/B testing (ADR-160)",
-      "triggers": [],
+      "triggers": [
+        "system review",
+        "security review",
+        "concurrency review",
+        "error handling review",
+        "observability review",
+        "API contract review",
+        "migration safety review",
+        "dependency audit",
+        "API doc accuracy review"
+      ],
       "pairs_with": [
         "workflow",
         "systematic-code-review",
@@ -685,7 +705,7 @@
       "category": "review"
     },
     "rive-skeletal-animator": {
-      "file": "rive-skeletal-animator.md",
+      "file": "agents/rive-skeletal-animator.md",
       "short_description": "Rive skeletal animation: @rive-app/react-canvas, state machines, character pipelines, combat integration",
       "triggers": [
         "rive",
@@ -708,7 +728,7 @@
       "category": "frontend"
     },
     "sqlite-peewee-engineer": {
-      "file": "sqlite-peewee-engineer.md",
+      "file": "agents/sqlite-peewee-engineer.md",
       "short_description": "SQLite with Peewee ORM: model definition, query optimization, migrations, transactions",
       "triggers": [
         "peewee",
@@ -725,7 +745,7 @@
       "category": "language"
     },
     "swift-general-engineer": {
-      "file": "swift-general-engineer.md",
+      "file": "agents/swift-general-engineer.md",
       "short_description": "Swift development: iOS, macOS, server-side Swift, SwiftUI, concurrency, testing",
       "triggers": [
         "swift",
@@ -760,7 +780,7 @@
       "category": "language"
     },
     "system-upgrade-engineer": {
-      "file": "system-upgrade-engineer.md",
+      "file": "agents/system-upgrade-engineer.md",
       "short_description": "Systematic toolkit upgrades: adapt agents, skills, hooks when Claude Code ships updates",
       "triggers": [
         "upgrade agents",
@@ -786,7 +806,7 @@
       "category": "meta"
     },
     "technical-documentation-engineer-playbook": {
-      "file": "technical-documentation-engineer.md",
+      "file": "agents/technical-documentation-engineer.md",
       "short_description": "Technical documentation: API docs, system architecture, runbooks, enterprise standards",
       "triggers": [
         "API documentation",
@@ -801,7 +821,7 @@
       "category": "documentation"
     },
     "technical-journalist-writer": {
-      "file": "technical-journalist-writer.md",
+      "file": "agents/technical-journalist-writer.md",
       "short_description": "Technical journalism: explainers, opinion pieces, analysis articles, long-form content",
       "triggers": [
         "technical article",
@@ -817,7 +837,7 @@
       "category": "content"
     },
     "testing-automation-engineer-playbook": {
-      "file": "testing-automation-engineer.md",
+      "file": "agents/testing-automation-engineer.md",
       "short_description": "Playbook-enhanced testing agent: numeric anchors, STOP blocks, adversarial stance, explicit output contract",
       "triggers": [
         "testing",
@@ -835,7 +855,7 @@
       "category": "testing"
     },
     "toolkit-governance-engineer": {
-      "file": "toolkit-governance-engineer.md",
+      "file": "agents/toolkit-governance-engineer.md",
       "short_description": "Toolkit governance: edit skills, update routing tables, manage ADR lifecycle, enforce standards",
       "triggers": [
         "edit skill",
@@ -857,7 +877,7 @@
       "category": "meta"
     },
     "typescript-debugging-engineer": {
-      "file": "typescript-debugging-engineer.md",
+      "file": "agents/typescript-debugging-engineer.md",
       "short_description": "TypeScript debugging: race conditions, async/await issues, type errors, runtime exceptions",
       "triggers": [
         "typescript debug",
@@ -875,7 +895,7 @@
       "category": "language"
     },
     "typescript-frontend-engineer": {
-      "file": "typescript-frontend-engineer.md",
+      "file": "agents/typescript-frontend-engineer.md",
       "short_description": "TypeScript frontend architecture: type-safe components, state management, build optimization",
       "triggers": [
         "typescript",
@@ -894,7 +914,7 @@
       "category": "language"
     },
     "ui-design-engineer": {
-      "file": "ui-design-engineer.md",
+      "file": "agents/ui-design-engineer.md",
       "short_description": "UI/UX design: design systems, responsive layouts, accessibility, animations",
       "triggers": [
         "UI",
@@ -913,7 +933,7 @@
       "category": "language"
     },
     "wrestlejoy-amy-writer-compact": {
-      "file": "wrestlejoy-amy-writer-compact.md",
+      "file": "private-agents/wrestlejoy-amy-writer-compact.md",
       "short_description": "Use this agent when you need to write WrestleJoy content in Amy Nemmity's voice with context optimization",
       "triggers": [
         "WrestleJoy",
@@ -928,7 +948,7 @@
       "category": "content"
     },
     "wrestlejoy-amy-writer-expanded": {
-      "file": "wrestlejoy-amy-writer-expanded.md",
+      "file": "private-agents/wrestlejoy-amy-writer-expanded.md",
       "short_description": "Use this agent when you need to write WrestleJoy content in Amy Nemmity's voice with maximum depth and extensive examples",
       "triggers": [
         "WrestleJoy",
@@ -943,7 +963,7 @@
       "category": "content"
     },
     "wrestlejoy-amy-writer": {
-      "file": "wrestlejoy-amy-writer.md",
+      "file": "private-agents/wrestlejoy-amy-writer.md",
       "short_description": "Use this agent when writing WrestleJoy content in Amy Nemmity's voice",
       "triggers": [
         "WrestleJoy",
@@ -963,7 +983,7 @@
       "category": "content"
     },
     "wrestlejoy-news-editor": {
-      "file": "wrestlejoy-news-editor.md",
+      "file": "private-agents/wrestlejoy-news-editor.md",
       "short_description": "Editorial review agent for WrestleJoy automated news pipeline",
       "triggers": [
         "wrestlejoy edit",
@@ -983,7 +1003,7 @@
       "category": "content"
     },
     "wrestlejoy-news-producer": {
-      "file": "wrestlejoy-news-producer.md",
+      "file": "private-agents/wrestlejoy-news-producer.md",
       "short_description": "Orchestrator agent for the WrestleJoy automated news production pipeline",
       "triggers": [
         "wrestlejoy news",

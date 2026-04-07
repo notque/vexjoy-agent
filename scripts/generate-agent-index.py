@@ -108,8 +108,15 @@ def extract_short_description(description: str) -> str:
     return description[:100]
 
 
-def generate_index(agents_dir: Path) -> dict:
-    """Generate routing index from all agent files."""
+def generate_index(agents_dir: Path, relative_to: Path | None = None) -> dict:
+    """Generate routing index from all agent files.
+
+    Args:
+        agents_dir: Directory containing agent markdown files.
+        relative_to: If provided, agent file paths in the index will be relative
+            to this directory (e.g. repo root), so private agents get
+            ``private-agents/filename.md`` instead of bare ``filename.md``.
+    """
     index = {"version": "1.0", "generated_by": "scripts/generate-agent-index.py", "agents": {}}
     errors = []
 
@@ -131,8 +138,16 @@ def generate_index(agents_dir: Path) -> dict:
 
         name = frontmatter.get("name", agent_file.stem)
 
+        if relative_to:
+            try:
+                file_path = str(agents_dir.relative_to(relative_to) / agent_file.name)
+            except ValueError:
+                file_path = agent_file.name
+        else:
+            file_path = agent_file.name
+
         agent_entry = {
-            "file": agent_file.name,
+            "file": file_path,
             "short_description": extract_short_description(frontmatter.get("description", "")),
         }
 
@@ -176,12 +191,12 @@ def main():
         return 1
 
     # Generate index from public agents
-    index = generate_index(agents_dir)
+    index = generate_index(agents_dir, relative_to=repo_root)
 
     # Also scan private agents if they exist (gitignored, user-specific)
     private_agents_dir = repo_root / "private-agents"
     if private_agents_dir.exists() and any(private_agents_dir.iterdir()):
-        private_index = generate_index(private_agents_dir)
+        private_index = generate_index(private_agents_dir, relative_to=repo_root)
         index["agents"].update(private_index["agents"])
 
     # Write index file

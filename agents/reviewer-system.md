@@ -9,7 +9,16 @@ description: |
   contract, and adversarial verifier stance.
 color: red
 routing:
-  triggers: []
+  triggers:
+    - "system review"
+    - "security review"
+    - "concurrency review"
+    - "error handling review"
+    - "observability review"
+    - "API contract review"
+    - "migration safety review"
+    - "dependency audit"
+    - "API doc accuracy review"
   pairs_with:
     - workflow
     - systematic-code-review

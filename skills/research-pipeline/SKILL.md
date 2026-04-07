@@ -18,6 +18,16 @@ allowed-tools:
   - Grep
   - Agent
   - Write
+routing:
+  triggers:
+    - "research-pipeline"
+    - "research"
+    - "formal research"
+    - "research with artifacts"
+    - "systematic investigation"
+    - "research report"
+    - "gather evidence"
+  category: research
 ---
 
 # Research Pipeline

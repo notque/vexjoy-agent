@@ -17,6 +17,7 @@ routing:
     - "brainstorm topics"
     - "content ideas"
     - "blog topic ideas"
+    - "what to write about"
   category: content-creation
 ---
 

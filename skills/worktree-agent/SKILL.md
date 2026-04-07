@@ -5,6 +5,13 @@ version: 1.0.0
 user-invocable: false
 context: fork
 tags: [worktree, isolation, parallel, agent]
+routing:
+  triggers:
+    - "worktree agent"
+    - "git worktree"
+    - "git worktree rules"
+    - "isolated agent"
+  category: git-workflow
 ---
 
 # Worktree Agent Rules

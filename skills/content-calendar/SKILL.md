@@ -15,6 +15,8 @@ routing:
     - "content pipeline"
     - "editorial calendar"
     - "publishing schedule"
+    - "content schedule"
+    - "publication plan"
   category: content-creation
 ---
 

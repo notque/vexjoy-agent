@@ -17,6 +17,8 @@ routing:
     - "maximum rigor"
     - "anti-rationalization"
     - "strict verification"
+    - "strict mode"
+    - "no shortcuts"
   category: process
 ---
 

@@ -14,6 +14,8 @@ routing:
     - "parallel review"
     - "3-reviewer review"
     - "security review"
+    - "multi-reviewer"
+    - "concurrent review"
   category: code-review
 ---
 

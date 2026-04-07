@@ -38,9 +38,9 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **pipeline-orchestrator-engineer** | User wants to create a new pipeline, scaffold a new structured workflow, or compose pipeline phases. |
 | **hook-development-engineer** | User wants to create or modify Python hooks for Claude Code's event-driven system (SessionStart, PostToolUse, etc.). |
 | **system-upgrade-engineer** | User wants to upgrade the agent/skill/hook ecosystem after a Claude model update or system-wide change. |
-| **technical-documentation-engineer** | User needs technical documentation created, maintained, or validated — API docs, READMEs, architecture guides. |
+| **technical-documentation-engineer-playbook** | User needs technical documentation created, maintained, or validated — API docs, READMEs, architecture guides. |
 | **technical-journalist-writer** | User needs professional technical writing in a journalism style — articles, posts, or content with a specific authored voice. |
-| **testing-automation-engineer** | User needs comprehensive testing strategy, E2E test setup, Playwright tests, or test infrastructure design. NOT: writing Go unit tests (use go-patterns force-route). |
+| **testing-automation-engineer-playbook** | User needs comprehensive testing strategy, E2E test setup, Playwright tests, or test infrastructure design. NOT: writing Go unit tests (use go-patterns force-route). |
 | **ui-design-engineer** | User is designing or implementing UI/UX for web applications: layout, Tailwind styling, component design, or visual hierarchy. |
 | **perses-engineer** | User is working with the Perses observability platform: dashboards, plugins, operator/K8s deployment, or core development. |
 | **github-profile-rules-engineer** | User wants to extract coding conventions, programming rules, or style guidelines from a GitHub profile's repositories. |
@@ -48,6 +48,9 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **react-portfolio-engineer** | User is building a React portfolio or gallery website, typically for creative professionals. |
 | **nextjs-ecommerce-engineer** | User is building an e-commerce site with Next.js: product pages, cart, checkout flows. |
 | **toolkit-governance-engineer** | User wants to maintain or modify the toolkit's own internal structure: editing skill/agent files, updating routing tables, managing ADRs, regenerating INDEX.json, or enforcing frontmatter compliance. NOT: creating brand-new agents (use skill-creator), writing application code (domain agents), or reviewing external PRs (reviewer agents). |
+| **combat-effects-upgrade** | User wants zero-dependency combat visual upgrades: CSS particle replacement, Framer Motion combat juice, CSS 3D card transforms. NOT: 2D WebGL rendering (use pixijs-combat-renderer). NOT: 3D scenes (use threejs-builder). |
+| **pixijs-combat-renderer** | User wants PixiJS v8 2D WebGL combat rendering: @pixi/react hybrid canvas, normal maps, GPU particles, post-processing. NOT: 3D scenes (use threejs-builder). |
+| **rive-skeletal-animator** | User wants Rive skeletal animation: @rive-app/react-canvas, state machines, character pipelines, combat integration. NOT: sprite-based animation (use phaser-gamedev). |
 
 ---
 
@@ -121,7 +124,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | Skill | When to Route Here |
 |-------|-------------------|
 | **codebase-overview** | User wants a high-level understanding of a repository's structure, architecture, or purpose. |
-| **codebase-analyzer (code-cartographer)** | User wants statistical analysis of a codebase: pattern frequency, structural metrics, or data-driven insights about the code. |
+| **codebase-analyzer** | User wants statistical analysis of codebase patterns: pattern frequency, structural metrics, style vectors, or data-driven insights about code. NOT: a high-level overview (use codebase-overview). |
 | **code-cleanup** | User wants to remove stale TODOs, unused code, dead imports, or generally clean up accumulated debt. |
 | **comment-quality** | User wants to audit code comments for accuracy, temporal references, or staleness. |
 | **agent-evaluation** | User wants to grade or evaluate a skill, agent, or pipeline for quality and standards compliance. NOT: evaluating code output or test results. |
@@ -320,8 +323,8 @@ Consolidated reviewer agents, each covering multiple review perspectives:
 
 | Agent | When to Route Here |
 |-------|-------------------|
-| **reviewer-code** | Code quality review: conventions, naming, dead code, performance, types, tests, comments, config safety. Use for code style, readability, simplification, language idioms, naming consistency, unused code, comment accuracy, hot paths, type design, test coverage, and configuration review. |
-| **reviewer-system** | System review: security, concurrency, errors, observability, APIs, migrations, dependencies, docs. Use for vulnerability scans, race conditions, goroutine leaks, silent failures, error messages, logging quality, API contracts, migration safety, dependency audits, and documentation validation. |
+| **reviewer-code-playbook** | Code quality review: conventions, naming, dead code, performance, types, tests, comments, config safety. Use for code style, readability, simplification, language idioms, naming consistency, unused code, comment accuracy, hot paths, type design, test coverage, and configuration review. |
+| **reviewer-system-playbook** | System review: security, concurrency, errors, observability, APIs, migrations, dependencies, docs. Use for vulnerability scans, race conditions, goroutine leaks, silent failures, error messages, logging quality, API contracts, migration safety, dependency audits, and documentation validation. |
 | **reviewer-perspectives** | Multi-perspective review: newcomer, senior, pedant, contrarian, user advocate, meta-process. Use for fresh-eyes critique, skeptical senior review, technical precision, assumption challenges, user impact analysis, and system design meta-review. |
 | **reviewer-domain** | Domain-specific review: ADR compliance, business logic, SAP CC structural, pragmatic builder. Use for architecture decision compliance, domain correctness, sapcc Go conventions, and production readiness critique. |
 

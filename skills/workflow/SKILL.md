@@ -5,6 +5,13 @@ description: "Structured multi-phase workflows: review, debug, refactor, deploy,
 user-invocable: false
 context: fork
 model: sonnet
+routing:
+  triggers:
+    - "workflow"
+    - "multi-phase task"
+    - "structured pipeline"
+    - "phased execution"
+    - "orchestrated workflow"
 allowed-tools:
   - Read
   - Edit

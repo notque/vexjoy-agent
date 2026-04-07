@@ -21,6 +21,14 @@ allowed-tools:
   - Edit
   - Task
   - Skill
+routing:
+  triggers:
+    - "write article"
+    - "blog post"
+    - "write in voice"
+    - "blog post voice"
+    - "content pipeline"
+  category: voice
 ---
 
 # Voice Writer
