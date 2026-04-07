@@ -26,6 +26,31 @@ quality-loop (14 phases)
 - Does NOT apply to: Trivial (direct), Simple (quick/fast), review-only tasks, research, debugging-only, content creation
 - Force-route skills (go-patterns, feature-lifecycle, etc.) are used INSIDE PHASE 2, not excluded from the loop
 
+## Task Tracking
+
+At pipeline start, create a task for each phase using TaskCreate. This makes progress visible to the user and provides a checklist the orchestrator follows.
+
+```
+TaskCreate: "PHASE 0: ADR"           — "Write architectural decision record"
+TaskCreate: "PHASE 1: PLAN"          — "Write task_plan.md with approach + acceptance criteria"
+TaskCreate: "PHASE 2: IMPLEMENT"     — "Agent+skill builds the change"
+TaskCreate: "PHASE 3: TEST"          — "Run deterministic test suite"
+TaskCreate: "PHASE 4: REVIEW"        — "3 parallel reviewers (security, domain, architecture)"
+TaskCreate: "PHASE 5: INTENT VERIFY" — "Adversarial: does diff match request?"
+TaskCreate: "PHASE 6: LIVE VALIDATE" — "Playwright validation (web projects only)"
+TaskCreate: "PHASE 7: FIX"           — "Fix CRITICAL findings"
+TaskCreate: "PHASE 8: RETEST"        — "Re-run tests after fixes"
+TaskCreate: "PHASE 9: PR"            — "Push branch, create PR"
+TaskCreate: "PHASE 10: CODEX REVIEW" — "Cross-model second opinion"
+TaskCreate: "PHASE 11: ADR RECONCILE"— "Compare decision vs implementation"
+TaskCreate: "PHASE 12: RECORD"       — "Capture learnings"
+TaskCreate: "PHASE 13: CLEANUP"      — "Move ADR to completed, clear artifacts"
+```
+
+As each phase begins, mark it `in_progress`. When it completes, mark it `completed`. If a phase is skipped (e.g., PHASE 0 for non-creation requests, PHASE 6 for non-web projects), mark it `completed` with a note "skipped — not applicable."
+
+This tracking is mandatory — it's how the user knows where the pipeline is and what's left.
+
 ## Pipeline Phases
 
 ### PHASE 0 — ADR
