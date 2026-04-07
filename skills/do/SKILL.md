@@ -243,15 +243,17 @@ Create `task_plan.md` before execution, because executing without a plan produce
 
 **Step 1b: Apply quality-loop pipeline** (for Medium+ code modifications)
 
-When the request is a code modification (implementation, bug fix, feature addition, refactoring) at Medium or Complex complexity, load and follow `references/quality-loop.md` instead of dispatching a single agent. This implements the full implement → test → review → fix → retest → PR pipeline described in PHILOSOPHY.md.
+When the request is a code modification (implementation, bug fix, feature addition, refactoring) at Medium or Complex complexity, load `references/quality-loop.md` and use it as the **outer orchestration wrapper** around Step 2. The quality-loop and the agent+skill are complementary layers, not alternatives:
+
+- **Quality-loop** (outer) = the pipeline phases: implement → test → review → fix → retest → PR
+- **Agent + skill** (inner) = the domain expertise used inside PHASE 1 (IMPLEMENT)
+
+The router still selects the best agent+skill in Phase 2 (e.g., `golang-general-engineer` + `go-patterns`). That selection becomes the implementation agent for quality-loop PHASE 1. Force-route skills like `go-patterns` are used INSIDE the loop, not excluded from it — a Go implementation gets Go-specific patterns AND testing, review, and PR gates.
 
 The quality-loop does NOT apply when:
 - Complexity is Trivial or Simple (use fast/quick instead)
-- A force-route skill already matched (go-patterns, pr-workflow, feature-lifecycle, etc.)
 - The task is review-only, research, debugging, or content creation
 - The user explicitly requests a simpler flow
-
-When quality-loop applies, it replaces Step 2 (single agent dispatch) with the full 6-phase pipeline from the reference. Skip to Phase 5 (LEARN) after the pipeline completes.
 
 **Step 2: Invoke agent with skill**
 

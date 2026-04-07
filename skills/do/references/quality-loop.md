@@ -1,21 +1,31 @@
 # Quality Loop Pipeline
 
-Default pipeline for Medium+ code modification requests. Loaded by `/do` Phase 4 when the request involves code changes at Medium or Complex complexity.
+Orchestration wrapper for Medium+ code modification requests. The quality-loop is the **outer pipeline** — it wraps the agent+skill that `/do` Phase 2 already selected. The agent+skill provides domain expertise (PHASE 1). The quality-loop adds testing, review, fix, and PR gates around it.
+
+```
+quality-loop (outer)
+└── PHASE 1: agent+skill (inner) — domain expertise for implementation
+└── PHASE 2: TEST — deterministic verification
+└── PHASE 3: REVIEW — 3 parallel reviewers + intent verification
+└── PHASE 4: FIX — fresh agent addresses CRITICALs
+└── PHASE 5: RETEST — verify fixes
+└── PHASE 6: PR — push and create PR
+```
 
 ## When This Applies
 
 - Code modification requests at Medium+ complexity (implementation, bug fix, feature addition, refactoring)
-- Does NOT apply to: Trivial (direct), Simple (quick/fast), reviews (parallel-code-review), research (research-pipeline), content creation (voice-writer)
-- Force-route skills still take precedence (go-patterns, pr-workflow, feature-lifecycle, etc.)
+- Does NOT apply to: Trivial (direct), Simple (quick/fast), review-only tasks, research, debugging, content creation
+- Force-route skills (go-patterns, feature-lifecycle, etc.) are used INSIDE PHASE 1, not excluded from the loop
 
 ## Pipeline Phases
 
 ### PHASE 1 — IMPLEMENT
 
-Dispatch the selected domain agent with worktree isolation.
+Dispatch the agent+skill that `/do` Phase 2 selected, with worktree isolation. The quality-loop does not choose the agent — it uses whatever the router already picked (e.g., `golang-general-engineer` + `go-patterns` for Go work, `python-general-engineer` + `python-quality-gate` for Python work).
 
 - Create feature branch in worktree
-- Agent implements the change following its domain expertise
+- Agent uses its own skill and reference files for domain-specific implementation
 - Agent commits on the feature branch
 - Inject worktree-agent skill rules into agent prompt
 - Include "commit your changes on the branch" in agent prompt
@@ -23,6 +33,7 @@ Dispatch the selected domain agent with worktree isolation.
 **State artifact:** Before proceeding, write `quality-loop-state.md` in the worktree root with:
 ```
 agent: <domain-agent-name>
+skill: <skill-name>
 request: <original user request verbatim>
 branch: <feature-branch-name>
 ```
