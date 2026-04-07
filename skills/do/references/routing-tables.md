@@ -48,7 +48,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **react-portfolio-engineer** | User is building a React portfolio or gallery website, typically for creative professionals. |
 | **nextjs-ecommerce-engineer** | User is building an e-commerce site with Next.js: product pages, cart, checkout flows. |
 | **toolkit-governance-engineer** | User wants to maintain or modify the toolkit's own internal structure: editing skill/agent files, updating routing tables, managing ADRs, regenerating INDEX.json, or enforcing frontmatter compliance. NOT: creating brand-new agents (use skill-creator), writing application code (domain agents), or reviewing external PRs (reviewer agents). |
-| **combat-effects-upgrade** | User wants zero-dependency combat visual upgrades: CSS particle replacement, Framer Motion combat juice, CSS 3D card transforms. NOT: 3D rendering (use pixijs-combat-renderer or threejs-builder). |
+| **combat-effects-upgrade** | User wants zero-dependency combat visual upgrades: CSS particle replacement, Framer Motion combat juice, CSS 3D card transforms. NOT: 2D WebGL rendering (use pixijs-combat-renderer). NOT: 3D scenes (use threejs-builder). |
 | **pixijs-combat-renderer** | User wants PixiJS v8 2D WebGL combat rendering: @pixi/react hybrid canvas, normal maps, GPU particles, post-processing. NOT: 3D scenes (use threejs-builder). |
 | **rive-skeletal-animator** | User wants Rive skeletal animation: @rive-app/react-canvas, state machines, character pipelines, combat integration. NOT: sprite-based animation (use phaser-gamedev). |
 

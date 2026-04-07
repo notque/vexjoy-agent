@@ -18,7 +18,7 @@ routing:
     - "API contract review"
     - "migration safety review"
     - "dependency audit"
-    - "documentation review"
+    - "API doc accuracy review"
   pairs_with:
     - workflow
     - systematic-code-review

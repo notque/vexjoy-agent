@@ -52,9 +52,9 @@ def extract_routing_table_names(routing_tables_path: Path) -> set[str]:
         return set()
 
     content = routing_tables_path.read_text(encoding="utf-8")
-    # Match **name** or **name (qualifier)**
-    raw_names = re.findall(r"\*\*([a-z][a-z0-9/-]*)(?:\s+\([^)]*\))?\*\*", content)
-    return set(raw_names)
+    # Match **name** or **name (qualifier)** — case-insensitive, normalize to lowercase
+    raw_names = re.findall(r"\*\*([a-zA-Z][a-zA-Z0-9-]*)(?:\s+\([^)]*\))?\*\*", content)
+    return {name.lower() for name in raw_names}
 
 
 # ---------------------------------------------------------------------------
@@ -136,8 +136,16 @@ def check_routing_table_coverage(
         except (json.JSONDecodeError, OSError):
             pass
 
-    # Non-component names that appear as bold entries in policy tables
-    table_values = {"personal", "protected-org"}
+    # Non-component names that appear as bold entries in policy/workflow tables
+    table_values = {
+        "personal",
+        "protected-org",
+        "human-gated",
+        "never",
+        "auto-detection",
+        "documentation",
+        "content",
+    }
 
     all_known = agent_names | skill_names | workflow_ref_names | pipeline_names | table_values
 
@@ -197,6 +205,28 @@ def check_duplicate_triggers(index: dict, index_type: str) -> tuple[list[str], l
     return errors, warnings
 
 
+def check_cross_entry_trigger_overlap(skills_index: dict, agents_index: dict) -> tuple[list[str], list[str]]:
+    """Check 6: detect triggers claimed by multiple entries across both indexes."""
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    trigger_map: dict[str, list[str]] = {}
+    for index, index_type in [(skills_index, "skills"), (agents_index, "agents")]:
+        label = {"skills": "skill", "agents": "agent"}.get(index_type, index_type)
+        for name, entry in index.get(index_type, {}).items():
+            if not isinstance(entry, dict):
+                continue
+            for trigger in entry.get("triggers", []):
+                trigger_lower = trigger.lower()
+                trigger_map.setdefault(trigger_lower, []).append(f"{label}:{name}")
+
+    for trigger, owners in sorted(trigger_map.items()):
+        if len(owners) > 1:
+            warnings.append(f"  [trigger overlap] '{trigger}' claimed by: {', '.join(owners)}")
+
+    return errors, warnings
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -238,6 +268,10 @@ def main() -> int:
         (
             "Check 5b: agent duplicate triggers",
             check_duplicate_triggers(agents_index, "agents"),
+        ),
+        (
+            "Check 6: cross-entry trigger overlap",
+            check_cross_entry_trigger_overlap(skills_index, agents_index),
         ),
     ]
 
