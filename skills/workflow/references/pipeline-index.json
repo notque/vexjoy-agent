@@ -553,16 +553,22 @@
     },
     "quality-loop": {
       "name": "quality-loop",
-      "description": "Default pipeline for Medium+ code modifications: implement \u2192 test \u2192 review \u2192 fix \u2192 retest \u2192 PR",
+      "description": "Canonical 14-phase pipeline for all Medium+ code modifications: ADR through cleanup",
       "phases": [
-        "ADR+PLAN",
+        "ADR",
+        "PLAN",
         "IMPLEMENT",
         "TEST",
         "REVIEW",
+        "INTENT VERIFY",
+        "LIVE VALIDATE",
         "FIX",
         "RETEST",
         "PR",
-        "CLOSE"
+        "CODEX REVIEW",
+        "ADR RECONCILE",
+        "RECORD",
+        "CLEANUP"
       ],
       "triggers": [
         "code change",
