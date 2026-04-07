@@ -9,7 +9,16 @@ description: |
   contract, and verifier stance.
 color: green
 routing:
-  triggers: []
+  triggers:
+    - "code review"
+    - "review code quality"
+    - "code conventions"
+    - "naming review"
+    - "dead code review"
+    - "performance review"
+    - "type design review"
+    - "test coverage review"
+    - "config safety review"
   pairs_with:
     - workflow
     - parallel-code-review
