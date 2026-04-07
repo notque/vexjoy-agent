@@ -7,7 +7,7 @@ Checks:
   2. All agent ``file`` fields in agents/INDEX.json point to existing files
      (paths resolved relative to the repo root).
   3. All names referenced in routing-tables.md exist in agents/ or skills/ INDEX.json.
-  4. No skill or agent has fewer than 3 triggers (warn) or 0 triggers (error).
+  4. No skill or agent has fewer than 5 triggers (warn) or 0 triggers (error).
   5. No triggers are duplicated within a single entry.
 
 Exit codes:
@@ -68,9 +68,15 @@ def check_skill_files(skills_index: dict, repo_root: Path) -> tuple[list[str], l
     warnings: list[str] = []
 
     for name, entry in skills_index.get("skills", {}).items():
+        if not isinstance(entry, dict):
+            errors.append(f"  [skill malformed] '{name}': INDEX entry is not a dict")
+            continue
         file_field = entry.get("file", "")
+        if not file_field:
+            errors.append(f"  [skill missing file] '{name}': INDEX entry has no 'file' field")
+            continue
         skill_path = repo_root / file_field
-        if not skill_path.exists():
+        if not skill_path.is_file():
             errors.append(f"  [skill missing file] '{name}': INDEX says '{file_field}' but file does not exist")
 
     return errors, warnings
@@ -82,9 +88,15 @@ def check_agent_files(agents_index: dict, repo_root: Path) -> tuple[list[str], l
     warnings: list[str] = []
 
     for name, entry in agents_index.get("agents", {}).items():
+        if not isinstance(entry, dict):
+            errors.append(f"  [agent malformed] '{name}': INDEX entry is not a dict")
+            continue
         file_field = entry.get("file", "")
+        if not file_field:
+            errors.append(f"  [agent missing file] '{name}': INDEX entry has no 'file' field")
+            continue
         agent_path = repo_root / file_field
-        if not agent_path.exists():
+        if not agent_path.is_file():
             errors.append(f"  [agent missing file] '{name}': INDEX says '{file_field}' but file does not exist")
 
     return errors, warnings
@@ -140,21 +152,22 @@ def check_routing_table_coverage(
 
 
 def check_trigger_counts(index: dict, index_type: str) -> tuple[list[str], list[str]]:
-    """Check 4: no entry has < 3 triggers (warn) or 0 triggers (error)."""
+    """Check 4: no entry has < 5 triggers (warn) or 0 triggers (error)."""
     errors: list[str] = []
     warnings: list[str] = []
 
+    label = {"skills": "skill", "agents": "agent"}.get(index_type, index_type)
     items = index.get(index_type, {})
     for name, entry in items.items():
+        if not isinstance(entry, dict):
+            continue
         triggers = entry.get("triggers", [])
         count = len(triggers)
         if count == 0:
-            errors.append(
-                f"  [zero triggers] {index_type[:-1]} '{name}' has 0 triggers — routing will never match this entry"
-            )
-        elif count < 3:
+            errors.append(f"  [zero triggers] {label} '{name}' has 0 triggers — routing will never match this entry")
+        elif count < 5:
             warnings.append(
-                f"  [few triggers] {index_type[:-1]} '{name}' has only {count} trigger(s) "
+                f"  [few triggers] {label} '{name}' has only {count} trigger(s) "
                 "— consider adding more for reliable routing"
             )
 
@@ -166,8 +179,11 @@ def check_duplicate_triggers(index: dict, index_type: str) -> tuple[list[str], l
     errors: list[str] = []
     warnings: list[str] = []
 
+    label = {"skills": "skill", "agents": "agent"}.get(index_type, index_type)
     items = index.get(index_type, {})
     for name, entry in items.items():
+        if not isinstance(entry, dict):
+            continue
         triggers = entry.get("triggers", [])
         seen: set[str] = set()
         duplicates: list[str] = []
@@ -176,7 +192,7 @@ def check_duplicate_triggers(index: dict, index_type: str) -> tuple[list[str], l
                 duplicates.append(t)
             seen.add(t)
         if duplicates:
-            errors.append(f"  [duplicate triggers] {index_type[:-1]} '{name}' has duplicate trigger(s): {duplicates}")
+            errors.append(f"  [duplicate triggers] {label} '{name}' has duplicate trigger(s): {duplicates}")
 
     return errors, warnings
 

@@ -139,7 +139,10 @@ def generate_index(agents_dir: Path, relative_to: Path | None = None) -> dict:
         name = frontmatter.get("name", agent_file.stem)
 
         if relative_to:
-            file_path = str(agents_dir.relative_to(relative_to) / agent_file.name)
+            try:
+                file_path = str(agents_dir.relative_to(relative_to) / agent_file.name)
+            except ValueError:
+                file_path = agent_file.name
         else:
             file_path = agent_file.name
 
