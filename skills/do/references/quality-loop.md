@@ -20,7 +20,15 @@ Dispatch the selected domain agent with worktree isolation.
 - Inject worktree-agent skill rules into agent prompt
 - Include "commit your changes on the branch" in agent prompt
 
-**Gate:** Agent commits exist on feature branch. If agent failed to commit, halt pipeline and report which step to resume from.
+**State artifact:** Before proceeding, write `quality-loop-state.md` in the worktree root with:
+```
+agent: <domain-agent-name>
+request: <original user request verbatim>
+branch: <feature-branch-name>
+```
+This artifact is read by PHASE 3 (intent verification) and PHASE 4 (fix agent selection) — without it, those phases reconstruct context from session memory, which is unreliable.
+
+**Gate:** Agent commits exist on feature branch AND `quality-loop-state.md` written. If agent failed to commit, halt pipeline and report which step to resume from.
 
 ### PHASE 2 — TEST
 
@@ -54,7 +62,7 @@ Each reviewer produces findings as:
 
 #### Intent Verification (mandatory)
 
-After the 3 reviewers complete, dispatch one additional adversarial verifier agent (read-only) that compares the original user request against the actual diff. The verifier answers:
+After the 3 reviewers complete, dispatch one additional adversarial verifier agent (read-only) that reads the original user request from `quality-loop-state.md` (written in PHASE 1) and compares it against the actual diff. The verifier answers:
 
 1. Does the diff accomplish what the user requested?
 2. Are there aspects of the request that the implementation missed?
@@ -70,6 +78,7 @@ When the project has a dev server (detected by: `package.json` with `dev` or `st
 - Timeout: 60 seconds for server startup, 30 seconds per page
 - If dev server fails to start, skip with a warning (not a CRITICAL)
 - Uses the `e2e-testing` or `wordpress-live-validation` skill methodology
+- Playwright test failures are IMPROVEMENT-level findings unless they reproduce a failure also caught in PHASE 2, in which case they are CRITICAL
 
 **Gate:** Collect all findings. If any CRITICAL findings (from PHASE 2 tests, PHASE 3 review, OR intent verification), proceed to PHASE 4. If no CRITICALs, skip to PHASE 6.
 
@@ -78,7 +87,7 @@ When the project has a dev server (detected by: `package.json` with `dev` or `st
 For each CRITICAL finding, dispatch a fresh domain agent to fix it.
 
 - Each fix is a separate commit with a message referencing the finding
-- Use the same domain agent type as PHASE 1
+- Read `quality-loop-state.md` to determine which domain agent PHASE 1 used — do not rely on session memory
 - Fresh agent context — not the same agent that made the mistake — because the original agent has anchoring bias toward its own implementation
 - Include the specific CRITICAL finding text in the agent prompt
 
@@ -92,13 +101,17 @@ Run the same test suite as PHASE 2.
 - If tests fail: loop back to PHASE 4
 
 **Loop counter:** Maximum 3 FIX→RETEST iterations. After 3 loops:
-- Create PR anyway with remaining findings in the body
-- Add "[needs-attention]" prefix to PR title
+- **HALT** — do NOT auto-create PR with unresolved CRITICALs
+- Display remaining CRITICAL findings to the user
+- Ask: "Quality loop exhausted 3 fix iterations with unresolved CRITICALs. Create PR anyway? (findings will be listed in PR body)"
+- Only proceed to PHASE 6 if user confirms
 - Log the loop exhaustion to learning.db:
 
 ```bash
 python3 ~/.claude/scripts/learning-db.py learn --skill do "quality-loop: max loops exhausted on [task summary]"
 ```
+
+A pipeline that promises quality enforcement must not silently ship CRITICALs. The user must consciously choose to proceed.
 
 ### PHASE 6 — PR
 
