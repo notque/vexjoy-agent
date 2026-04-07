@@ -241,6 +241,18 @@ If request contains "create", "new", "scaffold", "build pipeline/agent/skill/hoo
 
 Create `task_plan.md` before execution, because executing without a plan produces wrong results faster — not correct results sooner. The `auto-plan-detector.py` hook auto-injects `<auto-plan-required>` context. Skip only for Trivial tasks.
 
+**Step 1b: Apply quality-loop pipeline** (for Medium+ code modifications)
+
+When the request is a code modification (implementation, bug fix, feature addition, refactoring) at Medium or Complex complexity, load and follow `references/quality-loop.md` instead of dispatching a single agent. This implements the full implement → test → review → fix → retest → PR pipeline described in PHILOSOPHY.md.
+
+The quality-loop does NOT apply when:
+- Complexity is Trivial or Simple (use fast/quick instead)
+- A force-route skill already matched (go-patterns, pr-workflow, feature-lifecycle, etc.)
+- The task is review-only, research, debugging, or content creation
+- The user explicitly requests a simpler flow
+
+When quality-loop applies, it replaces Step 2 (single agent dispatch) with the full 6-phase pipeline from the reference. Skip to Phase 5 (LEARN) after the pipeline completes.
+
 **Step 2: Invoke agent with skill**
 
 Dispatch the agent. MCP tool discovery is the agent's responsibility — each agent's markdown declares which MCP tools it needs. Do not inject MCP instructions from /do.

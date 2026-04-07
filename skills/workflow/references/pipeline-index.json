@@ -551,6 +551,17 @@
         "parallel-code-review"
       ]
     },
+    "quality-loop": {
+      "name": "quality-loop",
+      "description": "Default pipeline for Medium+ code modifications: implement → test → review → fix → retest → PR",
+      "phases": ["IMPLEMENT", "TEST", "REVIEW", "FIX", "RETEST", "PR"],
+      "triggers": ["code change", "implement", "build feature", "fix bug", "add feature"],
+      "skill": "do",
+      "reference": "skills/do/references/quality-loop.md",
+      "category": "process",
+      "user_invocable": false,
+      "version": "1.0.0"
+    },
     "research-pipeline": {
       "file": "skills/workflow/references/research-pipeline.md",
       "description": "Formal 5-phase research pipeline with artifact saving and source quality gates: SCOPE \u2192 GATHER \u2192 SYNTHESIZE \u2192 VALIDATE \u2192 DELIVER.",
