@@ -17,6 +17,9 @@ routing:
     - "install toolkit"
     - "verify installation"
     - "health check toolkit"
+    - "setup toolkit"
+    - "diagnose setup"
+    - "toolkit health"
   category: meta-tooling
 ---
 

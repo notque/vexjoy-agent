@@ -13,6 +13,8 @@ routing:
     - "check status"
     - "explore code"
     - "read-only"
+    - "browse code"
+    - "inspect only"
   category: process
 ---
 

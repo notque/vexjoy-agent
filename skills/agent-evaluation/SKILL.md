@@ -15,6 +15,8 @@ routing:
     - "audit agent"
     - "score skill"
     - "check quality"
+    - "grade agent"
+    - "agent quality"
   category: meta-tooling
 ---
 

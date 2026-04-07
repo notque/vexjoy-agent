@@ -17,6 +17,8 @@ routing:
     - "compose skills"
     - "DAG orchestration"
     - "multi-skill chain"
+    - "skill pipeline"
+    - "combine skills"
   category: meta-tooling
 ---
 

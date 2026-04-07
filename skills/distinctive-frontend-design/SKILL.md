@@ -17,6 +17,8 @@ routing:
     - "frontend design"
     - "typography exploration"
     - "anti-cliche design"
+    - "visual identity"
+    - "design language"
   category: frontend
 ---
 

@@ -16,6 +16,8 @@ routing:
     - "batch edit posts"
     - "bulk frontmatter update"
     - "find replace across files"
+    - "mass edit"
+    - "bulk update"
   category: content-publishing
 ---
 

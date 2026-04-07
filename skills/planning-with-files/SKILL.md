@@ -15,6 +15,8 @@ routing:
     - "create plan"
     - "task plan"
     - "working memory"
+    - "persistent plan"
+    - "file-backed planning"
   category: process
 ---
 

@@ -5,6 +5,14 @@ version: 1.0.0
 user-invocable: false
 context: fork
 agent: kotlin-general-engineer
+routing:
+  triggers:
+    - "kotlin testing"
+    - "junit kotlin"
+    - "kotest"
+    - "junit 5 kotlin"
+    - "kotlin test dispatcher"
+  category: kotlin
 ---
 
 # Kotlin Testing Patterns

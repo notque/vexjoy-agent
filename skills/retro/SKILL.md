@@ -15,6 +15,8 @@ routing:
     - "retro stats"
     - "list learnings"
     - "graduate knowledge"
+    - "learning stats"
+    - "search learnings"
   category: meta-tooling
 ---
 

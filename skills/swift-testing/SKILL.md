@@ -5,6 +5,13 @@ version: 1.0.0
 user-invocable: false
 context: fork
 agent: swift-general-engineer
+routing:
+  triggers:
+    - "swift testing"
+    - "XCTest"
+    - "Swift Testing framework"
+    - "async test swift"
+  category: swift
 ---
 
 # Swift Testing Patterns

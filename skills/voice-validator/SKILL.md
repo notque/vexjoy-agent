@@ -17,6 +17,8 @@ routing:
     - "validate voice"
     - "check voice fidelity"
     - "voice critique"
+    - "voice fidelity"
+    - "writing style check"
   category: voice
 ---
 
