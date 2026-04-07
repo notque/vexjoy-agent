@@ -52,7 +52,26 @@ Each reviewer produces findings as:
 - IMPROVEMENT: Should fix, not blocking
 - POSITIVE: Good patterns to reinforce
 
-**Gate:** Collect all findings. If any CRITICAL findings (from PHASE 2 tests OR PHASE 3 review), proceed to PHASE 4. If no CRITICALs, skip to PHASE 6.
+#### Intent Verification (mandatory)
+
+After the 3 reviewers complete, dispatch one additional adversarial verifier agent (read-only) that compares the original user request against the actual diff. The verifier answers:
+
+1. Does the diff accomplish what the user requested?
+2. Are there aspects of the request that the implementation missed?
+3. Are there changes in the diff that go beyond what was requested?
+
+Any gap between request and implementation is a CRITICAL finding — because passing tests don't prove the code does what the user actually asked for. This implements the verifier pattern from PHILOSOPHY.md: "planner (read-only), executor (full access), verifier (read-only, adversarial intent)."
+
+#### Live Validation (web projects only)
+
+When the project has a dev server (detected by: `package.json` with `dev` or `start` script, Hugo config, or `docker-compose.yml` with web service), optionally spin up the dev server and use Playwright to visit changed routes/pages. This catches rendering regressions, broken layouts, and 404s that tests don't cover.
+
+- Only run when Playwright is installed AND a dev server config exists
+- Timeout: 60 seconds for server startup, 30 seconds per page
+- If dev server fails to start, skip with a warning (not a CRITICAL)
+- Uses the `e2e-testing` or `wordpress-live-validation` skill methodology
+
+**Gate:** Collect all findings. If any CRITICAL findings (from PHASE 2 tests, PHASE 3 review, OR intent verification), proceed to PHASE 4. If no CRITICALs, skip to PHASE 6.
 
 ### PHASE 4 — FIX
 
