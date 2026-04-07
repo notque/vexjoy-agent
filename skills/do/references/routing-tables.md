@@ -72,6 +72,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **condition-based-waiting** | User needs retry logic, backoff strategies, polling loops, or health check patterns in their code. |
 | **distinctive-frontend-design** | User wants context-driven aesthetic exploration for a frontend project with anti-cliche validation: typography exploration, visual identity, design language. |
 | **do** | Primary entry point for all delegated work: classifies user requests and routes to the correct agent + skill combination. |
+| **quality-loop** (default) | Automatically applied to Medium+ code modification requests. Orchestrates: implement → test → review → fix → retest → PR. Does not apply to: Trivial/Simple tasks, force-route matches (go-patterns, pr-workflow, feature-lifecycle), review-only tasks, research, or content creation. Reference: `skills/do/references/quality-loop.md`. |
 | **e2e-testing** | User wants Playwright-based end-to-end testing: page object models, browser tests, test flakiness reduction. NOT: unit tests or integration tests (use test-driven-development or vitest-runner). |
 | **kotlin-coroutines** | User wants Kotlin structured concurrency patterns: coroutineScope, Flow, Channel, SupervisorJob, or dispatchers. Companion skill for kotlin-general-engineer. |
 | **kotlin-testing** | User wants Kotlin testing patterns: JUnit 5, Kotest, coroutine test dispatchers, MockK. Companion skill for kotlin-general-engineer. |
