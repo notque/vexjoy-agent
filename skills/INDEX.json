@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-07T03:28:23Z",
+  "generated": "2026-04-07T03:31:40Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -1892,7 +1892,7 @@
         "structured review",
         "code audit",
         "review methodology",
-        "UNDERSTAND VERIFY ASSESS"
+        "comprehensive review"
       ],
       "category": "code-review",
       "user_invocable": false,

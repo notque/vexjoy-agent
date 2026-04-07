@@ -15,7 +15,7 @@ routing:
     - "structured review"
     - "code audit"
     - "review methodology"
-    - "UNDERSTAND VERIFY ASSESS"
+    - "comprehensive review"
   category: code-review
 ---
 
