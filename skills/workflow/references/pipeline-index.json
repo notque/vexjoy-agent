@@ -553,9 +553,24 @@
     },
     "quality-loop": {
       "name": "quality-loop",
-      "description": "Default pipeline for Medium+ code modifications: implement → test → review → fix → retest → PR",
-      "phases": ["IMPLEMENT", "TEST", "REVIEW", "FIX", "RETEST", "PR"],
-      "triggers": ["code change", "implement", "build feature", "fix bug", "add feature"],
+      "description": "Default pipeline for Medium+ code modifications: implement \u2192 test \u2192 review \u2192 fix \u2192 retest \u2192 PR",
+      "phases": [
+        "ADR+PLAN",
+        "IMPLEMENT",
+        "TEST",
+        "REVIEW",
+        "FIX",
+        "RETEST",
+        "PR",
+        "CLOSE"
+      ],
+      "triggers": [
+        "code change",
+        "implement",
+        "build feature",
+        "fix bug",
+        "add feature"
+      ],
       "skill": "do",
       "reference": "skills/do/references/quality-loop.md",
       "category": "process",
