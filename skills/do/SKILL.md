@@ -245,10 +245,10 @@ Create `task_plan.md` before execution, because executing without a plan produce
 
 When the request is a code modification (implementation, bug fix, feature addition, refactoring) at Medium or Complex complexity, load `references/quality-loop.md` and use it as the **outer orchestration wrapper** around Step 2. The quality-loop and the agent+skill are complementary layers, not alternatives:
 
-- **Quality-loop** (outer) = the full lifecycle: ADR+PLAN → IMPLEMENT → TEST → REVIEW → FIX → RETEST → PR → CLOSE
-- **Agent + skill** (inner) = the domain expertise used inside PHASE 1 (IMPLEMENT)
+- **Quality-loop** (outer) = the full 14-phase lifecycle: ADR → PLAN → IMPLEMENT → TEST → REVIEW → INTENT VERIFY → LIVE VALIDATE → FIX → RETEST → PR → CODEX REVIEW → ADR RECONCILE → RECORD → CLEANUP
+- **Agent + skill** (inner) = the domain expertise used inside PHASE 2 (IMPLEMENT)
 
-When quality-loop applies, it absorbs Step 0 (ADR creation) and Step 1 (plan creation) into its own PHASE 0. Do not run Steps 0-1 separately — the quality-loop handles them.
+When quality-loop applies, it absorbs Step 0 (ADR creation) and Step 1 (plan creation) into its own PHASES 0-1. Do not run Steps 0-1 separately — the quality-loop handles them.
 
 The router still selects the best agent+skill in Phase 2 (e.g., `golang-general-engineer` + `go-patterns`). That selection becomes the implementation agent for quality-loop PHASE 1. Force-route skills like `go-patterns` are used INSIDE the loop, not excluded from it — a Go implementation gets Go-specific patterns AND testing, review, and PR gates.
 

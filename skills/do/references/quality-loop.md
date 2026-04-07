@@ -1,47 +1,55 @@
 # Quality Loop Pipeline
 
-Orchestration wrapper for Medium+ code modification requests. The quality-loop is the **outer pipeline** — it wraps the agent+skill that `/do` Phase 2 already selected. The agent+skill provides domain expertise (PHASE 1). The quality-loop adds testing, review, fix, and PR gates around it.
+The canonical pipeline for all Medium+ code modifications. The quality-loop is the **outer orchestration** — it wraps the agent+skill that `/do` Phase 2 selected. The agent provides domain expertise. The quality-loop adds every verification, review, and lifecycle gate around it.
 
 ```
-quality-loop (outer)
-└── PHASE 0: ADR + PLAN — architectural grounding + execution plan
-└── PHASE 1: IMPLEMENT — agent+skill (inner) for domain expertise
-└── PHASE 2: TEST — deterministic verification
-└── PHASE 3: REVIEW — 3 parallel reviewers + intent verification
-└── PHASE 4: FIX — fresh agent addresses CRITICALs
-└── PHASE 5: RETEST — verify fixes
-└── PHASE 6: PR — push and create PR
-└── PHASE 7: CLOSE — reconcile ADR vs implementation, move ADR to completed
+quality-loop (14 phases)
+ 0  ADR             — architectural decision record (creation requests)
+ 1  PLAN            — task_plan.md with approach + acceptance criteria
+ 2  IMPLEMENT       — agent+skill builds the change (worktree isolated)
+ 3  TEST            — deterministic: lint, tests, build, vet
+ 4  REVIEW          — 3 parallel reviewers (security, domain, architecture)
+ 5  INTENT VERIFY   — adversarial: does the diff match the original request?
+ 6  LIVE VALIDATE   — Playwright: does it render correctly? (web projects only)
+ 7  FIX             — fresh agent fixes CRITICALs (separate commits)
+ 8  RETEST          — re-run tests after fixes (loop to 7, max 3)
+ 9  PR              — push branch, create PR with findings in body
+10  CODEX REVIEW    — cross-model second opinion via Codex CLI (GPT-5.4)
+11  ADR RECONCILE   — compare ADR decision vs what was actually built
+12  RECORD          — capture learnings, graduate review findings
+13  CLEANUP         — move ADR to completed, clear artifacts, clean worktree
 ```
 
 ## When This Applies
 
-- Code modification requests at Medium+ complexity (implementation, bug fix, feature addition, refactoring)
-- Does NOT apply to: Trivial (direct), Simple (quick/fast), review-only tasks, research, debugging, content creation
-- Force-route skills (go-patterns, feature-lifecycle, etc.) are used INSIDE PHASE 1, not excluded from the loop
+- All code modification requests at Medium+ complexity (implementation, bug fix, feature addition, refactoring)
+- Does NOT apply to: Trivial (direct), Simple (quick/fast), review-only tasks, research, debugging-only, content creation
+- Force-route skills (go-patterns, feature-lifecycle, etc.) are used INSIDE PHASE 2, not excluded from the loop
 
 ## Pipeline Phases
 
-### PHASE 0 — ADR + PLAN
+### PHASE 0 — ADR
 
-Ground the work architecturally before touching code.
+Write an architectural decision record before touching code. Only for creation requests ("create", "new", "scaffold", "build").
 
-**ADR** (creation requests only — "create", "new", "scaffold", "build"):
 - Write ADR at `adr/{kebab-case-name}.md` with: Context, Decision, Consequences, Implementation Checklist
 - Register via `python3 ~/.claude/scripts/adr-query.py register adr/{name}.md`
-- The implementation checklist becomes the verification target for PHASE 7
+- The implementation checklist becomes the verification target for PHASE 10
 
-**ADR** (all other Medium+ requests):
-- If an active ADR session exists (`.adr-session.json`), load it for context
-- No new ADR needed for bug fixes, refactoring, or feature additions to existing components
+For non-creation requests (bug fixes, refactoring, feature additions to existing components): if an active ADR session exists (`.adr-session.json`), load it for context. No new ADR needed.
 
-**Plan** (all Medium+ requests):
-- Write `task_plan.md` with the approach, files to modify, and acceptance criteria
-- The plan feeds into PHASE 1 (what to implement) and PHASE 3 (what to verify)
+**Gate:** For creation requests: ADR exists and is registered. For non-creation: no gate. Proceed to PHASE 1.
 
-**Gate:** For creation requests: ADR exists and is registered. For all: `task_plan.md` exists. Proceed to PHASE 1.
+### PHASE 1 — PLAN
 
-### PHASE 1 — IMPLEMENT
+Write the execution plan before implementation.
+
+- Create `task_plan.md` with: approach, files to modify, acceptance criteria, risks
+- The plan feeds into PHASE 2 (what to implement), PHASE 5 (what to verify), and PHASE 10 (what was promised)
+
+**Gate:** `task_plan.md` exists with acceptance criteria. Proceed to PHASE 2.
+
+### PHASE 2 — IMPLEMENT
 
 Dispatch the agent+skill that `/do` Phase 2 selected, with worktree isolation. The quality-loop does not choose the agent — it uses whatever the router already picked (e.g., `golang-general-engineer` + `go-patterns` for Go work, `python-general-engineer` + `python-quality-gate` for Python work).
 
@@ -51,18 +59,18 @@ Dispatch the agent+skill that `/do` Phase 2 selected, with worktree isolation. T
 - Inject worktree-agent skill rules into agent prompt
 - Include "commit your changes on the branch" in agent prompt
 
-**State artifact:** Before proceeding, write `quality-loop-state.md` in the worktree root with:
+**State artifact:** Before proceeding, write `quality-loop-state.md` in the worktree root:
 ```
 agent: <domain-agent-name>
 skill: <skill-name>
 request: <original user request verbatim>
 branch: <feature-branch-name>
 ```
-This artifact is read by PHASE 3 (intent verification) and PHASE 4 (fix agent selection) — without it, those phases reconstruct context from session memory, which is unreliable.
+This artifact is read by PHASE 5 (intent verification), PHASE 7 (fix agent selection), and PHASE 10 (ADR reconciliation).
 
-**Gate:** Agent commits exist on feature branch AND `quality-loop-state.md` written. If agent failed to commit, halt pipeline and report which step to resume from.
+**Gate:** Agent commits exist on feature branch AND `quality-loop-state.md` written. If agent failed to commit, halt and report.
 
-### PHASE 2 — TEST
+### PHASE 3 — TEST
 
 Run deterministic test suite. Language auto-detected from changed files.
 
@@ -77,9 +85,9 @@ Run ALL applicable test suites — a change may touch multiple languages.
 
 Capture: exit codes, failure output, test counts.
 
-**Gate:** Record results. If tests fail, continue to PHASE 3 anyway — review may find the root cause. Mark test failures as CRITICAL findings for PHASE 4.
+**Gate:** Record results. If tests fail, mark failures as CRITICAL findings for PHASE 7. Proceed to PHASE 4.
 
-### PHASE 3 — REVIEW
+### PHASE 4 — REVIEW
 
 Dispatch 3 parallel review agents against the diff (feature branch vs main):
 
@@ -92,9 +100,13 @@ Each reviewer produces findings as:
 - IMPROVEMENT: Should fix, not blocking
 - POSITIVE: Good patterns to reinforce
 
-#### Intent Verification (mandatory)
+**Gate:** All 3 reviewers complete. Proceed to PHASE 5.
 
-After the 3 reviewers complete, dispatch one additional adversarial verifier agent (read-only) that reads the original user request from `quality-loop-state.md` (written in PHASE 1) and compares it against the actual diff. The verifier answers:
+### PHASE 5 — INTENT VERIFY
+
+Adversarial verification: does the diff accomplish what the user actually asked for?
+
+Dispatch one read-only verifier agent that reads the original user request from `quality-loop-state.md` (written in PHASE 2) and compares it against the actual diff. The verifier answers:
 
 1. Does the diff accomplish what the user requested?
 2. Are there aspects of the request that the implementation missed?
@@ -102,86 +114,124 @@ After the 3 reviewers complete, dispatch one additional adversarial verifier age
 
 Any gap between request and implementation is a CRITICAL finding — because passing tests don't prove the code does what the user actually asked for. This implements the verifier pattern from PHILOSOPHY.md: "planner (read-only), executor (full access), verifier (read-only, adversarial intent)."
 
-#### Live Validation (web projects only)
+**Gate:** Intent verification complete. Proceed to PHASE 6.
 
-When the project has a dev server (detected by: `package.json` with `dev` or `start` script, Hugo config, or `docker-compose.yml` with web service), optionally spin up the dev server and use Playwright to visit changed routes/pages. This catches rendering regressions, broken layouts, and 404s that tests don't cover.
+### PHASE 6 — LIVE VALIDATE
+
+Behavioral verification for web projects. **Skip if not a web project.**
+
+When the project has a dev server (detected by: `package.json` with `dev` or `start` script, Hugo config, or `docker-compose.yml` with web service), spin up the dev server and use Playwright to visit changed routes/pages.
 
 - Only run when Playwright is installed AND a dev server config exists
 - Timeout: 60 seconds for server startup, 30 seconds per page
 - If dev server fails to start, skip with a warning (not a CRITICAL)
 - Uses the `e2e-testing` or `wordpress-live-validation` skill methodology
-- Playwright test failures are IMPROVEMENT-level findings unless they reproduce a failure also caught in PHASE 2, in which case they are CRITICAL
+- Playwright test failures are IMPROVEMENT-level unless they reproduce a PHASE 3 failure, in which case CRITICAL
 
-**Gate:** Collect all findings. If any CRITICAL findings (from PHASE 2 tests, PHASE 3 review, OR intent verification), proceed to PHASE 4. If no CRITICALs, skip to PHASE 6.
+**Gate:** Collect all findings from PHASES 3-6. If any CRITICAL findings, proceed to PHASE 7. If no CRITICALs, skip to PHASE 9.
 
-### PHASE 4 — FIX
+### PHASE 7 — FIX
 
 For each CRITICAL finding, dispatch a fresh domain agent to fix it.
 
 - Each fix is a separate commit with a message referencing the finding
-- Read `quality-loop-state.md` to determine which domain agent PHASE 1 used — do not rely on session memory
+- Read `quality-loop-state.md` to determine which domain agent PHASE 2 used — do not rely on session memory
 - Fresh agent context — not the same agent that made the mistake — because the original agent has anchoring bias toward its own implementation
 - Include the specific CRITICAL finding text in the agent prompt
 
-**Gate:** All CRITICAL findings addressed with commits. Proceed to PHASE 5.
+**Gate:** All CRITICAL findings addressed with commits. Proceed to PHASE 8.
 
-### PHASE 5 — RETEST
+### PHASE 8 — RETEST
 
-Run the same test suite as PHASE 2.
+Run the same test suite as PHASE 3.
 
-- If all tests pass AND no new issues: proceed to PHASE 6
-- If tests fail: loop back to PHASE 4
+- If all tests pass AND no new issues: proceed to PHASE 9
+- If tests fail: loop back to PHASE 7
 
 **Loop counter:** Maximum 3 FIX→RETEST iterations. After 3 loops:
 - **HALT** — do NOT auto-create PR with unresolved CRITICALs
 - Display remaining CRITICAL findings to the user
 - Ask: "Quality loop exhausted 3 fix iterations with unresolved CRITICALs. Create PR anyway? (findings will be listed in PR body)"
-- Only proceed to PHASE 6 if user confirms
-- Log the loop exhaustion to learning.db:
-
-```bash
-python3 ~/.claude/scripts/learning-db.py learn --skill do "quality-loop: max loops exhausted on [task summary]"
-```
+- Only proceed to PHASE 9 if user confirms
+- Log the loop exhaustion to learning.db
 
 A pipeline that promises quality enforcement must not silently ship CRITICALs. The user must consciously choose to proceed.
 
-### PHASE 6 — PR
+### PHASE 9 — PR
 
 Push branch and create PR via pr-workflow skill.
 
 PR body includes:
 - Summary of the change
-- Review findings (all CRITICAL, IMPROVEMENT, POSITIVE)
-- Test results (pass/fail counts)
+- Review findings (all CRITICAL, IMPROVEMENT, POSITIVE from PHASES 4-6)
+- Test results (pass/fail counts from PHASES 3 and 8)
+- Intent verification result (PHASE 5)
 - Fix iterations (how many FIX→RETEST loops were needed)
 
-Only fires when PHASE 5 passes clean (or max loops exhausted).
+Only fires when PHASE 8 passes clean (or user confirmed after max loops).
 
-### PHASE 7 — CLOSE
+**Gate:** PR created and CI triggered. Wait for merge before proceeding to PHASE 10.
 
-After PR is merged, close the architectural loop. This phase implements ADR-095 (post-merge ADR status update).
+### PHASE 10 — CODEX REVIEW
 
-**ADR Reconciliation** (when ADR session is active):
+Cross-model second opinion on the PR. Uses the `codex-code-review` skill to get a review from OpenAI Codex CLI (GPT-5.4 xhigh), providing a perspective independent of the Claude reviewers in PHASE 4.
+
+- Pass the PR number, the ADR (if exists), and the full review context from PHASES 4-6
+- Codex receives: the diff, the original request, the Claude review findings, and the ADR decision
+- Codex produces: CRITICAL/IMPROVEMENTS/POSITIVE findings from a fresh model perspective
+- Any new CRITICAL findings from Codex loop back to PHASE 7 (FIX) → PHASE 8 (RETEST) before merge
+
+The value of cross-model review: Claude reviewers share inference patterns. A different model family catches blind spots that same-family reviewers miss. This is the same principle as having both static analysis and LLM review — orthogonal verification surfaces.
+
+**Gate:** Codex review complete. If new CRITICALs found, loop to PHASE 7. If clean, proceed to merge, then PHASE 11.
+
+### PHASE 11 — ADR RECONCILE
+
+After PR is merged, compare what was planned against what was built.
+
+**When ADR exists** (creation requests):
 1. Read the original ADR from `adr/{name}.md`
-2. Compare the ADR's Decision and Implementation Checklist against what was actually built (the merged diff)
-3. Update the ADR:
-   - Mark completed checklist items
-   - Note any deviations from the original decision (scope changes, alternative approaches taken)
-   - Add a "## Implementation Notes" section with what actually happened
-   - Change status from `PROPOSED` to `Accepted`
-4. Move the ADR to `adr/completed/{name}.md`
-5. Clear `.adr-session.json`
+2. Read the merged diff (`git diff main~1..main`)
+3. Compare the ADR's Decision and Implementation Checklist against the actual implementation
+4. For each checklist item: mark as completed, partially completed, or deviated
+5. Note any deviations from the original decision (scope changes, alternative approaches taken, unexpected discoveries)
+6. Add a `## Implementation Notes` section documenting what actually happened vs what was planned
 
-**Learning capture** (always):
+**When no ADR exists** (non-creation requests):
+- Compare `task_plan.md` acceptance criteria against the merged diff
+- Note any deviations from the plan
+
+**Gate:** Reconciliation documented. Proceed to PHASE 11.
+
+### PHASE 12 — RECORD
+
+Capture everything learned from this pipeline run.
+
 - Record pipeline outcome to learning.db: phases executed, loop iterations, CRITICAL count, total agent dispatches
 - Graduate any review findings that were fixed in this PR (immediate graduation per `/do` Phase 5 rules)
+- Record the reconciliation outcome (how closely implementation matched plan/ADR)
 
-**Cleanup:**
+```bash
+python3 ~/.claude/scripts/learning-db.py learn --skill do "quality-loop: [summary of pipeline outcome]"
+```
+
+**Gate:** At least one learning recorded. Proceed to PHASE 12.
+
+### PHASE 13 — CLEANUP
+
+Close the loop. Remove temporary artifacts, finalize ADR lifecycle.
+
+**ADR lifecycle** (when ADR exists):
+- Change ADR status from `PROPOSED` to `Accepted`
+- Move ADR to `adr/completed/{name}.md`
+- Clear `.adr-session.json`
+
+**Artifact cleanup:**
 - Remove `quality-loop-state.md` from worktree
 - Remove `task_plan.md` (work is complete)
 - Clean up worktree if no longer needed
 
-**Gate:** ADR moved to completed (if applicable). Learnings recorded. Pipeline complete.
+**Gate:** ADR in completed (if applicable). Artifacts cleaned. Pipeline complete.
 
 ## Learning Integration
 
@@ -193,5 +243,6 @@ python3 ~/.claude/scripts/learning-db.py learn --skill do "quality-loop PHASE_N:
 
 ## Worktree Isolation
 
-- Phases 1–5 run in the same worktree
-- Phase 6 (PR) runs pr-workflow from the main checkout using the feature branch
+- Phases 2–8 run in the same worktree
+- Phase 9 (PR) runs pr-workflow from the main checkout using the feature branch
+- Phases 10–12 run from the main checkout after merge
