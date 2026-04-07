@@ -105,6 +105,10 @@ Detection and commands:
 - Python files changed: `ruff check . --config pyproject.toml`, `ruff format --check . --config pyproject.toml`, `python -m pytest` if pytest config exists
 - If Playwright config exists: `npx playwright test`
 - If Makefile has `check` target: `make check`
+- **Toolkit agent/skill files changed** (`agents/*.md` or `skills/*/SKILL.md`): run structure validation:
+  - `python3 scripts/validate-references.py --agent {name}` for each changed agent
+  - `python3 -m pytest scripts/tests/test_reference_loading.py -k {name}` for reference loading tests
+  - These catch broken reference declarations before merge — a soft CLAUDE.md instruction converted into a deterministic gate
 
 Run ALL applicable test suites — a change may touch multiple languages.
 
