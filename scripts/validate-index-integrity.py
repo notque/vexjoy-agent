@@ -6,7 +6,7 @@ Checks:
   1. All skill entries in skills/INDEX.json have a corresponding SKILL.md on disk.
   2. All agent ``file`` fields in agents/INDEX.json point to existing files
      (paths resolved relative to the repo root).
-  3. All agent names referenced in routing-tables.md exist in agents/INDEX.json.
+  3. All names referenced in routing-tables.md exist in agents/ or skills/ INDEX.json.
   4. No skill or agent has fewer than 3 triggers (warn) or 0 triggers (error).
   5. No triggers are duplicated within a single entry.
 
@@ -90,16 +90,51 @@ def check_agent_files(agents_index: dict, repo_root: Path) -> tuple[list[str], l
     return errors, warnings
 
 
-def check_routing_table_coverage(routing_names: set[str], agents_index: dict) -> tuple[list[str], list[str]]:
-    """Check 3: all agent names in routing-tables.md exist in agents/INDEX.json."""
+def check_routing_table_coverage(
+    routing_names: set[str],
+    agents_index: dict,
+    skills_index: dict,
+    repo_root: Path,
+) -> tuple[list[str], list[str]]:
+    """Check 3: all names in routing-tables.md exist in agents, skills, or workflow refs."""
     errors: list[str] = []
     warnings: list[str] = []
 
     agent_names = set(agents_index.get("agents", {}).keys())
+    skill_names = set(skills_index.get("skills", {}).keys())
+
+    # Workflow references are sub-workflows accessed via the umbrella workflow skill.
+    # They live in skills/workflow/references/ and are valid routing targets.
+    workflow_refs_dir = repo_root / "skills" / "workflow" / "references"
+    workflow_ref_names: set[str] = set()
+    if workflow_refs_dir.exists():
+        for ref_file in workflow_refs_dir.iterdir():
+            if ref_file.suffix == ".md":
+                workflow_ref_names.add(ref_file.stem)
+            elif ref_file.is_dir():
+                workflow_ref_names.add(ref_file.name)
+
+    # Pipeline names from pipeline-index.json
+    pipeline_names: set[str] = set()
+    pipeline_index_path = workflow_refs_dir / "pipeline-index.json"
+    if pipeline_index_path.exists():
+        try:
+            pipeline_data = json.loads(pipeline_index_path.read_text(encoding="utf-8"))
+            pipeline_names = set(pipeline_data.get("pipelines", {}).keys())
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    # Non-component names that appear as bold entries in policy tables
+    table_values = {"personal", "protected-org"}
+
+    all_known = agent_names | skill_names | workflow_ref_names | pipeline_names | table_values
 
     for name in sorted(routing_names):
-        if name not in agent_names:
-            errors.append(f"  [routing orphan] '{name}' in routing-tables.md but not found in agents/INDEX.json")
+        if name not in all_known:
+            errors.append(
+                f"  [routing orphan] '{name}' in routing-tables.md "
+                "but not found in agents/, skills/, or workflow references"
+            )
 
     return errors, warnings
 
@@ -175,8 +210,8 @@ def main() -> int:
         ("Check 1: skill files on disk", check_skill_files(skills_index, repo_root)),
         ("Check 2: agent files on disk", check_agent_files(agents_index, repo_root)),
         (
-            "Check 3: routing-tables.md agent coverage",
-            check_routing_table_coverage(routing_names, agents_index),
+            "Check 3: routing-tables.md coverage",
+            check_routing_table_coverage(routing_names, agents_index, skills_index, repo_root),
         ),
         ("Check 4a: skill trigger counts", check_trigger_counts(skills_index, "skills")),
         ("Check 4b: agent trigger counts", check_trigger_counts(agents_index, "agents")),

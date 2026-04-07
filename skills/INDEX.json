@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-04T18:51:18Z",
+  "generated": "2026-04-07T02:48:59Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -45,7 +45,9 @@
         "evaluate agent",
         "audit agent",
         "score skill",
-        "check quality"
+        "check quality",
+        "grade agent",
+        "agent quality"
       ],
       "category": "meta-tooling",
       "user_invocable": false,
@@ -57,11 +59,13 @@
       "triggers": [
         "remove AI patterns",
         "de-AI content",
-        "make it sound human"
+        "make it sound human",
+        "remove AI voice",
+        "humanize text"
       ],
       "category": "content-creation",
       "user_invocable": false,
-      "version": "2.1.0"
+      "version": "2.2.0"
     },
     "auto-dream": {
       "file": "skills/auto-dream/SKILL.md",
@@ -88,7 +92,9 @@
       "triggers": [
         "batch edit posts",
         "bulk frontmatter update",
-        "find replace across files"
+        "find replace across files",
+        "mass edit",
+        "bulk update"
       ],
       "category": "content-publishing",
       "user_invocable": false,
@@ -100,7 +106,9 @@
       "triggers": [
         "read Bluesky",
         "fetch Bluesky posts",
-        "AT Protocol"
+        "AT Protocol",
+        "Bluesky feed",
+        "bsky"
       ],
       "category": "research",
       "user_invocable": false,
@@ -112,7 +120,10 @@
       "description": "Generate and validate Git branch names.",
       "triggers": [
         "generate branch name",
-        "validate branch name"
+        "validate branch name",
+        "name branch",
+        "branch convention",
+        "git branch name"
       ],
       "category": "git-workflow",
       "user_invocable": false,
@@ -141,7 +152,8 @@
         "lint code",
         "run ruff",
         "run biome",
-        "format code"
+        "format code",
+        "lint errors"
       ],
       "category": "code-quality",
       "user_invocable": false,
@@ -153,7 +165,10 @@
       "triggers": [
         "analyze codebase",
         "discover patterns",
-        "style vector"
+        "style vector",
+        "code cartographer",
+        "pattern frequency",
+        "structural metrics"
       ],
       "category": "analysis",
       "user_invocable": false,
@@ -199,7 +214,9 @@
       "triggers": [
         "review comments",
         "fix temporal references",
-        "comment quality"
+        "comment quality",
+        "stale comments",
+        "outdated comment"
       ],
       "category": "code-quality",
       "user_invocable": false,
@@ -227,7 +244,9 @@
       "triggers": [
         "content pipeline",
         "editorial calendar",
-        "publishing schedule"
+        "publishing schedule",
+        "content schedule",
+        "publication plan"
       ],
       "category": "content-creation",
       "user_invocable": false,
@@ -283,7 +302,9 @@
       "triggers": [
         "audit cron jobs",
         "review scheduled scripts",
-        "cron safety"
+        "cron safety",
+        "cron reliability",
+        "scheduled task safety"
       ],
       "category": "infrastructure",
       "user_invocable": false,
@@ -344,7 +365,9 @@
       "triggers": [
         "frontend design",
         "typography exploration",
-        "anti-cliche design"
+        "anti-cliche design",
+        "visual identity",
+        "design language"
       ],
       "category": "frontend",
       "user_invocable": false,
@@ -355,11 +378,14 @@
       "description": "Classify user requests and route to the correct agent + skill.",
       "triggers": [
         "route task",
-        "classify request"
+        "classify request",
+        "which agent",
+        "delegate to skill",
+        "smart router"
       ],
       "category": "meta-tooling",
       "user_invocable": true,
-      "version": "2.1.0"
+      "version": "2.2.0"
     },
     "docs-sync-checker": {
       "file": "skills/docs-sync-checker/SKILL.md",
@@ -367,7 +393,9 @@
       "triggers": [
         "check doc drift",
         "sync documentation",
-        "stale docs"
+        "stale docs",
+        "documentation drift",
+        "README outdated"
       ],
       "category": "documentation",
       "user_invocable": false,
@@ -712,7 +740,9 @@
         "check CI",
         "CI status",
         "actions status",
-        "did CI pass"
+        "did CI pass",
+        "build status",
+        "CI passed"
       ],
       "category": "git-workflow",
       "force_route": true,
@@ -798,7 +828,9 @@
       "triggers": [
         "create cron job",
         "scheduled task",
-        "headless agent"
+        "headless agent",
+        "background automation",
+        "recurring agent"
       ],
       "category": "process",
       "user_invocable": false,
@@ -811,7 +843,9 @@
       "triggers": [
         "audit images",
         "check broken images",
-        "image accessibility"
+        "image accessibility",
+        "alt text check",
+        "image optimization"
       ],
       "category": "content-publishing",
       "user_invocable": false,
@@ -846,7 +880,10 @@
       "triggers": [
         "install toolkit",
         "verify installation",
-        "health check toolkit"
+        "health check toolkit",
+        "setup toolkit",
+        "diagnose setup",
+        "toolkit health"
       ],
       "category": "meta-tooling",
       "force_route": true,
@@ -968,10 +1005,14 @@
       "file": "skills/kotlin-coroutines/SKILL.md",
       "description": "Kotlin structured concurrency, Flow, and Channel patterns.",
       "triggers": [
-        "kotlin-coroutines",
-        "kotlin",
-        "coroutines"
+        "kotlin coroutines",
+        "kotlin structured concurrency",
+        "kotlin Flow",
+        "kotlin Channel",
+        "suspend function",
+        "structured concurrency kotlin"
       ],
+      "category": "kotlin",
       "user_invocable": false,
       "version": "1.0.0",
       "agent": "kotlin-general-engineer"
@@ -980,10 +1021,13 @@
       "file": "skills/kotlin-testing/SKILL.md",
       "description": "Kotlin testing with JUnit 5, Kotest, and coroutine dispatchers.",
       "triggers": [
-        "kotlin-testing",
-        "kotlin",
-        "testing"
+        "kotlin testing",
+        "junit kotlin",
+        "kotest",
+        "junit 5 kotlin",
+        "kotlin test dispatcher"
       ],
+      "category": "kotlin",
       "user_invocable": false,
       "version": "1.0.0",
       "agent": "kotlin-general-engineer"
@@ -992,10 +1036,14 @@
       "file": "skills/kubernetes-debugging/SKILL.md",
       "description": "Kubernetes debugging for pod failures and networking.",
       "triggers": [
-        "kubernetes-debugging",
-        "kubernetes",
-        "debugging"
+        "kubernetes debug",
+        "pod failure",
+        "pod crashloop",
+        "kubectl logs",
+        "OOMKilled",
+        "pod pending"
       ],
+      "category": "kubernetes",
       "user_invocable": false,
       "version": "1.0.0",
       "agent": "kubernetes-helm-engineer"
@@ -1004,10 +1052,13 @@
       "file": "skills/kubernetes-security/SKILL.md",
       "description": "Kubernetes security: RBAC, PodSecurity, network policies.",
       "triggers": [
-        "kubernetes-security",
-        "kubernetes",
-        "security"
+        "kubernetes security",
+        "k8s RBAC",
+        "RBAC setup",
+        "pod security policy",
+        "network policy"
       ],
+      "category": "kubernetes",
       "user_invocable": false,
       "version": "1.0.0",
       "agent": "kubernetes-helm-engineer"
@@ -1018,7 +1069,9 @@
       "triggers": [
         "teach pattern",
         "record learning",
-        "manual learning entry"
+        "manual learning entry",
+        "teach error pattern",
+        "save learning"
       ],
       "category": "meta-tooling",
       "user_invocable": false,
@@ -1030,7 +1083,9 @@
       "triggers": [
         "audit links",
         "find broken links",
-        "link health"
+        "link health",
+        "broken links",
+        "dead links"
       ],
       "category": "content-publishing",
       "user_invocable": false,
@@ -1102,7 +1157,9 @@
       "triggers": [
         "parallel review",
         "3-reviewer review",
-        "security review"
+        "security review",
+        "multi-reviewer",
+        "concurrent review"
       ],
       "category": "code-review",
       "user_invocable": false,
@@ -1181,10 +1238,13 @@
       "file": "skills/php-quality/SKILL.md",
       "description": "PHP code quality: PSR standards, strict types, framework idioms.",
       "triggers": [
-        "php-quality",
-        "php",
-        "quality"
+        "php quality",
+        "php code review",
+        "PSR standards",
+        "phpstan",
+        "php-cs-fixer"
       ],
+      "category": "php",
       "user_invocable": false,
       "version": "1.0.0",
       "agent": "php-general-engineer"
@@ -1193,10 +1253,12 @@
       "file": "skills/php-testing/SKILL.md",
       "description": "PHP testing patterns: PHPUnit, test doubles, database testing.",
       "triggers": [
-        "php-testing",
-        "php",
-        "testing"
+        "php testing",
+        "phpunit",
+        "pest php",
+        "php mock"
       ],
+      "category": "php",
       "user_invocable": false,
       "version": "1.0.0",
       "agent": "php-general-engineer"
@@ -1228,7 +1290,9 @@
       "triggers": [
         "list plans",
         "show plan",
-        "complete plan"
+        "complete plan",
+        "plan status",
+        "manage plans"
       ],
       "category": "process",
       "user_invocable": true,
@@ -1240,7 +1304,9 @@
       "triggers": [
         "create plan",
         "task plan",
-        "working memory"
+        "working memory",
+        "persistent plan",
+        "file-backed planning"
       ],
       "category": "process",
       "user_invocable": false,
@@ -1270,7 +1336,9 @@
       "triggers": [
         "outline post",
         "blog structure",
-        "content blueprint"
+        "content blueprint",
+        "article outline",
+        "content structure"
       ],
       "category": "content-creation",
       "user_invocable": false,
@@ -1362,7 +1430,9 @@
       "triggers": [
         "pre-publish check",
         "Hugo validation",
-        "front matter check"
+        "front matter check",
+        "publication check",
+        "frontmatter validation"
       ],
       "category": "content-publishing",
       "user_invocable": false,
@@ -1429,7 +1499,9 @@
       "triggers": [
         "check status",
         "explore code",
-        "read-only"
+        "read-only",
+        "browse code",
+        "inspect only"
       ],
       "category": "process",
       "user_invocable": false,
@@ -1441,7 +1513,9 @@
       "triggers": [
         "moderate Reddit",
         "modqueue",
-        "Reddit reports"
+        "Reddit reports",
+        "Reddit moderation",
+        "check reports"
       ],
       "category": "process",
       "user_invocable": false,
@@ -1490,8 +1564,14 @@
       "description": "Formal 5-phase research pipeline with artifact saving and source quality gates: SCOPE, GATHER, SYNTHESIZE, VALIDATE, DELIVER.",
       "triggers": [
         "research-pipeline",
-        "research"
+        "research",
+        "formal research",
+        "research with artifacts",
+        "systematic investigation",
+        "research report",
+        "gather evidence"
       ],
+      "category": "research",
       "user_invocable": true,
       "version": "2.0.0",
       "agent": "research-coordinator-engineer",
@@ -1522,7 +1602,9 @@
       "triggers": [
         "retro stats",
         "list learnings",
-        "graduate knowledge"
+        "graduate knowledge",
+        "learning stats",
+        "search learnings"
       ],
       "category": "meta-tooling",
       "user_invocable": true,
@@ -1548,7 +1630,10 @@
       "description": "Maintain /do routing tables when skills or agents change.",
       "triggers": [
         "update routing",
-        "sync routing tables"
+        "sync routing tables",
+        "routing maintenance",
+        "rebuild routing index",
+        "routing drift"
       ],
       "category": "meta-tooling",
       "user_invocable": false,
@@ -1626,7 +1711,9 @@
       "triggers": [
         "check SEO",
         "optimize SEO",
-        "keyword analysis"
+        "keyword analysis",
+        "meta description",
+        "keyword optimization"
       ],
       "category": "seo",
       "user_invocable": false,
@@ -1638,7 +1725,9 @@
       "triggers": [
         "plan series",
         "multi-part content",
-        "content series"
+        "content series",
+        "article series",
+        "content arc"
       ],
       "category": "content-creation",
       "user_invocable": false,
@@ -1664,7 +1753,9 @@
       "triggers": [
         "compose skills",
         "DAG orchestration",
-        "multi-skill chain"
+        "multi-skill chain",
+        "skill pipeline",
+        "combine skills"
       ],
       "category": "meta-tooling",
       "user_invocable": false,
@@ -1756,7 +1847,9 @@
       "triggers": [
         "subagent per task",
         "fresh context execution",
-        "plan execution"
+        "plan execution",
+        "execute plan with agents",
+        "fresh context per task"
       ],
       "category": "process",
       "user_invocable": false,
@@ -1766,10 +1859,12 @@
       "file": "skills/swift-concurrency/SKILL.md",
       "description": "Swift concurrency: async/await, Actor, Task, Sendable patterns.",
       "triggers": [
-        "swift-concurrency",
-        "swift",
-        "concurrency"
+        "swift concurrency",
+        "swift async await",
+        "Swift Actor",
+        "Swift Task group"
       ],
+      "category": "swift",
       "user_invocable": false,
       "version": "1.0.0",
       "agent": "swift-general-engineer"
@@ -1778,10 +1873,12 @@
       "file": "skills/swift-testing/SKILL.md",
       "description": "Swift testing: XCTest, Swift Testing framework, async patterns.",
       "triggers": [
-        "swift-testing",
-        "swift",
-        "testing"
+        "swift testing",
+        "XCTest",
+        "Swift Testing framework",
+        "async test swift"
       ],
+      "category": "swift",
       "user_invocable": false,
       "version": "1.0.0",
       "agent": "swift-general-engineer"
@@ -1791,7 +1888,11 @@
       "description": "4-phase code review: UNDERSTAND, VERIFY, ASSESS risks, DOCUMENT findings.",
       "triggers": [
         "review code",
-        "code review methodology"
+        "code review methodology",
+        "structured review",
+        "code audit",
+        "review methodology",
+        "UNDERSTAND VERIFY ASSESS"
       ],
       "category": "code-review",
       "user_invocable": false,
@@ -1803,7 +1904,9 @@
       "triggers": [
         "audit taxonomy",
         "fix tags",
-        "merge categories"
+        "merge categories",
+        "tag cleanup",
+        "category management"
       ],
       "category": "seo",
       "user_invocable": false,
@@ -1831,7 +1934,9 @@
       "triggers": [
         "test agents",
         "agent testing",
-        "subagent testing"
+        "subagent testing",
+        "validate agent",
+        "agent test harness"
       ],
       "category": "testing",
       "user_invocable": false,
@@ -1926,7 +2031,8 @@
       "triggers": [
         "brainstorm topics",
         "content ideas",
-        "blog topic ideas"
+        "blog topic ideas",
+        "what to write about"
       ],
       "category": "content-creation",
       "user_invocable": false,
@@ -1938,7 +2044,9 @@
       "triggers": [
         "TypeScript check",
         "tsc noEmit",
-        "type check TypeScript"
+        "type check TypeScript",
+        "tsc errors",
+        "TypeScript type validation"
       ],
       "category": "code-quality",
       "user_invocable": false,
@@ -1951,7 +2059,9 @@
       "triggers": [
         "quality gate",
         "lint check",
-        "multi-language lint"
+        "multi-language lint",
+        "code quality check",
+        "language-agnostic lint"
       ],
       "category": "code-quality",
       "user_invocable": false,
@@ -1963,7 +2073,9 @@
       "triggers": [
         "verify completion",
         "run tests",
-        "check build"
+        "check build",
+        "defense in depth",
+        "final verification"
       ],
       "category": "process",
       "user_invocable": false,
@@ -1999,7 +2111,9 @@
       "triggers": [
         "run vitest",
         "JavaScript tests",
-        "TypeScript tests"
+        "TypeScript tests",
+        "vite tests",
+        "vitest output"
       ],
       "category": "testing",
       "user_invocable": false,
@@ -2011,7 +2125,9 @@
       "triggers": [
         "validate voice",
         "check voice fidelity",
-        "voice critique"
+        "voice critique",
+        "voice fidelity",
+        "writing style check"
       ],
       "category": "voice",
       "user_invocable": false,
@@ -2021,10 +2137,13 @@
       "file": "skills/voice-writer/SKILL.md",
       "description": "Unified voice content generation pipeline with mandatory validation and joy-check.",
       "triggers": [
-        "voice-writer",
-        "voice",
-        "writer"
+        "write article",
+        "blog post",
+        "write in voice",
+        "blog post voice",
+        "content pipeline"
       ],
+      "category": "voice",
       "user_invocable": true,
       "version": "2.0.0",
       "model": "sonnet"
@@ -2058,7 +2177,9 @@
       "triggers": [
         "maximum rigor",
         "anti-rationalization",
-        "strict verification"
+        "strict verification",
+        "strict mode",
+        "no shortcuts"
       ],
       "category": "process",
       "user_invocable": false,
@@ -2114,7 +2235,10 @@
       "description": "Structured multi-phase workflows: review, debug, refactor, deploy, create, research, and more.",
       "triggers": [
         "workflow",
-        "workflow"
+        "multi-phase task",
+        "structured pipeline",
+        "phased execution",
+        "orchestrated workflow"
       ],
       "user_invocable": false,
       "version": "2.0.0",
@@ -2126,7 +2250,10 @@
       "triggers": [
         "how does routing work",
         "what skills exist",
-        "system help"
+        "system help",
+        "explain workflow",
+        "I am stuck",
+        "toolkit help"
       ],
       "category": "meta-tooling",
       "user_invocable": true,
@@ -2136,10 +2263,12 @@
       "file": "skills/worktree-agent/SKILL.md",
       "description": "Mandatory rules for agents in git worktree isolation.",
       "triggers": [
-        "worktree-agent",
-        "worktree",
-        "agent"
+        "worktree agent",
+        "git worktree",
+        "git worktree rules",
+        "isolated agent"
       ],
+      "category": "git-workflow",
       "user_invocable": false,
       "version": "1.0.0"
     },
