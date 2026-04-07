@@ -17,6 +17,8 @@ routing:
     - "create cron job"
     - "scheduled task"
     - "headless agent"
+    - "background automation"
+    - "recurring agent"
   category: process
 ---
 

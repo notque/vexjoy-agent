@@ -12,6 +12,8 @@ routing:
     - "teach pattern"
     - "record learning"
     - "manual learning entry"
+    - "teach error pattern"
+    - "save learning"
   category: meta-tooling
 ---
 

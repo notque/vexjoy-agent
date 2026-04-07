@@ -13,6 +13,8 @@ routing:
     - "audit cron jobs"
     - "review scheduled scripts"
     - "cron safety"
+    - "cron reliability"
+    - "scheduled task safety"
   category: infrastructure
 ---
 

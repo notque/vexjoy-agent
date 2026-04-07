@@ -14,6 +14,8 @@ routing:
     - "TypeScript check"
     - "tsc noEmit"
     - "type check TypeScript"
+    - "tsc errors"
+    - "TypeScript type validation"
   category: code-quality
 ---
 

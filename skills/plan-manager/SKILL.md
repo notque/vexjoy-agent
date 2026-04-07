@@ -13,6 +13,8 @@ routing:
     - "list plans"
     - "show plan"
     - "complete plan"
+    - "plan status"
+    - "manage plans"
   category: process
 ---
 

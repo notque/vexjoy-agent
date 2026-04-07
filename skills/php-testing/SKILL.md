@@ -5,6 +5,13 @@ version: 1.0.0
 user-invocable: false
 context: fork
 agent: php-general-engineer
+routing:
+  triggers:
+    - "php testing"
+    - "phpunit"
+    - "pest php"
+    - "php mock"
+  category: php
 ---
 
 # PHP Testing Skill

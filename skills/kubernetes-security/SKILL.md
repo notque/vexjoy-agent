@@ -5,6 +5,14 @@ version: 1.0.0
 user-invocable: false
 context: fork
 agent: kubernetes-helm-engineer
+routing:
+  triggers:
+    - "kubernetes security"
+    - "k8s RBAC"
+    - "RBAC setup"
+    - "pod security policy"
+    - "network policy"
+  category: kubernetes
 ---
 
 # Kubernetes Security Skill

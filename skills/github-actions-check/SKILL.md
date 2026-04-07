@@ -14,6 +14,8 @@ routing:
     - "CI status"
     - "actions status"
     - "did CI pass"
+    - "build status"
+    - "CI passed"
   category: git-workflow
 ---
 

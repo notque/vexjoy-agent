@@ -14,6 +14,9 @@ routing:
   triggers:
     - "generate branch name"
     - "validate branch name"
+    - "name branch"
+    - "branch convention"
+    - "git branch name"
   category: git-workflow
 ---
 

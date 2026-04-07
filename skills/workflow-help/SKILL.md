@@ -14,6 +14,9 @@ routing:
     - "how does routing work"
     - "what skills exist"
     - "system help"
+    - "explain workflow"
+    - "I am stuck"
+    - "toolkit help"
   category: meta-tooling
 ---
 

@@ -13,6 +13,8 @@ routing:
     - "moderate Reddit"
     - "modqueue"
     - "Reddit reports"
+    - "Reddit moderation"
+    - "check reports"
   category: process
 ---
 

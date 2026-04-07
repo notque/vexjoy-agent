@@ -16,6 +16,9 @@ routing:
   triggers:
     - "update routing"
     - "sync routing tables"
+    - "routing maintenance"
+    - "rebuild routing index"
+    - "routing drift"
   category: meta-tooling
 ---
 

@@ -13,6 +13,8 @@ routing:
     - "quality gate"
     - "lint check"
     - "multi-language lint"
+    - "code quality check"
+    - "language-agnostic lint"
   category: code-quality
 ---
 

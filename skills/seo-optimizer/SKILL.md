@@ -16,6 +16,8 @@ routing:
     - "check SEO"
     - "optimize SEO"
     - "keyword analysis"
+    - "meta description"
+    - "keyword optimization"
   category: seo
 ---
 

@@ -5,6 +5,15 @@ version: 1.0.0
 user-invocable: false
 context: fork
 agent: kotlin-general-engineer
+routing:
+  triggers:
+    - "kotlin coroutines"
+    - "kotlin structured concurrency"
+    - "kotlin Flow"
+    - "kotlin Channel"
+    - "suspend function"
+    - "structured concurrency kotlin"
+  category: kotlin
 ---
 
 # Kotlin Coroutines Patterns

@@ -19,6 +19,8 @@ routing:
     - "verify completion"
     - "run tests"
     - "check build"
+    - "defense in depth"
+    - "final verification"
   category: process
 ---
 

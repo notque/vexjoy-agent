@@ -17,6 +17,8 @@ routing:
     - "pre-publish check"
     - "Hugo validation"
     - "front matter check"
+    - "publication check"
+    - "frontmatter validation"
   category: content-publishing
 ---
 

@@ -16,6 +16,8 @@ routing:
     - "review comments"
     - "fix temporal references"
     - "comment quality"
+    - "stale comments"
+    - "outdated comment"
   category: code-quality
 ---
 

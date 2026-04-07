@@ -13,6 +13,8 @@ routing:
     - "run vitest"
     - "JavaScript tests"
     - "TypeScript tests"
+    - "vite tests"
+    - "vitest output"
   category: testing
 ---
 

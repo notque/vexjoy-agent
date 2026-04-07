@@ -17,6 +17,8 @@ routing:
     - "plan series"
     - "multi-part content"
     - "content series"
+    - "article series"
+    - "content arc"
   category: content-creation
 ---
 

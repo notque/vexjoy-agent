@@ -5,6 +5,15 @@ version: 1.0.0
 user-invocable: false
 context: fork
 agent: kubernetes-helm-engineer
+routing:
+  triggers:
+    - "kubernetes debug"
+    - "pod failure"
+    - "pod crashloop"
+    - "kubectl logs"
+    - "OOMKilled"
+    - "pod pending"
+  category: kubernetes
 ---
 
 # Kubernetes Debugging Skill

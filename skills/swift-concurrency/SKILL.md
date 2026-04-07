@@ -5,6 +5,13 @@ version: 1.0.0
 user-invocable: false
 context: fork
 agent: swift-general-engineer
+routing:
+  triggers:
+    - "swift concurrency"
+    - "swift async await"
+    - "Swift Actor"
+    - "Swift Task group"
+  category: swift
 ---
 
 # Swift Structured Concurrency

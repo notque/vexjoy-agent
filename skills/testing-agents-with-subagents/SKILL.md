@@ -16,6 +16,8 @@ routing:
     - "test agents"
     - "agent testing"
     - "subagent testing"
+    - "validate agent"
+    - "agent test harness"
   category: testing
 ---
 

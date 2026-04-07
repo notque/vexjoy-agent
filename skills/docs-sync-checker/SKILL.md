@@ -16,6 +16,8 @@ routing:
     - "check doc drift"
     - "sync documentation"
     - "stale docs"
+    - "documentation drift"
+    - "README outdated"
   category: documentation
 ---
 
