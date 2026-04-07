@@ -16,6 +16,8 @@ routing:
     - "subagent per task"
     - "fresh context execution"
     - "plan execution"
+    - "execute plan with agents"
+    - "fresh context per task"
   category: process
 ---
 

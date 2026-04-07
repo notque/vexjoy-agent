@@ -15,6 +15,9 @@ routing:
   triggers:
     - "route task"
     - "classify request"
+    - "which agent"
+    - "delegate to skill"
+    - "smart router"
   category: meta-tooling
 ---
 

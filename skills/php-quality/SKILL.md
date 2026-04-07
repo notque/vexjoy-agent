@@ -5,6 +5,14 @@ version: 1.0.0
 user-invocable: false
 context: fork
 agent: php-general-engineer
+routing:
+  triggers:
+    - "php quality"
+    - "php code review"
+    - "PSR standards"
+    - "phpstan"
+    - "php-cs-fixer"
+  category: php
 ---
 
 # PHP Quality Skill

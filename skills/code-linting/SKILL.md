@@ -16,6 +16,7 @@ routing:
     - "run ruff"
     - "run biome"
     - "format code"
+    - "lint errors"
   category: code-quality
 ---
 

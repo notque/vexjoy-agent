@@ -16,6 +16,8 @@ routing:
     - "outline post"
     - "blog structure"
     - "content blueprint"
+    - "article outline"
+    - "content structure"
   category: content-creation
 ---
 

@@ -15,6 +15,8 @@ routing:
     - "audit taxonomy"
     - "fix tags"
     - "merge categories"
+    - "tag cleanup"
+    - "category management"
   category: seo
 ---
 

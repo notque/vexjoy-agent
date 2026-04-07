@@ -12,6 +12,8 @@ routing:
     - "read Bluesky"
     - "fetch Bluesky posts"
     - "AT Protocol"
+    - "Bluesky feed"
+    - "bsky"
   category: research
 ---
 
