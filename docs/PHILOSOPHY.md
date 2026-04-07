@@ -166,13 +166,16 @@ A thin wrapper that says "You are a Go expert" adds nothing. The model already k
 
 Ego-boosting prompts ("you have an IQ of 200+"), urgency framing ("production is down, my manager is watching"), and other emotional prompt engineering techniques produce small measurable effects (+9-12% on aggregate scores) but do not produce reliable, predictable improvements.
 
-We tested this empirically. Three A/B experiments compared standard prompts against emotionally-modified variants. The first two (12 parallel worktree agents total, 3 tasks each, blind grading against pre-defined rubrics) compared standard prompts against IQ-boosted and urgency-pressured variants. The third (10 parallel agents, 5 scenarios across Go, TypeScript, Python, and Bash, blind grading on 4 dimensions) compared harsh/threatening tone against joyful/encouraging tone with identical task descriptions. Results:
+We tested this empirically. Four A/B experiments compared standard prompts against emotionally-modified variants. The first two (12 parallel worktree agents total, 3 tasks each, blind grading against pre-defined rubrics) compared standard prompts against IQ-boosted and urgency-pressured variants. The third (10 parallel agents, 5 scenarios across Go, TypeScript, Python, and Bash, blind grading on 4 dimensions) compared harsh/threatening tone against joyful/encouraging tone with identical task descriptions. The fourth (10 rounds, 20 headless sessions, blind-judged by separate sessions) compared disabling adaptive thinking (fixed reasoning budget) against the default adaptive mode. Results:
 
 | Experiment | Treatment Score | Control Score | Delta |
 |------------|:--------------:|:-------------:|-------|
 | IQ Boost ("IQ 200+, world's foremost expert") | 69 | 63 | +9.5% |
 | Urgency/Pressure ("production is down, manager watching") | 94 | 84 | +11.9% |
 | Tone: Harsh vs Joyful ("FAILURE IS NOT AN OPTION" vs "you're going to do great!") | 168 | 167 | +0.6% |
+| Adaptive Thinking: Disabled vs Enabled (fixed reasoning budget vs model-chosen) | 8.194 | 8.194 | 0.0% |
+
+The first three experiments tested emotional and tonal prompt interventions. The fourth tested a structural parameter: whether the model should choose its own reasoning budget or use a fixed one. The result was the flattest yet. Both variants scored an identical 8.194/10 composite across 10 rounds of blind-judged headless sessions. The interesting signal was not quality but variance: the fixed-budget variant (adaptive thinking disabled) had a standard deviation of 0.46 vs 0.76 for the adaptive variant, with 2.5x tighter duration variance (6.4s vs 16.4s stdev). The adaptive variant also produced more false positive CRITICAL findings (2 vs 1) and had one outright session failure; all fixed-budget sessions succeeded. Disabling adaptive thinking is a variance reducer, not a quality booster. Same average output, tighter distribution, fewer outliers. This matters most in parallel-agent workflows where one unstable session can cascade into downstream failures.
 
 The IQ boost and urgency treatments found more bugs in code review, produced better-structured implementations, and discovered unique security findings the controls missed. The urgency-framed variant found a base64 line-wrapping bypass that was the single best security finding across all 12 agents. The tone experiment found no meaningful difference at all — harsh and joyful prompts produced statistically indistinguishable review quality across every scenario and language. The only behavioral differences: harsh reviews were slightly more actionable per-finding (9.0 vs 7.8/10), while joyful reviews were slightly more thorough (10.4 vs 9.6 avg findings). Two of five joyful agents explicitly called out the encouraging tone as "social priming" and ignored it; zero harsh agents commented on their tone.
 
@@ -190,7 +193,7 @@ Third, at n=1 per condition, individual task comparisons may be random variation
 - Verify claims programmatically. The fabricated proofs were undetectable by reading the output — they looked rigorous. Only running the algorithm against the stated examples caught the error. Deterministic verification catches what emotional prompting cannot.
 - Treat prompt phrasing experiments with the same rigor as any other engineering claim: measure, replicate, and do not ship on n=1.
 
-*Evidence: benchmark/iq-boost-ab-test/report.md (Experiment 1), benchmark/iq-boost-ab-test/emotion-vector-report.md (Experiment 2), benchmark/tone-ab-test/results.md (Experiment 3). Experiments 1-2 based on Anthropic's "Emotion Concepts Function" research on internal emotion vectors. Experiment 3 tested prompt-level tone independent of agent definitions.*
+*Evidence: benchmark/iq-boost-ab-test/report.md (Experiment 1), benchmark/iq-boost-ab-test/emotion-vector-report.md (Experiment 2), benchmark/tone-ab-test/results.md (Experiment 3), benchmark/adaptive-thinking-ab-test/results.md (Experiment 4). Experiments 1-2 based on Anthropic's "Emotion Concepts Function" research on internal emotion vectors. Experiment 3 tested prompt-level tone independent of agent definitions. Experiment 4 tested CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING=1 (structural parameter, not prompt phrasing).*
 
 ## Anti-Rationalization as Infrastructure
 
