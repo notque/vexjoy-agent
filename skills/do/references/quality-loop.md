@@ -4,12 +4,14 @@ Orchestration wrapper for Medium+ code modification requests. The quality-loop i
 
 ```
 quality-loop (outer)
-└── PHASE 1: agent+skill (inner) — domain expertise for implementation
+└── PHASE 0: ADR + PLAN — architectural grounding + execution plan
+└── PHASE 1: IMPLEMENT — agent+skill (inner) for domain expertise
 └── PHASE 2: TEST — deterministic verification
 └── PHASE 3: REVIEW — 3 parallel reviewers + intent verification
 └── PHASE 4: FIX — fresh agent addresses CRITICALs
 └── PHASE 5: RETEST — verify fixes
 └── PHASE 6: PR — push and create PR
+└── PHASE 7: CLOSE — reconcile ADR vs implementation, move ADR to completed
 ```
 
 ## When This Applies
@@ -19,6 +21,25 @@ quality-loop (outer)
 - Force-route skills (go-patterns, feature-lifecycle, etc.) are used INSIDE PHASE 1, not excluded from the loop
 
 ## Pipeline Phases
+
+### PHASE 0 — ADR + PLAN
+
+Ground the work architecturally before touching code.
+
+**ADR** (creation requests only — "create", "new", "scaffold", "build"):
+- Write ADR at `adr/{kebab-case-name}.md` with: Context, Decision, Consequences, Implementation Checklist
+- Register via `python3 ~/.claude/scripts/adr-query.py register adr/{name}.md`
+- The implementation checklist becomes the verification target for PHASE 7
+
+**ADR** (all other Medium+ requests):
+- If an active ADR session exists (`.adr-session.json`), load it for context
+- No new ADR needed for bug fixes, refactoring, or feature additions to existing components
+
+**Plan** (all Medium+ requests):
+- Write `task_plan.md` with the approach, files to modify, and acceptance criteria
+- The plan feeds into PHASE 1 (what to implement) and PHASE 3 (what to verify)
+
+**Gate:** For creation requests: ADR exists and is registered. For all: `task_plan.md` exists. Proceed to PHASE 1.
 
 ### PHASE 1 — IMPLEMENT
 
@@ -135,6 +156,32 @@ PR body includes:
 - Fix iterations (how many FIX→RETEST loops were needed)
 
 Only fires when PHASE 5 passes clean (or max loops exhausted).
+
+### PHASE 7 — CLOSE
+
+After PR is merged, close the architectural loop. This phase implements ADR-095 (post-merge ADR status update).
+
+**ADR Reconciliation** (when ADR session is active):
+1. Read the original ADR from `adr/{name}.md`
+2. Compare the ADR's Decision and Implementation Checklist against what was actually built (the merged diff)
+3. Update the ADR:
+   - Mark completed checklist items
+   - Note any deviations from the original decision (scope changes, alternative approaches taken)
+   - Add a "## Implementation Notes" section with what actually happened
+   - Change status from `PROPOSED` to `Accepted`
+4. Move the ADR to `adr/completed/{name}.md`
+5. Clear `.adr-session.json`
+
+**Learning capture** (always):
+- Record pipeline outcome to learning.db: phases executed, loop iterations, CRITICAL count, total agent dispatches
+- Graduate any review findings that were fixed in this PR (immediate graduation per `/do` Phase 5 rules)
+
+**Cleanup:**
+- Remove `quality-loop-state.md` from worktree
+- Remove `task_plan.md` (work is complete)
+- Clean up worktree if no longer needed
+
+**Gate:** ADR moved to completed (if applicable). Learnings recorded. Pipeline complete.
 
 ## Learning Integration
 
