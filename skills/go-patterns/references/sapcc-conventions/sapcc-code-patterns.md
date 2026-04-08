@@ -2853,6 +2853,37 @@ The soft-deprecation comment format is deliberately NOT the Go convention `// De
 
 This avoids triggering golangci-lint warnings, allowing gradual migration.
 
+### 30.1b Response.CaptureJSON Replaces ReceiveJSONInto (go-bits PR #315)
+
+`ReceiveJSONInto` was a `RequestOption` that dealt with the response side — a design mismatch. It has been reworked into `Response.CaptureJSON`, a chained method on `Response`. A new `Response.CaptureHeader` was added in the same PR.
+
+```go
+// OLD (removed) — ReceiveJSONInto as a RequestOption:
+var assets []Asset
+resp := h.RespondTo(ctx, "GET /v1/assets", httptest.ReceiveJSONInto(&assets)).Response()
+Expect(resp).To(HaveHTTPStatus(http.StatusOK))
+
+// NEW (current) — CaptureJSON as a chained method on Response:
+var assets []Asset
+resp := h.RespondTo(ctx, "GET /v1/assets").CaptureJSON(&assets).Response()
+Expect(resp).To(HaveHTTPStatus(http.StatusOK))
+
+// NEW — CaptureHeader for capturing response headers in chain style:
+var location string
+h.RespondTo(ctx, "GET /v1/blobs/"+uuid).
+    CaptureHeader("Location", &location).
+    ExpectStatus(t, http.StatusFound)
+```
+
+Key behavior:
+- `CaptureJSON` only unmarshals on 2xx responses; on non-2xx, target is zeroed but response is untouched
+- `CaptureJSON` zeroes its target before unmarshaling (safe for reuse across tests)
+- `CaptureJSON` requires a pointer argument; panics otherwise (same as former `ReceiveJSONInto`)
+- `CaptureHeader` follows `http.Header.Get` semantics (first match, case-insensitive)
+- Both return `Response` for continued chaining
+
+This follows the go-bits "add alongside, never replace" pattern (section 31.2) — except in this case `ReceiveJSONInto` was fully removed since the API rework was a clean break with limited downstream usage (1 use in keppel, 18 in log-router).
+
 ### 30.2 assert.Equal (Generic) Replaces assert.DeepEqual for Comparable Types
 
 > "For comparable values like this one (i.e. values that Go allows to compare with `==`), `assert.Equal` is to be preferred because it does not require reflection."
@@ -3641,6 +3672,8 @@ These are non-negotiable. Violating any of these WILL get your PR rejected.
 | Atomic file writes (tmp + rename) | portunus | 33.7 |
 | Hand-written string parsers (avoid regex in root binary) | portunus | 33.8 |
 | `httptest.Handler.RespondTo()` fluent API | go-bits/limes | 30.1 |
+| `Response.CaptureJSON` replaces `ReceiveJSONInto` | go-bits/keppel/log-router | 30.1b |
+| `Response.CaptureHeader` for chain-style header capture | go-bits | 30.1b |
 | Composable JSON builders for test data | limes | 34.4 |
 | Reflection for exhaustive field coverage | limes | 34.6 |
 | `DISTINCT ON` in PostgreSQL | castellum | 27.11 |
@@ -3782,6 +3815,8 @@ This pattern appears in 4+ sapcc repos (keppel, limes, castellum, limesctl), mak
 | N47 | 29.9 | Go 1.22+ loop variables are per-iteration | No more `i := i` capture workaround |
 | N48 | 29.10 | `t.Context()` in tests | Not `context.Background()` |
 | N49 | 30.1 | `httptest.Handler.RespondTo()` for new tests | Not `assert.HTTPRequest{}` |
+| N49b | 30.1b | `Response.CaptureJSON(&target)` for JSON capture | Not `ReceiveJSONInto` (removed) |
+| N49c | 30.1b | `Response.CaptureHeader(key, &target)` for headers | Not holding Response in variable for `.Header()` |
 | N50 | 30.2 | `assert.Equal` for comparable types | Not `assert.DeepEqual` (avoids reflection) |
 | N51 | 30.3 | `assert.ErrEqual` for flexible error matching | Supports nil, string, error, regexp |
 | N52 | 30.4 | `must.SucceedT` / `must.ReturnT` in tests | Not manual `if err != nil { t.Fatal }` |
