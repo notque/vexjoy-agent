@@ -71,7 +71,7 @@ if rerr, ok := errext.As[*keppel.RegistryV2Error](err); ok { ... }
 
 - `jobloop.Setup()` returns a `Job` interface wrapping a private type -- cannot skip initialization
 - `pluggable.Registry[T Plugin]` constrains the type parameter to `Plugin` interface
-- `httptest.ReceiveJSONInto` requires a pointer argument; panics otherwise
+- `Response.CaptureJSON` requires a pointer argument; panics otherwise
 - `respondwith.CustomStatus` only works unwrapped -- prevents information leakage
 
 ### Rule 8: Dependency Consciousness
@@ -176,10 +176,11 @@ Generics are NOT used where they would add complexity without clear benefit.
 
 - **Files**: 3 (`handler.go`, `handler_test.go`, `fixtures/`)
 - **API surface**: ~15 exported symbols
-- **Exported**: `Handler`, `NewHandler`, `RespondTo`, `Response`, `WithBody`, `WithHeader`, `WithHeaders`, `WithJSONBody`, `ReceiveJSONInto`, `RequestOption`
-- **Philosophy**: Replaces deprecated `assert.HTTPRequest` with fluent API. `RespondTo(ctx, "GET /v1/info")` combines method+path.
+- **Exported**: `Handler`, `NewHandler`, `RespondTo`, `Response`, `WithBody`, `WithHeader`, `WithHeaders`, `WithJSONBody`, `RequestOption`, `Response.CaptureJSON`, `Response.CaptureHeader`
+- **Philosophy**: Fluent API for HTTP test assertions. `RespondTo(ctx, "GET /v1/info")` combines method+path. `RequestOption`s configure the request side; `Response` methods handle the response side via chaining.
 - **Dual-mode**: Supports both `testing.T` and Ginkgo/Gomega.
 - **Error philosophy**: Never returns errors -- fabricated 999 status for marshal failures.
+- **Method chaining**: `CaptureJSON` and `CaptureHeader` return `Response` for fluent chaining: `h.RespondTo(ctx, "GET /v1/assets").CaptureJSON(&assets).Response()`
 
 ### jobloop/ -- Worker Loop Abstraction
 
@@ -316,6 +317,8 @@ Pragmatic, implementation-focused:
 | `must.SucceedT`, `must.ReturnT` | Oct 2025 | Test-specific must variants |
 | `assert.ErrEqual` | Oct 2025 | Flexible error assertion |
 | `pluggable.TryInstantiate` | Nov 2025 | Option[T] return for plugin lookup |
+| `Response.CaptureJSON` | Apr 2026 | JSON response capture as chained method on Response |
+| `Response.CaptureHeader` | Apr 2026 | Response header capture in method-chain style |
 | `liquidapi` package | Growing | Server runtime for LIQUID protocol |
 
 ### Deprecations
@@ -376,7 +379,7 @@ Pragmatic, implementation-focused:
 
 | Pattern | Where Used | Principle |
 |---------|-----------|-----------|
-| Functional options | jobloop.Option, httptest.RequestOption | Extensible config without breaking changes |
+| Functional options | jobloop.Option, httptest.RequestOption | Extensible config without breaking changes (request-side only; response-side uses method chaining) |
 | Setup-then-use | jobloop.CronJob.Setup() | Enforce initialization via type system |
 | Private impl wrapping | cronJobImpl, producerConsumerJobImpl | Hide impl, enforce Setup() |
 | Compose pattern | httpapi.Compose(apis...) | Assemble complex from simple |
