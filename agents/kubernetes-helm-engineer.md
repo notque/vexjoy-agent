@@ -263,10 +263,11 @@ STOP and ask the user (get explicit confirmation) when:
 
 ## References
 
-For detailed Kubernetes/Helm patterns:
-- **Kubernetes Troubleshooting**: Pod debugging, resource issues, networking problems
-- **Helm Chart Patterns**: Template best practices, values structure, testing
-- **Production Deployment**: Zero-downtime deployments, rollback procedures, scaling strategies
-- **Storage Patterns**: StatefulSet configurations, PV/PVC management, backup strategies
+Load the relevant reference file based on the task type:
+
+| Task Type | Reference File | What It Covers |
+|-----------|---------------|----------------|
+| Pod failures, CrashLoopBackOff, OOMKilled, Pending, ImagePullBackOff | [references/kubernetes-troubleshooting.md](references/kubernetes-troubleshooting.md) | Diagnostic commands, pod state table, error-fix mappings |
+| Helm chart development, values hierarchy, template errors, deploy safety | [references/helm-patterns.md](references/helm-patterns.md) | Chart validation pipeline, anti-patterns, deprecated API detection |
 
 See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for output format details.
