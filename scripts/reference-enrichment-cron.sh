@@ -16,6 +16,15 @@
 # Ensure claude CLI is in PATH (cron doesn't inherit user PATH)
 export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node/ 2>/dev/null | tail -1)/bin:$PATH"
 
+# Ensure GitHub CLI auth for PR creation (cron doesn't source .bashrc)
+if [ -z "${GH_TOKEN:-}" ]; then
+    export GH_TOKEN=$(python3 -c "
+import subprocess
+r = subprocess.run(['git', 'credential', 'fill'], input='protocol=https\nhost=github.com\n', capture_output=True, text=True)
+print(next((l.split('=',1)[1] for l in r.stdout.split('\n') if l.startswith('password=')), ''))
+" 2>/dev/null)
+fi
+
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
