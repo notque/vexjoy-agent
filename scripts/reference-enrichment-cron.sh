@@ -31,7 +31,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 LOG_DIR="$REPO_DIR/cron-logs/reference-enrichment"
 LOCKFILE="/tmp/reference-enrichment.lock"
-MAX_BUDGET="${MAX_BUDGET_USD:-5.00}"
+MAX_BUDGET="${MAX_BUDGET_USD:-15.00}"
 MAX_TARGETS="${MAX_TARGETS:-3}"
 EXECUTE=""
 
