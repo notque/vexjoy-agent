@@ -148,5 +148,11 @@ STOP and ask the user when:
 
 ## References
 
-- **Rule Categories**: [references/rule-categories.md](references/rule-categories.md) -- taxonomy of programming rule types
-- **GitHub REST API**: https://docs.github.com/en/rest
+Load the relevant reference file based on the task type:
+
+| Task Type | Reference File | What It Covers |
+|-----------|---------------|----------------|
+| Rule taxonomy, confidence scoring, CLAUDE.md output format | [references/rule-categories.md](references/rule-categories.md) | Category taxonomy, confidence model, evidence requirements |
+| API rate limits, pagination, file tree fetching, auth patterns | [references/github-api-patterns.md](references/github-api-patterns.md) | Efficient endpoint sequence, decode patterns, error-fix mappings |
+
+- **GitHub REST API docs**: https://docs.github.com/en/rest
