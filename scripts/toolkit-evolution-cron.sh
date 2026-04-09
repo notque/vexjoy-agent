@@ -25,6 +25,19 @@ print(next((l.split('=',1)[1] for l in r.stdout.split('\n') if l.startswith('pas
 " 2>/dev/null)
 fi
 
+# Preflight: verify GitHub auth is functional before running the full cycle.
+# This check runs early so failures are diagnosed at start, not discovered at Phase 6.
+# The cycle still runs without valid auth -- Phase 6 will skip PR creation.
+GH_AUTH_VALID=""
+if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    GH_AUTH_VALID="1"
+    echo "GitHub auth: OK (Phase 6 PR creation enabled)"
+else
+    echo "WARNING: GitHub auth not available -- Phase 6 PR creation will be skipped"
+    echo "  Fix: ensure GH_TOKEN is set with repo scope, or run: gh auth login"
+    echo "  Branch will be left on remote for manual PR creation after cycle completes"
+fi
+
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -80,6 +93,12 @@ Key constraints:
 - Winners that pass critique (STRONG consensus) AND A/B testing (WIN) should be merged via PR
 - Record all outcomes (wins AND losses) to the learning DB
 - Write evolution report to evolution-reports/evolution-report-$(date +%Y-%m-%d).md"
+
+if [ -z "$GH_AUTH_VALID" ]; then
+    PROMPT="$PROMPT
+
+GITHUB AUTH: GitHub CLI authentication is NOT available in this session. In Phase 6, skip the 'gh pr create' step. Instead, push the branch to origin and record its name in the evolution report so it can be manually reviewed. Do NOT mark the cycle as failed -- record it as 'PR pending: branch pushed, needs manual creation'."
+fi
 
 if [ -z "$EXECUTE" ]; then
     PROMPT="$PROMPT

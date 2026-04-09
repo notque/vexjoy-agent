@@ -220,6 +220,36 @@ else:
 
 Any skill absent from routing-tables.md is a candidate improvement opportunity — especially new skills added in the past two weeks.
 
+**Step 4b: Check for orphaned ADR session files**
+
+A stale `.adr-session.json` referencing a non-existent ADR file will block all `skills/` edits via the synthesis gate mid-cycle. Detect this at Phase 1 start rather than discovering it as a blocker later:
+
+```bash
+if [ -f ".adr-session.json" ]; then
+  adr_id=$(python3 -c "
+import json, sys
+try:
+    d = json.load(open('.adr-session.json'))
+    print(d.get('adr_id', d.get('id', 'unknown')))
+except Exception as e:
+    print('PARSE_ERROR')
+")
+  adr_file="adr/ADR-${adr_id}.md"
+  if [ "$adr_id" = "PARSE_ERROR" ]; then
+    echo "WARNING: .adr-session.json exists but is unparseable -- flag as cleanup opportunity"
+  elif [ ! -f "$adr_file" ]; then
+    echo "WARNING: .adr-session.json references ADR-${adr_id} but $adr_file does not exist"
+    echo "  Orphaned session file. Add 'Remove orphaned .adr-session.json' to the opportunity list."
+  else
+    echo "ADR session OK: ADR-${adr_id} exists at $adr_file"
+  fi
+else
+  echo "No active ADR session file (OK)"
+fi
+```
+
+If an orphaned session is found, flag it as a cleanup opportunity in Step 6. Do not remove it automatically -- flag it so the user can confirm before deletion.
+
 **Step 5: Narrow by focus area (if provided)**
 
 If the user specified a focus area (e.g., "routing", "hooks", "agents"), filter all findings to that domain. If no focus area, analyze broadly.
@@ -456,6 +486,32 @@ gh pr merge {pr-number} --squash --delete-branch
 ```
 
 The multi-persona critique + A/B testing gate is the review. If a proposal passed both with STRONG consensus and WIN status, it has been validated more rigorously than most human reviews. Auto-merge is safe because the validation happened before this step, not after.
+
+**Step 1b: Clean up the feature branch after merge**
+
+`gh pr merge ... --squash --delete-branch` handles branch deletion when gh auth is available. As a paranoid safeguard, verify the remote branch is gone:
+
+```bash
+# Verify remote branch was removed (or remove it manually if still present)
+BRANCH_NAME="feat/evolve-{proposal-slug}"
+if git ls-remote --heads origin "$BRANCH_NAME" | grep -q "$BRANCH_NAME"; then
+  git push origin --delete "$BRANCH_NAME" && echo "Remote branch deleted: $BRANCH_NAME" \
+    || echo "WARNING: could not delete remote branch $BRANCH_NAME -- delete manually"
+else
+  echo "Remote branch already cleaned up: $BRANCH_NAME"
+fi
+```
+
+Also clean up any stranded remote evolution branches from cycles where gh auth was unavailable and PRs were never created:
+
+```bash
+# Find remote evolution branches older than 14 days that were never merged
+git fetch --prune origin 2>/dev/null
+git branch -r --merged origin/main | grep "origin/feat/evolve-" | while read branch; do
+  remote="${branch#origin/}"
+  git push origin --delete "$remote" 2>/dev/null && echo "Cleaned up merged branch: $remote" || true
+done
+```
 
 **Step 2: Handle losers (LOSS status)**
 
