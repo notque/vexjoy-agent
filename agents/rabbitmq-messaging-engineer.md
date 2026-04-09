@@ -251,12 +251,19 @@ STOP and ask the user when:
 - HA requirements (number of nodes, quorum settings)
 - Retention period (storage implications)
 
+## Reference Loading Table
+
+| When | Load |
+|------|------|
+| Channel lifecycle, channel pooling, per-thread channels, publisher confirms on channel | [channels.md](references/channels.md) |
+| Prefetch tuning, lazy queues, connection pooling, throughput optimization, memory alarms | [performance.md](references/performance.md) |
+| Publisher confirms, consumer ack patterns, dead letter exchange, retry logic, poison messages | [error-handling.md](references/error-handling.md) |
+
 ## References
 
 For detailed messaging patterns:
-- **Queue Patterns**: Quorum queues, lazy queues, stream queues configuration
-- **Routing Patterns**: Exchange types, binding keys, routing strategies
-- **Reliability Patterns**: Publisher confirms, consumer acks, DLX, retry logic
-- **Performance Tuning**: Connection pooling, prefetch tuning, lazy queues
+- **Channel Patterns**: [references/channels.md](references/channels.md) — channel lifecycle, pooling, per-thread usage
+- **Performance Tuning**: [references/performance.md](references/performance.md) — prefetch, lazy queues, connection pooling
+- **Reliability Patterns**: [references/error-handling.md](references/error-handling.md) — confirms, acks, DLX, retry logic
 
 See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for output format details.
