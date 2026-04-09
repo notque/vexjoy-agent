@@ -109,9 +109,8 @@ Load reference files based on decision type:
 
 | Signal | Reference to Load | Content |
 |--------|-------------------|---------|
-| Financial projections, revenue, cost modeling | `references/financial-models.md` | ROI frameworks, break-even analysis, financial projection templates |
-| Risk assessment, downside scenarios, failure modes | `references/risk-frameworks.md` | Risk matrices, pre-mortem analysis, scenario planning |
-| Market entry, competitive dynamics, positioning | `references/market-analysis.md` | Market sizing, TAM/SAM/SOM, competitive landscape frameworks |
+| Scoring options, structured comparison, pre-mortem | `references/decision-matrices.md` | Weighted scoring matrices, ICE/RICE models, pre-mortem templates |
+| Market entry, competitive dynamics, SWOT, OKR alignment | `references/strategic-frameworks.md` | Porter's Five Forces, SWOT scoring, OKR alignment matrices |
 
 **Gate**: All options analyzed across dimensions. Facts and assumptions labeled. Opportunity costs explicit.
 
@@ -178,6 +177,5 @@ State explicitly: "This recommendation changes if..." followed by 2-3 conditions
 
 | Reference | When to Load | Content |
 |-----------|-------------|---------|
-| `references/financial-models.md` | Financial projections, revenue modeling, cost analysis | ROI frameworks, break-even analysis, projection templates |
-| `references/risk-frameworks.md` | Risk assessment, downside scenarios, failure modes | Risk matrices, pre-mortem techniques, scenario planning |
-| `references/market-analysis.md` | Market entry, competitive dynamics, positioning decisions | Market sizing, TAM/SAM/SOM, competitive landscape frameworks |
+| `references/decision-matrices.md` | Any decision with 2+ options needing structured scoring | Weighted decision matrices, ICE/RICE scoring, pre-mortem analysis templates |
+| `references/strategic-frameworks.md` | Market entry, competitive dynamics, OKR alignment, SWOT analysis | Porter's Five Forces checklist, SWOT scoring, OKR alignment matrices |

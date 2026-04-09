@@ -119,9 +119,8 @@ Load reference files based on estimation needs:
 
 | Signal | Reference to Load | Content |
 |--------|-------------------|---------|
-| Effort estimation, sizing, work breakdown | `references/estimation-models.md` | T-shirt sizing, three-point estimation, reference class forecasting |
-| Feasibility frameworks, risk assessment | `references/feasibility-frameworks.md` | Feasibility matrices, risk-adjusted estimation, go/no-go criteria |
-| Priority ranking, portfolio management | `references/priority-frameworks.md` | RICE scoring, weighted shortest job first, ICE framework |
+| Feasibility assessment, risk evaluation, go/no-go verdict | `references/feasibility-scoring.md` | Three-dimension feasibility model, confidence calibration, go/no-go decision tree |
+| Effort estimation, ROI calculation, project comparison | `references/roi-frameworks.md` | T-shirt sizing, three-point estimation, risk-adjusted NPV, planning fallacy mitigation |
 
 Break the MVP into work packages and estimate each:
 
@@ -245,6 +244,5 @@ RICE = (Reach * Impact * Confidence) / Effort
 
 | Reference | When to Load | Content |
 |-----------|-------------|---------|
-| `references/feasibility-frameworks.md` | Feasibility assessment, risk evaluation, go/no-go criteria | Feasibility matrices, risk-adjusted estimation, go/no-go decision trees |
-| `references/estimation-models.md` | Effort estimation, work breakdown, sizing | T-shirt sizing, three-point estimation, reference class forecasting, planning fallacy mitigation |
-| `references/priority-frameworks.md` | Priority ranking, portfolio management, project comparison | RICE scoring, weighted shortest job first, ICE framework, stack ranking |
+| `references/feasibility-scoring.md` | Feasibility assessment, risk evaluation, go/no-go criteria | Three-dimension feasibility model, risk-adjusted scoring, go/no-go decision tree |
+| `references/roi-frameworks.md` | Effort estimation, ROI calculation, project comparison | T-shirt sizing, three-point estimation, risk-adjusted NPV, planning fallacy mitigation |
