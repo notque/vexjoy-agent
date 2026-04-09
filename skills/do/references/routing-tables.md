@@ -310,6 +310,20 @@ Workflows that work together in common sequences:
 
 ---
 
+## Decision Support Skills
+
+Role-based decision support for business strategy, technology choices, growth planning, competitive intelligence, and project evaluation. These skills help users think through decisions, not write code.
+
+| Skill | When to Route Here |
+|-------|-------------------|
+| **strategic-decision** | User wants CEO-level decision support: market entry, partnerships, resource allocation, opportunity evaluation, strategic pivots, or any business decision with meaningful consequences. Common phrasings: "should I", "should we", "evaluate this opportunity", "is it worth it", "invest in", "strategic". NOT: technical architecture choices (use build-vs-buy or decision-helper), content/marketing strategy (use growth-strategy), project feasibility (use project-evaluation). |
+| **build-vs-buy** | User wants CTO-level technology decisions: build internally vs adopt SaaS/OSS, vendor evaluation, architecture choices, tech stack selection. Common phrasings: "build or buy", "build vs buy", "vendor evaluation", "should we adopt", "SaaS vs", "technology choice", "tech stack", "architecture decision". NOT: pure business strategy (use strategic-decision), weighted scoring for a specific technical choice (use decision-helper). |
+| **growth-strategy** | User wants CMO-level growth decisions: content strategy, audience development, channel selection, SEO strategy, community building, brand positioning. Common phrasings: "grow audience", "content strategy", "marketing", "SEO strategy", "brand positioning", "community building", "social media strategy". NOT: writing content (use voice-writer), SEO optimization of a specific post (use seo-optimizer), business strategy beyond marketing (use strategic-decision). |
+| **competitive-intel** | User wants competitive intelligence: market landscape analysis, competitor monitoring, positioning strategy, differentiation. Common phrasings: "competitor", "competition", "market landscape", "competitive analysis", "differentiation", "positioning against", "market share". NOT: internal strategy decisions (use strategic-decision), growth planning (use growth-strategy). |
+| **project-evaluation** | User wants to evaluate a project: feasibility analysis, effort estimation, ROI assessment, priority ranking, go/no-go decisions. Common phrasings: "feasibility", "is it worth it", "effort estimate", "ROI", "priority", "should we start", "go/no-go", "viability". NOT: strategic business decisions (use strategic-decision), technology selection (use build-vs-buy), weighted scoring for a specific choice (use decision-helper). |
+
+---
+
 ## Perses Skills
 
 | Skill | When to Route Here |
