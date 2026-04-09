@@ -126,25 +126,160 @@ check_python() {
 
 # Function to uninstall
 uninstall() {
-    echo -e "${YELLOW}Uninstalling Claude Code Toolkit...${NC}"
+    echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║               Claude Code Toolkit - Uninstaller               ║${NC}"
+    echo -e "${BLUE}╚════════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
 
-    # Remove symlinks or directories we created
-    for item in agents skills hooks commands scripts; do
-        if [ -L "${CLAUDE_DIR}/${item}" ]; then
-            echo "  Removing symlink: ${CLAUDE_DIR}/${item}"
-            rm "${CLAUDE_DIR}/${item}"
-        elif [ -d "${CLAUDE_DIR}/${item}" ]; then
-            echo -e "${YELLOW}  Warning: ${CLAUDE_DIR}/${item} is a directory, not removing${NC}"
-            echo "  (Remove manually if needed: rm -rf ${CLAUDE_DIR}/${item})"
+    MANIFEST_FILE="${CLAUDE_DIR}/.install-manifest.json"
+    SETTINGS_FILE="${CLAUDE_DIR}/settings.json"
+    COMPONENTS=(agents skills hooks commands scripts)
+    REMOVED=()
+    PRESERVED=()
+
+    # Phase 1: Determine install mode from manifest or fall back to detection
+    echo -e "${YELLOW}Reading install manifest...${NC}"
+    INSTALL_MODE=""
+    if [ -f "$MANIFEST_FILE" ]; then
+        INSTALL_MODE=$(python3 -c "import json; print(json.load(open('${MANIFEST_FILE}')).get('mode', ''))" 2>/dev/null || echo "")
+        if [ -n "$INSTALL_MODE" ]; then
+            echo -e "${GREEN}  ✓ Manifest found (mode: ${INSTALL_MODE})${NC}"
+        else
+            echo -e "${YELLOW}  Manifest found but mode unreadable. Falling back to detection.${NC}"
+        fi
+    else
+        echo -e "${YELLOW}  No manifest found. Falling back to symlink detection.${NC}"
+    fi
+
+    # Phase 2: Remove component directories and symlinks
+    echo ""
+    echo -e "${YELLOW}Removing installed components...${NC}"
+    for item in "${COMPONENTS[@]}"; do
+        target="${CLAUDE_DIR}/${item}"
+        if [ -L "$target" ]; then
+            if [ "$DRY_RUN" = true ]; then
+                echo -e "${BLUE}  Would remove symlink: ${target}${NC}"
+            else
+                rm "$target"
+                echo -e "${GREEN}  ✓ Removed symlink: ${target}${NC}"
+            fi
+            REMOVED+=("$item (symlink)")
+        elif [ -d "$target" ]; then
+            # Only remove directories if the manifest says we copied them,
+            # or if no manifest exists (best-effort cleanup)
+            if [ "$INSTALL_MODE" = "copy" ] || [ -z "$INSTALL_MODE" ]; then
+                if [ "$DRY_RUN" = true ]; then
+                    echo -e "${BLUE}  Would remove directory: ${target}${NC}"
+                else
+                    rm -rf "$target"
+                    echo -e "${GREEN}  ✓ Removed directory: ${target}${NC}"
+                fi
+                REMOVED+=("$item (directory)")
+            else
+                echo -e "${YELLOW}  Skipping ${target}: manifest says symlink but found directory${NC}"
+                PRESERVED+=("$item (unexpected directory, not removed)")
+            fi
+        else
+            echo "  Not found: ${target} (already removed or never installed)"
         fi
     done
 
-    # Note about settings.json
+    # Phase 3: Clean hooks from settings.json
     echo ""
-    echo -e "${YELLOW}Note: settings.json was not modified.${NC}"
-    echo "You may want to remove hook configurations manually."
+    echo -e "${YELLOW}Cleaning hooks from settings.json...${NC}"
+    if [ -f "$SETTINGS_FILE" ]; then
+        # Check if hooks key exists
+        HAS_HOOKS=$(python3 -c "import json; d=json.load(open('${SETTINGS_FILE}')); print('yes' if 'hooks' in d else 'no')" 2>/dev/null || echo "no")
+        if [ "$HAS_HOOKS" = "yes" ]; then
+            if [ "$DRY_RUN" = true ]; then
+                echo -e "${BLUE}  Would back up: ${SETTINGS_FILE}${NC}"
+                echo -e "${BLUE}  Would remove 'hooks' key from settings.json${NC}"
+            else
+                # Create timestamped backup (same pattern as installer)
+                BACKUP_TS=$(date +%Y%m%d-%H%M%S)
+                cp "$SETTINGS_FILE" "${SETTINGS_FILE}.backup.${BACKUP_TS}"
+                echo -e "${GREEN}  ✓ Backed up settings.json to settings.json.backup.${BACKUP_TS}${NC}"
+
+                # Remove the hooks key, preserve everything else
+                python3 -c "
+import json, os
+dst = '${SETTINGS_FILE}'
+with open(dst, encoding='utf-8') as f:
+    data = json.load(f)
+data.pop('hooks', None)
+tmp = dst + '.tmp'
+with open(tmp, 'w', encoding='utf-8') as f:
+    json.dump(data, f, indent=2)
+    f.flush()
+    os.fsync(f.fileno())
+os.rename(tmp, dst)
+"
+                echo -e "${GREEN}  ✓ Removed hooks from settings.json${NC}"
+            fi
+            REMOVED+=("hooks config from settings.json")
+        else
+            echo "  No hooks key found in settings.json. Nothing to clean."
+        fi
+    else
+        echo "  No settings.json found. Nothing to clean."
+    fi
+
+    # Phase 4: Remove install manifest
     echo ""
-    echo -e "${GREEN}✓ Uninstall complete${NC}"
+    echo -e "${YELLOW}Cleaning up manifest...${NC}"
+    if [ -f "$MANIFEST_FILE" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would remove: ${MANIFEST_FILE}${NC}"
+        else
+            rm "$MANIFEST_FILE"
+            echo -e "${GREEN}  ✓ Removed install manifest${NC}"
+        fi
+        REMOVED+=("install manifest")
+    else
+        echo "  No manifest to remove."
+    fi
+
+    # Summary
+    echo ""
+    echo -e "${GREEN}╔════════════════════════════════════════════════════════════════╗${NC}"
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${GREEN}║                    Dry Run Uninstall Summary                   ║${NC}"
+    else
+        echo -e "${GREEN}║                      Uninstall Complete                        ║${NC}"
+    fi
+    echo -e "${GREEN}╚════════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+
+    if [ ${#REMOVED[@]} -gt 0 ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo "Would remove:"
+        else
+            echo "Removed:"
+        fi
+        for r in "${REMOVED[@]}"; do
+            echo -e "  ${GREEN}✓${NC} ${r}"
+        done
+    else
+        echo "  Nothing to remove."
+    fi
+
+    echo ""
+    echo "Preserved (not touched):"
+    echo "  • ~/.claude/settings.json (all keys except hooks)"
+    echo "  • ~/.claude/projects/"
+    echo "  • ~/.claude/memory/"
+    echo "  • .local/ customizations in the toolkit repo"
+    echo "  • Python packages (remove manually if needed)"
+    if [ ${#PRESERVED[@]} -gt 0 ]; then
+        for p in "${PRESERVED[@]}"; do
+            echo "  • ${p}"
+        done
+    fi
+
+    echo ""
+    echo -e "${YELLOW}Tip:${NC} You can also run ${BLUE}./install.sh --rollback${NC} to restore"
+    echo "your previous settings.json from the most recent backup."
+    echo ""
     exit 0
 }
 
