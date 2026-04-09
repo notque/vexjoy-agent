@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Reference Enrichment: nightly domain knowledge improvement via Claude Code headless mode.
+# Reference Enrichment: hourly domain knowledge improvement via Claude Code headless mode.
 # Runs the ADR-171 audit to identify knowledge gaps, then uses ADR-172's enrichment
 # skill to generate reference files for the top-priority agents/skills.
 #
@@ -10,8 +10,8 @@
 #   # Full run (audit + enrich + PR)
 #   ./scripts/reference-enrichment-cron.sh --execute
 #
-# Cron example (nightly at 4:07 AM):
-#   7 4 * * * /home/feedgen/claude-code-toolkit/scripts/reference-enrichment-cron.sh --execute >> /home/feedgen/claude-code-toolkit/cron-logs/reference-enrichment/cron.log 2>&1
+# Cron example (hourly at :07):
+#   7 * * * * /home/feedgen/claude-code-toolkit/scripts/reference-enrichment-cron.sh --execute >> /home/feedgen/claude-code-toolkit/cron-logs/reference-enrichment/cron.log 2>&1
 
 # Ensure claude CLI is in PATH (cron doesn't inherit user PATH)
 export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node/ 2>/dev/null | tail -1)/bin:$PATH"
@@ -33,7 +33,7 @@ LOG_DIR="$REPO_DIR/cron-logs/reference-enrichment"
 LOCKFILE="/tmp/reference-enrichment.lock"
 MAX_BUDGET="${MAX_BUDGET_USD:-5.00}"
 MAX_TARGETS="${MAX_TARGETS:-1}"
-DAILY_BUDGET_CAP="${DAILY_BUDGET_CAP:-50}"
+DAILY_BUDGET_CAP="${DAILY_BUDGET_CAP:-0}"
 EXECUTE=""
 
 # Cleanup function: release lock FD and remove lockfile on any exit
@@ -68,17 +68,19 @@ echo "=== Reference Enrichment run: $TIMESTAMP ==="
 
 MODE="dry-run"
 [ -n "$EXECUTE" ] && MODE="live"
-echo "Mode: $MODE | Budget: \$${MAX_BUDGET} | Max targets: ${MAX_TARGETS} | Daily cap: \$${DAILY_BUDGET_CAP}"
+DAILY_CAP_LABEL="\$${DAILY_BUDGET_CAP}"
+[ "$DAILY_BUDGET_CAP" = "0" ] && DAILY_CAP_LABEL="unlimited"
+echo "Mode: $MODE | Budget: \$${MAX_BUDGET} | Max targets: ${MAX_TARGETS} | Daily cap: ${DAILY_CAP_LABEL}"
 
 # Daily budget guard: count today's runs and estimate spend
 DAILY_SPEND_FILE="$LOG_DIR/.daily-runs-$(date +%Y%m%d)"
 RUNS_TODAY=$(cat "$DAILY_SPEND_FILE" 2>/dev/null || echo "0")
 ESTIMATED_DAILY_SPEND=$(echo "$RUNS_TODAY * $MAX_BUDGET" | bc 2>/dev/null || echo "0")
-if [ "$(echo "$ESTIMATED_DAILY_SPEND >= $DAILY_BUDGET_CAP" | bc 2>/dev/null)" = "1" ]; then
+if [ "$DAILY_BUDGET_CAP" != "0" ] && [ "$(echo "$ESTIMATED_DAILY_SPEND >= $DAILY_BUDGET_CAP" | bc 2>/dev/null)" = "1" ]; then
     echo "$(date -Iseconds) SKIP: daily budget cap reached (\$${ESTIMATED_DAILY_SPEND}/\$${DAILY_BUDGET_CAP} after ${RUNS_TODAY} runs)"
     exit 0
 fi
-echo "Daily spend: \$${ESTIMATED_DAILY_SPEND}/\$${DAILY_BUDGET_CAP} (${RUNS_TODAY} runs today)"
+echo "Daily spend: \$${ESTIMATED_DAILY_SPEND}/${DAILY_CAP_LABEL} (${RUNS_TODAY} runs today)"
 
 # Guard: check for too many open enrichment PRs (prevents accumulation — ADR consultation concern #2)
 MAX_OPEN_PRS="${MAX_OPEN_PRS:-5}"
@@ -101,6 +103,28 @@ TARGETS_COUNT=$(echo "$TARGETS_TRIMMED" | python3 -c "import json,sys; print(len
 
 if [ "$TARGETS_COUNT" -eq 0 ]; then
     echo "$(date -Iseconds) No gaps found (all components at Level 3). Exiting cleanly."
+    exit 0
+fi
+
+# Completion journal: skip targets already enriched today
+COMPLETION_JOURNAL="$LOG_DIR/.completions-$(date +%Y%m%d)"
+touch "$COMPLETION_JOURNAL"
+TARGETS_TRIMMED=$(echo "$TARGETS_TRIMMED" | python3 -c "
+import json, sys
+targets = json.load(sys.stdin)
+journal = set()
+try:
+    with open('$COMPLETION_JOURNAL') as f:
+        journal = {line.strip() for line in f if line.strip()}
+except FileNotFoundError:
+    pass
+filtered = [t for t in targets if t not in journal]
+print(json.dumps(filtered))
+")
+TARGETS_COUNT=$(echo "$TARGETS_TRIMMED" | python3 -c "import json,sys; print(len(json.load(sys.stdin)))")
+
+if [ "$TARGETS_COUNT" -eq 0 ]; then
+    echo "$(date -Iseconds) All targets already completed today (see $COMPLETION_JOURNAL). Exiting cleanly."
     exit 0
 fi
 
@@ -141,6 +165,15 @@ set -e
 
 echo ""
 echo "=== Reference Enrichment complete: $(date -Iseconds) | exit: $EXIT_CODE ==="
+
+# Record completed targets in journal (only on success)
+if [ "$EXIT_CODE" -eq 0 ]; then
+    echo "$TARGETS_TRIMMED" | python3 -c "
+import json, sys
+for name in json.load(sys.stdin):
+    print(name)
+" >> "$COMPLETION_JOURNAL"
+fi
 
 # Increment daily run counter
 echo "$(( RUNS_TODAY + 1 ))" > "$DAILY_SPEND_FILE"

@@ -290,22 +290,29 @@ def _scan_directory(base_dir: Path, kind: str) -> list[ComponentResult]:
 
 
 def _deduplicate(results: list[ComponentResult]) -> list[ComponentResult]:
-    """Keep the first occurrence of each (name, kind) pair, preferring ~/.claude/ entries."""
-    seen: set[tuple[str, str]] = set()
-    deduped: list[ComponentResult] = []
+    """Keep the highest-level occurrence of each (name, kind) pair.
+
+    When two copies have the same level, prefer the repo-local copy (source of
+    truth) over the ~/.claude/ deployed copy.
+    """
+    best: dict[tuple[str, str], ComponentResult] = {}
     for r in results:
         key = (r.name, r.kind)
-        if key not in seen:
-            seen.add(key)
-            deduped.append(r)
-    return deduped
+        if key not in best:
+            best[key] = r
+        else:
+            existing = best[key]
+            is_repo_local = str(r.md_path).startswith(str(_REPO_ROOT))
+            if r.level > existing.level or (r.level == existing.level and is_repo_local):
+                best[key] = r
+    return list(best.values())
 
 
 def scan_all() -> list[ComponentResult]:
     """Scan all agent and skill directories, deduplicating by name."""
     results: list[ComponentResult] = []
 
-    # ~/.claude/ takes priority (live/deployed copies)
+    # Scan both locations; _deduplicate() keeps highest level, preferring repo-local on ties
     results += _scan_directory(_CLAUDE_AGENTS_DIR, "agent")
     results += _scan_directory(_CLAUDE_SKILLS_DIR, "skill")
 
@@ -317,18 +324,23 @@ def scan_all() -> list[ComponentResult]:
 
 
 def scan_single(name: str, kind: str) -> ComponentResult | None:
-    """Scan a single named agent or skill. Returns None if not found."""
+    """Scan a single named agent or skill across all search dirs.
+
+    Returns the result with the highest level. On ties, prefers the repo-local
+    copy (source of truth) over the ~/.claude/ deployed copy.
+    """
     search_dirs: list[tuple[Path, str]] = []
     if kind == "agent":
         search_dirs = [(_CLAUDE_AGENTS_DIR, "agent"), (_REPO_AGENTS_DIR, "agent")]
     else:
         search_dirs = [(_CLAUDE_SKILLS_DIR, "skill"), (_REPO_SKILLS_DIR, "skill")]
 
+    candidates: list[ComponentResult] = []
     for base_dir, k in search_dirs:
         # Flat .md file
         md_flat = base_dir / f"{name}.md"
         if md_flat.is_file():
-            return _scan_component(md_flat, k)
+            candidates.append(_scan_component(md_flat, k))
         # Named directory with inner .md
         named_dir = base_dir / name
         if named_dir.is_dir() and (named_dir / f"{name}.md").is_file():
@@ -339,9 +351,16 @@ def scan_single(name: str, kind: str) -> ComponentResult | None:
                 result.ref_dir = ref_dir_inner
                 result.ref_files = _collect_ref_files(ref_dir_inner)
                 result.level = _classify_level(result)
-            return result
+            candidates.append(result)
 
-    return None
+    if not candidates:
+        return None
+
+    # Return highest level; on ties prefer repo-local (source of truth)
+    return max(
+        candidates,
+        key=lambda r: (r.level, 1 if str(r.md_path).startswith(str(_REPO_ROOT)) else 0),
+    )
 
 
 # ─── Reporting ────────────────────────────────────────────────
