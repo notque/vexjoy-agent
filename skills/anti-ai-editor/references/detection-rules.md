@@ -56,6 +56,18 @@ Quick-reference for inline detection during editing. For full regex patterns, se
 | "it's hard to overstate" | Meta-significance | State the specific impact |
 | LONG-SHORT-LONG rhythm (3+) | Dramatic AI rhythm | Merge short sentences into surrounding context |
 
+## High-Priority Flags: Dash-as-Separator (Style Ban)
+
+| Pattern | Issue | Fix |
+|---------|-------|-----|
+| ` -- ` (space-dash-dash-space) | Dash as sentence joiner | Use period, colon, or restructure |
+| `—` (em-dash) in prose | Dash as separator | Use period, colon, or parentheses |
+| `--verbose`, `--symlink` | CLI flag (NOT a separator) | Do NOT flag |
+
+**Weight:** 2 (style issue, not AI-specific)
+
+**Exclusion rule:** If `--` is immediately followed by a word character (`--[a-zA-Z]`), it is a CLI flag. Do not flag CLI flags.
+
 ## Medium-Priority Flags (Context-Dependent)
 
 | Pattern | When to Fix | When to Keep |
@@ -163,5 +175,6 @@ These apply regardless of voice:
 - Significance puffery (testament to, indelible mark, enduring legacy)
 - Generic positive conclusions (future looks bright, continues to evolve)
 - Curly quotes in Markdown/plain-text contexts (ChatGPT-specific)
+- Dash-as-separator: em-dash and ` -- ` in prose (excluding CLI flags like `--verbose`)
 - Empty preambles ("In today's...")
 - Meta-commentary ("In this article...")

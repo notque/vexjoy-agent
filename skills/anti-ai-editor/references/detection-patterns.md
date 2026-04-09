@@ -45,6 +45,38 @@ Em-dashes (---) and double-dashes (--) are strong AI formatting tells. **WordPre
   - RIGHT: "She framed it as historic. The first woman to pull double duty."
   - RIGHT: "She framed it as historic (the first woman to pull double duty)."
 
+### Dash-as-Separator (Style, weight 2)
+
+Em-dashes and double-dashes used as sentence separators or list separators are a style ban. This is distinct from the AI-tell detection above: even in human-written text, dashes as punctuation separators are prohibited. Rewrite every instance.
+
+```regex
+# Space-dash-dash-space used as sentence joiner (exclude CLI flags)
+(?<!\w) -- (?!\w*\b(flag|option|parameter|arg)\b)
+
+# Unicode em-dash used anywhere in prose
+—
+```
+
+**CLI flag exclusion:** Do NOT flag `--` when it is part of a CLI flag or option (e.g., `--symlink`, `--verbose`, `--no-edit`, `--force`). The test: if the `--` is immediately followed by a word character with no space, it is a CLI flag, not punctuation. Only flag ` -- ` (with surrounding spaces) or `--` at sentence boundaries.
+
+```regex
+# CLI flag pattern (DO NOT flag these)
+--[a-zA-Z][\w-]*
+```
+
+**Before/After Examples:**
+
+| Banned Pattern | Replacement |
+|---------------|-------------|
+| "The system is fast -- it handles 1K req/s" | "The system is fast. It handles 1K req/s." |
+| "Three options are available -- retry, skip, or abort" | "Three options are available: retry, skip, or abort." |
+| "She built the feature -- her first solo project -- in two weeks" | "She built the feature (her first solo project) in two weeks." |
+| "Revenue grew 20% -- the pivot paid off" | "Revenue grew 20%. The pivot paid off." |
+| "`--verbose` enables debug logging" | [NO FLAG: this is a CLI flag] |
+| "Use `--symlink` to create links" | [NO FLAG: this is a CLI flag] |
+
+**Fix strategy**: Use periods to split independent clauses. Use colons to introduce lists or explanations. Use parentheses for parenthetical asides. Restructure the sentence if none of these fit. Never substitute one dash type for another.
+
 ### Tier 2: Meta-Commentary
 
 ```regex
@@ -764,6 +796,7 @@ Each issue type has a severity weight:
 | Emotional flatline (Tier 2f) | 2 | Declared vs demonstrated emotion |
 | Reasoning chain artifact (Tier 2g) | 2 | LLM scaffolding in output |
 | Parenthetical hedging (Tier 3c) | 1 | Unnecessary qualification |
+| Dash-as-separator (style) | 2 | Em-dash or double-dash used as sentence/list separator |
 | Structural issue | 2 | Affects readability |
 | Boldface overuse (structural) | 2 | Mechanical emphasis patterns |
 
@@ -825,6 +858,7 @@ Run detection in this order for best results:
 7. **Structural analysis** (requires full document, includes boldface overuse, dramatic AI rhythm, synonym cycling)
 8. **Tier 3-5 scan** (lower priority, includes curly quote detection)
 8b. **Tier 3c scan** (parenthetical hedging)
+8c. **Dash-as-separator scan** (em-dash and ` -- ` in prose, excluding CLI flags)
 9. **Passive voice analysis** (context-dependent)
 
 Report issues grouped by paragraph for easier review.
@@ -890,6 +924,20 @@ Expected detections:
 - "Attendees had options. They chose this event." (Tier 1-News -- dramatic AI rhythm, check context)
 - "That's the kind of" (Tier 1-News -- meta-significance)
 - "It's hard to overstate" (Tier 1-News -- meta-significance)
+```
+
+Test against dash-as-separator patterns:
+
+```
+The system is fast -- it handles 1K req/s. She built the
+feature — her first solo project — in two weeks. Use the
+--verbose flag to enable debug logging.
+
+Expected detections:
+- " -- " between "fast" and "it" (dash-as-separator, style)
+- "—" after "feature" (dash-as-separator, style)
+- "—" after "project" (dash-as-separator, style)
+- "--verbose" should NOT be flagged (CLI flag)
 ```
 
 Test against natural human text:

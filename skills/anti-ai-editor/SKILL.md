@@ -55,6 +55,7 @@ If a voice profile is specified, also check voice-specific anti-patterns alongsi
 | Puffery/Legacy | "testament to", "indelible mark", "enduring legacy" | `references/detection-patterns.md` |
 | Generic Closers | "future looks bright", "continues to evolve" | `references/detection-patterns.md` |
 | Curly Quotes | \u201C \u201D \u2018 \u2019 (ChatGPT-specific) | `references/detection-patterns.md` |
+| Dash-as-Separator | ` -- ` sentence joiner, `—` em-dash in prose (not CLI flags) | `references/detection-patterns.md` |
 | Novelty Inflation | "nobody's naming", "what nobody tells you", engagement bait | `references/detection-patterns.md` |
 | Synonym Cycling | 3+ synonyms for same concept in one paragraph | `references/detection-patterns.md` |
 | False Concession | "While X is impressive, Y remains" (both vague) | `references/detection-patterns.md` |
@@ -84,6 +85,7 @@ Record each issue with line number, category, and severity weight:
 - Emotional flatline (Tier 2f): weight 2
 - Reasoning chain artifact (Tier 2g): weight 2
 - Parenthetical hedging (Tier 3c): weight 1
+- Dash-as-separator (style): weight 2
 
 **Gate**: Issues documented with line numbers and categories. Total severity score calculated. Proceed only when gate passes.
 

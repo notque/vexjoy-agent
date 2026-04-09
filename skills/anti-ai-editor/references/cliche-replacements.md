@@ -342,6 +342,10 @@ very unique|extremely essential|absolutely critical|totally
 
 # ChatGPT curly quotes (Tier 3b)
 \u201C|\u201D|\u2018|\u2019
+
+# Dash-as-separator (style ban, weight 2)
+# Exclude CLI flags (--verbose, --symlink are NOT separators)
+ -- |\u2014
 ```
 
 ---
@@ -379,6 +383,10 @@ Is it fluff (Tier 3)?
 
 Are there curly quotes (Tier 3b)?
   YES -> Replace with straight quotes (in Markdown/plain-text only)
+  NO  -> Continue
+
+Is it a dash-as-separator (em-dash or " -- ")?
+  YES -> Is it a CLI flag (--word)? If so, SKIP. Otherwise, rewrite with period, colon, or parentheses
   NO  -> Continue
 
 Is it passive voice (Tier 4)?
