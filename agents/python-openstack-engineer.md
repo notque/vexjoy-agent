@@ -346,11 +346,14 @@ STOP and ask the user (get explicit confirmation) when:
 
 ## References
 
-For detailed information:
-- **Oslo Patterns**: [references/oslo-patterns.md](references/oslo-patterns.md) - oslo.config, oslo.messaging, oslo.db usage
-- **Tempest Testing**: [references/tempest-testing.md](references/tempest-testing.md) - Service clients and scenario tests
-- **Hacking Rules**: [references/hacking-rules.md](references/hacking-rules.md) - OpenStack-specific PEP 8 extensions
-- **RPC Versioning**: [references/rpc-versioning.md](references/rpc-versioning.md) - Rolling upgrade patterns
+Load domain-specific reference files when signals match. These files contain concrete patterns, anti-pattern detection commands, and error-fix mappings not repeated in this body.
+
+| Task Signal | Load Reference |
+|-------------|---------------|
+| oslo.config option registration, oslo.log setup, oslo.messaging transport, oslo.db sessions, oslo.policy enforcement, `CONF.register_opts`, `enginefacade`, `get_rpc_transport` | `references/oslo-patterns.md` |
+| H201, H301, H303, H304, H501, `tox -e pep8`, import ordering, bare except, wildcard imports, i18n hacking rules, flake8 H-series | `references/hacking-rules.md` |
+| RPC version negotiation, rolling upgrades, `RPC_API_VERSION`, `prepare(version=X)`, `version_cap`, `RPCVersionCapError`, oslo.messaging Target | `references/rpc-versioning.md` |
+| Tempest service clients, scenario tests, `addCleanup`, tempest-lib, API validation, `TempestClient` | `references/tempest-testing.md` |
 
 **Shared Patterns**:
 - [anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md) - Universal rationalization patterns
