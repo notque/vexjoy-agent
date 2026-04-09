@@ -203,6 +203,12 @@
         "hooks": [
           {
             "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/reference-loading-enforcer.py\"",
+            "description": "Inject reference loading requirement into agent prompts unless already present",
+            "timeout": 3000
+          },
+          {
+            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/pretool-subagent-warmstart.py\"",
             "description": "Inject parent session context into subagent prompts (ADR-088)",
             "timeout": 5000
