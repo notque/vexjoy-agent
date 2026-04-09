@@ -49,6 +49,29 @@ For each target name in the targets list:
 8. **Audit after:** Run `python3 scripts/audit-reference-depth.py --agent {name} --verbose` to verify improvement
 9. **Lint:** Run `ruff check . --config pyproject.toml` and `ruff format --check . --config pyproject.toml` if any .py files were created
 
+### Phase 2.5: Validate Enrichment Quality (Keep-or-Revert Gate)
+
+For each enriched target, run a quick validation before committing:
+
+1. **Generate 3 domain-specific test queries** for the agent/skill. Examples:
+   - For threejs-builder: "Create a holographic shader effect", "Optimize a scene with 10,000 instances", "Set up morph target animation"
+   - For phaser-gamedev: "Add screen shake on enemy hit", "Set up Matter.js collision categories"
+   - Queries should specifically exercise the domains covered by the NEW reference files
+
+2. **Score the agent's knowledge** by checking if the agent would produce output that uses patterns from the new references:
+   - Read each new reference file and identify 3-5 key patterns it teaches (specific function calls, specific parameter values, specific anti-patterns to avoid)
+   - For each test query, check: would the reference loading table's signal detection correctly trigger loading this reference?
+   - Verify the loading table entry exists and has correct file path
+
+3. **Keep-or-revert decision:**
+   - If the loading table correctly maps signals to the new references AND the references contain concrete, actionable patterns (not generic advice): **KEEP**
+   - If the loading table is missing entries for the new references: **FIX the loading table, then KEEP**
+   - If the reference file contains only generic patterns that don't add domain-specific value beyond what the agent already knows: **REVERT** (delete the file, remove loading table entry)
+
+4. **Log the decision** for each target: `[KEEP] {name}: {reason}` or `[REVERT] {name}: {reason}`
+
+This gate prevents reference bloat — only references that add concrete, signal-matched domain knowledge survive. The enrichment system should get better, not just bigger.
+
 ### Phase 3: Commit and PR
 
 1. Stage only the files you created/modified (reference files, agent/skill body updates)
@@ -67,6 +90,7 @@ For each target name in the targets list:
 - **If a target already has Level 2+ references** when you actually check (audit data may be stale), skip it
 - **No force-push, no commits to main** — everything goes through a PR
 - **If anything fails, continue with the next target** — don't abort the whole run
+- **Validation gate is mandatory** — never skip Phase 2.5, even if the references "look good"
 
 ## Output
 
