@@ -1,6 +1,6 @@
 ---
 name: toolkit-evolution
-description: "Closed-loop toolkit self-improvement: diagnose, propose, critique, build, test, evolve."
+description: "Closed-loop toolkit self-improvement: discover gaps, diagnose, propose, critique, build, test, evolve."
 version: 1.0.0
 user-invocable: true
 argument-hint: "<optional: focus area like 'routing' or 'hooks'>"
@@ -23,6 +23,8 @@ routing:
     - "toolkit evolution"
     - "what should we improve"
     - "find improvement opportunities"
+    - "discover skill gaps"
+    - "what skills are missing"
     - "systematic improvement"
   pairs_with:
     - multi-persona-critique
@@ -33,7 +35,7 @@ routing:
 
 # Toolkit Evolution
 
-Schedulable (nightly) or manually-invoked pipeline that drives continuous improvement of the toolkit itself. Chains existing skills into a full closed-loop improvement cycle: diagnose problems from evidence, propose solutions, critique them from multiple perspectives, build the winners, A/B test against baselines, and promote winners via PR.
+Schedulable (nightly) or manually-invoked 7-phase pipeline that drives continuous improvement of the toolkit itself. Chains existing skills into a full closed-loop improvement cycle: discover capability gaps from multiple perspectives, diagnose problems from evidence, propose solutions, critique them from multiple perspectives, build the winners, A/B test against baselines, and promote winners via PR.
 
 This is the nightly sibling of `auto-dream`. Auto-dream (2:07 AM) consolidates memories, graduates learnings, and prunes stale data. Toolkit-evolution (3:07 AM) diagnoses gaps, proposes features, builds and tests improvements. They feed each other: dream's graduated learnings inform evolution's diagnosis; evolution's results become dream's input for consolidation.
 
@@ -42,8 +44,122 @@ This is the nightly sibling of `auto-dream`. Auto-dream (2:07 AM) consolidates m
 - User says "evolve toolkit", "improve the system", "self-improve", "what should we improve"
 - Cron job weekly (Sunday 3 AM) via wrapper script
 - Manual trigger with optional focus area: `/evolve routing`, `/evolve hooks`
+- Discovery mode: `/evolve --discover` (runs Phase 0 regardless of last-run date)
 
 ## Instructions
+
+### Phase 0: DISCOVER -- Find what's missing
+
+**Goal**: Identify skills, agents, or capability categories the toolkit should have but doesn't. While later phases improve existing components, this phase finds entirely new capabilities the toolkit is missing.
+
+**Frequency**: Monthly, not every run. The DISCOVER phase only executes if:
+- `--discover` flag is passed explicitly, OR
+- It has been 30+ days since the last discovery run
+
+Check the last discovery run date:
+
+```bash
+# Find the most recent discovery report
+latest=$(ls -t evolution-reports/discovery-*.md 2>/dev/null | head -1)
+if [ -z "$latest" ]; then
+  echo "NO_PREVIOUS_DISCOVERY"
+else
+  # Extract date from filename: discovery-YYYY-MM-DD.md
+  report_date=$(basename "$latest" | sed 's/discovery-//;s/\.md//')
+  days_ago=$(( ($(date +%s) - $(date -d "$report_date" +%s)) / 86400 ))
+  echo "Last discovery: $report_date ($days_ago days ago)"
+  [ "$days_ago" -ge 30 ] && echo "DISCOVER_DUE" || echo "DISCOVER_SKIPPED"
+fi
+```
+
+If neither condition is met, skip directly to Phase 1.
+
+**Step 1: Gather briefing data**
+
+Collect current toolkit state to brief all perspective agents with the same baseline:
+
+```bash
+# Skill count and category distribution
+python3 -c "
+import json
+with open('skills/INDEX.json') as f:
+    idx = json.load(f)
+skills = idx.get('skills', {})
+print(f'Total skills: {len(skills)}')
+categories = {}
+for s, meta in skills.items():
+    cat = meta.get('category', 'uncategorized')
+    categories[cat] = categories.get(cat, 0) + 1
+for cat, count in sorted(categories.items(), key=lambda x: -x[1]):
+    print(f'  {cat}: {count}')
+"
+
+# Agent count
+python3 -c "
+import json
+with open('agents/INDEX.json') as f:
+    idx = json.load(f)
+agents = idx.get('agents', {})
+print(f'Total agents: {len(agents)}')
+for a in sorted(agents):
+    print(f'  {a}')
+"
+```
+
+**Step 2: Dispatch 5 perspective agents in parallel**
+
+Each agent receives the briefing data from Step 1 and evaluates from a different angle. Dispatch all 5 simultaneously:
+
+| Agent | Perspective | What it looks for |
+|-------|------------|-------------------|
+| **The User** | Analyzes learning.db for unmatched routing requests (`python3 scripts/learning-db.py query --category routing-decision`), error patterns, and requests that had no agent match. "What did users ask for that we couldn't handle?" |
+| **The Operator** | Examines the active projects (check git repos in `~/`) for repeated manual workflows that could be skills. "What am I doing by hand that should be automated?" |
+| **The Strategist** | Uses the csuite skill's EVALUATION mode thinking: what decision-support, content, or process skills would make the owner more effective? Reads `skills/csuite/SKILL.md` for framework. "What high-leverage skills are we missing?" |
+| **The Community** | Web-searches for what people are building and requesting in AI coding communities (Claude Code GitHub issues, Reddit, X/Twitter). "What does the market want?" |
+| **The Architect** | Examines current skill categories (from `skills/INDEX.json`) for structural gaps. Cross-references with `agents/INDEX.json`. "Where are the architectural blind spots?" E.g., "we have 23 process skills but 0 decision skills." |
+
+Each agent produces 2-3 skill proposals in this format:
+
+```
+PROPOSAL: {skill-name}
+Category: {category}
+Triggers: {3-5 routing triggers}
+Justification: {1-2 sentences on why this is needed}
+Evidence: {what data supports this -- routing gaps, user patterns, market signals}
+```
+
+**Step 3: Deduplicate and filter**
+
+Collect all proposals from the 5 agents and apply these filters:
+
+1. **Remove duplicates of existing skills** -- check each proposal name and its triggers against `skills/INDEX.json`. If an existing skill already covers the proposed capability, drop it.
+2. **Remove proposals with no evidence** -- pure speculation ("it might be useful someday") is not evidence. Require at least one concrete data point: a routing miss, a manual workflow observed, a community request, or a structural gap.
+3. **Group similar proposals** -- if multiple agents proposed the same capability from different angles, merge them into a single proposal and note the convergent evidence (multi-agent convergence strengthens the case).
+
+**Step 4: Feed into DIAGNOSE**
+
+The surviving proposals become additional input for Phase 1 (DIAGNOSE). They are treated as "capability gaps" alongside the usual diagnosis signals (error patterns, routing mismatches, git churn). Append them to the Phase 1 opportunity list with source tagged as `[DISCOVER]`.
+
+**Step 5: Save discovery report**
+
+Write `evolution-reports/discovery-{YYYY-MM-DD}.md` with:
+- Briefing data (skill count, agent count, category distribution)
+- All proposals from each perspective agent (kept and filtered)
+- Filtering rationale for each dropped proposal
+- Which proposals were forwarded to DIAGNOSE
+- Date stamp for frequency gating
+
+```bash
+# Ensure the reports directory exists
+mkdir -p evolution-reports
+
+# Write the discovery report
+# Path: evolution-reports/discovery-{YYYY-MM-DD}.md
+```
+
+**Gate**: Discovery report saved. Proposals forwarded to Phase 1. Proceed to DIAGNOSE.
+
+---
 
 ### Phase 1: DIAGNOSE -- Find improvement opportunities
 
@@ -410,6 +526,8 @@ Schedule uses 3:07 AM (off-minute per cron best practice, 1 hour after auto-drea
 - **Improving everything at once** -- max 3 implementations per cycle. Focus compounds; scatter dissipates.
 - **Running without diagnosis** -- do not propose solutions without evidence of problems first. Solutions looking for problems create phantom work.
 - **Proposing duplicates** -- always check INDEX.json before proposing a new skill or capability. Extend existing skills when possible.
+- **Discovery without evidence** -- the DISCOVER phase requires concrete data points (routing misses, manual workflows, community requests), not speculation. "It might be useful" is not a valid justification.
+- **Discovering too often** -- discovery runs monthly, not nightly. Running it every cycle wastes budget on perspective agents that will produce the same gaps repeatedly.
 
 ---
 
@@ -439,15 +557,17 @@ Solution: Reduce to 1 implementation per cycle when conflicts arise. Alternative
 
 ## Cost Estimate
 
-A full evolution cycle runs all 6 phases and may dispatch multiple subagents. Estimated cost:
+A full evolution cycle runs all 7 phases and may dispatch multiple subagents. Estimated cost:
+- Discovery (Phase 0, monthly): ~$0.50-0.75 (5 parallel perspective agents + dedup)
 - Diagnosis + Proposal: ~$0.15 (reading files, querying DBs)
 - Critique: ~$0.30 (3 persona agents evaluating proposals)
 - Build: ~$0.50-1.50 (1-3 implementation agents)
 - Validate: ~$0.50-1.50 (A/B test runs)
 - Evolve: ~$0.10 (PR creation, learning DB writes)
 
-Total: ~$1.50-3.50 per cycle. Budget capped at $5.00 via wrapper script.
-Nightly cost at full utilization: ~$45-105/month. Cycles with no STRONG proposals exit early (diagnosis + proposal only: ~$0.45).
+Total without discovery: ~$1.50-3.50 per cycle. With discovery: ~$2.00-4.25.
+Budget capped at $5.00 via wrapper script.
+Nightly cost at full utilization: ~$45-105/month. Discovery adds ~$0.50-0.75/month (runs monthly, not nightly). Cycles with no STRONG proposals exit early (diagnosis + proposal only: ~$0.45).
 
 ---
 
