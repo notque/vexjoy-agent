@@ -1,6 +1,6 @@
-# Nightly Reference Enrichment — Headless Prompt
+# Reference Enrichment — Headless Prompt
 
-You are running as a nightly autonomous process to improve the toolkit's domain knowledge depth. This is ADR-173: Nightly Reference Enrichment.
+You are running as an autonomous hourly process to improve the toolkit's domain knowledge depth. This is ADR-173: Reference Enrichment.
 
 ## Context
 
@@ -75,9 +75,11 @@ This gate prevents reference bloat — only references that add concrete, signal
 ### Phase 3: Commit and PR
 
 1. Stage only the files you created/modified (reference files, agent/skill body updates)
-2. Commit with: `feat(refs): nightly enrichment — {names} (Level {before}→{after})`
+2. Commit with: `feat(refs): {agent-name} — {brief description of what was added} (Level {before}→{after})`
+   - Example: `feat(refs): prometheus-grafana-engineer — PromQL patterns, alerting rules, cardinality management (Level 0→3)`
 3. Push: `git push -u origin enrich/refs-${ENRICH_DATE}`
-4. Create PR and auto-merge: `gh pr create --title "feat(refs): nightly reference enrichment ${ENRICH_DATE}" --body "..."` then `gh pr merge --squash --auto --delete-branch`
+4. Create PR and auto-merge: `gh pr create --title "feat(refs): {agent-name} (Level {before}→{after})" --body "..."` then `gh pr merge --squash --auto --delete-branch`
+   - PR title should describe WHAT was enriched, not just the date
    - PR body should include: targets processed, level before/after for each, list of new reference files
    - The `--auto` flag merges once CI passes — no human review needed for reference-only changes
 5. Switch back to main: `git checkout main`
@@ -97,7 +99,7 @@ This gate prevents reference bloat — only references that add concrete, signal
 End your session with a summary:
 
 ```
-=== Nightly Reference Enrichment Summary ===
+=== Reference Enrichment Summary ===
 Date: {date}
 Targets processed: N/M
   - {name}: Level {before} → Level {after} ({new_files} new reference files)
