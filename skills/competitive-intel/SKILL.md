@@ -122,6 +122,7 @@ Load references based on analysis needs:
 |--------|-------------------|---------|
 | Landscape mapping, competitor profiling, feature comparison | `references/competitive-mapping.md` | Landscape map templates, feature matrices, competitor activity tracker |
 | Positioning strategy, differentiation scoring, win/loss analysis | `references/market-positioning.md` | Positioning maps, differentiation scoring, win/loss frameworks |
+| Market trend detection, technology adoption curves, disruption patterns | `references/trend-analysis.md` | Signal tier framework, adoption curve diagnosis, disruption pattern matrix |
 
 **Gate**: Direct competitors analyzed. Gaps and weaknesses identified. Strategy signals documented.
 
@@ -211,3 +212,4 @@ Competitive intelligence is perishable. Set a review cadence:
 |-----------|-------------|---------|
 | `references/competitive-mapping.md` | Landscape mapping, feature comparison, competitor profiling | Landscape map templates, feature comparison matrices, activity tracker |
 | `references/market-positioning.md` | Positioning strategy, differentiation scoring, win/loss analysis | Positioning maps, differentiation scoring, win/loss frameworks |
+| `references/trend-analysis.md` | Market trend detection, technology adoption positioning, disruption recognition | Signal tier framework, adoption curve diagnosis, disruption pattern matrix, trend decay audit |

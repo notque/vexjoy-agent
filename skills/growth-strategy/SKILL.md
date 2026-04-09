@@ -112,6 +112,7 @@ Load references based on the approach:
 |--------|-------------------|---------|
 | Channel selection, CAC/LTV modeling, content funnel stages | `references/channel-evaluation.md` | Channel scoring matrices, CAC/LTV models, funnel stage mapping |
 | Audience segmentation, ICP scoring, persona development | `references/audience-segmentation.md` | ICP scoring matrix, persona templates, segmentation frameworks |
+| Content funnel depth, content-to-revenue attribution, conversion metrics | `references/content-funnel.md` | Content types per stage, conversion benchmarks, attribution models, funnel audit template |
 
 Recommend a maximum of 3 active channels. For each:
 
@@ -208,3 +209,4 @@ Every growth strategy needs explicit failure conditions so the creator does not 
 |-----------|-------------|---------|
 | `references/channel-evaluation.md` | Channel selection, CAC/LTV analysis, content funnel mapping | Channel scoring matrices, CAC/LTV models, funnel stage templates |
 | `references/audience-segmentation.md` | Audience analysis, ICP definition, persona development | ICP scoring matrix, persona templates, segmentation frameworks |
+| `references/content-funnel.md` | Content funnel strategy, conversion optimization, attribution modeling | Content types per funnel stage, conversion metrics, attribution models, funnel audit |

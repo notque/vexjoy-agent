@@ -123,6 +123,7 @@ Load reference files based on evaluation needs:
 |--------|-------------------|---------|
 | Detailed TCO modeling, cost projections, build vs buy scorecard | `references/tco-framework.md` | TCO templates, hidden cost checklists, migration cost models |
 | Vendor comparison, evaluation criteria, integration complexity | `references/vendor-evaluation.md` | Vendor scorecards, RFP criteria, red flag detection, contract checklist |
+| Migration planning, phased rollout, rollback design, data migration patterns | `references/migration-planning.md` | Migration cost estimation, ETL/CDC/dual-write patterns, rollback procedures |
 
 **Step 3: Apply the build-vs-buy heuristic**
 
@@ -218,3 +219,4 @@ For any technology adoption, define when to reconsider:
 |-----------|-------------|---------|
 | `references/tco-framework.md` | TCO analysis, cost projections, build vs buy decision scorecard | TCO calculation templates, hidden cost checklists, migration cost models |
 | `references/vendor-evaluation.md` | Vendor comparison, RFP evaluation, integration complexity scoring | Vendor scorecards, RFP criteria matrices, red flag detection, contract checklist |
+| `references/migration-planning.md` | Migration planning, phased rollout, rollback design, data migration | Migration inventory, ETL/CDC/dual-write patterns, rollback procedure templates, anti-patterns |

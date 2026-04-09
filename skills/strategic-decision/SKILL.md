@@ -111,6 +111,7 @@ Load reference files based on decision type:
 |--------|-------------------|---------|
 | Scoring options, structured comparison, pre-mortem | `references/decision-matrices.md` | Weighted scoring matrices, ICE/RICE models, pre-mortem templates |
 | Market entry, competitive dynamics, SWOT, OKR alignment | `references/strategic-frameworks.md` | Porter's Five Forces, SWOT scoring, OKR alignment matrices |
+| Risk assessment, scenario planning, probability-weighted outcomes, black swans | `references/risk-assessment.md` | Pre-mortem templates, scenario matrix, probability-weighted EV, black swan taxonomy |
 
 **Gate**: All options analyzed across dimensions. Facts and assumptions labeled. Opportunity costs explicit.
 
@@ -179,3 +180,4 @@ State explicitly: "This recommendation changes if..." followed by 2-3 conditions
 |-----------|-------------|---------|
 | `references/decision-matrices.md` | Any decision with 2+ options needing structured scoring | Weighted decision matrices, ICE/RICE scoring, pre-mortem analysis templates |
 | `references/strategic-frameworks.md` | Market entry, competitive dynamics, OKR alignment, SWOT analysis | Porter's Five Forces checklist, SWOT scoring, OKR alignment matrices |
+| `references/risk-assessment.md` | Risk assessment, scenario planning, probability weighting, black swan analysis | Pre-mortem templates, scenario matrix, probability-weighted EV, black swan taxonomy, risk register |

@@ -121,6 +121,7 @@ Load reference files based on estimation needs:
 |--------|-------------------|---------|
 | Feasibility assessment, risk evaluation, go/no-go verdict | `references/feasibility-scoring.md` | Three-dimension feasibility model, confidence calibration, go/no-go decision tree |
 | Effort estimation, ROI calculation, project comparison | `references/roi-frameworks.md` | T-shirt sizing, three-point estimation, risk-adjusted NPV, planning fallacy mitigation |
+| Advanced estimation, cone of uncertainty, Delphi method, reference class ratios | `references/estimation-techniques.md` | Cone of uncertainty, Delphi aggregation, empirical overrun ratios, WBS decomposition |
 
 Break the MVP into work packages and estimate each:
 
@@ -246,3 +247,4 @@ RICE = (Reach * Impact * Confidence) / Effort
 |-----------|-------------|---------|
 | `references/feasibility-scoring.md` | Feasibility assessment, risk evaluation, go/no-go criteria | Three-dimension feasibility model, risk-adjusted scoring, go/no-go decision tree |
 | `references/roi-frameworks.md` | Effort estimation, ROI calculation, project comparison | T-shirt sizing, three-point estimation, risk-adjusted NPV, planning fallacy mitigation |
+| `references/estimation-techniques.md` | Advanced estimation methodology, calibration, planning fallacy mitigation | Cone of uncertainty, Delphi method, empirical overrun ratios by project type, WBS decomposition |
