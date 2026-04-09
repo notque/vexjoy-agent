@@ -392,3 +392,11 @@ This agent pairs well with:
 - MCP Specification: https://spec.modelcontextprotocol.io/
 - @modelcontextprotocol/sdk: TypeScript SDK for MCP servers
 - Hugo Front Matter: https://gohugo.io/content-management/front-matter/
+
+## Reference Loading Table
+
+| When | Load |
+|------|------|
+| MCP server development, tool registration, SDK patterns | [mcp-patterns.md](references/mcp-patterns.md) |
+| Front matter parsing failures, URI issues, shortcode bugs | [mcp-anti-patterns.md](references/mcp-anti-patterns.md) |
+| Async file I/O, concurrency, EMFILE errors, slow indexing | [typescript-async-patterns.md](references/typescript-async-patterns.md) |

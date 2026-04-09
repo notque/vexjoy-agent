@@ -260,3 +260,11 @@ For detailed search patterns:
 - **Troubleshooting**: Cluster health, performance issues, ingestion problems
 
 See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for output format details.
+
+## Reference Loading Table
+
+| When | Load |
+|------|------|
+| Query DSL performance, filter vs query context, aggregations, profiling | [query-optimization.md](references/query-optimization.md) |
+| Mapping design, ILM policies, dynamic mapping, reindexing | [index-management.md](references/index-management.md) |
+| Cluster health, shard allocation, JVM heap, rolling upgrades, snapshots | [cluster-operations.md](references/cluster-operations.md) |
