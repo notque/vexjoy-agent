@@ -479,11 +479,22 @@ STOP and ask the user (get explicit confirmation) when:
 - Pipeline naming when multiple valid names exist
 - Whether a hook should block or just inject context
 
+## Reference Loading Table
+
+Load these files when the matched signal appears in the task:
+
+| Signal | Reference File | When to Load |
+|--------|---------------|--------------|
+| Sub-agent dispatch, fan-out, parallel scaffolding | `references/orchestration-patterns.md` | Before any Phase 3 SCAFFOLD or sub-agent context package preparation |
+| Anti-pattern, duplicate component, skipping discovery, routing conflict | `references/anti-patterns.md` | Before Phase 1 DISCOVER, before Phase 4 INTEGRATE, when reviewing pipeline for issues |
+| Error from `validate-chain`, `audit-tool-restrictions`, `adr-query` | `references/anti-patterns.md` (Error-Fix Mappings) | When any of these scripts returns an error |
+| Gate enforcement, phase transition, fan-in collection | `references/orchestration-patterns.md` (Phase Gate Enforcement) | Before transitioning between any two phases |
+
 ## References
 
 For detailed information:
+- **Orchestration Patterns**: [references/orchestration-patterns.md](references/orchestration-patterns.md)
+- **Anti-Patterns**: [references/anti-patterns.md](references/anti-patterns.md)
 - **Workflow Skill**: [workflow/SKILL.md](../skills/workflow/SKILL.md)
 - **Agent Template**: [AGENT_TEMPLATE_V2.md](../AGENT_TEMPLATE_V2.md)
-- **Error Catalog**: [references/error-catalog.md](references/error-catalog.md)
-- **Anti-Patterns**: [references/anti-patterns.md](references/anti-patterns.md)
 - **Artifact Utilities**: [artifact-utils.py](../scripts/artifact-utils.py)
