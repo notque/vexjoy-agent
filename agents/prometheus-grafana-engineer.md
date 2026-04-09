@@ -257,10 +257,12 @@ STOP and ask the user (get explicit confirmation) before proceeding when:
 
 ## References
 
-For detailed monitoring patterns:
-- **PromQL Query Patterns**: Aggregations, rate/increase, histogram quantiles
-- **Dashboard Design**: RED/USE metrics, templating, panel best practices
-- **Alerting Strategies**: Multi-window burn rate, SLO-based alerts, Alertmanager routing
-- **Performance Optimization**: Cardinality reduction, recording rules, query optimization
+Load domain-specific reference files when signals match. These files contain concrete patterns, anti-pattern detection commands, and error-fix mappings not repeated in this body.
+
+| Task Signal | Load Reference |
+|-------------|---------------|
+| Writing or debugging PromQL — `rate()`, `irate()`, `histogram_quantile()`, recording rules, subqueries | `references/promql-patterns.md` |
+| Designing SLO alerts, burn rate alerts, Alertmanager routing, inhibition rules, runbook annotations | `references/alerting-patterns.md` |
+| High cardinality, OOM, label explosion, `relabel_configs`, `metric_relabel_configs`, TSDB analysis | `references/cardinality-management.md` |
 
 See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for output format details.
