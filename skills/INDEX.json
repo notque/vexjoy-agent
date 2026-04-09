@@ -2299,9 +2299,9 @@
       "agent": "python-general-engineer",
       "model": "sonnet"
     },
-    "strategic-decision": {
-      "file": "skills/strategic-decision/SKILL.md",
-      "description": "CEO-level strategic decision support: market entry, partnerships, resource allocation, opportunity evaluation.",
+    "csuite": {
+      "file": "skills/csuite/SKILL.md",
+      "description": "C-suite executive decision support: strategy, technology, growth, competitive intelligence, project evaluation.",
       "triggers": [
         "should I",
         "should we",
@@ -2311,17 +2311,7 @@
         "worth it",
         "invest in",
         "strategy",
-        "strategic"
-      ],
-      "category": "decision-support",
-      "user_invocable": false,
-      "version": "1.0.0",
-      "pairs_with": []
-    },
-    "build-vs-buy": {
-      "file": "skills/build-vs-buy/SKILL.md",
-      "description": "CTO-level technology decisions: build vs buy, vendor evaluation, architecture choices, tech stack selection.",
-      "triggers": [
+        "strategic",
         "build or buy",
         "build vs buy",
         "vendor evaluation",
@@ -2330,17 +2320,7 @@
         "technology choice",
         "tech stack",
         "architecture decision",
-        "should we use"
-      ],
-      "category": "decision-support",
-      "user_invocable": false,
-      "version": "1.0.0",
-      "pairs_with": []
-    },
-    "growth-strategy": {
-      "file": "skills/growth-strategy/SKILL.md",
-      "description": "CMO-level growth decisions: content strategy, audience development, channel selection, SEO, community building, brand positioning.",
-      "triggers": [
+        "should we use",
         "grow audience",
         "content strategy",
         "marketing",
@@ -2349,34 +2329,11 @@
         "brand",
         "positioning",
         "community building",
-        "social media strategy"
-      ],
-      "category": "decision-support",
-      "user_invocable": false,
-      "version": "1.0.0",
-      "pairs_with": []
-    },
-    "competitive-intel": {
-      "file": "skills/competitive-intel/SKILL.md",
-      "description": "Cross-role competitive intelligence: market landscape, competitor analysis, positioning, differentiation strategy.",
-      "triggers": [
         "competitor",
         "competition",
         "market landscape",
         "competitive analysis",
         "differentiation",
-        "positioning against",
-        "market share"
-      ],
-      "category": "decision-support",
-      "user_invocable": false,
-      "version": "1.0.0",
-      "pairs_with": []
-    },
-    "project-evaluation": {
-      "file": "skills/project-evaluation/SKILL.md",
-      "description": "Cross-role project evaluation: feasibility analysis, effort estimation, ROI assessment, priority ranking, go/no-go decisions.",
-      "triggers": [
         "feasibility",
         "is it worth",
         "effort estimate",
