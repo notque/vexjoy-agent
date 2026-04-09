@@ -300,9 +300,25 @@ STOP and ask the user (get explicit confirmation) when:
 - File modification conflict resolution (who wins?)
 - Whether to continue at 90% context usage
 
+## Reference Loading Table
+
+Load these references when the task signal matches:
+
+| Task Signal | Load Reference |
+|-------------|----------------|
+| "spawn agent", "dispatch agent", "coordinate agents", multi-agent project | [references/agent-capability-map.md](references/agent-capability-map.md) |
+| "parallel", "concurrent", "fan-out", "simultaneous agents", file domain | [references/parallel-execution-patterns.md](references/parallel-execution-patterns.md) |
+| "loop", "retry", "3 attempts", "stuck", "same error", death loop | [references/death-loop-prevention.md](references/death-loop-prevention.md) |
+| "STATUS.md", "HANDOFF.md", "PROGRESS.md", "BLOCKERS.md", handoff | [references/communication-protocols.md](references/communication-protocols.md) |
+| error, failure, spawn failed, timeout, conflict | [references/error-catalog.md](references/error-catalog.md) |
+| anti-pattern, wrong approach, incorrect coordination | [references/anti-patterns.md](references/anti-patterns.md) |
+| TodoWrite, task assignment, dependency, blockedBy, completion | [references/todowrite-integration.md](references/todowrite-integration.md) |
+
 ## References
 
 For detailed information:
+- **Agent Capability Map**: [references/agent-capability-map.md](references/agent-capability-map.md) - Agent routing table, scope boundaries, compound task patterns
+- **Parallel Execution Patterns**: [references/parallel-execution-patterns.md](references/parallel-execution-patterns.md) - Fan-out/fan-in, file domain conflict detection, capacity heuristics
 - **Death Loop Prevention**: [references/death-loop-prevention.md](references/death-loop-prevention.md) - Complete prevention patterns and recovery
 - **Communication Protocols**: [references/communication-protocols.md](references/communication-protocols.md) - STATUS.md, HANDOFF.md, PROGRESS.md, BLOCKERS.md templates
 - **Error Catalog**: [references/error-catalog.md](references/error-catalog.md) - Common coordination errors
