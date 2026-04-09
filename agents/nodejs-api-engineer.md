@@ -258,3 +258,11 @@ For detailed API patterns:
 - **Middleware Patterns**: Authentication, validation, error handling middleware
 
 See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for output format details.
+
+## Reference Loading Table
+
+| When | Load |
+|------|------|
+| JWT auth, OAuth, password security, token refresh | [auth-patterns.md](references/auth-patterns.md) |
+| Stripe/GitHub webhooks, signature verification, idempotency, queue offloading | [webhook-patterns.md](references/webhook-patterns.md) |
+| Error middleware, Zod validation, rate limiting, CORS, security headers | [middleware-patterns.md](references/middleware-patterns.md) |
