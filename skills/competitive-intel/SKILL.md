@@ -120,8 +120,8 @@ Load references based on analysis needs:
 
 | Signal | Reference to Load | Content |
 |--------|-------------------|---------|
-| Competitor analysis depth needed | `references/competitor-frameworks.md` | SWOT, Porter's Five Forces, competitive response frameworks |
-| Positioning and differentiation strategy | `references/positioning-models.md` | Positioning maps, differentiation frameworks, value curve analysis |
+| Landscape mapping, competitor profiling, feature comparison | `references/competitive-mapping.md` | Landscape map templates, feature matrices, competitor activity tracker |
+| Positioning strategy, differentiation scoring, win/loss analysis | `references/market-positioning.md` | Positioning maps, differentiation scoring, win/loss frameworks |
 
 **Gate**: Direct competitors analyzed. Gaps and weaknesses identified. Strategy signals documented.
 
@@ -209,5 +209,5 @@ Competitive intelligence is perishable. Set a review cadence:
 
 | Reference | When to Load | Content |
 |-----------|-------------|---------|
-| `references/competitor-frameworks.md` | Competitor analysis, SWOT, strategic assessment | SWOT templates, Porter's Five Forces, competitive response frameworks |
-| `references/positioning-models.md` | Positioning strategy, differentiation, value curves | Positioning maps, differentiation frameworks, value curve analysis |
+| `references/competitive-mapping.md` | Landscape mapping, feature comparison, competitor profiling | Landscape map templates, feature comparison matrices, activity tracker |
+| `references/market-positioning.md` | Positioning strategy, differentiation scoring, win/loss analysis | Positioning maps, differentiation scoring, win/loss frameworks |

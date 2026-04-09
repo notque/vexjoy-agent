@@ -103,7 +103,7 @@ For each option, estimate:
 ### 3-Year Total: [$X or Y engineering-hours]
 ```
 
-Load `references/total-cost-ownership.md` for detailed TCO calculation templates when financial rigor is needed.
+Load `references/tco-framework.md` for detailed TCO calculation templates when financial rigor is needed.
 
 **Step 2: Evaluate on core dimensions**
 
@@ -121,9 +121,8 @@ Load reference files based on evaluation needs:
 
 | Signal | Reference to Load | Content |
 |--------|-------------------|---------|
-| Detailed TCO modeling, cost projections | `references/total-cost-ownership.md` | TCO templates, hidden cost checklists, cost comparison frameworks |
-| Vendor comparison, evaluation criteria | `references/vendor-criteria.md` | Vendor evaluation rubrics, red flags, contract considerations |
-| Architecture implications, integration patterns | `references/architecture-tradeoffs.md` | Integration patterns, coupling analysis, migration path assessment |
+| Detailed TCO modeling, cost projections, build vs buy scorecard | `references/tco-framework.md` | TCO templates, hidden cost checklists, migration cost models |
+| Vendor comparison, evaluation criteria, integration complexity | `references/vendor-evaluation.md` | Vendor scorecards, RFP criteria, red flag detection, contract checklist |
 
 **Step 3: Apply the build-vs-buy heuristic**
 
@@ -217,6 +216,5 @@ For any technology adoption, define when to reconsider:
 
 | Reference | When to Load | Content |
 |-----------|-------------|---------|
-| `references/total-cost-ownership.md` | TCO analysis, cost projections, financial comparison | TCO templates, hidden cost checklists, cost comparison frameworks |
-| `references/vendor-criteria.md` | Vendor evaluation, product comparison, contract review | Vendor rubrics, red flag detection, contract negotiation points |
-| `references/architecture-tradeoffs.md` | Integration patterns, coupling analysis, migration assessment | Architecture patterns, coupling risk analysis, migration path frameworks |
+| `references/tco-framework.md` | TCO analysis, cost projections, build vs buy decision scorecard | TCO calculation templates, hidden cost checklists, migration cost models |
+| `references/vendor-evaluation.md` | Vendor comparison, RFP evaluation, integration complexity scoring | Vendor scorecards, RFP criteria matrices, red flag detection, contract checklist |

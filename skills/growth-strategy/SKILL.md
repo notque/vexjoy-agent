@@ -110,9 +110,8 @@ Load references based on the approach:
 
 | Signal | Reference to Load | Content |
 |--------|-------------------|---------|
-| Content planning, cadence design, editorial calendar | `references/content-frameworks.md` | Content frameworks, cadence templates, editorial planning |
-| Audience analysis, growth modeling, community patterns | `references/audience-growth.md` | Audience segmentation, growth models, community building patterns |
-| SEO strategy, keyword planning, technical SEO | `references/seo-patterns.md` | SEO frameworks, keyword research methods, technical SEO checklists |
+| Channel selection, CAC/LTV modeling, content funnel stages | `references/channel-evaluation.md` | Channel scoring matrices, CAC/LTV models, funnel stage mapping |
+| Audience segmentation, ICP scoring, persona development | `references/audience-segmentation.md` | ICP scoring matrix, persona templates, segmentation frameworks |
 
 Recommend a maximum of 3 active channels. For each:
 
@@ -207,6 +206,5 @@ Every growth strategy needs explicit failure conditions so the creator does not 
 
 | Reference | When to Load | Content |
 |-----------|-------------|---------|
-| `references/content-frameworks.md` | Content planning, cadence, editorial calendar | Content strategy frameworks, cadence templates, editorial planning models |
-| `references/audience-growth.md` | Audience analysis, growth modeling, community building | Audience segmentation, growth models, retention patterns, community playbooks |
-| `references/seo-patterns.md` | SEO strategy, keyword planning, technical optimization | SEO frameworks, keyword research methods, technical SEO checklists |
+| `references/channel-evaluation.md` | Channel selection, CAC/LTV analysis, content funnel mapping | Channel scoring matrices, CAC/LTV models, funnel stage templates |
+| `references/audience-segmentation.md` | Audience analysis, ICP definition, persona development | ICP scoring matrix, persona templates, segmentation frameworks |
