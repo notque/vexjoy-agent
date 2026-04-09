@@ -91,6 +91,12 @@ Game and GLTF references load **alongside** the paradigm reference — they are 
 
 **Visual quality signal**: If the user's request implies high visual quality (portfolio, game, showcase, "make it look good", "impressive", "polished"), also load `references/visual-polish.md` alongside the paradigm reference. It contains specific material recipes, lighting setups, and post-processing configurations that bridge the gap between technically correct and visually impressive.
 
+**Custom shader signal**: If the user mentions custom shaders, GLSL, ShaderMaterial, vertex displacement, postprocessing effects (bloom, chromatic aberration, dissolve), or custom visual effects, load `references/shader-patterns.md`. It contains complete GLSL patterns with working code, anti-patterns with detection commands, and the postprocessing pipeline setup.
+
+**Performance signal**: If the user mentions many objects (particles, foliage, crowds), InstancedMesh, performance profiling, draw call reduction, texture compression, or memory issues, load `references/performance-patterns.md`.
+
+**Advanced animation signal**: If the user mentions AnimationMixer, morph targets, skeletal rigs, IK, spring physics, GSAP + Three.js, or GPU particle animation, load `references/advanced-animation.md`.
+
 **Step 1: Identify the core visual element**
 
 Determine from the user request:
@@ -296,3 +302,6 @@ Solution:
 | `references/gltf-loading.md` | GLTF/GLB model loading signal | Coordinate system contract, SkeletonUtils.clone, model caching, auto-centering, bone hierarchy, asset manifest |
 | `references/game-patterns.md` | Game project signal | Animation state machine, camera-relative movement, delta capping, mobile input, player controller |
 | `references/game-architecture.md` | Game project signal | EventBus, GameState singleton, Constants module, restart-safety, pre-ship checklist |
+| `references/shader-patterns.md` | Custom GLSL / visual effects | ShaderMaterial vs RawShaderMaterial, vertex displacement, fragment effects (holographic, dissolve, chromatic aberration), EffectComposer postprocessing pipeline |
+| `references/performance-patterns.md` | Performance / many objects | InstancedMesh, BufferGeometry typed arrays, draw call batching, LOD, KTX2 textures, dispose patterns |
+| `references/advanced-animation.md` | Animation systems / skeletal rigs | AnimationMixer morph targets, bone manipulation, procedural IK, spring physics, GSAP integration, particle animation |

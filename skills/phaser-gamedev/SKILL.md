@@ -83,6 +83,8 @@ Load these references based on the plan:
 - If sprites/animation: `references/spritesheets.md`
 - If Arcade physics: `references/arcade-physics.md`
 - If performance concern or many moving objects: `references/performance.md`
+- If polish / game feel / juice signal ("screen shake", "particles", "game feel", "hit feedback", "satisfying"): `references/game-feel-patterns.md`
+- If Matter.js, slopes, object layers, complex collision, or enemy spawning from Tiled: `references/tilemaps-and-physics.md`
 
 **Gate**: Scene plan documented. Physics system selected. References loaded. Proceed only when gate passes.
 
@@ -387,3 +389,5 @@ Fix: Pool bullets and enemies (see `references/performance.md`). Set emitters to
 | `references/tilemaps.md` | Tilemap / Tiled | Layer system, collision, animated tiles, object layers |
 | `references/spritesheets.md` | Sprites / animation | Frame measurement, loading, atlases, nine-slice |
 | `references/performance.md` | Performance concern | Object pooling, GC avoidance, texture atlases, mobile |
+| `references/game-feel-patterns.md` | Polish / juice signal | Screen shake, particle bursts, hit-stop, scale punch, tween chains, sound timing |
+| `references/tilemaps-and-physics.md` | Complex maps / Matter.js | Tiled integration pipeline, Matter.js vs Arcade decision table, collision categories, slopes, object layer spawning |

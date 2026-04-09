@@ -204,6 +204,8 @@ Individual `Texture.from()` calls per sprite are a hard block — batch them int
 | Normal maps, per-pixel lighting, light reactions to combat events | [pixi-2d-lighting.md](references/pixi-2d-lighting.md) |
 | GPU particles, wrestling presets, DOM particle replacement | [pixi-particle-systems.md](references/pixi-particle-systems.md) |
 | Bloom, vignette, chromatic aberration, color grading, mobile budgets | [pixi-post-processing.md](references/pixi-post-processing.md) |
+| Custom GLSL hit filters, glow chaining, shockwave displacement, Spine animation, z-ordering, UI masking | [combat-visual-effects.md](references/combat-visual-effects.md) |
+| Sprite batching, texture atlases, RenderTexture caching, object pooling, ParticleContainer vs Container | [pixi-performance.md](references/pixi-performance.md) |
 
 ---
 
