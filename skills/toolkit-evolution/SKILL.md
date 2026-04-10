@@ -250,6 +250,52 @@ fi
 
 If an orphaned session is found, flag it as a cleanup opportunity in Step 6. Do not remove it automatically -- flag it so the user can confirm before deletion.
 
+**Step 4c: Scan for registered stub hooks**
+
+A stub hook is registered in settings.json but does nothing (body calls `empty_output()` or contains a `DISABLED` marker). Stubs waste a hook slot and fire on every matching event while returning empty output. They accumulate silently without this check.
+
+```bash
+python3 -c "
+import json, os, re
+from pathlib import Path
+
+settings_path = Path('.claude/settings.json')
+if not settings_path.exists():
+    print('No .claude/settings.json found -- skip hook stub audit')
+else:
+    with open(settings_path) as f:
+        settings = json.load(f)
+    hooks = settings.get('hooks', {})
+    stubs = []
+    for event, groups in hooks.items():
+        for group in (groups if isinstance(groups, list) else [groups]):
+            entries = group.get('hooks', [group]) if isinstance(group, dict) else [group]
+            for entry in entries:
+                cmd = entry.get('command', '') if isinstance(entry, dict) else str(entry)
+                m = re.search(r'python3 [\"\\x27]?([\\w/.\$~-]+\\.py)[\"\\x27]?', cmd)
+                if not m:
+                    continue
+                script = m.group(1).replace('\$HOME', str(Path.home()))
+                script = os.path.expandvars(script)
+                if not os.path.exists(script):
+                    continue
+                with open(script) as sf:
+                    body = sf.read()
+                if 'DISABLED' in body or 'empty_output()' in body:
+                    desc = entry.get('description', '(no description)') if isinstance(entry, dict) else ''
+                    stubs.append((event, os.path.basename(script), desc))
+    if stubs:
+        print(f'{len(stubs)} stub hook(s) registered in settings.json:')
+        for ev, name, desc in stubs:
+            print(f'  [{ev}] {name} -- {desc}')
+        print('  Add stub deregistration to the opportunity list.')
+    else:
+        print('No stub hooks found (OK)')
+"
+```
+
+Flag any stub hook as a cleanup opportunity in Step 6. Do not deregister automatically -- document the stub so the BUILD phase handles it deliberately.
+
 **Step 5: Narrow by focus area (if provided)**
 
 If the user specified a focus area (e.g., "routing", "hooks", "agents"), filter all findings to that domain. If no focus area, analyze broadly.

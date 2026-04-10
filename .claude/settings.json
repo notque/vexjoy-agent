@@ -83,12 +83,6 @@
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/adr-context-injector.py\"",
-            "description": "Inject active ADR session context when .adr-session.json present",
-            "timeout": 2000
-          },
-          {
-            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/pipeline-context-detector.py\"",
             "description": "Detect pipeline creation requests and inject pipeline context",
             "timeout": 2000
