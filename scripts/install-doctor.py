@@ -19,11 +19,38 @@ import importlib
 import importlib.util
 import json
 import os
+import shlex
 import sys
 from pathlib import Path
 
 CLAUDE_DIR = Path.home() / ".claude"
+CODEX_DIR = Path.home() / ".codex"
 COMPONENTS = ["agents", "skills", "hooks", "commands", "scripts"]
+
+
+def _is_toolkit_repo(path: Path) -> bool:
+    """Return True when a path looks like the toolkit repo root."""
+    return (path / "skills").is_dir() and (path / "agents").is_dir() and (path / "hooks").is_dir()
+
+
+def get_toolkit_repo_root() -> Path | None:
+    """Locate the source repo root for comparisons against the Codex mirror."""
+    repo_candidate = Path(__file__).resolve().parent.parent
+    if _is_toolkit_repo(repo_candidate):
+        return repo_candidate
+
+    manifest_path = CLAUDE_DIR / ".install-manifest.json"
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+
+    toolkit_path = manifest.get("toolkit_path")
+    if not toolkit_path:
+        return None
+
+    manifest_repo = Path(toolkit_path).expanduser()
+    return manifest_repo if _is_toolkit_repo(manifest_repo) else None
 
 
 def check_claude_dir() -> dict:
@@ -121,6 +148,61 @@ def check_settings_json() -> dict:
     }
 
 
+def check_codex_skills() -> dict:
+    """Check that toolkit skills are mirrored into ~/.codex/skills."""
+    codex_skills_dir = CODEX_DIR / "skills"
+    repo_root = get_toolkit_repo_root()
+
+    if repo_root is None:
+        return {
+            "name": "codex_skills",
+            "label": "~/.codex/skills mirror",
+            "passed": codex_skills_dir.is_dir(),
+            "detail": str(codex_skills_dir)
+            if codex_skills_dir.is_dir()
+            else "Codex skills mirror not found. Run install.sh from the toolkit repo.",
+        }
+
+    expected_entries = [item.name for item in sorted((repo_root / "skills").iterdir())]
+
+    private_skills_dir = repo_root / "private-skills"
+    if private_skills_dir.is_dir():
+        for skill_dir in sorted(private_skills_dir.iterdir()):
+            expected_entries.append(skill_dir.name)
+
+    private_voices_dir = repo_root / "private-voices"
+    if private_voices_dir.is_dir():
+        for voice_dir in sorted(private_voices_dir.iterdir()):
+            if (voice_dir / "skill").is_dir():
+                expected_entries.append(f"voice-{voice_dir.name}")
+
+    expected_entries = list(dict.fromkeys(expected_entries))
+
+    if not codex_skills_dir.is_dir():
+        return {
+            "name": "codex_skills",
+            "label": "~/.codex/skills mirror",
+            "passed": False,
+            "detail": "Directory not found. Run install.sh to mirror toolkit skills for Codex.",
+        }
+
+    missing = [entry for entry in expected_entries if not (codex_skills_dir / entry).exists()]
+    if missing:
+        return {
+            "name": "codex_skills",
+            "label": "~/.codex/skills mirror",
+            "passed": False,
+            "detail": f"{len(expected_entries) - len(missing)}/{len(expected_entries)} entries present; missing: {', '.join(missing[:5])}",
+        }
+
+    return {
+        "name": "codex_skills",
+        "label": "~/.codex/skills mirror",
+        "passed": True,
+        "detail": f"All {len(expected_entries)} toolkit entries mirrored",
+    }
+
+
 def check_hook_files() -> list[dict]:
     """Check that hooks referenced in settings.json actually exist."""
     settings_file = CLAUDE_DIR / "settings.json"
@@ -153,6 +235,21 @@ def check_hook_files() -> list[dict]:
     missing = []
     found = 0
 
+    def extract_python_paths(command: str) -> list[Path]:
+        """Extract Python script paths from a hook command."""
+        expanded = os.path.expandvars(command)
+        try:
+            parts = shlex.split(expanded)
+        except ValueError:
+            parts = expanded.replace('"', "").replace("'", "").split()
+
+        paths = []
+        for part in parts:
+            resolved = Path(os.path.expanduser(part))
+            if resolved.suffix.lower() == ".py":
+                paths.append(resolved)
+        return paths
+
     def extract_hook_commands(obj):
         """Recursively extract command strings from nested hook structures."""
         commands = []
@@ -169,18 +266,11 @@ def check_hook_files() -> list[dict]:
 
     for event, hook_list in hooks.items():
         for cmd in extract_hook_commands(hook_list):
-            # Expand $HOME and strip quotes
-            cmd_expanded = cmd.replace("$HOME", str(Path.home()))
-            cmd_expanded = cmd_expanded.replace('"', "").replace("'", "")
-            parts = cmd_expanded.split()
-            for part in parts:
-                if part.endswith(".py"):
-                    path = Path(part)
-                    if path.exists():
-                        found += 1
-                    else:
-                        missing.append(f"{event}: {path.name}")
-                    break
+            for path in extract_python_paths(cmd):
+                if path.exists():
+                    found += 1
+                else:
+                    missing.append(f"{event}: {path.name}")
 
     if missing:
         return [
@@ -251,27 +341,44 @@ def check_learning_db() -> dict:
     """Check learning.db existence and table accessibility. Absence is acceptable for fresh installs."""
     import sqlite3
 
-    db_path = CLAUDE_DIR / "learning.db"
+    env_learning_dir = os.environ.get("CLAUDE_LEARNING_DIR")
+    candidates = []
+    if env_learning_dir:
+        candidates.append(Path(env_learning_dir).expanduser() / "learning.db")
+    candidates.append(CLAUDE_DIR / "learning" / "learning.db")
+    candidates.append(CLAUDE_DIR / "learning.db")
+
+    db_path = next((path for path in candidates if path.exists()), candidates[0])
     if not db_path.exists():
         return {
             "name": "learning_db",
             "label": "learning.db exists",
             "passed": True,
-            "detail": "Not yet created (will be created on first use)",
+            "detail": f"Not yet created (expected at {db_path})",
         }
 
     try:
         conn = sqlite3.connect(str(db_path))
         try:
+            tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            if "learnings" not in tables:
+                available = ", ".join(sorted(tables)[:5]) or "no tables"
+                return {
+                    "name": "learning_db",
+                    "label": "learning.db accessible",
+                    "passed": False,
+                    "detail": f"Unsupported schema at {db_path} (missing learnings table; found: {available})",
+                }
             cursor = conn.execute("SELECT count(*) FROM learnings")
             count = cursor.fetchone()[0]
+            schema_version = conn.execute("PRAGMA user_version").fetchone()[0]
         finally:
             conn.close()
         return {
             "name": "learning_db",
             "label": "learning.db accessible",
             "passed": True,
-            "detail": f"{count} entries",
+            "detail": f"{db_path} ({count} entries, schema v{schema_version})",
         }
     except sqlite3.OperationalError as e:
         return {
@@ -454,6 +561,12 @@ def inventory() -> dict:
         elif comp == "scripts":
             counts[comp] = len([f for f in real_dir.glob("*.py") if f.name != "__init__.py"])
 
+    codex_skills_dir = CODEX_DIR / "skills"
+    if codex_skills_dir.is_dir():
+        counts["codex_skills"] = len(list(codex_skills_dir.glob("*/SKILL.md")))
+    else:
+        counts["codex_skills"] = 0
+
     # Count MCP servers from registry
     mcp_results = check_mcp_servers()
     mcp_total = sum(1 for r in mcp_results if r["name"].startswith("mcp_") and r["name"] != "mcp_registry")
@@ -471,6 +584,7 @@ def run_all_checks() -> list[dict]:
     results = []
     results.append(check_claude_dir())
     results.extend(check_components_installed())
+    results.append(check_codex_skills())
     results.append(check_settings_json())
     results.extend(check_hook_files())
     results.append(check_python_version())
@@ -524,6 +638,7 @@ def main():
                 print("\n  Installed Components:\n")
                 print(f"  Agents:   {counts.get('agents', 0)}")
                 print(f"  Skills:   {counts.get('skills', 0)} ({counts.get('skills_invocable', 0)} user-invocable)")
+                print(f"  Codex:    {counts.get('codex_skills', 0)} skills available")
                 print(f"  Hooks:    {counts.get('hooks', 0)}")
                 print(f"  Commands: {counts.get('commands', 0)}")
                 print(f"  Scripts:  {counts.get('scripts', 0)}")

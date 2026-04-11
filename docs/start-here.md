@@ -12,6 +12,12 @@ claude --version
 
 If that prints a version number, you're good. If not, install Claude Code first and come back.
 
+Optional: if you also use Codex CLI, run `codex --version`. The toolkit mirrors its skills into `~/.codex/skills`, but Claude Code is still the full runtime for hooks, agents, commands, and scripts.
+
+Command entry points:
+- Claude Code: `/do`
+- Codex: `$do`
+
 ## Install
 
 Three commands. Copy-paste them.
@@ -30,7 +36,18 @@ cd claude-code-toolkit
 
 The installer asks one question -- symlink or copy -- then sets everything up. Pick symlink if you want updates via `git pull`, copy if you want a stable snapshot. Either works fine.
 
-What just happened: the installer linked agents, skills, hooks, commands, and scripts into `~/.claude/`, which is where Claude Code looks for extensions. It also configured hooks in your settings so they activate automatically.
+What just happened: the installer linked agents, skills, hooks, commands, and scripts into `~/.claude/`, which is where Claude Code looks for extensions. It also mirrored skills into `~/.codex/skills` for Codex and configured hooks in your settings so they activate automatically.
+
+## Verify It
+
+Run:
+
+```bash
+python3 ~/.claude/scripts/install-doctor.py check
+python3 ~/.claude/scripts/install-doctor.py inventory
+```
+
+`check` verifies the install layout, settings, hook paths, learning DB access, and Codex skill mirror. `inventory` shows what Claude and Codex can currently see. If you pull new toolkit changes later and want Codex to pick up new skills, rerun `./install.sh`.
 
 ## Your First Commands
 
@@ -48,7 +65,7 @@ Now try these.
 /do what can you do?
 ```
 
-The `/do` command is the front door. It reads your request, picks the right agent and skill, and runs it. This one shows you the full routing system -- every domain it handles, every workflow it knows.
+The router command is the front door. Use `/do` in Claude Code and `$do` in Codex. It reads your request, picks the right agent and skill, and runs it. This one shows you the full routing system -- every domain it handles, every workflow it knows.
 
 ### Explore a codebase
 

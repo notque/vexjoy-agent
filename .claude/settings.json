@@ -336,7 +336,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ~/.claude/hooks/sql-injection-detector.py",
+            "command": "python3 \"$HOME/.claude/hooks/sql-injection-detector.py\"",
             "timeout": 5000
           }
         ]

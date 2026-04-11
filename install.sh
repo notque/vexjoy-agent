@@ -31,6 +31,8 @@ NC='\033[0m' # No Color
 # Get the directory where this script lives
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="${HOME}/.claude"
+CODEX_DIR="${HOME}/.codex"
+CODEX_SKILLS_DIR="${CODEX_DIR}/skills"
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║                Claude Code Toolkit - Installation Script               ║${NC}"
@@ -224,6 +226,62 @@ os.rename(tmp, dst)
         echo "  No settings.json found. Nothing to clean."
     fi
 
+    # Phase 3.5: Clean toolkit-owned Codex mirror entries
+    echo ""
+    echo -e "${YELLOW}Cleaning Codex skills mirror...${NC}"
+    if [ -d "$CODEX_SKILLS_DIR" ]; then
+        for item in "${SCRIPT_DIR}/skills/"*; do
+            [ -e "$item" ] || continue
+            target="${CODEX_SKILLS_DIR}/$(basename "$item")"
+            if [ -L "$target" ] || [ -e "$target" ]; then
+                if [ "$DRY_RUN" = true ]; then
+                    echo -e "${BLUE}  Would remove Codex entry: ${target}${NC}"
+                else
+                    rm -rf "$target"
+                    echo -e "${GREEN}  ✓ Removed Codex entry: ${target}${NC}"
+                fi
+                REMOVED+=("Codex skill $(basename "$item")")
+            fi
+        done
+
+        if [ -d "${SCRIPT_DIR}/private-voices" ]; then
+            for voice_dir in "${SCRIPT_DIR}/private-voices/"*; do
+                [ -d "$voice_dir" ] || continue
+                skill_src="${voice_dir}/skill"
+                [ -d "$skill_src" ] || continue
+                voice_name=$(basename "$voice_dir")
+                target="${CODEX_SKILLS_DIR}/voice-${voice_name}"
+                if [ -L "$target" ] || [ -e "$target" ]; then
+                    if [ "$DRY_RUN" = true ]; then
+                        echo -e "${BLUE}  Would remove Codex entry: ${target}${NC}"
+                    else
+                        rm -rf "$target"
+                        echo -e "${GREEN}  ✓ Removed Codex entry: ${target}${NC}"
+                    fi
+                    REMOVED+=("Codex skill voice-${voice_name}")
+                fi
+            done
+        fi
+
+        if [ -d "${SCRIPT_DIR}/private-skills" ]; then
+            for item in "${SCRIPT_DIR}/private-skills/"*; do
+                [ -e "$item" ] || continue
+                target="${CODEX_SKILLS_DIR}/$(basename "$item")"
+                if [ -L "$target" ] || [ -e "$target" ]; then
+                    if [ "$DRY_RUN" = true ]; then
+                        echo -e "${BLUE}  Would remove Codex entry: ${target}${NC}"
+                    else
+                        rm -rf "$target"
+                        echo -e "${GREEN}  ✓ Removed Codex entry: ${target}${NC}"
+                    fi
+                    REMOVED+=("Codex skill $(basename "$item")")
+                fi
+            done
+        fi
+    else
+        echo "  No ~/.codex/skills mirror found. Nothing to clean."
+    fi
+
     # Phase 4: Remove install manifest
     echo ""
     echo -e "${YELLOW}Cleaning up manifest...${NC}"
@@ -341,6 +399,15 @@ else
 fi
 echo -e "${GREEN}✓ ${CLAUDE_DIR} ready${NC}"
 
+echo ""
+echo -e "${YELLOW}Setting up ~/.codex skills directory...${NC}"
+if [ "$DRY_RUN" = true ]; then
+    echo -e "${BLUE}  Would create: ${CODEX_SKILLS_DIR}${NC}"
+else
+    mkdir -p "${CODEX_SKILLS_DIR}"
+fi
+echo -e "${GREEN}✓ ${CODEX_SKILLS_DIR} ready${NC}"
+
 # Install components
 echo ""
 echo -e "${YELLOW}Installing components (mode: ${MODE})...${NC}"
@@ -394,6 +461,41 @@ install_component() {
     fi
 }
 
+sync_codex_entry() {
+    local source=$1
+    local target=$2
+    local name
+    name=$(basename "$source")
+
+    if [ -e "$target" ] || [ -L "$target" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would replace Codex entry: ${target}${NC}"
+        else
+            rm -rf "$target"
+        fi
+    fi
+
+    if [ "$MODE" = "symlink" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would symlink Codex entry: ${source} -> ${target}${NC}"
+        else
+            ln -s "$source" "$target"
+            echo -e "${GREEN}  ✓ Codex symlinked ${name}${NC}"
+        fi
+    else
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would copy Codex entry: ${source} -> ${target}${NC}"
+        else
+            if [ -d "$source" ]; then
+                cp -r "$source" "$target"
+            else
+                cp "$source" "$target"
+            fi
+            echo -e "${GREEN}  ✓ Codex copied ${name}${NC}"
+        fi
+    fi
+}
+
 # Install main components
 for component in agents skills hooks commands scripts; do
     if [ -d "${SCRIPT_DIR}/${component}" ]; then
@@ -438,6 +540,37 @@ for private_dir in private-agents private-skills private-hooks; do
         fi
     fi
 done
+
+echo ""
+echo -e "${YELLOW}Syncing Codex skills mirror...${NC}"
+CODEX_ENTRY_COUNT=0
+for item in "${SCRIPT_DIR}/skills/"*; do
+    [ -e "$item" ] || continue
+    target="${CODEX_SKILLS_DIR}/$(basename "$item")"
+    sync_codex_entry "$item" "$target"
+    CODEX_ENTRY_COUNT=$((CODEX_ENTRY_COUNT + 1))
+done
+
+if [ -d "${SCRIPT_DIR}/private-voices" ]; then
+    for voice_dir in "${SCRIPT_DIR}/private-voices/"*; do
+        [ -d "$voice_dir" ] || continue
+        skill_src="${voice_dir}/skill"
+        [ -d "$skill_src" ] || continue
+        voice_name=$(basename "$voice_dir")
+        target="${CODEX_SKILLS_DIR}/voice-${voice_name}"
+        sync_codex_entry "$skill_src" "$target"
+        CODEX_ENTRY_COUNT=$((CODEX_ENTRY_COUNT + 1))
+    done
+fi
+
+if [ -d "${SCRIPT_DIR}/private-skills" ]; then
+    for item in "${SCRIPT_DIR}/private-skills/"*; do
+        [ -e "$item" ] || continue
+        target="${CODEX_SKILLS_DIR}/$(basename "$item")"
+        sync_codex_entry "$item" "$target"
+        CODEX_ENTRY_COUNT=$((CODEX_ENTRY_COUNT + 1))
+    done
+fi
 
 # Set up local overlay
 echo ""
@@ -577,8 +710,6 @@ fi
 if [ "$DRY_RUN" = true ]; then
     echo -e "${BLUE}  Would write: ${CLAUDE_DIR}/.install-manifest.json${NC}"
 else
-    SYMLINK_MODE="false"
-    [ "$MODE" = "symlink" ] && SYMLINK_MODE="true"
     $PYTHON_CMD -c "
 import json, datetime, subprocess, sys
 try:
@@ -589,7 +720,7 @@ manifest = {
     'installed_at': datetime.datetime.utcnow().isoformat() + 'Z',
     'toolkit_commit': commit,
     'toolkit_path': '${SCRIPT_DIR}',
-    'mode': 'symlink' if ${SYMLINK_MODE} else 'copy',
+    'mode': '${MODE}',
     'components': ['agents', 'skills', 'hooks', 'commands', 'scripts'],
 }
 json.dump(manifest, open('${CLAUDE_DIR}/.install-manifest.json', 'w'), indent=2)
@@ -619,6 +750,7 @@ echo ""
 echo "Installed components:"
 echo "  • Agents: ${AGENT_COUNT} specialized domain experts"
 echo "  • Skills: ${SKILL_COUNT} workflow methodologies (${INVOCABLE_COUNT} user-invocable)"
+echo "  • Codex skills: ${CODEX_ENTRY_COUNT} mirrored entries in ~/.codex/skills"
 echo "  • Hooks: ${HOOK_COUNT} automation hooks"
 echo "  • Commands: ${COMMAND_COUNT} slash commands"
 echo "  • Scripts: ${SCRIPT_COUNT} utility scripts"
