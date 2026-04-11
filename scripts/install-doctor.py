@@ -203,6 +203,55 @@ def check_codex_skills() -> dict:
     }
 
 
+def check_codex_agents() -> dict:
+    """Check that toolkit agents are mirrored into ~/.codex/agents."""
+    codex_agents_dir = CODEX_DIR / "agents"
+    repo_root = get_toolkit_repo_root()
+
+    if repo_root is None:
+        return {
+            "name": "codex_agents",
+            "label": "~/.codex/agents mirror",
+            "passed": codex_agents_dir.is_dir(),
+            "detail": str(codex_agents_dir)
+            if codex_agents_dir.is_dir()
+            else "Codex agents mirror not found. Run install.sh from the toolkit repo.",
+        }
+
+    expected_entries = [item.name for item in sorted((repo_root / "agents").iterdir())]
+
+    private_agents_dir = repo_root / "private-agents"
+    if private_agents_dir.is_dir():
+        for agent_item in sorted(private_agents_dir.iterdir()):
+            expected_entries.append(agent_item.name)
+
+    expected_entries = list(dict.fromkeys(expected_entries))
+
+    if not codex_agents_dir.is_dir():
+        return {
+            "name": "codex_agents",
+            "label": "~/.codex/agents mirror",
+            "passed": False,
+            "detail": "Directory not found. Run install.sh to mirror toolkit agents for Codex.",
+        }
+
+    missing = [entry for entry in expected_entries if not (codex_agents_dir / entry).exists()]
+    if missing:
+        return {
+            "name": "codex_agents",
+            "label": "~/.codex/agents mirror",
+            "passed": False,
+            "detail": f"{len(expected_entries) - len(missing)}/{len(expected_entries)} entries present; missing: {', '.join(missing[:5])}",
+        }
+
+    return {
+        "name": "codex_agents",
+        "label": "~/.codex/agents mirror",
+        "passed": True,
+        "detail": f"All {len(expected_entries)} toolkit entries mirrored",
+    }
+
+
 def check_hook_files() -> list[dict]:
     """Check that hooks referenced in settings.json actually exist."""
     settings_file = CLAUDE_DIR / "settings.json"
@@ -567,6 +616,12 @@ def inventory() -> dict:
     else:
         counts["codex_skills"] = 0
 
+    codex_agents_dir = CODEX_DIR / "agents"
+    if codex_agents_dir.is_dir():
+        counts["codex_agents"] = len([f for f in codex_agents_dir.glob("*.md") if f.name != "README.md"])
+    else:
+        counts["codex_agents"] = 0
+
     # Count MCP servers from registry
     mcp_results = check_mcp_servers()
     mcp_total = sum(1 for r in mcp_results if r["name"].startswith("mcp_") and r["name"] != "mcp_registry")
@@ -585,6 +640,7 @@ def run_all_checks() -> list[dict]:
     results.append(check_claude_dir())
     results.extend(check_components_installed())
     results.append(check_codex_skills())
+    results.append(check_codex_agents())
     results.append(check_settings_json())
     results.extend(check_hook_files())
     results.append(check_python_version())
@@ -638,7 +694,10 @@ def main():
                 print("\n  Installed Components:\n")
                 print(f"  Agents:   {counts.get('agents', 0)}")
                 print(f"  Skills:   {counts.get('skills', 0)} ({counts.get('skills_invocable', 0)} user-invocable)")
-                print(f"  Codex:    {counts.get('codex_skills', 0)} skills available")
+                print(
+                    f"  Codex:    {counts.get('codex_skills', 0)} skills available, "
+                    f"{counts.get('codex_agents', 0)} agents available"
+                )
                 print(f"  Hooks:    {counts.get('hooks', 0)}")
                 print(f"  Commands: {counts.get('commands', 0)}")
                 print(f"  Scripts:  {counts.get('scripts', 0)}")
