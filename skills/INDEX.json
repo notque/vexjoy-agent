@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-11T10:14:10Z",
+  "generated": "2026-04-11T15:37:07Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -752,19 +752,6 @@
         "workflow"
       ]
     },
-    "gemini-wrestlejoy-comparison": {
-      "file": "skills/gemini-wrestlejoy-comparison/SKILL.md",
-      "description": "A/B test Gemini Pro vs Claude for WrestleJoy voice replication: Prepare inputs, generate with both models, validate outputs, compare results.",
-      "triggers": [
-        "gemini-wrestlejoy-comparison",
-        "gemini",
-        "wrestlejoy",
-        "comparison"
-      ],
-      "category": "analysis",
-      "user_invocable": false,
-      "version": "2.0.0"
-    },
     "generate-claudemd": {
       "file": "skills/generate-claudemd/SKILL.md",
       "description": "Generate project-specific CLAUDE.md from repo analysis.",
@@ -978,7 +965,7 @@
     },
     "joy-check": {
       "file": "skills/joy-check/SKILL.md",
-      "description": "Validate content for joy-centered tonal framing.",
+      "description": "Validate content framing on joy-grievance spectrum.",
       "triggers": [
         "joy check",
         "check framing",
@@ -986,15 +973,18 @@
         "negative framing",
         "joy validation",
         "too negative",
-        "reframe positively"
+        "reframe positively",
+        "positive framing check",
+        "instruction framing"
       ],
       "category": "content",
-      "user_invocable": true,
-      "version": "1.0.0",
+      "user_invocable": false,
+      "version": "2.0.0",
       "pairs_with": [
         "voice-writer",
         "anti-ai-editor",
-        "voice-validator"
+        "voice-validator",
+        "skill-creator"
       ]
     },
     "kairos-lite": {
@@ -2187,56 +2177,6 @@
       "user_invocable": false,
       "version": "2.0.0"
     },
-    "voice-amy-nemmity": {
-      "file": "skills/voice-amy-nemmity/SKILL.md",
-      "description": "Amy Nemmity's writing voice: warmth, celebration, poetic fragments, community focus, character arc narratives.",
-      "triggers": [
-        "voice-amy-nemmity",
-        "voice",
-        "amy",
-        "nemmity"
-      ],
-      "category": "voice",
-      "user_invocable": false,
-      "version": "2.0.0"
-    },
-    "voice-andy-disagreement": {
-      "file": "skills/voice-andy-disagreement/SKILL.md",
-      "description": "Andy Nemmity's disagreement and forum voice with reasoning ladder, claims-over-people discipline, and anti-escalation harshness control.",
-      "triggers": [
-        "disagree",
-        "counter-argument",
-        "critique",
-        "rebuttal",
-        "pushback",
-        "that's wrong",
-        "I disagree",
-        "Hacker News",
-        "HN comment",
-        "Reddit",
-        "forum",
-        "community"
-      ],
-      "category": "voice",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "voice-andy-nemmity"
-      ]
-    },
-    "voice-andy-nemmity": {
-      "file": "skills/voice-andy-nemmity/SKILL.md",
-      "description": "Apply Andy Nemmity's voice profile for content generation: precision-driven improvisation, constraint accumulation, systems framing, calibration qu...",
-      "triggers": [
-        "voice-andy-nemmity",
-        "voice",
-        "andy",
-        "nemmity"
-      ],
-      "category": "voice",
-      "user_invocable": false,
-      "version": "2.0.0"
-    },
     "voice-validator": {
       "file": "skills/voice-validator/SKILL.md",
       "description": "Critique-and-rewrite loop for voice fidelity validation.",
@@ -2390,95 +2330,6 @@
       "category": "git-workflow",
       "user_invocable": false,
       "version": "1.0.0"
-    },
-    "wrestlejoy-aew-images": {
-      "file": "skills/wrestlejoy-aew-images/SKILL.md",
-      "description": "Fetch official promotional images from allelitewrestling.com for WrestleJoy articles.",
-      "triggers": [
-        "aew image",
-        "aew photo",
-        "wrestler photo",
-        "official aew image",
-        "roster image",
-        "roster photo",
-        "aew event poster",
-        "get aew image"
-      ],
-      "category": "content-pipeline",
-      "user_invocable": true,
-      "version": "1.0.0",
-      "pairs_with": [
-        "wrestlejoy-news-pipeline",
-        "voice-andy-nemmity",
-        "wrestlejoy-external-research"
-      ],
-      "agent": "wrestlejoy-news-producer",
-      "model": "sonnet"
-    },
-    "wrestlejoy-external-research": {
-      "file": "skills/wrestlejoy-external-research/SKILL.md",
-      "description": "Evidence-sourced 4-phase external research: Identify, Search, Extract, Validate.",
-      "triggers": [
-        "wrestlejoy-external-research",
-        "wrestlejoy",
-        "external",
-        "research"
-      ],
-      "category": "content-pipeline",
-      "user_invocable": false,
-      "version": "2.0.0"
-    },
-    "wrestlejoy-mmr-research": {
-      "file": "skills/wrestlejoy-mmr-research/SKILL.md",
-      "description": "Evidence-based wrestler research from MMR database: Assess, Query, Synthesize, Output.",
-      "triggers": [
-        "wrestlejoy-mmr-research",
-        "wrestlejoy",
-        "mmr",
-        "research"
-      ],
-      "category": "content-pipeline",
-      "user_invocable": false,
-      "version": "2.0.0"
-    },
-    "wrestlejoy-news-pipeline": {
-      "file": "skills/wrestlejoy-news-pipeline/SKILL.md",
-      "description": "Automated AEW wrestling news production pipeline for WrestleJoy.com.",
-      "triggers": [
-        "run news pipeline",
-        "wrestlejoy news",
-        "scan wrestling news",
-        "generate news articles",
-        "wrestling news automation",
-        "aew news pipeline",
-        "news production pipeline"
-      ],
-      "category": "content-pipeline",
-      "user_invocable": false,
-      "version": "1.0.0",
-      "pairs_with": [
-        "voice-andy-nemmity",
-        "voice-writer",
-        "anti-ai-editor",
-        "wordpress-uploader",
-        "seo-optimizer",
-        "wrestlejoy-external-research"
-      ],
-      "agent": "wrestlejoy-news-producer",
-      "model": "opus"
-    },
-    "wrestlejoy-research-transform": {
-      "file": "skills/wrestlejoy-research-transform/SKILL.md",
-      "description": "Transform MMR research data into narrative language: convert ratings to superlatives, trajectories to journey language, peaks to memorable moments.",
-      "triggers": [
-        "wrestlejoy-research-transform",
-        "wrestlejoy",
-        "research",
-        "transform"
-      ],
-      "category": "content-pipeline",
-      "user_invocable": false,
-      "version": "2.0.0"
     },
     "x-api": {
       "file": "skills/x-api/SKILL.md",

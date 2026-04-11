@@ -7,10 +7,12 @@ from YAML frontmatter, and generates a dict-keyed index file:
   - skills/INDEX.json   (skills only, v2.0)
 
 Usage:
-    python scripts/generate-skill-index.py
+    python scripts/generate-skill-index.py                 # public-only (default)
+    python scripts/generate-skill-index.py --include-private  # include symlinked private skills
+    python scripts/generate-skill-index.py --output skills/INDEX.local.json  # alternate output path
 
 Output:
-    skills/INDEX.json    - Skill routing index for /do router
+    skills/INDEX.json    - Skill routing index for /do router (public skills only by default)
 
 
 Exit codes:
@@ -19,6 +21,7 @@ Exit codes:
     2 - Trigger collisions detected among force-routed entries
 """
 
+import argparse
 import json
 import re
 import sys
@@ -26,6 +29,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
+
+# Directory name segments that mark a path as private/local-only.
+# Any SKILL.md whose resolved realpath contains one of these as a path component
+# is excluded from the public index unless --include-private is passed.
+PRIVATE_DIR_NAMES: frozenset[str] = frozenset({"private-skills", "private-agents", "private-hooks", "private-voices"})
 
 # Phase header regex: matches "## Phase 1:" or "### Phase 1:", "### Phase 0.5:", "### Phase 4b:", etc.
 # Captures the NAME part after the colon, stopping before parenthetical or em-dash suffixes.
@@ -259,11 +267,35 @@ def build_entry(
     return entry
 
 
+def is_private_path(path: Path) -> bool:
+    """Return True if the resolved realpath of ``path`` lives inside a private directory.
+
+    A path is considered private when any component of its resolved absolute path
+    matches one of the names in PRIVATE_DIR_NAMES (e.g., ``private-skills``,
+    ``private-voices``).  The check uses ``Path.resolve()`` so symlinks are
+    followed before the component scan runs.
+
+    Args:
+        path: File or directory path to test (symlinks are resolved).
+
+    Returns:
+        True when the realpath contains a private directory component, False otherwise.
+    """
+    try:
+        resolved = path.resolve()
+    except OSError:
+        # If resolution fails (broken symlink etc.) treat as non-private so
+        # the caller's normal error-handling path fires on the subsequent read.
+        return False
+    return bool(PRIVATE_DIR_NAMES & {p.name for p in resolved.parents} | ({resolved.name} & PRIVATE_DIR_NAMES))
+
+
 def generate_index(
     source_dir: Path,
     dir_prefix: str,
     collection_key: str,
     is_pipeline: bool = False,
+    include_private: bool = False,
 ) -> tuple[dict, list[str]]:
     """Generate a dict-keyed routing index from all SKILL.md files in a directory.
 
@@ -272,6 +304,10 @@ def generate_index(
         dir_prefix: Path prefix for file field (e.g., "skills" or "pipelines").
         collection_key: Top-level key name in the index (e.g., "skills" or "pipelines").
         is_pipeline: Whether entries are pipelines (enables phase extraction).
+        include_private: When False (default), skip any SKILL.md whose resolved
+            realpath lives inside a private directory (private-skills,
+            private-agents, private-hooks, private-voices).  Pass True to
+            include private skills for local index generation.
 
     Returns:
         tuple: (index dict with version/generated/generated_by/collection,
@@ -291,6 +327,12 @@ def generate_index(
 
         skill_file = skill_dir / "SKILL.md"
         if not skill_file.exists():
+            continue
+
+        # Private-path guard: skip symlinks that resolve into gitignored private
+        # directories unless the caller explicitly requested private inclusion.
+        if not include_private and is_private_path(skill_file):
+            print(f"  [skip-private] {skill_dir.name} (symlink target is in a private directory)", file=sys.stderr)
             continue
 
         try:
@@ -385,13 +427,57 @@ def write_index(index: dict, output_path: Path) -> bool:
 
 def main() -> int:
     """Main entry point."""
+    parser = argparse.ArgumentParser(description="Generate skill routing index from SKILL.md frontmatter.")
+    parser.add_argument(
+        "--include-private",
+        action="store_true",
+        default=False,
+        help=(
+            "Include private skills (symlinks into private-skills/, private-voices/, etc.). "
+            "Default: public-only. Use this flag for local index generation only — "
+            "never pass it in CI or when generating the committed skills/INDEX.json."
+        ),
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help=(
+            "Output file path. Defaults to skills/INDEX.json. "
+            "Use skills/INDEX.local.json for local private-skill indexing "
+            "(that path is gitignored)."
+        ),
+    )
+    parser.add_argument(
+        "--skills-dir",
+        type=Path,
+        default=None,
+        help="Override the skills directory to scan. Defaults to <repo_root>/skills/.",
+    )
+    args = parser.parse_args()
+
     script_dir = Path(__file__).parent
     repo_root = script_dir.parent
-    skills_dir = repo_root / "skills"
+
+    # Allow caller to override the skills directory (useful for testing with isolated dirs)
+    if args.skills_dir is not None:
+        skills_dir = args.skills_dir.resolve()
+    else:
+        skills_dir = repo_root / "skills"
 
     if not skills_dir.exists():
         print(f"Error: skills directory not found at {skills_dir}", file=sys.stderr)
         return 1
+
+    # Resolve output path: explicit --output wins, otherwise default to skills/INDEX.json
+    skills_index_path: Path = args.output if args.output is not None else skills_dir / "INDEX.json"
+
+    include_private: bool = args.include_private
+
+    if include_private:
+        print("Mode: --include-private (private skills will be included)", file=sys.stderr)
+    else:
+        print("Mode: public-only (symlinks into private directories are skipped)", file=sys.stderr)
 
     # Generate skills index
     skills_index, skills_warnings = generate_index(
@@ -399,6 +485,7 @@ def main() -> int:
         dir_prefix="skills",
         collection_key="skills",
         is_pipeline=False,
+        include_private=include_private,
     )
 
     # Report warnings if any
@@ -412,8 +499,6 @@ def main() -> int:
         print("Error: No skills found. Index file not written.", file=sys.stderr)
         return 1
 
-    # Write skills/INDEX.json
-    skills_index_path = skills_dir / "INDEX.json"
     if not write_index(skills_index, skills_index_path):
         return 1
 

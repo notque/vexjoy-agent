@@ -88,6 +88,11 @@ private-agents/
 private-hooks/
 private-voices/
 
+# Local skill index: generated with --include-private for local workflows.
+# Contains private skill entries that must not be committed to the public repo.
+# Generate with: python3 scripts/generate-skill-index.py --include-private --output skills/INDEX.local.json
+skills/INDEX.local.json
+
 # Draft articles (work in progress, not committed)
 drafts/
 draft-*.md

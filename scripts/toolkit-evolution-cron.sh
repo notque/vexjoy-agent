@@ -92,7 +92,17 @@ Key constraints:
 - Maximum 3 implementations per cycle (focus over breadth)
 - Winners that pass critique (STRONG consensus) AND A/B testing (WIN) should be merged via PR
 - Record all outcomes (wins AND losses) to the learning DB
-- Write evolution report to evolution-reports/evolution-report-$(date +%Y-%m-%d).md"
+- Write evolution report to evolution-reports/evolution-report-$(date +%Y-%m-%d).md
+
+PRIVATE SKILL GUARD — MANDATORY:
+- When regenerating skills/INDEX.json, ALWAYS run: python3 scripts/generate-skill-index.py
+  (no --include-private flag). This public-only mode skips any SKILL.md that is a symlink
+  resolving into a private directory (private-skills/, private-voices/, etc.).
+- Never add rows for private skills (wrestlejoy-*, voice-andy-nemmity, voice-amy-nemmity,
+  voice-andy-disagreement, gemini-wrestlejoy-comparison, or any skill whose SKILL.md is a
+  symlink to a private directory) to skills/do/references/routing-tables.md.
+- Do not pass --include-private to generate-skill-index.py in this cycle. That flag is for
+  local development workflows only and must never run in the committed-index path."
 
 if [ -z "$GH_AUTH_VALID" ]; then
     PROMPT="$PROMPT

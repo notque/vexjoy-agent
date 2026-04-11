@@ -225,9 +225,6 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **voice-writer** | User wants to generate content in an established voice — multi-step generation with validation. |
 | **voice-calibrator** | User wants to refine an existing voice profile or improve how well it captures their writing style. |
 | **voice-validator** | User wants to run a validation loop to confirm generated content matches the voice profile. |
-| **voice-andy-nemmity** | User wants to generate content in Andy Nemmity's specific voice: precision-driven, systems framing, improvement-focused, modal writing across 5 registers. The primary voice for VexJoy and WrestleJoy long-form content. NOT: general voice generation (use voice-writer), Amy Nemmity voice (use voice-amy-nemmity). |
-| **voice-amy-nemmity** | User wants to generate content in Amy Nemmity's voice: warmth, celebration, poetic fragments, community focus, wabi-sabi authenticity. The WrestleJoy editorial voice for wrestling coverage and awards content. NOT: Andy Nemmity voice (use voice-andy-nemmity). |
-| **voice-andy-disagreement** | User wants to write a counter-argument, disagreement post, or forum response in Andy Nemmity's reasoning-first voice: claims over politeness, reasoning ladder, direct rebuttal. NOT: general debate framing (use roast or multi-persona-critique). |
 
 **Voice selection:** Use `create-voice` to build voice profiles from writing samples, then `voice-writer` for multi-step generation in that voice. Custom voice profiles are matched via their skill triggers.
 
@@ -298,19 +295,6 @@ Workflows that work together in common sequences:
 | Skill | When to Route Here |
 |-------|-------------------|
 | **reddit-moderate** | User wants to moderate a subreddit: check the modqueue, review reports, or take moderation actions. |
-
----
-
-## WrestleJoy Skills
-
-| Skill | When to Route Here |
-|-------|-------------------|
-| **wrestlejoy-news-pipeline** | User wants to run the automated WrestleJoy news pipeline: discover positive AEW wrestling news, filter through positivity gate, cluster stories, generate articles in Andy's voice, validate, and upload as WordPress drafts. Triggers: "run news pipeline", "wrestlejoy news", "scan wrestling news", "generate news articles". NOT: long-form wrestler profiles (use voice-andy-nemmity directly). |
-| **wrestlejoy-aew-images** | User wants to fetch official promotional images from allelitewrestling.com for WrestleJoy content: event banners, wrestler headshots, promotional art. |
-| **wrestlejoy-external-research** | User wants evidence-sourced external research for a WrestleJoy article: identify claims, search sources, extract evidence, validate against multiple sources. |
-| **wrestlejoy-mmr-research** | User wants to research wrestler match quality ratings from the MMR database for WrestleJoy content: fetch ratings, assess match history, synthesize data. |
-| **wrestlejoy-research-transform** | User wants to convert raw MMR wrestling data into narrative language for WrestleJoy articles: transform ratings into superlatives, statistics into story beats, data into prose. |
-| **gemini-wrestlejoy-comparison** | User wants to A/B test Gemini Pro vs Claude for WrestleJoy voice replication quality — comparing outputs against Andy Nemmity's voice profile. |
 
 ---
 

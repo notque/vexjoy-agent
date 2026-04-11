@@ -21,8 +21,15 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+# Prefer skills/INDEX.local.json when present (local workflows with private skills).
+# Fall back to skills/INDEX.json (the committed public index).
+# INDEX.local.json is gitignored; generate it with:
+#   python3 scripts/generate-skill-index.py --include-private --output skills/INDEX.local.json
+_SKILLS_LOCAL = REPO_ROOT / "skills" / "INDEX.local.json"
+_SKILLS_PUBLIC = REPO_ROOT / "skills" / "INDEX.json"
+
 INDEX_PATHS = {
-    "skills": REPO_ROOT / "skills" / "INDEX.json",
+    "skills": _SKILLS_LOCAL if _SKILLS_LOCAL.exists() else _SKILLS_PUBLIC,
     "agents": REPO_ROOT / "agents" / "INDEX.json",
     "pipelines": REPO_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json",
 }
