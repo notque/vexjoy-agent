@@ -39,6 +39,33 @@
     "Rounded card with drop shadow",
     "Pill-shaped buttons with gradient",
     "Floating action button (FAB)",
-    "Hamburger menu on desktop"
-  ]
+    "Hamburger menu on desktop",
+    "Cards in hero section on landing pages",
+    "Dashboard card mosaic with every region bordered",
+    "Decorative gradients on app/dashboard surfaces",
+    "Multiple competing accent colors on one page",
+    "More than two typefaces on one page",
+    "More than three distinct motion types on one page",
+    "Ambient decorative motion with no informational role"
+  ],
+  "hero_composition_rules": {
+    "description": "Landing page hero rules. Violations should be flagged and the hero reconstructed.",
+    "rules": [
+      "One composition: the first viewport reads as a single unified image, not a grid of parts",
+      "No cards in the hero: the hero is where the product speaks directly",
+      "Full-bleed hero: the hero spans the full viewport width on landing pages",
+      "Brand first: product name is set at hero scale in the display typeface",
+      "One job per section: hero has one purpose, one takeaway, one CTA intent",
+      "Hero image litmus: if the page still works with the hero image removed, the image is too weak"
+    ]
+  },
+  "motion_discipline": {
+    "description": "Ship 2-3 motions per page, not 10. Every motion fills one of three slots.",
+    "slots": [
+      "Entrance: one hero entrance sequence on page load",
+      "Scroll: one scroll-linked or sticky effect",
+      "Interaction: one hover, reveal, or layout transition"
+    ],
+    "litmus": "Remove the motion mentally. Does the user understand the page differently? If no, the motion is decorative and should be cut."
+  }
 }
