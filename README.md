@@ -2,7 +2,7 @@
 
 <img src="docs/repo-hero.png" alt="Claude Code Toolkit" width="100%">
 
-Claude Code Toolkit is a complete agent-driven workflow system for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). It gives Claude domain-specific expertise, step-by-step workflows, and automated quality gates. The result is Claude working like a team of Go, Python, Kubernetes, review, and content specialists instead of one generalist.
+Claude Code Toolkit is a complete agent-driven workflow system for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and [Codex](https://github.com/openai/codex). It gives Claude and Codex domain-specific expertise, step-by-step workflows, and automated quality gates. The result is Claude working like a team of Go, Python, Kubernetes, review, and content specialists instead of one generalist.
 
 ## How It Works
 
