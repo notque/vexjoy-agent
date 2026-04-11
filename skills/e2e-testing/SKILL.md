@@ -16,6 +16,7 @@ allowed-tools:
   - Skill
 adr: adr/ADR-107-e2e-testing.md
 routing:
+  category: testing
   triggers:
     - playwright
     - E2E test

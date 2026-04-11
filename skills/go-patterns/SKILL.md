@@ -14,6 +14,7 @@ allowed-tools:
   - Skill
 agent: golang-general-engineer
 routing:
+  category: language
   force_route: true
   triggers:
     # testing triggers

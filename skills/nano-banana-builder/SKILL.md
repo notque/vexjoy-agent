@@ -10,6 +10,7 @@ allowed-tools:
   - Glob
 command: /nano-banana
 routing:
+  category: image-generation
   triggers:
     - nano banana
     - gemini image generation

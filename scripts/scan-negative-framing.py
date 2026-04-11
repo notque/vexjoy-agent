@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Scan content for negative framing patterns.
 
-VexJoy and WrestleJoy are joy-centered publications. Content should frame
-experiences positively or neutrally, not through grievance, accusation,
-or victimhood. This script detects negative framing patterns that don't
-match the joy-centered editorial voice.
+Joy-centered content evaluation. Content should frame experiences positively
+or neutrally, not through grievance, accusation, or victimhood. This script
+detects negative framing patterns that don't match a joy-centered editorial
+voice.
 
 Usage:
     python3 scripts/scan-negative-framing.py <file>

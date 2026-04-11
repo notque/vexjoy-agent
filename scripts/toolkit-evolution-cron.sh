@@ -92,7 +92,10 @@ Key constraints:
 - Maximum 3 implementations per cycle (focus over breadth)
 - Winners that pass critique (STRONG consensus) AND A/B testing (WIN) should be merged via PR
 - Record all outcomes (wins AND losses) to the learning DB
-- Write evolution report to evolution-reports/evolution-report-$(date +%Y-%m-%d).md"
+- Write evolution report to evolution-reports/evolution-report-$(date +%Y-%m-%d).md
+- Index generation: if the cycle regenerates skills/INDEX.json or agents/INDEX.json, run
+  the generators in default mode only. Do not pass --include-private. Do not modify
+  routing-tables.md to add entries for symlinked skill directories."
 
 if [ -z "$GH_AUTH_VALID" ]; then
     PROMPT="$PROMPT

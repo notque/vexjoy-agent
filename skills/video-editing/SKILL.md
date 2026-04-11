@@ -15,6 +15,7 @@ allowed-tools:
   - Task
   - Skill
 routing:
+  category: video-creation
   triggers:
     - edit video
     - cut footage

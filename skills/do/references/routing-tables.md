@@ -199,7 +199,6 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **taxonomy-manager** | User wants to manage content categories, tags, or taxonomy systems. |
 | **wordpress-uploader** | User wants to upload or create draft posts in WordPress programmatically. |
 | **wordpress-live-validation** | User wants to validate WordPress posts live after upload: check rendering, canonical URLs, or publication status. |
-| **joy-check** | User wants to validate that content has positive, joy-centered framing — not negative or fear-based tone. |
 | **pptx-generator** | User wants to generate a PowerPoint presentation, slide deck, or pitch deck from content or research. |
 | **frontend-slides** | User wants browser-based HTML presentations: reveal-style slide decks, kiosk presentations, or converting PPTX to web format. |
 | **gemini-image-generator** | User wants to generate images from text prompts via Google Gemini: sprites, character art, or AI-generated visuals. |

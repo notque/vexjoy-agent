@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-07T03:31:40Z",
+  "generated": "2026-04-11T15:47:00Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -310,6 +310,56 @@
       "user_invocable": false,
       "version": "2.0.0"
     },
+    "csuite": {
+      "file": "skills/csuite/SKILL.md",
+      "description": "C-suite executive decision support: strategy, technology, growth, competitive intelligence, project evaluation.",
+      "triggers": [
+        "should I",
+        "should we",
+        "evaluate opportunity",
+        "decision",
+        "trade-off",
+        "worth it",
+        "invest in",
+        "strategy",
+        "strategic",
+        "build or buy",
+        "build vs buy",
+        "vendor evaluation",
+        "adopt",
+        "SaaS vs",
+        "technology choice",
+        "tech stack",
+        "architecture decision",
+        "should we use",
+        "grow audience",
+        "content strategy",
+        "marketing",
+        "SEO strategy",
+        "growth",
+        "brand",
+        "positioning",
+        "community building",
+        "competitor",
+        "competition",
+        "market landscape",
+        "competitive analysis",
+        "differentiation",
+        "feasibility",
+        "is it worth",
+        "effort estimate",
+        "ROI",
+        "priority",
+        "should we start",
+        "project evaluation",
+        "go no go",
+        "viability"
+      ],
+      "category": "decision-support",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "pairs_with": []
+    },
     "data-analysis": {
       "file": "skills/data-analysis/SKILL.md",
       "description": "Decision-first data analysis with statistical rigor gates.",
@@ -413,6 +463,7 @@
         "POM",
         "test flakiness"
       ],
+      "category": "testing",
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
@@ -541,6 +592,7 @@
         ".fish file",
         "#!/usr/bin/env fish"
       ],
+      "category": "process",
       "force_route": true,
       "user_invocable": false,
       "version": "2.0.0",
@@ -812,6 +864,7 @@
         "make check",
         "Go lint"
       ],
+      "category": "language",
       "force_route": true,
       "user_invocable": false,
       "version": "1.0.0",
@@ -908,30 +961,6 @@
       "pairs_with": [
         "feature-lifecycle",
         "comprehensive-review"
-      ]
-    },
-    "joy-check": {
-      "file": "skills/joy-check/SKILL.md",
-      "description": "Validate content framing on joy-grievance spectrum.",
-      "triggers": [
-        "joy check",
-        "check framing",
-        "tone check",
-        "negative framing",
-        "joy validation",
-        "too negative",
-        "reframe positively",
-        "positive framing check",
-        "instruction framing"
-      ],
-      "category": "content",
-      "user_invocable": false,
-      "version": "2.0.0",
-      "pairs_with": [
-        "voice-writer",
-        "anti-ai-editor",
-        "voice-validator",
-        "skill-creator"
       ]
     },
     "kairos-lite": {
@@ -1127,6 +1156,7 @@
         "sprite generation",
         "generate card art"
       ],
+      "category": "image-generation",
       "user_invocable": false,
       "version": "3.0.0",
       "pairs_with": [
@@ -1957,6 +1987,7 @@
         "fragile test",
         "testing implementation details"
       ],
+      "category": "testing",
       "user_invocable": false,
       "version": "2.0.0",
       "pairs_with": [
@@ -2007,7 +2038,7 @@
     },
     "toolkit-evolution": {
       "file": "skills/toolkit-evolution/SKILL.md",
-      "description": "Closed-loop toolkit self-improvement: diagnose, propose, critique, build, test, evolve.",
+      "description": "Closed-loop toolkit self-improvement: discover gaps, diagnose, propose, critique, build, test, evolve.",
       "triggers": [
         "evolve toolkit",
         "improve the system",
@@ -2015,6 +2046,8 @@
         "toolkit evolution",
         "what should we improve",
         "find improvement opportunities",
+        "discover skill gaps",
+        "what skills are missing",
         "systematic improvement"
       ],
       "category": "meta-tooling",
@@ -2097,6 +2130,7 @@
         "assemble clips",
         "video editing"
       ],
+      "category": "video-creation",
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
@@ -2240,6 +2274,7 @@
         "phased execution",
         "orchestrated workflow"
       ],
+      "category": "meta-tooling",
       "user_invocable": false,
       "version": "2.0.0",
       "model": "sonnet"
@@ -2298,56 +2333,6 @@
       ],
       "agent": "python-general-engineer",
       "model": "sonnet"
-    },
-    "csuite": {
-      "file": "skills/csuite/SKILL.md",
-      "description": "C-suite executive decision support: strategy, technology, growth, competitive intelligence, project evaluation.",
-      "triggers": [
-        "should I",
-        "should we",
-        "evaluate opportunity",
-        "decision",
-        "trade-off",
-        "worth it",
-        "invest in",
-        "strategy",
-        "strategic",
-        "build or buy",
-        "build vs buy",
-        "vendor evaluation",
-        "adopt",
-        "SaaS vs",
-        "technology choice",
-        "tech stack",
-        "architecture decision",
-        "should we use",
-        "grow audience",
-        "content strategy",
-        "marketing",
-        "SEO strategy",
-        "growth",
-        "brand",
-        "positioning",
-        "community building",
-        "competitor",
-        "competition",
-        "market landscape",
-        "competitive analysis",
-        "differentiation",
-        "feasibility",
-        "is it worth",
-        "effort estimate",
-        "ROI",
-        "priority",
-        "should we start",
-        "project evaluation",
-        "go no go",
-        "viability"
-      ],
-      "category": "decision-support",
-      "user_invocable": false,
-      "version": "1.0.0",
-      "pairs_with": []
     }
   }
 }
