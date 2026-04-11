@@ -27,7 +27,7 @@ routing:
 
 # Reference Enrichment Skill
 
-Enrich an agent or skill's reference files from Level 0-1 to Level 2-3. The pipeline runs five
+Enrich an agent or skill's reference files from Level 0-2 to Level 3+. The pipeline runs five
 phases with explicit gates because each phase feeds the next — starting Phase 3 without Phase 2
 research produces filler, not depth.
 
@@ -99,13 +99,13 @@ Write files to: `agents/{name}/references/` or `skills/{name}/references/`
 
 ### Phase 4: VALIDATE
 
-**Goal**: Confirm the reference files meet Level 2+ depth before integrating.
+**Goal**: Confirm the reference files meet Level 3+ depth before integrating.
 
 **Tier 1 (Deterministic):**
 ```bash
 python3 scripts/audit-reference-depth.py --agent {name} --json
 ```
-Verify the `level` field is 2 or 3 in the output. If still Level 1, the files are too
+Verify the `level` field is 3 in the output. If still below Level 3, the files are too
 generic — return to Phase 2 for the weak sub-domain.
 
 **Tier 2 (LLM self-assessment):**
@@ -162,7 +162,7 @@ Load when the task type matches:
 well-documented upstream. Flag and suggest manual enrichment with project-specific production
 incidents rather than generic docs research.
 
-**Phase 4 Tier 1 still Level 1 after compile**: The files are too short or too generic. Read one
+**Phase 4 Tier 1 still below Level 3 after compile**: The files are too short or too generic. Read one
 file, apply the rubric directly, identify the weakest section, and target Phase 2 research at
 that section specifically.
 
