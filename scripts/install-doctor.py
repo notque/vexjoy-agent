@@ -23,7 +23,33 @@ import sys
 from pathlib import Path
 
 CLAUDE_DIR = Path.home() / ".claude"
+CODEX_DIR = Path.home() / ".codex"
 COMPONENTS = ["agents", "skills", "hooks", "commands", "scripts"]
+
+
+def _is_toolkit_repo(path: Path) -> bool:
+    """Return True when a path looks like the toolkit repo root."""
+    return (path / "skills").is_dir() and (path / "agents").is_dir() and (path / "hooks").is_dir()
+
+
+def get_toolkit_repo_root() -> Path | None:
+    """Locate the source repo root for comparisons against the Codex mirror."""
+    repo_candidate = Path(__file__).resolve().parent.parent
+    if _is_toolkit_repo(repo_candidate):
+        return repo_candidate
+
+    manifest_path = CLAUDE_DIR / ".install-manifest.json"
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+
+    toolkit_path = manifest.get("toolkit_path")
+    if not toolkit_path:
+        return None
+
+    manifest_repo = Path(toolkit_path).expanduser()
+    return manifest_repo if _is_toolkit_repo(manifest_repo) else None
 
 
 def check_claude_dir() -> dict:
@@ -118,6 +144,61 @@ def check_settings_json() -> dict:
         "detail": f"Hook events configured: {', '.join(hook_events)}"
         if has_hooks
         else "No hooks configured. Run install.sh.",
+    }
+
+
+def check_codex_skills() -> dict:
+    """Check that toolkit skills are mirrored into ~/.codex/skills."""
+    codex_skills_dir = CODEX_DIR / "skills"
+    repo_root = get_toolkit_repo_root()
+
+    if repo_root is None:
+        return {
+            "name": "codex_skills",
+            "label": "~/.codex/skills mirror",
+            "passed": codex_skills_dir.is_dir(),
+            "detail": str(codex_skills_dir)
+            if codex_skills_dir.is_dir()
+            else "Codex skills mirror not found. Run install.sh from the toolkit repo.",
+        }
+
+    expected_entries = [item.name for item in sorted((repo_root / "skills").iterdir())]
+
+    private_skills_dir = repo_root / "private-skills"
+    if private_skills_dir.is_dir():
+        for skill_dir in sorted(private_skills_dir.iterdir()):
+            expected_entries.append(skill_dir.name)
+
+    private_voices_dir = repo_root / "private-voices"
+    if private_voices_dir.is_dir():
+        for voice_dir in sorted(private_voices_dir.iterdir()):
+            if (voice_dir / "skill").is_dir():
+                expected_entries.append(f"voice-{voice_dir.name}")
+
+    expected_entries = list(dict.fromkeys(expected_entries))
+
+    if not codex_skills_dir.is_dir():
+        return {
+            "name": "codex_skills",
+            "label": "~/.codex/skills mirror",
+            "passed": False,
+            "detail": "Directory not found. Run install.sh to mirror toolkit skills for Codex.",
+        }
+
+    missing = [entry for entry in expected_entries if not (codex_skills_dir / entry).exists()]
+    if missing:
+        return {
+            "name": "codex_skills",
+            "label": "~/.codex/skills mirror",
+            "passed": False,
+            "detail": f"{len(expected_entries) - len(missing)}/{len(expected_entries)} entries present; missing: {', '.join(missing[:5])}",
+        }
+
+    return {
+        "name": "codex_skills",
+        "label": "~/.codex/skills mirror",
+        "passed": True,
+        "detail": f"All {len(expected_entries)} toolkit entries mirrored",
     }
 
 
@@ -454,6 +535,12 @@ def inventory() -> dict:
         elif comp == "scripts":
             counts[comp] = len([f for f in real_dir.glob("*.py") if f.name != "__init__.py"])
 
+    codex_skills_dir = CODEX_DIR / "skills"
+    if codex_skills_dir.is_dir():
+        counts["codex_skills"] = len(list(codex_skills_dir.glob("*/SKILL.md")))
+    else:
+        counts["codex_skills"] = 0
+
     # Count MCP servers from registry
     mcp_results = check_mcp_servers()
     mcp_total = sum(1 for r in mcp_results if r["name"].startswith("mcp_") and r["name"] != "mcp_registry")
@@ -471,6 +558,7 @@ def run_all_checks() -> list[dict]:
     results = []
     results.append(check_claude_dir())
     results.extend(check_components_installed())
+    results.append(check_codex_skills())
     results.append(check_settings_json())
     results.extend(check_hook_files())
     results.append(check_python_version())
@@ -524,6 +612,7 @@ def main():
                 print("\n  Installed Components:\n")
                 print(f"  Agents:   {counts.get('agents', 0)}")
                 print(f"  Skills:   {counts.get('skills', 0)} ({counts.get('skills_invocable', 0)} user-invocable)")
+                print(f"  Codex:    {counts.get('codex_skills', 0)} skills available")
                 print(f"  Hooks:    {counts.get('hooks', 0)}")
                 print(f"  Commands: {counts.get('commands', 0)}")
                 print(f"  Scripts:  {counts.get('scripts', 0)}")
