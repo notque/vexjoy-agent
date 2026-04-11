@@ -28,7 +28,7 @@ A game built entirely by Claude Code using these agents, skills, and pipelines. 
 
 ## Installation
 
-Requires [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed and working (`claude --version` should print a version number).
+Requires [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed and working (`claude --version` should print a version number). Codex CLI is also supported: the installer mirrors toolkit skills into `~/.codex/skills` so Codex can use the same skill library (`codex --version` should print a version number if you want Codex support too).
 
 ```bash
 git clone https://github.com/notque/claude-code-toolkit.git ~/claude-code-toolkit
@@ -36,7 +36,16 @@ cd ~/claude-code-toolkit
 ./install.sh --symlink
 ```
 
-The installer links agents, skills, hooks, commands, and scripts into `~/.claude/`, where Claude Code loads extensions from. Use `--symlink` to get updates via `git pull`, or run without it for a stable copy.
+The installer links agents, skills, hooks, commands, and scripts into `~/.claude/`, where Claude Code loads extensions from. It also mirrors skills into `~/.codex/skills` for Codex. Use `--symlink` to get updates via `git pull`, or run without it for a stable copy.
+
+Verify the install with:
+
+```bash
+python3 ~/.claude/scripts/install-doctor.py check
+python3 ~/.claude/scripts/install-doctor.py inventory
+```
+
+If you update the repo later and want Codex to see newly added skills, rerun `./install.sh --symlink` from the repo root.
 
 **Detailed setup:** [docs/start-here.md](docs/start-here.md)
 

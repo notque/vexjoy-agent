@@ -13,6 +13,8 @@ cd ~/claude-code-toolkit
 ./install.sh
 ```
 
+Claude Code is the primary runtime. If you also use Codex CLI, the same install mirrors toolkit skills into `~/.codex/skills`.
+
 **Alternative (bootstrap via Claude):** Start Claude Code in the claude-code-toolkit directory. The sync hook will automatically copy agents, skills, hooks, commands, and scripts to `~/.claude/`.
 
 ```bash
@@ -21,6 +23,15 @@ claude
 ```
 
 > **Note:** The initial sync must run from the claude-code-toolkit directory. After that, hooks work globally from any directory.
+
+Verify the install:
+
+```bash
+python3 ~/.claude/scripts/install-doctor.py check
+python3 ~/.claude/scripts/install-doctor.py inventory
+```
+
+If Codex should pick up newly added skills after a `git pull`, rerun `./install.sh --symlink`.
 
 ---
 

@@ -19,6 +19,7 @@ import importlib
 import importlib.util
 import json
 import os
+import shlex
 import sys
 from pathlib import Path
 
@@ -234,6 +235,21 @@ def check_hook_files() -> list[dict]:
     missing = []
     found = 0
 
+    def extract_python_paths(command: str) -> list[Path]:
+        """Extract Python script paths from a hook command."""
+        expanded = os.path.expandvars(command)
+        try:
+            parts = shlex.split(expanded)
+        except ValueError:
+            parts = expanded.replace('"', "").replace("'", "").split()
+
+        paths = []
+        for part in parts:
+            resolved = Path(os.path.expanduser(part))
+            if resolved.suffix.lower() == ".py":
+                paths.append(resolved)
+        return paths
+
     def extract_hook_commands(obj):
         """Recursively extract command strings from nested hook structures."""
         commands = []
@@ -250,18 +266,11 @@ def check_hook_files() -> list[dict]:
 
     for event, hook_list in hooks.items():
         for cmd in extract_hook_commands(hook_list):
-            # Expand $HOME and strip quotes
-            cmd_expanded = cmd.replace("$HOME", str(Path.home()))
-            cmd_expanded = cmd_expanded.replace('"', "").replace("'", "")
-            parts = cmd_expanded.split()
-            for part in parts:
-                if part.endswith(".py"):
-                    path = Path(part)
-                    if path.exists():
-                        found += 1
-                    else:
-                        missing.append(f"{event}: {path.name}")
-                    break
+            for path in extract_python_paths(cmd):
+                if path.exists():
+                    found += 1
+                else:
+                    missing.append(f"{event}: {path.name}")
 
     if missing:
         return [
@@ -332,27 +341,44 @@ def check_learning_db() -> dict:
     """Check learning.db existence and table accessibility. Absence is acceptable for fresh installs."""
     import sqlite3
 
-    db_path = CLAUDE_DIR / "learning.db"
+    env_learning_dir = os.environ.get("CLAUDE_LEARNING_DIR")
+    candidates = []
+    if env_learning_dir:
+        candidates.append(Path(env_learning_dir).expanduser() / "learning.db")
+    candidates.append(CLAUDE_DIR / "learning" / "learning.db")
+    candidates.append(CLAUDE_DIR / "learning.db")
+
+    db_path = next((path for path in candidates if path.exists()), candidates[0])
     if not db_path.exists():
         return {
             "name": "learning_db",
             "label": "learning.db exists",
             "passed": True,
-            "detail": "Not yet created (will be created on first use)",
+            "detail": f"Not yet created (expected at {db_path})",
         }
 
     try:
         conn = sqlite3.connect(str(db_path))
         try:
+            tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            if "learnings" not in tables:
+                available = ", ".join(sorted(tables)[:5]) or "no tables"
+                return {
+                    "name": "learning_db",
+                    "label": "learning.db accessible",
+                    "passed": False,
+                    "detail": f"Unsupported schema at {db_path} (missing learnings table; found: {available})",
+                }
             cursor = conn.execute("SELECT count(*) FROM learnings")
             count = cursor.fetchone()[0]
+            schema_version = conn.execute("PRAGMA user_version").fetchone()[0]
         finally:
             conn.close()
         return {
             "name": "learning_db",
             "label": "learning.db accessible",
             "passed": True,
-            "detail": f"{count} entries",
+            "detail": f"{db_path} ({count} entries, schema v{schema_version})",
         }
     except sqlite3.OperationalError as e:
         return {

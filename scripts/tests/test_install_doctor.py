@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import sqlite3
 from pathlib import Path
 
 
@@ -75,3 +76,61 @@ def test_inventory_counts_codex_skills(tmp_path, monkeypatch) -> None:
     counts = install_doctor.inventory()
 
     assert counts["codex_skills"] == 2
+
+
+def test_check_hook_files_expands_tilde_paths(tmp_path, monkeypatch) -> None:
+    claude_dir = tmp_path / ".claude"
+    hooks_dir = claude_dir / "hooks"
+    hooks_dir.mkdir(parents=True)
+    (hooks_dir / "sql-injection-detector.py").write_text("#!/usr/bin/env python3\n", encoding="utf-8")
+    (claude_dir / "settings.json").write_text(
+        json.dumps(
+            {
+                "hooks": {
+                    "PostToolUse": [
+                        {
+                            "hooks": [
+                                {
+                                    "command": "python3 ~/.claude/hooks/sql-injection-detector.py",
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(install_doctor, "CLAUDE_DIR", claude_dir)
+
+    results = install_doctor.check_hook_files()
+
+    assert results[0]["passed"] is True
+    assert "sql-injection-detector.py" not in results[0]["detail"]
+
+
+def test_check_learning_db_uses_learning_subdir_v2_schema(tmp_path, monkeypatch) -> None:
+    claude_dir = tmp_path / ".claude"
+    db_dir = claude_dir / "learning"
+    db_dir.mkdir(parents=True)
+    db_path = db_dir / "learning.db"
+
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute("CREATE TABLE learnings (id INTEGER PRIMARY KEY, value TEXT)")
+        conn.execute("INSERT INTO learnings (value) VALUES ('entry')")
+        conn.execute("PRAGMA user_version = 3")
+        conn.commit()
+    finally:
+        conn.close()
+
+    monkeypatch.delenv("CLAUDE_LEARNING_DIR", raising=False)
+    monkeypatch.setattr(install_doctor, "CLAUDE_DIR", claude_dir)
+
+    result = install_doctor.check_learning_db()
+
+    assert result["passed"] is True
+    assert str(db_path) in result["detail"]
+    assert "1 entries" in result["detail"]
