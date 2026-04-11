@@ -17,8 +17,6 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-import tomllib
-
 _FEATURES_HEADER = "[features]"
 _KEY_PATTERN = re.compile(r"^\s*codex_hooks\s*=\s*(true|false)\s*$", re.MULTILINE)
 _SECTION_PATTERN = re.compile(r"^\[features\]", re.MULTILINE)

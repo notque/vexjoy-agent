@@ -14,7 +14,18 @@ import sys
 from pathlib import Path
 
 import pytest
-import tomllib
+
+# tomllib is stdlib on Python 3.11+. On 3.10, skip the subset of tests that
+# use it to parse the post-install config.toml. Other tests still run.
+try:
+    import tomllib  # type: ignore[import-not-found,unused-ignore]
+
+    _HAS_TOMLLIB = True
+except ImportError:
+    tomllib = None  # type: ignore[assignment]
+    _HAS_TOMLLIB = False
+
+requires_tomllib = pytest.mark.skipif(not _HAS_TOMLLIB, reason="tomllib requires Python 3.11+")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 INSTALL_SH = REPO_ROOT / "install.sh"
@@ -173,6 +184,7 @@ def test_install_sh_generates_valid_hooks_json(fake_home: Path) -> None:
             )
 
 
+@requires_tomllib
 def test_install_sh_sets_feature_flag(fake_home: Path) -> None:
     """install.sh sets codex_hooks = true in ~/.codex/config.toml."""
     result = _run_install(fake_home, ["--copy", "--force"])
@@ -189,6 +201,7 @@ def test_install_sh_sets_feature_flag(fake_home: Path) -> None:
     )
 
 
+@requires_tomllib
 def test_install_sh_preserves_existing_config_toml_sections(fake_home: Path) -> None:
     """install.sh does not clobber pre-existing config.toml sections."""
     codex_dir = fake_home / ".codex"
@@ -236,6 +249,7 @@ def test_install_sh_dry_run_does_not_touch_filesystem(fake_home: Path) -> None:
     )
 
 
+@requires_tomllib
 def test_install_sh_uninstall_removes_hooks(fake_home: Path) -> None:
     """--uninstall removes ~/.codex/hooks/ and archives hooks.json; config.toml survives."""
     # Install first.

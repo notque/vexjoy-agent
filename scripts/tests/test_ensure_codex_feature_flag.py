@@ -11,7 +11,19 @@ import sys
 from pathlib import Path
 
 import pytest
-import tomllib
+
+# tomllib is stdlib on Python 3.11+. On 3.10, skip the subset of tests that
+# use it for post-write TOML validity checks. The write logic itself is pure
+# string ops and works on 3.10+ unchanged.
+try:
+    import tomllib  # type: ignore[import-not-found,unused-ignore]
+
+    _HAS_TOMLLIB = True
+except ImportError:
+    tomllib = None  # type: ignore[assignment]
+    _HAS_TOMLLIB = False
+
+requires_tomllib = pytest.mark.skipif(not _HAS_TOMLLIB, reason="tomllib requires Python 3.11+")
 
 MODULE_PATH = Path(__file__).resolve().parent.parent / "ensure-codex-feature-flag.py"
 _SPEC = importlib.util.spec_from_file_location("ensure_codex_feature_flag", MODULE_PATH)
@@ -90,6 +102,7 @@ class TestNeedsUpdate:
 class TestApplyUpdate:
     """Unit tests for apply_update() content transformation."""
 
+    @requires_tomllib
     def test_missing_file_produces_features_block(self) -> None:
         """Empty string yields a valid [features] block."""
         result = apply_update("")
@@ -97,6 +110,7 @@ class TestApplyUpdate:
         parsed = tomllib.loads(result)
         assert parsed["features"]["codex_hooks"] is True
 
+    @requires_tomllib
     def test_no_features_section_appends_block(self) -> None:
         """Appending to non-empty content without [features] preserves original text."""
         original = "[notice]\nhide_rate_limit_model_nudge = true\n"
@@ -107,6 +121,7 @@ class TestApplyUpdate:
         assert parsed["notice"]["hide_rate_limit_model_nudge"] is True
         assert parsed["features"]["codex_hooks"] is True
 
+    @requires_tomllib
     def test_existing_features_adds_key_after_header(self) -> None:
         """codex_hooks is injected directly after the [features] header line."""
         original = "[features]\nother_flag = true\n"
@@ -121,12 +136,14 @@ class TestApplyUpdate:
         result = apply_update(original)
         assert result == original
 
+    @requires_tomllib
     def test_idempotent_second_call_is_noop(self) -> None:
         """Running apply_update twice yields identical output on the second call."""
         first = apply_update(REALISTIC_CONFIG)
         second = apply_update(first)
         assert first == second
 
+    @requires_tomllib
     def test_realistic_config_preserved_byte_for_byte(self) -> None:
         """All original sections survive the merge unchanged."""
         result = apply_update(REALISTIC_CONFIG)
@@ -175,6 +192,7 @@ def _run(args: list[str]) -> subprocess.CompletedProcess:
 class TestCLI:
     """End-to-end CLI tests that invoke the script as a subprocess."""
 
+    @requires_tomllib
     def test_missing_file_creates_and_prints_created_file(self, tmp_path: Path) -> None:
         """Missing config is created; stdout reports created-file."""
         cfg = tmp_path / "config.toml"
@@ -185,6 +203,7 @@ class TestCLI:
         parsed = tomllib.loads(cfg.read_text())
         assert parsed["features"]["codex_hooks"] is True
 
+    @requires_tomllib
     def test_empty_file_adds_section(self, tmp_path: Path) -> None:
         """Empty config gets a [features] section; stdout reports added-section."""
         cfg = tmp_path / "config.toml"
@@ -195,6 +214,7 @@ class TestCLI:
         parsed = tomllib.loads(cfg.read_text())
         assert parsed["features"]["codex_hooks"] is True
 
+    @requires_tomllib
     def test_existing_features_without_key_adds_key(self, tmp_path: Path) -> None:
         """[features] section without the key gets it added; stdout reports added-key."""
         cfg = tmp_path / "config.toml"
@@ -247,6 +267,7 @@ class TestCLI:
         assert len(bak_files) == 1
         assert bak_files[0].read_text() == original
 
+    @requires_tomllib
     def test_realistic_config_survives_round_trip(self, tmp_path: Path) -> None:
         """Full realistic config from ADR example parses correctly after merge."""
         cfg = tmp_path / "config.toml"
