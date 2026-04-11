@@ -10,7 +10,7 @@ You are running as an autonomous hourly process to improve the toolkit's domain 
 - **Max targets:** ${ENRICH_MAX_TARGETS}
 - **Dry-run mode:** ${ENRICH_DRY_RUN_MODE}
 
-These targets were identified by `scripts/audit-reference-depth.py` as having Level 0-1 reference depth (thin or missing domain knowledge). Your job is to enrich them to Level 2+ by generating concrete, domain-specific reference files.
+These targets were identified by `scripts/audit-reference-depth.py` as having Level 0-2 reference depth (missing, thin, or incomplete domain knowledge). Your job is to enrich them to Level 3+ by generating concrete, domain-specific reference files.
 
 ## If Dry-Run Mode is "yes"
 
@@ -89,7 +89,7 @@ This gate prevents reference bloat — only references that add concrete, signal
 - **Never modify existing code** — only create/modify files in `references/` directories and loading tables in agent/skill bodies
 - **Never modify agent/skill logic** — only add knowledge, not change behavior
 - **Maximum 500 lines per reference file** — progressive disclosure principle
-- **If a target already has Level 2+ references** when you actually check (audit data may be stale), skip it
+- **If a target already has Level 3+ references** when you actually check (audit data may be stale), skip it
 - **No force-push, no commits to main** — everything goes through a PR
 - **If anything fails, continue with the next target** — don't abort the whole run
 - **Validation gate is mandatory** — never skip Phase 2.5, even if the references "look good"
@@ -103,7 +103,7 @@ End your session with a summary:
 Date: {date}
 Targets processed: N/M
   - {name}: Level {before} → Level {after} ({new_files} new reference files)
-  - {name}: SKIPPED (already Level 2+)
+  - {name}: SKIPPED (already Level 3+)
   - ...
 PR: {url or "none (dry-run)"}
 ===
