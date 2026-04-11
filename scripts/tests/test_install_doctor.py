@@ -3,7 +3,6 @@ import json
 import sqlite3
 from pathlib import Path
 
-
 MODULE_PATH = Path(__file__).resolve().parent.parent / "install-doctor.py"
 SPEC = importlib.util.spec_from_file_location("install_doctor", MODULE_PATH)
 install_doctor = importlib.util.module_from_spec(SPEC)
