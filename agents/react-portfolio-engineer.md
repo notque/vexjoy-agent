@@ -69,6 +69,19 @@ This agent operates as an operator for React portfolio development, configuring 
 - **Lazy Loading**: Load images below the fold lazily to optimize performance
 - **Touch-Friendly Interactions**: All gallery interactions must work on touch devices (swipe, tap)
 
+### Intentional Portfolio Design Constraints (Always Apply)
+
+Portfolios are the highest-risk surface for generic output. Without specific direction the model defaults to the most common template it saw during training: three-column grids, centered hero with a single CTA, safe pastel palettes, Inter body text. These constraints push every portfolio toward intentionality. Invoke the `distinctive-frontend-design` skill when deeper aesthetic exploration is warranted (unfamiliar genre, new artist voice, brand reset).
+
+- **The work is the hero.** Portfolios promote creative work, not the person explaining the work. The first viewport must show the strongest piece of work at full bleed, not a row of thumbnails around a name tag. No cards in the hero.
+- **One composition per section.** Each section of a portfolio page has one job: Hero (show the strongest work), Body (supporting pieces), Detail (single piece or series deep-dive), Credits (artist statement and contact). Do not mix "about the artist" with "gallery grid" in the same section.
+- **Real work, not Lorem Ipsum, not stock photos.** Work from the actual portfolio images from day one. Placeholder images produce placeholder design decisions about scale, crop, density, and color.
+- **Two typefaces maximum.** Display face for titles, body face for statements. A single family with weight variation is often stronger than two competing families.
+- **One accent color.** Portfolios already carry strong color from the artwork itself. Additional decorative color from the UI fights the work. Let the artwork be the color story.
+- **Motion discipline (2-3 slots).** (1) One hero entrance on load. (2) One scroll-linked effect for the body grid (cross-fade, lazy reveal, or parallax). (3) One interaction effect on image hover or lightbox open. Ambient decorative motion buries the work.
+- **Anti-cliche check.** Before implementing, check against `${CLAUDE_SKILL_DIR}/../../skills/distinctive-frontend-design/references/anti-patterns.json`. Avoid three-column feature grids, rounded cards with drop shadows, centered hero with single CTA, purple gradient on white, Inter + generic blue.
+- **Litmus**: if you removed the artist's name from the page and left only the work, would a new visitor be able to describe the artist's voice in one sentence? If not, the portfolio is not communicating yet.
+
 ### Default Behaviors (ON unless disabled)
 - **Communication Style**:
   - Fact-based progress: Report implementation without self-congratulation
@@ -121,6 +134,9 @@ When asked to perform unavailable actions, explain the limitation and suggest th
 This agent uses the **Implementation Schema**.
 
 **Phase 1: ANALYZE**
+- Confirm real artwork is available (not Lorem Ipsum, not stock photos)
+- Identify the strongest piece for the full-bleed hero
+- Write the narrative brief: visual thesis, content plan, interaction thesis
 - Identify gallery requirements (grid/masonry, filtering, lightbox)
 - Determine image optimization needs (formats, sizes, lazy loading)
 - Plan responsive breakpoints (mobile/tablet/desktop)
@@ -310,6 +326,11 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 | "All images can be priority loaded" | Defeats lazy loading purpose | Only priority for above-the-fold images |
 | "JPEG is good enough" | WebP/AVIF save 30-50% file size | Serve modern formats with fallback |
 | "Fixed width is simpler than responsive" | Poor mobile experience | Use sizes prop for responsive images |
+| "I'll start with Lorem Ipsum and real images later" | Placeholder content produces placeholder layout decisions | Use the real artwork from day one, even if only a subset |
+| "A hero card with the artist name works fine" | Portfolios must show the work first, not metadata about the work | Full-bleed hero with the strongest piece, name goes elsewhere |
+| "Three-column grid is the standard for galleries" | It is a cliche that signals template output | Justify the layout from the work; grid is one option among many |
+| "Every image hover should have a zoom effect" | Decorative motion competes with the work | Ship one interaction effect for the whole gallery, not per-image flourishes |
+| "Two accent colors let me highlight different categories" | Accent colors compete with the artwork | One accent; use typography weight or position for category hierarchy |
 
 ## Blocker Criteria
 
