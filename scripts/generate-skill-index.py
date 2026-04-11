@@ -8,9 +8,15 @@ from YAML frontmatter, and generates a dict-keyed index file:
 
 Usage:
     python scripts/generate-skill-index.py
+    python scripts/generate-skill-index.py --include-private
+    python scripts/generate-skill-index.py --include-private --output skills/INDEX.local.json
+
+Options:
+    --include-private   Include symlinked directories (default: skip them)
+    --output PATH       Output path (default: skills/INDEX.json)
 
 Output:
-    skills/INDEX.json    - Skill routing index for /do router
+    skills/INDEX.json    - Skill routing index for /do router (public, tracked)
 
 
 Exit codes:
@@ -19,6 +25,7 @@ Exit codes:
     2 - Trigger collisions detected among force-routed entries
 """
 
+import argparse
 import json
 import re
 import sys
@@ -264,6 +271,7 @@ def generate_index(
     dir_prefix: str,
     collection_key: str,
     is_pipeline: bool = False,
+    include_private: bool = False,
 ) -> tuple[dict, list[str]]:
     """Generate a dict-keyed routing index from all SKILL.md files in a directory.
 
@@ -272,6 +280,8 @@ def generate_index(
         dir_prefix: Path prefix for file field (e.g., "skills" or "pipelines").
         collection_key: Top-level key name in the index (e.g., "skills" or "pipelines").
         is_pipeline: Whether entries are pipelines (enables phase extraction).
+        include_private: When True, include symlinked directories. When False (default),
+            only directly-tracked directories are indexed.
 
     Returns:
         tuple: (index dict with version/generated/generated_by/collection,
@@ -287,6 +297,11 @@ def generate_index(
 
     for skill_dir in sorted(source_dir.iterdir()):
         if not skill_dir.is_dir():
+            continue
+
+        # Skip symlinked directories unless --include-private was passed.
+        # The public index reflects directly-tracked files only.
+        if skill_dir.is_symlink() and not include_private:
             continue
 
         skill_file = skill_dir / "SKILL.md"
@@ -385,6 +400,24 @@ def write_index(index: dict, output_path: Path) -> bool:
 
 def main() -> int:
     """Main entry point."""
+    parser = argparse.ArgumentParser(
+        description="Generate skill routing index from YAML frontmatter.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--include-private",
+        action="store_true",
+        default=False,
+        help="Include symlinked directories. Use with --output for local-only workflows.",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Output file path (default: skills/INDEX.json relative to repo root).",
+    )
+    args = parser.parse_args()
+
     script_dir = Path(__file__).parent
     repo_root = script_dir.parent
     skills_dir = repo_root / "skills"
@@ -393,12 +426,16 @@ def main() -> int:
         print(f"Error: skills directory not found at {skills_dir}", file=sys.stderr)
         return 1
 
+    # Resolve output path
+    output_path: Path = args.output if args.output is not None else skills_dir / "INDEX.json"
+
     # Generate skills index
     skills_index, skills_warnings = generate_index(
         source_dir=skills_dir,
         dir_prefix="skills",
         collection_key="skills",
         is_pipeline=False,
+        include_private=args.include_private,
     )
 
     # Report warnings if any
@@ -412,8 +449,8 @@ def main() -> int:
         print("Error: No skills found. Index file not written.", file=sys.stderr)
         return 1
 
-    # Write skills/INDEX.json
-    skills_index_path = skills_dir / "INDEX.json"
+    # Write to output path (default: skills/INDEX.json)
+    skills_index_path = output_path
     if not write_index(skills_index, skills_index_path):
         return 1
 

@@ -7,11 +7,18 @@ and generates agents/INDEX.json for fast /do router lookups.
 
 Usage:
     python scripts/generate-agent-index.py
+    python scripts/generate-agent-index.py --include-private
+    python scripts/generate-agent-index.py --include-private --output agents/INDEX.local.json
+
+Options:
+    --include-private   Include symlinked agent files (default: skip them)
+    --output PATH       Output path (default: agents/INDEX.json)
 
 Output:
-    agents/INDEX.json - Routing index for /do router
+    agents/INDEX.json - Routing index for /do router (public, tracked)
 """
 
+import argparse
 import json
 import re
 from pathlib import Path
@@ -108,7 +115,11 @@ def extract_short_description(description: str) -> str:
     return description[:100]
 
 
-def generate_index(agents_dir: Path, relative_to: Path | None = None) -> dict:
+def generate_index(
+    agents_dir: Path,
+    relative_to: Path | None = None,
+    include_private: bool = False,
+) -> dict:
     """Generate routing index from all agent files.
 
     Args:
@@ -116,11 +127,16 @@ def generate_index(agents_dir: Path, relative_to: Path | None = None) -> dict:
         relative_to: If provided, agent file paths in the index will be relative
             to this directory (e.g. repo root), so private agents get
             ``private-agents/filename.md`` instead of bare ``filename.md``.
+        include_private: When True, include symlinked agent files. When False (default),
+            only directly-tracked files are indexed.
     """
     index = {"version": "1.0", "generated_by": "scripts/generate-agent-index.py", "agents": {}}
     errors = []
 
     for agent_file in sorted(agents_dir.glob("*.md")):
+        # Skip symlinked files unless include_private is set.
+        if agent_file.is_symlink() and not include_private:
+            continue
         try:
             content = agent_file.read_text(encoding="utf-8")
         except Exception as e:
@@ -179,8 +195,26 @@ def generate_index(agents_dir: Path, relative_to: Path | None = None) -> dict:
     return index
 
 
-def main():
+def main() -> int:
     """Main entry point."""
+    parser = argparse.ArgumentParser(
+        description="Generate agent routing index from YAML frontmatter.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--include-private",
+        action="store_true",
+        default=False,
+        help="Include symlinked agent files. Use with --output for local-only workflows.",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Output file path (default: agents/INDEX.json relative to repo root).",
+    )
+    args = parser.parse_args()
+
     # Find agents directory relative to script
     script_dir = Path(__file__).parent
     repo_root = script_dir.parent
@@ -190,22 +224,25 @@ def main():
         print(f"Error: agents directory not found at {agents_dir}")
         return 1
 
-    # Generate index from public agents
-    index = generate_index(agents_dir, relative_to=repo_root)
+    # Resolve output path
+    output_path: Path = args.output if args.output is not None else agents_dir / "INDEX.json"
 
-    # Also scan private agents if they exist (gitignored, user-specific)
-    private_agents_dir = repo_root / "private-agents"
-    if private_agents_dir.exists() and any(private_agents_dir.iterdir()):
-        private_index = generate_index(private_agents_dir, relative_to=repo_root)
-        index["agents"].update(private_index["agents"])
+    # Generate index: symlinked files skipped by default, included with --include-private.
+    # Private agents directory (gitignored) is only scanned when --include-private is set.
+    index = generate_index(agents_dir, relative_to=repo_root, include_private=args.include_private)
+
+    if args.include_private:
+        private_agents_dir = repo_root / "private-agents"
+        if private_agents_dir.exists() and any(private_agents_dir.iterdir()):
+            private_index = generate_index(private_agents_dir, relative_to=repo_root, include_private=True)
+            index["agents"].update(private_index["agents"])
 
     # Write index file
-    index_file = agents_dir / "INDEX.json"
-    with open(index_file, "w") as f:
+    with open(output_path, "w") as f:
         json.dump(index, f, indent=2)
 
     # Summary
-    print(f"Generated {index_file}")
+    print(f"Generated {output_path}")
     print(f"  Total agents: {len(index['agents'])}")
 
     # Show agents with routing metadata

@@ -6,6 +6,7 @@ user-invocable: false
 context: fork
 model: sonnet
 routing:
+  category: meta-tooling
   triggers:
     - "workflow"
     - "multi-phase task"

@@ -12,6 +12,7 @@ allowed-tools:
   - Edit
   - Task
 routing:
+  category: testing
   triggers:
     - flaky test
     - brittle test

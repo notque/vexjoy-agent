@@ -21,9 +21,21 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+
+def _resolve_index(tracked: Path, local_name: str) -> Path:
+    """Return the local override path when it exists, otherwise the tracked path.
+
+    Local override files (INDEX.local.json) are gitignored and may contain
+    entries for symlinked directories. They are produced by running the
+    generator with --include-private --output <local-path>.
+    """
+    local = tracked.parent / local_name
+    return local if local.exists() else tracked
+
+
 INDEX_PATHS = {
-    "skills": REPO_ROOT / "skills" / "INDEX.json",
-    "agents": REPO_ROOT / "agents" / "INDEX.json",
+    "skills": _resolve_index(REPO_ROOT / "skills" / "INDEX.json", "INDEX.local.json"),
+    "agents": _resolve_index(REPO_ROOT / "agents" / "INDEX.json", "INDEX.local.json"),
     "pipelines": REPO_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json",
 }
 

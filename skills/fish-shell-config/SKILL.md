@@ -11,6 +11,7 @@ allowed-tools:
   - Glob
   - Edit
 routing:
+  category: process
   triggers:
     - fish
     - fish shell

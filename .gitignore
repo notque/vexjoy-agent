@@ -88,6 +88,10 @@ private-agents/
 private-hooks/
 private-voices/
 
+# Local-only index targets, not committed
+skills/INDEX.local.json
+agents/INDEX.local.json
+
 # Draft articles (work in progress, not committed)
 drafts/
 draft-*.md
