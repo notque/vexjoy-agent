@@ -55,6 +55,30 @@ Command entry points:
 
 **Detailed setup:** [docs/start-here.md](docs/start-here.md)
 
+## Codex CLI Parity
+
+The toolkit mirrors agents, skills, and a curated subset of hooks into `~/.codex/` so they work with the OpenAI Codex CLI alongside Claude Code. The mirror runs automatically on every `install.sh`; no flags required.
+
+**What mirrors**
+
+- **Agents**: every agent under `agents/` (and `private-agents/` if present) is copied or symlinked to `~/.codex/agents/`.
+- **Skills**: every skill under `skills/`, `private-skills/`, and `private-voices/*/skill/` goes to `~/.codex/skills/`.
+- **Hooks**: a Phase 1 allowlist of 6 hooks goes to `~/.codex/hooks/` with a matching generated `~/.codex/hooks.json`. The allowlist covers `SessionStart` injectors (KAIROS briefing, operator context, team config, rules distill), a `Stop` recorder (session learning), and a `PostToolUse` Bash scanner. See `scripts/codex-hooks-allowlist.txt`.
+- **Feature flag**: `install.sh` sets `[features] codex_hooks = true` in `~/.codex/config.toml` using a TOML merge that preserves existing sections.
+
+**What does not mirror (yet)**
+
+- Edit/Write interceptors (ADR enforcement, creation protocol, config protection, plan gate, rename sweep, and similar) are Phase 2 and blocked on upstream [openai/codex#16732](https://github.com/openai/codex/issues/16732). Codex PreToolUse and PostToolUse only fire for the `Bash` tool today, so any hook guarding `Write` or `Edit` would register but never run.
+- Codex does not support `PreCompact`, `SubagentStop`, `Notification`, or `SessionEnd` events; hooks on those events stay Claude Code only.
+- Windows: Codex hook support is disabled upstream.
+- Codex CLI v0.114.0 or later is required for hook activation. `install.sh` warns if the installed version is below that, and prints a neutral note if the `codex` binary is not found.
+
+**Opting out**
+
+There is no opt-out flag. The mirror is harmless when Codex CLI is not installed: `~/.codex/` entries sit unused until you install Codex. To skip the hooks portion, delete `~/.codex/hooks/` and `~/.codex/hooks.json` after install; the toolkit does not recreate them on normal use.
+
+**Reference**: [`adr/182-codex-hooks-mirror.md`](adr/182-codex-hooks-mirror.md). Upstream Phase 2 tracker: [openai/codex#16732](https://github.com/openai/codex/issues/16732).
+
 ## The Core Workflow
 
 1. **Routing.** You type a request. The router entry point is `/do` in Claude Code and `$do` in Codex. It classifies intent, selects a domain agent and a workflow skill, and dispatches. No menus, no configuration.
