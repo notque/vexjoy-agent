@@ -33,6 +33,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="${HOME}/.claude"
 CODEX_DIR="${HOME}/.codex"
 CODEX_SKILLS_DIR="${CODEX_DIR}/skills"
+CODEX_AGENTS_DIR="${CODEX_DIR}/agents"
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║                Claude Code Toolkit - Installation Script               ║${NC}"
@@ -282,6 +283,42 @@ os.rename(tmp, dst)
         echo "  No ~/.codex/skills mirror found. Nothing to clean."
     fi
 
+    echo ""
+    echo -e "${YELLOW}Cleaning Codex agents mirror...${NC}"
+    if [ -d "$CODEX_AGENTS_DIR" ]; then
+        for item in "${SCRIPT_DIR}/agents/"*; do
+            [ -e "$item" ] || continue
+            target="${CODEX_AGENTS_DIR}/$(basename "$item")"
+            if [ -L "$target" ] || [ -e "$target" ]; then
+                if [ "$DRY_RUN" = true ]; then
+                    echo -e "${BLUE}  Would remove Codex entry: ${target}${NC}"
+                else
+                    rm -rf "$target"
+                    echo -e "${GREEN}  ✓ Removed Codex entry: ${target}${NC}"
+                fi
+                REMOVED+=("Codex agent $(basename "$item")")
+            fi
+        done
+
+        if [ -d "${SCRIPT_DIR}/private-agents" ]; then
+            for item in "${SCRIPT_DIR}/private-agents/"*; do
+                [ -e "$item" ] || continue
+                target="${CODEX_AGENTS_DIR}/$(basename "$item")"
+                if [ -L "$target" ] || [ -e "$target" ]; then
+                    if [ "$DRY_RUN" = true ]; then
+                        echo -e "${BLUE}  Would remove Codex entry: ${target}${NC}"
+                    else
+                        rm -rf "$target"
+                        echo -e "${GREEN}  ✓ Removed Codex entry: ${target}${NC}"
+                    fi
+                    REMOVED+=("Codex agent $(basename "$item")")
+                fi
+            done
+        fi
+    else
+        echo "  No ~/.codex/agents mirror found. Nothing to clean."
+    fi
+
     # Phase 4: Remove install manifest
     echo ""
     echo -e "${YELLOW}Cleaning up manifest...${NC}"
@@ -407,6 +444,15 @@ else
     mkdir -p "${CODEX_SKILLS_DIR}"
 fi
 echo -e "${GREEN}✓ ${CODEX_SKILLS_DIR} ready${NC}"
+
+echo ""
+echo -e "${YELLOW}Setting up ~/.codex agents directory...${NC}"
+if [ "$DRY_RUN" = true ]; then
+    echo -e "${BLUE}  Would create: ${CODEX_AGENTS_DIR}${NC}"
+else
+    mkdir -p "${CODEX_AGENTS_DIR}"
+fi
+echo -e "${GREEN}✓ ${CODEX_AGENTS_DIR} ready${NC}"
 
 # Install components
 echo ""
@@ -569,6 +615,25 @@ if [ -d "${SCRIPT_DIR}/private-skills" ]; then
         target="${CODEX_SKILLS_DIR}/$(basename "$item")"
         sync_codex_entry "$item" "$target"
         CODEX_ENTRY_COUNT=$((CODEX_ENTRY_COUNT + 1))
+    done
+fi
+
+echo ""
+echo -e "${YELLOW}Syncing Codex agents mirror...${NC}"
+CODEX_AGENT_COUNT=0
+for item in "${SCRIPT_DIR}/agents/"*; do
+    [ -e "$item" ] || continue
+    target="${CODEX_AGENTS_DIR}/$(basename "$item")"
+    sync_codex_entry "$item" "$target"
+    CODEX_AGENT_COUNT=$((CODEX_AGENT_COUNT + 1))
+done
+
+if [ -d "${SCRIPT_DIR}/private-agents" ]; then
+    for item in "${SCRIPT_DIR}/private-agents/"*; do
+        [ -e "$item" ] || continue
+        target="${CODEX_AGENTS_DIR}/$(basename "$item")"
+        sync_codex_entry "$item" "$target"
+        CODEX_AGENT_COUNT=$((CODEX_AGENT_COUNT + 1))
     done
 fi
 
@@ -751,6 +816,7 @@ echo "Installed components:"
 echo "  • Agents: ${AGENT_COUNT} specialized domain experts"
 echo "  • Skills: ${SKILL_COUNT} workflow methodologies (${INVOCABLE_COUNT} user-invocable)"
 echo "  • Codex skills: ${CODEX_ENTRY_COUNT} mirrored entries in ~/.codex/skills"
+echo "  • Codex agents: ${CODEX_AGENT_COUNT} mirrored entries in ~/.codex/agents"
 echo "  • Hooks: ${HOOK_COUNT} automation hooks"
 echo "  • Commands: ${COMMAND_COUNT} slash commands"
 echo "  • Scripts: ${SCRIPT_COUNT} utility scripts"

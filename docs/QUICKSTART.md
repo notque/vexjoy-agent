@@ -13,7 +13,7 @@ cd ~/claude-code-toolkit
 ./install.sh
 ```
 
-Claude Code is the primary runtime. If you also use Codex CLI, the same install mirrors toolkit skills into `~/.codex/skills`.
+Claude Code is the primary runtime. If you also use Codex CLI, the same install mirrors toolkit skills into `~/.codex/skills` and toolkit agents into `~/.codex/agents`.
 
 Command entry points:
 - Claude Code: `/do`
@@ -35,7 +35,7 @@ python3 ~/.claude/scripts/install-doctor.py check
 python3 ~/.claude/scripts/install-doctor.py inventory
 ```
 
-If Codex should pick up newly added skills after a `git pull`, rerun `./install.sh --symlink`.
+If Codex should pick up newly added skills or agents after a `git pull`, rerun `./install.sh --symlink`.
 
 ---
 

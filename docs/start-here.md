@@ -12,7 +12,7 @@ claude --version
 
 If that prints a version number, you're good. If not, install Claude Code first and come back.
 
-Optional: if you also use Codex CLI, run `codex --version`. The toolkit mirrors its skills into `~/.codex/skills`, but Claude Code is still the full runtime for hooks, agents, commands, and scripts.
+Optional: if you also use Codex CLI, run `codex --version`. The toolkit mirrors its skills into `~/.codex/skills` and its agents into `~/.codex/agents`, so Codex sessions can Read the same domain expertise Claude Code dispatches. Claude Code is still the full runtime for hooks, commands, and scripts.
 
 Command entry points:
 - Claude Code: `/do`
@@ -36,7 +36,7 @@ cd claude-code-toolkit
 
 The installer asks one question -- symlink or copy -- then sets everything up. Pick symlink if you want updates via `git pull`, copy if you want a stable snapshot. Either works fine.
 
-What just happened: the installer linked agents, skills, hooks, commands, and scripts into `~/.claude/`, which is where Claude Code looks for extensions. It also mirrored skills into `~/.codex/skills` for Codex and configured hooks in your settings so they activate automatically.
+What just happened: the installer linked agents, skills, hooks, commands, and scripts into `~/.claude/`, which is where Claude Code looks for extensions. It also mirrored skills into `~/.codex/skills` and agents into `~/.codex/agents` for Codex, and configured hooks in your settings so they activate automatically.
 
 ## Verify It
 
@@ -47,7 +47,7 @@ python3 ~/.claude/scripts/install-doctor.py check
 python3 ~/.claude/scripts/install-doctor.py inventory
 ```
 
-`check` verifies the install layout, settings, hook paths, learning DB access, and Codex skill mirror. `inventory` shows what Claude and Codex can currently see. If you pull new toolkit changes later and want Codex to pick up new skills, rerun `./install.sh`.
+`check` verifies the install layout, settings, hook paths, learning DB access, and both Codex skill and agent mirrors. `inventory` shows what Claude and Codex can currently see. If you pull new toolkit changes later and want Codex to pick up new skills or agents, rerun `./install.sh`.
 
 ## Your First Commands
 

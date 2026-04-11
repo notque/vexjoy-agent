@@ -502,8 +502,10 @@ def main():
         if voice_count > 0:
             synced.append(f"private-voices({voice_count})")
 
-    # Sync skills to ~/.codex/skills/ for OpenAI Codex CLI.
-    # Codex only supports skills (no agents, hooks, or scripts).
+    # Sync skills and agents to ~/.codex/ for OpenAI Codex CLI.
+    # Codex natively supports skills; agents are mirrored as reference
+    # material so Codex sessions can Read the same domain expertise that
+    # Claude Code sessions dispatch via subagent_type.
     codex_skills_dst = Path.home() / ".codex" / "skills"
     codex_sources = [("skills", repo_root / "skills")]
     codex_count = 0
@@ -554,6 +556,39 @@ def main():
     elif codex_skills_dst.is_dir():
         total = sum(1 for _ in codex_skills_dst.rglob("*") if _.is_file())
         synced.append(f".codex/skills({total} current)")
+
+    # Sync agents to ~/.codex/agents/ — parallel mirror to skills.
+    # Agents carry domain expertise (Go, Python, K8s, TypeScript, etc.)
+    # and their reference subdirectories. Codex can Read them even though
+    # it has no native subagent_type dispatch.
+    codex_agents_dst = Path.home() / ".codex" / "agents"
+    codex_agent_sources = [("agents", repo_root / "agents")]
+    private_agents_dir = repo_root / "private-agents"
+    if private_agents_dir.is_dir():
+        codex_agent_sources.append(("private-agents", private_agents_dir))
+    codex_agent_count = 0
+    for label, src in codex_agent_sources:
+        if not src.is_dir():
+            continue
+        try:
+            codex_agents_dst.mkdir(parents=True, exist_ok=True)
+            for item in src.rglob("*"):
+                if item.is_file():
+                    rel = item.relative_to(src)
+                    target = codex_agents_dst / rel
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    if target.exists() and filecmp.cmp(item, target, shallow=False):
+                        continue
+                    shutil.copy2(item, target)
+                    codex_agent_count += 1
+        except Exception as e:
+            errors.append(f"codex-{label}: {e}")
+    # No stale cleanup for Codex agents — additive only, same rationale as skills.
+    if codex_agent_count > 0:
+        synced.append(f".codex/agents({codex_agent_count} updated)")
+    elif codex_agents_dst.is_dir():
+        total = sum(1 for _ in codex_agents_dst.rglob("*") if _.is_file())
+        synced.append(f".codex/agents({total} current)")
 
     # Output for hook feedback
     if synced:
