@@ -30,6 +30,18 @@ Optional capabilities (off unless explicitly enabled by the user): design system
 
 ## Instructions
 
+### Vocabulary
+
+These terms appear throughout the phases as hard rules. Read them once before Phase 1 so the rules do not feel like jargon when they gate your work.
+
+- **Hero**: The first viewport section a visitor sees on page load. On landing pages it is the single largest decision in the design.
+- **Full-bleed**: Spanning the entire viewport width with no max-width container, sidebar, or padding. A full-bleed hero touches both edges of the browser.
+- **Narrative brief**: Three short sentences written before any code: visual thesis (mood and energy), content plan (named sections in order, one job each), interaction thesis (two or three motion ideas). See Phase 1 Step 4 for the full definition and examples.
+- **Surface type**: Whether the page is a landing page (marketing, promotion, portfolio intro) or an app/dashboard (operator tools, data consoles, admin surfaces). The two types take different rule sets and must never be mixed.
+- **Linear-style restraint**: A reference to the Linear project management tool's dashboard aesthetic. Calm surface hierarchy, strong typography, tight spacing, very few colors, no decorative ornament. The default posture for apps and dashboards.
+- **Decorative-only motion**: Motion that exists purely for visual interest. It does not communicate state, guide attention, or reveal hidden content. Decorative-only motion fails the Phase 4 litmus and should be cut.
+- **Brand override**: Any of these rules bend when the user supplies an explicit brand guide that contradicts the default (two accent colors, three typefaces, cards in hero for a specific identity reason). In that case, follow the brand guide and note the override in the specification document. Defaults are defaults, not overrides of stated client identity.
+
 ### Phase 1: Context Discovery
 
 **Goal**: Understand the project deeply before making any aesthetic decisions.
@@ -44,7 +56,7 @@ Optional capabilities (off unless explicitly enabled by the user): design system
 6. **Constraints**: Accessibility requirements, performance budgets, existing brand elements to preserve?
 7. **Tech stack**: React, Vue, vanilla HTML/CSS, Next.js, framework preferences?
 8. **Real content**: Gather the actual copy, real product name, real imagery, real product context. Placeholder text produces placeholder thinking. If final content is not yet available, secure at minimum the hero headline, product name, and the single promise you want the first viewport to convey.
-9. **Previous projects**: Any recent frontend work? (to avoid reusing the same aesthetic choices -- variety across projects is mandatory)
+9. **Previous projects**: Any recent frontend work? Variety across projects is mandatory, so check for choices that would overlap with recent work and avoid them.
 
 **Step 2: Define 3-5 distinct aesthetic directions** using `references/color-inspirations.json` and `references/font-catalog.json` as starting points. Providing multiple directions prevents anchoring on a first instinct, which is the primary source of generic "AI slop" output.
 
@@ -65,7 +77,9 @@ Example directions and what they mean:
 
 The narrative brief is the design brief. Every later phase is expected to be consistent with it. If a phase is producing choices that contradict the visual thesis or content plan, stop and revise the brief rather than drifting the design.
 
-**Gate**: Aesthetic direction defined with contextual justification linking project purpose, audience, and emotion to chosen direction. Narrative brief written with visual thesis, content plan, and interaction thesis. Do NOT proceed without both gate items passing.
+**Gate**: Aesthetic direction defined with contextual justification linking project purpose, audience, and emotion to chosen direction. Narrative brief from Step 4 written (visual thesis, content plan, interaction thesis). Do NOT proceed without both gate items passing.
+
+**Skip-if-answered**: If the user's original request already provides the surface type, the product name, and a clear promise for the hero, treat those answers as already gathered. Do not interrogate the user for information they have already supplied. The context-gathering questions exist to close gaps, not to gate every request on ceremony.
 
 ### Phase 2: Typography Selection
 

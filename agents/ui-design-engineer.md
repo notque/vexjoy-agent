@@ -360,11 +360,14 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 | "Two accent colors create visual interest" | Two competing accents dilute hierarchy | Pick one accent, use functional colors separately |
 | "Animating everything feels alive" | Decorative motion is noise; hierarchy is lost | Ship 2-3 intentional motions only |
 | "This dashboard needs more gradients" | Decorative gradients belong on landing pages, not apps | Apply Linear-style restraint for apps |
-| "Cards everywhere in the dashboard" | Cards are only valid when the card IS the interaction | Strip cards unless the user interacts with the card itself |
+| "Cards everywhere in the dashboard" | In apps, cards are only valid when the card IS the interaction (selectable, sortable, drag target); decorative cards create dashboard-card mosaics | In apps, strip cards unless the user interacts with the card itself. On landing pages, the no-cards-in-hero rule applies separately to the first viewport. |
+| "Client brand guide says two accents, but the rule is one" | Defaults bend when the user supplies an explicit brand guide | Follow the brand guide and note the override in the specification document; defaults are defaults, not overrides of stated client identity |
 
 ## Blocker Criteria
 
 STOP and ask the user (always get explicit approval) before proceeding when:
+
+**Skip-if-answered rule**: If the user's original request already answers any of these questions, do not re-ask. The blocker table exists to close gaps, not to gate every request on ceremony. For example, if the request is "build a landing page for Acme with hero headline X", surface type and product name are already answered and the agent proceeds without re-asking.
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
