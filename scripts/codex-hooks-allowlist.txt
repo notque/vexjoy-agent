@@ -1,0 +1,55 @@
+# Codex hooks allowlist — Phase 1 (safe on Codex v0.114.0+)
+# See adr/182-codex-hooks-mirror.md for rationale.
+# Format: EVENT:filename [matcher]
+# Lines starting with # are comments. Blank lines ignored.
+#
+# Phase 2 hooks (edit-guards blocked on openai/codex#16732) are deliberately excluded.
+#
+# IMPORTANT: This list was corrected during ADR-182 implementation (2026-04-11) after
+# an audit of actual hook source files revealed the initial ADR Phase 1 table contained
+# misclassifications. The corrected Phase 1 includes ONLY hooks that are verified to be:
+#   1. Present in hooks/ directory (not a ghost reference)
+#   2. Functional (not a disabled stub that returns empty_output immediately)
+#   3. Registered at an event type that Codex supports AND fires correctly
+#   4. Either not a tool-interception hook, OR interception is Bash-only
+
+# ----- Phase 1: functional + verified safe -----
+
+# SessionStart injectors (pure stdout, no tool interception, Codex fires on startup or resume)
+SessionStart:kairos-briefing-injector.py
+SessionStart:operator-context-detector.py
+SessionStart:team-config-loader.py
+SessionStart:rules-distill-injector.py
+
+# Stop recorders (pure observation, no tool interception)
+Stop:session-learning-recorder.py
+
+# PostToolUse Bash scanners (Bash matcher is the only supported PreTool/PostTool case per #16732)
+PostToolUse:posttool-bash-injection-scan.py Bash
+
+# ----- Deliberately EXCLUDED from Phase 1 -----
+#
+# The following appeared in the ADR-182 draft Phase 1 table but are removed here
+# because direct inspection of hooks/*.py and ~/.claude/settings.json revealed errors.
+#
+# Category A: Phase 2 interceptors misclassified as Phase 1 (would silently fail per #16732)
+# These hooks fire under PreToolUse or PostToolUse with Write|Edit matchers. Codex will
+# register them but never invoke them because Codex hardcodes tool_name="Bash" for hook
+# dispatch. A silently-registered-but-never-fires hook is worse than a missing one because
+# users assume the hook is protecting them.
+#   pretool-prompt-injection-scanner.py  -- actually PreToolUse:Write|Edit (file docstring line 4)
+#   suggest-compact.py                   -- actually PreToolUse:{Edit,Write} (file docstring line 4)
+#   sql-injection-detector.py            -- actually PostToolUse:Write|Edit (file docstring line 4)
+#
+# Category B: non-existent file
+#   pretool-bash-injection-scan.py       -- only posttool-bash-injection-scan.py exists
+#
+# Category C: disabled stubs (empty_output().print_and_exit() on every call)
+# These exist as files but do nothing. Mirroring them costs install time for zero effect.
+# If a future redesign makes them functional, re-evaluate for Phase 1 inclusion.
+#   adr-context-injector.py              -- stub, "DISABLED pending redesign"
+#   capability-catalog-injector.py       -- disabled after A/B test determined it injected 52KB redundant JSON
+#   instruction-reminder.py              -- stub retained for settings.json compatibility
+#   retro-knowledge-injector.py          -- stub; injection handled by session-context.py
+#   creation-request-enforcer-userprompt.py -- stub retained for settings.json compatibility
+#   auto-plan-detector.py                -- stub retained for settings.json compatibility

@@ -34,6 +34,7 @@ CLAUDE_DIR="${HOME}/.claude"
 CODEX_DIR="${HOME}/.codex"
 CODEX_SKILLS_DIR="${CODEX_DIR}/skills"
 CODEX_AGENTS_DIR="${CODEX_DIR}/agents"
+CODEX_HOOKS_DIR="${CODEX_DIR}/hooks"
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║                Claude Code Toolkit - Installation Script               ║${NC}"
@@ -319,6 +320,39 @@ os.rename(tmp, dst)
         echo "  No ~/.codex/agents mirror found. Nothing to clean."
     fi
 
+    # Phase 3.6: Clean toolkit-owned Codex hooks mirror (ADR-182)
+    echo ""
+    echo -e "${YELLOW}Cleaning Codex hooks mirror...${NC}"
+    if [ -d "$CODEX_HOOKS_DIR" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would remove: ${CODEX_HOOKS_DIR}${NC}"
+        else
+            rm -rf "$CODEX_HOOKS_DIR"
+            echo -e "${GREEN}  ✓ Removed ${CODEX_HOOKS_DIR}${NC}"
+        fi
+        REMOVED+=("Codex hooks mirror directory")
+    else
+        echo "  No ~/.codex/hooks mirror found. Nothing to clean."
+    fi
+
+    if [ -f "${CODEX_DIR}/hooks.json" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo -e "${BLUE}  Would archive: ${CODEX_DIR}/hooks.json${NC}"
+        else
+            # Archive rather than delete so users who edited the file manually
+            # can recover any custom entries we did not write.
+            ARCHIVE_TS=$(date +%Y%m%d-%H%M%S)
+            mv "${CODEX_DIR}/hooks.json" "${CODEX_DIR}/hooks.json.uninstalled.${ARCHIVE_TS}"
+            echo -e "${GREEN}  ✓ Archived ${CODEX_DIR}/hooks.json${NC}"
+        fi
+        REMOVED+=("Codex hooks.json (archived)")
+    else
+        echo "  No ~/.codex/hooks.json found. Nothing to archive."
+    fi
+
+    # Note: [features] codex_hooks = true is intentionally left in config.toml.
+    # Users may have other Codex hook configurations we did not write.
+
     # Phase 4: Remove install manifest
     echo ""
     echo -e "${YELLOW}Cleaning up manifest...${NC}"
@@ -363,6 +397,7 @@ os.rename(tmp, dst)
     echo "  • ~/.claude/settings.json (all keys except hooks)"
     echo "  • ~/.claude/projects/"
     echo "  • ~/.claude/memory/"
+    echo "  • ~/.codex/config.toml (including [features] codex_hooks flag)"
     echo "  • .local/ customizations in the toolkit repo"
     echo "  • Python packages (remove manually if needed)"
     if [ ${#PRESERVED[@]} -gt 0 ]; then
@@ -637,6 +672,99 @@ if [ -d "${SCRIPT_DIR}/private-agents" ]; then
     done
 fi
 
+# Sync Codex hooks mirror (ADR-182)
+echo ""
+echo -e "${YELLOW}Syncing Codex hooks mirror...${NC}"
+CODEX_HOOK_COUNT=0
+CODEX_HOOKS_ALLOWLIST="${SCRIPT_DIR}/scripts/codex-hooks-allowlist.txt"
+
+if [ -f "$CODEX_HOOKS_ALLOWLIST" ]; then
+    # Ensure hooks directory exists
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}  Would create: ${CODEX_HOOKS_DIR}${NC}"
+    else
+        mkdir -p "$CODEX_HOOKS_DIR"
+    fi
+
+    # Parse allowlist and mirror each allowlisted hook file.
+    # Format per line: EVENT:filename [matcher]
+    # Comments (#) and blank lines are ignored.
+    while IFS= read -r line || [ -n "$line" ]; do
+        # Strip leading/trailing whitespace for the blank check.
+        trimmed="${line#"${line%%[![:space:]]*}"}"
+        trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
+        [ -z "$trimmed" ] && continue
+        [ "${trimmed#\#}" != "$trimmed" ] && continue
+
+        # Extract filename: everything between the first colon and the first space (or EOL)
+        rest="${trimmed#*:}"
+        filename="${rest%% *}"
+
+        source_file="${SCRIPT_DIR}/hooks/${filename}"
+        if [ ! -f "$source_file" ]; then
+            echo -e "${RED}  ✗ Allowlisted hook missing: ${filename}${NC}"
+            continue
+        fi
+
+        target_file="${CODEX_HOOKS_DIR}/${filename}"
+        sync_codex_entry "$source_file" "$target_file"
+        CODEX_HOOK_COUNT=$((CODEX_HOOK_COUNT + 1))
+    done < "$CODEX_HOOKS_ALLOWLIST"
+
+    # Also mirror the hooks/lib directory so intra-hook imports resolve
+    # (hook_utils, injection_patterns, stdin_timeout, usage_db, etc.).
+    if [ -d "${SCRIPT_DIR}/hooks/lib" ]; then
+        lib_target="${CODEX_HOOKS_DIR}/lib"
+        sync_codex_entry "${SCRIPT_DIR}/hooks/lib" "$lib_target"
+    fi
+
+    # Generate hooks.json via the dedicated script.
+    CODEX_HOOKS_JSON="${CODEX_DIR}/hooks.json"
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}  Would generate: ${CODEX_HOOKS_JSON}${NC}"
+    else
+        if $PYTHON_CMD "${SCRIPT_DIR}/scripts/generate-codex-hooks-json.py" \
+            --allowlist "$CODEX_HOOKS_ALLOWLIST" \
+            --output "$CODEX_HOOKS_JSON" \
+            --codex-hooks-dir "$CODEX_HOOKS_DIR" 2>&1; then
+            echo -e "${GREEN}  ✓ Generated ${CODEX_HOOKS_JSON}${NC}"
+        else
+            echo -e "${RED}  ✗ Failed to generate hooks.json${NC}"
+        fi
+    fi
+
+    # Ensure codex_hooks feature flag is enabled in ~/.codex/config.toml.
+    CODEX_CONFIG="${CODEX_DIR}/config.toml"
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BLUE}  Would ensure ${CODEX_CONFIG} has [features] codex_hooks = true${NC}"
+    else
+        if $PYTHON_CMD "${SCRIPT_DIR}/scripts/ensure-codex-feature-flag.py" \
+            --config "$CODEX_CONFIG" 2>&1; then
+            :
+        else
+            echo -e "${YELLOW}  ⚠ Could not update ${CODEX_CONFIG} (see error above). Codex hooks may not activate.${NC}"
+        fi
+    fi
+
+    # Warn if installed Codex CLI is below the hook-support minimum (v0.114.0).
+    if command -v codex >/dev/null 2>&1; then
+        cx_ver=$(codex --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        if [ -n "$cx_ver" ]; then
+            min_major=0; min_minor=114; min_patch=0
+            IFS='.' read -r cx_maj cx_min cx_pat <<< "$cx_ver"
+            if [ "$cx_maj" -lt "$min_major" ] || \
+               { [ "$cx_maj" -eq "$min_major" ] && [ "$cx_min" -lt "$min_minor" ]; } || \
+               { [ "$cx_maj" -eq "$min_major" ] && [ "$cx_min" -eq "$min_minor" ] && [ "$cx_pat" -lt "$min_patch" ]; }; then
+                echo -e "${YELLOW}  ⚠ Codex CLI version ${cx_ver} is below 0.114.0. Hooks may not work. See openai/codex#14754.${NC}"
+            fi
+        fi
+    else
+        echo -e "${BLUE}  (codex CLI not installed; hooks will activate when Codex is installed)${NC}"
+    fi
+else
+    echo -e "${YELLOW}  ⚠ Codex hooks allowlist not found at ${CODEX_HOOKS_ALLOWLIST}; skipping hooks mirror${NC}"
+fi
+
 # Set up local overlay
 echo ""
 echo -e "${YELLOW}Setting up local overlay...${NC}"
@@ -817,6 +945,7 @@ echo "  • Agents: ${AGENT_COUNT} specialized domain experts"
 echo "  • Skills: ${SKILL_COUNT} workflow methodologies (${INVOCABLE_COUNT} user-invocable)"
 echo "  • Codex skills: ${CODEX_ENTRY_COUNT} mirrored entries in ~/.codex/skills"
 echo "  • Codex agents: ${CODEX_AGENT_COUNT} mirrored entries in ~/.codex/agents"
+echo "  • Codex hooks: ${CODEX_HOOK_COUNT} mirrored entries in ~/.codex/hooks"
 echo "  • Hooks: ${HOOK_COUNT} automation hooks"
 echo "  • Commands: ${COMMAND_COUNT} slash commands"
 echo "  • Scripts: ${SCRIPT_COUNT} utility scripts"
