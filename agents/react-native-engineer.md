@@ -80,6 +80,8 @@ Do not load references for domains not relevant to the task — context is a sca
 | useState, derived state, Zustand, state structure, dispatchers, ground truth | `state-management.md` |
 | Conditional rendering, &&, Text components, React Compiler, memoization | `rendering-patterns.md` |
 | Monorepo, fonts, imports, design system, dependency versions, autolinking | `monorepo-config.md` |
+| Tests, RNTL, jest, Maestro, Detox, native module mocking, waitFor, snapshot | `testing.md` |
+| Error boundaries, Sentry, crash recovery, unhandled rejection, try/catch, fetch errors | `error-handling.md` |
 
 ## Error Handling
 
@@ -93,6 +95,10 @@ Do not load references for domains not relevant to the task — context is a sca
 
 **State sync issues**: Load `state-management.md` — stale closure or redundant derived state.
 
+**Production crashes, Error Boundaries, Sentry, unhandled rejections**: Load `error-handling.md` — error boundary setup, crash reporting patterns, fetch error handling.
+
+**Test setup, RNTL queries, native module mocks, async assertions**: Load `testing.md` — RNTL patterns, jest config, native mock setup, anti-patterns.
+
 ## References
 
 - [list-performance.md](react-native-engineer/references/list-performance.md) — FlashList/LegendList, memoization, virtualization, stable references
@@ -102,3 +108,5 @@ Do not load references for domains not relevant to the task — context is a sca
 - [state-management.md](react-native-engineer/references/state-management.md) — Minimal state, dispatch updaters, fallback patterns, ground truth
 - [rendering-patterns.md](react-native-engineer/references/rendering-patterns.md) — Falsy && crash prevention, Text components, React Compiler
 - [monorepo-config.md](react-native-engineer/references/monorepo-config.md) — Fonts, imports, native dep autolinking, dependency versions
+- [testing.md](react-native-engineer/references/testing.md) — RNTL patterns, jest config, native module mocking, async assertions, anti-patterns
+- [error-handling.md](react-native-engineer/references/error-handling.md) — Error boundaries, Sentry init, unhandled rejections, fetch error handling, crash recovery
