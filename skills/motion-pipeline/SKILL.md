@@ -130,6 +130,63 @@ motion-pipeline-env/bin/python scripts/motion-pipeline.py solve-ik FILE \
 Output: `chain[]`, `target[]`, `initial_positions[]`, `solved_positions[]`,
 `end_effector_error` (metres).
 
+### generate-move-ts
+
+Convert a BVH mocap file into a TypeScript `MoveFrame` function compatible with
+road-to-aew's `wrestlingMoves.ts` interface. Outputs keyframe-interpolated
+TypeScript to stdout (and optionally a file).
+
+```bash
+motion-pipeline-env/bin/python scripts/generate-move-ts.py BVH MOVE_NAME \
+  [--scale 0.01] \
+  [--contact-bones LeftToeBase RightToeBase LeftHand RightHand] \
+  [--num-keyframes 12] \
+  [--hip-bone Hips] \
+  [--output path/to/output.ts]
+```
+
+| Argument | Default | Purpose |
+|---|---|---|
+| `BVH` | — | Path to .bvh mocap file |
+| `MOVE_NAME` | — | Kebab-case name (e.g. `roundhouse-kick`) used in TS identifiers |
+| `--scale` | `0.01` | Position scale; 0.01 converts cm→m for CMU/Mixamo files |
+| `--contact-bones` | `LeftToeBase RightToeBase LeftHand RightHand` | Bones used to detect the impact window |
+| `--num-keyframes` | `12` | Keyframe count in the output array (min 2) |
+| `--hip-bone` | `Hips` | Root bone name for trajectory extraction |
+| `--output` | stdout only | Write TS to this file path in addition to stdout |
+
+**Implementation note:** The script imports `motion-pipeline.py` as a module
+via `importlib` rather than calling it as a subprocess. This bypasses the 5-frame
+truncation applied by the `decompose` CLI command, giving access to all frames.
+
+**Output structure:**
+
+```typescript
+// Generated from roundhouse-kick.bvh on 2026-04-13
+// Keyframes: 12, Impact window: 0.45-0.55
+const ROUNDHOUSE_KICK_KEYFRAMES = [...] as const;
+
+export function getRoundhouseKick(progress: number): MoveFrame {
+  // keyframe lookup + linear interpolation
+  // isImpact based on detected contact window
+  return { attacker, defender, isImpact };
+}
+```
+
+The attacker's `offsetX/Y/Z` are root trajectory positions normalized to
+start at origin. Rotations are in radians (converted from the BVH's Euler
+ZYX degrees). The defender reaction is computed procedurally: pushed backward
+at impact, eases to mat post-impact.
+
+**Impact detection:** The script finds the first run of 3+ consecutive contact
+frames across the specified bones. For strike moves, this captures the moment
+of hit. For walking/idle clips (feet always down), the window will be frame-0
+and `isImpact` will be nearly never true — this is correct behavior.
+
+**Validation:** The script prints a summary to stderr including trajectory
+range, impact window, and a structural syntax check. Exit code 1 if validation
+fails.
+
 ## Data architecture pattern
 
 The decomposition from ai4animationpy becomes a design contract for all
