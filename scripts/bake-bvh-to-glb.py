@@ -44,23 +44,28 @@ from scipy.spatial.transform import Rotation as ScipyRotation
 # Constants
 # ---------------------------------------------------------------------------
 
-_BVH_PATH = Path("/tmp/ai4animationpy/Demos/BVHLoading/WalkingStickLeft_BR.bvh")
+_BVH_PATH = Path("/tmp/mocap/07_01_walk.bvh")
 _GLB_PATH = Path("/home/feedgen/road-to-aew/public/assets/prototype/models/ScottHall.glb")
 _PIPELINE_PATH = Path(__file__).parent / "motion-pipeline.py"
 
 # Scale BVH positions from cm to metres (same convention as generate-move-ts.py)
 _BVH_SCALE = 0.01
 
-# Walk cycle: frames 100-160 (symmetric stride, both feet lift ~15cm)
-_WALK_START = 100
-_WALK_END = 161  # exclusive: 61 frames, roughly one symmetric stride
+# Walk cycle: frames 66-207 from CMU subject 07 trial 01 (clean natural walk,
+# no assistive devices). One complete symmetric stride: LeftFoot ground contact
+# at frame 66, next LeftFoot ground contact at frame 207. Both feet lift ~3-4cm
+# with 0.4cm symmetry difference. Leg rotation range 63-67 degrees.
+_WALK_START = 66
+_WALK_END = 208  # exclusive: 142 frames @ 120fps = 1.183s per stride cycle
 
-# Idle: frames 0-30 (first 31 frames where the character is settling into stance)
-_IDLE_START = 0
-_IDLE_END = 31  # exclusive: 31 frames
+# Idle: frames 37-67 — lowest-motion 30-frame window in the clip.
+# Feet stay within 0.85-1.22cm of ground, Hips drift only 2.2mm.
+# This gives a subtle weight-shift idle rather than a frozen T-pose.
+_IDLE_START = 37
+_IDLE_END = 67  # exclusive: 30 frames
 
 # Subsample targets (keyframes written into the GLB)
-_WALK_KEYFRAMES = 64  # ~1 frame per 1.6 BVH frames — smooth but compact
+_WALK_KEYFRAMES = 64  # 142 BVH frames -> 64 keyframes (~1 per 2.2 BVH frames) — smooth but compact
 _IDLE_KEYFRAMES = 30  # 30 frames at ~1fps => 30-second slow bob
 
 # Clip names in the existing GLB (Three.js code references these by name)
@@ -609,7 +614,7 @@ def bake(
     )
     print(f"GLB bind pose: {non_identity}/{len(glb_bind_quats)} bones have non-identity rotations")
 
-    # --- Extract walk cycle (frames 100-160, 61 BVH frames) ---
+    # --- Extract walk cycle (frames 66-207, 142 BVH frames, CMU 07_01) ---
     walk_range = range(_WALK_START, _WALK_END)
     print(f"\nExtracting walk cycle: frames {_WALK_START}-{_WALK_END - 1} ({len(walk_range)} frames)")
     walk_quats_full, walk_bvh_bind = _extract_local_quats(motion, walk_range)
