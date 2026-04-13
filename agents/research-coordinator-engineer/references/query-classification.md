@@ -190,4 +190,4 @@ grep -il "compare\|vs\.\|versus\|difference between" research/*/plan.md
 ## See Also
 
 - `delegation-patterns.md` — How to write subagent instructions once query type is classified
-- `synthesis-techniques.md` — How synthesis approach differs by query type
+- `error-catalog.md` — Common failures when query type is misclassified
