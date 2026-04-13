@@ -360,6 +360,7 @@ Load these reference files based on the task type:
 | Breakpoints, mobile-first CSS, touch interactions | [references/responsive-design.md](references/responsive-design.md) |
 | App Router pages, Server vs Client components, metadata API, URL filtering, SSG | [references/nextjs-app-router.md](references/nextjs-app-router.md) |
 | Core Web Vitals, LCP, CLS, INP, bundle size, `priority`, `sizes` prop | [references/performance.md](references/performance.md) |
+| SEO, structured data, JSON-LD, Open Graph, sitemap, social preview | [references/portfolio-seo.md](references/portfolio-seo.md) |
 
 **Shared Patterns**:
 - [anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md) - Universal rationalization patterns

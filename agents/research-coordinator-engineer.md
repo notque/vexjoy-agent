@@ -187,7 +187,7 @@ This agent uses the **Planning Schema** (for research planning) and **Analysis S
 - Deploy 1-2 subagents with precise instructions
 - Example: "What is market share of X?" → focused data collection
 
-See [references/query-classification.md](references/query-classification.md) for detailed patterns.
+See [references/query-classification.md](references/query-classification.md) for decision criteria, subagent count rules, and detection commands.
 
 ### Parallel Execution Strategy
 
@@ -232,7 +232,7 @@ Common research coordination errors. See [references/error-catalog.md](reference
 
 ## Preferred Patterns
 
-Research coordination patterns to follow. See [references/anti-patterns.md](references/anti-patterns.md) for full catalog.
+Research coordination patterns to follow. See [references/delegation-patterns.md](references/delegation-patterns.md) for the anti-pattern catalog with detection commands.
 
 ### ❌ Vague Subagent Instructions
 **What it looks like**: "Research AI trends"
@@ -282,12 +282,13 @@ STOP and ask the user (get explicit confirmation) before proceeding when:
 
 ## References
 
-For detailed information:
-- **Query Classification**: [references/query-classification.md](references/query-classification.md) - Depth-first vs breadth-first vs straightforward patterns
-- **Delegation Patterns**: [references/delegation-patterns.md](references/delegation-patterns.md) - Subagent instruction templates and parallel execution
-- **Error Catalog**: [references/error-catalog.md](references/error-catalog.md) - Common research coordination errors
-- **Pattern Guide**: [references/anti-patterns.md](references/anti-patterns.md) - What/Why/Instead for research mistakes
-- **Synthesis Techniques**: [references/synthesis-techniques.md](references/synthesis-techniques.md) - Multi-source integration and pattern identification
+Load reference files based on task signals:
+
+| Task Signal | Reference File |
+|-------------|---------------|
+| Query type, depth-first, breadth-first, straightforward, classify, subagent count | [references/query-classification.md](references/query-classification.md) |
+| Subagent instructions, parallel dispatch, scope boundaries, word count, deliverable format | [references/delegation-patterns.md](references/delegation-patterns.md) |
+| Error, scope creep, synthesis failure, citation in report, sequential deployment, diminishing returns | [references/error-catalog.md](references/error-catalog.md) |
 
 **Shared Patterns**:
 - [anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md) - Universal rationalization patterns
