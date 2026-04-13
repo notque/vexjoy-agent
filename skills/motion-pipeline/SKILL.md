@@ -87,7 +87,7 @@ motion-pipeline-env/bin/python scripts/motion-pipeline.py extract-contacts FILE 
   --vel 0.5
 ```
 
-Output: per-bone `contact_frames[]`, `contact_count`, `contact_ratio`.
+Output: `{ "bones": { "<name>": { "contact_frames": [...] } }, "total_frames": N }`.
 
 ### decompose
 
