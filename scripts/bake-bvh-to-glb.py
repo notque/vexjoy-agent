@@ -51,13 +51,13 @@ _PIPELINE_PATH = Path(__file__).parent / "motion-pipeline.py"
 # Scale BVH positions from cm to metres (same convention as generate-move-ts.py)
 _BVH_SCALE = 0.01
 
-# Walk cycle: frames 31-134 (one full stride, left foot contact to left foot contact)
-_WALK_START = 31
-_WALK_END = 135  # exclusive: range [31, 134] = 104 frames
+# Walk cycle: frames 100-160 (symmetric stride, both feet lift ~15cm)
+_WALK_START = 100
+_WALK_END = 161  # exclusive: 61 frames, roughly one symmetric stride
 
-# Idle: frames 31-60 (character in a static stance, slight weight on left foot)
-_IDLE_START = 31
-_IDLE_END = 61  # exclusive: 30 frames
+# Idle: frames 0-30 (first 31 frames where the character is settling into stance)
+_IDLE_START = 0
+_IDLE_END = 31  # exclusive: 31 frames
 
 # Subsample targets (keyframes written into the GLB)
 _WALK_KEYFRAMES = 64  # ~1 frame per 1.6 BVH frames — smooth but compact
@@ -609,7 +609,7 @@ def bake(
     )
     print(f"GLB bind pose: {non_identity}/{len(glb_bind_quats)} bones have non-identity rotations")
 
-    # --- Extract walk cycle (frames 31-134, 104 BVH frames) ---
+    # --- Extract walk cycle (frames 100-160, 61 BVH frames) ---
     walk_range = range(_WALK_START, _WALK_END)
     print(f"\nExtracting walk cycle: frames {_WALK_START}-{_WALK_END - 1} ({len(walk_range)} frames)")
     walk_quats_full, walk_bvh_bind = _extract_local_quats(motion, walk_range)
