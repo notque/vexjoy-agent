@@ -351,14 +351,15 @@ STOP and ask the user (get explicit confirmation) when:
 
 ## References
 
-Load reference files based on task signals:
+Load these reference files based on the task type:
 
-| Task Signal | Reference File |
-|-------------|---------------|
-| Lightbox, keyboard nav, swipe, overlay | [references/lightbox-patterns.md](references/lightbox-patterns.md) |
-| Image optimization, next/image, WebP, blur placeholder, LCP | [references/image-optimization.md](references/image-optimization.md) |
-| Responsive design, breakpoints, mobile, touch, fluid layout | [references/responsive-design.md](references/responsive-design.md) |
-| App Router, Server Component, Client Component, metadata, generateStaticParams | [references/next-app-router.md](references/next-app-router.md) |
+| Task Type | Reference File |
+|-----------|---------------|
+| Lightbox implementation, keyboard/touch navigation | [references/lightbox-patterns.md](references/lightbox-patterns.md) |
+| next/image, blur placeholders, WebP/AVIF, format config | [references/image-optimization.md](references/image-optimization.md) |
+| Breakpoints, mobile-first CSS, touch interactions | [references/responsive-design.md](references/responsive-design.md) |
+| App Router pages, Server vs Client components, metadata API, URL filtering, SSG | [references/nextjs-app-router.md](references/nextjs-app-router.md) |
+| Core Web Vitals, LCP, CLS, INP, bundle size, `priority`, `sizes` prop | [references/performance.md](references/performance.md) |
 | SEO, structured data, JSON-LD, Open Graph, sitemap, social preview | [references/portfolio-seo.md](references/portfolio-seo.md) |
 
 **Shared Patterns**:
