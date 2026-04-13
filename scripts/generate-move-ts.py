@@ -7,7 +7,13 @@ road-to-aew's wrestlingMoves.ts interface.
 
 Usage:
     generate-move-ts.py BVH MOVE_NAME [--scale S] [--contact-bones B...] \\
-        [--num-keyframes N] [--hip-bone NAME]
+        [--num-keyframes N] [--hip-bone NAME] [--tracking-bone NAME]
+
+When --tracking-bone is specified (e.g. RightHand), the generator tracks that
+bone's world-space position for attacker offsets instead of the root/hip bone.
+Root orientation (hip Euler angles) is always sourced from --hip-bone.
+Impact detection becomes velocity-based: the strike impact is the moment the
+tracking bone's velocity magnitude peaks and then rapidly decelerates.
 
 The script imports motion-pipeline.py as a module directly to avoid the
 5-frame stdout truncation applied by the decompose CLI command.
@@ -22,10 +28,8 @@ import sys
 import types
 from datetime import date
 from pathlib import Path
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    pass
+import numpy as np
 
 # ---------------------------------------------------------------------------
 # Motion pipeline import (importlib to avoid CLI 5-frame truncation)
@@ -119,6 +123,85 @@ def _find_contact_window(
     return (best_start / total_frames, best_end / total_frames)
 
 
+def _find_velocity_impact_window(
+    velocities: np.ndarray,
+    num_frames: int,
+    window_fraction: float = 0.05,
+) -> tuple[float, float]:
+    """Detect impact window from bone velocity magnitude.
+
+    The impact moment for a strike is where the tracking limb peaks in velocity
+    and then rapidly decelerates (collision). The window spans from just before
+    peak deceleration for window_fraction of the total clip.
+
+    Algorithm:
+      1. Compute per-frame velocity magnitude.
+      2. Find the frame with maximum magnitude (peak of the strike).
+      3. After the peak, find where speed drops by >50% — that is the impact
+         contact frame.
+      4. If no clear drop exists, fall back to the midpoint.
+
+    Args:
+        velocities: Shape (num_frames, 1, 3) velocity array from bone_velocities.
+        num_frames: Total frame count of the clip.
+        window_fraction: Width of impact window as fraction of total clip (default 5%).
+
+    Returns:
+        (start_progress, end_progress) tuple, both in [0, 1].
+    """
+    # Shape: (num_frames, 1, 3) -> (num_frames,)
+    speed = np.linalg.norm(velocities[:, 0, :], axis=-1)
+
+    peak_frame = int(np.argmax(speed))
+    peak_speed = float(speed[peak_frame])
+
+    # Search for >50% deceleration after peak
+    impact_frame = peak_frame
+    if peak_frame < num_frames - 1:
+        threshold = peak_speed * 0.5
+        for f in range(peak_frame + 1, min(peak_frame + max(int(num_frames * 0.2), 5), num_frames)):
+            if float(speed[f]) < threshold:
+                impact_frame = f
+                break
+        else:
+            # No clear drop found: use a few frames after peak
+            impact_frame = min(peak_frame + max(int(num_frames * 0.03), 2), num_frames - 1)
+
+    # Fallback: if peak is at very start or no meaningful velocity, use midpoint
+    if peak_speed < 1e-4 or peak_frame == 0:
+        impact_frame = num_frames // 2
+
+    window_frames = max(int(num_frames * window_fraction), 3)
+    start = impact_frame / num_frames
+    end = min((impact_frame + window_frames) / num_frames, 1.0)
+    return (start, end)
+
+
+def _extract_bone_positions(
+    motion: object,
+    bone_name: str,
+) -> tuple[list[list[float]], np.ndarray]:
+    """Extract world-space positions and velocities for a named bone.
+
+    Args:
+        motion: Motion object from motion-pipeline (has hierarchy, bone_positions,
+                bone_velocities methods).
+        bone_name: Bone name to track (e.g. 'RightHand').
+
+    Returns:
+        Tuple of (positions as list[list[float]], velocities as np.ndarray shape (F,1,3)).
+
+    Raises:
+        ValueError: If bone_name is not found in the skeleton.
+    """
+    bone_idx = motion.hierarchy.index(bone_name)  # raises ValueError if missing
+    # bone_positions returns (num_frames, num_bones, 3)
+    pos_array = motion.bone_positions([bone_idx])  # (F, 1, 3)
+    vel_array = motion.bone_velocities([bone_idx])  # (F, 1, 3)
+    positions: list[list[float]] = pos_array[:, 0, :].tolist()
+    return positions, vel_array
+
+
 def _sample_keyframes(
     positions: list[list[float]],
     hip_euler: list[list[float]],
@@ -168,17 +251,30 @@ def _sample_keyframes(
 def _compute_defender_keyframes(
     attacker_keyframes: list[tuple[float, list[float], list[float]]],
     impact_window: tuple[float, float] | None,
+    impact_direction: list[float] | None = None,
+    impact_magnitude: float | None = None,
 ) -> list[list[float]]:
     """Compute defender reaction offsets/rotations for each keyframe.
 
-    Defender reaction model:
-    - Before impact: slight lean-in (tracking attacker approach)
-    - At impact: sharp backward displacement + backward rotation
-    - Post-impact: ease down to mat level
+    Two reaction models are available:
+
+    Throw model (impact_direction is None):
+      - Before impact: slight lean-in tracking attacker approach
+      - At impact: sharp backward displacement + backward rotation
+      - Post-impact: ease down to mat level
+
+    Strike model (impact_direction provided):
+      - Pre-impact: defender is stationary (waiting to be hit)
+      - At impact: sharp displacement along the strike direction
+      - Post-impact: ease recovery
+      The push magnitude scales with impact_magnitude, capped at 1.5m backward
+      and 0.8m upward.
 
     Args:
         attacker_keyframes: Output from _sample_keyframes.
         impact_window: (start_progress, end_progress) or None.
+        impact_direction: Normalised XYZ push direction for strike moves, or None.
+        impact_magnitude: Velocity magnitude at impact (m/s) for strike scaling.
 
     Returns:
         List of [defOffX, defOffY, defOffZ, defRotX, defRotY, defRotZ] per keyframe.
@@ -186,46 +282,94 @@ def _compute_defender_keyframes(
     imp_start = impact_window[0] if impact_window else 0.5
     imp_end = impact_window[1] if impact_window else 0.55
 
-    # Defender displacement amplitude: moderate scale matching hand-authored moves
-    BACKWARD_PEAK = 1.2  # metres pushed backward (Z) at impact
-    UPWARD_PEAK = 0.8  # metres upward at impact
-    ROT_PEAK = 0.4  # radians backward lean at impact
+    is_strike = impact_direction is not None
+
+    if is_strike:
+        # Strike: scale push with velocity magnitude, capped at max values
+        MAX_BACKWARD = 1.5
+        MAX_UPWARD = 0.8
+        ROT_PEAK = 0.35
+
+        # Use velocity magnitude to set scale (normalised: 10 m/s = full push)
+        scale = min((impact_magnitude or 5.0) / 10.0, 1.0)
+        dx, dy, dz = impact_direction[0], impact_direction[1], impact_direction[2]
+
+        # Backward push: along strike direction, capped
+        push_x = dx * MAX_BACKWARD * scale
+        push_y = abs(dy) * MAX_UPWARD * scale  # upward component always positive
+        push_z = dz * MAX_BACKWARD * scale
+    else:
+        # Throw model: fixed amplitudes
+        push_x = 0.0
+        push_y = 0.8
+        push_z = -1.2
+        ROT_PEAK = 0.4
 
     results: list[list[float]] = []
 
     for progress, att_pos, _att_rot in attacker_keyframes:
-        # Compute eased impact factor (0 outside impact, peaks at centre)
-        if progress < imp_start:
-            # Pre-impact: subtle backward lean tracking attacker Z
-            t = progress / max(imp_start, 1e-6)
-            ease = t * t  # ease-in
-            def_z = -abs(att_pos[2]) * 0.1 * ease  # slight lean toward attacker
-            def_y = 0.0
-            def_x = 0.0
-            def_rot_x = 0.05 * ease  # slight forward lean
-            def_rot_y = 0.0
-            def_rot_z = 0.0
-        elif progress <= imp_end:
-            # Impact window: ramp up to peak then hold
-            window = max(imp_end - imp_start, 1e-6)
-            t = (progress - imp_start) / window
-            ease = math.sin(t * math.pi / 2)  # ease-in to peak
-            def_z = -BACKWARD_PEAK * ease
-            def_y = UPWARD_PEAK * ease
-            def_x = 0.0
-            def_rot_x = -ROT_PEAK * ease  # backward lean (negative = lean back)
-            def_rot_y = 0.0
-            def_rot_z = 0.0
+        if is_strike:
+            if progress < imp_start:
+                # Pre-impact: defender stationary
+                def_x = 0.0
+                def_y = 0.0
+                def_z = 0.0
+                def_rot_x = 0.0
+                def_rot_y = 0.0
+                def_rot_z = 0.0
+            elif progress <= imp_end:
+                # Impact window: ramp up to peak push
+                window = max(imp_end - imp_start, 1e-6)
+                t = (progress - imp_start) / window
+                ease = math.sin(t * math.pi / 2)
+                def_x = push_x * ease
+                def_y = push_y * ease
+                def_z = push_z * ease
+                def_rot_x = -ROT_PEAK * ease  # backward lean
+                def_rot_y = 0.0
+                def_rot_z = 0.0
+            else:
+                # Post-impact: ease recovery
+                t = (progress - imp_end) / max(1.0 - imp_end, 1e-6)
+                ease = 1.0 - (t * t)
+                def_x = push_x * ease
+                def_y = push_y * ease * 0.3
+                def_z = push_z * ease
+                def_rot_x = -ROT_PEAK * ease
+                def_rot_y = 0.0
+                def_rot_z = 0.0
         else:
-            # Post-impact: ease down to mat
-            t = (progress - imp_end) / max(1.0 - imp_end, 1e-6)
-            ease = 1.0 - (t * t)  # ease-out from 1 toward 0
-            def_z = -BACKWARD_PEAK * ease
-            def_y = UPWARD_PEAK * ease * 0.3  # settle faster than push
-            def_x = 0.0
-            def_rot_x = -ROT_PEAK * ease
-            def_rot_y = 0.0
-            def_rot_z = 0.0
+            if progress < imp_start:
+                # Pre-impact: subtle backward lean tracking attacker Z
+                t = progress / max(imp_start, 1e-6)
+                ease = t * t
+                def_z = -abs(att_pos[2]) * 0.1 * ease
+                def_y = 0.0
+                def_x = 0.0
+                def_rot_x = 0.05 * ease
+                def_rot_y = 0.0
+                def_rot_z = 0.0
+            elif progress <= imp_end:
+                # Impact window: ramp up to peak then hold
+                window = max(imp_end - imp_start, 1e-6)
+                t = (progress - imp_start) / window
+                ease = math.sin(t * math.pi / 2)
+                def_z = push_z * ease
+                def_y = push_y * ease
+                def_x = 0.0
+                def_rot_x = -ROT_PEAK * ease
+                def_rot_y = 0.0
+                def_rot_z = 0.0
+            else:
+                # Post-impact: ease down to mat
+                t = (progress - imp_end) / max(1.0 - imp_end, 1e-6)
+                ease = 1.0 - (t * t)
+                def_z = push_z * ease
+                def_y = push_y * ease * 0.3
+                def_x = 0.0
+                def_rot_x = -ROT_PEAK * ease
+                def_rot_y = 0.0
+                def_rot_z = 0.0
 
         results.append([def_x, def_y, def_z, def_rot_x, def_rot_y, def_rot_z])
 
@@ -421,6 +565,8 @@ def _print_summary(
     attacker_keyframes: list[tuple[float, list[float], list[float]]],
     output_path: Path,
     validation_errors: list[str],
+    tracking_bone: str | None = None,
+    impact_mode: str = "height",
 ) -> None:
     """Print a human-readable summary to stderr."""
     positions = [kf[1] for kf in attacker_keyframes]
@@ -428,14 +574,16 @@ def _print_summary(
     ys = [p[1] for p in positions]
     zs = [p[2] for p in positions]
 
-    print(f"\n=== generate-move-ts summary ===", file=sys.stderr)
+    print("\n=== generate-move-ts summary ===", file=sys.stderr)
     print(f"  BVH source   : {bvh_path}", file=sys.stderr)
     print(f"  Move name    : {move_name}", file=sys.stderr)
     print(f"  Keyframes    : {num_keyframes}", file=sys.stderr)
+    print(f"  Tracking bone: {tracking_bone or 'root (hip)'}", file=sys.stderr)
+    print(f"  Impact mode  : {impact_mode}", file=sys.stderr)
     if impact_window:
         print(f"  Impact window: {impact_window[0]:.3f} - {impact_window[1]:.3f}", file=sys.stderr)
     else:
-        print(f"  Impact window: none detected (using default 0.500-0.550)", file=sys.stderr)
+        print("  Impact window: none detected (using default 0.500-0.550)", file=sys.stderr)
     print(f"  Traj X range : [{min(xs):.4f}, {max(xs):.4f}] m", file=sys.stderr)
     print(f"  Traj Y range : [{min(ys):.4f}, {max(ys):.4f}] m", file=sys.stderr)
     print(f"  Traj Z range : [{min(zs):.4f}, {max(zs):.4f}] m", file=sys.stderr)
@@ -445,7 +593,7 @@ def _print_summary(
         for e in validation_errors:
             print(f"    - {e}", file=sys.stderr)
     else:
-        print(f"  Validation   : OK", file=sys.stderr)
+        print("  Validation   : OK", file=sys.stderr)
     print(file=sys.stderr)
 
 
@@ -490,6 +638,16 @@ def _build_parser() -> argparse.ArgumentParser:
         default="Hips",
         metavar="NAME",
         help="Name of the hip/root bone for trajectory extraction (default: Hips).",
+    )
+    parser.add_argument(
+        "--tracking-bone",
+        default=None,
+        metavar="NAME",
+        help=(
+            "Bone name for limb tracking (e.g. RightHand). When specified, the attacker's "
+            "offsetX/Y/Z follows this bone's world-space trajectory instead of the root. "
+            "Impact detection switches to velocity-based mode. Root bone still drives rotations."
+        ),
     )
     parser.add_argument(
         "--output",
@@ -539,38 +697,84 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Error in decompose: {e}", file=sys.stderr)
         return 1
 
-    # Filter contact bones to those that exist in the skeleton
-    available_bones = set(motion.hierarchy.bone_names)
-    contact_bones = [b for b in args.contact_bones if b in available_bones]
-    missing = [b for b in args.contact_bones if b not in available_bones]
-    if missing:
-        print(
-            f"Warning: contact bones not found in skeleton, skipping: {missing}",
-            file=sys.stderr,
-        )
-    if not contact_bones:
-        print("Warning: no contact bones available; impact window will use default.", file=sys.stderr)
-
-    # Extract contacts
-    contact_data: dict = {"bones": {}, "total_frames": motion.num_frames}
-    if contact_bones:
-        try:
-            contact_data = pipeline.extract_contacts(motion, bone_names=contact_bones)
-        except ValueError as e:
-            print(f"Warning: contact extraction failed: {e}", file=sys.stderr)
-
-    # Full-resolution trajectory and hip Euler (not truncated — imported directly)
-    positions: list[list[float]] = decomp["root_trajectory"]["positions"]
+    # Full-resolution hip Euler (always from root/hip bone, drives rotations)
     hip_euler: list[list[float]] = decomp["per_joint_euler_zyx_degrees"][args.hip_bone]
 
-    # Detect impact window
-    impact_window = _find_contact_window(contact_data, contact_bones, motion.num_frames)
+    # Determine position source and impact detection mode
+    impact_window: tuple[float, float] | None = None
+    impact_direction: list[float] | None = None
+    impact_magnitude: float | None = None
+    impact_mode = "height"
 
-    # Sample keyframes
+    if args.tracking_bone:
+        # Limb tracking: use the specified bone's world-space position
+        tracking_name = args.tracking_bone
+        available_bones = set(motion.hierarchy.bone_names)
+        if tracking_name not in available_bones:
+            print(
+                f"Error: --tracking-bone '{tracking_name}' not found in skeleton. "
+                f"Available bones: {sorted(available_bones)}",
+                file=sys.stderr,
+            )
+            return 1
+
+        try:
+            positions, vel_array = _extract_bone_positions(motion, tracking_name)
+        except ValueError as e:
+            print(f"Error extracting tracking bone positions: {e}", file=sys.stderr)
+            return 1
+
+        # Velocity-based impact detection
+        impact_mode = "velocity"
+        impact_window = _find_velocity_impact_window(vel_array, motion.num_frames)
+
+        # Compute impact direction from velocity vector at impact frame
+        impact_frame = int(impact_window[0] * motion.num_frames)
+        vel_at_impact = vel_array[impact_frame, 0, :]  # (3,)
+        speed_at_impact = float(np.linalg.norm(vel_at_impact))
+        if speed_at_impact > 1e-6:
+            norm_dir = (vel_at_impact / speed_at_impact).tolist()
+            impact_direction = [float(v) for v in norm_dir]
+            impact_magnitude = speed_at_impact
+        else:
+            # Zero-velocity fallback: push straight back
+            impact_direction = [0.0, 0.0, -1.0]
+            impact_magnitude = 1.0
+    else:
+        # Default: track root/hip bone trajectory
+        positions = decomp["root_trajectory"]["positions"]
+
+        # Height-based contact detection
+        available_bones = set(motion.hierarchy.bone_names)
+        contact_bones = [b for b in args.contact_bones if b in available_bones]
+        missing = [b for b in args.contact_bones if b not in available_bones]
+        if missing:
+            print(
+                f"Warning: contact bones not found in skeleton, skipping: {missing}",
+                file=sys.stderr,
+            )
+        if not contact_bones:
+            print("Warning: no contact bones available; impact window will use default.", file=sys.stderr)
+
+        contact_data: dict = {"bones": {}, "total_frames": motion.num_frames}
+        if contact_bones:
+            try:
+                contact_data = pipeline.extract_contacts(motion, bone_names=contact_bones)
+            except ValueError as e:
+                print(f"Warning: contact extraction failed: {e}", file=sys.stderr)
+
+        impact_window = _find_contact_window(contact_data, contact_bones, motion.num_frames)
+
+    # Sample keyframes from resolved positions + hip rotations
     attacker_keyframes = _sample_keyframes(positions, hip_euler, args.num_keyframes)
 
-    # Compute defender reaction
-    defender_frames = _compute_defender_keyframes(attacker_keyframes, impact_window)
+    # Compute defender reaction (strike model if tracking bone used)
+    defender_frames = _compute_defender_keyframes(
+        attacker_keyframes,
+        impact_window,
+        impact_direction=impact_direction,
+        impact_magnitude=impact_magnitude,
+    )
 
     # Generate TypeScript
     ts_source = generate_typescript(
@@ -601,6 +805,8 @@ def main(argv: list[str] | None = None) -> int:
         attacker_keyframes=attacker_keyframes,
         output_path=output_path,
         validation_errors=validation_errors,
+        tracking_bone=args.tracking_bone,
+        impact_mode=impact_mode,
     )
 
     return 1 if validation_errors else 0
