@@ -5,6 +5,7 @@ You are running as an autonomous hourly process to improve the toolkit's domain 
 ## Context
 
 - **Date:** ${ENRICH_DATE}
+- **Run ID:** ${ENRICH_RUN_ID}
 - **Repository:** ${ENRICH_REPO_DIR}
 - **Targets:** ${ENRICH_TARGETS}
 - **Max targets:** ${ENRICH_MAX_TARGETS}
@@ -28,7 +29,7 @@ Print a summary and exit.
 
 1. Check for existing open enrichment PRs: `gh pr list --search "enrich/refs" --state open --json number | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d))"`
 2. If 5 or more enrichment PRs are already open, log "Too many open enrichment PRs (>=5), skipping to avoid accumulation" and exit
-3. Create a feature branch: `git checkout -b enrich/refs-${ENRICH_DATE}`
+3. Create a feature branch: `git checkout -b enrich/refs-${ENRICH_RUN_ID}`
 
 ### Phase 2: Enrich Each Target
 
@@ -77,7 +78,7 @@ This gate prevents reference bloat — only references that add concrete, signal
 1. Stage only the files you created/modified (reference files, agent/skill body updates)
 2. Commit with: `feat(refs): {agent-name} — {brief description of what was added} (Level {before}→{after})`
    - Example: `feat(refs): prometheus-grafana-engineer — PromQL patterns, alerting rules, cardinality management (Level 0→3)`
-3. Push: `git push -u origin enrich/refs-${ENRICH_DATE}`
+3. Push: `git push -u origin enrich/refs-${ENRICH_RUN_ID}`
 4. Create PR and auto-merge: `gh pr create --title "feat(refs): {agent-name} (Level {before}→{after})" --body "..."` then `gh pr merge --squash --auto --delete-branch`
    - PR title should describe WHAT was enriched, not just the date
    - PR body should include: targets processed, level before/after for each, list of new reference files
