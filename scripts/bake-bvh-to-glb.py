@@ -10,6 +10,19 @@ Usage:
 
 The script imports motion-pipeline.py via importlib (same pattern as
 generate-move-ts.py) to parse BVH data without subprocess overhead.
+
+Bind pose retargeting
+---------------------
+GLB skeletons from Mixamo/Sketchfab carry non-identity bind pose rotations on
+bones such as LeftUpLeg (~180 degrees around Z), shoulders, feet, etc. Writing
+raw BVH local rotations directly into those slots causes the skeleton to
+deform incorrectly (body drops, legs splay sideways).
+
+The fix: for each bone at each frame, compute the *delta* from the BVH bind
+pose (frame 0), then apply that delta to the GLB bind pose rotation:
+
+    bvh_delta = bvh_frame_rot * inv(bvh_bind_rot)
+    glb_frame_rot = bvh_delta * glb_bind_rot
 """
 
 from __future__ import annotations
@@ -142,7 +155,7 @@ def _build_bone_map(glb: pygltflib.GLTF2, bvh_names: list[str]) -> dict[str, int
 def _extract_local_quats(
     motion: object,  # Motion dataclass from motion_pipeline
     frame_range: range,
-) -> dict[str, np.ndarray]:
+) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
     """Compute per-bone LOCAL rotation quaternions for a frame range.
 
     The BVH frames store global 4x4 transforms. Local rotation for bone j:
@@ -150,13 +163,20 @@ def _extract_local_quats(
 
     For the root bone (parent index -1), local == global.
 
+    Also returns the BVH bind pose (frame 0 of the BVH, i.e. the absolute
+    frame at index frame_range.start) so callers can compute the delta from
+    rest to drive GLB-space animation correctly.
+
     Args:
         motion: Motion object from motion_pipeline.load_bvh.
         frame_range: Range of frame indices to extract.
 
     Returns:
-        Dict mapping BVH bone name -> np.ndarray of shape (N, 4) [x, y, z, w].
-        N = len(frame_range).
+        Tuple of two dicts, both mapping BVH bone name -> np.ndarray:
+        - quats: shape (N, 4) [x, y, z, w] for frames in frame_range.
+          N = len(frame_range).
+        - bind_quats: shape (4,) [x, y, z, w] quaternion at BVH frame 0
+          (the skeleton rest pose used as the reference for delta computation).
     """
     frames_arr = list(frame_range)
     n_frames = len(frames_arr)
@@ -166,13 +186,18 @@ def _extract_local_quats(
     # Pre-fetch the relevant slice of motion.frames: shape (N, J, 4, 4)
     motion_frames: np.ndarray = motion.frames[np.array(frames_arr)]  # (N, J, 4, 4)
 
+    # Bind pose: BVH frame 0 (absolute rest position of the BVH skeleton)
+    bind_frame: np.ndarray = motion.frames[0]  # (J, 4, 4)
+
     result: dict[str, np.ndarray] = {}
+    bind_quats: dict[str, np.ndarray] = {}
 
     for j, bone_name in enumerate(bone_names):
         p = parent_indices[j]
         if p == -1:
             # Root: local == global rotation
             rot_matrices = motion_frames[:, j, :3, :3]  # (N, 3, 3)
+            bind_rot_matrix = bind_frame[j, :3, :3]  # (3, 3)
         else:
             # Local = inv(parent_global) @ bone_global
             parent_global = motion_frames[:, p]  # (N, 4, 4)
@@ -184,12 +209,20 @@ def _extract_local_quats(
             local_mat = np.einsum("fij,fjk->fik", parent_inv, bone_global)  # (N, 4, 4)
             rot_matrices = local_mat[:, :3, :3]  # (N, 3, 3)
 
+            # Bind pose local rotation for this bone
+            bind_parent_inv = np.linalg.inv(bind_frame[p])  # (4, 4)
+            bind_local = bind_parent_inv @ bind_frame[j]  # (4, 4)
+            bind_rot_matrix = bind_local[:3, :3]  # (3, 3)
+
         # Convert rotation matrices to quaternions [x, y, z, w] (scipy convention)
         # ScipyRotation.as_quat() returns [x, y, z, w]
         quats = ScipyRotation.from_matrix(rot_matrices).as_quat().astype(np.float32)  # (N, 4)
         result[bone_name] = quats
 
-    return result
+        bind_q = ScipyRotation.from_matrix(bind_rot_matrix).as_quat().astype(np.float32)  # (4,)
+        bind_quats[bone_name] = bind_q
+
+    return result, bind_quats
 
 
 def _extract_root_translations(
@@ -207,6 +240,73 @@ def _extract_root_translations(
     # Remove root drift: subtract the starting position so clip begins at origin
     root_positions = root_positions - root_positions[0:1]
     return root_positions.astype(np.float32)
+
+
+# ---------------------------------------------------------------------------
+# Bind pose correction: BVH space -> GLB space retargeting
+# ---------------------------------------------------------------------------
+
+
+def _load_glb_bind_rotations(glb: pygltflib.GLTF2, bone_map: dict[str, int]) -> dict[str, np.ndarray]:
+    """Read the GLB node default rotations for each mapped bone.
+
+    These are the rotations the skeleton was authored in — the GLB bind pose.
+    Animation data must be expressed as deltas from this pose.
+
+    Args:
+        glb: Loaded GLTF2 object.
+        bone_map: Maps BVH bone name -> GLB node index.
+
+    Returns:
+        Dict mapping BVH bone name -> np.ndarray of shape (4,) [x, y, z, w].
+        Bones with no rotation set default to identity [0, 0, 0, 1].
+    """
+    glb_bind: dict[str, np.ndarray] = {}
+    for bvh_name, node_idx in bone_map.items():
+        node = glb.nodes[node_idx]
+        if node.rotation is not None:
+            glb_bind[bvh_name] = np.array(node.rotation, dtype=np.float32)
+        else:
+            glb_bind[bvh_name] = np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float32)
+    return glb_bind
+
+
+def _retarget_quats(
+    bvh_quats: dict[str, np.ndarray],
+    bvh_bind_quats: dict[str, np.ndarray],
+    glb_bind_quats: dict[str, np.ndarray],
+) -> dict[str, np.ndarray]:
+    """Correct BVH-space quaternions to GLB-space by applying bind pose delta.
+
+    For each bone at each frame:
+        bvh_delta = bvh_frame_rot * inv(bvh_bind_rot)
+        glb_frame_rot = bvh_delta * glb_bind_rot
+
+    This maps the BVH motion (expressed as change-from-BVH-rest) into the
+    GLB skeleton (expressed as change-from-GLB-rest), so the mesh deforms
+    correctly regardless of the GLB's non-identity bind pose.
+
+    Args:
+        bvh_quats: Dict bone_name -> (N, 4) float32 BVH local quaternions.
+        bvh_bind_quats: Dict bone_name -> (4,) float32 BVH rest pose quaternion.
+        glb_bind_quats: Dict bone_name -> (4,) float32 GLB node default rotation.
+
+    Returns:
+        Dict bone_name -> (N, 4) float32 corrected quaternions ready for GLB.
+    """
+    retargeted: dict[str, np.ndarray] = {}
+    for bone_name, bvh_q in bvh_quats.items():
+        bvh_bind = ScipyRotation.from_quat(bvh_bind_quats[bone_name])
+        glb_bind = ScipyRotation.from_quat(glb_bind_quats.get(bone_name, np.array([0.0, 0.0, 0.0, 1.0])))
+
+        bvh_frames = ScipyRotation.from_quat(bvh_q)  # (N,) rotation object
+        # delta = frame * inv(bind): change relative to BVH rest
+        bvh_delta = bvh_frames * bvh_bind.inv()
+        # Apply delta to GLB bind pose
+        glb_frames = bvh_delta * glb_bind
+
+        retargeted[bone_name] = glb_frames.as_quat().astype(np.float32)  # (N, 4)
+    return retargeted
 
 
 # ---------------------------------------------------------------------------
@@ -488,9 +588,9 @@ def bake(
         f"({motion.total_time:.1f}s)  {motion.num_joints} joints"
     )
 
-    # --- Load GLB ---
+    # --- Load GLB (binary format) ---
     print(f"Loading GLB: {glb_path}")
-    glb = pygltflib.GLTF2().load(str(glb_path))
+    glb = pygltflib.GLTF2().load_binary(str(glb_path))
     print(f"  {len(glb.nodes)} nodes  {len(glb.animations)} animations  {len(glb.buffers)} buffers")
 
     # --- Build bone map ---
@@ -499,11 +599,24 @@ def bake(
     if not bone_map:
         raise ValueError("No bones mapped. Check BVH and GLB bone name patterns.")
 
+    # --- Load GLB bind pose rotations for retargeting ---
+    # The GLB skeleton has non-identity bind pose rotations on many bones
+    # (e.g. LeftUpLeg ~180 degrees around Z). We must express animation as
+    # delta-from-GLB-bind, not raw BVH local rotations.
+    glb_bind_quats = _load_glb_bind_rotations(glb, bone_map)
+    non_identity = sum(
+        1 for q in glb_bind_quats.values() if np.linalg.norm(q - np.array([0, 0, 0, 1], dtype=np.float32)) > 0.01
+    )
+    print(f"GLB bind pose: {non_identity}/{len(glb_bind_quats)} bones have non-identity rotations")
+
     # --- Extract walk cycle (frames 31-134, 104 BVH frames) ---
     walk_range = range(_WALK_START, _WALK_END)
     print(f"\nExtracting walk cycle: frames {_WALK_START}-{_WALK_END - 1} ({len(walk_range)} frames)")
-    walk_quats_full = _extract_local_quats(motion, walk_range)
+    walk_quats_full, walk_bvh_bind = _extract_local_quats(motion, walk_range)
     walk_root_full = _extract_root_translations(motion, walk_range)
+
+    # Apply bind pose retargeting: convert BVH-space rotations to GLB-space
+    walk_quats_full = _retarget_quats(walk_quats_full, walk_bvh_bind, glb_bind_quats)
 
     # Subsample to _WALK_KEYFRAMES
     walk_sample_idx = _subsample_frames(len(walk_range), _WALK_KEYFRAMES)
@@ -527,7 +640,10 @@ def bake(
     # --- Extract idle pose (frames 31-60, 30 BVH frames) ---
     idle_range = range(_IDLE_START, _IDLE_END)
     print(f"\nExtracting idle pose: frames {_IDLE_START}-{_IDLE_END - 1} ({len(idle_range)} frames)")
-    idle_quats_full = _extract_local_quats(motion, idle_range)
+    idle_quats_full, idle_bvh_bind = _extract_local_quats(motion, idle_range)
+
+    # Apply bind pose retargeting for idle clip
+    idle_quats_full = _retarget_quats(idle_quats_full, idle_bvh_bind, glb_bind_quats)
 
     # Subsample to _IDLE_KEYFRAMES (use full range, 30 frames -> 30 keyframes directly)
     idle_sample_idx = _subsample_frames(len(idle_range), _IDLE_KEYFRAMES)
@@ -620,7 +736,7 @@ def bake(
     else:
         print(f"\nBackup already exists, skipping: {backup_path}")
 
-    glb.save(str(out_path))
+    glb.save_binary(str(out_path))
     out_size_mb = out_path.stat().st_size / 1_048_576
     print(f"Saved: {out_path}  ({out_size_mb:.2f} MB)")
 
@@ -640,7 +756,7 @@ def validate_saved_glb(out_path: Path) -> bool:
         True if validation passes, False otherwise.
     """
     print("\nReloading saved GLB for validation...")
-    glb = pygltflib.GLTF2().load(str(out_path))
+    glb = pygltflib.GLTF2().load_binary(str(out_path))
 
     all_ok = True
     for anim in glb.animations:
