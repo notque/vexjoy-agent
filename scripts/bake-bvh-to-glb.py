@@ -686,7 +686,7 @@ def bake(
         clip_name=_WALK_CLIP_NAME,
         timestamps=walk_timestamps,
         local_quats=walk_quats,
-        root_translations=walk_root,
+        root_translations=None,  # game code handles positioning; BVH root translation fights with it
         bone_map=bone_map,
     )
 
