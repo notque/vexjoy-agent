@@ -134,6 +134,7 @@ echo "Audit found ${TARGETS_COUNT} gap(s). Processing up to ${MAX_TARGETS}: ${TA
 export ENRICH_REPO_DIR="$REPO_DIR"
 export ENRICH_TARGETS="$TARGETS_TRIMMED"
 export ENRICH_DATE="$(date +%Y-%m-%d)"
+export ENRICH_RUN_ID="$(date +%Y-%m-%d-%H%M)"
 export ENRICH_MAX_TARGETS="$MAX_TARGETS"
 export ENRICH_DRY_RUN_MODE="no"
 if [ -z "$EXECUTE" ]; then
@@ -148,7 +149,7 @@ if [ ! -f "$PROMPT_TEMPLATE" ]; then
     exit 1
 fi
 
-PROMPT=$(envsubst '${ENRICH_REPO_DIR} ${ENRICH_TARGETS} ${ENRICH_DATE} ${ENRICH_MAX_TARGETS} ${ENRICH_DRY_RUN_MODE}' < "$PROMPT_TEMPLATE")
+PROMPT=$(envsubst '${ENRICH_REPO_DIR} ${ENRICH_TARGETS} ${ENRICH_DATE} ${ENRICH_RUN_ID} ${ENRICH_MAX_TARGETS} ${ENRICH_DRY_RUN_MODE}' < "$PROMPT_TEMPLATE")
 
 cd "$REPO_DIR"
 
