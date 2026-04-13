@@ -351,10 +351,15 @@ STOP and ask the user (get explicit confirmation) when:
 
 ## References
 
-For detailed information:
-- **Lightbox Patterns**: [references/lightbox-patterns.md](references/lightbox-patterns.md) - Complete lightbox implementation
-- **Image Optimization**: [references/image-optimization.md](references/image-optimization.md) - next/image best practices
-- **Responsive Design**: [references/responsive-design.md](references/responsive-design.md) - Breakpoints and mobile patterns
+Load reference files based on task signals:
+
+| Task Signal | Reference File |
+|-------------|---------------|
+| Lightbox, keyboard nav, swipe, overlay | [references/lightbox-patterns.md](references/lightbox-patterns.md) |
+| Image optimization, next/image, WebP, blur placeholder, LCP | [references/image-optimization.md](references/image-optimization.md) |
+| Responsive design, breakpoints, mobile, touch, fluid layout | [references/responsive-design.md](references/responsive-design.md) |
+| App Router, Server Component, Client Component, metadata, generateStaticParams | [references/next-app-router.md](references/next-app-router.md) |
+| SEO, structured data, JSON-LD, Open Graph, sitemap, social preview | [references/portfolio-seo.md](references/portfolio-seo.md) |
 
 **Shared Patterns**:
 - [anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md) - Universal rationalization patterns
