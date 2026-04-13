@@ -67,3 +67,20 @@ session-keyed in `/tmp`).
 
 The counter tracks only Edit and Write calls. Bash-heavy sessions accumulate
 context faster than the counter reflects — use judgment in those cases.
+
+---
+
+## Prompt Cache TTL and Auto-Compact Window
+
+Anthropic's prompt cache has a **5-minute TTL** (not 1 hour as originally expected).
+When conversations grow large, cache entries expire between turns and each API call
+reprocesses the full context at uncached token prices. Even with a 1M token context
+window, using the full window without cache hits is prohibitively expensive.
+
+**Recommendation:** Set `CLAUDE_CODE_AUTO_COMPACT_WINDOW=400000` in settings to
+trigger compaction earlier, keeping active context within the cache-friendly zone.
+This is configured in `.claude/settings.json` under `env`.
+
+Anthropic is aware of the cache miss frequency issue and exploring improvements.
+See [anthropics/claude-code#45756](https://github.com/anthropics/claude-code/issues/45756#issuecomment-4231739206)
+for details. Credit: [@bcherny](https://github.com/bcherny).
