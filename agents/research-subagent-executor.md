@@ -149,4 +149,11 @@ STOP and ask the user when:
 
 ## References
 
-See [research-execution-patterns.md](references/research-execution-patterns.md) for detailed OODA cycle examples and source quality assessment frameworks.
+Load reference files based on the task signals below:
+
+| Task Signal | Load This Reference |
+|------------|---------------------|
+| Budget calculation, OODA structure, tool selection, query optimization, diminishing returns | [research-execution-patterns.md](references/research-execution-patterns.md) |
+| Source credibility, speculation detection, epistemic labeling, citation quality | [source-quality-assessment.md](references/source-quality-assessment.md) |
+
+Load both files for full research tasks. Load only the relevant file for targeted sub-tasks.
