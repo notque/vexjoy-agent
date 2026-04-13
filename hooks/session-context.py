@@ -34,6 +34,12 @@ EVENT_NAME = "SessionStart"
 # Dream injection payload is considered fresh for 96 hours (covers full weekend + holiday Monday)
 DREAM_PAYLOAD_MAX_AGE_HOURS = 96
 
+# Dream payload character cap. Current max observed: 5536 chars (2026-04-13).
+# 7000 provides ~27% headroom before the cap activates.
+# When the cap is hit, the payload is truncated at the last complete markdown heading
+# boundary to preserve structural integrity.
+DREAM_PAYLOAD_MAX_CHARS = 7000
+
 # Dream report notice is surfaced if dream ran within the last 24 hours
 DREAM_REPORT_MAX_AGE_HOURS = 24
 
@@ -68,7 +74,21 @@ def inject_dream_payload(cwd: str) -> str:
             return ""
 
         content = payload_file.read_text().strip()
-        return sanitize_for_context(content) if content else ""
+        if not content:
+            return ""
+
+        sanitized = sanitize_for_context(content)
+
+        # Enforce character cap: truncate at the last complete markdown heading boundary.
+        if len(sanitized) > DREAM_PAYLOAD_MAX_CHARS:
+            truncated = sanitized[:DREAM_PAYLOAD_MAX_CHARS]
+            # Walk back to the last heading line (## or ###) to avoid mid-section cuts.
+            last_heading = max(truncated.rfind("\n## "), truncated.rfind("\n### "))
+            if last_heading > 0:
+                truncated = truncated[:last_heading]
+            return truncated
+
+        return sanitized
 
     except Exception:
         return ""

@@ -1647,6 +1647,13 @@ def run_optimization_loop(
     _validate_task_set(all_tasks)
     train_tasks, test_tasks = split_tasks(all_tasks, train_split)
 
+    if not train_tasks:
+        raise ValueError(
+            "train_tasks is empty — all tasks are labeled split=test or train_split=0.0. "
+            "The optimization loop needs training examples to evaluate variants. "
+            "Add split=train to at least one task, or increase --train-split above 0.0."
+        )
+
     # Warn and fall back to sequential when --parallel-eval is used with non-behavioral tasks.
     is_all_behavioral = all(_is_behavioral_task(t) for t in all_tasks)
     effective_parallel_eval = parallel_eval
