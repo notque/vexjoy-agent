@@ -28,6 +28,7 @@ Exit codes:
 import argparse
 import json
 import re
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -483,6 +484,27 @@ def main() -> int:
     force_routed = sum(1 for _, e in all_named if e.get("force_route"))
     print(f"\nWith explicit triggers: {with_explicit}")
     print(f"Force-routed: {force_routed}")
+
+    # Post-generation drift gate: warn when routing-tables.md falls out of sync.
+    # Only runs for the default output (skills/INDEX.json); skips local override indexes.
+    if args.output is None:
+        drift_script = Path(__file__).parent / "check-routing-drift.py"
+        if drift_script.exists():
+            drift_result = subprocess.run(
+                [sys.executable, str(drift_script)],
+                capture_output=True,
+                text=True,
+            )
+            if drift_result.returncode != 0:
+                print(
+                    "\nWARNING: routing-tables.md is out of sync with the new INDEX.json.",
+                    file=sys.stderr,
+                )
+                print(drift_result.stdout.strip(), file=sys.stderr)
+                print(
+                    "Update skills/do/references/routing-tables.md before committing.",
+                    file=sys.stderr,
+                )
 
     if collisions:
         print(f"\nCompleted with {len(collisions)} trigger collision(s)", file=sys.stderr)
