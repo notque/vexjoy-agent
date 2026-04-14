@@ -103,6 +103,7 @@ Select the perspective matching the review focus, then load its reference file.
 | **Contrarian** | [references/contrarian.md](reviewer-perspectives/references/contrarian.md) | Challenge assumptions: premise validation, alternative discovery, lock-in detection |
 | **User Advocate** | [references/user-advocate.md](reviewer-perspectives/references/user-advocate.md) | User impact: complexity vs value, learning curve, workflow disruption |
 | **Meta-Process** | [references/meta-process.md](reviewer-perspectives/references/meta-process.md) | System design: SPOFs, indispensability, authority concentration, reversibility |
+| **All Perspectives** | [references/review-detection-commands.md](reviewer-perspectives/references/review-detection-commands.md) | grep/rg detection commands for each perspective — load during VERIFY phase |
 
 ### Perspective Selection Guide
 
