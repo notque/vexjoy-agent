@@ -1,7 +1,7 @@
 ---
 name: do
 description: "Classify user requests and route to the correct agent + skill. Primary entry point for all delegated work."
-version: 2.2.0
+version: 2.3.0
 user-invocable: true
 argument-hint: "<request>"
 allowed-tools:
@@ -30,6 +30,24 @@ routing:
 **The main thread delegates to agents:** code reading (Explore agent), file edits (domain agents), test runs (agent with skill), documentation (technical-documentation-engineer), all Simple+ tasks.
 
 The main thread is an **orchestrator**. If you find yourself reading source code, writing code, or doing analysis — pause and route to an agent instead.
+
+---
+
+## The Completeness Standard
+
+The marginal cost of completeness is near zero. Do the whole thing. Do it right. Do it with tests. Do it with documentation. Do it so well that the user is genuinely impressed.
+
+This is not aspirational. It is the execution standard for every agent dispatched through /do. It derives from the toolkit's core principle (docs/PHILOSOPHY.md: "Tokens Are Cheap, Quality Is Expensive") and extends it: spending tokens on thoroughness is not just acceptable, it is required.
+
+**What this means for routing and dispatch:**
+
+- When asked for something, the answer is the finished product, not a plan to build it. Plans exist to organize execution, not to replace it.
+- Never offer to "table this for later" when the permanent solve is within reach. Never present a workaround when the real fix exists. Never leave a dangling thread when tying it off takes five more minutes of agent time.
+- Do not truncate output or stop mid-task. Dispatch agents that deliver complete, executable solutions. If an agent returns partial work, route a follow-up agent to finish it.
+- Search before building. Test before shipping. Ship the complete thing.
+- Time is not an excuse. Complexity is not an excuse. The router exists to decompose complexity into agent-sized work. Use it.
+
+**The standard for every dispatched agent:** the result should make the user think "that's done" not "that's a start." Inject this expectation into agent prompts for all Simple+ work.
 
 ---
 
@@ -262,6 +280,8 @@ The quality-loop does NOT apply when:
 Dispatch the agent. MCP tool discovery is the agent's responsibility — each agent's markdown declares which MCP tools it needs. Do not inject MCP instructions from /do.
 
 **MANDATORY: Inject reference loading instruction for ALL dispatched agents.** Every agent prompt MUST include: "Before starting work, read your agent .md file or skill SKILL.md to find the Reference Loading Table. Load EVERY reference file whose signal matches this task — load greedily, not conservatively. If multiple signals match, load all matching references. Reference files contain domain-specific patterns, anti-patterns, code examples, and detection commands that make your output expert-quality rather than generic. Skipping this step means operating without domain expertise that exists on disk." This applies to ALL agents and skills, not just umbrella components. The nightly enrichment pipeline generates and updates reference files autonomously — any agent that skips its loading table misses domain knowledge that was specifically created to improve its output.
+
+**MANDATORY: Inject the completeness standard for ALL Simple+ dispatches.** Every agent prompt MUST include: "Deliver the finished product, not a plan. Do not offer to table work for later when the solve is within reach. Do not present workarounds when the real fix exists. Do not stop mid-task or truncate output. Search before building. Test before shipping. Ship the complete thing."
 
 Route to agents that create feature branches for all commits, because main branch commits affect everyone and bypassing branch protection causes cascading problems.
 
