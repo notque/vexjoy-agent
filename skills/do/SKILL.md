@@ -202,12 +202,13 @@ For Trivial: show `Classification: Trivial - [reason]` and `Handling directly (n
 ```bash
 python3 ~/.claude/scripts/learning-db.py record \
     routing "{selected_agent}:{selected_skill}" \
-    "request: {first_200_chars} | complexity: {complexity} | enhancements: {comma_separated_list}" \
-    --category routing-decision \
+    "routing-decision: agent={selected_agent} skill={selected_skill} request: {first_200_chars} complexity: {complexity} enhancements: {comma_separated_list}" \
+    --category effectiveness \
     --tags "{applicable_flags}"
 ```
 
 Tags: `auto-pipeline` (as applicable). This call is advisory — if it fails, continue.
+Valid categories: `error, pivot, review, design, debug, gotcha, effectiveness, misroute`. Use `effectiveness` for successful routing, `misroute` for reroutes.
 
 **Gate**: Agent and skill selected. Banner displayed. Routing decision recorded. Proceed to Phase 3.
 
@@ -313,8 +314,8 @@ When uncertain which route: **ROUTE ANYWAY.** Add verification-before-completion
 ```bash
 python3 ~/.claude/scripts/learning-db.py record \
     routing "{selected_agent}:{selected_skill}" \
-    "{existing_value} | tool_errors: {0|1} | user_rerouted: {0|1}" \
-    --category routing-decision
+    "routing-decision: agent={selected_agent} skill={selected_skill} tool_errors: {0|1} user_rerouted: {0|1}" \
+    --category effectiveness
 ```
 
 Record only observable facts (tool_errors, user_rerouted) — routing outcome quality is measured by user reroutes, not self-assessment.

@@ -541,7 +541,7 @@ def cmd_roi(args: argparse.Namespace) -> None:
 def cmd_route_stats(args: argparse.Namespace) -> None:
     """Display routing decision statistics."""
     init_db()
-    results = query_learnings(topic="routing", category="routing-decision", limit=10000, exclude_graduated=False)
+    results = query_learnings(topic="routing", category="effectiveness", limit=10000, exclude_graduated=False)
 
     if not results:
         print("No routing data found. Run sessions with /do to capture routing decisions.")
