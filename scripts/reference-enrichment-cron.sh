@@ -36,8 +36,12 @@ MAX_TARGETS="${MAX_TARGETS:-1}"
 DAILY_BUDGET_CAP="${DAILY_BUDGET_CAP:-0}"
 EXECUTE=""
 
-# Cleanup function: release lock FD and remove lockfile on any exit
+# Cleanup function: release lock FD, remove stale worktree, and remove lockfile on any exit
 cleanup() {
+    if [ -n "${ENRICH_WORKTREE:-}" ] && [ -d "$ENRICH_WORKTREE" ]; then
+        cd "$REPO_DIR" 2>/dev/null || true
+        git worktree remove "$ENRICH_WORKTREE" --force 2>/dev/null || true
+    fi
     exec 9>&- 2>/dev/null
     rm -f "$LOCKFILE"
 }
@@ -142,6 +146,24 @@ if [ -z "$EXECUTE" ]; then
     echo "Dry-run mode: audit only, no reference files will be created"
 fi
 
+# Fetch latest remote main (safe: does not touch working tree)
+echo "Fetching latest remote main..."
+git fetch origin main
+echo "Remote main at $(git rev-parse --short origin/main)"
+
+# Prune stale worktrees left by prior crashes
+git worktree prune 2>/dev/null || true
+
+# Create temporary worktree for isolated enrichment work
+ENRICH_WORKTREE="/tmp/enrichment-worktree-${ENRICH_RUN_ID}"
+git worktree add "$ENRICH_WORKTREE" origin/main 2>/dev/null || {
+    # If worktree already exists, remove and recreate
+    git worktree remove "$ENRICH_WORKTREE" --force 2>/dev/null || true
+    git worktree add "$ENRICH_WORKTREE" origin/main
+}
+export ENRICH_WORKTREE
+echo "Worktree created at $ENRICH_WORKTREE (based on origin/main)"
+
 # Build the prompt from template using envsubst
 PROMPT_TEMPLATE="$REPO_DIR/skills/reference-enrichment/enrichment-prompt.md"
 if [ ! -f "$PROMPT_TEMPLATE" ]; then
@@ -149,9 +171,19 @@ if [ ! -f "$PROMPT_TEMPLATE" ]; then
     exit 1
 fi
 
-PROMPT=$(envsubst '${ENRICH_REPO_DIR} ${ENRICH_TARGETS} ${ENRICH_DATE} ${ENRICH_RUN_ID} ${ENRICH_MAX_TARGETS} ${ENRICH_DRY_RUN_MODE}' < "$PROMPT_TEMPLATE")
+PROMPT=$(envsubst '${ENRICH_REPO_DIR} ${ENRICH_TARGETS} ${ENRICH_DATE} ${ENRICH_RUN_ID} ${ENRICH_MAX_TARGETS} ${ENRICH_DRY_RUN_MODE} ${ENRICH_WORKTREE}' < "$PROMPT_TEMPLATE")
 
-cd "$REPO_DIR"
+# Clean up local branches from merged/closed enrichment PRs
+for branch in $(git branch --list 'enrich/*' 2>/dev/null); do
+    # Check if the branch's PR was merged or closed
+    pr_state=$(gh pr list --head "$branch" --state all --json state --jq '.[0].state // "NONE"' 2>/dev/null)
+    if [[ "$pr_state" == "MERGED" || "$pr_state" == "CLOSED" ]]; then
+        echo "Cleaning up stale branch: $branch (PR state: $pr_state)"
+        git branch -D "$branch" 2>/dev/null || true
+    fi
+done
+
+cd "$ENRICH_WORKTREE"
 
 set +e
 claude -p "$PROMPT" \
@@ -163,6 +195,11 @@ claude -p "$PROMPT" \
     2>&1 | tee "$LOG_DIR/run-$(date +%Y%m%d-%H%M%S).log"
 EXIT_CODE=${PIPESTATUS[0]}
 set -e
+
+# Clean up temporary worktree
+echo "Cleaning up worktree..."
+cd "$REPO_DIR"
+git worktree remove "$ENRICH_WORKTREE" --force 2>/dev/null || true
 
 echo ""
 echo "=== Reference Enrichment complete: $(date -Iseconds) | exit: $EXIT_CODE ==="

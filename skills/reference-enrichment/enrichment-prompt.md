@@ -29,7 +29,13 @@ Print a summary and exit.
 
 1. Check for existing open enrichment PRs: `gh pr list --search "enrich/refs" --state open --json number | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d))"`
 2. If 5 or more enrichment PRs are already open, log "Too many open enrichment PRs (>=5), skipping to avoid accumulation" and exit
-3. Create a feature branch: `git checkout -b enrich/refs-${ENRICH_RUN_ID}`
+3. For each target in the targets list, check for an existing enrichment PR for that specific agent/skill:
+   `gh pr list --search "enrich/refs" --state open --json title --jq '[.[] | select(.title | test("{name}"))] | length'`
+   If any exist, skip that target — it already has pending enrichment work.
+4. You are running inside a git worktree based on the latest origin/main. Verify you are NOT on the main branch of the primary checkout:
+   - Run `git log --oneline -1` to confirm you're at the expected HEAD
+   - Run `pwd` to confirm you're in the worktree path (should contain /tmp/enrichment-worktree)
+5. Create a feature branch: `git checkout -b enrich/refs-${ENRICH_RUN_ID}`
 
 ### Phase 2: Enrich Each Target
 
@@ -83,7 +89,7 @@ This gate prevents reference bloat — only references that add concrete, signal
    - PR title should describe WHAT was enriched, not just the date
    - PR body should include: targets processed, level before/after for each, list of new reference files
    - The `--auto` flag merges once CI passes — no human review needed for reference-only changes
-5. Switch back to main: `git checkout main`
+5. Do NOT run `git checkout main` — you are in a worktree and the primary checkout owns the main branch.
 
 ## Safety Constraints
 
