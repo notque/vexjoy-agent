@@ -36,8 +36,12 @@ MAX_TARGETS="${MAX_TARGETS:-1}"
 DAILY_BUDGET_CAP="${DAILY_BUDGET_CAP:-0}"
 EXECUTE=""
 
-# Cleanup function: release lock FD and remove lockfile on any exit
+# Cleanup function: release lock FD, remove stale worktree, and remove lockfile on any exit
 cleanup() {
+    if [ -n "${ENRICH_WORKTREE:-}" ] && [ -d "$ENRICH_WORKTREE" ]; then
+        cd "$REPO_DIR" 2>/dev/null || true
+        git worktree remove "$ENRICH_WORKTREE" --force 2>/dev/null || true
+    fi
     exec 9>&- 2>/dev/null
     rm -f "$LOCKFILE"
 }
@@ -142,6 +146,14 @@ if [ -z "$EXECUTE" ]; then
     echo "Dry-run mode: audit only, no reference files will be created"
 fi
 
+# Fetch latest remote main (safe: does not touch working tree)
+echo "Fetching latest remote main..."
+git fetch origin main
+echo "Remote main at $(git rev-parse --short origin/main)"
+
+# Prune stale worktrees left by prior crashes
+git worktree prune 2>/dev/null || true
+
 # Create temporary worktree for isolated enrichment work
 ENRICH_WORKTREE="/tmp/enrichment-worktree-${ENRICH_RUN_ID}"
 git worktree add "$ENRICH_WORKTREE" origin/main 2>/dev/null || {
@@ -160,11 +172,6 @@ if [ ! -f "$PROMPT_TEMPLATE" ]; then
 fi
 
 PROMPT=$(envsubst '${ENRICH_REPO_DIR} ${ENRICH_TARGETS} ${ENRICH_DATE} ${ENRICH_RUN_ID} ${ENRICH_MAX_TARGETS} ${ENRICH_DRY_RUN_MODE} ${ENRICH_WORKTREE}' < "$PROMPT_TEMPLATE")
-
-# Fetch latest remote main (safe: does not touch working tree)
-echo "Fetching latest remote main..."
-git fetch origin main
-echo "Remote main at $(git rev-parse --short origin/main)"
 
 # Clean up local branches from merged/closed enrichment PRs
 for branch in $(git branch --list 'enrich/*' 2>/dev/null); do
