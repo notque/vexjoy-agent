@@ -33,7 +33,6 @@ LOG_DIR="$REPO_DIR/cron-logs/reference-enrichment"
 LOCKFILE="/tmp/reference-enrichment.lock"
 MAX_BUDGET="${MAX_BUDGET_USD:-5.00}"
 MAX_TARGETS="${MAX_TARGETS:-1}"
-DAILY_BUDGET_CAP="${DAILY_BUDGET_CAP:-0}"
 EXECUTE=""
 
 # Cleanup function: release lock FD, remove stale worktree, and remove lockfile on any exit
@@ -72,19 +71,7 @@ echo "=== Reference Enrichment run: $TIMESTAMP ==="
 
 MODE="dry-run"
 [ -n "$EXECUTE" ] && MODE="live"
-DAILY_CAP_LABEL="\$${DAILY_BUDGET_CAP}"
-[ "$DAILY_BUDGET_CAP" = "0" ] && DAILY_CAP_LABEL="unlimited"
-echo "Mode: $MODE | Budget: \$${MAX_BUDGET} | Max targets: ${MAX_TARGETS} | Daily cap: ${DAILY_CAP_LABEL}"
-
-# Daily budget guard: count today's runs and estimate spend
-DAILY_SPEND_FILE="$LOG_DIR/.daily-runs-$(date +%Y%m%d)"
-RUNS_TODAY=$(cat "$DAILY_SPEND_FILE" 2>/dev/null || echo "0")
-ESTIMATED_DAILY_SPEND=$(echo "$RUNS_TODAY * $MAX_BUDGET" | bc 2>/dev/null || echo "0")
-if [ "$DAILY_BUDGET_CAP" != "0" ] && [ "$(echo "$ESTIMATED_DAILY_SPEND >= $DAILY_BUDGET_CAP" | bc 2>/dev/null)" = "1" ]; then
-    echo "$(date -Iseconds) SKIP: daily budget cap reached (\$${ESTIMATED_DAILY_SPEND}/\$${DAILY_BUDGET_CAP} after ${RUNS_TODAY} runs)"
-    exit 0
-fi
-echo "Daily spend: \$${ESTIMATED_DAILY_SPEND}/${DAILY_CAP_LABEL} (${RUNS_TODAY} runs today)"
+echo "Mode: $MODE | Budget: \$${MAX_BUDGET} | Max targets: ${MAX_TARGETS}"
 
 # Guard: check for too many open enrichment PRs (prevents accumulation — ADR consultation concern #2)
 MAX_OPEN_PRS="${MAX_OPEN_PRS:-5}"
@@ -187,8 +174,6 @@ if [ "$EXIT_CODE" -eq 0 ]; then
     echo "Enrichment completed successfully for: $TARGETS_TRIMMED"
 fi
 
-# Increment daily run counter
-echo "$(( RUNS_TODAY + 1 ))" > "$DAILY_SPEND_FILE"
 
 # Ensure we're back on main after enrichment (enrich/* branch may have been left active)
 cd "$REPO_DIR"
