@@ -76,7 +76,7 @@ Users can override depth at any time during routing or execution:
 | "full pipeline" | Escalate to Level 3 (Pipeline) |
 | "start over deeper" | Abandon current work, restart at specified level |
 
-The escape hatch exists because the user has context the router lacks. When a user overrides, record the override in `learning.db` via `routing-decision` category with tag `user-depth-override` — this feeds future routing accuracy.
+The escape hatch exists because the user has context the router lacks. When a user overrides, record the override in `learning.db` via `effectiveness` category with tag `user-depth-override` — this feeds future routing accuracy.
 
 ---
 

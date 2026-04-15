@@ -112,7 +112,7 @@ Each agent receives the briefing data from Step 1 and evaluates from a different
 
 | Agent | Perspective | What it looks for |
 |-------|------------|-------------------|
-| **The User** | Analyzes learning.db for unmatched routing requests (`python3 scripts/learning-db.py query --category routing-decision`), error patterns, and requests that had no agent match. "What did users ask for that we couldn't handle?" |
+| **The User** | Analyzes learning.db for unmatched routing requests (`python3 scripts/learning-db.py search "routing decision" --limit 20`), error patterns, and requests that had no agent match. "What did users ask for that we couldn't handle?" |
 | **The Operator** | Examines the active projects (check git repos in `~/`) for repeated manual workflows that could be skills. "What am I doing by hand that should be automated?" |
 | **The Strategist** | Uses the csuite skill's EVALUATION mode thinking: what decision-support, content, or process skills would make the owner more effective? Reads `skills/csuite/SKILL.md` for framework. "What high-leverage skills are we missing?" |
 | **The Community** | Web-searches for what people are building and requesting in AI coding communities (Claude Code GitHub issues, Reddit, X/Twitter). "What does the market want?" |
@@ -168,12 +168,13 @@ mkdir -p evolution-reports
 **Step 1: Query the learning database for recent failures and routing mismatches**
 
 ```bash
-python3 ~/.claude/scripts/learning-db.py search "routing decision mismatch reroute" --min-confidence 0.3 --limit 20
+python3 ~/.claude/scripts/learning-db.py search "routing decision" --min-confidence 0.0 --limit 20
+python3 ~/.claude/scripts/learning-db.py search "routing gap mismatch reroute" --min-confidence 0.3 --limit 20
 python3 ~/.claude/scripts/learning-db.py search "error pattern failure bug" --min-confidence 0.3 --limit 20
 python3 ~/.claude/scripts/learning-db.py search "skill gap missing improvement" --min-confidence 0.3 --limit 20
 ```
 
-Look for: recurring failures, routing mismatches where the user had to reroute, skills that consistently underperform, error patterns without automated fixes.
+Look for: routing decision patterns (first query, low threshold since effectiveness entries start at 0.5-0.6 confidence), recurring routing failures and mismatches, skills that consistently underperform, error patterns without automated fixes.
 
 **Step 2: Scan recent git history for patterns**
 
