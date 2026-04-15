@@ -238,10 +238,12 @@ STOP and ask the user (get explicit confirmation) before proceeding when:
 
 ## References
 
-For detailed Peewee patterns:
-- **Peewee Model Patterns**: Field types, relationships, meta options
-- **Query Optimization**: Prefetch, join_lazy, select_related patterns
-- **Migration Guide**: Playhouse migrate, data migrations, rollback
-- **SQLite Features**: JSON1, FTS5, pragmas, performance tuning
+Load the appropriate reference file when the task matches:
+
+| Task Type | Reference File | When to Load |
+|-----------|---------------|--------------|
+| N+1 queries, prefetch, joins, indexes | [references/query-optimization.md](references/query-optimization.md) | Any query performance work, loop + related access, `prefetch()` usage |
+| Schema changes, migrations, playhouse | [references/migrations.md](references/migrations.md) | Adding/removing/renaming columns, `playhouse.migrate`, data backfills |
+| WAL mode, FTS5, JSON1, pragmas, locks | [references/sqlite-features.md](references/sqlite-features.md) | Concurrency errors, full-text search, JSON storage, SQLite version checks |
 
 See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for output format details.
