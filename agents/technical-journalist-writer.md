@@ -360,8 +360,20 @@ STOP and ask the user when:
 
 ## References
 
-This agent pairs well with:
-- **voice-writer**: Unified voice content generation pipeline
-- **technical-documentation-engineer**: For technical accuracy validation
+### Loading Table
 
-See [voice-patterns.md](references/voice-patterns.md) for complete voice analysis with extensive examples.
+Load reference files on demand based on task signals:
+
+| Signal | Load | Why |
+|--------|------|-----|
+| Banned pattern present (`amazing`, `seamlessly`, persuasive framing) | `references/voice-patterns.md` | Detection commands and replacement patterns for banned voice violations |
+| Reviewing or auditing generated article tone | `references/voice-patterns.md` | Grep commands to find enthusiasm markers, vague abstractions, condescension |
+| Writing explainer, opinion, or analysis article | `references/article-structure-patterns.md` | Structure templates per article type, header and topic-sentence patterns |
+| Clickbait headers or missing topic sentences detected | `references/article-structure-patterns.md` | Anti-pattern detection and structural fixes |
+| Article contains statistics, version claims, or historical facts | `references/sourcing-and-claims.md` | Claim classification, inline citation patterns, inference-marking cheat sheet |
+| Verifying claims before article delivery | `references/sourcing-and-claims.md` | Detection commands for unsourced percentages, fake certainty, comparative claims |
+
+### Companion Agents and Skills
+
+- **voice-writer**: Unified voice content generation pipeline
+- **technical-documentation-engineer**: Technical accuracy validation
