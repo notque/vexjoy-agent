@@ -110,28 +110,6 @@ if [ "$TARGETS_COUNT" -eq 0 ]; then
     exit 0
 fi
 
-# Completion journal: skip targets already enriched today
-COMPLETION_JOURNAL="$LOG_DIR/.completions-$(date +%Y%m%d)"
-touch "$COMPLETION_JOURNAL"
-TARGETS_TRIMMED=$(echo "$TARGETS_TRIMMED" | python3 -c "
-import json, sys
-targets = json.load(sys.stdin)
-journal = set()
-try:
-    with open('$COMPLETION_JOURNAL') as f:
-        journal = {line.strip() for line in f if line.strip()}
-except FileNotFoundError:
-    pass
-filtered = [t for t in targets if t not in journal]
-print(json.dumps(filtered))
-")
-TARGETS_COUNT=$(echo "$TARGETS_TRIMMED" | python3 -c "import json,sys; print(len(json.load(sys.stdin)))")
-
-if [ "$TARGETS_COUNT" -eq 0 ]; then
-    echo "$(date -Iseconds) All targets already completed today (see $COMPLETION_JOURNAL). Exiting cleanly."
-    exit 0
-fi
-
 echo "Audit found ${TARGETS_COUNT} gap(s). Processing up to ${MAX_TARGETS}: ${TARGETS_TRIMMED}"
 
 # Build envsubst variables
@@ -206,11 +184,7 @@ echo "=== Reference Enrichment complete: $(date -Iseconds) | exit: $EXIT_CODE ==
 
 # Record completed targets in journal (only on success)
 if [ "$EXIT_CODE" -eq 0 ]; then
-    echo "$TARGETS_TRIMMED" | python3 -c "
-import json, sys
-for name in json.load(sys.stdin):
-    print(name)
-" >> "$COMPLETION_JOURNAL"
+    echo "Enrichment completed successfully for: $TARGETS_TRIMMED"
 fi
 
 # Increment daily run counter
