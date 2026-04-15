@@ -377,11 +377,21 @@ STOP and ask the user when:
 | Multiple API versions | Version-specific docs needed | "Which API version should I document? Maintain separate docs?" |
 | Unclear error semantics | Cannot document errors accurately | "What should error code X mean in this context?" |
 
+## Reference Loading
+
+Load the appropriate reference file when the task matches the signal:
+
+| Task Signal | Reference File | Covers |
+|-------------|---------------|--------|
+| Parameter tables, error tables, heading structure, prose style | `references/documentation-standards.md` | Google style guide standards, column order, 30-word endpoint descriptions |
+| Hallucinated params, type mismatches, untested examples, stale response examples | `references/api-doc-anti-patterns.md` | Verification anti-patterns with detection commands for each |
+| Runbook, incident response, troubleshooting guide, operational doc, deploy runbook | `references/runbook-patterns.md` | 5-section runbook format, command-first diagnosis, rollback requirements |
+
+Load ALL three files when writing documentation from scratch (each covers a different failure mode).
+
 ## References
 
 This agent pairs well with:
 - **verification-before-completion**: Validate documentation completeness
 - **golang-general-engineer**: For Go service documentation
 - **python-general-engineer**: For Python service documentation
-
-See [documentation-standards.md](references/documentation-standards.md) for complete style guide and quality benchmarks.
