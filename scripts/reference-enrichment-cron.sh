@@ -66,6 +66,9 @@ fi
 # Now that we hold the lock, register cleanup for any exit path
 trap cleanup EXIT
 
+# All git operations need to run from inside the repo
+cd "$REPO_DIR"
+
 TIMESTAMP="$(date -Iseconds)"
 echo "=== Reference Enrichment run: $TIMESTAMP ==="
 
