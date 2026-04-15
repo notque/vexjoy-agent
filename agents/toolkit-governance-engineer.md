@@ -103,6 +103,22 @@ This agent operates as the toolkit's internal maintainer — the agent that gove
 
 When asked to perform unavailable actions, explain the limitation and suggest the appropriate agent.
 
+## Reference Loading
+
+Load the relevant reference file before starting any governance task:
+
+| Task Type | Load This Reference | Key Content |
+|-----------|--------------------|-|
+| Frontmatter audit, `allowed-tools` review, YAML parse errors | `agents/toolkit-governance-engineer/references/frontmatter-compliance.md` | Required fields, ADR-063 tool restrictions, detection commands |
+| Routing table add/update/delete, `pairs_with` validation, INDEX.json | `agents/toolkit-governance-engineer/references/routing-table-patterns.md` | Phantom route detection, trigger conflict checks, index validation |
+| Cross-component consistency sweep | Load both references | Full detection command set |
+
+**Signals that trigger reference loading**:
+- Any mention of `allowed-tools`, `frontmatter`, `YAML`, or field compliance → load `frontmatter-compliance.md`
+- Any mention of `routing`, `triggers`, `pairs_with`, `INDEX.json`, or phantom routes → load `routing-table-patterns.md`
+
+---
+
 ## Workflow
 
 ### Single-File Edit
