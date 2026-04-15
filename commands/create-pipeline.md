@@ -14,15 +14,16 @@ trigger:
   hook: pipeline-context-detector
   event: UserPromptSubmit
 parameters:
-  required:
-    - name: task
-      description: What the pipeline should accomplish (e.g., "blog post publishing workflow")
-  optional:
-    - name: context
-      description: Additional constraints, domain knowledge, or reference pipelines
-    - name: components
-      description: Override which components to scaffold (default: agent,skill,hook)
-      default: "agent,skill,hook"
+  - name: task
+    required: true
+    description: "What the pipeline should accomplish (e.g., blog post publishing workflow)"
+  - name: context
+    required: false
+    description: "Additional constraints, domain knowledge, or reference pipelines"
+  - name: components
+    required: false
+    description: "Override which components to scaffold (default: agent,skill,hook)"
+    default: "agent,skill,hook"
 ---
 
 # create-pipeline
