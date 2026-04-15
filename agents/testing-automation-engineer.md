@@ -343,13 +343,24 @@ STOP and ask the user (get explicit confirmation) before proceeding when:
 - Whether to test implementation details (always no, but confirm)
 - Mock vs real external service (depends on test environment)
 
+## Reference Loading Table
+
+Load on demand based on task signals. Do not load all at once — load only what the current task requires.
+
+| Signal in Request | Load This Reference |
+|-------------------|---------------------|
+| "vitest", "vi.fn", "vi.mock", "coverage config", "spy", "jest to vitest", "fake timers" | `references/vitest-patterns.md` |
+| "async", "waitFor", "findBy", "MSW", "flaky test", "setTimeout in test", "userEvent" | `references/async-testing.md` |
+| "mock", "over-mocking", "what to mock", "MSW vs mock", "spyOn", "mock boundary" | `references/mocking-patterns.md` |
+| anti-patterns, "testing implementation details", "shared state", "assertion-free" | `testing-automation-engineer/anti-patterns.md` |
+
 ## References
 
 For detailed testing patterns and implementation examples:
-- **Vitest Configuration**: [testing-automation/vitest-config.md](testing-automation-engineer/vitest-config.md)
-- **Component Testing**: [testing-automation/component-testing.md](testing-automation-engineer/component-testing.md)
-- **E2E Testing**: [testing-automation/e2e-testing.md](testing-automation-engineer/e2e-testing.md)
-- **Pattern Guide**: [testing-automation/anti-patterns.md](testing-automation-engineer/anti-patterns.md)
+- **Vitest Patterns**: [references/vitest-patterns.md](testing-automation-engineer/references/vitest-patterns.md) — Vitest 1.x/2.x config, spy lifecycle, coverage thresholds, anti-patterns
+- **Async Testing**: [references/async-testing.md](testing-automation-engineer/references/async-testing.md) — waitFor, findBy*, MSW, Playwright auto-wait patterns
+- **Mocking Patterns**: [references/mocking-patterns.md](testing-automation-engineer/references/mocking-patterns.md) — mock boundary decisions, over-mocking detection, MSW vs vi.mock
+- **Anti-Patterns**: [testing-automation/anti-patterns.md](testing-automation-engineer/anti-patterns.md)
 - **Testing Anti-Rationalization**: [shared-patterns/anti-rationalization-testing.md](../skills/shared-patterns/anti-rationalization-testing.md)
 
 See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for Implementation Schema details.
