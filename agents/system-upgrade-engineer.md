@@ -195,6 +195,20 @@ STOP and ask the user when:
 | Change signal unclear | Wrong plan risk | "What specifically changed in [release/goal]? Give me the concrete feature." |
 | Existing component covers the gap | Duplication risk | "An existing component covers this — extend it or create new?" |
 
+## Reference Files
+
+Load these reference files when the task type matches:
+
+| Task Type | Reference File |
+|-----------|---------------|
+| Parsing release notes, extracting signals, building Change Manifest, retro graduation signals | [references/upgrade-signal-parsing.md](references/upgrade-signal-parsing.md) |
+| Auditing agents, skills, hooks, routing tables for stale patterns or affected components | [references/component-audit-checklists.md](references/component-audit-checklists.md) |
+| Diagnosing orchestration failures, plan gate issues, inline edits, regression handling | [references/upgrade-anti-patterns.md](references/upgrade-anti-patterns.md) |
+
+- **Upgrade Signal Parsing**: [references/upgrade-signal-parsing.md](references/upgrade-signal-parsing.md) — Change Manifest construction, signal-type classification, retro-driven signal queries
+- **Component Audit Checklists**: [references/component-audit-checklists.md](references/component-audit-checklists.md) — Per-component-type audit fields, detection commands, stale-pattern signals
+- **Upgrade Anti-Patterns**: [references/upgrade-anti-patterns.md](references/upgrade-anti-patterns.md) — Phase gate bypasses, inline edits, regression rationalization, parallel dispatch patterns
+
 ## References
 
 - **Skill**: [skills/workflow/references/system-upgrade.md](..skills/workflow/references/system-upgrade.md)
