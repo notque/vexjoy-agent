@@ -29,7 +29,15 @@ Print a summary and exit.
 
 1. Check for existing open enrichment PRs: `gh pr list --search "enrich/refs" --state open --json number | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d))"`
 2. If 5 or more enrichment PRs are already open, log "Too many open enrichment PRs (>=5), skipping to avoid accumulation" and exit
-3. Create a feature branch: `git checkout -b enrich/refs-${ENRICH_RUN_ID}`
+3. For each target in the targets list, check for an existing enrichment PR for that specific agent/skill:
+   `gh pr list --search "{name}" --label enrichment --state open --json number --jq 'length'`
+   If any exist, skip that target — it already has pending enrichment work.
+4. Sync local main with remote before branching:
+   ```
+   git checkout main
+   git pull origin main
+   ```
+5. Create a feature branch: `git checkout -b enrich/refs-${ENRICH_RUN_ID}`
 
 ### Phase 2: Enrich Each Target
 

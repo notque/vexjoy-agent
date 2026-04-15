@@ -151,7 +151,23 @@ fi
 
 PROMPT=$(envsubst '${ENRICH_REPO_DIR} ${ENRICH_TARGETS} ${ENRICH_DATE} ${ENRICH_RUN_ID} ${ENRICH_MAX_TARGETS} ${ENRICH_DRY_RUN_MODE}' < "$PROMPT_TEMPLATE")
 
+# Sync with remote main before branching to prevent stale-HEAD conflicts
+echo "Syncing with remote main..."
 cd "$REPO_DIR"
+git checkout main 2>/dev/null || true
+git fetch origin main
+git reset --hard origin/main
+echo "Local main synced to $(git rev-parse --short HEAD)"
+
+# Clean up local branches from merged/closed enrichment PRs
+for branch in $(git branch --list 'enrich/*' 2>/dev/null); do
+    # Check if the branch's PR was merged or closed
+    pr_state=$(gh pr list --head "$branch" --state all --json state --jq '.[0].state // "NONE"' 2>/dev/null)
+    if [[ "$pr_state" == "MERGED" || "$pr_state" == "CLOSED" ]]; then
+        echo "Cleaning up stale branch: $branch (PR state: $pr_state)"
+        git branch -D "$branch" 2>/dev/null || true
+    fi
+done
 
 set +e
 claude -p "$PROMPT" \
