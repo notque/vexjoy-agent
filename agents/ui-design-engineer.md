@@ -388,11 +388,16 @@ STOP and ask the user (always get explicit approval) before proceeding when:
 
 ## References
 
-For detailed information:
-- **Accessibility Patterns**: [references/accessibility-patterns.md](references/accessibility-patterns.md) - WCAG 2.1 AA compliance guide
-- **Design Tokens**: [references/design-tokens.md](references/design-tokens.md) - Tailwind theme configuration
-- **Component Library (Interactive)**: [references/component-library-interactive.md](references/component-library-interactive.md) - Buttons, inputs, modals, dropdowns, tabs, accordions, toasts, form controls
-- **Component Library (Display)**: [references/component-library-display.md](references/component-library-display.md) - Cards, tables, badges, avatars, progress indicators, alerts
+Load on demand — fetch only the file(s) relevant to the current task:
+
+| Task Type | Signal Keywords | Reference File |
+|-----------|----------------|----------------|
+| WCAG compliance, ARIA, keyboard nav, screen readers, focus management | accessibility, contrast, ARIA, keyboard, screen reader | [references/accessibility-patterns.md](references/accessibility-patterns.md) |
+| Design system, Tailwind theme, CSS variables, color scales, typography, dark mode | design tokens, theme, CSS variables, color palette, font scale | [references/design-tokens.md](references/design-tokens.md) |
+| Buttons, inputs, modals, dropdowns, tabs, accordions, toasts, form controls | button, input, modal, dropdown, tab, accordion, toast | [references/component-library-interactive.md](references/component-library-interactive.md) |
+| Cards, tables, badges, avatars, progress indicators, alerts | card, table, badge, avatar, progress, alert | [references/component-library-display.md](references/component-library-display.md) |
+| Tailwind configuration, class composition, purge issues, `@apply`, responsive prefixes, arbitrary values | Tailwind config, @apply, responsive, purge, JIT, arbitrary | [references/tailwind-anti-patterns.md](references/tailwind-anti-patterns.md) |
+| Framer Motion, CSS transitions, prefers-reduced-motion, exit animations, AnimatePresence, micro-interactions | animation, Framer Motion, transition, reduced motion, exit, AnimatePresence | [references/animation-patterns.md](references/animation-patterns.md) |
 
 **Shared Patterns**:
 - [anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md) - Universal rationalization patterns
