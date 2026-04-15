@@ -32,11 +32,9 @@ Print a summary and exit.
 3. For each target in the targets list, check for an existing enrichment PR for that specific agent/skill:
    `gh pr list --search "{name}" --label enrichment --state open --json number --jq 'length'`
    If any exist, skip that target — it already has pending enrichment work.
-4. Sync local main with remote before branching:
-   ```
-   git checkout main
-   git pull origin main
-   ```
+4. You are running inside a git worktree based on the latest origin/main. Verify you are NOT on the main branch of the primary checkout:
+   - Run `git log --oneline -1` to confirm you're at the expected HEAD
+   - Run `pwd` to confirm you're in the worktree path (should contain /tmp/enrichment-worktree)
 5. Create a feature branch: `git checkout -b enrich/refs-${ENRICH_RUN_ID}`
 
 ### Phase 2: Enrich Each Target

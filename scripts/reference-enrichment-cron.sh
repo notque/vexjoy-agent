@@ -142,6 +142,16 @@ if [ -z "$EXECUTE" ]; then
     echo "Dry-run mode: audit only, no reference files will be created"
 fi
 
+# Create temporary worktree for isolated enrichment work
+ENRICH_WORKTREE="/tmp/enrichment-worktree-${ENRICH_RUN_ID}"
+git worktree add "$ENRICH_WORKTREE" origin/main 2>/dev/null || {
+    # If worktree already exists, remove and recreate
+    git worktree remove "$ENRICH_WORKTREE" --force 2>/dev/null || true
+    git worktree add "$ENRICH_WORKTREE" origin/main
+}
+export ENRICH_WORKTREE
+echo "Worktree created at $ENRICH_WORKTREE (based on origin/main)"
+
 # Build the prompt from template using envsubst
 PROMPT_TEMPLATE="$REPO_DIR/skills/reference-enrichment/enrichment-prompt.md"
 if [ ! -f "$PROMPT_TEMPLATE" ]; then
@@ -149,15 +159,12 @@ if [ ! -f "$PROMPT_TEMPLATE" ]; then
     exit 1
 fi
 
-PROMPT=$(envsubst '${ENRICH_REPO_DIR} ${ENRICH_TARGETS} ${ENRICH_DATE} ${ENRICH_RUN_ID} ${ENRICH_MAX_TARGETS} ${ENRICH_DRY_RUN_MODE}' < "$PROMPT_TEMPLATE")
+PROMPT=$(envsubst '${ENRICH_REPO_DIR} ${ENRICH_TARGETS} ${ENRICH_DATE} ${ENRICH_RUN_ID} ${ENRICH_MAX_TARGETS} ${ENRICH_DRY_RUN_MODE} ${ENRICH_WORKTREE}' < "$PROMPT_TEMPLATE")
 
-# Sync with remote main before branching to prevent stale-HEAD conflicts
-echo "Syncing with remote main..."
-cd "$REPO_DIR"
-git checkout main 2>/dev/null || true
+# Fetch latest remote main (safe: does not touch working tree)
+echo "Fetching latest remote main..."
 git fetch origin main
-git reset --hard origin/main
-echo "Local main synced to $(git rev-parse --short HEAD)"
+echo "Remote main at $(git rev-parse --short origin/main)"
 
 # Clean up local branches from merged/closed enrichment PRs
 for branch in $(git branch --list 'enrich/*' 2>/dev/null); do
@@ -169,6 +176,8 @@ for branch in $(git branch --list 'enrich/*' 2>/dev/null); do
     fi
 done
 
+cd "$ENRICH_WORKTREE"
+
 set +e
 claude -p "$PROMPT" \
     --output-format text \
@@ -179,6 +188,11 @@ claude -p "$PROMPT" \
     2>&1 | tee "$LOG_DIR/run-$(date +%Y%m%d-%H%M%S).log"
 EXIT_CODE=${PIPESTATUS[0]}
 set -e
+
+# Clean up temporary worktree
+echo "Cleaning up worktree..."
+cd "$REPO_DIR"
+git worktree remove "$ENRICH_WORKTREE" --force 2>/dev/null || true
 
 echo ""
 echo "=== Reference Enrichment complete: $(date -Iseconds) | exit: $EXIT_CODE ==="
