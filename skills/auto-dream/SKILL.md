@@ -143,3 +143,8 @@ Load these references when the task matches the signal:
 | Updating `MEMORY.md` index, atomic write, `.tmp` rename | `references/memory-file-operations.md` |
 | Staleness detection, duplicate merging, conflict flagging | `references/memory-file-operations.md` |
 | YAML frontmatter structure, `merged_from`, memory file format | `references/memory-file-operations.md` |
+| Testing the dream cycle safely, dry-run validation, output file verification | `references/dream-cycle-testing.md` |
+| Inspecting graduation candidates, snapshot testing, PIPESTATUS in test wrappers | `references/dream-cycle-testing.md` |
+| Reading and interpreting cron run logs, detecting silent failures | `references/logging-patterns.md` |
+| Log rotation, log directory structure, phase completion markers in logs | `references/logging-patterns.md` |
+| `last-dream.md` stale, missing injection payload, cron log empty | `references/logging-patterns.md` |
