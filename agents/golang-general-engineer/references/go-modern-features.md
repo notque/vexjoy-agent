@@ -2,6 +2,16 @@
 
 > Reference file for golang-general-engineer agent. Loaded as context during Go development tasks.
 
+## Pre-Generics Era (Go 1.0 - 1.17)
+
+Key idioms introduced before generics that remain essential:
+
+| Feature | Idiom | Since |
+|---------|-------|-------|
+| `time.Since` | `time.Since(start)` not `time.Now().Sub(start)` | 1.0 |
+| `time.Until` | `time.Until(deadline)` not `deadline.Sub(time.Now())` | 1.8 |
+| `errors.Is` | `errors.Is(err, target)` not `err == target` (works with wrapped errors) | 1.13 |
+
 ## Go 1.18: Generics and Fuzzing
 
 **Generics** — type parameters for functions, types, and interfaces.
@@ -365,12 +375,53 @@ func BenchmarkMapLookup(b *testing.B) {
 }
 ```
 
+## Go 1.26: Extended new() and errors.AsType
+
+**Extended `new()` builtin** -- accepts expressions, not just types. Returns a pointer to a copy of the value.
+
+```go
+// OLD: variable + address-of
+timeout := 30
+debug := true
+cfg := Config{
+    Timeout: &timeout,
+    Debug:   &debug,
+}
+
+// NEW: new(val) returns pointer directly
+cfg := Config{
+    Timeout: new(30),   // *int
+    Debug:   new(true), // *bool
+}
+
+// Type is inferred: new(0) -> *int, new("s") -> *string, new(T{}) -> *T
+// Do NOT use redundant casts like new(int(0)) -- just write new(0)
+```
+
+**`errors.AsType[T]`** -- generic type assertion for errors, replacing `errors.As` with pointer dance.
+
+```go
+// OLD: declare target variable, pass pointer
+var pathErr *os.PathError
+if errors.As(err, &pathErr) {
+    handle(pathErr)
+}
+
+// NEW: generic, returns value and bool
+if pathErr, ok := errors.AsType[*os.PathError](err); ok {
+    handle(pathErr)
+}
+```
+
 ## Migration Checklist
 
 When upgrading a project to modern Go, apply these changes:
 
 | Old Pattern | New Pattern | Since |
 |---|---|---|
+| `time.Now().Sub(start)` | `time.Since(start)` | 1.0 |
+| `deadline.Sub(time.Now())` | `time.Until(deadline)` | 1.8 |
+| `err == target` | `errors.Is(err, target)` | 1.13 |
 | `interface{}` | `any` | 1.18 |
 | `atomic.AddInt64(&x, 1)` | `x.Add(1)` with `atomic.Int64` | 1.19 |
 | Custom multi-error | `errors.Join(errs...)` | 1.20 |
@@ -383,3 +434,5 @@ When upgrading a project to modern Go, apply these changes:
 | String dedup caches | `unique.Make(s)` | 1.23 |
 | Manual path sanitization | `os.OpenRoot(dir)` | 1.24 |
 | `time.Sleep` in tests | `testing/synctest` | 1.24 |
+| `x := val; &x` for pointer | `new(val)` | 1.26 |
+| `var t *T; errors.As(err, &t)` | `errors.AsType[*T](err)` | 1.26 |
