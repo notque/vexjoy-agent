@@ -50,6 +50,15 @@ python3 ~/.claude/scripts/bluesky_reader.py feed --handle HANDLE --cursor CURSOR
 - Searching a profile's posts for mentions of a topic
 - Feeding Bluesky content into a news or content pipeline
 
+## Reference Loading
+
+| Task type | Load this reference |
+|-----------|-------------------|
+| Endpoint details, data shapes, pagination | `references/at-protocol-api.md` |
+| Debugging fetch errors, wrong output, missing posts | `references/at-protocol-anti-patterns.md` |
+| Extending the script with new endpoints or search | `references/at-protocol-api.md` |
+| Code review of AT Protocol Python code | `references/at-protocol-anti-patterns.md` |
+
 ## Exit Codes
 
 | Code | Meaning |
