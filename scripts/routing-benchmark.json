@@ -158,18 +158,18 @@
     {
       "request": "fix the typo in main.go",
       "expected_agent": null,
-      "expected_skill": "fast",
+      "expected_skill": "quick",
       "category": "trivial-operations",
       "routing_tier": "candidate",
-      "notes": "Mechanical one-character fix — fast should appear in top-3 candidates. fast is force_route:true in INDEX but 'fix the typo' does not match any fast trigger phrase exactly."
+      "notes": "Mechanical one-character fix — quick should appear in top-3 candidates (absorbed fast skill per ADR-192). quick is force_route:true but 'fix the typo' does not match any trigger phrase exactly."
     },
     {
       "request": "rename this variable across the file",
       "expected_agent": null,
-      "expected_skill": "fast",
+      "expected_skill": "quick",
       "category": "trivial-operations",
       "routing_tier": "candidate",
-      "notes": "Trivial rename — fast should appear in top-3 candidates. 'rename this variable' does not match the multi-word trigger 'rename variable' (substring mismatch: 'rename variable' not in 'rename this variable across the file')."
+      "notes": "Trivial rename — quick should appear in top-3 candidates (absorbed fast skill per ADR-192). 'rename this variable' does not match the multi-word trigger 'rename variable' exactly."
     },
     {
       "request": "add a --verbose flag to the CLI",
