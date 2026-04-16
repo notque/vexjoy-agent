@@ -451,6 +451,19 @@ concerns.md and factor it into the verdict.
 
 ---
 
+## Reference Loading
+
+Load these reference files when the task matches the signal:
+
+| Signal | Load |
+|--------|------|
+| Dispatching agents, structuring Task calls | `references/consultation-patterns.md` |
+| Synthesizing verdicts, aggregating PROCEED/BLOCK/NEEDS_CHANGES | `references/consultation-patterns.md` |
+| Classifying concern severity, writing concerns.md | `references/consultation-patterns.md` |
+| Agent file missing, consultation incomplete, prior work overwritten | `references/consultation-anti-patterns.md` |
+| Rationalizing a blocking concern, treating NEEDS_CHANGES as PROCEED | `references/consultation-anti-patterns.md` |
+| Sequential dispatch detected, context-only synthesis | `references/consultation-anti-patterns.md` |
+
 ## References
 
 - [ADR: Multi-Agent Consultation](../../adr/multi-agent-consultation.md) — The architecture decision this skill implements
