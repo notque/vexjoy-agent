@@ -75,7 +75,7 @@ SAMPLE_PIPELINES_INDEX = {
     "version": "2.0",
     "pipelines": {
         "pr-pipeline": {
-            "file": "skills/workflow/references/pr-pipeline.md",
+            "file": "skills/pr-workflow/references/pipeline.md",
             "description": "Submit PR.",
             "triggers": ["submit PR", "create pull request", "push and PR"],
             "force_route": True,

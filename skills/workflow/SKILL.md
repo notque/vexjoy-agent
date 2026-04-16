@@ -37,8 +37,8 @@ Load the appropriate workflow reference based on the task.
 | **Code Review** | Systematic code review | `references/systematic-code-review.md` |
 | **Debugging** | Evidence-based debugging pipeline | `references/systematic-debugging.md` |
 | **Refactoring** | Safe refactoring with test gates | `references/systematic-refactoring.md` |
-| **Features** | End-to-end feature lifecycle | `references/feature-pipeline.md` |
-| **PR Workflow** | PR creation pipeline | `references/pr-pipeline.md` |
+| **Features** | End-to-end feature lifecycle | `skills/feature-lifecycle/references/pipeline.md` |
+| **PR Workflow** | PR creation pipeline | `skills/pr-workflow/references/pipeline.md` |
 | **Research** | Formal research with source gates | `references/research-pipeline.md` |
 | **Research** | Research to article pipeline | `references/research-to-article.md` |
 | **Content** | Voice content generation | `references/voice-writer.md` |

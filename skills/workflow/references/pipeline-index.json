@@ -280,7 +280,7 @@
       ]
     },
     "feature-pipeline": {
-      "file": "skills/workflow/references/feature-pipeline.md",
+      "file": "skills/feature-lifecycle/references/pipeline.md",
       "description": "End-to-end feature lifecycle pipeline coordinating design through release: DESIGN, PLAN, IMPLEMENT, VALIDATE, RELEASE, RECORD.",
       "triggers": [
         "build feature end to end",
@@ -516,7 +516,7 @@
       "model": "opus"
     },
     "pr-pipeline": {
-      "file": "skills/workflow/references/pr-pipeline.md",
+      "file": "skills/pr-workflow/references/pipeline.md",
       "description": "End-to-end pipeline for creating pull requests: Classify Repo, Stage, Review, Commit, Push, Review-Fix Loop (max 3), Create, Verify.",
       "triggers": [
         "submit PR",
