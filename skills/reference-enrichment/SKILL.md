@@ -3,7 +3,7 @@ name: reference-enrichment
 description: "Analyze agent/skill reference depth and generate missing domain-specific reference files."
 version: 1.0.0
 user-invocable: true
-argument-hint: "<agent-or-skill-name>"
+argument-hint: "<agent-or-skill-name> [--decompose]"
 allowed-tools:
   - Read
   - Write
@@ -19,6 +19,11 @@ routing:
     - "generate references"
     - "add reference files"
     - "reference enrichment"
+    - "decompose skill"
+    - "extract references"
+    - "slim down skill"
+    - "skill too long"
+    - "move content to references"
   category: meta-tooling
   complexity: medium
   pairs_with:
@@ -27,11 +32,69 @@ routing:
 
 # Reference Enrichment Skill
 
-Enrich an agent or skill's reference files from Level 0-2 to Level 3+. The pipeline runs five
-phases with explicit gates because each phase feeds the next — starting Phase 3 without Phase 2
-research produces filler, not depth.
+Enrich an agent or skill's reference files from Level 0-2 to Level 3+, or decompose bloated body
+files by extracting domain content into references. Enrichment adds knowledge; decomposition moves
+knowledge to where progressive disclosure says it belongs. The enrichment pipeline runs five phases
+with explicit gates because each phase feeds the next — starting Phase 3 without Phase 2 research
+produces filler, not depth.
 
 ## Workflow
+
+### Phase 0: DECOMPOSE
+
+**Goal**: Extract domain-heavy content from a bloated SKILL.md or agent body into reference files.
+
+**When to use**: When a component's body exceeds ~500 lines and contains catalogs, code examples, specification tables, or agent rosters that should live in `references/` per PHILOSOPHY.md's progressive disclosure architecture.
+
+**Trigger**: Invoke with `--decompose` argument, or when the request matches "decompose", "extract references", "slim down", "too long", or "move to references".
+
+1. Run the detection script to identify extractable content:
+   ```bash
+   python3 scripts/detect-decomposition-targets.py --skill {name}
+   ```
+   (or `--agent {name}`)
+
+2. If no extractable blocks found, report "nothing to decompose" and stop
+
+3. Save a snapshot of the original file: `cp {path} /tmp/decomp-before-{name}.md`
+
+4. For each extractable block identified by the detection script:
+   a. Read the content block and its surrounding context
+   b. Determine the best reference filename:
+      - Use the detection script's suggestion as a starting point
+      - If a reference file with related content already exists, MERGE into it
+      - Follow naming convention: `references/{topic}.md` (lowercase, hyphens)
+   c. Create or update the reference file following `references/reference-file-template.md`
+   d. Remove the content from the body (MOVE, not copy)
+   e. Add a loading table entry in the body that maps task signals to the new reference file
+
+5. Ensure the body retains:
+   - YAML frontmatter
+   - Brief overview paragraph
+   - Phase workflow (phases, gates, decision points)
+   - Loading table with entries for all reference files
+   - Error handling section
+   - References section
+
+6. Validate the decomposition:
+   ```bash
+   python3 scripts/validate-decomposition.py \
+       --before /tmp/decomp-before-{name}.md \
+       --after {path} \
+       --refs {refs_dir}/
+   ```
+
+7. If validation FAILS: restore from snapshot and report the failure. Do not proceed.
+
+8. If validation PASSES: run structural checks:
+   ```bash
+   python3 scripts/validate-references.py --skill {name}  # or --agent {name}
+   python3 scripts/audit-reference-depth.py --skill {name} --verbose  # or --agent {name}
+   ```
+
+**Gate**: Validation passes. Body line count reduced. All extracted content exists in reference files. Loading table entries exist for all new references.
+
+---
 
 ### Phase 1: DISCOVER
 
@@ -150,6 +213,7 @@ Load when the task type matches:
 |-----------|------|
 | Understanding Level 0-3 criteria | `references/quality-rubric.md` |
 | Creating new reference files | `references/reference-file-template.md` |
+| Decomposing bloated components | Run `python3 scripts/detect-decomposition-targets.py --skill {name}` first |
 
 ---
 
@@ -168,3 +232,8 @@ that section specifically.
 
 **validate-references.py not found**: Script may not exist for this component. Skip that check,
 proceed with `audit-reference-depth.py` as the sole Tier 1 gate.
+
+**Decomposition validation fails**: Content was lost during extraction. Restore from the
+snapshot at `/tmp/decomp-before-{name}.md`. Check that each extracted content block appears
+in a reference file. Common cause: a code block was partially extracted or a table was split
+across the body and a reference file.
