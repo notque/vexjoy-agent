@@ -46,7 +46,7 @@ def _run_main(stdin_payload: str, env: dict | None = None) -> int:
     """
     Invoke mod.main() in-process, capturing the exit code.
 
-    Returns the integer exit code (0 = allow, 2 = block).
+    Returns the integer exit code (0 = allow/deny via JSON, 2 = legacy block).
     """
     base_env = {k: v for k, v in os.environ.items() if k != "CONFIG_PROTECTION_BYPASS"}
     if env:
@@ -61,6 +61,42 @@ def _run_main(stdin_payload: str, env: dict | None = None) -> int:
             return 0
         except SystemExit as e:
             return int(e.code) if e.code is not None else 0
+
+
+def _is_blocked(stdin_payload: str, env: dict | None = None) -> bool:
+    """
+    Invoke mod.main() and check if the hook emitted a JSON deny decision.
+
+    The v2.0.0 hook uses JSON permissionDecision:deny on stdout (exit 0)
+    instead of the legacy exit(2) pattern.
+    """
+    import io
+    from contextlib import redirect_stdout
+
+    base_env = {k: v for k, v in os.environ.items() if k != "CONFIG_PROTECTION_BYPASS"}
+    if env:
+        base_env.update(env)
+
+    stdout_capture = io.StringIO()
+    with (
+        patch.dict(os.environ, base_env, clear=True),
+        patch.object(mod, "read_stdin", return_value=stdin_payload),
+        redirect_stdout(stdout_capture),
+    ):
+        try:
+            mod.main()
+        except SystemExit:
+            pass
+
+    output = stdout_capture.getvalue()
+    if not output.strip():
+        return False
+    try:
+        data = json.loads(output)
+        hook_output = data.get("hookSpecificOutput", data)
+        return hook_output.get("permissionDecision") == "deny"
+    except (json.JSONDecodeError, AttributeError):
+        return False
 
 
 # ---------------------------------------------------------------------------
@@ -226,60 +262,60 @@ class TestProtectedSetCompleteness:
 
 
 class TestWriteToolBlocked:
-    """Write tool targeting a protected config file must be blocked (exit 2)."""
+    """Write tool targeting a protected config file must be blocked (JSON deny)."""
 
     def test_write_eslintrc_js_blocked(self):
         payload = _make_event("Write", file_path=".eslintrc.js")
-        assert _run_main(payload) == 2
+        assert _is_blocked(payload)
 
     def test_write_eslintrc_js_full_path_blocked(self):
         payload = _make_event("Write", file_path="/project/.eslintrc.js")
-        assert _run_main(payload) == 2
+        assert _is_blocked(payload)
 
     def test_write_ruff_toml_blocked(self):
         payload = _make_event("Write", file_path="ruff.toml")
-        assert _run_main(payload) == 2
+        assert _is_blocked(payload)
 
     def test_write_golangci_yml_blocked(self):
         payload = _make_event("Write", file_path=".golangci.yml")
-        assert _run_main(payload) == 2
+        assert _is_blocked(payload)
 
     def test_write_biome_json_blocked(self):
         payload = _make_event("Write", file_path="biome.json")
-        assert _run_main(payload) == 2
+        assert _is_blocked(payload)
 
     def test_write_setup_cfg_blocked(self):
         payload = _make_event("Write", file_path="setup.cfg")
-        assert _run_main(payload) == 2
+        assert _is_blocked(payload)
 
     def test_write_prettierrc_blocked(self):
         payload = _make_event("Write", file_path=".prettierrc")
-        assert _run_main(payload) == 2
+        assert _is_blocked(payload)
 
 
 class TestEditToolBlocked:
-    """Edit tool targeting a protected config file must be blocked (exit 2)."""
+    """Edit tool targeting a protected config file must be blocked (JSON deny)."""
 
     def test_edit_eslintrc_blocked(self):
         payload = _make_event("Edit", file_path=".eslintrc")
-        assert _run_main(payload) == 2
+        assert _is_blocked(payload)
 
     def test_edit_golangci_toml_blocked(self):
         payload = _make_event("Edit", file_path=".golangci.toml")
-        assert _run_main(payload) == 2
+        assert _is_blocked(payload)
 
     def test_edit_markdownlint_json_blocked(self):
         payload = _make_event("Edit", file_path=".markdownlint.json")
-        assert _run_main(payload) == 2
+        assert _is_blocked(payload)
 
 
 class TestMultiEditToolBlocked:
-    """MultiEdit targeting any protected config file must be blocked (exit 2)."""
+    """MultiEdit targeting any protected config file must be blocked (JSON deny)."""
 
     def test_multiedit_single_protected_file_blocked(self):
         edits = [{"file_path": ".eslintrc.js", "old_string": "error", "new_string": "warn"}]
         payload = _make_event("MultiEdit", edits=edits)
-        assert _run_main(payload) == 2
+        assert _is_blocked(payload)
 
     def test_multiedit_mixed_files_blocked_if_any_protected(self):
         """If any edit in the list targets a protected file, the whole call is blocked."""
@@ -289,7 +325,7 @@ class TestMultiEditToolBlocked:
             {"file_path": "README.md", "old_string": "a", "new_string": "b"},
         ]
         payload = _make_event("MultiEdit", edits=edits)
-        assert _run_main(payload) == 2
+        assert _is_blocked(payload)
 
     def test_multiedit_all_safe_files_allowed(self):
         edits = [
@@ -306,7 +342,7 @@ class TestMultiEditToolBlocked:
     def test_multiedit_golangci_json_blocked(self):
         edits = [{"file_path": "/repo/.golangci.json", "old_string": "enable", "new_string": "disable"}]
         payload = _make_event("MultiEdit", edits=edits)
-        assert _run_main(payload) == 2
+        assert _is_blocked(payload)
 
 
 class TestAllowedSourceFiles:
@@ -371,33 +407,21 @@ class TestBypassMechanism:
     def test_bypass_value_zero_does_not_bypass(self):
         """Only '1' triggers the bypass — '0' must still block."""
         payload = _make_event("Write", file_path=".eslintrc.js")
-        assert _run_main(payload, env={"CONFIG_PROTECTION_BYPASS": "0"}) == 2
+        assert _is_blocked(payload, env={"CONFIG_PROTECTION_BYPASS": "0"})
 
     def test_bypass_value_true_does_not_bypass(self):
         """Only the exact string '1' triggers the bypass."""
         payload = _make_event("Write", file_path=".eslintrc.js")
-        assert _run_main(payload, env={"CONFIG_PROTECTION_BYPASS": "true"}) == 2
+        assert _is_blocked(payload, env={"CONFIG_PROTECTION_BYPASS": "true"})
 
 
 class TestTruncationSafety:
     """Oversized stdin must block rather than fail open."""
 
     def test_oversized_payload_blocks(self):
-        """A payload larger than _MAX_STDIN_BYTES must exit 2."""
-        # Generate a payload that just exceeds 1 MB
+        """A payload larger than _MAX_STDIN_BYTES must emit JSON deny."""
         oversized = "x" * (_MAX_STDIN_BYTES + 1)
-        with (
-            patch.dict(
-                os.environ, {k: v for k, v in os.environ.items() if k != "CONFIG_PROTECTION_BYPASS"}, clear=True
-            ),
-            patch.object(mod, "read_stdin", return_value=oversized),
-        ):
-            try:
-                mod.main()
-                result = 0
-            except SystemExit as e:
-                result = int(e.code) if e.code is not None else 0
-        assert result == 2
+        assert _is_blocked(oversized)
 
     def test_exactly_at_limit_is_allowed(self):
         """A payload exactly at _MAX_STDIN_BYTES bytes is valid JSON → process normally."""
