@@ -225,5 +225,16 @@ Solution:
 
 ## References
 
+### Loading Table
+
+| Task Type | Signal Keywords | Load |
+|-----------|----------------|------|
+| Implementing any pattern | "implement", "add retry", "write polling", "create backoff" | `implementation-patterns.md` |
+| Reviewing existing code | "review", "check for", "find issues", "audit", "detect" | `anti-patterns.md` |
+| Replacing `sleep()` in tests | "sleep", "flaky test", "CI hang", "test timeout" | `anti-patterns.md` |
+| Writing tests for retry/wait code | "test", "pytest", "mock", "verify retry", "unit test" | `testing-patterns.md` |
+
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/implementation-patterns.md`: Complete Python/Bash implementations for all patterns
+- `${CLAUDE_SKILL_DIR}/references/anti-patterns.md`: Detection commands and fixes for common wait/retry mistakes
+- `${CLAUDE_SKILL_DIR}/references/testing-patterns.md`: pytest patterns for testing polling, backoff, and circuit breaker code
