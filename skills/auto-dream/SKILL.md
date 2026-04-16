@@ -129,3 +129,17 @@ Note: schedule uses 2:07 AM (off-minute) per cron best practice — avoids load 
 - `tee` to timestamped per-run log file
 - Dry-run by default, `--execute` for live runs
 - Exit code propagation via `PIPESTATUS[0]`
+
+## Reference Loading
+
+Load these references when the task matches the signal:
+
+| Signal / Task | Reference File |
+|---------------|----------------|
+| Debugging failed cron run, silent failure, empty log, wrong exit code | `references/headless-cron-patterns.md` |
+| Setting up or modifying wrapper script (`flock`, `--permission-mode`, `envsubst`, `PIPESTATUS`) | `references/headless-cron-patterns.md` |
+| Budget cap, `--max-budget-usd`, unattended Claude invocation | `references/headless-cron-patterns.md` |
+| Writing, updating, or archiving memory files | `references/memory-file-operations.md` |
+| Updating `MEMORY.md` index, atomic write, `.tmp` rename | `references/memory-file-operations.md` |
+| Staleness detection, duplicate merging, conflict flagging | `references/memory-file-operations.md` |
+| YAML frontmatter structure, `merged_from`, memory file format | `references/memory-file-operations.md` |
