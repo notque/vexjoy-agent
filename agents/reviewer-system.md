@@ -1,12 +1,8 @@
 ---
-name: reviewer-system-playbook
+name: reviewer-system
 model: sonnet
 version: 1.0.0
-description: |
-  Playbook-enhanced variant of reviewer-system for A/B testing (ADR-160).
-  Applies prompt architecture patterns: constraints at point of failure,
-  numeric anchors, anti-rationalization STOP blocks, explicit output
-  contract, and adversarial verifier stance.
+description: "System-level review: security, concurrency, error handling, observability, API contracts"
 color: red
 routing:
   triggers:

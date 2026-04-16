@@ -1,12 +1,8 @@
 ---
-name: reviewer-code-playbook
+name: reviewer-code
 model: sonnet
 version: 1.0.0
-description: |
-  Playbook-enhanced variant of reviewer-code for A/B testing (ADR-160).
-  Applies prompt architecture patterns: constraints at point of failure,
-  numeric anchors, anti-rationalization at point of use, explicit output
-  contract, and verifier stance.
+description: "Code quality review: conventions, naming, dead code, performance, test coverage"
 color: green
 routing:
   triggers:

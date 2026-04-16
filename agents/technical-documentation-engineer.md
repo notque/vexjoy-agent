@@ -1,8 +1,8 @@
 ---
-name: technical-documentation-engineer-playbook
+name: technical-documentation-engineer
 model: sonnet
 version: 2.0.0
-description: "Technical documentation: API docs, system architecture, runbooks, enterprise standards. Playbook-enhanced with adversarial verification."
+description: "Technical documentation: API docs, system architecture, runbooks, enterprise standards"
 color: blue
 routing:
   triggers:
