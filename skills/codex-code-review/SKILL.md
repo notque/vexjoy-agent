@@ -29,7 +29,17 @@ routing:
 # Codex Code Review
 
 Invoke OpenAI's Codex CLI (GPT-5.4 with maximum reasoning effort) to get an
-independent second opinion on code changes. Claude orchestrates the review:
+independent second opinion on code changes.
+
+## Reference Loading
+
+Load these files when the corresponding signals appear:
+
+| Signal | Load |
+|--------|------|
+| Constructing or debugging `codex exec` command; flag errors; mktemp issues; model errors | `references/codex-cli-patterns.md` |
+| Classifying findings; adjusting severity; filtering Codex output; writing the report | `references/review-methodology.md` |
+| Looking up specific anti-patterns to verify; needs detection grep commands for Go/TS/Python | `references/code-anti-patterns.md` | Claude orchestrates the review:
 scoping what to review, constructing the prompt, invoking Codex in a read-only
 sandbox, then critically assessing the feedback before presenting it to the user.
 
