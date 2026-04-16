@@ -503,10 +503,27 @@ def query_learnings(
     project_path: str | None = None,
     session_id: str | None = None,
     exclude_graduated: bool = True,
+    exclude_test_sources: bool = True,
     order_by: str = "confidence DESC",
     limit: int = 50,
 ) -> list[dict]:
-    """Query learnings with filtering and ordering."""
+    """Query learnings with filtering and ordering.
+
+    Args:
+        topic: Filter by topic prefix.
+        category: Filter by category.
+        tags: Filter by tags (matches ANY).
+        min_confidence: Minimum confidence threshold.
+        project_path: Filter by project path (NULL or exact match).
+        session_id: Filter by session id.
+        exclude_graduated: If True, omit entries with a graduation target.
+        exclude_test_sources: If True (default), omit entries where source
+            starts with 'test'. This prevents test fixtures from leaking
+            into production session-context injection. Pass False to include
+            test-source rows (e.g. for auditing or purge scripts).
+        order_by: SQL ORDER BY clause (whitelisted).
+        limit: Maximum rows to return.
+    """
     init_db()
 
     conditions = ["confidence >= ?"]
@@ -526,6 +543,8 @@ def query_learnings(
         params.append(session_id)
     if exclude_graduated:
         conditions.append("graduated_to IS NULL")
+    if exclude_test_sources:
+        conditions.append("source NOT LIKE 'test%'")
 
     if tags:
         tag_clauses = []
