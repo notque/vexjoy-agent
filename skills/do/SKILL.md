@@ -229,7 +229,7 @@ Retro knowledge is auto-injected by the `session-context` hook at SessionStart v
 | "review" with 5+ files | Use parallel-code-review (3 reviewers) |
 | Complex implementation | Offer subagent-driven-development |
 
-Before stacking any enhancement, check the target skill's `pairs_with` field in `skills/INDEX.json`, because some skills have built-in verification gates that make stacking redundant or harmful. Specifically: empty `pairs_with: []` means no stacking allowed. Skills with built-in verification gates handle their own verification. The `fast` skill handles its own testing — stack only compatible enhancements.
+Before stacking any enhancement, check the target skill's `pairs_with` field in `skills/INDEX.json`, because some skills have built-in verification gates that make stacking redundant or harmful. Specifically: empty `pairs_with: []` means no stacking allowed. Skills with built-in verification gates handle their own verification. The `quick --trivial` mode handles its own testing — stack only compatible enhancements.
 
 **Auto-inject anti-rationalization** for these task types, because these categories are where shortcut rationalization causes the most damage:
 

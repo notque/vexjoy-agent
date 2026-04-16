@@ -1,9 +1,9 @@
 ---
 name: quick
-description: "Tracked lightweight execution with composable rigor flags: --discuss, --research, --full."
-version: 1.0.0
+description: "Tracked lightweight execution with composable rigor flags: --trivial, --discuss, --research, --full. Covers zero-ceremony inline fixes (≤3 edits) through contained multi-file changes."
+version: 1.1.0
 user-invocable: true
-argument-hint: "[--discuss] [--research] [--full] <task>"
+argument-hint: "[--trivial] [--discuss] [--research] [--full] <task>"
 allowed-tools:
   - Read
   - Write
@@ -22,20 +22,30 @@ routing:
     - add a flag
     - small refactor
     - targeted fix
-  pairs_with:
-    - fast
+    - quick fix
+    - typo fix
+    - fix typo
+    - fix the typo
+    - one-line change
+    - trivial fix
+    - rename variable
+    - rename this variable
+    - update value
+    - fix import
+  pairs_with: []
   complexity: Simple
   category: process
 ---
 
 # /quick - Tracked Lightweight Execution
 
-Quick fills the gap between zero-ceremony `/fast` (1-3 edits, no plan) and full-ceremony Simple+ (task_plan.md, agent routing, quality gates). The key design principle is **composable rigor**: the base mode is minimal (plan + execute), and users add process incrementally via flags rather than getting all-or-nothing ceremony.
+Quick covers the full lightweight tier from zero-ceremony inline fixes (≤3 edits, `--trivial` mode) through contained multi-file changes. Full-ceremony Simple+ tasks (task_plan.md, agent routing, quality gates) belong in `/do`. The key design principle is **composable rigor**: the base mode is minimal (plan + execute), and users add process incrementally via flags.
 
 **Flags** (all OFF by default):
 
 | Flag | Effect |
 |------|--------|
+| `--trivial` | Zero-ceremony inline mode for ≤3 file edits: no plan display, no branch, direct commit. Scope-gates strictly — escalates automatically if the task needs more than 3 edits. Use for typo fixes, one-line constant changes, renaming a variable, fixing an import. |
 | `--discuss` | Add a pre-planning discussion phase to resolve ambiguities |
 | `--research` | Add a research phase before planning to build context on unfamiliar code |
 | `--full` | Add plan verification + full quality gates (tests, lint, diff review) |
@@ -43,6 +53,72 @@ Quick fills the gap between zero-ceremony `/fast` (1-3 edits, no plan) and full-
 | `--no-commit` | Skip the commit step (for batching multiple quick tasks) |
 
 ## Instructions
+
+### Phase --trivial: INLINE EXECUTION (only with --trivial flag)
+
+When `--trivial` is passed (or the router recognises a clearly one-line mechanical change), execute inline without plan display, without a feature branch, and without spawning subagents — because the overhead of those steps dwarfs the actual work.
+
+**Step 1: Read CLAUDE.md**
+
+Read repository CLAUDE.md before any edit, because repo-specific constraints affect how even trivial changes should be made.
+
+**Step 2: Scope check**
+
+| Question | If Yes |
+|----------|--------|
+| Does this need reading docs, investigating behavior, or understanding unfamiliar code? | Drop `--trivial`, redirect to `/quick --research` |
+| Does this touch more than 3 files? | Drop `--trivial`, redirect to standard `/quick` |
+| Does this add imports from new packages or modify dependency files? | Drop `--trivial`, redirect to standard `/quick` |
+| Is the request ambiguous or underspecified? | Ask one clarifying question; if still ambiguous after one round, drop `--trivial` and use `/quick --discuss` |
+
+If redirecting, say: `This task exceeds --trivial scope ([reason]). Continuing as /quick.` Then proceed to Phase 0 with the original request.
+
+**Step 3: Locate target files and execute**
+
+Read the target file(s). Make edits using the Edit tool. Track edit count. After each edit, check: have we hit 3 edits? If more are needed, stop — do not rationalize "just one more edit":
+
+```
+Scope exceeded during --trivial execution (3+ edits needed). Preserving work done.
+Continuing as /quick.
+```
+
+Hand off to the standard quick phases with context about what was already done.
+
+**Step 4: Check branch**
+
+If on main/master, create a short-lived branch first because even trivial changes get branches:
+```bash
+git checkout -b quick/<brief-description>
+```
+
+**Step 5: Stage and commit**
+
+```bash
+git add <specific-files>
+git commit -m "$(cat <<'EOF'
+<type>: <description>
+EOF
+)"
+```
+
+Use conventional commit format. Type is usually `fix:`, `chore:`, or `refactor:`.
+
+**Step 6: Display summary**
+
+```
+===================================================================
+ QUICK --trivial: <description>
+===================================================================
+
+ Files edited: <N>
+ Commit: <hash> on <branch>
+
+===================================================================
+```
+
+**GATE**: Edit count is 1-3, commit succeeded. STOP — do not proceed to Phase 0.
+
+---
 
 ### Phase 0: SETUP
 
@@ -90,7 +166,7 @@ Wait for user response. Do not proceed until ambiguities are resolved.
 
 ### Phase 2: RESEARCH (only with --research flag)
 
-This phase activates when the user passes `--research` or the task touches code that needs investigation. Use `--research` when touching unfamiliar code because confidence about code behavior is not the same as correctness -- `/fast` exists for when you truly know.
+This phase activates when the user passes `--research` or the task touches code that needs investigation. Use `--research` when touching unfamiliar code because confidence about code behavior is not the same as correctness — `--trivial` exists for when you truly know.
 
 **Step 1: Identify scope**
 
@@ -266,7 +342,7 @@ Append the new task:
 | YYYY-MM-DD | <task-id> | <description> | <short-hash> | <branch> | quick | done |
 ```
 
-If the task was escalated from `/fast`, note the tier as `fast->quick`.
+If the task was escalated from `--trivial` mode (scope exceeded 3 edits), note the tier as `trivial->quick`.
 
 **Step 2: Display summary**
 
@@ -308,12 +384,12 @@ User says: `/quick --research fix the timeout bug in auth middleware`
 2. PLAN: change timeout value in config, update middleware to use it (2 edits)
 3. EXECUTE, COMMIT, LOG
 
-**Example 3: Escalated from Fast**
+**Example 3: Escalated from --trivial**
 
-`/fast` hit 3-edit limit while fixing a bug across 5 files.
-1. Quick picks up with context: "Continuing from /fast -- 3 files already edited"
+`/quick --trivial` hit 3-edit limit while fixing a bug across 5 files.
+1. Quick picks up with context: "Continuing from --trivial -- 3 files already edited"
 2. PLAN: remaining 2 files to edit
-3. EXECUTE remaining edits, COMMIT all changes, LOG as tier `fast->quick`
+3. EXECUTE remaining edits, COMMIT all changes, LOG as tier `trivial->quick`
 
 **Example 4: Full Rigor**
 
