@@ -148,3 +148,7 @@ Load these references when the task matches the signal:
 | Reading and interpreting cron run logs, detecting silent failures | `references/logging-patterns.md` |
 | Log rotation, log directory structure, phase completion markers in logs | `references/logging-patterns.md` |
 | `last-dream.md` stale, missing injection payload, cron log empty | `references/logging-patterns.md` |
+| Concurrent dream runs, lockfile already held, duplicate cron invocations | `references/concurrency.md` |
+| `MEMORY.md.tmp` left behind, partial write recovery, atomic rename failure | `references/concurrency.md` |
+| `database is locked`, SQLite WAL mode, `busy_timeout`, concurrent DB access | `references/concurrency.md` |
+| `local changes would be overwritten`, git stash before GRADUATE branch switch | `references/concurrency.md` |
