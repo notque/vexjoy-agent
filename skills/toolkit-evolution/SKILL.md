@@ -56,55 +56,13 @@ This is the nightly sibling of `auto-dream`. Auto-dream (2:07 AM) consolidates m
 - `--discover` flag is passed explicitly, OR
 - It has been 30+ days since the last discovery run
 
-Check the last discovery run date:
-
-```bash
-# Find the most recent discovery report
-latest=$(ls -t evolution-reports/discovery-*.md 2>/dev/null | head -1)
-if [ -z "$latest" ]; then
-  echo "NO_PREVIOUS_DISCOVERY"
-else
-  # Extract date from filename: discovery-YYYY-MM-DD.md
-  report_date=$(basename "$latest" | sed 's/discovery-//;s/\.md//')
-  days_ago=$(( ($(date +%s) - $(date -d "$report_date" +%s)) / 86400 ))
-  echo "Last discovery: $report_date ($days_ago days ago)"
-  [ "$days_ago" -ge 30 ] && echo "DISCOVER_DUE" || echo "DISCOVER_SKIPPED"
-fi
-```
+Check the last discovery run date using the frequency check command from `references/diagnose-scripts.md` § Discovery Frequency Check.
 
 If neither condition is met, skip directly to Phase 1.
 
 **Step 1: Gather briefing data**
 
-Collect current toolkit state to brief all perspective agents with the same baseline:
-
-```bash
-# Skill count and category distribution
-python3 -c "
-import json
-with open('skills/INDEX.json') as f:
-    idx = json.load(f)
-skills = idx.get('skills', {})
-print(f'Total skills: {len(skills)}')
-categories = {}
-for s, meta in skills.items():
-    cat = meta.get('category', 'uncategorized')
-    categories[cat] = categories.get(cat, 0) + 1
-for cat, count in sorted(categories.items(), key=lambda x: -x[1]):
-    print(f'  {cat}: {count}')
-"
-
-# Agent count
-python3 -c "
-import json
-with open('agents/INDEX.json') as f:
-    idx = json.load(f)
-agents = idx.get('agents', {})
-print(f'Total agents: {len(agents)}')
-for a in sorted(agents):
-    print(f'  {a}')
-"
-```
+Collect current toolkit state using the briefing data commands from `references/diagnose-scripts.md` § DISCOVER Step 1. Brief all 5 perspective agents with the same baseline.
 
 **Step 2: Dispatch 5 perspective agents in parallel**
 
@@ -167,133 +125,41 @@ mkdir -p evolution-reports
 
 **Step 1: Query the learning database for recent failures and routing mismatches**
 
-```bash
-python3 ~/.claude/scripts/learning-db.py search "routing decision" --min-confidence 0.0 --limit 20
-python3 ~/.claude/scripts/learning-db.py search "routing gap mismatch reroute" --min-confidence 0.3 --limit 20
-python3 ~/.claude/scripts/learning-db.py search "error pattern failure bug" --min-confidence 0.3 --limit 20
-python3 ~/.claude/scripts/learning-db.py search "skill gap missing improvement" --min-confidence 0.3 --limit 20
-```
+Run the 4 search queries from `references/diagnose-scripts.md` § DIAGNOSE Step 1.
 
 Look for: routing decision patterns (first query, low threshold since effectiveness entries start at 0.5-0.6 confidence), recurring routing failures and mismatches, skills that consistently underperform, error patterns without automated fixes.
 
 **Step 2: Scan recent git history for patterns**
 
-```bash
-# Frequent fixes to same areas suggest chronic issues
-git log --oneline --since="2 weeks ago" | head -40
-
-# Files changed most frequently (churn = potential problems)
-git log --since="2 weeks ago" --pretty=format: --name-only | sort | uniq -c | sort -rn | head -20
-```
+Run the git history commands from `references/diagnose-scripts.md` § DIAGNOSE Step 2.
 
 **Step 3: Check auto-dream reports for accumulated insights**
 
-```bash
-ls -t ~/.claude/state/dream-* 2>/dev/null | head -5
-# Read the most recent dream report for synthesized insights
-```
+Run the dream report check from `references/diagnose-scripts.md` § DIAGNOSE Step 3, then read the most recent dream-analysis file.
 
 If dream reports exist, read the latest one -- it contains cross-session patterns and graduation candidates that may point to improvement opportunities.
 
+**Step 3b: Cross-validate dream insights against current state**
+
+Before treating any dream insight as a proposal signal, verify it still reflects the current repo. Dream reports can be days old; the toolkit moves fast. Use the cross-validation commands from `references/diagnose-scripts.md` § DIAGNOSE Step 3b.
+
+Mark an insight as STALE if: (a) it names a file that no longer exists, OR (b) it claims recent activity but `git log` shows nothing in the past 7 days. Exclude STALE insights from the opportunity list.
+
 **Step 4: Check routing-table drift**
 
-Skills present in `skills/INDEX.json` but absent from `skills/do/references/routing-tables.md` represent a documentation gap — the router can find them via index but they are invisible to any process that consults the reference docs. This gap has been missed in two consecutive cycles before being manually caught. Detect it programmatically:
-
-```bash
-python3 -c "
-import json, re
-with open('skills/INDEX.json') as f:
-    idx = json.load(f)
-index_skills = set(idx.get('skills', {}).keys())
-
-with open('skills/do/references/routing-tables.md') as f:
-    table_text = f.read()
-
-missing = [s for s in sorted(index_skills) if s not in table_text]
-if missing:
-    print(f'{len(missing)} skill(s) in INDEX.json absent from routing-tables.md:')
-    for s in missing:
-        print(f'  {s}')
-else:
-    print('routing-tables.md is in sync with INDEX.json')
-"
-```
+Skills present in `skills/INDEX.json` but absent from `skills/do/references/routing-tables.md` represent a documentation gap — the router can find them via index but they are invisible to any process that consults the reference docs. This gap has been missed in two consecutive cycles before being manually caught. Run the routing-drift check from `references/diagnose-scripts.md` § DIAGNOSE Step 4.
 
 Any skill absent from routing-tables.md is a candidate improvement opportunity — especially new skills added in the past two weeks.
 
 **Step 4b: Check for orphaned ADR session files**
 
-A stale `.adr-session.json` referencing a non-existent ADR file will block all `skills/` edits via the synthesis gate mid-cycle. Detect this at Phase 1 start rather than discovering it as a blocker later:
-
-```bash
-if [ -f ".adr-session.json" ]; then
-  adr_id=$(python3 -c "
-import json, sys
-try:
-    d = json.load(open('.adr-session.json'))
-    print(d.get('adr_id', d.get('id', 'unknown')))
-except Exception as e:
-    print('PARSE_ERROR')
-")
-  adr_file="adr/ADR-${adr_id}.md"
-  if [ "$adr_id" = "PARSE_ERROR" ]; then
-    echo "WARNING: .adr-session.json exists but is unparseable -- flag as cleanup opportunity"
-  elif [ ! -f "$adr_file" ]; then
-    echo "WARNING: .adr-session.json references ADR-${adr_id} but $adr_file does not exist"
-    echo "  Orphaned session file. Add 'Remove orphaned .adr-session.json' to the opportunity list."
-  else
-    echo "ADR session OK: ADR-${adr_id} exists at $adr_file"
-  fi
-else
-  echo "No active ADR session file (OK)"
-fi
-```
+A stale `.adr-session.json` referencing a non-existent ADR file will block all `skills/` edits via the synthesis gate mid-cycle. Detect this at Phase 1 start rather than discovering it as a blocker later. Run the orphaned session check from `references/diagnose-scripts.md` § DIAGNOSE Step 4b.
 
 If an orphaned session is found, flag it as a cleanup opportunity in Step 6. Do not remove it automatically -- flag it so the user can confirm before deletion.
 
 **Step 4c: Scan for registered stub hooks**
 
-A stub hook is registered in settings.json but does nothing (body calls `empty_output()` or contains a `DISABLED` marker). Stubs waste a hook slot and fire on every matching event while returning empty output. They accumulate silently without this check.
-
-```bash
-python3 -c "
-import json, os, re
-from pathlib import Path
-
-settings_path = Path('.claude/settings.json')
-if not settings_path.exists():
-    print('No .claude/settings.json found -- skip hook stub audit')
-else:
-    with open(settings_path) as f:
-        settings = json.load(f)
-    hooks = settings.get('hooks', {})
-    stubs = []
-    for event, groups in hooks.items():
-        for group in (groups if isinstance(groups, list) else [groups]):
-            entries = group.get('hooks', [group]) if isinstance(group, dict) else [group]
-            for entry in entries:
-                cmd = entry.get('command', '') if isinstance(entry, dict) else str(entry)
-                m = re.search(r'python3 [\"\\x27]?([\\w/.\$~-]+\\.py)[\"\\x27]?', cmd)
-                if not m:
-                    continue
-                script = m.group(1).replace('\$HOME', str(Path.home()))
-                script = os.path.expandvars(script)
-                if not os.path.exists(script):
-                    continue
-                with open(script) as sf:
-                    body = sf.read()
-                if 'DISABLED' in body or 'empty_output()' in body:
-                    desc = entry.get('description', '(no description)') if isinstance(entry, dict) else ''
-                    stubs.append((event, os.path.basename(script), desc))
-    if stubs:
-        print(f'{len(stubs)} stub hook(s) registered in settings.json:')
-        for ev, name, desc in stubs:
-            print(f'  [{ev}] {name} -- {desc}')
-        print('  Add stub deregistration to the opportunity list.')
-    else:
-        print('No stub hooks found (OK)')
-"
-```
+A stub hook is registered in settings.json but does nothing (body calls `empty_output()` or contains a `DISABLED` marker). Stubs waste a hook slot and fire on every matching event while returning empty output. They accumulate silently without this check. Run the stub hook audit from `references/diagnose-scripts.md` § DIAGNOSE Step 4c.
 
 Flag any stub hook as a cleanup opportunity in Step 6. Do not deregister automatically -- document the stub so the BUILD phase handles it deliberately.
 
@@ -501,95 +367,29 @@ Mark each implementation as WIN or LOSS.
 
 **Step 1: Handle winners (WIN status)**
 
-For each winning implementation, create a PR, run pr-review, and merge:
+For each winning implementation, create a PR using the template from `references/evolve-scripts.md` § Step 1 (fill in proposal details, consensus score, and A/B win rate), then merge using the merge command in the same reference.
 
-```bash
-git push -u origin feat/evolve-{proposal-slug}
-gh pr create \
-  --title "feat: {short description of improvement}" \
-  --body "## Summary
-- Evolution cycle proposal: {proposal description}
-- Consensus score: {score} (Pragmatist: {rating}, Purist: {rating}, User Advocate: {rating})
-- A/B result: {win rate}% improvement across {N} test cases
-
-## Changes
-{list of specific changes}
-
-## Test Results
-| Test Case | Baseline | Candidate | Delta |
-|-----------|----------|-----------|-------|
-| ... | ... | ... | ... |
-
-## Evolution Cycle
-This PR was generated and validated by the toolkit-evolution skill."
-```
-
-After creating the PR, run pr-review to validate, then merge:
-
-```bash
-# Review the PR (catches issues the A/B test may have missed)
-# Use the pr-workflow skill's review capability
-gh pr merge {pr-number} --squash --delete-branch
-```
+After creating the PR, run pr-review to validate, then merge.
 
 The multi-persona critique + A/B testing gate is the review. If a proposal passed both with STRONG consensus and WIN status, it has been validated more rigorously than most human reviews. Auto-merge is safe because the validation happened before this step, not after.
 
 **Step 1b: Clean up the feature branch after merge**
 
-`gh pr merge ... --squash --delete-branch` handles branch deletion when gh auth is available. As a paranoid safeguard, verify the remote branch is gone:
-
-```bash
-# Verify remote branch was removed (or remove it manually if still present)
-BRANCH_NAME="feat/evolve-{proposal-slug}"
-if git ls-remote --heads origin "$BRANCH_NAME" | grep -q "$BRANCH_NAME"; then
-  git push origin --delete "$BRANCH_NAME" && echo "Remote branch deleted: $BRANCH_NAME" \
-    || echo "WARNING: could not delete remote branch $BRANCH_NAME -- delete manually"
-else
-  echo "Remote branch already cleaned up: $BRANCH_NAME"
-fi
-```
-
-Also clean up any stranded remote evolution branches from cycles where gh auth was unavailable and PRs were never created:
-
-```bash
-# Find remote evolution branches older than 14 days that were never merged
-git fetch --prune origin 2>/dev/null
-git branch -r --merged origin/main | grep "origin/feat/evolve-" | while read branch; do
-  remote="${branch#origin/}"
-  git push origin --delete "$remote" 2>/dev/null && echo "Cleaned up merged branch: $remote" || true
-done
-```
+`gh pr merge ... --squash --delete-branch` handles branch deletion when gh auth is available. As a paranoid safeguard, verify the remote branch is gone and clean up any stranded evolution branches using the cleanup commands from `references/evolve-scripts.md` § Step 1b.
 
 **Step 2: Handle losers (LOSS status)**
 
-Record what was tried and why it failed:
-
-```bash
-python3 ~/.claude/scripts/learning-db.py learn \
-  --topic "evolution-result" \
-  "Failed proposal: {description}. Hypothesis: {what we expected}. Result: {what happened}. Lesson: {what we learned}."
-```
+Record what was tried and why it failed using the failure template from `references/evolve-scripts.md` § Step 2.
 
 Failed experiments are valuable data -- they prevent the same idea from being re-proposed in future cycles.
 
 **Step 3: Record the full cycle**
 
-```bash
-python3 ~/.claude/scripts/learning-db.py learn \
-  --topic "evolution-cycle" \
-  "toolkit-evolution cycle: {N} proposals evaluated, {M} built, {W} winners, {L} losses. Top win: {description}. Focus: {area or 'general'}."
-```
+Record using the full cycle template from `references/evolve-scripts.md` § Step 3.
 
 **Step 4: Write evolution report**
 
-Write a dated report using the template in `references/evolution-report-template.md`:
-
-```bash
-# Write to project-local evolution-reports directory (gitignored)
-# Path: evolution-reports/evolution-report-{YYYY-MM-DD}.md
-```
-
-Read the template, fill in all sections with data from this cycle, and write the report.
+Write the dated report to `evolution-reports/evolution-report-{YYYY-MM-DD}.md` using the template in `references/evolution-report-template.md`. See setup command in `references/evolve-scripts.md` § Step 4.
 
 **Gate**: Winners merged. Learnings recorded for all proposals (wins and losses). Evolution report written. Cycle complete.
 
@@ -618,6 +418,19 @@ python3 ~/.claude/scripts/crontab-manager.py add \
 ```
 
 Schedule uses 3:07 AM (off-minute per cron best practice, 1 hour after auto-dream). Budget set to $5.00 per run.
+
+---
+
+## Reference Loading
+
+Load these reference files when the task matches the signal:
+
+| Signal | Load |
+|--------|------|
+| Running Phase 0 DISCOVER (frequency check, briefing data commands needed) | `references/diagnose-scripts.md` |
+| Running Phase 1 DIAGNOSE (Steps 1-4c commands needed) | `references/diagnose-scripts.md` |
+| Running Phase 6 EVOLVE (PR template, merge, cleanup, learning DB commands) | `references/evolve-scripts.md` |
+| Writing or reading the evolution report | `references/evolution-report-template.md` |
 
 ---
 
