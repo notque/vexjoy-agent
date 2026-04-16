@@ -463,6 +463,9 @@ Load these reference files when the task matches the signal:
 | Agent file missing, consultation incomplete, prior work overwritten | `references/consultation-anti-patterns.md` |
 | Rationalizing a blocking concern, treating NEEDS_CHANGES as PROCEED | `references/consultation-anti-patterns.md` |
 | Sequential dispatch detected, context-only synthesis | `references/consultation-anti-patterns.md` |
+| Agent times out, empty file, output written to wrong path | `references/error-handling.md` |
+| concerns.md has blocking severity but synthesis says PROCEED | `references/error-handling.md` |
+| ADR changed between dispatch and synthesis, cross-cutting concern visible only in combination | `references/error-handling.md` |
 
 ## References
 
