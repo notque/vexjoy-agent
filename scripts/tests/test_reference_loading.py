@@ -1,15 +1,25 @@
-"""Pytest suite validating progressive disclosure reference loading for agents.
+"""Pytest suite validating progressive disclosure reference loading for agents and skills.
 
-Five test categories:
+Five agent test categories:
 1. Reference Loading Table Completeness — every reference file has a table entry and vice-versa
 2. Keyword-to-Reference Mapping Validation — query keywords resolve to correct reference files
 3. Reference File Size Compliance — all reference files under 500 lines (warn at 400)
 4. Joy-Check Spot Validation — flag negative framing in reference file headings
 5. Cross-Agent Reference Isolation — no agent references files from another agent's directory
+
+Two skill test categories (Categories 6-7):
+6. Skill Reference File Size Compliance — all skills/*/references/**/*.md under 500 lines
+7. Skill Reference File Existence — every skills/ directory can be discovered and scanned
+
+--strict flag behavior:
+  Default (warn mode): oversized skill reference files produce hard failures so violations
+  are visible in CI. Use SKILL_REFS_STRICT=0 env var to downgrade to xfail for gradual rollout.
+  The intent is that all 32 pre-existing violations fail immediately so they cannot grow further.
 """
 
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -23,6 +33,11 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 AGENTS_DIR = REPO_ROOT / "agents"
+SKILLS_DIR = REPO_ROOT / "skills"
+
+# When SKILL_REFS_STRICT=0, pre-existing oversized skill files are xfail instead of hard-fail.
+# Default is strict (hard-fail) so CI catches violations immediately.
+_SKILL_REFS_STRICT: bool = os.environ.get("SKILL_REFS_STRICT", "1") != "0"
 
 REFERENCE_LINE_WARN = 400
 REFERENCE_LINE_LIMIT = 500
@@ -644,3 +659,213 @@ class TestCrossAgentReferenceIsolation:
                     pass
 
         assert not violations, "Cross-agent reference isolation violated:\n" + "\n".join(f"  - {v}" for v in violations)
+
+
+# ---------------------------------------------------------------------------
+# Skill reference helpers
+# ---------------------------------------------------------------------------
+
+
+def _collect_all_skill_reference_files() -> list[Path]:
+    """Collect every .md file under any skill's references/ directory, recursively.
+
+    Skills may have nested sub-directories inside references/ (e.g.
+    go-patterns/references/sapcc-conventions/). All .md files at any depth
+    are included so that deeply nested oversized files are caught.
+
+    Returns:
+        Sorted list of Path objects for every .md file under skills/*/references/.
+    """
+    files: list[Path] = []
+    if not SKILLS_DIR.exists():
+        return files
+    for skill_dir in sorted(SKILLS_DIR.iterdir()):
+        if not skill_dir.is_dir():
+            continue
+        refs_dir = skill_dir / "references"
+        if refs_dir.exists():
+            files.extend(sorted(refs_dir.rglob("*.md")))
+    return files
+
+
+def _skill_ref_file_id(p: Path) -> str:
+    """Return a short test ID for a skill reference file path.
+
+    Args:
+        p: Path to the skill reference file.
+
+    Returns:
+        String relative to the skills/ directory, e.g.
+        ``anti-ai-editor/references/detection-patterns.md`` or
+        ``go-patterns/references/sapcc-conventions/sapcc-code-patterns.md``.
+    """
+    try:
+        return str(p.relative_to(SKILLS_DIR))
+    except ValueError:
+        return p.name
+
+
+def _collect_skills_with_references() -> list[str]:
+    """Return skill names (directory stems) that have a references/ subdirectory.
+
+    Returns:
+        Sorted list of skill name strings.
+    """
+    if not SKILLS_DIR.exists():
+        return []
+    return sorted(
+        skill_dir.name
+        for skill_dir in SKILLS_DIR.iterdir()
+        if skill_dir.is_dir() and (skill_dir / "references").exists()
+    )
+
+
+ALL_SKILL_REFERENCE_FILES: list[Path] = _collect_all_skill_reference_files()
+
+# Pre-existing oversized skill reference files (ADR-190 Finding 4).
+# These files violate the 500-line limit and are tracked here so that:
+#   - In strict mode (default): tests HARD-FAIL to make violations visible in CI.
+#   - In warn mode (SKILL_REFS_STRICT=0): tests xfail to allow gradual remediation.
+# Do NOT add new files here. Fix the file instead. Remove entries as files are decomposed.
+_KNOWN_OVERSIZED_SKILL_REFS: set[str] = {
+    "anti-ai-editor/references/detection-patterns.md",
+    "condition-based-waiting/references/implementation-patterns.md",
+    "distinctive-frontend-design/references/animation-patterns.md",
+    "docs-sync-checker/references/examples.md",
+    "git-commit-flow/references/staging-rules.md",
+    "go-patterns/references/sapcc-conventions.md",
+    "go-patterns/references/sapcc-conventions/anti-patterns.md",
+    "go-patterns/references/sapcc-conventions/api-design-detailed.md",
+    "go-patterns/references/sapcc-conventions/architecture-patterns.md",
+    "go-patterns/references/sapcc-conventions/build-ci-detailed.md",
+    "go-patterns/references/sapcc-conventions/error-handling-detailed.md",
+    "go-patterns/references/sapcc-conventions/sapcc-code-patterns.md",
+    "go-patterns/references/sapcc-conventions/testing-patterns-detailed.md",
+    "pr-workflow/references/miner.md",
+    "pr-workflow/references/pipeline.md",
+    "skill-composer/references/examples.md",
+    "test-driven-development/references/examples.md",
+    "testing-anti-patterns/references/anti-pattern-catalog.md",
+    "threejs-builder/references/react-three-fiber.md",
+    "threejs-builder/references/shader-patterns.md",
+    "threejs-builder/references/visual-polish.md",
+    "threejs-builder/references/webgpu.md",
+    "verification-before-completion/references/verification-examples.md",
+    "webgl-card-effects/references/shader-integration-react.md",
+    "workflow/references/comprehensive-review.md",
+    "workflow/references/domain-research.md",
+    "workflow/references/pipeline-scaffolder/references/generated-skill-template.md",
+    "workflow/references/pipeline-scaffolder/references/pipeline-spec-format.md",
+    "workflow/references/toolkit-improvement.md",
+    "workflow/references/voice-calibrator.md",
+    "workflow/references/workflow-orchestrator/references/plan-template.md",
+    "workflow/references/workflow-orchestrator/references/task-patterns.md",
+}
+
+_SKILLS_WITH_REFERENCES: list[str] = _collect_skills_with_references()
+
+# ---------------------------------------------------------------------------
+# Category 6: Skill Reference File Size Compliance
+# ---------------------------------------------------------------------------
+
+
+class TestSkillReferenceFileSizeCompliance:
+    """Skill reference files must be under 500 lines; warn at 400.
+
+    This is the same standard applied to agent reference files (Category 3).
+    Skills were previously unguarded — ADR-190 extends coverage to close that gap.
+
+    By default (strict mode) all pre-existing violations hard-fail so that CI
+    makes them visible and they cannot grow further. Set SKILL_REFS_STRICT=0 to
+    downgrade to xfail during gradual decomposition.
+    """
+
+    @pytest.mark.parametrize(
+        "ref_path",
+        ALL_SKILL_REFERENCE_FILES,
+        ids=[_skill_ref_file_id(p) for p in ALL_SKILL_REFERENCE_FILES],
+    )
+    def test_skill_file_under_hard_limit(self, ref_path: Path) -> None:
+        """Skill reference file must be under 500 lines.
+
+        Pre-existing violations are tracked in _KNOWN_OVERSIZED_SKILL_REFS.
+        In strict mode (default) they hard-fail to expose them in CI output.
+        In warn mode (SKILL_REFS_STRICT=0) they xfail to allow gradual cleanup.
+        New files that exceed the limit always hard-fail regardless of mode.
+
+        Args:
+            ref_path: Path to the skill reference .md file.
+        """
+        ref_id = _skill_ref_file_id(ref_path)
+        line_count = len(ref_path.read_text(encoding="utf-8").splitlines())
+
+        if ref_id in _KNOWN_OVERSIZED_SKILL_REFS:
+            if not _SKILL_REFS_STRICT:
+                pytest.xfail(
+                    f"skills/{ref_id}: {line_count} lines (known oversized, tracked as tech debt — "
+                    f"set SKILL_REFS_STRICT=1 or remove from _KNOWN_OVERSIZED_SKILL_REFS after decomposing)"
+                )
+            # Strict mode: fall through to the assertion so CI sees a hard failure.
+            assert line_count <= REFERENCE_LINE_LIMIT, (
+                f"skills/{ref_id}: {line_count} lines exceeds limit of {REFERENCE_LINE_LIMIT}. "
+                f"This is a pre-existing violation (ADR-190 Finding 4). "
+                f"Decompose the file into sub-references under 500 lines, then remove it from "
+                f"_KNOWN_OVERSIZED_SKILL_REFS in this test file."
+            )
+        else:
+            assert line_count <= REFERENCE_LINE_LIMIT, (
+                f"skills/{ref_id}: {line_count} lines exceeds limit of {REFERENCE_LINE_LIMIT}. "
+                f"Split the file or remove stale content. "
+                f"Do not add this file to _KNOWN_OVERSIZED_SKILL_REFS — fix it instead."
+            )
+
+    @pytest.mark.parametrize(
+        "ref_path",
+        ALL_SKILL_REFERENCE_FILES,
+        ids=[_skill_ref_file_id(p) for p in ALL_SKILL_REFERENCE_FILES],
+    )
+    def test_skill_file_approaching_limit_warning(self, ref_path: Path) -> None:
+        """Warn when a skill reference file is between 400 and 499 lines.
+
+        Args:
+            ref_path: Path to the skill reference .md file.
+        """
+        line_count = len(ref_path.read_text(encoding="utf-8").splitlines())
+        if line_count >= REFERENCE_LINE_WARN:
+            pytest.xfail(
+                f"skills/{_skill_ref_file_id(ref_path)}: {line_count} lines is approaching the "
+                f"{REFERENCE_LINE_LIMIT}-line limit (threshold: {REFERENCE_LINE_WARN}). "
+                f"Consider trimming or splitting before it exceeds the hard limit."
+            )
+
+
+# ---------------------------------------------------------------------------
+# Category 7: Skill Reference Directory Discoverability
+# ---------------------------------------------------------------------------
+
+
+class TestSkillReferenceDirectoryDiscoverability:
+    """Every skill with a references/ directory must be discoverable and non-empty.
+
+    This is a structural sanity check — it catches skills whose references/
+    directory exists but contains no .md files (empty directory, only non-md
+    files, or broken symlinks). An empty references/ dir provides no value
+    and may indicate an incomplete scaffold.
+    """
+
+    @pytest.mark.parametrize("skill_name", _SKILLS_WITH_REFERENCES)
+    def test_skill_references_dir_contains_md_files(self, skill_name: str) -> None:
+        """A skill's references/ directory must contain at least one .md file.
+
+        An empty references/ directory is dead weight — either populate it or
+        remove it so the skill body does not declare references that cannot load.
+
+        Args:
+            skill_name: Skill directory name under skills/.
+        """
+        refs_dir = SKILLS_DIR / skill_name / "references"
+        md_files = list(refs_dir.rglob("*.md"))
+        assert md_files, (
+            f"skills/{skill_name}/references/ exists but contains no .md files. "
+            f"Either add reference content or remove the empty directory."
+        )
