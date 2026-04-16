@@ -49,9 +49,7 @@ Identify:
 Before building any DAG, scan skills/*/SKILL.md for available skills:
 
 ```bash
-# TODO: scripts/discover_skills.py not yet implemented
-# Manual alternative: scan skills directory for SKILL.md files
-find ./skills -name "SKILL.md" -exec grep -l "^name:" {} \; | sort
+python3 ${CLAUDE_SKILL_DIR}/scripts/discover_skills.py ./skills
 ```
 
 Review the discovered skills. Categorize by type (workflow, testing, quality, documentation, code-analysis, debugging) with dependency metadata.
@@ -77,8 +75,7 @@ Cross-reference selections against `references/compatibility-matrix.md` to confi
 Construct the execution DAG as a JSON structure with nodes (skills) and edges (dependencies) based on the task analysis:
 
 ```bash
-# TODO: scripts/build_dag.py not yet implemented
-# Manual alternative: structure the DAG in your reasoning before presenting it
+python3 ${CLAUDE_SKILL_DIR}/scripts/build_dag.py skill-index.json task-description.json
 ```
 
 **Step 2: Validate the DAG (MANDATORY before execution)**

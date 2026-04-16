@@ -37,9 +37,8 @@ Read and follow the repository CLAUDE.md before starting any audit.
 Scan all markdown files in `content/` because even small sites with 10 posts can have orphan pages, and partial scans miss graph-level issues. Locate the Hugo content directory and enumerate all markdown files:
 
 ```bash
-# TODO: scripts/link_scanner.py not yet implemented
-# Manual alternative: extract links from markdown files
-grep -rn '\[.*\](.*' ~/your-blog/content/ --include="*.md"
+python3 ${CLAUDE_SKILL_DIR}/scripts/link_scanner.py ~/your-blog/content/
+# Options: --check-external, --min-inbound 3, --json
 ```
 
 **Step 2: Extract links by type**
