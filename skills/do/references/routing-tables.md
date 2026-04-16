@@ -59,8 +59,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 
 | Skill | When to Route Here |
 |-------|-------------------|
-| **fast (FORCE)** | User wants a quick fix that is clearly one line or a trivial mechanical change: fixing a typo, correcting a variable name, adjusting a constant. The task takes under 2 minutes with no design judgment required. NOT: "fix" in general ("fix this bug", "fix the tests") — those require diagnosis and are not trivial. |
-| **quick (FORCE)** | User wants a small, self-contained change that is larger than a typo but still contained: adding a CLI flag, extracting a helper function, renaming an interface. NOT: "quick" as a speed preference ("do this quickly"). |
+| **quick (FORCE)** | User wants any lightweight change: a one-line typo fix, a trivial constant rename (use `--trivial` mode internally for ≤3 edits), or a contained multi-file change like adding a CLI flag, extracting a helper, renaming an interface. NOT: "quick" as a speed preference ("do this quickly"). NOT: "fix" in general ("fix this bug") — that requires diagnosis. The `--trivial` mode handles the zero-ceremony 1-3 edit case; the base mode handles multi-file contained changes. |
 | **branch-naming** | User needs to name a git branch following conventions, or asks what to name a branch for a task. |
 | **git-commit-flow** | User wants to stage and commit code changes to git — writing a commit message, staging files, creating a commit. NOT: "commit to a timeline", "commit to the team", "are we committed to this approach" — those are about dedication, not git. |
 | **code-linting** | User wants to run linters or formatters, fix lint errors, or check code style compliance. |
