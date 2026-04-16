@@ -307,20 +307,21 @@ class TestBackwardCompatibility:
         _record("python-patterns", "dataclass", "Use dataclasses", tags=["python"])
 
         # Exact tag substring matching still works
-        results = db.query_learnings(tags=["go"])
+        # ADR-191: test fixtures use source="test"; opt back in via exclude_test_sources=False.
+        results = db.query_learnings(tags=["go"], exclude_test_sources=False)
         assert len(results) >= 1
         assert any(r["topic"] == "go-patterns" for r in results)
 
     def test_query_learnings_by_topic(self):
         _record("go-patterns", "mutex-usage", "Use sync.Mutex", tags=["go"])
 
-        results = db.query_learnings(topic="go-patterns")
+        results = db.query_learnings(topic="go-patterns", exclude_test_sources=False)
         assert len(results) == 1
 
     def test_both_apis_find_same_entry(self):
         _record("shared", "shared-key", "Shared content about concurrency", tags=["go", "concurrency"])
 
-        query_results = db.query_learnings(tags=["concurrency"])
+        query_results = db.query_learnings(tags=["concurrency"], exclude_test_sources=False)
         search_results = db.search_learnings("concurrency")
 
         assert len(query_results) >= 1
