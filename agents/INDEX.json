@@ -584,9 +584,9 @@
       "complexity": "Medium",
       "category": "research"
     },
-    "reviewer-code-playbook": {
+    "reviewer-code": {
       "file": "agents/reviewer-code.md",
-      "short_description": "Playbook-enhanced variant of reviewer-code for A/B testing (ADR-160)",
+      "short_description": "Code quality review: conventions, naming, dead code, performance, test coverage",
       "triggers": [
         "code review",
         "review code quality",
@@ -681,9 +681,9 @@
       "complexity": "Medium",
       "category": "review"
     },
-    "reviewer-system-playbook": {
+    "reviewer-system": {
       "file": "agents/reviewer-system.md",
-      "short_description": "Playbook-enhanced variant of reviewer-system for A/B testing (ADR-160)",
+      "short_description": "System-level review: security, concurrency, error handling, observability, API contracts",
       "triggers": [
         "system review",
         "security review",
@@ -805,7 +805,7 @@
       "complexity": "Complex",
       "category": "meta"
     },
-    "technical-documentation-engineer-playbook": {
+    "technical-documentation-engineer": {
       "file": "agents/technical-documentation-engineer.md",
       "short_description": "Technical documentation: API docs, system architecture, runbooks, enterprise standards",
       "triggers": [
@@ -836,9 +836,9 @@
       "complexity": "Comprehensive",
       "category": "content"
     },
-    "testing-automation-engineer-playbook": {
+    "testing-automation-engineer": {
       "file": "agents/testing-automation-engineer.md",
-      "short_description": "Playbook-enhanced testing agent: numeric anchors, STOP blocks, adversarial stance, explicit output contract",
+      "short_description": "Testing automation: Vitest, Playwright, E2E, coverage enforcement, CI/CD integration",
       "triggers": [
         "testing",
         "E2E",
