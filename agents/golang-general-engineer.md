@@ -348,11 +348,3 @@ STOP and ask the user (get explicit confirmation) before proceeding when:
 4. Check if fix addresses root cause vs symptom
 5. Use `go_diagnostics` if gopls MCP is available for richer error context
 
-## Changelog
-
-### v3.1.0 (2026-04-16)
-- Optimized body: moved version table to references/go-modern-features.md
-- Added Reference Loading Table for progressive disclosure
-- Removed generic boilerplate (Capabilities, Communication Style, verbose Output Format)
-- Removed duplicated error/pattern content (lives in references)
-- Kept all domain-specific content: gopls MCP, graduated anti-patterns, hard gates
