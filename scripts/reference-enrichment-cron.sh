@@ -122,6 +122,15 @@ echo "Remote main at $(git rev-parse --short origin/main)"
 # Prune stale worktrees left by prior crashes
 git worktree prune 2>/dev/null || true
 
+# Clean up stale agent worktrees older than 3 days (.claude/worktrees/agent-*)
+if [ -d "$REPO_DIR/.claude/worktrees" ]; then
+    find "$REPO_DIR/.claude/worktrees" -maxdepth 1 -name 'agent-*' -type d -mtime +3 -print0 2>/dev/null | while IFS= read -r -d '' wt; do
+        echo "Removing stale agent worktree: $(basename "$wt")"
+        git worktree remove "$wt" --force 2>/dev/null || rm -rf "$wt"
+    done
+    git worktree prune 2>/dev/null || true
+fi
+
 # Create temporary worktree for isolated enrichment work
 ENRICH_WORKTREE="/tmp/enrichment-worktree-${ENRICH_RUN_ID}"
 git worktree add "$ENRICH_WORKTREE" origin/main 2>/dev/null || {
@@ -184,6 +193,26 @@ CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
 if [[ "$CURRENT_BRANCH" == enrich/* ]]; then
     echo "WARNING: Enrichment left repo on branch $CURRENT_BRANCH, switching back to main"
     git checkout main 2>/dev/null || true
+fi
+
+# Sync main checkout with remote after enrichment push.
+# Interactive sessions create reference files locally but don't commit them (the
+# enrichment cron handles commit/push from its worktree). This leaves orphaned
+# local changes that conflict with future git pulls. Clean them up here.
+if [ "$EXIT_CODE" -eq 0 ] && [ -n "$EXECUTE" ]; then
+    echo "Syncing main checkout with remote after enrichment push..."
+    git fetch origin main
+    # Drop tracked file modifications (stale enrichment leftovers from interactive sessions)
+    git checkout -- . 2>/dev/null || true
+    # Remove untracked reference files that enrichment creates — scoped narrowly to
+    # avoid deleting legitimate local-only files (cron-logs/, plan/, benchmark/, adr/, etc.)
+    git clean -fd -- agents/*/references/ 2>/dev/null || true
+    git clean -fd -- skills/*/references/ 2>/dev/null || true
+    # Fast-forward to include the just-merged changes
+    if ! git pull --ff-only 2>/dev/null; then
+        echo "WARNING: fast-forward pull failed (main may have diverged). Manual sync needed."
+    fi
+    echo "Main checkout synced to $(git rev-parse --short HEAD)"
 fi
 
 # Rotate old logs (keep last 30 days)
