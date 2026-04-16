@@ -98,7 +98,13 @@ For each perspective, produce output in this format:
 - Each perspective MUST reference specific content from the source material, not generic observations that could apply anywhere. Generic rules add no value. The purpose is extracting patterns specific to the source material.
 - Cross-references to other perspectives are encouraged but optional
 
-**Gate**: All 10 perspectives documented with observations, rules, and source references. Proceed only when gate passes.
+**Artifact**: Write all 10 perspective sections to `perspectives-analysis.md` in the current working directory before advancing. Phase 3 reads from this file, not from context.
+
+```bash
+test -f perspectives-analysis.md || { echo "GATE FAIL: perspectives-analysis.md missing"; exit 1; }
+```
+
+**Gate**: All 10 perspectives documented with observations, rules, and source references. `perspectives-analysis.md` exists on disk. Proceed only when gate passes.
 
 ### Phase 3: SYNTHESIZE
 
@@ -137,7 +143,13 @@ Rules supported by 1-3 perspectives or moderate impact
 [Concrete templates or examples]
 ```
 
-**Gate**: Synthesis complete with priority-ranked rules and implementation guidance. Proceed only when gate passes.
+**Artifact**: Write the full synthesized recommendations block to `synthesis.md` in the current working directory before advancing. Phase 4 reads from this file, not from context.
+
+```bash
+test -f synthesis.md || { echo "GATE FAIL: synthesis.md missing"; exit 1; }
+```
+
+**Gate**: Synthesis complete with priority-ranked rules and implementation guidance. `synthesis.md` exists on disk. Proceed only when gate passes.
 
 ### Phase 4: APPLY
 
