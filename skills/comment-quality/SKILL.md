@@ -177,7 +177,21 @@ Solution:
 
 ## References
 
+### Reference Loading Table
+
+Load on demand — only pull what the current task requires.
+
+| Task Signal | Load |
+|-------------|------|
+| Go files (`.go`) in scope | `references/go-comment-patterns.md` |
+| Error handling code (try/catch, `if err !=`, `raise`) | `references/error-handling-patterns.md` |
+| Performance code (cache, pool, batch, concurrency, goroutine) | `references/performance-patterns.md` |
+| General rewrite examples needed | `references/examples.md` |
+| Full anti-pattern reference | `references/anti-patterns.md` |
+
 ### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/temporal-keywords.txt`: Complete list of temporal words to flag
+- `${CLAUDE_SKILL_DIR}/references/anti-patterns.md`: Complete temporal anti-pattern catalog across all languages
 - `${CLAUDE_SKILL_DIR}/references/examples.md`: Before/after examples of comment rewrites
-- `${CLAUDE_SKILL_DIR}/references/quality-issues.md`: Common problematic patterns with explanations
+- `${CLAUDE_SKILL_DIR}/references/go-comment-patterns.md`: Go-specific temporal patterns with grep/rg detection commands
+- `${CLAUDE_SKILL_DIR}/references/error-handling-patterns.md`: Temporal patterns in error handling code with detection commands
+- `${CLAUDE_SKILL_DIR}/references/performance-patterns.md`: Temporal patterns in performance-related comments with detection commands
