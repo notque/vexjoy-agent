@@ -309,18 +309,18 @@ def _deduplicate(results: list[ComponentResult]) -> list[ComponentResult]:
 
 
 def scan_all() -> list[ComponentResult]:
-    """Scan all agent and skill directories, deduplicating by name."""
+    """Scan repo agent and skill directories only.
+
+    Private ~/.claude/ directories are intentionally excluded: the enrichment
+    pipeline uses scan_all() to find targets, and scanning private dirs caused
+    private-only agents to be enriched into the public repo.
+    """
     results: list[ComponentResult] = []
 
-    # Scan both locations; _deduplicate() keeps highest level, preferring repo-local on ties
-    results += _scan_directory(_CLAUDE_AGENTS_DIR, "agent")
-    results += _scan_directory(_CLAUDE_SKILLS_DIR, "skill")
-
-    # repo-local copies (may overlap; duplicates are dropped)
     results += _scan_directory(_REPO_AGENTS_DIR, "agent")
     results += _scan_directory(_REPO_SKILLS_DIR, "skill")
 
-    return _deduplicate(results)
+    return results
 
 
 def scan_single(name: str, kind: str) -> ComponentResult | None:

@@ -87,6 +87,8 @@ private-skills/
 private-agents/
 private-hooks/
 private-voices/
+agents/wrestlejoy-amy-writer*
+agents/wrestlejoy-news-*
 
 # Local-only index targets, not committed
 skills/INDEX.local.json
