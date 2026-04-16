@@ -267,8 +267,7 @@ The surface type classified in Phase 1 determines which rule set governs layout.
 **Step 1: Run comprehensive validation**
 
 ```bash
-# TODO: scripts/validate_design.py not yet implemented
-# Manual alternative: review each validation check listed below against design choices
+python3 ${CLAUDE_SKILL_DIR}/scripts/validate_design.py design-spec.json
 ```
 
 **Step 2: Review** validation report. The report checks:
