@@ -24,9 +24,12 @@ routing:
     - targeted fix
     - quick fix
     - typo fix
+    - fix typo
+    - fix the typo
     - one-line change
     - trivial fix
     - rename variable
+    - rename this variable
     - update value
     - fix import
   pairs_with: []

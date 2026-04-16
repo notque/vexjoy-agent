@@ -57,9 +57,9 @@ _ROUTING_SAFE_PATTERNS = [
     r"git\s+log",
     r"git\s+branch",
     r"git\s+diff\s+--name-only",
-    r"cat\s+",           # read-only: cat a file
-    r"ls\s+",            # read-only: list directory
-    r"echo\s+",          # innocuous output
+    r"cat\s+",  # read-only: cat a file
+    r"ls\s+",  # read-only: list directory
+    r"echo\s+",  # innocuous output
     r"python3\s+scripts/routing-benchmark\.py",
 ]
 
@@ -135,7 +135,7 @@ def main() -> None:
             "The /do router's only job is classify → select → dispatch → evaluate.\n"
             "Dispatch an agent to make file changes. The agent has the domain expertise; "
             "the main thread does not.\n"
-            "PHILOSOPHY.md: \"Router as Orchestrator, Not Worker\""
+            'PHILOSOPHY.md: "Router as Orchestrator, Not Worker"'
         )
         print(message, file=sys.stderr)
         sys.exit(2)
@@ -152,7 +152,7 @@ def main() -> None:
             "Allowed Bash during /do: routing-manifest.py, learning-db.py record, "
             "git status/log/branch, ls, cat, classify-repo.py.\n"
             "For analysis or execution, dispatch an agent instead.\n"
-            "PHILOSOPHY.md: \"Router as Orchestrator, Not Worker\""
+            'PHILOSOPHY.md: "Router as Orchestrator, Not Worker"'
         )
         print(message, file=sys.stderr)
         sys.exit(2)
@@ -170,6 +170,7 @@ if __name__ == "__main__":
     except Exception as e:
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             import traceback
+
             print(
                 f"[pretool-main-thread-discipline] HOOK-ERROR: {type(e).__name__}: {e}",
                 file=sys.stderr,
