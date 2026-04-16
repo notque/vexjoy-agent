@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# hook-version: 1.0.0
+# hook-version: 2.0.0
 """
 PreToolUse Hook: Config Protection (ADR-115)
 
@@ -10,7 +10,8 @@ This hook intercepts those attempts and redirects the agent to fix the source in
 Protected set: ESLint (12 variants), Prettier (10), Biome (2), Ruff (2),
                Shell/Style/Markdown (7), golangci-lint (4), setup.cfg — 38 files total.
 
-Exit 2 = block. Exit 0 = allow. Entire main() wrapped in try/except to fail OPEN.
+Outputs JSON permissionDecision:deny to block. Exit 0 always.
+Entire main() wrapped in try/except to fail OPEN.
 Bypass: CONFIG_PROTECTION_BYPASS=1 env var.
 Performance: <50ms (no subprocess, pure set lookup).
 """
@@ -89,7 +90,7 @@ def _is_protected(file_path: str) -> bool:
 
 
 def _block(file_path: str) -> None:
-    """Print a block message to stderr and exit 2."""
+    """Emit JSON permissionDecision:deny and exit 0."""
     print(
         f"[config-protection] BLOCKED: Modifying linter/formatter config: {file_path}\n"
         "[config-protection] Fix the source code to satisfy the linter rather than weakening the config.\n"
@@ -100,7 +101,19 @@ def _block(file_path: str) -> None:
         record_governance_event("policy_violation", tool_name="Write", hook_phase="pre", severity="high", blocked=True)
     except Exception:
         pass  # Never let recording prevent a block
-    sys.exit(2)
+    deny_output = {
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": (
+                f"Modifying linter/formatter config '{Path(file_path).name}' is blocked. "
+                "Fix the source code to satisfy the linter rather than weakening the config. "
+                "Set CONFIG_PROTECTION_BYPASS=1 for legitimate config changes."
+            ),
+        }
+    }
+    print(json.dumps(deny_output))
+    sys.exit(0)
 
 
 def main() -> None:
@@ -116,10 +129,18 @@ def main() -> None:
     # Truncation safety: oversized payloads are blocked rather than parsed.
     if len(raw.encode("utf-8", errors="replace")) > _MAX_STDIN_BYTES:
         print(
-            "[config-protection] BLOCKED: stdin payload exceeds 1 MB limit — cannot safely parse.",
+            "[config-protection] BLOCKED: stdin payload exceeds 1 MB limit -- cannot safely parse.",
             file=sys.stderr,
         )
-        sys.exit(2)
+        deny_output = {
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "deny",
+                "permissionDecisionReason": "stdin payload exceeds 1 MB limit -- cannot safely parse.",
+            }
+        }
+        print(json.dumps(deny_output))
+        sys.exit(0)
 
     try:
         event = json.loads(raw)
@@ -159,11 +180,11 @@ if __name__ == "__main__":
     try:
         main()
     except SystemExit:
-        raise  # Let sys.exit(2) propagate for blocks
+        raise  # Let sys.exit(0) propagate normally
     except Exception as e:
         if os.environ.get("CLAUDE_HOOKS_DEBUG"):
             traceback.print_exc(file=sys.stderr)
         else:
             print(f"[config-protection] Error: {type(e).__name__}: {e}", file=sys.stderr)
-        # A crashed hook must fail OPEN — never exit 2 on unexpected errors.
+        # A crashed hook must fail OPEN -- never block tools on unexpected errors.
         sys.exit(0)
