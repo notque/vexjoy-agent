@@ -218,9 +218,7 @@ Generate a side-by-side comparison report with a clear verdict.
 **Step 2: Run comparison analysis**
 
 ```bash
-# TODO: scripts/compare.py not yet implemented
-# Manual alternative: compare benchmark outputs side-by-side
-diff benchmark/{task-name}/full/ benchmark/{task-name}/compact/
+python3 ${CLAUDE_SKILL_DIR}/scripts/compare.py benchmark/{task-name}/
 ```
 
 **Step 3: Analyze token economics**

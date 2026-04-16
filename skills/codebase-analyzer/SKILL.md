@@ -44,8 +44,8 @@ Read and follow the repository's CLAUDE.md before doing anything else -- project
 
 | Variant | Script | Metrics | Use When |
 |---------|--------|---------|----------|
-| Omni (recommended) | `cartographer_omni.py` (not yet implemented) | 100 across 25 categories | Full codebase profiling |
-| Basic | `cartographer.py` (not yet implemented) | ~15 categories | Quick pattern overview |
+| Omni (recommended) | `cartographer_omni.py` | 100 across 25 categories | Full codebase profiling |
+| Basic | `cartographer.py` | ~15 categories | Quick pattern overview |
 | Ultimate | `cartographer_ultimate.py` | 6 focused categories | Performance pattern detection |
 
 **Step 3: Verify environment**
@@ -89,12 +89,8 @@ Automatically filter vendor/, testdata/, and generated code (files with "Code ge
 **Step 1: Execute the cartographer**
 
 ```bash
-# TODO: scripts/cartographer_omni.py not yet implemented
-# Manual alternative: use grep/find to count patterns across Go files
-# Example: count error wrapping patterns
-grep -rn 'fmt.Errorf.*%w' ~/repos/my-project --include="*.go" | wc -l
-# Example: count constructor patterns
-grep -rn 'func New' ~/repos/my-project --include="*.go" | wc -l
+python3 ${CLAUDE_SKILL_DIR}/scripts/cartographer_omni.py /path/to/go/repo
+# Or for quick overview: python3 ${CLAUDE_SKILL_DIR}/scripts/cartographer.py /path/to/go/repo
 ```
 
 Always run the cartographer scripts for measurement; reserve LLM interpretation for Phase 3. When an LLM sees `return err` it may report "not wrapping errors properly" even if that IS the local standard. The scripts produce deterministic, reproducible counts; the LLM's role begins at interpretation in Phase 3.
@@ -115,7 +111,7 @@ Always run the cartographer scripts for measurement; reserve LLM interpretation 
  PHASE 2: MEASURE
 ===============================================================
 
- Script Executed: [cartographer_omni.py (not yet implemented — use manual pattern counting)]
+ Script Executed: [cartographer_omni.py]
  Target: [/path/to/repo]
 
  Results:

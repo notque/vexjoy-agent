@@ -174,9 +174,7 @@ Either accept user-provided message or generate one from staged changes. Show th
 Validate now, not later, because git history is permanent and "I'll fix the message later" rarely happens in practice.
 
 ```bash
-# TODO: scripts/validate_message.py not yet implemented
-# Manual alternative: validate commit message format
-# Check: type prefix exists, no banned patterns, subject line <= 72 chars
+python3 ${CLAUDE_SKILL_DIR}/scripts/validate_message.py "feat(scope): description"
 ```
 
 Check:
