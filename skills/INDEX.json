@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-11T15:47:00Z",
+  "generated": "2026-04-16T03:35:23Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -128,6 +128,27 @@
       "category": "git-workflow",
       "user_invocable": false,
       "version": "2.0.0"
+    },
+    "cobalt-core": {
+      "file": "skills/cobalt-core/SKILL.md",
+      "description": "Cobalt Core infrastructure knowledge: KVM exporters, hypervisor tooling, OpenStack compute.",
+      "triggers": [
+        "cobalt core",
+        "cobaltcore",
+        "kvm-exporter",
+        "kvm exporter",
+        "hypervisor metrics",
+        "libvirt exporter",
+        "cloud hypervisor"
+      ],
+      "category": "infrastructure",
+      "user_invocable": true,
+      "version": "1.0.0",
+      "pairs_with": [
+        "go-patterns",
+        "prometheus-grafana-engineer",
+        "kubernetes-helm-engineer"
+      ]
     },
     "code-cleanup": {
       "file": "skills/code-cleanup/SKILL.md",
@@ -435,7 +456,7 @@
       ],
       "category": "meta-tooling",
       "user_invocable": true,
-      "version": "2.2.0"
+      "version": "2.3.0"
     },
     "docs-sync-checker": {
       "file": "skills/docs-sync-checker/SKILL.md",
@@ -963,6 +984,30 @@
         "comprehensive-review"
       ]
     },
+    "joy-check": {
+      "file": "skills/joy-check/SKILL.md",
+      "description": "Validate content framing on joy-grievance spectrum.",
+      "triggers": [
+        "joy check",
+        "check framing",
+        "tone check",
+        "negative framing",
+        "joy validation",
+        "too negative",
+        "reframe positively",
+        "positive framing check",
+        "instruction framing"
+      ],
+      "category": "content",
+      "user_invocable": false,
+      "version": "2.0.0",
+      "pairs_with": [
+        "voice-writer",
+        "anti-ai-editor",
+        "voice-validator",
+        "skill-creator"
+      ]
+    },
     "kairos-lite": {
       "file": "skills/kairos-lite/SKILL.md",
       "description": "Proactive monitoring \u2014 checks GitHub, CI, and toolkit health, produces briefings.",
@@ -1119,6 +1164,26 @@
       "category": "content-publishing",
       "user_invocable": false,
       "version": "2.0.0"
+    },
+    "motion-pipeline": {
+      "file": "skills/motion-pipeline/SKILL.md",
+      "description": "CPU-only motion data processing pipeline for game animation: BVH import, contact detection, root decomposition, motion blending, FABRIK IK.",
+      "triggers": [
+        "mocap",
+        "motion data",
+        "animation pipeline",
+        "BVH import",
+        "contact detection",
+        "IK solve",
+        "motion blend",
+        "bone trajectory",
+        "root extraction",
+        "FABRIK",
+        "skeletal animation data"
+      ],
+      "category": "game-animation",
+      "user_invocable": true,
+      "version": "1.0.0"
     },
     "multi-persona-critique": {
       "file": "skills/multi-persona-critique/SKILL.md",
