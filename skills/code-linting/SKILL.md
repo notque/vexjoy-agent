@@ -142,6 +142,18 @@ make lint-fix   # Fix both Python and JS
 **Cause**: Running from wrong directory
 **Solution**: cd to project root where pyproject.toml/biome.json exist
 
+## Reference Loading
+
+Load these files when the task involves the corresponding domain:
+
+| Task type | Reference file |
+|-----------|---------------|
+| Python violations, ruff rules, F401/E711/B006/UP errors | `references/ruff-rules-reference.md` |
+| ruff not found, pyproject.toml config, ruff version differences | `references/ruff-rules-reference.md` |
+| JavaScript/TypeScript violations, Biome rules, noVar/useConst/noDoubleEquals | `references/biome-rules-reference.md` |
+| biome not found, biome.json config, migrating from ESLint | `references/biome-rules-reference.md` |
+| Linting CI failures, format check vs lint check differences | `references/ruff-rules-reference.md` + `references/biome-rules-reference.md` |
+
 ## References
 
 - [ruff documentation](https://docs.astral.sh/ruff/)
