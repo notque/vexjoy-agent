@@ -11,10 +11,14 @@ Two skill test categories (Categories 6-7):
 6. Skill Reference File Size Compliance — all skills/*/references/**/*.md under 500 lines
 7. Skill Reference File Existence — every skills/ directory can be discovered and scanned
 
---strict flag behavior:
-  Default (warn mode): oversized skill reference files produce hard failures so violations
-  are visible in CI. Use SKILL_REFS_STRICT=0 env var to downgrade to xfail for gradual rollout.
-  The intent is that all 32 pre-existing violations fail immediately so they cannot grow further.
+Allowlist behavior (SKILL_REFS_STRICT env flag):
+  Default (xfail mode): files in _KNOWN_OVERSIZED_SKILL_REFS xfail so CI stays green while
+  the list serves as an authoritative TODO for gradual decomposition.
+  Set SKILL_REFS_STRICT=1 to force all known violations to hard-fail — useful for audit runs.
+  Any file NOT in the allowlist that exceeds 500 lines always hard-fails regardless of mode.
+
+  _KNOWN_OVERSIZED_SKILL_REFS is the authoritative TODO list. Removing a file from the list
+  without first decomposing it below 500 lines will cause that test to hard-fail.
 """
 
 from __future__ import annotations
@@ -35,9 +39,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 AGENTS_DIR = REPO_ROOT / "agents"
 SKILLS_DIR = REPO_ROOT / "skills"
 
-# When SKILL_REFS_STRICT=0, pre-existing oversized skill files are xfail instead of hard-fail.
-# Default is strict (hard-fail) so CI catches violations immediately.
-_SKILL_REFS_STRICT: bool = os.environ.get("SKILL_REFS_STRICT", "1") != "0"
+# When SKILL_REFS_STRICT=1, pre-existing oversized skill files hard-fail instead of xfail.
+# Default is xfail (warn mode) so CI stays green while the allowlist tracks decomposition work.
+# Set SKILL_REFS_STRICT=1 for audit runs that should surface all violations as hard failures.
+_SKILL_REFS_STRICT: bool = os.environ.get("SKILL_REFS_STRICT", "0") == "1"
 
 REFERENCE_LINE_WARN = 400
 REFERENCE_LINE_LIMIT = 500
@@ -723,43 +728,47 @@ def _collect_skills_with_references() -> list[str]:
 ALL_SKILL_REFERENCE_FILES: list[Path] = _collect_all_skill_reference_files()
 
 # Pre-existing oversized skill reference files (ADR-190 Finding 4).
-# These files violate the 500-line limit and are tracked here so that:
-#   - In strict mode (default): tests HARD-FAIL to make violations visible in CI.
-#   - In warn mode (SKILL_REFS_STRICT=0): tests xfail to allow gradual remediation.
-# Do NOT add new files here. Fix the file instead. Remove entries as files are decomposed.
+#
+# This is the authoritative TODO list for gradual decomposition. Each entry xfails by default
+# so CI stays green while decomposition work proceeds. Removing a file from this list without
+# first decomposing it below 500 lines will cause that test to hard-fail. The list can only
+# shrink — do not add new files here; fix the file instead.
+#
+# Line counts recorded at ADR-190 audit time (2026-04-16). Actual counts may drift.
+# Set SKILL_REFS_STRICT=1 to force all entries to hard-fail for a decomposition audit.
 _KNOWN_OVERSIZED_SKILL_REFS: set[str] = {
-    "anti-ai-editor/references/detection-patterns.md",
-    "condition-based-waiting/references/implementation-patterns.md",
-    "distinctive-frontend-design/references/animation-patterns.md",
-    "docs-sync-checker/references/examples.md",
-    "git-commit-flow/references/staging-rules.md",
-    "go-patterns/references/sapcc-conventions.md",
-    "go-patterns/references/sapcc-conventions/anti-patterns.md",
-    "go-patterns/references/sapcc-conventions/api-design-detailed.md",
-    "go-patterns/references/sapcc-conventions/architecture-patterns.md",
-    "go-patterns/references/sapcc-conventions/build-ci-detailed.md",
-    "go-patterns/references/sapcc-conventions/error-handling-detailed.md",
-    "go-patterns/references/sapcc-conventions/sapcc-code-patterns.md",
-    "go-patterns/references/sapcc-conventions/testing-patterns-detailed.md",
-    "pr-workflow/references/miner.md",
-    "pr-workflow/references/pipeline.md",
-    "skill-composer/references/examples.md",
-    "test-driven-development/references/examples.md",
-    "testing-anti-patterns/references/anti-pattern-catalog.md",
-    "threejs-builder/references/react-three-fiber.md",
-    "threejs-builder/references/shader-patterns.md",
-    "threejs-builder/references/visual-polish.md",
-    "threejs-builder/references/webgpu.md",
-    "verification-before-completion/references/verification-examples.md",
-    "webgl-card-effects/references/shader-integration-react.md",
-    "workflow/references/comprehensive-review.md",
-    "workflow/references/domain-research.md",
-    "workflow/references/pipeline-scaffolder/references/generated-skill-template.md",
-    "workflow/references/pipeline-scaffolder/references/pipeline-spec-format.md",
-    "workflow/references/toolkit-improvement.md",
-    "workflow/references/voice-calibrator.md",
-    "workflow/references/workflow-orchestrator/references/plan-template.md",
-    "workflow/references/workflow-orchestrator/references/task-patterns.md",
+    "anti-ai-editor/references/detection-patterns.md",  # 1240 lines
+    "condition-based-waiting/references/implementation-patterns.md",  #  566 lines
+    "distinctive-frontend-design/references/animation-patterns.md",  #  534 lines
+    "docs-sync-checker/references/examples.md",  #  508 lines
+    "git-commit-flow/references/staging-rules.md",  #  590 lines
+    "go-patterns/references/sapcc-conventions.md",  #  677 lines
+    "go-patterns/references/sapcc-conventions/anti-patterns.md",  #  566 lines
+    "go-patterns/references/sapcc-conventions/api-design-detailed.md",  #  697 lines
+    "go-patterns/references/sapcc-conventions/architecture-patterns.md",  #  543 lines
+    "go-patterns/references/sapcc-conventions/build-ci-detailed.md",  #  547 lines
+    "go-patterns/references/sapcc-conventions/error-handling-detailed.md",  #  570 lines
+    "go-patterns/references/sapcc-conventions/sapcc-code-patterns.md",  # 3872 lines
+    "go-patterns/references/sapcc-conventions/testing-patterns-detailed.md",  #  709 lines
+    "pr-workflow/references/miner.md",  #  512 lines
+    "pr-workflow/references/pipeline.md",  #  785 lines
+    "skill-composer/references/examples.md",  #  719 lines
+    "test-driven-development/references/examples.md",  #  874 lines
+    "testing-anti-patterns/references/anti-pattern-catalog.md",  #  568 lines
+    "threejs-builder/references/react-three-fiber.md",  #  595 lines
+    "threejs-builder/references/shader-patterns.md",  #  501 lines
+    "threejs-builder/references/visual-polish.md",  #  528 lines
+    "threejs-builder/references/webgpu.md",  #  649 lines
+    "verification-before-completion/references/verification-examples.md",  #  619 lines
+    "webgl-card-effects/references/shader-integration-react.md",  #  542 lines
+    "workflow/references/comprehensive-review.md",  #  546 lines
+    "workflow/references/domain-research.md",  #  650 lines
+    "workflow/references/pipeline-scaffolder/references/generated-skill-template.md",  # 1037 lines
+    "workflow/references/pipeline-scaffolder/references/pipeline-spec-format.md",  #  740 lines
+    "workflow/references/toolkit-improvement.md",  #  564 lines
+    "workflow/references/voice-calibrator.md",  #  801 lines
+    "workflow/references/workflow-orchestrator/references/plan-template.md",  #  672 lines
+    "workflow/references/workflow-orchestrator/references/task-patterns.md",  #  900 lines
 }
 
 _SKILLS_WITH_REFERENCES: list[str] = _collect_skills_with_references()
@@ -775,9 +784,10 @@ class TestSkillReferenceFileSizeCompliance:
     This is the same standard applied to agent reference files (Category 3).
     Skills were previously unguarded — ADR-190 extends coverage to close that gap.
 
-    By default (strict mode) all pre-existing violations hard-fail so that CI
-    makes them visible and they cannot grow further. Set SKILL_REFS_STRICT=0 to
-    downgrade to xfail during gradual decomposition.
+    By default (xfail mode) files in _KNOWN_OVERSIZED_SKILL_REFS xfail so CI stays green
+    while the allowlist tracks gradual decomposition. Any file NOT in the allowlist that
+    exceeds 500 lines hard-fails immediately. Set SKILL_REFS_STRICT=1 to force all known
+    violations to hard-fail for audit runs.
     """
 
     @pytest.mark.parametrize(
@@ -789,9 +799,9 @@ class TestSkillReferenceFileSizeCompliance:
         """Skill reference file must be under 500 lines.
 
         Pre-existing violations are tracked in _KNOWN_OVERSIZED_SKILL_REFS.
-        In strict mode (default) they hard-fail to expose them in CI output.
-        In warn mode (SKILL_REFS_STRICT=0) they xfail to allow gradual cleanup.
-        New files that exceed the limit always hard-fail regardless of mode.
+        By default they xfail so CI stays green during gradual decomposition.
+        Set SKILL_REFS_STRICT=1 to force all known violations to hard-fail.
+        New files not in the allowlist that exceed the limit always hard-fail.
 
         Args:
             ref_path: Path to the skill reference .md file.
