@@ -52,65 +52,33 @@ ls -la skills/{name}/
 
 Score every rubric category — never skip a category even if it "looks fine." Parse each required field explicitly rather than eyeballing YAML. Record PASS/FAIL with the line number for each check.
 
-**For Agents** — check each item and record PASS/FAIL with line number:
-
-1. YAML front matter: `name`, `description`, `color` fields present
-2. Operator Context section with all 3 behavior types (Hardcoded, Default, Optional)
-3. Hardcoded Behaviors: 5-8 items, MUST include CLAUDE.md Compliance and Over-Engineering Prevention
-4. Default Behaviors: 5-8 items
-5. Optional Behaviors: 3-5 items
-6. Examples in description: 3+ `<example>` blocks with `<commentary>`
-7. Error Handling section with 3+ documented errors
-8. CAN/CANNOT boundaries section
+Run `score-component.py` to get deterministic PASS/FAIL for all structural checks. The script implements the full ADR-031 rubric (frontmatter, operator context, error handling, referenced files, anti-patterns) and outputs per-check results with line references. Do not re-implement these checks inline — read the JSON output and move directly to scoring.
 
 ```bash
-# Agent structural checks
-head -20 agents/{name}.md | grep -E "^(name|description|color):"
-grep -c "## Operator Context" agents/{name}.md
-grep -c "### Hardcoded Behaviors" agents/{name}.md
-grep -c "### Default Behaviors" agents/{name}.md
-grep -c "### Optional Behaviors" agents/{name}.md
-grep -c "CLAUDE.md" agents/{name}.md
-grep -c "Over-Engineering" agents/{name}.md
-grep -c "<example>" agents/{name}.md
-grep -c "## Error Handling" agents/{name}.md
-grep -c "CAN Do" agents/{name}.md
-grep -c "CANNOT Do" agents/{name}.md
+# Deterministic structural checks via score-component.py
+python3 scripts/score-component.py agents/{name}.md --json
+# or for a skill:
+python3 scripts/score-component.py skills/{name}/SKILL.md --json
 ```
 
-**For Skills** — check each item and record PASS/FAIL with line number:
+The JSON output includes `results[0].checks` (per-check status, earned_points, max_points, detail) and `results[0].total` (aggregate score). Record each check status from the JSON — do not re-run `grep -c` for sections the script already covers.
 
-1. YAML front matter: `name`, `description`, `version`, `allowed-tools` present
-2. `allowed-tools` uses YAML list format (not comma-separated string)
-3. `description` uses pipe (`|`) format with WHAT + WHEN + negative constraint, under 1024 chars
-4. `version` set to `2.0.0` for migrated skills
-5. Operator Context section with all 3 behavior types
-6. Hardcoded Behaviors: 5-8 items, MUST include CLAUDE.md Compliance and Over-Engineering Prevention
-7. Default Behaviors: 5-8 items
-8. Optional Behaviors: 3-5 items
-9. Instructions section with gates between phases
-10. Error Handling section with 2-4 documented errors
-11. Anti-Patterns section with 3-5 patterns
-12. `references/` directory with substantive content
-13. CAN/CANNOT boundaries section
-14. References section with shared patterns and domain-specific anti-rationalization table
+**What score-component.py covers** (do not duplicate):
+- YAML frontmatter fields
+- Operator Context section presence
+- Error Handling section presence
+- Anti-Patterns section presence
+- Referenced file existence
+- Inline constraint presence
 
-```bash
-# Skill structural checks
-head -20 skills/{name}/SKILL.md | grep -E "^(name|description|version|allowed-tools):"
-grep -n "allowed-tools:" skills/{name}/SKILL.md  # Check YAML list vs comma format
-grep -c "## Operator Context" skills/{name}/SKILL.md
-grep -c "CLAUDE.md" skills/{name}/SKILL.md
-grep -c "Over-Engineering" skills/{name}/SKILL.md
-grep -c "## Instructions" skills/{name}/SKILL.md
-grep -c "Gate.*Proceed" skills/{name}/SKILL.md  # Count gates
-grep -c "## Error Handling" skills/{name}/SKILL.md
-grep -c "## Anti-Patterns" skills/{name}/SKILL.md
-grep -c "CAN Do" skills/{name}/SKILL.md
-grep -c "CANNOT Do" skills/{name}/SKILL.md
-grep -c "anti-rationalization-core" skills/{name}/SKILL.md
-ls skills/{name}/references/
-```
+**What requires LLM judgment in Phase 3+** (not covered by the script):
+- Operator Context item counts (Hardcoded 5-8, Default 5-8, Optional 3-5)
+- `allowed-tools` list format vs comma-separated string
+- `description` pipe format with WHAT + WHEN + negative constraint
+- `version` set to `2.0.0`
+- Gate presence in Instructions section
+- CAN/CANNOT boundaries section
+- Anti-rationalization table in References section
 
 **Structural Scoring** (60 points):
 
