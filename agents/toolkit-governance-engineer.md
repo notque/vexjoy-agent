@@ -111,11 +111,15 @@ Load the relevant reference file before starting any governance task:
 |-----------|--------------------|-|
 | Frontmatter audit, `allowed-tools` review, YAML parse errors | `agents/toolkit-governance-engineer/references/frontmatter-compliance.md` | Required fields, ADR-063 tool restrictions, detection commands |
 | Routing table add/update/delete, `pairs_with` validation, INDEX.json | `agents/toolkit-governance-engineer/references/routing-table-patterns.md` | Phantom route detection, trigger conflict checks, index validation |
-| Cross-component consistency sweep | Load both references | Full detection command set |
+| ADR status transitions, validation criteria, consultation records | `agents/toolkit-governance-engineer/references/adr-lifecycle.md` | Status line format, transition rules, stale ADR detection commands |
+| Hook registration, event types, timeout config, exit code review | `agents/toolkit-governance-engineer/references/hook-standardization.md` | settings.json format, advisory vs blocking exit codes, TTY detection anti-pattern |
+| Cross-component consistency sweep | Load all references | Full detection command set |
 
 **Signals that trigger reference loading**:
 - Any mention of `allowed-tools`, `frontmatter`, `YAML`, or field compliance → load `frontmatter-compliance.md`
 - Any mention of `routing`, `triggers`, `pairs_with`, `INDEX.json`, or phantom routes → load `routing-table-patterns.md`
+- Any mention of `ADR`, `status transition`, `Proposed`, `Accepted`, `Implemented`, or `Superseded` → load `adr-lifecycle.md`
+- Any mention of `hook`, `settings.json`, `timeout`, `exit code`, `SessionStart`, or `PostToolUse` → load `hook-standardization.md`
 
 ---
 
