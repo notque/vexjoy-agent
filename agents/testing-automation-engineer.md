@@ -1,8 +1,8 @@
 ---
-name: testing-automation-engineer-playbook
+name: testing-automation-engineer
 model: sonnet
 version: 2.0.0
-description: "Playbook-enhanced testing agent: numeric anchors, STOP blocks, adversarial stance, explicit output contract."
+description: "Testing automation: Vitest, Playwright, E2E, coverage enforcement, CI/CD integration"
 color: yellow
 routing:
   triggers:

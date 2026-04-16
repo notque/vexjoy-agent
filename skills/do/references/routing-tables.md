@@ -38,9 +38,9 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **pipeline-orchestrator-engineer** | User wants to create a new pipeline, scaffold a new structured workflow, or compose pipeline phases. |
 | **hook-development-engineer** | User wants to create or modify Python hooks for Claude Code's event-driven system (SessionStart, PostToolUse, etc.). |
 | **system-upgrade-engineer** | User wants to upgrade the agent/skill/hook ecosystem after a Claude model update or system-wide change. |
-| **technical-documentation-engineer-playbook** | User needs technical documentation created, maintained, or validated — API docs, READMEs, architecture guides. |
+| **technical-documentation-engineer** | User needs technical documentation created, maintained, or validated — API docs, READMEs, architecture guides. |
 | **technical-journalist-writer** | User needs professional technical writing in a journalism style — articles, posts, or content with a specific authored voice. |
-| **testing-automation-engineer-playbook** | User needs comprehensive testing strategy, E2E test setup, Playwright tests, or test infrastructure design. NOT: writing Go unit tests (use go-patterns force-route). |
+| **testing-automation-engineer** | User needs comprehensive testing strategy, E2E test setup, Playwright tests, or test infrastructure design. NOT: writing Go unit tests (use go-patterns force-route). |
 | **ui-design-engineer** | User is designing or implementing UI/UX for web applications: layout, Tailwind styling, component design, or visual hierarchy. |
 | **perses-engineer** | User is working with the Perses observability platform: dashboards, plugins, operator/K8s deployment, or core development. |
 | **github-profile-rules-engineer** | User wants to extract coding conventions, programming rules, or style guidelines from a GitHub profile's repositories. |
@@ -336,8 +336,8 @@ Consolidated reviewer agents, each covering multiple review perspectives:
 
 | Agent | When to Route Here |
 |-------|-------------------|
-| **reviewer-code-playbook** | Code quality review: conventions, naming, dead code, performance, types, tests, comments, config safety. Use for code style, readability, simplification, language idioms, naming consistency, unused code, comment accuracy, hot paths, type design, test coverage, and configuration review. |
-| **reviewer-system-playbook** | System review: security, concurrency, errors, observability, APIs, migrations, dependencies, docs. Use for vulnerability scans, race conditions, goroutine leaks, silent failures, error messages, logging quality, API contracts, migration safety, dependency audits, and documentation validation. |
+| **reviewer-code** | Code quality review: conventions, naming, dead code, performance, types, tests, comments, config safety. Use for code style, readability, simplification, language idioms, naming consistency, unused code, comment accuracy, hot paths, type design, test coverage, and configuration review. |
+| **reviewer-system** | System review: security, concurrency, errors, observability, APIs, migrations, dependencies, docs. Use for vulnerability scans, race conditions, goroutine leaks, silent failures, error messages, logging quality, API contracts, migration safety, dependency audits, and documentation validation. |
 | **reviewer-perspectives** | Multi-perspective review: newcomer, senior, pedant, contrarian, user advocate, meta-process. Use for fresh-eyes critique, skeptical senior review, technical precision, assumption challenges, user impact analysis, and system design meta-review. |
 | **reviewer-domain** | Domain-specific review: ADR compliance, business logic, SAP CC structural, pragmatic builder. Use for architecture decision compliance, domain correctness, sapcc Go conventions, and production readiness critique. |
 
