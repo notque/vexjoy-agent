@@ -128,6 +128,44 @@ check_python() {
     echo -e "${GREEN}✓ Python $PYTHON_VERSION found${NC}"
 }
 
+# Prefer pip from the validated Python interpreter so dependency installs land
+# in the same environment used by the rest of the installer. Fall back to
+# platform-native pip commands only if that interpreter does not have pip.
+detect_pip_command() {
+    if "$PYTHON_CMD" -m pip --version &> /dev/null; then
+        PIP_CMD=("$PYTHON_CMD" -m pip)
+    elif command -v pip3 &> /dev/null; then
+        PIP_CMD=(pip3)
+    elif command -v pip &> /dev/null; then
+        PIP_CMD=(pip)
+    else
+        echo -e "${RED}Error: pip not found. Please install pip for ${PYTHON_CMD}.${NC}"
+        exit 1
+    fi
+
+    if ! "${PIP_CMD[@]}" --version &> /dev/null; then
+        echo -e "${RED}Error: ${PIP_CMD[*]} found but appears broken.${NC}"
+        exit 1
+    fi
+}
+
+pip_supports_break_system_packages() {
+    "${PIP_CMD[@]}" install --help 2>/dev/null | grep -q -- "--break-system-packages"
+}
+
+print_manual_pip_command() {
+    local use_break_system_packages=${1:-false}
+    local -a manual_cmd=("${PIP_CMD[@]}" install -r "${SCRIPT_DIR}/requirements.txt")
+    local manual_cmd_str
+
+    if [ "$use_break_system_packages" = true ]; then
+        manual_cmd+=(--break-system-packages)
+    fi
+
+    printf -v manual_cmd_str '%q ' "${manual_cmd[@]}"
+    echo "  Run manually: ${manual_cmd_str% }"
+}
+
 # Function to uninstall
 uninstall() {
     echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
@@ -460,6 +498,7 @@ fi
 
 # Verify requirements
 check_python
+detect_pip_command
 
 # Create ~/.claude if needed
 echo ""
@@ -848,14 +887,22 @@ echo -e "${YELLOW}Installing Python dependencies...${NC}"
 if [ "$DRY_RUN" = true ]; then
     echo -e "${BLUE}  Would install: dependencies from requirements.txt${NC}"
 else
+    USE_BREAK_SYSTEM_PACKAGES=false
+    PIP_INSTALL_ARGS=(-r "${SCRIPT_DIR}/requirements.txt" --quiet)
+    if pip_supports_break_system_packages; then
+        PIP_INSTALL_ARGS+=(--break-system-packages)
+        USE_BREAK_SYSTEM_PACKAGES=true
+        echo -e "${YELLOW}  Note: Enabling --break-system-packages because the selected pip supports it${NC}"
+    fi
+
     # Try pip install with --user fallback
-    if $PYTHON_CMD -m pip install -r "${SCRIPT_DIR}/requirements.txt" --quiet 2>/dev/null; then
+    if "${PIP_CMD[@]}" install "${PIP_INSTALL_ARGS[@]}" 2>/dev/null; then
         echo -e "${GREEN}  ✓ Python dependencies installed${NC}"
-    elif $PYTHON_CMD -m pip install -r "${SCRIPT_DIR}/requirements.txt" --user --quiet 2>/dev/null; then
+    elif "${PIP_CMD[@]}" install "${PIP_INSTALL_ARGS[@]}" --user 2>/dev/null; then
         echo -e "${GREEN}  ✓ Python dependencies installed (user mode)${NC}"
     else
         echo -e "${YELLOW}  ⚠ Could not auto-install Python dependencies${NC}"
-        echo "  Run manually: pip install -r ${SCRIPT_DIR}/requirements.txt"
+        print_manual_pip_command "$USE_BREAK_SYSTEM_PACKAGES"
     fi
 fi
 
