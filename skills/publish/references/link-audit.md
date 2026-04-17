@@ -1,24 +1,3 @@
----
-name: link-auditor
-description: "Hugo site link health: scan markdown, build link graph, validate paths."
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-routing:
-  triggers:
-    - "audit links"
-    - "find broken links"
-    - "link health"
-    - "broken links"
-    - "dead links"
-  category: content-publishing
----
-
 # Link Auditor Skill
 
 Hugo site link health analysis through a 4-phase pipeline: Scan, Analyze, Validate, Report. Extracts internal, external, and image links from Hugo markdown content; builds an adjacency matrix of internal link relationships; identifies orphan pages, under-linked pages, link sinks, and hub pages; validates that link targets resolve to real files; and generates audit reports with actionable fix suggestions.
@@ -211,6 +190,6 @@ Solution:
 
 ## References
 
-- `${CLAUDE_SKILL_DIR}/references/link-graph-metrics.md`: Graph metrics definitions and SEO impact
-- `${CLAUDE_SKILL_DIR}/references/false-positives.md`: Sites known to block validation requests
-- `${CLAUDE_SKILL_DIR}/references/fix-strategies.md`: Resolution strategies for each issue type
+- `${CLAUDE_SKILL_DIR}/references/link-audit-graph-metrics.md`: Graph metrics definitions and SEO impact
+- `${CLAUDE_SKILL_DIR}/references/link-audit-false-positives.md`: Sites known to block validation requests
+- `${CLAUDE_SKILL_DIR}/references/link-audit-fix-strategies.md`: Resolution strategies for each issue type

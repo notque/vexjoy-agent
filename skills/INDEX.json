@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-17T02:45:05Z",
+  "generated": "2026-04-17T03:05:37Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -80,19 +80,6 @@
       "user_invocable": true,
       "pairs_with": [],
       "model": "sonnet"
-    },
-    "batch-editor": {
-      "file": "skills/batch-editor/SKILL.md",
-      "description": "Bulk find/replace and frontmatter updates across Hugo posts.",
-      "triggers": [
-        "batch edit posts",
-        "bulk frontmatter update",
-        "find replace across files",
-        "mass edit",
-        "bulk update"
-      ],
-      "category": "content-publishing",
-      "user_invocable": false
     },
     "bluesky-reader": {
       "file": "skills/bluesky-reader/SKILL.md",
@@ -822,19 +809,6 @@
       "user_invocable": false,
       "agent": "python-general-engineer"
     },
-    "image-auditor": {
-      "file": "skills/image-auditor/SKILL.md",
-      "description": "Non-destructive image validation for accessibility and health.",
-      "triggers": [
-        "audit images",
-        "check broken images",
-        "image accessibility",
-        "alt text check",
-        "image optimization"
-      ],
-      "category": "content-publishing",
-      "user_invocable": false
-    },
     "image-to-video": {
       "file": "skills/image-to-video/SKILL.md",
       "description": "FFmpeg-based video creation from image and audio.",
@@ -1028,19 +1002,6 @@
         "save learning"
       ],
       "category": "meta-tooling",
-      "user_invocable": false
-    },
-    "link-auditor": {
-      "file": "skills/link-auditor/SKILL.md",
-      "description": "Hugo site link health: scan markdown, build link graph, validate paths.",
-      "triggers": [
-        "audit links",
-        "find broken links",
-        "link health",
-        "broken links",
-        "dead links"
-      ],
-      "category": "content-publishing",
       "user_invocable": false
     },
     "motion-pipeline": {
@@ -1281,19 +1242,6 @@
         "feature-lifecycle"
       ]
     },
-    "post-outliner": {
-      "file": "skills/post-outliner/SKILL.md",
-      "description": "Create structural blueprints for blog posts: outlines, word counts.",
-      "triggers": [
-        "outline post",
-        "blog structure",
-        "content blueprint",
-        "article outline",
-        "content structure"
-      ],
-      "category": "content-creation",
-      "user_invocable": false
-    },
     "pptx-generator": {
       "file": "skills/pptx-generator/SKILL.md",
       "description": "PPTX presentation generation with visual QA: slides, pitch decks.",
@@ -1362,19 +1310,6 @@
       "force_route": true,
       "user_invocable": true
     },
-    "pre-publish-checker": {
-      "file": "skills/pre-publish-checker/SKILL.md",
-      "description": "Pre-publication validation for Hugo posts: front matter, SEO, links, images.",
-      "triggers": [
-        "pre-publish check",
-        "Hugo validation",
-        "front matter check",
-        "publication check",
-        "frontmatter validation"
-      ],
-      "category": "content-publishing",
-      "user_invocable": false
-    },
     "professional-communication": {
       "file": "skills/professional-communication/SKILL.md",
       "description": "Transform technical communication into structured business formats.",
@@ -1390,6 +1325,60 @@
       ],
       "category": "content-creation",
       "user_invocable": false
+    },
+    "publish": {
+      "file": "skills/publish/SKILL.md",
+      "description": "Content-publishing umbrella covering the blog pipeline from blueprint to upload: post outlining, pre-publication validation, SEO optimization, bulk...",
+      "triggers": [
+        "outline post",
+        "blog structure",
+        "content blueprint",
+        "article outline",
+        "content structure",
+        "pre-publish check",
+        "Hugo validation",
+        "front matter check",
+        "publication check",
+        "frontmatter validation",
+        "check SEO",
+        "optimize SEO",
+        "keyword analysis",
+        "meta description",
+        "keyword optimization",
+        "batch edit posts",
+        "bulk frontmatter update",
+        "find replace across files",
+        "mass edit",
+        "bulk update",
+        "audit links",
+        "find broken links",
+        "link health",
+        "broken links",
+        "dead links",
+        "audit images",
+        "check broken images",
+        "image accessibility",
+        "alt text check",
+        "image optimization",
+        "audit taxonomy",
+        "fix tags",
+        "merge categories",
+        "tag cleanup",
+        "category management",
+        "upload to wordpress",
+        "create wordpress draft",
+        "publish to your-blog",
+        "wordpress draft",
+        "upload article",
+        "post to wordpress",
+        "upload image to wordpress",
+        "edit wordpress post",
+        "update wordpress post",
+        "wordpress media"
+      ],
+      "category": "content-publishing",
+      "user_invocable": false,
+      "agent": "general-purpose"
     },
     "python-quality-gate": {
       "file": "skills/python-quality-gate/SKILL.md",
@@ -1622,19 +1611,6 @@
       ],
       "model": "opus"
     },
-    "seo-optimizer": {
-      "file": "skills/seo-optimizer/SKILL.md",
-      "description": "Blog post SEO: keywords, titles, meta descriptions, internal linking.",
-      "triggers": [
-        "check SEO",
-        "optimize SEO",
-        "keyword analysis",
-        "meta description",
-        "keyword optimization"
-      ],
-      "category": "seo",
-      "user_invocable": false
-    },
     "series-planner": {
       "file": "skills/series-planner/SKILL.md",
       "description": "Plan multi-part content series: structure, cross-linking, cadence.",
@@ -1782,19 +1758,6 @@
         "comprehensive review"
       ],
       "category": "code-review",
-      "user_invocable": false
-    },
-    "taxonomy-manager": {
-      "file": "skills/taxonomy-manager/SKILL.md",
-      "description": "Audit and maintain blog taxonomy: categories, tags, orphans, duplicates.",
-      "triggers": [
-        "audit taxonomy",
-        "fix tags",
-        "merge categories",
-        "tag cleanup",
-        "category management"
-      ],
-      "category": "seo",
       "user_invocable": false
     },
     "test-driven-development": {
@@ -2078,28 +2041,6 @@
         "wordpress-uploader",
         "pre-publish-checker",
         "seo-optimizer"
-      ]
-    },
-    "wordpress-uploader": {
-      "file": "skills/wordpress-uploader/SKILL.md",
-      "description": "WordPress REST API integration for posts and media uploads.",
-      "triggers": [
-        "upload to wordpress",
-        "create wordpress draft",
-        "publish to your-blog",
-        "wordpress draft",
-        "upload article",
-        "post to wordpress",
-        "upload image to wordpress",
-        "edit wordpress post",
-        "update wordpress post",
-        "wordpress media"
-      ],
-      "category": "content-publishing",
-      "user_invocable": false,
-      "pairs_with": [
-        "voice-writer",
-        "anti-ai-editor"
       ]
     },
     "workflow": {

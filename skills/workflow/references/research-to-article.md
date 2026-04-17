@@ -297,4 +297,4 @@ Solution:
 |-------|-------------|
 | `voice-writer` | Used for Phase 4 voice generation |
 | `voice-{name}` | Loaded for target voice content |
-| `wordpress-uploader` | Upload final article (post-pipeline) |
+| `publish` | Upload final article (post-pipeline) |

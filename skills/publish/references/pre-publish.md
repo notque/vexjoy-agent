@@ -1,26 +1,3 @@
----
-name: pre-publish-checker
-description: "Pre-publication validation for Hugo posts: front matter, SEO, links, images."
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-  - Task
-  - Skill
-routing:
-  triggers:
-    - "pre-publish check"
-    - "Hugo validation"
-    - "front matter check"
-    - "publication check"
-    - "frontmatter validation"
-  category: content-publishing
----
-
 # Pre-Publish Checker Skill
 
 ## Overview
@@ -265,6 +242,6 @@ Solution:
 
 ## References
 
-- `${CLAUDE_SKILL_DIR}/references/seo-guidelines.md`: SEO length requirements and best practices
-- `${CLAUDE_SKILL_DIR}/references/hugo-frontmatter.md`: Hugo front matter fields and formats
-- `${CLAUDE_SKILL_DIR}/references/checklist.md`: Complete validation checklist reference
+- `${CLAUDE_SKILL_DIR}/references/pre-publish-seo-guidelines.md`: SEO length requirements and best practices
+- `${CLAUDE_SKILL_DIR}/references/pre-publish-hugo-frontmatter.md`: Hugo front matter fields and formats
+- `${CLAUDE_SKILL_DIR}/references/pre-publish-checklist.md`: Complete validation checklist reference

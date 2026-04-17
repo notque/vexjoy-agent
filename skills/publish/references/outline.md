@@ -1,25 +1,3 @@
----
-name: post-outliner
-description: "Create structural blueprints for blog posts: outlines, word counts."
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-  - Task
-routing:
-  triggers:
-    - "outline post"
-    - "blog structure"
-    - "content blueprint"
-    - "article outline"
-    - "content structure"
-  category: content-creation
----
-
 # Post Outliner Skill
 
 ## Overview
@@ -81,7 +59,7 @@ Scope: [Single post or potential series?]
 | Comparing options | Comparison | Structured evaluation |
 | Mixed content | Hybrid | Combine as needed |
 
-See `references/structure-templates.md` for full template details with section breakdowns, signal words, and examples.
+See `${CLAUDE_SKILL_DIR}/references/outline-structure-templates.md` for full template details with section breakdowns, signal words, and examples.
 
 **Step 2: Set scope parameters**
 
@@ -186,7 +164,7 @@ Actions:
 4. Validate: Technical depth appropriate, no fluff sections (VALIDATE)
 Result: Structured outline with Technical Explainer template, ~1,400-1,700 words
 
-See `references/examples.md` for complete outline examples with full formatting.
+See `${CLAUDE_SKILL_DIR}/references/outline-examples.md` for complete outline examples with full formatting.
 
 ---
 
@@ -210,7 +188,7 @@ Solution:
 Cause: Topic doesn't map cleanly to any single template
 Solution:
 1. Use hybrid approach combining elements from multiple templates
-2. See `references/structure-templates.md` for hybrid templates
+2. See `${CLAUDE_SKILL_DIR}/references/outline-structure-templates.md` for hybrid templates
 3. Prioritize the dominant content type when choosing base structure
 
 ### Error: "Estimated Length Exceeds Target"
@@ -225,5 +203,5 @@ Solution:
 ## References
 
 ### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/structure-templates.md`: Complete template library with section breakdowns and signal words
-- `${CLAUDE_SKILL_DIR}/references/examples.md`: Real outlines from your blog posts demonstrating proper format
+- `${CLAUDE_SKILL_DIR}/references/outline-structure-templates.md`: Complete template library with section breakdowns and signal words
+- `${CLAUDE_SKILL_DIR}/references/outline-examples.md`: Real outlines from your blog posts demonstrating proper format

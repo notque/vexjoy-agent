@@ -173,21 +173,14 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **anti-ai-editor** | User wants to edit content to remove AI-sounding patterns, genericness, or sterile phrasing. |
 | **content-engine** | User wants to repurpose source assets (articles, demos, docs) into platform-native social content. Common phrasings: "repurpose this", "adapt for social", "turn this into posts", "platform variants". |
 | **de-ai-pipeline (FORCE)** | User wants to scan and systematically fix AI patterns across documentation or a content repository. |
-| **post-outliner** | User wants a structured outline for a blog post or article before writing. |
+| **publish** | Content-publishing umbrella. Routes to one of eight intents: outline (structure a blog post before writing), pre-publish (validate Hugo post front matter, SEO, links, images before publishing), SEO (optimize keywords, title, meta description, internal links), batch-edit (bulk find/replace and frontmatter updates across Hugo posts), link-audit (scan markdown, build link graph, validate paths, find broken links), image-audit (non-destructive image validation for accessibility and page-weight health), taxonomy (audit tags/categories, merge duplicates, fix case variations), and WordPress-upload (REST API integration for posts and media). NOT: writing article prose (use voice-writer), live post-upload rendering verification (use wordpress-live-validation). |
 | **topic-brainstormer** | User wants ideas or topics to write about in a domain. |
-| **pre-publish-checker** | User wants to check content before publishing: completeness, quality, consistency. |
-| **seo-optimizer** | User wants to optimize content for search engines: keywords, meta descriptions, structure. |
 | **create-voice** | User wants to create a new voice profile from writing samples for use in future content generation. |
 | **voice-calibrator** | User wants to refine or calibrate an existing voice profile against new samples. |
 | **voice-validator** | User wants to validate that generated content matches a voice profile. |
 | **joy-check** | User wants to validate that content frames events positively rather than negatively on the joy-grievance spectrum — used as a validation gate in the voice-writer pipeline. Triggers: "joy check", "check framing", "tone check", "negative framing". NOT: full voice profile validation (use voice-validator). NOT: grammar/style editing (use anti-ai-editor). |
 | **series-planner** | User wants to plan a multi-part content series with coherent arc and progression. |
 | **content-calendar** | User wants to plan content publication over a time period. |
-| **link-auditor** | User wants to find and fix broken links in documentation or content. |
-| **image-auditor** | User wants to audit images for optimization, alt text, or quality issues. |
-| **batch-editor** | User wants to apply edits across many content files in bulk. |
-| **taxonomy-manager** | User wants to manage content categories, tags, or taxonomy systems. |
-| **wordpress-uploader** | User wants to upload or create draft posts in WordPress programmatically. |
 | **wordpress-live-validation** | User wants to validate WordPress posts live after upload: check rendering, canonical URLs, or publication status. |
 | **pptx-generator** | User wants to generate a PowerPoint presentation, slide deck, or pitch deck from content or research. |
 | **frontend-slides** | User wants browser-based HTML presentations: reveal-style slide decks, kiosk presentations, or converting PPTX to web format. |
