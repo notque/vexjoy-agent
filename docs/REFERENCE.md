@@ -175,8 +175,7 @@ Loaded automatically or via `Skill("name")`.
 | `workflow` | Structured multi-phase workflows (review, debug, refactor, deploy, create, research) |
 | `test-driven-development` | RED-GREEN-REFACTOR enforcement |
 | `verification-before-completion` | Never done without verification |
-| `planning-with-files` | Manus-style persistent markdown planning |
-| `plan-manager` | Plan lifecycle management |
+| `planning` | Planning lifecycle umbrella: spec, pre-plan, plan-files, check, manage, pause, resume |
 | `git-commit-flow` | Phase-gated git commit workflow with validation |
 | `pr-workflow` | Pull request lifecycle: sync, review, fix, status, cleanup, PR mining |
 

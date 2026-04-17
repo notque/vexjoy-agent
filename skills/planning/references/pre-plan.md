@@ -1,38 +1,8 @@
----
-name: pre-planning-discussion
-description: "Resolve implementation ambiguities before planning begins."
-user-invocable: false
-argument-hint: "[--assumptions] <topic>"
-command: /pre-planning-discussion
-allowed-tools:
-  - Read
-  - Glob
-  - Grep
-  - Bash
-  - Write
-  - Edit
-routing:
-  force_route: true
-  triggers:
-    - discuss ambiguities
-    - resolve gray areas
-    - clarify before planning
-    - assumptions mode
-    - what are the gray areas
-    - before we plan
-    - pre-planning discussion
-  pairs_with:
-    - feature-lifecycle
-    - workflow
-  complexity: Medium
-  category: process
----
-
-# Pre-Planning Discussion Skill
+# Pre-Planning Discussion Reference
 
 Resolve specific implementation ambiguities before a plan is created. This is an optional step between design and planning in the feature lifecycle (design → **ambiguity resolution** → plan → implement → validate → release), or a standalone step before any planning workflow.
 
-The cost of a wrong assumption compounds: a silently wrong assumption at the planning stage produces a valid-looking plan that executes cleanly but delivers the wrong thing. The rework cost is the entire plan-execute cycle, not just a single task. This skill makes assumptions explicit so they can be corrected cheaply — before any code is written.
+The cost of a wrong assumption compounds: a silently wrong assumption at the planning stage produces a valid-looking plan that executes cleanly but delivers the wrong thing. The rework cost is the entire plan-execute cycle, not just a single task. This reference makes assumptions explicit so they can be corrected cheaply — before any code is written.
 
 ## Instructions
 
@@ -60,7 +30,7 @@ The cost of a wrong assumption compounds: a silently wrong assumption at the pla
    - IN: What this task covers
    - OUT: What this task explicitly does not cover
 
-   This skill clarifies HOW to implement scoped work. It never expands scope to add new capabilities or question WHETHER the work should be done. If an ambiguity implies scope expansion, classify it as OUT and move on. Scope creep during ambiguity resolution defeats the purpose — the user already decided what to build; we are resolving how.
+   This reference clarifies HOW to implement scoped work. It never expands scope to add new capabilities or question WHETHER the work should be done. If an ambiguity implies scope expansion, classify it as OUT and move on. Scope creep during ambiguity resolution defeats the purpose — the user already decided what to build; we are resolving how.
 
 **GATE**: Prior context loaded (carried-forward decisions extracted). Mode selected. Scope boundary established. Proceed to Execute.
 
@@ -232,7 +202,7 @@ Save this document:
 
 | Error | Cause | Solution |
 |-------|-------|----------|
-| No gray areas found | Task is unambiguous or too vague to analyze | If unambiguous, skip this skill and go to planning. If too vague, return to feature-lifecycle design phase |
+| No gray areas found | Task is unambiguous or too vague to analyze | If unambiguous, skip this reference and go to planning. If too vague, return to feature-lifecycle design phase |
 | User defers all decisions | User wants the agent to decide everything | Accept all recommendations, record as "defaulted." Proceed. |
 | Scope expansion detected | A gray area implies new capabilities | Classify as OUT in scope boundary. Do not resolve it. |
 | Too many gray areas (>10) | Task scope is too broad | Group related gray areas or suggest breaking the task into smaller pieces |
@@ -241,4 +211,4 @@ Save this document:
 
 ## References
 
-- [ADR-072: Pre-Planning Ambiguity Resolution](../../adr/072-pre-planning-ambiguity-resolution.md)
+- [ADR-072: Pre-Planning Ambiguity Resolution](../../../adr/072-pre-planning-ambiguity-resolution.md)

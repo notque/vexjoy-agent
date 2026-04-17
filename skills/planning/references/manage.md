@@ -1,27 +1,8 @@
----
-name: plan-manager
-description: "Plan lifecycle management via plan-manager.py: list, create, check, complete, abandon plans."
-user-invocable: true
-allowed-tools:
-  - Read
-  - Bash
-  - Grep
-  - Glob
-routing:
-  triggers:
-    - "list plans"
-    - "show plan"
-    - "complete plan"
-    - "plan status"
-    - "manage plans"
-  category: process
----
-
-# Plan Manager Skill
+# Plan Manager Reference
 
 ## Overview
 
-This skill manages the complete lifecycle of task plans using a deterministic CLI-first pattern: all operations flow through `scripts/plan-manager.py`, never through manual file edits. This prevents stale plan execution, context drift, and loss of audit trails. Use this skill when the user needs to list, create, show, track, complete, or abandon plans — not for executing the tasks within plans themselves.
+This reference manages the complete lifecycle of task plans using a deterministic CLI-first pattern: all operations flow through `scripts/plan-manager.py`, never through manual file edits. This prevents stale plan execution, context drift, and loss of audit trails. Use this reference when the user needs to list, create, show, track, complete, or abandon plans — not for executing the tasks within plans themselves.
 
 ## Instructions
 

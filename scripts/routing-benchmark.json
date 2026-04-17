@@ -201,7 +201,7 @@
       "expected_skill": null,
       "category": "feature-lifecycle",
       "routing_tier": "llm_only",
-      "notes": "Feature plan phase — requires LLM to recognize 'plan the implementation' as feature-lifecycle. Script surfaces workflow-orchestrator, series-planner, plan-checker but not feature-lifecycle in top-5. No false-positive force-route expected."
+      "notes": "Feature plan phase — requires LLM to recognize 'plan the implementation' as feature-lifecycle. Script surfaces workflow-orchestrator, series-planner, planning but not feature-lifecycle in top-5. No false-positive force-route expected."
     },
     {
       "request": "build the feature from the plan",

@@ -1,31 +1,4 @@
----
-name: plan-checker
-description: "Validate plans against 10 dimensions: PASS/BLOCK verdict before execution."
-user-invocable: false
-command: /plan-checker
-allowed-tools:
-  - Read
-  - Grep
-  - Glob
-  - Bash
-routing:
-  triggers:
-    - check plan
-    - validate plan
-    - plan checker
-    - review plan
-    - is this plan ready
-    - plan-checker
-    - pre-execution check
-  pairs_with:
-    - feature-lifecycle
-    - workflow
-    - plan-manager
-  complexity: Medium
-  category: process
----
-
-# Plan Checker Skill
+# Plan Checker Reference
 
 ## Overview
 
@@ -33,7 +6,7 @@ Validate plans before execution using goal-backward analysis. Start from the sta
 
 **Key principle**: Plan completeness does not equal goal achievement. A plan can have all tasks filled in, each well-specified, and still miss the goal entirely. The checker validates by working backward from the goal through every requirement to verify complete coverage -- not just that each task looks reasonable in isolation.
 
-The skill operates as a gate between planning and execution, validating across 10 dimensions and issuing a PASS/BLOCK verdict. If issues are found, a bounded revision loop allows up to 3 iterations before proceeding with documented risks (because the cost of continued planning is not zero -- it consumes context, delays execution, and each revision may introduce new issues).
+This reference operates as a gate between planning and execution, validating across 10 dimensions and issuing a PASS/BLOCK verdict. If issues are found, a bounded revision loop allows up to 3 iterations before proceeding with documented risks (because the cost of continued planning is not zero -- it consumes context, delays execution, and each revision may introduce new issues).
 
 ## Instructions
 
@@ -76,7 +49,7 @@ From the goal and design document, extract a numbered list of requirements. Each
 
 Run goal-backward analysis across all 10 verification dimensions. For each, produce structured findings or mark as PASS.
 
-Full dimension specifications (severity, checks, tables, examples) for all 10 dimensions — Requirement Coverage, Task Completeness, Dependency Correctness, Key Links Planned, Scope Sanity, Verification Derivation, Context Compliance, Cross-Plan Data Contracts, CLAUDE.md Compliance, Achievability — live in `references/dimensions.md`.
+Full dimension specifications (severity, checks, tables, examples) for all 10 dimensions — Requirement Coverage, Task Completeness, Dependency Correctness, Key Links Planned, Scope Sanity, Verification Derivation, Context Compliance, Cross-Plan Data Contracts, CLAUDE.md Compliance, Achievability — live in `check-dimensions.md` (ported from the legacy `plan-checker/references/dimensions.md`).
 
 **Dimension severity summary**:
 
@@ -101,7 +74,7 @@ Full dimension specifications (severity, checks, tables, examples) for all 10 di
 
 Compile findings and issue verdict.
 
-**Step 1: Compile findings** — Order by severity (blockers first), then by dimension number. Each finding uses the structured format (Plan, Dimension, Severity, Description, Fix hint) — see `references/verdict-format.md`.
+**Step 1: Compile findings** — Order by severity (blockers first), then by dimension number. Each finding uses the structured format (Plan, Dimension, Severity, Description, Fix hint) — see `check-verdict-format.md` (ported from legacy `plan-checker/references/verdict-format.md`).
 
 **Step 2: Issue verdict**
 
@@ -111,7 +84,7 @@ Compile findings and issue verdict.
 | Warnings only, no blockers | **PASS with warnings** | Proceed, but address warnings if time allows |
 | Any blocker findings | **BLOCK** | Plan must be revised before execution |
 
-**Step 3: Format output** — Full verdict output template (headers, findings block, coverage matrix block) lives in `references/verdict-format.md`.
+**Step 3: Format output** — Full verdict output template (headers, findings block, coverage matrix block) lives in `check-verdict-format.md`.
 
 If verdict is PASS or PASS with warnings, direct the user to proceed with `/feature-lifecycle` (implement phase) or workflow-orchestrator EXECUTE.
 
@@ -137,23 +110,17 @@ Bounded revision loop: fix blocker findings, re-check, max 3 iterations. After 3
 | Blockers remain, iterations < 3 | Next iteration |
 | Blockers remain, iterations = 3 | Document remaining as known risks, issue **PASS (with known risks)** |
 
-Revision loop output template (iteration tracking, max-iterations banner, known-risks section): `references/verdict-format.md`.
+Revision loop output template (iteration tracking, max-iterations banner, known-risks section): `check-verdict-format.md`.
 
 ---
 
 ## Error Handling
 
-Common errors (no plan found, no goal found, file verification fails, CLAUDE.md not found, revision loop exhausted, plan is inline text) and solutions: `references/errors.md`.
+Common errors (no plan found, no goal found, file verification fails, CLAUDE.md not found, revision loop exhausted, plan is inline text) and solutions: `check-errors.md` (ported from legacy `plan-checker/references/errors.md`).
 
 ## References
 
-| Reference | When to Load | Content |
-|-----------|-------------|---------|
-| `references/dimensions.md` | Phase 2 CHECK | All 10 dimensions verbatim: severity, check, tables, examples |
-| `references/verdict-format.md` | Phase 3 VERDICT, Phase 4 | Verdict output templates, finding format, revision loop tracking, max-iterations banner |
-| `references/errors.md` | Error Handling | Error matrix with causes and solutions |
-
 - ADR-074: Plan Checker Pre-Execution Validation (historical reference -- file not present in current repo)
-- [Feature Lifecycle](/skills/feature-lifecycle/SKILL.md) -- plan phase produces plans this skill validates; implement phase executes plans after validation
-- [Workflow Orchestrator](skills/workflow/references/workflow-orchestrator.md) -- PLAN phase produces plans this skill can validate
-- [Verification Before Completion](/skills/verification-before-completion/SKILL.md) -- post-execution counterpart (validates results, not plans)
+- [Feature Lifecycle](../../feature-lifecycle/SKILL.md) -- plan phase produces plans this reference validates; implement phase executes plans after validation
+- [Workflow Orchestrator](../../workflow/references/workflow-orchestrator.md) -- PLAN phase produces plans this reference can validate
+- [Verification Before Completion](../../verification-before-completion/SKILL.md) -- post-execution counterpart (validates results, not plans)

@@ -1,43 +1,16 @@
----
-name: resume-work
-description: "Restore session state from handoff artifacts (HANDOFF.json, .continue-here.md, task_plan.md) and resume."
-user-invocable: true
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-  - Skill
-routing:
-  triggers:
-    - resume
-    - continue
-    - pick up where I left off
-    - what was I doing
-    - continue work
-    - where did I leave off
-    - what's next
-  pairs_with:
-    - pause-work
-  complexity: Simple
-  category: process
----
-
-# /resume-work - Session State Restoration
+# Resume Work Reference
 
 ## Overview
 
-This skill reconstructs session state from handoff artifacts so work can continue without wasting time re-reading files and re-discovering decisions. It is the consumer half of the pause/resume pair — `/pause-work` creates the artifacts, `/resume-work` consumes them.
+This reference reconstructs session state from handoff artifacts so work can continue without wasting time re-reading files and re-discovering decisions. It is the consumer half of the pause/resume pair — the pause intent creates the artifacts, this reference consumes them.
 
 The priority cascade exists because handoff quality varies:
-1. **HANDOFF.json** — Best case. Machine-readable, structured, created by explicit `/pause`. Contains reasoning context.
+1. **HANDOFF.json** — Best case. Machine-readable, structured, created by explicit pause. Contains reasoning context.
 2. **.continue-here.md** — Good case. Human-readable prose. May exist without JSON if user wrote it manually.
 3. **task_plan.md** — Fallback. Records task structure but not session reasoning. Better than nothing.
 4. **git log + git status** — Last resort. Can infer recent activity but cannot reconstruct reasoning or rejected approaches.
 
-Each level down the cascade loses more context, so the skill always starts from the top.
+Each level down the cascade loses more context, so this reference always starts from the top.
 
 ---
 
@@ -192,7 +165,7 @@ If user discards, fall to next priority level in cascade.
 
 ### Phase 4: EXECUTE
 
-**Goal**: Route to the next action and clean up handoff files (they are ephemeral session artifacts, not persistent state, so keeping them risks future `/resume-work` calls loading outdated context).
+**Goal**: Route to the next action and clean up handoff files (they are ephemeral session artifacts, not persistent state, so keeping them risks future resume calls loading outdated context).
 
 **Step 1: Execute next action**
 
@@ -221,7 +194,7 @@ If `task_plan.md` exists, update its status line to reflect that the session has
 **Status**: Resumed from handoff — executing: <next_action summary>
 ```
 
-**GATE**: Next action initiated. Handoff files cleaned up. Session is now in active work mode. Note: This skill never modifies code, resets git state, or discards uncommitted changes — it only reads and deletes handoff files.
+**GATE**: Next action initiated. Handoff files cleaned up. Session is now in active work mode. Note: This reference never modifies code, resets git state, or discards uncommitted changes — it only reads and deletes handoff files.
 
 ---
 
@@ -247,7 +220,7 @@ If `task_plan.md` exists, update its status line to reflect that the session has
 
 ## References
 
-### Related Skills
-- `pause-work` — Creates the handoff artifacts this skill consumes
+### Related Intents
+- `pause` (planning umbrella) — Creates the handoff artifacts this reference consumes
 - `do` — Routes next_action to appropriate agent/skill for execution
 - `workflow-orchestrator` — For complex multi-phase tasks that benefit from handoff between phases

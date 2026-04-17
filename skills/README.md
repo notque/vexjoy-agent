@@ -31,11 +31,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `plan-manager` | yes | Plan lifecycle management via plan-manager.py: list, create, check, complete, abandon plans |
-| `plan-checker` | no | Validate plans against 10 dimensions: PASS/BLOCK verdict before execution |
-| `planning-with-files` | no | Persistent markdown files as working memory for complex multi-phase tasks |
-| `pre-planning-discussion` | no | Resolve implementation ambiguities before planning begins |
-| `spec-writer` | no | Structured specification: user stories, acceptance criteria, scope |
+| `planning` | yes | Planning lifecycle umbrella: spec, pre-plan, plan-files, check, manage, pause, resume intents |
 | `decision-helper` | no | Weighted decision scoring for architectural choices |
 | `plant-seed` | no | Capture forward-looking idea as a seed for future feature design |
 
@@ -208,8 +204,6 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `pause-work` | no | Create session handoff artifacts for resumable work continuity |
-| `resume-work` | yes | Restore session state from handoff artifacts (HANDOFF.json, .continue-here.md, task_plan.md) and resume |
 | `read-only-ops` | no | Read-only exploration, inspection, and reporting without modifications |
 
 ---

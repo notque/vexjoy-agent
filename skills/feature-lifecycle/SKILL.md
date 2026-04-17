@@ -51,7 +51,7 @@ routing:
     - verification-before-completion
     - universal-quality-gate
     - adr-consultation
-    - spec-writer
+    - planning
   complexity: Complex
   category: process
 ---

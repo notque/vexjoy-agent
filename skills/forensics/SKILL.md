@@ -23,7 +23,7 @@ routing:
     - "incident review"
   pairs_with:
     - workflow
-    - plan-checker
+    - planning
   complexity: Medium
   category: process
 ---
@@ -215,5 +215,5 @@ Include relevant git log excerpts, file snippets, and timestamps as evidence for
 - [ADR-073: Forensics Meta-Workflow Diagnostics](/adr/073-forensics-meta-workflow-diagnostics.md)
 - [Systematic Debugging](skills/workflow/references/systematic-debugging.md) -- for code-level bugs (not workflow-level)
 - [Workflow Orchestrator](skills/workflow/references/workflow-orchestrator.md) -- produces the plans forensics analyzes
-- [Plan Checker](/skills/plan-checker/SKILL.md) -- validates plans pre-execution (forensics analyzes post-execution)
+- [Planning umbrella — check intent](/skills/planning/references/check.md) -- validates plans pre-execution (forensics analyzes post-execution)
 - [Error Learner Hook](/hooks/error-learner.py) -- handles tool-level errors (forensics handles workflow-level patterns)
