@@ -143,33 +143,33 @@ These checkpoints are mandatory. Do not skip them even when confident.
 
 ## Capabilities & Output Format
 
-See `python-general-engineer/references/capabilities.md` for full CAN/CANNOT lists and the Implementation Schema output template.
+See `agents/python-general-engineer/references/capabilities.md` for full CAN/CANNOT lists and the Implementation Schema output template.
 
 ## Error Handling
 
-See `python-general-engineer/references/error-handling.md` for common errors and solutions (async deadlock, mypy errors, mutable defaults, import errors, mock AttributeError). Comprehensive catalog in `references/python-errors.md`.
+See `agents/python-general-engineer/references/error-handling.md` for common errors and solutions (async deadlock, mypy errors, mutable defaults, import errors, mock AttributeError). Comprehensive catalog in `agents/python-general-engineer/references/python-errors.md`.
 
 ## Preferred Patterns
 
-See `python-general-engineer/references/preferred-patterns.md` for the full anti-pattern list (system pip, ABCs, premature async, type ignore, string concatenation, bare except, input validation, prompt visibility, category definitions). Full catalog in `references/python-anti-patterns.md`.
+See `agents/python-general-engineer/references/preferred-patterns.md` for the full anti-pattern list (system pip, ABCs, premature async, type ignore, string concatenation, bare except, input validation, prompt visibility, category definitions). Full catalog in `agents/python-general-engineer/references/python-anti-patterns.md`.
 
 ## Anti-Rationalization
 
-See `shared-patterns/anti-rationalization-core.md` for universal patterns. See `python-general-engineer/references/anti-rationalization.md` for Python-specific rationalizations table.
+See `skills/shared-patterns/anti-rationalization-core.md` for universal patterns. See `agents/python-general-engineer/references/anti-rationalization.md` for Python-specific rationalizations table.
 
 ## Hard Gate Patterns
 
-Before writing Python code, check for forbidden patterns. If found: STOP, REPORT, FIX. See `python-general-engineer/references/hard-gate-patterns.md` for the full pattern table, detection commands, and exceptions. Framework in `shared-patterns/forbidden-patterns-template.md`.
+Before writing Python code, check for forbidden patterns. If found: STOP, REPORT, FIX. See `agents/python-general-engineer/references/hard-gate-patterns.md` for the full pattern table, detection commands, and exceptions. Framework in `skills/shared-patterns/forbidden-patterns-template.md`.
 
 ## Blocker Criteria & Death Loop Prevention
 
-STOP and ask the user for explicit confirmation on fundamental design choices (async vs sync, ORM, framework, error handling strategy, new dependencies, breaking API changes). See `python-general-engineer/references/blocker-criteria.md` for the full table, "Never Guess On" list, retry limits, compilation-first rule, and recovery protocol.
+STOP and ask the user for explicit confirmation on fundamental design choices (async vs sync, ORM, framework, error handling strategy, new dependencies, breaking API changes). See `agents/python-general-engineer/references/blocker-criteria.md` for the full table, "Never Guess On" list, retry limits, compilation-first rule, and recovery protocol.
 
 ## References
 
 For detailed Python patterns and examples:
-- **Error Catalog**: [references/python-errors.md](references/python-errors.md)
-- **Pattern Guide**: [references/python-anti-patterns.md](references/python-anti-patterns.md)
-- **Code Examples**: [references/python-patterns.md](references/python-patterns.md)
-- **Modern Features**: [references/python-modern-features.md](references/python-modern-features.md)
+- **Error Catalog**: [python-errors.md](python-general-engineer/references/python-errors.md)
+- **Pattern Guide**: [python-anti-patterns.md](python-general-engineer/references/python-anti-patterns.md)
+- **Code Examples**: [python-patterns.md](python-general-engineer/references/python-patterns.md)
+- **Modern Features**: [python-modern-features.md](python-general-engineer/references/python-modern-features.md)
 
