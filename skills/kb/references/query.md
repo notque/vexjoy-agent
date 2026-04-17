@@ -1,42 +1,6 @@
----
-name: kb-query
-description: "Query a knowledge base topic and optionally file the answer."
-user-invocable: false
-agent: general-purpose
-allowed-tools:
-  - Read
-  - Write
-  - Edit
-  - Bash
-  - Glob
-  - Grep
-routing:
-  triggers:
-    - "query knowledge base"
-    - "kb query"
-    - "ask knowledge base"
-    - "search kb"
-    - "kb question"
-  category: research
-  complexity: medium
----
-
 # KB Query Skill
 
 Answer a question using the compiled wiki for a knowledge base topic. Reads relevant articles from the wiki, synthesizes an answer, and optionally files the response as a permanent query record that feeds back into the next compile cycle.
-
-## Invocation
-
-```
-/kb query {topic} "{question}"
-/kb query {topic} "{question}" --no-file
-```
-
-- `{topic}` — directory name under `research/` (e.g., `llm-security`)
-- `{question}` — the question to answer (quoted string)
-- `--no-file` — output only to conversation, do not save a query file
-
----
 
 ## Phase 1: LOCATE
 

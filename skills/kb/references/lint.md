@@ -1,38 +1,6 @@
----
-name: kb-lint
-description: "Health check and lint a knowledge base wiki for consistency and gaps."
-user-invocable: false
-agent: general-purpose
-allowed-tools:
-  - Read
-  - Write
-  - Edit
-  - Bash
-  - Glob
-  - Grep
-routing:
-  triggers:
-    - "lint knowledge base"
-    - "kb lint"
-    - "check kb health"
-    - "knowledge base health"
-    - "kb consistency"
-  category: research
-  complexity: medium
----
-
 # KB Lint Skill
 
 Health check a knowledge base wiki under `research/{topic}/` for structural consistency, broken references, and content quality gaps. Produces a structured lint report.
-
-## Invocation
-
-```
-/kb-lint --topic TOPIC [--fix]
-```
-
-- `--topic TOPIC` — the topic slug under `research/`
-- `--fix` — attempt to auto-fix structural errors (missing index entries, broken links)
 
 ## Phase 1: INVENTORY
 
