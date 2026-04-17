@@ -91,6 +91,7 @@ The migration runs before the application starts.  # stated as fact, is inferenc
 
 ---
 
+<!-- no-pair-required: section-header-only — catalog heading, individual blocks carry the do-framing -->
 ## Anti-Pattern Catalog
 
 ### ❌ Statistical Claims Without Source
@@ -112,7 +113,7 @@ than the alternative in most workloads.
 
 **Why wrong**: "Studies show" without a specific study is not a source — it's a rhetorical move. "3x faster" without a benchmark methodology is marketing language. Both patterns erode credibility when readers verify them and find nothing.
 
-**Fix**:
+**Do instead:**
 ```
 The Redis Labs 2023 benchmark showed 3.2x throughput improvement over
 Memcached for workloads with key sizes under 1KB. Results vary with
@@ -140,7 +141,7 @@ always takes 200ms because of missing indexes.
 
 **Why wrong**: Without profiling data or execution plans, this is inference stated as fact. If the reader checks and the database isn't the bottleneck, the article loses all credibility.
 
-**Fix**:
+**Do instead:**
 ```
 Profiling showed the database at 73% of request time. The slow_query_log
 identified three queries averaging 200ms — all on the users table without
@@ -174,7 +175,7 @@ Originally, services used flat networks without namespace isolation.
 
 **Why wrong**: "When Kubernetes was first released" is vague — Kubernetes 1.0 shipped July 2015. Without the date, the reader can't evaluate how much the ecosystem has changed since then.
 
-**Fix**:
+**Do instead:**
 ```
 Kubernetes 1.0 shipped in July 2015 with a flat networking model.
 NetworkPolicy resources, which enable namespace isolation, arrived in
@@ -202,7 +203,7 @@ Most teams have moved away from monolithic architectures.
 
 **Why wrong**: "More reliable" requires a specific reliability metric and measured workload. "Most teams" requires a survey. Without these, the claims are opinions presented as facts.
 
-**Fix**:
+**Do instead:**
 ```
 In TPC-C benchmarks on write-heavy workloads, PostgreSQL's MVCC implementation
 shows lower lock contention than MySQL's row-level locking under high concurrency

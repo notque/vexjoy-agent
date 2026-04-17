@@ -39,6 +39,7 @@ grep -c '^[0-9]\+\.' article.md
 
 ---
 
+<!-- no-pair-required: section-header-only — catalog heading, individual blocks carry the do-framing -->
 ## Anti-Pattern Catalog
 
 ### ❌ Enthusiasm Markers
@@ -56,7 +57,7 @@ to beautifully solve concurrency without compromising performance.
 
 **Why wrong**: Enthusiasm adjectives make claims that can't be verified. "Powerful" compared to what? "Elegantly" by whose standard? These words add editorializing without adding information. Readers tracking the matter-of-fact register notice immediately and discount subsequent factual claims.
 
-**Fix**:
+**Do instead:**
 ```
 The system uses PostgreSQL. PostgreSQL handles concurrent writes through MVCC.
 Readers don't block writers. The tradeoff is storage overhead for old row versions.
@@ -84,7 +85,7 @@ you can do. Trust me, you'll thank yourself later.
 
 **Why wrong**: The journalist voice informs, it doesn't prescribe. "You must" assumes authority over the reader's situation — which the author doesn't have. "Trust me" substitutes author credibility for evidence, which is the opposite of journalism.
 
-**Fix**:
+**Do instead:**
 ```
 Teams write documentation for integration contracts. This prevents breaking
 changes by recording what each service guarantees.
@@ -111,7 +112,7 @@ exciting new approach...
 
 **Why wrong**: The first sentence is the highest-value real estate in any article. Rhetorical questions and scene-setting delay the information the reader came for. Technical readers opened the article knowing the topic — delay signals filler.
 
-**Fix**: First sentence states the topic directly.
+**Do instead:** First sentence states the topic directly.
 ```
 The database migration system changed. The old approach used schema files;
 the new one uses versioned migration scripts.
@@ -134,7 +135,7 @@ sounds complicated — I'll break it down step by step!
 
 **Why wrong**: The knowledgeable reader assumption means this audience knows JWT basics. Explaining them signals the author misjudged the audience, eroding trust in the technical claims that follow.
 
-**Fix**:
+**Do instead:**
 ```
 The system uses JWT. The token includes user_id and role claims. Expiry is 1 hour.
 ```
@@ -158,7 +159,7 @@ You should implement appropriate backoff strategies to handle this gracefully.
 
 **Why wrong**: "Appropriate" and "gracefully" are placeholders for specific knowledge the author didn't provide. The reader needs the specific behavior: what HTTP status code, which response header, how many seconds.
 
-**Fix**:
+**Do instead:**
 ```
 The API returns HTTP 429 when you exceed 100 requests per minute. The response
 includes a Retry-After header specifying seconds to wait.
@@ -170,16 +171,15 @@ includes a Retry-After header specifying seconds to wait.
 
 **Detection**:
 ```bash
-# Count numbered list items in article
 grep -c '^[0-9]\+\.' article.md
-
-# Find consecutive numbered items (listicle blocks)
 grep -n '^[0-9]\+\.' article.md | awk -F: 'prev && $1-prev==1{count++} {prev=$1} count>=4{print "Listicle block at line "$1; count=0}'
 ```
 
+**Do instead:** write prose paragraphs where causation is explicit; full correction follows below.
+
 **What it looks like**:
 ```
-### Top 5 Reasons Schema Files Failed
+Top 5 Reasons Schema Files Failed
 
 1. Synchronization issues across environments
 2. Merge conflicts in large teams
@@ -190,7 +190,7 @@ grep -n '^[0-9]\+\.' article.md | awk -F: 'prev && $1-prev==1{count++} {prev=$1}
 
 **Why wrong**: Numbered lists atomize related ideas and hide logical relationships. The journalist voice builds arguments in prose where causation is explicit ("X caused Y because Z"), not implied by list adjacency.
 
-**Fix**:
+**Correction:**
 ```
 ### Why Schema Files Failed
 
@@ -311,9 +311,9 @@ Headers tell you what's in the section.
 
 **Clickbait (wrong):**
 ```
-### The Problem Nobody Saw Coming
-### The Solution That Changes Everything
-### What Happens Next Will Surprise You
+The Problem Nobody Saw Coming
+The Solution That Changes Everything
+What Happens Next Will Surprise You
 ```
 
 ### Topic Sentences Deliver
@@ -421,7 +421,7 @@ The fundamental issue was synchronization...
 
 **Listicle (wrong):**
 ```
-### Top 5 Reasons Schema Files Failed
+Top 5 Reasons Schema Files Failed
 
 1. Synchronization issues across environments
 2. Merge conflicts in large teams
