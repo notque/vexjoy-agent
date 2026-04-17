@@ -96,6 +96,7 @@ readers to continue while a write transaction is open, essential for web applica
 ---
 
 ### Targeted SELECT to Avoid Overfetch
+<!-- no-pair-required: positive pattern section, title contains 'avoid' triggering false positive -->
 
 Specify only needed columns — prevents loading TEXT/BLOB columns when only IDs or names needed.
 
@@ -116,6 +117,7 @@ for u in users:
 ---
 
 ## Anti-Pattern Catalog
+<!-- no-pair-required: section header with no content -->
 
 ### ❌ N+1 Queries via Loop Attribute Access
 
@@ -127,6 +129,8 @@ grep -rn '\.select()' --include="*.py" -A 10 | grep -B 5 'for .* in '
 rg 'for \w+ in \w+\.\w+:' --type py
 rg '\.select\(\)' --type py -A 5 | grep '\.\w+\.\w+'
 ```
+
+**Do instead:** Use `User.select().prefetch(Post)` to load all related data in 2 queries instead of N+1.
 
 **What it looks like**:
 ```python
@@ -141,7 +145,11 @@ for user in users:
 With 500 users this is 1001 queries. SQLite holds a read lock per query — accumulated latency
 grows linearly with row count.
 
-**Fix**:
+**Do instead:**
+
+Use `prefetch()` to load all related data in 2 queries, or annotate with a subquery to compute
+aggregates in a single SQL statement:
+
 ```python
 # Option 1: prefetch + Python aggregation
 users = User.select().prefetch(Post)
@@ -174,6 +182,8 @@ grep -rn 'ForeignKeyField' --include="*.py"
 rg 'ForeignKeyField\([^)]*\)' --type py | grep -v 'index=True'
 ```
 
+**Do instead:** Add `index=True` to every `ForeignKeyField` and declare composite indexes in `Meta.indexes` for multi-column query patterns.
+
 **What it looks like**:
 ```python
 class Post(Model):
@@ -185,7 +195,11 @@ class Post(Model):
 filtering on `Post.user == user_id` do a full table scan. At 10k rows this is noticeable; at
 100k rows it's a reported bug.
 
-**Fix**:
+**Do instead:**
+
+Declare `index=True` on every `ForeignKeyField` and add composite indexes in `Meta.indexes`
+for any query patterns that filter on multiple columns:
+
 ```python
 class Post(Model):
     user = ForeignKeyField(User, backref='posts', index=True)
@@ -211,6 +225,8 @@ rg '\.prefetch\(' --type py -A 2 | grep '\.join\('
 grep -rn 'prefetch' --include="*.py" -A 3 | grep 'join'
 ```
 
+**Do instead:** Use `join()` alone when filtering on a related field, or `prefetch()` alone when loading related data. Never combine both for the same model.
+
 **What it looks like**:
 ```python
 # BUG: join + prefetch on same model produces cartesian product rows
@@ -224,7 +240,11 @@ users = (User
 Using both causes Post rows to appear multiple times in `user.posts` after prefetch populates
 from the JOIN result set.
 
-**Fix**:
+**Do instead:**
+
+Pick one strategy per query: `join()` for filter/order operations, `prefetch()` for loading
+related objects into memory:
+
 ```python
 # For filtering: use join only, no prefetch
 users = User.select().join(Post).where(Post.status == 'published').distinct()
@@ -244,6 +264,8 @@ rg '\.select\(\s*\)' --type py
 grep -rn '\.select()' --include="*.py" | grep -v 'select(.*\.'
 ```
 
+**Do instead:** Specify only the columns you need: `Post.select(Post.id, Post.title, Post.created_at)`.
+
 **What it looks like**:
 ```python
 # Loads all columns including large TEXT/BLOB fields
@@ -255,7 +277,10 @@ for post in posts:
 **Why wrong**: SQLite reads entire row pages into cache. Loading unused large columns wastes
 cache and increases I/O, especially in list views rendering only titles or IDs.
 
-**Fix**:
+**Do instead:**
+
+Select only the columns required for the operation, keeping queries narrow and cache-efficient:
+
 ```python
 posts = Post.select(Post.id, Post.title, Post.created_at)
 ```
