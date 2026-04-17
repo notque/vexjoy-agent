@@ -146,7 +146,7 @@ export function verifyWebhookSignature(
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Using jwt.decode() Instead of jwt.verify()
 

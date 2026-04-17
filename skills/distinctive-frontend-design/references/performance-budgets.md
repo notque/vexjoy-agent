@@ -116,7 +116,7 @@ Use `will-change` only on elements that will actually animate, and remove it aft
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section-header-only; pairs live in each sub-section below -->
 
 ### ❌ Animating Layout Properties (width/height/top/left/margin)

@@ -79,7 +79,7 @@ result = some_func()  # noqa
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Using `== None` / `== True` / `== False` (E711/E712)
 

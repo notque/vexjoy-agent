@@ -199,7 +199,7 @@ Use these anchors to score confidence consistently:
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 <!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Feasibility conflated with desirability

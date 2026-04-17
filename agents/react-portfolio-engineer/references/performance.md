@@ -132,7 +132,7 @@ export function Lightbox(props: LightboxProps) {
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Multiple `priority` Images
 

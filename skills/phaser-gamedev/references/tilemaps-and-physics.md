@@ -256,7 +256,7 @@ this.physics.add.collider(this.player, platforms);
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Calling setCollisionByProperty After Layer Already Has Colliders
 

@@ -115,7 +115,7 @@ function ParallaxSection() {
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Missing `prefers-reduced-motion` Support
 

@@ -167,7 +167,7 @@ Target metrics:
 **Cause**: Applied statically to all cards in the hand at all times.
 **Solution**: Apply `will-change: transform` only via JavaScript when hover/animation starts, remove it on `animationend` or `mouseleave`.
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 ### Creating DOM elements inside effect functions
 **What it looks like**: `const el = document.createElement('div')` inside `createImpactBurst()`

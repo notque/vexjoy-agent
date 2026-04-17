@@ -124,7 +124,7 @@ type EntityManager interface {
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Using interface{} Instead of any
 

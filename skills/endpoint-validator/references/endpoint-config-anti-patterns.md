@@ -55,7 +55,7 @@ config files per environment. Local dev falls back to localhost automatically.
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Hardcoded IP Address in base_url
 

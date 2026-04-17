@@ -164,7 +164,7 @@ Classify your market structure before setting positioning strategy.
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 <!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Analyzing features, ignoring momentum

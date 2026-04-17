@@ -207,7 +207,7 @@ Before finalizing positioning:
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 <!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Positioning by negation only

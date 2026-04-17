@@ -103,7 +103,7 @@ db_password: "{{ vault_db_password }}"
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Plaintext Secrets in Playbooks or Vars Files
 

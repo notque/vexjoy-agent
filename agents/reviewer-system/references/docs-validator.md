@@ -73,7 +73,7 @@ When validating project health, you prioritize:
 | "It's an internal project" | Internal projects onboard new team members too | Full documentation standards apply |
 | "The code is self-documenting" | Code explains how, not why or how-to-run | README and conventions are still required |
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 ### Accepting README Existence as Completeness
 **What it looks like**: "README.md exists, documentation is covered."

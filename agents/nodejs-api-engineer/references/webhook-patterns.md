@@ -160,7 +160,7 @@ app.post('/webhooks/stripe', async (req, res) => {
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Parsing Body Before Signature Verification
 

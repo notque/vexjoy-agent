@@ -113,7 +113,7 @@ route:
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section header only -->
 
 ### ❌ Single-Window Burn Rate Alert

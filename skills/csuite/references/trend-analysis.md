@@ -234,7 +234,7 @@ Assessment: [Growing / Maturing / Plateau / Early Decay / Late Decay]
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 <!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Treating Hype Cycle peak as confirmation of sustained growth

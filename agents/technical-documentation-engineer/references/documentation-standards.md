@@ -1,6 +1,6 @@
 # Documentation Standards Reference
 
-> **Scope**: Style guide rules, parameter table quality, heading structure, and prose standards for API and technical documentation. Does NOT cover code example verification (see `api-doc-anti-patterns.md`).
+> **Scope**: Style guide rules, parameter table quality, heading structure, and prose standards for API and technical documentation. Does NOT cover code example verification (see `api-doc-verification-failures.md`).
 > **Version range**: Google Developer Documentation Style Guide (current), OpenAPI 3.x
 > **Generated**: 2026-04-15 — verify against Google style guide current release
 
@@ -243,7 +243,7 @@ grep -n "^Creates\|^Updates\|^Deletes\|^Returns\|^Lists\|^Fetches" docs/**/*.md
 
 ## See Also
 
-- `api-doc-anti-patterns.md` — Verification anti-patterns: hallucinated parameters, untested examples
+- `api-doc-verification-failures.md` — Verification failures: hallucinated parameters, untested examples
 - `runbook-patterns.md` — Operational documentation structure
 - [Google Developer Documentation Style Guide](https://developers.google.com/style)
 - [OpenAPI 3.1 Specification](https://spec.openapis.org/oas/v3.1.0)

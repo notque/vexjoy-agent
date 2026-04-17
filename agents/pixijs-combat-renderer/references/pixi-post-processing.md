@@ -361,7 +361,7 @@ The PixiJS stack in these references approximates all four of those systems.
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 ### ❌ Applying filters to the HTML canvas element via CSS
 ```css

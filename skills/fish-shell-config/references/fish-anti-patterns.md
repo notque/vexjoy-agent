@@ -12,7 +12,7 @@ Fish configuration errors rarely throw loud errors — they silently produce wro
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Bash-Style Variable Assignment
 

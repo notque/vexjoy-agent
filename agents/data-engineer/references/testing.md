@@ -170,7 +170,7 @@ reconcile_task = PythonOperator(
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ dbt Models Without Any Tests
 

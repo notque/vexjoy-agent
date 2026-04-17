@@ -19,7 +19,7 @@ measurable, specific descriptions of what the optimization does.
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 <!-- no-pair-required: section heading organizing multiple anti-pattern blocks -->
 

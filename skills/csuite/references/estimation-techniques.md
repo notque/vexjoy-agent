@@ -335,7 +335,7 @@ Team ratio (greenfield): ___×
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 <!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Point estimate at concept stage

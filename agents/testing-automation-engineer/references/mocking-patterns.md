@@ -124,7 +124,7 @@ it('sends welcome email on registration', async () => {
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Over-Mocking — Mocking Internal Application Logic
 

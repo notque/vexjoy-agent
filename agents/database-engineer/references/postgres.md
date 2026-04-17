@@ -150,7 +150,7 @@ COMMIT;
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Unindexed Foreign Key Column
 

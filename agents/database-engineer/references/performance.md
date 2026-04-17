@@ -138,7 +138,7 @@ ORDER BY duration DESC;
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Over-Indexing (Index on Every Column)
 

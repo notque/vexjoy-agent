@@ -263,6 +263,7 @@ php artisan test --coverage          # Laravel
 
 ---
 
+<!-- no-pair-required: section-header-only; individual anti-patterns below carry Do-instead blocks -->
 ## Common Testing Anti-Patterns
 
 | Anti-Pattern | Problem | Fix |

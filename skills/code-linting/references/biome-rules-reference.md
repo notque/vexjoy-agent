@@ -107,7 +107,7 @@ const _debug = process.env.DEBUG;
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Using `==` instead of `===` (noDoubleEquals)
 

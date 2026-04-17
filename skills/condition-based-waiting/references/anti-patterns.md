@@ -12,7 +12,7 @@ Retry and wait code fails silently more than almost any other category: a loop t
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Hardcoded `time.sleep()` Without Condition Check
 

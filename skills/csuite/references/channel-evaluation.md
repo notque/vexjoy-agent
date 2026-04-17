@@ -164,7 +164,7 @@ If selected channel hours > 80% of available hours: remove a channel.
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 <!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Platform-native metrics as success metrics

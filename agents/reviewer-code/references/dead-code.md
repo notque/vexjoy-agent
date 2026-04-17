@@ -74,7 +74,7 @@ Identify unreachable code, unused exports, orphaned files, and other code artifa
 - **Reflection/Dynamic Usage**: Note if symbol may be used via reflection or plugin system.
 - **Public API Surface**: Note if exported function is intended for external consumers.
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 | Rationalization | Why It's Wrong | Required Action |
 |-----------------|----------------|-----------------|

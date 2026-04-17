@@ -394,7 +394,7 @@ const mat = new THREE.ShaderMaterial({
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Recreating ShaderMaterial in Animation Loop
 

@@ -135,7 +135,7 @@ ansible-playbook site.yml --check 2>&1 | grep -E "changed=|failed="
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Using `command`/`shell` Without `changed_when`
 

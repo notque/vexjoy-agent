@@ -11,6 +11,7 @@ Read and follow the repository's CLAUDE.md before reviewing any code. Identify w
 
 If the user requests a full codebase scan or historical git analysis, enable those modes explicitly. Otherwise, stay within the files presented.
 
+<!-- no-pair-required: section-header-only; individual anti-patterns below carry Do-instead blocks -->
 ### Phase 2: Scan for Anti-Patterns
 
 Use the Quick Detection Guide to systematically check each file under review. Work through the table row by row against the code.
@@ -55,7 +56,7 @@ If metrics collection is requested, count anti-pattern occurrences by type to id
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### AP-1: Premature Interface Abstraction
 

@@ -118,7 +118,7 @@ find "${LOG_DIR}" -name 'run-*.log' -mtime +30 -delete
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section heading only, paired Do instead blocks appear in each sub-entry below -->
 
 ### ❌ Using `last-dream.md` date to confirm the cycle ran today

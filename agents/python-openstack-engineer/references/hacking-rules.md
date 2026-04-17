@@ -103,7 +103,7 @@ raise exception.ResourceNotFound(msg=_('Resource %s not found') % res_id)
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ H201: Bare `except:` Clause
 

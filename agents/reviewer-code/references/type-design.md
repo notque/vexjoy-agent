@@ -80,7 +80,7 @@ Every type analyzed receives ratings (1-10) for:
 - **Dynamic Types Without Annotations**: Recommend adding type hints. Note limited analysis.
 - **Types Designed for Serialization**: Note DTO vs domain model distinction. Public fields acceptable for serialization.
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 | Rationalization | Why It's Wrong | Required Action |
 |-----------------|----------------|-----------------|

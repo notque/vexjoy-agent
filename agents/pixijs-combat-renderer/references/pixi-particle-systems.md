@@ -273,7 +273,7 @@ config.maxParticles = Math.floor(config.maxParticles * mobileMultiplier);
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 ### ❌ Using @pixi/particle-emitter (the v7 package) with PixiJS v8
 It uses v7's `Container` internally and fails at runtime. Use `@spd789562/pixi-v8-particle-emitter`.

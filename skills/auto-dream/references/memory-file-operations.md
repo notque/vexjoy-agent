@@ -153,7 +153,7 @@ grep -n '—' memory/MEMORY.md | sort -k3  # sort by description to spot semanti
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section heading only, paired Do instead blocks appear in each sub-entry below -->
 
 ### ❌ Writing MEMORY.md directly (non-atomic)

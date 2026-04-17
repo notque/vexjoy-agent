@@ -12,7 +12,7 @@ The content-engine pipeline has two failure modes: artifact-level errors (source
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Restarting the Full Pipeline on Gate Failure
 

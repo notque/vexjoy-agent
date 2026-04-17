@@ -114,7 +114,7 @@ jest.mock('@react-native-async-storage/async-storage', () => mockAsyncStorage)
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Querying by `testID` Instead of Accessible Attributes
 

@@ -107,7 +107,7 @@ File domains MUST NOT overlap. If they do, serialize instead of parallelizing.
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### ❌ Marking Complete Before Verification

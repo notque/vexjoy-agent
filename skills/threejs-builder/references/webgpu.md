@@ -570,7 +570,7 @@ For production apps, preserve state across recovery using `localStorage` before
 
 ---
 
-## Common Anti-Patterns
+## Common Patterns to Detect and Fix
 
 ### 1. Forgetting Async Init
 

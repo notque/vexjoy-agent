@@ -177,7 +177,7 @@ This section catalogs the rationalization patterns this skill detects and preven
 | "User seems frustrated, I'll ease up" | Frustration does not change correctness requirements | Acknowledge frustration, maintain standards |
 | "The gate basically passes" | Basically is not actually | Either it passes with evidence or it does not |
 
-### Anti-Pattern Checklist: What NOT To Do
+### Pattern Checklist: What to Detect and Fix
 
 #### Anti-Pattern 1: Performative Checking
 **What it looks like**: Running gate checks but rubber-stamping them all as PASS without reading evidence

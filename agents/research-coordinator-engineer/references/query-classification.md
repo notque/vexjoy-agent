@@ -88,7 +88,7 @@ other content. Sources: Synergy Research, Gartner, IDC reports."
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Depth-First Instructions Without Angle Differentiation
 

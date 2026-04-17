@@ -87,7 +87,7 @@ rg 'chan.*results|results.*chan' --type go
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section header with no content -->
 
 ### Passing through Codex output verbatim

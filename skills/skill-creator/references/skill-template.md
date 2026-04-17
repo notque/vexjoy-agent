@@ -10,7 +10,8 @@ name: skill-slug-name
 description: |
   [WHAT it does — 1-2 sentences]. [WHEN to use it — trigger phrases users
   would actually say]. Use when user says "[phrase 1]", "[phrase 2]", or
-  "[phrase 3]". Do NOT use for [exclusion if needed].
+  "[phrase 3]". Keep the scope specific enough that adjacent skills do not
+  accidentally match.
 # Optional fields:
 # allowed-tools: [Read, Write, Bash, Grep, Glob]
 # compatibility: "Requires Python 3.10+, network access for API calls"
@@ -28,7 +29,7 @@ routing:
 ---
 ```
 
-**Description Formula**: `[WHAT] + [WHEN] + [capabilities] + [negative triggers if needed]`
+**Description Formula**: `[WHAT] + [WHEN] + [capabilities] + [clear scope boundary when needed]`
 
 **Max length**: 1024 characters (Anthropic enforced limit)
 
@@ -42,11 +43,10 @@ description: |
   Use when user uploads .fig files, asks for "design specs", "component
   documentation", or "design-to-code handoff".
 
-# Clear scope with negative trigger
+# Clear scope without wasted prohibition text
 description: |
   Advanced data analysis for CSV files. Use for statistical modeling,
-  regression, clustering. Do NOT use for simple data exploration
-  (use data-viz skill instead).
+  regression, clustering, and significance testing on tabular data.
 ```
 
 **Bad descriptions**:
@@ -67,7 +67,7 @@ After writing a description, mentally test it against 3-5 prompts:
 - 2-3 prompts that **should** trigger the skill (including indirect/casual phrasing)
 - 2-3 prompts that **should not** trigger (near-misses from adjacent domains)
 
-If the description wouldn't clearly match the should-trigger prompts, it's too vague. If it would match the should-not-trigger prompts, add negative triggers.
+If the description wouldn't clearly match the should-trigger prompts, it's too vague. If it would match the should-not-trigger prompts, tighten the scope language.
 
 For important skills, consider creating a small eval set:
 ```json

@@ -144,7 +144,7 @@ LIMIT 20;
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ SELECT * in Application Queries
 

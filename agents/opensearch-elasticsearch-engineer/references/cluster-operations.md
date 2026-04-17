@@ -171,7 +171,7 @@ GET /_snapshot/backups/_all?pretty&s=start_time:desc
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Heap Size Above 31GB
 

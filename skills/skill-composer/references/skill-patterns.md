@@ -281,7 +281,7 @@ loop until clean:
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 ### Anti-Pattern 1: Over-Composition
 **Problem**: Chaining too many skills (6+) in single workflow

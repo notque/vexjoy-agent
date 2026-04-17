@@ -129,7 +129,7 @@ helm upgrade myapp ./charts/myapp \
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Hardcoded Secrets in Values Files
 

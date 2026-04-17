@@ -12,7 +12,7 @@ This file provides runnable detection commands to audit a frontend codebase for 
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section-header-only; pairs live in each sub-section below -->
 
 ### ❌ Banned Fonts in CSS/HTML

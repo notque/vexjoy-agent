@@ -268,7 +268,7 @@ stage.addChild(particleContainer);
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Changing Tint Per Frame on Many Sprites
 

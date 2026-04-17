@@ -146,7 +146,7 @@ Different segments become important at different audience sizes.
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 <!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Demographic persona without a problem

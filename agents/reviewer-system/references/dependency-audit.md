@@ -75,7 +75,7 @@ You have deep expertise in:
 | "Package works fine, ignore deprecation" | No security updates = growing risk | Plan migration |
 | "Too many deps to audit" | Audit what you can, automate the rest | Run scanners, flag results |
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 ### Ignoring Transitive CVEs
 **What it looks like**: "The CVE is in a transitive dependency we don't use directly."

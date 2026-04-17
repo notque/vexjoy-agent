@@ -184,7 +184,7 @@ Before finalizing TCO, confirm you have accounted for:
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 <!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Comparing development cost to license cost

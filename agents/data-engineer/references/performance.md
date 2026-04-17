@@ -150,7 +150,7 @@ LEFT JOIN {{ ref('dim_customer') }} USING (customer_id)
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Full Table Scan Due to Missing Partition Filter
 

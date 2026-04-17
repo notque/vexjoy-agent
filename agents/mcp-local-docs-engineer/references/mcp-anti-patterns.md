@@ -17,7 +17,7 @@ MCP documentation servers fail in predictable ways. Front matter parsing crashes
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Crashing on Single Malformed Front Matter File
 

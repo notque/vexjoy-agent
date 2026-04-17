@@ -153,7 +153,7 @@ Before signing any vendor contract over $10K/year:
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 <!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Buying based on demo, not hands-on trial

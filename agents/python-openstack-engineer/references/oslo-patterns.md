@@ -155,7 +155,7 @@ def get_resource(context, resource_id: str):
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Direct `import logging` in Service Code
 

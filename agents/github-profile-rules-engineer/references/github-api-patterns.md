@@ -124,7 +124,7 @@ def get_analysis_repos(username: str, max_repos: int = 5) -> list[dict]:
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Fetching Files One by One Without Tree
 

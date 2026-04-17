@@ -70,7 +70,7 @@ Every error should answer: What happened? Why? What can the user do?
 | "Security sensitive" | Only auth errors need generic messages | Be specific for non-auth errors |
 | "Dev will figure it out" | Devs hate cryptic errors too | Make all errors diagnosable |
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 ### Generic Catch-All Messages
 **What it looks like**: `return errors.New("error")`

@@ -149,7 +149,7 @@ def __init__(self):
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Changing Method Signature Without Version Bump
 

@@ -470,7 +470,7 @@ import { Perf } from 'r3f-perf'
 
 ---
 
-## Common Anti-Patterns
+## Common Patterns to Detect and Fix
 
 ### 1. Mixing Imperative and Declarative
 

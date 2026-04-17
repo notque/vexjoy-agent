@@ -292,7 +292,7 @@ onEnemyDeath(x: number, y: number): void {
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Using Alpha Tweens Instead of Particle Bursts for Hit Effects
 

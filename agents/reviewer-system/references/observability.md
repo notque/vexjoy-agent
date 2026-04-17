@@ -65,7 +65,7 @@ You have deep expertise in:
 | "Traces are too complex" | Traces are essential for distributed debugging | Propagate trace context |
 | "We'll add monitoring later" | Later is after the first incident | Add now |
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 ### Log-Everything Approach
 **What it looks like**: Adding log statements to every function entry/exit.

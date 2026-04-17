@@ -89,7 +89,7 @@ Evaluate test quality, identify coverage gaps, and assess test resilience with a
 - **Tests Are Trivial**: Score behavioral gaps individually. Note happy-path-only coverage.
 - **Complex Mocking Makes Analysis Difficult**: Note uncertainty and recommend integration tests.
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 | Rationalization | Why It's Wrong | Required Action |
 |-----------------|----------------|-----------------|

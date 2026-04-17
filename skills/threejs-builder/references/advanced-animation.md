@@ -330,7 +330,7 @@ renderer.setAnimationLoop((time) => {
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Calling mixer.update() with Raw Timestamp (Not Delta)
 

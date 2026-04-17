@@ -273,7 +273,7 @@ renderer.dispose();
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Creating Geometry in the Animation Loop
 

@@ -112,7 +112,7 @@ onLCP((metric) => {
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Using FID Instead of INP in New Code
 

@@ -18,7 +18,7 @@ them to explain what the error handling actually does today.
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 <!-- no-pair-required: section heading organizing multiple anti-pattern blocks -->
 

@@ -355,7 +355,7 @@ export class HealthBar extends Container {
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Creating New PIXI.Texture Per Frame
 

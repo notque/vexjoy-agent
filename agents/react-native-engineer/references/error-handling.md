@@ -147,7 +147,7 @@ async function fetchUser(id: string): Promise<User> {
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Using `console.error` as the Only Error Reporting
 

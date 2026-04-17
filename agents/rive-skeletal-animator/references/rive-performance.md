@@ -101,7 +101,7 @@ useEffect(() => {
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Wrapping RiveComponent in Framer Motion
 

@@ -127,7 +127,7 @@ The most common Ansible anti-pattern is using `command` or `shell` when an idemp
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Using `shell` for Package Management
 

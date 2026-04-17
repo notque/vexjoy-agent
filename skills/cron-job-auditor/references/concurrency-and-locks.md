@@ -82,7 +82,7 @@ trap 'rm -f "$PID_FILE"' EXIT
 ---
 
 <!-- no-pair-required: section heading; individual anti-patterns below carry Do-instead blocks -->
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ No concurrency protection at all
 

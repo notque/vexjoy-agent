@@ -1,6 +1,6 @@
 # Runbook and Operational Documentation Patterns
 
-> **Scope**: Runbook structure, troubleshooting guide patterns, incident response docs, and service integration guides. Does NOT cover API reference docs (see `documentation-standards.md`, `api-doc-anti-patterns.md`).
+> **Scope**: Runbook structure, troubleshooting guide patterns, incident response docs, and service integration guides. Does NOT cover API reference docs (see `documentation-standards.md`, `api-doc-verification-failures.md`).
 > **Version range**: All versions — structural patterns are version-independent
 > **Generated**: 2026-04-15
 
@@ -342,4 +342,4 @@ grep -n "example\.com\|YOUR_\|<hostname>" runbooks/**/*.md
 ## See Also
 
 - `documentation-standards.md` — Style guide for API documentation tables and formatting
-- `api-doc-anti-patterns.md` — Verification patterns for API documentation accuracy
+- `api-doc-verification-failures.md` — Verification patterns for API documentation accuracy

@@ -104,7 +104,7 @@ await expect(page).toHaveURL('/items');
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ `waitForTimeout` as a Timing Fix
 

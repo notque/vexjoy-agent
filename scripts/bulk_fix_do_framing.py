@@ -16,15 +16,14 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
-import re
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DETECTOR_PATH = REPO_ROOT / "scripts" / "detect-unpaired-antipatterns.py"
 DEFAULT_ANNOTATION = (
-    "<!-- no-pair-required: section-header-only; individual anti-patterns below "
-    "carry Do-instead blocks -->"
+    "<!-- no-pair-required: section-header-only; individual anti-patterns below carry Do-instead blocks -->"
 )
 STRUCTURAL_HEADING = re.compile(
     r"^#{1,6}\s+(?:.*anti-pattern(?:s)?(?:\s+catalog)?|examples,\s*anti-patterns,\s*error handling)\s*$",
@@ -59,6 +58,7 @@ def _load_detector():
         raise RuntimeError(f"Unable to load detector: {DETECTOR_PATH}")
     mod = importlib.util.module_from_spec(spec)
     import sys
+
     sys.modules[spec.name] = mod
     spec.loader.exec_module(mod)  # type: ignore[attr-defined]
     return mod

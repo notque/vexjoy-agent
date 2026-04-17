@@ -71,7 +71,7 @@ You have deep expertise in:
 | "Error format is fine" | Inconsistent errors break client parsing | Standardize error shape |
 | "We'll version later" | Breaking changes need versioning NOW | Add version or don't break |
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 ### Ignoring Error Response Shape
 **What it looks like**: Only checking happy-path responses, ignoring error body format.

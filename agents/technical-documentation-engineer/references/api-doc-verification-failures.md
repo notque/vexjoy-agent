@@ -1,8 +1,8 @@
-# API Documentation Anti-Patterns
+# API Documentation Verification Failures
 
 <!-- no-pair-required: document introduction, not an individual anti-pattern block -->
 
-> **Scope**: Detectable anti-patterns in API documentation — hallucinated params, untested examples, missing source verification. Does NOT cover style/structure standards (see `documentation-standards.md`).
+> **Scope**: Detectable verification failures in API documentation — hallucinated params, untested examples, missing source verification. Does NOT cover style/structure standards (see `documentation-standards.md`).
 > **Version range**: REST APIs, OpenAPI 3.x, curl 7.x+
 > **Generated**: 2026-04-15
 
@@ -10,7 +10,7 @@
 
 ## Overview
 
-API documentation fails in two modes: structural (bad formatting) and semantic (documenting the wrong thing). Semantic failures are harder to spot because they look correct. A parameter table with beautifully formatted rows for a field that doesn't exist in the source is a documentation defect, not a style issue. Every anti-pattern here is detectable by comparing the documentation against the source code or a running API.
+API documentation fails in two modes: structural (bad formatting) and semantic (documenting the wrong thing). Semantic failures are harder to spot because they look correct. A parameter table with beautifully formatted rows for a field that doesn't exist in the source is a documentation defect, not a style issue. Every verification failure here is detectable by comparing the documentation against the source code or a running API.
 
 ---
 
@@ -18,7 +18,7 @@ API documentation fails in two modes: structural (bad formatting) and semantic (
 
 <!-- no-pair-required: section header with no content -->
 
-### ❌ Documenting Parameters Not in Source (Hallucinated Params)
+### Documenting Parameters Not in Source (Hallucinated Params)
 
 **Detection**:
 ```bash
@@ -56,7 +56,7 @@ Zero results = parameter does not exist. Remove it from the doc.
 
 ---
 
-### ❌ Type Mismatches Between Doc and Source
+### Type Mismatches Between Doc and Source
 
 **Detection**:
 ```bash
@@ -88,7 +88,7 @@ grep -n "class.*BaseModel\|: int\|: str\|: Optional" models/*.py
 
 ---
 
-### ❌ Untested curl Examples
+### Untested curl Examples
 
 **Detection** (check examples don't use placeholder values in actual requests):
 ```bash
@@ -128,7 +128,7 @@ If the test environment is unavailable, mark the example explicitly:
 
 ---
 
-### ❌ Documented Error Codes Not Returned by Source
+### Documented Error Codes Not Returned by Source
 
 **Detection**:
 ```bash
@@ -156,7 +156,7 @@ grep -rn "abort(400)\|abort(401)\|jsonify.*400\|make_response.*400" routes/
 
 ---
 
-### ❌ Response Example Out of Sync With Source Schema
+### Response Example Out of Sync With Source Schema
 
 **Detection**:
 ```bash
@@ -190,7 +190,7 @@ grep -n "FIELD_NAME.*:" models/resource.py
 
 ---
 
-### ❌ Missing Authentication Requirements on Individual Endpoints
+### Missing Authentication Requirements on Individual Endpoints
 
 **Detection**:
 ```bash

@@ -132,7 +132,7 @@ class DocsServer {
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Synchronous File I/O in Request Handlers
 

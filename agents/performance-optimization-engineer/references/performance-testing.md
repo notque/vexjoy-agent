@@ -137,7 +137,7 @@ jobs:
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Running Lighthouse Once (Not Averaging Multiple Runs)
 
