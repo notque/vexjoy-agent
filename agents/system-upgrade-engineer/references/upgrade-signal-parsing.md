@@ -98,6 +98,7 @@ Map recurrence count to tier:
 
 ---
 
+<!-- no-pair-required: section header, not a standalone anti-pattern block -->
 ## Anti-Pattern Catalog
 
 ### ❌ Extracting 0 Signals and Proceeding Anyway
@@ -113,7 +114,7 @@ grep -A 5 "Change Manifest" task_plan.md | grep -c "^|"
 scan all components with no scoping, producing noise and wasting time. Phase 1 instructions
 explicitly say: "If you extracted 0 actionable signals, do not proceed."
 
-**Fix**: Ask the user for specifics. Quote the exact feature or change being referenced.
+Do instead: Ask the user for specifics. Quote the exact feature or change being referenced.
 
 ---
 
@@ -125,7 +126,7 @@ immediately schedules upgrades to every script that uses JSON.
 **Why wrong**: Not every mention is a breaking change. Only changes that alter the
 interface (tool signature, event schema, model name) require upgrades.
 
-**Fix**: For each signal, ask: "Does this change the interface a component depends on?"
+Do instead: For each signal, ask: "Does this change the interface a component depends on?"
 If no: Minor or skip. If yes: Important or Critical.
 
 ---
@@ -138,7 +139,7 @@ goal-change statements, and retro signals without flagging their source.
 **Why wrong**: Each signal type has different urgency heuristics and different component
 scope. Mixing them without source labels causes the PLAN phase to assign wrong tiers.
 
-**Fix**: Separate into sections by signal type. Label each row with its source.
+Do instead: Separate into sections by signal type. Label each row with its source.
 
 ---
 

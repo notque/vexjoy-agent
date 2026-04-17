@@ -1,3 +1,4 @@
+<!-- no-pair-required: document title, not a standalone anti-pattern block -->
 # Upgrade Orchestration Anti-Patterns Reference
 
 > **Scope**: Common orchestration failures in the 6-phase system-upgrade workflow: premature implementation, approval gate bypass, inline edits, and scope creep. Covers detection and remediation.
@@ -15,6 +16,7 @@ produce either unauthorized bulk edits or subtly incorrect results that bypass d
 
 ---
 
+<!-- no-pair-required: section header, not a standalone anti-pattern block -->
 ## Anti-Pattern Catalog
 
 ### ❌ Implementing Without Phase 3 Approval
@@ -37,7 +39,7 @@ infrastructure (hooks, routing tables, agent frontmatter) are hard to reverse an
 every subsequent session. The approval gate exists specifically because the agent cannot
 know which changes the user wants to prioritize or defer.
 
-**Fix**: Always present the Phase 3 table (Tier | Component | Change Type | Effort | Group)
+Do instead: Present the Phase 3 table (Tier | Component | Change Type | Effort | Group)
 and wait for explicit acknowledgment before any writes.
 
 ---
@@ -47,6 +49,9 @@ and wait for explicit acknowledgment before any writes.
 **What it looks like**: Directly editing `hooks/posttool-rename-sweep.py` instead of
 dispatching `hook-development-engineer`. Writing new agent frontmatter inline instead of
 dispatching `skill-creator`.
+
+Do instead: dispatch `hook-development-engineer` for hook changes, `skill-creator` for agent
+and skill changes, and `routing-table-updater` for routing table changes. Details follow.
 
 **Detection**:
 ```bash
@@ -60,7 +65,7 @@ conventions, event schema knowledge, and frontmatter validation that inline edit
 A hook written inline without hook-development-engineer's exit code contract knowledge will
 likely use wrong exit codes. An agent written inline will miss required frontmatter fields.
 
-**Fix**:
+Do instead:
 - Hook changes → dispatch `hook-development-engineer`
 - Agent/skill changes → dispatch `skill-creator`
 - Routing table changes → dispatch `routing-table-updater` skill
@@ -85,7 +90,7 @@ grep "Component Types\|component type" task_plan.md
 scope. When every component appears in the audit, the PLAN phase cannot distinguish affected
 from unaffected. Tier assignment degrades to noise.
 
-**Fix**: Build the Change Manifest with a "Component Types" column first. Default scope
+Do instead: Build the Change Manifest with a "Component Types" column first. Default scope
 is 10 most-recently-modified agents + all hooks + affected routing tables. Comprehensive
 audit only with the explicit "comprehensive" keyword from the user.
 
@@ -107,7 +112,7 @@ grep -n "agent-evaluation\|before.*score\|after.*score" task_plan.md
 before/after delta, regressions are invisible until users report breakage. The upgrade
 pipeline exists to *improve* quality, not maintain it.
 
-**Fix**: Run `agent-evaluation` on each modified component. Report the numeric delta.
+Do instead: Run `agent-evaluation` on each modified component. Report the numeric delta.
 If any component scores lower, surface it to the user. Do NOT auto-revert, but do NOT
 downgrade the regression as "necessary."
 
@@ -129,7 +134,7 @@ history | grep "push --force\|push -f"
 overwrites upstream state and is unrecoverable without a backup. The branch naming
 convention (`chore/system-upgrade-YYYY-MM-DD`) exists to ensure all changes go through PR.
 
-**Fix**: Always `git checkout -b chore/system-upgrade-YYYY-MM-DD` before Phase 4. Never
+Do instead: Run `git checkout -b chore/system-upgrade-YYYY-MM-DD` before Phase 4. Never
 use `--force` or `-f` on push. If already on main, stash and create branch before proceeding.
 
 ---
@@ -148,7 +153,7 @@ scores lower after modification, the agent's job is to surface it clearly, not t
 rationalize it away. The user may have context that makes the tradeoff acceptable;
 the agent does not have that context.
 
-**Fix**: Report the regression factually: "Component X scored N before, M after (delta -K).
+Do instead: Report the regression factually: "Component X scored N before, M after (delta -K).
 Cause: [specific change]. Recommend: revert or acknowledge." Then wait.
 
 ---
@@ -221,7 +226,7 @@ grep "PLAN\|approval\|proceed" task_plan.md
 # Verify agent-evaluation was run (Phase 5)
 grep "agent-evaluation\|score.*before\|score.*after" task_plan.md
 
-# Check for regression justification phrases (anti-pattern)
+# Check for regression rationalization phrases
 grep -i "necessary\|intentional\|expected trade" task_plan.md
 
 # Verify no inline domain edits (system-upgrade-engineer should not edit hook files directly)
