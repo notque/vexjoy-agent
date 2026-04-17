@@ -151,3 +151,13 @@ The user can skip persistence for informal exploration by requesting it.
 ## References
 
 - Repository CLAUDE.md files (read before execution for project-specific constraints)
+
+### Reference Loading Table
+
+Load these files when the corresponding signals appear in the decision request:
+
+| Signal | Reference File | What It Adds |
+|--------|---------------|-------------|
+| "build vs buy", "vendor", "SaaS", "self-host", database, cloud provider, framework, library, API design | `references/decision-archetypes.md` | Archetype-specific criteria weight adjustments, hard-constraint checklists, detection commands |
+| User adjusts weights after scoring, adds options mid-scoring, scores feel arbitrary, "something feels off" | `references/decision-anti-patterns.md` | Anti-pattern identification, intervention scripts, error-fix mappings |
+| 5+ options presented, close call (<0.5 margin), repeated score changes | `references/decision-anti-patterns.md` | Structural anti-patterns and fixes |
