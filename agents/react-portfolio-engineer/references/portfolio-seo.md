@@ -221,7 +221,7 @@ module.exports = {
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### Using `dangerouslySetInnerHTML` Without JSON.stringify
 

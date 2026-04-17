@@ -124,7 +124,7 @@ HASH=$(echo "/home/feedgen/claude-code-toolkit" | md5sum | cut -c1-8)
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section heading only, paired Do instead blocks appear in each sub-entry below -->
 
 ### ❌ Running `--execute` without reading the dry-run report first

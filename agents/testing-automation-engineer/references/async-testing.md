@@ -140,7 +140,7 @@ test('submits form and shows confirmation', async ({ page }) => {
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ setTimeout / sleep Delays in Tests
 

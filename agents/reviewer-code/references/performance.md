@@ -70,7 +70,7 @@ Detect runtime efficiency problems, algorithmic complexity issues, and resource 
 - **Premature Optimization Concern**: Note cold-path findings as LOW severity. Validate with profiling.
 - **Missing Context for Hot Path Detection**: Flag all O(n^2)+ as at least MEDIUM. Note severity assumes warm/hot path.
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 | Rationalization | Why It's Wrong | Required Action |
 |-----------------|----------------|-----------------|

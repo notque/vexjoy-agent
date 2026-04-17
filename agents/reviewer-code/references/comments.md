@@ -73,7 +73,7 @@ Verify comment accuracy, detect comment rot, and ensure documentation quality th
 - **Ambiguous Comment Intent**: Report both interpretations, recommend clarifying.
 - **No Comments Found**: Report and assess whether public APIs need documentation.
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 | Rationalization | Why It's Wrong | Required Action |
 |-----------------|----------------|-----------------|

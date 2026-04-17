@@ -395,7 +395,7 @@ const attackFrames = sheet.animations['attack'];
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 ### ❌ Storing display objects in React state
 ```typescript

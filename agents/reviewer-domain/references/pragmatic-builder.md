@@ -76,7 +76,7 @@ Production-focused critique and operational reality checks for code, architectur
 - Resource leaks (use context managers, set pool limits)
 - No rate limiting (per-user and per-IP limits)
 
-## Operational Anti-Patterns
+## Operational Patterns to Detect and Fix
 
 1. **No Rollback Plan**: Document rollback steps, test before deploying, automate triggers
 2. **Logging After Failures**: Log before risky operations, in error handlers, at decision branches

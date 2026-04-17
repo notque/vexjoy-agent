@@ -90,7 +90,7 @@ groups:
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section header only -->
 
 ### ❌ Using irate() in Alert Rules

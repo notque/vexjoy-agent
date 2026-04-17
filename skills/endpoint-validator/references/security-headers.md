@@ -90,7 +90,7 @@ If CSP already contains `frame-ancestors`, skip the X-Frame-Options check to avo
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Checking Security Headers on localhost
 

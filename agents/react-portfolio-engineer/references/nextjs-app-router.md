@@ -129,7 +129,7 @@ export async function generateStaticParams() {
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Marking the Whole Page as Client Component
 

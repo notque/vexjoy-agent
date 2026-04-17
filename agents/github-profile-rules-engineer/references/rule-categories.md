@@ -78,7 +78,7 @@ EXCEPTION: If repos < 3 total, downgrade all scores by one level.
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Extracting Universal Patterns
 

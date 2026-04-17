@@ -144,7 +144,7 @@ Is the request for a single skill/agent with one clear purpose?
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Fan-Out Without Waiting for All Sub-Agents
 

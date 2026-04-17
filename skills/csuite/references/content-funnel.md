@@ -277,7 +277,7 @@ Overall funnel rate: ___% (benchmark: 0.1-0.5% of total visitors)
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 <!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Awareness content without subscribe CTA

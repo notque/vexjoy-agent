@@ -88,7 +88,7 @@ exec >> "$LOG" 2>> "$ERR"
 ---
 
 <!-- no-pair-required: section heading; individual anti-patterns below carry Do-instead blocks -->
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ No logging at all (relying on cron email)
 

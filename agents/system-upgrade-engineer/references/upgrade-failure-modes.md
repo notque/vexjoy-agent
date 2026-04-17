@@ -1,5 +1,4 @@
-<!-- no-pair-required: document title, not a standalone anti-pattern block -->
-# Upgrade Orchestration Anti-Patterns Reference
+# Upgrade Orchestration Failure Modes Reference
 
 > **Scope**: Common orchestration failures in the 6-phase system-upgrade workflow: premature implementation, approval gate bypass, inline edits, and scope creep. Covers detection and remediation.
 > **Version range**: system-upgrade-engineer, all versions
@@ -17,9 +16,9 @@ produce either unauthorized bulk edits or subtly incorrect results that bypass d
 ---
 
 <!-- no-pair-required: section header, not a standalone anti-pattern block -->
-## Pattern Catalog
+## Failure Mode Catalog
 
-### ❌ Implementing Without Phase 3 Approval
+### Implementing Without Phase 3 Approval
 
 **Detection**:
 ```bash
@@ -44,7 +43,7 @@ and wait for explicit acknowledgment before any writes.
 
 ---
 
-### ❌ Implementing Domain Changes Inline
+### Implementing Domain Changes Inline
 
 **What it looks like**: Directly editing `hooks/posttool-rename-sweep.py` instead of
 dispatching `hook-development-engineer`. Writing new agent frontmatter inline instead of
@@ -73,7 +72,7 @@ Do instead:
 
 ---
 
-### ❌ Not Scoping the Audit to Signal-Identified Components
+### Not Scoping the Audit to Signal-Identified Components
 
 **Detection**:
 ```bash
@@ -96,7 +95,7 @@ audit only with the explicit "comprehensive" keyword from the user.
 
 ---
 
-### ❌ Skipping Validation Scoring
+### Skipping Validation Scoring
 
 **Detection**:
 ```bash
@@ -118,7 +117,7 @@ downgrade the regression as "necessary."
 
 ---
 
-### ❌ Force-Pushing or Committing to Main
+### Force-Pushing or Committing to Main
 
 **Detection**:
 ```bash
@@ -139,7 +138,7 @@ use `--force` or `-f` on push. If already on main, stash and create branch befor
 
 ---
 
-### ❌ Reporting Regression as "Necessary"
+### Reporting Regression as "Necessary"
 
 **Detection**:
 ```bash

@@ -323,7 +323,7 @@ Multiple light sources: the shader above handles one light. For two lights (e.g.
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 ### ❌ Applying normal map to the root scene container
 Filters applied to the root container process every pixel in the entire canvas at every frame — including the background, UI chrome, and all sprites simultaneously. Apply filters to character containers only.

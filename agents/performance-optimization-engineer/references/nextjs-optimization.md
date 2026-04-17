@@ -158,7 +158,7 @@ export const revalidate = false // or: export const dynamic = 'force-static'
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Blocking Layout with Slow Data Fetching
 

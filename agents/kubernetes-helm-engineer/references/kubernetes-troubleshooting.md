@@ -78,7 +78,7 @@ kubectl get secret <secret-name> -n <namespace> \
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ No Resource Requests/Limits
 

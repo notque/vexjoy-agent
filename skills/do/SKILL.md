@@ -108,8 +108,6 @@ This early detection ensures Phase 4 Step 0 fires reliably by catching the signa
 
 **Gate**: Complexity classified. If a creation signal was detected, output `[CREATION REQUEST DETECTED]` before displaying the routing banner. Display routing banner (ALL classifications). If not Trivial, proceed to Phase 2. If Trivial, handle directly after showing banner.
 
-<!-- DO NOT OPTIMIZE -->
-
 ---
 
 ### Phase 2: ROUTE
@@ -191,7 +189,7 @@ This banner MUST be the FIRST visible output for EVERY /do invocation. Display B
    -> Agent: [name] - [why]
    -> Skill: [name] - [why]
    -> Pipeline: PHASE1 → PHASE2 → ... (if pipeline; phases from skills/workflow/references/pipeline-index.json)
-   -> Anti-Rationalization: [auto-injected for code/security/testing]
+   -> Extra Rigor: [add verification patterns for code/security/testing tasks when needed]
  Invoking...
 ===================================================================
 ```
@@ -223,11 +221,11 @@ Valid categories: `error, pivot, review, design, debug, gotcha, effectiveness, m
 
 **Goal**: Stack additional skills based on signals in the request.
 
-Retro knowledge is auto-injected by the `session-context` hook at SessionStart via the dream system's pre-built payload (nightly consolidation by `auto-dream`). If a `<retro-knowledge>` block is already in conversation context, skip — the hook handled it. Only manually inject if the hook did not fire (benchmark: +5.3 avg, 67% win rate). Relevance-gated by LLM curation during the nightly dream cycle.
+If relevant retro knowledge is already present in context, use it. If it is absent, continue without spending prompt space restating hook mechanics.
 
 | Signal in Request | Enhancement to Add |
 |-------------------|-------------------|
-| Any substantive work (code, design, plan) | **Auto-inject retro knowledge** (via `session-context` hook, pre-built by nightly `auto-dream`) |
+| Any substantive work (code, design, plan) | Add relevant retro knowledge only when it materially helps the task |
 | "comprehensive" / "thorough" / "full" | Add parallel reviewers (security + business + quality) |
 | "with tests" / "production ready" | Append test-driven-development + verification-before-completion |
 | "research needed" / "investigate first" | Prepend research-coordinator-engineer |
@@ -236,7 +234,7 @@ Retro knowledge is auto-injected by the `session-context` hook at SessionStart v
 
 Before stacking any enhancement, check the target skill's `pairs_with` field in `skills/INDEX.json`. Some skills ship with their own verification gates and work best on their own terms. Specifically: empty `pairs_with: []` means no stacking allowed. Skills with built-in verification gates handle their own verification. The `quick --trivial` mode handles its own testing. Stack only compatible enhancements.
 
-**Auto-inject anti-rationalization** for these task types, because these categories reward pattern-reinforced rigor with the highest quality gains:
+Add anti-rationalization patterns for these task types when the task benefits from explicit rigor:
 
 | Task Type | Patterns Injected |
 |-----------|-------------------|
@@ -263,7 +261,7 @@ If request contains "create", "new", "scaffold", "build pipeline/agent/skill/hoo
 
 **Step 1: Create plan** (for Simple+ complexity)
 
-Create `task_plan.md` before execution, because a plan turns the next N turns into progress instead of rework. The `auto-plan-detector.py` hook auto-injects `<auto-plan-required>` context. Skip only for Trivial tasks.
+Create `task_plan.md` before execution, because a plan turns the next N turns into progress instead of rework. Skip only for Trivial tasks.
 
 **Step 1b: Apply quality-loop pipeline** (for Medium+ code modifications)
 
@@ -392,5 +390,3 @@ Solution: Stop execution. Create `task_plan.md`. Resume routing after plan is in
 - `skills/INDEX.json`: Skill triggers, force-route flags, pairs_with
 - `skills/workflow/SKILL.md`: Workflow phases, triggers, composition chains
 - `skills/workflow/references/pipeline-index.json`: Pipeline metadata, triggers, phases
-
-<!-- END DO NOT OPTIMIZE -->

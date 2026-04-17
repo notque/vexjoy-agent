@@ -116,7 +116,7 @@ export DREAM_DRY_RUN_MODE="${DRY_RUN}"
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section heading only, paired Do instead blocks appear in each sub-entry below -->
 
 ### ❌ Using `--dangerously-skip-permissions` in cron

@@ -86,7 +86,7 @@ See [language-checks.md](language-checks.md) for the complete Go, Python, and Ty
 - **Mixed Language Codebase**: Apply each language's checks independently to its own files.
 - **Framework-Specific Patterns**: Note when framework conventions differ from general language idioms.
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 | Rationalization | Why It's Wrong | Required Action |
 |-----------------|----------------|-----------------|

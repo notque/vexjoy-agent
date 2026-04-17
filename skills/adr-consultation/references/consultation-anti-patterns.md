@@ -15,7 +15,7 @@ masquerading as full review. Each failure mode has a detection command and a con
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Sequential Agent Dispatch
 

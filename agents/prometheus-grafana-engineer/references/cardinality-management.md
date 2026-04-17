@@ -59,7 +59,7 @@ topk(20, count by (__name__)({__name__=~".+"}))
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section header only -->
 
 ### ❌ High-Cardinality Labels (user_id, request_id, session_id)

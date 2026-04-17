@@ -145,7 +145,7 @@ Interpret the response:
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Wildcard Leading Wildcard Query
 

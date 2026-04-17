@@ -89,7 +89,7 @@ func fanOut[T any](ctx context.Context, in <-chan T, n int, fn func(T) T) <-chan
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Goroutine Without Exit Strategy
 

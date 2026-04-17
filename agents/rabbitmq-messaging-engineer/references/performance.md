@@ -126,7 +126,7 @@ def handle_message(ch, method, properties, body):
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Prefetch 0 (Unlimited)
 

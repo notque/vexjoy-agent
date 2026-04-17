@@ -181,7 +181,7 @@ test('OAuth login flow completes', async ({ page }) => {
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ UI Login in Every Test
 

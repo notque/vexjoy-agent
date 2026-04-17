@@ -107,7 +107,7 @@ Step 3: nodejs-api-engineer → API handlers using models
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### ❌ Assumed Domain Isolation

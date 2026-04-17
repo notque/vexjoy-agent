@@ -116,7 +116,7 @@ func FuzzParseURL(f *testing.F) {
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Missing t.Parallel() in Subtests
 

@@ -57,8 +57,7 @@ in `<!-- -->` are scaffolder instructions and MUST be stripped from the final ou
 name: {{skill_name}}
 description: |
   {{description}} -- {{task_type}} pipeline for the {{domain}} domain.
-  Use for {{trigger_keywords}}. Do NOT use for unrelated {{domain}} tasks
-  outside the {{subdomain_name}} subdomain.
+  Use for {{trigger_keywords}} inside the {{subdomain_name}} subdomain.
 user-invocable: true
 agent: {{agent_name}}
 model: sonnet
@@ -251,6 +250,7 @@ Structure varies by step family:
 {{/for_each_task_type_error}}
 
 ## Anti-Patterns
+<!-- no-pair-required: section header organizing paired entries below -->
 
 ### Anti-Pattern 1: Skipping the ADR
 **What it looks like**: Jumping directly to Phase 1 without creating the ADR
@@ -987,6 +987,7 @@ Steps: WALK, MERGE, GATE, APPLY, CHECKPOINT
 | `testing` | Flaky Test Generated | Tests pass intermittently | Identify non-determinism source. Add stability guards. |
 
 ### Default Anti-Patterns by Task Type
+<!-- no-pair-required: table heading; alternatives are carried inline in the table -->
 
 | Task Type | Name | Description | Reason | Alternative |
 |-----------|------|-------------|--------|-------------|
