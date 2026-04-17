@@ -1,5 +1,7 @@
 # Go Comment Anti-Patterns
 
+<!-- no-pair-required: document header and scope block, not an individual anti-pattern -->
+
 > **Scope**: Temporal and activity-based comment anti-patterns specific to Go source files.
 > **Version range**: Go 1.13+ (error wrapping), Go 1.18+ (generics)
 > **Generated**: 2026-04-16
@@ -17,6 +19,8 @@ of the API contract.
 ---
 
 ## Anti-Pattern Catalog
+
+<!-- no-pair-required: section heading organizing multiple anti-pattern blocks -->
 
 ### ❌ "Now uses context" — Concurrency migration residue
 
@@ -37,6 +41,8 @@ func processRequest(ctx context.Context, req *Request) error { ... }
 
 **Why wrong**: Describes the migration decision, not the current contract. Future maintainers
 need to know what the context controls, not that it was "added".
+
+**Do instead**: State what the context controls and what the function returns when it expires.
 
 **Fix**:
 ```go
@@ -72,6 +78,8 @@ defer mu.Unlock()
 **Why wrong**: The bug is gone. "Fixed" describes historical surgery; the invariant being
 maintained is what matters to future readers.
 
+**Do instead**: Describe the invariant the guard maintains and the consequence of violating it.
+
 **Fix**:
 ```go
 // Guards against nil receiver to prevent panic in field access below.
@@ -106,6 +114,8 @@ func queryUser(id int) (*User, error) {
 
 **Why wrong**: "Improved" is relative to a past state that no longer exists. The comment
 should explain what context the wrapping provides, not that it improved.
+
+**Do instead**: Name the specific context the error wrapping adds and why it helps callers or operators.
 
 **Fix**:
 ```go
@@ -146,6 +156,8 @@ func processItems(items []Item) error {
 
 **Why wrong**: "Updated to use" is history. The reader needs the concurrency model and its limits.
 
+**Do instead**: Describe the concurrency model, the blocking behavior, and any limits callers must enforce.
+
 **Fix**:
 ```go
 // Processes each item in a separate goroutine; blocks until all complete.
@@ -180,6 +192,8 @@ rg '^// Package \w+ (was|has been|now|recently|is new)' --type go
 
 **Why wrong**: Package doc comments appear in `go doc` output and should describe the
 package's permanent API contract, not its changelog. Use CHANGELOG.md for history.
+
+**Do instead**: Describe the package's current API contract and primary types or entry points.
 
 **Fix**:
 ```go

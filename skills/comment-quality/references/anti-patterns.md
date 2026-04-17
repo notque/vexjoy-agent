@@ -1,12 +1,21 @@
 # Comment Quality Anti-Patterns
 
+<!-- no-pair-required: document introduction, not an individual anti-pattern block -->
+
 This document catalogs common problematic patterns found in code comments and documentation, with explanations of why they're problematic and how to fix them.
 
+For language-specific (Go, Python, JavaScript/TypeScript) and documentation-targeted (README, API docs) anti-patterns, see `anti-patterns-language-specific.md`.
+
 ## High Priority Anti-Patterns
+
+<!-- no-pair-required: section heading organizing multiple anti-pattern blocks -->
 
 ### Anti-Pattern 1: "X now does Y"
 **Problem**: The word "now" implies a temporal change - something used to work differently
 **Why it's bad**: Future readers don't care what it used to do, only what it does currently
+
+**Do instead**: Remove the temporal word and describe the current behavior directly.
+
 **Examples**:
 ```go
 // Bad: validateInput now checks for SQL injection
@@ -22,6 +31,9 @@ This document catalogs common problematic patterns found in code comments and do
 ### Anti-Pattern 2: "Improved/Better/Enhanced X"
 **Problem**: Comparative adjectives imply comparison to a past state
 **Why it's bad**: "Better" is meaningless without knowing what came before; focus on current behavior
+
+**Do instead**: Replace vague comparative adjectives with specific, measurable descriptions.
+
 **Examples**:
 ```go
 // Bad: Uses improved caching mechanism
@@ -37,6 +49,9 @@ This document catalogs common problematic patterns found in code comments and do
 ### Anti-Pattern 3: "Fixed bug where..."
 **Problem**: References a bug that existed in the past
 **Why it's bad**: Code should explain current behavior, not past problems
+
+**Do instead**: Describe what the guard or check does and why it exists, not the bug it replaced.
+
 **Examples**:
 ```go
 // Bad: Fixed bug where nil caused panic
@@ -52,6 +67,9 @@ This document catalogs common problematic patterns found in code comments and do
 ### Anti-Pattern 4: "Added/Removed/Changed X"
 **Problem**: Development activity language describes history, not current state
 **Why it's bad**: Focuses on what changed rather than what exists
+
+**Do instead**: State what exists now, using present tense and the actual mechanism.
+
 **Examples**:
 ```go
 // Bad: Added validation for email format
@@ -67,6 +85,9 @@ This document catalogs common problematic patterns found in code comments and do
 ### Anti-Pattern 5: "New/Old system/approach/method"
 **Problem**: Temporal designation of current vs previous implementation
 **Why it's bad**: Everything is "new" until it's "old" - these labels are time-dependent
+
+**Do instead**: Name the actual mechanism, protocol, or algorithm rather than labeling it by age.
+
 **Examples**:
 ```go
 // Bad: The new authentication system uses OAuth
@@ -81,9 +102,14 @@ This document catalogs common problematic patterns found in code comments and do
 
 ## Medium Priority Anti-Patterns
 
+<!-- no-pair-required: section heading organizing multiple anti-pattern blocks -->
+
 ### Anti-Pattern 6: "Updated/Refactored/Optimized X"
 **Problem**: Past tense development activity
 **Why it's bad**: Tells you something changed, not what it does now
+
+**Do instead**: Describe the current structure or behavior, not the transformation that produced it.
+
 **Examples**:
 ```go
 // Bad: Updated to use goroutines
@@ -99,6 +125,9 @@ This document catalogs common problematic patterns found in code comments and do
 ### Anti-Pattern 7: "This allows us to..." / "We can now..."
 **Problem**: Focuses on capability gained rather than current functionality
 **Why it's bad**: "Allows us to" implies past limitation; describe what it does
+
+**Do instead**: State what the code does as a fact, not as a newly acquired capability.
+
 **Examples**:
 ```go
 // Bad: This allows us to handle larger datasets
@@ -129,6 +158,9 @@ This document catalogs common problematic patterns found in code comments and do
 ### Anti-Pattern 9: "Temporary/Interim/Stopgap X"
 **Problem**: Indicates non-permanent solution without context
 **Why it's bad**: If it's truly temporary, fix it properly or explain the constraint
+
+**Do instead**: Explain the actual constraint that prevents a permanent solution, not just that it is temporary.
+
 **Examples**:
 ```go
 // Bad: Temporary workaround for database limitation
@@ -144,6 +176,9 @@ This document catalogs common problematic patterns found in code comments and do
 ### Anti-Pattern 10: "As of version X" / "Since version X"
 **Problem**: Ties comment to specific version timeline
 **Why it's bad**: Future readers don't care when it was introduced, only what it does
+
+**Do instead**: Drop the version reference and describe what the code does, or note a runtime requirement if relevant.
+
 **Examples**:
 ```go
 // Bad: As of v2.0, supports WebSocket connections
@@ -158,9 +193,14 @@ This document catalogs common problematic patterns found in code comments and do
 
 ## Subtle Anti-Patterns
 
+<!-- no-pair-required: section heading organizing multiple anti-pattern blocks -->
+
 ### Anti-Pattern 11: "More/Less efficient/effective"
 **Problem**: Relative comparison without baseline
 **Why it's bad**: "More efficient" compared to what? Be specific.
+
+**Do instead**: Replace the relative claim with a concrete bound, complexity class, or measured value.
+
 **Examples**:
 ```go
 // Bad: More efficient algorithm for sorting
@@ -176,6 +216,9 @@ This document catalogs common problematic patterns found in code comments and do
 ### Anti-Pattern 12: "Unlike X" / "Compared to X"
 **Problem**: Defines behavior by what it's not
 **Why it's bad**: Focuses on difference rather than actual behavior
+
+**Do instead**: Define the behavior directly, using positive statements about what the code does.
+
 **Examples**:
 ```go
 // Bad: Unlike the previous version, this doesn't cache
@@ -191,6 +234,9 @@ This document catalogs common problematic patterns found in code comments and do
 ### Anti-Pattern 13: "Will/Going to/Eventually X"
 **Problem**: Future tense for current code
 **Why it's bad**: Code should describe current state, not future plans
+
+**Do instead**: Convert to a concrete TODO with a specific dependency, or describe current state if the feature already exists.
+
 **Examples**:
 ```go
 // Bad: Will support pagination in future
@@ -206,6 +252,9 @@ This document catalogs common problematic patterns found in code comments and do
 ### Anti-Pattern 14: "Used to X but now Y"
 **Problem**: Explicit before/after comparison
 **Why it's bad**: Historical context doesn't help understand current code
+
+**Do instead**: Keep only the "now Y" part, stated as a present fact without the historical contrast.
+
 **Examples**:
 ```go
 // Bad: Used to return nil but now returns empty slice
@@ -221,6 +270,9 @@ This document catalogs common problematic patterns found in code comments and do
 ### Anti-Pattern 15: "Originally X"
 **Problem**: References original implementation
 **Why it's bad**: Original design is irrelevant to current functionality
+
+**Do instead**: State the current invariant or constraint directly, without referencing the origin.
+
 **Examples**:
 ```go
 // Bad: Originally designed for single-threaded use
@@ -279,111 +331,6 @@ and requires horizontal scaling across multiple servers.
 // BAD TODO:
 // TODO: Remove this temporary fix when we upgrade database
 // Better: TODO: Remove when database supports JSON queries (requires v5.0+)
-```
-
-## Language-Specific Patterns
-
-### Go-Specific Anti-Patterns
-
-#### Anti-Pattern: "Fixed panic"
-```go
-// Bad: Fixed panic when receiver is nil
-// Good: Returns error when receiver is nil to prevent panic
-```
-
-#### Anti-Pattern: "Now uses context"
-```go
-// Bad: Updated to use context for cancellation
-// Good: Accepts context for cancellation and timeout control
-```
-
-#### Anti-Pattern: "Improved error handling"
-```go
-// Bad: Improved error handling with wrapping
-// Good: Wraps errors with operation context using fmt.Errorf
-```
-
-### Python-Specific Anti-Patterns
-
-#### Anti-Pattern: "Changed to use type hints"
-```python
-# Bad: Added type hints for better IDE support
-# Good: Type hints specify expected types for validation
-```
-
-#### Anti-Pattern: "Refactored to use dataclass"
-```python
-# Bad: Refactored to use dataclass instead of dict
-# Good: Uses dataclass for automatic __init__ and __repr__
-```
-
-### JavaScript/TypeScript Anti-Patterns
-
-#### Anti-Pattern: "Migrated to async/await"
-```javascript
-// Bad: Migrated from promises to async/await
-// Good: Uses async/await for sequential asynchronous operations
-```
-
-#### Anti-Pattern: "Updated to ES6 syntax"
-```javascript
-// Bad: Updated to use arrow functions
-// Good: Arrow function preserves outer 'this' context
-```
-
-## Documentation-Specific Anti-Patterns
-
-### README Files
-
-#### Anti-Pattern: Version-specific feature lists
-```markdown
-# Bad:
-## New in v2.0
-- Added authentication
-- Improved performance
-
-# Good:
-## Features
-- JWT-based authentication
-- Response time < 100ms (p95)
-```
-
-#### Anti-Pattern: Historical installation instructions
-```markdown
-# Bad:
-Installation has been simplified. Previously you needed to...
-Now you just run: npm install
-
-# Good:
-## Installation
-```bash
-npm install mypackage
-```
-```
-
-### API Documentation
-
-#### Anti-Pattern: Endpoint evolution
-```markdown
-# Bad:
-This endpoint was updated to return pagination metadata
-
-# Good:
-## Response Format
-Returns paginated results with:
-- `items`: Array of results
-- `total`: Total count
-- `next_page`: Token for next page
-```
-
-#### Anti-Pattern: Parameter history
-```markdown
-# Bad:
-The `filter` parameter was added in v1.5 to allow...
-
-# Good:
-### Parameters
-- `filter` (optional): JSON query using RFC 6902 syntax
 ```
 
 ## Detection Strategies

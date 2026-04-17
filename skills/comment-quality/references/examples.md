@@ -263,6 +263,8 @@ result = client.query(filters={"status": "active"})
 
 ## Common Pitfalls to Avoid
 
+<!-- no-pair-required: section heading organizing pitfall examples; each pitfall subsection carries its own Good example -->
+
 ### Pitfall 1: Hidden Temporal Language in Adjectives
 ```go
 // Bad: ProcessData runs faster validation
