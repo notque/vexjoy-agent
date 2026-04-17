@@ -17,6 +17,7 @@ jobs:
       - run: pip install ruff
       - run: ruff check . --config pyproject.toml
       - run: ruff format --check . --config pyproject.toml
+      - run: python scripts/validate-references.py --check-do-framing
 
   test:
     runs-on: ubuntu-latest

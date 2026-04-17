@@ -152,10 +152,21 @@ For each gap, create one reference file following `references/reference-file-tem
   detection commands, error-fix mappings where applicable
 - Match the tone of existing Level 3 references: direct, concrete, no hedging
 
+**Do-pairing rule (mandatory):** Every anti-pattern block written during this phase must include
+a "Do instead" counterpart. If the retro learning or research does not carry enough information
+to write a concrete positive counterpart, omit the anti-pattern entirely rather than shipping it
+without the paired "Do instead". A bare negative block encodes no actionable knowledge and will
+fail structural validation. If a prohibition is a genuine absolute with no correct alternative,
+annotate it with `<!-- no-pair-required: reason -->` inline before the block.
+
 Write files to: `agents/{name}/references/` or `skills/{name}/references/`
 
-**Gate**: Each generated file is between 80-500 lines. Run
-`scripts/validate-references.py --agent {name}` if it exists.
+**Gate**: Each generated file is between 80-500 lines. Run both checks:
+```bash
+python3 scripts/validate-references.py --agent {name}
+python3 scripts/validate-references.py --check-do-framing
+```
+Both must exit 0 before proceeding to Phase 4.
 
 ---
 

@@ -123,6 +123,15 @@ The description is the primary triggering mechanism. Claude tends to undertrigge
 
 Constraints belong inline within the workflow step where they apply. Explain the reasoning behind constraints -- "Run with `-race` because race conditions are silent until production" generalizes; "ALWAYS run with -race" does not.
 
+**Do-pair validation** -- After writing any anti-pattern blocks, run:
+```bash
+python3 scripts/validate-references.py --check-do-framing
+```
+Every anti-pattern block must have a paired "Do instead" counterpart. Blocks
+without one fail the check. If a prohibition genuinely has no correct alternative,
+annotate it with `<!-- no-pair-required: reason -->` to pass validation without
+a "Do instead" block. Ship the skill only after this check exits 0.
+
 **Progressive disclosure** -- SKILL.md is the routing target, not the reference
 library. It stays lean so it loads fast when Claude considers invoking it, then
 reads `references/` on demand as phases execute. See
