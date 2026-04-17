@@ -44,7 +44,7 @@ grep -A 20 "triggers:" agents/*.md
 # 4. Check pairs_with for removed agents/skills
 grep -A 10 "pairs_with:" agents/*.md
 
-# 5. Check for stale anti-pattern entries (patterns that have been fixed)
+# 5. Check for outdated entries (patterns already resolved in prior upgrades)
 grep -rn "Anti-Pattern" agents/*.md
 ```
 
@@ -156,6 +156,7 @@ grep -B 1 "No trigger\|no keywords\|\[\]" skills/do/references/routing-tables.md
 
 ---
 
+<!-- no-pair-required: section header, not a standalone anti-pattern block -->
 ## Anti-Pattern Catalog
 
 ### ❌ Auditing File Names Without Opening Files
@@ -171,7 +172,7 @@ grep -c "triggers:\|allowed-tools:\|model:" task_plan.md
 current. Triggers that are never phrased by actual users will never route. A model name frozen
 at an old value will use the wrong capability tier.
 
-**Fix**: Open and read each component's frontmatter and body. Check specific fields.
+Do instead: Open and read each component's frontmatter and body. Check specific fields.
 
 ---
 
@@ -187,7 +188,7 @@ wc -l task_plan.md
 **Why wrong**: Auditing 120+ skills for a single hook event change produces noise and makes
 it impossible to distinguish affected from unaffected components. Tier assignment degrades.
 
-**Fix**: Scope audit to the component types identified in the Change Manifest signal column.
+Do instead: Scope audit to the component types identified in the Change Manifest signal column.
 
 ---
 
