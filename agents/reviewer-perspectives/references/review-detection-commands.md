@@ -353,7 +353,7 @@ grep -c 'File:\|Where:\|:\d\+:' review_output.md 2>/dev/null || echo "No line re
 
 **Why wrong**: Vague findings are unfalsifiable. The author cannot verify them, cannot rebut them, and cannot be sure what to fix. Evidence-free reviews waste everyone's time.
 
-**Fix**: Before writing any finding, run the relevant detection command above. If the finding cannot be grounded in a file:line reference, it does not meet the `Evidence-Based Critique` hardcoded behavior.
+**Do instead:** Before writing any finding, run the relevant detection command above. If the finding cannot be grounded in a file:line reference, it does not meet the `Evidence-Based Critique` hardcoded behavior.
 
 ---
 

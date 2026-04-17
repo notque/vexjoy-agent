@@ -36,7 +36,7 @@ if response_code == 429:
 
 **Why wrong**: A newcomer cannot distinguish `60` (seconds) from `60` (max retries) or `60` (a business rule). When the value changes, they don't know all the places to update.
 
-**Fix**:
+**Do instead:**
 ```python
 HTTP_TOO_MANY_REQUESTS = 429
 RATE_LIMIT_BACKOFF_SECONDS = 60
@@ -73,7 +73,7 @@ func ProcessEvent(e Event, cfg *Config, dry bool) (Result, error) {
 
 **Why wrong**: The newcomer cannot call this function without reading all 200 lines to understand what `dry bool` does or what errors to expect.
 
-**Fix**: Add a doc comment explaining the function's purpose, key parameters, and failure conditions in 2-4 lines.
+**Do instead:** Add a doc comment explaining the function's purpose, key parameters, and failure conditions in 2-4 lines.
 
 ---
 
@@ -104,6 +104,8 @@ func calc(d []float64, n int) float64 {
 
 **Why wrong**: `d`, `n`, `s`, `v` carry zero information. Is this averaging? Summing? What is `d`? Why is `n` separate from `len(d)`?
 
+**Do instead:** Name variables after what they hold, not their type or role in the computation. Replace `d` with `dataPoints`, `s` with `sum`, and `n` with `sampleSize`. A reader should be able to understand the intent without running the code.
+
 ---
 
 ### ❌ Implicit Preconditions Not Documented
@@ -130,7 +132,7 @@ func ProcessOrder(order *Order) {
 
 **Why wrong**: A newcomer calling `ProcessOrder` does not know they must pre-populate `Customer`. The panic surfaces far from the actual mistake.
 
-**Fix**: Either guard with a nil check and return an error, or document the precondition in the function's doc comment: `// ProcessOrder requires order.Customer to be non-nil`.
+**Do instead:** Either guard with a nil check and return an error, or document the precondition in the function's doc comment: `// ProcessOrder requires order.Customer to be non-nil`.
 
 ---
 
@@ -151,6 +153,8 @@ rg -n ':8080|:3000|:5432|:6379' --type go --type py --type ts | rg -v 'test\|exa
 ```
 
 **Why wrong**: The Contrarian perspective asks "what happens in CI, staging, or prod?" Code assuming `localhost:5432` silently breaks in containerized environments.
+
+**Do instead:** Load host, port, and path values from environment variables with sensible defaults. `os.Getenv("DB_HOST", "localhost")` documents the assumption explicitly and makes it overridable without a code change.
 
 ---
 
@@ -177,6 +181,8 @@ func parseFlags(args []string) string {
 
 **Why wrong**: The Contrarian asks: "what if the caller passes zero args?" The assumption is invisible and produces a panic, not a clear error message.
 
+**Do instead:** Check bounds before indexing and return a descriptive error on violation. `if len(args) < 2 { return "", fmt.Errorf("expected at least 2 args, got %d", len(args)) }` converts a runtime panic into an actionable message.
+
 ---
 
 ### ❌ Sync-Only Code Assuming Sequential Execution
@@ -194,6 +200,8 @@ rg -n 'module\.exports\.\w+ = \[\|module\.exports\.\w+ = \{' --type js
 ```
 
 **Why wrong**: The Contrarian asks: "this code runs fine with one request — what about 100 simultaneous requests?" Module-level mutable state is shared across all requests in most web frameworks.
+
+**Do instead:** Scope mutable state to the request or transaction, not the module. Where shared state is unavoidable, protect it with a `sync.Mutex` or `sync.RWMutex` and document which fields it guards.
 
 ---
 
@@ -219,6 +227,8 @@ for key, val := range configMap {
 ```
 
 **Why wrong**: The Contrarian asks: "what assumption is the author making here?" Map iteration being ordered is a frequent hidden assumption that causes intermittent bugs.
+
+**Do instead:** Extract the keys, sort them explicitly with `sort.Strings(keys)`, then iterate the sorted slice. This makes the ordering contract visible in the code rather than hidden in an assumption about language behavior.
 
 ---
 
