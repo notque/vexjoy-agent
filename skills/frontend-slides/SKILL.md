@@ -188,3 +188,5 @@ For every slide, verify all of the following. If any item fails, fix it before p
 | File | Load At | Contains |
 |------|---------|----------|
 | `skills/frontend-slides/references/STYLE_PRESETS.md` | Phase 3 (DISCOVER STYLE) and Phase 4 (BUILD) | Mandatory CSS base block, 12 named presets, mood mapping, animation feel mapping, CSS gotchas, density limits, validation breakpoints |
+| `skills/frontend-slides/references/JS_CONTROLLER.md` | Phase 4 (BUILD) — before writing SlideController | SlideController skeleton, wheel debounce pattern, IO reveal setup, touch threshold, keyboard map; anti-patterns with grep detection commands; error-fix mapping |
+| `skills/frontend-slides/references/CSS_ANTIPATTERNS.md` | Phase 4 (BUILD) — before delivery, and Phase 5 (VALIDATE) | CSS-specific anti-patterns: `-clamp()` negation, `dvh` fallback, `font-display`, fixed pixel heights, `viewport-fit` meta; each with grep detection commands |
