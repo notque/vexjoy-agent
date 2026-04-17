@@ -114,6 +114,7 @@ route:
 ---
 
 ## Anti-Pattern Catalog
+<!-- no-pair-required: section header only -->
 
 ### ❌ Single-Window Burn Rate Alert
 
@@ -132,7 +133,7 @@ rg 'alert.*[Bb]urn' --type yaml -A 8 | grep -v 'and\s*$'
 
 **Why wrong**: A single 5-minute window catches fast burns (many errors quickly) but misses slow burns (few errors sustained over hours) that also exhaust the error budget. 30% of budget-exhausting incidents are slow burns invisible to single-window alerting.
 
-**Fix**: Multi-window burn rate — require both a long window (confirming trend) and a short window (confirming it's ongoing):
+**Do instead:** Multi-window burn rate — require both a long window (confirming trend) and a short window (confirming it's ongoing):
 ```yaml
 - alert: SLOBurnRate
   expr: |
@@ -152,6 +153,7 @@ rg 'alert.*[Bb]urn' --type yaml -A 8 | grep -v 'and\s*$'
 grep -rn 'amtool' --include="Makefile" --include="*.sh" --include="*.yml"
 # If no results: amtool validation is missing from deployment pipeline
 ```
+<!-- no-pair-required: partial section — positive counterpart follows in next block -->
 
 **What it looks like**:
 ```bash
@@ -162,7 +164,7 @@ kubectl apply -f alertmanager-config.yaml
 
 **Why wrong**: A single YAML syntax error in `alertmanager.yml` causes Alertmanager to reject the config and continue using the previous valid config — or fail to start. No error surfaces in the UI until alerts fail to route. Silent alert failures are worse than loud ones.
 
-**Fix**:
+**Do instead:**
 ```bash
 # Validate before applying
 amtool check-config alertmanager.yml
@@ -198,7 +200,7 @@ rg 'alert:' --type yaml -A 12 | grep -B8 'severity: critical' | grep -v runbook_
 
 **Why wrong**: Alerts without runbooks produce "now what?" paralysis at incident time. The 3am on-call engineer shouldn't be solving novel problems — they should be executing a known remediation. Missing runbooks convert paging alerts into learning exercises.
 
-**Fix**:
+**Do instead:**
 ```yaml
 annotations:
   summary: "DB connections exhausted on {{ $labels.instance }}"
@@ -217,6 +219,7 @@ grep -n 'receiver:' alertmanager.yml | wc -l
 # If only 1-2 unique receivers with no routes: flat routing
 grep -c 'routes:' alertmanager.yml
 ```
+<!-- no-pair-required: partial section — positive counterpart follows in next block -->
 
 **What it looks like**:
 ```yaml
@@ -231,7 +234,7 @@ receivers:
 
 **Why wrong**: Mixing critical pages (database down), warnings (disk at 70%), and informational (deployment complete) into one channel trains teams to ignore the channel. Critical alerts get lost in noise. Mean time to acknowledge increases.
 
-**Fix**: Route by severity and team:
+**Do instead:** Route by severity and team:
 ```yaml
 route:
   receiver: default
