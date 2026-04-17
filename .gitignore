@@ -54,9 +54,11 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+cron-logs/
 
 # Task plans (ephemeral, per-session)
 task_plan.md
+plan/
 
 # Internal migration/development docs (not for public release)
 MIGRATION_CHECKLIST_V2.md
@@ -68,9 +70,11 @@ research/
 # AB test output directories (raw trial outputs, not committed)
 ab-test-results/
 ab-test-results-r2/
+benchmark/
 
 # ADR session state (ephemeral, per-session, not committed)
 .adr-session.json
+.adr-session.json.stale
 
 # Credentials and secrets
 *.pem
@@ -101,8 +105,9 @@ agents/INDEX.local.json
 drafts/
 draft-*.md
 
-# Scratch notes (session working files, not committed)
+# Scratch notes and one-off research files (session working files, not committed)
 scratch/
+research-*.md
 
 # Eval workspaces (A/B/C test outputs, generated code, grading artifacts)
 # These are ephemeral experiment data — not committed
