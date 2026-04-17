@@ -50,7 +50,7 @@ Every analysis begins with the decision being supported, works backward to the e
 
 **Goal**: Establish what decision this analysis supports and what evidence would change it.
 
-Starting with data before establishing the decision context is the single most common analytical failure. The analyst finds interesting patterns and presents them, but the decision-maker cannot act because the patterns do not map to their options. Framing first ensures every computation serves the decision. Complete framing even when the user says they "just want numbers" -- numbers without decision context are not actionable, and the user may not know they need framing, which is exactly why this phase enforces it.
+Starting with data before establishing the decision context is the single most common analytical failure. The analyst finds interesting patterns and presents them, but the decision-maker cannot act because the patterns do not map to their options. Complete framing even when the user says they "just want numbers" -- numbers without decision context are not actionable.
 
 **Step 1: Identify the decision**
 - What specific decision does this analysis support?
@@ -67,29 +67,7 @@ If the user does not articulate a decision, ask: "What will you do differently b
 
 **Step 3: Save the frame artifact**
 
-Save `analysis-frame.md`:
-```markdown
-# Analysis Frame
-
-## Decision
-[What decision is being supported]
-
-## Decision-Maker
-[Who will act on this analysis]
-
-## Options
-- Option A: [description]
-- Option B: [description]
-- Default (no action): [what happens if we take no action]
-
-## Evidence Requirements
-- Favors Option A if: [condition]
-- Favors Option B if: [condition]
-- Minimum threshold: [what bar must be cleared]
-
-## Deal-Breakers
-- [condition that forces a specific option regardless]
-```
+Save `analysis-frame.md` using the template from `references/output-templates.md` (Phase Artifact Templates § analysis-frame.md).
 
 **GATE**: Decision identified, options enumerated, evidence requirements written to file. If the user cannot articulate a decision, explicitly switch to Exploratory Mode and document this in the frame. Proceed only when gate passes.
 
@@ -99,7 +77,7 @@ Save `analysis-frame.md`:
 
 **Goal**: Define exactly what will be measured, how, and over what population. Write definitions to file before any data is loaded.
 
-Defining metrics after seeing data enables (consciously or not) choosing definitions that produce favorable results. Locking definitions first makes the analysis auditable -- anyone can verify whether the definitions were followed. Verify every metric definition is exact -- a slight change in numerator or denominator can flip a conclusion. A/B tests have been decided on the wrong metric because "daily active" vs "monthly active" seemed interchangeable.
+Defining metrics after seeing data enables (consciously or not) choosing definitions that produce favorable results. Locking definitions first makes the analysis auditable. Verify every metric definition is exact -- a slight change in numerator or denominator can flip a conclusion.
 
 **Step 1: Define metrics**
 
@@ -118,40 +96,17 @@ For each comparison:
 - **Fairness check**: Are groups drawn from the same population and time window?
 
 **Step 3: Define success criteria**
-
 - What threshold constitutes a meaningful result?
 - What is the minimum sample size per segment?
 - Is this a one-tailed or two-tailed question?
 
 **Step 4: Save definitions artifact**
 
-Save `metric-definitions.md`:
-```markdown
-# Metric Definitions
-
-## Metrics
-### [Metric Name]
-- Formula: [exact computation]
-- Population: [inclusion/exclusion criteria]
-- Time window: [start - end, granularity]
-- Segments: [how data is sliced]
-
-## Comparison Groups (if applicable)
-### Group A: [Name]
-- Selection: [criteria]
-### Group B: [Name]
-- Selection: [criteria]
-- Fairness: [same population? same time window?]
-
-## Success Criteria
-- Minimum meaningful effect: [threshold]
-- Minimum sample per segment: [N]
-- Test type: [one-tailed / two-tailed / descriptive only]
-```
+Save `metric-definitions.md` using the template from `references/output-templates.md` (Phase Artifact Templates § metric-definitions.md).
 
 **GATE**: All metrics defined with formulas and populations. Definitions saved to file. If this is a comparison analysis, fairness checks documented. Proceed only when gate passes.
 
-**Immutability rule**: Once Phase 3 begins, these definitions are locked. If the data reveals that a definition is unworkable (e.g., the column doesn't exist), return to Phase 2, update the definition, and document the change and its reason in the artifact. Document every adjustment -- silent definition changes are p-hacking by another name, and the change must be visible in the artifact trail for the analysis to be auditable.
+**Immutability rule**: Once Phase 3 begins, these definitions are locked. If the data reveals that a definition is unworkable, return to Phase 2, update the definition, and document the change and its reason in the artifact. Document every adjustment -- silent definition changes are p-hacking by another name.
 
 ---
 
@@ -159,33 +114,16 @@ Save `metric-definitions.md`:
 
 **Goal**: Load the data, profile its quality, and determine whether it is adequate for the planned analysis. Keep interpretation out of this phase.
 
-Combining loading and interpretation causes confirmation bias -- you see what you expect instead of what the data shows. Extracting first forces you to confront data quality issues (missing values, unexpected distributions, date gaps) before they silently distort your conclusions.
+Combining loading and interpretation causes confirmation bias. Extracting first forces you to confront data quality issues (missing values, unexpected distributions, date gaps) before they silently distort your conclusions.
 
 **Step 1: Detect available tools**
 
-```python
-try:
-    import pandas as pd
-    HAS_PANDAS = True
-except ImportError:
-    HAS_PANDAS = False
-
-try:
-    import matplotlib
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
-    HAS_MATPLOTLIB = True
-except ImportError:
-    HAS_MATPLOTLIB = False
-```
-
-If pandas is unavailable, fall back to `csv.DictReader` + `statistics` module. Analysis quality must be identical -- only presentation differs.
+See `references/compute-examples.md` for tool detection code. If pandas is unavailable, fall back to `csv.DictReader` + `statistics` module.
 
 **Step 2: Load and inspect data**
 
 Profile the dataset:
-- Row count
-- Column names and inferred types
+- Row count, column names and inferred types
 - Missing value count per column (absolute and percentage)
 - Date range (if temporal data)
 - Unique value counts for categorical columns
@@ -193,7 +131,7 @@ Profile the dataset:
 
 **Step 3: Assess data quality**
 
-Apply the Sample Adequacy gate (see `references/rigor-gates.md` Gate 1). Verify sample adequacy with actual numbers -- that is not a statistical assessment. Check actual numbers against these minimums:
+Apply the Sample Adequacy gate (see `references/rigor-gates.md` Gate 1). Check actual numbers against these minimums:
 
 | Check | Minimum | Action if Failed |
 |-------|---------|------------------|
@@ -204,34 +142,9 @@ Apply the Sample Adequacy gate (see `references/rigor-gates.md` Gate 1). Verify 
 
 **Step 4: Save quality report**
 
-Save `data-quality-report.md`:
-```markdown
-# Data Quality Report
+Save `data-quality-report.md` using the template from `references/output-templates.md` (Phase Artifact Templates § data-quality-report.md).
 
-## Dataset Overview
-- Source: [file path / description]
-- Rows: [N]
-- Columns: [N]
-- Date range: [start - end]
-
-## Column Profiles
-| Column | Type | Non-null | Missing % | Unique | Notes |
-|--------|------|----------|-----------|--------|-------|
-| [name] | [type] | [count] | [pct] | [count] | [flags] |
-
-## Quality Assessment
-- [ ] Sample adequate (N=[count], population=[est])
-- [ ] Time window complete (gaps: [none / list])
-- [ ] Segment minimums met ([list segments below 30])
-- [ ] Missing values acceptable ([list columns above 20%])
-
-## Quality Issues
-[List any issues that affect planned analysis]
-
-## Data Ready: [YES / NO - with reason]
-```
-
-**GATE**: Data loaded, quality report saved, all four adequacy checks assessed. If data quality fails, document which analyses are affected and whether remediation is possible (merge segments, narrow time window, exclude columns). Proceed only when gate passes or failures are documented as limitations.
+**GATE**: Data loaded, quality report saved, all four adequacy checks assessed. If data quality fails, document which analyses are affected and whether remediation is possible. Proceed only when gate passes or failures are documented as limitations.
 
 ---
 
@@ -241,37 +154,7 @@ Save `data-quality-report.md`:
 
 **Step 1: Compute primary metrics**
 
-Calculate each metric defined in Phase 2 using the exact formula specified. Use Python stdlib or pandas as available:
-
-```python
-# stdlib approach
-import csv, statistics, collections, math
-
-with open(data_file) as f:
-    reader = csv.DictReader(f)
-    rows = list(reader)
-
-# Example: conversion rate with confidence interval
-successes = sum(1 for r in rows if r['converted'] == '1')
-total = len(rows)
-rate = successes / total
-# Wilson score interval for proportions
-z = 1.96  # 95% CI
-denominator = 1 + z**2 / total
-centre = (rate + z**2 / (2 * total)) / denominator
-spread = z * math.sqrt((rate * (1 - rate) + z**2 / (4 * total)) / total) / denominator
-ci_lower = centre - spread
-ci_upper = centre + spread
-```
-
-```python
-# pandas approach (when available)
-import pandas as pd
-
-df = pd.read_csv(data_file)
-rate = df['converted'].mean()
-# Bootstrap CI or Wilson as above
-```
+Calculate each metric defined in Phase 2 using the exact formula specified. See `references/compute-examples.md` for stdlib and pandas computation patterns including Wilson score confidence intervals.
 
 **Step 2: Apply Comparison Fairness gate** (if comparing groups)
 
@@ -283,13 +166,7 @@ Before interpreting any group comparison, verify (see `references/rigor-gates.md
 
 **Step 3: Apply Multiple Testing Correction** (if testing multiple hypotheses)
 
-See `references/rigor-gates.md` Gate 3. Report all segments tested from many tests -- if you test 10 segments, one will likely show significance by chance (5% false positive rate per test). Report all segments tested.
-
-| Scenario | Correction |
-|----------|------------|
-| 2-5 comparisons | Report all p-values, flag that they are unadjusted |
-| 6+ comparisons | Apply Bonferroni: adjusted threshold = 0.05 / N |
-| Exploratory sweep | Label as exploratory, make no causal claims |
+See `references/rigor-gates.md` Gate 3 and `references/compute-examples.md` for the correction table. Report all segments tested -- if you test 10 segments, one will likely show significance by chance.
 
 **Step 4: Apply Practical Significance gate**
 
@@ -301,33 +178,7 @@ See `references/rigor-gates.md` Gate 4:
 
 **Step 5: Save analysis results**
 
-Save `analysis-results.md`:
-```markdown
-# Analysis Results
-
-## Metrics
-### [Metric Name]
-- Value: [point estimate]
-- 95% CI: [lower - upper]
-- Sample: N=[count]
-
-## Comparisons (if applicable)
-### [Group A] vs [Group B]
-- Group A: [metric] = [value] (N=[count])
-- Group B: [metric] = [value] (N=[count])
-- Difference: [absolute] ([relative]%)
-- 95% CI of difference: [lower - upper]
-- Practical significance: [above/below minimum threshold]
-
-## Rigor Gate Results
-- [ ] Sample Adequacy: [PASS / FAIL - details]
-- [ ] Comparison Fairness: [PASS / FAIL / N/A - details]
-- [ ] Multiple Testing: [PASS / FAIL / N/A - details]
-- [ ] Practical Significance: [PASS / FAIL - details]
-
-## Rigor Violations (if any)
-[List violations and their impact on conclusions]
-```
+Save `analysis-results.md` using the template from `references/output-templates.md` (Phase Artifact Templates § analysis-results.md).
 
 **GATE**: All defined metrics computed. Rigor gates applied and results documented. Violations either remediated or recorded as limitations. Proceed only when gate passes.
 
@@ -353,12 +204,7 @@ Summarize the key metrics that support the headline, in order of importance:
 
 **Step 3: State limitations explicitly**
 
-State limitations explicitly because the analysis is complex and "the user won't understand" -- hiding limitations is more misleading than explaining them, and simple language makes limitations accessible. If confidence intervals are wide, that IS the finding (the data is insufficient to support a decision), not a formatting problem to hide by reporting only the point estimate.
-
-- What the data does NOT tell you
-- Rigor gate violations and their implications
-- Known confounders that could not be controlled
-- Sample limitations (size, coverage, time window)
+If confidence intervals are wide, that IS the finding (the data is insufficient to support a decision), not a formatting problem to hide by reporting only the point estimate.
 
 **Step 4: Return to the decision**
 
@@ -370,135 +216,30 @@ Explicitly map findings back to the decision frame:
 
 **Step 5: Save final report**
 
-Save `analysis-report.md`:
-```markdown
-# Analysis Report
-
-## Headline
-[One sentence: what the data says about the decision]
-
-## Decision Context
-[Recap from Phase 1 frame]
-
-## Key Findings
-1. [Primary finding with CI]
-2. [Supporting finding]
-3. [Qualifying finding or important segment variation]
-
-## Limitations
-- [Limitation 1]
-- [Limitation 2]
-
-## Recommendation
-[Action recommendation with confidence level]
-
-## What Would Increase Confidence
-- [Additional data or analysis that would help]
-
----
-
-## Appendix: Methodology
-- Data source: [file]
-- Rows analyzed: [N]
-- Time window: [range]
-- Tools: [pandas/stdlib]
-- Metrics: See metric-definitions.md
-- Quality: See data-quality-report.md
-- Detailed results: See analysis-results.md
-```
+Save `analysis-report.md` using the template from `references/output-templates.md` (Phase Artifact Templates § analysis-report.md).
 
 **GATE**: Report saved with headline finding, limitations, and explicit recommendation tied back to the decision. All artifact files referenced. Analysis complete.
 
 ---
 
-### Examples
+## Reference Loading
 
-#### Example 1: A/B Test Evaluation
-User says: "Evaluate this A/B test - here's the CSV of results"
-Actions:
-1. FRAME: "Should we ship variant B?" Options: ship B, keep A, extend test. Evidence: conversion lift >1% with 95% CI excluding zero.
-2. DEFINE: Conversion = orders/visitors per variant. Time: test period. Segments: mobile/desktop.
-3. EXTRACT: Load CSV, profile 45k rows, check group sizes balanced, verify no date gaps.
-4. ANALYZE: Variant B conversion 4.2% vs A 3.9%. Difference 0.3% (CI: -0.1% to 0.7%). Fails practical significance -- CI includes zero.
-5. CONCLUDE: "Data is inconclusive. The observed 0.3% lift has a confidence interval that includes zero. Recommend extending the test for 2 more weeks to reach adequate power."
-
-#### Example 2: Trend Analysis
-User says: "What's happening with our monthly revenue? Here's 2 years of data."
-Actions:
-1. FRAME: "Is revenue growth slowing, and should we invest in acquisition?" Options: increase spend, maintain, cut.
-2. DEFINE: Revenue = sum of invoice amounts per month. Growth = month-over-month %. Segments: new vs returning customers.
-3. EXTRACT: Load 24 months, verify no missing months, check for outliers (December spike).
-4. ANALYZE: Overall +2.1%/mo but returning customer revenue flat. All growth from new customers. Seasonality adjusted.
-5. CONCLUDE: "Revenue growth is entirely acquisition-driven. Returning customer revenue has been flat for 8 months, suggesting a retention problem. Recommend investigating churn before increasing acquisition spend."
-
-#### Example 3: Distribution Profiling
-User says: "Our API response times feel slow. Here's a week of latency data."
-Actions:
-1. FRAME: "Do we need to optimize the API?" Options: optimize, add caching, do nothing. Threshold: p99 >500ms warrants action.
-2. DEFINE: Latency = request duration in ms. Segments: by endpoint, by hour. Key metrics: p50, p95, p99.
-3. EXTRACT: Load 1.2M requests, check for timestamp gaps, identify endpoints.
-4. ANALYZE: p50=45ms (fine), p99=890ms (exceeds threshold). /search endpoint contributes 73% of p99 violations. Peak hours 2x worse.
-5. CONCLUDE: "p99 latency exceeds the 500ms threshold, concentrated in /search during peak hours. Recommend optimizing /search specifically rather than system-wide caching."
-
-### Blocker Criteria
-
-STOP and ask the user (stop and resolve before proceeding autonomously) when:
-
-| Situation | Why Stop | Ask This |
-|-----------|----------|----------|
-| No decision context and user resists framing | Analysis without purpose wastes effort | "Help me understand: what will change based on this analysis?" |
-| Data format unclear | Parsing errors corrupt analysis | "What format is this data in? What do the columns represent?" |
-| Critical columns have >50% missing values | Analysis on mostly-missing data is unreliable | "Column X is 60% missing. Should we exclude it or is there another data source?" |
-| Metric definitions contradict each other | Conflicting definitions produce conflicting results | "Metric A and B use different definitions of 'active user'. Which should we standardize on?" |
-| Results are ambiguous (CI spans zero for primary metric) | User needs to know the data is inconclusive | State clearly: "The data does not support a confident decision. Here are options for getting more data." |
-
-Ask the user about column semantics, population definitions, business thresholds, or causal claims (correlation is not causation).
-
----
-
-## Error Handling
-
-### Error: "No decision context provided"
-**Cause**: User provides data without stating what decision it supports ("just analyze this CSV").
-**Solution**: Ask "What will you do differently based on this analysis?" If truly exploratory, switch to Exploratory Mode -- apply rigor gates but label all findings as exploratory with no causal claims.
-
-### Error: "Data file cannot be parsed"
-**Cause**: Malformed CSV, unexpected encoding, mixed delimiters, or binary file.
-**Solution**:
-1. Try common encodings: utf-8, latin-1, utf-8-sig
-2. Detect delimiter: comma, tab, semicolon, pipe
-3. If JSON: validate structure, identify if it's array-of-objects or nested
-4. If still failing: ask user for format details. Ask the user for format details.
-5. Maximum 3 parse attempts before asking the user for format help.
-
-### Error: "Insufficient data for planned segments"
-**Cause**: Metric definitions specify segments (by region, by tier) but some segments have <30 observations.
-**Solution**:
-1. Report which segments are below minimum
-2. Options: merge small segments into "Other", remove segmentation, or accept reduced confidence with disclosure
-3. Return to Phase 2 to adjust definitions if needed, documenting the change
-
-### Error: "Metrics changed after seeing data"
-**Cause**: Analyst realizes original definitions prove unworkable after loading data (column doesn't exist, wrong granularity).
-**Solution**: This is expected and acceptable IF handled properly:
-1. Return explicitly to Phase 2
-2. Document what changed and why
-3. Save updated metric-definitions.md with change log
-4. Make every adjustment visible -- the change must appear in the artifact trail
-5. Maximum 2 definition revisions before flagging scope concern.
-
-### Death Loop Prevention
-If the analysis is cycling (returning to Phase 2 repeatedly, growing artifact count without convergence, same error recurring), simplify: drop segments, reduce metrics to the single most important one, narrow the time window. A tightly framed decision in Phase 1 produces fewer metrics and faster convergence.
-
-Maximum retry limits:
-- 3 attempts to parse a data file
-- 2 definition revisions in Phase 2
-- 3 rigor gate remediation attempts before documenting as limitation
+| Signal | Load |
+|--------|------|
+| Phase 3 or 4 -- computing metrics, applying gates | `references/rigor-gates.md` |
+| Phase 3 or 4 -- Python code for tool detection, CI computation | `references/compute-examples.md` |
+| Any phase -- saving an artifact file | `references/output-templates.md` |
+| Working examples of the full 5-phase flow | `references/worked-examples.md` |
+| Data parse failure, segment size issue, definition revision | `references/error-handling.md` |
+| Anti-pattern recognition (p-hacking, survivorship bias, etc.) | `references/anti-patterns.md` |
 
 ---
 
 ## References
 
-- **Rigor Gates**: [references/rigor-gates.md](references/rigor-gates.md) - Detailed statistical gate documentation with examples
-- **Output Templates**: [references/output-templates.md](references/output-templates.md) - Templates for different analysis types (A/B test, trend, distribution, cohort)
-- **Quality Patterns**: [references/anti-patterns.md](references/anti-patterns.md) - Extended pattern catalog with code examples
+- **Rigor Gates**: `references/rigor-gates.md` - Detailed statistical gate documentation with examples
+- **Output Templates**: `references/output-templates.md` - Phase artifact templates and analysis type templates (A/B test, trend, distribution, cohort)
+- **Compute Examples**: `references/compute-examples.md` - Python computation patterns for extraction and analysis
+- **Worked Examples**: `references/worked-examples.md` - Three end-to-end examples (A/B test, trend, distribution)
+- **Error Handling**: `references/error-handling.md` - Error recovery procedures and blocker criteria
+- **Anti-Patterns**: `references/anti-patterns.md` - Extended pattern catalog with code examples

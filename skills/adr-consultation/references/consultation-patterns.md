@@ -157,6 +157,122 @@ ls adr/{name}/synthesis.md adr/{name}/concerns.md 2>/dev/null
 
 ---
 
+## Phase 3 Artifact Templates
+
+### concerns.md template
+
+```markdown
+# Concerns: {adr-name}
+
+## Concern 1: [Title]
+- **Raised by**: reviewer-perspectives (contrarian) | reviewer-perspectives (user-advocate) | reviewer-perspectives (meta-process)
+- **Severity**: blocking | important | minor
+- **Description**: [What's wrong or at risk]
+- **Resolution**: UNRESOLVED
+
+Resolution states (update as concerns are addressed):
+- UNRESOLVED — not yet addressed
+- RESOLVED: {description} — addressed in implementation
+- ACCEPTED: {description} — accepted as a known limitation
+- DEFERRED: {description} — will address in future work
+
+## Concern 2: [Title]
+...
+```
+
+### synthesis.md template
+
+```markdown
+# Consultation Synthesis: {adr-name}
+
+## Verdict: [PROCEED | BLOCKED]
+
+## Agent Verdicts
+| Agent | Verdict |
+|-------|---------|
+| reviewer-perspectives (contrarian) | [verdict] |
+| reviewer-perspectives (user-advocate) | [verdict] |
+| reviewer-perspectives (meta-process) | [verdict] |
+
+## Areas of Agreement
+[Where all agents agree — positive or negative.]
+
+## Areas of Disagreement
+[Where agents see the same aspect differently.]
+
+## Blocking Concerns
+[Concerns with severity: blocking. These MUST be resolved before implementation.]
+
+## Important Concerns
+[Concerns with severity: important. Should be addressed; non-blocking.]
+
+## Minor Concerns
+[Concerns with severity: minor. Nice-to-have improvements.]
+
+## Synthesis Rationale
+[Why the overall verdict is PROCEED or BLOCKED, given the above.]
+```
+
+---
+
+## Phase 4 Verdict Display
+
+### BLOCKED verdict
+
+```
+═══════════════════════════════════════════════════════════════
+ ADR CONSULTATION: BLOCKED
+═══════════════════════════════════════════════════════════════
+
+ ADR: {adr-name}
+ Consultation: adr/{adr-name}/
+
+ BLOCKING CONCERNS — do not proceed to implementation:
+
+ 1. [{raised by}] {concern title}
+    {description}
+
+ 2. [{raised by}] {concern title}
+    {description}
+
+ Next Steps:
+   - Address each blocking concern in the ADR
+   - Re-run /adr-consultation to verify concerns are resolved
+   - Do NOT dispatch feature-lifecycle implement phase until PROCEED verdict
+═══════════════════════════════════════════════════════════════
+```
+
+### PROCEED verdict
+
+```
+═══════════════════════════════════════════════════════════════
+ ADR CONSULTATION: PROCEED
+═══════════════════════════════════════════════════════════════
+
+ ADR: {adr-name}
+ Consultation: adr/{adr-name}/
+
+ Verdict: PROCEED — no blocking concerns found.
+
+ Agent Verdicts:
+   - reviewer-perspectives (contrarian):    [verdict]
+   - reviewer-perspectives (user-advocate): [verdict]
+   - reviewer-perspectives (meta-process):  [verdict]
+
+ Important Concerns (non-blocking):
+   [{raised by}] {concern title} — {brief description}
+
+ Consultation artifacts:
+   - adr/{adr-name}/reviewer-perspectives-contrarian.md
+   - adr/{adr-name}/reviewer-perspectives-user-advocate.md
+   - adr/{adr-name}/reviewer-perspectives-meta-process.md
+   - adr/{adr-name}/synthesis.md
+   - adr/{adr-name}/concerns.md
+═══════════════════════════════════════════════════════════════
+```
+
+---
+
 ## See Also
 
 - `consultation-anti-patterns.md` — ADR quality anti-patterns that reviewers should catch
