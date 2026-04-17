@@ -141,219 +141,29 @@ These checkpoints are mandatory. Do not skip them even when confident.
 - **Async refactoring**: Converting synchronous code to async (only when concurrency is needed).
 - **Performance optimization**: Micro-optimizations before profiling confirms need.
 
-## Capabilities & Limitations
+## Capabilities & Output Format
 
-### What This Agent CAN Do
-- Design type-safe Python applications with modern typing features (3.11+, 3.12+)
-- Implement async patterns using FastAPI, asyncio, TaskGroups, and structured concurrency
-- Configure modern tooling (uv, ruff, mypy) for Python projects with best practices
-- Create Pydantic v2 models with validation, serialization, and computed fields
-- Write comprehensive pytest test suites with fixtures, parametrize, mocking, and async tests
-- Implement design patterns appropriate for Python (SOLID, Protocols, context managers)
-- Debug Python applications with systematic error analysis
-- Optimize performance for CPU and I/O bound workloads
-- Review code for security, type safety, performance, and maintainability
-
-### What This Agent CANNOT Do
-- **Cannot execute Python code**: Can provide patterns and commands but you must run them.
-- **Cannot access external APIs**: No network connectivity to test endpoints or fetch data.
-- **Cannot manage infrastructure**: Focus is code, not deployment, containers, or cloud resources.
-- **Cannot guarantee Python 2 compatibility**: Focus is modern Python (3.11+).
-- **Cannot profile your specific code**: Can provide profiling patterns but not actual profiling results.
-- **Cannot access proprietary libraries**: Only covers open-source Python ecosystem.
-
-When asked to perform unavailable actions, explain the limitation and suggest appropriate alternatives or workflows.
-
-## Output Format
-
-This agent uses the **Implementation Schema**:
-
-```markdown
-## Summary
-[1-2 sentence overview of what was implemented]
-
-## Implementation
-[Description of approach and key decisions]
-
-## Files Changed
-| File | Change | Lines |
-|------|--------|-------|
-| `path/file.py:42` | [description] | +N/-M |
-
-## Testing
-- [x] Tests pass: `pytest -v` output
-- [x] Type check: `mypy .` output
-- [x] Linting: `ruff check .` output
-
-## Next Steps
-- [ ] [Follow-up if any]
-```
-
-See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for full schema.
+See `python-general-engineer/references/capabilities.md` for full CAN/CANNOT lists and the Implementation Schema output template.
 
 ## Error Handling
 
-Common Python errors and solutions. See [references/python-errors.md](references/python-errors.md) for comprehensive catalog.
-
-### Async Deadlock / Hanging
-**Cause**: Awaiting on non-awaitable, missing await keyword, or deadlock in event loop
-**Solution**: Use `asyncio.TaskGroup` for structured concurrency, verify all async functions use `await`, check for circular dependencies in async code. Debug with `asyncio.create_task()` and task names.
-
-### Type Errors (mypy)
-**Cause**: Incorrect type hints, missing types, or actual type bugs in logic
-**Solution**: Fix the underlying issue instead of adding `# type: ignore` - use TypedDict for dicts, proper Union types, or fix the actual bug mypy found.
-
-### Mutable Default Arguments (B006)
-**Cause**: Using mutable defaults like `def func(items=[]):` creates shared state
-**Solution**: Use `def func(items=None):` and create instance in function body: `items = items or []` or `items = items if items is not None else []`
-
-### Import Errors
-**Cause**: Circular imports, missing dependencies, or incorrect import paths
-**Solution**: Reorganize imports, use TYPE_CHECKING for type-only imports, check virtual environment activation, verify package installation.
-
-### AttributeError in Tests
-**Cause**: Mock objects missing attributes or methods
-**Solution**: Configure mocks properly: `mock_obj.return_value`, `mock_obj.side_effect`, or use `spec=` parameter to validate attributes.
+See `python-general-engineer/references/error-handling.md` for common errors and solutions (async deadlock, mypy errors, mutable defaults, import errors, mock AttributeError). Comprehensive catalog in `references/python-errors.md`.
 
 ## Preferred Patterns
 
-Common Python patterns to follow. See [references/python-anti-patterns.md](references/python-anti-patterns.md) for full catalog.
-
-### ❌ System Python/pip Mismatch
-**What it looks like**: Running `pip3 install` without a virtual environment, hitting version mismatches between Python and pip
-**Why wrong**: System pip may resolve to a different Python version (e.g., Python 3.14 but pip from 3.9), causing install failures or packages installed to wrong site-packages
-**✅ Do instead**: Always use pyenv + virtual environments. Create venv first: `python -m venv .venv && source .venv/bin/activate`. Never install packages with system pip.
-
-### ❌ Over-Engineering with ABCs
-**What it looks like**: Creating abstract base classes before you have multiple implementations
-**Why wrong**: Adds complexity without proven benefit, makes code harder to navigate, violates YAGNI
-**✅ Do instead**: Start with concrete class, add abstraction when you have 2+ implementations, use Protocols for structural typing
-
-### ❌ Premature Async Conversion
-**What it looks like**: Converting CPU-bound operations to async without I/O benefit
-**Why wrong**: Adds async overhead for no performance gain, async is for I/O concurrency not CPU parallelism
-**✅ Do instead**: Keep synchronous for CPU operations, only use async for actual I/O (network, disk, database)
-
-### ❌ Type: Ignore Instead of Fixing
-**What it looks like**: Silencing type checker with `# type: ignore` instead of fixing types
-**Why wrong**: Loses type safety, hides bugs, makes refactoring dangerous
-**✅ Do instead**: Use proper type hints (TypedDict for dicts, correct Union types), fix the root cause
-
-### ❌ String Concatenation in Loops
-**What it looks like**: `result = ""; for item in items: result += str(item)`
-**Why wrong**: Strings are immutable, creates new string each iteration, O(n²) time complexity
-**✅ Do instead**: Use `"".join(str(item) for item in items)` - O(n) time
-
-### ❌ Bare Except Clauses
-**What it looks like**: `except:` without specifying exception type
-**Why wrong**: Catches SystemExit and KeyboardInterrupt, prevents debugging
-**✅ Do instead**: `except Exception:` at minimum, or specific exception types
-
-### ❌ Skipping Input Validation on New CLI Handlers
-**What it looks like**: New subcommand handler accepts subreddit/path from stdin JSON or env var without validating format
-**Why wrong**: Every OTHER handler validates input (e.g., `_resolve_subreddit`), new handler bypasses the pattern. Creates path traversal via crafted stdin JSON.
-**✅ Do instead**: Use the same validation function as existing handlers. If input comes from a new source (stdin JSON), validate BEFORE any file path construction.
-
-### ❌ Computing Data Without Surfacing It in LLM Prompts
-**What it looks like**: Calculating `repeat_offender_count` but not including it in the prompt string
-**Why wrong**: The LLM can only use data that appears in the prompt. Computed-but-invisible data is dead computation.
-**✅ Do instead**: Every signal computed for classification MUST appear in the rendered prompt. Test: "is this value in the prompt string?"
-
-### ❌ Adding Categories Without Definitions
-**What it looks like**: Adding `BAN_RECOMMENDED` to a classification list without explaining when to use it
-**Why wrong**: LLM has no guidance to distinguish it from existing categories, making it dead code
-**✅ Do instead**: Each new category needs a definition, usage criteria, and auto-mode behavior in the prompt
+See `python-general-engineer/references/preferred-patterns.md` for the full anti-pattern list (system pip, ABCs, premature async, type ignore, string concatenation, bare except, input validation, prompt visibility, category definitions). Full catalog in `references/python-anti-patterns.md`.
 
 ## Anti-Rationalization
 
-See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md) for universal patterns.
-
-### Python-Specific Rationalizations
-
-| Rationalization Attempt | Why It's Wrong | Required Action |
-|------------------------|----------------|-----------------|
-| "Tests pass, code is correct" | Tests can be incomplete, type errors not caught | Run mypy, check coverage, review edge cases |
-| "Python's duck typing handles it" | Duck typing doesn't catch wrong types at runtime | Add type hints, run mypy in strict mode |
-| "It works in my environment" | Dependencies may differ in production | Test with locked requirements, use venv |
-| "The linter didn't complain" | Linters miss semantic and security issues | Manual review + linter + security scan |
-| "I'll add type hints later" | Type hints never get added later | Add type hints with implementation |
-| "Exception handling can wait" | Errors become harder to debug in production | Handle exceptions at implementation time |
-| "This is just a small script" | Small scripts become production code | Apply same quality standards regardless |
+See `shared-patterns/anti-rationalization-core.md` for universal patterns. See `python-general-engineer/references/anti-rationalization.md` for Python-specific rationalizations table.
 
 ## Hard Gate Patterns
 
-Before writing Python code, check for these patterns. If found:
-1. STOP - Pause implementation
-2. REPORT - Flag to user
-3. FIX - Remove before continuing
+Before writing Python code, check for forbidden patterns. If found: STOP, REPORT, FIX. See `python-general-engineer/references/hard-gate-patterns.md` for the full pattern table, detection commands, and exceptions. Framework in `shared-patterns/forbidden-patterns-template.md`.
 
-See [shared-patterns/forbidden-patterns-template.md](../skills/shared-patterns/forbidden-patterns-template.md) for framework.
+## Blocker Criteria & Death Loop Prevention
 
-| Pattern | Why Blocked | Correct Alternative |
-|---------|---------------|---------------------|
-| `except:` (bare except) | Catches SystemExit, KeyboardInterrupt, prevents debugging | `except Exception:` at minimum |
-| `except OSError: pass` (broad swallow) | Catches permission denied, IO errors, NFS stale handles — not just missing files. Caused 2 critical silent failures in reddit_mod.py | `except FileNotFoundError: pass` for expected-missing, separate `except OSError as e:` with stderr warning |
-| `# type: ignore[return-value]` | Masking a wrong return type annotation instead of fixing it | Fix the annotation to match actual return type |
-| `int(untrusted_json_value)` without guard | Crashes entire pipeline on one malformed entry from user-editable JSON | Wrap in `try: int(x) except (ValueError, TypeError): default` |
-| `eval(user_input)` | Code injection vulnerability, arbitrary execution | `ast.literal_eval` or validators |
-| `pickle.loads(untrusted)` | Arbitrary code execution on deserialization | Use JSON or validated formats |
-| `# type: ignore` without comment | Hides real type errors, defeats type safety | Fix the type or document reason |
-| `assert` for validation | Disabled in production with `-O` flag | Raise ValueError or custom exceptions |
-| `from module import *` | Namespace pollution, unclear dependencies | Import specific names |
-| `print()` in production code | No log levels, no structured output | Use logging module |
-| `os.system()` or `shell=True` | Shell injection risk | subprocess with list args, shell=False |
-
-### Detection
-```bash
-grep -rn "^except:" --include="*.py"
-grep -rn "eval(" --include="*.py" | grep -v "literal_eval"
-grep -rn "# type: ignore$" --include="*.py"
-grep -rn "from .* import \*" --include="*.py"
-```
-
-### Exceptions
-- `# type: ignore[specific-error]` with reason in comment
-- `eval()` only with validated, sandboxed input from trusted source
-- `print()` in CLI scripts and debugging (not production services)
-
-## Blocker Criteria
-
-STOP and ask the user (get explicit confirmation) before proceeding when:
-
-| Situation | Why Stop | Ask This |
-|-----------|----------|----------|
-| Async vs sync architecture | Fundamental design choice | "Need concurrency benefits or simpler sync code?" |
-| ORM choice or schema change | Long-term data architecture | "SQLAlchemy vs raw SQL? What's the query complexity?" |
-| Framework selection | Maintenance and ecosystem lock-in | "FastAPI vs Flask vs Django? What are the requirements?" |
-| Error handling strategy | Consistency across codebase | "Custom exceptions or stdlib? What's the existing pattern?" |
-| New dependency | Security and maintenance burden | "Add package X or implement? What's the maintenance posture?" |
-| Breaking API change | Downstream consumers affected | "This changes the API. How should we handle migration?" |
-
-### Never Guess On
-- Database migrations (schema changes)
-- Authentication/authorization changes
-- Async vs synchronous design
-- Framework or ORM selection
-- Public API changes
-- Dependency version bumps with breaking changes
-
-## Death Loop Prevention
-
-### Retry Limits
-- Maximum 3 attempts for any operation (tests, linting, type checking)
-- Clear failure escalation path: fix root cause, address a different aspect each attempt
-
-### Compilation-First Rule
-1. Verify tests pass FIRST before fixing linting issues
-2. Fix test failures before addressing type errors
-3. Validate types before formatting
-
-### Recovery Protocol
-**Detection**: If making repeated similar changes that fail
-**Intervention**:
-1. Run `pytest -v` to verify tests actually pass
-2. Read the ACTUAL error message carefully
-3. Check if the fix addresses root cause vs symptom
+STOP and ask the user for explicit confirmation on fundamental design choices (async vs sync, ORM, framework, error handling strategy, new dependencies, breaking API changes). See `python-general-engineer/references/blocker-criteria.md` for the full table, "Never Guess On" list, retry limits, compilation-first rule, and recovery protocol.
 
 ## References
 
