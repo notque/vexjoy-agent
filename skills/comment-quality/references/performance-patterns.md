@@ -1,5 +1,7 @@
 # Performance Comment Anti-Patterns
 
+<!-- no-pair-required: document header and scope block, not an individual anti-pattern -->
+
 > **Scope**: Temporal and relative-comparison comment anti-patterns in performance-sensitive
 > code: caching, batching, concurrency limits, and algorithmic complexity notes.
 > **Version range**: All languages; Go goroutine pool patterns, Python asyncio, JS Promise.all
@@ -18,6 +20,8 @@ measurable, specific descriptions of what the optimization does.
 ---
 
 ## Anti-Pattern Catalog
+
+<!-- no-pair-required: section heading organizing multiple anti-pattern blocks -->
 
 ### ❌ "Optimized/improved for performance" — Vague praise
 
@@ -49,6 +53,8 @@ cache := sync.Map{}
 **Why wrong**: "Optimized for performance" says nothing the reader can act on. What was the
 bottleneck? What does the optimization constrain? What happens if the limit changes?
 
+**Do instead**: State the specific mechanism (pool size, semaphore limit, cache capacity) and how to tune it.
+
 **Fix**:
 ```go
 // Limits concurrent processing to 10 goroutines to cap memory and CPU usage.
@@ -71,6 +77,8 @@ cache := sync.Map{}
 ---
 
 ### ❌ "Faster than X" / "More efficient than X" — Comparative without baseline
+
+**Do instead**: State the parallelism model, its constraints, and any side-effect warnings.
 
 **Detection**:
 ```bash
@@ -98,6 +106,8 @@ def get_users_paginated(page_size=100):
 **Why wrong**: "Faster than sequential" is historical context. How much faster? Under what
 conditions? The reader needs to know what the parallelism model is and its trade-offs.
 
+**Do instead**: State the parallelism model, its constraints, and any side-effect warnings.
+
 **Fix**:
 ```python
 # Runs all process() calls concurrently; total time bounded by the slowest item.
@@ -105,6 +115,7 @@ conditions? The reader needs to know what the parallelism model is and its trade
 results = await asyncio.gather(*[process(item) for item in items])
 
 # Streams users in batches of 100 to avoid loading the full table into memory.
+<!-- no-pair-required: good example inside a Fix code block; the enclosing anti-pattern section carries the Do instead marker -->
 # Caller iterates yielded batches; do not materialize with list() on large tables.
 def get_users_paginated(page_size=100):
     offset = 0
@@ -144,6 +155,8 @@ var lru = lrucache.New(1000)
 **Why wrong**: "Now uses" describes migration history. The reader needs cache eviction policy,
 TTL, capacity, and what happens on cache miss.
 
+**Do instead**: State the eviction policy, TTL, capacity, and miss behavior.
+
 **Fix**:
 ```go
 // Returns cached user within 5-minute TTL; fetches from DB on miss and repopulates cache.
@@ -162,6 +175,8 @@ var lru = lrucache.New(1000)
 
 ### ❌ "Optimized database queries" / "Reduced N+1" — Query optimization narrative
 
+**Do instead**: Describe the current loading strategy (eager, batch size, index type) and the problem it prevents.
+
 **Detection**:
 ```bash
 grep -rn '//.*optimized.*quer\|//.*quer.*optimized\|//.*N\+1\|//.*reduced.*quer' \
@@ -172,6 +187,7 @@ rg '//\s*(optimized|reduced|fixed) (query|queries|N\+1|database)' -i
 **What it looks like**:
 ```python
 # Optimized to avoid N+1 query problem
+<!-- no-pair-required: bad example inside a What it looks like code block; the enclosing anti-pattern section carries the Do instead marker -->
 users = User.objects.prefetch_related('orders').filter(active=True)
 
 # Reduced database queries by batching inserts
@@ -181,6 +197,8 @@ def bulk_insert(records):
 
 **Why wrong**: "Optimized to avoid" is history. The current behavior — eager loading, batch
 size, indexed column — is what matters.
+
+**Do instead**: Describe the current loading strategy (eager, batch size, index type) and the problem it prevents.
 
 **Fix**:
 ```python
@@ -213,6 +231,8 @@ const ws = new WebSocket(endpoint);
 ```
 
 **Why wrong**: Describes what was replaced instead of what the current structure provides.
+
+**Do instead**: State the complexity class or behavior of the current structure and when it matters.
 
 **Fix**:
 ```typescript
@@ -249,6 +269,8 @@ func exportCSV(w io.Writer, db *DB) error {
 ```
 
 **Why wrong**: "Reduced memory usage" compared to what? State the bound, not the reduction.
+
+**Do instead**: State the memory bound directly (O(1) per item, capped at X MB, or O(n) total).
 
 **Fix**:
 ```go
