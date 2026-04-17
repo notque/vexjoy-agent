@@ -58,16 +58,17 @@ for a in sorted(agents):
 
 ## DIAGNOSE Step 1: Learning DB Search Queries
 
-Run these four queries to surface recent failures and routing mismatches:
+Run these five queries to surface recent failures, routing mismatches, and prior cycle history:
 
 ```bash
 python3 ~/.claude/scripts/learning-db.py search "routing decision" --min-confidence 0.0 --limit 20
 python3 ~/.claude/scripts/learning-db.py search "routing gap mismatch reroute" --min-confidence 0.3 --limit 20
 python3 ~/.claude/scripts/learning-db.py search "error pattern failure bug" --min-confidence 0.3 --limit 20
 python3 ~/.claude/scripts/learning-db.py search "skill gap missing improvement" --min-confidence 0.3 --limit 20
+python3 ~/.claude/scripts/learning-db.py search "toolkit evolution" --min-confidence 0.0 --limit 5
 ```
 
-Note: The first query uses `--min-confidence 0.0` because `effectiveness` entries (routing decisions recorded by /do) start at 0.5-0.6 confidence. The FTS5 tokenizer splits hyphens, so use space-separated terms, not `routing-decision`.
+Note: The first query uses `--min-confidence 0.0` because `effectiveness` entries (routing decisions recorded by /do) start at 0.5-0.6 confidence. The FTS5 tokenizer splits hyphens, so use space-separated terms, not `routing-decision`. The fifth query surfaces prior cycle summaries and deferred proposals — use it to avoid re-proposing ideas that already received MODERATE consensus or were explicitly shelved.
 
 ## DIAGNOSE Step 2: Git History Scan
 
