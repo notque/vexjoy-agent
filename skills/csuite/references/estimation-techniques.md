@@ -336,25 +336,30 @@ Team ratio (greenfield): ___×
 ---
 
 ## Anti-Patterns
+<!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Point estimate at concept stage
 **What it looks like**: "We'll budget 200 hours for this project." — said before requirements exist.
 **Why wrong**: At concept stage, cone of uncertainty is 4×. A 200-hour estimate could legitimately be anywhere from 50 to 800 hours. Committing to 200 hours is not an estimate — it is a wish.
+**Do instead**: Provide a range at concept stage: "Based on similar projects, this is 100-400 hours. We need requirements before we can narrow it." If stakeholders demand a point estimate, give them the reference class upper end as the planning figure, not the midpoint.
 **Fix**: At concept stage, provide a range. "Based on similar projects, this could be 100-400 hours. We need requirements defined before we can narrow this." If stakeholders insist on a point estimate, provide the reference class upper end as the planning figure.
 
 ### Averaging through expert disagreement
 **What it looks like**: Three estimators give 40, 200, and 350 hours. Team averages to 197 and moves on.
 **Why wrong**: 5× divergence between estimators means they are estimating different projects. Averaging does not resolve the disagreement — it obscures it. The 350-hour estimator saw something the 40-hour estimator did not.
+**Do instead**: Before averaging Delphi estimates, require all estimates in the same round to be within 2x of each other. If they are not, stop and facilitate a scope clarification discussion. The divergence is the signal worth investigating.
 **Fix**: Before averaging Delphi estimates, require that estimates within the same round are within 2× of each other. If they aren't, facilitate a scope clarification discussion first.
 
 ### Historical data ignored because "this project is different"
 **What it looks like**: Team has a 2.5× overrun history on integration projects. New integration project is estimated without reference class adjustment because "this integration is simpler."
 **Why wrong**: "This one is different" is the most common entry point for planning fallacy. The outside view exists precisely to counteract the inside view's over-confidence in project uniqueness.
+**Do instead**: Apply reference class adjustment before finalizing any estimate. Name the 3 most similar past projects and their actual outcomes. Reductions to the historical ratio are capped at 20% and require written justification.
 **Fix**: Reference class adjustment is mandatory before finalizing any estimate. If the estimator believes the project warrants an adjustment, they may reduce the reference class ratio by up to 20% — with a written justification. More than 20% reduction requires review by a second estimator.
 
 ### Estimation accuracy measured at delivery
 **What it looks like**: Team compares initial estimate to final delivery date — and it's always wrong. No intermediate comparison, no component-level tracking.
 **Why wrong**: By measuring only at the end, you cannot improve estimation technique. You don't know whether the estimate was wrong because of scope change, wrong assumptions, or poor technique.
+**Do instead**: Capture estimates at three points: initial (concept), post-design, and actual. Compare initial-to-post-design separately from post-design-to-actual. Each comparison diagnoses a different failure mode and requires a different correction.
 **Fix**: Track estimates at three points: initial estimate, post-design estimate, and actual. Compare initial-to-post-design (scope discovery accuracy) separately from post-design-to-actual (execution accuracy). They require different improvements.
 
 ---

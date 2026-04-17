@@ -200,21 +200,25 @@ Use these anchors to score confidence consistently:
 ---
 
 ## Anti-Patterns
+<!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Feasibility conflated with desirability
 **What it looks like**: "We can build it, so it's feasible." Team with strong engineering capability scores technical feasibility 9 for everything, ignoring whether the market wants it.
 **Why wrong**: Feasibility and desirability are orthogonal. The most common startup failure is a product that was technically feasible and built on time, that nobody wanted.
+**Do instead**: Score all three dimensions separately: technical feasibility, market feasibility, and organizational feasibility. A high technical score does not compensate for a market feasibility score below 5. Treat them as independent gates, not an average.
 **Fix**: Require three separate dimension scores. A project that is technically feasible but has market feasibility below 5 is a NO-GO, regardless of engineering capability.
 
 ### Feasibility assessed at vision scope, not MVP scope
 **What it looks like**: "We can't build a real-time collaboration tool — that's too hard." But the MVP is just shared document state with 5-second polling, which is straightforward.
 **Why wrong**: Feasibility must be assessed against the specific, scoped version of the project — the MVP — not the aspirational full version.
+**Do instead**: Freeze the project definition at MVP scope before scoring begins. Score what is actually being built in the first phase. Re-score when scope changes, because scope changes change feasibility.
 **Fix**: Before scoring, confirm the project definition is frozen at MVP scope (from Phase 1 of project-evaluation SKILL.md). Re-score when scope changes.
 
 ### High confidence on everything
 **What it looks like**: All three dimensions rated High confidence. Team is decisive and agrees.
 **Why wrong**: If you have not validated assumptions through direct evidence, high confidence is overconfidence. Teams in alignment often reinforce each other's assumptions rather than challenging them.
 **Detection**: Ask "what evidence do we have that this is true?" for each High confidence rating. If the answer is "we believe" or "we've discussed," confidence is actually Medium.
+**Do instead**: Treat team agreement as a prompt for scrutiny, not a signal of correctness. For each High confidence rating, name the specific evidence. If no direct evidence exists, lower the rating to Medium and identify the validation step needed to earn High confidence.
 
 ---
 

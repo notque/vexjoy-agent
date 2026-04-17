@@ -147,20 +147,24 @@ Different segments become important at different audience sizes.
 ---
 
 ## Anti-Patterns
+<!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Demographic persona without a problem
 **What it looks like**: "Our audience is software engineers, 28-40, living in urban areas, interested in career growth."
 **Why wrong**: This describes who they are, not why they need your content. Two engineers with identical demographics can have wildly different content needs based on their specific problem and job context.
+**Do instead**: Anchor every persona to a named frustration and a current workaround. "Senior engineers frustrated by slow CI who are manually running local test suites" is a persona. "Senior engineers, 30-45" is not.
 **Fix**: Every persona must include a "Primary frustration" and a "Current workaround." If you cannot fill those in, the persona is not finished.
 
 ### Building for the audience you have instead of the audience you want
 **What it looks like**: Analytics shows 80% of current readers are junior developers, so all content targets juniors — even though the creator's goal is to build authority with senior engineers.
 **Why wrong**: Optimizing for current audience composition entrenches current positioning. If the ICP is senior engineers, the content must serve senior engineers even when they are <20% of current readers.
+**Do instead**: Score ICP fit against the target you are building toward, not the readers you already have. Write for senior engineers even when they are 15% of current traffic, and accept a 12-month lag before composition shifts.
 **Fix**: Segment ICP scoring is forward-looking. Compare your highest-scored ICP against your current audience composition. If there is mismatch, the strategy task is to shift composition over 12 months, not to serve the current composition.
 
 ### Persona proliferation
 **What it looks like**: 7 detailed personas, all with equal priority, representing every possible reader type.
 **Why wrong**: If everything is a priority, nothing is a priority. Content written to serve 7 personas simultaneously serves none of them distinctively.
+**Do instead**: Maintain exactly one primary persona and at most one secondary. Every piece of content maps to one of those two. Remaining candidates go on a watch list for future quarters, not into the active rotation.
 **Fix**: Maximum 2 active personas at any time. One primary (80% of content) and one secondary (20% of content). Additional personas go on the watch list for future quarters.
 
 ---

@@ -235,25 +235,30 @@ Assessment: [Growing / Maturing / Plateau / Early Decay / Late Decay]
 ---
 
 ## Anti-Patterns
+<!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Treating Hype Cycle peak as confirmation of sustained growth
 **What it looks like**: "Gartner put us at the Peak of Inflated Expectations — that means we're mainstream."
 **Why wrong**: Gartner's Peak of Inflated Expectations precedes the Trough of Disillusionment. Being at the peak means hype has outpaced delivery and a correction is coming. Companies that raise at peak valuations and expand at peak rates are maximally exposed to the trough.
+**Do instead**: Treat Hype Cycle peak placement as a signal to reduce cost structure and extend runway. The question to ask is: "How do we survive the trough?" not "How fast can we grow into this moment?"
 **Fix**: Treat Hype Cycle peak as a warning to reduce cost structure and extend runway, not as a signal to accelerate.
 
 ### Confusing single-vendor activity for market trend
 **What it looks like**: "Competitor X launched three features this month. This space is growing fast."
 **Why wrong**: A single vendor's product velocity is company signal, not market signal. A competitor may be launching features because they are desperate, because they have a new head of product, or because a large customer demanded it. None of those explain the market.
+**Do instead**: Require signal from at least 3 independent sources across different tiers before classifying something as a market trend. One vendor's activity is a Tier 2 signal at most; it needs Tier 1 corroboration before it becomes actionable.
 **Fix**: Market trends require signal from at least 3 independent sources across different tiers before classification as a trend. One vendor's activity is a Tier 2 signal at most, requiring Tier 1 support to be actionable.
 
 ### Ignoring disruption until it is in your customer segment
 **What it looks like**: Disruption is identified in the low-end segment. Team says "that's not our market" and takes no action.
 **Why wrong**: Disruption moves upmarket. The low-end is where it starts, not where it stays. Christensen documented this across 20+ industries: the disruption that starts at the bottom reliably migrates into the incumbent's core market within 3-8 years.
+**Do instead**: When low-end disruption is identified, immediately run a response window calculation: assume the disruptor improves 20% per year on the dimension that matters to your customers. Determine when it reaches your customers' threshold. That date is your deadline for a strategic response.
 **Fix**: When low-end disruption is identified, run a "future competitive landscape" exercise: assume the disruptor's product improves 20% per year in the dimension you care about. At that rate, when does it reach your customer's requirements? That is your response window.
 
 ### Trend analysis without refresh cadence
 **What it looks like**: Trend analysis done in Q1, cited in Q4 as the basis for strategy decisions.
 **Why wrong**: Tech markets move faster than annual strategy cycles. A signal logged as "Emerging" in January can be "Confirmed" by April.
+**Do instead**: Establish a refresh cadence when you publish any trend analysis: Tier 1 signals monthly, Tier 2 quarterly, full report every 6 months. Attach a freshness warning to any report before it is cited in a decision if it exceeds those thresholds.
 **Fix**: Tier 1 signals: check monthly. Tier 2 signals: check quarterly. Full trend report: refresh every 6 months. Any trend report over 6 months old should include a freshness warning before it is cited in a decision.
 
 ---

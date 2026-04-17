@@ -278,25 +278,30 @@ Overall funnel rate: ___% (benchmark: 0.1-0.5% of total visitors)
 ---
 
 ## Anti-Patterns
+<!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Awareness content without subscribe CTA
 **What it looks like**: SEO articles driving 5,000 unique visitors/month with no email subscribe prompt, no content upgrade, no follow CTA.
 **Why wrong**: Traffic without capture is rented attention. If the newsletter/product is not capturing subscribers from Awareness content, growing traffic does nothing for the business.
+**Do instead**: Place a subscribe CTA at the midpoint and end of every Awareness piece. Add a content upgrade (a downloadable checklist tied to the post topic) to convert at 3-5x the rate of a generic subscribe prompt.
 **Fix**: Every Awareness piece needs one primary CTA (subscribe to email) in at least 2 locations: midpoint and end of content. Content upgrades (downloadable checklist related to the post) convert at 3-5× higher than generic subscribe prompts.
 
 ### Consideration content gated behind subscribe when audience is unaware
 **What it looks like**: Comparison guide ("our product vs. Competitor X") is email-gated. But audience doesn't know the product exists yet.
 **Why wrong**: High-intent comparison content is searched by people not yet in your funnel. Gating it prevents discovery by the exact audience most likely to convert.
+**Do instead**: Publish high-intent comparison and alternative content freely so search can drive discovery. Reserve gating for lower-intent assets (templates, checklists) where the audience is already aware and needs a nudge.
 **Fix**: Consideration content targeting high-intent search queries (X vs. Y, alternative to Z) should be freely accessible and optimized for search. Gate lower-intent content (templates, checklists) instead.
 
 ### Single attribution model driving all decisions
 **What it looks like**: Team uses last-touch attribution exclusively. SEO posts driving first-touch subscribers are consistently "credited" with zero revenue, so SEO investment is cut.
 **Why wrong**: Last-touch attribution systematically undervalues Awareness content. A reader who finds you via a blog post, subscribes, reads 6 newsletters, and then buys after a conversion email credits the conversion email — but the blog post started the relationship.
+**Do instead**: Run first-touch and last-touch attribution models in parallel. Use first-touch to evaluate acquisition content. Use last-touch to evaluate conversion content. Use cohort attribution for the long-run view of what actually built the relationship.
 **Fix**: Run both first-touch and last-touch attribution models. Use first-touch to evaluate acquisition content investment and last-touch to evaluate conversion content. Cohort attribution is the most honest long-run view.
 
 ### Revenue attributed to content that did not exist at time of purchase
 **What it looks like**: Post published this month credited with converting subscribers who joined 14 months ago.
 **Why wrong**: The post could not have influenced subscribers who joined before it existed.
+**Do instead**: Anchor first-touch attribution to the subscriber's original acquisition touchpoint. In cohort attribution, group by the subscriber's join date, not their purchase date, so the analysis reflects what content was actually available to influence them.
 **Fix**: First-touch attribution must use the subscriber's original acquisition touchpoint. Cohort attribution must use the subscriber's cohort join date, not their purchase date, as the grouping variable.
 
 ---

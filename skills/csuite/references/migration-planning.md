@@ -322,26 +322,31 @@ def save_record_post_cutover(data):
 ---
 
 ## Anti-Patterns
+<!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Big-bang cutover
 **What it looks like**: All users moved from old to new system in a single weekend deployment. No pilot, no phased rollout, no shadow period.
 **Why wrong**: Big-bang cutover concentrates all migration risk into a single point. If anything goes wrong — and something always does — the entire user base is affected simultaneously and the rollback affects the entire user base.
 **Detection**: If the migration plan says "go live on [date]" with no mention of cohorts, pilot groups, or shadow periods, it is a big-bang plan.
+**Do instead**: Structure every migration affecting more than 10 users as a phased rollout: pilot group first, then progressive cohorts. Each cohort is a checkpoint where you can halt, observe, and correct before proceeding.
 **Fix**: Any migration affecting more than 10 users or more than 30 days of data requires at minimum a pilot group phase before full rollout.
 
 ### Rollback plan written after cutover
 **What it looks like**: Migration proceeds, and then someone asks "how do we roll back if this fails?" The answer is "we'd figure it out."
 **Why wrong**: Under incident pressure, ad-hoc rollback takes 4-10× longer than a planned rollback and introduces additional errors. The migration should not start until rollback has been tested.
+**Do instead**: Treat rollback as a phase gate. Write and drill the rollback procedure for Phase 1 in staging before Phase 1 begins. The question "how do we roll this back?" must have a documented, tested answer before any production traffic moves.
 **Fix**: Rollback is a phase gate — migration to Phase 1 cannot proceed until rollback procedure for Phase 1 has been documented AND drilled in staging.
 
 ### Migrating data quality problems forward
 **What it looks like**: Source database has 15% null values in required fields, duplicate records, and inconsistent date formats. Migration copies all of this into the new system verbatim.
 **Why wrong**: Migrating dirty data validates bad data in the new system and causes downstream failures that are blamed on the new system, not the migration.
+**Do instead**: Run a data quality assessment before any migration work begins. For every failing field, define the transformation rule before writing a single migration script. Data cleaning is part of the transform step, not a post-migration cleanup task.
 **Fix**: Before migration begins, run a data quality assessment (null counts, duplicate counts, format inconsistency counts). For every failing field, define the transformation rule. Data cleaning happens in the transform step, not as an afterthought.
 
 ### Testing migration on wrong data volume
 **What it looks like**: Migration scripts tested on a 1,000-row staging dataset. Production has 80 million rows. Performance characteristics are completely different.
 **Why wrong**: Migration performance is non-linear. Scripts that complete in 2 minutes on 1K rows may take 8 hours on 80M rows due to index contention, network I/O, and API rate limits.
+**Do instead**: Test migration on an anonymized 5% sample of production data in staging. Measure actual duration, then extrapolate. If 5% takes 30 minutes, plan for 10+ hours in production and schedule the cutover window accordingly.
 **Fix**: Migrate a random 5% sample of production data (anonymized) in a staging environment and extrapolate timing. If 5% takes 30 minutes, production will take 10+ hours — plan accordingly.
 
 ---

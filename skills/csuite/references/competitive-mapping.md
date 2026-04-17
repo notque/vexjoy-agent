@@ -165,22 +165,26 @@ Classify your market structure before setting positioning strategy.
 ---
 
 ## Anti-Patterns
+<!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Analyzing features, ignoring momentum
 **What it looks like**: Competitor B has fewer features than us today. No further analysis.
 **Why wrong**: Momentum matters more than current state. A competitor shipping 10 features/quarter with high user satisfaction will surpass a feature-rich stagnant product within 12-18 months.
 **Detection**: Check competitor's changelog/release notes. If releases are accelerating and quality is high, treat them as stronger than their current position suggests.
+**Do instead**: Add a velocity column to your competitive tracker. Rate each competitor's development and distribution momentum separately from current capability. A competitor with low capability but high velocity is a higher-priority threat than a capable but stagnant one.
 **Fix**: Add "velocity" to your competitive tracker. Rate each competitor's development and distribution momentum separately from their current capability.
 
 ### Mapping on irrelevant dimensions
 **What it looks like**: Positioning map uses "enterprise vs. SMB" and "cloud vs. on-premise" when all relevant players are SMB-focused SaaS. Everyone clusters in one quadrant.
 **Why wrong**: If dimensions don't separate the competitors, the map reveals nothing.
+**Do instead**: Before drawing the map, verify that your chosen dimensions separate at least 50% of plotted players. If everyone clusters in one quadrant, discard the dimensions and try axes that actually discriminate.
 **Fix**: Require that the chosen dimensions separate at least 50% of plotted players. If everyone clusters, try different dimensions.
 
 ### Static competitive landscape
 **What it looks like**: Competitive analysis document dated 18 months ago, still being cited in strategy discussions.
 **Why wrong**: Companies pivot, funding changes strategies, new entrants emerge, and products get discontinued. A stale map actively misleads.
 **Detection**: Check the date on any competitive document. Over 12 months = must refresh core data before using. Over 18 months = discard and redo.
+**Do instead**: Date-stamp every competitive document and set a calendar reminder to refresh it. Over 12 months old: refresh core data before citing. Over 18 months: redo the analysis from scratch.
 
 ---
 

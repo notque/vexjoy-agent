@@ -227,25 +227,30 @@ Converted to hours: ___ points × ___ hours/point = ___ hours
 ---
 
 ## Anti-Patterns
+<!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Planning fallacy (systematic underestimation)
 **What it looks like**: "This will take 2 weeks." Team has never shipped a project of this complexity in under 6 weeks.
 **Detection**: Compare the current estimate against historical actuals for similar projects. If this team has a history of 2× overruns, this estimate needs to be doubled before being used in ROI calculations.
+**Do instead**: Apply reference class forecasting before finalizing any estimate. Name the 3 most similar past projects and their actual completion times. Use that historical baseline, not the optimistic inside view, as the input to your ROI cost calculation.
 **Fix**: Use reference class forecasting. Require the estimator to name the 3 most similar past projects and their actual completion times before finalizing any estimate.
 
 ### ROI calculated at fantasy scope
 **What it looks like**: ROI analysis uses the full product vision (V3 feature set) but effort estimate uses MVP scope (V1 feature set). Value is dramatically overstated.
 **Why wrong**: The ROI analysis and the effort estimate must use the same scope definition.
+**Do instead**: Before finalizing, verify that the "value delivered" section and the "build cost" section reference the same project definition. Write the scope label explicitly in both sections so the mismatch is visible if it exists.
 **Fix**: Explicitly verify that the "value delivered" section and the "build cost" section reference the same project definition before finalizing.
 
 ### Opportunity cost excluded from total cost
 **What it looks like**: ROI shows positive return. But the team has 3 other projects that must be delayed to work on this. Those delayed projects have their own value.
 **Why wrong**: Every yes is a no to something else. Excluding opportunity cost inflates apparent ROI.
+**Do instead**: Add a "what won't get done" row to the cost section of every ROI model. Name the specific projects or work that gets displaced. If you cannot name them, the capacity assumption in the model is wrong.
 **Fix**: Always include a "what won't get done" row in the cost section. If you cannot name what gets delayed, the capacity assumption is wrong.
 
 ### Ignoring ongoing cost in 3-year model
 **What it looks like**: Year 1 implementation cost is $50K. Year 2 and Year 3 show $0 cost because "it's built."
 **Why wrong**: Every system requires maintenance. Every piece of content requires updating. Even "done" projects consume support time.
+**Do instead**: Apply the 15-20% rule as a floor: Year 2 and Year 3 each carry at minimum 15% of Year 1 implementation cost as ongoing maintenance. For content, use 20-30% of creation cost. Any lower figure requires explicit justification.
 **Rule**: Year 2-3 minimum ongoing cost = 15-20% of Year 1 implementation cost for software projects. For content: 20-30% of creation cost for curation and updating.
 
 ---

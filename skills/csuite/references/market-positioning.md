@@ -208,20 +208,24 @@ Before finalizing positioning:
 ---
 
 ## Anti-Patterns
+<!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Positioning by negation only
 **What it looks like**: "We're not like those enterprise tools. We're different."
 **Why wrong**: Negation tells the customer what you are not. It does not tell them what you are. The brain cannot hold "not X" — it has to form a positive association.
+**Do instead**: Lead with a positive claim in the form "We are the [specific thing] for [specific people] who need [specific outcome]." Use competitor references only as clarifiers after the positive identity is established.
 **Fix**: Every positioning statement must have a positive claim: "We are the [specific thing] for [specific people] who need [specific outcome]." The competitor reference is a clarifier, not the definition.
 
 ### Claiming differentiation on commodity dimensions
 **What it looks like**: "We differentiate on quality, service, and reliability."
 **Why wrong**: Every competitor claims quality, service, and reliability. These are table stakes, not differentiators. Scoring these high in the differentiation matrix with low ease-to-copy is usually wishful thinking.
 **Detection**: Run the defensibility scoring. Any dimension where "ease for competitor to copy" is above 7 is not a strategic differentiator.
+**Do instead**: Run the defensibility scoring on every claimed differentiator. Retire any dimension where ease-to-copy scores above 7. What remains after that filter is your actual differentiation surface.
 
 ### Win/loss analysis from memory instead of data
 **What it looks like**: "We think we lose to Competitor A because of price." No records, no patterns, just team consensus.
 **Why wrong**: Teams systematically attribute losses to price because it is the most face-saving reason. Actual win/loss data frequently reveals positioning and capability gaps are more important than price.
+**Do instead**: Capture win/loss data at the moment of decision using forced-choice surveys (for products: cancel surveys; for content: exit surveys). Analyze only after 10 or more records. Treat team consensus as a hypothesis to test, not a conclusion.
 **Fix**: Collect win/loss data at the point of decision. For content: exit surveys. For products: cancel surveys with forced-choice options. Analyze at 10+ records before concluding.
 
 ---

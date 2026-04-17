@@ -140,25 +140,30 @@ Apply before scoring. Changes how much analysis is warranted.
 ---
 
 ## Anti-Patterns
+<!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Criteria added after scoring
 **What it looks like**: Team scores options, then someone says "shouldn't we also consider X?" and adds it — but only because option they preferred scored low.
 **Detection**: Track criteria list from start of session. Any addition after first score row is filled = suspect.
+**Do instead**: Lock the criteria list before any scoring begins. If a new criterion is raised mid-session, note it for the next decision cycle. Any addition after scoring starts triggers a full restart.
 **Fix**: Lock criteria before any scoring. New criteria trigger a full restart.
 
 ### Equal weighting as a default
 **What it looks like**: 5 criteria, each gets 20% because "everything matters equally."
 **Why wrong**: Hides real priorities. If cost and strategic fit genuinely matter equally, that is an unusual organization — say so explicitly. Usually it means the weighter avoided a political conversation about what actually matters.
+**Do instead**: Force-rank all criteria before assigning weights. The top criterion must receive at least 2x the weight of the bottom criterion. If you cannot force-rank them, that disagreement is the real conversation to have.
 **Fix**: Force-rank criteria first. Top criterion gets at least 2× weight of bottom criterion.
 
 ### Scoring without evidence
 **What it looks like**: Team assigns scores in 60 seconds per criterion without citing data.
 **Why wrong**: Scores become opinions wearing the costume of analysis.
+**Do instead**: Require a one-sentence evidence statement for any score above 7 or below 4. The statement must cite a specific data point, past project, or validated assumption. "We believe" does not qualify as evidence.
 **Fix**: Require a one-sentence evidence statement for any score above 7 or below 4. "I scored technical feasibility 3 because we have zero experience with Kubernetes and our last infrastructure project overran by 3x" is valid.
 
 ### Ignoring the default option
 **What it looks like**: Matrix compares Option A vs. Option B but does not include "do nothing."
 **Why wrong**: Every decision has a status quo. If the status quo scores higher than the options, that is the most important finding in the analysis.
+**Do instead**: Always add "do nothing / stay the course" as an explicit option in the matrix before scoring. If the status quo wins, that result must be surfaced to the decision-maker — it is the most valuable finding the analysis can produce.
 **Fix**: Always include "do nothing / stay the course" as an explicit option.
 
 ---

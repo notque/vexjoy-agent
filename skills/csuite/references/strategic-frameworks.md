@@ -178,25 +178,30 @@ For decisions that span multiple time horizons, use McKinsey's Three Horizons ad
 ---
 
 ## Anti-Patterns
+<!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Five Forces as a one-time exercise
 **What it looks like**: Five Forces analysis done at company founding, cited 3 years later.
 **Why wrong**: Industry forces shift. A 3-year-old analysis of supplier power in cloud infrastructure predates major pricing moves. Forces should be re-run at every major strategic inflection.
 **Detection**: Check the date on any Five Forces document. Over 18 months old = must refresh before citing.
+**Do instead**: Date-stamp every Five Forces analysis and schedule a refresh trigger at 18 months or at any major industry inflection (funding round, acquisition, regulatory change). Cite only analyses within that window in strategy discussions.
 
 ### SWOT without prioritization
 **What it looks like**: 20-item SWOT with equal visual weight given to "strong team culture" and "no enterprise sales motion."
 **Why wrong**: Without scores, SWOT becomes a list that feels like analysis but produces no action.
+**Do instead**: Score every SWOT item and assign it an owner before the session ends. Archive items scoring below 5. The remaining scored, owned items are the actual action surface from the SWOT.
 **Fix**: Every SWOT item must have a score and an owner. Items below score 5 are archived, not acted on.
 
 ### OKRs set after strategy, not before
 **What it looks like**: Leadership decides the strategy in Q4, then writes OKRs in January to match it.
 **Why wrong**: OKRs should constrain strategy choice, not validate it retroactively. If OKRs are written to match decisions already made, the alignment matrix is theater.
+**Do instead**: Set OKRs for the period before running any OKR alignment matrix. The OKRs act as the constraint that filters strategic options. If OKRs do not exist when the strategy decision needs to be made, use a decision matrix instead.
 **Fix**: Set OKRs for the period before running the OKR alignment matrix. If OKRs don't exist, the matrix is not useful — run the decision matrix instead.
 
 ### "We have no competitors" (Porter's Forces Denial)
 **What it looks like**: Founder refuses to name competitors; "we're unique."
 **Why wrong**: No competitors = no market, or no market research. Porter's Threat of Substitutes force always has content even in novel markets (the substitute is "doing nothing" or "using the old way").
+**Do instead**: Reframe the question as "what alternatives does the buyer consider?" Every buyer has at least one alternative, even if it is doing nothing or continuing with the old approach. Name those alternatives and analyze them as substitutes in the Forces model.
 **Fix**: Replace "competitors" with "alternatives the buyer considers." Every buyer has alternatives, even if not commercial products.
 
 ---
