@@ -125,6 +125,7 @@ HASH=$(echo "/home/feedgen/claude-code-toolkit" | md5sum | cut -c1-8)
 ---
 
 ## Anti-Pattern Catalog
+<!-- no-pair-required: section heading only, paired Do instead blocks appear in each sub-entry below -->
 
 ### ❌ Running `--execute` without reading the dry-run report first
 
@@ -143,6 +144,8 @@ done
 ```
 
 **Why wrong**: The dream cycle can archive active memories if it mis-classifies them as stale. Without reading the dry-run report, you don't know which memories are flagged for archiving until they're already moved. New memory files that haven't appeared in recent sessions yet may have all three staleness signals trip at once.
+
+**Do instead**: Always run the cron script without `--execute` first and read `~/.claude/state/last-dream.md` to confirm which memories would be consolidated or archived. Only pass `--execute` once the report shows the expected operations.
 
 **Fix**:
 ```bash
@@ -164,6 +167,7 @@ grep -i 'sqlite\|database\|learning.db\|failed' ~/.claude/state/last-dream.md | 
 ```
 
 **What it looks like**:
+<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
 ```
 ## Dream Report: 2026-04-16
 
@@ -173,6 +177,8 @@ ANALYZE: Cross-session patterns: none (no session data available)
 ```
 
 **Why wrong**: When learning.db is missing, SCAN notes the failure and continues — the cycle does not abort. But ANALYZE then lacks session data, so SYNTHESIZE produces low-quality or no cross-session insights. A silent SQLite failure looks like a successful run when it's actually missing half its input.
+
+**Do instead**: Before running any test cycle, verify `~/.claude/learning.db` exists and contains at least one week of sessions. If the database is absent, run a normal Claude Code session with hooks enabled to seed it before testing the dream cycle.
 
 **Fix**:
 ```bash
@@ -201,6 +207,8 @@ echo "Exit: $?"  # Always 0 — tee's exit code, not claude's
 ```
 
 **Why wrong**: The wrapper script handles `PIPESTATUS[0]` internally, but a custom test wrapper that pipes the cron script inherits the same problem. `$?` after a pipe reflects the last command (`tee`), not the cron script. A Claude session that errors mid-run silently appears as success.
+
+**Do instead**: Capture `${PIPESTATUS[0]}` immediately after any pipe from the cron script. Treat any non-zero exit code as a test failure regardless of what the log file contains.
 
 **Fix**:
 ```bash

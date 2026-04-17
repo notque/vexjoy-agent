@@ -154,6 +154,7 @@ grep -n '—' memory/MEMORY.md | sort -k3  # sort by description to spot semanti
 ---
 
 ## Anti-Pattern Catalog
+<!-- no-pair-required: section heading only, paired Do instead blocks appear in each sub-entry below -->
 
 ### ❌ Writing MEMORY.md directly (non-atomic)
 
@@ -165,6 +166,7 @@ rg 'write.*MEMORY\.md(?!\.tmp)' --type py
 ```
 
 **What it looks like**:
+<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
 ```python
 with open("memory/MEMORY.md", "w") as f:
     f.write(new_index_content)
@@ -172,6 +174,8 @@ with open("memory/MEMORY.md", "w") as f:
 ```
 
 **Why wrong**: A partial write leaves MEMORY.md in an invalid state. The session-start hook reads this file to load context — a corrupted index means no memory injection at all until manually repaired.
+
+**Do instead**: Write all MEMORY.md updates to a `.tmp` file first, then use `os.rename()` to atomically replace the live index. The rename either fully succeeds or leaves the original intact — no partial state is possible.
 
 **Fix**:
 ```python
@@ -192,11 +196,14 @@ rg 'os\.remove|os\.unlink|Path.*unlink' --type py | grep -i 'memory'
 ```
 
 **What it looks like**:
+<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
 ```bash
 rm memory/stale-project-memory.md  # Unrecoverable if assessment was wrong
 ```
 
 **Why wrong**: Staleness assessment can be wrong. A memory that looks inactive (no recent git refs, no session refs) might still be valid ongoing guidance. Archive preserves reversibility; deletion does not. Dream cycle design rule: "Never delete files."
+
+**Do instead**: Move stale files to `memory/archive/` rather than deleting them. Archived files are out of active rotation but available for manual review if the staleness assessment turns out to be wrong.
 
 **Fix**:
 ```bash
@@ -216,6 +223,7 @@ grep -rn 'conflict\|contradict' scripts/ | grep -v 'flag\|report\|human'
 ```
 
 **What it looks like**:
+<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
 ```
 Memory A: "Use ruff for Python linting"
 Memory B: "Use flake8 for Python linting"
@@ -223,6 +231,8 @@ Memory B: "Use flake8 for Python linting"
 ```
 
 **Why wrong**: The conflict may reflect a real, unresolved project decision. Auto-resolution buries the disagreement. The human reviewer needs to see both to make the call.
+
+**Do instead**: When CONSOLIDATE finds contradictory memories, leave both files untouched and record the conflict in the dream report under "Conflicts Requiring Review" with the exact contradiction described. Human judgment resolves the conflict on the next review cycle.
 
 **Fix**: Leave both files untouched. Record in the dream report under "Conflicts Requiring Review" with the specific contradiction described. Do not modify either file.
 
@@ -237,9 +247,12 @@ wc -l memory/MEMORY.md
 ```
 
 **What it looks like**:
+<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
 An index that grows unbounded as new memories are added without old ones being consolidated or archived, eventually exceeding the 200-line truncation limit.
 
 **Why wrong**: The session-start hook injects MEMORY.md contents. Context injection is truncated at 200 lines — memories after that line are silently excluded from session context, defeating the purpose of writing them.
+
+**Do instead**: Treat MEMORY.md line count as a managed resource. Each dream cycle should consolidate or archive at least as many memories as it adds. When the index approaches 150 lines, prioritize archiving stale project memories before adding new ones.
 
 **Fix**: Each dream cycle should consolidate at least as many memories as it adds. If MEMORY.md approaches 150 lines, prioritize archiving stale project memories in the next cycle.
 

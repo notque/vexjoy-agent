@@ -135,6 +135,7 @@ git checkout main
 ---
 
 ## Anti-Pattern Catalog
+<!-- no-pair-required: section heading only, paired Do instead blocks appear in each sub-entry below -->
 
 ### ❌ Waiting on a held lock instead of skipping
 
@@ -145,12 +146,15 @@ grep -rn 'flock' scripts/ | grep -v '\-n\b'
 ```
 
 **What it looks like**:
+<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
 ```bash
 # Blocking flock — waits indefinitely for the lock
 flock /tmp/auto-dream.lock claude -p "..."
 ```
 
 **Why wrong**: If a dream run takes 8 minutes and cron fires every 5, the second invocation waits 3 minutes, then runs immediately after the first finishes. The second run's SCAN sees the same memory state as the first (before consolidation results are visible). The result is two consecutive consolidation cycles that produce conflicting MEMORY.md states.
+
+**Do instead**: Use `flock -n` so each cron tick either acquires the lock and proceeds or exits immediately with a logged skip message. A skipped tick is safe; back-to-back consolidation cycles are not.
 
 **Fix**:
 ```bash
@@ -179,6 +183,8 @@ if os.path.exists("memory/MEMORY.md.tmp"):
 
 **Why wrong**: A `.tmp` file left behind means the rename failed — the `.tmp` file may contain a valid newer index. Skipping the update leaves the index pointing to files that were already archived in Phase 3. The session-start hook then references non-existent files.
 
+**Do instead**: Treat an existing `.tmp` file as a recovery signal, not a block. Complete the rename so the newer index becomes active, then continue with the update cycle normally.
+
 **Fix**:
 ```python
 # If .tmp exists, complete the rename rather than skipping
@@ -203,6 +209,7 @@ grep -n 'git stash' skills/auto-dream/dream-prompt.md
 ```
 
 **What it looks like**:
+<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
 ```bash
 # Switches branch without checking for dirty working tree
 git checkout -b "dream/graduate-2026-04-16" main
@@ -210,6 +217,8 @@ git checkout -b "dream/graduate-2026-04-16" main
 ```
 
 **Why wrong**: Phase 3 CONSOLIDATE writes new memory files. If those writes are not tracked on any git branch (the dream cycle does not commit memory files to git), `git checkout` refuses to switch and GRADUATE fails entirely. All graduation candidates are deferred, and the missed cycle compounds on subsequent runs.
+
+**Do instead**: Before every branch switch in Phase 5 GRADUATE, check `git status --porcelain`. Stash any uncommitted changes, switch branches, complete all graduation commits, then pop the stash before returning to the original branch.
 
 **Fix**: Always check `git status --porcelain` before any branch switch in Phase 5. Stash if non-empty; pop after returning to the original state.
 
@@ -226,6 +235,7 @@ grep -rn 'sqlite3.connect' hooks/lib/ | head -20
 ```
 
 **What it looks like**:
+<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
 ```bash
 # No timeout — fails immediately on contention
 sqlite3 "${DREAM_LEARNING_DB}" "SELECT count(*) FROM sessions;"
@@ -233,6 +243,8 @@ sqlite3 "${DREAM_LEARNING_DB}" "SELECT count(*) FROM sessions;"
 ```
 
 **Why wrong**: During active development sessions, the learning hook fires on every tool call and holds brief write locks. A dream SCAN that queries graduation candidates without a timeout fails with `SQLITE_BUSY` if a hook write happens to coincide. The scan aborts Phase 1, which means Phase 5 GRADUATE has no candidates to evaluate — silent data loss.
+
+**Do instead**: Set `PRAGMA busy_timeout=5000;` before every dream-cycle SQLite query so brief hook-write contention resolves within 5 seconds rather than failing immediately. For Python connections, pass `timeout=5.0` to `sqlite3.connect()`.
 
 **Fix**: Add `PRAGMA busy_timeout=5000;` before every dream-cycle query. For Python, pass `timeout=5.0` to `sqlite3.connect()`.
 
