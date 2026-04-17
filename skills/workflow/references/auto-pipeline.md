@@ -1,7 +1,6 @@
 ---
 name: auto-pipeline
 description: "Automatic pipeline generation for unrouted tasks via /do."
-version: 1.0.0
 user-invocable: false
 allowed-tools:
   - Read

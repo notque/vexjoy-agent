@@ -1,7 +1,6 @@
 ---
 name: research-to-article
 description: "Multi-agent research pipeline for voice content generation."
-version: 2.0.0
 user-invocable: false
 context: fork
 command: /research-article

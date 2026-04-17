@@ -207,7 +207,7 @@ def extract_capability_metadata(file_path: Path, capability_type: str, repo_path
         raise ExtractionError(f"Error parsing {file_path}: {e}")
 
     # Validate required fields
-    required_fields = ["name", "description", "version"]
+    required_fields = ["name", "description"]
     for field in required_fields:
         if field not in frontmatter:
             raise ExtractionError(
@@ -217,7 +217,6 @@ def extract_capability_metadata(file_path: Path, capability_type: str, repo_path
 
     name = frontmatter["name"]
     description = frontmatter["description"]
-    version = frontmatter["version"]
 
     # Extract patterns based on type
     if capability_type == "skill":
@@ -238,7 +237,6 @@ def extract_capability_metadata(file_path: Path, capability_type: str, repo_path
         "type": capability_type,
         "name": name,
         "description": description,
-        "version": version,
         "file_path": str(file_path.relative_to(repo_path)),
         "complexity": complexity,
         "routing_table": routing_table,

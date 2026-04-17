@@ -1,7 +1,6 @@
 ---
 name: data-engineer
 model: sonnet
-version: 1.0.0
 description: "Data pipelines, ETL/ELT, warehouse design, dimensional modeling, stream processing."
 color: cyan
 memory: project

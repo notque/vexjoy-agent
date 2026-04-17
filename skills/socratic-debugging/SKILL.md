@@ -1,7 +1,6 @@
 ---
 name: socratic-debugging
 description: "Question-only debugging: guide users to find root causes themselves."
-version: 1.0.0
 user-invocable: false
 allowed-tools:
   - Read

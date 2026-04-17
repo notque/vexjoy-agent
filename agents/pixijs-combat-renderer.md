@@ -1,7 +1,6 @@
 ---
 name: pixijs-combat-renderer
 model: sonnet
-version: 1.0.0
 description: "PixiJS v8 2D WebGL combat rendering: @pixi/react hybrid canvas, normal maps, GPU particles, post-processing."
 color: cyan
 routing:

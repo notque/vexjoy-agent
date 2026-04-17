@@ -47,7 +47,6 @@ This [agent/skill] operates as an operator for [domain], configuring Claude's be
 ---
 name: skill-name
 description: ...
-version: 1.0.0
 allowed-tools: Read, Write, Bash, Grep, Glob
 ---
 ```
@@ -207,24 +206,6 @@ grep -E "Read|Write|Edit|Bash|Grep|Glob|TodoWrite|WebSearch" SKILL.md
 - Use `1.` for ordered lists
 - Always tag code blocks with language
 
-### Issue: Missing Changelog
-
-**Symptoms**:
-- No `## Changelog` section
-- No version history
-
-**Impact**: LOW - Affects maintainability
-
-**Fix Template**:
-```markdown
-## Changelog
-
-### Version 1.0.0 (YYYY-MM-DD)
-- Initial release
-- [Feature 1]
-- [Feature 2]
-```
-
 ## Validation Checklist
 
 Use this checklist during evaluation:
@@ -248,5 +229,4 @@ Use this checklist during evaluation:
 ### Quality (Recommended)
 - [ ] Consistent formatting
 - [ ] Clear writing
-- [ ] Changelog present
 - [ ] Cross-references work

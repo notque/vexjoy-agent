@@ -1,7 +1,6 @@
 ---
 name: mcp-pipeline-builder
 description: "Convert any repository into a registered MCP server."
-version: 1.0.0
 user-invocable: false
 argument-hint: "<repo-url-or-path>"
 command: /mcp-pipeline

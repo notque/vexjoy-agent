@@ -1,7 +1,6 @@
 ---
 name: agent-comparison
 description: "A/B test agent variants for quality and token cost."
-version: 2.2.0
 user-invocable: false
 allowed-tools:
   - Read

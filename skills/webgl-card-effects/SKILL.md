@@ -1,7 +1,6 @@
 ---
 name: webgl-card-effects
 description: "Standalone WebGL fragment shaders for card visual effects: holographic foil, shimmer, rarity glow."
-version: 1.0.0
 user-invocable: false
 command: /card-effects
 allowed-tools:

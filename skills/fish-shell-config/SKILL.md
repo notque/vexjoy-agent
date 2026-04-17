@@ -1,7 +1,6 @@
 ---
 name: fish-shell-config
 description: "Fish shell configuration and PATH management."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

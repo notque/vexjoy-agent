@@ -1,7 +1,6 @@
 ---
 name: sqlite-peewee-engineer
 model: sonnet
-version: 2.0.0
 description: "SQLite with Peewee ORM: model definition, query optimization, migrations, transactions."
 color: green
 routing:

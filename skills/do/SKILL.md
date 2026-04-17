@@ -1,7 +1,6 @@
 ---
 name: do
 description: "Classify user requests and route to the correct agent + skill. Primary entry point for all delegated work."
-version: 2.3.0
 user-invocable: true
 argument-hint: "<request>"
 allowed-tools:

@@ -1,7 +1,6 @@
 ---
 name: chain-composer
 description: "Compose valid pipeline chains from the step menu per subdomain."
-version: 1.0.0
 user-invocable: false
 agent: pipeline-orchestrator-engineer
 model: opus

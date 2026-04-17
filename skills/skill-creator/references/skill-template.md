@@ -11,7 +11,6 @@ description: |
   [WHAT it does — 1-2 sentences]. [WHEN to use it — trigger phrases users
   would actually say]. Use when user says "[phrase 1]", "[phrase 2]", or
   "[phrase 3]". Do NOT use for [exclusion if needed].
-version: 1.0.0
 # Optional fields:
 # allowed-tools: [Read, Write, Bash, Grep, Glob]
 # compatibility: "Requires Python 3.10+, network access for API calls"

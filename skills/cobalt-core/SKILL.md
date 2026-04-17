@@ -1,7 +1,6 @@
 ---
 name: cobalt-core
 description: "Cobalt Core infrastructure knowledge: KVM exporters, hypervisor tooling, OpenStack compute."
-version: 1.0.0
 user-invocable: true
 argument-hint: "<cobaltcore topic or repo name>"
 allowed-tools:

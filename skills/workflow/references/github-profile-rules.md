@@ -1,7 +1,6 @@
 ---
 name: github-profile-rules
 description: "Extract coding conventions from a GitHub user's public profile."
-version: 1.0.0
 user-invocable: false
 argument-hint: "<github-username>"
 agent: github-profile-rules-engineer

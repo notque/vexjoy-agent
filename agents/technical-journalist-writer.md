@@ -1,7 +1,6 @@
 ---
 name: technical-journalist-writer
 model: sonnet
-version: 2.0.0
 description: "Technical journalism: explainers, opinion pieces, analysis articles, long-form content."
 color: blue
 routing:

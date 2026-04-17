@@ -1,7 +1,6 @@
 ---
 name: github-actions-check
 description: "Check GitHub Actions CI status and report failures."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

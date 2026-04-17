@@ -20,7 +20,6 @@ This repository contains agents, skills, and hooks for Claude Code.
 ---
 name: skill-name
 description: Brief purpose description
-version: 1.0.0
 user-invocable: false    # Hide from slash menu (internal skills)
 context: fork            # Run in isolated sub-agent context
 agent: golang-general-engineer  # Declare executor agent

@@ -167,7 +167,6 @@ Add to `skills/INDEX.json` or `agents/INDEX.json`:
 ---
 name: your-skill
 description: "..."
-version: 1.0.0
 routing:
   triggers:
     - trigger phrase

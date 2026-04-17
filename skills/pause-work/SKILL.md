@@ -1,7 +1,6 @@
 ---
 name: pause-work
 description: "Create session handoff artifacts for resumable work continuity."
-version: 1.0.0
 user-invocable: false
 allowed-tools:
   - Read

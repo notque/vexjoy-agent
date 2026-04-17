@@ -1,7 +1,6 @@
 ---
 name: pptx-generator
 description: "PPTX presentation generation with visual QA: slides, pitch decks."
-version: 1.0.0
 user-invocable: false
 allowed-tools:
   - Read
@@ -34,7 +33,7 @@ routing:
 
 ## Overview
 
-This skill generates polished PowerPoint decks through a 6-phase pipeline that separates content decisions (LLM) from slide construction (deterministic script) from visual validation (fresh-eyes subagent). The core principle: **"Slides are visual documents, not text dumps. Generate mechanically, validate visually."**
+This skill generates polished PowerPoint decks through a 6-phase pipeline that separates content decisions (LLM) from slide construction (deterministic script) from visual validation (fresh-eyes subagent). The core principle: "Slides are visual documents, not text dumps. Generate mechanically, validate visually."
 
 This separation prevents the common failure mode where the generator rationalizes away visual defects it introduced. The visual QA subagent has zero generation context and sees slides as viewers would.
 
@@ -127,44 +126,17 @@ Layout rhythm rules:
 
 **Step 3: Produce the slide map**
 
-Create a JSON array where each element represents one slide:
+Create a JSON array where each element represents one slide. Supported types and their required fields:
 
-```json
-[
-  {
-    "type": "title",
-    "title": "Presentation Title",
-    "subtitle": "Subtitle or author"
-  },
-  {
-    "type": "content",
-    "title": "Slide Headline",
-    "bullets": ["Point 1", "Point 2", "Point 3"]
-  },
-  {
-    "type": "two_column",
-    "title": "Comparison",
-    "left": {"header": "Option A", "bullets": ["Pro 1", "Pro 2"]},
-    "right": {"header": "Option B", "bullets": ["Pro 1", "Pro 2"]}
-  },
-  {
-    "type": "quote",
-    "quote": "Key insight or memorable statement",
-    "attribution": "Speaker Name"
-  },
-  {
-    "type": "table",
-    "title": "Data Overview",
-    "headers": ["Column A", "Column B", "Column C"],
-    "rows": [["r1c1", "r1c2", "r1c3"], ["r2c1", "r2c2", "r2c3"]]
-  },
-  {
-    "type": "closing",
-    "title": "Thank You",
-    "subtitle": "contact@example.com"
-  }
-]
-```
+- `title`: `title`, `subtitle`
+- `content`: `title`, `bullets` (list of strings, max 6, max 10 words each)
+- `two_column`: `title`, `left` (header + bullets), `right` (header + bullets)
+- `quote`: `quote`, `attribution`
+- `table`: `title`, `headers`, `rows`
+- `section`: `title`
+- `closing`: `title`, `subtitle`
+
+> See `references/slide-layouts.md` for full JSON examples for each layout type.
 
 **Step 4: Validate the slide map against anti-AI rules**
 
@@ -175,7 +147,7 @@ Before presenting to the user, check:
 - [ ] Title slide is first, closing slide is last (if appropriate)
 - [ ] Section dividers placed before new sections (for 8+ slide decks)
 
-See `references/anti-ai-slide-rules.md` for the full checklist.
+> See `references/anti-ai-slide-rules.md` for the full checklist.
 
 **Step 5: Present slide map for user approval**
 
@@ -220,25 +192,9 @@ pip install python-pptx Pillow
 
 **Step 2: Write the slide map and design config to JSON files**
 
-Save the approved slide map and design config to temporary files (use absolute paths for all file arguments):
+Save the approved slide map and design config to `/tmp/slide_map.json` and `/tmp/design_config.json` using `python3 -c "import json; ..."` with the approved data. Use absolute paths for all file arguments.
 
-```bash
-# Write slide map JSON to temp file
-python3 -c "
-import json
-slide_map = [...]  # the approved slide map
-with open('/tmp/slide_map.json', 'w') as f:
-    json.dump(slide_map, f, indent=2)
-"
-
-# Write design config JSON
-python3 -c "
-import json
-design = {'palette': 'corporate'}  # whichever palette was selected
-with open('/tmp/design_config.json', 'w') as f:
-    json.dump(design, f, indent=2)
-"
-```
+> See `references/script-reference.md` for the design config JSON format and a copy-paste template for this step.
 
 **Step 3: Run the generation script**
 
@@ -310,68 +266,21 @@ Check that one PNG exists per slide. If fewer PNGs than slides, some slides may 
 
 **Goal**: A fresh-eyes subagent inspects the rendered slides and identifies visual issues. Fix and re-render up to 3 times.
 
-**Why a subagent**: The generating agent has context bias -- it "knows" what the slide should look like and will rationalize visual problems. A fresh-eyes subagent with zero generation context sees the slide as a viewer would. This is the same anti-bias pattern as the voice-validator: the generator and the validator must be separate.
+**Why a subagent**: The generating agent has context bias -- it "knows" what the slide should look like and will rationalize visual problems. A fresh-eyes subagent with zero generation context sees the slide as a viewer would.
 
-**Why max 3 iterations**: If visual issues persist after 3 fix cycles, the design is wrong, not the implementation. Looping further produces diminishing returns and wastes context. (Reason: Stop iterating after 3 attempts. This signals that the design approach is wrong, not the implementation. More iterations burn context without convergence.)
+**Why max 3 iterations**: If visual issues persist after 3 fix cycles, the design is wrong, not the implementation. Stop iterating after 3 attempts. More iterations burn context without convergence.
 
 **Step 1: Dispatch QA subagent**
 
-Launch a subagent (via Task tool) with:
-- The slide PNG images (one per slide)
-- The original slide map for content comparison
-- The QA checklist from `references/qa-checklist.md`
+Launch a subagent (via Task tool) with the slide PNG images, the original slide map, and the QA checklist from `references/qa-checklist.md`. The subagent evaluates text readability, layout alignment, color usage, content accuracy, anti-AI violations, and structural checks.
 
-The subagent checks each slide against these categories:
-
-1. **Text Readability**: Not clipped, not overlapping, sufficient contrast, adequate font size
-2. **Layout and Alignment**: Consistent margins, aligned elements, visual balance
-3. **Color Usage**: Palette consistency, max 3 colors per slide, adequate contrast
-4. **Content Accuracy**: Titles and bullets match the slide map
-5. **Anti-AI Violations**: All 10 rules from `references/anti-ai-slide-rules.md` (avoid accent lines under titles, gradient backgrounds, identical layouts, shadows on everything, rounded rectangles everywhere, clip art icons, gradient text)
-6. **Structural Checks**: Slide count, title slide present, closing slide present
-
-Subagent prompt structure:
-```
-You are a visual QA inspector for a PowerPoint presentation. You have ZERO
-context about how these slides were generated. Evaluate each slide image
-against the QA checklist.
-
-For each slide, check:
-1. Text readability (not clipped, not overlapping, adequate size, sufficient contrast)
-2. Layout and alignment (consistent margins, aligned elements, visual balance)
-3. Color usage (palette consistency, max 3 colors per slide)
-4. Content accuracy (title matches expected, content present)
-5. Anti-AI violations (accent lines under titles, gradient backgrounds, identical layouts,
-   shadows on everything, rounded rectangles everywhere, clip art icons, gradient text)
-
-Return per-slide results:
-SLIDE QA RESULT: [PASS | FAIL]
-Slides checked: N
-Issues found: M
-
-SLIDE 1: PASS | FAIL
-  - [Category] Issue description
-    FIX: Specific fix instruction
-...
-OVERALL: PASS | FAIL (N issues on M slides)
-```
+> See `references/qa-checklist.md` for the full subagent prompt template, all six check categories, severity levels, and expected output format.
 
 **Step 2: Process QA results**
 
 If QA returns PASS: proceed to Phase 6.
 
-If QA returns FAIL with Blocker or Major issues:
-1. Parse the fix instructions
-2. Modify the slide map JSON to address each issue (e.g., shorten a title, reduce bullet count, change layout type)
-3. Re-run Phase 3 (GENERATE) and Phase 4 (CONVERT)
-4. Re-dispatch the QA subagent
-
-Severity levels:
-- **Blocker**: Must fix (text unreadable, content missing, wrong slide order)
-- **Major**: Should fix (alignment off, anti-AI violation, contrast issue)
-- **Minor**: Report but report without requiring a fix cycle (slightly suboptimal spacing)
-
-Only Blocker and Major issues trigger a fix iteration.
+If QA returns FAIL with Blocker or Major issues: parse the fix instructions, modify the slide map JSON to address each issue, re-run Phases 3 and 4, re-dispatch the QA subagent. Minor issues are reported without triggering a fix cycle.
 
 Track iteration count:
 ```
@@ -380,7 +289,7 @@ QA Iteration 2/3: 1 issue found (1 Minor)
 QA Iteration 3/3: PASS (0 Blocker, 0 Major)
 ```
 
-**GATE**: QA subagent returns PASS, OR 3 iterations exhausted. If iterations exhausted with remaining issues, include them in the output report. Stop after 3 iterations.
+**GATE**: QA subagent returns PASS, OR 3 iterations exhausted. If iterations exhausted with remaining issues, include them in the output report.
 
 ---
 
@@ -396,36 +305,9 @@ Copy from temp location to a sensible output path:
 
 **Step 2: Generate the output report**
 
-```
-===============================================================
- PRESENTATION GENERATED
-===============================================================
+Print a summary block with: file path, slide count, palette, format (16:9 widescreen), file size, the full slide map, QA result (PASS/FAIL, iterations, issues fixed), and any remaining minor issues.
 
- File: /absolute/path/to/presentation.pptx
- Slides: 10
- Palette: Corporate
- Format: 16:9 widescreen
- Size: 45,230 bytes
-
- Slide Map:
-   1. [Title] "Q4 Revenue Analysis"
-   2. [Content] "Executive Summary"
-   3. [Content] "Revenue by Region"
-   4. [Quote] CFO insight
-   5. [Section] "Deep Dive: EMEA"
-   6. [Two-Column] EMEA vs APAC
-   7. [Content] "Contributing Factors"
-   8. [Table] Quarterly figures
-   9. [Content] "Recommendations"
-  10. [Closing] "Questions?"
-
- QA Result: PASS (2 iterations, 3 issues fixed)
-
- Notes:
-   - [any remaining minor issues or caveats]
-
-===============================================================
-```
+> See `references/script-reference.md` for the exact output report template.
 
 **Step 3: Clean up intermediate files**
 
@@ -438,195 +320,28 @@ Keep only the final .pptx file. (Reason: Cleanup is a default behavior to remove
 
 ---
 
-## Examples
-
-### Example 1: Tech Talk from Outline
-User says: "Create a 10-slide presentation about our new microservices architecture"
-Actions:
-1. GATHER: Topic = microservices migration, audience = engineering team, type = tech talk, 10 slides
-2. DESIGN: Select Tech palette, build slide map with title, 6 content slides, 1 two-column (monolith vs micro), 1 section divider, closing. Present for approval.
-3. GENERATE: Run `generate_pptx.py` with slide map and Tech palette
-4. CONVERT: PPTX to PNGs via LibreOffice
-5. QA: Subagent inspects 10 slide images, finds title text clipped on slide 4, fixes in iteration 2
-6. OUTPUT: `microservices-architecture.pptx`, 10 slides, Tech palette, QA passed
-
-### Example 2: Pitch Deck from Document
-User says: "Turn this business plan into a pitch deck" (attaches document)
-Actions:
-1. GATHER: Extract key sections from business plan (problem, solution, market, traction, team, ask), type = pitch deck, 12 slides
-2. DESIGN: Select Sunset palette for startup energy, build slide map with standard pitch structure. Present for approval.
-3. GENERATE: Run script with slide map
-4. CONVERT: PPTX to PNGs
-5. QA: Subagent catches identical layout on 4 consecutive slides, fixes by inserting quote and two-column layouts
-6. OUTPUT: `pitch-deck.pptx`, 12 slides, Sunset palette, QA passed after 2 iterations
-
-### Example 3: Status Update (No LibreOffice)
-User says: "Quick status update slides for the weekly standup, 5 slides"
-Actions:
-1. GATHER: Topic = weekly status, audience = team, type = status update, 5 slides
-2. DESIGN: Select Minimal palette, build compact slide map. Present for approval.
-3. GENERATE: Run script, structural validation passes
-4. CONVERT: LibreOffice not available, skip visual QA
-5. QA: Skipped
-6. OUTPUT: `weekly-status.pptx`, 5 slides, Minimal palette, visual QA skipped
-
----
-
 ## Error Handling
 
-### Error: python-pptx Not Installed
-**Cause**: The `python-pptx` package is missing from the Python environment.
-**Solution**: Run `pip install python-pptx Pillow`. This is a hard dependency -- the skill cannot function without it. Verify with `python3 -c "from pptx import Presentation; print('OK')"`.
+> See `references/error-handling.md` for full error descriptions, blocker criteria, confirm-with-user list, and retry limits.
 
-### Error: LibreOffice Not Available
-**Cause**: `soffice` binary not found on the system. Required for the visual QA loop (Phases 4-5).
-**Solution**: This is a soft dependency. The skill degrades gracefully:
-1. Log that visual QA is unavailable
-2. Skip Phases 4-5
-3. Rely on structural validation from `validate_structure.py`
-4. Note in the output report that visual QA was skipped
-
-Install with: `apt install libreoffice-impress` (Debian/Ubuntu) or `brew install --cask libreoffice` (macOS).
-
-### Error: Slide Map JSON Invalid
-**Cause**: Malformed JSON, missing `type` field, or unsupported layout type.
-**Solution**:
-1. Validate JSON syntax before passing to the script
-2. Check that every slide object has a `type` field
-3. Supported types: `title`, `section`, `content`, `two_column`, `quote`, `table`, `image_text`, `closing`
-4. Unknown types fall back to `content` layout
-
-### Error: Generated PPTX Empty or Corrupt
-**Cause**: Script error during generation, typically from invalid slide data (null values, missing arrays).
-**Solution**:
-1. Run `validate_structure.py` to identify the specific failure
-2. Check the slide map JSON for null or missing fields
-3. Fix and re-generate. Max 2 retries before escalating.
-
-### Error: QA Loop Exceeds 3 Iterations
-**Cause**: Visual issues persist despite fixes. Usually indicates a fundamental design problem.
-**Solution**: Stop iterating after 3 attempts. Report remaining issues, suggest the user simplify content or change layout approach, deliver the best available version with caveats.
-
----
-
-## Blocker Criteria
-
-STOP and ask the user (stop and resolve before proceeding autonomously) when:
-
-| Situation | Why Stop | Ask This |
-|-----------|----------|----------|
-| Content too thin for requested slide count | Padding produces empty slides that waste audience time | "You have content for about 5 slides but requested 12. Create a 5-slide deck or add more content?" |
-| No clear topic or audience | Cannot select palette or structure without context | "Who is the audience, and what is the key message?" |
-| User provides a .pptx template to modify | Template editing has different constraints than blank-slate generation | "Should I modify your existing deck, or create a new one using your template's styling?" |
-| QA finds structural issues (wrong slide count) | Structural failures indicate a slide map problem, not a visual fix | "The generated deck has 8 slides but the map specified 10. Regenerate or adjust the map?" |
-| Multiple valid palette choices | Aesthetic preference is personal | "I'd suggest [Palette] for this type of presentation. Want that, or prefer something else?" |
-
-### Confirm With User
-- Audience and tone (business vs technical vs casual changes everything)
-- Whether to use dark theme (Midnight palette) -- strong aesthetic choice
-- Whether to include images (user must provide assets or explicitly request generation)
-- Slide count when user is vague ("a few slides" -- ask for a number)
-- Content that the user hasn't provided (build the deck from user-provided content only). Reason: Build the deck the user asked for. No speculative slides, no "bonus" content, no unsolicited animations or transitions.
-
----
-
-## Retry Limits and Recovery
-
-**Retry Limits**:
-- Phase 3 (GENERATE): Max 2 retries for script failures before escalating to user
-- Phase 5 (QA): Max 3 iterations of the fix-and-recheck cycle
-- Slide map revision: Max 2 rounds of user feedback before freezing the map
-
-**Recovery Protocol**:
-1. **Detection**: Same QA issue reappearing after a fix attempt, generation script failing on the same input repeatedly, or slide map revisions not converging
-2. **Intervention**: Simplify the deck. Reduce slide count, use only `content` and `title` layouts, drop complex layouts (table, two-column) that may be causing issues
-3. **Prevention**: Validate the slide map JSON against the schema before generation. Check that bullet counts are within limits. Verify image paths exist before including `image_text` slides.
-
----
-
-## Dependencies
-
-### Required
-| Dependency | Type | Purpose | Install |
-|------------|------|---------|---------|
-| `python-pptx` | pip | PPTX generation and manipulation | `pip install python-pptx` |
-
-### Optional (enhances capability)
-| Dependency | Type | Purpose | Install |
-|------------|------|---------|---------|
-| LibreOffice | system | PDF/PNG conversion for visual QA loop | `apt install libreoffice-impress` |
-| `Pillow` | pip | Image handling for embedded images | `pip install Pillow` |
-| `pdftoppm` (poppler-utils) | system | Higher-quality PDF-to-PNG conversion | `apt install poppler-utils` |
-| `markitdown` | pip | Extract text from existing PPTX for content reuse | `pip install markitdown` |
-
-### Out-of-Scope Tools
-| Tool | Why Not |
-|------|---------|
-| `pptxgenjs` / Node.js | Foreign ecosystem; python-pptx covers our needs |
-| Raw XML unzip/rezip | python-pptx + lxml handles this natively |
-| Headless browser | LibreOffice handles conversion |
-
----
-
-## Script Reference
-
-### generate_pptx.py
-
-**Purpose**: Deterministic slide construction. Reads slide map JSON + design config JSON, produces .pptx.
-
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `--slide-map` | Yes | Path to slide map JSON file |
-| `--design` | Yes | Path to design config JSON file |
-| `--output` | Yes | Output .pptx file path |
-
-**Design config format**:
-```json
-{
-  "palette": "minimal",
-  "template_path": null
-}
-```
-
-Exit codes: 0 = success, 1 = missing python-pptx, 2 = invalid input, 3 = generation failed.
-
-### convert_slides.py
-
-**Purpose**: PPTX to PDF to per-slide PNG conversion for visual QA.
-
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `--input` | Yes | Path to .pptx file |
-| `--output-dir` | Yes | Directory for output PNG files |
-| `--dpi` | No | PNG resolution (default: 150) |
-| `--keep-pdf` | No | Keep intermediate PDF file |
-
-Exit codes: 0 = success, 1 = no LibreOffice, 2 = conversion failed, 3 = invalid input.
-
-### validate_structure.py
-
-**Purpose**: Validate .pptx structural integrity against the slide map.
-
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `--input` | Yes | Path to .pptx file |
-| `--expected-slides` | No | Expected slide count |
-| `--slide-map` | No | Path to slide map JSON for content validation |
-| `--json` | No | Output results as JSON |
-
-Exit codes: 0 = passed, 1 = missing python-pptx, 2 = validation failed, 3 = invalid input.
+**Quick reference** (the four errors you'll hit most):
+- `python-pptx` missing: `pip install python-pptx Pillow`
+- LibreOffice missing: soft dependency, skip Phases 4-5, note in output report
+- Slide map JSON invalid: check `type` field on every slide object
+- QA loop > 3 iterations: stop, report remaining issues, deliver best available version
 
 ---
 
 ## References
 
-For detailed information:
-- **Design System**: [references/design-system.md](references/design-system.md) -- color palettes with hex codes, typography rules, spacing guidelines, python-pptx color usage
-- **Slide Layouts**: [references/slide-layouts.md](references/slide-layouts.md) -- 8 layout types with python-pptx code, positioning specs, and rhythm guidelines
-- **Anti-AI Slide Rules**: [references/anti-ai-slide-rules.md](references/anti-ai-slide-rules.md) -- 10 patterns to avoid, detection criteria, and the summary checklist
-- **QA Checklist**: [references/qa-checklist.md](references/qa-checklist.md) -- visual QA criteria for the subagent, severity levels, and output format
+- **Design System**: `references/design-system.md` -- color palettes with hex codes, typography rules, spacing guidelines
+- **Slide Layouts**: `references/slide-layouts.md` -- 8 layout types with JSON examples, positioning specs, and rhythm guidelines
+- **Anti-AI Slide Rules**: `references/anti-ai-slide-rules.md` -- 10 patterns to avoid, detection criteria, and the summary checklist
+- **QA Checklist**: `references/qa-checklist.md` -- visual QA criteria for the subagent, severity levels, and output format
+- **Script Reference**: `references/script-reference.md` -- CLI arguments, design config format, and exit codes for all three scripts
+- **Dependencies**: `references/dependencies.md` -- required and optional packages with install commands
+- **Examples**: `references/examples.md` -- three worked examples (tech talk, pitch deck, status update)
 
 ### Complementary Skills
-- [research-to-article](../workflow/references/research-to-article.md) -- research output can feed slide content
-- [gemini-image-generator](../gemini-image-generator/SKILL.md) -- generate images for slides
-- [workflow-orchestrator](../workflow-orchestrator/SKILL.md) -- orchestrate multi-step pipelines
+- `skills/workflow/references/research-to-article.md` -- research output can feed slide content
+- `skills/gemini-image-generator/SKILL.md` -- generate images for slides

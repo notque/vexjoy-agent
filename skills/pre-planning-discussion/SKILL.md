@@ -1,7 +1,6 @@
 ---
 name: pre-planning-discussion
 description: "Resolve implementation ambiguities before planning begins."
-version: 1.0.0
 user-invocable: false
 argument-hint: "[--assumptions] <topic>"
 command: /pre-planning-discussion

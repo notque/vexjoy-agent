@@ -1,7 +1,6 @@
 ---
 name: condition-based-waiting
 description: "Polling, retry, and backoff patterns."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

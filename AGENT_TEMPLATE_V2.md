@@ -51,7 +51,6 @@ Bad: `description: "Use this agent when working with Go files, .go extensions, o
 ---
 name: {domain}-{function}-engineer
 model: sonnet
-version: 2.0.0
 description: "{60-100 char single-line description of domain expertise}"
 
 color: blue | green | orange | red | purple | teal | cyan | yellow
@@ -430,7 +429,6 @@ When upgrading an agent to v2.0:
 - [ ] Moved verbose content to references/
 
 ### YAML Frontmatter
-- [ ] Version updated to 2.0.0
 - [ ] Model specified (e.g., `model: sonnet`)
 - [ ] All routing metadata preserved (triggers, retro-topics, pairs_with, complexity, category)
 - [ ] Hooks preserved

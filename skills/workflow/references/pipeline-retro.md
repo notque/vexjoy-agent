@@ -1,7 +1,6 @@
 ---
 name: pipeline-retro
 description: "Trace pipeline test failures to generator root causes."
-version: 1.0.0
 user-invocable: false
 agent: pipeline-orchestrator-engineer
 model: opus

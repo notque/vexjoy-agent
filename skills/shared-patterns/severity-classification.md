@@ -142,4 +142,3 @@ When a diff extracts inline code into a named helper function, **re-evaluate all
 
 **Trigger**: any diff that creates a new named function from code previously inline in another function.
 
-*Graduated from hermez PR #338: empty-string guard rated LOW 3 times, then Copilot caught it post-extraction as the correct MEDIUM finding. The 2-line fix was trivial but severity classification delayed it.*

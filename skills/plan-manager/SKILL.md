@@ -1,7 +1,6 @@
 ---
 name: plan-manager
 description: "Plan lifecycle management via plan-manager.py: list, create, check, complete, abandon plans."
-version: 2.0.0
 user-invocable: true
 allowed-tools:
   - Read

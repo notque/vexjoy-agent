@@ -1,7 +1,6 @@
 ---
 name: bluesky-reader
 description: "Read public Bluesky feeds via AT Protocol API."
-version: 1.0.0
 user-invocable: false
 agent: python-general-engineer
 allowed-tools:

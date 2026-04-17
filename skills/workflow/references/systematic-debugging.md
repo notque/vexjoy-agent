@@ -2,7 +2,6 @@
 name: systematic-debugging
 description: "Evidence-based 5-phase debugging: OBSERVE, HYPOTHESIZE, TEST, FIX, RECORD."
 effort: high
-version: 2.0.0
 user-invocable: false
 context: fork
 allowed-tools: [Read, Write, Bash, Grep, Glob, Edit, Task]

@@ -1,6 +1,5 @@
 ---
 name: workflow
-version: 2.0.0
 description: "Structured multi-phase workflows: review, debug, refactor, deploy, create, research, and more."
 user-invocable: false
 context: fork

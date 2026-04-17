@@ -1,7 +1,6 @@
 ---
 name: de-ai-pipeline
 description: "Scan-fix-verify loop for removing AI writing patterns from docs."
-version: 1.0.0
 user-invocable: false
 argument-hint: "[<path-or-glob>]"
 allowed-tools:

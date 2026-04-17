@@ -1,7 +1,6 @@
 ---
 name: reviewer-perspectives
 model: sonnet
-version: 1.0.0
 description: "Multi-perspective review: newcomer, senior, pedant, contrarian, user advocate, meta-process."
 color: purple
 routing:

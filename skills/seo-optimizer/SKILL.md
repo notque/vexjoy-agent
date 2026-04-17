@@ -1,7 +1,6 @@
 ---
 name: seo-optimizer
 description: "Blog post SEO: keywords, titles, meta descriptions, internal linking."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

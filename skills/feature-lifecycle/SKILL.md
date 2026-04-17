@@ -2,7 +2,6 @@
 name: feature-lifecycle
 description: |
   Feature lifecycle: design, plan, implement, validate, release. Phase-gated workflow.
-version: 3.0.0
 user-invocable: false
 command: /feature-lifecycle
 allowed-tools:

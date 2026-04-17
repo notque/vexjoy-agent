@@ -1,7 +1,6 @@
 ---
 name: python-general-engineer
 model: sonnet
-version: 2.0.0
 description: "Python development: features, debugging, code review, performance. Modern Python 3.12+ patterns."
 color: green
 hooks:

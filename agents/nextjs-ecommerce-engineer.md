@@ -1,7 +1,6 @@
 ---
 name: nextjs-ecommerce-engineer
 model: sonnet
-version: 2.0.0
 description: "Use this agent when building a NextJS e-commerce site: shopping cart, Stripe payments, product catalogs, order management, and checkout flows"
 color: green
 routing:

@@ -1,7 +1,6 @@
 ---
 name: testing-agents-with-subagents
 description: "Test agents via subagents: known inputs, captured outputs, verification."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

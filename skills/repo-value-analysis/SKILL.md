@@ -1,7 +1,6 @@
 ---
 name: repo-value-analysis
 description: "Analyze external repositories for adoptable ideas and patterns."
-version: 1.0.0
 user-invocable: false
 argument-hint: "<repo-url-or-path>"
 agent: research-coordinator-engineer

@@ -1,7 +1,6 @@
 ---
 name: toolkit-evolution
 description: "Closed-loop toolkit self-improvement: discover gaps, diagnose, propose, critique, build, test, evolve."
-version: 1.0.0
 user-invocable: true
 argument-hint: "<optional: focus area like 'routing' or 'hooks'>"
 command: evolve

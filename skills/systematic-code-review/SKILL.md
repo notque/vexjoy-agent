@@ -1,7 +1,6 @@
 ---
 name: systematic-code-review
 description: "4-phase code review: UNDERSTAND, VERIFY, ASSESS risks, DOCUMENT findings."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

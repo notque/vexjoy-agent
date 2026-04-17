@@ -240,6 +240,114 @@ ls -la .adr-session.json 2>/dev/null || echo "ADR session not registered"
 
 ---
 
+## Phase 4 — Integration Verification Checklist
+
+After wiring all components, run these checks before declaring Phase 4 complete:
+
+- Confirm ALL agents appear in `agents/INDEX.json`
+- Confirm routing entries match trigger keywords in `skills/do/SKILL.md` and `skills/do/references/routing-tables.md`
+- Confirm ALL hook files are syntactically valid Python: `python3 -c "import hooks/{name}"`
+- Confirm ALL skills follow frontmatter + operator context pattern
+- Confirm component graph has no orphans (every component referenced by at least one other)
+
+---
+
+## Phase 3 — Creator Sub-Agent Table
+
+Group components by creator type before dispatching:
+
+| Creator Sub-Agent | Components It Creates | Template |
+|-------------------|----------------------|----------|
+| `skill-creator` | All new agent manifests (1..N) and skill SKILL.md files + references (1..M) | `AGENT_TEMPLATE_V2.md` / Standard skill format |
+| `hook-development-engineer` | All new Python hooks (1..K) | `hooks/lib/hook_utils.py` conventions |
+| Direct (orchestrator) | Python scripts (1..J) | `scripts/` conventions |
+
+For domain pipelines, the Pipeline Spec tells exactly what to create. Use `skills/workflow/references/generated-skill-template.md` (when it exists) as the template for each subdomain skill.
+
+**For each sub-agent, provide**:
+- Complete list of components to create (names, purposes, relationships)
+- Discovery Report / Pipeline Spec (so it knows what to reuse and what chains to embed)
+- Bound skills/agents (from reuse list)
+- Patterns to follow (from `skills/workflow/references/architecture-rules.md`)
+- Inter-component relationships (which agent binds which skill, which hook triggers which agent)
+
+---
+
+## ADR Template (Phase 0)
+
+Create `adr/pipeline-{name}.md` with the following structure:
+
+```markdown
+# ADR: Pipeline {Name}
+
+## Status
+PROPOSED | ACCEPTED | IMPLEMENTED | DEPRECATED
+
+## Context
+[Why this pipeline is needed. What problem it solves. What triggered its creation.]
+
+## Decision
+[The pipeline design: components, flow, triggers, integration points.]
+
+## Component Manifest
+[Full list of agents, skills, hooks, scripts to create — updated as discovery proceeds.]
+
+## Constraints
+- [Architectural constraints from architecture-rules.md]
+- [Existing components that must be reused]
+- [Naming conventions to follow]
+
+## Consequences
+- [What changes in the routing system]
+- [What new triggers are introduced]
+- [What existing pipelines are affected]
+
+## Test Plan
+[How this pipeline will be validated after creation]
+```
+
+---
+
+## Capabilities Summary
+
+**CAN Do**: Orchestrate creation of complete pipelines with multiple agents, skills, hooks, scripts, and reference docs; plan a full component graph; fan out scaffolding tasks to `skill-creator` and `hook-development-engineer` in parallel (multiple instances); detect and reuse existing components via `codebase-analyzer`; integrate new pipelines into `/do` routing via `routing-table-updater`; generate Python scripts for deterministic operations; research domains to discover subdomains via `workflow` skill; compose valid pipeline chains from the step menu; produce N skills per domain (one per subdomain); validate chain type compatibility.
+
+**CANNOT Do**: Write domain-specific business logic (route to domain agents); modify existing pipelines (use the specific agent/skill directly); create pipelines without routing integration (every pipeline must be routable via `/do`); compose chains without validation (must use `workflow` skill and `validate-chain` script); create monolithic single-skill pipelines for multi-subdomain domains.
+
+---
+
+## Output Format
+
+This agent uses the **Planning Schema**.
+
+**Required Sections**:
+1. Discovery Report / Domain Research — what exists, what subdomains were found, what to reuse, what to create
+2. Pipeline Spec (domain pipelines) — validated chains per subdomain
+3. Execution Plan — fan-out assignments with component specs
+4. Integration Checklist — routing entries, index updates
+5. Completion Report — what was created, usage examples
+6. Session Restart Notice — MANDATORY final output (see below)
+
+**Session Restart Notice (MANDATORY)**: After every pipeline creation, the LAST thing output MUST be this notice verbatim (fill in `{agent-name}` and `{trigger phrase}`):
+
+```
+SESSION RESTART REQUIRED
+New agent '{agent-name}' was created and synced to ~/.claude/agents/.
+Claude Code compiles available subagent types at session startup:
+agents added during a session are NOT available as subagent_type
+until the next session.
+
+To use this pipeline:
+  1. Restart Claude Code (Ctrl+C, then rerun `claude`)
+  2. Then invoke: /do {trigger phrase}
+
+The agent will be available immediately after restart.
+```
+
+This notice applies even if the pipeline has no new agent (skill-only pipelines are immediately available).
+
+---
+
 ## See Also
 
 - `anti-patterns.md` — common pipeline creation mistakes with detection commands

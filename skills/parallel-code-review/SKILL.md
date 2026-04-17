@@ -1,7 +1,6 @@
 ---
 name: parallel-code-review
 description: "Parallel 3-reviewer code review: Security, Business-Logic, Architecture."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

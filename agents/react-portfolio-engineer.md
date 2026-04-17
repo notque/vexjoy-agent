@@ -1,7 +1,6 @@
 ---
 name: react-portfolio-engineer
 model: sonnet
-version: 2.0.0
 description: "React portfolio/gallery sites for creatives: React 18+, Next.js App Router, image optimization."
 color: purple
 routing:

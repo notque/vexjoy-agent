@@ -1,7 +1,6 @@
 ---
 name: kb-compile
 description: "Compile raw knowledge base sources into structured wiki articles."
-version: 1.0.0
 user-invocable: false
 agent: general-purpose
 allowed-tools:

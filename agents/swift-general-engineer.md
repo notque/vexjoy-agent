@@ -1,7 +1,6 @@
 ---
 name: swift-general-engineer
 model: sonnet
-version: 1.0.0
 description: "Swift development: iOS, macOS, server-side Swift, SwiftUI, concurrency, testing."
 color: orange
 hooks:

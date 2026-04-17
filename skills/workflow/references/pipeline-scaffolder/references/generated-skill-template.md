@@ -59,7 +59,6 @@ description: |
   {{description}} -- {{task_type}} pipeline for the {{domain}} domain.
   Use for {{trigger_keywords}}. Do NOT use for unrelated {{domain}} tasks
   outside the {{subdomain_name}} subdomain.
-version: 1.0.0
 user-invocable: true
 agent: {{agent_name}}
 model: opus

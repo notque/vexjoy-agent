@@ -1,7 +1,6 @@
 ---
 name: threejs-builder
 description: "Three.js app builder: imperative, React Three Fiber, and WebGPU in 4 phases."
-version: 3.1.0
 user-invocable: false
 command: /threejs
 allowed-tools:

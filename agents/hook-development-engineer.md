@@ -1,7 +1,6 @@
 ---
 name: hook-development-engineer
 model: sonnet
-version: 2.0.0
 description: "Python hook development for Claude Code event-driven system and learning database."
 color: purple
 routing:
@@ -181,161 +180,13 @@ This agent uses the **Implementation Schema**.
 
 ## Hook Architecture
 
-### Event-Driven Pipeline
+The event-driven pipeline flows: Session → Event Generation (PostToolUse/PreToolUse/SessionStart) → Hook Registry → Event JSON Input → Error Detection/Classification → Learning Database Query → Solution Injection via `context_output()` → Learning Updates. See [references/architecture.md](references/architecture.md) for the full pipeline diagram and learning database directory structure.
 
-```
-Claude Code Session
-    ↓
-Event Generation (PostToolUse, PreToolUse, SessionStart)
-    ↓
-Hook Registry (settings.json)
-    ↓
-┌─────────────────────────────────────────────────────────┐
-│                Hook Execution Pipeline                   │
-├─────────────────────────────────────────────────────────┤
-│ 1. Event JSON Input                                     │
-│    - Tool name and parameters                           │
-│    - Execution results and errors                       │
-│    - Context and session data                           │
-├─────────────────────────────────────────────────────────┤
-│ 2. Error Detection & Classification                     │
-│    - Pattern matching against known errors              │
-│    - Error signature generation (MD5)                   │
-│    - Classification into predefined types               │
-├─────────────────────────────────────────────────────────┤
-│ 3. Learning Database Query                              │
-│    - Lookup existing patterns by signature              │
-│    - Check solution confidence scores (>0.7)            │
-│    - Retrieve high-confidence solutions                 │
-├─────────────────────────────────────────────────────────┤
-│ 4. Solution Injection                                   │
-│    - Format solutions for Claude Code context          │
-│    - Call context_output(EVENT, text).print_and_exit() │
-│    - hook_utils handles JSON encoding to stdout         │
-├─────────────────────────────────────────────────────────┤
-│ 5. Learning Updates                                     │
-│    - Track solution application success/failure         │
-│    - Update confidence scores (+0.1/-0.2)              │
-│    - Store new patterns with initial confidence 0.0     │
-└─────────────────────────────────────────────────────────┘
-    ↓
-Context Available to Claude Code Next Tool Use
-```
+See [references/code-examples.md](references/code-examples.md) for detailed specifications and examples. See [references/learning-database.md](references/learning-database.md) for schema and operations.
 
-See [references/code-examples.md](references/code-examples.md) for detailed specifications and examples.
+## Error Handling and Preferred Patterns
 
-### Learning Database Structure
-
-```
-~/.claude/learnings/
-├── error_patterns.json         # Main learning database
-├── error_patterns.json.bak     # Backup for recovery
-├── error_patterns.lock         # File lock for atomic operations
-└── debug/
-    ├── classification_log.json  # Error classification history
-    ├── confidence_history.json  # Confidence score evolution
-    └── pattern_evolution.json   # Pattern discovery timeline
-```
-
-See [references/learning-database.md](references/learning-database.md) for schema and operations.
-
-## Error Handling
-
-Common hook development errors. See [references/error-catalog.md](references/error-catalog.md) for comprehensive catalog.
-
-### Hook Blocking Claude Code
-**Cause**: Hook exited with non-zero code or failed to exit
-**Solution**: Wrap entire main() in try/except and always exit 0:
-```python
-if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        debug_log(f"Fatal error: {e}")
-    finally:
-        sys.exit(0)  # ALWAYS exit 0
-```
-
-### Performance > 50ms
-**Cause**: Heavy operations (file I/O, JSON parsing) without optimization
-**Solution**: Use lazy loading, minimal parsing, efficient data structures
-```python
-# Bad - parses entire database
-patterns = json.load(f)
-for p in patterns:
-    if p['id'] == target_id:
-        return p
-
-# Good - early exit
-for line in f:
-    pattern = json.loads(line)
-    if pattern['id'] == target_id:
-        return pattern
-```
-
-### Learning Database Corruption
-**Cause**: Direct file writes without atomic operations
-**Solution**: Use write-to-temp-then-rename pattern:
-```python
-temp_path = db_path.with_suffix('.tmp')
-with open(temp_path, 'w') as f:
-    json.dump(data, f)
-temp_path.replace(db_path)  # Atomic on POSIX
-```
-
-## Preferred Patterns
-
-Common hook development patterns to follow. See [references/anti-patterns.md](references/anti-patterns.md) for full catalog.
-
-### ❌ Blocking on Errors
-**What it looks like**: Hook exits with code 1 when encountering errors
-**Why wrong**: Blocks Claude Code operation, defeats purpose of hooks
-**✅ Do instead**: Always exit 0, log errors to debug file
-
-### ❌ Synchronous Heavy Operations
-**What it looks like**: Reading entire learning database, complex regex on all patterns
-**Why wrong**: Exceeds 50ms performance budget
-**✅ Do instead**: Lazy loading, early exit, efficient algorithms
-
-### ❌ Direct Database Writes
-**What it looks like**: `json.dump(data, open(db_path, 'w'))`
-**Why wrong**: Can corrupt database if interrupted
-**✅ Do instead**: Write to temp file, then atomic rename
-
-### ❌ Registering Hooks Before Deploying Files
-**What it looks like**: Adding a hook to `settings.json` before the script exists at `~/.claude/hooks/`
-**Why wrong**: Python file-not-found = exit code 2 = blocks ALL PreToolUse tools. Total session deadlock.
-**✅ Do instead**: Deploy file first, verify it runs, THEN register. Never reverse this order.
-*Graduated from /do SKILL.md — incident: hook-development-engineer bricked all PreToolUse*
-
-### ❌ Unguarded main() — Letting Exceptions Propagate to Exit Code
-**What it looks like**: `main()` called at top level with no wrapping try/except, so an unhandled exception (file not found, malformed JSON, import error) exits with Python's default code 2 or 1.
-**Why wrong**: Python exit code 2 is the same code Claude Code uses to signal BLOCK. A single unhandled exception in any PreToolUse hook deadlocks ALL tools for the entire session — not just the hook's tool.
-**✅ Do instead**: Wrap the entry point unconditionally:
-```python
-if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        debug_log(f"Fatal error: {e}")
-    finally:
-        sys.exit(0)  # ALWAYS exit 0 — no exception reaches the OS
-```
-The `finally` block guarantees exit 0 even if `debug_log` itself raises.
-*Graduated from retro — incident: unguarded import error bricked session*
-
-### ❌ Assuming Hook File Exists at Register Time
-**What it looks like**: Editing `settings.json` (or running `register-hook.py`) in the same step as writing the hook file, or before confirming the file is present at `~/.claude/hooks/`.
-**Why wrong**: If the file isn't at `~/.claude/hooks/` when Claude Code starts, every PreToolUse event triggers a Python "file not found" → exit 2 → tool blocked. The session is deadlocked before you can fix it.
-**✅ Do instead**: Strict deployment order — (1) write `hooks/my-hook.py` in the repo, (2) copy/sync to `~/.claude/hooks/`, (3) verify `python3 ~/.claude/hooks/my-hook.py < /dev/null` exits 0, (4) THEN register in `settings.json`. Use `scripts/register-hook.py` which enforces this order programmatically.
-*Graduated from retro — same root cause as deploy-before-register but triggered by race between write and register*
-
-### ❌ Injecting Agent Context in a UserPromptSubmit Hook
-**What it looks like**: A `UserPromptSubmit` hook that tries to inject agent-scoped context (e.g., "you are the go-engineer agent, apply TDD") into the session context file.
-**Why wrong**: `UserPromptSubmit` fires BEFORE `/do` selects an agent. The hook has no knowledge of which agent will be chosen, so any agent-scoped injection is either wrong (targets the wrong agent) or a no-op (overwritten by routing). Timing mismatch makes this pattern unreliable by design.
-**✅ Do instead**: Agent-scoped context injection belongs at routing time — inside the skill that the router invokes after selecting the agent. Hooks are for session-wide, agent-agnostic concerns (error detection, performance logging, global context).
-*Graduated from retro — hook-timing-vs-routing-timing incident*
-
+See [references/anti-patterns.md](references/anti-patterns.md) for the full catalog: blocking on errors, synchronous heavy operations, direct database writes, registering before deploying, unguarded `main()`, UserPromptSubmit agent-context injection, and the atomic write pattern with code examples.
 ## Anti-Rationalization
 
 See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md) for universal patterns.
@@ -378,17 +229,21 @@ STOP and ask the user (get explicit confirmation) before proceeding when:
 2. Intervention: Steps to break loop (disable hook, clear corrupted DB)
 3. Prevention: Update patterns (add circuit breaker, improve error detection)
 
+## Reference Loading Table
+
+| Signal | Reference File | When to Load |
+|--------|---------------|--------------|
+| Pipeline diagram, event flow, learning database directory structure | `references/architecture.md` | When explaining hook integration or reviewing system design |
+| Blocking errors, synchronous ops, direct writes, registration order, unguarded main(), UserPromptSubmit misuse | `references/anti-patterns.md` | When reviewing hook code or debugging session deadlocks |
+| Production hook template, non-blocking pattern, complete implementations | `references/code-examples.md` | When scaffolding a new hook from scratch |
+| JSON schema, confidence scoring, atomic write ops, DB query patterns | `references/learning-database.md` | When implementing learning database operations |
+
 ## References
 
 For detailed information:
-- **Hook Examples**: [references/code-examples.md](references/code-examples.md) - Complete event structure and examples
+- **Architecture**: [references/architecture.md](references/architecture.md) - Event-driven pipeline diagram and learning database directory structure
+- **Anti-Patterns**: [references/anti-patterns.md](references/anti-patterns.md) - What/Why/Instead for hook mistakes with code examples
+- **Hook Examples**: [references/code-examples.md](references/code-examples.md) - Production hook implementations and non-blocking template
 - **Learning Database**: [references/learning-database.md](references/learning-database.md) - Schema, operations, confidence tracking
-- **Error Catalog**: [references/error-catalog.md](references/error-catalog.md) - Common hook development errors
-- **Pattern Guide**: [references/anti-patterns.md](references/anti-patterns.md) - What/Why/Instead for hook mistakes
-- **Code Examples**: [references/code-examples.md](references/code-examples.md) - Production hook implementations
-- **Performance Optimization**: [references/performance.md](references/performance.md) - Sub-50ms optimization techniques
 
-**Shared Patterns**:
-- [anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md) - Universal rationalization patterns
-- [gate-enforcement.md](../skills/shared-patterns/gate-enforcement.md) - Phase gate patterns
-- [verification-checklist.md](../skills/shared-patterns/verification-checklist.md) - Pre-completion checks
+**Shared Patterns**: [anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md) | [gate-enforcement.md](../skills/shared-patterns/gate-enforcement.md) | [verification-checklist.md](../skills/shared-patterns/verification-checklist.md)

@@ -5,7 +5,6 @@ description: |
   SCOPE, GATHER, SYNTHESIZE, VALIDATE, DELIVER. Parallel research agents
   mandatory (min 3). Saves findings to research/{topic}/ for future reference.
   Use for "research pipeline", "formal research", "research with artifacts".
-version: 2.0.0
 user-invocable: true
 argument-hint: "<research topic>"
 agent: research-coordinator-engineer

@@ -1,7 +1,6 @@
 ---
 name: universal-quality-gate
 description: "Multi-language code quality gate with auto-detection and linters."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read
