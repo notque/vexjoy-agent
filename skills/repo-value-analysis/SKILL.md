@@ -97,46 +97,9 @@ Log the split decisions in the analysis notes for transparency.
 
 **Goal**: Read every file in every zone of the external repository to extract techniques, patterns, and potential capability gaps.
 
-Dispatch 1 Agent per analysis zone (background). Each agent receives:
-- The zone name and file list
-- Instructions to read EVERY file (not sample, not skim) to avoid sampling bias
-- A structured output template that captures what they have, not just what they are
+Dispatch 1 Agent per analysis zone (background). Each agent receives the zone name and file list, instructions to read EVERY file (not sample, not skim) to avoid sampling bias, and a structured output template.
 
-**Agent instructions template** (replace ALL bracketed placeholders with actual values before dispatching):
-
-```
-You are analyzing the "[zone]" zone of repository [REPO_NAME].
-
-Read EVERY file listed below. For each file, extract:
-1. Purpose (1-2 sentences)
-2. Key techniques or patterns used
-3. Notable or unique approaches
-4. Dependencies on other components
-
-Files to read:
-[file list]
-
-After reading ALL files, produce a structured summary:
-
-## Zone: [zone]
-### Component Inventory
-| File | Purpose | Key Pattern |
-|------|---------|-------------|
-| ... | ... | ... |
-
-### Key Techniques
-- [technique]: [which files use it, how]
-
-### Notable Patterns
-- [pattern]: [why it's notable]
-
-### Potential Gaps They Fill
-- [gap]: [what capability this provides that might be missing elsewhere]
-
-Save your findings to /tmp/[REPO_NAME]-zone-[zone].md
-```
-
-Dispatch up to 8 agents in parallel for speed. If more than 8 zones exist, batch them (first 8, wait 5 minutes, then remaining) rather than serializing — parallel dispatch is default unless `--quick` flag requests otherwise.
+See `references/phase2-agent-template.md` for the full agent instructions template and parallel dispatch rules.
 
 **Gate**: All zone agents have completed (or timed out after 5 minutes each). At least 75% of agents returned results (tolerance for individual agent failure). Zone finding files exist in `/tmp/`. Proceed only when gate passes.
 
@@ -144,26 +107,9 @@ Dispatch up to 8 agents in parallel for speed. If more than 8 zones exist, batch
 
 **Goal**: Catalog our own toolkit simultaneously with Phase 2 deep-read for faster wall-clock time.
 
-Dispatch 1 Agent (in background, concurrent with Phase 2 zone agents) to inventory our system. Running this in parallel is safe because inventory is a read-only catalog of our codebase:
+Dispatch 1 Agent (in background, concurrent with Phase 2 zone agents) to inventory our system. Running this in parallel is safe because inventory is a read-only catalog of our codebase.
 
-```
-You are cataloging the claude-code-toolkit repository for comparison purposes.
-
-Inventory these component types:
-1. Agents (agents/*.md) - count and list with brief descriptions
-2. Skills (skills/*/SKILL.md) - count and list with brief descriptions
-3. Hooks (hooks/*.py) - count and list with brief descriptions
-4. Scripts (scripts/*.py) - count and list with brief descriptions
-
-For each category, note:
-- Total count
-- Key capability areas covered
-- Notable patterns in how components are structured
-
-Save your inventory to /tmp/self-inventory.md
-```
-
-Running this in parallel (not waiting for Phase 2 to finish) reduces total pipeline time from `Phase1 + Phase2 + Phase3` to roughly `Phase1 + max(Phase2, Phase3)`.
+See `references/phase3-inventory-template.md` for the full agent instructions and parallel-execution rationale.
 
 **Gate**: Self-inventory agent completed (or timed out after 5 minutes). `/tmp/self-inventory.md` exists and contains counts for all 4 component types. Proceed only when gate passes.
 
@@ -213,33 +159,9 @@ This draft is intentionally unaudited so you can bail out early if findings look
 
 **Goal**: Reality-check each HIGH and MEDIUM recommendation against our actual codebase to catch "we already have this" false positives.
 
-For each HIGH or MEDIUM recommendation, dispatch 1 Agent (in background). Audit is what separates superficial analysis from rigorous analysis — skipping it produces unverified recommendations that erode trust:
+For each HIGH or MEDIUM recommendation, dispatch 1 Agent (in background). Audit is what separates superficial analysis from rigorous analysis — skipping it produces unverified recommendations that erode trust.
 
-```
-You are auditing whether recommendation "[recommendation]" is already
-addressed in the claude-code-toolkit repository.
-
-The recommendation suggests: [description]
-
-Your task:
-1. Search the repository for components that address this capability
-2. Read the SPECIFIC files/subsystems that would be affected
-3. Determine coverage level:
-   - ALREADY EXISTS: We have this. Cite the exact files.
-   - PARTIAL: We have something similar but incomplete. Cite files and gaps.
-   - MISSING: We genuinely lack this. Confirm by searching for related patterns.
-4. If PARTIAL or MISSING, identify the exact files that would need to change
-
-Save findings to /tmp/audit-[recommendation-slug].md with:
-## Recommendation: [name]
-### Coverage: [ALREADY EXISTS | PARTIAL | MISSING]
-### Evidence
-- [file path]: [what it does / doesn't do]
-### Verdict
-[1-2 sentence conclusion]
-```
-
-Dispatch audit agents in parallel for speed. If `--quick` flag was used in the initial call, skip Phase 5 entirely and proceed directly to Phase 6 with unaudited recommendations (noted in final report as unverified).
+See `references/phase5-audit-template.md` for the full audit agent instructions, coverage levels (ALREADY EXISTS / PARTIAL / MISSING), and `--quick` flag behavior.
 
 **Gate**: All audit agents completed (or timed out after 5 minutes). At least 75% returned results. Audit files exist in `/tmp/`. Proceed only when gate passes.
 
@@ -247,65 +169,9 @@ Dispatch audit agents in parallel for speed. If `--quick` flag was used in the i
 
 **Goal**: Produce the final, reality-grounded report with recommendations verified by Phase 5 audit.
 
-**Step 1: Read all audit findings (unless --quick was used)**
+Read audit findings, adjust recommendations (ALREADY EXISTS → move to "Already Covered"; PARTIAL → focus on gaps; MISSING → keep), overwrite `research-[REPO_NAME]-comparison.md` with the final report, and remove temporary `/tmp/` files.
 
-Read every `/tmp/audit-*.md` file. If `--quick` flag was used, skip this step and note in the report that recommendations are unaudited.
-
-**Step 2: Adjust recommendations based on audit coverage**
-
-For each recommendation:
-- If audit found ALREADY EXISTS: remove from recommendations, note in "Already Covered" section with the exact files
-- If audit found PARTIAL: adjust description to focus on what's actually missing, cite the partial files
-- If audit found MISSING: keep as-is, add the affected files from audit
-
-This adjustment step catches the false positive anti-pattern: "we should adopt X" when we already have X.
-
-**Step 3: Build final report**
-
-Overwrite `research-[REPO_NAME]-comparison.md` with the final report:
-
-```markdown
-# Competitive Analysis: [REPO_NAME] vs claude-code-toolkit
-
-## Executive Summary
-[2-3 sentences: what the repo is, whether it adds value, headline finding]
-
-## Repository Overview
-- **URL**: [url]
-- **Total files analyzed**: [count]
-- **Analysis zones**: [list with counts]
-- **Analysis date**: [date]
-
-## Comparison Table
-
-| Capability | Their Approach | Our Approach | Status |
-|------------|---------------|--------------|--------|
-| ... | ... | ... | Equivalent / They lead / We lead / Unique to them |
-
-## Already Covered
-[Capabilities we initially thought were gaps but audit confirmed we have]
-
-| Capability | Our Implementation | Files |
-|------------|-------------------|-------|
-| ... | ... | ... |
-
-## Recommendations
-
-| # | Recommendation | Value | What We Have | What's Missing | Effort | Affected Files |
-|---|---------------|-------|--------------|----------------|--------|----------------|
-| 1 | ... | HIGH | ... | ... | S/M/L | ... |
-
-## Verdict
-[Final assessment: is this repo worth adopting ideas from? Which specific items?]
-
-## Next Steps
-- [ ] [Actionable items]
-- [ ] [If HIGH-value items: "Create ADR for adoption of [specific items]"]
-```
-
-**Step 4: Cleanup**
-
-Remove temporary zone and audit files from `/tmp/` (keep the cloned repo for reference if further investigation is needed).
+See `references/phase6-report-template.md` for the full 4-step workflow and final report markdown template.
 
 **Gate**: Final report saved to `research-[REPO_NAME]-comparison.md`. Report contains comparison table, adjusted recommendations based on audit findings, and verdict. No "DRAFT" watermark remains. All recommendations have been reality-checked against Phase 5 audit findings (or marked as unaudited if --quick was used). Proceed only when gate passes.
 
@@ -313,46 +179,14 @@ Remove temporary zone and audit files from `/tmp/` (keep the cloned repo for ref
 
 ## Error Handling
 
-### Error: "Repository Clone Failed"
-Cause: Invalid URL, private repo, network issue, or repo doesn't exist
-Solution:
-1. Verify the URL is correct and the repo is public
-2. If private, check that git credentials are configured
-3. If network issue, retry once after 5 seconds
-4. If repo doesn't exist, report to user and abort pipeline
-
-### Error: "Repository Too Large (10,000+ files)"
-Cause: Monorepo or very large codebase
-Solution:
-1. Increase zone capping to split aggressively (sub-zones of ~50 files)
-2. Prioritize zones most relevant to our toolkit (skills, agents, hooks, docs)
-3. Deprioritize vendor, generated, and third-party code zones
-4. Note incomplete coverage in the final report
-
-### Error: "Agent Timed Out in Phase 2/5"
-Cause: Zone too large, agent stuck on binary/generated files
-Solution:
-1. Proceed with results from completed agents (minimum 75% required)
-2. Note which zones/audits were incomplete in the report
-3. If below 75%, retry failed zones with smaller file batches
-
-### Error: "No Gaps Found"
-Cause: External repo covers the same ground or less than ours
-Solution:
-1. This is a valid outcome, not an error
-2. Report confirms our toolkit already covers or exceeds the external repo
-3. Note any interesting alternative approaches even if not gaps
-4. Skip Phase 5 (no recommendations to audit)
-
-### Error: "Self-Inventory Agent Failed"
-Cause: Our own repo structure changed or agent timed out
-Solution:
-1. Fall back to reading `skills/INDEX.json` for skill counts
-2. Use `ls agents/ hooks/ scripts/` for basic counts
-3. Note that self-inventory is approximate in the report
+See `references/error-handling.md` for clone failures, large repos (10k+ files), agent timeouts, no-gaps-found outcome, and self-inventory failures.
 
 ---
 
 ## References
 
-None. This skill is self-contained and does not reference shared patterns or external documentation.
+- `references/phase2-agent-template.md` — Phase 2 DEEP-READ agent template
+- `references/phase3-inventory-template.md` — Phase 3 INVENTORY agent template
+- `references/phase5-audit-template.md` — Phase 5 AUDIT agent template
+- `references/phase6-report-template.md` — Phase 6 REPORT workflow and final template
+- `references/error-handling.md` — Pipeline error handling
