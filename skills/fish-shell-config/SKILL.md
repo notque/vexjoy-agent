@@ -275,5 +275,14 @@ Solution: Use `set -gx VAR value` to make variable visible to subprocesses. Chec
 
 ## References
 
+| Task Signal | Load | Why |
+|-------------|------|-----|
+| Migrating from Bash, converting `.bashrc`/`.bash_aliases`, `source`, `export`, `[[` in Fish file | `bash-migration.md` | Full Bash-to-Fish syntax translation table |
+| Variable scoping, PATH management, `fish_add_path`, `set` flags, `abbr`, completions | `fish-quick-reference.md` | Variable scope guide, special variables, control flow cheatsheet |
+| Error audit, "unknown command", PATH not persisting, abbreviation not working, syntax error, broken conf.d | `fish-anti-patterns.md` | Anti-patterns with grep detection commands and error-fix mappings |
+| Go, Rust, Docker, Node.js, Python, pyenv, fnm, starship, direnv, fzf, zoxide, mise, tool setup | `tool-integrations.md` | Concrete integration patterns for common dev tools |
+
 - `${CLAUDE_SKILL_DIR}/references/bash-migration.md`: Complete Bash-to-Fish syntax translation table
 - `${CLAUDE_SKILL_DIR}/references/fish-quick-reference.md`: Variable scoping, special variables, and command cheatsheet
+- `${CLAUDE_SKILL_DIR}/references/fish-anti-patterns.md`: Anti-pattern catalog with grep detection commands and error-fix mappings
+- `${CLAUDE_SKILL_DIR}/references/tool-integrations.md`: Concrete integration patterns for Go, Rust, Docker, Node.js, Python, and shell enhancers
