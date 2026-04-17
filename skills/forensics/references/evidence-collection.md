@@ -168,7 +168,7 @@ git log main..HEAD -p | \
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section header introducing paired-pattern subsections below -->
 
 ### ❌ Scanning full repo history instead of branch scope

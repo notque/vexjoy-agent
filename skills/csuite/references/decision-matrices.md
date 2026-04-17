@@ -139,7 +139,7 @@ Apply before scoring. Changes how much analysis is warranted.
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 <!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Criteria added after scoring

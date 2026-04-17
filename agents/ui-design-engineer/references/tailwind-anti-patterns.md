@@ -9,7 +9,7 @@ Tailwind's utility-first model creates a specific class of bugs that don't appea
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Dynamic Class Construction (Purge Trap)
 

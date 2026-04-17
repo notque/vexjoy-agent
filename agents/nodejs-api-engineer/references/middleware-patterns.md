@@ -220,7 +220,7 @@ app.use(cors({
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ 3-Argument Error Handler
 

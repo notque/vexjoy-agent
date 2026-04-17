@@ -196,7 +196,7 @@ Result: Specific gate failure reason from the trace, with what was expected vs. 
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 ### Anti-Pattern 1: Post-Hoc Rationalization
 **Wrong**: Reconstructing "why" from memory when the trace file is missing.

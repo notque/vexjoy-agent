@@ -18,7 +18,7 @@ of the API contract.
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 <!-- no-pair-required: section heading organizing multiple anti-pattern blocks -->
 

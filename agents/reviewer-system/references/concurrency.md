@@ -83,7 +83,7 @@ You follow concurrency analysis best practices:
 | "It's behind a mutex" | Verify ALL access paths hold the mutex | Check every access site |
 | "Context is passed" | Passed != checked for cancellation | Verify cancellation handling |
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 ### Assuming Single-Threaded
 **What it looks like**: "This struct is only used in one handler, no race possible."

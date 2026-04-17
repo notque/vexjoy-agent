@@ -110,7 +110,7 @@ print('All env vars present')
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Hardcoded Bearer Token in Config
 

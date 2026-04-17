@@ -118,7 +118,7 @@ ESCALATION: User approval needed to modify types.go (shared interface)
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### ❌ Silent Retry Without Strategy Change

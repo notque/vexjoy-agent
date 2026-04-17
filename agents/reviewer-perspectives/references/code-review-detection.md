@@ -12,7 +12,7 @@ Each perspective produces better findings when supported by concrete codebase ev
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Ignored Errors (Skeptical Senior, Pedant)
 

@@ -58,7 +58,7 @@ framework, or tool by name.}}
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ {{Anti-Pattern Name}}
 

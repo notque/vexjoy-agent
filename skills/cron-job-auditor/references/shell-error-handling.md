@@ -83,7 +83,7 @@ rsync -avz source/ dest/ && echo "sync OK" || { echo "sync FAILED" >&2; exit 1; 
 ---
 
 <!-- no-pair-required: section heading; individual anti-patterns below carry Do-instead blocks -->
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Missing set -e / no error handling
 

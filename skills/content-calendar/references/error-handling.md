@@ -64,7 +64,7 @@ grep -A 100 "^## Ideas" content-calendar.md | grep -B 100 "^## Outlined" | grep 
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Assuming Topic Title Matches Exactly
 

@@ -4,7 +4,7 @@ Reference for Phase 3 CRITIQUE (fallback), anti-patterns, error handling, and co
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 - **Improving without measuring** -- every change must have a baseline and A/B result. "It looks better" is not evidence.
 - **Merging without validation** -- every winner must pass multi-persona critique (STRONG consensus) AND A/B testing (WIN status) before merge. The validation gates are the review.

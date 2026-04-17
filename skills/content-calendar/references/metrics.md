@@ -73,7 +73,7 @@ python3 -c "from datetime import date; print((date.today() - date.fromisoformat(
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Reporting "Active" Without Flagging Stuck Items
 

@@ -132,7 +132,7 @@ it('tests a Date.now() timestamp', () => {
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Using jest.mock() or jest.fn() in Vitest files
 

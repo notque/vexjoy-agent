@@ -75,7 +75,7 @@ Tier 3 (arch):      schema change, API redesign, scope expansion → STOP, prese
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Skipping State Check to Save a Command
 

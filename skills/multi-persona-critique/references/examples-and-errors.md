@@ -91,7 +91,7 @@ Result: Multi-lens comparison where disagreements highlight the real tradeoffs
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 | Anti-Pattern | Why It Is Wrong | What To Do Instead |
 |--------------|----------------|-------------------|

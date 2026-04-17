@@ -82,7 +82,7 @@ Reduce complexity and improve code clarity while preserving exact functionality.
 - **Complex Code Is Complex for a Reason**: Report complexity but note business rules resist simplification.
 - **No Recent Changes**: Ask user which files to simplify.
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 | Rationalization | Why It's Wrong | Required Action |
 |-----------------|----------------|-----------------|

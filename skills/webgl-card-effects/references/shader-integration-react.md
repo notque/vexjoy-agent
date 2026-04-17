@@ -527,7 +527,7 @@ supportsWebGL2._override = false;
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 **Creating a new WebGL2 context per card instance**: Browsers cap at 8–16 total contexts. With a hand of 8+ cards, you will hit this limit. The singleton pattern above is non-negotiable.
 

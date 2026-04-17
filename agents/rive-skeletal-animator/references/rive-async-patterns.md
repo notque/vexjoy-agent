@@ -125,7 +125,7 @@ useEffect(() => {
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Accessing Rive Instance Outside Effect or Callback
 

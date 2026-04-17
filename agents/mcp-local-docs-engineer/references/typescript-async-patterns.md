@@ -143,7 +143,7 @@ try {
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Unbounded Promise.all on File List
 

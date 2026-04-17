@@ -89,7 +89,7 @@ fi
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section header with no content -->
 
 ### Embedding the diff in the prompt

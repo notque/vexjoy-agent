@@ -95,7 +95,7 @@ The key change: **Simple and Medium tasks start at Level 1 when the scope is amb
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 | Anti-pattern | Why it fails | Correct behavior |
 |--------------|-------------|------------------|

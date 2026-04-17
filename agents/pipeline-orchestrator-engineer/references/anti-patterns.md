@@ -14,7 +14,7 @@ Pipeline creation mistakes compound: a missing discovery step leads to duplicate
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 <!-- no-pair-required: section-header-only; individual anti-patterns below carry Do-instead blocks -->
 

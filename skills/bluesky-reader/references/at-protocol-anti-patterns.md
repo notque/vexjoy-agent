@@ -15,7 +15,7 @@ returns incomplete or wrong data.
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### Using bsky.social for Public Reads
 

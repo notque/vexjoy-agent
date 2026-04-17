@@ -92,7 +92,7 @@ Convention compliance, style guide enforcement, and code quality assessment with
 - **No Unstaged Changes**: Check staged changes. If also empty, ask user which files to review.
 - **Ambiguous Convention**: Note both interpretations and flag for user decision.
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 | Rationalization | Why It's Wrong | Required Action |
 |-----------------|----------------|-----------------|

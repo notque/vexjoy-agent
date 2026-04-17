@@ -5,9 +5,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
-import re
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MODEL_RE = re.compile(r"^model:\s*(.+)$", re.MULTILINE)

@@ -339,7 +339,7 @@ float dist = length(centered);   // Now a circle, not an ellipse
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 **Allocating arrays or objects in the fragment shader loop**: GLSL `for` loops with dynamic bounds or large local arrays cause driver stalls. Use a fixed iteration count (e.g., `for (int i = 0; i < 5; i++)`) and use `break` only when the loop count is truly constant.
 

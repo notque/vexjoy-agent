@@ -172,7 +172,7 @@ def handle_message(channel, method, properties, body):
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Auto-Ack on Production Consumers
 

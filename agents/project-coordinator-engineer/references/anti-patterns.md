@@ -13,7 +13,7 @@ Coordination anti-patterns fall into three categories: delegation failures (ambi
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### ❌ Vague Success Criteria

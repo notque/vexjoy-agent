@@ -69,7 +69,7 @@ You have deep expertise in:
 | "Migration is simple" | Simple migrations can have complex rollbacks | Test the rollback |
 | "Feature flag is temporary" | Temporary flags become permanent | Set cleanup deadline |
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 ### Big Bang Migrations
 **What it looks like**: Single migration with DROP + CREATE + data transform.

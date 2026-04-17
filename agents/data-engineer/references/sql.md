@@ -153,7 +153,7 @@ GROUP BY order_id, customer_id
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Non-Idempotent INSERT Without Deduplication
 

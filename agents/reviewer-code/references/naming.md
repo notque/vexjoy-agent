@@ -69,7 +69,7 @@ Detect naming convention drift, inconsistent identifier casing, and terminology 
 - **Multiple Valid Conventions**: Note intentional context differences (DB columns vs Go fields).
 - **Generated Code**: Skip generated files (protobuf, openapi) in naming audit.
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 | Rationalization | Why It's Wrong | Required Action |
 |-----------------|----------------|-----------------|

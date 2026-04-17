@@ -303,7 +303,7 @@ python3 ~/.claude/scripts/learning-db.py learn \
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 | Anti-Pattern | Why it's wrong | What to do instead |
 |-------------|---------------|-------------------|

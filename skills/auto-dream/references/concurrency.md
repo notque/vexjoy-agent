@@ -134,7 +134,7 @@ git checkout main
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section heading only, paired Do instead blocks appear in each sub-entry below -->
 
 ### ❌ Waiting on a held lock instead of skipping

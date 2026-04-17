@@ -328,7 +328,7 @@ float hue = 0.62 + distortX * 0.04;  // Blue, slight variation
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 **Animating hue at full time speed**: `hue = fract(uv.x + u_time)` cycles through the full rainbow every second. Real holo foil shifts hue based on viewing angle, not time — it doesn't pulse like a disco ball. Use mouse position as the primary hue driver; time should only add a slow ambient drift.
 

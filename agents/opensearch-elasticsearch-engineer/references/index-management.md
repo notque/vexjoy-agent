@@ -188,7 +188,7 @@ PUT _index_template/logs-template
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Mapping Explosion from Dynamic Mapping
 

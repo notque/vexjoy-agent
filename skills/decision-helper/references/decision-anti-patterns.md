@@ -12,7 +12,7 @@ The weighted scoring framework exists to surface hidden reasoning and reduce bia
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Confirmation Bias via Post-Hoc Weight Adjustment
 

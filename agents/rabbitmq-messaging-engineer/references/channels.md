@@ -110,7 +110,7 @@ case <-ctx.Done():
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Channel Per Message (Connection-Scoped Channel Churn)
 

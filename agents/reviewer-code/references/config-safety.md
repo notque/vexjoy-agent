@@ -77,7 +77,7 @@ Detect hardcoded secrets, missing environment variable validation, unsafe defaul
 - **Test/Example Files**: Note if value is in test file. Add `// test-only` comment if fixture.
 - **Constants vs Configuration**: Only flag values that vary between environments. Constants like `maxRetries = 3` are acceptable.
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 | Rationalization | Why It's Wrong | Required Action |
 |-----------------|----------------|-----------------|

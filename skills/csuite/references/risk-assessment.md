@@ -252,7 +252,7 @@ After pre-mortem, scenario planning, and black swan identification, consolidate 
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 <!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Pre-mortem as validation exercise
