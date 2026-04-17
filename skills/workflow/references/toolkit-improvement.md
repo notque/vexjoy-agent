@@ -93,7 +93,7 @@ on the answer.
 
 **Token cost**: High and intentional. Multi-wave parallel dispatch is expensive. The cost
 is justified because shallow single-pass evaluation misses the issues that matter most.
-See PHILOSOPHY.md: "Tokens Are Cheap, Quality Is Expensive."
+See PHILOSOPHY.md: "Tokens Are Expensive, Use Progressive Context."
 
 ---
 

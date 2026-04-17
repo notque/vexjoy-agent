@@ -281,7 +281,7 @@ Environment variables set in `.claude/settings.json` under `"env"`:
 | Variable | Recommended Value | Why |
 |----------|-------------------|-----|
 | `CLAUDE_CODE_AUTO_COMPACT_WINDOW` | `400000` | Prompt cache TTL is 5 minutes (not 1 hour). Larger conversations miss cache frequently, making each turn reprocess the full context at full cost. Compacting at 400k keeps conversations in the cache-friendly zone. ([anthropics/claude-code#45756](https://github.com/anthropics/claude-code/issues/45756#issuecomment-4231739206)) |
-| `CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING` | `1` | Fixed thinking budget preferred over adaptive (A/B tested, see memory). |
+| `CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING` | `1` | **Deprecated on Opus 4.7 (no-op).** Opus 4.7 removed the fixed-budget option; this variable has no effect on the current model. See the deprecation notice in `docs/PHILOSOPHY.md` under "Prompt Phrasing Does Not Replace Domain Knowledge" (Experiment 4). Users migrating from Opus 4.6 can leave this set; it is harmless but inactive. |
 
 **Context on `AUTO_COMPACT_WINDOW`:** Anthropic's prompt caching currently uses a 5-minute TTL. When conversations grow large and cache entries expire between turns, each API call re-processes the full conversation at uncached token prices. Even though Claude supports a 1M token context window, using the full window without cache hits is prohibitively expensive. Setting `AUTO_COMPACT_WINDOW=400000` triggers compaction earlier, keeping the active context within a size that cache hits can cover. Anthropic is aware of this issue and exploring improvements. Credit: [@bcherny](https://github.com/bcherny).
 
