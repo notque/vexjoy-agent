@@ -127,6 +127,10 @@ Solution:
 
 ## References
 
-- `${CLAUDE_SKILL_DIR}/references/pipeline-stages.md`: Detailed stage definitions and transition criteria
-- `${CLAUDE_SKILL_DIR}/references/calendar-format.md`: Complete file format specification with examples
-- `${CLAUDE_SKILL_DIR}/references/operations.md`: Detailed command reference with edge cases
+| Task | Load |
+|------|------|
+| Stage definitions, transition criteria | `${CLAUDE_SKILL_DIR}/references/pipeline-stages.md` |
+| File format, section structure, date fields | `${CLAUDE_SKILL_DIR}/references/calendar-format.md` |
+| Command reference, edge cases per operation | `${CLAUDE_SKILL_DIR}/references/operations.md` |
+| File not found, corrupt sections, count drift, malformed dates | `${CLAUDE_SKILL_DIR}/references/error-handling.md` |
+| Velocity metrics, stuck content, pipeline health dashboard | `${CLAUDE_SKILL_DIR}/references/metrics.md` |
