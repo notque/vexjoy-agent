@@ -217,14 +217,17 @@ git log main..HEAD --reverse --format="%h %s" | grep -iE "(fix|retry)"
 ---
 
 ## Investigation Anti-Patterns
+<!-- no-pair-required: section header introducing paired-pattern subsections below -->
 
 ### ❌ Stopping after the first detector fires
 
 **Detection**:
+<!-- no-pair-required: false positive - comment inside fenced code block; block is paired with Why wrong section below -->
 ```bash
 # This is a process issue, not a git pattern — watch for it in your own analysis
 # If you found Detector 1 (Stuck Loop), still run Detectors 2-5
 ```
+<!-- no-pair-required: false positive - comment inside fenced code block; paired with Why wrong section below -->
 
 **Why wrong**: Causal chains mean the first visible symptom is rarely the root cause. A stuck loop (Detector 1) often causes missing artifacts (Detector 2) and may have been triggered by scope drift (Detector 4). Stopping at the first finding produces a symptom report, not a root cause hypothesis.
 
@@ -233,12 +236,14 @@ git log main..HEAD --reverse --format="%h %s" | grep -iE "(fix|retry)"
 ### ❌ Assigning High confidence without verifying consecutiveness
 
 **Detection**:
+<!-- no-pair-required: false positive - comment inside fenced code block; block is paired with Why wrong section below -->
 ```bash
 # Before High confidence on Detector 1, run this consecutiveness check:
 git log main..HEAD --reverse --name-only --format="COMMIT %h" | \
   grep -E "(COMMIT|suspected-file)"
 # If COMMIT lines between suspected-file occurrences contain OTHER files, it's not consecutive
 ```
+<!-- no-pair-required: false positive - shell comment inside fenced code block; this block pairs with Why wrong below -->
 
 **Why wrong**: A file in positions 1, 5, 9 of a 10-commit branch is not a stuck loop — it's iterative development. High confidence Detector 1 requires the same file in positions N, N+1, N+2 (adjacent).
 

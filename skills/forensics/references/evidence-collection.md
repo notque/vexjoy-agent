@@ -169,6 +169,7 @@ git log main..HEAD -p | \
 ---
 
 ## Anti-Pattern Catalog
+<!-- no-pair-required: section header introducing paired-pattern subsections below -->
 
 ### ❌ Scanning full repo history instead of branch scope
 
@@ -186,11 +187,13 @@ git branch --show-current  # if "main" or "master", scope is wrong
 ### ❌ Concluding loop from total frequency without checking consecutiveness
 
 **Detection**:
+<!-- no-pair-required: false positive - shell comment inside fenced code block; paired with Why wrong and Fix blocks below -->
 ```bash
 # Generate per-commit file lists and manually inspect adjacency
 git log main..HEAD --reverse --name-only --format="COMMIT %h" | \
   grep -E "(COMMIT|suspected-file\.go)"
 ```
+<!-- no-pair-required: false positive - shell comment inside fenced code block; paired with Why wrong and Fix blocks below -->
 
 **Why wrong**: A file touched 6 times across 60 commits is normal iterative development. Detector 1 confidence requires consecutive appearances, not just count. Reporting High confidence without consecutiveness check produces false positives that erode trust.
 
