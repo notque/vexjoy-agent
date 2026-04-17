@@ -81,6 +81,7 @@ trap 'rm -f "$PID_FILE"' EXIT
 
 ---
 
+<!-- no-pair-required: section heading; individual anti-patterns below carry Do-instead blocks -->
 ## Anti-Pattern Catalog
 
 ### ❌ No concurrency protection at all
@@ -101,7 +102,7 @@ python3 process_all_records.py   # runs for 45 min, cron fires again at minute 0
 
 **Why wrong**: If the job takes longer than its interval, two instances run simultaneously. Both read the same input, both write to the same output, both update the same DB rows — producing duplicates, data corruption, or deadlocks.
 
-**Fix**: Add `flock` at the top of the script (see correct pattern above).
+**Do instead:** Add `flock` at the top of the script (see correct pattern above).
 
 ---
 
@@ -126,7 +127,7 @@ trap 'rm -f $LOCK' EXIT
 
 **Why wrong**: There is a TOCTOU race: two instances can both pass `[ -f "$LOCK" ]` before either creates the file. On a loaded system or slow filesystem, this happens. Result: both instances run concurrently despite the "protection."
 
-**Fix**: Use `flock -n` — the kernel makes the lock acquisition atomic.
+**Do instead:** Use `flock -n` — the kernel makes the lock acquisition atomic.
 
 ```bash
 exec 200>"/tmp/myjob.lock"
@@ -149,16 +150,16 @@ while [ -f /tmp/myjob.lock ]; do
     sleep 5
 done
 touch /tmp/myjob.lock
-# ... work ...
+  # ... work ...
 rm /tmp/myjob.lock
 ```
 
 **Why wrong**: Busy-waits waste CPU, has the same TOCTOU race as file existence checks, and if the script crashes before `rm`, subsequent runs loop forever.
 
-**Fix**: `flock -w TIMEOUT` for waiting with a timeout, or `flock -n` to exit immediately.
+**Do instead:** Use `flock -w TIMEOUT` for waiting with a timeout, or `flock -n` to exit immediately.
 
 ```bash
-# Wait up to 5 minutes for the lock, then give up
+  # Wait up to 5 minutes for the lock, then give up
 flock -w 300 /tmp/myjob.lock -c 'your_command'
 ```
 
@@ -168,7 +169,7 @@ flock -w 300 /tmp/myjob.lock -c 'your_command'
 
 **Detection**:
 ```bash
-# Files that mention lock but not trap
+  # Files that mention lock but not trap
 grep -rl "lock\|\.pid" --include="*.sh" scripts/ cron/ | xargs grep -L "trap"
 rg -l 'lock|\.pid' --type sh | xargs rg -L 'trap'
 ```
@@ -182,7 +183,7 @@ rm /tmp/myjob.lock   # only runs on success; if set -e fires, lock is never remo
 
 **Why wrong**: With `set -e`, any failure exits the script immediately — `rm` never runs. The lock file persists. All future runs think a job is still running and exit immediately, silently. The job never runs again until someone manually removes the lock.
 
-**Fix**: Always use `trap 'rm -f "$LOCK_FILE"' EXIT` instead of relying on explicit cleanup at the end.
+**Do instead:** Always use `trap 'rm -f "$LOCK_FILE"' EXIT` instead of relying on explicit cleanup at the end.
 
 ---
 
