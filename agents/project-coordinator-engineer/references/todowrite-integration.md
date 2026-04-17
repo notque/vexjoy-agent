@@ -108,6 +108,7 @@ File domains MUST NOT overlap. If they do, serialize instead of parallelizing.
 ---
 
 ## Anti-Pattern Catalog
+<!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### ❌ Marking Complete Before Verification
 
@@ -126,6 +127,8 @@ Task: "Implement user endpoint"
 ```
 
 **Why wrong**: Agent self-report is not evidence of completion. The agent may have hit a timeout, written partial output, or misread a test result. Premature `completed` causes the next dependent task to start with missing inputs.
+
+**Do instead**: Run the success criteria from the task's HANDOFF.md before updating the TodoWrite status. The `completed` transition requires a verification command result recorded in the task note — the output file exists, the test command exits 0, or the observable behavior matches the spec.
 
 **Fix**: Every `completed` transition must include a verification command result:
 ```markdown
@@ -153,6 +156,8 @@ Task: "Phase 2: Write ORM models using the schema"
 
 **Why wrong**: Without `blockedBy`, the coordinator has no automated signal to wait. In multi-session or parallel scenarios, a fresh coordinator agent may dispatch Phase 2 before Phase 1's output exists.
 
+**Do instead**: Add `blockedBy: {prior-task-id}` to every task that reads output from a prior task. At planning time, walk each task's inputs and identify which task produces them. If there is a dependency, there must be a blockedBy.
+
 **Fix**: Every task that consumes prior output must declare `blockedBy: {prior-task-id}`.
 
 ---
@@ -174,6 +179,8 @@ Task: "Implement and test the API"
 ```
 
 **Why wrong**: Single-task multi-agent assignment has no file domain boundaries, no independent completion criteria, and no retry tracking per agent. If one agent fails, the entire task fails with no clear path to recovery.
+
+**Do instead**: Split multi-agent work into separate tasks using the `parallel_agents` structure, with each sub-task having its own file domain, its own id, and its own success criteria. Each agent's retry count tracks independently, and a single agent's failure does not block the others.
 
 **Fix**: Split into per-agent tasks with explicit file domains and independent completion criteria.
 

@@ -1,4 +1,5 @@
 # Coordination Anti-Patterns Reference
+<!-- no-pair-required: file header, not an individual anti-pattern -->
 
 > **Scope**: Common multi-agent coordination mistakes — what they look like, why they fail, and the corrected pattern.
 > **Version range**: Claude Code multi-agent workflows (all versions)
@@ -13,6 +14,7 @@ Coordination anti-patterns fall into three categories: delegation failures (ambi
 ---
 
 ## Anti-Pattern Catalog
+<!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### ❌ Vague Success Criteria
 
@@ -31,6 +33,8 @@ SUCCESS: Make sure it works
 ```
 
 **Why wrong**: "Make sure it works" is unverifiable. The agent cannot confirm it succeeded; the coordinator cannot confirm the handoff is complete. This creates ambiguity about when to move to the next phase, causing coordination stalls or premature integration.
+
+**Do instead**: Write task blocks with executable success criteria — specific commands that exit 0 on success, observable behavior changes, and explicit file domain boundaries. Every TASK block must answer: which file, which agent, and what command proves it worked.
 
 **Fix**:
 ```markdown
@@ -55,6 +59,8 @@ grep "FILE DOMAIN\|Assigned files" STATUS.md | sort | uniq -d
 # Duplicate file paths mean two agents share a domain — conflict waiting to happen
 ```
 
+**Do instead**: When the detection command returns any path more than once, that path is a domain conflict. Assign it to exactly one agent and serialize the agents that share it before running any parallel dispatch.
+
 **What it looks like**:
 ```markdown
 AGENT A: python-general-engineer
@@ -66,6 +72,8 @@ FILES: src/utils.py, src/pipeline.py, src/transformers.py
 ```
 
 **Why wrong**: Two agents editing the same file concurrently produce merge conflicts at integration. Neither agent's changes are complete in isolation, and combined output is non-deterministic. Common outcome: Agent B's changes overwrite Agent A's without awareness.
+
+**Do instead**: Run the detection command before parallel dispatch. When a file appears in two agent domains, assign ownership to exactly one agent and serialize the agents that share that file.
 
 **Fix**:
 ```markdown
@@ -98,6 +106,8 @@ HANDOFF (Attempt 2):
 ```
 
 **Why wrong**: The agent has the same context, the same constraints, and no new information. The expected outcome is identical to Attempt 1. This is wasted budget disguised as coordination effort.
+
+**Do instead**: Before writing a retry HANDOFF, identify the root cause from Attempt 1's error output and document a concrete strategy change. The HANDOFF must answer: "What is different this time?" If the answer is nothing, stop and escalate rather than retry.
 
 **Fix**:
 ```markdown
@@ -134,6 +144,8 @@ PHASE 2 (parallel execution):
 
 **Why wrong**: Agent B and C will start before Agent A completes. Without schema.sql, Agent B generates speculative models. Agent C's endpoints reference models that don't match the final schema. Integration requires a complete rewrite of B and C.
 
+**Do instead**: Map the dependency chain first. Any task whose input is another task's output must be in a later phase, not a parallel one. Split the work into sequential phases gated on verifiable outputs.
+
 **Fix**:
 ```markdown
 PHASE 2A (Agent A only):
@@ -161,6 +173,8 @@ ls -la PROGRESS.md 2>/dev/null || echo "MISSING: No PROGRESS.md found"
 # If missing and coordination is multi-phase, context loss has already occurred
 ```
 
+**Do instead**: Track context usage throughout the session. At 70%, write PROGRESS.md covering completed phases, output artifacts, and modified files before spawning any new agent. A fresh agent with PROGRESS.md can resume accurately; one without it will either repeat work or invent a false prior state.
+
 **What it looks like**:
 ```markdown
 [No PROGRESS.md exists]
@@ -170,6 +184,8 @@ ls -la PROGRESS.md 2>/dev/null || echo "MISSING: No PROGRESS.md found"
 ```
 
 **Why wrong**: Agent context does not persist across spawns. "Continue from where we left off" is meaningless to a fresh agent — it has no memory of prior phases, no record of completed work, and no list of modified files. It will either repeat completed work or invent a fabricated prior state.
+
+**Do instead**: At 70% context capacity, write PROGRESS.md before spawning any new agent. PROGRESS.md must list completed phases with their output artifacts, all modified files, and what phase comes next. A fresh agent given PROGRESS.md can resume from an accurate project state.
 
 **Fix**:
 ```markdown
@@ -214,7 +230,7 @@ grep -n "Edit\|Write\|Bash" coordinator-log.md 2>/dev/null
 
 **Why wrong**: The coordinator loses its orchestration perspective when it drops into implementation. It cannot simultaneously track project state and debug a specific file. It also bypasses the specialized agent's domain knowledge, producing lower-quality fixes.
 
-**Fix**: Coordinators dispatch. Specialists implement. If the coordinator identifies a specific fix, it writes the fix as a precise instruction in HANDOFF.md and dispatches the appropriate specialist to execute it.
+**Do instead**: Coordinators dispatch; specialists implement. When the coordinator identifies a specific fix, it writes that fix as a precise instruction in HANDOFF.md and dispatches the appropriate specialist to execute it. The coordinator's tools are Agent, Read, Glob, and Grep only.
 
 ---
 

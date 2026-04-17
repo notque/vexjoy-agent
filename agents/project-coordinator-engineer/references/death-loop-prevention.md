@@ -119,6 +119,7 @@ ESCALATION: User approval needed to modify types.go (shared interface)
 ---
 
 ## Anti-Pattern Catalog
+<!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### ❌ Silent Retry Without Strategy Change
 
@@ -138,7 +139,7 @@ ATTEMPT 3 — Error: `undefined: UserRepository`
 
 **Why wrong**: Retrying without strategy change is guaranteed to fail. The 3-attempt limit exists specifically to prevent this. Each retry burns context budget with zero probability of success.
 
-**Fix**: Before any retry, the coordinator must answer: "What is different about this attempt?" If the answer is "nothing", do not retry — escalate.
+**Do instead**: Before any retry, identify what changed. Read the error from the failed attempt, find the root cause, and write a HANDOFF that names the specific change in approach. If the answer to "what is different this time?" is "nothing", stop and document the pattern in BLOCKERS.md rather than consuming another attempt.
 
 ---
 
@@ -158,6 +159,8 @@ SUCCESS CRITERIA: `ruff check . --fix` exits 0
 ```
 
 **Why wrong**: `ruff --fix` can change syntax that breaks Python's AST. `gofmt` can reformat imports that expose missing packages. Assigning lint-only success criteria hides compilation regression.
+
+**Do instead**: Add compilation verification as both the first and last step in every lint task's success criteria. The sequence is: verify compilation passes, run lint, verify compilation still passes. A lint task that breaks compilation is not a success.
 
 **Fix**:
 ```markdown
@@ -187,6 +190,8 @@ HANDOFF to golang-general-engineer:
 ```
 
 **Why wrong**: "Try again" without specifying what to do differently is identical retry disguised as new instruction. The agent has no new information, so it will repeat the same approach.
+
+**Do instead**: Write re-dispatch HANDOFFs with three required sections: (1) the specific error from the prior attempt, (2) the root cause identified, and (3) the new strategy with explicit file and line scope. A re-dispatch without all three sections is retry theater.
 
 **Fix**:
 ```markdown

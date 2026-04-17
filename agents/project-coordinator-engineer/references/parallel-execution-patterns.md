@@ -90,6 +90,7 @@ BLOCKED: Do not dispatch integration agent until all 3 boxes checked.
 ---
 
 ### Sequential Dependency Chain
+<!-- no-pair-required: inline anti-pattern annotation within a correct-pattern block, not a standalone anti-pattern -->
 
 When output of one agent is input to the next, enforce sequential execution.
 
@@ -102,10 +103,12 @@ Step 3: nodejs-api-engineer → API handlers using models
 # Anti-pattern — will fail:
 [WRONG] Step 1 + Step 2 parallel → Step 2 reads schema before it exists
 ```
+<!-- no-pair-required: inline anti-pattern annotation within a correct-pattern code block example -->
 
 ---
 
 ## Anti-Pattern Catalog
+<!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### ❌ Assumed Domain Isolation
 
@@ -117,6 +120,8 @@ grep -r "config/config" src/ | cut -d: -f1 | sort | uniq -d
 ```
 Any file appearing in multiple agent domains signals a conflict.
 
+**Do instead**: Run the domain conflict check before every parallel dispatch wave. When any file appears in two agent domains, assign it to exactly one agent and add that agent as a prerequisite for any other agent that reads it.
+
 **Fix**: Run domain conflict check before dispatch. Serialize agents that share any file.
 
 ---
@@ -127,6 +132,8 @@ Any file appearing in multiple agent domains signals a conflict.
 
 **Why wrong**: Generated file content is undefined mid-generation. STREAM B reads partial state.
 
+**Do instead**: Treat code generation as a single-stream gate. STREAM A runs generation to completion, generation fan-in confirms the output files exist and are stable, then downstream consumers start in a new phase.
+
 **Fix**: Generation is always sequential. Downstream consumers wait for generation fan-in.
 
 ---
@@ -136,6 +143,8 @@ Any file appearing in multiple agent domains signals a conflict.
 **What it looks like**: Dispatching lint agent and compile agent simultaneously.
 
 **Why wrong**: If compile fails, lint output is wasted work. If lint changes code, compile state is stale.
+
+**Do instead**: Within any single file domain, enforce the fixed sequence: Compile, then Test, then Lint, then Format. Only move to the next step after the previous one exits 0. Never parallelize these steps within the same domain.
 
 **Fix**: Compile → Test → Lint → Format (always sequential, never parallel within a domain).
 
