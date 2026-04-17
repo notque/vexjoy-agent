@@ -154,20 +154,24 @@ Before signing any vendor contract over $10K/year:
 ---
 
 ## Anti-Patterns
+<!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Buying based on demo, not hands-on trial
 **What it looks like**: Sales demo shows everything working perfectly, contract signed, integration begins, and a different reality emerges.
 **Why wrong**: Demos are curated. Integration complexity, actual API reliability, and support quality only reveal themselves in practice.
+**Do instead**: Require a POC period before any annual contract. Define a specific integration milestone that represents real-world complexity. Sign only after that milestone is complete. Any serious vendor will accept this condition.
 **Fix**: Require a proof-of-concept (POC) period with a representative integration task before committing to annual contract. "We need to complete integration milestone X before we commit" is a reasonable ask for any serious vendor.
 
 ### Evaluating current feature set, not roadmap direction
 **What it looks like**: Vendor has 9/10 of features needed today. Missing 1 feature is "on the roadmap."
 **Why wrong**: "On the roadmap" has no SLA. Features promised in sales negotiations are not features in contracts.
+**Do instead**: Request the public changelog and last 4 release notes. Evaluate velocity and direction from those artifacts, not from verbal promises. For features that are decision-critical, require a contract addendum with a delivery date before signing.
 **Fix**: Ask to see the public changelog and last 4 release notes. If the velocity is high and roadmap direction matches your needs, that is more reliable than verbal promises. Require a contract addendum for features that are decision-critical.
 
 ### Evaluating one vendor at a time (serial evaluation)
 **What it looks like**: Full evaluation of Vendor A, then if not satisfied, evaluate Vendor B.
 **Why wrong**: Serial evaluation introduces time pressure at Vendor B. You may sign with B because you are tired of evaluating, not because B is the best option.
+**Do instead**: Run 2-3 vendor evaluations in parallel using identical RFP criteria. The coordination overhead is worth it: you eliminate time-pressure bias and can make a genuine comparison rather than a fallback decision.
 **Fix**: Run parallel evaluations with 2-3 vendors simultaneously using the same RFP criteria. Takes more coordination but produces better decisions.
 
 ---

@@ -253,25 +253,30 @@ After pre-mortem, scenario planning, and black swan identification, consolidate 
 ---
 
 ## Anti-Patterns
+<!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Pre-mortem as validation exercise
 **What it looks like**: Team runs pre-mortem but all proposed failure modes are minor and easily dismissed. The session feels like box-checking.
 **Why wrong**: If your pre-mortem does not generate at least one uncomfortable insight — something that changes the plan or makes the team nervous — it was not conducted with intellectual honesty. Good pre-mortems hurt a little.
+**Do instead**: Assign the most skeptical person in the room to lead Round 1. Give them explicit permission to name the failure mode everyone is privately thinking but not saying. The facilitator must reject any failure mode that does not name which assumption was wrong.
 **Fix**: Require the most skeptical person in the room to lead Round 1. If no one is playing devil's advocate, assign the role explicitly. The facilitator should reject any failure mode that does not include "which assumption was wrong."
 
 ### Scenario planning without probability assignment
 **What it looks like**: Four beautifully written scenarios with no probabilities. All scenarios treated as equally likely in discussion.
 **Why wrong**: If all scenarios are equally likely, the expected value calculation cannot be done. The team defaults to discussing the most vivid scenario (usually worst-case) and either overcorrects or dismisses it.
+**Do instead**: Assign probabilities before discussing any scenario's implications. Rough estimates ("~60%, ~20%, ~15%, ~5%") are sufficient. The disagreement that surfaces during assignment is more valuable than the scenarios themselves.
 **Fix**: Require probability assignments before discussing scenario implications. Probabilities do not need to be precise — "~60%, ~20%, ~15%, ~5%" is enough. The act of assigning forces explicit disagreement about likelihood, which is more valuable than the scenarios themselves.
 
 ### Black swan conflated with low-probability planned risk
 **What it looks like**: "The black swan scenario is that we only close 50% of our projected pipeline."
 **Why wrong**: 50% pipeline miss is a normal risk, not a black swan. It belongs in the scenario planning matrix. Black swans are outside the planning range, not just the pessimistic end of the normal range.
+**Do instead**: Apply the three-part black swan test before labeling any risk as one: it would not appear in a standard risk register, it falls outside the range of outcomes the team has experienced or planned for, and it would require a fundamentally different response rather than an adjusted plan. Everything else goes in the scenario matrix.
 **Fix**: For a risk to qualify as a black swan, it must satisfy: (1) would not appear in a standard risk register, (2) is outside the range of outcomes the team has experienced or planned for, and (3) would require a fundamentally different response, not just an adjusted plan.
 
 ### Risk register without owners
 **What it looks like**: 12-item risk register, all marked "Team" as owner.
 **Why wrong**: Team ownership is no ownership. No one monitors the risk; no one detects early warning signals; no one escalates.
+**Do instead**: Assign every risk to a single named individual before the register is considered complete. If no one will accept ownership of a high-probability risk, escalate it to the decision-maker immediately — that refusal is itself a signal worth surfacing.
 **Fix**: Every risk in the register must have a single named individual as owner. If no one will own it, escalate the risk to decision-maker level immediately — unowned high-probability risks are the most dangerous items in any plan.
 
 ---
