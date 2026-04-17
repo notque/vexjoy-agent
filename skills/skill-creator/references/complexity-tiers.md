@@ -27,26 +27,6 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 
 ---
 
-### branch-naming
-**Lines**: ~400
-**Purpose**: Generate Git branch names from descriptions
-**Phases**: 3 (Parse, Transform, Validate)
-**Why Simple**:
-- Single deterministic operation
-- Python script does heavy lifting
-- Few error cases (4)
-- No multi-agent coordination
-
-**Structure**:
-```
-.claude/skills/branch-naming/
-├── SKILL.md (280 lines)
-└── scripts/
-    └── generate.py (120 lines)
-```
-
----
-
 ## Medium Tier (800-1500 lines)
 
 ### systematic-debugging
@@ -221,7 +201,7 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 
 **Single, focused operation?**
 → Simple tier
-- Examples: pr-workflow (cleanup), branch-naming, service-health-check
+- Examples: pr-workflow (cleanup), service-health-check, github-notification-triage
 - Characteristics: Linear workflow, minimal scripting, <5 errors
 
 **Multi-step with moderate coordination?**

@@ -70,9 +70,8 @@ SKILL_ROUTING = {
     "universal-quality-gate": "Multi-language quality checks",
     "code-linting": "Python (ruff) + JavaScript (Biome) linting",
     # Git/CI
-    "branch-naming": "Generate branch names from commit messages",
     "git-commit-flow": "Standardized commit workflow, validation",
-    "github-actions-check": "Check CI status after push",
+    "pr-workflow": "PR lifecycle umbrella: sync, status, fix, cleanup, miner, branch-name, ci-check",
     # Research/Analysis
     "codebase-overview": "Rapidly understand unfamiliar codebases",
     "codebase-analyzer": "Extract implicit coding rules from patterns",
@@ -158,7 +157,7 @@ def get_evaluation_prompt(complexity: str) -> str:
 **Skills by Purpose:**
 - Code Review: systematic-code-review, systematic-debugging, systematic-refactoring
 - Quality Gates: go-patterns, python-quality-gate, universal-quality-gate
-- Git: branch-naming, git-commit-flow, github-actions-check
+- Git: git-commit-flow, pr-workflow (umbrella: sync, status, fix, cleanup, miner, branch-name, ci-check)
 - Process: workflow-orchestrator, verification-before-completion, test-driven-development
 - Analysis: codebase-overview, codebase-analyzer, agent-evaluation
 - Cleanup: code-cleanup, comment-quality, code-linting"""

@@ -359,9 +359,8 @@ These are mandatory. When triggers match, the skill fires before any other routi
 | `feature-lifecycle` | design feature, plan feature, implement feature, validate feature, release feature, feature pipeline, full feature lifecycle |
 | `system-upgrade` | upgrade agents, system upgrade, claude update, upgrade skills |
 | `de-ai-pipeline` | de-ai docs, clean ai patterns, fix ai writing, scan and fix docs |
-| `pr-workflow` | push changes, push my changes, create PR, open PR, PR status, sync to GitHub |
+| `pr-workflow` | push changes, push my changes, create PR, open PR, PR status, sync to GitHub, check CI, CI status, did CI pass, generate branch name, name branch |
 | `git-commit-flow` | commit, commit this, commit changes, stage and commit |
-| `github-actions-check` | check CI, CI status, actions status, did CI pass |
 | `fast` | quick fix, typo fix, one-line change, trivial fix, rename variable |
 | `quick` | quick task, small change, ad hoc task, add a flag, small refactor |
 | `perses` | perses, perses dashboard, perses plugin, perses lint, perses deploy, Grafana to Perses |

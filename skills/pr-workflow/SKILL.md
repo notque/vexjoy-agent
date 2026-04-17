@@ -45,6 +45,17 @@ routing:
     - "create pull request"
     - "send for review"
     - "open PR"
+    - "generate branch name"
+    - "validate branch name"
+    - "name branch"
+    - "branch convention"
+    - "git branch name"
+    - "check CI"
+    - "CI status"
+    - "actions status"
+    - "did CI pass"
+    - "build status"
+    - "CI passed"
   category: git-workflow
 ---
 
@@ -65,6 +76,8 @@ Detect the user's intent and load the appropriate reference file:
 | **Cleanup** | "clean up branches", "delete merged branch", "prune" | `${CLAUDE_SKILL_DIR}/references/cleanup.md` |
 | **Feedback** | "process PR feedback", "address reviews", "what did reviewers say" | `${CLAUDE_SKILL_DIR}/references/feedback.md` |
 | **Miner** | "mine PRs", "extract review comments", "tribal knowledge", "reviewer patterns" | `${CLAUDE_SKILL_DIR}/references/miner.md` |
+| **Branch name** | "generate branch name", "validate branch name", "name branch", "branch convention", "git branch name" | `${CLAUDE_SKILL_DIR}/references/branch-name.md` |
+| **CI check** | "check CI", "CI status", "actions status", "did CI pass", "build status", "CI passed" | `${CLAUDE_SKILL_DIR}/references/ci-check.md` |
 
 **Default action**: When invoked with no arguments or ambiguous intent, load `sync.md` (the most common PR use case).
 

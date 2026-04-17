@@ -28,9 +28,8 @@ These skills **MUST** be invoked when their triggers appear:
 | Typo, one-line fix, trivial mechanical change | `fast` |
 | Small self-contained change, add CLI flag, extract helper | `quick` |
 | Go test, _test.go, table-driven, goroutine, channel, error handling, fmt.Errorf, sapcc, make check | `go-patterns` |
-| Push branch, create PR, open pull request, PR status, fix PR comments | `pr-workflow` |
+| Push branch, create PR, open PR, PR status, fix PR comments, CI passed, GitHub Actions status, build results, name branch, generate branch name | `pr-workflow` |
 | Stage files, commit, save work, checkpoint | `git-commit-flow` |
-| CI passed, GitHub Actions status, build results | `github-actions-check` |
 | New feature design, plan, implement, validate, release | `feature-lifecycle` |
 | Scan and fix AI patterns across docs/content | `de-ai-pipeline` |
 | Improve toolkit, evaluate repo, audit system, self-improvement | `toolkit-improvement` |

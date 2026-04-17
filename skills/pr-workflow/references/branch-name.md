@@ -1,27 +1,6 @@
----
-name: branch-naming
-description: "Generate and validate Git branch names."
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-routing:
-  triggers:
-    - "generate branch name"
-    - "validate branch name"
-    - "name branch"
-    - "branch convention"
-    - "git branch name"
-  category: git-workflow
----
+# Branch Naming
 
-# Branch Naming Skill
-
-Generate and validate Git branch names from conventional commit messages or plain descriptions. This skill only handles naming -- it does not create, delete, or manage branches.
+Generate and validate Git branch names from conventional commit messages or plain descriptions. This reference only handles naming -- it does not create, delete, or manage branches.
 
 ## Instructions
 
@@ -34,7 +13,7 @@ Determine the commit type and subject from whatever the user provides.
 - Pattern: `<type>[optional scope]: <description>`
 
 **If a plain description** (e.g., `add user authentication`):
-- Infer type from keywords (see `references/type-mapping.md` for full mapping)
+- Infer type from keywords
 - Keywords: add/implement/create -> feat, fix/resolve/correct -> fix, document/readme -> docs, refactor/restructure -> refactor, test/spec -> test, remove/delete/update -> chore
 - Default to `feat` when no keywords match
 
@@ -62,7 +41,7 @@ Strip banned characters (emojis, special chars) from the input. If the input is 
 
 Every branch name must have a prefix from this list -- unprefixed names like `add-user-authentication` break CI/CD automation and make filtering impossible.
 
-**Sanitize the subject to kebab-case** using the 7-step pipeline (see `references/sanitization-rules.md`):
+**Sanitize the subject to kebab-case** using the 7-step pipeline:
 1. Lowercase
 2. Strip leading/trailing whitespace
 3. Replace spaces with hyphens
@@ -190,12 +169,3 @@ Solution:
 1. Suggest alternatives with -v2 or date suffix
 2. Offer to check out existing branch instead
 3. Prompt for custom differentiating suffix
-
----
-
-## References
-
-- `${CLAUDE_SKILL_DIR}/references/type-mapping.md`: Conventional commit type to branch prefix mapping
-- `${CLAUDE_SKILL_DIR}/references/naming-conventions.md`: Branch format rules, character whitelist, examples
-- `${CLAUDE_SKILL_DIR}/references/sanitization-rules.md`: 7-step text sanitization pipeline and truncation strategies
-- `${CLAUDE_SKILL_DIR}/references/examples.md`: Good/bad examples with corrections and integration patterns

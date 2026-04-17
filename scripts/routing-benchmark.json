@@ -37,10 +37,10 @@
     {
       "request": "did CI pass on my PR?",
       "expected_agent": null,
-      "expected_skill": "github-actions-check",
+      "expected_skill": "pr-workflow",
       "category": "git-operations",
       "routing_tier": "force_route",
-      "notes": "CI status check — force-route to github-actions-check"
+      "notes": "CI status check — force-route to pr-workflow (ci-check intent)"
     },
     {
       "request": "check my logic in this function",
@@ -48,7 +48,7 @@
       "expected_skill": null,
       "category": "false-positive-guard",
       "routing_tier": "llm_only",
-      "notes": "Code review, not CI check — must NOT route to github-actions-check"
+      "notes": "Code review, not CI check — must NOT route to pr-workflow"
     },
     {
       "request": "submit a PR with full review gates",
