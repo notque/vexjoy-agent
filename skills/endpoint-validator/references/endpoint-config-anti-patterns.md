@@ -1,5 +1,7 @@
 # Endpoint Config Anti-Patterns Reference
 
+<!-- no-pair-required: document title block, not an anti-pattern description -->
+
 > **Scope**: Anti-patterns in `endpoints.json` configuration and common validation mistakes.
 > **Version range**: All versions of endpoint-validator
 > **Generated**: 2026-04-17
@@ -71,7 +73,7 @@ rg '"base_url".*[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' --type json
 **Why wrong**: IP addresses are machine-local. The config breaks on every other developer
 machine, in CI, and after any network reconfiguration.
 
-**Fix**:
+**Do instead**:
 ```json
 {"base_url": "http://localhost:8000"}
 ```
@@ -99,7 +101,7 @@ grep -rn '"method"' . --include="*.json" | grep -iE '"POST"|"PUT"|"DELETE"|"PATC
 **Why wrong**: POST/PUT/DELETE against a production URL creates/mutates/deletes real data.
 A smoke test that runs pre-deploy will insert test records, trigger webhooks, or bill users.
 
-**Fix**: Use staging for mutating endpoints. Reserve production config for GET-only health
+**Do instead**: Use staging for mutating endpoints. Reserve production config for GET-only health
 checks. The validator warns when it detects write methods with a non-localhost `base_url`.
 
 ---
@@ -118,11 +120,11 @@ grep -rn '"timeout"' . --include="*.json" | grep -E '"timeout":\s*[6-9][0-9]|[1-
 {"path": "/api/upload", "timeout": 300}
 ```
 
-**Why wrong**: `timeout: 0` means no timeout — a hung connection blocks the entire validation
+**Why wrong**: `timeout: 0` means no timeout. A hung connection blocks the entire validation
 suite forever. `timeout: 300` hides performance regressions; an endpoint that starts taking
 60 seconds is clearly degraded but passes validation.
 
-**Fix**: Use `timeout: 5` (default) for health checks. For legitimately slow endpoints, set
+**Do instead**: Use `timeout: 5` (default) for health checks. For legitimately slow endpoints, set
 `timeout: 15` and `max_time: 5.0` to distinguish "too slow" from "timed out completely":
 ```json
 {"path": "/api/report", "timeout": 15, "max_time": 5.0}
@@ -146,7 +148,7 @@ grep -B2 '"expect_key"' endpoints.json | grep -E '"path".*\.(html|xml|csv|txt|pd
 XML, HTML, and CSV responses will always fail JSON parsing, generating "Invalid JSON response"
 errors that obscure the real issue.
 
-**Fix**: For non-JSON endpoints, only check `expect_status`:
+**Do instead**: For non-JSON endpoints, only check `expect_status`:
 ```json
 {"path": "/sitemap.xml", "expect_status": 200}
 ```
@@ -176,7 +178,7 @@ for ep in cfg.get('endpoints', []):
 **Why wrong**: Default `expect_status` is 200. An endpoint that intentionally returns 404
 (e.g., validating your 404 handler) will report FAIL when it should PASS.
 
-**Fix**:
+**Do instead**:
 ```json
 {"path": "/api/v1/nonexistent-resource", "expect_status": 404}
 ```
@@ -200,7 +202,7 @@ rg '"Bearer [A-Za-z0-9+/=._-]{20,}"' --type json
 rotated, the old token may be valid elsewhere or extractable from history. GitHub secret
 scanning will flag this.
 
-**Fix**: Use environment variable interpolation:
+**Do instead**: Use environment variable interpolation:
 ```json
 {"headers": {"Authorization": "Bearer ${API_TOKEN}"}}
 ```
