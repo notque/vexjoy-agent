@@ -1,5 +1,7 @@
 # Pipeline Orchestration — Anti-Patterns
 
+<!-- no-pair-required: section-header-only; document title for anti-patterns reference file -->
+
 > **Scope**: Common mistakes when creating, scaffolding, and routing toolkit pipelines. Does NOT cover general Go/Python anti-patterns — see those agents for language-specific issues.
 > **Version range**: claude-code-toolkit all versions
 > **Generated**: 2026-04-09 — verify detection commands against current repo structure
@@ -13,6 +15,8 @@ Pipeline creation mistakes compound: a missing discovery step leads to duplicate
 ---
 
 ## Anti-Pattern Catalog
+
+<!-- no-pair-required: section-header-only; individual anti-patterns below carry Do-instead blocks -->
 
 ### ❌ Dispatching Sub-Agents Without Context Package
 
@@ -29,7 +33,7 @@ Agent(description="Create skill", prompt="Create a skill for Prometheus alerting
 
 **Why wrong**: The sub-agent starts with no knowledge of existing components, naming conventions, or inter-component relationships. It will create components that conflict with or duplicate existing ones. The pipeline-creator A/B test validated this: agents dispatched without a Discovery Report produced orphaned components in 40% of runs.
 
-**Fix**:
+**Do instead**:
 ```
 Agent(
   description="Create Prometheus alerting skill",
@@ -62,7 +66,7 @@ ls agents/*.md | wc -l
 
 **Why wrong**: Creates a duplicate routing entry. Two agents with overlapping triggers produce non-deterministic routing — `/do` will route to whichever appears first in the routing table. Users get inconsistent behavior. The duplicate is harder to merge later than to prevent now.
 
-**Fix**: Always run Phase 1 before Phase 3:
+**Do instead**: Always run Phase 1 before Phase 3:
 ```bash
 # In Phase 1
 python3 scripts/artifact-utils.py discover --domain prometheus
@@ -89,7 +93,7 @@ description: "Prometheus: metrics, alerting, dashboards, operations, performance
 
 **Why wrong**: Each subdomain has different task types needing different pipeline chains. A skill handling 5 subdomains dilutes expertise, overloads context, and can't be routed independently. The A/B test on parallel dispatch showed sequential single-skill approaches lose 1.40 points on Examples quality vs. parallel N-skill approaches.
 
-**Fix**: Decompose into N skills per domain:
+**Do instead**: Decompose into N skills per domain:
 ```
 prometheus-metrics-skill.md        — authoring and querying metrics
 prometheus-alerting-skill.md       — alert rules, inhibition, routing
@@ -114,7 +118,7 @@ grep -rn 'validate-chain\|chain.*pass\|chain.*valid' adr/ --include="*.md"
 
 **Why wrong**: Type incompatibilities surface at runtime, not during scaffolding. A `research` step produces a `ResearchReport` artifact; a `review` step expects `DraftContent`. Connecting them directly produces a type mismatch that silently produces empty or malformed output.
 
-**Fix**:
+**Do instead**:
 ```bash
 python3 scripts/artifact-utils.py validate-chain \
   --chain "research,draft,review,publish" \
@@ -139,7 +143,7 @@ comm -23 \
 
 **Why wrong**: An unrouted pipeline is invisible. No trigger phrase reaches it. It exists as a file but is dead code — users get no error, just wrong routing to an unrelated agent. Routing integration takes 2 minutes; recovering user trust in the routing system takes longer.
 
-**Fix**: Phase 4 INTEGRATE is not optional. Run `routing-table-updater` in the same session as Phase 3 SCAFFOLD. Gate: all components routable via `/do` before task is marked complete.
+**Do instead**: Phase 4 INTEGRATE is not optional. Run `routing-table-updater` in the same session as Phase 3 SCAFFOLD. Gate: all components routable via `/do` before task is marked complete.
 
 ---
 
@@ -164,7 +168,7 @@ description: "..."
 
 **Why wrong**: Agents without `allowed-tools` get the full tool set regardless of their role. A read-only reviewer agent that can Edit/Write/Bash can silently modify files during review — a violation of the reviewer role. ADR-063 mandates tool restriction by role type.
 
-**Fix**: Match tools to role:
+**Do instead**: Match tools to role:
 ```yaml
 allowed-tools:  # for reviewers / research agents
   - Read
