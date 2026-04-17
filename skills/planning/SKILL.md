@@ -92,7 +92,6 @@ Detect the user's intent and load the appropriate reference file:
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | "write spec", "user stories", "define requirements", "scope this", "acceptance criteria", "define scope", "spec out" | `spec.md` | **Spec** |

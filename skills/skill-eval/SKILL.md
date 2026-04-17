@@ -34,7 +34,6 @@ Measure and improve skill quality through empirical testing — because structur
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `schemas.md` | Loads detailed guidance from `schemas.md`. |

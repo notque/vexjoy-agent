@@ -87,7 +87,6 @@ mcp = FastMCP("{service}-mcp-server")
 # Initialize shared client
 _client = ServiceClient(api_key=_API_KEY)
 
-
 # --- Tool parameter models (Pydantic v2) ---
 
 class GetIssueParams(BaseModel):
@@ -95,13 +94,11 @@ class GetIssueParams(BaseModel):
     repo: str = Field(description="Repository name")
     issue_number: int = Field(description="Issue number", gt=0)
 
-
 class ListIssuesParams(BaseModel):
     owner: str = Field(description="Repository owner or organization name")
     repo: str = Field(description="Repository name")
     state: str = Field(default="open", description="Filter by state: open, closed, all")
     limit: int = Field(default=20, ge=1, le=100, description="Maximum results. Default: 20")
-
 
 # --- Tools ---
 
@@ -117,7 +114,6 @@ def service_get_issue(params: GetIssueParams) -> str:
         # Raise with a clear message — FastMCP converts this to an MCP error response
         raise ValueError(f"Error fetching issue {params.issue_number}: {e}") from e
 
-
 @mcp.tool(
     description="List issues with optional state filter. Returns a JSON array of matching issues."
 )
@@ -128,7 +124,6 @@ def service_list_issues(params: ListIssuesParams) -> str:
         return json.dumps(issues, indent=2)
     except Exception as e:
         raise ValueError(f"Error listing issues: {e}") from e
-
 
 # --- Entry point ---
 
@@ -149,7 +144,6 @@ The shared client class. Adapt to the target service's protocol.
 
 import httpx
 from typing import Any
-
 
 class ServiceClient:
     def __init__(self, api_key: str, base_url: str = "https://api.example.com"):
@@ -190,7 +184,6 @@ import subprocess
 import json
 import os
 
-
 class CliClient:
     def __init__(self, executable: str, env: dict[str, str] | None = None):
         self._executable = executable
@@ -226,7 +219,6 @@ When the target is an installable Python package:
 
 # Install the target: pip install {service-package}
 from {service_package} import SomeClient, Config
-
 
 class ImportClient:
     def __init__(self, api_key: str):

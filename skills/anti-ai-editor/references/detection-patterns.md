@@ -240,8 +240,6 @@ AI tells the reader to feel something instead of presenting facts that create th
 
 **Fix strategy:** If you need to tell the reader something matters, the preceding facts didn't do their job. Fix the facts, then delete the emphasis.
 
-
-
 ```regex
 # Absolute adjectives with modifiers
 \bvery unique\b

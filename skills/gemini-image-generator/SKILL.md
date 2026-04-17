@@ -32,7 +32,6 @@ Generate images from text prompts via CLI using Google Gemini APIs. Supports mod
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `prompts.md` | Loads detailed guidance from `prompts.md`. |

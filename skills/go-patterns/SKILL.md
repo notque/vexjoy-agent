@@ -79,7 +79,6 @@ based on the Go task at hand.
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | Testing | `testing.md` | Writing, fixing, or reviewing Go tests |

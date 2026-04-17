@@ -106,11 +106,11 @@ Each hypothesis must:
 Format each hypothesis:
 
 ```
-Hypothesis A: Moving the error-handling constraint from the preamble to Phase 2 
+Hypothesis A: Moving the error-handling constraint from the preamble to Phase 2
   (where errors actually occur) should improve error-handling quality in outputs
   because constraints at point-of-use are more effective than front-loaded rules.
 
-Hypothesis B: Replacing the vague anti-pattern "don't over-engineer" with a 
+Hypothesis B: Replacing the vague anti-pattern "don't over-engineer" with a
   concrete before/after example should reduce over-engineering in outputs because
   specific examples are more actionable than abstract warnings.
 ```
@@ -118,8 +118,8 @@ Hypothesis B: Replacing the vague anti-pattern "don't over-engineer" with a
 **Example using a real toolkit skill** — improving the `fast` skill's description:
 
 ```
-Hypothesis A: Shortening the description from "Zero-ceremony inline execution 
-  for 3 or fewer file edits" to "Quick inline edits, 1-3 files, no ceremony" 
+Hypothesis A: Shortening the description from "Zero-ceremony inline execution
+  for 3 or fewer file edits" to "Quick inline edits, 1-3 files, no ceremony"
   should improve trigger rate for casual phrasing ("just fix this quick") because
   the shorter form matches how users actually talk.
 ```

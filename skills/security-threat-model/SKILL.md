@@ -275,7 +275,6 @@ These are not error conditions. Re-run with `--verbose` for detail on missing pa
 
 ---
 
-
 ## References
 
 - [ADR-102: Security Threat Model Skill](../../adr/ADR-102-security-threat-model.md)

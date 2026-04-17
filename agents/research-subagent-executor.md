@@ -148,7 +148,6 @@ STOP and ask the user when:
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | Budget calculation, OODA structure, tool selection, query optimization, diminishing returns | `research-execution-patterns.md` | Routes to the matching deep reference |

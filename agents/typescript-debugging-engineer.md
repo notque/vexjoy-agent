@@ -137,7 +137,6 @@ Test Plan: [How to reproduce]
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | workflow steps | `debugging-workflows.md` | Race conditions, type errors, production debugging, async issues, git bisect, memory leaks |

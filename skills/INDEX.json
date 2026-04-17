@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-17T03:24:23Z",
+  "generated": "2026-04-17T20:49:52Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -590,7 +590,7 @@
       "pairs_with": [
         "comprehensive-review"
       ],
-      "model": "opus"
+      "model": "sonnet"
     },
     "game-asset-generator": {
       "file": "skills/game-asset-generator/SKILL.md",
@@ -1467,7 +1467,7 @@
         "workflow"
       ],
       "agent": "research-coordinator-engineer",
-      "model": "opus"
+      "model": "sonnet"
     },
     "research-pipeline": {
       "file": "skills/research-pipeline/SKILL.md",
@@ -1565,7 +1565,7 @@
         "sapcc-audit"
       ],
       "agent": "golang-general-engineer",
-      "model": "opus"
+      "model": "sonnet"
     },
     "security-threat-model": {
       "file": "skills/security-threat-model/SKILL.md",
@@ -1587,7 +1587,7 @@
       "pairs_with": [
         "python-general-engineer"
       ],
-      "model": "opus"
+      "model": "sonnet"
     },
     "series-planner": {
       "file": "skills/series-planner/SKILL.md",

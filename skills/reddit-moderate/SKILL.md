@@ -33,7 +33,6 @@ report classification, and executes mod actions you confirm.
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | Classifying items, category definitions, confidence thresholds | `classification-prompt.md` | Routes to the matching deep reference |

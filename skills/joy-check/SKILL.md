@@ -44,7 +44,6 @@ This skill checks *framing*, not *topic* and not *voice*. Voice fidelity belongs
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `instruction-rubric.md` | Loads detailed guidance from `instruction-rubric.md`. |

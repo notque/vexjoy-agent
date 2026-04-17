@@ -395,7 +395,6 @@ Solution:
 3. Suggest: `gh run watch [run-id]` for manual monitoring
 4. Mark pipeline as complete with "CI pending" status
 
-
 ---
 
 # Appendix: Reference Details
@@ -470,7 +469,6 @@ echo "Preflight checklist PASSED."
 
 This is context-dependent. If the project has a test suite (`go test`, `npm test`, `pytest`, etc.), look for evidence that tests were run recently (e.g., verification report files, recent test output in the session). If no test infrastructure exists, this check passes by default. The goal is to prevent submitting code that was never tested, not to block projects without tests.
 
-
 ---
 
 # Review-Fix Loop
@@ -531,7 +529,6 @@ REVIEW-FIX ITERATION [N/3]
   Remaining: [Z issues]
   Status: [CLEAN | FIXING | MAX ITERATIONS REACHED]
 ```
-
 
 ---
 
@@ -641,7 +638,6 @@ python3 ~/.claude/scripts/adr-status.py status
 ```
 
 Include the status summary in the PR body if the PR touches any `adr/*.md` files. This gives reviewers an at-a-glance view of ADR state.
-
 
 ---
 

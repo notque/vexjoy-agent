@@ -41,7 +41,6 @@ This separation prevents the common failure mode where the generator rationalize
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `anti-ai-slide-rules.md` | Loads detailed guidance from `anti-ai-slide-rules.md`. |

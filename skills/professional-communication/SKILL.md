@@ -30,7 +30,6 @@ This skill transforms dense technical communication into clear, structured busin
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | example-driven tasks | `examples.md` | Loads detailed guidance from `examples.md`. |

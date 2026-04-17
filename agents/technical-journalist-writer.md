@@ -151,7 +151,6 @@ STOP and ask the user when:
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | implementation patterns | `article-structure-patterns.md` | Loads detailed guidance from `article-structure-patterns.md`. |

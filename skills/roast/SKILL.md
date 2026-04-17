@@ -42,7 +42,6 @@ This skill produces evidence-based constructive critique through 5 specialized H
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `personas.md` | Loads detailed guidance from `personas.md`. |

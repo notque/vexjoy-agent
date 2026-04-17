@@ -213,7 +213,6 @@ See [references/kotlin-security-testing.md](references/kotlin-security-testing.m
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | [`references/kotlin-patterns.md`](references/kotlin-patterns.md) | `kotlin-patterns.md)` | Null safety (`!!` alternatives, Java interop), coroutines/Flow (structured concurrency, dispatchers, StateFlow, `runTest`), sealed classes/enums/data classes, Koin DI |

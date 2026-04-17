@@ -65,7 +65,6 @@ Umbrella skill for all Perses platform operations.
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | First-time setup, server deployment | `onboard-deploy.md` | New Perses installation or server configuration |

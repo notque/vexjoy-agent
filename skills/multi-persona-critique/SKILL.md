@@ -51,7 +51,6 @@ This skill takes a set of proposals — feature ideas, architectural decisions, 
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | example-driven tasks, errors | `examples-and-errors.md` | Loads detailed guidance from `examples-and-errors.md`. |

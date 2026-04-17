@@ -79,7 +79,6 @@ If the task spans multiple workflows (e.g., research then write), load each refe
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | **Code Review** | `comprehensive-review.md` | Comprehensive multi-wave review |

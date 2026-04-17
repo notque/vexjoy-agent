@@ -77,7 +77,6 @@ This agent operates as an operator for data engineering, configuring Claude's be
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | Expertise, default/optional behaviors, capabilities, output format | `expertise.md` | Routes to the matching deep reference |

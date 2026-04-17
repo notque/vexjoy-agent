@@ -168,7 +168,6 @@ Each finding must follow this structure:
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | Security | `security.md` | OWASP, auth, injection, XSS, CSRF, secrets, vulnerabilities |

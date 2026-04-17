@@ -35,7 +35,6 @@ Implement condition-based polling and retry patterns with bounded timeouts, jitt
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | implementation patterns | `anti-patterns.md` | Loads detailed guidance from `anti-patterns.md`. |
