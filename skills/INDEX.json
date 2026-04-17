@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-17T02:25:17Z",
+  "generated": "2026-04-17T02:45:05Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -530,7 +530,7 @@
         "verification-before-completion",
         "universal-quality-gate",
         "adr-consultation",
-        "spec-writer"
+        "planning"
       ]
     },
     "fish-shell-config": {
@@ -578,7 +578,7 @@
       "user_invocable": false,
       "pairs_with": [
         "workflow",
-        "plan-checker"
+        "planning"
       ]
     },
     "frontend-slides": {
@@ -1133,25 +1133,6 @@
       "category": "code-review",
       "user_invocable": false
     },
-    "pause-work": {
-      "file": "skills/pause-work/SKILL.md",
-      "description": "Create session handoff artifacts for resumable work continuity.",
-      "triggers": [
-        "pause",
-        "save progress",
-        "handoff",
-        "stopping for now",
-        "end session",
-        "pick this up later",
-        "session handoff",
-        "wrap up session"
-      ],
-      "category": "process",
-      "user_invocable": false,
-      "pairs_with": [
-        "resume-work"
-      ]
-    },
     "perses": {
       "file": "skills/perses/SKILL.md",
       "description": "Perses platform operations: dashboards, plugins, deployment, migration, and quality.",
@@ -1226,51 +1207,62 @@
       "user_invocable": false,
       "agent": "php-general-engineer"
     },
-    "plan-checker": {
-      "file": "skills/plan-checker/SKILL.md",
-      "description": "Validate plans against 10 dimensions: PASS/BLOCK verdict before execution.",
+    "planning": {
+      "file": "skills/planning/SKILL.md",
+      "description": "Planning lifecycle umbrella: spec, pre-plan ambiguity resolution, file-backed planning, plan validation, plan-lifecycle management, and session pause/resume.",
       "triggers": [
+        "write spec",
+        "user stories",
+        "define requirements",
+        "scope this",
+        "what should this do",
+        "acceptance criteria",
+        "define scope",
+        "spec out",
+        "discuss ambiguities",
+        "resolve gray areas",
+        "clarify before planning",
+        "assumptions mode",
+        "what are the gray areas",
+        "before we plan",
+        "pre-planning discussion",
+        "create plan",
+        "task plan",
+        "working memory",
+        "persistent plan",
+        "file-backed planning",
         "check plan",
         "validate plan",
         "plan checker",
         "review plan",
         "is this plan ready",
         "plan-checker",
-        "pre-execution check"
-      ],
-      "category": "process",
-      "user_invocable": false,
-      "pairs_with": [
-        "feature-lifecycle",
-        "workflow",
-        "plan-manager"
-      ]
-    },
-    "plan-manager": {
-      "file": "skills/plan-manager/SKILL.md",
-      "description": "Plan lifecycle management via plan-manager.py: list, create, check, complete, abandon plans.",
-      "triggers": [
+        "pre-execution check",
         "list plans",
         "show plan",
         "complete plan",
         "plan status",
-        "manage plans"
+        "manage plans",
+        "pause",
+        "save progress",
+        "handoff",
+        "stopping for now",
+        "end session",
+        "pick this up later",
+        "session handoff",
+        "wrap up session",
+        "resume",
+        "continue",
+        "pick up where I left off",
+        "what was I doing",
+        "continue work",
+        "where did I leave off",
+        "what's next"
       ],
       "category": "process",
-      "user_invocable": true
-    },
-    "planning-with-files": {
-      "file": "skills/planning-with-files/SKILL.md",
-      "description": "Persistent markdown files as working memory for complex multi-phase tasks.",
-      "triggers": [
-        "create plan",
-        "task plan",
-        "working memory",
-        "persistent plan",
-        "file-backed planning"
-      ],
-      "category": "process",
-      "user_invocable": false
+      "force_route": true,
+      "user_invocable": true,
+      "agent": "general-purpose"
     },
     "plant-seed": {
       "file": "skills/plant-seed/SKILL.md",
@@ -1369,26 +1361,6 @@
       "category": "git-workflow",
       "force_route": true,
       "user_invocable": true
-    },
-    "pre-planning-discussion": {
-      "file": "skills/pre-planning-discussion/SKILL.md",
-      "description": "Resolve implementation ambiguities before planning begins.",
-      "triggers": [
-        "discuss ambiguities",
-        "resolve gray areas",
-        "clarify before planning",
-        "assumptions mode",
-        "what are the gray areas",
-        "before we plan",
-        "pre-planning discussion"
-      ],
-      "category": "process",
-      "force_route": true,
-      "user_invocable": false,
-      "pairs_with": [
-        "feature-lifecycle",
-        "workflow"
-      ]
     },
     "pre-publish-checker": {
       "file": "skills/pre-publish-checker/SKILL.md",
@@ -1546,24 +1518,6 @@
       "user_invocable": true,
       "agent": "research-coordinator-engineer",
       "model": "sonnet"
-    },
-    "resume-work": {
-      "file": "skills/resume-work/SKILL.md",
-      "description": "Restore session state from handoff artifacts (HANDOFF.json, .continue-here.md, task_plan.md) and resume.",
-      "triggers": [
-        "resume",
-        "continue",
-        "pick up where I left off",
-        "what was I doing",
-        "continue work",
-        "where did I leave off",
-        "what's next"
-      ],
-      "category": "process",
-      "user_invocable": true,
-      "pairs_with": [
-        "pause-work"
-      ]
     },
     "retro": {
       "file": "skills/retro/SKILL.md",
@@ -1776,25 +1730,6 @@
       ],
       "category": "process",
       "user_invocable": false
-    },
-    "spec-writer": {
-      "file": "skills/spec-writer/SKILL.md",
-      "description": "Structured specification: user stories, acceptance criteria, scope.",
-      "triggers": [
-        "write spec",
-        "user stories",
-        "define requirements",
-        "scope this",
-        "what should this do",
-        "acceptance criteria",
-        "define scope",
-        "spec out"
-      ],
-      "category": "process",
-      "user_invocable": false,
-      "pairs_with": [
-        "feature-lifecycle"
-      ]
     },
     "subagent-driven-development": {
       "file": "skills/subagent-driven-development/SKILL.md",

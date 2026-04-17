@@ -3,7 +3,7 @@ name: workflow-orchestrator
 user-invocable: false
 description: "Three-phase task orchestration: BRAINSTORM, WRITE-PLAN, EXECUTE-PLAN."
 success-criteria:
-  - "Plan validated by plan-checker before execution"
+  - "Plan validated by the planning umbrella's check intent before execution"
   - "All plan tasks completed and marked done"
   - "Full test suite passes after execution"
   - "No TODO/FIXME markers in new code"
@@ -24,7 +24,7 @@ routing:
     - break this down
     - multi-step implementation
   pairs_with:
-    - plan-checker
+    - planning
     - research-pipeline
   complexity: Complex
   category: meta
@@ -42,7 +42,7 @@ Orchestrate complex multi-step software development tasks using the BRAINSTORM /
 
 1. **BRAINSTORM**: Refine requirements, explore approaches, select best option
 2. **WRITE-PLAN**: Create detailed task breakdown with verification steps
-3. **VALIDATE-PLAN**: Run plan-checker with bounded revision loop
+3. **VALIDATE-PLAN**: Run the planning umbrella's check intent with bounded revision loop
 4. **EXECUTE-PLAN**: Execute tasks sequentially or in parallel, verify each step
 
 ### Phase 1: BRAINSTORM
@@ -233,20 +233,20 @@ T1 -> T2
 
 Zone transitions trigger explicit log entries: "Entering DEGRADING zone at ~52% context usage. 3 tasks remaining. Prioritizing critical path." These zones are planning heuristics based on estimated usage, not precise measurements.
 
-#### Step 1: Run Plan-Checker
+#### Step 1: Run Plan Validation
 
-Invoke the [plan-checker](../../plan-checker/SKILL.md) against the saved plan. The plan-checker evaluates the plan across its verification dimensions, including:
+Invoke the [planning umbrella's check intent](../../planning/references/check.md) against the saved plan. The check intent evaluates the plan across its verification dimensions, including:
 - Every task has a clear completion criterion
 - Task dependencies are explicit (no implicit ordering)
 - No task depends on an artifact that no prior task produces
 - Scope is bounded (no open-ended tasks like "improve performance")
 - Plan is achievable within ~50% of remaining context (context-budget check)
 
-The plan-checker produces a PASS/BLOCK verdict with structured findings.
+The check intent produces a PASS/BLOCK verdict with structured findings.
 
 #### Step 2: Bounded Revision Loop
 
-If the plan-checker finds issues:
+If the check intent finds issues:
 
 ```
 CHECK -> issues found -> REVISE plan -> CHECK again -> max 3 iterations
@@ -254,7 +254,7 @@ CHECK -> issues found -> REVISE plan -> CHECK again -> max 3 iterations
 
 1. Review each finding (dimension, severity, description, fix hint)
 2. Revise the plan to address blocker-severity findings first, then warnings
-3. Re-run the plan-checker on the revised plan
+3. Re-run the check intent on the revised plan
 4. Repeat up to **3 iterations maximum**
 
 If issues persist after 3 iterations, log the remaining issues as accepted risks in the plan's Notes section and proceed to execution. An imperfect plan executed is better than a perfect plan never started. The 3-iteration limit prevents infinite planning loops -- if a plan cannot pass validation in 3 revisions, the issues are likely structural and will surface clearly during execution.
@@ -262,7 +262,7 @@ If issues persist after 3 iterations, log the remaining issues as accepted risks
 #### Step 3: Log Validation Outcome
 
 Record in the plan file:
-- Plan-checker verdict (PASS / PASS-WITH-WARNINGS / BLOCK-OVERRIDDEN)
+- Check intent verdict (PASS / PASS-WITH-WARNINGS / BLOCK-OVERRIDDEN)
 - Number of revision iterations used
 - Any accepted risks from unresolved findings
 
@@ -294,7 +294,7 @@ Read the plan from `plan/active/{plan-name}.md` and verify:
 - All tasks have verification commands
 - Dependencies are valid (no circular refs)
 - Plan status is "Draft" or "In Progress"
-- Plan-checker validation has been completed (Phase 2.5)
+- Plan validation has been completed via the planning umbrella's check intent (Phase 2.5)
 
 Update plan status to "In Progress".
 
@@ -402,7 +402,7 @@ After successful execution, prompt user about plan lifecycle:
 | Circular dependency detected | Tasks form a dependency cycle | Restructure tasks to remove cycle |
 | File path is relative | Task used `./` path | Convert to absolute path |
 | Task duration exceeds 5 min | Task too large for atomic execution | Break into multiple smaller tasks |
-| Plan-checker blocker after 3 revisions | Plan has structural issues that revision cannot fix | Log as accepted risk, proceed with awareness, or ask user to restructure |
+| Check-intent blocker after 3 revisions | Plan has structural issues that revision cannot fix | Log as accepted risk, proceed with awareness, or ask user to restructure |
 | Regression detected | Current task broke prior task's verification | Identify the breaking change, repair without re-breaking prior task |
 | Context entering DEGRADING zone | >50% context consumed with tasks remaining | Prioritize critical-path tasks, skip optional verification, warn user |
 | Context entering POOR zone | >70% context consumed | Complete only in-progress task, create handoff artifacts, stop |
@@ -415,7 +415,7 @@ After successful execution, prompt user about plan lifecycle:
 **Cause**: Tasks form a dependency cycle where Task A depends on Task B and Task B depends on Task A (directly or transitively)
 **Solution**: Restructure the dependency graph to remove the cycle. Identify which task can be executed first with partial inputs, or extract the shared dependency into a new prerequisite task.
 
-### Error: Plan-checker blocker persists after 3 revisions
+### Error: Check-intent blocker persists after 3 revisions
 **Cause**: Plan has structural issues (vague scope, missing dependencies, unbounded tasks) that incremental revision cannot fix
 **Solution**: Log remaining issues as accepted risks in the plan's Notes section and proceed to execution. The 3-iteration limit prevents infinite planning loops. If issues are fundamental, ask user to restructure the task scope.
 
@@ -426,7 +426,7 @@ This skill uses these shared patterns:
 - [Verification Checklist](../shared-patterns/verification-checklist.md) - Pre-completion checks
 
 Related skills and ADRs:
-- [Plan Checker](../../plan-checker/SKILL.md) - Pre-execution plan validation (ADR-074)
+- [Planning umbrella — check intent](../../planning/references/check.md) - Pre-execution plan validation (ADR-074)
 - [ADR-076: Autonomous Repair Mechanism](../../adr/076-autonomous-repair-mechanism.md) - Repair strategies and budget enforcement
 - [ADR-079: Workflow Orchestrator Enhancements](../../adr/079-workflow-orchestrator-enhancements.md) - Plan validation, context budget, deviation rules, regression gates
 - [ADR-069: Session Handoff System](../../adr/069-session-handoff-system.md) - Handoff artifacts for POOR context zone

@@ -95,7 +95,7 @@ SKILL_ROUTING = {
     "docs-sync-checker": "Verify all skills/agents documented",
     "routing-table-updater": "Maintain /do routing tables",
     # Plan Management
-    "plan-manager": "Deterministic plan lifecycle (list, show, check, complete, abandon)",
+    "planning": "Planning umbrella: spec, pre-plan, plan-files, check, manage, pause, resume",
 }
 
 

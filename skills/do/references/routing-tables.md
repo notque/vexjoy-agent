@@ -82,21 +82,15 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **php-testing** | User wants PHP testing patterns: PHPUnit, test doubles, database testing. Companion skill for php-general-engineer. |
 | **codex-code-review** | User wants a second-opinion code review from OpenAI Codex CLI (GPT-5.4 xhigh), a cross-model review, or says "codex review", "second opinion", "get another perspective". NOT: a standard Claude-only review (use systematic-code-review or parallel-code-review). |
 | **with-anti-rationalization** | User explicitly requests maximum rigor, thorough verification, or wants anti-rationalization patterns injected. |
-| **plan-manager** | User wants to see the status of plans, audit existing plans, or manage the plan lifecycle. |
-| **planning-with-files** | User needs persistent planning with file-backed state across a long multi-session task. |
+| **planning** (FORCE) | Planning lifecycle umbrella. Routes to one of seven intents: spec (user stories, acceptance criteria, scope), pre-plan (resolve ambiguities before planning begins), plan-files (persistent file-backed planning with working memory), check (validate plans against 10 dimensions with PASS/BLOCK verdict), manage (plan lifecycle via plan-manager.py: list, create, show, check, complete, abandon), pause (session handoff artifacts like HANDOFF.json and .continue-here.md), and resume (restore session state from handoff artifacts). |
 | **go-patterns (FORCE)** | User wants Go development patterns: testing (_test.go, table-driven, benchmarks), concurrency (goroutines, channels, sync), error handling (fmt.Errorf, errors.Is/As, sentinels), anti-patterns (code smells, over-engineering), code review (Go PR quality), SAP CC conventions (sapcc, go-bits, keppel), or quality gates (make check, lint). |
 | **sapcc-review** | User wants a SAPCC compliance review of a Go PR or repository for SAP Converged Cloud conventions. |
 | **sapcc-audit** | User wants a full SAPCC audit of an entire repository against SAP Converged Cloud standards. |
 | **fish-shell-config** | User is configuring fish shell: editing config.fish, writing fish functions, or fixing fish-specific syntax. |
 | **adr-consultation** | User wants multi-agent consultation before making an architectural decision: dispatch 3+ agents to stress-test a plan before committing. |
 | **forensics** | User wants to diagnose a failed or stuck workflow after the fact: what went wrong, why it failed, session crash post-mortem, or incident review. NOT: debugging live code (use systematic-debugging). |
-| **pause-work** | User wants to stop working on a task and create a handoff artifact for resumption later: save progress, session handoff, stopping for now. |
-| **resume-work** | User wants to pick up where they left off in a previous session: restore context, continue work, "what was I doing". |
-| **plan-checker** | User wants to validate a plan before execution begins: check against 10 verification dimensions, pre-execution review, "is this plan ready". |
 | **integration-checker** | User wants to verify that components are correctly wired together: exports are imported and used, data flows through connections, output shapes match inputs. |
-| **pre-planning-discussion** | User wants to resolve ambiguities before planning begins: clarify gray areas, surface assumptions, "before we plan". |
 | **pair-programming** | User wants collaborative coding with enforced micro-steps: announce each change, show diff, wait for confirmation before applying. |
-| **spec-writer** | User wants to write a structured specification with user stories, acceptance criteria, scope boundaries, and risks. |
 | **decision-helper** | User wants a weighted decision framework for architectural or technology choices: pros/cons, trade-off matrix, "which is better", "should I use X or Y". |
 | **socratic-debugging** | User wants to be guided to find the root cause themselves through questions rather than being given the answer directly: coaching mode, "teach me to find it". |
 | **plant-seed** | User wants to capture a forward-looking idea with trigger conditions so it surfaces automatically during future feature design. |
@@ -146,7 +140,6 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **docs-sync-checker** | User wants to check if README files or documentation are in sync with the actual code. |
 | **do-perspectives** | User wants multi-perspective analysis of a problem from 10 different lenses simultaneously. |
 | **do → parallel-analysis** | User wants parallel multi-angle extraction of insights from a document or codebase. Loaded from `skills/do/references/parallel-analysis.md`. |
-| **plan-manager** | User wants to manage the plan lifecycle: create, track, or review plans. |
 | **learn** | User wants to teach Claude a new error pattern or record a reusable insight. |
 | **retro** | User wants to interact with the learning system: view stats, list accumulated knowledge, search learnings, or graduate mature entries into agents/skills. |
 | **generate-claudemd** | User wants to generate a project-specific CLAUDE.md by analyzing the current repository's structure and conventions. |

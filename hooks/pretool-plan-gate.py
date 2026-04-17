@@ -98,7 +98,7 @@ def main() -> None:
                     "permissionDecision": "deny",
                     "permissionDecisionReason": (
                         "Create task_plan.md before modifying implementation code in agents/ or skills/. "
-                        "Use the plan-manager skill to create one."
+                        "Use the planning skill to create one."
                     ),
                 }
             }

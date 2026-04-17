@@ -1,24 +1,4 @@
----
-name: spec-writer
-description: "Structured specification: user stories, acceptance criteria, scope."
-user-invocable: false
-routing:
-  triggers:
-    - write spec
-    - user stories
-    - define requirements
-    - scope this
-    - what should this do
-    - acceptance criteria
-    - define scope
-    - spec out
-  pairs_with:
-    - feature-lifecycle
-  complexity: Simple
-  category: process
----
-
-# Spec Writer Skill
+# Spec Writer Reference
 
 ## Purpose
 
@@ -125,9 +105,9 @@ This feature does NOT:
 
 ## References
 
-- Spec Writer Integration: This skill produces the input artifact for the feature lifecycle pipeline:
+- Spec Integration: This reference produces the input artifact for the feature lifecycle pipeline:
   ```
-  spec-writer (SPEC.md)
+  planning spec (SPEC.md)
     --> feature-lifecycle/design (reads stories + scope boundaries)
       --> feature-lifecycle/plan (reads acceptance criteria for test requirements)
         --> feature-lifecycle/implement

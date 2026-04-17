@@ -1,29 +1,8 @@
----
-name: planning-with-files
-description: "Persistent markdown files as working memory for complex multi-phase tasks."
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Edit
-  - Bash
-  - Glob
-  - Grep
-routing:
-  triggers:
-    - "create plan"
-    - "task plan"
-    - "working memory"
-    - "persistent plan"
-    - "file-backed planning"
-  category: process
----
-
-# Planning with Files Skill
+# Planning with Files Reference
 
 ## Overview
 
-This skill uses persistent markdown files as external memory to execute complex, multi-phase tasks without context drift. Files serve as the single source of truth for goals, progress, and decisions. Re-read files before major decisions to ground work in written commitments rather than fallible working memory.
+This reference uses persistent markdown files as external memory to execute complex, multi-phase tasks without context drift. Files serve as the single source of truth for goals, progress, and decisions. Re-read files before major decisions to ground work in written commitments rather than fallible working memory.
 
 The workflow consists of four phases:
 1. **CREATE PLAN** — Write goals and phases before executing
@@ -31,7 +10,7 @@ The workflow consists of four phases:
 3. **EXECUTE** — Build deliverable using gathered information
 4. **VERIFY AND DELIVER** — Confirm completeness, clean up temporary files
 
-This skill is mandatory for tasks with 3+ phases, research requirements, or risk of context drift after many tool calls.
+This reference is mandatory for tasks with 3+ phases, research requirements, or risk of context drift after many tool calls.
 
 ---
 

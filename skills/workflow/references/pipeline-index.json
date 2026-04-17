@@ -903,7 +903,7 @@
         "EXECUTE-PLAN"
       ],
       "pairs_with": [
-        "plan-checker",
+        "planning",
         "research-pipeline"
       ]
     }
