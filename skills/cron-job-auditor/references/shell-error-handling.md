@@ -82,6 +82,7 @@ rsync -avz source/ dest/ && echo "sync OK" || { echo "sync FAILED" >&2; exit 1; 
 
 ---
 
+<!-- no-pair-required: section heading; individual anti-patterns below carry Do-instead blocks -->
 ## Anti-Pattern Catalog
 
 ### ❌ Missing set -e / no error handling
@@ -127,9 +128,9 @@ pg_dump mydb | gzip > backup.sql.gz    # if pg_dump fails, gzip writes a 0-byte 
 find /data -name "*.log" | xargs gzip  # if find fails, gzip still runs on partial list
 ```
 
-**Why wrong**: Without `pipefail`, the exit code of a pipeline is the exit code of the last command. A failed `pg_dump` followed by a successful `gzip` returns 0 — backup appears to succeed but contains no data.
+**Why wrong**: Without `pipefail`, the exit code of a pipeline is the exit code of the last command. A failed `pg_dump` followed by a successful `gzip` returns 0, so the backup appears to succeed but contains no data.
 
-**Fix**:
+**Do instead:**
 ```bash
 #!/bin/bash
 set -euo pipefail
@@ -156,12 +157,12 @@ rm -rf "$BACKUP_DIR/"    # if BACKUP_DIR is unset, expands to "rm -rf /"
 rsync -avz "$SRC_PATH/" "$DEST/"   # silently copies nothing if SRC_PATH unset
 ```
 
-**Why wrong**: Without `set -u`, unset variables expand to empty string. `rm -rf "$BACKUP_DIR/"` becomes `rm -rf "/"` when `BACKUP_DIR` is unset — catastrophic and silent.
+**Why wrong**: Without `set -u`, unset variables expand to empty string. `rm -rf "$BACKUP_DIR/"` becomes `rm -rf "/"` when `BACKUP_DIR` is unset. Catastrophic and silent.
 
-**Fix**:
+**Do instead:**
 ```bash
 set -u   # or set -euo pipefail
-# Also enforce with parameter expansion:
+  # Also enforce with parameter expansion:
 BACKUP_DIR="${BACKUP_DIR:?BACKUP_DIR must be set}"
 ```
 
@@ -181,13 +182,13 @@ create_schema.sql || true    # if schema creation fails, continue anyway
 validate_data.py || true     # silently ignores validation failures
 ```
 
-**Why wrong**: `|| true` converts any failure into success. Combined with `set -e`, it suppresses the exit but also suppresses the failure signal — the script continues into a state it was never designed to handle.
+**Why wrong**: `|| true` converts any failure into success. Combined with `set -e`, it suppresses the exit but also suppresses the failure signal. The script then continues into a state it was never designed to handle.
 
-**Fix**:
+**Do instead:**
 ```bash
-# If failure is truly acceptable, log it explicitly:
+  # If failure is truly acceptable, log it explicitly:
 create_schema.sql || echo "WARNING: schema creation failed, may already exist" >&2
-# If failure means something: remove || true and let set -e handle it
+  # If failure means something: remove || true and let set -e handle it
 ```
 
 ---

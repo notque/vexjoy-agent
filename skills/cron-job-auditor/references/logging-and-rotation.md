@@ -87,6 +87,7 @@ exec >> "$LOG" 2>> "$ERR"
 
 ---
 
+<!-- no-pair-required: section heading; individual anti-patterns below carry Do-instead blocks -->
 ## Anti-Pattern Catalog
 
 ### ❌ No logging at all (relying on cron email)
@@ -108,7 +109,7 @@ rsync -avz output/ backup/
 
 **Why wrong**: All output goes to cron's mail system (usually `nobody@localhost`, usually discarded). When the job fails, there is no record of what was running, what the error was, or when the last successful run occurred. Post-incident investigation is impossible.
 
-**Fix**: Add `exec >> "$LOG_FILE" 2>&1` near the top, after defining `LOG_FILE`.
+**Do instead:** Add `exec >> "$LOG_FILE" 2>&1` near the top, after defining `LOG_FILE`.
 
 ---
 
@@ -116,9 +117,9 @@ rsync -avz output/ backup/
 
 **Detection**:
 ```bash
-# Scripts using bare $(date) without format string
+  # Scripts using bare $(date) without format string
 grep -rn '\$(date)[^+]' --include="*.sh" scripts/ cron/
-# Scripts with echo/printf but no date at all
+  # Scripts with echo/printf but no date at all
 grep -rl "echo\|printf" --include="*.sh" scripts/ | xargs grep -L "date"
 ```
 
@@ -126,16 +127,16 @@ grep -rl "echo\|printf" --include="*.sh" scripts/ | xargs grep -L "date"
 ```bash
 echo "Starting job"   # no timestamp at all
 
-# or locale-dependent:
-echo "$(date): Starting"  # Thu Apr 16 20:07:00 UTC 2026 — hard to sort/grep
+  # or locale-dependent:
+echo "$(date): Starting"  # Thu Apr 16 20:07:00 UTC 2026 (hard to sort/grep)
 ```
 
 **Why wrong**: Without timestamps, log lines from different runs blend together. Locale-dependent `date` output sorts lexicographically wrong and is hard to parse programmatically. In a post-incident review, "which run caused this?" becomes guesswork.
 
-**Fix**:
+**Do instead:**
 ```bash
 echo "$(date '+%Y-%m-%d %H:%M:%S'): Starting job"
-# Output: 2026-04-16 20:07:00: Starting job — sorts correctly, easily parsed
+  # Output: 2026-04-16 20:07:00 (sorts correctly, easily parsed)
 ```
 
 ---
@@ -153,18 +154,18 @@ rg -l '\.log' --type sh | xargs rg -L 'mtime|logrotate|rotate'
 LOG="/var/log/myjob.log"
 exec >> "$LOG" 2>&1
 echo "$(date): Starting"
-# ... no rotation, this file grows forever ...
+  # ... no rotation, this file grows forever ...
 ```
 
-**Why wrong**: A daily cron job writing 1 MB of output fills 365 MB/year into a single file. On a VPS with a small `/var` partition, this causes disk-full failures in other services (nginx, postgres, syslog) — usually noticed at 3am when cron itself fails to write.
+**Why wrong**: A daily cron job writing 1 MB of output fills 365 MB/year into a single file. On a VPS with a small `/var` partition, this causes disk-full failures in other services (nginx, postgres, syslog). The problem is usually noticed at 3am when cron itself fails to write.
 
-**Fix**:
+**Do instead:**
 ```bash
-# Option 1: Daily log files (self-rotating by filename)
+  # Option 1: Daily log files (self-rotating by filename)
 LOG="/var/log/myjob_$(date +%Y%m%d).log"
-# Add cleanup: find /var/log -name "myjob_*.log" -mtime +30 -delete
+  # Add cleanup: find /var/log -name "myjob_*.log" -mtime +30 -delete
 
-# Option 2: Explicit rotation at end of script
+  # Option 2: Explicit rotation at end of script
 find "$LOG_DIR" -name "*.log" -mtime +30 -delete
 ```
 
@@ -185,12 +186,12 @@ set -e
 echo "Starting at $(date)"
 do_work
 echo "Done"
-# All output captured by cron daemon, usually discarded or emailed to root
+  # All output captured by cron daemon, usually discarded or emailed to root
 ```
 
-**Why wrong**: Cron captures stdout/stderr and emails them. Most systems have cron email disabled or pointing to an unread mailbox. Even when email works, you lose historical logs — only the most recent run's output is potentially available.
+**Why wrong**: Cron captures stdout/stderr and emails them. Most systems have cron email disabled or pointing to an unread mailbox. Even when email works, you lose historical logs: only the most recent run's output is potentially available.
 
-**Fix**:
+**Do instead:**
 ```bash
 exec >> "/var/log/myjob_$(date +%Y%m%d).log" 2>&1
 ```
