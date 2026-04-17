@@ -199,6 +199,16 @@ Solution:
 
 ---
 
+## Reference Loading
+
+| Task Type | Load This Reference |
+|-----------|-------------------|
+| Security header WARNs, HSTS/CSP/X-Frame issues | `references/security-headers.md` |
+| Config errors, hardcoded IPs, timeout problems | `references/endpoint-config-anti-patterns.md` |
+| 401/403 failures, Bearer/API-key/cookie auth | `references/auth-endpoint-patterns.md` |
+
+---
+
 ## References
 
 ### CI/CD Integration
