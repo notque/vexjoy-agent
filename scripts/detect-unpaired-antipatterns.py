@@ -83,14 +83,23 @@ def extract_domain_hint(file_path: Path, content: str) -> str:
 
 
 def split_into_blocks(content: str) -> list[tuple[int, str]]:
-    """Split content into heading-delimited blocks. Returns (start_line, block_text) pairs."""
+    """Split content into heading-delimited blocks. Returns (start_line, block_text) pairs.
+
+    Tracks fenced code block state so that `#` comment lines inside code fences
+    are never treated as heading boundaries (Issue 2 fix).
+    """
     lines = content.splitlines()
     blocks: list[tuple[int, str]] = []
     current_start = 0
     current_lines: list[str] = []
+    in_fence = False
 
     for i, line in enumerate(lines):
-        if re.match(r"^#{1,4}\s+", line) and current_lines:
+        # Toggle fence state on triple-backtick lines; do NOT split inside a fence.
+        if line.startswith("```"):
+            in_fence = not in_fence
+
+        if not in_fence and re.match(r"^#{1,4}\s+", line) and current_lines:
             blocks.append((current_start + 1, "\n".join(current_lines)))
             current_start = i
             current_lines = [line]
@@ -145,10 +154,32 @@ def scan_file(file_path: Path) -> list[UnpairedFinding]:
     domain_hint = extract_domain_hint(file_path, content)
     findings: list[UnpairedFinding] = []
 
+    # Determine the start line of the first non-frontmatter block for Issue 3.
+    # Frontmatter is a leading `---` fence; skip past it and any blank lines
+    # to find the first real content line.
+    raw_lines = content.splitlines()
+    first_content_line = 1
+    if raw_lines and raw_lines[0].strip() == "---":
+        for idx in range(1, len(raw_lines)):
+            if raw_lines[idx].strip() == "---":
+                # Advance past the closing --- and any blank lines that follow.
+                close_idx = idx
+                skip = close_idx + 1
+                while skip < len(raw_lines) and not raw_lines[skip].strip():
+                    skip += 1
+                first_content_line = skip + 1  # convert to 1-indexed
+                break
+
     blocks = split_into_blocks(content)
     lines = content.splitlines()
 
-    for start_line, block_text in blocks:
+    # Marker for Issue 3: secondary anti-pattern indicators inside a block body
+    SECONDARY_AP_MARKER = re.compile(
+        r"(?:what it looks like|why wrong|anti.?pattern)",
+        re.IGNORECASE,
+    )
+
+    for block_index, (start_line, block_text) in enumerate(blocks):
         if not block_is_antipattern(block_text):
             continue
         if block_has_do_instead(block_text):
@@ -157,6 +188,25 @@ def scan_file(file_path: Path) -> list[UnpairedFinding]:
             continue
 
         block_lines = block_text.splitlines()
+
+        # Issue 1: skip blocks that are a heading with no substantive body content.
+        # A block whose body (lines after the first) has zero non-blank, non-heading
+        # lines is a structural TOC header, not an actual anti-pattern description.
+        body_lines = [ln for ln in block_lines[1:] if ln.strip()]
+        if len(body_lines) == 0:
+            continue
+
+        # Issue 3: skip first-block H1 document intro headers.
+        # An H1 heading (single `#`) at the top of the file that lacks secondary
+        # anti-pattern markers is a document title, not a pattern description.
+        is_first_block = start_line <= first_content_line
+        heading_line = block_lines[0] if block_lines else ""
+        is_h1 = bool(re.match(r"^#\s+", heading_line)) and not re.match(r"^#{2,}", heading_line)
+        if is_first_block and is_h1:
+            body_text = "\n".join(block_lines[1:])
+            if not SECONDARY_AP_MARKER.search(body_text):
+                continue
+
         end_line = start_line + len(block_lines) - 1
 
         # Truncate block text for JSON output (avoid huge entries)
