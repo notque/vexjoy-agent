@@ -1,7 +1,6 @@
 ---
 name: batch-editor
 description: "Bulk find/replace and frontmatter updates across Hugo posts."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

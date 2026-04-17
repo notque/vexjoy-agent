@@ -1,7 +1,6 @@
 ---
 name: retro
 description: "Learning system interface: stats, search, graduate learnings. Backed by learning.db (SQLite + FTS5)."
-version: 2.0.0
 user-invocable: true
 argument-hint: "[status|list|search <term>|graduate]"
 allowed-tools:

@@ -1,7 +1,6 @@
 ---
 name: systematic-refactoring
 description: "Safe 5-phase refactoring with test characterization and learning."
-version: 2.0.0
 user-invocable: false
 context: fork
 allowed-tools:

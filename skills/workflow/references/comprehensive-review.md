@@ -2,7 +2,6 @@
 name: comprehensive-review
 description: "Four-wave code review pipeline for large or high-risk changes."
 effort: high
-version: 4.0.0
 user-invocable: false
 command: /comprehensive-review
 model: opus

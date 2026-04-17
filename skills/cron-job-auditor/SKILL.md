@@ -1,7 +1,6 @@
 ---
 name: cron-job-auditor
 description: "Audit cron scripts for reliability and safety."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

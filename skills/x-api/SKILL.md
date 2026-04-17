@@ -1,7 +1,6 @@
 ---
 name: x-api
 description: "Post tweets, build threads, upload media via the X API."
-version: 1.0.0
 user-invocable: false
 agent: python-general-engineer
 model: sonnet

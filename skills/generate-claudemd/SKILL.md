@@ -1,7 +1,6 @@
 ---
 name: generate-claudemd
 description: "Generate project-specific CLAUDE.md from repo analysis."
-version: 1.0.0
 user-invocable: false
 command: /generate-claudemd
 allowed-tools:

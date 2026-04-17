@@ -1,7 +1,6 @@
 ---
 name: typescript-frontend-engineer
 model: sonnet
-version: 2.0.0
 description: "TypeScript frontend architecture: type-safe components, state management, build optimization."
 color: blue
 memory: project

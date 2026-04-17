@@ -1,7 +1,6 @@
 ---
 name: verification-before-completion
 description: "Defense-in-depth verification before declaring any task complete."
-version: 3.0.0
 user-invocable: false
 success-criteria:
   - "All tests pass (full suite, not just changed files)"

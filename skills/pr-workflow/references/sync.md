@@ -342,8 +342,6 @@ Solution:
 1. Always push the current branch: `git push -u origin $(git branch --show-current)`
 2. Never hardcode branch names in push commands
 3. Verify after push: `git log origin/$(git branch --show-current)..HEAD` should show 0 commits
-*Graduated from learning.db -- multi-agent-coordination/worktree-push-from-wrong-branch*
-
 ---
 
 ## References

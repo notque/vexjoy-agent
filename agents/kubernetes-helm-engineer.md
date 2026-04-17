@@ -1,7 +1,6 @@
 ---
 name: kubernetes-helm-engineer
 model: sonnet
-version: 2.0.0
 description: "Kubernetes and Helm: deployments, troubleshooting, cloud-native infrastructure."
 color: green
 memory: project

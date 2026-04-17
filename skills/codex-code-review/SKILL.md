@@ -1,7 +1,6 @@
 ---
 name: codex-code-review
 description: "Second-opinion code review from OpenAI Codex CLI. Structures feedback as CRITICAL/IMPROVEMENTS/POSITIVE."
-version: 1.0.0
 user-invocable: true
 allowed-tools:
   - Bash

@@ -1,7 +1,6 @@
 ---
 name: kairos-lite
 description: Proactive monitoring — checks GitHub, CI, and toolkit health, produces briefings.
-version: 1.0.0
 user-invocable: true
 command: kairos
 context: fork

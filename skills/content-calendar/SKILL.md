@@ -1,7 +1,6 @@
 ---
 name: content-calendar
 description: "Manage editorial content through 6 pipeline stages."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

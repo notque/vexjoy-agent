@@ -1,7 +1,6 @@
 ---
 name: joy-check
 description: "Validate content framing on joy-grievance spectrum."
-version: 2.0.0
 user-invocable: false
 argument-hint: "[--fix] [--strict] [--mode writing|instruction] <file>"
 command: /joy-check

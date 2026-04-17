@@ -1,7 +1,6 @@
 ---
 name: full-repo-review
 description: "Comprehensive 3-wave review of all repo source files, producing a prioritized issue backlog."
-version: 1.0.0
 user-invocable: true
 command: full-repo-review
 context: fork

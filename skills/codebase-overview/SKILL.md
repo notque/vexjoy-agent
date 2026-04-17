@@ -1,7 +1,6 @@
 ---
 name: codebase-overview
 description: "Systematic codebase exploration and architecture mapping."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

@@ -1,7 +1,6 @@
 ---
 name: system-upgrade-engineer
 model: sonnet
-version: 1.0.0
 description: "Systematic toolkit upgrades: adapt agents, skills, hooks when Claude Code ships updates."
 color: orange
 routing:

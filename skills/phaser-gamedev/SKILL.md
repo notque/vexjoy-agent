@@ -1,7 +1,6 @@
 ---
 name: phaser-gamedev
 description: "Phaser 3 2D game dev: scenes, physics, tilemaps, sprites, polish."
-version: 1.0.0
 user-invocable: false
 allowed-tools:
   - Read

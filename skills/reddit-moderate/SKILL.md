@@ -1,7 +1,6 @@
 ---
 name: reddit-moderate
 description: "Reddit moderation via PRAW: fetch modqueue, classify reports, take actions."
-version: 1.0.0
 user-invocable: false
 argument-hint: "[--auto] [--dry-run]"
 agent: python-general-engineer

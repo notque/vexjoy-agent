@@ -1,7 +1,6 @@
 ---
 name: combat-effects-upgrade
 model: sonnet
-version: 1.0.0
 description: "Zero-dependency combat visual upgrades: CSS particle replacement, Framer Motion combat juice, CSS 3D card transforms."
 color: orange
 routing:

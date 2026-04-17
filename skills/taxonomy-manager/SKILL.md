@@ -1,7 +1,6 @@
 ---
 name: taxonomy-manager
 description: "Audit and maintain blog taxonomy: categories, tags, orphans, duplicates."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

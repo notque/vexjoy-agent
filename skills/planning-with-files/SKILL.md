@@ -1,7 +1,6 @@
 ---
 name: planning-with-files
 description: "Persistent markdown files as working memory for complex multi-phase tasks."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

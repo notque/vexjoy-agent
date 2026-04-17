@@ -1,7 +1,6 @@
 ---
 name: opensearch-elasticsearch-engineer
 model: sonnet
-version: 2.0.0
 description: "OpenSearch/Elasticsearch: cluster management, performance tuning, index optimization."
 color: teal
 routing:

@@ -105,7 +105,6 @@ rg -L 'allowed-tools' --glob 'agents/*.md'
 ---
 name: my-agent
 model: sonnet
-version: 1.0.0
 description: "Does something"
 routing:
   triggers: [do thing]
@@ -194,7 +193,6 @@ grep -rn "^version: 0\." agents/*.md
 
 **What it looks like**:
 ```yaml
-version: 0.1.0  # signals "not production-ready"
 ```
 
 **Why wrong**: Agents in active production use should be at `1.x.x` or higher. `0.x.x` affects coverage reporting confidence scores.

@@ -1,7 +1,6 @@
 ---
 name: post-outliner
 description: "Create structural blueprints for blog posts: outlines, word counts."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

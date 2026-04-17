@@ -1,7 +1,6 @@
 ---
 name: toolkit-improvement
 description: "Multi-angle toolkit evaluation, ADR creation, and fix pipeline."
-version: 1.0.0
 effort: high
 model: opus
 context: fork

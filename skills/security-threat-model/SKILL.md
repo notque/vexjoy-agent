@@ -2,7 +2,6 @@
 name: security-threat-model
 description: "Security threat model: scan toolkit for attack surface, supply-chain risks."
 effort: high
-version: 1.0.0
 user-invocable: false
 model: opus
 allowed-tools:

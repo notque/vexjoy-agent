@@ -79,7 +79,7 @@ def validate_yaml_frontmatter() -> List[Tuple[str, bool, str]]:
     frontmatter = parts[1].strip()
 
     # Check required fields
-    required_fields = ["name:", "description:", "version:"]
+    required_fields = ["name:", "description:"]
     for field in required_fields:
         if field in frontmatter:
             results.append((f"YAML field {field}", True, "OK"))

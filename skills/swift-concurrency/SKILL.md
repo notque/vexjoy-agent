@@ -1,7 +1,6 @@
 ---
 name: swift-concurrency
 description: "Swift concurrency: async/await, Actor, Task, Sendable patterns."
-version: 1.0.0
 user-invocable: false
 context: fork
 agent: swift-general-engineer

@@ -1,7 +1,6 @@
 ---
 name: kb-lint
 description: "Health check and lint a knowledge base wiki for consistency and gaps."
-version: 1.0.0
 user-invocable: false
 agent: general-purpose
 allowed-tools:

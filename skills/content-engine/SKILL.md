@@ -1,7 +1,6 @@
 ---
 name: content-engine
 description: "Repurpose source assets into platform-native social content."
-version: 1.0.0
 user-invocable: false
 model: sonnet
 allowed-tools:

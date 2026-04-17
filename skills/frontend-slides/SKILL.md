@@ -1,7 +1,6 @@
 ---
 name: frontend-slides
 description: "Browser-based HTML presentation generation."
-version: 1.0.0
 user-invocable: false
 agent: typescript-frontend-engineer
 model: sonnet

@@ -1,7 +1,6 @@
 ---
 name: project-coordinator-engineer
 model: sonnet
-version: 2.0.0
 description: "Multi-agent project coordination: task breakdown, dependency management, progress tracking."
 color: teal
 routing:

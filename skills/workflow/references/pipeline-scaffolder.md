@@ -1,7 +1,6 @@
 ---
 name: pipeline-scaffolder
 description: "Scaffold pipeline components from a Pipeline Spec JSON."
-version: 2.0.0
 user-invocable: false
 agent: pipeline-orchestrator-engineer
 model: opus

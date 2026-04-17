@@ -1,7 +1,6 @@
 ---
 name: system-upgrade
 description: "6-phase pipeline for adapting agents, skills, and hooks to changes."
-version: 1.0.0
 user-invocable: false
 agent: system-upgrade-engineer
 allowed-tools:

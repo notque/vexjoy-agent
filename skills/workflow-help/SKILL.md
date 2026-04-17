@@ -2,7 +2,6 @@
 name: workflow-help
 description: "Interactive guide to workflow system: agents, skills, routing, execution patterns."
 effort: low
-version: 2.0.0
 user-invocable: true
 argument-hint: "[<topic>]"
 allowed-tools:

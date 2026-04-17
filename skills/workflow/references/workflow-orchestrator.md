@@ -2,7 +2,6 @@
 name: workflow-orchestrator
 user-invocable: false
 description: "Three-phase task orchestration: BRAINSTORM, WRITE-PLAN, EXECUTE-PLAN."
-version: 3.0.0
 success-criteria:
   - "Plan validated by plan-checker before execution"
   - "All plan tasks completed and marked done"

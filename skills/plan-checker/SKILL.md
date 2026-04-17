@@ -1,7 +1,6 @@
 ---
 name: plan-checker
 description: "Validate plans against 10 dimensions: PASS/BLOCK verdict before execution."
-version: 1.0.0
 user-invocable: false
 command: /plan-checker
 allowed-tools:

@@ -1,7 +1,6 @@
 ---
 name: pre-publish-checker
 description: "Pre-publication validation for Hugo posts: front matter, SEO, links, images."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

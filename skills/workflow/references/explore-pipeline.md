@@ -1,7 +1,6 @@
 ---
 name: explore-pipeline
 description: "Systematic codebase exploration with parallel subagents."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

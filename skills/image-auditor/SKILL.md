@@ -1,7 +1,6 @@
 ---
 name: image-auditor
 description: "Non-destructive image validation for accessibility and health."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

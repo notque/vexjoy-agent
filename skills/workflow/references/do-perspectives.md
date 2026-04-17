@@ -1,7 +1,6 @@
 ---
 name: do-perspectives
 description: "Inline multi-perspective analysis with 10 analytical lenses."
-version: 2.0.0
 user-invocable: false
 argument-hint: "<target-name> <source-path>"
 allowed-tools:

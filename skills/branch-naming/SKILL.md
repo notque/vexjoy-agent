@@ -1,7 +1,6 @@
 ---
 name: branch-naming
 description: "Generate and validate Git branch names."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

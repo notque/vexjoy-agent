@@ -8,7 +8,6 @@
 ---
 name: database-migration-helper
 description: Generate and validate database migrations. Use when "migrate database", "create migration", or "schema change"
-version: 1.0.0
 ---
 ```
 
@@ -45,7 +44,6 @@ version: 1.0.0
 ---
 name: golang-general-engineer
 description: Deep expertise in Go development
-version: 2.3.0
 ---
 ```
 
@@ -55,7 +53,6 @@ version: 2.3.0
 ---
 name: golang-general-engineer
 description: Deep expertise in Go development, architecture, debugging, concurrency
-version: 2.4.0
 ---
 ```
 
@@ -143,7 +140,6 @@ description: Run integration tests. Use when "test integration", "test API integ
 ---
 name: graphql-api-engineer
 description: GraphQL API development and schema design. Expert in Apollo, federation, and performance optimization.
-version: 1.0.0
 ---
 ```
 

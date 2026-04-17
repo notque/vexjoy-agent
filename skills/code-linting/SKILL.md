@@ -9,7 +9,6 @@ allowed-tools:
   - Bash
   - Edit
   - Write
-version: 2.0.0
 routing:
   triggers:
     - "lint code"

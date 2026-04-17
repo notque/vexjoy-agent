@@ -1,7 +1,6 @@
 ---
 name: research-coordinator-engineer
 model: sonnet
-version: 2.0.0
 description: "Research coordination: systematic investigation, multi-source analysis, synthesis."
 color: purple
 background: true

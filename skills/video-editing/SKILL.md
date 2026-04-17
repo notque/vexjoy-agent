@@ -1,7 +1,6 @@
 ---
 name: video-editing
 description: "Video editing pipeline: cut footage, assemble clips via FFmpeg and Remotion."
-version: 1.0.0
 user-invocable: false
 agent: python-general-engineer
 model: sonnet

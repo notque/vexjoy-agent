@@ -1,7 +1,6 @@
 ---
 name: sapcc-review
 description: "Gold-standard SAP CC Go code review: 10 parallel domain specialists."
-version: 1.0.0
 user-invocable: false
 argument-hint: "[--fix]"
 command: /sapcc-review

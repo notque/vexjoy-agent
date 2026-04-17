@@ -2,7 +2,6 @@
 name: git-commit-flow
 description: "Phase-gated git commit workflow with validation."
 effort: low
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

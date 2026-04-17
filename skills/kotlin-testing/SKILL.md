@@ -1,7 +1,6 @@
 ---
 name: kotlin-testing
 description: "Kotlin testing with JUnit 5, Kotest, and coroutine dispatchers."
-version: 1.0.0
 user-invocable: false
 context: fork
 agent: kotlin-general-engineer

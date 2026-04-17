@@ -1,7 +1,6 @@
 ---
 name: csuite
 description: "C-suite executive decision support: strategy, technology, growth, competitive intelligence, project evaluation."
-version: 1.0.0
 user-invocable: false
 allowed-tools:
   - Read

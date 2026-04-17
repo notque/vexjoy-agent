@@ -1,7 +1,6 @@
 ---
 name: voice-calibrator
 description: "Analyze writing samples and extract voice patterns for profiles."
-version: 2.0.0
 user-invocable: false
 command: /voice
 allowed-tools:

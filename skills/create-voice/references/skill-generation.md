@@ -51,7 +51,6 @@ description: |
   and modal writing. Use when generating content that must match {Name}'s
   distinctive voice. Do NOT use for voice analysis, voice profile creation,
   or generating content in other voices.
-version: 1.0.0
 command: /voice-{name}
 ---
 ```

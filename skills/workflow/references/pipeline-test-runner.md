@@ -1,7 +1,6 @@
 ---
 name: pipeline-test-runner
 description: "Test generated pipeline skills against real targets."
-version: 1.0.0
 user-invocable: false
 agent: pipeline-orchestrator-engineer
 model: opus

@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-16T20:27:39Z",
+  "generated": "2026-04-16T20:47:42Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -526,6 +526,24 @@
       "category": "analysis",
       "force_route": true,
       "user_invocable": true,
+      "version": "1.0.0",
+      "pairs_with": []
+    },
+    "fast": {
+      "file": "skills/fast/SKILL.md",
+      "description": "Zero-ceremony inline execution for 3 or fewer file edits.",
+      "triggers": [
+        "quick fix",
+        "typo fix",
+        "one-line change",
+        "trivial fix",
+        "rename variable",
+        "update value",
+        "fix import"
+      ],
+      "category": "process",
+      "force_route": true,
+      "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": []
     },
@@ -1553,30 +1571,22 @@
     },
     "quick": {
       "file": "skills/quick/SKILL.md",
-      "description": "Tracked lightweight execution with composable rigor flags: --trivial, --discuss, --research, --full.",
+      "description": "Tracked lightweight execution with composable rigor flags: --discuss, --research, --full.",
       "triggers": [
         "quick task",
         "small change",
         "ad hoc task",
         "add a flag",
         "small refactor",
-        "targeted fix",
-        "quick fix",
-        "typo fix",
-        "fix typo",
-        "fix the typo",
-        "one-line change",
-        "trivial fix",
-        "rename variable",
-        "rename this variable",
-        "update value",
-        "fix import"
+        "targeted fix"
       ],
       "category": "process",
       "force_route": true,
       "user_invocable": true,
-      "version": "1.1.0",
-      "pairs_with": []
+      "version": "1.0.0",
+      "pairs_with": [
+        "fast"
+      ]
     },
     "read-only-ops": {
       "file": "skills/read-only-ops/SKILL.md",
@@ -1742,7 +1752,7 @@
       ],
       "category": "language",
       "user_invocable": false,
-      "version": "2.1.0",
+      "version": "2.0.0",
       "pairs_with": [
         "golang-general-engineer",
         "golang-general-engineer-compact",
