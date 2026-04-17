@@ -179,7 +179,7 @@ reads AND writes (default journal mode). Batching limits each lock window to `ba
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section header with no content -->
 
 ### ❌ Manual SQL for Schema Changes

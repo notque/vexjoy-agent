@@ -142,7 +142,7 @@ If any prerequisite fails, escalate to `#oncall-platform` immediately.
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 <!-- no-pair-required: section header with no content -->
 

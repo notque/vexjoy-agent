@@ -14,7 +14,7 @@ API documentation fails in two modes: structural (bad formatting) and semantic (
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 <!-- no-pair-required: section header with no content -->
 

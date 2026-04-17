@@ -184,7 +184,7 @@ def test_add_email_column_migration(pre_migration_db):
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section header with no content -->
 
 ### ❌ Module-Level Database in Tests (State Leakage)

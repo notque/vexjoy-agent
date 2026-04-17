@@ -10,12 +10,12 @@ agents/
 └── {agent-name}/
     └── references/
         ├── {domain}-errors.md       # Error patterns with cause/solution
-        ├── {domain}-anti-patterns.md # What/Why/Instead format
+        ├── {domain}-patterns-to-apply.md # Preferred actions with signal/why/verification
         ├── {domain}-patterns.md     # Detailed code samples and patterns
         └── {domain}-*.md            # Additional domain-specific references
 ```
 
-Reference file names are domain-prefixed (e.g., `go-errors.md`, `python-anti-patterns.md`). Non-language agents may use topic-based names instead (e.g., `code-quality.md`, `security.md`).
+Reference file names are domain-prefixed (e.g., `go-errors.md`, `python-patterns-to-apply.md`). Non-language agents may use topic-based names instead (e.g., `code-quality.md`, `security.md`).
 
 ---
 
@@ -190,26 +190,29 @@ Common errors and their solutions. See [references/{domain}-errors.md](reference
 **Cause**: [What causes this error]
 **Solution**: [How to fix it with specific commands/code]
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
-Common mistakes to avoid. See [references/{domain}-anti-patterns.md](references/{domain}-anti-patterns.md) for full catalog.
+Teach through the preferred action, not through prohibition. See [references/{domain}-patterns-to-detect-and-fix.md](references/{domain}-patterns-to-detect-and-fix.md) for the full catalog.
 
-**Do-pairing rule (mandatory):** Every anti-pattern block must include a "Do instead" counterpart. A bare negative encodes no actionable knowledge; the positive counterpart is the actual learning. If a prohibition genuinely has no correct alternative, annotate it with `<!-- no-pair-required: reason -->` to pass structural validation. Run `python3 scripts/validate-references.py --check-do-framing` before shipping.
+**Positive-action rule (mandatory):** Each entry must lead with the preferred action. You may include the failure signal it replaces, but the actionable guidance is the primary content. Run `python3 scripts/validate-references.py --check-do-framing` before shipping, and use `python3 scripts/validate_positive_instruction_docs.py` when updating instructional templates.
 
-### ❌ Anti-Pattern 1 Name
-**What it looks like**: [Code example or description]
-**Why wrong**: [Consequence or problem]
-**✅ Do instead**: [Correct approach with example — mandatory]
+### Pattern 1 Name
+**Signal**: [Code example or description of what to detect]
+**Why it matters**: [Consequence or problem]
+**Preferred action**: [Correct approach with example]
+**Verification**: [How to confirm the fix worked]
 
-### ❌ Anti-Pattern 2 Name
-**What it looks like**: [Code example or description]
-**Why wrong**: [Consequence or problem]
-**✅ Do instead**: [Correct approach with example — mandatory]
+### Pattern 2 Name
+**Signal**: [Code example or description of what to detect]
+**Why it matters**: [Consequence or problem]
+**Preferred action**: [Correct approach with example]
+**Verification**: [How to confirm the fix worked]
 
-### ❌ Anti-Pattern 3 Name
-**What it looks like**: [Code example or description]
-**Why wrong**: [Consequence or problem]
-**✅ Do instead**: [Correct approach with example — mandatory]
+### Pattern 3 Name
+**Signal**: [Code example or description of what to detect]
+**Why it matters**: [Consequence or problem]
+**Preferred action**: [Correct approach with example]
+**Verification**: [How to confirm the fix worked]
 
 ## Anti-Rationalization
 
@@ -224,7 +227,7 @@ See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/ant
 | "[Domain rationalization 3]" | [Reason] | [Action] |
 | "[Domain rationalization 4]" | [Reason] | [Action] |
 
-## FORBIDDEN Patterns (HARD GATE)
+## Hard Gate Patterns
 
 [Only for language/implementation agents - remove for review/analysis agents]
 
@@ -235,10 +238,10 @@ Before writing code, check for these patterns. If found:
 
 See [shared-patterns/forbidden-patterns-template.md](../skills/shared-patterns/forbidden-patterns-template.md) for framework.
 
-| Pattern | Why FORBIDDEN | Correct Alternative |
-|---------|---------------|---------------------|
-| [Anti-pattern code] | [Consequence] | [Correct code] |
-| [Anti-pattern code] | [Consequence] | [Correct code] |
+| Detection Signal | Why It Must Be Fixed Before Proceeding | Required Action |
+|------------------|-----------------------------------------|-----------------|
+| [Pattern to detect] | [Consequence] | [Correct code or command] |
+| [Pattern to detect] | [Consequence] | [Correct code or command] |
 
 ### Detection
 ```bash
@@ -252,7 +255,7 @@ grep -r "forbidden-pattern" .
 
 ## Blocker Criteria
 
-STOP and ask the user (do NOT proceed autonomously) when:
+Stop and ask the user before proceeding when:
 
 | Situation | Why Stop | Ask This |
 |-----------|----------|----------|
@@ -271,7 +274,7 @@ STOP and ask the user (do NOT proceed autonomously) when:
 
 For detailed information:
 - **Error Catalog**: [references/{domain}-errors.md](references/{domain}-errors.md)
-- **Anti-Patterns**: [references/{domain}-anti-patterns.md](references/{domain}-anti-patterns.md)
+- **Patterns to Detect and Fix**: [references/{domain}-patterns-to-detect-and-fix.md](references/{domain}-patterns-to-detect-and-fix.md)
 - **Code Examples**: [references/{domain}-patterns.md](references/{domain}-patterns.md)
 - **Modern Features**: [references/{domain}-modern-features.md](references/{domain}-modern-features.md) [if language agent]
 
@@ -282,7 +285,7 @@ For detailed information:
 
 ## References Directory Structure
 
-Reference files use domain-prefixed names (e.g., `go-errors.md`, `python-anti-patterns.md`) rather than generic names. Non-language agents may use topic-based names (e.g., `code-quality.md`, `security.md`).
+Reference files use domain-prefixed names (e.g., `go-errors.md`, `python-patterns-to-apply.md`) rather than generic names. Non-language agents may use topic-based names (e.g., `code-quality.md`, `security.md`).
 
 ### references/{domain}-errors.md
 
@@ -319,41 +322,39 @@ command2
 [Continue pattern...]
 ```
 
-### references/{domain}-anti-patterns.md
+### references/{domain}-patterns-to-apply.md
 
-**Do-pairing rule:** Every anti-pattern in this file must include a "✅ Correct approach" block. Blocks without one will be flagged by `python3 scripts/validate-references.py --check-do-framing`. If a prohibition has no correct alternative, annotate with `<!-- no-pair-required: reason -->`.
+**Positive-action rule:** Lead with the preferred action. For each pattern, make the
+signal explicit, explain why it matters, and show how to verify the result.
 
 ```markdown
-# [Agent Name] Anti-Patterns
+# [Agent Name] Patterns to Apply
 
-Common mistakes and their corrections.
+Preferred actions for recurring situations in this domain.
 
-## ❌ Anti-Pattern: [Name]
+## Pattern: [Name]
 
-**What it looks like**:
+**Signal**:
+- [When this situation appears]
+- [Keywords, symptoms, or task shape]
+
+**Why it matters**:
+- [Outcome 1]
+- [Outcome 2]
+
+**Preferred action**:
 ```[language]
-// Bad code example
+// Recommended implementation
 [code]
 ```
 
-**Why wrong**:
-- [Problem 1]
-- [Problem 2]
-- [Consequence]
-
-**✅ Correct approach**:
-```[language]
-// Good code example
-[code]
-```
-
-**When to use**:
-- [Use case 1]
-- [Use case 2]
+**Verification**:
+- [Check 1]
+- [Check 2]
 
 ---
 
-[Repeat for each anti-pattern — every one must have a Correct approach block]
+[Repeat for each pattern]
 ```
 
 ### references/{domain}-patterns.md
@@ -433,7 +434,7 @@ When upgrading an agent to v2.0:
 - [ ] Moved verbose content to references/
 
 ### YAML Frontmatter
-- [ ] Model specified (e.g., `model: sonnet`)
+- [ ] Model specified (`model: sonnet` for most executors, `model: haiku` for cheap classifiers/extractors)
 - [ ] All routing metadata preserved (triggers, retro-topics, pairs_with, complexity, category)
 - [ ] Hooks preserved
 - [ ] Color preserved
@@ -452,19 +453,19 @@ When upgrading an agent to v2.0:
 ### New Required Sections
 - [ ] ## Output Format (references appropriate schema)
 - [ ] ## Error Handling (3+ categories, references catalog)
-- [ ] ## Anti-Patterns (3+ patterns with What/Why/Instead)
+- [ ] ## Patterns to Detect and Fix (3+ entries with Signal/Why/Preferred action/Verification)
 - [ ] ## Anti-Rationalization (domain-specific table)
 - [ ] ## Blocker Criteria (when to stop and ask)
 - [ ] ## References (links to references/ directory)
 
 ### Optional Sections (as needed)
-- [ ] ## FORBIDDEN Patterns (language agents only)
+- [ ] ## Hard Gate Patterns (language agents only)
 - [ ] ## Systematic Phases (complex agents)
 - [ ] ## Death Loop Prevention (coding agents)
 
 ### References Directory
 - [ ] Created {domain}-errors.md if applicable
-- [ ] Created {domain}-anti-patterns.md if applicable
+- [ ] Created {domain}-patterns-to-apply.md if applicable
 - [ ] Created {domain}-patterns.md if applicable
 - [ ] Created additional {domain}-*.md files as needed
 
@@ -482,7 +483,7 @@ When upgrading an agent to v2.0:
 - Core expertise and priorities
 - Hardcoded/default/optional behaviors
 - Top 3 errors (summary)
-- Top 3 anti-patterns (summary)
+- Top 3 high-value patterns to apply (summary)
 - Domain-specific rationalizations
 - Blocker criteria
 
@@ -492,9 +493,9 @@ When upgrading an agent to v2.0:
 - Error prevention strategies
 - Full error listings (keep top 3 in main)
 
-### What Moves to references/{domain}-anti-patterns.md
-- Detailed code examples
-- Anti-pattern variations
+### What Moves to references/{domain}-patterns-to-apply.md
+- Preferred action catalogs with signal/why/verification
+- Before/after examples when they help the model choose the right action
 - Extended explanations (keep top 3 in main)
 
 ### What Moves to references/{domain}-patterns.md
@@ -532,7 +533,7 @@ Before finalizing migration:
 - [ ] All critical behaviors documented
 - [ ] Output schema specified
 - [ ] Error handling documented
-- [ ] Anti-patterns documented
+- [ ] Positive action patterns documented
 
 ### Progressive Disclosure
 - [ ] Main file under 10k words

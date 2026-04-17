@@ -40,7 +40,7 @@ grep -c '^[0-9]\+\.' article.md
 ---
 
 <!-- no-pair-required: section-header-only — catalog heading, individual blocks carry the do-framing -->
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Enthusiasm Markers
 

@@ -112,7 +112,7 @@ Analysis pieces examine existing data, behavior, or systems. The finding comes f
 ---
 
 <!-- no-pair-required: section-header-only — catalog heading, individual blocks carry the do-framing -->
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Clickbait Headers
 

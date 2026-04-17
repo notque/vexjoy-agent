@@ -99,7 +99,7 @@ Map recurrence count to tier:
 ---
 
 <!-- no-pair-required: section header, not a standalone anti-pattern block -->
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Extracting 0 Signals and Proceeding Anyway
 

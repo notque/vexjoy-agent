@@ -127,7 +127,7 @@ When using `sync.Map` or channels in tests, the race detector validates the acce
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Hand-Editing interface_mock_gen.go
 

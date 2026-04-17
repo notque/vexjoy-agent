@@ -1,0 +1,87 @@
+{
+  "total_findings": 292,
+  "safe_candidates": 10,
+  "applied": 5,
+  "candidates": [
+    {
+      "file": "skills/multi-persona-critique/SKILL.md",
+      "line_start": 175,
+      "line_end": 183,
+      "heading": "## Examples, Anti-Patterns, Error Handling",
+      "action": "annotate",
+      "reason": "reference-summary-header"
+    },
+    {
+      "file": "skills/data-analysis/references/anti-patterns.md",
+      "line_start": 1,
+      "line_end": 5,
+      "heading": "# Data Analysis Anti-Patterns",
+      "action": "skip",
+      "reason": "document-title"
+    },
+    {
+      "file": "skills/do/references/progressive-depth.md",
+      "line_start": 98,
+      "line_end": 106,
+      "heading": "## Anti-Patterns",
+      "action": "annotate",
+      "reason": "table-backed-section-header"
+    },
+    {
+      "file": "skills/explanation-traces/references/anti-patterns.md",
+      "line_start": 1,
+      "line_end": 6,
+      "heading": "# Explanation Traces \u2014 Anti-Patterns",
+      "action": "skip",
+      "reason": "document-title"
+    },
+    {
+      "file": "skills/go-patterns/references/anti-patterns.md",
+      "line_start": 14,
+      "line_end": 28,
+      "heading": "### Phase 2: Scan for Anti-Patterns",
+      "action": "annotate",
+      "reason": "table-backed-section-header"
+    },
+    {
+      "file": "skills/multi-persona-critique/references/examples-and-errors.md",
+      "line_start": 94,
+      "line_end": 105,
+      "heading": "## Anti-Patterns",
+      "action": "annotate",
+      "reason": "table-backed-section-header"
+    },
+    {
+      "file": "skills/php-testing/references/patterns.md",
+      "line_start": 266,
+      "line_end": 278,
+      "heading": "## Common Testing Anti-Patterns",
+      "action": "annotate",
+      "reason": "table-backed-section-header"
+    },
+    {
+      "file": "skills/testing-anti-patterns/references/anti-pattern-catalog.md",
+      "line_start": 1,
+      "line_end": 5,
+      "heading": "# Testing Anti-Pattern Catalog",
+      "action": "skip",
+      "reason": "document-title"
+    },
+    {
+      "file": "agents/mcp-local-docs-engineer/references/mcp-anti-patterns.md",
+      "line_start": 6,
+      "line_end": 12,
+      "heading": "# MCP Server Anti-Patterns",
+      "action": "skip",
+      "reason": "document-title"
+    },
+    {
+      "file": "agents/pipeline-orchestrator-engineer/references/anti-patterns.md",
+      "line_start": 1,
+      "line_end": 7,
+      "heading": "# Pipeline Orchestration \u2014 Anti-Patterns",
+      "action": "skip",
+      "reason": "document-title"
+    }
+  ]
+}

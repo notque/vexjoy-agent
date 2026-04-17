@@ -115,7 +115,7 @@ Decision unchanged.
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section header with no content -->
 
 ### ❌ Proposed to Implemented Without Accepted Step

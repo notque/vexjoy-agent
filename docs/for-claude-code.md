@@ -321,7 +321,7 @@ version: 1.0.0
 user-invocable: true | false              # true = appears in /slash menu
 context: fork                             # optional: run in isolated sub-agent
 agent: golang-general-engineer            # optional: declare executor agent
-model: opus | sonnet | haiku              # optional: model preference
+model: sonnet | haiku                     # optional: model preference (`/do` is the router exception)
 allowed-tools:
   - Read
   - Write

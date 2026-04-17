@@ -84,7 +84,7 @@ Populate `sources_consulted` with the relative paths (within `wiki/`) of every a
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 **Do NOT answer from general knowledge if the KB has relevant content.** The point of the system is to build and use a local knowledge base. Bypassing it defeats the flywheel.
 

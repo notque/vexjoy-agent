@@ -93,7 +93,7 @@ STOP if:
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Repeating the Same Query
 

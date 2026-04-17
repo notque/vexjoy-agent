@@ -101,7 +101,7 @@ and if all validations pass, creates a new resource entry in the database.
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 <!-- no-pair-required: section header with no content -->
 

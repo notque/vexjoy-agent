@@ -1,0 +1,2767 @@
+{
+  "total": 393,
+  "safe_fixable": 0,
+  "applied_files": 0,
+  "applied_rewrites": 0,
+  "findings": [
+    {
+      "file": "agents/data-engineer/references/anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Data Engineer Anti-Patterns and Rationalizations",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/github-profile-rules-engineer.md",
+      "line": 114,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 1: Cloning Repos for Analysis",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/github-profile-rules-engineer.md",
+      "line": 119,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 2: Single-Repo Overfitting",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/github-profile-rules-engineer.md",
+      "line": 124,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 3: Generic Rules Without Evidence",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/golang-general-engineer/references/go-anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Go General Engineer - Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/golang-general-engineer/references/go-errors.md",
+      "line": 384,
+      "pattern": "Don't",
+      "text": "- Don't wrap errors you want to hide",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/golang-general-engineer/references/go-errors.md",
+      "line": 475,
+      "pattern": "Avoid",
+      "text": "- Avoid recursive locking",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/golang-general-engineer/references/go-errors.md",
+      "line": 588,
+      "pattern": "Avoid",
+      "text": "- Avoid bidirectional dependencies",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/golang-general-engineer-compact/references/testing-patterns.md",
+      "line": 23,
+      "pattern": "must NOT",
+      "text": "| `t.Setenv` | `1.17+` | Setting env vars in tests | Tests that must NOT run in parallel |",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/golang-general-engineer.md",
+      "line": 78,
+      "pattern": "do NOT",
+      "text": "- **Library Source Verification**: When a code change depends on specific behavior of an imported library (commit semantics, retry logic, connection lifecycle, error types), verify the claim by reading the library source in GOMODCACHE or using `go doc`. Do NOT rely on protocol-level reasoning from training data. The question is not \"how does Kafka work?\" but \"how does segmentio/kafka-go v0.4.47 implement this specific method?\" Use: `cat $(go env GOMODCACHE)/path/to/lib@version/file.go`",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/hook-development-engineer/references/anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Hook Development Anti-Patterns Reference",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/mcp-local-docs-engineer/references/mcp-anti-patterns.md",
+      "line": 6,
+      "pattern": "Anti-Pattern",
+      "text": "# MCP Server Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/nextjs-ecommerce-engineer/references/anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Anti-Patterns Reference",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/opensearch-elasticsearch-engineer/references/cluster-operations.md",
+      "line": 298,
+      "pattern": "FORBIDDEN",
+      "text": "| `cluster_block_exception: blocked by: [FORBIDDEN/12/index read-only]` | Disk flood stage (95%) reached | Free disk space, then: `PUT /index/_settings {\"index.blocks.read_only_allow_delete\": null}` |",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/performance-optimization-engineer/references/anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Performance Optimization Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/performance-optimization-engineer/references/anti-patterns.md",
+      "line": 5,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern 1: Premature Optimization Without Profiling",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/performance-optimization-engineer/references/anti-patterns.md",
+      "line": 38,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern 2: Over-Engineering with Micro-Optimizations",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/performance-optimization-engineer/references/anti-patterns.md",
+      "line": 87,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern 3: Ignoring Real User Monitoring (RUM) Data",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/performance-optimization-engineer/references/anti-patterns.md",
+      "line": 130,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern 4: Bundle Optimization Without Analysis",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/performance-optimization-engineer/references/anti-patterns.md",
+      "line": 168,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern 5: Optimizing Metrics Instead of User Experience",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/performance-optimization-engineer/references/anti-patterns.md",
+      "line": 210,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern 6: Performance Budgets Without Context",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/performance-optimization-engineer/references/metrics-and-monitoring.md",
+      "line": 66,
+      "pattern": "Don't",
+      "text": "Don't send 100% of metric events \u2014 use sampling to reduce costs without losing statistical significance.",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/performance-optimization-engineer/references/performance-testing.md",
+      "line": 191,
+      "pattern": "do NOT",
+      "text": "**Why wrong**: `warn` level assertions appear in logs but do NOT fail the CI step. LCP regressions will accumulate indefinitely. The only way a performance budget prevents regressions is if it fails the build.",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/pipeline-orchestrator-engineer/references/anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Pipeline Orchestration \u2014 Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/project-coordinator-engineer/references/agent-capability-map.md",
+      "line": 17,
+      "pattern": "do NOT",
+      "text": "| Task Type | Primary Agent | Fallback Agent | Do NOT Use |",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/project-coordinator-engineer/references/agent-capability-map.md",
+      "line": 123,
+      "pattern": "Anti-Pattern",
+      "text": "## Routing Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/project-coordinator-engineer/references/anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Coordination Anti-Patterns Reference",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Python General Engineer - Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "line": 5,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Over-Engineering with Abstract Base Classes",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "line": 61,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Premature Async Conversion",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "line": 113,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Type: Ignore Instead of Fixing Types",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "line": 170,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Mutable Default Arguments",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "line": 217,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: String Concatenation in Loops",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "line": 265,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Catching Bare Exceptions",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "line": 312,
+      "pattern": "FORBIDDEN",
+      "text": "**FORBIDDEN**:",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "line": 319,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: print() in Production Code",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "line": 376,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Not Using Context Managers",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "line": 448,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Importing * (Star Imports)",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "line": 488,
+      "pattern": "FORBIDDEN",
+      "text": "**FORBIDDEN by ruff**:",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "line": 494,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Using == for True/False Comparisons",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "line": 536,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Complex Decorator Chains",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/python-general-engineer/references/python-errors.md",
+      "line": 88,
+      "pattern": "Don't",
+      "text": "- Don't nest `asyncio.run()` calls",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/python-general-engineer/references/python-patterns.md",
+      "line": 128,
+      "pattern": "Avoid",
+      "text": "Avoid hard-coded dependencies. Pass them in so code is testable and configurable.",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/react-native-engineer/references/testing.md",
+      "line": 81,
+      "pattern": "Avoid",
+      "text": "Avoid `setTimeout` delays. Use `waitFor` from RNTL which polls until assertion passes or timeout expires.",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/research-coordinator-engineer/references/delegation-patterns.md",
+      "line": 201,
+      "pattern": "do NOT",
+      "text": "| Subagent drifts to adjacent topic | Scope statement positive-only (no exclusions) | Add \"Do NOT cover X\" clause |",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/research-coordinator-engineer/references/query-classification.md",
+      "line": 170,
+      "pattern": "do NOT",
+      "text": "| Subagent returns meta-analysis instead of data | Scope boundary missing from instruction | Add explicit \"Do NOT summarize other research \u2014 focus only on [specific topic]\" |",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/reviewer-domain/references/operational-anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Pragmatic Builder Roaster - Operational Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/reviewer-domain/references/operational-anti-patterns.md",
+      "line": 5,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: No Rollback Plan",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/reviewer-domain/references/operational-anti-patterns.md",
+      "line": 60,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Logging After Failures",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/reviewer-domain/references/operational-anti-patterns.md",
+      "line": 127,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Untested Edge Cases",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/reviewer-domain/references/operational-anti-patterns.md",
+      "line": 183,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: No Circuit Breaker for External Dependencies",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/reviewer-domain/references/operational-anti-patterns.md",
+      "line": 232,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Trusting User Input",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/reviewer-domain/references/operational-anti-patterns.md",
+      "line": 284,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Synchronous Long-Running Operations",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/reviewer-domain/references/operational-anti-patterns.md",
+      "line": 350,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: No Monitoring Until After Launch",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/reviewer-domain/references/operational-anti-patterns.md",
+      "line": 420,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Magic Numbers in Code",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/reviewer-domain/references/operational-anti-patterns.md",
+      "line": 470,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Ignoring Database Connection Pooling",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/reviewer-perspectives/references/clarity-and-assumption-detection.md",
+      "line": 15,
+      "pattern": "Anti-Pattern",
+      "text": "## Newcomer: Clarity Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/reviewer-perspectives/references/review-detection-commands.md",
+      "line": 344,
+      "pattern": "Anti-Pattern",
+      "text": "## Anti-Pattern: Running Perspective Without Detection Pass",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/rive-skeletal-animator/references/rive-animation-library.md",
+      "line": 213,
+      "pattern": "Anti-Pattern",
+      "text": "## State Machine Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/sqlite-peewee-engineer/references/peewee-query-patterns.md",
+      "line": 98,
+      "pattern": "Avoid",
+      "text": "### Targeted SELECT to Avoid Overfetch",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/swift-general-engineer.md",
+      "line": 21,
+      "pattern": "Anti-Pattern",
+      "text": "# Read edited content to check for anti-patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/system-upgrade-engineer/references/upgrade-anti-patterns.md",
+      "line": 2,
+      "pattern": "Anti-Pattern",
+      "text": "# Upgrade Orchestration Anti-Patterns Reference",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/system-upgrade-engineer/references/upgrade-anti-patterns.md",
+      "line": 116,
+      "pattern": "do NOT",
+      "text": "If any component scores lower, surface it to the user. Do NOT auto-revert, but do NOT",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/system-upgrade-engineer/references/upgrade-anti-patterns.md",
+      "line": 186,
+      "pattern": "do NOT",
+      "text": "Do NOT dispatch parallel agents when:",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/system-upgrade-engineer.md",
+      "line": 65,
+      "pattern": "do NOT",
+      "text": "Do NOT implement domain changes inline \u2014 because inline edits bypass the specialist's domain knowledge and template conventions, producing inconsistent results.",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/system-upgrade-engineer.md",
+      "line": 163,
+      "pattern": "do NOT",
+      "text": "Solution: Show the regression to the user. Offer revert. Do NOT auto-revert.",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/system-upgrade-engineer.md",
+      "line": 171,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 1: Implementing Without Plan Approval",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/system-upgrade-engineer.md",
+      "line": 176,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 2: Making All Changes Directly",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/system-upgrade-engineer.md",
+      "line": 181,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 3: Not Scoping the Audit",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/technical-documentation-engineer/references/api-doc-anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# API Documentation Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/testing-automation-engineer/references/anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Testing Automation Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/testing-automation-engineer/references/anti-patterns.md",
+      "line": 5,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern 1: Testing Implementation Details",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/testing-automation-engineer/references/anti-patterns.md",
+      "line": 39,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern 2: Shared Test State and Dependencies",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/testing-automation-engineer/references/anti-patterns.md",
+      "line": 85,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern 3: Mocking Everything (Over-Mocking)",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/testing-automation-engineer/references/anti-patterns.md",
+      "line": 140,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern 4: No Assertions or Weak Assertions",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/testing-automation-engineer/references/anti-patterns.md",
+      "line": 161,
+      "pattern": "Don't",
+      "text": "- Don't actually verify correct behavior",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/testing-automation-engineer/references/anti-patterns.md",
+      "line": 190,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern 5: Flaky Tests Without Root Cause Investigation",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/testing-automation-engineer/references/anti-patterns.md",
+      "line": 253,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern 6: Ignoring Test Coverage Gaps",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/typescript-frontend-engineer/references/typescript-anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# TypeScript Frontend Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/typescript-frontend-engineer/references/typescript-anti-patterns.md",
+      "line": 64,
+      "pattern": "NEVER",
+      "text": "- NEVER use `any` without explicit justification",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/typescript-frontend-engineer/references/typescript-anti-patterns.md",
+      "line": 237,
+      "pattern": "Avoid",
+      "text": "## Fix Root Causes \u2014 Use @ts-expect-error When Unavoidable",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/typescript-frontend-engineer/references/typescript-anti-patterns.md",
+      "line": 302,
+      "pattern": "NEVER",
+      "text": "- NEVER use `@ts-ignore` or `@ts-nocheck` without thorough justification",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/typescript-frontend-engineer/references/typescript-errors.md",
+      "line": 293,
+      "pattern": "Avoid",
+      "text": "- Avoid `forwardRef` in new code",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/ui-design-engineer/references/tailwind-anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Tailwind CSS Anti-Patterns Reference",
+      "safe_fix": null
+    },
+    {
+      "file": "agents/ui-design-engineer.md",
+      "line": 95,
+      "pattern": "Avoid",
+      "text": "- Avoid dashboard-card mosaics, thick borders on every region, decorative gradients, multiple competing accent colors",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/adr-consultation/SKILL.md",
+      "line": 74,
+      "pattern": "do NOT",
+      "text": "**Gate**: ADR content read, consultation directory created, ADR name confirmed. Do NOT dispatch agents until this gate passes.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/code-cleanup/SKILL.md",
+      "line": 173,
+      "pattern": "do NOT",
+      "text": "Print complete report to stdout. Do NOT summarize or truncate findings.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/code-cleanup/SKILL.md",
+      "line": 220,
+      "pattern": "do NOT",
+      "text": "Do NOT apply fixes flagged as \"unsafe\" by ruff. Do NOT rename variables, refactor functions, or make any semantic changes in this phase.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/code-cleanup/SKILL.md",
+      "line": 262,
+      "pattern": "do NOT",
+      "text": "Do NOT leave the repository in a broken state.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/code-cleanup/SKILL.md",
+      "line": 291,
+      "pattern": "do NOT",
+      "text": "1. Do NOT attempt to bypass permissions",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/csuite/SKILL.md",
+      "line": 68,
+      "pattern": "do NOT",
+      "text": "**Scope**: Business decisions with meaningful consequences. Do NOT use for: technical architecture micro-choices (use decision-helper), writing code (use domain agents), writing content (use voice-writer), or debugging (use systematic-debugging).",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/csuite/SKILL.md",
+      "line": 88,
+      "pattern": "do NOT",
+      "text": "Load references based on the detected mode. Do NOT load all references -- load only what the mode requires.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/distinctive-frontend-design/SKILL.md",
+      "line": 58,
+      "pattern": "do NOT",
+      "text": "**Gate**: Aesthetic direction defined with contextual justification linking project purpose, audience, and emotion to chosen direction. Narrative brief from Step 4 written (visual thesis, content plan, interaction thesis). Do NOT proceed without both gate items passing.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/distinctive-frontend-design/SKILL.md",
+      "line": 74,
+      "pattern": "do NOT",
+      "text": "**Gate**: Font validation passes (no banned fonts, no recent reuse, aesthetic match confirmed). Do NOT proceed until gate passes.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/distinctive-frontend-design/SKILL.md",
+      "line": 96,
+      "pattern": "do NOT",
+      "text": "**Gate**: Palette passes cliche detection and demonstrates clear 60/30/10 dominance ratio. Do NOT proceed until gate passes.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/distinctive-frontend-design/SKILL.md",
+      "line": 110,
+      "pattern": "do NOT",
+      "text": "**Gate**: At least one high-impact moment has a fully defined choreography including element order, easing curves, and timing values. Do NOT proceed without this.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/distinctive-frontend-design/SKILL.md",
+      "line": 146,
+      "pattern": "do NOT",
+      "text": "4. Do NOT proceed to specification output until score >= 80",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/distinctive-frontend-design/SKILL.md",
+      "line": 148,
+      "pattern": "do NOT",
+      "text": "**Gate**: Validation score >= 80 (Grade B or higher). Do NOT deliver specification output until this gate passes.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/docs-sync-checker/SKILL.md",
+      "line": 72,
+      "pattern": "do NOT",
+      "text": "**Gate**: All tools discovered, all YAML valid, counts >0 for each type. Do NOT proceed until gate passes.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/docs-sync-checker/SKILL.md",
+      "line": 106,
+      "pattern": "do NOT",
+      "text": "**Gate**: All documentation files parsed without errors. Do NOT proceed until gate passes.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/docs-sync-checker/SKILL.md",
+      "line": 139,
+      "pattern": "do NOT",
+      "text": "**Gate**: All issues categorized with severity. Do NOT proceed until gate passes.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/e2e-testing/SKILL.md",
+      "line": 111,
+      "pattern": "do NOT",
+      "text": "5. Do NOT use `test.skip()` to hide broken tests. `test.skip()` is for conditional environment guards (e.g., \"skip on WebKit\"), not for sweeping failures under the rug.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/explanation-traces/SKILL.md",
+      "line": 201,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 1: Post-Hoc Rationalization",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/explanation-traces/SKILL.md",
+      "line": 205,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 2: Paraphrasing Away Evidence",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/explanation-traces/SKILL.md",
+      "line": 209,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 3: Dumping Raw JSON",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/explanation-traces/SKILL.md",
+      "line": 213,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 4: Filling Gaps with Inference",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/explanation-traces/SKILL.md",
+      "line": 217,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 5: Ignoring the User's Specific Question",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/full-repo-review/SKILL.md",
+      "line": 126,
+      "pattern": "do NOT",
+      "text": "- **All waves**: Do NOT use `--skip-wave0` or `--wave1-only`. Full-repo review needs maximum coverage. Wave 0 per-package context is what makes full-repo review valuable; deterministic checks catch structure, but only the full 3-wave review catches logic and design issues.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/game-asset-generator/SKILL.md",
+      "line": 51,
+      "pattern": "do NOT",
+      "text": "**Scope**: Use for AI-generated 3D models, world environments, pixel art sprites, concept art, textures, and sourcing free pre-built assets. Do NOT use for game engine scripting, physics, game loop logic, or shader authoring (use `threejs-builder` for scene integration after asset generation).",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/game-pipeline/SKILL.md",
+      "line": 44,
+      "pattern": "do NOT",
+      "text": "**Scope**: Use for any browser-based game (Three.js, Phaser, or vanilla canvas), cross-cutting concerns that span engines (audio, QA, promo, deploy), and iOS export via Capacitor. Do NOT use for Unity/Godot/native engines, non-game web apps, or server-side logic.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/go-patterns/SKILL.md",
+      "line": 43,
+      "pattern": "Anti-Pattern",
+      "text": "# anti-patterns triggers",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/integration-checker/SKILL.md",
+      "line": 192,
+      "pattern": "do NOT",
+      "text": "| **FAIL** | Route back to /feature-lifecycle (implement phase) with specific wiring tasks. Do NOT proceed to validation. |",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/multi-persona-critique/SKILL.md",
+      "line": 176,
+      "pattern": "Anti-Pattern",
+      "text": "## Examples, Anti-Patterns, Error Handling",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/perses/SKILL.md",
+      "line": 50,
+      "pattern": "do NOT",
+      "text": "**Anti-pattern**: Do NOT attempt Perses operations from general knowledge alone. The reference files contain percli commands, CUE schema patterns, and deployment procedures specific to this toolkit's Perses setup.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/phaser-gamedev/SKILL.md",
+      "line": 35,
+      "pattern": "do NOT",
+      "text": "**Scope**: Platformers, arcade shooters, top-down RPGs, puzzle games, side-scrollers \u2014 anything 2D in Phaser 3. Do NOT use for 3D games (use threejs-builder), native mobile games, or non-Phaser canvas work.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/quick/SKILL.md",
+      "line": 166,
+      "pattern": "do NOT",
+      "text": "Always display the inline plan, even for obvious tasks, because the plan catches misunderstandings before they become wrong edits and confirms alignment in 10 seconds that saves minutes. Do NOT write a task_plan.md file -- that is Simple+ tier, and using an inline plan here is the minimum viable ceremony.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/routing-table-updater/SKILL.md",
+      "line": 56,
+      "pattern": "do NOT",
+      "text": "**Gate**: All skill directories and agent files discovered with no permission errors. Do NOT proceed to Phase 2 until gate passes. See `references/error-handling.md` for gate failure recovery.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/routing-table-updater/SKILL.md",
+      "line": 80,
+      "pattern": "do NOT",
+      "text": "**Gate**: All YAML parsed successfully, required fields present, trigger patterns extracted for skills, domain keywords extracted for agents. Do NOT proceed to Phase 3 until gate passes. See `references/error-handling.md` for gate failure recovery.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/routing-table-updater/SKILL.md",
+      "line": 108,
+      "pattern": "do NOT",
+      "text": "**Gate**: All capabilities mapped, entries follow /do format, conflicts documented, no duplicates within same table. Do NOT proceed to Phase 4 until gate passes. See `references/error-handling.md` for gate failure recovery.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/sapcc-review/SKILL.md",
+      "line": 125,
+      "pattern": "do NOT",
+      "text": "**CRITICAL**: All 10 agents must be dispatched in ONE message using the Agent tool. Do NOT serialize them. Serializing agents wastes time since domain specialists operate independently on disjoint concerns.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/systematic-code-review/SKILL.md",
+      "line": 52,
+      "pattern": "do NOT",
+      "text": "- Do NOT conclude a sentinel is \"unreachable\" because no Go code constructs that string. If the source is user input, the user constructs it.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/systematic-code-review/SKILL.md",
+      "line": 55,
+      "pattern": "do NOT",
+      "text": "5. **Do NOT trust PR descriptions** about who calls the function \u2014 verify independently. The PR author may have forgotten about callers, or new callers may have been added in other branches.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/test-driven-development/SKILL.md",
+      "line": 43,
+      "pattern": "do NOT",
+      "text": "Do NOT proceed to the GREEN phase until all of these are true:",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/test-driven-development/SKILL.md",
+      "line": 63,
+      "pattern": "do NOT",
+      "text": "Do NOT proceed to the REFACTOR phase until all of these are true:",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/test-driven-development/SKILL.md",
+      "line": 75,
+      "pattern": "do NOT",
+      "text": "Do NOT mark the task complete until all of these are true:",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/threejs-builder/SKILL.md",
+      "line": 56,
+      "pattern": "do NOT",
+      "text": "**Scope**: Use for 3D web apps, interactive scenes, WebGL/WebGPU visualizations, R3F declarative 3D, and product viewers. Do NOT use for game engines, 3D model creation, VR/AR experiences, or CAD workflows.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/voice-validator/SKILL.md",
+      "line": 102,
+      "pattern": "do NOT",
+      "text": "- Do NOT rewrite entire paragraphs or change arguments \u2014 voice validation fixes voice only",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/with-anti-rationalization/SKILL.md",
+      "line": 60,
+      "pattern": "do NOT",
+      "text": "**Gate**: All relevant patterns loaded and acknowledged. Proceed only when you can articulate why each pattern applies. Do NOT rubber-stamp gate checks\u2014if you cannot explain WHY a pattern is relevant, reconsider whether it applies.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/with-anti-rationalization/SKILL.md",
+      "line": 129,
+      "pattern": "do NOT",
+      "text": "If ANY answer is uncertain, return to Phase 2 and address the gap. Do NOT weaken gate criteria to force a pass.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/with-anti-rationalization/SKILL.md",
+      "line": 182,
+      "pattern": "Anti-Pattern",
+      "text": "#### Anti-Pattern 1: Performative Checking",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/with-anti-rationalization/SKILL.md",
+      "line": 187,
+      "pattern": "Anti-Pattern",
+      "text": "#### Anti-Pattern 2: Rationalization Laundering",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/with-anti-rationalization/SKILL.md",
+      "line": 192,
+      "pattern": "Anti-Pattern",
+      "text": "#### Anti-Pattern 3: Selective Pattern Loading",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/with-anti-rationalization/SKILL.md",
+      "line": 197,
+      "pattern": "Anti-Pattern",
+      "text": "#### Anti-Pattern 4: Pressure Capitulation",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/with-anti-rationalization/SKILL.md",
+      "line": 202,
+      "pattern": "Anti-Pattern",
+      "text": "#### Anti-Pattern 5: Anti-Rationalization Theater",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/with-anti-rationalization/SKILL.md",
+      "line": 225,
+      "pattern": "do NOT",
+      "text": "4. Do NOT weaken the gate criteria to force a pass",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/SKILL.md",
+      "line": 78,
+      "pattern": "do NOT",
+      "text": "**Anti-pattern**: Do NOT execute a workflow by guessing phases from the table. The table shows names only \u2014 the reference file contains the actual instructions, gates, artifact requirements, and quality criteria.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/worktree-agent/SKILL.md",
+      "line": 40,
+      "pattern": "do NOT",
+      "text": "Do NOT create or modify `task_plan.md`. If auto-plan hook fires, ignore it.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/adr-consultation/references/consultation-anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# ADR Consultation \u2014 Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/agent-evaluation/references/scoring-rubric.md",
+      "line": 104,
+      "pattern": "Anti-Pattern",
+      "text": "### 6. Anti-Patterns Section (5 points)",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/anti-ai-editor/references/cliche-replacements.md",
+      "line": 49,
+      "pattern": "Avoid",
+      "text": "## Tier 1b: Copula Avoidance (AI Verb Substitution)",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/anti-ai-editor/references/cliche-replacements.md",
+      "line": 307,
+      "pattern": "do NOT",
+      "text": "**When curly quotes are OK:** Typeset documents, formal publications, `.docx` files, PDFs. Do NOT flag in those contexts.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/anti-ai-editor/references/detection-patterns.md",
+      "line": 60,
+      "pattern": "do NOT",
+      "text": "**CLI flag exclusion:** Do NOT flag `--` when it is part of a CLI flag or option (e.g., `--symlink`, `--verbose`, `--no-edit`, `--force`). The test: if the `--` is immediately followed by a word character with no space, it is a CLI flag, not punctuation. Only flag ` -- ` (with surrounding spaces) or `--` at sentence boundaries.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/anti-ai-editor/references/detection-patterns.md",
+      "line": 304,
+      "pattern": "Avoid",
+      "text": "### Contraction Avoidance (AI Formality Tell)",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/anti-ai-editor/references/detection-patterns.md",
+      "line": 342,
+      "pattern": "Avoid",
+      "text": "### Tier 1b: Copula Avoidance (AI Verb Substitution)",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/anti-ai-editor/references/detection-patterns.md",
+      "line": 464,
+      "pattern": "do NOT",
+      "text": "**False positive note:** Curly quotes ARE correct in typeset documents (books, PDFs, formal publications). Only flag in Markdown, README, code comments, blog posts, and plain-text contexts. Do NOT flag in `.docx`, `.pdf`, or formal publishing formats.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/anti-ai-editor/references/detection-patterns.md",
+      "line": 815,
+      "pattern": "do NOT",
+      "text": "Do NOT flag these in technical content:",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/anti-ai-editor/references/detection-rules.md",
+      "line": 26,
+      "pattern": "Avoid",
+      "text": "## High-Priority Flags: Copula Avoidance (Almost Always Fix)",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/anti-ai-editor/references/detection-rules.md",
+      "line": 65,
+      "pattern": "do NOT",
+      "text": "| `--verbose`, `--symlink` | CLI flag (NOT a separator) | Do NOT flag |",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/auto-dream/references/memory-file-operations.md",
+      "line": 133,
+      "pattern": "do NOT",
+      "text": "**Counter-example**: A feedback memory about \"never use --no-verify\" with no recent git commits about it \u2192 only ONE signal (no recent refs). Still active guidance \u2014 do NOT archive.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/bluesky-reader/references/at-protocol-anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# AT Protocol Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/code-linting/references/biome-rules-reference.md",
+      "line": 250,
+      "pattern": "Avoid",
+      "text": "### \u274c Optional chain avoidance (useOptionalChain)",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/codebase-analyzer/references/three-lenses.md",
+      "line": 205,
+      "pattern": "Avoid",
+      "text": "## Avoiding False Positives",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Language-Specific and Documentation Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "line": 9,
+      "pattern": "Anti-Pattern",
+      "text": "### Go-Specific Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "line": 13,
+      "pattern": "Anti-Pattern",
+      "text": "#### Anti-Pattern: \"Fixed panic\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "line": 22,
+      "pattern": "Anti-Pattern",
+      "text": "#### Anti-Pattern: \"Now uses context\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "line": 31,
+      "pattern": "Anti-Pattern",
+      "text": "#### Anti-Pattern: \"Improved error handling\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "line": 40,
+      "pattern": "Anti-Pattern",
+      "text": "### Python-Specific Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "line": 44,
+      "pattern": "Anti-Pattern",
+      "text": "#### Anti-Pattern: \"Changed to use type hints\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "line": 53,
+      "pattern": "Anti-Pattern",
+      "text": "#### Anti-Pattern: \"Refactored to use dataclass\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "line": 62,
+      "pattern": "Anti-Pattern",
+      "text": "### JavaScript/TypeScript Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "line": 66,
+      "pattern": "Anti-Pattern",
+      "text": "#### Anti-Pattern: \"Migrated to async/await\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "line": 75,
+      "pattern": "Anti-Pattern",
+      "text": "#### Anti-Pattern: \"Updated to ES6 syntax\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "line": 84,
+      "pattern": "Anti-Pattern",
+      "text": "## Documentation-Specific Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "line": 90,
+      "pattern": "Anti-Pattern",
+      "text": "#### Anti-Pattern: Version-specific feature lists",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "line": 106,
+      "pattern": "Anti-Pattern",
+      "text": "#### Anti-Pattern: Historical installation instructions",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "line": 124,
+      "pattern": "Anti-Pattern",
+      "text": "#### Anti-Pattern: Endpoint evolution",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "line": 140,
+      "pattern": "Anti-Pattern",
+      "text": "#### Anti-Pattern: Parameter history",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Comment Quality Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns.md",
+      "line": 9,
+      "pattern": "Anti-Pattern",
+      "text": "## High Priority Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns.md",
+      "line": 13,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 1: \"X now does Y\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns.md",
+      "line": 31,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 2: \"Improved/Better/Enhanced X\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns.md",
+      "line": 49,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 3: \"Fixed bug where...\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns.md",
+      "line": 67,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 4: \"Added/Removed/Changed X\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns.md",
+      "line": 85,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 5: \"New/Old system/approach/method\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns.md",
+      "line": 103,
+      "pattern": "Anti-Pattern",
+      "text": "## Medium Priority Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns.md",
+      "line": 107,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 6: \"Updated/Refactored/Optimized X\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns.md",
+      "line": 125,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 7: \"This allows us to...\" / \"We can now...\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns.md",
+      "line": 143,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 8: \"Instead of X\" / \"Rather than X\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns.md",
+      "line": 158,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 9: \"Temporary/Interim/Stopgap X\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns.md",
+      "line": 176,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 10: \"As of version X\" / \"Since version X\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns.md",
+      "line": 194,
+      "pattern": "Anti-Pattern",
+      "text": "## Subtle Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns.md",
+      "line": 198,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 11: \"More/Less efficient/effective\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns.md",
+      "line": 216,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 12: \"Unlike X\" / \"Compared to X\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns.md",
+      "line": 234,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 13: \"Will/Going to/Eventually X\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns.md",
+      "line": 252,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 14: \"Used to X but now Y\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/anti-patterns.md",
+      "line": 270,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 15: \"Originally X\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/error-handling-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Error Handling Comment Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/examples.md",
+      "line": 264,
+      "pattern": "Avoid",
+      "text": "## Common Pitfalls to Avoid",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/go-comment-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Go Comment Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/comment-quality/references/performance-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Performance Comment Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/condition-based-waiting/references/anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Wait/Retry Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/condition-based-waiting/references/testing-patterns.md",
+      "line": 228,
+      "pattern": "Anti-Pattern",
+      "text": "## Anti-Pattern: Using `time.sleep` in Tests Directly",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/create-voice/references/pattern-identification.md",
+      "line": 50,
+      "pattern": "do NOT",
+      "text": "Scan samples for 5+ real typos. Document them with the correct spelling. These become wabi-sabi markers that signal authenticity. Do NOT treat these as errors to correct, because those \"imperfections\" ARE the voice -- perfection is an AI tell.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/create-voice/references/skill-generation.md",
+      "line": 30,
+      "pattern": "do NOT",
+      "text": "**Total: 2000+ lines minimum. Most should be SAMPLES, not rules.** Do NOT pad with verbose rules to hit the line count -- the goal is 2000+ lines of USEFUL content, primarily samples.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/create-voice/references/voice-rules-template.md",
+      "line": 38,
+      "pattern": "NEVER",
+      "text": "Identify patterns this voice NEVER uses. Apply attention anchoring (**bold**) to all negative constraints because the model pays more attention to bolded text:",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/create-voice/references/voice-rules-template.md",
+      "line": 41,
+      "pattern": "FORBIDDEN",
+      "text": "- **Em-dashes**: Does this person ever use them? If not, FORBIDDEN",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/data-analysis/references/anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Data Analysis Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/data-analysis/references/anti-patterns.md",
+      "line": 7,
+      "pattern": "Anti-Pattern",
+      "text": "## Methodology Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/data-analysis/references/anti-patterns.md",
+      "line": 90,
+      "pattern": "Anti-Pattern",
+      "text": "## Statistical Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/data-analysis/references/anti-patterns.md",
+      "line": 146,
+      "pattern": "Anti-Pattern",
+      "text": "## Communication Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/data-analysis/references/anti-patterns.md",
+      "line": 197,
+      "pattern": "Anti-Pattern",
+      "text": "## Process Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/decision-helper/references/decision-anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Decision Analysis Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/distinctive-frontend-design/references/animation-patterns.md",
+      "line": 13,
+      "pattern": "Avoid",
+      "text": "Avoid animating everything. Not every hover state needs motion.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/distinctive-frontend-design/references/animation-patterns.md",
+      "line": 518,
+      "pattern": "Anti-Pattern",
+      "text": "## Animation Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/distinctive-frontend-design/references/app-vs-landing-rules.md",
+      "line": 17,
+      "pattern": "Avoid",
+      "text": "- Avoid dashboard-card mosaics where every region is wrapped in a bordered box",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/distinctive-frontend-design/references/app-vs-landing-rules.md",
+      "line": 18,
+      "pattern": "Avoid",
+      "text": "- Avoid decorative gradients, thick borders on every region, and multiple competing accent colors",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/distinctive-frontend-design/references/phase-details.md",
+      "line": 60,
+      "pattern": "Anti-Pattern",
+      "text": "### Phase 3: Anti-Pattern Checks",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/do/references/perspective-prompts.md",
+      "line": 220,
+      "pattern": "Avoid",
+      "text": "### Poor Sources (avoid)",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/do/references/quality-loop.md",
+      "line": 187,
+      "pattern": "do NOT",
+      "text": "- **HALT** \u2014 do NOT auto-create PR with unresolved CRITICALs",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/do/references/routing-tables.md",
+      "line": 160,
+      "pattern": "NEVER",
+      "text": "| **protected-org** (configured organizations) | `scripts/classify-repo.py` pattern match | **Human-gated**: confirm each step with user | Their reviewers handle review | **NEVER auto-merge** |",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/docs-sync-checker/references/integration-guide.md",
+      "line": 30,
+      "pattern": "do NOT",
+      "text": "Do NOT use `continue-on-error: true` -- this defeats the purpose of the check.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/docs-sync-checker/references/sync-rules.md",
+      "line": 188,
+      "pattern": "do NOT",
+      "text": "**Current State**: Skills and agents do NOT use namespaces",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/e2e-testing/references/playwright-patterns.md",
+      "line": 234,
+      "pattern": "Avoid",
+      "text": "Avoid logging in for every test \u2014 use `storageState` to reuse sessions:",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/e2e-testing/references/wallet-testing.md",
+      "line": 74,
+      "pattern": "do NOT",
+      "text": "- Do NOT run wallet tests against real networks \u2014 always use mocks or local hardhat/anvil nodes.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/endpoint-validator/references/endpoint-config-anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Endpoint Config Anti-Patterns Reference",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/explanation-traces/references/anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Explanation Traces \u2014 Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/explanation-traces/references/anti-patterns.md",
+      "line": 8,
+      "pattern": "Anti-Pattern",
+      "text": "## Producer Anti-Patterns (Hook Writers)",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/explanation-traces/references/anti-patterns.md",
+      "line": 187,
+      "pattern": "Anti-Pattern",
+      "text": "## Consumer Anti-Patterns (Skill Behavior)",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/explanation-traces/references/error-handling.md",
+      "line": 42,
+      "pattern": "do NOT",
+      "text": "Do NOT guess at decisions from conversation history. If no file exists, there is nothing",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/feature-lifecycle/references/pipeline.md",
+      "line": 154,
+      "pattern": "do NOT",
+      "text": "Solution: Return to Phase 2 (PLAN) to update the plan with new understanding because continuing with an outdated plan causes wasted implementation effort and integration rework. Do NOT continue implementing against an outdated plan.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/feature-lifecycle/references/pipeline.md",
+      "line": 158,
+      "pattern": "do NOT",
+      "text": "Solution: Return to Phase 3 (IMPLEMENT) to fix because proceeding to release with failing tests ships defects to end users. Do NOT proceed to RELEASE with failing validation. Re-run full validation after fixes to catch any regressions.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/feature-lifecycle/references/plan.md",
+      "line": 176,
+      "pattern": "do NOT",
+      "text": "- Do NOT proceed to approval with uncovered requirements",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Fish Shell Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/forensics/references/failure-signatures.md",
+      "line": 219,
+      "pattern": "Anti-Pattern",
+      "text": "## Investigation Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/gemini-image-generator/references/prompts.md",
+      "line": 228,
+      "pattern": "Avoid",
+      "text": "### To Avoid Unwanted Elements",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/generate-claudemd/references/examples-and-errors.md",
+      "line": 87,
+      "pattern": "do NOT",
+      "text": "**Section 6 \u2014 Common Pitfalls**: Derive from actual codebase analysis. Do NOT invent pitfalls because fabricated warnings erode trust. If nothing notable was found, include 1-2 based on the build system (e.g., \"run make check before committing\").",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/go-patterns/references/anti-patterns.md",
+      "line": 2,
+      "pattern": "Anti-Pattern",
+      "text": "# Go Anti-Patterns Skill",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/go-patterns/references/anti-patterns.md",
+      "line": 15,
+      "pattern": "Anti-Pattern",
+      "text": "### Phase 2: Scan for Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/joy-check/references/instruction-rubric.md",
+      "line": 11,
+      "pattern": "NEVER",
+      "text": "| **Action framing** | \"Route all code modifications to domain agents\" | \"NEVER edit code directly\" |",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/joy-check/references/instruction-rubric.md",
+      "line": 12,
+      "pattern": "do NOT",
+      "text": "| **Specific instruction** | \"Stage files by name: `git add specific-file.py`\" | \"do NOT use git add -A\" |",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/joy-check/references/instruction-rubric.md",
+      "line": 13,
+      "pattern": "FORBIDDEN",
+      "text": "| **Table headings** | \"Preferred Patterns\", \"Hard Gate Patterns\" | \"Anti-Patterns\", \"FORBIDDEN Patterns\" |",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/joy-check/references/instruction-rubric.md",
+      "line": 15,
+      "pattern": "NEVER",
+      "text": "| **Error handling** | \"exit 0 on errors to keep tools available\" | \"must NEVER block tools\" |",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/joy-check/references/instruction-rubric.md",
+      "line": 25,
+      "pattern": "NEVER",
+      "text": "| NEVER (caps) | `\\bNEVER\\b` | \"NEVER edit code directly\" |",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/joy-check/references/instruction-rubric.md",
+      "line": 26,
+      "pattern": "do NOT",
+      "text": "| do NOT / Do NOT | `\\b[Dd]o NOT\\b` | \"Do NOT use git add -A\" |",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/joy-check/references/instruction-rubric.md",
+      "line": 27,
+      "pattern": "must NOT",
+      "text": "| must NOT | `\\bmust NOT\\b` | \"must NOT block tools\" |",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/joy-check/references/instruction-rubric.md",
+      "line": 28,
+      "pattern": "FORBIDDEN",
+      "text": "| FORBIDDEN | `\\bFORBIDDEN\\b` | \"FORBIDDEN Patterns\" |",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/joy-check/references/instruction-rubric.md",
+      "line": 38,
+      "pattern": "NEVER",
+      "text": "- **Code examples showing bad patterns**: `// NEVER` in a code comment demonstrating what SQL injection looks like \u2014 this is illustrative, not instructional",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/joy-check/references/instruction-rubric.md",
+      "line": 50,
+      "pattern": "NEVER",
+      "text": "| Prohibition (\"NEVER X\") | State the action: \"Do Y instead\" |",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/joy-check/references/instruction-rubric.md",
+      "line": 51,
+      "pattern": "do NOT",
+      "text": "| Warning (\"do NOT use X\") | Give the specific alternative: \"Use Y: `example`\" |",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/joy-check/references/instruction-rubric.md",
+      "line": 53,
+      "pattern": "NEVER",
+      "text": "| Fear-based (\"must NEVER block\") | State the outcome: \"exit 0 to keep available\" |",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kb/references/compile.md",
+      "line": 72,
+      "pattern": "do NOT",
+      "text": "- Incorporate any new, non-duplicate information into the article body. Add a new section or expand an existing one. Do NOT rewrite the article from scratch - make targeted additions.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kb/references/compile.md",
+      "line": 125,
+      "pattern": "do NOT",
+      "text": "- Make targeted additions only \u2014 do NOT rewrite from scratch",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kb/references/compile.md",
+      "line": 127,
+      "pattern": "do NOT",
+      "text": "5. Do NOT delete the query file \u2014 it is a permanent record.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kb/references/compile.md",
+      "line": 184,
+      "pattern": "do NOT",
+      "text": "**Do NOT rewrite existing concept articles from scratch.** Incremental updates preserve the accumulated knowledge from prior compilations. If the existing article is good, only add what is new.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kb/references/compile.md",
+      "line": 186,
+      "pattern": "do NOT",
+      "text": "**Do NOT create concepts with a single source** unless the concept is clearly significant (a named algorithm, a major pattern, an established term). Single-source concepts that are not significant just create noise.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kb/references/compile.md",
+      "line": 188,
+      "pattern": "do NOT",
+      "text": "**Do NOT include raw source content verbatim.** Summarize and synthesize. The wiki is a compressed, queryable representation - not a mirror.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kb/references/compile.md",
+      "line": 190,
+      "pattern": "do NOT",
+      "text": "**Do NOT skip `_index.md` maintenance.** The index is the entry point for humans and LLMs querying the KB. A stale index defeats the purpose of the system. Always rebuild it after any compilation run.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kb/references/compile.md",
+      "line": 192,
+      "pattern": "do NOT",
+      "text": "**Do NOT create concepts without a definition.** Every concept article needs at least a one-sentence definition. A concept page with only a title and a sources list is not useful.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kb/references/lint.md",
+      "line": 25,
+      "pattern": "do NOT",
+      "text": "Run deterministic checks. Read file contents and frontmatter as needed. Do NOT read raw sources for structural checks \u2014 wiki files only.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kb/references/lint.md",
+      "line": 95,
+      "pattern": "do NOT",
+      "text": "Before fixing, print each planned change and ask for confirmation. Do NOT auto-fix content quality issues \u2014 those require human or LLM judgment during compile.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kb/references/lint.md",
+      "line": 97,
+      "pattern": "Anti-Pattern",
+      "text": "## Anti-patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kb/references/lint.md",
+      "line": 99,
+      "pattern": "do NOT",
+      "text": "- Do NOT fix issues silently \u2014 always report before fixing",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kb/references/lint.md",
+      "line": 100,
+      "pattern": "do NOT",
+      "text": "- Do NOT suggest concepts for every minor term \u2014 only significant gaps (max 5)",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kb/references/lint.md",
+      "line": 101,
+      "pattern": "do NOT",
+      "text": "- Do NOT report passing checks \u2014 only failures and suggestions",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kb/references/lint.md",
+      "line": 102,
+      "pattern": "do NOT",
+      "text": "- Do NOT read every raw source during lint \u2014 structural checks use wiki files only",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kb/references/lint.md",
+      "line": 103,
+      "pattern": "do NOT",
+      "text": "- Do NOT treat missing `research/{topic}/` as a lint failure \u2014 exit with a clear error message before phase 1",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kb/references/query.md",
+      "line": 20,
+      "pattern": "do NOT",
+      "text": "Using only the `_index.md` (do NOT read individual articles yet), identify the **3-10 most relevant** concept and/or source articles for this question.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kb/references/query.md",
+      "line": 45,
+      "pattern": "do NOT",
+      "text": "Do NOT draw on general knowledge when the KB has relevant content. Prefer KB sources. If you must supplement with general knowledge (because the KB is silent on a point), mark it clearly: \"(from general knowledge, not in KB)\".",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kb/references/query.md",
+      "line": 89,
+      "pattern": "do NOT",
+      "text": "**Do NOT answer from general knowledge if the KB has relevant content.** The point of the system is to build and use a local knowledge base. Bypassing it defeats the flywheel.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kb/references/query.md",
+      "line": 91,
+      "pattern": "do NOT",
+      "text": "**Do NOT read every wiki file.** Use the `_index.md` to select relevant articles. Reading every file wastes time and context on irrelevant material.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kb/references/query.md",
+      "line": 93,
+      "pattern": "do NOT",
+      "text": "**Do NOT write query files longer than 1500 words.** If the answer requires more than that, it is probably two separate questions. Answer the specific question asked.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kb/references/query.md",
+      "line": 95,
+      "pattern": "do NOT",
+      "text": "**Do NOT omit `sources_consulted`.** This field is the data the flywheel uses during the next compile run. An empty or incomplete list breaks the feedback loop.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kb/references/query.md",
+      "line": 97,
+      "pattern": "do NOT",
+      "text": "**Do NOT skip filing unless `--no-file` was explicitly specified.** Filed queries accumulate domain knowledge. Each one makes the next query better.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kotlin-coroutines/references/anti-patterns.md",
+      "line": 7,
+      "pattern": "Anti-Pattern",
+      "text": "# Kotlin Coroutine Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/kubernetes-security/references/supply-chain.md",
+      "line": 100,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Patterns (Do Not Use)",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/multi-persona-critique/references/examples-and-errors.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Multi-Persona Critique \u2014 Templates, Examples, Anti-Patterns, and Error Handling",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/multi-persona-critique/references/synthesis-template.md",
+      "line": 151,
+      "pattern": "do NOT",
+      "text": "4. **Interesting Disagreements**: The most valuable section. Do NOT resolve disagreements. Present both sides with equal respect. Identify the nature of the disagreement (values vs facts vs perspective).",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/phaser-gamedev/references/performance.md",
+      "line": 99,
+      "pattern": "Avoid",
+      "text": "## GC Optimization \u2014 Avoid Allocations in update()",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/php-testing/references/patterns.md",
+      "line": 267,
+      "pattern": "Anti-Pattern",
+      "text": "## Common Testing Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/pptx-generator/references/anti-ai-slide-rules.md",
+      "line": 19,
+      "pattern": "NEVER",
+      "text": "**Rule**: NEVER add a decorative line, rule, or separator below a title. Use font size, weight, and spacing to create hierarchy instead.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/pr-workflow/references/codex-review-anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Code Anti-Patterns for Review",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/pr-workflow/references/codex-review-anti-patterns.md",
+      "line": 19,
+      "pattern": "Anti-Pattern",
+      "text": "## Go Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/pr-workflow/references/codex-review-anti-patterns.md",
+      "line": 132,
+      "pattern": "Anti-Pattern",
+      "text": "## TypeScript/JavaScript Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/pr-workflow/references/codex-review-anti-patterns.md",
+      "line": 225,
+      "pattern": "Anti-Pattern",
+      "text": "## Python Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/pr-workflow/references/commit-banned-patterns.md",
+      "line": 302,
+      "pattern": "NEVER",
+      "text": "**NEVER bypass for**:",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/pr-workflow/references/feedback.md",
+      "line": 137,
+      "pattern": "do NOT",
+      "text": "Do NOT fix INVALID comments. Escalate NEEDS-DISCUSSION items to the user.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/pr-workflow/references/pattern-categories.md",
+      "line": 15,
+      "pattern": "Don't",
+      "text": "- Don't ignore errors (no `_ = func()` without comment)",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/pr-workflow/references/pattern-categories.md",
+      "line": 64,
+      "pattern": "Avoid",
+      "text": "- Avoid reflection in hot paths (performance)",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/pr-workflow/references/pattern-categories.md",
+      "line": 72,
+      "pattern": "Avoid",
+      "text": "- Avoid unnecessary allocations",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/pr-workflow/references/pattern-categories.md",
+      "line": 123,
+      "pattern": "Avoid",
+      "text": "- Avoid deep nesting (early returns)",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/pr-workflow/references/pipeline.md",
+      "line": 306,
+      "pattern": "do NOT",
+      "text": "If CI fails, report which checks failed and the PR URL. Do NOT merge. Do NOT proceed to cleanup. This pipeline reports CI failures but does not fix them -- diagnosing CI requires different context than PR creation.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/pr-workflow/references/pipeline.md",
+      "line": 313,
+      "pattern": "do NOT",
+      "text": "**HARD RULE**: Never merge a PR with failing or pending CI. CI must pass first. The `ci-merge-gate.py` hook enforces this mechanically -- it blocks `gh pr merge` when checks are failing or pending. Do NOT use `--admin` or any bypass to circumvent this. If CI fails on an \"unrelated\" test, investigate the root cause (date-dependent fixtures, flaky tests) rather than force-merging -- assuming CI is \"probably flaky\" masks real failures and normalizes broken builds.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/pr-workflow/references/pipeline.md",
+      "line": 603,
+      "pattern": "FORBIDDEN",
+      "text": "| Agent produced bad code | `agents/{name}.md` | FORBIDDEN patterns or Anti-Patterns |",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/publish/references/image-audit-size-guidelines.md",
+      "line": 83,
+      "pattern": "Avoid",
+      "text": "- Avoid for static images (PNG/WebP better)",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/publish/references/outline.md",
+      "line": 178,
+      "pattern": "do NOT",
+      "text": "3. Do NOT generate a generic outline -- wait for specifics",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/publish/references/pre-publish-seo-guidelines.md",
+      "line": 14,
+      "pattern": "Avoid",
+      "text": "- Avoid clickbait that doesn't deliver",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/publish/references/pre-publish-seo-guidelines.md",
+      "line": 37,
+      "pattern": "Don't",
+      "text": "- Don't just repeat the title",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/publish/references/pre-publish-seo-guidelines.md",
+      "line": 58,
+      "pattern": "Don't",
+      "text": "- Don't change after publication (breaks links)",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/publish/references/pre-publish-seo-guidelines.md",
+      "line": 95,
+      "pattern": "Don't",
+      "text": "- Don't skip levels (H2 -> H4)",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/publish/references/pre-publish-seo-guidelines.md",
+      "line": 129,
+      "pattern": "Don't",
+      "text": "- Don't start with \"Image of...\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/publish/references/seo-guidelines.md",
+      "line": 80,
+      "pattern": "Don't",
+      "text": "- Don't force keywords into every header",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/publish/references/seo-guidelines.md",
+      "line": 171,
+      "pattern": "Avoid",
+      "text": "### What to Avoid",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/publish/references/seo-keyword-placement.md",
+      "line": 162,
+      "pattern": "Avoid",
+      "text": "### How to Avoid",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/publish/references/seo-title-patterns.md",
+      "line": 123,
+      "pattern": "Anti-Pattern",
+      "text": "## Title Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/publish/references/seo-title-patterns.md",
+      "line": 233,
+      "pattern": "Avoid",
+      "text": "### Avoid for YourBlog",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/publish/references/taxonomy-guidelines.md",
+      "line": 26,
+      "pattern": "Avoid",
+      "text": "Avoid:",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/publish/references/taxonomy-guidelines.md",
+      "line": 190,
+      "pattern": "Avoid",
+      "text": "## Common Mistakes to Avoid",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/publish/references/wordpress-upload-content-formatting.md",
+      "line": 3,
+      "pattern": "do NOT",
+      "text": "**Do NOT include title or author in the article body.** WordPress manages these as metadata. Duplicating them in content creates inconsistency when editing in wp-admin.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/publish/references/wordpress-upload.md",
+      "line": 136,
+      "pattern": "do NOT",
+      "text": "**Do NOT include title or author in the article body.** WordPress manages these as metadata. Duplicating them in content creates inconsistency when editing in wp-admin.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/reference-enrichment/references/quality-rubric.md",
+      "line": 133,
+      "pattern": "Anti-Pattern",
+      "text": "## Level 3 Checklist (Per Anti-Pattern Entry)",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/reference-enrichment/references/reference-file-template.md",
+      "line": 63,
+      "pattern": "Anti-Pattern",
+      "text": "### \u274c {{Anti-Pattern Name}}",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/reference-enrichment/references/reference-file-template.md",
+      "line": 88,
+      "pattern": "Anti-Pattern",
+      "text": "### \u274c {{Anti-Pattern Name}}",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/sapcc-review/references/agent-dispatch-prompts.md",
+      "line": 215,
+      "pattern": "Anti-Pattern",
+      "text": "## Agent 10: Anti-Patterns, LLM Tells, Community Divergences",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/series-planner/references/cadence-guidelines.md",
+      "line": 291,
+      "pattern": "Avoid",
+      "text": "- Avoid weekend-only schedules",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/series-planner/references/cross-linking.md",
+      "line": 126,
+      "pattern": "Avoid",
+      "text": "### Bad Patterns (Avoid)",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/series-planner/references/cross-linking.md",
+      "line": 161,
+      "pattern": "Avoid",
+      "text": "### Bad Patterns (Avoid)",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/series-planner/references/cross-linking.md",
+      "line": 163,
+      "pattern": "Don't",
+      "text": "Don't re-explain or over-reference:",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/series-planner/references/cross-linking.md",
+      "line": 322,
+      "pattern": "Avoid",
+      "text": "Avoid if possible. If necessary:",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-composer/references/skill-patterns.md",
+      "line": 286,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 1: Over-Composition",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-composer/references/skill-patterns.md",
+      "line": 290,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 2: Circular Dependencies",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-composer/references/skill-patterns.md",
+      "line": 294,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 3: False Parallelism",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-composer/references/skill-patterns.md",
+      "line": 298,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 4: Missing Verification",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-composer/references/skill-patterns.md",
+      "line": 302,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern 5: Premature Optimization",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-creator/references/anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Skill Creator Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-creator/references/anti-patterns.md",
+      "line": 5,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Description Without Triggers",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-creator/references/anti-patterns.md",
+      "line": 30,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Phases Without Gates",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-creator/references/anti-patterns.md",
+      "line": 70,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Everything in Main File",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-creator/references/anti-patterns.md",
+      "line": 111,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Vague What+When Formula",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-creator/references/anti-patterns.md",
+      "line": 140,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Over-Engineering Simple Workflows",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-creator/references/anti-patterns.md",
+      "line": 168,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Missing Complexity Tier",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-creator/references/anti-patterns.md",
+      "line": 201,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Infinite Retry Loops",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-creator/references/anti-patterns.md",
+      "line": 231,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Hardcoded Secrets",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-creator/references/anti-patterns.md",
+      "line": 271,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: No Error Handling",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-creator/references/anti-patterns.md",
+      "line": 321,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Verbose Frontmatter",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-creator/references/anti-patterns.md",
+      "line": 355,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Skill Naming Violations",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-creator/references/anti-patterns.md",
+      "line": 382,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Mandates Without Motivation",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-creator/references/anti-patterns.md",
+      "line": 412,
+      "pattern": "NEVER",
+      "text": "**When to use**: All skills \u2014 review every MUST/ALWAYS/NEVER and ask \"does the model know why?\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-creator/references/anti-patterns.md",
+      "line": 416,
+      "pattern": "Anti-Pattern",
+      "text": "## \u274c Anti-Pattern: Missing Negative Triggers",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-creator/references/complexity-tiers.md",
+      "line": 259,
+      "pattern": "Anti-Pattern",
+      "text": "## Anti-Patterns in Tier Selection",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-creator/references/domain-research-targets.md",
+      "line": 160,
+      "pattern": "Anti-Pattern",
+      "text": "## Testing (test-driven-development, testing-anti-patterns, e2e-testing)",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-creator/references/error-catalog.md",
+      "line": 18,
+      "pattern": "do NOT",
+      "text": "Apply formula: \"Do [specific action] when [trigger condition]. Use for [use cases]. Do NOT use for [anti-triggers].\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-creator/references/error-catalog.md",
+      "line": 87,
+      "pattern": "do NOT",
+      "text": "Add \"Do NOT use for...\" clause with specific anti-triggers:",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-creator/references/skill-template.md",
+      "line": 215,
+      "pattern": "NEVER",
+      "text": "**Yellow flag**: If you find yourself writing `ALWAYS` or `NEVER` in all caps without explanation, reframe it. Add the reasoning so the model understands the importance and can generalize correctly to edge cases.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-creator/references/skill-template.md",
+      "line": 219,
+      "pattern": "NEVER",
+      "text": "| Constraint | `NEVER use console.log in production code` | `Avoid console.log in production \u2014 it blocks the event loop on high-throughput paths and leaks internal state to browser devtools` |",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/skill-creator/references/skill-template.md",
+      "line": 263,
+      "pattern": "Anti-Pattern",
+      "text": "## Anti-Patterns Section (Medium+)",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/swift-concurrency/references/anti-patterns.md",
+      "line": 7,
+      "pattern": "Anti-Pattern",
+      "text": "# Common Anti-Patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/systematic-code-review/references/receiving-feedback.md",
+      "line": 20,
+      "pattern": "NEVER",
+      "text": "**NEVER:**",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/systematic-code-review/references/severity-classification.md",
+      "line": 56,
+      "pattern": "Avoid",
+      "text": "## Common Misclassifications to Avoid",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/test-driven-development/references/examples.md",
+      "line": 766,
+      "pattern": "Avoid",
+      "text": "## TDD Anti-Patterns to Avoid",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/test-driven-development/references/examples.md",
+      "line": 768,
+      "pattern": "Anti-Pattern",
+      "text": "### \u274c Anti-Pattern 1: Writing Tests After Implementation",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/test-driven-development/references/examples.md",
+      "line": 796,
+      "pattern": "Anti-Pattern",
+      "text": "### \u274c Anti-Pattern 2: Testing Implementation Details",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/test-driven-development/references/examples.md",
+      "line": 817,
+      "pattern": "Anti-Pattern",
+      "text": "### \u274c Anti-Pattern 3: Overly Broad Tests",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/test-driven-development/references/phase-guidance.md",
+      "line": 65,
+      "pattern": "do NOT",
+      "text": "- Do NOT proceed until the failure clearly indicates \"this feature does not exist yet\"",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/testing-anti-patterns/references/anti-pattern-catalog.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Testing Anti-Pattern Catalog",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/testing-anti-patterns/references/fix-strategies.md",
+      "line": 200,
+      "pattern": "do NOT",
+      "text": "- Do NOT mock: Pure functions, value objects, internal collaborators",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/threejs-builder/references/gltf-loading.md",
+      "line": 27,
+      "pattern": "do NOT",
+      "text": "character and prop models. Do NOT apply it for environment meshes or terrain (those",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/threejs-builder/references/react-three-fiber.md",
+      "line": 157,
+      "pattern": "NEVER",
+      "text": "### NEVER Do This",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/toolkit-evolution/references/evolve-anti-patterns.md",
+      "line": 1,
+      "pattern": "Anti-Pattern",
+      "text": "# Toolkit Evolution \u2014 Anti-Patterns, Errors, and Cost",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/topic-brainstormer/references/content-filter.md",
+      "line": 68,
+      "pattern": "Avoid",
+      "text": "### Question 3: Would this help others avoid the same struggle?",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/verification-before-completion/references/checklist.md",
+      "line": 301,
+      "pattern": "Avoid",
+      "text": "## Anti-Patterns to Avoid",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/verification-before-completion/references/checklist.md",
+      "line": 303,
+      "pattern": "NEVER",
+      "text": "### \u274c NEVER Do This",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/agent-upgrade.md",
+      "line": 200,
+      "pattern": "do NOT",
+      "text": "**Step 3**: Wait for user approval. Do NOT proceed to Phase 4 without it. The gate exists because the user may have strong opinions about which improvements are appropriate \u2014 silent mass edits violate the approval contract.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/agent-upgrade.md",
+      "line": 244,
+      "pattern": "do NOT",
+      "text": "**Step 4**: Do NOT change any of the following without explicit user direction because domain logic changes require deliberate user decision, not opportunistic bundling:",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/agent-upgrade.md",
+      "line": 269,
+      "pattern": "do NOT",
+      "text": "- Do NOT auto-revert because the user may have context that justifies the regression",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/agent-upgrade.md",
+      "line": 311,
+      "pattern": "do NOT",
+      "text": "Solution: Show the diff, identify the likely culprit change, and ask the user whether to revert it. Do NOT auto-revert. Proceed only after user makes a decision.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/article-evaluation-pipeline.md",
+      "line": 200,
+      "pattern": "do NOT",
+      "text": "3. Do NOT guess or assume \u2014 wrong profile produces meaningless scores and invalidates the entire evaluation",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/chain-composer/references/canonical-chains.md",
+      "line": 13,
+      "pattern": "do NOT",
+      "text": "Do NOT compose chains from scratch. Always start from a canonical template.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/chain-composer.md",
+      "line": 134,
+      "pattern": "do NOT",
+      "text": "*Constraint: Apply exactly the gates specified by the operator profile. Personal = minimal gates. Production = maximum gates. No more, no less. Do NOT add production-grade gates to personal chains or vice versa.*",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/chain-composer.md",
+      "line": 236,
+      "pattern": "do NOT",
+      "text": "**Why the Pipeline Spec is JSON, not markdown**: *Constraint: The scaffolder needs machine-readable data to derive build targets (skills, references, scripts, agents, routing). JSON is the contract format defined in `pipeline-spec-format.md`.* The human-readable summary is a companion, not a replacement. *Constraint: Do NOT produce markdown instead of JSON. The scaffolder consumes JSON. It parses field names, iterates subdomain arrays, and extracts step objects programmatically.*",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/chain-composer.md",
+      "line": 283,
+      "pattern": "do NOT",
+      "text": "- Exactly one of `new_agent` or `reuse_agent` is non-null. *Constraint: Whether to create a new agent vs. reuse must come from Component Manifest or user. Do NOT guess.*",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/comprehensive-review/references/wave-1-foundation.md",
+      "line": 88,
+      "pattern": "do NOT",
+      "text": "| `reviewer-system` (security) | Focus on OWASP Top 10, auth, input validation, secrets. **MCP**: For Go, use gopls `go_symbol_references` to trace tainted input flows. **CALLER TRACING (mandatory)**: When the diff modifies functions with security-sensitive parameters (auth tokens, filter flags, sentinel values like `\"*\"`), grep for ALL callers across the repo and verify each validates the parameter. Do NOT trust PR descriptions \u2014 verify independently. |",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/comprehensive-review/references/wave-1-foundation.md",
+      "line": 89,
+      "pattern": "do NOT",
+      "text": "| `reviewer-domain` (business-logic) | Focus on requirements coverage, edge cases, state transitions. **CALLER TRACING (mandatory)**: When the diff changes interface semantics or introduces sentinel values, grep for ALL callers (`.MethodName(`) across the repo and verify each honors the contract. Do NOT claim \"no caller passes X\" without searching. |",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/de-ai-pipeline.md",
+      "line": 95,
+      "pattern": "do NOT",
+      "text": "Do NOT modify text inside:",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/do-perspectives.md",
+      "line": 157,
+      "pattern": "do NOT",
+      "text": "**Hardcoded requirement** (always apply): Do NOT remove existing working patterns. Existing patterns were validated through prior use. New patterns should augment, not replace. Only modify existing content when source material provides a strictly better approach.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/do-perspectives.md",
+      "line": 167,
+      "pattern": "do NOT",
+      "text": "- Do NOT remove existing working patterns",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/mcp-pipeline-builder/references/design-rules.md",
+      "line": 87,
+      "pattern": "do NOT",
+      "text": "2. Do NOT include any of them in `design.md`",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/mcp-pipeline-builder/references/design-rules.md",
+      "line": 132,
+      "pattern": "Avoid",
+      "text": "- Avoid `object` for top-level parameters \u2014 flatten into individual fields",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/mcp-pipeline-builder/references/evaluation-guide.md",
+      "line": 206,
+      "pattern": "do NOT",
+      "text": "| **< 7/10 (second attempt)** | Halt. Surface the evaluation report. Tell the user which tools are failing and why. Do NOT attempt a third regeneration. |",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/mcp-pipeline-builder/references/python-scaffold-template.md",
+      "line": 272,
+      "pattern": "do NOT",
+      "text": "**Do NOT**: Catch all exceptions silently and return empty strings. The model cannot act on silent failures.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/mcp-pipeline-builder.md",
+      "line": 132,
+      "pattern": "do NOT",
+      "text": "**Do NOT rationalize skipping this gate.** No time pressure, confidence level, or apparent obviousness of the design justifies proceeding without explicit user approval. The cost of wrong code is orders of magnitude higher than the cost of a review pause.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/pipeline-retro.md",
+      "line": 218,
+      "pattern": "do NOT",
+      "text": "| Complex | Present to user for approval. Do NOT apply without confirmation. |",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/pipeline-retro.md",
+      "line": 410,
+      "pattern": "do NOT",
+      "text": "**Solution**: This is not a generator problem. Report the finding and suggest better test targets. Do NOT modify generator components.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/pipeline-scaffolder/references/architecture-rules.md",
+      "line": 248,
+      "pattern": "Anti-Pattern",
+      "text": "### Anti-Pattern: Single-Threaded Research",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/pipeline-scaffolder/references/generated-skill-template.md",
+      "line": 989,
+      "pattern": "Anti-Pattern",
+      "text": "### Default Anti-Patterns by Task Type",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/pipeline-scaffolder.md",
+      "line": 93,
+      "pattern": "do NOT",
+      "text": "If exit 1: Do NOT proceed. The ADR changed after this Pipeline Spec was composed. The spec may now be inconsistent with the current ADR. Required action: Re-run `chain-composer` with the updated ADR to produce a fresh Pipeline Spec, then re-run scaffolder.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/pr-pipeline/references/retro-adr-phases.md",
+      "line": 66,
+      "pattern": "FORBIDDEN",
+      "text": "| Agent produced bad code | `agents/{name}.md` | FORBIDDEN patterns or Anti-Patterns |",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/research-pipeline.md",
+      "line": 158,
+      "pattern": "do NOT",
+      "text": "**Step 3**: Wait for all agents to complete. Do NOT proceed until all raw-{angle}.md files exist.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/research-pipeline.md",
+      "line": 347,
+      "pattern": "do NOT",
+      "text": "Solution: Re-dispatch once with identical instructions. If second attempt fails, mark angle as \"unavailable\" in synthesis.md and continue. Do NOT block Phase 3 indefinitely on one failed angle.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/research-pipeline.md",
+      "line": 355,
+      "pattern": "do NOT",
+      "text": "Solution: Report this to the user with specifics: which angles failed and why. Offer to (a) narrow the question, (b) change source types, or (c) deliver the partial findings with strong caveats. Do NOT silently deliver an insufficient report as if it were complete.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/skill-creation-pipeline.md",
+      "line": 288,
+      "pattern": "NEVER",
+      "text": "language (NEVER, do NOT, FORBIDDEN) per ADR-127. Positive framing makes instructions more",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/skill-creation-pipeline.md",
+      "line": 350,
+      "pattern": "do NOT",
+      "text": "- Do NOT silently modify routing tables without reporting what changed",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/system-upgrade.md",
+      "line": 173,
+      "pattern": "do NOT",
+      "text": "**Step 3**: Wait for user approval. Do NOT proceed to Phase 4 without explicit approval.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/system-upgrade.md",
+      "line": 238,
+      "pattern": "do NOT",
+      "text": "- Do NOT auto-revert\u2014user decides",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/system-upgrade.md",
+      "line": 307,
+      "pattern": "do NOT",
+      "text": "Solution: Re-dispatch with more specific instructions. Check agent output for errors. Do NOT skip to Phase 5 with incomplete work.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/system-upgrade.md",
+      "line": 311,
+      "pattern": "do NOT",
+      "text": "Solution: Show diff of changes to user. Offer to revert the specific component. Do NOT auto-revert without user approval.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/voice-writer/references/generation-checklist.md",
+      "line": 30,
+      "pattern": "do NOT",
+      "text": "- **Analogy domains**: Draw analogies ONLY from the documented source domains. Do NOT use generic analogies from undocumented domains.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/voice-writer/references/generation-checklist.md",
+      "line": 39,
+      "pattern": "NEVER",
+      "text": "NEVER generate em-dashes in any voice output. Em-dashes are the most reliable AI marker. Use commas, periods, or restructure sentences instead.",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/voice-writer.md",
+      "line": 168,
+      "pattern": "do NOT",
+      "text": "3. Do NOT make unrelated changes",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/workflow-orchestrator.md",
+      "line": 50,
+      "pattern": "do NOT",
+      "text": "**PHASE GATE: Do NOT proceed to WRITE-PLAN phase until:**",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/workflow-orchestrator.md",
+      "line": 110,
+      "pattern": "do NOT",
+      "text": "**PHASE GATE: Do NOT proceed to VALIDATE-PLAN phase until:**",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/workflow-orchestrator.md",
+      "line": 218,
+      "pattern": "do NOT",
+      "text": "**PHASE GATE: Do NOT proceed to EXECUTE-PLAN phase until:**",
+      "safe_fix": null
+    },
+    {
+      "file": "skills/workflow/references/workflow-orchestrator.md",
+      "line": 273,
+      "pattern": "do NOT",
+      "text": "**PHASE GATE: Do NOT mark workflow complete until:**",
+      "safe_fix": null
+    }
+  ],
+  "safe_rewrites": {
+    "## Anti-Patterns": "## Patterns to Detect and Fix",
+    "## Common Anti-Patterns": "## Common Patterns to Detect and Fix",
+    "## Anti-Pattern Catalog": "## Pattern Catalog",
+    "## Operational Anti-Patterns": "## Operational Patterns to Detect and Fix",
+    "### FORBIDDEN Patterns (HARD GATE)": "### Hard Gate Patterns",
+    "### Anti-Pattern Checklist: What NOT To Do": "### Pattern Checklist: What to Detect and Fix"
+  }
+}

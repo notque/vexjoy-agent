@@ -61,7 +61,7 @@ description: |
   outside the {{subdomain_name}} subdomain.
 user-invocable: true
 agent: {{agent_name}}
-model: opus
+model: sonnet
 allowed-tools:
   - Read
   - Write

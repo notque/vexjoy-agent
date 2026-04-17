@@ -118,7 +118,7 @@ category: content       # writing, documentation, content agents
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section header with no content -->
 
 ### ❌ Phantom Route — Entry References Nonexistent Component
