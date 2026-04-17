@@ -174,7 +174,7 @@ def create_resource(self, context, name, resource_type):  # Added required arg
 
 **Why wrong**: Old nodes calling `create_resource(ctx, name)` will crash with `TypeError` on the new server. Rolling upgrade fails.
 
-**Fix**: Bump `RPC_API_VERSION` to `'1.3'`, make `resource_type` optional with a default, and pin new client calls to `prepare(version='1.3')`.
+**Do instead:** Bump `RPC_API_VERSION` to `'1.3'`, make `resource_type` optional with a default, and pin new client calls to `prepare(version='1.3')`.
 
 ---
 
@@ -196,7 +196,7 @@ def resize_resource(self, context, resource_id, new_size):
 
 **Why wrong**: `_client.call()` without `.prepare(version=X)` sends no version requirement. If the server is on `1.3` and doesn't have `resize_resource`, the call fails with `MethodNotFound`.
 
-**Fix**: Always use `self._client.prepare(version='1.4').call(...)` before calls that require a specific version.
+**Do instead:** Always use `self._client.prepare(version='1.4').call(...)` before calls that require a specific version.
 
 ---
 
@@ -222,7 +222,7 @@ class MyServiceManager:
 
 **Why wrong**: Clients can't use `prepare(version=X)` to protect against calling new methods on old servers. Every caller must assume all methods exist on all server versions — breaks rolling upgrades.
 
-**Fix**: Audit when each method was added, assign retrospective version numbers, and update `RPC_API_VERSION` to reflect the current maximum.
+**Do instead:** Audit when each method was added, assign retrospective version numbers, and update `RPC_API_VERSION` to reflect the current maximum.
 
 ---
 
