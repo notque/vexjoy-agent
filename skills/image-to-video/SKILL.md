@@ -34,7 +34,6 @@ Combine a static image with an audio file to produce an MP4 video using FFmpeg. 
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `ffmpeg-filters.md` | Loads detailed guidance from `ffmpeg-filters.md`. |

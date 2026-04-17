@@ -67,7 +67,6 @@ python3 ~/.claude/scripts/bluesky_reader.py feed --handle HANDLE --cursor CURSOR
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | Endpoint details, data shapes, pagination | `at-protocol-api.md` | Routes to the matching deep reference |

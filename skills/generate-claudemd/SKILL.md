@@ -34,7 +34,6 @@ This skill does not use `context: fork` because it requires interactive user gat
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `CLAUDEMD_TEMPLATE.md` | Loads detailed guidance from `CLAUDEMD_TEMPLATE.md`. |

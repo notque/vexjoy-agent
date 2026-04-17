@@ -93,7 +93,6 @@ Detect the user's intent and load the appropriate reference file:
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | "outline post", "blog structure", "content blueprint", "article outline", "content structure" | `outline.md` | **Outline** |

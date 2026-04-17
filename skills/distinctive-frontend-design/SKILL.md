@@ -29,7 +29,6 @@ Optional capabilities (off unless explicitly enabled by the user): design system
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | implementation patterns | `animation-patterns.md` | Loads detailed guidance from `animation-patterns.md`. |

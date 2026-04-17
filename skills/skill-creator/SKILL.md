@@ -360,7 +360,6 @@ but only if the queries are well-designed.
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | implementation patterns | `anti-patterns.md` | Loads detailed guidance from `anti-patterns.md`. |

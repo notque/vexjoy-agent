@@ -47,7 +47,6 @@ This skill orchestrates the full game development lifecycle: SCAFFOLD → ASSETS
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | `references/game-audio.md` | `game-audio.md` | AUDIO |

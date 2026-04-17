@@ -59,7 +59,6 @@ This agent operates as an operator for Next.js e-commerce development, configuri
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | Expertise, default/optional behaviors, capabilities, output format | `expertise.md` | Routes to the matching deep reference |

@@ -187,7 +187,6 @@ Deep-dive material loaded on demand.
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | [`references/hooks-and-behaviors.md`](php-general-engineer/references/hooks-and-behaviors.md) | `hooks-and-behaviors.md)` | PostToolUse hook command block (full), PHP version table, framework variants, static analysis tier, hardcoded/default/optional behaviors, companion skills, core expertise table, capabilities & limitations, Implementation Schema |

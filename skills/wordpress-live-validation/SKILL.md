@@ -49,7 +49,6 @@ This skill loads a real WordPress post in a Playwright headless browser and veri
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `validation-checks.md` | Loads detailed guidance from `validation-checks.md`. |

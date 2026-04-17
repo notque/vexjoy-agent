@@ -25,7 +25,6 @@ Deterministic HTTP endpoint validation following a **Discover, Validate, Report*
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | Security header WARNs, HSTS/CSP/X-Frame issues | `security-headers.md` | Routes to the matching deep reference |

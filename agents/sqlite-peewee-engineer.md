@@ -144,7 +144,6 @@ SQLite Constraints: [Limitations to work within]
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | N+1, prefetch, join, slow query, index, WAL, EXPLAIN | `peewee-query-patterns.md` | Query optimization, N+1 prevention, index strategy, SQLite pragmas |

@@ -32,7 +32,6 @@ Run four quality tools in deterministic order -- ruff, pytest, mypy, bandit -- a
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `report-template.md` | Loads detailed guidance from `report-template.md`. |

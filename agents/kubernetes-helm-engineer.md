@@ -146,7 +146,6 @@ Safety Checks: [Dry-run, context verification]
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | Pod failures, CrashLoopBackOff, OOMKilled, Pending, ImagePullBackOff | `kubernetes-troubleshooting.md` | Diagnostic commands, pod state table, error-fix mappings |

@@ -31,7 +31,6 @@ Orchestrate complex workflows by chaining multiple skills into validated executi
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `compatibility-matrix.md` | Loads detailed guidance from `compatibility-matrix.md`. |

@@ -79,7 +79,7 @@ After parallel streams, hold integration until ALL streams complete.
 
 Wait conditions:
 - [ ] STREAM A: golang-general-engineer — src/api/ complete
-- [ ] STREAM B: typescript-frontend-engineer — src/ui/ complete  
+- [ ] STREAM B: typescript-frontend-engineer — src/ui/ complete
 - [ ] STREAM C: database-engineer — migrations/ complete
 
 BLOCKED: Do not dispatch integration agent until all 3 boxes checked.

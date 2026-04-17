@@ -38,7 +38,6 @@ This skill builds complete Phaser 3 2D games using a **Phased Construction** pat
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | `references/core-patterns.md` | `core-patterns.md` | Always |

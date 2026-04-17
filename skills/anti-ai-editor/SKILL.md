@@ -28,7 +28,6 @@ Detect and remove AI-generated writing patterns through targeted, minimal edits.
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | AI Cliches | `cliche-replacements.md` | "delve", "leverage", "utilize", "robust" |

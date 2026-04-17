@@ -46,7 +46,6 @@ Investigate failed or stuck workflows through post-mortem analysis of git histor
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `detectors.md` | Loads detailed guidance from `detectors.md`. |

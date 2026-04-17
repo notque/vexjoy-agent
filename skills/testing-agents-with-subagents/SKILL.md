@@ -36,7 +36,6 @@ Each test runs in a fresh subagent to avoid context pollution. After any fix, re
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | example-driven tasks, errors | `examples-and-errors.md` | Loads detailed guidance from `examples-and-errors.md`. |

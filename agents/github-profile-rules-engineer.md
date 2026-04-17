@@ -97,7 +97,6 @@ This agent operates as an operator for GitHub profile analysis, configuring Clau
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | Rule taxonomy, confidence scoring, CLAUDE.md output format | `rule-categories.md` | Category taxonomy, confidence model, evidence requirements |
