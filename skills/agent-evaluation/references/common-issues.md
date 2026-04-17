@@ -47,7 +47,6 @@ This [agent/skill] operates as an operator for [domain], configuring Claude's be
 ---
 name: skill-name
 description: ...
-version: 1.0.0
 allowed-tools: Read, Write, Bash, Grep, Glob
 ---
 ```

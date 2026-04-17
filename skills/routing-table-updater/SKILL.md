@@ -274,7 +274,6 @@ User creates `skills/api-integration-helper/SKILL.md` via skill-creator:
 ---
 name: api-integration-helper
 description: Test API integrations with mock responses and validation. Use when "test API", "API integration", or "mock API".
-version: 1.0.0
 ---
 ```
 

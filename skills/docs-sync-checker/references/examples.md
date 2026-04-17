@@ -12,7 +12,6 @@ You created a new skill called `docs-sync-checker` in `skills/docs-sync-checker/
 ---
 name: docs-sync-checker
 description: Verify all skills, agents, and commands are documented in repository READMEs
-version: 1.0.0
 ---
 ```
 
@@ -184,7 +183,6 @@ You updated `code-linting` skill from version 1.1.0 to 1.2.0 in YAML, but forgot
 ```yaml
 ---
 name: code-linting
-version: 1.2.0
 ---
 ```
 
@@ -224,7 +222,6 @@ You created `github-actions-check` skill with associated hook `UserToolUse`
 ---
 name: github-actions-check
 description: Proactively checks GitHub Actions workflow status after git push
-version: 1.0.0
 ---
 ```
 
@@ -259,7 +256,6 @@ You created `auto-fix-mode` skill that's still experimental
 ---
 name: auto-fix-mode
 description: [EXPERIMENTAL] Automatically fix missing documentation entries
-version: 0.1.0
 ---
 ```
 
@@ -289,7 +285,6 @@ You improved the description of `test-driven-development` skill and want consist
 ---
 name: test-driven-development
 description: RED-GREEN-REFACTOR cycle for all code changes. Write failing test first, implement minimum code to pass, then refactor.
-version: 2.1.0
 ---
 ```
 
@@ -415,7 +410,6 @@ You created a major new agent `kubernetes-helm-engineer` and want comprehensive 
 ---
 name: kubernetes-helm-engineer
 description: Complete Kubernetes operations, troubleshooting, best practices, and cloud infrastructure expertise
-version: 1.0.0
 ---
 ```
 
