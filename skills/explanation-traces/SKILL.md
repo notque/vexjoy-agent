@@ -242,5 +242,16 @@ Result: Specific gate failure reason from the trace, with what was expected vs. 
 
 ## References
 
+### Reference Loading Table
+
+| Task type | Signals | Reference file |
+|---|---|---|
+| Hook authoring / writing traces | "write hook", "add tracing", "record decisions", "emit trace" | `references/trace-schema.md` |
+| Diagnosing why trace is wrong | "alternatives null", "evidence empty", "overwrite", "post-hoc", "vague" | `references/anti-patterns.md` |
+| Handling parse or read errors | "malformed", "missing field", "no decisions", "invalid type", "not found" | `references/error-handling.md` |
+| Presenting filtered timeline | "why did you", "show trace", "decision log", "explain routing" | `references/trace-schema.md` |
+
 ### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/trace-schema.md`: JSON schema for session-trace.json with field descriptions and example entries
+- `references/trace-schema.md`: JSON schema for session-trace.json with field descriptions and example entries
+- `references/anti-patterns.md`: Anti-pattern catalog for trace producers (hooks) and consumers (skill behavior) with detection commands
+- `references/error-handling.md`: Error-fix mappings for all error states — missing file, malformed JSON, empty decisions, invalid fields
