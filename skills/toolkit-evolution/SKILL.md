@@ -34,16 +34,11 @@ routing:
 
 # Toolkit Evolution
 
-Schedulable (nightly) or manually-invoked 7-phase pipeline that drives continuous improvement of the toolkit itself. Chains existing skills into a full closed-loop improvement cycle: discover capability gaps from multiple perspectives, diagnose problems from evidence, propose solutions, critique them from multiple perspectives, build the winners, A/B test against baselines, and promote winners via PR.
+Schedulable (nightly) or manually-invoked 7-phase pipeline for continuous toolkit self-improvement. Discovers gaps, diagnoses problems from evidence, proposes solutions, critiques via multi-persona review, builds winners on isolated branches, A/B tests, and promotes via PR.
 
-This is the nightly sibling of `auto-dream`. Auto-dream (2:07 AM) consolidates memories, graduates learnings, and prunes stale data. Toolkit-evolution (3:07 AM) diagnoses gaps, proposes features, builds and tests improvements. They feed each other: dream's graduated learnings inform evolution's diagnosis; evolution's results become dream's input for consolidation.
+Nightly sibling of `auto-dream` (2:07 AM consolidates memories; 3:07 AM this skill diagnoses and builds). They feed each other: dream's graduated learnings inform evolution's diagnosis; evolution's results become dream's next input.
 
-## When to invoke
-
-- User says "evolve toolkit", "improve the system", "self-improve", "what should we improve"
-- Cron job weekly (Sunday 3 AM) via wrapper script
-- Manual trigger with optional focus area: `/evolve routing`, `/evolve hooks`
-- Discovery mode: `/evolve --discover` (runs Phase 0 regardless of last-run date)
+Invoke: `/evolve`, `/evolve routing`, `/evolve hooks`, `/evolve --discover`. Cron setup in `references/evolve-anti-patterns.md` § Scheduling.
 
 ## Instructions
 
@@ -65,54 +60,13 @@ Collect current toolkit state using the briefing data commands from `references/
 
 **Step 2: Dispatch 5 perspective agents in parallel**
 
-Each agent receives the briefing data from Step 1 and evaluates from a different angle. Dispatch all 5 simultaneously:
+See `references/evolve-anti-patterns.md` § Phase 0 DISCOVER for the full agent table and proposal format. Dispatch all 5 simultaneously.
 
-| Agent | Perspective | What it looks for |
-|-------|------------|-------------------|
-| **The User** | Analyzes learning.db for unmatched routing requests (`python3 scripts/learning-db.py search "routing decision" --limit 20`), error patterns, and requests that had no agent match. "What did users ask for that we couldn't handle?" |
-| **The Operator** | Examines the active projects (check git repos in `~/`) for repeated manual workflows that could be skills. "What am I doing by hand that should be automated?" |
-| **The Strategist** | Uses the csuite skill's EVALUATION mode thinking: what decision-support, content, or process skills would make the owner more effective? Reads `skills/csuite/SKILL.md` for framework. "What high-leverage skills are we missing?" |
-| **The Community** | Web-searches for what people are building and requesting in AI coding communities (Claude Code GitHub issues, Reddit, X/Twitter). "What does the market want?" |
-| **The Architect** | Examines current skill categories (from `skills/INDEX.json`) for structural gaps. Cross-references with `agents/INDEX.json`. "Where are the architectural blind spots?" E.g., "we have 23 process skills but 0 decision skills." |
+**Step 3: Deduplicate and filter** -- remove duplicates of existing skills (check `skills/INDEX.json`), remove proposals with no evidence (require at least one concrete data point), group similar proposals and note convergent evidence.
 
-Each agent produces 2-3 skill proposals in this format:
+**Step 4: Feed into DIAGNOSE** -- append surviving proposals to the Phase 1 opportunity list with source tagged `[DISCOVER]`.
 
-```
-PROPOSAL: {skill-name}
-Category: {category}
-Triggers: {3-5 routing triggers}
-Justification: {1-2 sentences on why this is needed}
-Evidence: {what data supports this -- routing gaps, user patterns, market signals}
-```
-
-**Step 3: Deduplicate and filter**
-
-Collect all proposals from the 5 agents and apply these filters:
-
-1. **Remove duplicates of existing skills** -- check each proposal name and its triggers against `skills/INDEX.json`. If an existing skill already covers the proposed capability, drop it.
-2. **Remove proposals with no evidence** -- pure speculation ("it might be useful someday") is not evidence. Require at least one concrete data point: a routing miss, a manual workflow observed, a community request, or a structural gap.
-3. **Group similar proposals** -- if multiple agents proposed the same capability from different angles, merge them into a single proposal and note the convergent evidence (multi-agent convergence strengthens the case).
-
-**Step 4: Feed into DIAGNOSE**
-
-The surviving proposals become additional input for Phase 1 (DIAGNOSE). They are treated as "capability gaps" alongside the usual diagnosis signals (error patterns, routing mismatches, git churn). Append them to the Phase 1 opportunity list with source tagged as `[DISCOVER]`.
-
-**Step 5: Save discovery report**
-
-Write `evolution-reports/discovery-{YYYY-MM-DD}.md` with:
-- Briefing data (skill count, agent count, category distribution)
-- All proposals from each perspective agent (kept and filtered)
-- Filtering rationale for each dropped proposal
-- Which proposals were forwarded to DIAGNOSE
-- Date stamp for frequency gating
-
-```bash
-# Ensure the reports directory exists
-mkdir -p evolution-reports
-
-# Write the discovery report
-# Path: evolution-reports/discovery-{YYYY-MM-DD}.md
-```
+**Step 5: Save discovery report** to `evolution-reports/discovery-{YYYY-MM-DD}.md` (run `mkdir -p evolution-reports` first). Include briefing data, all proposals, filtering rationale, forwarded proposals, and date stamp.
 
 **Gate**: Discovery report saved. Proposals forwarded to Phase 1. Proceed to DIAGNOSE.
 
@@ -126,7 +80,7 @@ mkdir -p evolution-reports
 
 Run the 4 search queries from `references/diagnose-scripts.md` § DIAGNOSE Step 1.
 
-Look for: routing decision patterns (first query, low threshold since effectiveness entries start at 0.5-0.6 confidence), recurring routing failures and mismatches, skills that consistently underperform, error patterns without automated fixes.
+Look for: routing decision patterns, recurring routing failures and mismatches, skills that consistently underperform, error patterns without automated fixes.
 
 **Step 2: Scan recent git history for patterns**
 
@@ -136,35 +90,27 @@ Run the git history commands from `references/diagnose-scripts.md` § DIAGNOSE S
 
 Run the dream report check from `references/diagnose-scripts.md` § DIAGNOSE Step 3, then read the most recent dream-analysis file.
 
-If dream reports exist, read the latest one -- it contains cross-session patterns and graduation candidates that may point to improvement opportunities.
-
 **Step 3b: Cross-validate dream insights against current state**
 
-Before treating any dream insight as a proposal signal, verify it still reflects the current repo. Dream reports can be days old; the toolkit moves fast. Use the cross-validation commands from `references/diagnose-scripts.md` § DIAGNOSE Step 3b.
+Before treating any dream insight as a proposal signal, verify it still reflects the current repo. Use the cross-validation commands from `references/diagnose-scripts.md` § DIAGNOSE Step 3b.
 
-Mark an insight as STALE if: (a) it names a file that no longer exists, OR (b) it claims recent activity but `git log` shows nothing in the past 7 days. Exclude STALE insights from the opportunity list.
+Mark an insight as STALE if: (a) it names a file that no longer exists, OR (b) it claims recent activity but `git log` shows nothing in the past 7 days.
 
 **Step 4: Check routing-table drift**
 
-Skills present in `skills/INDEX.json` but absent from `skills/do/references/routing-tables.md` represent a documentation gap — the router can find them via index but they are invisible to any process that consults the reference docs. This gap has been missed in two consecutive cycles before being manually caught. Run the routing-drift check from `references/diagnose-scripts.md` § DIAGNOSE Step 4.
-
-Any skill absent from routing-tables.md is a candidate improvement opportunity — especially new skills added in the past two weeks.
+Skills present in `skills/INDEX.json` but absent from `skills/do/references/routing-tables.md` represent a documentation gap. Run the routing-drift check from `references/diagnose-scripts.md` § DIAGNOSE Step 4.
 
 **Step 4b: Check for orphaned ADR session files**
 
-A stale `.adr-session.json` referencing a non-existent ADR file will block all `skills/` edits via the synthesis gate mid-cycle. Detect this at Phase 1 start rather than discovering it as a blocker later. Run the orphaned session check from `references/diagnose-scripts.md` § DIAGNOSE Step 4b.
-
-If an orphaned session is found, flag it as a cleanup opportunity in Step 6. Do not remove it automatically -- flag it so the user can confirm before deletion.
+Run the orphaned session check from `references/diagnose-scripts.md` § DIAGNOSE Step 4b. Flag any found -- do not remove automatically.
 
 **Step 4c: Scan for registered stub hooks**
 
-A stub hook is registered in settings.json but does nothing (body calls `empty_output()` or contains a `DISABLED` marker). Stubs waste a hook slot and fire on every matching event while returning empty output. They accumulate silently without this check. Run the stub hook audit from `references/diagnose-scripts.md` § DIAGNOSE Step 4c.
-
-Flag any stub hook as a cleanup opportunity in Step 6. Do not deregister automatically -- document the stub so the BUILD phase handles it deliberately.
+Run the stub hook audit from `references/diagnose-scripts.md` § DIAGNOSE Step 4c. Flag any stub hook as a cleanup opportunity.
 
 **Step 5: Narrow by focus area (if provided)**
 
-If the user specified a focus area (e.g., "routing", "hooks", "agents"), filter all findings to that domain. If no focus area, analyze broadly.
+If the user specified a focus area (e.g., "routing", "hooks", "agents"), filter all findings to that domain.
 
 **Step 6: Compile opportunity list**
 
@@ -199,21 +145,16 @@ For each opportunity from Phase 1, propose 1-2 concrete solutions. Each proposal
 **Step 3: Check for duplicates**
 
 ```bash
-# Verify proposals don't duplicate existing capabilities
 cat skills/INDEX.json | python3 -c "import sys,json; idx=json.load(sys.stdin); [print(k,'-',v.get('description','')) for k,v in idx.get('skills',{}).items()]" 2>/dev/null || echo "INDEX.json parse failed -- check manually"
 ```
 
-Drop any proposal that duplicates an existing skill or capability. If an existing skill could be extended instead, frame the proposal as an extension.
+Drop any proposal that duplicates an existing skill or capability.
 
 **Step 4: Rank proposals**
 
-Rank by: (Impact score) x (1 / Effort score), where High=3, Medium=2, Low=1 and Small=1, Medium=2, Large=3. Higher rank = better return on investment.
+Rank by: (Impact score) x (1 / Effort score), where High=3, Medium=2, Low=1 and Small=1, Medium=2, Large=3.
 
-Output: ranked list of 5-10 proposals, each with:
-- **Proposal**: 2-4 sentence description
-- **Scope**: What files/skills are affected
-- **Effort**: Small/Medium/Large
-- **Expected outcome**: What measurably improves
+Output: ranked list of 5-10 proposals, each with proposal description, scope, effort, and expected outcome.
 
 **Gate**: All proposals are concrete (specific files/skills named), non-duplicative (verified against INDEX.json), and ranked. Proceed with the top 5.
 
@@ -231,46 +172,24 @@ test -f skills/multi-persona-critique/SKILL.md && echo "AVAILABLE" || echo "NOT 
 
 **Step 2a: If multi-persona-critique is available**
 
-Invoke it with the ranked proposals:
-
 ```
 Skill(skill="multi-persona-critique", args="Evaluate these toolkit improvement proposals: {proposals}")
 ```
 
-Collect consensus ratings and proceed to Step 3.
+**Step 2b: If NOT available -- use inline fallback**
 
-**Step 2b: If multi-persona-critique is NOT available -- use inline fallback**
-
-Dispatch 3 parallel agents, each with a distinct evaluator perspective:
-
-**Pragmatist**: "You are a pragmatist engineer. Evaluate each proposal on: implementation feasibility, time-to-value, and risk of unintended side effects. Rate each STRONG/MODERATE/WEAK with one sentence of justification."
-
-**Purist**: "You are an architecture purist. Evaluate each proposal on: design coherence with existing toolkit patterns, long-term maintainability, and whether it solves a root cause vs a symptom. Rate each STRONG/MODERATE/WEAK with one sentence of justification."
-
-**User Advocate**: "You are a user advocate. Evaluate each proposal on: how often real users hit this problem, whether the solution reduces friction, and whether it introduces new complexity users must learn. Rate each STRONG/MODERATE/WEAK with one sentence of justification."
+See `references/evolve-anti-patterns.md` § Phase 3 Inline Critique Fallback for the 3-agent dispatch prompts and scoring table.
 
 **Step 3: Synthesize consensus**
 
-For each proposal, compute a consensus score:
-- STRONG = 3, MODERATE = 2, WEAK = 1
-- Average across personas
+For each proposal, average persona scores (STRONG=3, MODERATE=2, WEAK=1):
 - Score >= 2.5 = STRONG consensus
 - Score 1.5-2.4 = MODERATE consensus
 - Score < 1.5 = WEAK consensus (shelve)
 
-Output: ranked proposals with consensus scores, key concerns from each persona, and notable disagreements.
-
 **Gate**: All personas have reported. Synthesis complete. At least 1 proposal rated STRONG. If no STRONG proposals, revisit Phase 2 with the critique feedback, or report to user that no high-confidence improvements were found this cycle.
 
-**On early exit (no STRONG proposals): always record to the learning DB before stopping.** Do not skip this step — the learning DB accumulates diagnostic value across cycles only if every cycle records, including null-result ones.
-
-```bash
-python3 ~/.claude/scripts/learning-db.py learn \
-  --topic "evolution-cycle" \
-  "early-exit: no STRONG proposals found. {N} proposals evaluated ({list of titles}). Top scores: {top_score}. Consider: {what prevented STRONG consensus}."
-```
-
-This ensures future diagnosis phases can query `evolution-cycle` to detect recurring proposal types that consistently fail consensus, rather than re-proposing the same ideas each cycle.
+**On early exit (no STRONG proposals): always record to the learning DB before stopping.** See `references/evolve-scripts.md` § Early Exit Record for the learning-db command template.
 
 ---
 
@@ -278,43 +197,19 @@ This ensures future diagnosis phases can query `evolution-cycle` to detect recur
 
 **Goal**: Implement the top 1-3 STRONG-rated proposals on isolated feature branches.
 
-**Constraint**: Maximum 3 implementations per cycle. Focus over breadth -- doing 3 well beats doing 7 poorly.
+**Constraint**: Maximum 3 implementations per cycle. Focus over breadth.
 
 **Step 1: Select winners**
 
-Take the top 1-3 proposals rated STRONG by consensus. If fewer than 3 are STRONG, take only the STRONG ones -- do not pad with MODERATE proposals.
+Take the top 1-3 proposals rated STRONG by consensus. Do not pad with MODERATE proposals.
 
 **Step 2: Dispatch implementation agents**
 
-For each winner, dispatch an appropriate agent in an isolated context:
+For each winner, dispatch an implementation agent in an isolated context. See `references/evolve-scripts.md` § Build Dispatch for the proposal-type to implementation-approach table.
 
-| Proposal type | Implementation approach |
-|--------------|----------------------|
-| New skill | Use skill-creator methodology: draft SKILL.md, create references, structure directory |
-| Skill modification | Read the target skill, apply the specific change, validate structure |
-| New hook | Create hook script, register in settings.json (deploy hook files BEFORE registering) |
-| Routing change | Update routing tables, verify with routing-table-updater |
-| New reference file | Write the reference, add pointer in the parent skill's SKILL.md |
-| Agent modification | Edit agent prompt, preserve frontmatter and routing metadata |
+Each implementation must create a feature branch `feat/evolve-{proposal-slug}` and commit with a descriptive message.
 
-Each implementation must:
-- Create a feature branch: `feat/evolve-{proposal-slug}`
-- Make the minimal set of changes described in the proposal
-- Commit with a descriptive message explaining what and why
-
-**Step 3: Validate implementations**
-
-For each implementation:
-```bash
-# Verify the skill structure if a skill was created/modified
-python3 -m scripts.skill_eval.quick_validate skills/{skill-name} 2>/dev/null || echo "Validation script not available -- manual review"
-
-# Verify no syntax errors in Python scripts
-python3 -m py_compile {script} 2>/dev/null
-
-# Verify shell scripts
-bash -n {script} 2>/dev/null
-```
+**Step 3: Validate** -- run `python3 -m scripts.skill_eval.quick_validate skills/{skill-name}`, `python3 -m py_compile {script}`, and `bash -n {script}` on each implementation.
 
 **Gate**: All implementations committed on feature branches. Basic validation passed. Proceed to testing.
 
@@ -326,26 +221,11 @@ bash -n {script} 2>/dev/null
 
 **Step 1: Create test cases**
 
-For each implementation, create 3-5 realistic test prompts that exercise the changed behavior. These should be the kind of input that would trigger the relevant skill or agent in production.
+For each implementation, create 3-5 realistic test prompts that exercise the changed behavior.
 
 **Step 2: Run comparisons**
 
-Use the skill-eval or agent-comparison methodology:
-- **Baseline**: Run test prompts against the current (unmodified) toolkit
-- **Candidate**: Run test prompts against the branch with the implementation
-
-If skill-eval's evaluation modes are available:
-```bash
-python3 -m scripts.skill_eval.run_eval \
-  --eval-set test-cases.json \
-  --skill-path skills/{skill-name} \
-  --runs-per-query 3 \
-  --verbose
-```
-
-If automated comparison is not available, fall back to:
-- Run each test prompt manually with and without the change
-- Use a grader agent to score both outputs on relevant dimensions (correctness, completeness, actionability)
+See `references/evolve-scripts.md` § Validate Run for the skill-eval command and manual fallback pattern.
 
 **Step 3: Evaluate results**
 
@@ -353,8 +233,6 @@ Win condition for each implementation:
 - 60%+ of test cases show improvement on at least one dimension
 - No dimension regressed by more than 1 point (on a 5-point scale)
 - No new failures introduced
-
-Mark each implementation as WIN or LOSS.
 
 **Gate**: All implementations tested. Win/loss determined for each. Evidence recorded.
 
@@ -366,21 +244,17 @@ Mark each implementation as WIN or LOSS.
 
 **Step 1: Handle winners (WIN status)**
 
-For each winning implementation, create a PR using the template from `references/evolve-scripts.md` § Step 1 (fill in proposal details, consensus score, and A/B win rate), then merge using the merge command in the same reference.
+For each winning implementation, create a PR using the template from `references/evolve-scripts.md` § Step 1, then merge. After creating the PR, run pr-review to validate, then merge.
 
-After creating the PR, run pr-review to validate, then merge.
-
-The multi-persona critique + A/B testing gate is the review. If a proposal passed both with STRONG consensus and WIN status, it has been validated more rigorously than most human reviews. Auto-merge is safe because the validation happened before this step, not after.
+The multi-persona critique + A/B testing gate is the review. Auto-merge is safe because the validation happened before this step.
 
 **Step 1b: Clean up the feature branch after merge**
 
-`gh pr merge ... --squash --delete-branch` handles branch deletion when gh auth is available. As a paranoid safeguard, verify the remote branch is gone and clean up any stranded evolution branches using the cleanup commands from `references/evolve-scripts.md` § Step 1b.
+Use the cleanup commands from `references/evolve-scripts.md` § Step 1b.
 
 **Step 2: Handle losers (LOSS status)**
 
 Record what was tried and why it failed using the failure template from `references/evolve-scripts.md` § Step 2.
-
-Failed experiments are valuable data -- they prevent the same idea from being re-proposed in future cycles.
 
 **Step 3: Record the full cycle**
 
@@ -394,104 +268,29 @@ Write the dated report to `evolution-reports/evolution-report-{YYYY-MM-DD}.md` u
 
 ---
 
-## Scheduling
-
-### Manual invocation
-
-```
-/evolve
-/evolve routing
-/do evolve toolkit
-/do evolve hooks
-```
-
-### Cron setup (nightly)
-
-Runs nightly at 3:07 AM, after auto-dream (2:07 AM) finishes consolidating learnings:
-
-```bash
-python3 ~/.claude/scripts/crontab-manager.py add \
-  --tag "toolkit-evolution" \
-  --schedule "7 3 * * *" \
-  --command "/home/feedgen/claude-code-toolkit/scripts/toolkit-evolution-cron.sh --execute >> /home/feedgen/claude-code-toolkit/cron-logs/toolkit-evolution/cron.log 2>&1"
-```
-
-Schedule uses 3:07 AM (off-minute per cron best practice, 1 hour after auto-dream). Budget set to $5.00 per run.
-
----
-
 ## Reference Loading
-
-Load these reference files when the task matches the signal:
 
 | Signal | Load |
 |--------|------|
 | Running Phase 0 DISCOVER (frequency check, briefing data commands needed) | `references/diagnose-scripts.md` |
 | Running Phase 1 DIAGNOSE (Steps 1-4c commands needed) | `references/diagnose-scripts.md` |
+| Phase 0 perspective agent table, proposal format | `references/evolve-anti-patterns.md` |
+| Phase 3 inline critique fallback (multi-persona not available) | `references/evolve-anti-patterns.md` |
+| Anti-patterns, error handling, cost estimate, cron scheduling | `references/evolve-anti-patterns.md` |
 | Running Phase 6 EVOLVE (PR template, merge, cleanup, learning DB commands) | `references/evolve-scripts.md` |
 | Writing or reading the evolution report | `references/evolution-report-template.md` |
-
----
-
-## Anti-Patterns
-
-- **Improving without measuring** -- every change must have a baseline and A/B result. "It looks better" is not evidence.
-- **Merging without validation** -- every winner must pass multi-persona critique (STRONG consensus) AND A/B testing (WIN status) before merge. The validation gates are the review.
-- **Ignoring negative results** -- failed experiments are valuable data. Record them in the learning DB so the same idea is not re-proposed.
-- **Improving everything at once** -- max 3 implementations per cycle. Focus compounds; scatter dissipates.
-- **Running without diagnosis** -- do not propose solutions without evidence of problems first. Solutions looking for problems create phantom work.
-- **Proposing duplicates** -- always check INDEX.json before proposing a new skill or capability. Extend existing skills when possible.
-- **Discovery without evidence** -- the DISCOVER phase requires concrete data points (routing misses, manual workflows, community requests), not speculation. "It might be useful" is not a valid justification.
-- **Discovering too often** -- discovery runs monthly, not nightly. Running it every cycle wastes budget on perspective agents that will produce the same gaps repeatedly.
-
----
-
-## Error Handling
-
-### Error: "learning-db.py not found"
-Cause: Learning database scripts not installed.
-Solution: The learning DB is at `~/.claude/scripts/learning-db.py`. If missing, skip learning DB queries and rely on git log + dream reports for diagnosis. Record this gap as an improvement opportunity.
-
-### Error: "No dream reports found"
-Cause: Auto-dream has not run yet or state directory is empty.
-Solution: Proceed without dream insights. Use git log and learning DB as primary data sources. Note that enabling auto-dream would improve future evolution cycles.
-
-### Error: "No STRONG proposals after critique"
-Cause: All proposals received MODERATE or WEAK consensus.
-Solution: Report to the user that no high-confidence improvements were found this cycle. Record the proposals and critique feedback in the evolution report for future reference.
-
-### Error: "A/B test inconclusive"
-Cause: Test cases don't discriminate between baseline and candidate.
-Solution: Review test case quality. Non-discriminating tests ("file exists") provide false signal. Write tests that exercise the specific behavior the proposal changes. If still inconclusive after better tests, shelve the proposal.
-
-### Error: "Feature branch conflicts"
-Cause: Multiple evolution implementations touch the same files.
-Solution: Reduce to 1 implementation per cycle when conflicts arise. Alternatively, sequence implementations so later ones branch from earlier ones.
-
----
-
-## Cost Estimate
-
-A full evolution cycle runs all 7 phases and may dispatch multiple subagents. Estimated cost:
-- Discovery (Phase 0, monthly): ~$0.50-0.75 (5 parallel perspective agents + dedup)
-- Diagnosis + Proposal: ~$0.15 (reading files, querying DBs)
-- Critique: ~$0.30 (3 persona agents evaluating proposals)
-- Build: ~$0.50-1.50 (1-3 implementation agents)
-- Validate: ~$0.50-1.50 (A/B test runs)
-- Evolve: ~$0.10 (PR creation, learning DB writes)
-
-Total without discovery: ~$1.50-3.50 per cycle. With discovery: ~$2.00-4.25.
-Budget capped at $5.00 via wrapper script.
-Nightly cost at full utilization: ~$45-105/month. Discovery adds ~$0.50-0.75/month (runs monthly, not nightly). Cycles with no STRONG proposals exit early (diagnosis + proposal only: ~$0.45).
 
 ---
 
 ## References
 
 - `references/evolution-report-template.md` -- Template for the evolution report
+- `references/diagnose-scripts.md` -- Phase 0 and Phase 1 bash/Python commands
+- `references/evolve-scripts.md` -- Phase 6 PR, merge, cleanup, and learning DB commands
+- `references/evolve-anti-patterns.md` -- Anti-patterns, error handling, cost, critique fallback, scheduling
 - `skills/auto-dream/SKILL.md` -- Nightly sibling: memory consolidation and learning graduation
 - `skills/skill-eval/SKILL.md` -- Skill testing and benchmarking
-- `skills/multi-persona-critique/SKILL.md` -- Multi-persona evaluation (may not exist yet; inline fallback provided)
+- `skills/multi-persona-critique/SKILL.md` -- Multi-persona evaluation (may not exist yet; inline fallback in references)
 - `skills/skill-creator/SKILL.md` -- Skill creation methodology
 - `skills/agent-comparison/SKILL.md` -- A/B testing methodology
 - `skills/headless-cron-creator/SKILL.md` -- Cron job creation patterns
