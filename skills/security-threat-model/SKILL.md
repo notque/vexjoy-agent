@@ -3,7 +3,7 @@ name: security-threat-model
 description: "Security threat model: scan toolkit for attack surface, supply-chain risks."
 effort: high
 user-invocable: false
-model: opus
+model: sonnet
 allowed-tools:
   - Read
   - Write

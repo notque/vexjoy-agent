@@ -4,7 +4,7 @@ description: "Analyze external repositories for adoptable ideas and patterns."
 user-invocable: false
 argument-hint: "<repo-url-or-path>"
 agent: research-coordinator-engineer
-model: opus
+model: sonnet
 allowed-tools:
   - Agent
   - Read

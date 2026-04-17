@@ -168,6 +168,21 @@ A thin wrapper that says "You are a Go expert" adds nothing. The model already k
 
 **Progressive disclosure** enforces the balance: the main agent file stays navigable (under 10k words) with the concrete tables, anti-patterns, and decision rules. Deep reference material lives in `references/` subdirectories, loaded only when the task requires it. The agent carries exactly what's needed — no more, no less.
 
+## Model Policy by Task Class
+
+Model choice is a routing policy, not an ego signal. The standard fleet is:
+
+- `haiku` for cheap classification work: routing, extraction, inventory, scanning, backlog generation, deterministic validation wrappers
+- `sonnet` for substantive execution: implementation, review, synthesis, semantic rewriting, and ambiguous judgment
+
+`/do` is the explicit exception. It is the primary router and may keep its own
+router-specific model choices because it is orchestrating the entire agent
+fleet, not acting like a normal thin skill.
+
+Do not treat `opus` as the default upgrade path for ordinary agents or skills.
+If a component can only perform adequately on `opus`, that is a sign to inspect
+its prompt shape, references, and task decomposition before raising model cost.
+
 ## Prompt Phrasing Does Not Replace Domain Knowledge
 
 Ego-boosting prompts ("you have an IQ of 200+"), urgency framing ("production is down, my manager is watching"), and other emotional prompt engineering techniques produce small measurable effects (+9-12% on aggregate scores) but do not produce reliable, predictable improvements.

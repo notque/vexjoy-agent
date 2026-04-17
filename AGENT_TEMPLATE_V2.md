@@ -434,7 +434,7 @@ When upgrading an agent to v2.0:
 - [ ] Moved verbose content to references/
 
 ### YAML Frontmatter
-- [ ] Model specified (e.g., `model: sonnet`)
+- [ ] Model specified (`model: sonnet` for most executors, `model: haiku` for cheap classifiers/extractors)
 - [ ] All routing metadata preserved (triggers, retro-topics, pairs_with, complexity, category)
 - [ ] Hooks preserved
 - [ ] Color preserved

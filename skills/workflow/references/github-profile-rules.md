@@ -4,7 +4,7 @@ description: "Extract coding conventions from a GitHub user's public profile."
 user-invocable: false
 argument-hint: "<github-username>"
 agent: github-profile-rules-engineer
-model: opus
+model: sonnet
 allowed-tools:
   - Read
   - Write

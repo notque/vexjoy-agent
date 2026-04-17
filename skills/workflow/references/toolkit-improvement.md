@@ -2,7 +2,7 @@
 name: toolkit-improvement
 description: "Multi-angle toolkit evaluation, ADR creation, and fix pipeline."
 effort: high
-model: opus
+model: sonnet
 context: fork
 allowed-tools:
   - Agent

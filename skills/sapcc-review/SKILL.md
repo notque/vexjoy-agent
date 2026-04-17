@@ -4,7 +4,7 @@ description: "Gold-standard SAP CC Go code review: 10 parallel domain specialist
 user-invocable: false
 argument-hint: "[--fix]"
 command: /sapcc-review
-model: opus
+model: sonnet
 agent: golang-general-engineer
 allowed-tools:
   - Agent

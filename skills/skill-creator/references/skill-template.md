@@ -16,7 +16,7 @@ description: |
 # compatibility: "Requires Python 3.10+, network access for API calls"
 # user-invocable: false
 # agent: golang-general-engineer
-# model: opus
+# model: sonnet
 routing:
   triggers:
     - keyword1

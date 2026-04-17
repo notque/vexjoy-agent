@@ -23,7 +23,7 @@ description: Brief purpose description
 user-invocable: false    # Hide from slash menu (internal skills)
 context: fork            # Run in isolated sub-agent context
 agent: golang-general-engineer  # Declare executor agent
-model: opus              # Model preference: opus | sonnet | haiku
+model: sonnet            # Model preference: sonnet | haiku (`/do` is the router exception)
 allowed-tools:           # YAML list format
   - Read
   - Write
