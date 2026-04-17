@@ -25,7 +25,6 @@ Manage editorial content through 6 pipeline stages: Ideas, Outlined, Drafted, Ed
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `calendar-format.md` | Loads detailed guidance from `calendar-format.md`. |

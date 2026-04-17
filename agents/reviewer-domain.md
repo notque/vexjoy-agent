@@ -191,7 +191,6 @@ STOP and ask the user when:
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | **ADR Compliance** | `adr-compliance.md` | Decision mapping, contradiction detection, scope creep analysis |

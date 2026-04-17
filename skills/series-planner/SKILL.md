@@ -31,7 +31,6 @@ This skill plans multi-part content series with proper structure, cross-linking,
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `cadence-guidelines.md` | Loads detailed guidance from `cadence-guidelines.md`. |

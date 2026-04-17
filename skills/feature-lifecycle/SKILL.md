@@ -105,7 +105,6 @@ Each phase produces an artifact consumed by the next. Skipping phases is not sup
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `design.md` | Loads detailed guidance from `design.md`. |

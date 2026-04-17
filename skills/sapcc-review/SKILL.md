@@ -53,7 +53,6 @@ Each specialist loads only its domain-specific reference file to keep context ti
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `agent-dispatch-prompts.md` | Loads detailed guidance from `agent-dispatch-prompts.md`. |

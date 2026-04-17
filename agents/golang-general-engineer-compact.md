@@ -296,7 +296,6 @@ STOP and ask when:
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | Idiom upgrade, version compatibility, `any` vs `interface{}` | `go-patterns.md` | Version table Go 1.18–1.26, error wrapping, functional options |

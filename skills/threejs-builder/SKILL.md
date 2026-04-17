@@ -59,7 +59,6 @@ This skill builds complete Three.js web applications using a **Phased Constructi
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | `@react-three/fiber`, `r3f`, `drei`, `useFrame`, `<Canvas>`, `<mesh>`, React project with 3D | `react-three-fiber.md` | **React Three Fiber** |

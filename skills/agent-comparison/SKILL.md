@@ -27,7 +27,6 @@ Compare agent variants through controlled A/B benchmarks. Runs identical tasks o
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `benchmark-tasks.md` | Loads detailed guidance from `benchmark-tasks.md`. |

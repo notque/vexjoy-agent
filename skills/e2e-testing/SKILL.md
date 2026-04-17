@@ -36,7 +36,6 @@ Playwright-based E2E testing across four phases: Scaffold, Build, Run, Validate.
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | async, Promise.all, race condition, waitForTimeout, fixture teardown | `async.md` | Routes to the matching deep reference |

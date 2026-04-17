@@ -32,7 +32,6 @@ Core principle: **Assess-Decide-Generate with Domain Intelligence**. Gather sign
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `content-filter.md` | Loads detailed guidance from `content-filter.md`. |

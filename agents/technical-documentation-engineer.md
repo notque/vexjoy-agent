@@ -160,7 +160,6 @@ Load `documentation-templates.md` plus the relevant domain file when writing doc
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | Writing docs from scratch, API endpoint template, integration guide, verification workflow, adversarial self-check | `documentation-templates.md` | Templates, 4-phase workflow, preferred patterns with before/after |

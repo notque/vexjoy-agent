@@ -42,7 +42,6 @@ Invoke: `/evolve`, `/evolve routing`, `/evolve hooks`, `/evolve --discover`. Cro
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `diagnose-scripts.md` | Loads detailed guidance from `diagnose-scripts.md`. |

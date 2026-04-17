@@ -156,7 +156,6 @@ Uses the **Implementation Schema**: ANALYZE (surface type, narrative brief, cont
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | implement, scaffold, output format, code example | `implementation-patterns.md` | Output format checklist, Tailwind theme example, accessible button, responsive grid, animation code |

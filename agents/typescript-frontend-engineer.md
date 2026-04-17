@@ -129,7 +129,6 @@ Load [typescript-frontend-engineer/references/engineering-rules.md](typescript-f
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | type error, build error, tsc, tsconfig, compilation | `typescript-errors.md` | Routes to the matching deep reference |

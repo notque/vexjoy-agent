@@ -30,7 +30,6 @@ Enforce the RED-GREEN-REFACTOR cycle for all code changes. Tests are written bef
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |

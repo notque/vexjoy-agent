@@ -140,7 +140,6 @@ Testing Strategy: [How to validate]
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | Vault encryption, secrets, credentials, `no_log`, privilege escalation | `security.md` | Routes to the matching deep reference |

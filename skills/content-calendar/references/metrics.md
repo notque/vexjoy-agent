@@ -34,7 +34,7 @@ Content stuck in a stage for more than 14 days signals a bottleneck.
 # Outlined entries older than 14 days
 grep -E "\(outline: [0-9]{4}-[0-9]{2}-[0-9]{2}\)" content-calendar.md
 
-# Drafted entries older than 14 days  
+# Drafted entries older than 14 days
 grep -E "\(draft: [0-9]{4}-[0-9]{2}-[0-9]{2}\)" content-calendar.md
 
 # Editing entries older than 14 days

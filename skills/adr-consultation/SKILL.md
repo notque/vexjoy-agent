@@ -31,7 +31,6 @@ Multi-agent architecture consultation that dispatches 3 specialized reviewers in
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `agent-prompts.md` | Loads detailed guidance from `agent-prompts.md`. |

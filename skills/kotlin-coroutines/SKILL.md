@@ -23,7 +23,6 @@ the correct reference based on the task at hand.
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | Concurrency | `concurrency-patterns.md` | Scopes, cancellation, dispatchers, exception handling |

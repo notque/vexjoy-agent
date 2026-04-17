@@ -141,7 +141,6 @@ Cardinality Check: [Label cardinality analysis]
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | Writing or debugging PromQL — `rate()`, `irate()`, `histogram_quantile()`, recording rules, subqueries | `promql-patterns.md` | Routes to the matching deep reference |

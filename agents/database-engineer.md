@@ -147,7 +147,6 @@ Performance Needs: [SLAs, scale requirements]
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | PostgreSQL index types, EXPLAIN analysis, JSONB, isolation levels, pg_stat | `postgres.md` | Routes to the matching deep reference |

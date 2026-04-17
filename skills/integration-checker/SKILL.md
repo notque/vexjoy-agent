@@ -36,7 +36,6 @@ This is a read-only analysis skill -- it reads and reports but does not fix wiri
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `wiring-checks.md` | Loads detailed guidance from `wiring-checks.md`. |

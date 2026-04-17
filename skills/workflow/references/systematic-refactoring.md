@@ -38,7 +38,6 @@ routing:
 
 Safe, verifiable refactoring through 5 explicit phases with mandatory gates. Each phase has gates that prevent common refactoring mistakes: breaking behavior, incomplete migrations, or orphaned code.
 
-
 ---
 
 ## Instructions
@@ -330,7 +329,6 @@ Phase 3:
 Phase 4: Verify all callers use new signature
 Phase 5: Record migration pattern
 ```
-
 
 ## Error Handling
 

@@ -24,7 +24,6 @@ Systematic 4-phase code review: UNDERSTAND changes, VERIFY claims against actual
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | implementation patterns | `go-review-patterns.md` | Loads detailed guidance from `go-review-patterns.md`. |

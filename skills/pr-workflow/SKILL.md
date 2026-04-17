@@ -98,7 +98,6 @@ Detect the user's intent and load the appropriate reference file:
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | "push", "create PR", "sync", "ship this" | `sync.md` | **Sync** (default) |

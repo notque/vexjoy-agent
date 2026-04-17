@@ -296,7 +296,7 @@ def save_record(data):
         log_error('dual-write-shadow-failure', e, data)
         # Do NOT fail the request — old system is primary
         return old_result
-    
+
     compare_results(old_result, new_result)  # Log divergences
     return old_result                         # Return old system result during shadow phase
 

@@ -121,7 +121,6 @@ See `python-openstack-engineer/references/openstack-patterns.md` for oslo.config
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | oslo.config option registration, oslo.log setup, oslo.messaging transport, oslo.db sessions, oslo.policy enforcement, `CONF.register_opts`, `enginefacade`, `get_rpc_transport` | `oslo-patterns.md` | Routes to the matching deep reference |

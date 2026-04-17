@@ -229,7 +229,6 @@ Load when the task type matches:
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `quality-rubric.md` | Loads detailed guidance from `quality-rubric.md`. |

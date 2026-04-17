@@ -23,7 +23,6 @@ Apply PHPUnit testing patterns for PHP projects: unit tests with data providers,
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | implementation patterns | `patterns.md` | Loads detailed guidance from `patterns.md`. |

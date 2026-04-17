@@ -36,7 +36,6 @@ Fish is not POSIX. Every pattern here targets Fish 3.0+ (supports `$()`, `&&`, `
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | migrations | `bash-migration.md` | Loads detailed guidance from `bash-migration.md`. |

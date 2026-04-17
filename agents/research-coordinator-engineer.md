@@ -215,7 +215,6 @@ See [references/delegation-patterns.md](references/delegation-patterns.md) for t
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | Query type, depth-first, breadth-first, straightforward, classify, subagent count | `query-classification.md` | Routes to the matching deep reference |

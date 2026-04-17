@@ -53,7 +53,6 @@ Quick covers the full lightweight tier from zero-ceremony inline fixes (≤3 edi
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | example-driven tasks | `examples.md` | Loads detailed guidance from `examples.md`. |

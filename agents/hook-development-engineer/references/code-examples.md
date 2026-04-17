@@ -18,7 +18,6 @@ import traceback
 from pathlib import Path
 from datetime import datetime
 
-
 def debug_log(message):
     """Log debug information without blocking execution."""
     try:
@@ -26,7 +25,6 @@ def debug_log(message):
             f.write(f"[{datetime.now().isoformat()}] {message}\n")
     except Exception:
         pass  # Never let logging block execution
-
 
 def process_event(event_data):
     """
@@ -51,7 +49,6 @@ def process_event(event_data):
 
     return None
 
-
 def main():
     """Main hook execution with comprehensive error handling."""
     try:
@@ -72,7 +69,6 @@ def main():
     finally:
         # CRITICAL: Always exit 0 to prevent blocking Claude Code
         sys.exit(0)
-
 
 if __name__ == "__main__":
     main()
@@ -97,10 +93,8 @@ import hashlib
 from pathlib import Path
 from datetime import datetime
 
-
 LEARNING_DB = Path.home() / '.claude' / 'learnings' / 'error_patterns.json'
 DEBUG_LOG = Path('/tmp/claude_hook_debug.log')
-
 
 def debug_log(message):
     """Non-blocking debug logging."""
@@ -109,7 +103,6 @@ def debug_log(message):
             f.write(f"[{datetime.now().isoformat()}] {message}\\n")
     except Exception:
         pass
-
 
 def classify_error(tool_name, error_output):
     """
@@ -138,7 +131,6 @@ def classify_error(tool_name, error_output):
     else:
         return 'unknown'
 
-
 def generate_signature(tool_name, error_type, error_message):
     """
     Generate unique signature for error pattern.
@@ -155,7 +147,6 @@ def generate_signature(tool_name, error_type, error_message):
     message_snippet = error_message[:200]
     signature_input = f"{tool_name}:{error_type}:{message_snippet}"
     return hashlib.md5(signature_input.encode()).hexdigest()
-
 
 def query_learning_db(signature):
     """
@@ -186,7 +177,6 @@ def query_learning_db(signature):
 
     return None
 
-
 def inject_solution(solution_data, event_name: str) -> None:
     """
     Inject solution into Claude Code context via stdout.
@@ -205,7 +195,6 @@ def inject_solution(solution_data, event_name: str) -> None:
         context_output(event_name, text).print_and_exit()
     except Exception as e:
         debug_log(f"Context injection error: {e}")
-
 
 def main():
     """Main error detection logic."""
@@ -244,7 +233,6 @@ def main():
     finally:
         sys.exit(0)
 
-
 if __name__ == "__main__":
     main()
 ```
@@ -266,10 +254,8 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
-
 LEARNING_DB = Path.home() / '.claude' / 'learnings' / 'error_patterns.json'
 DEBUG_LOG = Path('/tmp/claude_hook_debug.log')
-
 
 def debug_log(message):
     """Non-blocking debug logging."""
@@ -278,7 +264,6 @@ def debug_log(message):
             f.write(f"[{datetime.now().isoformat()}] {message}\\n")
     except Exception:
         pass
-
 
 def load_learning_db():
     """Load learning database with error handling."""
@@ -291,7 +276,6 @@ def load_learning_db():
 
     # Return empty structure if load fails
     return {'patterns': [], 'metadata': {'version': '1.0'}}
-
 
 def save_learning_db(data):
     """Save learning database with atomic operations."""
@@ -309,7 +293,6 @@ def save_learning_db(data):
 
     except Exception as e:
         debug_log(f"DB save error: {e}")
-
 
 def update_confidence(pattern_id, success):
     """
@@ -339,7 +322,6 @@ def update_confidence(pattern_id, success):
             break
 
     save_learning_db(db)
-
 
 def store_new_pattern(tool_name, error_type, signature, solution):
     """
@@ -376,7 +358,6 @@ def store_new_pattern(tool_name, error_type, signature, solution):
 
     debug_log(f"Stored new pattern: {new_pattern['id']}")
 
-
 def main():
     """Main learning update logic."""
     try:
@@ -402,7 +383,6 @@ def main():
     finally:
         sys.exit(0)
 
-
 if __name__ == "__main__":
     main()
 ```
@@ -423,9 +403,7 @@ import json
 import sys
 from pathlib import Path
 
-
 LEARNING_DB = Path.home() / '.claude' / 'learnings' / 'error_patterns.json'
-
 
 def find_pattern_lazy(signature, confidence_threshold=0.7):
     """
@@ -460,7 +438,6 @@ def find_pattern_lazy(signature, confidence_threshold=0.7):
 
     return None
 
-
 def main():
     """Optimized pattern matching."""
     try:
@@ -476,7 +453,6 @@ def main():
         pass
     finally:
         sys.exit(0)
-
 
 if __name__ == "__main__":
     main()

@@ -136,7 +136,6 @@ Rules:
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | Convention compliance, style, CLAUDE.md | `code-quality.md` | "code quality", "style review", "convention check" |

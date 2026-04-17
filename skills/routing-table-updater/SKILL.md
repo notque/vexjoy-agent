@@ -33,7 +33,6 @@ The skill reads metadata from all skills and agents (never modifies them) and sa
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `batch-mode.md` | Loads detailed guidance from `batch-mode.md`. |

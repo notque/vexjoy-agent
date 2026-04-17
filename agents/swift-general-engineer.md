@@ -182,7 +182,6 @@ See [references/swift-security-testing.md](swift-general-engineer/references/swi
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | implementation patterns | `swift-patterns.md` | Loads detailed guidance from `swift-patterns.md`. |

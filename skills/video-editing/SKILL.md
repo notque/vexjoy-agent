@@ -50,7 +50,6 @@ This skill implements a **6-layer pipeline** where AI handles judgment tasks (wh
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | `references/preflight.md` | `preflight.md` | Before Phase 1 |

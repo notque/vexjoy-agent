@@ -38,7 +38,6 @@ Platform-native means each variant is written from scratch for its target platfo
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |

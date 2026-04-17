@@ -189,7 +189,6 @@ See [shared-patterns/anti-rationalization-review.md](../skills/shared-patterns/a
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | **Newcomer** | `newcomer.md` | Fresh-eyes critique: documentation gaps, confusing code, accessibility |

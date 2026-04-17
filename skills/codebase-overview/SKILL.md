@@ -29,7 +29,6 @@ Systematic 4-phase codebase exploration that produces an evidence-backed onboard
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | example-driven tasks, errors | `examples-and-errors.md` | Loads detailed guidance from `examples-and-errors.md`. |

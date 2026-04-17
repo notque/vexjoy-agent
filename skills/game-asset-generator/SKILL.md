@@ -161,7 +161,6 @@ mixer.update(deltaTime);
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | "3D model", "character model", "generate model", GLB, mesh, rig, animate, humanoid | `meshyai.md` | **3D Model** |

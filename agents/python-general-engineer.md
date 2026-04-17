@@ -147,7 +147,6 @@ See `agents/python-general-engineer/references/capabilities.md` for full CAN/CAN
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | errors | `python-errors.md` | Loads detailed guidance from `python-errors.md`. |

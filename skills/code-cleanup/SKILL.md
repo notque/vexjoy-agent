@@ -49,7 +49,6 @@ Scan repositories for 9 categories of technical debt (TODOs, unused imports, dea
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `report-template.md` | Loads detailed guidance from `report-template.md`. |

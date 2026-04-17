@@ -25,7 +25,6 @@ Unified linting workflow for Python (ruff) and JavaScript (Biome). Covers check,
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | Python violations, ruff rules, F401/E711/B006/UP errors | `ruff-rules-reference.md` | Routes to the matching deep reference |

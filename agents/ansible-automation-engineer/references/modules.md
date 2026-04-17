@@ -201,7 +201,7 @@ rg -t yaml '(command|shell):.*systemctl' roles/ playbooks/
 ```bash
 # Find copy tasks that use variables in src
 grep -rn -A5 "ansible.builtin.copy:\|^  copy:" roles/ playbooks/ \
-  | grep "content:.*{{" 
+  | grep "content:.*{{"
 
 # Find hardcoded config files that should be templates
 grep -rn "copy:" roles/ playbooks/ -A3 \

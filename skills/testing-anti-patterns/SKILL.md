@@ -44,7 +44,6 @@ This skill identifies and fixes common testing mistakes across unit, integration
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | implementation patterns | `anti-pattern-catalog.md` | Loads detailed guidance from `anti-pattern-catalog.md`. |

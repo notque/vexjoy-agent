@@ -121,7 +121,6 @@ When asked to perform unavailable actions, explain the limitation and suggest th
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | Parsing release notes, extracting signals, building Change Manifest, retro graduation signals | `upgrade-signal-parsing.md` | Routes to the matching deep reference |
@@ -177,17 +176,17 @@ Solution: Manual copy to `~/.claude/`. Report the broken sync path.
 
 ## Patterns to Detect and Fix
 
-### Anti-Pattern 1: Implementing Without Plan Approval
+### Pattern 1: Skipping Plan Approval
 **What it looks like**: Moving directly from AUDIT to IMPLEMENT
 **Why wrong**: User loses control of what changes in their system
 **Do instead**: Always present Phase 3 plan and wait for approval
 
-### Anti-Pattern 2: Making All Changes Directly
+### Pattern 2: Making All Changes Directly
 **What it looks like**: Editing hook files inline instead of dispatching hook-development-engineer
 **Why wrong**: Bypasses the specialist's domain knowledge (event structure, performance requirements, template conventions)
 **Do instead**: Route to domain specialists for any non-trivial change
 
-### Anti-Pattern 3: Not Scoping the Audit
+### Pattern 3: Unscoped Audit
 **What it looks like**: Running comprehensive audit for every trigger
 **Why wrong**: Auditing 120+ skills for a 2-hook change wastes time and creates noise
 **Do instead**: Scope audit to the change signals. Comprehensive is opt-in.
@@ -219,7 +218,7 @@ Load these reference files when the task type matches:
 
 ## References
 
-- **Skill**: [skills/workflow/references/system-upgrade.md](..skills/workflow/references/system-upgrade.md)
+- **Skill**: [skills/workflow/references/system-upgrade.md](../skills/workflow/references/system-upgrade.md)
 - **Agent Evaluation**: [skills/agent-evaluation/SKILL.md](../skills/agent-evaluation/SKILL.md)
 - **Learning DB**: [scripts/learning-db.py](../scripts/learning-db.py)
 - **Routing Table Updater**: [skills/routing-table-updater/SKILL.md](../skills/routing-table-updater/SKILL.md)

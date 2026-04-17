@@ -33,7 +33,6 @@ This skill prevents the most common form of premature completion: claiming succe
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `adversarial-methodology.md` | Loads detailed guidance from `adversarial-methodology.md`. |

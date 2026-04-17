@@ -46,7 +46,6 @@ Every analysis begins with the decision being supported, works backward to the e
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | implementation patterns | `anti-patterns.md` | Loads detailed guidance from `anti-patterns.md`. |

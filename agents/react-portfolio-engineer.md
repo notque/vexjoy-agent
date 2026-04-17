@@ -156,7 +156,6 @@ This agent uses the **Implementation Schema**.
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | Gallery component, filtering, image patterns, anti-rationalization table | `gallery-patterns.md` | Routes to the matching deep reference |

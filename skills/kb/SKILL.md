@@ -52,7 +52,6 @@ Detect the user's intent and load the appropriate reference file:
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | "kb compile", "compile wiki", "build knowledge base", "compile raw sources" | `compile.md` | **Compile** |

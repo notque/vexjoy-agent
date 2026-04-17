@@ -40,7 +40,6 @@ Create a complete voice profile from writing samples through a 7-phase pipeline.
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |

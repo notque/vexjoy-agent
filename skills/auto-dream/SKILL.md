@@ -36,7 +36,6 @@ Background memory consolidation cycle. Scans memory files, finds stale/duplicate
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | Debugging failed cron run, silent failure, empty log, wrong exit code | `headless-cron-patterns.md` | Routes to the matching deep reference |

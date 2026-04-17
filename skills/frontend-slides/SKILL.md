@@ -41,7 +41,6 @@ Generate browser-based HTML presentations as a single self-contained `.html` fil
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `STYLE_PRESETS.md` | Loads detailed guidance from `STYLE_PRESETS.md`. |

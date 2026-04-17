@@ -38,7 +38,6 @@ The pipeline enforces **full file reading** (not sampling), **parallel execution
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |

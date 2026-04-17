@@ -177,7 +177,6 @@ export function createImpactBurst(x: number, y: number, type: 'strike' | 'grappl
 }
 ```
 
-
 ---
 
 ## CSS @keyframes: Complete Definitions

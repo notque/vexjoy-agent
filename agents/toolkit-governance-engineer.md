@@ -181,7 +181,6 @@ Use this format for consistency checks, audits, and multi-file operations. Singl
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `adr-lifecycle.md` | Loads detailed guidance from `adr-lifecycle.md`. |

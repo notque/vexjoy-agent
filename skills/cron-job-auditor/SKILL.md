@@ -23,7 +23,6 @@ Static analysis of cron and scheduled job scripts against a 9-point reliability 
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | Checking error handling, `set -e`, `pipefail`, `trap`, exit codes | `shell-error-handling.md` | Routes to the matching deep reference |

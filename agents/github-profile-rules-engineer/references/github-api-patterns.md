@@ -51,7 +51,7 @@ def check_rate_limit(headers: dict) -> None:
     """Raise if fewer than 10 requests remaining."""
     remaining = int(headers.get("X-RateLimit-Remaining", 0))
     reset_time = int(headers.get("X-RateLimit-Reset", 0))
-    
+
     if remaining < 10:
         wait_seconds = reset_time - time.time()
         raise RateLimitError(
@@ -71,14 +71,14 @@ def get_file_tree(owner: str, repo: str, branch: str = "HEAD") -> list[str]:
     # First get the commit SHA for branch
     resp = github_get(f"/repos/{owner}/{repo}/commits/{branch}")
     tree_sha = resp["commit"]["tree"]["sha"]
-    
+
     # Fetch entire tree recursively
     resp = github_get(f"/repos/{owner}/{repo}/git/trees/{tree_sha}?recursive=1")
-    
+
     if resp.get("truncated"):
         # Repo has >100k files — fall back to directory-by-directory
         return get_file_tree_paged(owner, repo, tree_sha)
-    
+
     return [item["path"] for item in resp["tree"] if item["type"] == "blob"]
 ```
 
@@ -94,10 +94,10 @@ import base64
 def get_file_content(owner: str, repo: str, path: str) -> str:
     """Fetch and decode file content from GitHub API."""
     resp = github_get(f"/repos/{owner}/{repo}/contents/{path}")
-    
+
     if resp.get("encoding") != "base64":
         raise ValueError(f"Unexpected encoding: {resp.get('encoding')}")
-    
+
     # Content has newlines inserted by GitHub — strip before decoding
     return base64.b64decode(resp["content"].replace("\n", "")).decode("utf-8", errors="replace")
 ```
@@ -112,11 +112,11 @@ def get_file_content(owner: str, repo: str, path: str) -> str:
 def get_analysis_repos(username: str, max_repos: int = 5) -> list[dict]:
     """Return repos sorted by relevance: stars + recent activity, excluding forks."""
     repos = github_get(f"/users/{username}/repos?sort=pushed&per_page=20&type=owner")
-    
+
     # Sort by stars (strongest signal), filter forks (project-specific style)
     owned = [r for r in repos if not r["fork"]]
     owned.sort(key=lambda r: r["stargazers_count"], reverse=True)
-    
+
     return owned[:max_repos]
 ```
 

@@ -32,7 +32,6 @@ Optional flags: `--auto-fix` (experimental, requires explicit opt-in), `--strict
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | documentation work | `documentation-structure.md` | Loads detailed guidance from `documentation-structure.md`. |

@@ -75,7 +75,6 @@ After making changes to CRDs, Helm values, or operator configuration, STOP and a
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `core.md` | Loads detailed guidance from `core.md`. |

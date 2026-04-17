@@ -25,7 +25,6 @@ Objective, evidence-based quality assessment for agents and skills. Implements a
 
 ## Reference Loading Table
 
-
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `batch-evaluation.md` | Loads detailed guidance from `batch-evaluation.md`. |

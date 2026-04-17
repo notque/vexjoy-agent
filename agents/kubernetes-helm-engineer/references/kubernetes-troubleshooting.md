@@ -49,7 +49,7 @@ kubectl get events -n <namespace> --sort-by='.lastTimestamp' | tail -20
 ```bash
 # Find pods with OOM kills
 kubectl get pods --all-namespaces -o json | \
-  jq '.items[] | select(.status.containerStatuses[]?.lastState.terminated.reason == "OOMKilled") | 
+  jq '.items[] | select(.status.containerStatuses[]?.lastState.terminated.reason == "OOMKilled") |
   {name: .metadata.name, ns: .metadata.namespace}'
 
 # Check actual vs requested memory for a pod
@@ -86,7 +86,7 @@ kubectl get secret <secret-name> -n <namespace> \
 ```bash
 # Find deployments with containers missing resource limits
 kubectl get deployments --all-namespaces -o json | \
-  jq '.items[] | select(.spec.template.spec.containers[] | .resources.limits == null) | 
+  jq '.items[] | select(.spec.template.spec.containers[] | .resources.limits == null) |
   {name: .metadata.name, ns: .metadata.namespace}'
 
 # Find pods currently running without resource limits
@@ -128,8 +128,8 @@ containers:
 ```bash
 # Find deployments using :latest tag
 kubectl get deployments --all-namespaces -o json | \
-  jq '.items[] | select(.spec.template.spec.containers[].image | endswith(":latest")) | 
-  {name: .metadata.name, namespace: .metadata.namespace, 
+  jq '.items[] | select(.spec.template.spec.containers[].image | endswith(":latest")) |
+  {name: .metadata.name, namespace: .metadata.namespace,
    image: .spec.template.spec.containers[].image}'
 
 # Check in manifests/helm values
@@ -149,7 +149,7 @@ rg ':latest' --type yaml
 ```bash
 # Find pods with short liveness probe timeouts
 kubectl get pods --all-namespaces -o json | \
-  jq '.items[] | select(.spec.containers[].livenessProbe.failureThreshold <= 2) | 
+  jq '.items[] | select(.spec.containers[].livenessProbe.failureThreshold <= 2) |
   {name: .metadata.name, threshold: .spec.containers[].livenessProbe.failureThreshold}'
 
 grep -rn 'failureThreshold: [12]$' --include="*.yaml" .
