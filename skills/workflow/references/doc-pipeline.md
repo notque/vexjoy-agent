@@ -1,7 +1,6 @@
 ---
 name: doc-pipeline
 description: "Structured 5-phase documentation pipeline with research."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

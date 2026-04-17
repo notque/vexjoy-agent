@@ -1,7 +1,6 @@
 ---
 name: install
 description: "Verify Claude Code Toolkit installation, diagnose issues, and guide first-time setup."
-version: 1.0.0
 user-invocable: true
 allowed-tools:
   - Read

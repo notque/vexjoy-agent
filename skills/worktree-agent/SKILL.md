@@ -1,7 +1,6 @@
 ---
 name: worktree-agent
 description: "Mandatory rules for agents in git worktree isolation."
-version: 1.0.0
 user-invocable: false
 context: fork
 tags: [worktree, isolation, parallel, agent]

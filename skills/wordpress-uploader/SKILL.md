@@ -1,7 +1,6 @@
 ---
 name: wordpress-uploader
 description: "WordPress REST API integration for posts and media uploads."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

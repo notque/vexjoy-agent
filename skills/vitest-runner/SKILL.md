@@ -1,7 +1,6 @@
 ---
 name: vitest-runner
 description: "Run Vitest tests and parse results into actionable output."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

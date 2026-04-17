@@ -1,7 +1,6 @@
 ---
 name: reviewer-code
 model: sonnet
-version: 1.0.0
 description: "Code quality review: conventions, naming, dead code, performance, test coverage"
 color: green
 routing:

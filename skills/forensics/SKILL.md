@@ -1,7 +1,6 @@
 ---
 name: forensics
 description: "Post-mortem diagnostic analysis of failed workflows."
-version: 1.0.0
 user-invocable: false
 command: /forensics
 allowed-tools:

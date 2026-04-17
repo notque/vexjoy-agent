@@ -1,7 +1,6 @@
 ---
 name: integration-checker
 description: "Verify cross-component wiring and data flow."
-version: 1.0.0
 user-invocable: false
 command: /integration-checker
 allowed-tools:

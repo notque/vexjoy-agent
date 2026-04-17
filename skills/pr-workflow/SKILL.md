@@ -6,7 +6,6 @@ description: |
   comments, clean up branches after merge, or mine tribal knowledge from PR
   reviews. Use for "push my changes", "create a PR", "pr status", "fix PR
   comments", "clean up branches", "mine PRs", or "address feedback".
-version: 1.0.0
 user-invocable: true
 allowed-tools:
   - Bash

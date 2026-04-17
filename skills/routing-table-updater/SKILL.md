@@ -1,7 +1,6 @@
 ---
 name: routing-table-updater
 description: "Maintain /do routing tables when skills or agents change."
-version: 2.1.0
 user-invocable: false
 allowed-tools:
   - Read
@@ -80,7 +79,7 @@ If gate fails:
 
 **Constraints applied in this phase**:
 - YAML frontmatter must be valid (no syntax errors; malformed YAML blocks extraction)
-- Required fields (`name`, `description`, `version`) must be present
+- Required fields (`name`, `description`) must be present
 - Trigger patterns for skills extracted from description text (specify patterns, don't infer from vague text)
 - Domain keywords for agents extracted from description text (explicit phrases required)
 - Complexity inference must follow established rules (`references/extraction-patterns.md`)
@@ -96,7 +95,6 @@ python3 ~/.claude/skills/routing-table-updater/scripts/extract_metadata.py --inp
 For each capability, confirm these fields were extracted:
 - `name`: Matches YAML frontmatter name field
 - `description`: Full description text
-- `version`: Semantic version string
 - `trigger_patterns` (skills): Array of quoted phrases from description
 - `domain_keywords` (agents): Array of technology/domain terms
 - `complexity`: Inferred level (Simple, Medium, Complex)
@@ -109,7 +107,7 @@ Review extracted patterns against `references/extraction-patterns.md`. Patterns 
 - Broad enough to catch common phrasings (too narrow = missed activations)
 - Free of generic terms that match too many routes (prevents routing ambiguity)
 
-**Gate**: All YAML parsed successfully, required fields present (name, description, version), trigger patterns extracted for skills, domain keywords extracted for agents. Do NOT proceed to Phase 3 until gate passes.
+**Gate**: All YAML parsed successfully, required fields present (name, description), trigger patterns extracted for skills, domain keywords extracted for agents. Do NOT proceed to Phase 3 until gate passes.
 
 If gate fails:
 - "Invalid YAML in {file}": Fix YAML frontmatter in the skill/agent file

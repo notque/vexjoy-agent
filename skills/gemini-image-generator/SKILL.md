@@ -1,7 +1,6 @@
 ---
 name: gemini-image-generator
 description: "Generate images from text prompts via Google Gemini."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

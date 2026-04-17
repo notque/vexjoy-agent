@@ -6,7 +6,6 @@ description: |
   JOY-CHECK, OUTPUT, CLEANUP. Use when writing articles, blog posts, or any
   content that uses a voice profile. Use for "write article", "blog post",
   "write in voice", "generate content", "draft article", "write about".
-version: 2.0.0
 user-invocable: true
 argument-hint: "<topic or title>"
 command: /voice-writer

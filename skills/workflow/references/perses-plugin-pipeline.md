@@ -11,7 +11,6 @@ allowed-tools:
   - Write
   - Agent
 agent: perses-engineer
-version: 2.0.0
 routing:
   triggers:
     - perses plugin pipeline

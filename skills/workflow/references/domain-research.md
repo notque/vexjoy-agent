@@ -1,7 +1,6 @@
 ---
 name: domain-research
 description: "Discover and classify subdomains for pipeline generation."
-version: 1.0.0
 user-invocable: false
 agent: pipeline-orchestrator-engineer
 model: opus

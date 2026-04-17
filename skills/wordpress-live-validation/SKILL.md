@@ -1,7 +1,6 @@
 ---
 name: wordpress-live-validation
 description: "Validate published WordPress posts in browser via Playwright."
-version: 1.0.0
 user-invocable: false
 allowed-tools:
   - Read

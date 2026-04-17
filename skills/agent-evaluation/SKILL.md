@@ -1,7 +1,6 @@
 ---
 name: agent-evaluation
 description: "Evaluate agents and skills for quality and standards compliance."
-version: 2.0.0
 user-invocable: false
 context: fork
 allowed-tools:

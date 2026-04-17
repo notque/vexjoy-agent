@@ -1,7 +1,6 @@
 ---
 name: pair-programming
 description: "Collaborative coding with enforced micro-steps and user-paced control."
-version: 1.0.0
 user-invocable: false
 allowed-tools:
   - Read

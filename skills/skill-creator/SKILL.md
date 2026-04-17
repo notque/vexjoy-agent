@@ -1,7 +1,6 @@
 ---
 name: skill-creator
 description: "Create and iteratively improve skills through eval-driven validation."
-version: 2.0.0
 routing:
   triggers:
     - create skill
@@ -120,7 +119,6 @@ Description caps:
 ---
 name: skill-slug-name
 description: "[60-120 char single-line description of what this skill does]"
-version: 1.0.0
 routing:
   triggers:
     - keyword1

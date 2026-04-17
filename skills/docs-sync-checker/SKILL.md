@@ -1,7 +1,6 @@
 ---
 name: docs-sync-checker
 description: "Detect documentation drift against filesystem state."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

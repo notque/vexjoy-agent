@@ -1,7 +1,6 @@
 ---
 name: spec-writer
 description: "Structured specification: user stories, acceptance criteria, scope."
-version: 1.0.0
 user-invocable: false
 routing:
   triggers:

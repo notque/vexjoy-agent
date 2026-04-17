@@ -1,7 +1,6 @@
 ---
 name: resume-work
 description: "Restore session state from handoff artifacts (HANDOFF.json, .continue-here.md, task_plan.md) and resume."
-version: 1.0.0
 user-invocable: true
 allowed-tools:
   - Read

@@ -1,7 +1,6 @@
 ---
 name: skill-eval
 description: "Evaluate skills: trigger testing, A/B benchmarks, structure validation."
-version: 1.0.0
 user-invocable: false
 argument-hint: "<skill-name>"
 allowed-tools:

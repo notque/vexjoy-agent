@@ -1,6 +1,5 @@
 ---
 name: perses
-version: 2.0.0
 description: "Perses platform operations: dashboards, plugins, deployment, migration, and quality."
 context: fork
 agent: perses-engineer

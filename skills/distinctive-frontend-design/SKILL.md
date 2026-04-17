@@ -1,7 +1,6 @@
 ---
 name: distinctive-frontend-design
 description: "Context-driven aesthetic exploration with anti-cliche validation."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

@@ -1,7 +1,6 @@
 ---
 name: kb-query
 description: "Query a knowledge base topic and optionally file the answer."
-version: 1.0.0
 user-invocable: false
 agent: general-purpose
 allowed-tools:

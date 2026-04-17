@@ -1,7 +1,6 @@
 ---
 name: testing-anti-patterns
 description: "Identify and fix testing mistakes: flaky, brittle, over-mocked tests."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

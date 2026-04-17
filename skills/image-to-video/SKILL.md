@@ -1,7 +1,6 @@
 ---
 name: image-to-video
 description: "FFmpeg-based video creation from image and audio."
-version: 2.0.0
 user-invocable: false
 allowed-tools:
   - Read

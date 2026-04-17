@@ -1,7 +1,6 @@
 ---
 name: performance-optimization-engineer
 model: sonnet
-version: 2.0.0
 description: "Web performance optimization: Core Web Vitals, rendering, bundle analysis, monitoring."
 color: yellow
 routing:

@@ -1,7 +1,6 @@
 ---
 name: pptx-generator
 description: "PPTX presentation generation with visual QA: slides, pitch decks."
-version: 1.0.0
 user-invocable: false
 allowed-tools:
   - Read

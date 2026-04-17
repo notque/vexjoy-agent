@@ -1,7 +1,6 @@
 ---
 name: game-asset-generator
 description: "AI game asset generation: 3D models, environments, sprites, images."
-version: 1.0.0
 user-invocable: false
 command: /game-assets
 allowed-tools:

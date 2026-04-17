@@ -1,7 +1,6 @@
 ---
 name: data-analysis
 description: "Decision-first data analysis with statistical rigor gates."
-version: 1.0.0
 user-invocable: false
 allowed-tools:
   - Read

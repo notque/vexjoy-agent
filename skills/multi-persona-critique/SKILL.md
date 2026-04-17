@@ -1,7 +1,6 @@
 ---
 name: multi-persona-critique
 description: "Parallel critique of proposals via 5 philosophical personas with consensus synthesis."
-version: 1.0.0
 user-invocable: true
 argument-hint: "<proposals to critique, or 'generate N ideas about X'>"
 allowed-tools:

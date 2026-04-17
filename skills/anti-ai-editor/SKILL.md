@@ -1,7 +1,6 @@
 ---
 name: anti-ai-editor
 description: "Remove AI-sounding patterns from content."
-version: 2.2.0
 user-invocable: false
 command: /edit
 allowed-tools:

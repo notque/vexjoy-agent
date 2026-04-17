@@ -1,7 +1,6 @@
 ---
 name: kubernetes-security
 description: "Kubernetes security: RBAC, PodSecurity, network policies."
-version: 1.1.0
 user-invocable: false
 context: fork
 agent: kubernetes-helm-engineer

@@ -1,7 +1,6 @@
 ---
 name: github-notification-triage
 description: "Triage GitHub notifications and report actions needed."
-version: 1.0.0
 user-invocable: false
 context: fork
 model: sonnet

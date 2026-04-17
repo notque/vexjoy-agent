@@ -1,7 +1,6 @@
 ---
 name: create-voice
 description: "Create voice profiles from writing samples."
-version: 1.0.0
 user-invocable: false
 argument-hint: "<voice-name> <sample-files...>"
 command: /create-voice

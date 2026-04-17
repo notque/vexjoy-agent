@@ -1,7 +1,6 @@
 ---
 name: ui-design-engineer
 model: sonnet
-version: 2.0.0
 description: "UI/UX design: design systems, responsive layouts, accessibility, animations."
 color: orange
 routing:
