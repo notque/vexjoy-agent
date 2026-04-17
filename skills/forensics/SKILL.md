@@ -34,6 +34,16 @@ Investigate failed or stuck workflows through post-mortem analysis of git histor
 
 **Key distinction**: A tool error is "ruff found 3 lint errors." A workflow failure is "the agent entered a fix/retry loop editing the same file 5 times and never progressed." The error-learner handles tool-level errors. Forensics handles workflow-level patterns.
 
+## Reference Loading
+
+| Task | Load |
+|------|------|
+| Collecting git evidence, running git log commands, scrubbing credentials | `references/evidence-collection.md` |
+| Identifying failure type from symptoms, causal chain analysis | `references/failure-signatures.md` |
+| Running any of the 5 anomaly detectors, scoring confidence | `references/detectors.md` |
+
+---
+
 ## Instructions
 
 This is a **read-only diagnostic**. The tool restriction to Read/Grep/Glob enforces this at the platform level. A diagnostic tool that modifies state destroys the evidence it needs to analyze -- forensics examines, it does not fix. Even when the user asks you to fix what you find, complete the report and recommend remediation instead. The wrong fix applied automatically can destroy work.
@@ -80,6 +90,8 @@ Examine the current state:
 - Are there orphaned `.claude/worktrees/` directories?
 - Is there an active `task_plan.md` with incomplete phases?
 
+> See `references/evidence-collection.md` for concrete git commands for each evidence type: log extraction, loop detection queries, timestamp analysis, and credential scrubbing patterns.
+
 **GATE**: Evidence collected. At minimum: git history available, branch identified. Proceed to DETECT only when evidence gathering is complete.
 
 ---
@@ -89,6 +101,7 @@ Examine the current state:
 **Goal**: Run all 5 anomaly detectors against the collected evidence. Always run every detector -- anomalies are often correlated (a stuck loop causes missing artifacts causes abandoned work), so partial analysis misses the causal chain. Each detector produces zero or more findings, and every finding must include a confidence level (High/Medium/Low) because false positives erode trust.
 
 > See `references/detectors.md` for full detector specifications: confidence scoring tables, false positive guidance, and per-detector skip conditions when no plan file exists.
+> See `references/failure-signatures.md` for observable patterns per failure type, detection commands, and causal chain analysis when multiple detectors fire.
 
 Run detectors 1-5 in order: Stuck Loop, Missing Artifacts, Abandoned Work, Scope Drift, Crash/Interruption.
 
