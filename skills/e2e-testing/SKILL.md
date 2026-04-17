@@ -148,11 +148,16 @@ See `references/errors.md` for the symptom/cause/fix matrix covering tsc failure
 
 ## References
 
-- [templates.md](references/templates.md) -- playwright.config.ts, POM pattern, data-testid convention, quarantine protocol, e2e-report.md, GitHub Actions workflow
-- [errors.md](references/errors.md) -- Symptom/cause/fix matrix for common failures
-- [playwright-patterns.md](references/playwright-patterns.md) -- POM examples, condition-based waiting, multi-browser config, financial skip guards
-- [wallet-testing.md](references/wallet-testing.md) -- Web3/MetaMask mock patterns with `addInitScript`
-- [financial-flows.md](references/financial-flows.md) -- Production skip guards, blockchain confirmation waits
-- [flakiness-triage.md](references/flakiness-triage.md) -- `--repeat-each`, `--retries`, quarantine decision tree
+| Signal / Task Type | Load This Reference |
+|--------------------|---------------------|
+| async, Promise.all, race condition, waitForTimeout, fixture teardown | [async.md](references/async.md) |
+| auth, login, storageState, OAuth, SSO, JWT, RBAC, multi-role, session expiry | [auth.md](references/auth.md) |
+| config, playwright.config.ts, POM, data-testid, CI/CD workflow | [templates.md](references/templates.md) |
+| error, timeout, tsc fail, locator, fill, missing JSON | [errors.md](references/errors.md) |
+| POM examples, waiting, multi-browser, shared auth session | [playwright-patterns.md](references/playwright-patterns.md) |
+| Web3, MetaMask, wallet, addInitScript | [wallet-testing.md](references/wallet-testing.md) |
+| payment, financial, production skip, blockchain | [financial-flows.md](references/financial-flows.md) |
+| flaky, intermittent, repeat-each, retries, quarantine | [flakiness-triage.md](references/flakiness-triage.md) |
+
 - [ADR-107](../../adr/ADR-107-e2e-testing.md) -- Decision record for this skill
 - [Playwright docs](https://playwright.dev/docs/intro) -- Official API reference
