@@ -159,7 +159,7 @@ grep -rn 'integrate\|routing-table' agents/pipeline-orchestrator-engineer.md | h
 
 **Why wrong**: Partial integration produces inconsistent routing. An agent registered in INDEX.json that doesn't yet exist on disk will cause Agent tool failures. A skill registered in routing-tables.md whose agent isn't created yet produces "unknown agent" errors at dispatch time.
 
-**Fix**: Hard gate — `wait for ALL dispatched agents to complete` before any integration step. There is no acceptable partial state.
+**Do instead**: Hard gate — `wait for ALL dispatched agents to complete` before any integration step. There is no acceptable partial state.
 
 ---
 
@@ -176,7 +176,7 @@ ls adr/pipeline-*.md 2>/dev/null | wc -l
 
 **Why wrong**: Without an ADR, context drifts across phases. Phase 3 sub-agents don't know the Phase 2 decisions. The component manifest from Phase 1 gets lost between phases. In sessions longer than 30 minutes, orchestrators re-derive decisions already made in earlier phases — wasting context and sometimes reversing earlier conclusions.
 
-**Fix**: Phase 0 is always Phase 0. Create the ADR file, register the session:
+**Do instead**: Phase 0 is always Phase 0. Create the ADR file, register the session:
 ```bash
 python3 ~/.claude/scripts/adr-query.py register --adr adr/{pipeline-name}.md
 ```
@@ -197,7 +197,7 @@ python3 scripts/artifact-utils.py discover --domain {name} 2>/dev/null | grep "s
 
 **Why wrong**: Over-decomposition creates maintenance overhead. Each component needs its own routing entry, its own template compliance check, its own reference files. A pipeline with 8 components for a 2-component problem adds 6 units of maintenance debt with zero user benefit.
 
-**Fix**: Apply the 80% coverage rule — if an existing agent covers 80%+ of the request, bind new skills to it rather than creating new agents. Three reused components beat one new monolithic agent.
+**Do instead**: Apply the 80% coverage rule — if an existing agent covers 80%+ of the request, bind new skills to it rather than creating new agents. Three reused components beat one new monolithic agent.
 
 ---
 
