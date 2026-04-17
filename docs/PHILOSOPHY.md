@@ -58,20 +58,24 @@ Three mechanisms enforce this:
 
 **Memory corollary:** if it can be re-derived from a source of truth, do not save it to memory. Git log, the file system, and running queries are always available. Memory should capture what cannot be derived: feedback about working style, project context that lives outside the codebase, references to external systems the model cannot introspect. Saving derivable facts to memory turns it into a noisy cache that drifts out of sync with reality. Save human judgment, not machine-readable state.
 
-## Tokens Are Cheap, Quality Is Expensive
+## Tokens Are Expensive, Use Progressive Context
 
-Spending tokens to ensure correctness is economically superior to saving tokens and shipping bugs.
+Spending tokens on the right context ensures correctness. Spending tokens on unfocused context adds cost without improving quality.
 
-| Typical Mindset | This Toolkit's Mindset |
-|-----------------|----------------------|
-| Minimize tokens, maximize speed | Minimize bugs, accept token cost |
-| One review pass | Multiple specialized agents in waves |
-| Skip if it looks right | Verify before claiming done |
-| YAGNI for verification | YAGNI for features, never for verification |
+| Old Framing | New Framing |
+|-------------|-------------|
+| Minimize bugs, accept token cost | Minimize bugs by loading the right context, not more context |
+| Multiple specialized agents in waves | Dispatch specialized agents; their isolated context is a feature, not a cost |
+| Verify before claiming done | (unchanged) |
+| YAGNI for features, never for verification | (unchanged) |
 
-This does NOT mean "stuff more context." It means: dispatch parallel review agents, run deterministic validation scripts, create plans before executing, and never skip quality gates to save tokens. The token spend goes toward **breadth of analysis**, not depth of prompt.
+This does NOT mean "stuff more context." It means: dispatch parallel review agents, run deterministic validation scripts, create plans before executing, and never skip quality gates to save tokens. The token spend goes toward **breadth of analysis**, not depth of prompt. Breadth means more specialized agents, not longer prompts per agent. Each agent loads only the reference files its current task needs. Context that could be loaded on demand and is not — that is the waste.
 
-The arithmetic: for non-trivial production changes, thorough pre-merge review consistently pays for itself. The cost scales with the bug class — a concurrency issue in production costs orders of magnitude more than the tokens that would have caught it.
+The primary lever is progressive disclosure. Each agent carries only the domain knowledge its current task requires. Reference files live on disk and are loaded when the phase needs them, not injected wholesale at session start. This is not token frugality for its own sake — it is how the model receives relevant signal without reasoning over noise.
+
+Eager routing is non-negotiable. Dispatching agents is not a token cost to avoid; it is the core execution model. Under-loading context is as wrong as over-loading it — reference files are on disk for a reason. Load eagerly within the current task's scope.
+
+The arithmetic: for non-trivial production changes, thorough pre-merge review consistently pays for itself. The cost scales with the bug class — a concurrency issue in production costs orders of magnitude more than the tokens that would have caught it. The updated economics of Opus 4.7 (higher per-token cost, adaptive reasoning that processes whatever is in context) make relevant loading more important, not less. More context is not more quality. More relevant context is more quality.
 
 ## Everything Should Be a Pipeline
 
@@ -126,7 +130,7 @@ Neither tier replaces the other. Deterministic checks catch mechanical failures 
 
 The pipeline: **Deterministic first, fix failures, LLM evaluation, fix findings, final score.**
 
-**Verifier pattern:** For high-stakes work, separate the roles: planner (read-only, no side effects), executor (full access, implements), verifier (read-only, adversarial intent). The verifier's job is to try to break the result -- not to optimistically approve it. A verifier that only confirms success is a rubber stamp. Require evidence-bearing verdicts: the exact command run, the observed output, the expected value versus the actual. "Looks correct" is not a verdict. If the verifier cannot produce a falsifiable check, the result is not verified.
+**Verifier pattern:** For high-stakes work, separate the roles: planner (read-only, no side effects), executor (full access, implements), verifier (read-only, adversarial intent). The verifier's job is to try to break the result -- not to optimistically approve it. A verifier that only confirms success is a rubber stamp. Require evidence-bearing verdicts: the exact command run, the observed output, the expected value versus the actual. "Looks correct" is not a verdict. If the verifier cannot produce a falsifiable check, the result is not verified. This principle matters more under Opus 4.7, whose default is to reason in lieu of calling tools. The principle is unchanged; what changed is that the model's default now works against it, so verification-bearing skills must explicitly instruct tool execution rather than relying on the model's tendency to run commands.
 
 ## Specialist Selection Over Generalism
 
@@ -176,6 +180,8 @@ We tested this empirically. Four A/B experiments compared standard prompts again
 | Adaptive Thinking: Disabled vs Enabled (fixed reasoning budget vs model-chosen) | 8.194 | 8.194 | 0.0% |
 
 The first three experiments tested emotional and tonal prompt interventions. The fourth tested a structural parameter: whether the model should choose its own reasoning budget or use a fixed one. The result was the flattest yet. Both variants scored an identical 8.194/10 composite across 10 rounds of blind-judged headless sessions. The interesting signal was not quality but variance: the fixed-budget variant (adaptive thinking disabled) had a standard deviation of 0.46 vs 0.76 for the adaptive variant, with 2.5x tighter duration variance (6.4s vs 16.4s stdev). The adaptive variant also produced more false positive CRITICAL findings (2 vs 1) and had one outright session failure; all fixed-budget sessions succeeded. Disabling adaptive thinking is a variance reducer, not a quality booster. Same average output, tighter distribution, fewer outliers. This matters most in parallel-agent workflows where one unstable session can cascade into downstream failures.
+
+**Deprecated 2026-04-17:** Opus 4.7 removed the fixed-budget option; adaptive thinking is the only mode. The variance-reduction technique validated here is no longer available as a toggle. The underlying finding — that variance in thinking budget translates to variance in agent fleet stability — still informs parallel-dispatch design, but the specific `CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING` intervention is retired. Adaptive thinking on Opus 4.7 is controlled at the prompt level, not the environment level (see ADR `opus-4-7-adaptive-thinking-injection` for the replacement mechanism).
 
 The IQ boost and urgency treatments found more bugs in code review, produced better-structured implementations, and discovered unique security findings the controls missed. The urgency-framed variant found a base64 line-wrapping bypass that was the single best security finding across all 12 agents. The tone experiment found no meaningful difference at all — harsh and joyful prompts produced statistically indistinguishable review quality across every scenario and language. The only behavioral differences: harsh reviews were slightly more actionable per-finding (9.0 vs 7.8/10), while joyful reviews were slightly more thorough (10.4 vs 9.6 avg findings). Two of five joyful agents explicitly called out the encouraging tone as "social priming" and ignored it; zero harsh agents commented on their tone.
 
