@@ -252,6 +252,7 @@ function example() {
 
 ---
 
+<!-- no-pair-required: section heading — each Anti-Pattern block below has its own Do-instead -->
 ## Overflow Anti-Pattern Catalog
 
 ### Anti-Pattern 1: Fixed inner height
@@ -272,6 +273,16 @@ rg 'height:\s*\d+px' output.html | grep -v 'max-height'
 on an iPhone landscape (414px tall) leaves barely 100px for heading + caption.
 
 **Fix**: `max-height: min(Xvh, Ypx)` with `overflow: hidden`. For images: `max-height: min(50vh, 400px)`.
+
+**Do instead**
+
+```css
+/* Images: viewport-relative cap prevents overflow at any screen height */
+.slide img { max-height: min(50vh, 400px); object-fit: contain; }
+
+/* Code blocks: cap at 55vh so heading and padding always fit */
+.slide-code pre { max-height: min(55vh, 500px); overflow: hidden; }
+```
 
 ---
 
@@ -294,6 +305,16 @@ small breakpoints.
 
 **Fix**: Use `height: 100vh; height: 100dvh` (exact, not minimum). Split content across
 multiple slides if it overflows.
+
+**Do instead**
+
+```css
+.slide {
+  height: 100vh;
+  height: 100dvh;   /* exact viewport height — slide cannot grow beyond one screen */
+  overflow: hidden;
+}
+```
 
 ---
 
@@ -320,9 +341,23 @@ At small viewports, nested indentation causes overflow. Presentation slides are 
 **Fix**: Flatten to a single level. Convert nested items to separate bullet points or a separate
 slide. Each bullet is max 10 words.
 
+**Do instead**
+
+```html
+<!-- Flat single-level list — each point is self-contained, max 10 words -->
+<ul>
+  <li>First concept — brief and specific</li>
+  <li>Second concept — brief and specific</li>
+  <li>Third concept — brief and specific</li>
+  <!-- If a sub-point is needed, make it a separate slide -->
+</ul>
+```
+
 ---
 
 ### Anti-Pattern 4: Long `<pre>` block without overflow guard
+
+Do instead: add `max-height: min(55vh, 500px); overflow: hidden` to `.slide-code pre`.
 
 **Detection**:
 ```bash
@@ -342,6 +377,17 @@ breakpoints.
 
 **Fix**: `max-height: min(55vh, 500px); overflow: hidden`. If the code block overflows even with
 the cap, split it across two slides with a continuation heading.
+
+**Do instead**
+
+```css
+.slide-code pre {
+  max-height: min(55vh, 500px);
+  overflow: hidden;   /* content is clipped, not scrolled — split slides if needed */
+  width: 100%;
+  border-radius: 0.5rem;
+}
+```
 
 ---
 
@@ -364,6 +410,17 @@ a now-white background, making text invisible.
 
 **Fix**: Use only CSS custom properties defined by the preset: `color: var(--text-primary)`.
 Never reference a hex value outside of `:root { }`.
+
+**Do instead**
+
+```css
+/* All color references use preset CSS variables — swap the preset, colors update automatically */
+.slide-title h1    { color: var(--text-primary); }
+.slide-title .subtitle { color: var(--text-secondary); }
+.slide-content li  { color: var(--text-primary); }
+.slide-content li::before { color: var(--accent); }
+/* Hex values live only in :root {} inside the chosen preset stylesheet */
+```
 
 ---
 

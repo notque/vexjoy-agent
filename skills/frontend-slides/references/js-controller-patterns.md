@@ -102,9 +102,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 ---
 
+<!-- no-pair-required: section heading — each Anti-Pattern block below has its own Do-instead -->
 ## Anti-Pattern Catalog
 
 ### Anti-Pattern 1: Missing `navigating` flag
+
+Do instead: add `if (this.navigating) return;` as the first line of `go()` and reset it via `setTimeout`.
 
 **Detection**:
 ```bash
@@ -127,9 +130,25 @@ first scroll animation completes, causing the deck to skip 2-3 slides.
 **Fix**: `if (this.navigating) return;` as first line in `go()`. Set `navigating = false`
 in a `setTimeout` matching the slide transition duration (typically 400-600ms).
 
+**Do instead**
+
+```javascript
+go(index) {
+  if (this.navigating) return;          // guard: reject re-entrant calls
+  if (index < 0 || index >= this.total) return;
+  this.navigating = true;
+  this.current = index;
+  this.deck.scrollTo({ left: index * this.deck.offsetWidth, behavior: 'smooth' });
+  this._updateIndicator();
+  setTimeout(() => { this.navigating = false; }, 500);
+}
+```
+
 ---
 
 ### Anti-Pattern 2: Wheel without debounce
+
+Do instead: wrap the `wheel` handler body in `clearTimeout` + `setTimeout(() => { ... }, 150)` to collapse burst events.
 
 **Detection**:
 ```bash
@@ -150,6 +169,20 @@ deck advances to the last slide in under a second.
 
 **Fix**: Use `clearTimeout(this.wheelTimer)` + `setTimeout(() => { ... }, 150)` pattern from
 the canonical implementation above. The 150ms window collapses burst events into one action.
+
+**Do instead**
+
+```javascript
+_initWheel() {
+  this.deck.addEventListener('wheel', e => {
+    e.preventDefault();
+    clearTimeout(this.wheelTimer);
+    this.wheelTimer = setTimeout(() => {
+      e.deltaY > 0 ? this.next() : this.prev();
+    }, 150); // collapses burst events into a single slide advance
+  }, { passive: false });
+}
+```
 
 ---
 
@@ -174,9 +207,25 @@ callbacks never fire. Reveal animations (`opacity: 0 → 1`) silently break for 
 always "display: flex". No manual show/hide is needed. If you must hide off-screen slides,
 use `opacity: 0; pointer-events: none; position: absolute` instead.
 
+**Do instead**
+
+```css
+/* All slides remain in DOM flow — no display toggling */
+.slide {
+  display: flex;
+  flex: 0 0 100%;         /* each slide occupies exactly one viewport width */
+  scroll-snap-align: start;
+}
+/* Use IntersectionObserver to trigger reveal animations, not display toggling */
+.slide { opacity: 0; transition: opacity 0.4s ease; }
+.slide.visible { opacity: 1; }
+```
+
 ---
 
 ### Anti-Pattern 4: Touch swipe fires on vertical scroll
+
+Do instead: record `screenY` on `touchstart` and reject gestures where `Math.abs(dy) > Math.abs(dx)`.
 
 **Detection**:
 ```bash
@@ -198,9 +247,29 @@ trying to scroll content on a mobile slide accidentally navigate.
 **Fix**: Record `screenY` on `touchstart`. On `touchend`, reject if `Math.abs(dy) > Math.abs(dx)`
 (gesture is more vertical than horizontal). See canonical implementation.
 
+**Do instead**
+
+```javascript
+_initTouch() {
+  this.deck.addEventListener('touchstart', e => {
+    this.touchStartX = e.changedTouches[0].screenX;
+    this.touchStartY = e.changedTouches[0].screenY;  // record Y to detect vertical gestures
+  }, { passive: true });
+
+  this.deck.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].screenX - this.touchStartX;
+    const dy = e.changedTouches[0].screenY - this.touchStartY;
+    if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx)) return; // reject vertical-dominant gestures
+    dx < 0 ? this.next() : this.prev();
+  }, { passive: true });
+}
+```
+
 ---
 
 ### Anti-Pattern 5: `Space` key not prevented from scrolling page
+
+Do instead: call `e.preventDefault()` before `this.next()` on every navigation key including Space.
 
 **Detection**:
 ```bash
@@ -217,6 +286,20 @@ if (e.key === 'Space') this.next();
 both slide advance and page scroll fire simultaneously, causing a jarring visible jump.
 
 **Fix**: `if (e.key === 'Space') { e.preventDefault(); this.next(); }`
+
+**Do instead**
+
+```javascript
+_initKeyboard() {
+  document.addEventListener('keydown', e => {
+    // e.preventDefault() called before this.next()/prev() on every navigation key
+    if (e.key === 'ArrowRight' || e.key === 'Space') { e.preventDefault(); this.next(); }
+    if (e.key === 'ArrowLeft'  || e.key === 'Backspace') { e.preventDefault(); this.prev(); }
+    if (e.key === 'Home') { e.preventDefault(); this.go(0); }
+    if (e.key === 'End')  { e.preventDefault(); this.go(this.total - 1); }
+  });
+}
+```
 
 ---
 
