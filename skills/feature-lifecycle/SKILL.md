@@ -47,7 +47,7 @@ routing:
     - workflow
     - subagent-driven-development
     - pr-pipeline
-    - git-commit-flow
+    - pr-workflow
     - verification-before-completion
     - universal-quality-gate
     - adr-consultation

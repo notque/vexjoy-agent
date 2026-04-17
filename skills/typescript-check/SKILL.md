@@ -154,7 +154,7 @@ Solution:
 
 ### Integration Points
 
-- **Before git-commit-flow**: Run type check before committing TypeScript changes
+- **Before pr-workflow commit**: Run type check before committing TypeScript changes
 - **With vitest-runner**: Run type check first, then tests
 - **With code-linting**: Run lint first, then type check
 

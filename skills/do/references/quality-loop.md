@@ -203,7 +203,7 @@ Only fires when PHASE 8 passes clean (or user confirmed after max loops).
 
 ### PHASE 10 — CODEX REVIEW
 
-Cross-model second opinion on the PR. Uses the `codex-code-review` skill to get a review from OpenAI Codex CLI (GPT-5.4 xhigh), providing a perspective independent of the Claude reviewers in PHASE 4.
+Cross-model second opinion on the PR. Uses the `pr-workflow` skill's codex-review intent to get a review from OpenAI Codex CLI (GPT-5.4 xhigh), providing a perspective independent of the Claude reviewers in PHASE 4.
 
 - Pass the PR number, the ADR (if exists), and the full review context from PHASES 4-6
 - Codex receives: the diff, the original request, the Claude review findings, and the ADR decision

@@ -4,23 +4,22 @@
 UserPromptSubmit hook — auto-inject Codex cross-model review for PR review operations.
 
 Detects when the user invokes a review skill or phrases a review request,
-and injects a nudge to also run the codex-code-review skill for cross-model
-second-opinion findings — but only when the codex CLI is actually installed.
+and injects a nudge to also run the pr-workflow skill's codex-review intent
+for cross-model second-opinion findings — but only when the codex CLI is
+actually installed.
 
 Detection triggers:
   Skill invocations: /systematic-code-review, /parallel-code-review,
-                     /pr-workflow, /full-repo-review, /codex-code-review,
-                     /pr-review
+                     /full-repo-review, /pr-review
   Intent phrases: "review this pr", "review my changes", "code review",
                   "review the pr", "pr review"
 
 Non-triggers (already covered):
-  /codex-code-review   — user already asked for it directly
-  /pr-workflow         — pipeline has its own Phase 2b
+  /pr-workflow   — umbrella skill handles Codex via codex-review intent
 
 Design decisions:
   - DON'T inject the raw codex command; tell Claude to invoke the skill
-  - DON'T inject if the user already asked for /codex-code-review
+  - DON'T inject if the user already asked for /pr-workflow directly
   - DON'T block if codex is missing — silently skip
   - Keep injection short — it's a nudge, not a manual
 
@@ -45,7 +44,7 @@ from stdin_timeout import read_stdin
 EVENT_NAME = "UserPromptSubmit"
 
 # Skill invocations that trigger cross-model review injection.
-# /codex-code-review and /pr-workflow are excluded — they already handle Codex.
+# /pr-workflow is excluded — it already handles Codex via codex-review intent.
 REVIEW_SKILL_PATTERN = re.compile(
     r"/(?:systematic-code-review|parallel-code-review|full-repo-review|pr-review)\b",
     re.IGNORECASE,
@@ -57,18 +56,18 @@ REVIEW_INTENT_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-# Patterns that indicate the user is already requesting codex or pr-workflow.
-# These take care of Codex themselves; no need to inject.
+# Patterns that indicate the user is already requesting pr-workflow.
+# The umbrella takes care of Codex via its codex-review intent; no need to inject.
 ALREADY_HANDLED_PATTERN = re.compile(
-    r"/(?:codex-code-review|pr-workflow)\b",
+    r"/pr-workflow\b",
     re.IGNORECASE,
 )
 
 CODEX_INJECTION = (
     "[codex-auto-review] Codex CLI detected. After completing the primary review, "
-    "also invoke the codex-code-review skill to get cross-model findings from OpenAI "
-    "Codex (GPT-5.4 xhigh reasoning). If the codex-code-review skill has already been "
-    "invoked or is part of the current pipeline, skip this step."
+    "also invoke the pr-workflow skill (codex-review intent) to get cross-model "
+    "findings from OpenAI Codex (GPT-5.4 xhigh reasoning). If the codex-review intent "
+    "has already been invoked or is part of the current pipeline, skip this step."
 )
 
 
@@ -91,7 +90,7 @@ def is_review_request(prompt: str) -> bool:
 
 
 def is_already_handled(prompt: str) -> bool:
-    """Return True if the prompt already requests codex or pr-workflow directly."""
+    """Return True if the prompt already requests pr-workflow directly."""
     return bool(ALREADY_HANDLED_PATTERN.search(prompt))
 
 
@@ -132,7 +131,7 @@ def main() -> None:
 
     if is_already_handled(prompt):
         if debug:
-            print("[codex-auto-review] Already handled by codex/pr-workflow — skipping", file=sys.stderr)
+            print("[codex-auto-review] Already handled by pr-workflow — skipping", file=sys.stderr)
         empty_output(EVENT_NAME).print_and_exit()
 
     if not is_review_request(prompt):

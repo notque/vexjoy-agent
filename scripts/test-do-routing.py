@@ -16,13 +16,13 @@ ROUTING_TABLES = Path(__file__).resolve().parent.parent / "skills" / "do" / "ref
 
 TEST_CASES = [
     ("open a pull request", "pr-sync"),
-    ("save my work", "git-commit-flow"),
+    ("save my work", "pr-workflow"),
     ("I'm stuck", "workflow-help"),
     ("why is this broken", "systematic-debugging"),
     ("clean this up", "systematic-refactoring"),
     ("review this", "comprehensive-review"),
     ("debug the goroutine leak", "systematic-debugging"),
-    ("commit these changes", "git-commit-flow"),
+    ("commit these changes", "pr-workflow"),
 ]
 
 

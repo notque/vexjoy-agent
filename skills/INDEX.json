@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-17T03:05:37Z",
+  "generated": "2026-04-17T03:24:23Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -170,24 +170,6 @@
       ],
       "category": "analysis",
       "user_invocable": false
-    },
-    "codex-code-review": {
-      "file": "skills/codex-code-review/SKILL.md",
-      "description": "Second-opinion code review from OpenAI Codex CLI.",
-      "triggers": [
-        "codex review",
-        "second opinion",
-        "code review codex",
-        "gpt review",
-        "cross-model review"
-      ],
-      "category": "code-review",
-      "user_invocable": true,
-      "pairs_with": [
-        "systematic-code-review",
-        "parallel-code-review",
-        "go-patterns"
-      ]
     },
     "comment-quality": {
       "file": "skills/comment-quality/SKILL.md",
@@ -513,7 +495,7 @@
         "workflow",
         "subagent-driven-development",
         "pr-pipeline",
-        "git-commit-flow",
+        "pr-workflow",
         "verification-before-completion",
         "universal-quality-gate",
         "adr-consultation",
@@ -708,20 +690,6 @@
         "go-patterns",
         "codebase-overview"
       ]
-    },
-    "git-commit-flow": {
-      "file": "skills/git-commit-flow/SKILL.md",
-      "description": "Phase-gated git commit workflow with validation.",
-      "triggers": [
-        "stage and commit",
-        "commit changes",
-        "commit these",
-        "commit my changes",
-        "commit my files"
-      ],
-      "category": "git-workflow",
-      "force_route": true,
-      "user_invocable": false
     },
     "github-notification-triage": {
       "file": "skills/github-notification-triage/SKILL.md",
@@ -1266,7 +1234,7 @@
     },
     "pr-workflow": {
       "file": "skills/pr-workflow/SKILL.md",
-      "description": "Pull request lifecycle: sync, review, fix, status, cleanup, and PR mining.",
+      "description": "Pull request lifecycle: commit, codex review, sync, review, fix, status, cleanup, and PR mining.",
       "triggers": [
         "push changes",
         "push my changes",
@@ -1304,7 +1272,17 @@
         "actions status",
         "did CI pass",
         "build status",
-        "CI passed"
+        "CI passed",
+        "stage and commit",
+        "commit changes",
+        "commit these",
+        "commit my changes",
+        "commit my files",
+        "codex review",
+        "second opinion",
+        "code review codex",
+        "gpt review",
+        "cross-model review"
       ],
       "category": "git-workflow",
       "force_route": true,

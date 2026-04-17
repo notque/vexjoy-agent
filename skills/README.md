@@ -56,7 +56,6 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `systematic-code-review` | no | 4-phase code review: UNDERSTAND, VERIFY, ASSESS risks, DOCUMENT findings |
 | `parallel-code-review` | no | Parallel 3-reviewer code review: Security, Business-Logic, Architecture |
 | `full-repo-review` | yes | Comprehensive 3-wave review of all repo source files, producing a prioritized issue backlog |
-| `codex-code-review` | yes | Second-opinion code review from OpenAI Codex CLI. Structures feedback as CRITICAL/IMPROVEMENTS/POSITIVE. |
 | `code-cleanup` | no | Detect stale TODOs, unused imports, and dead code |
 | `code-linting` | no | Run Python (ruff) and JavaScript (Biome) linting |
 | `comment-quality` | no | Review and fix temporal references in code comments |
@@ -73,8 +72,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `pr-workflow` | yes | PR lifecycle umbrella: sync, review, fix, status, cleanup, feedback, PR mining, branch-name, ci-check |
-| `git-commit-flow` | no | Phase-gated git commit workflow with validation |
+| `pr-workflow` | yes | PR lifecycle umbrella: commit, codex-review, sync, review, fix, status, cleanup, feedback, PR mining, branch-name, ci-check |
 | `github-notification-triage` | no | Triage GitHub notifications and report actions needed |
 
 ---

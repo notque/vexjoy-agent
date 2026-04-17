@@ -1,4 +1,4 @@
-# Git Commit Flow — Detail Tables, Examples, and Error Handling
+# Commit Intent — Detail Tables, Examples, and Error Handling
 
 ## Phase 1: Full Validate Steps
 
@@ -91,7 +91,7 @@ If `--push` flag is set, push to remote after displaying the summary.
 
 Group files into logical categories because massive commits with unrelated changes make review overwhelming, break `git bisect`, and are difficult to revert. Each commit should represent one logical change that is independently reviewable.
 
-Apply staging rules (see `references/staging-rules.md` for full rules):
+Apply staging rules (see `references/commit-staging-rules.md` for full rules):
 
 | Category | Patterns | Commit Prefix |
 |----------|----------|---------------|
@@ -114,8 +114,8 @@ This is advisory -- the implementer can acknowledge uncovered points as intentio
 ## Phase 3: Commit Message Validation Rules
 
 Check:
-- Conventional commit format: `<type>[scope]: <description>` (see `references/conventional-commits.md`). Skip this check if `--skip-validation` flag is set.
-- No banned patterns from CLAUDE.md (see `references/banned-patterns.md`). Always enforce banned patterns -- this check applies even with `--skip-validation` because these patterns violate repository-level standards, not just formatting preferences.
+- Conventional commit format: `<type>[scope]: <description>` (see `references/commit-conventional.md`). Skip this check if `--skip-validation` flag is set.
+- No banned patterns from CLAUDE.md (see `references/commit-banned-patterns.md`). Always enforce banned patterns -- this check applies even with `--skip-validation` because these patterns violate repository-level standards, not just formatting preferences.
 - Subject line: lowercase after type, no trailing period, max 72 chars, imperative mood
 - Body: separated by blank line, wrapped at 72 chars
 - Focus on WHAT changed and WHY -- no attribution, no emoji unless repo style requires it
@@ -153,14 +153,14 @@ Actions:
 ### Example 2: PR Fix Workflow
 Internal invocation with explicit message:
 ```bash
-skill: git-commit-flow --message "fix: apply PR review feedback"
+skill: pr-workflow commit --message "fix: apply PR review feedback"
 ```
 Runs all 4 phases with the provided message, skipping message generation.
 
 ### Example 3: Dry Run
 User says: "Show me what would be committed"
 ```bash
-skill: git-commit-flow --dry-run
+skill: pr-workflow commit --dry-run
 ```
 Runs VALIDATE and STAGE phases, shows commit message preview, but does not execute.
 
@@ -178,7 +178,7 @@ Runs VALIDATE and STAGE phases, shows commit message preview, but does not execu
 
 ### Error: Banned Pattern in Commit Message
 **Cause**: Message contains prohibited phrases like "Generated with Claude Code" or "Co-Authored-By: Claude".
-**Solution**: Remove the banned pattern. Write clean, professional message focused on WHAT changed and WHY. See `references/banned-patterns.md` for the full list and alternatives.
+**Solution**: Remove the banned pattern. Write clean, professional message focused on WHAT changed and WHY. See `references/commit-banned-patterns.md` for the full list and alternatives.
 
 ### Error: Pre-Commit Hook Failure
 **Cause**: Repository pre-commit hook (formatter, linter, tests) rejected the commit.

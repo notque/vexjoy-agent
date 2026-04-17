@@ -1,31 +1,6 @@
----
-name: git-commit-flow
-description: "Phase-gated git commit workflow with validation."
-effort: low
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-  - Task
-  - Skill
-routing:
-  force_route: true
-  triggers:
-    - "stage and commit"
-    - "commit changes"
-    - "commit these"
-    - "commit my changes"
-    - "commit my files"
-  category: git-workflow
----
+# Commit Intent
 
-# Git Commit Flow Skill
-
-Create validated, compliant git commits through a 4-phase gate pattern: VALIDATE, STAGE, COMMIT, VERIFY. Every phase must pass its gate before the next phase begins -- no partial commits, no skipped phases. Only implement the requested commit workflow; implement only the requested commit workflow or "while I'm here" changes.
+Create validated, compliant git commits through a 4-phase gate pattern: VALIDATE, STAGE, COMMIT, VERIFY. Every phase must pass its gate before the next phase begins. no partial commits, no skipped phases. Only implement the requested commit workflow or "while I'm here" changes.
 
 **Flags** (all OFF by default):
 - `--auto-stage`: Stage all modified files without confirmation
@@ -41,7 +16,7 @@ Create validated, compliant git commits through a 4-phase gate pattern: VALIDATE
 
 **Goal**: Confirm the environment is safe for committing.
 
-Four steps cover working-tree state, sensitive-file scan, CLAUDE.md rule load, and branch-state check. See `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` (Phase 1: Full Validate Steps) for the complete commands, patterns, rationale, and failure behavior for each step.
+Four steps cover working-tree state, sensitive-file scan, CLAUDE.md rule load, and branch-state check. See `${CLAUDE_SKILL_DIR}/references/commit-examples.md` (Phase 1: Full Validate Steps) for the complete commands, patterns, rationale, and failure behavior for each step.
 
 **Gate**: All checks pass. No sensitive files, no merge/rebase state, CLAUDE.md loaded, branch confirmed.
 
@@ -59,7 +34,7 @@ Parse file statuses: Modified (`M`), Added (`A`), Deleted (`D`), Untracked (`??`
 
 **Step 2: Group files by type**
 
-Group files into logical categories because massive commits with unrelated changes make review overwhelming, break `git bisect`, and are difficult to revert. Each commit should represent one logical change that is independently reviewable. See `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` (Phase 2: Staging Category Table) and `references/staging-rules.md` for full rules.
+Group files into logical categories because massive commits with unrelated changes make review overwhelming, break `git bisect`, and are difficult to revert. Each commit should represent one logical change that is independently reviewable. See `${CLAUDE_SKILL_DIR}/references/commit-examples.md` (Phase 2: Staging Category Table) and `${CLAUDE_SKILL_DIR}/references/commit-staging-rules.md` for full rules.
 
 **Step 3: Present staging plan and get confirmation**
 
@@ -69,7 +44,7 @@ If `--auto-stage` flag is set, skip confirmation and stage all modified files.
 
 **Step 4: Execute staging**
 
-Stage files explicitly by name -- stage files explicitly by name because blind bulk staging bypasses sensitive file detection and groups unrelated changes together.
+Stage files explicitly by name because blind bulk staging bypasses sensitive file detection and groups unrelated changes together.
 
 ```bash
 git add <files>
@@ -79,7 +54,7 @@ Re-validate that no sensitive files ended up in the staging area, because files 
 
 **Gate**: Files staged, no sensitive files in staging area, user confirmed plan.
 
-### Phase 2.5: ADR DECISION COVERAGE (conditional -- ADR-094)
+### Phase 2.5: ADR DECISION COVERAGE (conditional, ADR-094)
 
 **Goal**: Verify staged changes cover all ADR decision points.
 
@@ -95,7 +70,7 @@ Read the active ADR path from `.adr-session.json` (`adr_file` field).
 
 **Step 2: Interpret results**
 
-See the ADR Decision Coverage Verdicts table in `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` (PASS / PARTIAL / FAIL actions). This is advisory -- the implementer can acknowledge uncovered points as intentionally deferred.
+See the ADR Decision Coverage Verdicts table in `${CLAUDE_SKILL_DIR}/references/commit-examples.md` (PASS / PARTIAL / FAIL actions). This is advisory. The implementer can acknowledge uncovered points as intentionally deferred.
 
 **Gate**: Coverage reported. User acknowledged any gaps.
 
@@ -115,11 +90,11 @@ Validate now, not later, because git history is permanent and "I'll fix the mess
 python3 ${CLAUDE_SKILL_DIR}/scripts/validate_message.py "feat(scope): description"
 ```
 
-See the Commit Message Validation Rules in `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` for the full checklist (format, banned patterns, subject/body rules, CRITICAL vs WARNING behavior).
+See the Commit Message Validation Rules in `${CLAUDE_SKILL_DIR}/references/commit-examples.md` for the full checklist (format, banned patterns, subject/body rules, CRITICAL vs WARNING behavior).
 
 **Step 3: Execute commit**
 
-Use heredoc format to preserve multi-line messages — see the Commit Heredoc Template in `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md`. Capture commit hash from output for verification.
+Use heredoc format to preserve multi-line messages. See the Commit Heredoc Template in `${CLAUDE_SKILL_DIR}/references/commit-examples.md`. Capture commit hash from output for verification.
 
 If `--dry-run` flag is set, display the commit command and message without executing, then stop.
 
@@ -129,7 +104,7 @@ If `--dry-run` flag is set, display the commit command and message without execu
 
 **Goal**: Confirm commit succeeded and repository is in expected state.
 
-Four steps verify commit existence, clean working tree, message persistence, and produce a summary report. See `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` (Phase 4: Full Verify Steps) for the complete commands and `--push` behavior.
+Four steps verify commit existence, clean working tree, message persistence, and produce a summary report. See `${CLAUDE_SKILL_DIR}/references/commit-examples.md` (Phase 4: Full Verify Steps) for the complete commands and `--push` behavior.
 
 **Gate**: All verification passes. Workflow complete.
 
@@ -137,7 +112,7 @@ Four steps verify commit existence, clean working tree, message persistence, and
 
 ## Examples and Error Handling
 
-See `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` for:
+See `${CLAUDE_SKILL_DIR}/references/commit-examples.md` for:
 
 - **Examples**: standard feature commit, PR fix workflow, dry run
 - **Error Handling**: sensitive files detected, banned pattern, pre-commit hook failure, merge/rebase in progress
@@ -146,9 +121,8 @@ See `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` for:
 
 ## References
 
-### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/conventional-commits.md`: Type definitions, format rules, examples, flowchart
-- `${CLAUDE_SKILL_DIR}/references/banned-patterns.md`: Prohibited phrases, detection rules, alternatives
-- `${CLAUDE_SKILL_DIR}/references/staging-rules.md`: File type categories, grouping strategies, auto-stage conditions
+- `${CLAUDE_SKILL_DIR}/references/commit-conventional.md`: Type definitions, format rules, examples, flowchart
+- `${CLAUDE_SKILL_DIR}/references/commit-banned-patterns.md`: Prohibited phrases, detection rules, alternatives
+- `${CLAUDE_SKILL_DIR}/references/commit-staging-rules.md`: File type categories, grouping strategies, auto-stage conditions
 - `${CLAUDE_SKILL_DIR}/references/commit-workflow-examples.md`: Integration examples, advanced patterns, CI/CD usage
-- `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md`: Worked examples and error handling
+- `${CLAUDE_SKILL_DIR}/references/commit-examples.md`: Worked examples and error handling

@@ -741,7 +741,7 @@ _KNOWN_OVERSIZED_SKILL_REFS: set[str] = {
     "condition-based-waiting/references/implementation-patterns.md",  #  566 lines
     "distinctive-frontend-design/references/animation-patterns.md",  #  534 lines
     "docs-sync-checker/references/examples.md",  #  508 lines
-    "git-commit-flow/references/staging-rules.md",  #  590 lines
+    "pr-workflow/references/commit-staging-rules.md",  #  590 lines
     "go-patterns/references/sapcc-conventions.md",  #  677 lines
     "go-patterns/references/sapcc-conventions/anti-patterns.md",  #  566 lines
     "go-patterns/references/sapcc-conventions/api-design-detailed.md",  #  697 lines

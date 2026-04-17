@@ -60,7 +60,6 @@ Route to these agents based on the user's task domain. Each entry describes what
 | Skill | When to Route Here |
 |-------|-------------------|
 | **quick (FORCE)** | User wants any lightweight change: a one-line typo fix, a trivial constant rename (use `--trivial` mode internally for ≤3 edits), or a contained multi-file change like adding a CLI flag, extracting a helper, renaming an interface. NOT: "quick" as a speed preference ("do this quickly"). NOT: "fix" in general ("fix this bug") — that requires diagnosis. The `--trivial` mode handles the zero-ceremony 1-3 edit case; the base mode handles multi-file contained changes. |
-| **git-commit-flow** | User wants to stage and commit code changes to git — writing a commit message, staging files, creating a commit. NOT: "commit to a timeline", "commit to the team", "are we committed to this approach" — those are about dedication, not git. |
 | **code-linting** | User wants to run linters or formatters, fix lint errors, or check code style compliance. |
 | **universal-quality-gate** | User wants a quality check on code without a specific language or domain in mind. |
 | **typescript-check** | User wants to run TypeScript type checking, fix tsc errors, or validate TypeScript types. |
@@ -80,7 +79,6 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **parallel-code-review** | User wants comprehensive review of a codebase from multiple reviewer perspectives simultaneously. |
 | **php-quality** | User wants PHP code quality checks: PSR standards compliance, strict types enforcement, framework idioms. Companion skill for php-general-engineer. |
 | **php-testing** | User wants PHP testing patterns: PHPUnit, test doubles, database testing. Companion skill for php-general-engineer. |
-| **codex-code-review** | User wants a second-opinion code review from OpenAI Codex CLI (GPT-5.4 xhigh), a cross-model review, or says "codex review", "second opinion", "get another perspective". NOT: a standard Claude-only review (use systematic-code-review or parallel-code-review). |
 | **with-anti-rationalization** | User explicitly requests maximum rigor, thorough verification, or wants anti-rationalization patterns injected. |
 | **planning** (FORCE) | Planning lifecycle umbrella. Routes to one of seven intents: spec (user stories, acceptance criteria, scope), pre-plan (resolve ambiguities before planning begins), plan-files (persistent file-backed planning with working memory), check (validate plans against 10 dimensions with PASS/BLOCK verdict), manage (plan lifecycle via plan-manager.py: list, create, show, check, complete, abandon), pause (session handoff artifacts like HANDOFF.json and .continue-here.md), and resume (restore session state from handoff artifacts). |
 | **go-patterns (FORCE)** | User wants Go development patterns: testing (_test.go, table-driven, benchmarks), concurrency (goroutines, channels, sync), error handling (fmt.Errorf, errors.Is/As, sentinels), anti-patterns (code smells, over-engineering), code review (Go PR quality), SAP CC conventions (sapcc, go-bits, keppel), or quality gates (make check, lint). |
@@ -152,8 +150,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 
 | Skill | When to Route Here |
 |-------|-------------------|
-| **pr-workflow (FORCE)** | User wants to get local code changes onto GitHub — pushing a branch, creating a PR, or syncing local commits to the remote. Also handles: PR status checks, fixing review comments, cleaning up branches after merge, addressing PR feedback, mining tribal knowledge from PRs, generating/validating Git branch names (branch-name intent), and checking GitHub Actions CI status after a push (ci-check intent). Common phrasings: "open a pull request", "create a PR", "make a PR", "submit PR", "push and PR", "pr status", "fix PR comments", "clean up branches", "mine PRs", "generate branch name", "check CI", "did CI pass". NOT: "push back" (disagree with a decision), "push the boundaries" (explore limits), "check this code" (review), "check my logic" (analysis). The intent must be about git/GitHub operations. |
-| **git-commit-flow (FORCE)** | User wants to stage files and create a git commit from local changes. Common phrasings: "save my work", "commit this", "save progress", "checkpoint", "commit these changes". NOT: "commit to this approach" (deciding), "commit to the team" (dedication), "I'm committed to finishing" (resolve). The intent must be about creating a git commit object. |
+| **pr-workflow (FORCE)** | User wants to get local code changes onto GitHub — pushing a branch, creating a PR, syncing local commits to the remote, or creating a git commit from local changes (commit intent). Also handles: PR status checks, fixing review comments, cleaning up branches after merge, addressing PR feedback, mining tribal knowledge from PRs, generating/validating Git branch names (branch-name intent), checking GitHub Actions CI status after a push (ci-check intent), getting a second-opinion code review from OpenAI Codex CLI (codex-review intent). Common phrasings: "open a pull request", "create a PR", "make a PR", "submit PR", "push and PR", "pr status", "fix PR comments", "clean up branches", "mine PRs", "generate branch name", "check CI", "did CI pass", "commit this", "save my work", "checkpoint", "codex review", "second opinion". NOT: "push back" (disagree with a decision), "push the boundaries" (explore limits), "check this code" (review), "check my logic" (analysis), "commit to this approach" (deciding), "commit to the team" (dedication). The intent must be about git/GitHub operations. |
 | **/pr-review command** | User wants a comprehensive code review of a PR with retro learning applied. This is a command, not a skill — invoke it directly. |
 
 ### PR Workflow Policies
@@ -348,12 +345,12 @@ Consolidated reviewer agents, each covering multiple review perspectives:
 | "submit a PR" | pr-workflow (pipeline mode) | Full PR workflow with gates |
 | "push my changes" | **pr-workflow (FORCE)** | Intent: get local changes onto GitHub |
 | "push back on this decision" | (not a routing target) | Intent: disagree — "push" is not a git push |
-| "commit this" | **git-commit-flow (FORCE)** | Intent: create a git commit |
+| "commit this" | **pr-workflow (FORCE)** | Intent: create a git commit (commit intent) |
 | "commit to this approach" | (not a routing target) | Intent: decide — "commit" is not a git commit |
 | "did CI pass?" | **pr-workflow (FORCE)** | Intent: check CI status (ci-check intent) |
 | "check my logic here" | (domain agent + review) | Intent: review — not CI |
-| "get a second opinion on this code" | codex-code-review | Cross-model review via Codex CLI |
-| "codex review this PR" | codex-code-review | Explicit Codex review request |
+| "get a second opinion on this code" | **pr-workflow (FORCE)** | Cross-model review via Codex CLI (codex-review intent) |
+| "codex review this PR" | **pr-workflow (FORCE)** | Explicit Codex review request (codex-review intent) |
 | "research then write article" | research-pipeline → voice-writer | Research-backed content creation |
 | "create a pipeline for X" | pipeline-orchestrator-engineer + workflow | Pipeline creation |
 | "improve the toolkit" | toolkit-improvement (FORCE) | Full 10-phase evaluation + improvement |
@@ -378,8 +375,8 @@ Consolidated reviewer agents, each covering multiple review perspectives:
 | "check my modqueue" | reddit-moderate | Reddit moderation |
 | "open a pull request" | **pr-workflow (FORCE)** | Intent: create a PR on GitHub |
 | "make a PR" | **pr-workflow (FORCE)** | Intent: create a PR on GitHub |
-| "save my work" | **git-commit-flow (FORCE)** | Intent: commit current changes |
-| "checkpoint" | **git-commit-flow (FORCE)** | Intent: save progress as a commit |
+| "save my work" | **pr-workflow (FORCE)** | Intent: commit current changes (commit intent) |
+| "checkpoint" | **pr-workflow (FORCE)** | Intent: save progress as a commit (commit intent) |
 | "I'm stuck" | workflow-help | User is lost — guide them |
 | "where do I start" | workflow-help | User needs orientation |
 | "why is this broken" | systematic-debugging | Diagnosis request — root cause analysis |
