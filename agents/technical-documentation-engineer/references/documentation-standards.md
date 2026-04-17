@@ -103,6 +103,8 @@ and if all validations pass, creates a new resource entry in the database.
 
 ## Anti-Pattern Catalog
 
+<!-- no-pair-required: section header with no content -->
+
 ### ❌ Vague Parameter Descriptions
 
 **Detection**:
@@ -118,6 +120,8 @@ rg "the \w+ to use|value of the|this is the" --glob "*.md"
 ```
 
 **Why wrong**: "The config object to use" tells the reader nothing they couldn't infer from the parameter name. It's word-count theater. Readers need to know: what keys does `config` contain? What is the valid range for `data`?
+
+**Do instead:** Write parameter descriptions that answer what the value means and what constraints apply. Include: the valid range or set of values, the unit (seconds, bytes, count), the effect of omitting an optional field, and any related parameters.
 
 **Fix**:
 ```markdown
@@ -145,6 +149,8 @@ rg "\| Parameter \| Type \| Description \|" --glob "*.md"
 
 **Why wrong**: Reader cannot tell which parameters are mandatory without making a failed request. A missing `name` returns 400, and the reader discovers this through failure rather than documentation.
 
+**Do instead:** Always use the four-column format `Parameter | Type | Required | Description`. The `Required` column must be a boolean Yes/No, not embedded prose like "optional if X is set." Readers scan tables; they should not have to read descriptions to determine whether a field is mandatory.
+
 **Fix**: Always include a `Required` column as the third column:
 ```markdown
 | Parameter | Type | Required | Description |
@@ -171,6 +177,8 @@ is an internal server error. Authentication failures result in a 401.
 
 **Why wrong**: Prose error documentation cannot be scanned. The reader must parse English sentences to find the error code they care about. No resolution guidance is provided.
 
+**Do instead:** Use a `Code | Cause | Resolution` table with one row per error code. Each Resolution cell must be an actionable instruction, not a restatement of the cause. If multiple inputs can produce the same code, add a row for each distinct cause.
+
 **Fix**: Use the error table format (see Correct Patterns above). Every error code gets its own row with Cause and Resolution.
 
 ---
@@ -189,6 +197,8 @@ rg "(changed|deprecated|removed|added) in" --glob "*.md" | grep -v "v\d|\d\.\d"
 ```
 
 **Why wrong**: "Recent release" becomes meaningless after time passes. Readers cannot determine if the deprecation applies to the version they're running.
+
+**Do instead:** Prefix every version note with the exact version using the `**Changed in vX.Y.Z:**` or `**Deprecated in vX.Y.Z:**` pattern. Include the removal target version and the migration path in the same sentence so the reader has everything needed to act.
 
 **Fix**:
 ```markdown
