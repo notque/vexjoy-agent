@@ -36,7 +36,7 @@ The main thread is an **orchestrator**. If you find yourself reading source code
 
 The marginal cost of completeness is near zero. Do the whole thing. Do it right. Do it with tests. Do it with documentation. Do it so well that the user is genuinely impressed.
 
-This is not aspirational. It is the execution standard for every agent dispatched through /do. It derives from the toolkit's core principle (docs/PHILOSOPHY.md: "Tokens Are Cheap, Quality Is Expensive") and extends it: spending tokens on thoroughness is not just acceptable, it is required.
+This is not aspirational. It is the execution standard for every agent dispatched through /do. It derives from the toolkit's core principle (docs/PHILOSOPHY.md: "Tokens Are Expensive, Use Progressive Context") and extends it: spending tokens on thoroughness is not just acceptable, it is required.
 
 **What this means for routing and dispatch:**
 
@@ -47,6 +47,8 @@ This is not aspirational. It is the execution standard for every agent dispatche
 - Time is not an excuse. Complexity is not an excuse. The router exists to decompose complexity into agent-sized work. Use it.
 
 **The standard for every dispatched agent:** the result should make the user think "that's done" not "that's a start." Inject this expectation into agent prompts for all Simple+ work.
+
+When the model feels confident handling a task directly, treat that confidence as a signal to route, not a signal to proceed. Direct handling skips the agent's domain knowledge, the skill's methodology, and the agent's reference files — each of which exists because prior work put expertise on disk that the main thread does not have.
 
 ---
 
@@ -75,6 +77,8 @@ Read and follow the repository CLAUDE.md before making any routing decision, bec
 
 **Trivial = reading a file the user named by exact path.** Everything else is Simple+ and MUST use an agent, skill, or pipeline. When uncertain, classify UP not down. Routing up finds the agent who ships it complete; tokens are cheap, and an agent that actually ships is what the user came for.
 
+**Opus 4.7 override:** Opus 4.7 defaults to fewer subagents and more direct handling. That default is correct for ad-hoc prompting; it is wrong here. The /do router is a delegation machine by design. Do not apply the model's default judiciousness. Classify Simple+ tasks to agents without reasoning about whether you could handle them directly. If a task is reading a file the user named by exact path, it is Trivial; if it is anything else — including tasks the model feels capable of handling in one response — it is Simple+ and MUST route.
+
 **Progressive Depth**: For requests where complexity is ambiguous, consider starting at a shallower depth and allowing the agent to escalate. See `references/progressive-depth.md` for the escalation protocol and signal format.
 
 **Common misclassifications** (these are NOT Trivial — route them): evaluating repos/URLs, any opinion/recommendation, git operations, codebase questions (`explore-pipeline`), retro lookups (`retro` skill), comparing approaches.
@@ -82,6 +86,8 @@ Read and follow the repository CLAUDE.md before making any routing decision, bec
 **Maximize skill/agent/pipeline usage.** If a skill or pipeline exists for the task, USE IT. Skills encode domain patterns earned through prior work; using them gives you that expertise for free.
 
 **Check for parallel patterns FIRST** because independent work items finish fastest when dispatched concurrently, and the routing table below matches the shape of the work: 2+ independent failures or 3+ subtasks → `dispatching-parallel-agents`; broad research → `research-coordinator-engineer`; multi-agent coordination → `project-coordinator-engineer`; plan exists + "execute" → `subagent-driven-development`; new feature → `feature-lifecycle` (check `.feature/` directory; if present, use `feature-state.py status` for current phase).
+
+**Opus 4.7 override:** Opus 4.7 is more judicious about spawning subagents by default. When the router detects 2+ independent items, dispatch all agents in parallel in a single message. Do not consolidate independent items into a single agent dispatch to "save subagent spawns" — that consolidation is the model's default under Opus 4.7 and it is wrong for this router.
 
 **Optional: Force Direct** — OFF by default. When explicitly enabled, overrides routing for trivial operations. Only applies when the user explicitly requests it.
 
@@ -206,7 +212,7 @@ python3 ~/.claude/scripts/learning-db.py record \
     --tags "{applicable_flags}"
 ```
 
-Tags: `auto-pipeline` (as applicable). This call is advisory — if it fails, continue.
+Tags: `auto-pipeline` (as applicable), `thinking:slow` (if "think carefully" directive injected in Phase 4 Step 2), `thinking:fast` (if "respond quickly" directive injected in Phase 4 Step 2). This call is advisory — if it fails, continue.
 Valid categories: `error, pivot, review, design, debug, gotcha, effectiveness, misroute`. Use `effectiveness` for successful routing, `misroute` for reroutes.
 
 **Gate**: Agent and skill selected. Banner displayed. Routing decision recorded. Proceed to Phase 3.
@@ -279,9 +285,36 @@ The quality-loop does NOT apply when:
 
 Dispatch the agent. MCP tool discovery is the agent's responsibility — each agent's markdown declares which MCP tools it needs. Do not inject MCP instructions from /do.
 
+**Opus 4.7 override: Prepend first-turn Task Specification block for Medium+ tasks.** Opus 4.7 benefits most from well-specified first-turn task descriptions. The router has upstream context the dispatched agent does not (memory feedback, operator profile, CLAUDE.md files) — enrich the first turn rather than passing the user request verbatim. For Medium+ tasks, compose and prepend this block to the dispatched agent's prompt. For Simple tasks, include Intent and Acceptance criteria if extractable; otherwise skip the block. Do not invent acceptance criteria the user did not imply. Do not expand task scope beyond the user request.
+
+```
+## Task Specification (auto-extracted)
+
+**Intent:** <one sentence: what does success look like?>
+**Constraints:** <inferred: branch rules, operator-context profile, file paths user named, memory feedback that applies>
+**Acceptance criteria:** <observable: tests pass, file exists, PR merges, specific output produced>
+**Relevant file locations:** <paths extracted from the request, paths the domain agent is expected to touch>
+**Operator context:** <profile from [operator-context] tag>
+```
+
+Extraction rules: Intent from the request's verb and object (one sentence, not a paraphrase). Constraints include branch-safety rules (never merge to main), memory feedback matching the domain, and operator-context profile implications. Acceptance criteria are observable: what files change, what command proves it works, what output the user specified. For creation requests, add to Constraints: "Implementation must match ADR `<kebab-case-name>`." This preamble is input to agent planning, not a replacement for task_plan.md.
+
 **MANDATORY: Inject reference loading instruction for ALL dispatched agents.** Every agent prompt MUST include: "Before starting work, read your agent .md file or skill SKILL.md to find the Reference Loading Table. Load EVERY reference file whose signal matches this task. Load greedily, not conservatively. If multiple signals match, load all matching references. Reference files contain domain-specific patterns, anti-patterns, code examples, and detection commands that make your output expert-quality. Loading these files gives you domain expertise that prior work already put on disk, earned and waiting for you to use." This applies to ALL agents and skills, not just umbrella components. The nightly enrichment pipeline generates and updates reference files autonomously, so loading the table is how a dispatched agent inherits the domain knowledge created specifically for its work.
 
 **MANDATORY: Inject the completeness standard for ALL Simple+ dispatches.** Every agent prompt MUST include: "Deliver the finished product, not a plan. Do not offer to table work for later when the solve is within reach. Do not present workarounds when the real fix exists. Do not stop mid-task or truncate output. Search before building. Test before shipping. Ship the complete thing."
+
+**Opus 4.7 override: Inject complexity-calibrated thinking directive.** Opus 4.7 exposes thinking rate to prompt-level control. Prepend the appropriate directive to the dispatched agent's prompt as a single sentence (verbatim, no framing), because calibrating thinking rate per task class reduces both over-reasoning on simple work and under-reasoning on complex work:
+
+| Complexity | Thinking Directive |
+|---|---|
+| Trivial | None (handled directly, no agent dispatched) |
+| Simple | "Prioritize responding quickly rather than thinking deeply. When in doubt, respond directly." |
+| Medium | None (let adaptive thinking decide) |
+| Complex | "Think carefully and step-by-step before responding; this problem is harder than it looks." |
+
+Category overrides (regardless of complexity class). Always inject "Think carefully and step-by-step before responding; this problem is harder than it looks." for: security work (threat modeling, vulnerability analysis, auth changes), API or schema design, migrations (data, code, legacy systems), code review spanning 5+ files, architectural decisions (ADR writing, design proposals). Always inject "Prioritize responding quickly rather than thinking deeply. When in doubt, respond directly." for: lookups with clear answers (what file contains X, what commit did Y), status checks (is CI green, is the PR mergeable), simple renames or straightforward refactors inside a single function.
+
+Record the injected directive in the Phase 2 Step 4 `--tags` field as `thinking:slow` (for "think carefully") or `thinking:fast` (for "respond quickly"), so the learning-db can correlate dispatch outcome with thinking-rate choice.
 
 Route to agents that create feature branches for all commits. Feature branches isolate the change so it ships cleanly after review, and the branch itself becomes the unit of review and revert.
 
