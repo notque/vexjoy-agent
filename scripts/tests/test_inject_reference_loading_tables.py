@@ -75,3 +75,16 @@ def test_inject_table_is_idempotent() -> None:
     rows = [_mod.TableRow(signal="tests", files="`testing.md`", why="Loads testing guide")]
 
     assert _mod.inject_table(source, rows) == source
+
+
+def test_do_skill_is_exempt_from_injection(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    skill_dir = repo / "skills" / "do"
+    refs_dir = skill_dir / "references"
+    refs_dir.mkdir(parents=True)
+    (refs_dir / "routing-tables.md").write_text("# Routing\n", encoding="utf-8")
+    (skill_dir / "SKILL.md").write_text("# /do\n", encoding="utf-8")
+
+    targets = _mod.iter_targets(repo, ["skill"])
+
+    assert targets == []

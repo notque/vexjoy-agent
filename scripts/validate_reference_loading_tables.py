@@ -12,6 +12,9 @@ import re
 REPO_ROOT = Path(__file__).resolve().parent.parent
 TABLE_HEADER_RE = re.compile(r"^\s*#{1,6}\s+Reference Loading Table\s*$", re.IGNORECASE | re.MULTILINE)
 TABLE_ROW_RE = re.compile(r"^\|.+\|.+\|", re.MULTILINE)
+EXEMPT_COMPONENTS: set[tuple[str, str]] = {
+    ("skill", "do"),
+}
 
 
 @dataclass
@@ -82,6 +85,10 @@ def validate_components(
             if normalized_paths and component_file.resolve() not in normalized_paths:
                 continue
 
+            component = component_name(component_file, component_type)
+            if (component_type, component) in EXEMPT_COMPONENTS:
+                continue
+
             refs_dir = reference_dir_for(component_file, component_type)
             if not has_reference_markdown(refs_dir):
                 continue
@@ -93,7 +100,7 @@ def validate_components(
             violations.append(
                 Violation(
                     component_type=component_type,
-                    component=component_name(component_file, component_type),
+                    component=component,
                     file=str(component_file.relative_to(repo_root)),
                     issue="references exist but no parseable Reference Loading Table was found",
                 )

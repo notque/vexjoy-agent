@@ -89,3 +89,15 @@ def test_paths_filter_limits_validation_scope(tmp_path: Path) -> None:
 
     assert len(violations) == 1
     assert violations[0].component == "skill-a"
+
+
+def test_do_skill_is_exempt_from_reference_loading_table_requirement(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    refs_dir = repo / "skills" / "do" / "references"
+    refs_dir.mkdir(parents=True)
+    (refs_dir / "routing-tables.md").write_text("# Routing\n", encoding="utf-8")
+    (repo / "skills" / "do" / "SKILL.md").write_text("# /do\n", encoding="utf-8")
+
+    violations = _mod.validate_components(repo, ["skill"])
+
+    assert violations == []
