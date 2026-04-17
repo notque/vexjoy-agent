@@ -113,6 +113,13 @@ Each phase produces an artifact consumed by the next. Skipping phases is not sup
 
 ## References
 
+| Task Signal | Load |
+|-------------|------|
+| Phase routing (design/plan/implement/validate/release) | Phase reference (design.md, plan.md, implement.md, validate.md, release.md) |
+| End-to-end or full pipeline | `references/pipeline.md` |
+| State commands, directory structure, naming | `references/shared.md` |
+| Error, failure, blocked, gate fail, retry, deviation | `references/error-handling.md` |
+
 - `references/design.md` -- Design phase: explore requirements, discuss trade-offs
 - `references/plan.md` -- Plan phase: break design into wave-ordered tasks
 - `references/implement.md` -- Implement phase: dispatch tasks to domain agents
@@ -120,3 +127,4 @@ Each phase produces an artifact consumed by the next. Skipping phases is not sup
 - `references/release.md` -- Release phase: merge, tag, cleanup
 - `references/pipeline.md` -- End-to-end orchestration across all phases
 - `references/shared.md` -- State conventions shared across all phases
+- `references/error-handling.md` -- Recovery patterns for phase errors, gate failures, agent dispatch failures
