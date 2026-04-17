@@ -73,15 +73,15 @@ Read and follow the repository CLAUDE.md before making any routing decision, bec
 | Medium | **Required** | **Required** | Route to agent |
 | Complex | Required (2+) | Required (2+) | Route to agent |
 
-**Trivial = reading a file the user named by exact path.** Everything else is Simple+ and MUST use an agent, skill, or pipeline. When uncertain, classify UP not down — because under-routing wastes implementations while over-routing only wastes tokens, and tokens are cheap but bad code is expensive.
+**Trivial = reading a file the user named by exact path.** Everything else is Simple+ and MUST use an agent, skill, or pipeline. When uncertain, classify UP not down. Routing up finds the agent who ships it complete; tokens are cheap, and an agent that actually ships is what the user came for.
 
 **Progressive Depth**: For requests where complexity is ambiguous, consider starting at a shallower depth and allowing the agent to escalate. See `references/progressive-depth.md` for the escalation protocol and signal format.
 
 **Common misclassifications** (these are NOT Trivial — route them): evaluating repos/URLs, any opinion/recommendation, git operations, codebase questions (`explore-pipeline`), retro lookups (`retro` skill), comparing approaches.
 
-**Maximize skill/agent/pipeline usage.** If a skill or pipeline exists for the task, USE IT — even if handling directly seems faster, because skills encode domain patterns that prevent common mistakes.
+**Maximize skill/agent/pipeline usage.** If a skill or pipeline exists for the task, USE IT. Skills encode domain patterns earned through prior work; using them gives you that expertise for free.
 
-**Check for parallel patterns FIRST** because independent work items can run concurrently, saving significant time — sequential dispatch when parallel is possible wastes wall-clock time needlessly: 2+ independent failures or 3+ subtasks → `dispatching-parallel-agents`; broad research → `research-coordinator-engineer`; multi-agent coordination → `project-coordinator-engineer`; plan exists + "execute" → `subagent-driven-development`; new feature → `feature-lifecycle` (check `.feature/` directory; if present, use `feature-state.py status` for current phase).
+**Check for parallel patterns FIRST** because independent work items finish fastest when dispatched concurrently, and the routing table below matches the shape of the work: 2+ independent failures or 3+ subtasks → `dispatching-parallel-agents`; broad research → `research-coordinator-engineer`; multi-agent coordination → `project-coordinator-engineer`; plan exists + "execute" → `subagent-driven-development`; new feature → `feature-lifecycle` (check `.feature/` directory; if present, use `feature-state.py status` for current phase).
 
 **Optional: Force Direct** — OFF by default. When explicitly enabled, overrides routing for trivial operations. Only applies when the user explicitly requests it.
 
@@ -96,7 +96,7 @@ If ANY creation signal is found AND complexity is Simple+:
 1. Set an internal flag: `is_creation = true`
 2. **Phase 4 Step 0 is MANDATORY** — write ADR before dispatching any agent
 
-This early detection exists because Phase 4 Step 0 is the most frequently skipped step in /do. Moving detection to Phase 1 ensures the creation protocol fires before routing decisions consume attention. The Gate below enforces acknowledgment before Phase 2.
+This early detection ensures Phase 4 Step 0 fires reliably by catching the signal before Phase 2's routing work begins. The Gate below locks in the acknowledgment before moving on.
 
 **Not a creation request**: debugging, reviewing, fixing, refactoring, explaining, running, checking, auditing existing components. When ambiguous, check whether the output would be a NEW file that doesn't yet exist.
 
@@ -161,13 +161,13 @@ Rules:
 
 Use the Haiku agent's `agent` and `skill` fields directly. If `confidence` is "low", fall back to reading INDEX files (`agents/INDEX.json`, `skills/INDEX.json`) and `references/routing-tables.md` to verify or override manually.
 
-**Critical**: "push", "commit", "create PR", "merge" are NOT trivial git commands. They MUST route through skills that run quality gates, because running raw `git push`, `git commit`, `gh pr create`, or `gh pr merge` directly bypasses lint checks, test runs, review loops, CI verification, and repo classification.
+**Critical**: "push", "commit", "create PR", "merge" are NOT trivial git commands. They MUST route through skills that run quality gates. The skills bundle lint, tests, review loops, CI verification, and repo classification into the single command so the push lands cleanly.
 
-Route to the simplest agent+skill that satisfies the request, because over-engineering the routing itself (stacking unnecessary skills) creates more overhead than it prevents.
+Route to the simplest agent+skill that satisfies the request. A lean routing decision keeps attention on the work itself, not on managing the routing layer.
 
-When `[cross-repo]` output is present, route to `.claude/agents/` local agents because they contain project-specific knowledge that generic agents lack.
+When `[cross-repo]` output is present, route to `.claude/agents/` local agents. They carry project-specific knowledge the generic agents cannot know.
 
-Route all code modifications to domain agents, because domain agents carry language-specific expertise, testing methodology, and quality gates that the router lacks.
+Route all code modifications to domain agents. Domain agents carry language-specific expertise, testing methodology, and quality gates built for that language.
 
 **Step 2: Apply skill override** (task verb overrides default skill)
 
@@ -228,9 +228,9 @@ Retro knowledge is auto-injected by the `session-context` hook at SessionStart v
 | "review" with 5+ files | Use parallel-code-review (3 reviewers) |
 | Complex implementation | Offer subagent-driven-development |
 
-Before stacking any enhancement, check the target skill's `pairs_with` field in `skills/INDEX.json`, because some skills have built-in verification gates that make stacking redundant or harmful. Specifically: empty `pairs_with: []` means no stacking allowed. Skills with built-in verification gates handle their own verification. The `quick --trivial` mode handles its own testing — stack only compatible enhancements.
+Before stacking any enhancement, check the target skill's `pairs_with` field in `skills/INDEX.json`. Some skills ship with their own verification gates and work best on their own terms. Specifically: empty `pairs_with: []` means no stacking allowed. Skills with built-in verification gates handle their own verification. The `quick --trivial` mode handles its own testing. Stack only compatible enhancements.
 
-**Auto-inject anti-rationalization** for these task types, because these categories are where shortcut rationalization causes the most damage:
+**Auto-inject anti-rationalization** for these task types, because these categories reward pattern-reinforced rigor with the highest quality gains:
 
 | Task Type | Patterns Injected |
 |-----------|-------------------|
@@ -257,7 +257,7 @@ If request contains "create", "new", "scaffold", "build pipeline/agent/skill/hoo
 
 **Step 1: Create plan** (for Simple+ complexity)
 
-Create `task_plan.md` before execution, because executing without a plan produces wrong results faster — not correct results sooner. The `auto-plan-detector.py` hook auto-injects `<auto-plan-required>` context. Skip only for Trivial tasks.
+Create `task_plan.md` before execution, because a plan turns the next N turns into progress instead of rework. The `auto-plan-detector.py` hook auto-injects `<auto-plan-required>` context. Skip only for Trivial tasks.
 
 **Step 1b: Apply quality-loop pipeline** (for Medium+ code modifications)
 
@@ -279,17 +279,17 @@ The quality-loop does NOT apply when:
 
 Dispatch the agent. MCP tool discovery is the agent's responsibility — each agent's markdown declares which MCP tools it needs. Do not inject MCP instructions from /do.
 
-**MANDATORY: Inject reference loading instruction for ALL dispatched agents.** Every agent prompt MUST include: "Before starting work, read your agent .md file or skill SKILL.md to find the Reference Loading Table. Load EVERY reference file whose signal matches this task — load greedily, not conservatively. If multiple signals match, load all matching references. Reference files contain domain-specific patterns, anti-patterns, code examples, and detection commands that make your output expert-quality rather than generic. Skipping this step means operating without domain expertise that exists on disk." This applies to ALL agents and skills, not just umbrella components. The nightly enrichment pipeline generates and updates reference files autonomously — any agent that skips its loading table misses domain knowledge that was specifically created to improve its output.
+**MANDATORY: Inject reference loading instruction for ALL dispatched agents.** Every agent prompt MUST include: "Before starting work, read your agent .md file or skill SKILL.md to find the Reference Loading Table. Load EVERY reference file whose signal matches this task. Load greedily, not conservatively. If multiple signals match, load all matching references. Reference files contain domain-specific patterns, anti-patterns, code examples, and detection commands that make your output expert-quality. Loading these files gives you domain expertise that prior work already put on disk, earned and waiting for you to use." This applies to ALL agents and skills, not just umbrella components. The nightly enrichment pipeline generates and updates reference files autonomously, so loading the table is how a dispatched agent inherits the domain knowledge created specifically for its work.
 
 **MANDATORY: Inject the completeness standard for ALL Simple+ dispatches.** Every agent prompt MUST include: "Deliver the finished product, not a plan. Do not offer to table work for later when the solve is within reach. Do not present workarounds when the real fix exists. Do not stop mid-task or truncate output. Search before building. Test before shipping. Ship the complete thing."
 
-Route to agents that create feature branches for all commits, because main branch commits affect everyone and bypassing branch protection causes cascading problems.
+Route to agents that create feature branches for all commits. Feature branches isolate the change so it ships cleanly after review, and the branch itself becomes the unit of review and revert.
 
-When dispatching agents for file modifications, explicitly include "commit your changes on the branch" in the agent prompt, because otherwise the agent completes file edits but changes sit unstaged — the orchestrator assumes committed work and moves on, and changes are lost.
+When dispatching agents for file modifications, explicitly include "commit your changes on the branch" in the agent prompt. That instruction closes the loop so the orchestrator sees the committed work and moves forward with it as the authoritative state.
 
 When dispatching agents with `isolation: "worktree"`, inject the `worktree-agent` skill rules into the agent prompt. The skill at `skills/worktree-agent/SKILL.md` contains mandatory rules that prevent worktree isolation failures (leaked changes, branch confusion, auto-plan hook interference). At minimum include: "Verify your CWD contains .claude/worktrees/. Create feature branch before edits. Skip task_plan.md creation (handled by orchestrator). Stage specific files only."
 
-For repos without organization-gated workflows, run up to 3 iterations of `/pr-review` → fix before creating a PR, because post-merge fixes cost 2 PRs instead of 1. For repos under protected organizations (via `scripts/classify-repo.py`), require user confirmation before EACH git action — confirm before executing or merging, because organization-gated repos have compliance requirements that require explicit approval.
+For repos without organization-gated workflows, run up to 3 iterations of `/pr-review` → fix before creating a PR, because pre-merge review lets you land once and move on. For repos under protected organizations (via `scripts/classify-repo.py`), require user confirmation before EACH git action. Confirm before executing or merging so the organization's compliance requirements get the explicit approval they exist to capture.
 
 **Step 3: Handle multi-part requests**
 
@@ -297,9 +297,9 @@ Detect: "first...then", "and also", numbered lists, semicolons. Sequential depen
 
 **Step 4: Auto-Pipeline Fallback** (when no agent/skill matches AND complexity >= Simple)
 
-Always invoke `auto-pipeline` for unmatched requests, because a missing agent match is a routing gap to report — routing overhead is always less than unreviewed code changes. If no pipeline matches either, fall back to closest agent + verification-before-completion.
+Always invoke `auto-pipeline` for unmatched requests. Every unmatched request is a new routing pattern to capture, and the pipeline picks up the work while the gap gets recorded. If no pipeline matches either, fall back to closest agent + verification-before-completion.
 
-When uncertain which route: **ROUTE ANYWAY.** Add verification-before-completion as safety net. Routing overhead is always less than the cost of unreviewed code changes.
+When uncertain which route: **ROUTE ANYWAY.** Add verification-before-completion as safety net. Routing up finds the right agent and gives the work a home; routing down leaves the main thread improvising in isolation.
 
 **Gate**: Agent invoked, results delivered. Proceed to Phase 5.
 
@@ -317,7 +317,7 @@ python3 ~/.claude/scripts/learning-db.py record \
     --category effectiveness
 ```
 
-Record only observable facts (tool_errors, user_rerouted) — routing outcome quality is measured by user reroutes, not self-assessment.
+Record only observable facts (tool_errors, user_rerouted). Routing outcome quality is measured by user reroutes, not self-assessment.
 
 **Auto-capture** (hooks, zero LLM cost): `error-learner.py` (PostToolUse), `review-capture.py` (PostToolUse), `session-learning-recorder.py` (Stop).
 
