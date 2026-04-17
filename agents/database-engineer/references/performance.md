@@ -180,7 +180,7 @@ CREATE INDEX idx_users_country ON users(country);
 
 **Why wrong**: Every index slows down writes (INSERT/UPDATE/DELETE must update all indexes). A table with 10 indexes has 10× write amplification. Index maintenance during VACUUM is slower. Buffer cache fills with index pages instead of table data.
 
-**Fix**: Check `pg_stat_user_indexes.idx_scan = 0` after running the application under production load for 1+ weeks. Drop indexes with zero usage. Keep only indexes that serve known query patterns.
+**Do instead:** Check `pg_stat_user_indexes.idx_scan = 0` after running the application under production load for 1+ weeks. Drop indexes with zero usage. Keep only indexes that serve known query patterns.
 
 ---
 
@@ -206,7 +206,7 @@ ALTER TABLE orders ADD COLUMN processed BOOLEAN NOT NULL DEFAULT false;
 
 **Why wrong**: On PostgreSQL < 11, adding a column with a default value requires rewriting the entire table. On a 500GB table, this takes hours with an ExclusiveLock that blocks ALL reads and writes.
 
-**Fix**:
+**Do instead:**
 ```sql
 -- PostgreSQL 11+: adding column with DEFAULT is safe (metadata only), do it directly
 
@@ -243,7 +243,7 @@ WHERE state = 'active'
 
 **Why wrong**: Long-running queries on PostgreSQL prevent autovacuum from cleaning dead rows (transaction ID wraparound risk), hold shared memory, and block DDL operations that need ExclusiveLock.
 
-**Fix**:
+**Do instead:**
 ```sql
 -- Set per-session timeout (application layer)
 SET statement_timeout = '30s';

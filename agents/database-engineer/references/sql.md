@@ -166,7 +166,7 @@ cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
 
 **Why wrong**: Retrieves all columns including large TEXT/BLOB fields even when only `name` and `email` are needed. Breaks when schema adds columns (new columns appear in API responses). Prevents index-only scans (which need only indexed columns).
 
-**Fix**:
+**Do instead:**
 ```python
 cursor.execute(
     "SELECT id, name, email, created_at FROM users WHERE id = %s",
@@ -202,7 +202,7 @@ SELECT * FROM users WHERE id = '12345';
 
 **Why wrong**: In MySQL, comparing an integer column to a string `'12345'` coerces the string to integer for comparison but may or may not use the index depending on the column type. PostgreSQL is stricter and often throws an error, but implicit casts in some cases bypass indexes.
 
-**Fix**: Pass the correct type from the application:
+**Do instead:** Pass the correct type from the application:
 ```python
 # Python: pass integer, not string
 cursor.execute("SELECT * FROM users WHERE id = %s", (int(user_id),))
@@ -231,7 +231,7 @@ cursor.execute(query)
 
 **Why wrong**: Attacker passes `id=1 OR 1=1` to dump all users, or `id=1; DROP TABLE users` to destroy data. This is OWASP Top 10 #3.
 
-**Fix**:
+**Do instead:**
 ```python
 # Always use parameterized queries
 cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
@@ -262,7 +262,7 @@ SELECT * FROM users WHERE LOWER(email) = 'alice@example.com';
 
 **Why wrong**: Applying a function to an indexed column prevents index use. `DATE(created_at)` computes a new value for every row, forcing a full sequential scan. The index stores values of `created_at`, not values of `DATE(created_at)`.
 
-**Fix**:
+**Do instead:**
 ```sql
 -- Date range instead of function (uses index)
 SELECT * FROM orders
