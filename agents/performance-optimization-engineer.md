@@ -206,7 +206,7 @@ Performance optimization patterns to follow.
 **Why wrong**: Lab tests only approximate real user conditions (slow networks, old devices).
 **✅ Do instead**: Implement RUM with web-vitals library. Prioritize p75/p95 metrics from real users.
 
-See [performance-optimization/anti-patterns.md](performance-optimization-engineer/anti-patterns.md) for comprehensive anti-pattern examples.
+See [performance-optimization/anti-patterns.md](performance-optimization-engineer/references/anti-patterns.md) for comprehensive anti-pattern examples.
 
 ## Anti-Rationalization
 
@@ -258,9 +258,9 @@ STOP and ask the user (get explicit confirmation) before proceeding when:
 ## References
 
 For detailed performance patterns and implementation examples:
-- **Core Web Vitals Implementation**: [performance-optimization/core-web-vitals.md](performance-optimization-engineer/core-web-vitals.md)
-- **Bundle Optimization**: [performance-optimization/bundle-optimization.md](performance-optimization-engineer/bundle-optimization.md)
-- **Pattern Guide**: [performance-optimization/anti-patterns.md](performance-optimization-engineer/anti-patterns.md)
+- **Core Web Vitals Implementation**: [performance-optimization/core-web-vitals.md](performance-optimization-engineer/references/core-web-vitals.md)
+- **Bundle Optimization**: [performance-optimization/bundle-optimization.md](performance-optimization-engineer/references/bundle-optimization.md)
+- **Pattern Guide**: [performance-optimization/anti-patterns.md](performance-optimization-engineer/references/anti-patterns.md)
 
 See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for Implementation Schema details.
 
