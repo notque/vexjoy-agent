@@ -60,6 +60,7 @@ topk(20, count by (__name__)({__name__=~".+"}))
 ---
 
 ## Anti-Pattern Catalog
+<!-- no-pair-required: section header only -->
 
 ### ❌ High-Cardinality Labels (user_id, request_id, session_id)
 
@@ -88,7 +89,7 @@ httpRequests.With(prometheus.Labels{
 
 **Why wrong**: 100K users × 50 endpoints × 5 status codes = 25M series. Prometheus memory usage becomes `25M × 4KB = 100GB`. Queries against this metric scan all 25M series even with filters, because index lookup is by label, not by value range.
 
-**Fix**:
+**Do instead:**
 ```go
 // Correct — bounded labels only
 httpRequests.With(prometheus.Labels{
@@ -113,6 +114,7 @@ grep -n 'action: drop\|action: keep' prometheus.yml
 curl -s 'http://localhost:9090/api/v1/targets' | \
   python3 -c "import json,sys; d=json.load(sys.stdin); [print(t['labels']) for t in d['data']['activeTargets'][:5]]"
 ```
+<!-- no-pair-required: partial section — positive counterpart follows in next block -->
 
 **What it looks like**:
 ```yaml
@@ -126,7 +128,7 @@ scrape_configs:
 
 **Why wrong**: Kubernetes pods can expose dozens of labels (app, version, helm-release, git-commit, build-time, namespace). Without `relabel_configs`, all of these become Prometheus label dimensions. A git commit hash label creates unique series per deployment, exploding cardinality.
 
-**Fix**:
+**Do instead:**
 ```yaml
 scrape_configs:
   - job_name: 'kubernetes-pods'
@@ -167,7 +169,7 @@ rg 'record:' --type yaml -A 5 | grep 'by\s*\(' | grep -v 'service\|job\|namespac
 
 **Why wrong**: Recording rules are meant to reduce query cost by pre-aggregating. If the `by()` clause includes a high-cardinality label, the recording rule creates as many series as the original metric, with no benefit.
 
-**Fix**:
+**Do instead:**
 ```yaml
 # Drop high-cardinality dimensions in recording rules
 - record: job:http_requests:rate5m
@@ -189,7 +191,7 @@ grep -rn 'tsdb_head_series\|cardinality' --include="*.yml"
 
 **Why wrong**: Cardinality growth is gradual. A new deployment adds 50K series per day unnoticed until Prometheus hits memory limits under query load 2 weeks later. By then, the causing deployment is long merged and difficult to identify.
 
-**Fix**:
+**Do instead:**
 ```yaml
 - alert: PrometheusHighCardinality
   expr: prometheus_tsdb_head_series > 1500000

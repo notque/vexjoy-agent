@@ -91,6 +91,7 @@ groups:
 ---
 
 ## Anti-Pattern Catalog
+<!-- no-pair-required: section header only -->
 
 ### ❌ Using irate() in Alert Rules
 
@@ -99,6 +100,7 @@ groups:
 grep -rn 'irate(' --include="*.yml" --include="*.yaml"
 rg 'irate\(' --type yaml
 ```
+<!-- no-pair-required: partial section — positive counterpart follows in next block -->
 
 **What it looks like**:
 ```yaml
@@ -109,7 +111,7 @@ rg 'irate\(' --type yaml
 
 **Why wrong**: `irate()` uses only the last two samples, making it extremely sensitive to single-scrape spikes. Alert rules evaluated every 30s will flap on transient spikes, generating spurious notifications. Production alert fatigue follows.
 
-**Fix**:
+**Do instead:**
 ```yaml
 - alert: HighErrorRate
   expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.01
@@ -135,7 +137,7 @@ rg 'alert:.*[Ll]atency' --type yaml -A 10 | grep -v 'for:'
 
 **Why wrong**: Without `for:`, a single evaluation above the threshold fires the alert immediately. Network hiccups, deployment restarts, or pod scheduling create transient spikes that produce immediate pages. The signal-to-noise ratio degrades fast.
 
-**Fix**:
+**Do instead:**
 ```yaml
 - alert: HighLatency
   expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) > 0.5
@@ -153,6 +155,7 @@ rg 'alert:.*[Ll]atency' --type yaml -A 10 | grep -v 'for:'
 grep -rn 'histogram_quantile.*_summary\|histogram_quantile.*quantile=' --include="*.yml"
 rg 'histogram_quantile' --type yaml -A 3 | grep 'quantile='
 ```
+<!-- no-pair-required: partial section — positive counterpart follows in next block -->
 
 **What it looks like**:
 ```promql
@@ -162,7 +165,7 @@ histogram_quantile(0.99, rate(rpc_duration_seconds{quantile="0.99"}[5m]))
 
 **Why wrong**: Summary metrics expose pre-computed quantiles (via the `quantile` label) that cannot be re-aggregated. Passing them to `histogram_quantile()` produces nonsense — the function expects `le` bucket labels, not pre-computed quantile values. The query may not error but will silently return wrong numbers.
 
-**Fix**: Use the pre-computed quantile label directly:
+**Do instead:** Use the pre-computed quantile label directly:
 ```promql
 # Correct for summary metrics
 rpc_duration_seconds{quantile="0.99", job="grpc-server"}
@@ -178,6 +181,7 @@ Version note: This confusion is extremely common when migrating from libraries t
 ```bash
 grep -rn 'increase(' --include="*.yml" --include="*.yaml" | grep -v 'record:'
 ```
+<!-- no-pair-required: partial section — positive counterpart follows in next block -->
 
 **What it looks like**:
 ```promql
@@ -187,7 +191,7 @@ increase(http_requests_total[1h]) > increase(http_requests_total[24h]) * 0.1
 
 **Why wrong**: `increase()` results are not comparable across different window sizes without normalization. This expression always evaluates false since 1h increase is always < 24h × 0.1 for any reasonable traffic. Use `rate()` for comparisons.
 
-**Fix**:
+**Do instead:**
 ```promql
 # Correct — compare rates
 rate(http_requests_total[1h]) > rate(http_requests_total[24h]) * 1.5
@@ -211,7 +215,7 @@ grep -rn 'absent(' --include="*.yml" --include="*.yaml" -A 5 | grep -v 'for:\s*[
 
 **Why wrong**: Scrape targets can have momentary gaps during pod restarts, rolling deployments, or network blips. A 1-minute `for:` fires during normal K8s pod recycling. This produces alert storms during every deployment.
 
-**Fix**:
+**Do instead:**
 ```yaml
 - alert: MetricMissing
   expr: absent(up{job="api"})
