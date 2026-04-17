@@ -74,46 +74,19 @@ If redirecting, say: `This task exceeds --trivial scope ([reason]). Continuing a
 
 **Step 3: Locate target files and execute**
 
-Read the target file(s). Make edits using the Edit tool. Track edit count. After each edit, check: have we hit 3 edits? If more are needed, stop — do not rationalize "just one more edit":
-
-```
-Scope exceeded during --trivial execution (3+ edits needed). Preserving work done.
-Continuing as /quick.
-```
-
-Hand off to the standard quick phases with context about what was already done.
+Read the target file(s). Make edits using the Edit tool. Track edit count. After each edit, check: have we hit 3 edits? If more are needed, stop -- do not rationalize "just one more edit." Say: "Scope exceeded during --trivial execution (3+ edits needed). Preserving work done. Continuing as /quick." Hand off to the standard quick phases with context about what was already done.
 
 **Step 4: Check branch**
 
-If on main/master, create a short-lived branch first because even trivial changes get branches:
-```bash
-git checkout -b quick/<brief-description>
-```
+If on main/master, create a short-lived branch: `git checkout -b quick/<brief-description>`.
 
 **Step 5: Stage and commit**
 
-```bash
-git add <specific-files>
-git commit -m "$(cat <<'EOF'
-<type>: <description>
-EOF
-)"
-```
-
-Use conventional commit format. Type is usually `fix:`, `chore:`, or `refactor:`.
+Stage specific files with `git add <specific-files>`. Commit using the format from `references/templates.md` (conventional commit, type usually `fix:`, `chore:`, or `refactor:`).
 
 **Step 6: Display summary**
 
-```
-===================================================================
- QUICK --trivial: <description>
-===================================================================
-
- Files edited: <N>
- Commit: <hash> on <branch>
-
-===================================================================
-```
+Use the `--trivial` summary banner format from `references/templates.md`.
 
 **GATE**: Edit count is 1-3, commit succeeded. STOP — do not proceed to Phase 0.
 
@@ -146,20 +119,7 @@ Read the request and list specific questions:
 
 **Step 2: Present questions**
 
-```
-===================================================================
- QUICK DISCUSS: <task summary>
-===================================================================
-
- Before planning, I need to resolve:
-
- 1. <question>
- 2. <question>
-
-===================================================================
-```
-
-Wait for user response. Do not proceed until ambiguities are resolved.
+Use the DISCUSS banner format from `references/templates.md`. Wait for user response. Do not proceed until ambiguities are resolved.
 
 **GATE**: All ambiguities resolved. Proceed to Phase 2 or Phase 3.
 
@@ -205,27 +165,9 @@ If STATE.md is corrupted, scan git log for `Quick task YYMMDD-` patterns to find
 
 Always display the inline plan, even for obvious tasks, because the plan catches misunderstandings before they become wrong edits and confirms alignment in 10 seconds that saves minutes. Do NOT write a task_plan.md file -- that is Simple+ tier, and using an inline plan here is the minimum viable ceremony.
 
-```
-===================================================================
- QUICK [task-id]: <description>
-===================================================================
+Use the inline plan banner format from `references/templates.md`.
 
- Plan:
-   1. <what to change in file X>
-   2. <what to change in file Y>
-   3. <why: brief rationale>
-
- Files: <file1>, <file2>
- Estimated edits: <N>
-
-===================================================================
-```
-
-If estimated edits exceed 15, suggest upgrading because edit count is a scope signal regardless of difficulty:
-```
-This task estimates 15+ edits. Consider using /do for full planning
-and agent routing. Proceed with /quick anyway? [Y/n]
-```
+If estimated edits exceed 15, prompt the user to consider `/do` -- edit count is a scope signal regardless of difficulty.
 
 If the task involves security, payments, or data migration, recommend `--full` because a one-line auth change can be catastrophic and risk is about impact, not size.
 
@@ -255,66 +197,23 @@ Execute the changes described in the plan. Track edit count throughout.
 
 **Step 3: Verify changes** (base mode)
 
-Run a quick sanity check:
-```bash
-# Check for syntax errors in edited files (language-appropriate)
-# e.g., python3 -m py_compile file.py, go build ./..., tsc --noEmit
-```
-
-If `--full` flag is set, run the full quality gate instead (see Phase 5).
+Run a language-appropriate syntax check on edited files (e.g., `python3 -m py_compile`, `go build ./...`, `tsc --noEmit`). If `--full` flag is set, run the full quality gate instead (see Phase 5).
 
 **GATE**: All planned edits complete. Sanity check passes.
 
 ### Phase 5: VERIFY (only with --full flag)
 
-**Step 1: Run tests**
+**Step 1: Run tests** for affected packages/modules only -- do not run the full suite unless explicitly requested.
 
-```bash
-# Run tests for affected packages/modules only
-# Do not run full test suite unless explicitly requested
-```
+**Step 2: Lint check** using the repo's configured linter on changed files.
 
-**Step 2: Lint check**
-
-Run the repo's configured linter on changed files.
-
-**Step 3: Review changes**
-
-```bash
-git diff
-```
-
-Review the diff for:
-- Unintended changes
-- Missing error handling
-- Broken imports
+**Step 3: Review changes** with `git diff`. Check for unintended changes, missing error handling, and broken imports.
 
 **GATE**: Tests pass, lint clean, diff reviewed. Proceed to Phase 6.
 
 ### Phase 6: COMMIT (skip with --no-commit)
 
-**Step 1: Stage changes**
-
-```bash
-git add <specific-files>
-```
-
-Stage specific files, not `git add .`, to avoid accidental inclusions.
-
-**Step 2: Commit**
-
-Use conventional commit format because it enables automated changelogs and consistent history:
-
-```bash
-git commit -m "$(cat <<'EOF'
-<type>: <description>
-
-Quick task <task-id>
-EOF
-)"
-```
-
-Include the task ID in the commit body for traceability.
+Stage specific files with `git add <specific-files>` -- not `git add .`, to avoid accidental inclusions. Commit using the format from `references/templates.md`. Include the task ID in the commit body for traceability.
 
 **GATE**: Commit succeeded. Verify with `git log -1 --oneline`.
 
@@ -322,102 +221,12 @@ Include the task ID in the commit body for traceability.
 
 **Step 1: Update STATE.md**
 
-Log the task to STATE.md because this is how tasks stay visible and cross-referenceable.
-
-If STATE.md does not exist in the repo root, create it:
-
-```markdown
-# Task State
-
-## Quick Tasks
-
-| Date | ID | Description | Commit | Branch | Tier | Status |
-|------|----|-------------|--------|--------|------|--------|
-```
-
-Append the new task:
-
-```markdown
-| YYYY-MM-DD | <task-id> | <description> | <short-hash> | <branch> | quick | done |
-```
-
-If the task was escalated from `--trivial` mode (scope exceeded 3 edits), note the tier as `trivial->quick`.
+Log the task to STATE.md because this is how tasks stay visible and cross-referenceable. Use the STATE.md schema from `references/templates.md` to create the file if it does not exist, and append one row per task. If escalated from `--trivial`, use tier `trivial->quick`.
 
 **Step 2: Display summary**
 
-```
-===================================================================
- QUICK [task-id]: COMPLETE
-===================================================================
-
- Description: <description>
- Files edited: <N>
- Commit: <hash> on <branch>
- Flags: <--discuss, --research, --full, or "base">
- Logged: STATE.md
-
- Next steps:
-   - Push: /pr-workflow
-   - More work: /quick <next task>
-   - Merge to parent: git merge quick/<task-id>-...
-
-===================================================================
-```
+Use the completion banner format from `references/templates.md`.
 
 ## Reference Material
 
-### Examples
-
-**Example 1: Base Mode**
-
-User says: `/quick add --verbose flag to the CLI`
-1. Generate ID: 260322-001
-2. Plan: add flag definition, wire to handler, update help text (3 edits)
-3. Create branch: `quick/260322-001-add-verbose-flag`
-4. Execute edits, commit, log to STATE.md
-
-**Example 2: With Research**
-
-User says: `/quick --research fix the timeout bug in auth middleware`
-1. RESEARCH: Read auth middleware, identify timeout source, trace call path
-2. PLAN: change timeout value in config, update middleware to use it (2 edits)
-3. EXECUTE, COMMIT, LOG
-
-**Example 3: Escalated from --trivial**
-
-`/quick --trivial` hit 3-edit limit while fixing a bug across 5 files.
-1. Quick picks up with context: "Continuing from --trivial -- 3 files already edited"
-2. PLAN: remaining 2 files to edit
-3. EXECUTE remaining edits, COMMIT all changes, LOG as tier `trivial->quick`
-
-**Example 4: Full Rigor**
-
-User says: `/quick --full update payment amount rounding logic`
-1. PLAN: identify rounding function, change to banker's rounding
-2. EXECUTE the edit
-3. VERIFY: run payment tests, lint, review diff
-4. COMMIT, LOG
-
-### Task ID Format
-
-Base36 sequence: `001, 002, ... 009, 00a, 00b, ... 00z, 010, ...`
-
-Full ID: `YYMMDD-xxx` (e.g., `260322-001`, `260322-00a`)
-
-## Error Handling
-
-### Error: Task ID Collision
-**Cause**: Two quick tasks started in the same second with the same sequence
-**Solution**: Increment the sequence number. If STATE.md is corrupted, scan git log for `Quick task YYMMDD-` patterns to find the true next ID.
-
-### Error: Scope Exceeds Quick Tier
-**Cause**: Task requires 15+ edits, multiple components, or parallel work
-**Solution**: Display upgrade suggestion. If user confirms, continue in quick mode. If user wants full ceremony, invoke `/do` with the original request.
-
-### Error: Test Failure in --full Mode
-**Cause**: Quality gate found issues with the changes
-**Solution**: Fix the failing tests. If the fix requires significant additional work, note it in STATE.md and suggest a follow-up `/quick` task rather than expanding scope.
-
-### Error: Branch Conflict
-**Cause**: Branch `quick/<task-id>-...` already exists
-**Solution**: Increment the task ID sequence number and try again.
+> See `references/examples.md` for worked examples per flag mode, task ID format, and error handling.

@@ -219,6 +219,45 @@ grep -rn 'validate-chain' adr/ --include="*.md"
 
 ---
 
+## Error-Fix Mappings
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| Duplicate Component Detected | codebase-analyzer found an existing agent/skill covering the requested pipeline's purpose | Bind the existing component instead of creating a new one. Report the reuse decision to the user. |
+| Template Validation Failure | Scaffolded agent doesn't follow AGENT_TEMPLATE_V2.md structure | Re-run the skill-creator sub-agent with explicit template reference. Validate required sections: frontmatter, operator context, capabilities, error handling, anti-patterns, blocker criteria. |
+| Routing Conflict | New trigger keywords overlap with existing force-route entries | Choose more specific triggers. Preserve existing force-routes. Report the conflict and suggest alternative trigger phrases. |
+| Chain Validation Failure | A composed pipeline chain has type incompatibilities between steps | Re-invoke the `workflow` skill (composition phase) with the failing chain and the validation error. The composer will select compatible step alternatives or reorder the chain. |
+| Domain Research Insufficient | The `workflow` skill returned fewer than 2 subdomains | The domain may be too narrow for multi-subdomain treatment. Fall back to single-pipeline mode (legacy DISCOVER → SCAFFOLD → INTEGRATE). |
+
+## Preferred Patterns
+
+### Pattern 1 (Monolithic Agent)
+**What it looks like**: Creating a single agent that handles discovery, scaffolding, AND integration
+**Why wrong**: Violates single-purpose principle; makes the pipeline brittle and hard to test
+**Do instead**: Fan out to specialized sub-agents. Each creates one component type.
+
+### Pattern 2 (Skipping Discovery)
+**What it looks like**: Scaffolding all components without checking what already exists
+**Why wrong**: Creates duplicate agents/skills that fragment the routing table
+**Do instead**: ALWAYS run Phase 1 (DOMAIN RESEARCH or legacy DISCOVER) before Phase 3 (SCAFFOLD).
+
+### Pattern 3 (Sequential Scaffolding)
+**What it looks like**: Creating agent, then skill, then hook one at a time
+**Why wrong**: These are independent components; sequential execution wastes time
+**Do instead**: Fan out all three in parallel using the Task tool.
+
+### Pattern 4 (Single Pipeline for Multi-Subdomain Domain)
+**What it looks like**: When the domain has clearly distinct subdomains, creating one skill that handles everything
+**Why wrong**: Monolithic skills dilute expertise, overload context, and can't be routed independently. Each subdomain has different task types needing different pipeline chains.
+**Do instead**: Decompose into N skills, one per subdomain. Same agent, different recipes.
+
+### Pattern 5 (Skipping Chain Validation)
+**What it looks like**: Composing a pipeline chain by intuition without running `validate-chain`
+**Why wrong**: Leads to type incompatibilities at runtime; a step's output format may not match the next step's expected input
+**Do instead**: Always validate chains via `scripts/artifact-utils.py validate-chain` before scaffolding.
+
+---
+
 ## See Also
 
 - `orchestration-patterns.md` — correct fan-out/fan-in patterns and gate idioms

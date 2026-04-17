@@ -52,23 +52,9 @@ Determine if running within the feature pipeline or standalone:
 
 Detect language(s) before applying any verification techniques -- different languages have fundamentally different import/export patterns.
 
-| Indicator | Language |
-|-----------|----------|
-| `go.mod`, `*.go` | Go |
-| `pyproject.toml`, `setup.py`, `*.py` | Python |
-| `tsconfig.json`, `*.ts`, `*.tsx` | TypeScript |
-| `package.json`, `*.js`, `*.jsx` | JavaScript |
+> See `references/wiring-checks.md` for language detection indicators, per-language export/import patterns, and common integration failures per language.
 
 Multiple languages may coexist. Run all applicable techniques for each.
-
-**Step 4: Identify language-specific patterns**
-
-| Language | Export Pattern | Import Pattern | Common Integration Failures |
-|----------|---------------|----------------|----------------------------|
-| Go | Capitalized identifiers at package level | `import "path/to/pkg"` then `pkg.Name` | Exported function in wrong package; interface satisfied but never used via interface type; `init()` side effects not triggered because package not imported |
-| Python | Module-level definitions, `__all__`, `__init__.py` re-exports | `from module import name`, `import module` | Circular imports causing silent failures; `__init__.py` missing re-export; relative vs absolute import mismatch |
-| TypeScript | `export`, `export default`, barrel files (`index.ts`) | `import { name } from './module'` | Barrel file missing re-export; type-only import where value import needed; path alias not resolving |
-| JavaScript | `module.exports`, `export`, `export default` | `require()`, `import` | CommonJS/ESM mismatch; default vs named export confusion |
 
 **Gate**: Language(s) detected. Scope established. Proceed to Phase 1.
 
@@ -100,19 +86,7 @@ Both checks are required. An import without usage is a distinct failure mode fro
 
 **Step 3: Classify each export**
 
-| Condition | Status | Severity |
-|-----------|--------|----------|
-| Exported, imported, AND used in at least one consumer | **WIRED** | Pass |
-| Exported and imported, but never used beyond the import statement | **IMPORTED_NOT_USED** | Warning |
-| Exported but never imported anywhere in the project | **ORPHANED** | Failure |
-
-**Exclusions** (do not flag as ORPHANED -- these have legitimate reasons for not being imported internally):
-- `main()` functions and entry points
-- Interface implementations that satisfy an interface (Go)
-- Test helpers exported for use by `_test.go` files in other packages
-- Symbols listed in public API documentation or `__all__` in library packages
-- CLI command handlers wired via registration (e.g., cobra commands, click groups)
-- Exports in files matching exclusion patterns (vendor, node_modules, etc.)
+> See `references/wiring-checks.md` for the full classification table, exclusion list, and files to skip during discovery.
 
 **Step 4: Build the export/import map**
 
@@ -150,54 +124,9 @@ This is structural analysis, not semantic verification. Contract checking verifi
 
 #### Data Flow Tracing
 
-For each WIRED connection, check whether real data actually reaches the component. Specifically look for:
+For each WIRED connection, check whether real data actually reaches the component.
 
-**Hardcoded empty data:**
-- Empty arrays/slices passed to functions that iterate over them: `processItems([])`, `handleUsers([]User{})`
-- Empty strings passed where meaningful content is expected
-- Zero values for IDs, counts, or sizes that should be populated
-- `nil`/`None`/`null`/`undefined` passed where a real object is expected
-
-**Placeholder data:**
-- TODO/FIXME/HACK comments adjacent to data assignment
-- Lorem ipsum, "test", "example", "placeholder" string literals in non-test code
-- Zeroed structs or objects with no fields populated: `User{}`, `{}`
-
-**Dead parameters:**
-- Function declares a parameter but never reads it (not just `_` convention)
-- Parameter is read only to immediately discard: `_ = param`
-
-**Mock remnants:**
-- `return []`, `return nil`, `return {}` in non-test code paths where real data is expected
-- Hardcoded return values that bypass actual logic
-
-Record each finding as: `{file, line, kind (empty-data|placeholder|dead-param|mock-remnant), description}`.
-
-#### Cross-Component Contract Checking
-
-For each WIRED connection where component A's output feeds into component B's input, verify structural compatibility:
-
-**Shape mismatches:**
-- A returns `{id, name, email}` but B expects `{userId, displayName, emailAddress}` -- field naming mismatch
-- A returns a flat object but B destructures expecting nested structure
-- A returns a single item but B expects an array (or vice versa)
-
-**Type mismatches:**
-- A returns a string ID but B expects a numeric ID
-- A returns an optional/nullable value but B accesses it without null check
-
-**Event/message contract mismatches:**
-- Emitter sends event type `"user.created"` but handler listens for `"userCreated"`
-- Message producer sends one schema, consumer expects different fields
-
-Record each finding as: `{producer_file, consumer_file, mismatch_kind, description}`.
-
-Report contract findings with appropriate confidence levels. In dynamic languages, approximate checking still catches obvious mismatches -- report what you can find rather than skipping the check:
-- **High confidence**: Explicit type annotations match/mismatch, struct/interface definitions
-- **Medium confidence**: Inferred from usage patterns, variable names, JSDoc/docstrings
-- **Low confidence**: Dynamic access patterns, computed property names, reflection
-
-Note: dynamically-loaded modules, reflection-based wiring, and plugin architectures cannot be analyzed with certainty through static analysis. Flag what is visible and note the limitation.
+> See `references/wiring-checks.md` for the full catalog of data flow failure patterns (hardcoded empty data, placeholder data, dead parameters, mock remnants) and contract mismatch patterns (shape, type, event/message mismatches) with confidence level guidance.
 
 **Gate**: Data flow and contract findings recorded. Proceed to Phase 3.
 
@@ -209,25 +138,9 @@ Note: dynamically-loaded modules, reflection-based wiring, and plugin architectu
 
 **Step 1: Requirements integration map (pipeline mode only)**
 
-If running within the feature pipeline and a task plan exists in `.feature/state/plan/`:
+If running within the feature pipeline and a task plan exists in `.feature/state/plan/`, trace each requirement from entry point to implementation using WIRED / PARTIAL / UNWIRED status.
 
-For each requirement in the plan, trace the integration path from entry point to implementation:
-
-| Status | Meaning |
-|--------|---------|
-| **WIRED** | Requirement has a complete integration path from entry point to implementation |
-| **PARTIAL** | Some components exist but the path has gaps (identify the gaps) |
-| **UNWIRED** | Components may exist but no integration path connects them |
-
-```
-## Requirements Integration Map
-
-| Requirement | Status | Integration Path |
-|-------------|--------|-----------------|
-| User can delete account | WIRED | DELETE /api/users/:id -> routes/api.go -> handlers.HandleUserDelete -> db.DeleteUser |
-| Email notification on delete | PARTIAL | handlers.HandleUserDelete -> [GAP] -> email.SendNotification (exists but not called from handler) |
-| Audit log on delete | UNWIRED | audit.LogEvent exists, but no call from any delete path |
-```
+> See `references/wiring-checks.md` for the requirements integration map format and status definitions.
 
 **Step 2: Compile integration report**
 
