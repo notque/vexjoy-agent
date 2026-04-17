@@ -288,6 +288,155 @@ Use when measuring drop-off through a sequence of steps.
 
 ---
 
+## Phase Artifact Templates
+
+### analysis-frame.md (Phase 1 output)
+
+```markdown
+# Analysis Frame
+
+## Decision
+[What decision is being supported]
+
+## Decision-Maker
+[Who will act on this analysis]
+
+## Options
+- Option A: [description]
+- Option B: [description]
+- Default (no action): [what happens if we take no action]
+
+## Evidence Requirements
+- Favors Option A if: [condition]
+- Favors Option B if: [condition]
+- Minimum threshold: [what bar must be cleared]
+
+## Deal-Breakers
+- [condition that forces a specific option regardless]
+```
+
+### metric-definitions.md (Phase 2 output)
+
+```markdown
+# Metric Definitions
+
+## Metrics
+### [Metric Name]
+- Formula: [exact computation]
+- Population: [inclusion/exclusion criteria]
+- Time window: [start - end, granularity]
+- Segments: [how data is sliced]
+
+## Comparison Groups (if applicable)
+### Group A: [Name]
+- Selection: [criteria]
+### Group B: [Name]
+- Selection: [criteria]
+- Fairness: [same population? same time window?]
+
+## Success Criteria
+- Minimum meaningful effect: [threshold]
+- Minimum sample per segment: [N]
+- Test type: [one-tailed / two-tailed / descriptive only]
+```
+
+### data-quality-report.md (Phase 3 output)
+
+```markdown
+# Data Quality Report
+
+## Dataset Overview
+- Source: [file path / description]
+- Rows: [N]
+- Columns: [N]
+- Date range: [start - end]
+
+## Column Profiles
+| Column | Type | Non-null | Missing % | Unique | Notes |
+|--------|------|----------|-----------|--------|-------|
+| [name] | [type] | [count] | [pct] | [count] | [flags] |
+
+## Quality Assessment
+- [ ] Sample adequate (N=[count], population=[est])
+- [ ] Time window complete (gaps: [none / list])
+- [ ] Segment minimums met ([list segments below 30])
+- [ ] Missing values acceptable ([list columns above 20%])
+
+## Quality Issues
+[List any issues that affect planned analysis]
+
+## Data Ready: [YES / NO - with reason]
+```
+
+### analysis-results.md (Phase 4 output)
+
+```markdown
+# Analysis Results
+
+## Metrics
+### [Metric Name]
+- Value: [point estimate]
+- 95% CI: [lower - upper]
+- Sample: N=[count]
+
+## Comparisons (if applicable)
+### [Group A] vs [Group B]
+- Group A: [metric] = [value] (N=[count])
+- Group B: [metric] = [value] (N=[count])
+- Difference: [absolute] ([relative]%)
+- 95% CI of difference: [lower - upper]
+- Practical significance: [above/below minimum threshold]
+
+## Rigor Gate Results
+- [ ] Sample Adequacy: [PASS / FAIL - details]
+- [ ] Comparison Fairness: [PASS / FAIL / N/A - details]
+- [ ] Multiple Testing: [PASS / FAIL / N/A - details]
+- [ ] Practical Significance: [PASS / FAIL - details]
+
+## Rigor Violations (if any)
+[List violations and their impact on conclusions]
+```
+
+### analysis-report.md (Phase 5 output)
+
+```markdown
+# Analysis Report
+
+## Headline
+[One sentence: what the data says about the decision]
+
+## Decision Context
+[Recap from Phase 1 frame]
+
+## Key Findings
+1. [Primary finding with CI]
+2. [Supporting finding]
+3. [Qualifying finding or important segment variation]
+
+## Limitations
+- [Limitation 1]
+- [Limitation 2]
+
+## Recommendation
+[Action recommendation with confidence level]
+
+## What Would Increase Confidence
+- [Additional data or analysis that would help]
+
+---
+
+## Appendix: Methodology
+- Data source: [file]
+- Rows analyzed: [N]
+- Time window: [range]
+- Tools: [pandas/stdlib]
+- Metrics: See metric-definitions.md
+- Quality: See data-quality-report.md
+- Detailed results: See analysis-results.md
+```
+
+---
+
 ## Anomaly Investigation
 
 Use when investigating unexpected spikes, drops, or deviations in metrics.
