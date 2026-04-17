@@ -40,7 +40,7 @@ result, _ := db.Query("SELECT * FROM users WHERE id = ?", id)
 
 **Why wrong**: Silent error discard means data corruption or partial writes proceed undetected. In production, this surfaces as corrupted records with no error logs.
 
-**Fix**:
+**Do instead:**
 ```go
 result, err := db.Query("SELECT * FROM users WHERE id = ?", id)
 if err != nil {
@@ -81,7 +81,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 **Why wrong**: RFC 7231 §6 defines status code semantics. Clients (including monitoring tools and API gateways) use status codes to route errors — a 200 error bypasses all error-handling middleware.
 
-**Fix**: Use `http.StatusBadRequest` (400) for invalid input, `http.StatusNotFound` (404) for missing resources, `http.StatusUnauthorized` (401) for missing auth, `http.StatusForbidden` (403) for insufficient permissions.
+**Do instead:** Use `http.StatusBadRequest` (400) for invalid input, `http.StatusNotFound` (404) for missing resources, `http.StatusUnauthorized` (401) for missing auth, `http.StatusForbidden` (403) for insufficient permissions.
 
 ---
 
@@ -107,7 +107,7 @@ grep -rn 'postgres://\|mysql://\|mongodb://' --include="*.go" --include="*.ts" -
 
 **Why wrong**: Credentials in version history are permanent — `git filter-branch` does not remove them from forks or cached copies. Leaked credentials require key rotation even after removal.
 
-**Fix**: Load from environment variables (`os.Getenv`, `process.env`, `os.environ`) or a secrets manager. Never commit `.env` files containing real values.
+**Do instead:** Load from environment variables (`os.Getenv`, `process.env`, `os.environ`) or a secrets manager. Never commit `.env` files containing real values.
 
 ---
 
@@ -130,7 +130,7 @@ grep -rn 'findAll\|getAll\|fetchAll' --include="*.ts" --include="*.go"
 
 **Why wrong**: A query returning 1,000 rows in development returns 50 million in production, causing OOM crashes or 30-second response times that cascade into timeouts.
 
-**Fix**: Add `LIMIT`/`OFFSET` or cursor-based pagination. Default page size should be ≤ 100.
+**Do instead:** Add `LIMIT`/`OFFSET` or cursor-based pagination. Default page size should be 100 or fewer records.
 
 ---
 
@@ -159,7 +159,7 @@ if _, exists := cache[key]; !exists {
 
 **Why wrong**: Two goroutines can both pass the `!exists` check before either writes, causing double computation or overwriting a valid value.
 
-**Fix**: Use `sync.Map.LoadOrStore()`, a mutex-wrapped check-and-store, or database-level `INSERT ... ON CONFLICT DO NOTHING`.
+**Do instead:** Use `sync.Map.LoadOrStore()`, a mutex-wrapped check-and-store, or database-level `INSERT ... ON CONFLICT DO NOTHING`.
 
 ---
 
@@ -188,7 +188,7 @@ for post in posts:
 
 **Why wrong**: 100 posts = 101 queries. 10,000 posts = 10,001 queries. Degrades exponentially with data growth.
 
-**Fix**: Use `select_related`/`prefetch_related` (Django), `JOIN` (raw SQL), or batch fetch with `IN (...)`.
+**Do instead:** Use `select_related`/`prefetch_related` (Django), `JOIN` (raw SQL), or batch fetch with `IN (...)`.
 
 ---
 
@@ -210,7 +210,7 @@ rg -n 'router\.(get|post|put|delete)\(' --type ts -B2 | rg -v 'auth\|verify\|req
 
 **Why wrong**: Authenticated users can access other users' resources. Classic IDOR (Insecure Direct Object Reference) vulnerability — OWASP A01:2021.
 
-**Fix**: Always filter queries by the authenticated user's ID: `WHERE user_id = $currentUser`.
+**Do instead:** Always filter queries by the authenticated user's ID: `WHERE user_id = $currentUser`. For operations that modify resources, verify ownership before executing.
 
 ---
 
