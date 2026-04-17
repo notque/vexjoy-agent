@@ -1,0 +1,15 @@
+# Sample git configuration for contributors to this repository.
+#
+# Copy or merge these settings into your ~/.gitconfig or run:
+#   git config --global merge.ours.driver true
+#
+# WHY: .gitattributes marks artifacts/joy-check-sweep-backlog.json with
+# merge=ours so that `git rebase origin/main` keeps main's version of the
+# allowlist automatically.  This avoids a guaranteed rebase conflict on every
+# branch that touches agents or skills.
+#
+# The merge.ours.driver registration is required — without it the gitattributes
+# directive is silently ignored and conflicts still appear.
+
+[merge "ours"]
+    driver = true

@@ -1,0 +1,23 @@
+# Merge driver for the joy-check sweep allowlist.
+#
+# This file accumulates known Do-framing violations that are deferred rather than
+# fixed immediately.  Every feature branch that touches agents or skills will
+# regenerate a portion of it, guaranteeing a content conflict on rebase.
+#
+# Resolution strategy: always keep the TARGET branch's (main's) version.
+# Main's allowlist is a superset — any entry a branch pairing already resolved
+# is simply an extra no-op entry in the list, which the validator safely ignores.
+#
+# The "ours" driver (merge=ours) keeps the currently-checked-out version.
+# During `git rebase origin/main`, git checks out main first and replays the
+# feature branch's commits on top, so "ours" == main's version.
+#
+# SETUP REQUIRED (one-time per clone):
+#   git config merge.ours.driver true
+# Or add to your ~/.gitconfig:
+#   [merge "ours"]
+#       driver = true
+#
+# Without this registration the attribute is silently ignored and conflicts
+# still appear.  See .gitconfig.sample in this repo for a ready-made snippet.
+artifacts/joy-check-sweep-backlog.json merge=ours
