@@ -1,0 +1,71 @@
+{
+  "total_findings": 288,
+  "safe_candidates": 8,
+  "applied": 0,
+  "candidates": [
+    {
+      "file": "skills/multi-persona-critique/SKILL.md",
+      "line_start": 176,
+      "line_end": 184,
+      "heading": "## Examples, Anti-Patterns, Error Handling",
+      "action": "annotate",
+      "reason": "reference-summary-header"
+    },
+    {
+      "file": "skills/data-analysis/references/anti-patterns.md",
+      "line_start": 1,
+      "line_end": 5,
+      "heading": "# Data Analysis Anti-Patterns",
+      "action": "skip",
+      "reason": "document-title"
+    },
+    {
+      "file": "skills/explanation-traces/references/anti-patterns.md",
+      "line_start": 1,
+      "line_end": 6,
+      "heading": "# Explanation Traces \u2014 Anti-Patterns",
+      "action": "skip",
+      "reason": "document-title"
+    },
+    {
+      "file": "skills/go-patterns/references/anti-patterns.md",
+      "line_start": 15,
+      "line_end": 29,
+      "heading": "### Phase 2: Scan for Anti-Patterns",
+      "action": "annotate",
+      "reason": "table-backed-section-header"
+    },
+    {
+      "file": "skills/php-testing/references/patterns.md",
+      "line_start": 267,
+      "line_end": 279,
+      "heading": "## Common Testing Anti-Patterns",
+      "action": "annotate",
+      "reason": "table-backed-section-header"
+    },
+    {
+      "file": "skills/testing-anti-patterns/references/anti-pattern-catalog.md",
+      "line_start": 1,
+      "line_end": 5,
+      "heading": "# Testing Anti-Pattern Catalog",
+      "action": "skip",
+      "reason": "document-title"
+    },
+    {
+      "file": "agents/mcp-local-docs-engineer/references/mcp-anti-patterns.md",
+      "line_start": 6,
+      "line_end": 12,
+      "heading": "# MCP Server Anti-Patterns",
+      "action": "skip",
+      "reason": "document-title"
+    },
+    {
+      "file": "agents/pipeline-orchestrator-engineer/references/anti-patterns.md",
+      "line_start": 1,
+      "line_end": 7,
+      "heading": "# Pipeline Orchestration \u2014 Anti-Patterns",
+      "action": "skip",
+      "reason": "document-title"
+    }
+  ]
+}

@@ -157,7 +157,7 @@ grep -B 1 "No trigger\|no keywords\|\[\]" skills/do/references/routing-tables.md
 ---
 
 <!-- no-pair-required: section header, not a standalone anti-pattern block -->
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Auditing File Names Without Opening Files
 

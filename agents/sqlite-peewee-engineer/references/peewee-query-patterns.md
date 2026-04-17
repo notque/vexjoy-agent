@@ -116,7 +116,7 @@ for u in users:
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section header with no content -->
 
 ### ❌ N+1 Queries via Loop Attribute Access

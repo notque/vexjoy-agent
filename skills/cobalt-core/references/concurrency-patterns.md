@@ -125,7 +125,7 @@ for _, domain := range domains {
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Unbounded Goroutine-Per-Domain
 

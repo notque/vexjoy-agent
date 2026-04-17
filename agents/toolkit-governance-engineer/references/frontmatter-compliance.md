@@ -90,7 +90,7 @@ allowed-tools: [Read, Edit, Glob, Grep]
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section header with no content -->
 
 ### ❌ Missing `allowed-tools` in Agent Frontmatter

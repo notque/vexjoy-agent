@@ -81,7 +81,7 @@ Aggregator signals:
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Using Aggregator as Primary Source
 

@@ -179,7 +179,7 @@ If there are gaps, offer to fix them. Do not silently patch gaps during verifica
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
 **Do NOT rewrite existing concept articles from scratch.** Incremental updates preserve the accumulated knowledge from prior compilations. If the existing article is good, only add what is new.
 

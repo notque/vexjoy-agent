@@ -161,7 +161,7 @@ print("[hook-name] Action suggested: fix the broken reference")
 
 ---
 
-## Anti-Pattern Catalog
+## Pattern Catalog
 <!-- no-pair-required: section header with no content -->
 
 ### ❌ Missing Timeout (Hook Can Hang Indefinitely)

@@ -43,6 +43,8 @@ The question is never "Can the LLM do this?" It's "Should the LLM do this?" If a
 
 LLMs orchestrate. Programs execute.
 
+For large mechanical sweeps, the default must be even stricter: if the change can be expressed as a detector plus a rewrite rule, build or use a script. Repo-wide edits like adding boilerplate markers, normalizing headings, or applying structural framing across hundreds of files should not be performed by asking an LLM to hand-edit files one by one. Use scripts to find candidates, apply the deterministic transformation where safe, and hand the smaller exception set to an LLM only when judgment is actually required.
+
 ## Load Only What You Need
 
 A handyman brings tools for the specific job, not every tool they own. Context works the same way — it's a scarce resource, not a dumpster.

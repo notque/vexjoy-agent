@@ -92,7 +92,7 @@ The migration runs before the application starts.  # stated as fact, is inferenc
 ---
 
 <!-- no-pair-required: section-header-only — catalog heading, individual blocks carry the do-framing -->
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Statistical Claims Without Source
 

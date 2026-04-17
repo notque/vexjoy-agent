@@ -17,7 +17,7 @@ produce either unauthorized bulk edits or subtly incorrect results that bypass d
 ---
 
 <!-- no-pair-required: section header, not a standalone anti-pattern block -->
-## Anti-Pattern Catalog
+## Pattern Catalog
 
 ### ❌ Implementing Without Phase 3 Approval
 
