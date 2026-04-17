@@ -1,34 +1,3 @@
----
-name: wordpress-uploader
-description: "WordPress REST API integration for posts and media uploads."
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-command: /upload-wp
-routing:
-  triggers:
-    - upload to wordpress
-    - create wordpress draft
-    - publish to your-blog
-    - wordpress draft
-    - upload article
-    - post to wordpress
-    - upload image to wordpress
-    - edit wordpress post
-    - update wordpress post
-    - wordpress media
-  pairs_with:
-    - voice-writer
-    - anti-ai-editor
-  complexity: simple
-  category: content-publishing
----
-
 # WordPress Uploader Skill
 
 ## Overview
@@ -150,7 +119,7 @@ Use `--get` to retrieve post details for review before making edits.
 
 ### Phase 4: POST-UPLOAD WORKFLOWS (Optional)
 
-**Goal**: Handle multi-step workflows that combine operations (featured image, batch upload, draft cleanup). See `references/workflows.md` for full command blocks.
+**Goal**: Handle multi-step workflows that combine operations (featured image, batch upload, draft cleanup). See `${CLAUDE_SKILL_DIR}/references/wordpress-upload-workflows.md` for full command blocks.
 
 **Always delete old drafts after uploading a replacement.** Multiple drafts of the same article accumulate in WordPress and cause confusion. This is mandatory cleanup, not optional.
 
@@ -158,7 +127,7 @@ Use `--get` to retrieve post details for review before making edits.
 
 ## Script Reference
 
-See `references/script-reference.md` for full flag tables for `wordpress-upload.py`, `wordpress-media-upload.py`, and `wordpress-edit-post.py`, including category/tag resolution and YAML frontmatter behavior.
+See `${CLAUDE_SKILL_DIR}/references/wordpress-upload-script-reference.md` for full flag tables for `wordpress-upload.py`, `wordpress-media-upload.py`, and `wordpress-edit-post.py`, including category/tag resolution and YAML frontmatter behavior.
 
 ---
 
@@ -166,13 +135,13 @@ See `references/script-reference.md` for full flag tables for `wordpress-upload.
 
 **Do NOT include title or author in the article body.** WordPress manages these as metadata. Duplicating them in content creates inconsistency when editing in wp-admin.
 
-See `references/content-formatting.md` for the full Gutenberg block type table, code block syntax, button links, and `--validate` output format.
+See `${CLAUDE_SKILL_DIR}/references/wordpress-upload-content-formatting.md` for the full Gutenberg block type table, code block syntax, button links, and `--validate` output format.
 
 ---
 
 ## Error Handling
 
-See `references/error-handling.md` for common errors: missing credentials, 401 Unauthorized, 403 Forbidden, file not found.
+See `${CLAUDE_SKILL_DIR}/references/wordpress-upload-error-handling.md` for common errors: missing credentials, 401 Unauthorized, 403 Forbidden, file not found.
 
 ## References
 
@@ -189,3 +158,4 @@ See `references/error-handling.md` for common errors: missing credentials, 401 U
 **Related Skills**:
 - `voice-writer`: Use for writing articles (not uploading them)
 - `anti-ai-editor`: Use for editing prose style (not publishing to WordPress)
+- `wordpress-live-validation`: Post-upload browser-based live validation

@@ -208,7 +208,7 @@ Actions:
 1. ASSESS: Topic has 1-2 natural divisions, not 3+
 2. Gate fails: Recommend single post or expanding scope to "Go resource management"
 
-Result: Redirect to post-outliner or expanded topic suggestion (post-outliner is better for focused single topics).
+Result: Redirect to publish (outline intent) or expanded topic suggestion (publish outline is better for focused single topics).
 
 ---
 
@@ -218,7 +218,7 @@ Result: Redirect to post-outliner or expanded topic suggestion (post-outliner is
 Cause: Topic doesn't naturally divide into 3+ parts
 
 Solution:
-1. Suggest post-outliner for single comprehensive post (single-post tool is more appropriate)
+1. Suggest publish (outline intent) for single comprehensive post (single-post tool is more appropriate)
 2. Propose scope expansion: "Consider covering [related aspect] to reach 3+ parts"
 3. List what would need to be true for series to work: "A series works when you can answer: Part 1 [X], Part 2 [Y], Part 3 [Z]"
 

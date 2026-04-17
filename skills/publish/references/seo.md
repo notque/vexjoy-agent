@@ -1,25 +1,3 @@
----
-name: seo-optimizer
-description: "Blog post SEO: keywords, titles, meta descriptions, internal linking."
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-  - Task
-routing:
-  triggers:
-    - "check SEO"
-    - "optimize SEO"
-    - "keyword analysis"
-    - "meta description"
-    - "keyword optimization"
-  category: seo
----
-
 # SEO Optimizer Skill
 
 This skill operates as an SEO analysis and optimization workflow for blog posts. It implements a **4-phase ASSESS-DECIDE-APPLY-VERIFY** cycle that balances search visibility improvements with content quality and authentic author voice.
@@ -265,5 +243,5 @@ Solution:
 
 ### Domain-Specific Reference Files
 - `${CLAUDE_SKILL_DIR}/references/seo-guidelines.md`: Length requirements, density targets, and best practices
-- `${CLAUDE_SKILL_DIR}/references/keyword-placement.md`: Priority locations and placement techniques
-- `${CLAUDE_SKILL_DIR}/references/title-patterns.md`: Effective title structures for technical blogs
+- `${CLAUDE_SKILL_DIR}/references/seo-keyword-placement.md`: Priority locations and placement techniques
+- `${CLAUDE_SKILL_DIR}/references/seo-title-patterns.md`: Effective title structures for technical blogs

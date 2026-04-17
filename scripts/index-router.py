@@ -42,7 +42,7 @@ COMPOSITION_CHAINS: dict[str, list[str]] = {
     "research-to-article": [
         "research-to-article",
         "de-ai-pipeline",
-        "wordpress-uploader",
+        "publish",
         "wordpress-live-validation",
     ],
     "forensics": ["forensics", "testing-anti-patterns", "learn"],

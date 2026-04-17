@@ -1,24 +1,3 @@
----
-name: taxonomy-manager
-description: "Audit and maintain blog taxonomy: categories, tags, orphans, duplicates."
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-routing:
-  triggers:
-    - "audit taxonomy"
-    - "fix tags"
-    - "merge categories"
-    - "tag cleanup"
-    - "category management"
-  category: seo
----
-
 # Taxonomy Manager Skill
 
 ## Instructions
@@ -102,7 +81,7 @@ Run these checks against the index:
 
 **Goal**: Present findings in a structured, actionable report.
 
-Generate the visual audit report following the format in `references/audit-report-format.md`. The report must include:
+Generate the visual audit report following the format in `${CLAUDE_SKILL_DIR}/references/taxonomy-audit-report-format.md`. The report must include:
 
 1. Category usage with bar charts
 2. Tag usage with bar charts
@@ -135,7 +114,7 @@ Wait for explicit user approval before proceeding (because taxonomy modification
 
 **Step 3: Apply operations**
 
-Execute the approved operation (merge, rename, add, or remove). See `references/consolidation-rules.md` for operation semantics. Apply operations individually, not in batches, to isolate errors:
+Execute the approved operation (merge, rename, add, or remove). See `${CLAUDE_SKILL_DIR}/references/taxonomy-consolidation-rules.md` for operation semantics. Apply operations individually, not in batches, to isolate errors:
 
 - **Merge**: Replace source tag(s) with target in all posts; skip if post already has target
 - **Rename**: Replace old name with new in all posts
@@ -245,6 +224,6 @@ Solution:
 
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/taxonomy-guidelines.md`: Naming conventions, category/tag best practices, maintenance cadence
-- `${CLAUDE_SKILL_DIR}/references/consolidation-rules.md`: When and how to merge, rename, add, or remove terms with priority matrix
-- `${CLAUDE_SKILL_DIR}/references/examples.md`: Good vs bad taxonomy examples, before/after comparisons, audit output samples
-- `${CLAUDE_SKILL_DIR}/references/audit-report-format.md`: Visual report template and bar chart generation rules
+- `${CLAUDE_SKILL_DIR}/references/taxonomy-consolidation-rules.md`: When and how to merge, rename, add, or remove terms with priority matrix
+- `${CLAUDE_SKILL_DIR}/references/taxonomy-examples.md`: Good vs bad taxonomy examples, before/after comparisons, audit output samples
+- `${CLAUDE_SKILL_DIR}/references/taxonomy-audit-report-format.md`: Visual report template and bar chart generation rules

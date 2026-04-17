@@ -1,25 +1,3 @@
----
-name: batch-editor
-description: "Bulk find/replace and frontmatter updates across Hugo posts."
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-  - Task
-routing:
-  triggers:
-    - "batch edit posts"
-    - "bulk frontmatter update"
-    - "find replace across files"
-    - "mass edit"
-    - "bulk update"
-  category: content-publishing
----
-
 # Batch Editor Skill
 
 Safe, reversible bulk modifications across Hugo blog posts using a **Preview-Confirm-Apply** pattern. Supports find/replace (literal or regex), frontmatter field operations (add/modify/remove), and content transforms (headings, links, whitespace, quotes). All operations are scoped to `content/posts/*.md` by default and limited to markdown files -- binary files, images, and files outside `content/` are never touched.
@@ -183,7 +161,7 @@ The `transform` operation supports these built-in transforms:
 | Smart quotes to straight | `[\u201C\u201D]` | `"` |
 | HTTP to HTTPS links | `\[([^\]]+)\]\(http://` | `[$1](https://` |
 
-For custom transforms, use `find-replace --regex` with user-provided patterns. See `references/regex-patterns.md` for tested patterns.
+For custom transforms, use `find-replace --regex` with user-provided patterns. See `${CLAUDE_SKILL_DIR}/references/batch-edit-regex-patterns.md` for tested patterns.
 
 ### Examples
 
@@ -228,7 +206,7 @@ Actions:
 4. DRY RUN mode -- no apply option shown, pattern validation only
 Result: User sees all date occurrences, can decide on follow-up action
 
-See `references/examples.md` for full output format templates with banner formatting.
+See `${CLAUDE_SKILL_DIR}/references/batch-edit-examples.md` for full output format templates with banner formatting.
 
 ## Error Handling
 
@@ -264,7 +242,7 @@ Solution:
 
 ## References
 
-- `${CLAUDE_SKILL_DIR}/references/operation-types.md`: Detailed operation syntax and options
-- `${CLAUDE_SKILL_DIR}/references/regex-patterns.md`: Common regex patterns for Hugo content
-- `${CLAUDE_SKILL_DIR}/references/safety-checklist.md`: Pre-edit validation steps and rollback procedures
-- `${CLAUDE_SKILL_DIR}/references/examples.md`: Full output format templates and extended examples
+- `${CLAUDE_SKILL_DIR}/references/batch-edit-operation-types.md`: Detailed operation syntax and options
+- `${CLAUDE_SKILL_DIR}/references/batch-edit-regex-patterns.md`: Common regex patterns for Hugo content
+- `${CLAUDE_SKILL_DIR}/references/batch-edit-safety-checklist.md`: Pre-edit validation steps and rollback procedures
+- `${CLAUDE_SKILL_DIR}/references/batch-edit-examples.md`: Full output format templates and extended examples

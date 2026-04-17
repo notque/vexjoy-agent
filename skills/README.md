@@ -138,18 +138,14 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `voice-validator` | no | Critique-and-rewrite loop for voice fidelity validation |
 | `create-voice` | no | Create voice profiles from writing samples |
 | `anti-ai-editor` | no | Remove AI-sounding patterns from content |
-| `post-outliner` | no | Create structural blueprints for blog posts: outlines, word counts |
+| `publish` | no | Content-publishing umbrella: outline, pre-publish check, SEO, batch-edit, link/image/taxonomy audits, WordPress upload |
 | `topic-brainstormer` | no | Generate blog topic ideas: problem mining, gap analysis, expansion |
 | `series-planner` | no | Plan multi-part content series: structure, cross-linking, cadence |
-| `seo-optimizer` | no | Blog post SEO: keywords, titles, meta descriptions, internal linking |
 | `content-engine` | no | Repurpose source assets into platform-native social content |
 | `content-calendar` | no | Manage editorial content through 6 pipeline stages |
 | `joy-check` | no | Validate content framing on joy-grievance spectrum |
 | `professional-communication` | no | Transform technical communication into structured business formats |
-| `batch-editor` | no | Bulk find/replace and frontmatter updates across Hugo posts |
-| `pre-publish-checker` | no | Pre-publication validation for Hugo posts: front matter, SEO, links, images |
 | `pptx-generator` | no | PPTX presentation generation with visual QA: slides, pitch decks |
-| `image-auditor` | no | Non-destructive image validation for accessibility and health |
 | `gemini-image-generator` | no | Generate images from text prompts via Google Gemini |
 | `image-to-video` | no | FFmpeg-based video creation from image and audio |
 | `video-editing` | no | Video editing pipeline: cut footage, assemble clips via FFmpeg and Remotion |
@@ -176,8 +172,6 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `forensics` | no | Post-mortem diagnostic analysis of failed workflows |
 | `data-analysis` | no | Decision-first data analysis with statistical rigor gates |
 | `docs-sync-checker` | no | Detect documentation drift against filesystem state |
-| `link-auditor` | no | Hugo site link health: scan markdown, build link graph, validate paths |
-| `taxonomy-manager` | no | Audit and maintain blog taxonomy: categories, tags, orphans, duplicates |
 
 ---
 
@@ -216,7 +210,6 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `cron-job-auditor` | no | Audit cron scripts for reliability and safety |
 | `service-health-check` | no | Service health monitoring: Discover, Check, Report in 3 phases |
 | `fish-shell-config` | no | Fish shell configuration and PATH management |
-| `wordpress-uploader` | no | WordPress REST API integration for posts and media uploads |
 | `wordpress-live-validation` | no | Validate published WordPress posts in browser via Playwright |
 
 ---

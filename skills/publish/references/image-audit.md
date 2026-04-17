@@ -1,25 +1,3 @@
----
-name: image-auditor
-description: "Non-destructive image validation for accessibility and health."
-user-invocable: false
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Grep
-  - Glob
-  - Edit
-  - Task
-routing:
-  triggers:
-    - "audit images"
-    - "check broken images"
-    - "image accessibility"
-    - "alt text check"
-    - "image optimization"
-  category: content-publishing
----
-
 # Image Auditor Skill
 
 Non-destructive 4-phase image validation pipeline: Discover, Validate, Analyze, Report. Read and follow the repository CLAUDE.md before starting any audit.
@@ -85,7 +63,7 @@ For each image reference, record:
 
 15% of users rely on assistive technology, so validate all alt text regardless of perceived importance.
 
-See `references/alt-text-examples.md` for detailed quality guidelines.
+See `${CLAUDE_SKILL_DIR}/references/image-audit-alt-text-examples.md` for detailed quality guidelines.
 
 **Step 2: File existence validation**
 
@@ -102,7 +80,7 @@ See `references/alt-text-examples.md` for detailed quality guidelines.
 | WARN | 200KB-500KB |
 | FAIL | >500KB |
 
-See `references/size-guidelines.md` for type-specific thresholds.
+See `${CLAUDE_SKILL_DIR}/references/image-audit-size-guidelines.md` for type-specific thresholds.
 
 **Step 4: Format appropriateness**
 
@@ -115,7 +93,7 @@ See `references/size-guidelines.md` for type-specific thresholds.
 
 Report format savings estimates and let the user decide whether to convert -- do not skip format recommendations on the assumption they are unnecessary.
 
-See `references/format-selection.md` for the complete decision flowchart.
+See `${CLAUDE_SKILL_DIR}/references/image-audit-format-selection.md` for the complete decision flowchart.
 
 **Step 5: Unused image detection**
 
@@ -161,7 +139,7 @@ Rank issues by potential impact:
 
 **Goal**: Generate a structured, actionable audit report. This phase is read-only -- never modify, resize, convert, or delete images. Report findings and recommendations only; changes require explicit user request.
 
-Follow the report format in `references/report-templates.md`. The report must include:
+Follow the report format in `${CLAUDE_SKILL_DIR}/references/image-audit-report-templates.md`. The report must include:
 
 1. **Summary**: Total images, total size, posts with images, averages
 2. **Alt Text Issues**: Every FAIL and WARN with file path, line number, current alt text
@@ -246,14 +224,14 @@ Solution:
 
 ### Integration Notes
 
-**With pre-publish-checker**: The pre-publish-checker skill performs basic image validation (existence, alt text presence). This skill provides deeper analysis including format optimization, page weight, and unused image detection. Use pre-publish for quick pass/fail; use image-auditor for comprehensive audits.
+**With pre-publish reference**: The pre-publish reference (same publish skill) performs basic image validation (existence, alt text presence). This reference provides deeper analysis including format optimization, page weight, and unused image detection. Use pre-publish for quick pass/fail; use image-audit for comprehensive audits.
 
 **With Hugo build**: Run image audit before `hugo --minify` to catch broken references and optimize assets before deployment.
 
 **Recommended cadence**: Run full audit periodically (weekly or before releases). Address FAIL issues immediately. Schedule WARN issues for optimization sprints.
 
 ### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/alt-text-examples.md`: Good and bad alt text examples by image type
-- `${CLAUDE_SKILL_DIR}/references/size-guidelines.md`: Maximum file sizes, dimension limits, page weight budgets
-- `${CLAUDE_SKILL_DIR}/references/format-selection.md`: Format decision flowchart and detection heuristics
-- `${CLAUDE_SKILL_DIR}/references/report-templates.md`: Full audit and single-post report templates
+- `${CLAUDE_SKILL_DIR}/references/image-audit-alt-text-examples.md`: Good and bad alt text examples by image type
+- `${CLAUDE_SKILL_DIR}/references/image-audit-size-guidelines.md`: Maximum file sizes, dimension limits, page weight budgets
+- `${CLAUDE_SKILL_DIR}/references/image-audit-format-selection.md`: Format decision flowchart and detection heuristics
+- `${CLAUDE_SKILL_DIR}/references/image-audit-report-templates.md`: Full audit and single-post report templates
