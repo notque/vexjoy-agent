@@ -117,6 +117,7 @@ export DREAM_DRY_RUN_MODE="${DRY_RUN}"
 ---
 
 ## Anti-Pattern Catalog
+<!-- no-pair-required: section heading only, paired Do instead blocks appear in each sub-entry below -->
 
 ### ❌ Using `--dangerously-skip-permissions` in cron
 
@@ -132,6 +133,8 @@ claude --dangerously-skip-permissions -p "${PROMPT}" | tee "${LOG}"
 ```
 
 **Why wrong**: Semantically equivalent to `--permission-mode auto` today but communicates "I know this is risky" and may diverge in future Claude Code versions. Cron scripts are long-lived; use the explicit stable flag.
+
+**Do instead**: Use `--permission-mode auto` for all headless cron invocations. It grants the same permissions with a stable, semantically clear flag that won't diverge from intended behavior in future Claude Code versions.
 
 **Fix**:
 ```bash
@@ -156,6 +159,8 @@ echo "Done, exit: $?"   # $? is tee's exit code, always 0
 
 **Why wrong**: A Claude session that crashes or hits the budget cap exits non-zero, but the script reports success. Cron mail, monitoring alerts, and retry logic all miss the failure.
 
+**Do instead**: Capture `${PIPESTATUS[0]}` immediately after any pipe and `exit` with that value so cron's failure-notification infrastructure sees the real exit code rather than `tee`'s always-zero result.
+
 **Fix**:
 ```bash
 claude -p "${PROMPT}" | tee "${LOG}"
@@ -175,12 +180,15 @@ rg 'claude' scripts/ --type sh -l | xargs grep -L 'max-budget-usd'
 ```
 
 **What it looks like**:
+<!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
 ```bash
 claude --permission-mode auto --no-session-persistence -p "${LARGE_PROMPT}"
 # No --max-budget-usd: a prompt bug or unexpectedly large context can cost $50+
 ```
 
 **Why wrong**: Budget cap is the last defense against a runaway unattended session. Even with `--no-session-persistence`, a misbehaving prompt can loop reasoning across tools and accumulate large costs before timing out.
+
+**Do instead**: Always include `--max-budget-usd 3.00` (or an appropriate ceiling for your use case) on every unattended `claude` invocation. Treat the cap as a required safety parameter, not an optional tuning knob.
 
 **Fix**:
 ```bash
@@ -208,6 +216,8 @@ claude -p "${PROMPT}" ...
 ```
 
 **Why wrong**: If a slow run holds the lock past the next cron tick, the second instance queues rather than skipping. When the first finishes, the second starts immediately — creating back-to-back full cycles and doubling cost and mutations in the same day.
+
+**Do instead**: Always use `flock -n` so a second cron tick exits immediately with a logged skip message instead of queuing behind the active run. The skip message makes the lockfile behavior visible in monitoring.
 
 **Fix**:
 ```bash
