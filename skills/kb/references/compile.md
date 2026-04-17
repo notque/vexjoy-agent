@@ -1,39 +1,6 @@
----
-name: kb-compile
-description: "Compile raw knowledge base sources into structured wiki articles."
-user-invocable: false
-agent: general-purpose
-allowed-tools:
-  - Read
-  - Write
-  - Edit
-  - Bash
-  - Glob
-  - Grep
-routing:
-  triggers:
-    - "compile knowledge base"
-    - "kb compile"
-    - "compile wiki"
-    - "build knowledge base"
-    - "compile raw sources"
-  category: research
-  complexity: medium
----
-
 # KB Compile Skill
 
 Compile raw clipped sources (`research/{topic}/raw/`) into structured wiki articles (`research/{topic}/wiki/`). Produces concept articles, source summaries, and a maintained index.
-
-## Invocation
-
-```
-/kb compile {topic}
-```
-
-The topic must correspond to a directory under `research/` that was initialized with `kb-init.py`.
-
----
 
 ## Phase 1: SCAN
 

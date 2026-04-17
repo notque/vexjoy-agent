@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-16T20:47:42Z",
+  "generated": "2026-04-17T02:01:58Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -17,7 +17,6 @@
       ],
       "category": "meta",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "feature-lifecycle"
       ],
@@ -35,8 +34,7 @@
         "run autoresearch"
       ],
       "category": "meta-tooling",
-      "user_invocable": false,
-      "version": "2.2.0"
+      "user_invocable": false
     },
     "agent-evaluation": {
       "file": "skills/agent-evaluation/SKILL.md",
@@ -50,8 +48,7 @@
         "agent quality"
       ],
       "category": "meta-tooling",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "anti-ai-editor": {
       "file": "skills/anti-ai-editor/SKILL.md",
@@ -64,8 +61,7 @@
         "humanize text"
       ],
       "category": "content-creation",
-      "user_invocable": false,
-      "version": "2.2.0"
+      "user_invocable": false
     },
     "auto-dream": {
       "file": "skills/auto-dream/SKILL.md",
@@ -82,7 +78,6 @@
       ],
       "category": "meta-tooling",
       "user_invocable": true,
-      "version": "1.0.0",
       "pairs_with": [],
       "model": "sonnet"
     },
@@ -97,8 +92,7 @@
         "bulk update"
       ],
       "category": "content-publishing",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "bluesky-reader": {
       "file": "skills/bluesky-reader/SKILL.md",
@@ -112,7 +106,6 @@
       ],
       "category": "research",
       "user_invocable": false,
-      "version": "1.0.0",
       "agent": "python-general-engineer"
     },
     "branch-naming": {
@@ -126,8 +119,7 @@
         "git branch name"
       ],
       "category": "git-workflow",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "cobalt-core": {
       "file": "skills/cobalt-core/SKILL.md",
@@ -143,7 +135,6 @@
       ],
       "category": "infrastructure",
       "user_invocable": true,
-      "version": "1.0.0",
       "pairs_with": [
         "go-patterns",
         "prometheus-grafana-engineer",
@@ -163,8 +154,7 @@
         "find unused"
       ],
       "category": "code-quality",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "code-linting": {
       "file": "skills/code-linting/SKILL.md",
@@ -177,8 +167,7 @@
         "lint errors"
       ],
       "category": "code-quality",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "codebase-analyzer": {
       "file": "skills/codebase-analyzer/SKILL.md",
@@ -192,8 +181,7 @@
         "structural metrics"
       ],
       "category": "analysis",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "codebase-overview": {
       "file": "skills/codebase-overview/SKILL.md",
@@ -207,8 +195,7 @@
         "understand this codebase"
       ],
       "category": "analysis",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "codex-code-review": {
       "file": "skills/codex-code-review/SKILL.md",
@@ -222,7 +209,6 @@
       ],
       "category": "code-review",
       "user_invocable": true,
-      "version": "1.0.0",
       "pairs_with": [
         "systematic-code-review",
         "parallel-code-review",
@@ -240,8 +226,7 @@
         "outdated comment"
       ],
       "category": "code-quality",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "condition-based-waiting": {
       "file": "skills/condition-based-waiting/SKILL.md",
@@ -256,8 +241,7 @@
         "retry until success"
       ],
       "category": "process",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "content-calendar": {
       "file": "skills/content-calendar/SKILL.md",
@@ -270,8 +254,7 @@
         "publication plan"
       ],
       "category": "content-creation",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "content-engine": {
       "file": "skills/content-engine/SKILL.md",
@@ -290,7 +273,6 @@
       ],
       "category": "content",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "x-api"
       ],
@@ -311,7 +293,6 @@
       "category": "content",
       "force_route": true,
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "voice-calibrator",
         "voice-writer"
@@ -328,8 +309,7 @@
         "scheduled task safety"
       ],
       "category": "infrastructure",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "csuite": {
       "file": "skills/csuite/SKILL.md",
@@ -378,7 +358,6 @@
       ],
       "category": "decision-support",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": []
     },
     "data-analysis": {
@@ -406,7 +385,6 @@
       ],
       "category": "analysis",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "workflow",
         "codebase-analyzer"
@@ -427,8 +405,7 @@
         "evaluate options"
       ],
       "category": "process",
-      "user_invocable": false,
-      "version": "1.0.0"
+      "user_invocable": false
     },
     "distinctive-frontend-design": {
       "file": "skills/distinctive-frontend-design/SKILL.md",
@@ -441,8 +418,7 @@
         "design language"
       ],
       "category": "frontend",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "do": {
       "file": "skills/do/SKILL.md",
@@ -455,8 +431,7 @@
         "smart router"
       ],
       "category": "meta-tooling",
-      "user_invocable": true,
-      "version": "2.3.0"
+      "user_invocable": true
     },
     "docs-sync-checker": {
       "file": "skills/docs-sync-checker/SKILL.md",
@@ -469,8 +444,7 @@
         "README outdated"
       ],
       "category": "documentation",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "e2e-testing": {
       "file": "skills/e2e-testing/SKILL.md",
@@ -486,7 +460,6 @@
       ],
       "category": "testing",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "testing-automation-engineer",
         "typescript-frontend-engineer",
@@ -507,8 +480,7 @@
         "smoke test"
       ],
       "category": "infrastructure",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "explanation-traces": {
       "file": "skills/explanation-traces/SKILL.md",
@@ -526,25 +498,6 @@
       "category": "analysis",
       "force_route": true,
       "user_invocable": true,
-      "version": "1.0.0",
-      "pairs_with": []
-    },
-    "fast": {
-      "file": "skills/fast/SKILL.md",
-      "description": "Zero-ceremony inline execution for 3 or fewer file edits.",
-      "triggers": [
-        "quick fix",
-        "typo fix",
-        "one-line change",
-        "trivial fix",
-        "rename variable",
-        "update value",
-        "fix import"
-      ],
-      "category": "process",
-      "force_route": true,
-      "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": []
     },
     "feature-lifecycle": {
@@ -582,7 +535,6 @@
       "category": "process",
       "force_route": true,
       "user_invocable": false,
-      "version": "3.0.0",
       "pairs_with": [
         "workflow",
         "subagent-driven-development",
@@ -616,7 +568,6 @@
       "category": "process",
       "force_route": true,
       "user_invocable": false,
-      "version": "2.0.0",
       "pairs_with": []
     },
     "forensics": {
@@ -638,7 +589,6 @@
       ],
       "category": "process",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "workflow",
         "plan-checker"
@@ -662,7 +612,6 @@
       ],
       "category": "frontend",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "typescript-frontend-engineer",
         "pptx-generator"
@@ -682,7 +631,6 @@
       ],
       "category": "analysis",
       "user_invocable": true,
-      "version": "1.0.0",
       "pairs_with": [
         "comprehensive-review"
       ],
@@ -718,7 +666,6 @@
       ],
       "category": "game-development",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "threejs-builder",
         "typescript-frontend-engineer"
@@ -746,7 +693,6 @@
       ],
       "category": "game-development",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "threejs-builder",
         "phaser-gamedev",
@@ -767,7 +713,6 @@
       ],
       "category": "image-generation",
       "user_invocable": false,
-      "version": "2.0.0",
       "pairs_with": [
         "python-general-engineer",
         "workflow"
@@ -785,7 +730,6 @@
       ],
       "category": "documentation",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "go-patterns",
         "codebase-overview"
@@ -803,8 +747,7 @@
       ],
       "category": "git-workflow",
       "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "github-actions-check": {
       "file": "skills/github-actions-check/SKILL.md",
@@ -819,8 +762,7 @@
       ],
       "category": "git-workflow",
       "force_route": true,
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "github-notification-triage": {
       "file": "skills/github-notification-triage/SKILL.md",
@@ -834,7 +776,6 @@
       ],
       "category": "github",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [],
       "model": "sonnet"
     },
@@ -888,7 +829,6 @@
       "category": "language",
       "force_route": true,
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "golang-general-engineer",
         "golang-general-engineer-compact",
@@ -908,7 +848,6 @@
       ],
       "category": "process",
       "user_invocable": false,
-      "version": "1.0.0",
       "agent": "python-general-engineer"
     },
     "image-auditor": {
@@ -922,8 +861,7 @@
         "image optimization"
       ],
       "category": "content-publishing",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "image-to-video": {
       "file": "skills/image-to-video/SKILL.md",
@@ -942,7 +880,6 @@
       ],
       "category": "video-creation",
       "user_invocable": false,
-      "version": "2.0.0",
       "pairs_with": [
         "gemini-image-generator",
         "workflow"
@@ -961,8 +898,7 @@
       ],
       "category": "meta-tooling",
       "force_route": true,
-      "user_invocable": true,
-      "version": "1.0.0"
+      "user_invocable": true
     },
     "integration-checker": {
       "file": "skills/integration-checker/SKILL.md",
@@ -978,7 +914,6 @@
       ],
       "category": "process",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "feature-lifecycle",
         "comprehensive-review"
@@ -1000,7 +935,6 @@
       ],
       "category": "content",
       "user_invocable": false,
-      "version": "2.0.0",
       "pairs_with": [
         "voice-writer",
         "anti-ai-editor",
@@ -1024,31 +958,25 @@
       ],
       "category": "meta-tooling",
       "user_invocable": true,
-      "version": "1.0.0",
       "pairs_with": [
         "auto-dream"
       ],
       "model": "sonnet"
     },
-    "kb-compile": {
-      "file": "skills/kb-compile/SKILL.md",
-      "description": "Compile raw knowledge base sources into structured wiki articles.",
+    "kb": {
+      "file": "skills/kb/SKILL.md",
+      "description": "Knowledge base operations on `research/{topic}/` wikis: compile raw sources into wiki articles, query the wiki for answers, or health-check wiki consistency.",
       "triggers": [
         "compile knowledge base",
         "kb compile",
         "compile wiki",
         "build knowledge base",
-        "compile raw sources"
-      ],
-      "category": "research",
-      "user_invocable": false,
-      "version": "1.0.0",
-      "agent": "general-purpose"
-    },
-    "kb-lint": {
-      "file": "skills/kb-lint/SKILL.md",
-      "description": "Health check and lint a knowledge base wiki for consistency and gaps.",
-      "triggers": [
+        "compile raw sources",
+        "query knowledge base",
+        "kb query",
+        "ask knowledge base",
+        "search kb",
+        "kb question",
         "lint knowledge base",
         "kb lint",
         "check kb health",
@@ -1057,22 +985,6 @@
       ],
       "category": "research",
       "user_invocable": false,
-      "version": "1.0.0",
-      "agent": "general-purpose"
-    },
-    "kb-query": {
-      "file": "skills/kb-query/SKILL.md",
-      "description": "Query a knowledge base topic and optionally file the answer.",
-      "triggers": [
-        "query knowledge base",
-        "kb query",
-        "ask knowledge base",
-        "search kb",
-        "kb question"
-      ],
-      "category": "research",
-      "user_invocable": false,
-      "version": "1.0.0",
       "agent": "general-purpose"
     },
     "kotlin-coroutines": {
@@ -1088,7 +1000,6 @@
       ],
       "category": "kotlin",
       "user_invocable": false,
-      "version": "1.0.0",
       "agent": "kotlin-general-engineer"
     },
     "kotlin-testing": {
@@ -1103,7 +1014,6 @@
       ],
       "category": "kotlin",
       "user_invocable": false,
-      "version": "1.0.0",
       "agent": "kotlin-general-engineer"
     },
     "kubernetes-debugging": {
@@ -1119,7 +1029,6 @@
       ],
       "category": "kubernetes",
       "user_invocable": false,
-      "version": "1.0.0",
       "agent": "kubernetes-helm-engineer"
     },
     "kubernetes-security": {
@@ -1134,7 +1043,6 @@
       ],
       "category": "kubernetes",
       "user_invocable": false,
-      "version": "1.1.0",
       "agent": "kubernetes-helm-engineer"
     },
     "learn": {
@@ -1148,8 +1056,7 @@
         "save learning"
       ],
       "category": "meta-tooling",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "link-auditor": {
       "file": "skills/link-auditor/SKILL.md",
@@ -1162,8 +1069,7 @@
         "dead links"
       ],
       "category": "content-publishing",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "motion-pipeline": {
       "file": "skills/motion-pipeline/SKILL.md",
@@ -1182,8 +1088,7 @@
         "skeletal animation data"
       ],
       "category": "game-animation",
-      "user_invocable": true,
-      "version": "1.0.0"
+      "user_invocable": true
     },
     "multi-persona-critique": {
       "file": "skills/multi-persona-critique/SKILL.md",
@@ -1200,7 +1105,6 @@
       ],
       "category": "analysis",
       "user_invocable": true,
-      "version": "1.0.0",
       "pairs_with": [
         "roast",
         "decision-helper"
@@ -1223,7 +1127,6 @@
       ],
       "category": "image-generation",
       "user_invocable": false,
-      "version": "3.0.0",
       "pairs_with": [
         "python-general-engineer",
         "universal-quality-gate"
@@ -1243,8 +1146,7 @@
         "interactive coding"
       ],
       "category": "process",
-      "user_invocable": false,
-      "version": "1.0.0"
+      "user_invocable": false
     },
     "parallel-code-review": {
       "file": "skills/parallel-code-review/SKILL.md",
@@ -1257,8 +1159,7 @@
         "concurrent review"
       ],
       "category": "code-review",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "pause-work": {
       "file": "skills/pause-work/SKILL.md",
@@ -1275,7 +1176,6 @@
       ],
       "category": "process",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "resume-work"
       ]
@@ -1301,7 +1201,6 @@
       "category": "infrastructure",
       "force_route": true,
       "user_invocable": false,
-      "version": "2.0.0",
       "pairs_with": [
         "perses-engineer",
         "prometheus-grafana-engineer"
@@ -1323,7 +1222,6 @@
       ],
       "category": "game-development",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "typescript-frontend-engineer",
         "game-asset-generator"
@@ -1341,7 +1239,6 @@
       ],
       "category": "php",
       "user_invocable": false,
-      "version": "1.1.0",
       "agent": "php-general-engineer"
     },
     "php-testing": {
@@ -1355,7 +1252,6 @@
       ],
       "category": "php",
       "user_invocable": false,
-      "version": "1.0.0",
       "agent": "php-general-engineer"
     },
     "plan-checker": {
@@ -1372,7 +1268,6 @@
       ],
       "category": "process",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "feature-lifecycle",
         "workflow",
@@ -1390,8 +1285,7 @@
         "manage plans"
       ],
       "category": "process",
-      "user_invocable": true,
-      "version": "2.0.0"
+      "user_invocable": true
     },
     "planning-with-files": {
       "file": "skills/planning-with-files/SKILL.md",
@@ -1404,8 +1298,7 @@
         "file-backed planning"
       ],
       "category": "process",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "plant-seed": {
       "file": "skills/plant-seed/SKILL.md",
@@ -1420,7 +1313,6 @@
       ],
       "category": "process",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "feature-lifecycle"
       ]
@@ -1436,8 +1328,7 @@
         "content structure"
       ],
       "category": "content-creation",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "pptx-generator": {
       "file": "skills/pptx-generator/SKILL.md",
@@ -1456,7 +1347,6 @@
       ],
       "category": "content-generation",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "workflow",
         "gemini-image-generator"
@@ -1495,8 +1385,7 @@
       ],
       "category": "git-workflow",
       "force_route": true,
-      "user_invocable": true,
-      "version": "1.0.0"
+      "user_invocable": true
     },
     "pre-planning-discussion": {
       "file": "skills/pre-planning-discussion/SKILL.md",
@@ -1513,7 +1402,6 @@
       "category": "process",
       "force_route": true,
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "feature-lifecycle",
         "workflow"
@@ -1530,8 +1418,7 @@
         "frontmatter validation"
       ],
       "category": "content-publishing",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "professional-communication": {
       "file": "skills/professional-communication/SKILL.md",
@@ -1547,8 +1434,7 @@
         "status update"
       ],
       "category": "content-creation",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "python-quality-gate": {
       "file": "skills/python-quality-gate/SKILL.md",
@@ -1566,27 +1452,33 @@
       "category": "code-quality",
       "force_route": true,
       "user_invocable": false,
-      "version": "2.0.0",
       "agent": "python-general-engineer"
     },
     "quick": {
       "file": "skills/quick/SKILL.md",
-      "description": "Tracked lightweight execution with composable rigor flags: --discuss, --research, --full.",
+      "description": "Tracked lightweight execution with composable rigor flags: --trivial, --discuss, --research, --full.",
       "triggers": [
         "quick task",
         "small change",
         "ad hoc task",
         "add a flag",
         "small refactor",
-        "targeted fix"
+        "targeted fix",
+        "quick fix",
+        "typo fix",
+        "fix typo",
+        "fix the typo",
+        "one-line change",
+        "trivial fix",
+        "rename variable",
+        "rename this variable",
+        "update value",
+        "fix import"
       ],
       "category": "process",
       "force_route": true,
       "user_invocable": true,
-      "version": "1.0.0",
-      "pairs_with": [
-        "fast"
-      ]
+      "pairs_with": []
     },
     "read-only-ops": {
       "file": "skills/read-only-ops/SKILL.md",
@@ -1599,8 +1491,7 @@
         "inspect only"
       ],
       "category": "process",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "reddit-moderate": {
       "file": "skills/reddit-moderate/SKILL.md",
@@ -1614,7 +1505,6 @@
       ],
       "category": "process",
       "user_invocable": false,
-      "version": "1.0.0",
       "agent": "python-general-engineer"
     },
     "reference-enrichment": {
@@ -1634,7 +1524,6 @@
       ],
       "category": "meta-tooling",
       "user_invocable": true,
-      "version": "1.0.0",
       "pairs_with": [
         "verification-before-completion"
       ]
@@ -1652,7 +1541,6 @@
       ],
       "category": "analysis",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "workflow"
       ],
@@ -1673,7 +1561,6 @@
       ],
       "category": "research",
       "user_invocable": true,
-      "version": "2.0.0",
       "agent": "research-coordinator-engineer",
       "model": "sonnet"
     },
@@ -1691,7 +1578,6 @@
       ],
       "category": "process",
       "user_invocable": true,
-      "version": "1.0.0",
       "pairs_with": [
         "pause-work"
       ]
@@ -1707,8 +1593,7 @@
         "search learnings"
       ],
       "category": "meta-tooling",
-      "user_invocable": true,
-      "version": "2.0.0"
+      "user_invocable": true
     },
     "roast": {
       "file": "skills/roast/SKILL.md",
@@ -1722,8 +1607,7 @@
         "poke holes in this"
       ],
       "category": "analysis",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "routing-table-updater": {
       "file": "skills/routing-table-updater/SKILL.md",
@@ -1736,8 +1620,7 @@
         "routing drift"
       ],
       "category": "meta-tooling",
-      "user_invocable": false,
-      "version": "2.1.0"
+      "user_invocable": false
     },
     "sapcc-audit": {
       "file": "skills/sapcc-audit/SKILL.md",
@@ -1752,7 +1635,6 @@
       ],
       "category": "language",
       "user_invocable": false,
-      "version": "2.0.0",
       "pairs_with": [
         "golang-general-engineer",
         "golang-general-engineer-compact",
@@ -1773,7 +1655,6 @@
       ],
       "category": "language",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "golang-general-engineer",
         "go-patterns",
@@ -1799,7 +1680,6 @@
       ],
       "category": "security",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "python-general-engineer"
       ],
@@ -1816,8 +1696,7 @@
         "keyword optimization"
       ],
       "category": "seo",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "series-planner": {
       "file": "skills/series-planner/SKILL.md",
@@ -1830,8 +1709,7 @@
         "content arc"
       ],
       "category": "content-creation",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "service-health-check": {
       "file": "skills/service-health-check/SKILL.md",
@@ -1844,8 +1722,7 @@
         "check health"
       ],
       "category": "infrastructure",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "skill-composer": {
       "file": "skills/skill-composer/SKILL.md",
@@ -1858,8 +1735,7 @@
         "combine skills"
       ],
       "category": "meta-tooling",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "skill-creator": {
       "file": "skills/skill-creator/SKILL.md",
@@ -1876,7 +1752,6 @@
       ],
       "category": "meta",
       "user_invocable": false,
-      "version": "2.0.0",
       "pairs_with": [
         "agent-evaluation",
         "verification-before-completion"
@@ -1898,7 +1773,6 @@
       ],
       "category": "meta",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "agent-evaluation",
         "verification-before-completion"
@@ -1918,8 +1792,7 @@
         "teach me to find it"
       ],
       "category": "process",
-      "user_invocable": false,
-      "version": "1.0.0"
+      "user_invocable": false
     },
     "spec-writer": {
       "file": "skills/spec-writer/SKILL.md",
@@ -1936,7 +1809,6 @@
       ],
       "category": "process",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "feature-lifecycle"
       ]
@@ -1952,8 +1824,7 @@
         "fresh context per task"
       ],
       "category": "process",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "swift-concurrency": {
       "file": "skills/swift-concurrency/SKILL.md",
@@ -1966,7 +1837,6 @@
       ],
       "category": "swift",
       "user_invocable": false,
-      "version": "1.0.0",
       "agent": "swift-general-engineer"
     },
     "swift-testing": {
@@ -1980,7 +1850,6 @@
       ],
       "category": "swift",
       "user_invocable": false,
-      "version": "1.0.0",
       "agent": "swift-general-engineer"
     },
     "systematic-code-review": {
@@ -1995,8 +1864,7 @@
         "comprehensive review"
       ],
       "category": "code-review",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "taxonomy-manager": {
       "file": "skills/taxonomy-manager/SKILL.md",
@@ -2009,8 +1877,7 @@
         "category management"
       ],
       "category": "seo",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "test-driven-development": {
       "file": "skills/test-driven-development/SKILL.md",
@@ -2025,8 +1892,7 @@
         "tests before code"
       ],
       "category": "testing",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "testing-agents-with-subagents": {
       "file": "skills/testing-agents-with-subagents/SKILL.md",
@@ -2039,8 +1905,7 @@
         "agent test harness"
       ],
       "category": "testing",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "testing-anti-patterns": {
       "file": "skills/testing-anti-patterns/SKILL.md",
@@ -2059,7 +1924,6 @@
       ],
       "category": "testing",
       "user_invocable": false,
-      "version": "2.0.0",
       "pairs_with": [
         "test-driven-development",
         "go-patterns",
@@ -2099,7 +1963,6 @@
       ],
       "category": "frontend",
       "user_invocable": false,
-      "version": "3.1.0",
       "pairs_with": [
         "typescript-frontend-engineer",
         "react-native-engineer",
@@ -2122,7 +1985,6 @@
       ],
       "category": "meta-tooling",
       "user_invocable": true,
-      "version": "1.0.0",
       "pairs_with": [
         "multi-persona-critique",
         "skill-eval"
@@ -2138,8 +2000,7 @@
         "what to write about"
       ],
       "category": "content-creation",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "typescript-check": {
       "file": "skills/typescript-check/SKILL.md",
@@ -2153,7 +2014,6 @@
       ],
       "category": "code-quality",
       "user_invocable": false,
-      "version": "2.0.0",
       "agent": "typescript-frontend-engineer"
     },
     "universal-quality-gate": {
@@ -2167,8 +2027,7 @@
         "language-agnostic lint"
       ],
       "category": "code-quality",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "verification-before-completion": {
       "file": "skills/verification-before-completion/SKILL.md",
@@ -2181,8 +2040,7 @@
         "final verification"
       ],
       "category": "process",
-      "user_invocable": false,
-      "version": "3.0.0"
+      "user_invocable": false
     },
     "video-editing": {
       "file": "skills/video-editing/SKILL.md",
@@ -2202,7 +2060,6 @@
       ],
       "category": "video-creation",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "typescript-frontend-engineer"
       ],
@@ -2220,8 +2077,7 @@
         "vitest output"
       ],
       "category": "testing",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "voice-validator": {
       "file": "skills/voice-validator/SKILL.md",
@@ -2234,8 +2090,7 @@
         "writing style check"
       ],
       "category": "voice",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "voice-writer": {
       "file": "skills/voice-writer/SKILL.md",
@@ -2249,7 +2104,6 @@
       ],
       "category": "voice",
       "user_invocable": true,
-      "version": "2.0.0",
       "model": "sonnet"
     },
     "webgl-card-effects": {
@@ -2269,7 +2123,6 @@
       ],
       "category": "frontend",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "typescript-frontend-engineer",
         "ui-design-engineer"
@@ -2286,8 +2139,7 @@
         "no shortcuts"
       ],
       "category": "process",
-      "user_invocable": false,
-      "version": "2.0.0"
+      "user_invocable": false
     },
     "wordpress-live-validation": {
       "file": "skills/wordpress-live-validation/SKILL.md",
@@ -2304,7 +2156,6 @@
       ],
       "category": "content-publishing",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "wordpress-uploader",
         "pre-publish-checker",
@@ -2328,7 +2179,6 @@
       ],
       "category": "content-publishing",
       "user_invocable": false,
-      "version": "2.0.0",
       "pairs_with": [
         "voice-writer",
         "anti-ai-editor"
@@ -2346,7 +2196,6 @@
       ],
       "category": "meta-tooling",
       "user_invocable": false,
-      "version": "2.0.0",
       "model": "sonnet"
     },
     "workflow-help": {
@@ -2361,8 +2210,7 @@
         "toolkit help"
       ],
       "category": "meta-tooling",
-      "user_invocable": true,
-      "version": "2.0.0"
+      "user_invocable": true
     },
     "worktree-agent": {
       "file": "skills/worktree-agent/SKILL.md",
@@ -2374,8 +2222,7 @@
         "isolated agent"
       ],
       "category": "git-workflow",
-      "user_invocable": false,
-      "version": "1.0.0"
+      "user_invocable": false
     },
     "x-api": {
       "file": "skills/x-api/SKILL.md",
@@ -2397,7 +2244,6 @@
       ],
       "category": "content-publishing",
       "user_invocable": false,
-      "version": "1.0.0",
       "pairs_with": [
         "content-engine"
       ],

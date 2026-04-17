@@ -90,7 +90,7 @@ echo "Topics: ${TOPICS[*]} | Budget: \$${MAX_BUDGET}"
 # Build the prompt
 PROMPT="You are running the nightly KB compile cycle.
 
-For each topic, execute the kb-compile skill at skills/kb-compile/SKILL.md.
+For each topic, execute the kb skill's compile intent at skills/kb/references/compile.md.
 Run all 4 phases: SCAN → COMPILE → INDEX → VERIFY.
 
 Topics to compile:
