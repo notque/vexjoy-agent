@@ -151,7 +151,7 @@ it('displays total', () => {
 
 **Why wrong**: This test verifies that when `calculateTotal` returns `99.99`, the component displays it. It does NOT test whether `calculateTotal` returns the right value. A bug in the calculation is invisible to this test. Over-mocked tests pass while the real system is broken.
 
-**Fix**: Mock only the network boundary, let real internal logic run:
+**Do instead:** Mock only the network boundary, let real internal logic run:
 ```typescript
 server.use(
   http.get('/api/cart', () => HttpResponse.json({ items: [{ price: 99.99, qty: 1 }] }))
@@ -182,7 +182,7 @@ vi.mock('react-router-dom', () => ({
 
 **Why wrong**: When `react-router-dom` updates its API, the mock silently diverges. The test passes but the real component breaks in production. You're testing against a fake contract you wrote yourself.
 
-**Fix**: Use real providers in tests. For React Router v6+:
+**Do instead:** Use real providers in tests. For React Router v6+:
 ```typescript
 import { MemoryRouter } from 'react-router-dom'
 
@@ -221,7 +221,7 @@ it('saves user preferences', async () => {
 
 **Why wrong**: This test passes even if `savePreferences` is called but returns an error the component silently swallows. Or if the UI shows a stale state. It verifies that a function was invoked, not that the user got the right outcome.
 
-**Fix**: Assert on user-visible result first; use call assertions as secondary verification:
+**Do instead:** Assert on user-visible result first; use call assertions as secondary verification:
 ```typescript
 it('saves user preferences', async () => {
   server.use(http.post('/api/preferences', () => new HttpResponse(null, { status: 204 })))
@@ -254,7 +254,7 @@ beforeAll(() => {
 
 **Why wrong**: This suppresses all React prop-type warnings, act() warnings, and real errors. A broken component renders silently. Errors that should fail the test pass unnoticed.
 
-**Fix**: Suppress only the specific known warning; assert others still fire:
+**Do instead:** Suppress only the specific known warning; assert others still fire:
 ```typescript
 beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation((msg) => {
