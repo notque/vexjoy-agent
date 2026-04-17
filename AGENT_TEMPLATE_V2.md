@@ -194,20 +194,22 @@ Common errors and their solutions. See [references/{domain}-errors.md](reference
 
 Common mistakes to avoid. See [references/{domain}-anti-patterns.md](references/{domain}-anti-patterns.md) for full catalog.
 
+**Do-pairing rule (mandatory):** Every anti-pattern block must include a "Do instead" counterpart. A bare negative encodes no actionable knowledge; the positive counterpart is the actual learning. If a prohibition genuinely has no correct alternative, annotate it with `<!-- no-pair-required: reason -->` to pass structural validation. Run `python3 scripts/validate-references.py --check-do-framing` before shipping.
+
 ### ❌ Anti-Pattern 1 Name
 **What it looks like**: [Code example or description]
 **Why wrong**: [Consequence or problem]
-**✅ Do instead**: [Correct approach with example]
+**✅ Do instead**: [Correct approach with example — mandatory]
 
 ### ❌ Anti-Pattern 2 Name
 **What it looks like**: [Code example or description]
 **Why wrong**: [Consequence or problem]
-**✅ Do instead**: [Correct approach with example]
+**✅ Do instead**: [Correct approach with example — mandatory]
 
 ### ❌ Anti-Pattern 3 Name
 **What it looks like**: [Code example or description]
 **Why wrong**: [Consequence or problem]
-**✅ Do instead**: [Correct approach with example]
+**✅ Do instead**: [Correct approach with example — mandatory]
 
 ## Anti-Rationalization
 
@@ -319,6 +321,8 @@ command2
 
 ### references/{domain}-anti-patterns.md
 
+**Do-pairing rule:** Every anti-pattern in this file must include a "✅ Correct approach" block. Blocks without one will be flagged by `python3 scripts/validate-references.py --check-do-framing`. If a prohibition has no correct alternative, annotate with `<!-- no-pair-required: reason -->`.
+
 ```markdown
 # [Agent Name] Anti-Patterns
 
@@ -349,7 +353,7 @@ Common mistakes and their corrections.
 
 ---
 
-[Repeat for each anti-pattern]
+[Repeat for each anti-pattern — every one must have a Correct approach block]
 ```
 
 ### references/{domain}-patterns.md

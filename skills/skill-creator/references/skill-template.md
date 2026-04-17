@@ -262,7 +262,11 @@ Additional for this skill:
 
 ## Anti-Patterns Section (Medium+)
 
-For skills with significant complexity, include 3-6 anti-patterns:
+For skills with significant complexity, include 3-6 anti-patterns.
+
+**Do-pairing rule (mandatory):** Every anti-pattern block must include a "Do instead" counterpart that shows the correct approach. A bare negative ("don't do X") encodes no actionable knowledge. The positive counterpart is the actual learning. If a genuine absolute prohibition has no correct alternative (e.g., "never commit secrets"), annotate it with `<!-- no-pair-required: absolute prohibition, no safe alternative -->` to pass structural validation.
+
+Validation gate: `python3 scripts/validate-references.py --check-do-framing` rejects anti-pattern blocks without a paired "Do instead" or `<!-- no-pair-required: ... -->` annotation.
 
 ```markdown
 ### Anti-Pattern 1: [Pattern Name]
@@ -272,5 +276,5 @@ For skills with significant complexity, include 3-6 anti-patterns:
 
 **Why wrong:** [Consequence]
 
-**Do instead:** [Correct approach]
+**Do instead:** [Correct approach — this field is mandatory]
 ```

@@ -9,6 +9,182 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 AGENTS_DIR = Path(__file__).parent.parent / "agents"
+REPO_ROOT = Path(__file__).parent.parent
+
+# ---------------------------------------------------------------------------
+# Do-framing validation
+# ---------------------------------------------------------------------------
+
+_DO_FRAMING_SCAN_PATTERNS = [
+    "agents/**/*.md",
+    "agents/**/references/*.md",
+    "skills/**/SKILL.md",
+    "skills/**/references/*.md",
+]
+
+_ANTIPATTERN_HEADING = re.compile(
+    r"(?:^#{1,4}\s+.*(?:anti.?pattern|bad\s+practice|wrong\s+way).*$"
+    r"|^\*\*(?:Anti.?[Pp]attern|What it looks like|Why wrong)\*\*"
+    r"|^##\s+.*(?:Anti.?[Pp]attern).*$)",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+_DO_INSTEAD = re.compile(
+    r"(?:\*\*(?:do\s+instead|correct\s+approach|instead|do\s+this|right\s+way"
+    r"|preferred|recommended|use\s+instead|better\s+approach|solution|right)\*\*"
+    r"|^###?\s+.*(?:correct|preferred|instead|do\s+instead).*$"
+    r"|\u2705\s+(?:do\s+instead|correct|instead|right)"
+    r"|Do\s+instead:"
+    r"|Correct\s+approach:"
+    r"|Instead:"
+    r"|\*\*Right\*\*:"
+    r"|Right:)",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+_EXCEPTION_ANNOTATION = re.compile(r"<!--\s*no-pair-required\s*:", re.IGNORECASE)
+
+_SKIP_FILENAMES = {"INDEX.json", "README.md"}
+
+
+def _split_blocks(content: str) -> list[tuple[int, str]]:
+    """Split content by H1-H4 headings. Returns (start_line_1indexed, text) pairs."""
+    lines = content.splitlines()
+    blocks: list[tuple[int, str]] = []
+    start = 0
+    current: list[str] = []
+
+    for i, line in enumerate(lines):
+        if re.match(r"^#{1,4}\s+", line) and current:
+            blocks.append((start + 1, "\n".join(current)))
+            start = i
+            current = [line]
+        else:
+            current.append(line)
+
+    if current:
+        blocks.append((start + 1, "\n".join(current)))
+
+    return blocks
+
+
+@dataclass
+class DoFramingIssue:
+    file: str
+    line_start: int
+    line_end: int
+    snippet: str
+
+
+def check_do_framing_in_file(path: Path) -> list[DoFramingIssue]:
+    """Return unpaired anti-pattern blocks in a single file."""
+    if path.name in _SKIP_FILENAMES:
+        return []
+    try:
+        content = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return []
+
+    issues: list[DoFramingIssue] = []
+    try:
+        rel = str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        rel = str(path)
+
+    all_lines = content.splitlines()
+
+    for start_line, block in _split_blocks(content):
+        if not _ANTIPATTERN_HEADING.search(block):
+            continue
+        if _DO_INSTEAD.search(block):
+            continue
+        if _EXCEPTION_ANNOTATION.search(block):
+            continue
+        # Also check up to 3 lines immediately before the block for an annotation.
+        # This handles the common pattern of placing <!-- no-pair-required: ... -->
+        # on the line just before the heading.
+        pre_start = max(0, start_line - 4)  # start_line is 1-indexed
+        pre_context = "\n".join(all_lines[pre_start : start_line - 1])
+        if _EXCEPTION_ANNOTATION.search(pre_context):
+            continue
+        end_line = start_line + len(block.splitlines()) - 1
+        snippet = block.splitlines()[0][:120]
+        issues.append(DoFramingIssue(file=rel, line_start=start_line, line_end=end_line, snippet=snippet))
+
+    return issues
+
+
+def _load_allowlist(allowlist_path: Path) -> set[tuple[str, int]]:
+    """Load a backlog JSON file and return a set of (file, line_start) keys to skip."""
+    if not allowlist_path.exists():
+        return set()
+    try:
+        data = json.loads(allowlist_path.read_text(encoding="utf-8"))
+        keys: set[tuple[str, int]] = set()
+        for entry in data.get("findings", []):
+            keys.add((entry["file"], entry["line_range"][0]))
+        return keys
+    except (OSError, KeyError, json.JSONDecodeError):
+        return set()
+
+
+_DEFAULT_ALLOWLIST = REPO_ROOT / "artifacts" / "joy-check-sweep-backlog.json"
+
+
+def run_check_do_framing(json_output: bool, allowlist_path: Path | None = None) -> int:
+    """Scan all skill and agent files for unpaired anti-pattern blocks.
+
+    Violations already listed in the allowlist (backlog) are skipped so that
+    pre-existing findings do not block CI while new violations do.
+    """
+    if allowlist_path is None:
+        allowlist_path = _DEFAULT_ALLOWLIST
+    known: set[tuple[str, int]] = _load_allowlist(allowlist_path)
+
+    seen: set[Path] = set()
+    targets: list[Path] = []
+    for pattern in _DO_FRAMING_SCAN_PATTERNS:
+        for p in sorted(REPO_ROOT.glob(pattern)):
+            if p.is_file() and p not in seen:
+                seen.add(p)
+                targets.append(p)
+
+    all_issues: list[DoFramingIssue] = []
+    skipped = 0
+    for target in targets:
+        for issue in check_do_framing_in_file(target):
+            if (issue.file, issue.line_start) in known:
+                skipped += 1
+            else:
+                all_issues.append(issue)
+
+    if json_output:
+        out = {
+            "total": len(all_issues),
+            "skipped_known": skipped,
+            "issues": [
+                {"file": i.file, "line_start": i.line_start, "line_end": i.line_end, "snippet": i.snippet}
+                for i in all_issues
+            ],
+            "exit_code": 1 if all_issues else 0,
+        }
+        print(json.dumps(out, indent=2))
+    else:
+        if all_issues:
+            print(f"DO-FRAMING: {len(all_issues)} NEW unpaired anti-pattern block(s) found\n")
+            for issue in all_issues:
+                print(f"  {issue.file}:{issue.line_start}-{issue.line_end}")
+                print(f"    {issue.snippet}")
+            print(
+                "\nFix: add a 'Do instead' / 'Correct approach' block, or annotate with"
+                " <!-- no-pair-required: reason -->"
+            )
+        else:
+            known_msg = f" ({skipped} known backlog item(s) skipped)" if skipped else ""
+            print(f"DO-FRAMING: no new unpaired anti-pattern blocks.{known_msg}")
+
+    return 1 if all_issues else 0
+
 
 VALID_IMPACT_LEVELS = {"CRITICAL", "HIGH", "MEDIUM-HIGH", "MEDIUM", "LOW-MEDIUM", "LOW"}
 
@@ -219,11 +395,21 @@ def main() -> None:
     parser.add_argument("--agent", help="Validate references for specific agent")
     parser.add_argument("--all", action="store_true", help="Validate all agents")
     parser.add_argument("--check-declared", action="store_true", help="Only check declared refs exist")
+    parser.add_argument("--check-do-framing", action="store_true", help="Check all files for unpaired anti-patterns")
+    parser.add_argument(
+        "--allowlist",
+        metavar="PATH",
+        help="Backlog JSON to skip known violations (default: artifacts/joy-check-sweep-backlog.json)",
+    )
     parser.add_argument("--json", dest="json_output", action="store_true", help="JSON output for CI")
     args = parser.parse_args()
 
+    if args.check_do_framing:
+        allowlist = Path(args.allowlist) if args.allowlist else None
+        sys.exit(run_check_do_framing(json_output=args.json_output, allowlist_path=allowlist))
+
     if not args.agent and not args.all:
-        parser.error("Specify --agent <name> or --all")
+        parser.error("Specify --agent <name>, --all, or --check-do-framing")
 
     check_structure = not args.check_declared
 
