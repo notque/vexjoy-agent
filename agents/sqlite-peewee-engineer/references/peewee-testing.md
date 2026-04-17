@@ -185,6 +185,7 @@ def test_add_email_column_migration(pre_migration_db):
 ---
 
 ## Anti-Pattern Catalog
+<!-- no-pair-required: section header with no content -->
 
 ### ❌ Module-Level Database in Tests (State Leakage)
 
@@ -195,6 +196,8 @@ grep -rn 'db = SqliteDatabase' --include="test_*.py"
 grep -rn 'setUpClass\|setup_module' --include="test_*.py" -A 5 | grep 'create_tables'
 rg 'SqliteDatabase.*test' --type py | grep -v 'fixture\|conftest'
 ```
+
+**Do instead:** Use a per-test `db` fixture with `bind_ctx()` so each test gets a fresh in-memory database.
 
 **What it looks like**:
 ```python
@@ -215,7 +218,10 @@ def test_user_count():
 created in one test are visible to all subsequent tests. Test order determines results —
 passing locally but failing in CI (different ordering) is the common symptom.
 
-**Fix**:
+**Do instead:**
+
+Create a fresh `:memory:` database per test using a `pytest.fixture` with `bind_ctx()`:
+
 ```python
 # conftest.py — CORRECT: fresh database per test
 @pytest.fixture(autouse=True)
@@ -237,6 +243,8 @@ grep -rn 'SqliteDatabase(' --include="test_*.py" | grep -v ':memory:'
 rg 'SqliteDatabase\([^:)]' --type py --glob 'test_*'
 ```
 
+**Do instead:** Always use `SqliteDatabase(':memory:')` for unit tests, or a `tempfile.mkstemp()` path for integration tests with automatic cleanup.
+
 **What it looks like**:
 ```python
 # Uses real app.db in tests — modifies production data
@@ -251,8 +259,10 @@ def test_delete_user():
 the production database file. SQLite file databases have no transaction isolation between
 processes.
 
-**Fix**: Always use `SqliteDatabase(':memory:')` in tests. For integration tests that need
-a file, use `tempfile.mkstemp()` and clean up in fixture teardown.
+**Do instead:**
+
+Use `:memory:` for unit tests. For integration tests that genuinely require a file path, use
+`tempfile.mkstemp()` and delete the file in fixture teardown:
 
 ```python
 import tempfile
@@ -279,6 +289,8 @@ rg 'SqliteDatabase.*:memory:' --type py | grep -v 'foreign_keys'
 grep -rn "SqliteDatabase(':memory:')" --include="*.py" -A 3 | grep -v 'foreign_keys'
 ```
 
+**Do instead:** Always pass `pragmas={'foreign_keys': 1}` when creating the test database so FK violations surface in tests, not in production.
+
 **What it looks like**:
 ```python
 # SQLite disables FK checks by default — tests pass but prod fails
@@ -293,7 +305,11 @@ def test_post_without_user():
 **Why wrong**: SQLite disables foreign key constraints by default for backwards compatibility.
 Tests pass with invalid data that production rejects. The divergence is invisible until deploy.
 
-**Fix**:
+**Do instead:**
+
+Always enable FK enforcement in the test database pragma so tests catch the same integrity
+errors that production would raise:
+
 ```python
 db = SqliteDatabase(':memory:', pragmas={'foreign_keys': 1})
 ```
