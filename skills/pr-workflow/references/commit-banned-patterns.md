@@ -120,7 +120,7 @@ These are extracted from repository CLAUDE.md files and enforced in addition to 
 
 ### Pattern Detection
 
-The git-commit-flow skill automatically loads banned patterns from:
+The pr-workflow skill (commit intent) automatically loads banned patterns from:
 1. Repository CLAUDE.md (in git root)
 2. Global ~/.claude/CLAUDE.md
 
@@ -290,13 +290,13 @@ All banned pattern violations are **CRITICAL** severity:
 # Emergency bypass (use with caution)
 git commit --no-verify -m "message"
 
-# Or with git-commit-flow (commit.py not yet implemented)
+# Or with pr-workflow commit (commit.py not yet implemented)
 # git commit --no-verify -m "message"
 ```
 
 **Only bypass when**:
 - Emergency hotfix (seconds matter)
-- Repository doesn't use git-commit-flow
+- Repository doesn't use pr-workflow commit intent
 - Testing/experimentation (non-production)
 
 **NEVER bypass for**:

@@ -418,9 +418,9 @@ npm install --save-dev @commitlint/cli @commitlint/config-conventional
 }
 ```
 
-**git-commit-flow skill** - This skill provides validation
+**pr-workflow skill (commit intent)** - This skill provides validation
 ```bash
-skill: git-commit-flow
+skill: pr-workflow commit
 ```
 
 ## References

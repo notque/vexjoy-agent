@@ -1,6 +1,6 @@
 # Commit Workflow Examples
 
-Integration examples and advanced patterns for the git-commit-flow skill.
+Integration examples and advanced patterns for the pr-workflow skill's commit intent.
 
 ## Integration with PR Commands
 
@@ -9,7 +9,7 @@ Integration examples and advanced patterns for the git-commit-flow skill.
 When local changes exist during PR sync:
 
 ```bash
-skill: git-commit-flow
+skill: pr-workflow commit
 ```
 
 The skill validates, stages, commits, and verifies. After completion:
@@ -24,7 +24,7 @@ git push origin $(git branch --show-current)
 After applying PR review feedback:
 
 ```bash
-skill: git-commit-flow --message "fix: apply PR review feedback"
+skill: pr-workflow commit --message "fix: apply PR review feedback"
 ```
 
 ### Direct User Invocation
@@ -32,7 +32,7 @@ skill: git-commit-flow --message "fix: apply PR review feedback"
 User request: "Commit my changes with message 'Add authentication flow'"
 
 ```bash
-skill: git-commit-flow --message "feat: add authentication flow"
+skill: pr-workflow commit --message "feat: add authentication flow"
 ```
 
 Runs all 4 phases with the provided message.
@@ -42,7 +42,7 @@ Runs all 4 phases with the provided message.
 Shows what would be committed without modifying repository state:
 
 ```bash
-skill: git-commit-flow --dry-run
+skill: pr-workflow commit --dry-run
 ```
 
 Output includes: validation results, staging plan, generated message, and compliance checks.
@@ -68,7 +68,7 @@ Group 3 (ci): .github/workflows/test.yml
 
 > **Note**: `scripts/validate_state.py` and `scripts/validate_message.py` are not yet implemented. The examples below show the intended integration patterns. Use manual checks (grep for sensitive files, validate conventional commit format) until the scripts are available.
 
-Install git-commit-flow validation as a pre-commit hook:
+Install pr-workflow commit validation as a pre-commit hook:
 
 ```bash
 cat > .git/hooks/pre-commit << 'EOF'

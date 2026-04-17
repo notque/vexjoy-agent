@@ -1,6 +1,6 @@
 # Codex Invocation and Reporting
 
-Detailed phases 2-4 of the codex-code-review skill: how to invoke `codex exec`,
+Detailed phases 2-4 of the pr-workflow skill's codex-review intent: how to invoke `codex exec`,
 assess the feedback critically, and deliver the final unified report.
 
 ---

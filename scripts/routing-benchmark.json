@@ -21,10 +21,10 @@
     {
       "request": "commit these files",
       "expected_agent": null,
-      "expected_skill": "git-commit-flow",
+      "expected_skill": "pr-workflow",
       "category": "git-operations",
       "routing_tier": "force_route",
-      "notes": "Git commit intent — force-route to git-commit-flow"
+      "notes": "Git commit intent — force-route to pr-workflow (commit intent)"
     },
     {
       "request": "commit to this approach and move forward",
@@ -32,7 +32,7 @@
       "expected_skill": null,
       "category": "false-positive-guard",
       "routing_tier": "llm_only",
-      "notes": "Decision/dedication, not git commit — must NOT route to git-commit-flow"
+      "notes": "Decision/dedication, not git commit — must NOT route to pr-workflow"
     },
     {
       "request": "did CI pass on my PR?",

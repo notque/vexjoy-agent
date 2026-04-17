@@ -4,7 +4,7 @@ Smart staging rules based on file types and change patterns.
 
 ## Overview
 
-The git-commit-flow skill uses intelligent staging rules to group files logically and suggest appropriate commit boundaries. This ensures commits are atomic, reviewable, and semantically meaningful.
+The pr-workflow skill (commit intent) uses intelligent staging rules to group files logically and suggest appropriate commit boundaries. This ensures commits are atomic, reviewable, and semantically meaningful.
 
 ## File Type Categories
 
@@ -332,7 +332,7 @@ package-lock.json (lockfile updated)
 User explicitly requests auto-stage:
 
 ```bash
-skill: git-commit-flow --auto-stage
+skill: pr-workflow commit --auto-stage
 ```
 
 ## Confirmation Requirements
@@ -577,7 +577,7 @@ Include in commit? [Y/n]
   n = Unstage (keep in working tree)
 ```
 
-## Integration with git-commit-flow
+## Integration with pr-workflow commit intent
 
 The staging rules described above are applied manually by the skill during Phase 2 (STAGE).
 

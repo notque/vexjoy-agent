@@ -103,11 +103,11 @@ class TestIsReviewRequest:
 class TestIsAlreadyHandled:
     """Unit tests for is_already_handled() exclusion logic."""
 
-    def test_codex_code_review_excluded(self):
-        assert mod.is_already_handled("/codex-code-review")
-
     def test_pr_workflow_excluded(self):
         assert mod.is_already_handled("/pr-workflow push")
+
+    def test_pr_workflow_codex_review_excluded(self):
+        assert mod.is_already_handled("/pr-workflow codex-review")
 
     def test_regular_review_not_excluded(self):
         assert not mod.is_already_handled("/systematic-code-review")
@@ -181,7 +181,7 @@ class TestReviewPromptWithCodexInstalled:
         hook_out = output.get("hookSpecificOutput", {})
         assert "additionalContext" in hook_out
         assert "codex-auto-review" in hook_out["additionalContext"]
-        assert "codex-code-review" in hook_out["additionalContext"]
+        assert "pr-workflow" in hook_out["additionalContext"]
 
     def test_systematic_code_review_skill_injects_context(self):
         output = self._run_with_codex("/systematic-code-review")
@@ -203,14 +203,14 @@ class TestReviewPromptWithCodexInstalled:
         output = self._run_with_codex("review my changes")
         hook_out = output.get("hookSpecificOutput", {})
         context = hook_out.get("additionalContext", "")
-        assert "codex-code-review skill" in context
+        assert "pr-workflow skill" in context
         # Should NOT contain a raw shell command
         assert "codex run" not in context
         assert "$ codex" not in context
 
 
 class TestDirectCodexInvocation:
-    """Prompts that already invoke codex or pr-workflow should NOT inject."""
+    """Prompts that already invoke pr-workflow should NOT inject."""
 
     def _run_with_codex(self, prompt: str) -> dict:
         with patch.object(mod, "codex_is_available", return_value=True):
@@ -235,13 +235,13 @@ class TestDirectCodexInvocation:
                 return {}
             return json.loads(output_text)
 
-    def test_codex_code_review_skill_not_injected(self):
-        output = self._run_with_codex("/codex-code-review")
+    def test_pr_workflow_not_injected(self):
+        output = self._run_with_codex("/pr-workflow push")
         hook_out = output.get("hookSpecificOutput", {})
         assert "additionalContext" not in hook_out
 
-    def test_pr_workflow_not_injected(self):
-        output = self._run_with_codex("/pr-workflow push")
+    def test_pr_workflow_codex_review_not_injected(self):
+        output = self._run_with_codex("/pr-workflow codex-review")
         hook_out = output.get("hookSpecificOutput", {})
         assert "additionalContext" not in hook_out
 

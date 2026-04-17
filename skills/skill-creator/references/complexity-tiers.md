@@ -53,9 +53,9 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 
 ---
 
-### git-commit-flow
+### pr-workflow (commit intent)
 **Lines**: ~1100
-**Purpose**: Phase-gated git commit workflow
+**Purpose**: Phase-gated git commit workflow (now the `commit` intent of the pr-workflow umbrella)
 **Phases**: 5 (Status, Diff, Log, Stage, Commit)
 **Why Medium**:
 - Sequential Git operations
@@ -65,11 +65,12 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 
 **Structure**:
 ```
-.claude/skills/git-commit-flow/
-├── SKILL.md (900 lines)
+.claude/skills/pr-workflow/
+├── SKILL.md
+├── references/commit.md (~900 lines)
 └── scripts/
-    ├── validate.py (120 lines)
-    └── commit-msg.py (80 lines)
+    ├── validate_state.py
+    └── validate_message.py
 ```
 
 ---
@@ -206,7 +207,7 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 
 **Multi-step with moderate coordination?**
 → Medium tier
-- Examples: systematic-debugging, git-commit-flow, pr-workflow (fix)
+- Examples: systematic-debugging, pr-workflow (commit), pr-workflow (fix)
 - Characteristics: 2-4 phases, moderate scripting, 5-10 errors
 
 **Multi-agent coordination OR parallel execution?**

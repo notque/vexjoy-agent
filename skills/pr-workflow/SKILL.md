@@ -1,11 +1,13 @@
 ---
 name: pr-workflow
 description: |
-  Pull request lifecycle: sync, review, fix, status, cleanup, and PR mining.
-  Use when user wants to push changes, create a PR, check PR status, fix review
-  comments, clean up branches after merge, or mine tribal knowledge from PR
-  reviews. Use for "push my changes", "create a PR", "pr status", "fix PR
-  comments", "clean up branches", "mine PRs", or "address feedback".
+  Pull request lifecycle: commit, codex review, sync, review, fix, status,
+  cleanup, and PR mining. Use when user wants to commit changes, get a
+  second-opinion code review from Codex, push changes, create a PR, check PR
+  status, fix review comments, clean up branches after merge, or mine tribal
+  knowledge from PR reviews. Use for "commit my changes", "codex review",
+  "push my changes", "create a PR", "pr status", "fix PR comments",
+  "clean up branches", "mine PRs", or "address feedback".
 user-invocable: true
 allowed-tools:
   - Bash
@@ -16,6 +18,7 @@ allowed-tools:
   - Glob
   - Task
   - Skill
+  - AskUserQuestion
 routing:
   force_route: true
   triggers:
@@ -56,6 +59,16 @@ routing:
     - "did CI pass"
     - "build status"
     - "CI passed"
+    - "stage and commit"
+    - "commit changes"
+    - "commit these"
+    - "commit my changes"
+    - "commit my files"
+    - "codex review"
+    - "second opinion"
+    - "code review codex"
+    - "gpt review"
+    - "cross-model review"
   category: git-workflow
 ---
 
@@ -78,6 +91,8 @@ Detect the user's intent and load the appropriate reference file:
 | **Miner** | "mine PRs", "extract review comments", "tribal knowledge", "reviewer patterns" | `${CLAUDE_SKILL_DIR}/references/miner.md` |
 | **Branch name** | "generate branch name", "validate branch name", "name branch", "branch convention", "git branch name" | `${CLAUDE_SKILL_DIR}/references/branch-name.md` |
 | **CI check** | "check CI", "CI status", "actions status", "did CI pass", "build status", "CI passed" | `${CLAUDE_SKILL_DIR}/references/ci-check.md` |
+| **Commit** | "commit changes", "stage and commit", "commit my changes", "commit my files", "commit these" | `${CLAUDE_SKILL_DIR}/references/commit.md` |
+| **Codex review** | "codex review", "second opinion", "code review codex", "gpt review", "cross-model review" | `${CLAUDE_SKILL_DIR}/references/codex-review.md` |
 
 **Default action**: When invoked with no arguments or ambiguous intent, load `sync.md` (the most common PR use case).
 

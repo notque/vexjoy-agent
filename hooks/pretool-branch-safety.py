@@ -117,7 +117,7 @@ def main() -> None:
             f"[branch-safety] BLOCKED: Cannot commit directly to {branch}. Create a feature branch first.",
             file=sys.stderr,
         )
-        print("[fix-with-skill] git-commit-flow", file=sys.stderr)
+        print("[fix-with-skill] pr-workflow", file=sys.stderr)
         try:
             record_governance_event(
                 "policy_violation", tool_name="Bash", hook_phase="pre", severity="high", blocked=True
@@ -130,7 +130,7 @@ def main() -> None:
                 "permissionDecision": "deny",
                 "permissionDecisionReason": (
                     f"Cannot commit directly to {branch}. Create a feature branch first. "
-                    "Use the git-commit-flow skill to commit safely."
+                    "Use the pr-workflow skill (commit intent) to commit safely."
                 ),
             }
         }

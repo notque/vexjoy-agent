@@ -176,8 +176,7 @@ Loaded automatically or via `Skill("name")`.
 | `test-driven-development` | RED-GREEN-REFACTOR enforcement |
 | `verification-before-completion` | Never done without verification |
 | `planning` | Planning lifecycle umbrella: spec, pre-plan, plan-files, check, manage, pause, resume |
-| `git-commit-flow` | Phase-gated git commit workflow with validation |
-| `pr-workflow` | Pull request lifecycle: sync, review, fix, status, cleanup, PR mining |
+| `pr-workflow` | Pull request lifecycle umbrella: commit, codex-review, sync, review, fix, status, cleanup, PR mining, branch-name, ci-check |
 
 ### Workflows (formerly Pipelines)
 | Skill | Purpose |

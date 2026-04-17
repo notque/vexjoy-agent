@@ -80,7 +80,7 @@ SAMPLE_PIPELINES_INDEX = {
             "triggers": ["submit PR", "create pull request", "push and PR"],
             "force_route": True,
             "phases": ["STAGE", "COMMIT", "PUSH", "CREATE", "VERIFY"],
-            "pairs_with": ["git-commit-flow"],
+            "pairs_with": ["pr-workflow"],
         },
         "doc-pipeline": {
             "file": "skills/workflow/references/doc-pipeline.md",
