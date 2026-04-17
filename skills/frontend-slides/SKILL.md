@@ -42,8 +42,10 @@ Generate browser-based HTML presentations as a single self-contained `.html` fil
 ## Reference Loading Table
 
 | Signal | Load These Files | Why |
-|---|---|---|
-| tasks related to this reference | `STYLE_PRESETS.md` | Loads detailed guidance from `STYLE_PRESETS.md`. |
+|--------|-----------------|-----|
+| Phase 3 (style selection) or Phase 4 (build) | `references/STYLE_PRESETS.md` | CSS base block, 12 named presets, mood mapping, density limits, validation breakpoints |
+| SlideController, keyboard nav, touch swipe, wheel scroll, Intersection Observer, reveal animation | `references/slide-controller.md` | Canonical JS implementation, `navigating` guard, wheel debounce, IO reveal pattern, anti-patterns with detection commands |
+| PPTX, `.pptx`, python-pptx, convert slides, extract slides | `references/pptx-conversion.md` | Safe extraction loop, notes guard, GROUP shape recursion, base64 image embedding, error-fix mappings |
 
 ## Instructions
 
@@ -194,3 +196,5 @@ For every slide, verify all of the following. If any item fails, fix it before p
 | File | Load At | Contains |
 |------|---------|----------|
 | `skills/frontend-slides/references/STYLE_PRESETS.md` | Phase 3 (DISCOVER STYLE) and Phase 4 (BUILD) | Mandatory CSS base block, 12 named presets, mood mapping, animation feel mapping, CSS gotchas, density limits, validation breakpoints |
+| `skills/frontend-slides/references/slide-controller.md` | Phase 4 (BUILD) — JS controller section | Canonical SlideController implementation, `navigating` guard, wheel debounce, IO reveal, anti-patterns with grep detection commands |
+| `skills/frontend-slides/references/pptx-conversion.md` | Phase 1 (DETECT) — PPTX path | Safe python-pptx extraction loop, notes guard, GROUP shape recursion, base64 image embedding, error-fix table |
