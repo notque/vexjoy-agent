@@ -138,25 +138,31 @@ else:
 
 ```bash
 if [ -f ".adr-session.json" ]; then
-  adr_id=$(python3 -c "
+  adr_info=$(python3 -c "
 import json, sys
 try:
     d = json.load(open('.adr-session.json'))
-    print(d.get('adr_id', d.get('id', 'unknown')))
+    adr_path = d.get('adr_path', '')
+    domain = d.get('domain', adr_path)
+    print(f'{adr_path}|{domain}')
 except Exception as e:
-    print('PARSE_ERROR')
+    print('PARSE_ERROR|PARSE_ERROR')
 ")
-  adr_file="adr/ADR-${adr_id}.md"
-  if [ "$adr_id" = "PARSE_ERROR" ]; then
+  adr_path="${adr_info%|*}"
+  domain="${adr_info#*|}"
+  if [ "$domain" = "PARSE_ERROR" ]; then
     echo "WARNING: .adr-session.json exists but is unparseable -- flag as cleanup opportunity"
-  elif [ ! -f "$adr_file" ]; then
-    echo "WARNING: .adr-session.json references ADR-${adr_id} but $adr_file does not exist"
+  elif [ -z "$adr_path" ] || [ ! -f "$adr_path" ]; then
+    echo "WARNING: .adr-session.json references '$domain' but '$adr_path' does not exist"
     echo "  Orphaned session file. Add 'Remove orphaned .adr-session.json' to the opportunity list."
   else
-    echo "ADR session OK: ADR-${adr_id} exists at $adr_file"
+    echo "ADR session OK: $domain exists at $adr_path"
   fi
 else
   echo "No active ADR session file (OK)"
+fi
+if [ -f ".adr-session.json.stale" ]; then
+  echo "STALE: .adr-session.json.stale exists -- flag as cleanup opportunity"
 fi
 ```
 
