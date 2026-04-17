@@ -49,12 +49,7 @@ This skill builds complete Phaser 3 2D games using a **Phased Construction** pat
 
 **Step 1: Identify the game type**
 
-From the user's request, determine:
-- Game genre (platformer, shooter, RPG, puzzle, side-scroller)
-- Primary physics need (precise platforming → Arcade; polygon collisions → Matter.js; none → skip physics)
-- Number of scenes (Boot, Preload, Game, GameOver, UI overlay)
-- Tilemap or procedural world?
-- Spritesheet or texture atlas?
+From the user's request, determine: game genre (platformer, shooter, RPG, puzzle, side-scroller), primary physics need, number of scenes, tilemap or procedural world, spritesheet or texture atlas.
 
 **Step 2: Select the physics system**
 
@@ -66,15 +61,7 @@ From the user's request, determine:
 
 **Step 3: Document the scene plan and load references**
 
-```markdown
-## Scene Plan
-- Boot: asset loading with progress bar
-- Game: [primary gameplay description]
-- UI: [HUD, menus — parallel scene or separate?]
-- Physics: [Arcade / Matter.js / none]
-- World: [tilemap key or procedural]
-- Sprites: [spritesheet keys and frame dimensions — measure the PNG first]
-```
+Write a short markdown scene plan covering: Boot, Game, UI, Physics choice, World, Sprites (measured frame dimensions).
 
 Load these references based on the plan:
 - Always: `references/core-patterns.md` (scene lifecycle, transitions, input)
@@ -98,73 +85,7 @@ Load these references based on the plan:
 - **Preload all assets in `preload()`** — never load assets in `create()` or `update()`
 - **Use a Boot scene for asset loading** — shows a progress bar, keeps Game scene clean
 
-**Step 1: TypeScript project setup**
-
-```typescript
-// game.ts — entry point
-import Phaser from 'phaser';
-import { BootScene } from './scenes/BootScene';
-import { GameScene } from './scenes/GameScene';
-
-const config: Phaser.Types.Core.GameConfig = {
-  type: Phaser.AUTO,
-  width: 800,
-  height: 600,
-  physics: {
-    default: 'arcade',
-    arcade: { gravity: { x: 0, y: 300 }, debug: false },
-  },
-  scene: [BootScene, GameScene],
-  parent: 'game-container',
-};
-
-new Phaser.Game(config);
-```
-
-**Step 2: Boot scene with progress bar**
-
-```typescript
-export class BootScene extends Phaser.Scene {
-  constructor() { super({ key: 'Boot' }); }
-
-  preload(): void {
-    const bar = this.add.rectangle(
-      this.scale.width / 2, this.scale.height / 2, 0, 20, 0x00ff88
-    );
-    this.load.on('progress', (p: number) => { bar.width = this.scale.width * p; });
-
-    // Load ALL game assets here — measure frameWidth/frameHeight from the PNG
-    this.load.spritesheet('player', 'assets/player.png', { frameWidth: 48, frameHeight: 48 });
-    this.load.tilemapTiledJSON('map', 'assets/map.json');
-    this.load.image('tiles', 'assets/tileset.png');
-    this.load.audio('jump', 'assets/jump.ogg');
-  }
-
-  create(): void { this.scene.start('Game'); }
-}
-```
-
-**Step 3: Game scene skeleton**
-
-```typescript
-export class GameScene extends Phaser.Scene {
-  private player!: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
-  private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
-
-  constructor() { super({ key: 'Game' }); }
-
-  create(): void {
-    // World, tilemap, sprites, physics groups — all created here
-    // See arcade-physics.md for group patterns
-    // See tilemaps.md for tilemap layer setup
-    this.cursors = this.input.keyboard!.createCursorKeys();
-  }
-
-  update(_time: number, _delta: number): void {
-    // Per-frame logic — never allocate here, only transform
-  }
-}
-```
+Full TypeScript scaffolds (entry point, BootScene with progress bar, GameScene skeleton): `references/build-scaffolds.md`.
 
 **Gate**: Boot and Game scenes compile. Assets load without console errors. Scene transitions work. Proceed only when gate passes.
 
@@ -179,78 +100,7 @@ export class GameScene extends Phaser.Scene {
 - **Use `delta` for frame-rate-independent movement** — `velocity = speed * (delta / 1000)` ensures consistent feel at any FPS
 - **State machine over boolean flags** — `'idle' | 'walk' | 'jump' | 'attack' | 'dead'` prevents impossible states like `isJumping && isAttacking`
 
-**Step 1: Animation definitions (in `create()`)**
-
-```typescript
-this.anims.create({
-  key: 'walk',
-  frames: this.anims.generateFrameNumbers('player', { start: 0, end: 7 }),
-  frameRate: 12,
-  repeat: -1,
-});
-this.anims.create({
-  key: 'jump',
-  frames: this.anims.generateFrameNumbers('player', { start: 8, end: 11 }),
-  frameRate: 8,
-  repeat: 0,
-});
-this.anims.create({
-  key: 'idle',
-  frames: this.anims.generateFrameNumbers('player', { start: 12, end: 15 }),
-  frameRate: 6,
-  repeat: -1,
-});
-```
-
-**Step 2: Entity state machine**
-
-```typescript
-type PlayerState = 'idle' | 'walk' | 'jump' | 'attack' | 'dead';
-
-class Player {
-  private state: PlayerState = 'idle';
-
-  setState(next: PlayerState): void {
-    if (this.state === next) return;
-    this.state = next;
-    switch (next) {
-      case 'idle':   this.sprite.play('idle'); break;
-      case 'walk':   this.sprite.play('walk'); break;
-      case 'jump':   this.sprite.play('jump'); break;
-      case 'attack': this.sprite.play('attack'); break;
-      case 'dead':
-        this.sprite.play('die');
-        this.sprite.body.setVelocityX(0);
-        break;
-    }
-  }
-
-  update(cursors: Phaser.Types.Input.Keyboard.CursorKeys): void {
-    if (this.state === 'dead') return;
-    const onGround = this.sprite.body.blocked.down;
-
-    if (cursors.left.isDown) {
-      this.sprite.body.setVelocityX(-160);
-      this.sprite.setFlipX(true);
-      if (onGround) this.setState('walk');
-    } else if (cursors.right.isDown) {
-      this.sprite.body.setVelocityX(160);
-      this.sprite.setFlipX(false);
-      if (onGround) this.setState('walk');
-    } else {
-      this.sprite.body.setVelocityX(0);
-      if (onGround) this.setState('idle');
-    }
-
-    if (cursors.up.isDown && onGround) {
-      this.sprite.body.setVelocityY(-400);
-      this.setState('jump');
-    }
-  }
-}
-```
-
-See `references/arcade-physics.md` for collision groups, overlap callbacks, and physics tuning.
+Animation definitions (`anims.create`), the Player state machine, and input handling scaffolds: `references/animate-scaffolds.md`. Collision groups, overlap callbacks, and physics tuning: `references/arcade-physics.md`.
 
 **Gate**: Player moves. Animations transition correctly. State machine has no impossible state combinations. No per-frame allocations. Proceed only when gate passes.
 
@@ -265,87 +115,7 @@ See `references/arcade-physics.md` for collision groups, overlap callbacks, and 
 - **Remove all `console.log` calls** unless the user explicitly requested logging
 - **Test on a 60 FPS budget** — Arcade + 200 active bodies + 50 particles is the practical ceiling on mid-range mobile
 
-**Step 1: Camera effects**
-
-```typescript
-// Follow player with smoothing
-this.cameras.main.startFollow(this.player.sprite, true, 0.1, 0.1);
-this.cameras.main.setDeadzone(100, 50);
-this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
-
-// On-demand effects
-this.cameras.main.shake(200, 0.01);      // hit feedback
-this.cameras.main.flash(300, 255, 0, 0); // death flash
-```
-
-**Step 2: Particles (Phaser 3.60+ API)**
-
-```typescript
-const emitter = this.add.particles(x, y, 'spark', {
-  speed: { min: 50, max: 150 },
-  lifespan: 600,
-  quantity: 8,
-  scale: { start: 0.5, end: 0 },
-  alpha: { start: 1, end: 0 },
-  emitting: false,
-});
-emitter.explode(8, x, y); // fire on demand
-```
-
-**Step 3: Tweens**
-
-```typescript
-// Score popup
-this.tweens.add({
-  targets: scoreText,
-  y: scoreText.y - 40,
-  alpha: 0,
-  duration: 800,
-  ease: 'Power2',
-  onComplete: () => scoreText.destroy(),
-});
-
-// Idle bounce
-this.tweens.add({
-  targets: coin,
-  y: coin.y - 8,
-  duration: 600,
-  yoyo: true,
-  repeat: -1,
-  ease: 'Sine.easeInOut',
-});
-```
-
-**Step 4: Sound**
-
-```typescript
-const jumpSound = this.sound.add('jump', { volume: 0.5 });
-const music = this.sound.add('bgm', { loop: true, volume: 0.3 });
-music.play();
-// In update() or callback:
-jumpSound.play();
-```
-
-**Step 5: Mobile virtual controls (when needed)**
-
-```typescript
-const jumpBtn = this.add.rectangle(700, 540, 80, 80, 0xffffff, 0.3)
-  .setInteractive()
-  .setScrollFactor(0); // fixed to camera
-
-jumpBtn.on('pointerdown', () => {
-  if (this.player.sprite.body.blocked.down) {
-    this.player.sprite.body.setVelocityY(-400);
-  }
-});
-```
-
-**Step 6: Final verification**
-
-- DevTools → Performance → record 5 seconds of gameplay → confirm under 16.7ms/frame
-- No `debug: true` in physics config
-- No `console.log` calls remaining
-- No TODO markers remaining
+Full scaffolds for camera effects, particles (Phaser 3.60+ API), tweens, sound, mobile virtual controls, and final verification steps: `references/polish-scaffolds.md`.
 
 **Gate**: Polish checks pass. Performance within budget. Debug config removed. Game is shippable.
 
@@ -353,29 +123,7 @@ jumpBtn.on('pointerdown', () => {
 
 ## Error Handling
 
-### "Spritesheet frame dimensions wrong / animation looks corrupt"
-Cause: `frameWidth` or `frameHeight` does not match the actual PNG.
-Fix: Open the spritesheet in an image editor. Count total pixel width ÷ columns = frameWidth. Total height ÷ rows = frameHeight. Never estimate. See `references/spritesheets.md`.
-
-### "Cannot read properties of undefined (reading 'body')"
-Cause: Accessing a physics body before `create()` completes, or on a non-physics sprite.
-Fix: Only use `.body` on sprites created via `this.physics.add.sprite()` or `this.physics.add.existing()`. Static images do not have bodies.
-
-### "Tilemap layer collision has no effect"
-Cause: Missing `setCollisionByProperty` or property name mismatch in Tiled.
-Fix: In Tiled, verify the tile property is named exactly `collides` (boolean true). Call `layer.setCollisionByProperty({ collides: true })`. See `references/tilemaps.md`.
-
-### "Physics bodies not colliding"
-Cause: `this.physics.add.collider()` called before both objects exist, or wrong group types.
-Fix: Call all collider setup at the end of `create()`, after all sprites and groups are created.
-
-### "Animation not playing"
-Cause: Animation key typo, `anims.create()` called before texture is loaded, or wrong frame range.
-Fix: Animations must be defined in `create()`, not `preload()`. Verify key strings match exactly between `anims.create({ key: 'walk' })` and `sprite.play('walk')`.
-
-### "Game runs slow on mobile"
-Cause: Too many active physics bodies, continuously emitting particles, or per-frame allocations.
-Fix: Pool bullets and enemies (see `references/performance.md`). Set emitters to `emitting: false` and call `explode()` on demand. Display `game.loop.actualFps` to profile.
+Common errors and fixes (spritesheet frame mismatches, undefined body access, tilemap collision no-ops, animation failures, mobile slowdowns): `references/errors.md`.
 
 ---
 
@@ -384,6 +132,10 @@ Fix: Pool bullets and enemies (see `references/performance.md`). Set emitters to
 | Reference | When to Load | Content |
 |-----------|-------------|---------|
 | `references/core-patterns.md` | Always | Scene lifecycle, transitions, input, state machines |
+| `references/build-scaffolds.md` | Phase 2 BUILD | TypeScript entry point, BootScene with progress bar, GameScene skeleton |
+| `references/animate-scaffolds.md` | Phase 3 ANIMATE | Animation definitions, Player state machine, input handling |
+| `references/polish-scaffolds.md` | Phase 4 POLISH | Camera, particles, tweens, sound, mobile controls, verification |
+| `references/errors.md` | Error Handling | Common Phaser error scenarios and fixes |
 | `references/arcade-physics.md` | Arcade physics | Groups, colliders, velocity, physics tuning, pitfalls |
 | `references/tilemaps.md` | Tilemap / Tiled | Layer system, collision, animated tiles, object layers |
 | `references/spritesheets.md` | Sprites / animation | Frame measurement, loading, atlases, nine-slice |
