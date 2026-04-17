@@ -182,7 +182,7 @@ if [ -n "$DECOMPOSE" ]; then
         --dangerously-skip-permissions \
         --max-budget-usd "$MAX_BUDGET" \
         --no-session-persistence \
-        --model sonnet \
+        --model claude-sonnet-4-7 \
         2>&1 | tee "$LOG_DIR/decomp-$(date +%Y%m%d-%H%M%S).log"
     EXIT_CODE=${PIPESTATUS[0]}
     set -e
@@ -298,7 +298,7 @@ else
         --dangerously-skip-permissions \
         --max-budget-usd "$MAX_BUDGET" \
         --no-session-persistence \
-        --model sonnet \
+        --model claude-sonnet-4-7 \
         2>&1 | tee "$LOG_DIR/run-$(date +%Y%m%d-%H%M%S).log"
     EXIT_CODE=${PIPESTATUS[0]}
     set -e
