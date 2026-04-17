@@ -90,6 +90,7 @@ fi
 ---
 
 ## Anti-Pattern Catalog
+<!-- no-pair-required: section header with no content -->
 
 ### Embedding the diff in the prompt
 
@@ -108,6 +109,8 @@ codex exec "Review this code: $DIFF"
 **Why wrong**: Large diffs (>50 files) hit prompt-length limits. Formatting collapses.
 Codex already has filesystem access — it can run `git diff` directly.
 
+**Do instead:** Give Codex a shell command to run rather than pasting the output. Use `codex exec "Run \`git diff main...HEAD\` and review..."` so Codex executes the diff itself with full context and correct formatting.
+
 **Fix**: Tell Codex which command to run, not what the output is:
 ```bash
 codex exec "Run \`git diff main...HEAD\` and review the changes for security issues."
@@ -124,6 +127,8 @@ codex exec review --base main "Focus on error handling"
 
 **Why wrong**: `--base`, `--commit`, and `--uncommitted` are mutually exclusive with a
 custom `[PROMPT]` argument in the `review` subcommand. The CLI errors.
+
+**Do instead:** When you need a custom focus prompt, drop the `review` subcommand and use bare `codex exec "your prompt"`. Let the prompt instruct Codex to run `git diff main...HEAD` itself.
 
 **Fix**: Use `codex exec` (not `codex exec review`) with a custom prompt:
 ```bash
@@ -143,6 +148,8 @@ TMPFILE=$(mktemp /tmp/codex-review.XXXXXXXX.md)
 **Why wrong**: macOS `mktemp` requires the template to end in Xs. Appending `.md` causes
 `mktemp: /tmp/codex-review.XXXXXXXX.md: invalid suffix`.
 
+**Do instead:** Keep the template as `mktemp /tmp/codex-review.XXXXXXXX` with no extension. The output file is a temp artifact read by the script, not a human-facing document — it does not need an extension.
+
 **Fix**: No extension, Xs at the end:
 ```bash
 TMPFILE=$(mktemp /tmp/codex-review.XXXXXXXX)
@@ -159,6 +166,8 @@ codex exec review --dangerously-bypass-approvals-and-sandbox -s read-only ...
 
 **Why wrong**: These flags are mutually exclusive. `-s read-only` configures the bwrap
 sandbox; the bypass flag disables it entirely. Combining them errors.
+
+**Do instead:** Choose one flag based on the environment. In containers or VMs where bwrap cannot create network namespaces, use `--dangerously-bypass-approvals-and-sandbox`. In bare-metal environments where sandbox isolation is desired, use `-s read-only` without the bypass flag.
 
 **Fix**: Use one or the other. In containerized environments, use the bypass flag.
 
@@ -180,6 +189,7 @@ sandbox; the bypass flag disables it entirely. Combining them errors.
 ---
 
 ## Detection Commands Reference
+<!-- no-pair-required: reference block of detection commands, not an anti-pattern description -->
 
 ```bash
 # Verify codex is installed
@@ -188,6 +198,6 @@ codex --version
 # Check temp file has content before processing
 [ -s "$TMPFILE" ] && echo "has content" || echo "empty or missing"
 
-# Find embedded diffs in any shell scripts (anti-pattern signal)
+# Find embedded diffs in shell scripts (signals the embedding pattern)
 grep -rn 'DIFF=\$(git' . --include="*.sh" --include="*.bash"
 ```

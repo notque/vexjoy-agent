@@ -88,6 +88,7 @@ rg 'chan.*results|results.*chan' --type go
 ---
 
 ## Anti-Pattern Catalog
+<!-- no-pair-required: section header with no content -->
 
 ### Passing through Codex output verbatim
 
@@ -100,6 +101,8 @@ grep -c "## CRITICAL ISSUES\|## IMPROVEMENTS\|## POSITIVE NOTES" report.md
 **Why wrong**: The entire value of cross-model review is Claude's assessment layer. Verbatim
 pass-through means the user could have run `codex exec` themselves.
 
+**Do instead:** For every Codex finding, write one sentence of explicit classification — Agree, Agree-modified, or Disagree — with the reason before including it in the report. The classification sentence is what makes the review worth reading.
+
 **Fix**: Every Codex finding must be explicitly classified (Agree/Agree-modified/Disagree)
 with at least one sentence of Claude's reasoning before it appears in the report.
 
@@ -111,6 +114,8 @@ with at least one sentence of Claude's reasoning before it appears in the report
 
 **Why wrong**: Users who know Codex ran and see fewer findings reported will distrust the
 filter. Opacity erodes confidence in the review process.
+
+**Do instead:** Include a "Filtered Findings" section in every report where you disagreed with a Codex finding. List each filtered finding with one sentence explaining why it was dismissed. An empty "Filtered Findings" section is only acceptable when you agreed with every single finding.
 
 **Fix**: Always include a "Filtered Findings" section:
 ```markdown
@@ -130,6 +135,8 @@ filter. Opacity erodes confidence in the review process.
 
 **Why wrong**: Codex omission does not mean no issues exist. The most dangerous bugs are
 ones the first reviewer missed. Claude must check for omissions, especially in security paths.
+
+**Do instead:** Run the severity decision tree for every finding, even when Codex reports zero Critical issues. Specifically check what Codex's Positive Notes affirm — if Codex calls a pattern "good", verify it is actually correct before echoing that praise in the report.
 
 **Fix**: Always run the severity decision tree for each finding, including reviewing what
 Codex's Positive Notes section affirms — confirm those patterns are actually correct.
