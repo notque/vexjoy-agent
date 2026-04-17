@@ -1,4 +1,5 @@
 # Code Anti-Patterns for Review
+<!-- no-pair-required: document introduction, not an individual anti-pattern block -->
 
 > **Scope**: Common code anti-patterns to detect during review, with grep commands for codebase verification.
 > **Version range**: Language-specific version notes inline
@@ -16,6 +17,7 @@ model interpretation alone.
 ---
 
 ## Go Anti-Patterns
+<!-- no-pair-required: section header with no content -->
 
 ### Swallowed errors (blank identifier on error return)
 
@@ -33,6 +35,8 @@ file.Close()                          // return value ignored
 
 **Why wrong**: Silent failures compound — the next operation uses invalid state.
 Debugging in production becomes impossible without error context.
+
+**Do instead:** Capture every error return and either handle it, wrap it with context, or propagate it to the caller. Use `fmt.Errorf("operation: %w", err)` for wrapping. For cleanup calls like `file.Close()`, use a deferred closure that logs the error rather than discarding it.
 
 **Fix**:
 ```go
@@ -73,6 +77,8 @@ func start() {
 **Why wrong**: Goroutines with no exit path leak on shutdown. Under load or repeated
 invocations, this causes unbounded memory growth.
 
+**Do instead:** Accept a `context.Context` parameter and select on `ctx.Done()` inside the loop. When reviewing, check whether the caller holds a context that gets canceled on shutdown — if yes, flag the missing `ctx` parameter as a goroutine leak risk.
+
 **Fix**:
 ```go
 func start(ctx context.Context) {
@@ -112,6 +118,8 @@ func process(c Counter) { ... }  // copies Counter — mutex state diverges
 **Why wrong**: Copying `sync.Mutex` copies its internal state. The copy and original have
 independent lock states — concurrent access is not protected.
 
+**Do instead:** Always pass structs that embed a mutex by pointer, not by value. When reviewing, check every function signature and method receiver on structs containing `sync.Mutex` or `sync.RWMutex`. A value receiver or value parameter is a guaranteed data race.
+
 **Fix**: Always pass structs containing mutexes by pointer:
 ```go
 func process(c *Counter) { ... }
@@ -122,6 +130,7 @@ func process(c *Counter) { ... }
 ---
 
 ## TypeScript/JavaScript Anti-Patterns
+<!-- no-pair-required: section header with no content -->
 
 ### Floating Promise (unhandled async)
 
@@ -141,6 +150,8 @@ async function handler() {
 
 **Why wrong**: Errors from `sendNotification` are silently dropped. The function returns
 before the async work completes, making success/failure undetectable.
+
+**Do instead:** Always `await` async calls whose errors matter, or explicitly mark fire-and-forget calls with `.catch()` so errors are logged. When reviewing, flag any async call that is neither awaited nor has a `.catch()` handler as a swallowed-error risk.
 
 **Fix**:
 ```typescript
@@ -171,6 +182,8 @@ user.profile.name;  // no type safety — runtime error if profile is undefined
 **Why wrong**: `as any` opts out of TypeScript's type system entirely. Downstream property
 access has no compile-time protection — null reference errors appear at runtime.
 
+**Do instead:** Define an interface for the expected shape and cast to it, then narrow with a type guard or optional chaining before accessing nested properties. When reviewing, flag `as any` on API response shapes as high priority because those surfaces change silently.
+
 **Fix**: Use proper typing or a type guard:
 ```typescript
 interface UserResponse { profile: { name: string } | null }
@@ -200,6 +213,8 @@ async function processOrder(id: string) {
 **Why wrong**: Console output bypasses structured logging, loses correlation IDs, and may
 leak PII to log aggregators that lack access controls.
 
+**Do instead:** Use the project's structured logger (e.g., `pino`, `winston`, `zap`) with a named field for each value. When reviewing, flag any `console.log` that includes an ID, email, order number, or other identifier as a PII-leak risk regardless of whether it looks sensitive in isolation.
+
 **Fix**: Use the project's structured logger:
 ```typescript
 logger.info({ orderId: id }, 'processing order');
@@ -208,6 +223,7 @@ logger.info({ orderId: id }, 'processing order');
 ---
 
 ## Python Anti-Patterns
+<!-- no-pair-required: section header with no content -->
 
 ### Bare `except` clause
 
@@ -227,6 +243,8 @@ except:          # catches KeyboardInterrupt, SystemExit, everything
 
 **Why wrong**: Catches `KeyboardInterrupt` and `SystemExit` — Ctrl-C won't stop the process.
 Also swallows errors that should surface for debugging.
+
+**Do instead:** Catch only the specific exception types the code can actually recover from, bind them to `e`, log the error, and re-raise or return a meaningful error value. When reviewing, a bare `except:` or `except Exception:` with a `pass` body is always a Critical finding.
 
 **Fix**:
 ```python
@@ -257,6 +275,8 @@ def add_item(item, items=[]):  # shared across ALL calls
 **Why wrong**: The default list is created once at function definition, not per call. All
 invocations without an explicit `items` argument share the same list — state leaks.
 
+**Do instead:** Use `None` as the default and initialize the mutable object inside the function body on first call. When reviewing, flag any function signature where a default argument is a list literal `[]`, dict literal `{}`, or any other mutable object.
+
 **Fix**:
 ```python
 def add_item(item, items=None):
@@ -286,6 +306,8 @@ subprocess.run(f"grep {pattern} log.txt", shell=True)
 
 **Why wrong**: Shell metacharacters in dynamic input execute arbitrary commands. Classic
 injection vulnerability — always flag as Critical when input is from user or external source.
+
+**Do instead:** Pass commands as a list of strings with `shell=False` (the default). When reviewing, trace where each dynamic value in an `os.system()` or `shell=True` call originates — if it can reach user-controlled input at any point in the call chain, classify as Critical injection risk.
 
 **Fix**:
 ```python
