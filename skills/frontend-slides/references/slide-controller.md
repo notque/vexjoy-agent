@@ -161,7 +161,7 @@ go(index) {
 
 **Why wrong**: Each `go()` call triggers a smooth scroll. When the second call fires before the first completes, slides jump out of sync with `this.current`. On fast keyboards or trackpads, the deck can advance 3-5 slides per keypress.
 
-**Fix**: Set `this.navigating = true` at the start of `go()`, clear it with `setTimeout(() => this.navigating = false, 600)`, and guard entry with `if (this.navigating) return`.
+**Do instead:** Set `this.navigating = true` at the start of `go()`, clear it with `setTimeout(() => this.navigating = false, 600)`, and guard entry with `if (this.navigating) return`.
 
 ---
 
@@ -181,7 +181,7 @@ document.addEventListener('wheel', (e) => {
 
 **Why wrong**: A single trackpad scroll fires 20-80 `wheel` events. Without debounce, one swipe advances 20+ slides. The `navigating` guard alone is insufficient — it blocks concurrent calls, but debounce collapses burst events before they enter `go()`.
 
-**Fix**: `clearTimeout(this._wheelTimer); this._wheelTimer = setTimeout(() => { ... }, 150);`
+**Do instead:** `clearTimeout(this._wheelTimer); this._wheelTimer = setTimeout(() => { ... }, 150);`
 
 ---
 
@@ -201,7 +201,7 @@ rg '\.slide[^}]*display\s*:\s*none' output.html
 
 **Why wrong**: `display: none` removes the element from the accessibility tree and from the IntersectionObserver callback cycle. The `.visible` class never gets added. All reveal animations silently fail. Screen readers skip hidden slides.
 
-**Fix**: Use `opacity: 0; pointer-events: none; position: absolute` to hide, and `.visible { opacity: 1; pointer-events: auto; position: relative }` to show.
+**Do instead:** Use `opacity: 0; pointer-events: none; position: absolute` to hide, and `.visible { opacity: 1; pointer-events: auto; position: relative }` to show.
 
 ---
 
@@ -220,7 +220,7 @@ document.addEventListener('wheel', handler);
 
 **Why wrong**: Without `{ passive: true }`, the browser must wait for the handler to return before scrolling, causing 50–200ms jank on mobile. Chrome 73+ logs a console warning.
 
-**Fix**: Add `{ passive: true }` to all touch and wheel listeners. HTML slide decks should not call `preventDefault()` on these events.
+**Do instead:** Add `{ passive: true }` to all touch and wheel listeners. HTML slide decks should not call `preventDefault()` on these events.
 
 ---
 
@@ -241,7 +241,7 @@ document.addEventListener('keydown', (e) => {
 
 **Why wrong**: Space is the standard "advance" key in every presentation app. Missing it breaks presenter muscle memory. The browser default scrolls the viewport, causing visible flicker before the controller corrects position.
 
-**Fix**: `case 'Space': e.preventDefault(); this.go(this.current + 1); break;`
+**Do instead:** `case 'Space': e.preventDefault(); this.go(this.current + 1); break;`
 
 ---
 

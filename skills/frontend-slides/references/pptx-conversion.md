@@ -143,7 +143,8 @@ for shape in slide.shapes:
 
 **Why wrong**: `AttributeError: 'Picture' object has no attribute 'text_frame'` on the first slide with an image. Extraction aborts with no output.
 
-**Fix**:
+**Do instead:** Guard every `text_frame` access with `shape.has_text_frame`:
+
 ```python
 for shape in slide.shapes:
     if shape.has_text_frame:
@@ -167,7 +168,8 @@ notes = slide.notes_slide.notes_text_frame.text
 
 **Why wrong**: Raises `AttributeError: 'NoneType' object has no attribute 'notes_text_frame'` on slides with no notes. PPTX files created from blank templates frequently have no notes placeholder on every slide.
 
-**Fix**:
+**Do instead:** Wrap notes access in a `try/except AttributeError` block:
+
 ```python
 try:
     notes = slide.notes_slide.notes_text_frame.text.strip()
@@ -194,7 +196,8 @@ with open(f'slide_{i}_img.png', 'wb') as f:
 
 **Why wrong**: The output must be a single self-contained `.html` file with no external dependencies. External image files break when the HTML is shared or opened from a different directory.
 
-**Fix**: Embed as base64 data URI:
+**Do instead:** Embed images as base64 data URIs so the HTML file is self-contained:
+
 ```python
 import base64
 b64 = base64.b64encode(shape.image.blob).decode('utf-8')
@@ -221,7 +224,8 @@ for shape in slide.shapes:
 
 **Why wrong**: `GROUP` shapes contain child shapes with text. Skipping them silently drops bullet points and labels that appear in the original slide.
 
-**Fix**: Recurse into grouped shapes:
+**Do instead:** Use a recursive generator to walk into grouped shapes before processing:
+
 ```python
 def iter_shapes(shapes):
     from pptx.enum.shapes import MSO_SHAPE_TYPE
