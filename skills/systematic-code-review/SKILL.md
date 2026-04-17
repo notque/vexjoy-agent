@@ -89,6 +89,8 @@ Questions for Author:
 
 ### Phase 2: VERIFY
 
+> **Opus 4.7 override:** Opus 4.7 trades tool calls for reasoning by default. In verification, that default is wrong. Run the command. Do not reason about whether the command would pass. Do not summarize the expected output. Execute the check, paste the exit code, paste the relevant output. A verification phase that produces a verdict without an observed tool result is not a verification — it is a guess with a rigor aesthetic.
+
 **Goal**: Validate all assertions in code, comments, and PR description against actual behavior.
 
 **Step 1: Run tests**
