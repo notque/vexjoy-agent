@@ -117,6 +117,7 @@ Use `will-change` only on elements that will actually animate, and remove it aft
 ---
 
 ## Anti-Pattern Catalog
+<!-- no-pair-required: section-header-only; pairs live in each sub-section below -->
 
 ### ❌ Animating Layout Properties (width/height/top/left/margin)
 
@@ -144,9 +145,9 @@ rg 'transition-property:\s*(width|height|top|left|margin)' --type css
 }
 ```
 
-**Why wrong**: Layout properties trigger the full pipeline (Layout → Paint → Composite) on every frame. At 60fps this means 60 layout recalculations per second. On mid-range mobile this consistently drops below 30fps and causes visible jank.
+**Why wrong**: Layout properties trigger the full pipeline (Layout, Paint, Composite) on every frame. At 60fps this means 60 layout recalculations per second. On mid-range mobile this consistently drops below 30fps and causes visible jank.
 
-**Fix**:
+**Do instead**: Replace layout properties with their `transform` equivalents. `transform: scale` replaces `width`/`height` expansion; `transform: translate` replaces `top`/`left` movement:
 ```css
 @keyframes expand {
   from { transform: scale(0); }
@@ -178,11 +179,11 @@ rg '@keyframes' --type css -A 15 | grep -E 'color:|background-color:'
 }
 ```
 
-**Why wrong**: Both `color` and `background-color` trigger paint. For short transitions (< 200ms) this is acceptable on desktop. On mobile, or for elements that appear many times on the page (nav items, list rows), it causes accumulated paint cost.
+**Why wrong**: Both `color` and `background-color` trigger paint. For short transitions (under 200ms) this is acceptable on desktop. On mobile, or for elements that appear many times on the page (nav items, list rows), it causes accumulated paint cost.
 
-**Fix**:
+**Do instead**: Animate the opacity of a positioned pseudo-element that contains the colored state. The pseudo-element is pre-rendered; only its opacity changes, keeping the transition on the compositor:
 ```css
-/* Wrap text in a span; animate the span's opacity instead */
+/* Animate a positioned pseudo-element's opacity instead of the text color */
 .nav-link {
   position: relative;
 }
@@ -195,7 +196,7 @@ rg '@keyframes' --type css -A 15 | grep -E 'color:|background-color:'
 }
 .nav-link:hover::before { opacity: 1; }
 
-/* Or simply accept the paint cost for subtle nav transitions — not every hover needs optimization */
+/* Or accept the paint cost for subtle nav transitions; not every hover needs optimization */
 ```
 
 ---
@@ -218,7 +219,7 @@ rg 'transition:\s*all\b' --type css
 
 **Why wrong**: `transition: all` watches every animatable property. Adding a layout-triggering property later (even indirectly through a media query) silently introduces jank. It also animates properties you never intended to animate (e.g., `display`, `visibility`, inherited colors).
 
-**Fix**:
+**Do instead**: Declare only the compositor-safe properties you actually want to animate. Explicit lists are self-documenting and immune to accidental layout animations:
 ```css
 .card {
   transition: transform 0.3s ease, opacity 0.2s ease; /* explicit, compositor-safe */
@@ -242,9 +243,15 @@ rg 'will-change:' --type css
 .card { will-change: transform, opacity, filter; } /* too many properties */
 ```
 
-**Why wrong**: Each `will-change` layer consumes GPU memory. Blanket use exhausts VRAM on low-end mobile (typically 512MB–1GB GPU memory budget), causing the browser to fallback to software rendering — slower than not using `will-change` at all.
+**Why wrong**: Each `will-change` layer consumes GPU memory. Blanket use exhausts VRAM on low-end mobile (typically 512MB to 1GB GPU memory budget), causing the browser to fall back to software rendering, which is slower than not using `will-change` at all.
 
-**Fix**: Apply `will-change` only to elements currently animating, and remove via JS after the animation ends.
+**Do instead**: Apply `will-change` only to the element immediately before its animation starts, and remove it via JS after the animation ends. Use the AnimationEvent `animationend` listener or a class swap:
+```js
+el.classList.add('is-animating'); // CSS sets will-change: transform
+el.addEventListener('animationend', () => {
+  el.classList.remove('is-animating'); // CSS removes will-change
+}, { once: true });
+```
 
 ---
 
