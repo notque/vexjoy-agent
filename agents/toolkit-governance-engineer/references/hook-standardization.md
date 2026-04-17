@@ -162,6 +162,7 @@ print("[hook-name] Action suggested: fix the broken reference")
 ---
 
 ## Anti-Pattern Catalog
+<!-- no-pair-required: section header with no content -->
 
 ### ❌ Missing Timeout (Hook Can Hang Indefinitely)
 
@@ -190,6 +191,10 @@ for event, groups in settings.get('hooks', {}).items():
 
 **Why wrong**: Without `timeout`, a hook that hangs (network call, waiting for input) stalls the session indefinitely. Claude cannot proceed until the hook exits or the user kills it.
 
+**Do instead:**
+
+Always add `"timeout"` to every hook entry in `settings.json`. Use 1000ms for informational hooks, 500ms for `PreToolUse` and `UserPromptSubmit` hooks, and up to 5000ms for `SessionStart` hooks doing file reads. Run the detection script above to find any hooks currently missing this field.
+
 **Fix**: Always set `"timeout"` in milliseconds. Use 1000ms as a safe default for informational hooks; 500ms for `PreToolUse`/`UserPromptSubmit`.
 
 ---
@@ -201,7 +206,7 @@ for event, groups in settings.get('hooks', {}).items():
 grep -rn "stdin.isatty\|stdout.isatty" ~/.claude/hooks/*.py
 ```
 
-**What it looks like**:
+**What it looks like**: <!-- no-pair-required: sub-block split by code-comment heading; Do instead is inline below -->
 ```python
 # In a hook — WRONG
 if sys.stdin.isatty():
@@ -211,6 +216,10 @@ else:
 ```
 
 **Why wrong**: Claude Code pipes stdin (the event JSON) into hooks and captures stdout (the hook output). Both are always non-TTY in hook context, so `isatty()` always returns False — every session is classified as non-interactive regardless of actual session type.
+
+**Do instead:**
+
+Detect session type using environment variables: check `SSH_CONNECTION` or `SSH_TTY` for SSH sessions, `TMUX` for tmux sessions, and `TERM_PROGRAM` for terminal type. Replace any `isatty()` call with an environment variable check as shown in the Fix code below.
 
 **Fix**: Detect session type via environment variables instead.
 ```python
@@ -240,6 +249,10 @@ def main():
 ```
 
 **Why wrong**: Exit code 1 signals Claude to block and surface the error to the user. For advisory hooks (lint hints, context injection, learning), this is almost always wrong — the hook should report its finding and exit 0 so Claude can continue.
+
+**Do instead:**
+
+Wrap all hook logic in a `try/except` block and call `sys.exit(0)` unconditionally at the end. Only use non-zero exit codes in deliberately blocking hooks (e.g., branch safety gates, ADR creation guards) where preventing Claude from proceeding is the intended behavior.
 
 **Fix**: Wrap all hook logic in try/except and always exit 0. Only use non-zero exit for deliberately blocking hooks (branch safety gates, ADR creation guards).
 ```python
@@ -273,6 +286,10 @@ for event, groups in settings.get('hooks', {}).items():
 ```
 
 **Why wrong**: Registering a hook before deploying the file causes a startup error on every session. The hook runs, finds no file, and exits non-zero — blocking or noising every session until fixed.
+
+**Do instead:**
+
+Deploy the hook Python file to `~/.claude/hooks/` first, verify it exists with `ls ~/.claude/hooks/my-hook.py`, and only then add its entry to `settings.json`. Use `scripts/register-hook.py` to enforce this ordering mechanically rather than relying on memory.
 
 **Fix**: Always deploy the hook file to `~/.claude/hooks/` BEFORE adding its entry to `settings.json`.
 
@@ -320,7 +337,7 @@ for ev, groups in s.get('hooks', {}).items():
 # Find hook files with sys.exit non-zero
 grep -rn "sys.exit([^0)]" ~/.claude/hooks/*.py
 
-# Find hook files using isatty (TTY detection anti-pattern)
+# Find hook files using isatty (TTY detection anti-pattern) <!-- no-pair-required: detection command label, not an anti-pattern block -->
 grep -rn "isatty" ~/.claude/hooks/*.py
 
 # Verify all registered hook files exist on disk
