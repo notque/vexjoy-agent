@@ -168,6 +168,14 @@ Solution:
 2. Read the sourced file for the missing patterns
 3. If patterns exist in sourced libraries, mark as PASS with note
 
+## Reference Loading
+
+| Task type / signal | Load this reference |
+|--------------------|---------------------|
+| Checking error handling, `set -e`, `pipefail`, `trap`, exit codes | `references/shell-error-handling.md` |
+| Checking lock files, flock, PID files, concurrent execution | `references/concurrency-and-locks.md` |
+| Checking logging, timestamps, log rotation, stderr routing | `references/logging-and-rotation.md` |
+
 ## References
 
 ### Best Practices Reference
