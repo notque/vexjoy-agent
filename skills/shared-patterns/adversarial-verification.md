@@ -6,6 +6,8 @@ Reusable 4-level artifact verification methodology for any agent or skill that n
 **Primary consumer**: `verification-before-completion` skill
 **Also useful for**: Code review agents, PR pipeline verification phases, any agent that validates another agent's output
 
+> **Opus 4.7 override:** Opus 4.7 trades tool calls for reasoning by default. In verification, that default is wrong. Run the command. Do not reason about whether the command would pass. Do not summarize the expected output. Execute the check, paste the exit code, paste the relevant output. A verification phase that produces a verdict without an observed tool result is not a verification — it is a guess with a rigor aesthetic.
+
 ## Core Principle: Never Trust Summary Claims
 
 The verifier NEVER accepts statements like "implemented the scoring module" or "all tests pass" at face value. Every claim is independently verified by examining what actually exists in the codebase.

@@ -15,6 +15,8 @@ Run comprehensive quality gates on the implemented feature. Phase 4 of the featu
 
 ### Phase 1: EXECUTE (Quality Gates)
 
+> **Opus 4.7 override:** Opus 4.7 trades tool calls for reasoning by default. In verification, that default is wrong. Run the command. Do not reason about whether the command would pass. Do not summarize the expected output. Execute the check, paste the exit code, paste the relevant output. A verification phase that produces a verdict without an observed tool result is not a verification — it is a guess with a rigor aesthetic.
+
 **Step 1: Language Detection**
 
 Auto-detect project language(s) from file extensions, build files, and the implementation artifact. This detection drives which quality gate skill runs next.
