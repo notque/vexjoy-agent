@@ -98,6 +98,8 @@ See `references/phase-checks.md` "Phase 1: NAVIGATE — Detailed Steps" for the 
 
 ### Phase 2: VALIDATE
 
+> **Opus 4.7 override:** Opus 4.7 trades tool calls for reasoning by default. In verification, that default is wrong. Run the command. Do not reason about whether the command would pass. Do not summarize the expected output. Execute the check, paste the exit code, paste the relevant output. A verification phase that produces a verdict without an observed tool result is not a verification — it is a guess with a rigor aesthetic.
+
 **Goal**: Inspect rendered DOM and network activity for content integrity and SEO completeness. Run all checks without stopping on individual failures.
 
 The 7 checks (with severity, JS extraction snippets, and pass/fail criteria) are documented in `references/phase-checks.md` "Phase 2: VALIDATE — All 7 Checks":

@@ -82,7 +82,7 @@ Determine which phase to execute based on feature state:
    - DESIGN: Read `references/design.md`
    - PLAN: Read `references/plan.md`
    - IMPLEMENT: Read `references/implement.md`
-   - VALIDATE: Read `references/validate.md`
+   - VALIDATE: Read `references/validate.md` — **Opus 4.7 override applies: run quality gate commands, do not reason about whether they would pass. Paste exit codes and output.**
    - RELEASE: Read `references/release.md`
    - END-TO-END: Read `references/pipeline.md`
 

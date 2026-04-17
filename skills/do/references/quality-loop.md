@@ -97,6 +97,8 @@ This artifact is read by PHASE 5 (intent verification), PHASE 7 (fix agent selec
 
 ### PHASE 3 — TEST
 
+> **Opus 4.7 override:** Opus 4.7 trades tool calls for reasoning by default. In verification, that default is wrong. Run the command. Do not reason about whether the command would pass. Do not summarize the expected output. Execute the check, paste the exit code, paste the relevant output. A verification phase that produces a verdict without an observed tool result is not a verification — it is a guess with a rigor aesthetic.
+
 Run deterministic test suite. Language auto-detected from changed files.
 
 Detection and commands:
@@ -133,6 +135,8 @@ Each reviewer produces findings as:
 
 ### PHASE 5 — INTENT VERIFY
 
+> **Opus 4.7 override:** Opus 4.7 trades tool calls for reasoning by default. In verification, that default is wrong. Run the command. Do not reason about whether the command would pass. Do not summarize the expected output. Execute the check, paste the exit code, paste the relevant output. A verification phase that produces a verdict without an observed tool result is not a verification — it is a guess with a rigor aesthetic.
+
 Adversarial verification: does the diff accomplish what the user actually asked for?
 
 Dispatch one read-only verifier agent that reads the original user request from `quality-loop-state.md` (written in PHASE 2) and compares it against the actual diff. The verifier answers:
@@ -146,6 +150,8 @@ Any gap between request and implementation is a CRITICAL finding — because pas
 **Gate:** Intent verification complete. Proceed to PHASE 6.
 
 ### PHASE 6 — LIVE VALIDATE
+
+> **Opus 4.7 override:** Opus 4.7 trades tool calls for reasoning by default. In verification, that default is wrong. Run the command. Do not reason about whether the command would pass. Do not summarize the expected output. Execute the check, paste the exit code, paste the relevant output. A verification phase that produces a verdict without an observed tool result is not a verification — it is a guess with a rigor aesthetic.
 
 Behavioral verification for web projects. **Skip if not a web project.**
 

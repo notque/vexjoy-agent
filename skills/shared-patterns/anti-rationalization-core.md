@@ -18,7 +18,7 @@ Before completing ANY task, verify you haven't rationalized:
 | Rationalization Attempt | Why It's Wrong | Required Action |
 |------------------------|----------------|-----------------|
 | "Already done/verified" | Assumption ≠ Verification | **Actually verify with evidence** |
-| "Code looks correct" | Looking ≠ Being correct | **Run tests, check types** |
+| "Code looks correct" | Opus 4.7 override: Opus 4.7 default-reasons instead of executing. "Looks correct" without tool output is the model honoring its own default. | **Run the tests. Paste exit code and output. Anything else is not verification.** |
 | "Trivial change, skip tests" | All changes need verification | **Test anyway** |
 | "Time pressure" | Quality > Speed | **Complete all steps** |
 | "User said skip it" | CLAUDE.md > user shortcuts | **Follow protocol, explain why** |
