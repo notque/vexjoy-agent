@@ -177,7 +177,7 @@ git branch --show-current
 git checkout -b type/descriptive-branch-name
 ```
 
-Use branch-naming skill if available for compliant names.
+Use the `branch-name` intent (see `${CLAUDE_SKILL_DIR}/references/branch-name.md`) for compliant names.
 
 **Step 2: Push with tracking**
 

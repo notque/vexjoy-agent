@@ -1,26 +1,6 @@
----
-name: github-actions-check
-description: "Check GitHub Actions CI status and report failures."
-user-invocable: false
-allowed-tools:
-  - Read
-  - Bash
-  - Grep
-routing:
-  force_route: true
-  triggers:
-    - "check CI"
-    - "CI status"
-    - "actions status"
-    - "did CI pass"
-    - "build status"
-    - "CI passed"
-  category: git-workflow
----
+# GitHub Actions CI Check
 
-# GitHub Actions Check Skill
-
-Check GitHub Actions workflow status after a git push, identify failures, and suggest local reproduction commands. This skill observes and reports -- it modifies workflow files or auto-fixes code only with explicit permission.
+Check GitHub Actions workflow status after a git push, identify failures, and suggest local reproduction commands. This reference observes and reports -- it modifies workflow files or auto-fixes code only with explicit permission.
 
 ## Instructions
 
@@ -107,7 +87,7 @@ Report facts without self-congratulation. Show command output rather than descri
 
 Clean up any temporary scripts or cache files created during the check before finishing.
 
-This skill only checks CI status. For local debugging of test failures, hand off to systematic-debugging. For local linting, hand off to code-linting. Keep workflow YAML files and CI configuration out of scope for this skill.
+This reference only checks CI status. For local debugging of test failures, hand off to systematic-debugging. For local linting, hand off to code-linting. Keep workflow YAML files and CI configuration out of scope for this reference.
 
 **Gate**: Complete status report delivered to user.
 

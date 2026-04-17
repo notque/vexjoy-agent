@@ -213,7 +213,7 @@ Loaded automatically or via `Skill("name")`.
 | Skill | Purpose |
 |-------|---------|
 | `professional-communication` | Tech → Business transformation |
-| `github-actions-check` | CI/CD status checking |
+| `pr-workflow` | PR lifecycle umbrella: push, PR status, CI check, branch naming, cleanup, feedback |
 | `read-only-ops` | Exploration without modification |
 | `agent-evaluation` | Evaluate agents/skills |
 | `condition-based-waiting` | Retry patterns, backoff, polling |

@@ -60,13 +60,11 @@ Route to these agents based on the user's task domain. Each entry describes what
 | Skill | When to Route Here |
 |-------|-------------------|
 | **quick (FORCE)** | User wants any lightweight change: a one-line typo fix, a trivial constant rename (use `--trivial` mode internally for ≤3 edits), or a contained multi-file change like adding a CLI flag, extracting a helper, renaming an interface. NOT: "quick" as a speed preference ("do this quickly"). NOT: "fix" in general ("fix this bug") — that requires diagnosis. The `--trivial` mode handles the zero-ceremony 1-3 edit case; the base mode handles multi-file contained changes. |
-| **branch-naming** | User needs to name a git branch following conventions, or asks what to name a branch for a task. |
 | **git-commit-flow** | User wants to stage and commit code changes to git — writing a commit message, staging files, creating a commit. NOT: "commit to a timeline", "commit to the team", "are we committed to this approach" — those are about dedication, not git. |
 | **code-linting** | User wants to run linters or formatters, fix lint errors, or check code style compliance. |
 | **universal-quality-gate** | User wants a quality check on code without a specific language or domain in mind. |
 | **typescript-check** | User wants to run TypeScript type checking, fix tsc errors, or validate TypeScript types. |
 | **vitest-runner** | User wants to run Vitest tests, parse test results, or check if Vitest tests pass. NOT: running Jest, Mocha, or other test runners. |
-| **github-actions-check** | User wants to know if CI passed, check GitHub Actions status, or see build results. NOT: "check this out" (browsing), "check my work" (review), "check the logic" (analysis) — those do not involve CI. |
 | **read-only-ops** | User explicitly wants read-only operations: browsing, exploring, or examining without any modifications. |
 | **python-quality-gate** | User wants Python quality checks: ruff linting, mypy type checking, or combined Python quality validation. |
 | **condition-based-waiting** | User needs retry logic, backoff strategies, polling loops, or health check patterns in their code. |
@@ -140,7 +138,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **kb** | User wants to compile, query, or health-check a knowledge base wiki under `research/{topic}/`. Routes to compile/query/lint reference by intent. Triggers: "compile knowledge base", "kb compile", "compile wiki", "build knowledge base", "compile raw sources", "query knowledge base", "kb query", "ask knowledge base", "search kb", "kb question", "lint knowledge base", "kb lint", "check kb health", "knowledge base health", "kb consistency". Category: research. |
 | **roast** | User wants constructive critique of a design doc, idea, or code via 5 HackerNews personas with claim validation. Common phrasings: "roast this", "devil's advocate", "stress test this idea", "poke holes in this". |
 | **data-analysis** | User wants to analyze data: CSV files, metrics, A/B test results, cohort analysis, statistical distributions, KPIs, or funnel data. |
-| **kairos-lite** | User wants a project status briefing, health check, or to see what happened overnight — GitHub notifications, CI status, toolkit health. Common phrasings: "what happened", "morning briefing", "check notifications", "project status", "health check". NOT: specific PR status (use github-actions-check), specific CI debugging (use systematic-debugging). |
+| **kairos-lite** | User wants a project status briefing, health check, or to see what happened overnight — GitHub notifications, CI status, toolkit health. Common phrasings: "what happened", "morning briefing", "check notifications", "project status", "health check". NOT: specific PR status (use pr-workflow ci-check), specific CI debugging (use systematic-debugging). |
 | **pr-workflow** (miner mode) | User wants to extract review comments or learnings from past GitHub PRs, or coordinate batch mining. |
 | **skill-composer** | User wants to compose multiple skills into a multi-skill workflow. |
 | **routing-table-updater** | User wants to update routing tables after adding or changing agents/skills. |
@@ -161,9 +159,8 @@ Route to these agents based on the user's task domain. Each entry describes what
 
 | Skill | When to Route Here |
 |-------|-------------------|
-| **pr-workflow (FORCE)** | User wants to get local code changes onto GitHub — pushing a branch, creating a PR, or syncing local commits to the remote. Also handles: PR status checks, fixing review comments, cleaning up branches after merge, addressing PR feedback, and mining tribal knowledge from PRs. Common phrasings: "open a pull request", "create a PR", "make a PR", "submit PR", "push and PR", "pr status", "fix PR comments", "clean up branches", "mine PRs". NOT: "push back" (disagree with a decision), "push the boundaries" (explore limits). The intent must be about git/GitHub operations. |
+| **pr-workflow (FORCE)** | User wants to get local code changes onto GitHub — pushing a branch, creating a PR, or syncing local commits to the remote. Also handles: PR status checks, fixing review comments, cleaning up branches after merge, addressing PR feedback, mining tribal knowledge from PRs, generating/validating Git branch names (branch-name intent), and checking GitHub Actions CI status after a push (ci-check intent). Common phrasings: "open a pull request", "create a PR", "make a PR", "submit PR", "push and PR", "pr status", "fix PR comments", "clean up branches", "mine PRs", "generate branch name", "check CI", "did CI pass". NOT: "push back" (disagree with a decision), "push the boundaries" (explore limits), "check this code" (review), "check my logic" (analysis). The intent must be about git/GitHub operations. |
 | **git-commit-flow (FORCE)** | User wants to stage files and create a git commit from local changes. Common phrasings: "save my work", "commit this", "save progress", "checkpoint", "commit these changes". NOT: "commit to this approach" (deciding), "commit to the team" (dedication), "I'm committed to finishing" (resolve). The intent must be about creating a git commit object. |
-| **github-actions-check (FORCE)** | User wants to know if CI passed or check GitHub Actions run status. NOT: "check this code" (review), "check my logic" (analysis), "double-check this" (verify), "check the docs" (read documentation). The intent must be about CI/CD pipeline status. |
 | **/pr-review command** | User wants a comprehensive code review of a PR with retro learning applied. This is a command, not a skill — invoke it directly. |
 
 ### PR Workflow Policies
@@ -367,7 +364,7 @@ Consolidated reviewer agents, each covering multiple review perspectives:
 | "push back on this decision" | (not a routing target) | Intent: disagree — "push" is not a git push |
 | "commit this" | **git-commit-flow (FORCE)** | Intent: create a git commit |
 | "commit to this approach" | (not a routing target) | Intent: decide — "commit" is not a git commit |
-| "did CI pass?" | **github-actions-check (FORCE)** | Intent: check CI status |
+| "did CI pass?" | **pr-workflow (FORCE)** | Intent: check CI status (ci-check intent) |
 | "check my logic here" | (domain agent + review) | Intent: review — not CI |
 | "get a second opinion on this code" | codex-code-review | Cross-model review via Codex CLI |
 | "codex review this PR" | codex-code-review | Explicit Codex review request |

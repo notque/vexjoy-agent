@@ -77,10 +77,8 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 
 | Skill | Invocable | Description |
 |-------|-----------|-------------|
-| `pr-workflow` | yes | Pull request lifecycle: sync, review, fix, status, cleanup, and PR mining |
+| `pr-workflow` | yes | PR lifecycle umbrella: sync, review, fix, status, cleanup, feedback, PR mining, branch-name, ci-check |
 | `git-commit-flow` | no | Phase-gated git commit workflow with validation |
-| `branch-naming` | no | Generate and validate Git branch names |
-| `github-actions-check` | no | Check GitHub Actions CI status and report failures |
 | `github-notification-triage` | no | Triage GitHub notifications and report actions needed |
 
 ---

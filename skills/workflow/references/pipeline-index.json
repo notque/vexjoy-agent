@@ -546,8 +546,7 @@
       ],
       "pairs_with": [
         "git-commit-flow",
-        "branch-naming",
-        "github-actions-check",
+        "pr-workflow",
         "parallel-code-review"
       ]
     },

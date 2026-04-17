@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-17T02:01:58Z",
+  "generated": "2026-04-17T02:25:17Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -107,19 +107,6 @@
       "category": "research",
       "user_invocable": false,
       "agent": "python-general-engineer"
-    },
-    "branch-naming": {
-      "file": "skills/branch-naming/SKILL.md",
-      "description": "Generate and validate Git branch names.",
-      "triggers": [
-        "generate branch name",
-        "validate branch name",
-        "name branch",
-        "branch convention",
-        "git branch name"
-      ],
-      "category": "git-workflow",
-      "user_invocable": false
     },
     "cobalt-core": {
       "file": "skills/cobalt-core/SKILL.md",
@@ -749,21 +736,6 @@
       "force_route": true,
       "user_invocable": false
     },
-    "github-actions-check": {
-      "file": "skills/github-actions-check/SKILL.md",
-      "description": "Check GitHub Actions CI status and report failures.",
-      "triggers": [
-        "check CI",
-        "CI status",
-        "actions status",
-        "did CI pass",
-        "build status",
-        "CI passed"
-      ],
-      "category": "git-workflow",
-      "force_route": true,
-      "user_invocable": false
-    },
     "github-notification-triage": {
       "file": "skills/github-notification-triage/SKILL.md",
       "description": "Triage GitHub notifications and report actions needed.",
@@ -1381,7 +1353,18 @@
         "submit PR",
         "create pull request",
         "send for review",
-        "open PR"
+        "open PR",
+        "generate branch name",
+        "validate branch name",
+        "name branch",
+        "branch convention",
+        "git branch name",
+        "check CI",
+        "CI status",
+        "actions status",
+        "did CI pass",
+        "build status",
+        "CI passed"
       ],
       "category": "git-workflow",
       "force_route": true,
