@@ -124,7 +124,7 @@ except:   # H201 — catches SystemExit, KeyboardInterrupt, GeneratorExit
 
 **Why wrong**: Catches `SystemExit` and `KeyboardInterrupt`, preventing clean service shutdown. `tox -e pep8` hard blocks this.
 
-**Fix**:
+**Do instead:**
 ```python
 try:
     result = db.get_resource(context, resource_id)
@@ -151,7 +151,7 @@ from myservice.common import *
 
 **Why wrong**: Pollutes namespace, breaks introspection, makes `tox -e pep8` fail, and hides dependency chain from code review tools like Zuul.
 
-**Fix**: Import only what you use explicitly.
+**Do instead:** Import only what you use explicitly.
 
 ```python
 from oslo_config.cfg import CONF, StrOpt, IntOpt
@@ -175,7 +175,7 @@ from ..exception import ResourceNotFound
 
 **Why wrong**: OpenStack enforces absolute imports throughout. Relative imports break `oslo-config-generator`, tox environments, and Zuul dependency resolution.
 
-**Fix**:
+**Do instead:**
 ```python
 from myservice.common.utils import format_id
 from myservice import exception
@@ -199,7 +199,7 @@ LOG.debug('State: %(state)s timeout: %(timeout)s' % self.__dict__)
 
 **Why wrong**: `locals()` captures entire local scope including sensitive values (passwords, tokens). Implicit coupling makes refactoring silently break string formatting.
 
-**Fix**:
+**Do instead:**
 ```python
 msg = ('Creating %(resource_type)s for user %(user_id)s'
        % {'resource_type': resource_type, 'user_id': user_id})

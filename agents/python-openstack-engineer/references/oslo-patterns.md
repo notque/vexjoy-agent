@@ -174,7 +174,7 @@ LOG = logging.getLogger(__name__)
 
 **Why wrong**: Bypasses `oslo.log` integration. Log messages won't carry Oslo context fields (`request_id`, `project_id`), and runtime log level changes via `CONF.debug` won't apply to this logger.
 
-**Fix**:
+**Do instead:**
 ```python
 from oslo_log import log as logging
 
@@ -198,7 +198,7 @@ transport = messaging.get_rpc_transport(
 
 **Why wrong**: Transport URL must come from oslo.config (`CONF.transport_url`) to be overridable in deployment configs and testable with `oslo_messaging.fake`.
 
-**Fix**:
+**Do instead:**
 ```python
 # In opts registration:
 cfg.StrOpt('transport_url', default='rabbit://', help='...')
@@ -228,7 +228,7 @@ session = Session()
 
 **Why wrong**: Bypasses oslo.db retry logic (deadlock retries via `@api.wrap_db_retry`), connection pool management, and the `sqlite+pysqlite:///:memory:` test override used in unit tests.
 
-**Fix**: Use `enginefacade.writer` / `enginefacade.reader` decorators as shown in the Correct Patterns section.
+**Do instead:** Use `enginefacade.writer` / `enginefacade.reader` decorators as shown in the Correct Patterns section.
 
 ---
 
@@ -248,7 +248,7 @@ def delete_resource(self, context, resource_id):
 
 **Why wrong**: All API operations must enforce oslo.policy rules. Missing enforcement silently bypasses RBAC — a security vulnerability that won't be caught by unit tests unless policy enforcement is explicitly tested.
 
-**Fix**:
+**Do instead:**
 ```python
 from oslo_policy import policy
 
