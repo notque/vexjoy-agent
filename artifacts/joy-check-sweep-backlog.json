@@ -1,5 +1,5 @@
 {
-  "total": 932,
+  "total": 950,
   "findings": [
     {
       "file": "skills/explanation-traces/SKILL.md",
@@ -3168,6 +3168,168 @@
       ],
       "block_text": "# Find direct state file manipulation (bypass anti-pattern)\nrg '\\.feature/state.*\\.json' . --type py\n",
       "domain_hint": "feature-lifecycle"
+    },
+    {
+      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "line_range": [
+        1,
+        7
+      ],
+      "block_text": "# Fish Shell Anti-Patterns\n\n> **Scope**: Common fish shell configuration mistakes that cause silent failures, broken environments, or scripts that work interactively but fail in CI/cron. Does not cover fish scripting logic errors unrelated to configuration.\n> **Version range**: Fish 3.0+ (Fish 4.0 Rust rewrite has identical syntax)\n> **Generated**: 2026-04-17\n\n---\n",
+      "domain_hint": "fish-shell-config"
+    },
+    {
+      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "line_range": [
+        15,
+        15
+      ],
+      "block_text": "## Anti-Pattern Catalog\n",
+      "domain_hint": "fish-shell-config"
+    },
+    {
+      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "line_range": [
+        17,
+        26
+      ],
+      "block_text": "### \u274c Bash-Style Variable Assignment\n\n**Detection**:\n```bash\ngrep -rn '^[A-Z_]*=[^=]' --include=\"*.fish\" ~/.config/fish/\nrg '^\\s*[A-Z_a-z]+=[^=]' --type-add 'fish:*.fish' --type fish ~/.config/fish/\n```\n\n**What it looks like**:\n```fish",
+      "domain_hint": "fish-shell-config"
+    },
+    {
+      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "line_range": [
+        27,
+        42
+      ],
+      "block_text": "# WRONG \u2014 syntax error in Fish\nGOPATH=~/go\nMY_VAR=hello\n```\n\n**Why wrong**: `VAR=value` is a syntax error in Fish (not silently ignored). Fish rejects it at parse time, causing the entire conf.d file to fail to load \u2014 all subsequent lines in that file are skipped.\n\n**Fix**:\n```fish\nset -gx GOPATH ~/go\nset -g MY_VAR hello\n```\n\n**Version note**: No version where this worked. Fish has never supported `VAR=value` assignment syntax.\n\n---\n",
+      "domain_hint": "fish-shell-config"
+    },
+    {
+      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "line_range": [
+        44,
+        53
+      ],
+      "block_text": "### \u274c `export VAR=value` (Bash Export Syntax)\n\n**Detection**:\n```bash\ngrep -rn 'export ' --include=\"*.fish\" ~/.config/fish/\nrg 'export \\w+=' --type-add 'fish:*.fish' --type fish ~/.config/fish/\n```\n\n**What it looks like**:\n```fish",
+      "domain_hint": "fish-shell-config"
+    },
+    {
+      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "line_range": [
+        54,
+        67
+      ],
+      "block_text": "# WRONG \u2014 syntax error in Fish\nexport PATH=\"$PATH:~/.local/bin\"\nexport EDITOR=nvim\n```\n\n**Why wrong**: `export` is not a Fish builtin for variable assignment. The syntax `export VAR=value` is a parse error. Even `export EDITOR nvim` (space-separated) calls the external `export` binary, sets nothing in Fish scope, and is immediately discarded.\n\n**Fix**:\n```fish\nfish_add_path ~/.local/bin\nset -gx EDITOR nvim\n```\n\n---\n",
+      "domain_hint": "fish-shell-config"
+    },
+    {
+      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "line_range": [
+        69,
+        78
+      ],
+      "block_text": "### \u274c Colon-Separated PATH Manipulation\n\n**Detection**:\n```bash\ngrep -rn 'PATH.*:.*PATH\\|\"\\$PATH:' --include=\"*.fish\" ~/.config/fish/\nrg 'set.*PATH.*\"\\$PATH:' --type-add 'fish:*.fish' --type fish ~/.config/fish/\n```\n\n**What it looks like**:\n```fish",
+      "domain_hint": "fish-shell-config"
+    },
+    {
+      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "line_range": [
+        79,
+        93
+      ],
+      "block_text": "# WRONG \u2014 creates a single malformed string element\nset -gx PATH \"$PATH:$HOME/.local/bin\"\nset -gx PATH \"$HOME/.local/bin:$PATH\"\n```\n\n**Why wrong**: Fish PATH is a list variable. Each element is a separate string. String-concatenating with colons creates a single element containing the literal colon \u2014 e.g., `\"/home/user/.local/bin:/usr/bin\"` becomes one list entry, not two PATH components. Commands in the new directory become unfindable.\n\n**Fix**:\n```fish\nfish_add_path ~/.local/bin        # Prepe...",
+      "domain_hint": "fish-shell-config"
+    },
+    {
+      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "line_range": [
+        95,
+        104
+      ],
+      "block_text": "### \u274c Unguarded Abbreviations in conf.d/\n\n**Detection**:\n```bash\ngrep -rn '^abbr ' --include=\"*.fish\" ~/.config/fish/conf.d/\nrg '^abbr ' --type-add 'fish:*.fish' --type fish ~/.config/fish/conf.d/\n```\n\n**What it looks like**:\n```fish",
+      "domain_hint": "fish-shell-config"
+    },
+    {
+      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "line_range": [
+        105,
+        113
+      ],
+      "block_text": "# ~/.config/fish/conf.d/20-abbreviations.fish \u2014 WRONG\nabbr -a g git\nabbr -a gst \"git status\"\n```\n\n**Why wrong**: Abbreviations are interactive-only. When Fish sources `conf.d/` in non-interactive mode (scripts, CI, cron, `fish -c \"...\"`), `abbr -a` emits a warning and is a no-op. More critically, they never expand in scripts regardless \u2014 so logic depending on abbreviation expansion in `.fish` scripts will silently fail.\n\n**Fix**:\n```fish",
+      "domain_hint": "fish-shell-config"
+    },
+    {
+      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "line_range": [
+        124,
+        133
+      ],
+      "block_text": "### \u274c Bash Double-Bracket Conditionals\n\n**Detection**:\n```bash\ngrep -rn '\\[\\[' --include=\"*.fish\" ~/.config/fish/\ngrep -rn 'if \\[' --include=\"*.fish\" ~/.config/fish/\n```\n\n**What it looks like**:\n```fish",
+      "domain_hint": "fish-shell-config"
+    },
+    {
+      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "line_range": [
+        134,
+        157
+      ],
+      "block_text": "# WRONG \u2014 syntax error in Fish\nif [[ -f ~/.config/fish/local.fish ]]\n    source ~/.config/fish/local.fish\nend\n\nif [ -z \"$TMUX\" ]\n    echo \"not in tmux\"\nend\n```\n\n**Why wrong**: `[[` is not recognized by Fish \u2014 it is a Bash/Zsh construct and causes a parse error. `[ ]` calls the external `/bin/[` binary which has slightly different behavior from the Fish `test` builtin and incurs a fork/exec overhead.\n\n**Fix**:\n```fish\nif test -f ~/.config/fish/local.fish\n    source ~/.config/fish/local.fish\nend\n\n...",
+      "domain_hint": "fish-shell-config"
+    },
+    {
+      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "line_range": [
+        163,
+        171
+      ],
+      "block_text": "# Bash: find functions/ files where function name doesn't match filename\nfor f in ~/.config/fish/functions/*.fish; do\n    name=$(basename \"$f\" .fish)\n    grep -qL \"function $name\" \"$f\" && echo \"MISMATCH: $f\"\ndone\n```\n\n**What it looks like**:\n```",
+      "domain_hint": "fish-shell-config"
+    },
+    {
+      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "line_range": [
+        172,
+        182
+      ],
+      "block_text": "# File: ~/.config/fish/functions/mkcd.fish\nfunction make_directory_and_cd    # WRONG \u2014 name doesn't match file\n    mkdir -p $argv[1]\n    and cd $argv[1]\nend\n```\n\n**Why wrong**: Fish autoloads functions by filename. When `mkcd` is called, Fish looks for `~/.config/fish/functions/mkcd.fish`. If that file exists but defines `function make_directory_and_cd`, calling `mkcd` fails with \"Unknown command: mkcd\". The file loads but the desired name never registers.\n\n**Fix**:\n```fish",
+      "domain_hint": "fish-shell-config"
+    },
+    {
+      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "line_range": [
+        192,
+        201
+      ],
+      "block_text": "### \u274c Tool Integration Without Availability Guard\n\n**Detection**:\n```bash\ngrep -rn 'init fish | source\\|hook fish | source' --include=\"*.fish\" ~/.config/fish/conf.d/\nrg '(starship|direnv|fnm|zoxide|mise|pyenv) (init|hook)' --type-add 'fish:*.fish' --type fish ~/.config/fish/conf.d/\n```\n\n**What it looks like**:\n```fish",
+      "domain_hint": "fish-shell-config"
+    },
+    {
+      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "line_range": [
+        202,
+        225
+      ],
+      "block_text": "# WRONG \u2014 breaks on machines where tool is not installed\nstarship init fish | source\ndirenv hook fish | source\nfnm env --use-on-cd | source\n```\n\n**Why wrong**: If the tool is not installed, the command fails with \"command not found: starship\". This error may stop further `conf.d/` processing, producing error output for every new shell opened on machines without that tool.\n\n**Fix**:\n```fish\nif type -q starship\n    starship init fish | source\nend\n\nif type -q direnv\n    direnv hook fish | source\nen...",
+      "domain_hint": "fish-shell-config"
+    },
+    {
+      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "line_range": [
+        227,
+        236
+      ],
+      "block_text": "### \u274c Using `set -U` (Universal) in conf.d/ for Tool Paths\n\n**Detection**:\n```bash\ngrep -rn 'set -U\\|set --universal' --include=\"*.fish\" ~/.config/fish/conf.d/\nrg 'set -U ' --type-add 'fish:*.fish' --type fish ~/.config/fish/conf.d/\n```\n\n**What it looks like**:\n```fish",
+      "domain_hint": "fish-shell-config"
+    },
+    {
+      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "line_range": [
+        237,
+        246
+      ],
+      "block_text": "# ~/.config/fish/conf.d/10-env.fish \u2014 WRONG\nset -U GOPATH ~/go\nset -U EDITOR nvim\nset -U JAVA_HOME /usr/lib/jvm/java-17-openjdk\n```\n\n**Why wrong**: Universal variables are stored in `fish_variables` and persist across all sessions. Setting them in `conf.d/` re-sets them on every shell start \u2014 harmless for idempotent values but causes subtle bugs when the value changes (e.g., different JAVA_HOME on different machines). Universal scope is for user preferences set interactively, not for environment...",
+      "domain_hint": "fish-shell-config"
     },
     {
       "file": "skills/gemini-image-generator/references/prompts.md",
