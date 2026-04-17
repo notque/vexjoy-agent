@@ -121,6 +121,7 @@ Step 3: Application agent → smoke test against deployed environment
 ---
 
 ## Routing Anti-Patterns
+<!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### ❌ General-Purpose Agent for Specialized Work
 
@@ -128,7 +129,7 @@ Step 3: Application agent → smoke test against deployed environment
 
 **Why wrong**: General-purpose agent lacks Go-specific pattern libraries, anti-pattern catalog, idiomatic corrections. Produces functional-but-non-idiomatic code that causes rework.
 
-**Fix**: Always specify `subagent_type` for language/infrastructure work.
+**Do instead**: Look up the task type in the Primary Routing Table above and specify the exact `subagent_type`. For Go compilation errors, that is `golang-general-engineer`. Use the general-purpose agent only when no specialist is listed for the domain.
 
 ---
 
@@ -137,6 +138,8 @@ Step 3: Application agent → smoke test against deployed environment
 **What it looks like**: Sending TypeScript backend work to `typescript-frontend-engineer`.
 
 **Why wrong**: Frontend agent optimizes for bundle size, React patterns, CSR/SSR — not REST APIs, database connection pooling, or request middleware.
+
+**Do instead**: Run the detection commands below before dispatching. Backend imports (`express`, `@nestjs`, `fastify`) route to `nodejs-api-engineer`. Frontend imports (`react`, `next`) route to `typescript-frontend-engineer`. When the entry file has neither, read the first 20 lines — the import block makes the domain unambiguous.
 
 **Detection**:
 ```
@@ -154,7 +157,7 @@ rg "import.*react|import.*next" --files-with-matches src/
 
 **Why wrong**: Application agent will add the column in the ORM model but not create the migration, causing runtime errors on deploy.
 
-**Fix**: Schema changes always go to `database-engineer` first. Application agents pick up the committed migration.
+**Do instead**: Dispatch `database-engineer` first to create and verify the migration. Once the migration is committed, dispatch the application agent to update ORM models against the stable schema. The mandatory sequencing rule is: schema changes first, application changes second.
 
 ---
 
