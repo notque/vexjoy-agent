@@ -166,7 +166,7 @@ expect(await page.textContent('.result')).toBe('Done')
 
 **Why wrong**: Arbitrary delays make tests slow on fast machines and flaky on slow ones. If the operation takes 600ms instead of 500ms (CI under load), the test fails. These tests hide timing bugs rather than revealing them.
 
-**Fix**:
+**Do instead:**
 ```typescript
 // RTL — wait for actual DOM change
 await screen.findByText(/result/i)
@@ -198,7 +198,7 @@ expect(screen.getByText(/hello/i)).toBeInTheDocument()
 
 **Why wrong**: `userEvent.setup()` returns async methods in RTL 14+. Without `await`, the events fire but React state updates haven't processed before assertions run. Test passes inconsistently depending on microtask scheduling.
 
-**Fix**:
+**Do instead:**
 ```typescript
 const user = userEvent.setup()
 await user.click(button)
@@ -225,7 +225,7 @@ expect(screen.getByText(/saved/i)).toBeInTheDocument()  // may not exist yet
 
 **Why wrong**: `user.click` resolves after the event dispatches, not after React re-renders from async work (API calls, state transitions). The `getByText` assertion runs synchronously and finds the element absent.
 
-**Fix**:
+**Do instead:**
 ```typescript
 await user.click(screen.getByRole('button', { name: /save/i }))
 await screen.findByText(/saved/i)   // waits up to 1000ms by default
@@ -248,7 +248,7 @@ server.listen()  // no onUnhandledRequest — silent network failures
 
 **Why wrong**: When a component makes an unexpected API call (wrong path, URL typo), MSW passes it through or returns undefined without failing the test. The component renders broken UI, tests assert on something unrelated, and the bug is hidden until production.
 
-**Fix**:
+**Do instead:**
 ```typescript
 server.listen({ onUnhandledRequest: 'error' })
 // Unexpected requests now throw: "Error: No handler for GET /api/typo"

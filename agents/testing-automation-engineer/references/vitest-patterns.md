@@ -152,7 +152,7 @@ jest.spyOn(console, 'error')
 
 **Why wrong**: Vitest does not polyfill the `jest` global by default. These calls throw `ReferenceError: jest is not defined` at runtime or produce silent `undefined` if `globals: true` is configured with a partial shim.
 
-**Fix**:
+**Do instead:**
 ```typescript
 import { vi } from 'vitest'
 const mockFn = vi.fn()
@@ -190,7 +190,7 @@ describe('Suite B', () => {
 
 **Why wrong**: Spy state persists across test files in the same worker thread. Tests in unrelated files fail with unexpected mock behavior. Produces order-dependent failures that are hard to reproduce.
 
-**Fix**: Always pair `vi.spyOn` with `afterEach(() => vi.restoreAllMocks())`. Or configure globally:
+**Do instead:** Always pair `vi.spyOn` with `afterEach(() => vi.restoreAllMocks())`. Or configure globally:
 ```typescript
 test: { restoreMocks: true }  // auto-restore after each test in vitest.config.ts
 ```
@@ -218,7 +218,7 @@ coverage: {
 
 **Why wrong**: A function with `if (user.isAdmin)` tested only with admin users shows 100% line coverage but 0% branch coverage. The non-admin code path is completely untested. CI passes, bugs ship.
 
-**Fix**: Always include `branches: 80` in thresholds (see Correct Patterns section above).
+**Do instead:** Always include `branches: 80` in thresholds (see Correct Patterns section above).
 
 ---
 
@@ -240,7 +240,7 @@ it('renders correctly', () => {
 
 **Why wrong**: External `.snap` files are updated with `--updateSnapshot` without review. Developers mindlessly accept them in CI, converting regression detectors into rubber stamps.
 
-**Fix**: Use inline snapshots or explicit behavioral assertions:
+**Do instead:** Use inline snapshots or explicit behavioral assertions:
 ```typescript
 // Inline snapshot — diff visible in the PR
 expect(button).toMatchInlineSnapshot(`<button class="btn">Click me</button>`)
