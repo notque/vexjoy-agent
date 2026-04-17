@@ -134,6 +134,17 @@ Include this matrix in every report so stakeholders see the severity distributio
 ```markdown
 ## Parallel Review Complete
 
+### Severity Matrix
+
+| Severity | Count | Summary |
+|----------|-------|---------|
+| Critical | N | One-line aggregated summary |
+| High     | N | One-line aggregated summary |
+| Medium   | N | One-line aggregated summary |
+| Low      | N | One-line aggregated summary |
+
+Details by reviewer below.
+
 ### Combined Findings
 
 #### CRITICAL (Block Merge)

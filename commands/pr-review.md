@@ -11,6 +11,17 @@ Comprehensive PR review using specialized agents, with automatic knowledge captu
 This is a local fork of `pr-review-toolkit:review-pr` with a retro learning phase that
 records review patterns to the knowledge store.
 
+## Scope
+
+This command accepts either a PR reference or a local branch diff. You do not need an open PR to use it.
+
+| Invocation form | What it reviews |
+|----------------|-----------------|
+| `/pr-review` (no argument) | Uncommitted and committed local changes against the base branch (`HEAD` vs base) |
+| `/pr-review 123` or `/pr-review https://github.com/org/repo/pull/123` | The diff of the specified open PR |
+
+When no argument is provided, the command reads `git diff` to determine changed files. When a PR number or URL is provided, it fetches the PR diff via `gh pr view`. All review phases and retro learning apply in both cases.
+
 ## Usage
 
 ```
