@@ -128,7 +128,7 @@ rg '"Authorization".*"Bearer [A-Za-z0-9._-]{20,}"' --type json
 **Why wrong**: JWT tokens in config files get committed to git history. Even after rotation,
 the old token remains in every git clone. GitHub secret scanning flags base64-encoded JWTs.
 
-**Fix**: `{"headers": {"Authorization": "Bearer ${API_TOKEN}"}}`
+**Do instead**: `{"headers": {"Authorization": "Bearer ${API_TOKEN}"}}`
 
 ---
 
@@ -155,10 +155,10 @@ for ep in cfg.get('endpoints', []):
 ```
 
 **Why wrong**: Without explicit `expect_status`, default is 200. If the token expires or
-loses its scope, the endpoint returns 401 — the validator reports FAIL (expected 200, got 401)
+loses its scope, the endpoint returns 401. The validator reports FAIL (expected 200, got 401)
 with no context that it's an auth failure, not an API bug.
 
-**Fix**: Always set `expect_status: 200` explicitly on auth-protected endpoints so the
+**Do instead**: Always set `expect_status: 200` explicitly on auth-protected endpoints so the
 failure message reads "expected 200, got 401" and the auth header is visible in the config.
 
 ---
@@ -179,7 +179,7 @@ grep -rn "ADMIN\|ROOT\|MASTER\|SUPERUSER\|SUPER_" endpoints.json
 to production. Blast radius is maximum. Use read-only service account tokens scoped to
 the specific paths being validated.
 
-**Fix**: Create a dedicated `endpoint-validator` service account with read-only access.
+**Do instead**: Create a dedicated `endpoint-validator` service account with read-only access.
 Rotate its token independently of admin credentials.
 
 ---
@@ -204,7 +204,7 @@ grep -rn '"Cookie"' endpoints.json | grep -v '\${[A-Z_]'
 silently redirect to a login page (302), which the validator may follow and report 200
 (the login page), masking the auth failure entirely.
 
-**Fix**: Use env var for session token and add `expect_key` on JSON dashboard APIs:
+**Do instead**: Use env var for session token and add `expect_key` on JSON dashboard APIs:
 ```json
 {
   "path": "/api/dashboard",

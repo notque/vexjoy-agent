@@ -110,7 +110,7 @@ grep -rn '"base_url".*localhost\|"base_url".*127\.0\.0\.1' endpoints.json
 **Why wrong**: Development servers don't set these headers. Running the check against localhost
 generates spurious WARNs on every local run, training developers to ignore warnings entirely.
 
-**Fix**: The validator skips security header checks when `base_url` contains `localhost` or
+**Do instead**: The validator skips security header checks when `base_url` contains `localhost` or
 `127.0.0.1` by default. Only override with `force_security_check: true` when explicitly needed.
 
 ---
@@ -131,7 +131,7 @@ grep -rn "|| true\|--allow-warn\|exit 0" .github/workflows/ .gitlab-ci.yml 2>/de
 CSP) pass CI silently. Use `--fail-on-warn` in production validation runs so header removal
 triggers a build failure.
 
-**Fix**:
+**Do instead**:
 ```yaml
 - run: endpoint-validator --base-url $PROD_URL --fail-on-warn
   env:
@@ -153,9 +153,9 @@ grep -rn '"base_url".*"http://' endpoints.json | grep -v "localhost\|127\.0\.0\.
 ```
 
 **Why wrong**: HSTS is only meaningful over HTTPS. Browsers ignore HSTS headers delivered
-over HTTP (per RFC 6797 §8.1). Checking for it on HTTP endpoints always generates misleading WARNs.
+over HTTP (per RFC 6797 section 8.1). Checking for it on HTTP endpoints always generates misleading WARNs.
 
-**Fix**: Use `https://` base_url for production validation, or the validator should auto-skip
+**Do instead**: Use `https://` base_url for production validation, or the validator should auto-skip
 HSTS checks when base_url starts with `http://`.
 
 ---
