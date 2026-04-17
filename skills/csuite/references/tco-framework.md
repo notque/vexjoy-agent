@@ -185,21 +185,25 @@ Before finalizing TCO, confirm you have accounted for:
 ---
 
 ## Anti-Patterns
+<!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Comparing development cost to license cost
 **What it looks like**: "Auth0 costs $2,880/year. We can build it for free."
 **Why wrong**: "Free to build" ignores 120+ engineering hours, security maintenance, incident response, and opportunity cost. The license is year 2+ maintenance savings, not just year 1 build savings.
+**Do instead**: Run the 3-year TCO template before any build-vs-buy comparison. Put license cost and fully-loaded build cost (engineering hours, security maintenance, incident response, opportunity cost) side by side across all three years. The comparison only becomes meaningful at that scope.
 **Fix**: Always run the 3-year TCO template. If the comparison is still in favor of building after year 2-3 costs are included, building may be right.
 
 ### Underestimating maintenance burden
 **What it looks like**: Year 2 estimate shows zero hours for maintenance on custom-built system.
 **Why wrong**: Every system has dependencies that release updates. Security vulnerabilities require patches. Load characteristics change. Features accumulate bugs over time. 10-20% of initial build effort per year is the historical baseline.
 **Detection**: If Year 2 internal maintenance estimate is less than 10% of Year 1 build estimate, it is too optimistic.
+**Do instead**: Use 15% of Year 1 build cost as the floor for Year 2-3 annual maintenance in every custom build TCO. Flag any estimate below that threshold and require a written justification before accepting it.
 **Fix**: Use 15% of Year 1 build cost as minimum Year 2-3 annual maintenance baseline. Adjust up if the system is complex.
 
 ### TCO without usage growth modeling
 **What it looks like**: SaaS cost calculated at current usage (100 users), not at expected usage in year 3 (1,000 users).
 **Why wrong**: Many SaaS platforms have non-linear pricing. What looks affordable at 100 users can be prohibitive at 1,000. The opposite is also true — build costs are largely fixed.
+**Do instead**: Model three usage scenarios in every TCO: current usage, 3x growth, and 10x growth. The right choice is the one that remains affordable across all three plausible futures, not just the one that looks best at today's usage.
 **Fix**: Model three usage scenarios: current, 3× growth, 10× growth. Pick the option that remains affordable across all three plausible scenarios.
 
 ---

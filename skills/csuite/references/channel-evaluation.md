@@ -165,20 +165,24 @@ If selected channel hours > 80% of available hours: remove a channel.
 ---
 
 ## Anti-Patterns
+<!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### Platform-native metrics as success metrics
 **What it looks like**: "We got 50 retweets!" — but zero new email subscribers, zero traffic, zero revenue.
 **Why wrong**: Platform metrics (likes, impressions, follower count) measure engagement with the platform, not growth of YOUR asset. A viral tweet that doesn't move subscribers is entertainment, not growth.
+**Do instead**: Report only metrics that connect to your owned asset (email subscribers, direct traffic) or revenue. Track platform metrics separately as leading indicators, never as primary success measures.
 **Fix**: Track only metrics that connect to your owned channel (email subscribers, direct traffic) or revenue. Report platform metrics only as leading indicators of owned metrics.
 
 ### Optimizing for CAC without measuring LTV
 **What it looks like**: "Reddit drives the cheapest subscriber acquisition at $0.50 each."
 **Why wrong**: If Reddit subscribers have 50% lower LTV (because they signed up for one specific post and have low topic affinity), the channel is less efficient than it appears.
+**Do instead**: Measure 90-day engagement rate per acquisition channel and multiply it by CAC to get channel-adjusted CAC. A channel with $2 CAC and 80% engagement beats a channel with $0.50 CAC and 10% engagement.
 **Fix**: Track subscriber cohort behavior by acquisition channel. Measure 90-day engagement rate per channel. CAC × engagement rate gives channel-adjusted CAC.
 
 ### Treating all funnel stages as the same
 **What it looks like**: Every piece of content ends with "check out my other posts." No direct subscribe CTAs, no product mentions, no differentiated asks by content type.
 **Why wrong**: Awareness content with hard conversion CTAs drives away top-of-funnel readers. Consideration content without conversion paths wastes intent. Each stage needs its own CTA.
+**Do instead**: Assign one primary CTA per funnel stage before writing the content. Awareness gets a subscribe prompt. Interest gets a resource download. Consideration gets a trial or demo link. Conversion gets a purchase path.
 **Fix**: Assign one primary CTA per funnel stage. Awareness = subscribe. Interest = download resource. Consideration = book a call or trial. Conversion = purchase.
 
 ---
