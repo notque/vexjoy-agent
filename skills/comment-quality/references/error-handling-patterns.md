@@ -1,5 +1,7 @@
 # Error Handling Comment Anti-Patterns
 
+<!-- no-pair-required: document header and scope block, not an individual anti-pattern -->
+
 > **Scope**: Temporal and activity-based comment anti-patterns in error handling code, across
 > Go, Python, JavaScript, and TypeScript.
 > **Version range**: Go 1.13+ (error wrapping), Python 3.11+ (exception groups)
@@ -17,6 +19,8 @@ them to explain what the error handling actually does today.
 ---
 
 ## Anti-Pattern Catalog
+
+<!-- no-pair-required: section heading organizing multiple anti-pattern blocks -->
 
 ### ❌ "Fixed bug where X caused error Y" — Bug archaeology
 
@@ -42,6 +46,8 @@ if err != nil {
 
 **Why wrong**: The bug is gone. "Fixed bug" tells future readers nothing useful about what
 the code does or why the guard exists.
+
+**Do instead**: Describe the guard and what it prevents, not the bug that prompted it.
 
 **Fix**:
 ```go
@@ -78,6 +84,8 @@ log.WithField("request_id", reqID).Error("request failed")
 
 **Why wrong**: "Better" is relative. The comment should describe what context is included
 and why it helps, not that it is better than before.
+
+**Do instead**: List the specific context the error includes and why it matters to callers.
 
 **Fix**:
 ```go
@@ -118,6 +126,8 @@ resp, err := client.Do(req)
 
 **Why wrong**: "Added retry logic" describes when the retry was introduced. The reader needs
 to know the retry policy, which errors trigger it, and what happens on exhaustion.
+
+**Do instead**: State the retry count, backoff schedule, and what happens when retries are exhausted.
 
 **Fix**:
 ```go
@@ -162,6 +172,8 @@ type ValidationError struct {
 
 **Why wrong**: The caller needs to know the current contract, not the migration history.
 
+**Do instead**: Document the current return type and what it carries, without mentioning what it replaced.
+
 **Fix**:
 ```go
 // Returns nil if valid; returns ValidationError describing the first failed constraint.
@@ -177,6 +189,8 @@ type ValidationError struct {
 ---
 
 ### ❌ Python: "Added exception handling for X"
+
+**Do instead**: State what the handler catches and what callers receive (propagated error, default value, or logged result).
 
 **Detection**:
 ```bash
@@ -202,6 +216,8 @@ except ValueError:
 ```
 
 **Why wrong**: Describes the history of adding the handler, not what it handles or why.
+
+**Do instead**: State what the handler catches and what callers receive (propagated error, default value, or logged result).
 
 **Fix**:
 ```python
@@ -243,6 +259,8 @@ async function fetchData(url: string): Promise<Data> {
     }
 }
 ```
+
+**Do instead**: State what the catch block does and what callers should expect after the throw.
 
 **Fix**:
 ```typescript
