@@ -248,10 +248,18 @@ def check_anti_patterns_section(content: str) -> CheckResult:
 
 
 def check_error_handling_section(content: str) -> CheckResult:
-    """Check: Has error handling section heading (10 pts)."""
+    """Check: Has error handling — heading or inline handling patterns (10 pts)."""
     if re.search(r"^#{1,3}\s+.*error", content, re.IGNORECASE | re.MULTILINE):
         return CheckResult("Error handling section", 10, 10)
-    return CheckResult("Error handling section", 10, 0, "No '## Error*' heading found")
+    inline_patterns = [
+        r"(?i)if\s+.*\b(fail|null|error|low)\b",
+        r"(?i)fallback",
+        r"(?i)record\s+the\s+gap",
+    ]
+    inline_count = sum(1 for p in inline_patterns if re.search(p, content))
+    if inline_count >= 2:
+        return CheckResult("Error handling section", 10, 10, f"Inline error handling ({inline_count} patterns)")
+    return CheckResult("Error handling section", 10, 0, "No '## Error*' heading or inline error handling found")
 
 
 def check_routing_registration(component_type: str, file_path: Path, fm: dict | None) -> CheckResult:
@@ -338,7 +346,7 @@ def check_workflow_instructions(content: str) -> CheckResult:
     """
     has_instructions = bool(re.search(r"#{2,4}\s+Instructions", content, re.IGNORECASE))
     has_phases = bool(re.search(r"#{2,4}\s+(Phase|Step)\s+\d", content, re.IGNORECASE))
-    has_gates = bool(re.search(r"\*\*Gate\*\*", content))
+    has_gates = bool(re.search(r"\*\*Gate\*\*|#{2,4}\s+.*\bGATE\b", content))
 
     found = sum([has_instructions, has_phases, has_gates])
     earned = round((found / 3) * 15)
@@ -359,18 +367,28 @@ def check_workflow_instructions(content: str) -> CheckResult:
 def check_inline_constraints(content: str) -> CheckResult:
     """Check: Inline constraints with reasoning (10 pts).
 
-    Workflow-first model: constraints are distributed inline with "because X"
-    reasoning at point-of-use. Replaces the old CAN/CANNOT sections check.
+    Accepts two styles: prose reasoning ("because X") or table-driven rules
+    (markdown tables with constraint columns). Router-style skills express
+    constraints as deterministic rules in tables rather than prose reasoning.
     """
     because_count = len(re.findall(r"\bbecause\b", content, re.IGNORECASE))
+    table_rule_count = len(re.findall(r"^\|.*\|.*\|", content, re.MULTILINE))
 
     if because_count >= 5:
         return CheckResult("Inline constraints", 10, 10, f"{because_count} inline 'because' reasoning instances")
-    elif because_count >= 2:
-        return CheckResult("Inline constraints", 10, 5, f"{because_count} inline 'because' reasoning (target: 5+)")
-    return CheckResult(
-        "Inline constraints", 10, 0, f"Only {because_count} inline constraint reasoning found (target: 5+)"
-    )
+    if table_rule_count >= 5:
+        return CheckResult("Inline constraints", 10, 10, f"{table_rule_count} table-driven constraint rules")
+    combined = because_count + table_rule_count
+    if combined >= 5:
+        return CheckResult(
+            "Inline constraints",
+            10,
+            10,
+            f"{combined} constraints ({because_count} prose + {table_rule_count} table rules)",
+        )
+    elif combined >= 2:
+        return CheckResult("Inline constraints", 10, 5, f"{combined} constraints found (target: 5+)")
+    return CheckResult("Inline constraints", 10, 0, f"Only {combined} constraint instances found (target: 5+)")
 
 
 def check_broken_internal_links(content: str, file_path: Path) -> CheckResult:
