@@ -232,7 +232,7 @@ If relevant retro knowledge is already present in context, use it. If it is abse
 | "review" with 5+ files | Dispatch parallel-code-review (3 reviewers) |
 | Complex implementation | Offer subagent-driven-development |
 
-Before attaching any enhancement, check the target skill's `pairs_with` field in `skills/INDEX.json`. Some skills ship with their own verification gates and work best on their own terms. Specifically: empty `pairs_with: []` means no stacking allowed. Skills with built-in verification gates handle their own verification. The `quick --trivial` mode handles its own testing. Attach only compatible enhancements.
+Before attaching any enhancement, check the target skill's `pairs_with` field in `skills/INDEX.json` for known-compatible pairings. Skills with built-in verification gates handle their own verification. The `quick --trivial` mode handles its own testing. An empty `pairs_with: []` just means pairings have not been declared yet, not that stacking is prohibited.
 
 Add anti-rationalization patterns for these task types when the task benefits from explicit rigor:
 
