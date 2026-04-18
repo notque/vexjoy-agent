@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 # hook-version: 1.0.0
 """
-SessionStart hook: Sync agents repo to ~/.claude
+SessionStart hook: Sync agents repo to ~/.claude and ~/.toolkit
 
 Runs when Claude Code starts in the agents repo.
-Syncs agents, skills, hooks, commands, retro, and scripts to ~/.claude/.
+Syncs hooks, retro, and scripts to ~/.claude/.
+Syncs /do skill to ~/.claude/skills/do/ (harness entry point).
+Syncs domain skills, private voices, and agents to ~/.toolkit/ (ADR-195 Phase 2).
+Cleans up stale ~/.claude/commands/ and ~/.claude/agents/ contents on each sync.
 Uses additive file-by-file sync (never rmtree) so interrupted syncs
 don't leave ~/.claude/hooks/ empty. Stale files are cleaned up for
-repo-owned components; additive-only components (commands, retro)
-preserve files from other sources.
+repo-owned components; additive-only components (retro) preserve files
+from other sources.
 Retro files are merged at the entry level (### headings) rather than
 overwritten, so knowledge accumulated from other repos is preserved.
 L1.md is regenerated from merged L2 files at the destination.
@@ -309,15 +312,13 @@ def main():
     # Non-skill/agent components sync to ~/.claude/ as before
     components = [
         ("hooks", "hooks"),
-        ("commands", "commands"),  # Still needed for slash menu discovery
         ("retro", "retro"),  # Knowledge store for retro-knowledge-injector hook
         ("scripts", "scripts"),  # Deterministic CLI tools (learning-db.py, classify-repo.py, etc.)
     ]
 
     # Components that only ADD files (never remove stale ones from dst).
-    # Commands can come from skills auto-generation or other sources;
-    # retro entries accumulate from multiple repos.
-    additive_only = {"commands", "retro"}
+    # Retro entries accumulate from multiple repos.
+    additive_only = {"retro"}
 
     # Components that need entry-level merge (not file-level overwrite).
     # Retro L2 files use ### headings as entries; merging preserves
@@ -367,16 +368,25 @@ def main():
     for dst_name, all_paths in dst_all_paths.items():
         _stale_cleanup(user_claude / dst_name, all_paths, errors, dst_name)
 
+    # Remove stale ~/.claude/commands/ — commands/ directory was eliminated (ADR-195 Phase 2).
+    # Agents use skills via /do; slash-command discovery is no longer via commands/.
+    stale_commands_dir = user_claude / "commands"
+    if stale_commands_dir.is_dir():
+        try:
+            shutil.rmtree(stale_commands_dir)
+            synced.append("cleanup(~/.claude/commands removed)")
+        except OSError as e:
+            errors.append(f"cleanup-commands: {e}")
+
     # -------------------------------------------------------------------------
-    # Skills: two-layer model (ADR-195)
+    # Skills: two-layer model (ADR-195 Phase 2)
     #
-    # ~/.claude/skills/do/        — orchestration entry point (harness discovers)
-    # ~/.claude/skills/voice-*/   — private voices (harness discovers; loaded by /do)
-    # ~/.toolkit/skills/          — all other domain skills (router-managed)
+    # ~/.claude/skills/do/    — orchestration entry point (harness discovers)
+    # ~/.toolkit/skills/      — all domain skills + private voices (router-managed)
     #
     # The harness auto-scans ~/.claude/skills/ for SKILL.md files. Domain skills
-    # must NOT live there — they would be injected into every session's context,
-    # costing ~4k tokens per turn. Only /do needs harness visibility.
+    # and private voices must NOT live there — they would be injected into every
+    # session's context, costing ~4k tokens per turn. Only /do needs harness visibility.
     # -------------------------------------------------------------------------
     repo_skills = repo_root / "skills"
     claude_skills = user_claude / "skills"
@@ -420,8 +430,9 @@ def main():
         except Exception as e:
             errors.append(f"toolkit/skills: {e}")
 
-        # 3. Remove stale domain skills from ~/.claude/skills/ (keep only do/ and voice-*)
-        #    These were copied there by previous sync runs before ADR-195.
+        # 3. Remove stale domain skills from ~/.claude/skills/ (keep only do/).
+        #    Domain skills now live in ~/.toolkit/skills/ (ADR-195).
+        #    Private voices moved to ~/.toolkit/skills/voice-* (ADR-195 Phase 2).
         try:
             if claude_skills.is_dir():
                 for item in sorted(claude_skills.iterdir()):
@@ -429,9 +440,7 @@ def main():
                         continue
                     if item.name == "do":
                         continue  # Orchestration entry point — keep
-                    if item.name.startswith("voice-"):
-                        continue  # Private voices — keep (harness needs them for /do)
-                    # Domain skill that should now live in ~/.toolkit/skills/ — remove
+                    # Domain skill or voice skill that now lives in ~/.toolkit/skills/ — remove
                     try:
                         shutil.rmtree(item)
                     except OSError:
@@ -440,14 +449,13 @@ def main():
             errors.append(f"stale-cleanup-claude-skills: {e}")
 
     # -------------------------------------------------------------------------
-    # Agents: symlink model (ADR-195)
+    # Agents: toolkit-only model (ADR-195 Phase 2)
     #
-    # ~/.toolkit/agents/          — canonical location (router-managed)
-    # ~/.claude/agents/{name}.md  — symlinks to ~/.toolkit/agents/{name}.md
+    # ~/.toolkit/agents/  — canonical location (router-managed)
     #
-    # The Claude Code subagent_type parameter discovers agents from ~/.claude/agents/.
-    # We keep symlinks there so dispatch works, but the real files are in ~/.toolkit/.
-    # This means agents are never injected into the orchestrator's session context.
+    # /do reads agents directly from ~/.toolkit/agents/. ~/.claude/agents/ is
+    # cleaned on every sync — no symlinks, no copies. Agents are never injected
+    # into the orchestrator's session context.
     # -------------------------------------------------------------------------
     repo_agents = repo_root / "agents"
     claude_agents = user_claude / "agents"
@@ -479,75 +487,27 @@ def main():
         except Exception as e:
             errors.append(f"toolkit/agents/stale: {e}")
 
-        # Create symlinks in ~/.claude/agents/ pointing to ~/.toolkit/agents/
-        # for each top-level .md file. This enables subagent_type dispatch.
+        # Clean up ~/.claude/agents/ — agents now live exclusively in ~/.toolkit/agents/.
+        # Remove all symlinks, regular files, and subdirectories from ~/.claude/agents/
+        # that were created by previous sync runs. The Claude Code harness no longer
+        # discovers agents from ~/.claude/agents/; /do reads from ~/.toolkit/agents/ directly.
         try:
-            claude_agents.mkdir(parents=True, exist_ok=True)
-            symlink_count = 0
-            agent_md_files: set[str] = set()
-
-            # Collect all .md agent files from ~/.toolkit/agents/
-            if toolkit_agents.is_dir():
-                for item in toolkit_agents.rglob("*.md"):
-                    # Only top-level .md files are agent definitions; subdirs are references
-                    if item.parent == toolkit_agents:
-                        agent_md_files.add(item.name)
-
-            # Create or update symlinks
-            for name in agent_md_files:
-                link = claude_agents / name
-                target = toolkit_agents / name
-                if link.is_symlink():
-                    if link.resolve() == target.resolve():
-                        continue  # Already correct
-                    link.unlink()
-                elif link.exists():
-                    # A real file exists — replace with symlink only if it's
-                    # identical to the toolkit version (was copied by old sync)
-                    if target.exists() and filecmp.cmp(link, target, shallow=False):
-                        link.unlink()
-                    else:
-                        continue  # User-owned file, don't replace
-                try:
-                    link.symlink_to(target)
-                    symlink_count += 1
-                except OSError:
-                    pass
-
-            # Remove stale symlinks in ~/.claude/agents/ that point to toolkit
-            # agents no longer in the source. Leave non-symlink files untouched.
-            for item in claude_agents.iterdir():
-                if item.is_symlink():
-                    # Only remove symlinks that point into ~/.toolkit/agents/
+            if claude_agents.is_dir():
+                removed_count = 0
+                for item in list(claude_agents.iterdir()):
                     try:
-                        resolved = item.resolve()
-                        if str(resolved).startswith(str(toolkit_agents)):
-                            if item.name not in agent_md_files:
-                                item.unlink()
+                        if item.is_symlink() or item.is_file():
+                            item.unlink()
+                            removed_count += 1
+                        elif item.is_dir():
+                            shutil.rmtree(item)
+                            removed_count += 1
                     except OSError:
                         pass
-                elif item.is_file():
-                    # Regular files (e.g. README.md, INDEX.json) copied by old sync
-                    # runs: remove if the toolkit has a canonical copy.
-                    toolkit_counterpart = toolkit_agents / item.name
-                    if toolkit_counterpart.exists():
-                        try:
-                            item.unlink()
-                        except OSError:
-                            pass
-                elif item.is_dir():
-                    # Agent reference subdirectories: remove if they mirror toolkit
-                    toolkit_counterpart = toolkit_agents / item.name
-                    if toolkit_counterpart.is_dir():
-                        try:
-                            shutil.rmtree(item)
-                        except OSError:
-                            pass
-
-            if symlink_count:
-                synced.append(f"~/.claude/agents(symlinks: {symlink_count})")
+                if removed_count:
+                    synced.append(f"cleanup(~/.claude/agents removed {removed_count} items)")
         except Exception as e:
-            errors.append(f"agent-symlinks: {e}")
+            errors.append(f"cleanup-claude-agents: {e}")
 
     # Sync settings.json — repo hooks replace global hooks
     repo_settings_path = repo_root / ".claude" / "settings.json"
@@ -658,12 +618,11 @@ def main():
         except Exception as e:
             errors.append(f".mcp.json: {e}")
 
-    # Sync private voices: private-voices/{name}/skill/ -> ~/.claude/skills/voice-{name}/
+    # Sync private voices: private-voices/{name}/skill/ -> ~/.toolkit/skills/voice-{name}/
     # Private voices are gitignored — they contain personal writing patterns.
     # Each voice dir may contain: samples/, profile.json, config.json, skill/SKILL.md
-    # Only the skill/ subdirectory is synced to ~/.claude/skills/ for orchestrator access.
-    # Private voices stay in ~/.claude/skills/ (not ~/.toolkit/) because the harness
-    # must be able to discover them — /do loads them during voice routing.
+    # Only the skill/ subdirectory is synced to ~/.toolkit/skills/ (ADR-195 Phase 2).
+    # /do reads voice skills from ~/.toolkit/skills/ during voice routing.
     private_voices_dir = repo_root / "private-voices"
     if private_voices_dir.is_dir():
         voice_count = 0
@@ -673,9 +632,9 @@ def main():
             skill_src = voice_dir / "skill"
             if not skill_src.is_dir():
                 continue
-            # Map private-voices/{name}/skill/ -> ~/.claude/skills/voice-{name}/
+            # Map private-voices/{name}/skill/ -> ~/.toolkit/skills/voice-{name}/
             voice_name = voice_dir.name
-            skill_dst = user_claude / "skills" / f"voice-{voice_name}"
+            skill_dst = user_toolkit / "skills" / f"voice-{voice_name}"
             try:
                 skill_dst.mkdir(parents=True, exist_ok=True)
                 voice_paths: set = set()
@@ -689,9 +648,9 @@ def main():
     # -------------------------------------------------------------------------
     # Codex CLI sync (ADR-195 updated)
     #
-    # Codex gets only /do (orchestration entry point) and private voices.
-    # Domain skills now live in ~/.toolkit/, which neither harness scans.
-    # Stale domain skills are removed from ~/.codex/skills/ (keep only do/ and voice-*).
+    # Codex gets only /do (orchestration entry point).
+    # Domain skills and private voices now live in ~/.toolkit/, which neither harness scans.
+    # Stale domain skills and voice-* dirs are removed from ~/.codex/skills/ (keep only do/).
     # Codex agents mirror the same copy that went to ~/.toolkit/agents/.
     # -------------------------------------------------------------------------
     codex_skills_dst = Path.home() / ".codex" / "skills"
@@ -708,7 +667,8 @@ def main():
         except Exception as e:
             errors.append(f"codex-skills/do: {e}")
 
-    # Remove stale domain skills from ~/.codex/skills/ (keep only do/ and voice-*)
+    # Remove stale domain skills and voice-* dirs from ~/.codex/skills/ (keep only do/).
+    # Private voices now live in ~/.toolkit/skills/voice-* (ADR-195 Phase 2).
     try:
         if codex_skills_dst.is_dir():
             for item in sorted(codex_skills_dst.iterdir()):
@@ -716,32 +676,13 @@ def main():
                     continue
                 if item.name == "do":
                     continue
-                if item.name.startswith("voice-"):
-                    continue
-                # Domain skill that no longer belongs in Codex harness path
+                # Domain skill or stale voice dir — remove
                 try:
                     shutil.rmtree(item)
                 except OSError:
                     pass
     except Exception as e:
         errors.append(f"stale-cleanup-codex-skills: {e}")
-
-    # Also sync private voices to Codex (harness needs them for /do voice routing)
-    if private_voices_dir.is_dir():
-        for voice_dir in sorted(private_voices_dir.iterdir()):
-            if not voice_dir.is_dir():
-                continue
-            skill_src_v = voice_dir / "skill"
-            if not skill_src_v.is_dir():
-                continue
-            voice_name = voice_dir.name
-            codex_voice_dst = codex_skills_dst / f"voice-{voice_name}"
-            try:
-                codex_voice_dst.mkdir(parents=True, exist_ok=True)
-                cv_paths: set = set()
-                _sync_dir(skill_src_v, codex_voice_dst, cv_paths, False, errors)
-            except Exception as e:
-                errors.append(f"codex-voice-{voice_name}: {e}")
 
     # Sync agents to ~/.codex/agents/ — Codex can Read domain expertise even
     # though it has no native subagent_type dispatch. Mirror from ~/.toolkit/agents/.
