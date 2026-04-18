@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Deterministic routing from INDEX files for the /do router.
 
-Reads skills/INDEX.json, pipeline-index.json, and agents/INDEX.json to produce
+Reads skills/INDEX.json and agents/INDEX.json to produce
 structured routing decisions: force-routes, scored candidates, pair suggestions,
 model preferences, and composition chains.
 
@@ -31,22 +31,16 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 INDEX_PATHS: dict[str, Path] = {
     "skills": REPO_ROOT / "skills" / "INDEX.json",
-    "pipelines": REPO_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json",
     "agents": REPO_ROOT / "agents" / "INDEX.json",
 }
 
 # Composition chains encode common multi-skill workflows.
 # Key = entry skill, value = ordered sequence of skills in the chain.
 COMPOSITION_CHAINS: dict[str, list[str]] = {
-    "systematic-debugging": ["systematic-debugging", "test-driven-development", "pr-pipeline"],
-    "research-to-article": [
-        "research-to-article",
-        "de-ai-pipeline",
-        "publish",
-        "wordpress-live-validation",
-    ],
+    "systematic-debugging": ["systematic-debugging", "test-driven-development"],
+    "research-to-article": ["research-to-article", "anti-ai-editor", "publish", "wordpress-live-validation"],
     "forensics": ["forensics", "testing-anti-patterns", "learn"],
-    "docs-sync-checker": ["docs-sync-checker", "doc-pipeline", "generate-claudemd"],
+    "docs-sync-checker": ["docs-sync-checker", "generate-claudemd"],
     "systematic-refactoring": ["systematic-refactoring", "code-linting", "verification-before-completion"],
 }
 
@@ -64,7 +58,7 @@ class IndexEntry:
     """A unified entry from any INDEX file."""
 
     name: str
-    entry_type: str  # "skill", "pipeline", or "agent"
+    entry_type: str  # "skill" or "agent"
     triggers: list[str] = field(default_factory=list)
     force_route: bool = False
     agent: str | None = None
@@ -407,7 +401,7 @@ def check_composition_chains(matched_name: str | None) -> list[list[str]]:
     """Check if the matched skill is part of a composition chain.
 
     Args:
-        matched_name: Name of the primary matched skill/pipeline.
+        matched_name: Name of the primary matched skill.
 
     Returns:
         List of composition chains that include the matched skill.
