@@ -88,23 +88,39 @@ Routing rules:
 
 ### Phase 3: DISPATCH
 
-The main thread orchestrates dispatch using Haiku's routing decision. It does not re-classify.
+The main thread orchestrates dispatch using Haiku's routing decision. It does not re-classify or make judgment calls. It enforces policy from the table below, then dispatches.
 
-**Step 0 (creation requests only):** If `is_creation` is true, write ADR at `adr/{name}.md` and register via `adr-query.py register` before dispatching.
+#### Forced Injections
 
-**Step 1:** Resolve routing names to file paths:
+These are mechanical. When a flag is set, the injection happens. No discretion.
+
+| Flag | Injection | What it does |
+|------|-----------|-------------|
+| `is_code_modification` | `--inject anti-rationalization-core` | Prevents rationalization of skipped steps |
+| `is_code_modification` | `--inject verification-checklist` | Pre-completion verification gate |
+| `is_code_modification` | `--skill pr-workflow` | Branch, commit, push, PR after implementation |
+| `is_creation` | ADR at `adr/{name}.md` via `adr-query.py register` | Write ADR before dispatching |
+| `complexity >= Medium` | Load `references/phase-composition.md` | Compose structured phase sequence |
+
+The agent receives these injections in its dispatch package. It does not decide whether to follow them.
+
+#### Dispatch Steps
+
+**Step 1:** Resolve routing names to file paths, applying all forced injections:
 
 ```bash
 python3 ~/.claude/scripts/resolve-dispatch.py \
     --agent {agent_name} \
     --skill {skill_name} \
-    --inject {pattern_name} \
+    --skill pr-workflow \
+    --inject anti-rationalization-core \
+    --inject verification-checklist \
     --request "{user_request}"
 ```
 
-**Step 2 (Medium+ only):** Load `references/phase-composition.md` and compose the phase sequence. For code modifications (`is_code_modification`), also attach anti-rationalization-core + verification-checklist via `--inject` flags.
+Only include `--skill pr-workflow` and `--inject` flags when their corresponding forced injection flag is set.
 
-**Step 3:** Display the dispatch banner and dispatch the agent:
+**Step 2:** Display the dispatch banner and dispatch the agent:
 
 ```
 ===================================================================
@@ -115,6 +131,7 @@ python3 ~/.claude/scripts/resolve-dispatch.py \
       carries skill: [name]
       complexity: [Simple/Medium/Complex]
       phases: [composed sequence, or "none" for Simple]
+      injections: [list of forced injections applied]
 ===================================================================
 ```
 
