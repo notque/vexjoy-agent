@@ -113,7 +113,7 @@ Trivial = reading a file the user named by exact path. Everything else routes th
 
 | Hook | Event | Purpose |
 |------|-------|---------|
-| `sync-to-user-claude.py` | SessionStart | Sync repo to `~/.claude/` |
+| `sync-to-user-claude.py` | SessionStart | Sync repo to `~/.claude/` (hooks/scripts/do) and `~/.toolkit/` (domain skills/agents) |
 | `session-context.py` | SessionStart | Load learned patterns from learning.db |
 | `cross-repo-agents.py` | SessionStart | Discover `.claude/agents/` in other repos |
 | `fish-shell-detector.py` | SessionStart | Detect fish shell, inject bash workarounds |
@@ -150,14 +150,15 @@ Trivial = reading a file the user named by exact path. Everything else routes th
 
 ## Sync Lifecycle
 
-`hooks/sync-to-user-claude.py` fires on `SessionStart` when cwd is this repo. It copies the repo into `~/.claude/` so that Claude Code instances in *other* repos get access to agents, skills, hooks, and scripts.
+`hooks/sync-to-user-claude.py` fires on `SessionStart` when cwd is this repo. It copies hooks, scripts, commands, and the `/do` skill into `~/.claude/`, and copies domain skills and agents into `~/.toolkit/` (ADR-195). Claude Code instances in other repos get access to the full toolkit via both locations.
 
 **What gets synced:**
 
 | Source | Destination | Sync Mode |
 |--------|-------------|-----------|
-| `agents/` | `~/.claude/agents/` | File-by-file copy, stale files removed |
-| `skills/` | `~/.claude/skills/` | File-by-file copy, stale files removed |
+| `agents/` | `~/.toolkit/agents/` + symlinks in `~/.claude/agents/` | Full copy to toolkit; symlinks for `subagent_type` dispatch |
+| `skills/do/` | `~/.claude/skills/do/` | Orchestration entry point (harness-visible) |
+| `skills/{domain}/` | `~/.toolkit/skills/{domain}/` | Domain skills (router-managed, not harness-injected) |
 | `hooks/` | `~/.claude/hooks/` | File-by-file copy, stale files removed |
 | `scripts/` | `~/.claude/scripts/` | File-by-file copy, stale files removed |
 | `commands/` | `~/.claude/commands/` | Additive only (never removes) |

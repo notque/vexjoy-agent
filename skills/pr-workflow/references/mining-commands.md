@@ -5,7 +5,7 @@
 ### Mine Last 100 PRs from Single Repo
 ```bash
 fish -c "set -x GITHUB_TOKEN (security find-internet-password -s github.com -w 2>/dev/null) && \
-  cd ~/.claude/skills/pr-miner && \
+  cd ~/.toolkit/skills/pr-miner && \
   ./venv/bin/python3 scripts/miner.py \
     your-org/go-libs \
     mined_data/go_bits_all_2025-11-29.json \
@@ -15,7 +15,7 @@ fish -c "set -x GITHUB_TOKEN (security find-internet-password -s github.com -w 2
 ### Mine Specific Reviewer
 ```bash
 fish -c "set -x GITHUB_TOKEN (security find-internet-password -s github.com -w 2>/dev/null) && \
-  cd ~/.claude/skills/pr-miner && \
+  cd ~/.toolkit/skills/pr-miner && \
   ./venv/bin/python3 scripts/miner.py \
     your-org/go-libs \
     mined_data/senior-reviewer_go_bits_2025-11-29.json \
@@ -25,7 +25,7 @@ fish -c "set -x GITHUB_TOKEN (security find-internet-password -s github.com -w 2
 ### Mine Multiple Repos
 ```bash
 fish -c "set -x GITHUB_TOKEN (security find-internet-password -s github.com -w 2>/dev/null) && \
-  cd ~/.claude/skills/pr-miner && \
+  cd ~/.toolkit/skills/pr-miner && \
   ./venv/bin/python3 scripts/miner.py \
     your-org/go-libs,your-org/service-a,your-org/service-b \
     mined_data/go_repos_all_2025-11-29.json \
@@ -37,7 +37,7 @@ fish -c "set -x GITHUB_TOKEN (security find-internet-password -s github.com -w 2
 ### Date Range Mining
 ```bash
 fish -c "set -x GITHUB_TOKEN (security find-internet-password -s github.com -w 2>/dev/null) && \
-  cd ~/.claude/skills/pr-miner && \
+  cd ~/.toolkit/skills/pr-miner && \
   ./venv/bin/python3 scripts/miner.py \
     your-org/service-a \
     mined_data/api_server_2025_q4.json \
@@ -47,7 +47,7 @@ fish -c "set -x GITHUB_TOKEN (security find-internet-password -s github.com -w 2
 ### Comprehensive Team Analysis (All Reviewers, Multiple Repos)
 ```bash
 fish -c "set -x GITHUB_TOKEN (security find-internet-password -s github.com -w 2>/dev/null) && \
-  cd ~/.claude/skills/pr-miner && \
+  cd ~/.toolkit/skills/pr-miner && \
   ./venv/bin/python3 scripts/miner.py \
     your-org/go-libs,your-org/service-a,your-org/service-b,your-org/service-c \
     mined_data/go_team_2025-11-29.json \
@@ -57,7 +57,7 @@ fish -c "set -x GITHUB_TOKEN (security find-internet-password -s github.com -w 2
 ### Senior Reviewer Deep Dive (All Comments, Multiple Repos)
 ```bash
 fish -c "set -x GITHUB_TOKEN (security find-internet-password -s github.com -w 2>/dev/null) && \
-  cd ~/.claude/skills/pr-miner && \
+  cd ~/.toolkit/skills/pr-miner && \
   ./venv/bin/python3 scripts/miner.py \
     your-org/go-libs,your-org/service-a \
     mined_data/senior-reviewer_patterns_2025-11-29.json \
@@ -108,10 +108,10 @@ Use descriptive date names for periodic analysis:
 
 ## Directory Structure
 
-All mining operations use fixed paths under `~/.claude/skills/pr-miner/`:
+All mining operations use fixed paths under `~/.toolkit/skills/pr-miner/`:
 
 ```
-~/.claude/skills/pr-miner/
+~/.toolkit/skills/pr-miner/
   scripts/miner.py          # Mining tool
   venv/                     # Python virtual environment
   mined_data/               # Mining output (JSON)

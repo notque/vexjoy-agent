@@ -332,7 +332,7 @@ This agent uses the **Planning Schema**.
 
 ```
 SESSION RESTART REQUIRED
-New agent '{agent-name}' was created and synced to ~/.claude/agents/.
+New agent '{agent-name}' was created and synced to ~/.toolkit/agents/.
 Claude Code compiles available subagent types at session startup:
 agents added during a session are NOT available as subagent_type
 until the next session.

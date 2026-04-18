@@ -12,7 +12,7 @@ This repository contains agents, skills, and hooks for Claude Code.
 | **Hook** | `hooks/*.py` | Event-driven automation | Python script |
 | **Script** | `scripts/*.py`, `scripts/*.sh` | Deterministic operations | Python or shell script |
 
-> **Note**: Pipelines are skills with explicit numbered phases and gates. They live in `skills/workflow/references/` for organizational clarity but are synced to `~/.claude/skills/` at install time, so Claude Code discovers them as regular skills.
+> **Note**: Pipelines are skills with explicit numbered phases and gates. They live in `skills/workflow/references/` for organizational clarity but are synced to `~/.toolkit/skills/` at install time (ADR-195). The `/do` skill reads them from `~/.toolkit/` via the routing manifest; they are not harness-injected.
 
 ## Key Frontmatter Fields
 

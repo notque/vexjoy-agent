@@ -79,9 +79,9 @@ def inject_adr_anchor(event: dict) -> None:
         print("[precompact-adr]")
         print("[precompact-adr] COMPLIANCE CHECK FOR ANY COMPONENT FILE:")
         print("[precompact-adr]   python3 ~/.claude/scripts/adr-compliance.py check --file {file} \\")
-        print("[precompact-adr]     --step-menu ~/.claude/skills/pipeline-scaffolder/references/step-menu.md \\")
+        print("[precompact-adr]     --step-menu ~/.toolkit/skills/pipeline-scaffolder/references/step-menu.md \\")
         print(
-            "[precompact-adr]     --spec-format ~/.claude/skills/pipeline-scaffolder/references/pipeline-spec-format.md"
+            "[precompact-adr]     --spec-format ~/.toolkit/skills/pipeline-scaffolder/references/pipeline-spec-format.md"
         )
         print("[precompact-adr] ==========================================")
 

@@ -37,7 +37,7 @@ The coordinator's primary routing decision is which agent to dispatch for a give
 
 **Detection** — verify agent exists before dispatching:
 ```
-ls ~/.claude/agents/ | grep {agent-name}
+ls ~/.toolkit/agents/ | grep {agent-name}
 ```
 
 ---

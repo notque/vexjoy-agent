@@ -15,7 +15,7 @@ Never skip validation, even if you think you know what the error is -- assumptio
 
 Run the validation script to check prerequisites:
 ```bash
-python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py --validate-only
+python3 ~/.toolkit/skills/go-patterns/scripts/quality_checker.py --validate-only
 ```
 
 The repository needs:
@@ -47,7 +47,7 @@ Always use `make check` through the script -- never bypass it by running golangc
 
 Execute the quality gate:
 ```bash
-python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py
+python3 ~/.toolkit/skills/go-patterns/scripts/quality_checker.py
 ```
 
 The script will:
@@ -58,7 +58,7 @@ The script will:
 
 For verbose progress output:
 ```bash
-python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py --verbose
+python3 ~/.toolkit/skills/go-patterns/scripts/quality_checker.py --verbose
 ```
 
 ### Step 4: Interpret Results
@@ -153,17 +153,17 @@ Only use individual make targets for focused investigation after `make check` ha
 
 Custom coverage threshold enforcement:
 ```bash
-python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py --min-coverage 80.0
+python3 ~/.toolkit/skills/go-patterns/scripts/quality_checker.py --min-coverage 80.0
 ```
 
 JSON output for automation pipelines:
 ```bash
-python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py --format json
+python3 ~/.toolkit/skills/go-patterns/scripts/quality_checker.py --format json
 ```
 
 Combined options for thorough debugging:
 ```bash
-python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py --min-coverage 80.0 --verbose
+python3 ~/.toolkit/skills/go-patterns/scripts/quality_checker.py --min-coverage 80.0 --verbose
 ```
 
 ### Cleanup

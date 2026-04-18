@@ -248,7 +248,7 @@ Steps:
 
 3. For each accepted candidate, determine where to insert it:
    - If topic starts with `skill:` → target is `${DREAM_REPO_DIR}/skills/{skill_name}/SKILL.md`
-   - If topic starts with `agent:` → target is the agent's markdown file (search `${DREAM_REPO_DIR}/agents/` for it, or check `~/.claude/agents/`)
+   - If topic starts with `agent:` → target is the agent's markdown file (search `${DREAM_REPO_DIR}/agents/` for it, or check `~/.toolkit/agents/`)
    - Read the target file. Find an appropriate insertion point:
      - If an "Anti-Patterns" or "Common Mistakes" section exists, add there
      - If an "Error Handling" section exists, add there

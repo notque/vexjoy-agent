@@ -237,7 +237,7 @@ Load when the task type matches:
 ## Error Handling
 
 **Gap analyzer fails**: The component may not exist in expected paths. Check both `agents/` and
-`skills/` directories, and `~/.claude/agents/` for deployed copies.
+`skills/` directories, and `~/.toolkit/agents/` for deployed copies.
 
 **Phase 2 gate fails** (fewer than 10 concrete findings): The domain may be too narrow or already
 well-documented upstream. Flag and suggest manual enrichment with project-specific production

@@ -39,7 +39,7 @@ Task completes: TaskCompleted
 | `rules-distill-injector` | Injects pending rules-distillation candidates from `learning/rules-distill-pending.json` |
 | `sapcc-go-detector` | Detects SAP Converged Cloud Go projects and injects `go-patterns` skill |
 | `session-context` | Loads high-confidence learned patterns (>0.7) from the learning DB and auto-dream payload into context |
-| `sync-to-user-claude` | Syncs agents, skills, hooks, commands, and scripts from the repo to `~/.claude/` |
+| `sync-to-user-claude` | Syncs hooks, scripts, commands, and `/do` skill to `~/.claude/`; domain skills and agents to `~/.toolkit/` (ADR-195) |
 | `team-config-loader` | Discovers `team-config.yaml` from priority-ordered locations and injects team configuration into context |
 
 ---
@@ -203,7 +203,7 @@ The sections below cover the learning system internals, shared library API, and 
 
 | Hook | Event | Purpose |
 |------|-------|---------|
-| [`sync-to-user-claude.py`](#sync-hook) | SessionStart | Sync repo to ~/.claude (bootstrap) |
+| [`sync-to-user-claude.py`](#sync-hook) | SessionStart | Sync repo to ~/.claude (hooks/do) and ~/.toolkit (domain skills/agents) |
 | [`error-learner.py`](#error-learning-system) | PostToolUse | Learn from errors, suggest fixes |
 | [`instruction-reminder.py`](#instruction-reminder) | UserPromptSubmit | Stub — previously re-injected CLAUDE.md (now handled natively) |
 | [`skill-evaluator.py`](#skill-evaluation) | UserPromptSubmit | Inject skill/agent evaluation |
@@ -216,7 +216,7 @@ The sections below cover the learning system internals, shared library API, and 
 
 ## Sync Hook
 
-The `sync-to-user-claude.py` hook is responsible for bootstrapping the hooks system. It copies agents, skills, hooks, and commands from the repo to `~/.claude/` for global access.
+The `sync-to-user-claude.py` hook is responsible for bootstrapping the hooks system. It copies hooks, scripts, commands, and the `/do` skill to `~/.claude/` for global access. Domain skills and agents go to `~/.toolkit/` (ADR-195), with symlinks from `~/.claude/agents/` for `subagent_type` dispatch.
 
 ### Bootstrap Requirement
 
@@ -242,8 +242,9 @@ claude
 
 | Source | Destination | Description |
 |--------|-------------|-------------|
-| `agents/` | `~/.claude/agents/` | Agent definitions |
-| `skills/` | `~/.claude/skills/` | Skill methodologies |
+| `agents/` | `~/.toolkit/agents/` + symlinks in `~/.claude/agents/` | Full copy to toolkit; symlinks for `subagent_type` dispatch |
+| `skills/do/` | `~/.claude/skills/do/` | Orchestration entry point (harness-visible only) |
+| `skills/{domain}/` | `~/.toolkit/skills/{domain}/` | Domain skills (router-managed, not harness-injected) |
 | `hooks/` | `~/.claude/hooks/` | Hook scripts |
 | `.claude/settings.json` | `~/.claude/settings.json` | Hook registrations (merged) |
 

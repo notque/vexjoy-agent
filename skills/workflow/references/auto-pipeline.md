@@ -46,7 +46,7 @@ This pipeline operates as the automatic fallback for `/do` when no existing rout
 
 **Step 1**: Run task type classification:
 ```bash
-python3 ~/.claude/scripts/task-type-classifier.py --request "{user_request}" --check-catalog ~/.claude/skills/auto-pipeline/references/pipeline-catalog.json --json
+python3 ~/.claude/scripts/task-type-classifier.py --request "{user_request}" --check-catalog ~/.toolkit/skills/auto-pipeline/references/pipeline-catalog.json --json
 ```
 
 **Step 2**: If the classifier returns `existing_pipeline`, STOP. Route to that pipeline instead. Display:
