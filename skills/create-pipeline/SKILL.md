@@ -4,31 +4,30 @@ description: |
   Create a new pipeline from a task description. Fans out agent, skill, and
   hook scaffolding in parallel, then integrates into the routing system.
 version: 1.0.0
-route_to:
-  agent: pipeline-orchestrator-engineer
-  skill: workflow
-  enhancements:
-    - codebase-analyzer
-    - routing-table-updater
-trigger:
-  hook: pipeline-context-detector
-  event: UserPromptSubmit
-parameters:
-  - name: task
-    required: true
-    description: "What the pipeline should accomplish (e.g., blog post publishing workflow)"
-  - name: context
-    required: false
-    description: "Additional constraints, domain knowledge, or reference pipelines"
-  - name: components
-    required: false
-    description: "Override which components to scaffold (default: agent,skill,hook)"
-    default: "agent,skill,hook"
+user-invocable: true
+allowed-tools:
+  - Read
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Edit
+  - Agent
+  - Skill
+routing:
+  triggers:
+    - create pipeline
+    - new pipeline
+    - scaffold pipeline
+    - build a pipeline for
+    - pipeline for
+  category: meta-tooling
+  complexity: Complex
 ---
 
 # create-pipeline
 
-Entry point command for the Pipeline Creator meta-pipeline.
+Entry point skill for the Pipeline Creator meta-pipeline.
 
 ## Usage
 
@@ -53,10 +52,3 @@ Entry point command for the Pipeline Creator meta-pipeline.
 /do create a pipeline for blog post publishing with voice validation
 /do create a pipeline for database migration safety checks
 ```
-
-## Routing
-
-This command routes to `pipeline-orchestrator-engineer` with the `workflow` skill. The `/do` router recognizes these triggers:
-
-- "create pipeline", "new pipeline", "scaffold pipeline"
-- "build a pipeline for", "pipeline for"

@@ -4,14 +4,18 @@ description: |
   Systematic upgrade pipeline for adapting agents, skills, and hooks when
   Claude Code ships updates, user goals change, or retro learnings accumulate.
 version: 1.0.0
-route_to:
-  agent: system-upgrade-engineer
-  skill: system-upgrade
-  enhancements:
-    - agent-evaluation
-    - routing-table-updater
-trigger:
-  keywords:
+user-invocable: true
+allowed-tools:
+  - Read
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - Edit
+  - Agent
+  - Skill
+routing:
+  triggers:
     - upgrade agents
     - system upgrade
     - claude update
@@ -19,19 +23,8 @@ trigger:
     - adapt workflow
     - apply claude update
     - apply retro
-parameters:
-  required:
-    - name: trigger
-      description: |
-        What triggered the upgrade: Claude Code version/release notes,
-        description of goal change, or "retro" to use learning.db graduation candidates
-  optional:
-    - name: scope
-      description: "comprehensive | default (default: recent 10 agents + all hooks + all routing tables)"
-      default: "default"
-    - name: auto
-      description: "Skip Phase 3 approval gate and apply all changes automatically"
-      default: "false"
+  category: meta-tooling
+  complexity: Complex
 ---
 
 # /system-upgrade
@@ -67,9 +60,7 @@ Entry point for the System Upgrade Pipeline.
 
 ## Key Behavior
 
-**Phase 3 always gates on your approval.** The pipeline shows you a ranked table
-of proposed changes with effort estimates before touching any files. You can
-approve all, pick specific items, or stop.
+**Phase 3 always gates on your approval.** The pipeline shows you a ranked table of proposed changes with effort estimates before touching any files. You can approve all, pick specific items, or stop.
 
 ## Examples
 

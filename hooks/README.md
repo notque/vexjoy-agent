@@ -39,7 +39,7 @@ Task completes: TaskCompleted
 | `rules-distill-injector` | Injects pending rules-distillation candidates from `learning/rules-distill-pending.json` |
 | `sapcc-go-detector` | Detects SAP Converged Cloud Go projects and injects `go-patterns` skill |
 | `session-context` | Loads high-confidence learned patterns (>0.7) from the learning DB and auto-dream payload into context |
-| `sync-to-user-claude` | Syncs hooks, scripts, commands, and `/do` skill to `~/.claude/`; domain skills and agents to `~/.toolkit/` (ADR-195) |
+| `sync-to-user-claude` | Syncs hooks, scripts, and `/do` skill to `~/.claude/`; domain skills, private voices, and agents to `~/.toolkit/` (ADR-195 Phase 2) |
 | `team-config-loader` | Discovers `team-config.yaml` from priority-ordered locations and injects team configuration into context |
 
 ---
@@ -216,7 +216,7 @@ The sections below cover the learning system internals, shared library API, and 
 
 ## Sync Hook
 
-The `sync-to-user-claude.py` hook is responsible for bootstrapping the hooks system. It copies hooks, scripts, commands, and the `/do` skill to `~/.claude/` for global access. Domain skills and agents go to `~/.toolkit/` (ADR-195), with symlinks from `~/.claude/agents/` for `subagent_type` dispatch.
+The `sync-to-user-claude.py` hook is responsible for bootstrapping the hooks system. It copies hooks, scripts, and the `/do` skill to `~/.claude/` for global access. Domain skills, private voices, and agents go to `~/.toolkit/` (ADR-195 Phase 2). Stale `~/.claude/commands/` and `~/.claude/agents/` contents are cleaned up on each sync.
 
 ### Bootstrap Requirement
 
@@ -242,11 +242,15 @@ claude
 
 | Source | Destination | Description |
 |--------|-------------|-------------|
-| `agents/` | `~/.toolkit/agents/` + symlinks in `~/.claude/agents/` | Full copy to toolkit; symlinks for `subagent_type` dispatch |
+| `agents/` | `~/.toolkit/agents/` | Full copy; /do reads agents from toolkit directly |
+| `private-agents/` | `~/.toolkit/agents/` | Private agents alongside public ones |
 | `skills/do/` | `~/.claude/skills/do/` | Orchestration entry point (harness-visible only) |
 | `skills/{domain}/` | `~/.toolkit/skills/{domain}/` | Domain skills (router-managed, not harness-injected) |
+| `private-voices/{name}/skill/` | `~/.toolkit/skills/voice-{name}/` | Private voice skills (router-managed) |
 | `hooks/` | `~/.claude/hooks/` | Hook scripts |
 | `.claude/settings.json` | `~/.claude/settings.json` | Hook registrations (merged) |
+| — | `~/.claude/agents/` (cleaned) | Stale symlinks/files removed on each sync |
+| — | `~/.claude/commands/` (cleaned) | Removed entirely on each sync |
 
 ### Alternative: Use install.sh
 
