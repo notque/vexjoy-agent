@@ -28,21 +28,6 @@ SKILLS_DIR = TOOLKIT_DIR / "skills"
 SHARED_PATTERNS_DIR = SKILLS_DIR / "shared-patterns"
 
 
-def extract_model(path: Path) -> str | None:
-    """Extract model field from YAML frontmatter."""
-    text = path.read_text(encoding="utf-8")
-    if not text.startswith("---"):
-        return None
-    end = text.find("---", 3)
-    if end == -1:
-        return None
-    for line in text[3:end].split("\n"):
-        stripped = line.strip()
-        if stripped.startswith("model:"):
-            return stripped.split(":", 1)[1].strip().strip("\"'")
-    return None
-
-
 def resolve_agent(name: str) -> Path | None:
     path = AGENTS_DIR / f"{name}.md"
     return path if path.exists() else None
@@ -72,7 +57,6 @@ def list_references(base_dir: Path, name: str) -> list[Path]:
 
 def format_dispatch(
     agent_path: Path | None,
-    agent_model: str | None,
     skill_paths: list[tuple[str, Path]],
     inject_paths: list[tuple[str, Path]],
     agent_refs: list[Path],
@@ -82,8 +66,6 @@ def format_dispatch(
 
     if agent_path:
         lines.append(f"**Agent:** `{agent_path}`")
-    if agent_model:
-        lines.append(f"**Model:** `{agent_model}`")
 
     for name, path in skill_paths:
         lines.append(f"**Skill ({name}):** `{path}`")
@@ -122,8 +104,6 @@ def main() -> int:
         print(f"Agent not found: {args.agent}", file=sys.stderr)
         return 1
 
-    agent_model = extract_model(agent_path) if agent_path else None
-
     skill_paths = []
     skill_refs: list[tuple[str, list[Path]]] = []
     for skill_name in args.skill:
@@ -142,7 +122,7 @@ def main() -> int:
 
     agent_refs = list_references(AGENTS_DIR, args.agent)
 
-    dispatch = format_dispatch(agent_path, agent_model, skill_paths, inject_paths, agent_refs, skill_refs)
+    dispatch = format_dispatch(agent_path, skill_paths, inject_paths, agent_refs, skill_refs)
     print(dispatch)
     return 0
 

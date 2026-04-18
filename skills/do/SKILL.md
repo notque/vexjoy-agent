@@ -67,13 +67,12 @@ USER REQUEST: {user_request}
 ROUTING MANIFEST:
 {manifest_output}
 
-Return JSON: {"agent": "name or null", "skill": "name or null", "model": "model from agent entry or null", "reasoning": "one sentence", "confidence": "high/medium/low"}
+Return JSON: {"agent": "name or null", "skill": "name or null", "reasoning": "one sentence", "confidence": "high/medium/low"}
 
 Rules:
 - Pick the most specific match. Agent handles domain, skill handles methodology.
 - FORCE entries must be selected when intent clearly matches (semantic, not keyword).
 - Git operations (push, commit, PR, merge) always get pr-workflow skill.
-- Copy the agent's model= value into the response. If no model is listed, return null.
 - If nothing matches, return nulls.
 ```
 
@@ -120,7 +119,7 @@ python3 ~/.claude/scripts/resolve-dispatch.py \
     --request "{user_request}"
 ```
 
-Prepend the Dispatch Package output to the agent prompt. Pass the `model` value from the Haiku routing response (or from the Dispatch Package **Model** line) as the `model` parameter on the Agent tool call. If no model is specified, omit the parameter (session default applies).
+Prepend the Dispatch Package output to the agent prompt.
 
 For Medium+ tasks, also prepend:
 

@@ -167,9 +167,6 @@ def generate_index(
             "short_description": extract_short_description(frontmatter.get("description", "")),
         }
 
-        if "model" in frontmatter:
-            agent_entry["model"] = frontmatter["model"]
-
         # Add routing metadata if present
         if "routing" in frontmatter:
             routing = frontmatter["routing"]

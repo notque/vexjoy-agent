@@ -89,8 +89,7 @@ def format_compact(entries: list[dict]) -> str:
 
         if e["type"] == "agent":
             pairs_str = f" [{pairs}]" if pairs else ""
-            model_str = f" model={e['model']}" if e.get("model") else ""
-            agents.append(f"  {name}{model_str}{pairs_str} — {desc}")
+            agents.append(f"  {name}{pairs_str} — {desc}")
         else:
             force_str = " FORCE" if e.get("force_route") else ""
             agent_str = f" agent={e['agent']}" if e.get("agent") else ""
