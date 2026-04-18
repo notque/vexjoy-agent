@@ -22,106 +22,103 @@ routing:
 
 # /do - Dispatch Router
 
-/do classifies a request, asks a Haiku agent to pick the right agent + skill from the manifest, resolves file paths, and dispatches. It never reads skills, writes code, or does analysis itself.
+/do routes requests to agents with skills. It dispatches a single Haiku call to classify and route, then orchestrates the dispatch. It never reads skills, writes code, or does analysis itself.
 
 ---
 
 ## Instructions
 
-### Phase 1: CLASSIFY
+### Phase 1: GATE
 
-Determine complexity. Read the repository CLAUDE.md first.
+If the request is reading a file the user named by exact path, handle it directly. Everything else proceeds to Phase 2.
 
-| Complexity | What happens |
-|------------|-------------|
-| Trivial | Only: reading a file the user named by exact path. Handle directly. |
-| Simple | Dispatch agent with skill. No phase composition. |
-| Medium | Dispatch agent with skill + composed phases. |
-| Complex | Dispatch 2+ agents with skills + composed phases. |
-
-Everything except reading a named file is Simple+. When uncertain, classify UP. Simple+ MUST proceed to Phase 2. Do NOT skip Phase 2 by dispatching built-in agent types (Explore, general-purpose) directly.
-
-**Creation requests** ("create", "scaffold", "build", "new [component]"): set `is_creation = true`. Phase 4 Step 0 writes ADR first.
-
-**Gate**: Complexity determined. Proceed to Phase 2 for all Simple+ tasks.
+Do NOT skip Phase 2 by dispatching built-in agent types (Explore, general-purpose) directly.
 
 ---
 
-### Phase 2: ROUTE (Haiku agent decides)
+### Phase 2: ROUTE (single Haiku call)
 
-The main thread does NOT choose the agent or skill. A Haiku subagent reads the manifest and decides. This keeps routing knowledge out of the main thread's context.
+One Haiku call handles all classification and routing. The main thread does not classify complexity or pick agents. Haiku does both.
 
-**Step 1:** Generate the manifest and dispatch Haiku:
+**Step 1:** Generate the manifest:
 
 ```bash
 python3 scripts/routing-manifest.py
 ```
 
-Dispatch Agent with `model: "haiku"`:
+**Step 2:** Dispatch Agent with `model: "haiku"`:
 
 ```
-You are a routing agent. Given a user request and a manifest of available agents and skills, select the BEST agent+skill combination.
+You are a routing agent. Given a user request and a manifest of available agents and skills, classify the request and select the best agent+skill combination.
 
 USER REQUEST: {user_request}
 
 ROUTING MANIFEST:
 {manifest_output}
 
-Return JSON: {"agent": "name or null", "skill": "name or null", "reasoning": "one sentence", "confidence": "high/medium/low"}
+Return JSON:
+{
+  "complexity": "Simple | Medium | Complex",
+  "agent": "name or null",
+  "skill": "name or null",
+  "is_creation": false,
+  "is_code_modification": false,
+  "reasoning": "one sentence",
+  "confidence": "high/medium/low"
+}
 
-Rules:
+Complexity rules:
+- Simple: single agent, single skill, no phase composition needed.
+- Medium: single agent with skill, benefits from structured phases (plan/test/review).
+- Complex: requires 2+ agents or multi-part coordination.
+- When uncertain, classify UP.
+
+Routing rules:
 - Pick the most specific match. Agent handles domain, skill handles methodology.
 - FORCE entries must be selected when intent clearly matches (semantic, not keyword).
 - Git operations (push, commit, PR, merge) always get pr-workflow skill.
+- Creation requests ("create", "scaffold", "build", "new [component]"): set is_creation to true.
+- Code modifications (features, bug fixes, refactoring): set is_code_modification to true.
 - If nothing matches, return nulls.
 ```
 
-**Step 2:** Use the Haiku agent's response directly. If confidence is "low", read `references/routing-tables.md` to verify.
+**Step 3:** If confidence is "low", read `references/routing-tables.md` to verify. If Haiku returns nulls, route to the closest agent with verification-before-completion and record the gap.
 
-**Step 3:** Display the dispatch banner:
+---
+
+### Phase 3: DISPATCH
+
+The main thread orchestrates dispatch using Haiku's routing decision. It does not re-classify.
+
+**Step 0 (creation requests only):** If `is_creation` is true, write ADR at `adr/{name}.md` and register via `adr-query.py register` before dispatching.
+
+**Step 1:** Resolve routing names to file paths:
+
+```bash
+python3 ~/.claude/scripts/resolve-dispatch.py \
+    --agent {agent_name} \
+    --skill {skill_name} \
+    --inject {pattern_name} \
+    --request "{user_request}"
+```
+
+**Step 2 (Medium+ only):** Load `references/phase-composition.md` and compose the phase sequence. For code modifications (`is_code_modification`), also attach anti-rationalization-core + verification-checklist via `--inject` flags.
+
+**Step 3:** Display the dispatch banner and dispatch the agent:
 
 ```
 ===================================================================
  ROUTING: [brief summary]
 ===================================================================
  Dispatching:
-   -> Agent: [name from Haiku]
-      carries skill: [name from Haiku]
-      phases: [composed in Phase 3, or "none" for Simple]
- The agent will load its references and execute the skill.
+   -> Agent: [name]
+      carries skill: [name]
+      complexity: [Simple/Medium/Complex]
+      phases: [composed sequence, or "none" for Simple]
 ===================================================================
 ```
 
----
-
-### Phase 3: ENHANCE
-
-For Medium+ tasks, load `references/phase-composition.md` and compose the phase sequence. Attach to dispatch.
-
-For code modifications, attach anti-rationalization-core + verification-checklist via `--inject` flags.
-
-Simple tasks skip this phase.
-
----
-
-### Phase 4: EXECUTE
-
-**Step 0:** Creation requests only: write ADR at `adr/{name}.md`, register via `adr-query.py register`.
-
-**Step 1:** Resolve routing names to file paths and dispatch:
-
-```bash
-python3 ~/.claude/scripts/resolve-dispatch.py \
-    --agent {agent_name} \
-    --skill {skill_name} \
-    --skill {enhancement_skill} \
-    --inject {pattern_name} \
-    --request "{user_request}"
-```
-
-Prepend the Dispatch Package output to the agent prompt.
-
-For Medium+ tasks, also prepend:
+Prepend the Dispatch Package output to the agent prompt. For Medium+ tasks, also prepend:
 
 ```
 ## Task Specification
@@ -132,28 +129,22 @@ For Medium+ tasks, also prepend:
 
 Append: "Deliver the finished product, not a plan. Search before building. Test before shipping. Ship the complete thing."
 
-**Step 2:** For worktree-isolated agents, add: "Verify CWD contains .claude/worktrees/. Create feature branch before edits. Stage specific files only."
+For worktree-isolated agents, add: "Verify CWD contains .claude/worktrees/. Create feature branch before edits. Stage specific files only."
 
-**Step 3:** Multi-part requests: sequential dependencies in order, independent items in parallel (max 10).
+Multi-part requests: sequential dependencies in order, independent items in parallel (max 10).
 
 ---
 
-### Phase 5: LEARN
+### Phase 4: LEARN
 
 Record routing outcome:
 
 ```bash
 python3 ~/.claude/scripts/learning-db.py record \
     routing "{agent}:{skill}" \
-    "routing-decision: agent={agent} skill={skill} tool_errors: {0|1} user_rerouted: {0|1}" \
+    "routing-decision: agent={agent} skill={skill} complexity={complexity} tool_errors: {0|1} user_rerouted: {0|1}" \
     --category effectiveness
 ```
-
----
-
-## Error Handling
-
-If the Haiku agent returns nulls or low confidence, read `references/routing-tables.md` to verify. If no agent/skill matches, route to the closest agent with verification-before-completion and record the gap.
 
 ---
 
