@@ -21,6 +21,7 @@ Unchanged files are skipped via content comparison.
 """
 
 import filecmp
+import importlib.util
 import json
 import os
 import re
@@ -304,6 +305,23 @@ def main():
     # Paths - use CWD as repo root (not script location, since script may be in ~/.claude/hooks/)
     repo_root = cwd
     user_claude = Path.home() / ".claude"
+
+    # Self-update: if the repo has a newer version of this hook, copy it to
+    # the installed location and run the new version instead. This eliminates
+    # the two-restart bootstrap problem during upgrades.
+    try:
+        repo_sync = repo_root / "hooks" / "sync-to-user-claude.py"
+        installed_sync = user_claude / "hooks" / "sync-to-user-claude.py"
+        if repo_sync.exists() and installed_sync.exists() and not filecmp.cmp(installed_sync, repo_sync, shallow=False):
+            shutil.copy2(repo_sync, installed_sync)
+            spec = importlib.util.spec_from_file_location("updated_sync", str(installed_sync))
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            mod.main()
+            return
+    except Exception:
+        pass  # Fall through to current version on any failure
+
     # ~/.toolkit/ is the router-managed namespace for domain skills and agents.
     # Neither the Claude Code harness nor the Codex CLI auto-scan this path.
     # Only /do and dispatched agents read from it (ADR-195).
