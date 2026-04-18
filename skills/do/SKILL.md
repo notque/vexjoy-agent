@@ -258,7 +258,7 @@ For explicit maximum rigor, use `/with-anti-rationalization [task]`.
 
 ### Phase 4: EXECUTE
 
-**Goal**: Assemble the dispatch package and send it. The package contains: the agent identity, the skill to follow, any pipeline wrapper, thinking directives, the completeness standard, and reference loading instructions. The dispatched agent opens and executes the package. The router waits for results.
+**Goal**: Resolve routing names to file paths, assemble the dispatch package, and send it. The package contains: resolved paths to the agent .md, skill SKILL.md, and reference files; composed phases; thinking directives; and the completeness standard. The dispatched agent reads the files at those paths and executes. The router waits for results.
 
 **Step 0: Execute Creation Protocol** (for creation requests ONLY)
 
@@ -270,27 +270,34 @@ Create `task_plan.md` before execution, because a plan turns the next N turns in
 
 **Step 1b: Phase composition was applied in Phase 3 Step 0.** The composed phases are already attached to the dispatch package. No separate pipeline loading needed.
 
-**Step 2: Dispatch the agent**
+**Step 2: Resolve and dispatch the agent**
 
-Send the assembled package. The agent receives: its identity (agent .md), the skill to execute (SKILL.md), any pipeline phases, thinking directives, and the completeness standard. MCP tool discovery is the agent's responsibility from its own .md file. Do not inject MCP instructions from /do.
+Run the dispatch resolver to convert routing names into concrete file paths:
 
-**Opus 4.7 override: Prepend first-turn Task Specification block for Medium+ tasks.** Opus 4.7 benefits most from well-specified first-turn task descriptions. The router has upstream context the dispatched agent does not (memory feedback, operator profile, CLAUDE.md files) — enrich the first turn rather than passing the user request verbatim. For Medium+ tasks, compose and prepend this block to the dispatched agent's prompt. For Simple tasks, include Intent and Acceptance criteria if extractable; otherwise skip the block. Do not invent acceptance criteria the user did not imply. Do not expand task scope beyond the user request.
-
-```
-## Task Specification (auto-extracted)
-
-**Intent:** <one sentence: what does success look like?>
-**Constraints:** <inferred: branch rules, operator-context profile, file paths user named, memory feedback that applies>
-**Acceptance criteria:** <observable: tests pass, file exists, PR merges, specific output produced>
-**Relevant file locations:** <paths extracted from the request, paths the domain agent is expected to touch>
-**Operator context:** <profile from [operator-context] tag>
+```bash
+python3 ~/.claude/scripts/resolve-dispatch.py \
+    --agent {agent_name} \
+    --skill {primary_skill} \
+    --skill {enhancement_skill}  # (repeatable, from Phase 3 enhancements) \
+    --inject {pattern_name}      # (repeatable, e.g. anti-rationalization-core) \
+    --request "{user_request}"
 ```
 
-Extraction rules: Intent from the request's verb and object (one sentence, not a paraphrase). Constraints include branch-safety rules (never merge to main), memory feedback matching the domain, and operator-context profile implications. Acceptance criteria are observable: what files change, what command proves it works, what output the user specified. For creation requests, add to Constraints: "Implementation must match ADR `<kebab-case-name>`." This preamble is input to agent planning, not a replacement for task_plan.md.
+This outputs a Dispatch Package block with resolved paths to the agent .md, all skill SKILL.md files, injection files (shared-patterns), and all reference directories. Prepend this block to the agent prompt. The agent reads these files as its first action.
 
-**MANDATORY: Inject reference loading instruction for ALL dispatched agents.** Every agent prompt MUST include: "Before starting work, read your agent .md file or skill SKILL.md to find the Reference Loading Table. Load EVERY reference file whose signal matches this task. Load greedily, not conservatively. If multiple signals match, load all matching references. Reference files contain domain-specific patterns, anti-patterns, code examples, and detection commands that make your output expert-quality. Loading these files gives you domain expertise that prior work already put on disk, earned and waiting for you to use." This applies to ALL agents and skills, not just umbrella components. The nightly enrichment pipeline generates and updates reference files autonomously, so loading the table is how a dispatched agent inherits the domain knowledge created specifically for its work.
+For Medium+ tasks, also prepend a Task Specification block:
 
-**MANDATORY: Inject the completeness standard for ALL Simple+ dispatches.** Every agent prompt MUST include: "Deliver the finished product, not a plan. Do not offer to table work for later when the solve is within reach. Do not present workarounds when the real fix exists. Do not stop mid-task or truncate output. Search before building. Test before shipping. Ship the complete thing."
+```
+## Task Specification
+
+**Intent:** <what does success look like>
+**Constraints:** <branch rules, operator profile, memory feedback>
+**Acceptance criteria:** <what proves it works>
+```
+
+After the Dispatch Package and Task Specification, append:
+
+"Deliver the finished product, not a plan. Do not offer to table work for later when the solve is within reach. Do not present workarounds when the real fix exists. Do not stop mid-task or truncate output. Search before building. Test before shipping. Ship the complete thing."
 
 **Opus 4.7 override: Inject complexity-calibrated thinking directive.** Opus 4.7 exposes thinking rate to prompt-level control. Prepend the appropriate directive to the dispatched agent's prompt as a single sentence (verbatim, no framing), because calibrating thinking rate per task class reduces both over-reasoning on simple work and under-reasoning on complex work:
 
