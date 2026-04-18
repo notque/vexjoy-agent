@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-18T17:56:37Z",
+  "generated": "2026-04-18T18:17:15Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -233,20 +233,6 @@
         "x-api"
       ],
       "model": "sonnet"
-    },
-    "create-pipeline": {
-      "file": "skills/create-pipeline/SKILL.md",
-      "description": "Create a pipeline from a task description.",
-      "triggers": [
-        "create pipeline",
-        "new pipeline",
-        "scaffold pipeline",
-        "build a pipeline for",
-        "pipeline for"
-      ],
-      "category": "meta-tooling",
-      "user_invocable": true,
-      "version": "1.0.0"
     },
     "create-voice": {
       "file": "skills/create-voice/SKILL.md",
@@ -720,19 +706,6 @@
       "pairs_with": [],
       "model": "sonnet"
     },
-    "github-notifications": {
-      "file": "skills/github-notifications/SKILL.md",
-      "description": "Triage GitHub notifications.",
-      "triggers": [
-        "github notifications",
-        "triage notifications",
-        "check notifications",
-        "gh notifications"
-      ],
-      "category": "workflow",
-      "user_invocable": true,
-      "version": "1.0.0"
-    },
     "github-profile-rules": {
       "file": "skills/github-profile-rules/SKILL.md",
       "description": "Extract coding conventions from GitHub profiles.",
@@ -1132,20 +1105,6 @@
       ],
       "agent": "perses-engineer",
       "model": "sonnet"
-    },
-    "perses-onboard": {
-      "file": "skills/perses-onboard/SKILL.md",
-      "description": "First-time Perses setup: server, MCP, project.",
-      "triggers": [
-        "perses onboard",
-        "perses setup",
-        "perses install",
-        "setup perses",
-        "configure perses"
-      ],
-      "category": "meta-tooling",
-      "user_invocable": true,
-      "version": "1.0.0"
     },
     "phaser-gamedev": {
       "file": "skills/phaser-gamedev/SKILL.md",

@@ -182,18 +182,18 @@
     {
       "request": "extract this block into a helper function",
       "expected_agent": null,
-      "expected_skill": "systematic-refactoring",
+      "expected_skill": null,
       "category": "trivial-operations",
-      "routing_tier": "candidate",
-      "notes": "Contained refactor — systematic-refactoring appears as top candidate. 'quick' is force_route:true in INDEX but 'extract this block' does not match any quick trigger phrase."
+      "routing_tier": "llm_only",
+      "notes": "Contained refactor. Pipelines removed from manifest. LLM selects appropriate agent for the refactor."
     },
     {
       "request": "design a rate limiter feature for the API",
       "expected_agent": null,
-      "expected_skill": "feature-pipeline",
+      "expected_skill": "feature-lifecycle",
       "category": "feature-lifecycle",
-      "routing_tier": "candidate",
-      "notes": "Feature design phrasing — feature-pipeline appears as top candidate. feature-lifecycle requires exact trigger phrases ('design feature', 'feature design') that this natural-language phrasing doesn't hit."
+      "routing_tier": "llm_only",
+      "notes": "Feature design phrasing. Requires LLM to match 'design a feature' to feature-lifecycle skill."
     },
     {
       "request": "plan the implementation for this feature",
@@ -326,18 +326,19 @@
     {
       "request": "create a new Claude Code skill with quality gates",
       "expected_agent": null,
-      "expected_skill": "skill-creation-pipeline",
+      "expected_skill": "skill-creator",
       "category": "meta-tooling",
       "routing_tier": "candidate",
-      "notes": "Skill creation — skill-creation-pipeline (wraps skill-creator) should appear in top-3 candidates"
+      "notes": "Skill creation. Pipelines removed from manifest; skill-creator handles this."
     },
     {
       "request": "create a new hook for PostToolUse events",
       "expected_agent": "hook-development-engineer",
-      "expected_skill": "hook-development-pipeline",
+      "expected_skill": null,
+      "expected_agent": "hook-development-engineer",
       "category": "meta-tooling",
       "routing_tier": "candidate",
-      "notes": "Hook creation — hook-development-pipeline should appear in top-3 candidates"
+      "notes": "Hook creation. Pipelines removed from manifest; hook-development-engineer agent handles this."
     },
     {
       "request": "go ahead and fix the bug",

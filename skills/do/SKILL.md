@@ -112,7 +112,7 @@ This early detection ensures Phase 4 Step 0 fires reliably by catching the signa
 
 ### Phase 2: ROUTE
 
-**Goal**: Determine which agent to dispatch and which skill + pipeline to attach to it. The Haiku routing agent makes this selection.
+**Goal**: Determine which agent to dispatch and which skill to attach to it. The Haiku routing agent makes this selection.
 
 All routing goes through a single Haiku agent dispatch. The manifest includes `FORCE`-labeled entries that the Haiku agent must prefer when intent matches — but matching is semantic, not keyword-based. This replaced the prior two-tier system (deterministic keyword check + LLM fallback) after A/B testing showed Haiku-only scored 10/10 vs 9/10 for the two-tier approach, with the keyword matcher producing false positives on ambiguous words (e.g. "fish for bugs" → `fish-shell-config`).
 
@@ -127,7 +127,7 @@ python3 scripts/routing-manifest.py
 Dispatch the Agent tool with `model: "haiku"` and this prompt structure:
 
 ```
-You are a routing agent. Given a user request and a manifest of available agents, skills, and pipelines, select the BEST agent+skill combination.
+You are a routing agent. Given a user request and a manifest of available agents and skills, select the BEST agent+skill combination.
 
 USER REQUEST: {user_request}
 
@@ -138,7 +138,6 @@ Return your answer as JSON:
 {
   "agent": "agent-name or null",
   "skill": "skill-name or null",
-  "pipeline": "pipeline-name or null",
   "reasoning": "one sentence why",
   "confidence": "high/medium/low"
 }
@@ -188,7 +187,7 @@ This banner MUST be the FIRST visible output for EVERY /do invocation. Display B
  Dispatching:
    -> Agent: [name] - [why this agent]
       carries skill: [name] - [what methodology the agent will follow]
-      carries pipeline: PHASE1 → PHASE2 → ... (if pipeline; phases from skills/workflow/references/pipeline-index.json)
+      phases: [composed from phase-composition.md, e.g. PLAN → IMPLEMENT → TEST → REVIEW → PR]
    -> Extra Rigor: [verification patterns attached to dispatch, if any]
  The agent will load its references and execute the skill.
 ===================================================================
@@ -219,7 +218,13 @@ Valid categories: `error, pivot, review, design, debug, gotcha, effectiveness, m
 
 ### Phase 3: ENHANCE
 
-**Goal**: Attach additional skills and directives to the dispatch package based on signals in the request. Enhancements are instructions the dispatched agent will receive, not work the router performs.
+**Goal**: Compose phases and attach additional directives to the dispatch package. Enhancements are instructions the dispatched agent will receive, not work the router performs.
+
+**Step 0: Compose phases** (Medium+ only)
+
+For Medium+ tasks, load `references/phase-composition.md` and compose the phase sequence from the task type and complexity. Attach the composed phases to the dispatch package. The agent follows these phases as its execution structure.
+
+Simple tasks skip phase composition. The agent executes the skill directly.
 
 If relevant retro knowledge is already present in context, use it. If it is absent, continue without spending prompt space restating hook mechanics.
 
@@ -263,21 +268,7 @@ If request contains "create", "new", "scaffold", "build pipeline/agent/skill/hoo
 
 Create `task_plan.md` before execution, because a plan turns the next N turns into progress instead of rework. Skip only for Trivial tasks.
 
-**Step 1b: Apply quality-loop pipeline** (for Medium+ code modifications)
-
-When the request is a code modification (implementation, bug fix, feature addition, refactoring) at Medium or Complex complexity, load `references/quality-loop.md` and use it as the **outer orchestration wrapper** around Step 2. The quality-loop and the agent+skill are complementary layers, not alternatives:
-
-- **Quality-loop** (outer) = the full 14-phase lifecycle: ADR → PLAN → IMPLEMENT → TEST → REVIEW → INTENT VERIFY → LIVE VALIDATE → FIX → RETEST → PR → CODEX REVIEW → ADR RECONCILE → RECORD → CLEANUP
-- **Agent + skill** (inner) = the domain expertise used inside PHASE 2 (IMPLEMENT)
-
-When quality-loop applies, it absorbs Step 0 (ADR creation) and Step 1 (plan creation) into its own PHASES 0-1. Do not run Steps 0-1 separately — the quality-loop handles them.
-
-The router still selects the best agent+skill in Phase 2 (e.g., `golang-general-engineer` carrying `go-patterns`). That agent becomes the implementation executor for quality-loop PHASE 1. Force-route skills like `go-patterns` travel with the agent INSIDE the loop, not excluded from it. A Go implementation gets Go-specific patterns AND testing, review, and PR gates.
-
-The quality-loop does NOT apply when:
-- Complexity is Trivial or Simple (use fast/quick instead)
-- The task is review-only, research, debugging, or content creation
-- The user explicitly requests a simpler flow
+**Step 1b: Phase composition was applied in Phase 3 Step 0.** The composed phases are already attached to the dispatch package. No separate pipeline loading needed.
 
 **Step 2: Dispatch the agent**
 
@@ -326,11 +317,9 @@ For repos without organization-gated workflows, run up to 3 iterations of `/pr-r
 
 Detect: "first...then", "and also", numbered lists, semicolons. Sequential dependencies execute in order. Independent items launch multiple Task tools in single message. Max parallelism: 10 agents.
 
-**Step 4: Auto-Pipeline Fallback** (when no agent/skill matches AND complexity >= Simple)
+**Step 4: Fallback** (when no agent/skill matches AND complexity >= Simple)
 
-Always invoke `auto-pipeline` for unmatched requests. Every unmatched request is a new routing pattern to capture, and the pipeline picks up the work while the gap gets recorded. If no pipeline matches either, fall back to closest agent + verification-before-completion.
-
-When uncertain which route: **ROUTE ANYWAY.** Add verification-before-completion as safety net. Routing up finds the right agent and gives the work a home; routing down leaves the main thread improvising in isolation.
+Route to the closest matching agent with verification-before-completion as safety net. Routing up finds the right agent and gives the work a home; routing down leaves the main thread improvising in isolation. Record the routing gap for future pattern capture.
 
 **Gate**: Agent dispatched, results received. Proceed to Phase 5.
 
@@ -384,9 +373,8 @@ Solution: Stop execution. Create `task_plan.md`. Resume routing after plan is in
 ## References
 
 ### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/routing-tables.md`: Complete category-specific skill routing
+- `${CLAUDE_SKILL_DIR}/references/routing-tables.md`: Category-specific skill routing
 - `${CLAUDE_SKILL_DIR}/references/progressive-depth.md`: Progressive depth escalation protocol
+- `${CLAUDE_SKILL_DIR}/references/phase-composition.md`: Phase composition for Medium+ tasks
 - `agents/INDEX.json`: Agent triggers and metadata
 - `skills/INDEX.json`: Skill triggers, force-route flags, pairs_with
-- `skills/workflow/SKILL.md`: Workflow phases, triggers, composition chains
-- `skills/workflow/references/pipeline-index.json`: Pipeline metadata, triggers, phases
