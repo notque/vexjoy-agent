@@ -30,6 +30,8 @@ routing:
 
 The main thread is an **orchestrator**. If you find yourself reading source code, writing code, or doing analysis, you are doing the agent's job. Pause and dispatch instead.
 
+**NEVER shortcut to built-in agent types** (Explore, general-purpose, etc.) without first running the routing manifest through the Haiku agent. The manifest contains domain-specific agents and skills that the model's general knowledge does not know about. A "codebase overview" request has a `codebase-overview` skill. A "Go debugging" request has `golang-general-engineer` + `go-patterns`. The Haiku routing agent surfaces these. Skipping the manifest means the dispatched agent works from general knowledge instead of domain expertise on disk.
+
 ---
 
 ## The Completeness Standard
@@ -106,7 +108,7 @@ This early detection ensures Phase 4 Step 0 fires reliably by catching the signa
 
 **Not a creation request**: debugging, reviewing, fixing, refactoring, explaining, running, checking, auditing existing components. When ambiguous, check whether the output would be a NEW file that doesn't yet exist.
 
-**Gate**: Complexity classified. If a creation signal was detected, output `[CREATION REQUEST DETECTED]` before displaying the routing banner. Display routing banner (ALL classifications). If not Trivial, proceed to Phase 2. If Trivial, handle directly after showing banner.
+**Gate**: Complexity classified. If a creation signal was detected, output `[CREATION REQUEST DETECTED]` before displaying the routing banner. Display routing banner (ALL classifications). If not Trivial, proceed to Phase 2 (mandatory: run the manifest and Haiku agent). If Trivial, handle directly after showing banner. Do NOT skip Phase 2 by dispatching built-in agent types directly.
 
 ---
 
