@@ -263,6 +263,6 @@ Update `sapcc-review-report.md` with:
 
 **Integration notes**:
 - Complements `/sapcc-audit` (package-level generalist) — use both for maximum coverage
-- Prerequisite: go-patterns skill must be installed at `~/.claude/skills/go-patterns/`
-- Sync: After creating, run `cp -r skills/sapcc-review ~/.claude/skills/sapcc-review` for global access
+- Prerequisite: go-patterns skill must be installed at `~/.toolkit/skills/go-patterns/`
+- Sync: After creating, run `cp -r skills/sapcc-review ~/.toolkit/skills/sapcc-review` for global access
 - Router: `/do` routes via "sapcc review", "sapcc lead review", "comprehensive sapcc audit"

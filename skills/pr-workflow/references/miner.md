@@ -267,7 +267,7 @@ This skill coordinates PR mining workflows to extract tribal knowledge and codin
 **Step 1: Check miner script exists**
 
 ```bash
-fish -c "ls ~/.claude/skills/pr-workflow/scripts/miner.py"
+fish -c "ls ~/.toolkit/skills/pr-workflow/scripts/miner.py"
 ```
 
 Expected: File exists at path.
@@ -304,7 +304,7 @@ Expected: PR results confirm username is valid and active.
 
 ```bash
 fish -c "set -x GITHUB_TOKEN (security find-internet-password -s github.com -w 2>/dev/null) && \
-  cd ~/.claude/skills/pr-workflow && \
+  cd ~/.toolkit/skills/pr-workflow && \
   ./venv/bin/python3 scripts/miner.py {repos} mined_data/{output}.json {flags} --summary" &
 ```
 
@@ -337,7 +337,7 @@ Run jobs sequentially. Wait for each to complete before starting next. Wait for 
 **Step 1: Check output file exists and has content**
 
 ```bash
-fish -c "cat ~/.claude/skills/pr-workflow/mined_data/{output}.json | head -50"
+fish -c "cat ~/.toolkit/skills/pr-workflow/mined_data/{output}.json | head -50"
 ```
 
 **Step 2: Validate structure**
@@ -425,7 +425,7 @@ Follow this structure for each pattern:
 **Step 4: Save rules**
 
 ```bash
-fish -c "cat > ~/.claude/skills/pr-workflow/rules/{repos}_coding_rules.md"
+fish -c "cat > ~/.toolkit/skills/pr-workflow/rules/{repos}_coding_rules.md"
 ```
 
 **Constraint - Cleanup Behavior**: After saving rules to disk, remove temporary coordination files (PIDs, debug logs, intermediate JSON). Keep ONLY the final mining result JSON (for future reference) and generated rules markdown (for user consumption).
@@ -444,7 +444,7 @@ Provide:
 - List of top 3-5 HIGH confidence patterns with occurrence counts
 - Summary of MEDIUM and LOW confidence pattern distribution
 
-**Constraint - Report Clarity**: Show actual numbers and paths, not generic summaries. Example good report: "Analyzed 150 PRs, extracted 42 interactions. HIGH confidence (12 patterns): Error handling (5), Testing (4), Naming (3). MEDIUM confidence: 18 patterns. LOW confidence: 12 patterns. Rules: ~/.claude/skills/pr-workflow/rules/myrepo_coding_rules.md"
+**Constraint - Report Clarity**: Show actual numbers and paths, not generic summaries. Example good report: "Analyzed 150 PRs, extracted 42 interactions. HIGH confidence (12 patterns): Error handling (5), Testing (4), Naming (3). MEDIUM confidence: 18 patterns. LOW confidence: 12 patterns. Rules: ~/.toolkit/skills/pr-workflow/rules/myrepo_coding_rules.md"
 
 **Constraint - Communication Style**: Report facts without self-congratulation. Show what happened and where the output is. Report facts directly: "Mined 42 interactions from 150 PRs" — keep the tone factual.
 

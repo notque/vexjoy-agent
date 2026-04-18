@@ -59,7 +59,7 @@ This skill implements a **Detect, Check, Report** pattern for multi-language cod
 Run the quality gate check against the current project:
 
 ```bash
-python3 ~/.claude/skills/universal-quality-gate/scripts/run_quality_gate.py
+python3 ~/.toolkit/skills/universal-quality-gate/scripts/run_quality_gate.py
 ```
 
 This command automatically:
@@ -72,25 +72,25 @@ This command automatically:
 
 **For pre-commit validation** (fastest):
 ```bash
-python3 ~/.claude/skills/universal-quality-gate/scripts/run_quality_gate.py --staged
+python3 ~/.toolkit/skills/universal-quality-gate/scripts/run_quality_gate.py --staged
 ```
 Checks only git-staged files, enabling rapid feedback on recent changes.
 
 **For auto-fixing** (when issues are found):
 ```bash
-python3 ~/.claude/skills/universal-quality-gate/scripts/run_quality_gate.py --fix
+python3 ~/.toolkit/skills/universal-quality-gate/scripts/run_quality_gate.py --fix
 ```
 Auto-corrects fixable issues (formatting, imports, etc.), then re-run Step 1 to verify.
 
 **For focused checking** (single language):
 ```bash
-python3 ~/.claude/skills/universal-quality-gate/scripts/run_quality_gate.py --lang python
+python3 ~/.toolkit/skills/universal-quality-gate/scripts/run_quality_gate.py --lang python
 ```
 Narrows scope when debugging language-specific issues.
 
 **For verbose details**:
 ```bash
-python3 ~/.claude/skills/universal-quality-gate/scripts/run_quality_gate.py -v
+python3 ~/.toolkit/skills/universal-quality-gate/scripts/run_quality_gate.py -v
 ```
 Shows expanded diagnostic output for troubleshooting.
 
@@ -144,7 +144,7 @@ Review marked failures [X] first. Pattern matches [WARNING] are informational.
 ### Step 4: Resolve Issues
 
 **For auto-fixable issues:**
-1. Run `python3 ~/.claude/skills/universal-quality-gate/scripts/run_quality_gate.py --fix`
+1. Run `python3 ~/.toolkit/skills/universal-quality-gate/scripts/run_quality_gate.py --fix`
 2. Review changes with `git diff` to verify correctness
 3. Re-run Step 1 to confirm all checks pass
 4. Commit with message documenting the fixes
@@ -168,14 +168,14 @@ Once quality gate passes with zero required-tool failures:
 
 **Pre-commit validation (fastest path):**
 ```bash
-python3 ~/.claude/skills/universal-quality-gate/scripts/run_quality_gate.py --staged
+python3 ~/.toolkit/skills/universal-quality-gate/scripts/run_quality_gate.py --staged
 # If fails → fix issues → re-run
 # If passes → git commit
 ```
 
 **Full repo audit:**
 ```bash
-python3 ~/.claude/skills/universal-quality-gate/scripts/run_quality_gate.py
+python3 ~/.toolkit/skills/universal-quality-gate/scripts/run_quality_gate.py
 # Review all findings by language
 # Fix by category: required failures → warnings → patterns
 # Re-run after each batch of fixes
@@ -183,7 +183,7 @@ python3 ~/.claude/skills/universal-quality-gate/scripts/run_quality_gate.py
 
 **Language-specific validation:**
 ```bash
-python3 ~/.claude/skills/universal-quality-gate/scripts/run_quality_gate.py --lang python
+python3 ~/.toolkit/skills/universal-quality-gate/scripts/run_quality_gate.py --lang python
 # Use when debugging a specific language's toolchain
 # Narrows output and speeds iteration
 ```

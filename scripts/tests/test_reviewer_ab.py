@@ -28,12 +28,12 @@ from pathlib import Path
 AGENT_A = "agents/reviewer-code.md"
 AGENT_B = "agents/reviewer-code-playbook.md"
 
-# Also check ~/.claude/agents/ as fallback
+# Also check ~/.toolkit/agents/ as fallback
 HOME_AGENTS = Path.home() / ".claude" / "agents"
 
 
 def resolve_agent_path(relative: str) -> Path:
-    """Resolve agent path, checking repo first then ~/.claude/agents/."""
+    """Resolve agent path, checking repo first then ~/.toolkit/agents/."""
     repo_root = Path(__file__).resolve().parent.parent.parent
     repo_path = repo_root / relative
     if repo_path.is_file():

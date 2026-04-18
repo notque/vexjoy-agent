@@ -10,7 +10,7 @@ All quality checks pass with good coverage.
 ### Command
 ```bash
 cd /path/to/go-project
-python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py --verbose
+python3 ~/.toolkit/skills/go-patterns/scripts/quality_checker.py --verbose
 ```
 
 ### Expected Output (JSON)
@@ -49,7 +49,7 @@ Code has unchecked error returns.
 ### Command
 ```bash
 cd /path/to/go-project
-python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py
+python3 ~/.toolkit/skills/go-patterns/scripts/quality_checker.py
 ```
 
 ### Expected Output (JSON)
@@ -109,7 +109,7 @@ Imports are not properly formatted.
 
 ### Command
 ```bash
-python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py
+python3 ~/.toolkit/skills/go-patterns/scripts/quality_checker.py
 ```
 
 ### Expected Output (JSON)
@@ -141,7 +141,7 @@ python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py
 ```bash
 fish -c "make goimports"
 # Re-run checks
-python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py
+python3 ~/.toolkit/skills/go-patterns/scripts/quality_checker.py
 ```
 
 ---
@@ -153,7 +153,7 @@ Unit tests are failing.
 
 ### Command
 ```bash
-python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py --verbose
+python3 ~/.toolkit/skills/go-patterns/scripts/quality_checker.py --verbose
 ```
 
 ### Expected Output (JSON)
@@ -201,7 +201,7 @@ Mix of linting errors, test failures, and license issues.
 
 ### Command
 ```bash
-python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py --verbose
+python3 ~/.toolkit/skills/go-patterns/scripts/quality_checker.py --verbose
 ```
 
 ### Expected Output (JSON)
@@ -277,7 +277,7 @@ Check if coverage meets minimum threshold.
 
 ### Command
 ```bash
-python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py --min-coverage 80.0
+python3 ~/.toolkit/skills/go-patterns/scripts/quality_checker.py --min-coverage 80.0
 ```
 
 ### Expected Output (coverage below threshold)
@@ -314,7 +314,7 @@ Human-readable text output instead of JSON.
 
 ### Command
 ```bash
-python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py --format text
+python3 ~/.toolkit/skills/go-patterns/scripts/quality_checker.py --format text
 ```
 
 ### Expected Output (success)
@@ -357,7 +357,7 @@ Running in non-Go directory.
 ### Command
 ```bash
 cd /tmp
-python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py
+python3 ~/.toolkit/skills/go-patterns/scripts/quality_checker.py
 ```
 
 ### Expected Output (JSON to stderr)
@@ -383,7 +383,7 @@ python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py
 **Claude**: "I'll run the Go PR quality gate to check your code."
 
 ```bash
-python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py --verbose
+python3 ~/.toolkit/skills/go-patterns/scripts/quality_checker.py --verbose
 ```
 
 **Output** (failure scenario):
@@ -451,27 +451,27 @@ h := sha256.New()
 ### Check Specific Repository
 ```bash
 cd /path/to/go-project
-python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py
+python3 ~/.toolkit/skills/go-patterns/scripts/quality_checker.py
 ```
 
 ### Verbose Mode for Debugging
 ```bash
-python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py --verbose
+python3 ~/.toolkit/skills/go-patterns/scripts/quality_checker.py --verbose
 ```
 
 ### Validate Only (No Checks)
 ```bash
-python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py --validate-only
+python3 ~/.toolkit/skills/go-patterns/scripts/quality_checker.py --validate-only
 ```
 
 ### Enforce Coverage Threshold
 ```bash
-python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py --min-coverage 85.0
+python3 ~/.toolkit/skills/go-patterns/scripts/quality_checker.py --min-coverage 85.0
 ```
 
 ### Combine Options
 ```bash
-python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py \
+python3 ~/.toolkit/skills/go-patterns/scripts/quality_checker.py \
   --min-coverage 80.0 \
   --format text \
   --verbose
@@ -488,7 +488,7 @@ python3 ~/.claude/skills/go-patterns/scripts/quality_checker.py \
 **Solution**: Install via Homebrew: `fish -c "brew install golangci-lint"`
 
 ### Issue: Permission denied
-**Solution**: Ensure scripts are executable: `fish -c "chmod +x ~/.claude/skills/go-patterns/scripts/*.py"`
+**Solution**: Ensure scripts are executable: `fish -c "chmod +x ~/.toolkit/skills/go-patterns/scripts/*.py"`
 
 ### Issue: Coverage not detected
 **Solution**: Verify `make check` includes test coverage, check for `build/cover.out` file

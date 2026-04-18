@@ -54,7 +54,7 @@ The skill reads metadata from all skills and agents (never modifies them) and sa
 **Step 1: Run scan script**
 
 ```bash
-python3 ~/.claude/skills/routing-table-updater/scripts/scan.py --repo $HOME/claude-code-toolkit
+python3 ~/.toolkit/skills/routing-table-updater/scripts/scan.py --repo $HOME/claude-code-toolkit
 ```
 
 **Step 2: Validate scan output**
@@ -78,7 +78,7 @@ Compare discovered count against expected. If missing, check directory naming, a
 **Step 1: Run extraction script**
 
 ```bash
-python3 ~/.claude/skills/routing-table-updater/scripts/extract_metadata.py --input scan_results.json --output metadata.json
+python3 ~/.toolkit/skills/routing-table-updater/scripts/extract_metadata.py --input scan_results.json --output metadata.json
 ```
 
 **Step 2: Verify extraction completeness**
@@ -102,7 +102,7 @@ Review against `references/extraction-patterns.md`. Patterns must be specific en
 **Step 1: Run generation script**
 
 ```bash
-python3 ~/.claude/skills/routing-table-updater/scripts/generate_routes.py --input metadata.json --output routing_entries.json
+python3 ~/.toolkit/skills/routing-table-updater/scripts/generate_routes.py --input metadata.json --output routing_entries.json
 ```
 
 **Step 2: Understand the generation process**
@@ -130,7 +130,7 @@ Low-severity conflicts: script applies specificity rules automatically. High-sev
 **Step 1: Run update script with backup**
 
 ```bash
-python3 ~/.claude/skills/routing-table-updater/scripts/update_routing.py --input routing_entries.json --target $HOME/claude-code-toolkit/commands/do.md --backup
+python3 ~/.toolkit/skills/routing-table-updater/scripts/update_routing.py --input routing_entries.json --target $HOME/claude-code-toolkit/commands/do.md --backup
 ```
 
 **Step 2: Verify backup exists**
@@ -162,7 +162,7 @@ The script validates pipe alignment, header separator rows, consistent column co
 **Step 1: Run update script with backup**
 
 ```bash
-python3 ~/.claude/skills/routing-table-updater/scripts/update_commands.py --commands-dir $HOME/claude-code-toolkit/commands --metadata metadata.json --backup
+python3 ~/.toolkit/skills/routing-table-updater/scripts/update_commands.py --commands-dir $HOME/claude-code-toolkit/commands --metadata metadata.json --backup
 ```
 
 **Step 2: Understand the update process**
@@ -186,7 +186,7 @@ python3 ~/.claude/skills/routing-table-updater/scripts/update_commands.py --comm
 **Step 1: Run validation script**
 
 ```bash
-python3 ~/.claude/skills/routing-table-updater/scripts/validate.py --target $HOME/claude-code-toolkit/commands/do.md
+python3 ~/.toolkit/skills/routing-table-updater/scripts/validate.py --target $HOME/claude-code-toolkit/commands/do.md
 ```
 
 **Step 2: Understand verification checks**

@@ -9,7 +9,7 @@ You want to understand the error handling standards in a Go service before submi
 
 ### Command
 ```bash
-cd ~/.claude/skills/codebase-analyzer
+cd ~/.toolkit/skills/codebase-analyzer
 python3 ~/.claude/scripts/analyzer.py ~/repos/api-server --output analysis_data/api_server_analysis.json
 ```
 
@@ -69,7 +69,7 @@ CODEBASE ANALYSIS SUMMARY
 
 ```bash
 # Check if reviewers also mention error wrapping
-cd ~/.claude/skills/pr-workflow
+cd ~/.toolkit/skills/pr-workflow
 grep -i "while.*%w" mined_data/senior-reviewer_go_all_2025-11-20.json
 ```
 
@@ -86,7 +86,7 @@ You're new to the team and want to understand team-wide patterns across api-serv
 
 ### Commands
 ```bash
-cd ~/.claude/skills/codebase-analyzer
+cd ~/.toolkit/skills/codebase-analyzer
 
 # Analyze each repo
 python3 ~/.claude/scripts/analyzer.py ~/repos/api-server --output analysis_data/api-server.json
@@ -341,7 +341,7 @@ func (d *Database) Query(ctx context.Context) error {
 
 **Step 1**: Mine PR reviews (explicit rules)
 ```bash
-cd ~/.claude/skills/pr-workflow
+cd ~/.toolkit/skills/pr-workflow
 ./venv/bin/python3 scripts/miner.py your-org/your-repo \
   mined_data/project_reviews.json \
   --limit 100 --all-comments
@@ -349,7 +349,7 @@ cd ~/.claude/skills/pr-workflow
 
 **Step 2**: Analyze codebase (implicit rules)
 ```bash
-cd ~/.claude/skills/codebase-analyzer
+cd ~/.toolkit/skills/codebase-analyzer
 python3 ~/.claude/scripts/analyzer.py ~/repos/your-project \
   --output analysis_data/project_stats.json
 ```
@@ -407,7 +407,7 @@ New developer joins the team. Instead of vague "read the code", give them concre
 # Welcome to the team!
 # This script generates your coding standards cheat sheet.
 
-cd ~/.claude/skills/codebase-analyzer
+cd ~/.toolkit/skills/codebase-analyzer
 
 echo "Analyzing api-server..."
 python3 ~/.claude/scripts/analyzer.py ~/repos/api-server --output /tmp/api-server.json
