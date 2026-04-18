@@ -119,7 +119,9 @@ python3 ~/.claude/scripts/resolve-dispatch.py \
     --request "{user_request}"
 ```
 
-Prepend the Dispatch Package output to the agent prompt. For Medium+ tasks, also prepend:
+Prepend the Dispatch Package output to the agent prompt. Pass the **Model** value from the Dispatch Package as the `model` parameter on the Agent tool call. If no model is specified, omit the parameter (session default applies).
+
+For Medium+ tasks, also prepend:
 
 ```
 ## Task Specification
