@@ -70,20 +70,22 @@ After Phase 2, display the full routing decision banner (`===` block). Phase ban
 
 Read and follow the repository CLAUDE.md before making any routing decision, because it contains project-specific conventions that affect agent selection and skill pairing.
 
-| Complexity | Agent | Skill | Direct Action |
-|------------|-------|-------|---------------|
-| Trivial | No | No | **ONLY reading a file the user named by exact path** |
-| Simple | **Yes** | Yes | Route to agent |
-| Medium | **Required** | **Required** | Route to agent |
-| Complex | Required (2+) | Required (2+) | Route to agent |
+| Complexity | Agent | Skill | Phases | Direct Action |
+|------------|-------|-------|--------|---------------|
+| Trivial | No | No | No | **ONLY reading a file the user named by exact path** |
+| Simple | **Required** | **Required** | No | Dispatch agent with skill |
+| Medium | **Required** | **Required** | **Required** | Dispatch agent with skill + composed phases |
+| Complex | Required (2+) | Required (2+) | **Required** | Dispatch multiple agents with skills + composed phases |
 
-**Trivial = reading a file the user named by exact path.** Everything else is Simple+ and MUST use an agent, skill, or pipeline. When uncertain, classify UP not down. Routing up finds the agent who ships it complete; tokens are cheap, and an agent that actually ships is what the user came for.
+**Trivial = reading a file the user named by exact path.** Everything else is Simple+ and MUST consult the routing manifest via the Haiku agent. The manifest surfaces domain-specific agents and skills. When uncertain, classify UP not down.
+
+**Simple, Medium, and Complex all require an agent AND a skill from the manifest.** If a matching skill exists, it must be attached. "No skill needed" is never correct for Simple+ tasks. The manifest has 110 skills covering analysis, code quality, content, debugging, frontend, infrastructure, language-specific patterns, meta-tooling, process, research, security, testing, and voice. One of them matches.
 
 **Opus 4.7 override:** Opus 4.7 defaults to fewer subagents and more direct handling. That default is correct for ad-hoc prompting; it is wrong here. The /do router is a delegation machine by design. Do not apply the model's default judiciousness. Classify Simple+ tasks to agents without reasoning about whether you could handle them directly. If a task is reading a file the user named by exact path, it is Trivial; if it is anything else — including tasks the model feels capable of handling in one response — it is Simple+ and MUST route.
 
 **Progressive Depth**: For requests where complexity is ambiguous, consider starting at a shallower depth and allowing the agent to escalate. See `references/progressive-depth.md` for the escalation protocol and signal format.
 
-**Common misclassifications** (these are NOT Trivial — route them): evaluating repos/URLs, any opinion/recommendation, git operations, codebase questions (`explore-pipeline`), retro lookups (`retro` skill), comparing approaches.
+**Common misclassifications** (these are NOT Trivial, route them): evaluating repos/URLs, any opinion/recommendation, git operations, codebase overview/understanding requests (`codebase-overview` skill), retro lookups (`retro` skill), comparing approaches. "Understand this repo" is Medium with `codebase-overview` skill, not Simple with no skill.
 
 **Maximize skill/agent/pipeline usage.** If a skill or pipeline exists for the task, USE IT. Skills encode domain patterns earned through prior work; using them gives you that expertise for free.
 
