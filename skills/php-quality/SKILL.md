@@ -1,6 +1,6 @@
 ---
 name: php-quality
-description: "PHP code quality: PSR standards, strict types, framework idioms."
+description: "PHP quality: PSR standards, strict types, framework idioms."
 user-invocable: false
 context: fork
 agent: php-general-engineer

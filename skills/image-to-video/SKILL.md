@@ -1,6 +1,6 @@
 ---
 name: image-to-video
-description: "FFmpeg-based video creation from image and audio."
+description: "Create video from image and audio via FFmpeg."
 user-invocable: false
 allowed-tools:
   - Read

@@ -1,6 +1,6 @@
 ---
 name: testing-agents-with-subagents
-description: "Test agents via subagents: known inputs, captured outputs, verification."
+description: "Test agents with known inputs and verified outputs."
 user-invocable: false
 allowed-tools:
   - Read

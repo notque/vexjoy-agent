@@ -36,7 +36,6 @@ def _resolve_index(tracked: Path, local_name: str) -> Path:
 INDEX_PATHS = {
     "skills": _resolve_index(REPO_ROOT / "skills" / "INDEX.json", "INDEX.local.json"),
     "agents": _resolve_index(REPO_ROOT / "agents" / "INDEX.json", "INDEX.local.json"),
-    "pipelines": REPO_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json",
 }
 
 
@@ -82,7 +81,6 @@ def format_compact(entries: list[dict]) -> str:
     """
     agents = []
     skills = []
-    pipelines = []
 
     for e in entries:
         name = e["name"]
@@ -92,8 +90,6 @@ def format_compact(entries: list[dict]) -> str:
         if e["type"] == "agent":
             pairs_str = f" [{pairs}]" if pairs else ""
             agents.append(f"  {name}{pairs_str} — {desc}")
-        elif e["type"] == "pipeline":
-            pipelines.append(f"  {name} — {desc}")
         else:
             force_str = " FORCE" if e.get("force_route") else ""
             agent_str = f" agent={e['agent']}" if e.get("agent") else ""
@@ -105,8 +101,6 @@ def format_compact(entries: list[dict]) -> str:
         sections.append("AGENTS:\n" + "\n".join(sorted(agents)))
     if skills:
         sections.append("SKILLS:\n" + "\n".join(sorted(skills)))
-    if pipelines:
-        sections.append("PIPELINES:\n" + "\n".join(sorted(pipelines)))
 
     return "\n\n".join(sections)
 

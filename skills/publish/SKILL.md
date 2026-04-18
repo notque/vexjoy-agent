@@ -1,16 +1,6 @@
 ---
 name: publish
-description: |
-  Content-publishing umbrella covering the blog pipeline from blueprint to
-  upload: post outlining, pre-publication validation, SEO optimization, bulk
-  find/replace and frontmatter editing, link auditing, image auditing,
-  taxonomy management, and WordPress upload. Use for "outline post",
-  "article outline", "pre-publish check", "frontmatter validation", "check
-  SEO", "keyword analysis", "meta description", "batch edit posts", "bulk
-  frontmatter update", "mass edit", "audit links", "broken links", "audit
-  images", "alt text check", "audit taxonomy", "fix tags", "merge
-  categories", "upload to wordpress", "create wordpress draft", "post to
-  wordpress", or "edit wordpress post".
+description: "Blog pipeline: outline, validate, SEO, upload."
 user-invocable: false
 agent: general-purpose
 allowed-tools:

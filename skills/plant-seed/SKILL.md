@@ -1,6 +1,6 @@
 ---
 name: plant-seed
-description: "Capture forward-looking idea as a seed for future feature design."
+description: "Capture ideas as seeds for future features."
 user-invocable: false
 argument-hint: "<idea description>"
 command: /plant-seed

@@ -1,6 +1,6 @@
 ---
 name: pr-review
-description: "Comprehensive PR review using specialized agents, with automatic retro knowledge capture"
+description: "PR review with specialized agents and retro capture."
 version: 1.0.0
 user-invocable: true
 allowed-tools:

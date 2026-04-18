@@ -1,6 +1,6 @@
 ---
 name: voice-validator
-description: "Critique-and-rewrite loop for voice fidelity validation."
+description: "Validate and rewrite for voice fidelity."
 user-invocable: false
 allowed-tools:
   - Read

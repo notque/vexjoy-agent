@@ -1,6 +1,6 @@
 ---
 name: retro
-description: "Learning system interface: stats, search, graduate learnings. Backed by learning.db (SQLite + FTS5)."
+description: "Learning system: stats, search, graduate."
 user-invocable: true
 argument-hint: "[status|list|search <term>|graduate]"
 allowed-tools:

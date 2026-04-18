@@ -1,6 +1,6 @@
 ---
 name: nano-banana-builder
-description: "Image generation and post-processing via Gemini Nano Banana APIs."
+description: "Image generation via Gemini Nano Banana."
 user-invocable: false
 allowed-tools:
   - Read

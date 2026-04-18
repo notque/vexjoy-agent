@@ -1,6 +1,6 @@
 ---
 name: subagent-driven-development
-description: "Fresh-subagent-per-task execution with two-stage review gates."
+description: "One subagent per task with review gates."
 user-invocable: false
 allowed-tools:
   - Read

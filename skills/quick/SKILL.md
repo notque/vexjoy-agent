@@ -1,6 +1,6 @@
 ---
 name: quick
-description: "Tracked lightweight execution with composable rigor flags: --trivial, --discuss, --research, --full. Covers zero-ceremony inline fixes (≤3 edits) through contained multi-file changes."
+description: "Lightweight execution with rigor flags: --trivial, --discuss, --research, --full."
 user-invocable: true
 argument-hint: "[--trivial] [--discuss] [--research] [--full] <task>"
 allowed-tools:

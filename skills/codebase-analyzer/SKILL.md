@@ -1,6 +1,6 @@
 ---
 name: codebase-analyzer
-description: "Statistical rule discovery from Go codebase patterns."
+description: "Discover Go codebase patterns and rules."
 user-invocable: false
 allowed-tools:
   - Read

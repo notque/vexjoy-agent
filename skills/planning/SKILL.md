@@ -1,13 +1,6 @@
 ---
 name: planning
-description: |
-  Planning lifecycle umbrella: spec, pre-plan ambiguity resolution, file-backed
-  planning, plan validation, plan-lifecycle management, and session pause/resume.
-  Use for "write spec", "define requirements", "before we plan", "discuss
-  ambiguities", "create plan", "task plan", "working memory", "check plan",
-  "validate plan", "is this plan ready", "list plans", "plan status",
-  "complete plan", "pause", "save progress", "session handoff", "resume",
-  "continue work", or "where did I leave off".
+description: "Spec, plan, validate, and manage task plans."
 user-invocable: true
 agent: general-purpose
 allowed-tools:

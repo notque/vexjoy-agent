@@ -1,6 +1,6 @@
 ---
 name: cobalt-core
-description: "Cobalt Core infrastructure knowledge: KVM exporters, hypervisor tooling, OpenStack compute."
+description: "Cobalt Core: KVM exporters, hypervisor tooling, OpenStack."
 user-invocable: true
 argument-hint: "<cobaltcore topic or repo name>"
 allowed-tools:

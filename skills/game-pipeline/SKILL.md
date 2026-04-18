@@ -1,6 +1,6 @@
 ---
 name: game-pipeline
-description: "Game lifecycle orchestrator: scaffold, assets, audio, QA, deploy."
+description: "Game lifecycle: scaffold, assets, audio, QA, deploy."
 user-invocable: false
 allowed-tools:
   - Read

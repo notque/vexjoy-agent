@@ -1,6 +1,6 @@
 ---
 name: php-testing
-description: "PHP testing patterns: PHPUnit, test doubles, database testing."
+description: "PHP testing: PHPUnit, test doubles, database."
 user-invocable: false
 context: fork
 agent: php-general-engineer

@@ -1,6 +1,6 @@
 ---
 name: decision-helper
-description: "Weighted decision scoring for architectural choices."
+description: "Score architectural choices with weighted criteria."
 user-invocable: false
 allowed-tools:
   - Read

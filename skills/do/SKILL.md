@@ -1,6 +1,6 @@
 ---
 name: do
-description: "Classify user requests and route to the correct agent + skill. Primary entry point for all delegated work."
+description: "Route requests to agents with skills."
 user-invocable: true
 argument-hint: "<request>"
 allowed-tools:
@@ -22,13 +22,15 @@ routing:
 
 # /do - Smart Router
 
-/do is a **ROUTER**, not a worker. Its ONLY job is to classify requests, select the right agent + skill, and dispatch. It delegates all execution, implementation, debugging, review, and fixes to specialized agents.
+/do is a **ROUTER**, not a worker. Its ONLY job is to classify requests, assemble a dispatch package (agent + skill + pipeline + directives), and send it. The dispatched agent reads the skill and executes it. The router never opens the package.
 
-**What the main thread does:** (1) Classify, (2) Select agent+skill, (3) Dispatch via Agent tool, (4) Evaluate if more work needed, (5) Route to ANOTHER agent if yes, (6) Report results.
+**What the main thread does:** (1) Classify the request, (2) Select which agent to dispatch and which skill/pipeline to attach, (3) Dispatch the agent via Agent tool, (4) Evaluate if more work is needed, (5) Dispatch ANOTHER agent if yes, (6) Report results.
 
-**The main thread delegates to agents:** code reading (Explore agent), file edits (domain agents), test runs (agent with skill), documentation (technical-documentation-engineer), all Simple+ tasks.
+**What the dispatched agent does:** reads its own .md file, loads the attached skill's SKILL.md, loads reference files, and executes the methodology. The agent is the consumer of the skill. The router is the logistics layer.
 
-The main thread is an **orchestrator**. If you find yourself reading source code, writing code, or doing analysis — pause and route to an agent instead.
+The main thread is an **orchestrator**. If you find yourself reading source code, writing code, or doing analysis, you are doing the agent's job. Pause and dispatch instead.
+
+**NEVER shortcut to built-in agent types** (Explore, general-purpose, etc.) without first running the routing manifest through the Haiku agent. The manifest contains domain-specific agents and skills that the model's general knowledge does not know about. A "codebase overview" request has a `codebase-overview` skill. A "Go debugging" request has `golang-general-engineer` + `go-patterns`. The Haiku routing agent surfaces these. Skipping the manifest means the dispatched agent works from general knowledge instead of domain expertise on disk.
 
 ---
 
@@ -106,13 +108,13 @@ This early detection ensures Phase 4 Step 0 fires reliably by catching the signa
 
 **Not a creation request**: debugging, reviewing, fixing, refactoring, explaining, running, checking, auditing existing components. When ambiguous, check whether the output would be a NEW file that doesn't yet exist.
 
-**Gate**: Complexity classified. If a creation signal was detected, output `[CREATION REQUEST DETECTED]` before displaying the routing banner. Display routing banner (ALL classifications). If not Trivial, proceed to Phase 2. If Trivial, handle directly after showing banner.
+**Gate**: Complexity classified. If a creation signal was detected, output `[CREATION REQUEST DETECTED]` before displaying the routing banner. Display routing banner (ALL classifications). If not Trivial, proceed to Phase 2 (mandatory: run the manifest and Haiku agent). If Trivial, handle directly after showing banner. Do NOT skip Phase 2 by dispatching built-in agent types directly.
 
 ---
 
 ### Phase 2: ROUTE
 
-**Goal**: Select the correct agent + skill combination via the Haiku routing agent.
+**Goal**: Determine which agent to dispatch and which skill to attach to it. The Haiku routing agent makes this selection.
 
 All routing goes through a single Haiku agent dispatch. The manifest includes `FORCE`-labeled entries that the Haiku agent must prefer when intent matches — but matching is semantic, not keyword-based. This replaced the prior two-tier system (deterministic keyword check + LLM fallback) after A/B testing showed Haiku-only scored 10/10 vs 9/10 for the two-tier approach, with the keyword matcher producing false positives on ambiguous words (e.g. "fish for bugs" → `fish-shell-config`).
 
@@ -127,7 +129,7 @@ python3 scripts/routing-manifest.py
 Dispatch the Agent tool with `model: "haiku"` and this prompt structure:
 
 ```
-You are a routing agent. Given a user request and a manifest of available agents, skills, and pipelines, select the BEST agent+skill combination.
+You are a routing agent. Given a user request and a manifest of available agents and skills, select the BEST agent+skill combination.
 
 USER REQUEST: {user_request}
 
@@ -138,7 +140,6 @@ Return your answer as JSON:
 {
   "agent": "agent-name or null",
   "skill": "skill-name or null",
-  "pipeline": "pipeline-name or null",
   "reasoning": "one sentence why",
   "confidence": "high/medium/low"
 }
@@ -173,24 +174,24 @@ When `[cross-repo]` output is present, route to `.claude/agents/` local agents. 
 
 Route all code modifications to domain agents. Domain agents carry language-specific expertise, testing methodology, and quality gates built for that language.
 
-**Step 2: Apply skill override** (task verb overrides default skill)
+**Step 2: Apply skill override** (task verb overrides which skill the agent carries)
 
-When the request verb implies a specific methodology, override the agent's default skill. Common overrides: "review" → systematic-code-review, "debug" → systematic-debugging, "refactor" → systematic-refactoring, "TDD" → test-driven-development. Full override table in `references/routing-tables.md`.
+When the request verb implies a specific methodology, override the default skill attached to the dispatch. Common overrides: "review" → systematic-code-review, "debug" → systematic-debugging, "refactor" → systematic-refactoring, "TDD" → test-driven-development. Full override table in `references/routing-tables.md`.
 
-**Step 3: Display routing decision** (MANDATORY — do this NOW, before anything else)
+**Step 3: Display dispatch decision** (MANDATORY — do this NOW, before anything else)
 
-This banner MUST be the FIRST visible output for EVERY /do invocation. Display BEFORE creating plans, BEFORE invoking agents, BEFORE any work begins. No exceptions.
+This banner MUST be the FIRST visible output for EVERY /do invocation. Display BEFORE creating plans, BEFORE dispatching agents, BEFORE any work begins. No exceptions.
 
 ```
 ===================================================================
  ROUTING: [brief summary]
 ===================================================================
- Selected:
-   -> Agent: [name] - [why]
-   -> Skill: [name] - [why]
-   -> Pipeline: PHASE1 → PHASE2 → ... (if pipeline; phases from skills/workflow/references/pipeline-index.json)
-   -> Extra Rigor: [add verification patterns for code/security/testing tasks when needed]
- Invoking...
+ Dispatching:
+   -> Agent: [name] - [why this agent]
+      carries skill: [name] - [what methodology the agent will follow]
+      phases: [composed from phase-composition.md, e.g. PLAN → IMPLEMENT → TEST → REVIEW → PR]
+   -> Extra Rigor: [verification patterns attached to dispatch, if any]
+ The agent will load its references and execute the skill.
 ===================================================================
 ```
 
@@ -213,26 +214,32 @@ python3 ~/.claude/scripts/learning-db.py record \
 Tags: `auto-pipeline` (as applicable), `thinking:slow` (if "think carefully" directive injected in Phase 4 Step 2), `thinking:fast` (if "respond quickly" directive injected in Phase 4 Step 2). This call is advisory — if it fails, continue.
 Valid categories: `error, pivot, review, design, debug, gotcha, effectiveness, misroute`. Use `effectiveness` for successful routing, `misroute` for reroutes.
 
-**Gate**: Agent and skill selected. Banner displayed. Routing decision recorded. Proceed to Phase 3.
+**Gate**: Agent and skill selected for dispatch. Banner displayed. Routing decision recorded. Proceed to Phase 3.
 
 ---
 
 ### Phase 3: ENHANCE
 
-**Goal**: Stack additional skills based on signals in the request.
+**Goal**: Compose phases and attach additional directives to the dispatch package. Enhancements are instructions the dispatched agent will receive, not work the router performs.
+
+**Step 0: Compose phases** (Medium+ only)
+
+For Medium+ tasks, load `references/phase-composition.md` and compose the phase sequence from the task type and complexity. Attach the composed phases to the dispatch package. The agent follows these phases as its execution structure.
+
+Simple tasks skip phase composition. The agent executes the skill directly.
 
 If relevant retro knowledge is already present in context, use it. If it is absent, continue without spending prompt space restating hook mechanics.
 
-| Signal in Request | Enhancement to Add |
-|-------------------|-------------------|
-| Any substantive work (code, design, plan) | Add relevant retro knowledge only when it materially helps the task |
-| "comprehensive" / "thorough" / "full" | Add parallel reviewers (security + business + quality) |
-| "with tests" / "production ready" | Append test-driven-development + verification-before-completion |
-| "research needed" / "investigate first" | Prepend research-coordinator-engineer |
-| "review" with 5+ files | Use parallel-code-review (3 reviewers) |
+| Signal in Request | Enhancement to Attach |
+|-------------------|----------------------|
+| Any substantive work (code, design, plan) | Attach relevant retro knowledge only when it materially helps the agent |
+| "comprehensive" / "thorough" / "full" | Dispatch parallel reviewers (security + business + quality) |
+| "with tests" / "production ready" | Attach test-driven-development + verification-before-completion to dispatch |
+| "research needed" / "investigate first" | Dispatch research-coordinator-engineer first |
+| "review" with 5+ files | Dispatch parallel-code-review (3 reviewers) |
 | Complex implementation | Offer subagent-driven-development |
 
-Before stacking any enhancement, check the target skill's `pairs_with` field in `skills/INDEX.json`. Some skills ship with their own verification gates and work best on their own terms. Specifically: empty `pairs_with: []` means no stacking allowed. Skills with built-in verification gates handle their own verification. The `quick --trivial` mode handles its own testing. Stack only compatible enhancements.
+Before attaching any enhancement, check the target skill's `pairs_with` field in `skills/INDEX.json` for known-compatible pairings. Skills with built-in verification gates handle their own verification. The `quick --trivial` mode handles its own testing. An empty `pairs_with: []` just means pairings have not been declared yet, not that stacking is prohibited.
 
 Add anti-rationalization patterns for these task types when the task benefits from explicit rigor:
 
@@ -253,7 +260,7 @@ For explicit maximum rigor, use `/with-anti-rationalization [task]`.
 
 ### Phase 4: EXECUTE
 
-**Goal**: Invoke the selected agent + skill and deliver results.
+**Goal**: Resolve routing names to file paths, assemble the dispatch package, and send it. The package contains: resolved paths to the agent .md, skill SKILL.md, and reference files; composed phases; thinking directives; and the completeness standard. The dispatched agent reads the files at those paths and executes. The router waits for results.
 
 **Step 0: Execute Creation Protocol** (for creation requests ONLY)
 
@@ -263,43 +270,36 @@ If request contains "create", "new", "scaffold", "build pipeline/agent/skill/hoo
 
 Create `task_plan.md` before execution, because a plan turns the next N turns into progress instead of rework. Skip only for Trivial tasks.
 
-**Step 1b: Apply quality-loop pipeline** (for Medium+ code modifications)
+**Step 1b: Phase composition was applied in Phase 3 Step 0.** The composed phases are already attached to the dispatch package. No separate pipeline loading needed.
 
-When the request is a code modification (implementation, bug fix, feature addition, refactoring) at Medium or Complex complexity, load `references/quality-loop.md` and use it as the **outer orchestration wrapper** around Step 2. The quality-loop and the agent+skill are complementary layers, not alternatives:
+**Step 2: Resolve and dispatch the agent**
 
-- **Quality-loop** (outer) = the full 14-phase lifecycle: ADR → PLAN → IMPLEMENT → TEST → REVIEW → INTENT VERIFY → LIVE VALIDATE → FIX → RETEST → PR → CODEX REVIEW → ADR RECONCILE → RECORD → CLEANUP
-- **Agent + skill** (inner) = the domain expertise used inside PHASE 2 (IMPLEMENT)
+Run the dispatch resolver to convert routing names into concrete file paths:
 
-When quality-loop applies, it absorbs Step 0 (ADR creation) and Step 1 (plan creation) into its own PHASES 0-1. Do not run Steps 0-1 separately — the quality-loop handles them.
-
-The router still selects the best agent+skill in Phase 2 (e.g., `golang-general-engineer` + `go-patterns`). That selection becomes the implementation agent for quality-loop PHASE 1. Force-route skills like `go-patterns` are used INSIDE the loop, not excluded from it — a Go implementation gets Go-specific patterns AND testing, review, and PR gates.
-
-The quality-loop does NOT apply when:
-- Complexity is Trivial or Simple (use fast/quick instead)
-- The task is review-only, research, debugging, or content creation
-- The user explicitly requests a simpler flow
-
-**Step 2: Invoke agent with skill**
-
-Dispatch the agent. MCP tool discovery is the agent's responsibility — each agent's markdown declares which MCP tools it needs. Do not inject MCP instructions from /do.
-
-**Opus 4.7 override: Prepend first-turn Task Specification block for Medium+ tasks.** Opus 4.7 benefits most from well-specified first-turn task descriptions. The router has upstream context the dispatched agent does not (memory feedback, operator profile, CLAUDE.md files) — enrich the first turn rather than passing the user request verbatim. For Medium+ tasks, compose and prepend this block to the dispatched agent's prompt. For Simple tasks, include Intent and Acceptance criteria if extractable; otherwise skip the block. Do not invent acceptance criteria the user did not imply. Do not expand task scope beyond the user request.
-
-```
-## Task Specification (auto-extracted)
-
-**Intent:** <one sentence: what does success look like?>
-**Constraints:** <inferred: branch rules, operator-context profile, file paths user named, memory feedback that applies>
-**Acceptance criteria:** <observable: tests pass, file exists, PR merges, specific output produced>
-**Relevant file locations:** <paths extracted from the request, paths the domain agent is expected to touch>
-**Operator context:** <profile from [operator-context] tag>
+```bash
+python3 ~/.claude/scripts/resolve-dispatch.py \
+    --agent {agent_name} \
+    --skill {primary_skill} \
+    --skill {enhancement_skill}  # (repeatable, from Phase 3 enhancements) \
+    --inject {pattern_name}      # (repeatable, e.g. anti-rationalization-core) \
+    --request "{user_request}"
 ```
 
-Extraction rules: Intent from the request's verb and object (one sentence, not a paraphrase). Constraints include branch-safety rules (never merge to main), memory feedback matching the domain, and operator-context profile implications. Acceptance criteria are observable: what files change, what command proves it works, what output the user specified. For creation requests, add to Constraints: "Implementation must match ADR `<kebab-case-name>`." This preamble is input to agent planning, not a replacement for task_plan.md.
+This outputs a Dispatch Package block with resolved paths to the agent .md, all skill SKILL.md files, injection files (shared-patterns), and all reference directories. Prepend this block to the agent prompt. The agent reads these files as its first action.
 
-**MANDATORY: Inject reference loading instruction for ALL dispatched agents.** Every agent prompt MUST include: "Before starting work, read your agent .md file or skill SKILL.md to find the Reference Loading Table. Load EVERY reference file whose signal matches this task. Load greedily, not conservatively. If multiple signals match, load all matching references. Reference files contain domain-specific patterns, anti-patterns, code examples, and detection commands that make your output expert-quality. Loading these files gives you domain expertise that prior work already put on disk, earned and waiting for you to use." This applies to ALL agents and skills, not just umbrella components. The nightly enrichment pipeline generates and updates reference files autonomously, so loading the table is how a dispatched agent inherits the domain knowledge created specifically for its work.
+For Medium+ tasks, also prepend a Task Specification block:
 
-**MANDATORY: Inject the completeness standard for ALL Simple+ dispatches.** Every agent prompt MUST include: "Deliver the finished product, not a plan. Do not offer to table work for later when the solve is within reach. Do not present workarounds when the real fix exists. Do not stop mid-task or truncate output. Search before building. Test before shipping. Ship the complete thing."
+```
+## Task Specification
+
+**Intent:** <what does success look like>
+**Constraints:** <branch rules, operator profile, memory feedback>
+**Acceptance criteria:** <what proves it works>
+```
+
+After the Dispatch Package and Task Specification, append:
+
+"Deliver the finished product, not a plan. Do not offer to table work for later when the solve is within reach. Do not present workarounds when the real fix exists. Do not stop mid-task or truncate output. Search before building. Test before shipping. Ship the complete thing."
 
 **Opus 4.7 override: Inject complexity-calibrated thinking directive.** Opus 4.7 exposes thinking rate to prompt-level control. Prepend the appropriate directive to the dispatched agent's prompt as a single sentence (verbatim, no framing), because calibrating thinking rate per task class reduces both over-reasoning on simple work and under-reasoning on complex work:
 
@@ -326,13 +326,11 @@ For repos without organization-gated workflows, run up to 3 iterations of `/pr-r
 
 Detect: "first...then", "and also", numbered lists, semicolons. Sequential dependencies execute in order. Independent items launch multiple Task tools in single message. Max parallelism: 10 agents.
 
-**Step 4: Auto-Pipeline Fallback** (when no agent/skill matches AND complexity >= Simple)
+**Step 4: Fallback** (when no agent/skill matches AND complexity >= Simple)
 
-Always invoke `auto-pipeline` for unmatched requests. Every unmatched request is a new routing pattern to capture, and the pipeline picks up the work while the gap gets recorded. If no pipeline matches either, fall back to closest agent + verification-before-completion.
+Route to the closest matching agent with verification-before-completion as safety net. Routing up finds the right agent and gives the work a home; routing down leaves the main thread improvising in isolation. Record the routing gap for future pattern capture.
 
-When uncertain which route: **ROUTE ANYWAY.** Add verification-before-completion as safety net. Routing up finds the right agent and gives the work a home; routing down leaves the main thread improvising in isolation.
-
-**Gate**: Agent invoked, results delivered. Proceed to Phase 5.
+**Gate**: Agent dispatched, results received. Proceed to Phase 5.
 
 ---
 
@@ -384,9 +382,8 @@ Solution: Stop execution. Create `task_plan.md`. Resume routing after plan is in
 ## References
 
 ### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/routing-tables.md`: Complete category-specific skill routing
+- `${CLAUDE_SKILL_DIR}/references/routing-tables.md`: Category-specific skill routing
 - `${CLAUDE_SKILL_DIR}/references/progressive-depth.md`: Progressive depth escalation protocol
+- `${CLAUDE_SKILL_DIR}/references/phase-composition.md`: Phase composition for Medium+ tasks
 - `agents/INDEX.json`: Agent triggers and metadata
 - `skills/INDEX.json`: Skill triggers, force-route flags, pairs_with
-- `skills/workflow/SKILL.md`: Workflow phases, triggers, composition chains
-- `skills/workflow/references/pipeline-index.json`: Pipeline metadata, triggers, phases

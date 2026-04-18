@@ -1,11 +1,6 @@
 ---
 name: kb
-description: |
-  Knowledge base operations on `research/{topic}/` wikis: compile raw sources
-  into wiki articles, query the wiki for answers, or health-check wiki
-  consistency. Use for "compile knowledge base", "kb compile", "query
-  knowledge base", "kb query", "ask knowledge base", "lint knowledge base",
-  "kb lint", or "knowledge base health".
+description: "Knowledge base: compile, query, and health-check research wikis."
 user-invocable: false
 agent: general-purpose
 allowed-tools:

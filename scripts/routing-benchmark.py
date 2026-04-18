@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Routing regression benchmark for the /do router.
 
-Validates that all expected routing targets (agents, skills, pipelines) referenced
+Validates that all expected routing targets (agents, skills) referenced
 in the benchmark test fixture actually exist in the INDEX.json files. This is a
 STRUCTURAL benchmark — it checks that routing targets are valid, not that the LLM
 routes correctly.
@@ -29,7 +29,6 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_FIXTURE = REPO_ROOT / "scripts" / "routing-benchmark.json"
 AGENTS_INDEX = REPO_ROOT / "agents" / "INDEX.json"
 SKILLS_INDEX = REPO_ROOT / "skills" / "INDEX.json"
-PIPELINES_INDEX = REPO_ROOT / "skills" / "workflow" / "references" / "pipeline-index.json"
 
 
 def load_json(path: Path) -> dict:
@@ -54,15 +53,14 @@ def load_json(path: Path) -> dict:
         sys.exit(1)
 
 
-def load_component_names() -> tuple[set[str], set[str], set[str]]:
-    """Load all known agent, skill, and pipeline names from INDEX files.
+def load_component_names() -> tuple[set[str], set[str]]:
+    """Load all known agent and skill names from INDEX files.
 
     Returns:
-        Tuple of (agent_names, skill_names, pipeline_names).
+        Tuple of (agent_names, skill_names).
     """
     agents: set[str] = set()
     skills: set[str] = set()
-    pipelines: set[str] = set()
 
     if AGENTS_INDEX.exists():
         data = load_json(AGENTS_INDEX)
@@ -72,19 +70,13 @@ def load_component_names() -> tuple[set[str], set[str], set[str]]:
         data = load_json(SKILLS_INDEX)
         skills = set(data.get("skills", {}).keys())
 
-    if PIPELINES_INDEX.exists():
-        data = load_json(PIPELINES_INDEX)
-        # Pipelines INDEX may use "pipelines" or "skills" as the key
-        pipelines = set(data.get("pipelines", data.get("skills", {})).keys())
-
-    return agents, skills, pipelines
+    return agents, skills
 
 
 def validate_test_case(
     case: dict,
     agents: set[str],
     skills: set[str],
-    pipelines: set[str],
 ) -> list[str]:
     """Validate a single test case against known components.
 
@@ -92,7 +84,6 @@ def validate_test_case(
         case: Test case dictionary with expected_agent and expected_skill.
         agents: Set of known agent names.
         skills: Set of known skill names.
-        pipelines: Set of known pipeline names.
 
     Returns:
         List of error messages (empty if valid).
@@ -104,7 +95,7 @@ def validate_test_case(
         errors.append(f"agent '{expected_agent}' not found in agents/INDEX.json")
 
     expected_skill = case.get("expected_skill")
-    if expected_skill and expected_skill not in skills and expected_skill not in pipelines:
+    if expected_skill and expected_skill not in skills:
         errors.append(f"skill '{expected_skill}' not found in skills/INDEX.json")
 
     return errors
@@ -128,10 +119,10 @@ def run_benchmark(fixture_path: Path, *, verbose: bool = False, category_filter:
         print("ERROR: No test cases found in fixture", file=sys.stderr)
         return False
 
-    agents, skills, pipelines = load_component_names()
+    agents, skills = load_component_names()
 
     if verbose:
-        print(f"Loaded components: {len(agents)} agents, {len(skills)} skills, {len(pipelines)} pipelines")
+        print(f"Loaded components: {len(agents)} agents, {len(skills)} skills")
         print()
 
     # Filter by category if requested
@@ -162,7 +153,7 @@ def run_benchmark(fixture_path: Path, *, verbose: bool = False, category_filter:
                 print(f"  PASS (null target) : {case['request']}")
             continue
 
-        errors = validate_test_case(case, agents, skills, pipelines)
+        errors = validate_test_case(case, agents, skills)
         if errors:
             fail_count += 1
             failures.append((case, errors))

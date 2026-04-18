@@ -1,6 +1,6 @@
 ---
 name: github-profile-rules
-description: "Extract programming rules and coding conventions from a GitHub user's public profile."
+description: "Extract coding conventions from GitHub profiles."
 version: 1.0.0
 user-invocable: true
 allowed-tools:

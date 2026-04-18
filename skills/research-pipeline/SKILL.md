@@ -1,10 +1,6 @@
 ---
 name: research-pipeline
-description: |
-  Formal 5-phase research pipeline with artifact saving and source quality gates:
-  SCOPE, GATHER, SYNTHESIZE, VALIDATE, DELIVER. Parallel research agents
-  mandatory (min 3). Saves findings to research/{topic}/ for future reference.
-  Use for "research pipeline", "formal research", "research with artifacts".
+description: "Research pipeline: scope, gather, synthesize, validate, deliver."
 user-invocable: true
 argument-hint: "<research topic>"
 agent: research-coordinator-engineer

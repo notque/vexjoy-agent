@@ -1,6 +1,6 @@
 ---
 name: video-editing
-description: "Video editing pipeline: cut footage, assemble clips via FFmpeg and Remotion."
+description: "Video editing via FFmpeg and Remotion."
 user-invocable: false
 agent: python-general-engineer
 model: sonnet

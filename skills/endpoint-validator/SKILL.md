@@ -1,6 +1,6 @@
 ---
 name: endpoint-validator
-description: "Deterministic API endpoint validation with pass/fail reporting."
+description: "API endpoint validation with pass/fail reporting."
 user-invocable: false
 allowed-tools:
   - Bash

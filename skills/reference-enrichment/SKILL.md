@@ -1,6 +1,6 @@
 ---
 name: reference-enrichment
-description: "Analyze agent/skill reference depth and generate missing domain-specific reference files."
+description: "Generate missing reference files for agents and skills."
 user-invocable: true
 argument-hint: "<agent-or-skill-name> [--decompose]"
 allowed-tools:

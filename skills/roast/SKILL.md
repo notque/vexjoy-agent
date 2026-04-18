@@ -1,6 +1,6 @@
 ---
 name: roast
-description: "Constructive critique via 5 HackerNews personas with claim validation."
+description: "Critique via 5 HackerNews personas with claim validation."
 user-invocable: false
 argument-hint: "<target to critique>"
 allowed-tools:

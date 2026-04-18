@@ -1,6 +1,6 @@
 ---
 name: multi-persona-critique
-description: "Parallel critique of proposals via 5 philosophical personas with consensus synthesis."
+description: "5-persona parallel critique with consensus synthesis."
 user-invocable: true
 argument-hint: "<proposals to critique, or 'generate N ideas about X'>"
 allowed-tools:

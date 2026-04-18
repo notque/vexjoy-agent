@@ -1,6 +1,6 @@
 ---
 name: perses
-description: "Perses platform operations: dashboards, plugins, deployment, migration, and quality."
+description: "Perses: dashboards, plugins, deployment, migration."
 context: fork
 agent: perses-engineer
 model: sonnet

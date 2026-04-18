@@ -1,6 +1,6 @@
 ---
 name: go-patterns
-description: "Go development patterns: testing, concurrency, errors, review, and conventions."
+description: "Go patterns: testing, concurrency, errors, review."
 user-invocable: false
 allowed-tools:
   - Read

@@ -1,6 +1,6 @@
 ---
 name: codebase-overview
-description: "Systematic codebase exploration and architecture mapping."
+description: "Explore codebase and map architecture."
 user-invocable: false
 allowed-tools:
   - Read

@@ -1,6 +1,6 @@
 ---
 name: learn
-description: "Manually teach error pattern and solution to learning database."
+description: "Teach error patterns to the learning database."
 user-invocable: false
 argument-hint: '"error" -> "solution"'
 allowed-tools:

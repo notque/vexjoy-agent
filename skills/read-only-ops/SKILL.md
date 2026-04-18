@@ -1,6 +1,6 @@
 ---
 name: read-only-ops
-description: "Read-only exploration, inspection, and reporting without modifications."
+description: "Read-only exploration and reporting."
 user-invocable: false
 allowed-tools:
   - Read

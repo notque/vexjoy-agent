@@ -1,13 +1,6 @@
 ---
 name: pr-workflow
-description: |
-  Pull request lifecycle: commit, codex review, sync, review, fix, status,
-  cleanup, and PR mining. Use when user wants to commit changes, get a
-  second-opinion code review from Codex, push changes, create a PR, check PR
-  status, fix review comments, clean up branches after merge, or mine tribal
-  knowledge from PR reviews. Use for "commit my changes", "codex review",
-  "push my changes", "create a PR", "pr status", "fix PR comments",
-  "clean up branches", "mine PRs", or "address feedback".
+description: "PR lifecycle: commit, review, sync, fix, cleanup."
 user-invocable: true
 allowed-tools:
   - Bash

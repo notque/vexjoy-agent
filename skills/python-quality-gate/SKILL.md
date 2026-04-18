@@ -1,6 +1,6 @@
 ---
 name: python-quality-gate
-description: "Python quality checks: ruff, pytest, mypy, bandit in deterministic order."
+description: "Python quality: ruff, pytest, mypy, bandit."
 user-invocable: false
 allowed-tools:
   - Read

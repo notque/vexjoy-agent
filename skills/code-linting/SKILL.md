@@ -1,7 +1,7 @@
 ---
 name: code-linting
 user-invocable: false
-description: "Run Python (ruff) and JavaScript (Biome) linting."
+description: "Run ruff (Python) and Biome (JS) linting."
 allowed-tools:
   - Read
   - Grep

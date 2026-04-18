@@ -1,7 +1,7 @@
 ---
 name: motion-pipeline
 user-invocable: true
-description: "CPU-only motion data processing pipeline for game animation: BVH import, contact detection, root decomposition, motion blending, FABRIK IK. No GPU required."
+description: "Game animation from BVH: contact detection, root decomposition, motion blending, IK."
 allowed-tools:
   - Read
   - Bash

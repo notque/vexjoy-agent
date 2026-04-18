@@ -1,6 +1,6 @@
 ---
 name: kotlin-coroutines
-description: "Kotlin structured concurrency, Flow, and Channel patterns."
+description: "Kotlin coroutines, Flow, and Channel patterns."
 user-invocable: false
 context: fork
 agent: kotlin-general-engineer

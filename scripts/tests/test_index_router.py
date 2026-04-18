@@ -496,7 +496,7 @@ class TestCheckCompositionChains:
     def test_finds_chain_for_entry_skill(self) -> None:
         chains = index_router.check_composition_chains("systematic-debugging")
         assert len(chains) == 1
-        assert chains[0] == ["systematic-debugging", "test-driven-development", "pr-pipeline"]
+        assert chains[0] == ["systematic-debugging", "test-driven-development"]
 
     def test_finds_chain_for_member_skill(self) -> None:
         chains = index_router.check_composition_chains("test-driven-development")
@@ -511,10 +511,10 @@ class TestCheckCompositionChains:
         chains = index_router.check_composition_chains(None)
         assert chains == []
 
-    def test_doc_pipeline_chain(self) -> None:
-        chains = index_router.check_composition_chains("doc-pipeline")
+    def test_docs_sync_chain(self) -> None:
+        chains = index_router.check_composition_chains("docs-sync-checker")
         assert len(chains) == 1
-        assert chains[0] == ["docs-sync-checker", "doc-pipeline", "generate-claudemd"]
+        assert chains[0] == ["docs-sync-checker", "generate-claudemd"]
 
 
 # ---------------------------------------------------------------------------

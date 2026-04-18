@@ -1,6 +1,6 @@
 ---
 name: comment-quality
-description: "Review and fix temporal references in code comments."
+description: "Fix temporal references in code comments."
 user-invocable: false
 allowed-tools:
   - Read

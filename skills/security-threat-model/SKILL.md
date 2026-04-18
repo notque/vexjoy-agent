@@ -1,6 +1,6 @@
 ---
 name: security-threat-model
-description: "Security threat model: scan toolkit for attack surface, supply-chain risks."
+description: "Scan for attack surface and supply-chain risks."
 effort: high
 user-invocable: false
 model: sonnet

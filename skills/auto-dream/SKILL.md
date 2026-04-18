@@ -1,6 +1,6 @@
 ---
 name: auto-dream
-description: Background memory consolidation and learning graduation — overnight knowledge lifecycle.
+description: "Overnight memory consolidation and learning graduation."
 user-invocable: true
 command: dream
 context: fork

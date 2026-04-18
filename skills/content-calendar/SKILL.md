@@ -1,6 +1,6 @@
 ---
 name: content-calendar
-description: "Manage editorial content through 6 pipeline stages."
+description: "Manage editorial content through pipeline stages."
 user-invocable: false
 allowed-tools:
   - Read

@@ -1,6 +1,6 @@
 ---
 name: kubernetes-debugging
-description: "Kubernetes debugging for pod failures and networking."
+description: "Debug Kubernetes pod failures and networking."
 user-invocable: false
 context: fork
 agent: kubernetes-helm-engineer

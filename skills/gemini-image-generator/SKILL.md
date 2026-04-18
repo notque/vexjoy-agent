@@ -1,6 +1,6 @@
 ---
 name: gemini-image-generator
-description: "Generate images from text prompts via Google Gemini."
+description: "Generate images from text via Gemini."
 user-invocable: false
 allowed-tools:
   - Read
