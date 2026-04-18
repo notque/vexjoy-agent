@@ -1,6 +1,6 @@
 ---
 name: github-notifications
-description: "Triage GitHub notifications: fetch, classify, report actions needed."
+description: "Triage GitHub notifications."
 version: 1.0.0
 user-invocable: true
 allowed-tools:

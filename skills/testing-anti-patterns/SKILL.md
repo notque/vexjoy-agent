@@ -1,6 +1,6 @@
 ---
 name: testing-anti-patterns
-description: "Identify and fix testing mistakes: flaky, brittle, over-mocked tests."
+description: "Fix flaky, brittle, and over-mocked tests."
 user-invocable: false
 allowed-tools:
   - Read

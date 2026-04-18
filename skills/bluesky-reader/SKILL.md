@@ -1,6 +1,6 @@
 ---
 name: bluesky-reader
-description: "Read public Bluesky feeds via AT Protocol API."
+description: "Read Bluesky feeds via AT Protocol."
 user-invocable: false
 agent: python-general-engineer
 allowed-tools:

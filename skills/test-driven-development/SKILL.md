@@ -1,7 +1,7 @@
 ---
 name: test-driven-development
 user-invocable: false
-description: "RED-GREEN-REFACTOR cycle with strict phase gates for TDD."
+description: "TDD: red-green-refactor with phase gates."
 success-criteria:
   - "Failing test written before implementation code"
   - "All new tests pass after implementation"

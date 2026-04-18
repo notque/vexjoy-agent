@@ -1,6 +1,6 @@
 ---
 name: series-planner
-description: "Plan multi-part content series: structure, cross-linking, cadence."
+description: "Plan multi-part content series."
 user-invocable: false
 allowed-tools:
   - Read

@@ -1,6 +1,6 @@
 ---
 name: workflow-help
-description: "Interactive guide to workflow system: agents, skills, routing, execution patterns."
+description: "Guide to agents, skills, routing, and execution."
 effort: low
 user-invocable: true
 argument-hint: "[<topic>]"

@@ -1,6 +1,6 @@
 ---
 name: sapcc-audit
-description: "Full-repo SAP CC Go compliance audit against review standards."
+description: "SAP CC Go compliance audit."
 user-invocable: false
 command: /sapcc-audit
 agent: golang-general-engineer

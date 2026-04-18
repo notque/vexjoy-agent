@@ -1,6 +1,6 @@
 ---
 name: code-cleanup
-description: "Detect stale TODOs, unused imports, and dead code."
+description: "Detect stale TODOs, unused imports, dead code."
 user-invocable: false
 argument-hint: "[<path-or-scope>]"
 allowed-tools:

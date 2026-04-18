@@ -1,6 +1,6 @@
 ---
 name: with-anti-rationalization
-description: "Anti-rationalization enforcement for maximum-rigor task execution."
+description: "Maximum-rigor task execution with anti-rationalization."
 user-invocable: false
 argument-hint: "<task>"
 allowed-tools:

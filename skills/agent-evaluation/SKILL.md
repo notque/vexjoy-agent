@@ -1,6 +1,6 @@
 ---
 name: agent-evaluation
-description: "Evaluate agents and skills for quality and standards compliance."
+description: "Evaluate agent and skill quality."
 user-invocable: false
 context: fork
 allowed-tools:

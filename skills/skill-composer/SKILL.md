@@ -1,6 +1,6 @@
 ---
 name: skill-composer
-description: "DAG-based multi-skill orchestration with dependency resolution."
+description: "Orchestrate multiple skills with dependency resolution."
 user-invocable: false
 allowed-tools:
   - Read

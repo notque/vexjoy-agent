@@ -1,6 +1,6 @@
 ---
 name: perses-onboard
-description: "First-time Perses setup: discover/deploy server, configure MCP, create project"
+description: "First-time Perses setup: server, MCP, project."
 version: 1.0.0
 user-invocable: true
 allowed-tools:

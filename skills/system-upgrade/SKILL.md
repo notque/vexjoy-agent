@@ -1,8 +1,6 @@
 ---
 name: system-upgrade
-description: |
-  Systematic upgrade pipeline for adapting agents, skills, and hooks when
-  Claude Code ships updates, user goals change, or retro learnings accumulate.
+description: "Adapt agents, skills, and hooks when external changes ship."
 version: 1.0.0
 user-invocable: true
 allowed-tools:

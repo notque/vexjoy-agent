@@ -1,6 +1,6 @@
 ---
 name: workflow
-description: "Structured multi-phase workflows: review, debug, refactor, deploy, create, research, and more."
+description: "Multi-phase workflows: review, debug, refactor, deploy, create, research."
 user-invocable: false
 context: fork
 model: sonnet

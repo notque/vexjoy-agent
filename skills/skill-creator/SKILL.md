@@ -1,6 +1,6 @@
 ---
 name: skill-creator
-description: "Create and iteratively improve skills through eval-driven validation."
+description: "Create and improve skills via eval-driven validation."
 routing:
   triggers:
     - create skill

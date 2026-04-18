@@ -1,6 +1,6 @@
 ---
 name: kotlin-testing
-description: "Kotlin testing with JUnit 5, Kotest, and coroutine dispatchers."
+description: "Kotlin testing: JUnit 5, Kotest, coroutine dispatchers."
 user-invocable: false
 context: fork
 agent: kotlin-general-engineer

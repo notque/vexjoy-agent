@@ -1,6 +1,6 @@
 ---
 name: topic-brainstormer
-description: "Generate blog topic ideas: problem mining, gap analysis, expansion."
+description: "Generate blog topic ideas via problem mining and gap analysis."
 user-invocable: false
 allowed-tools:
   - Read

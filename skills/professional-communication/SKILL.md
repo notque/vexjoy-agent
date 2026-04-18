@@ -1,6 +1,6 @@
 ---
 name: professional-communication
-description: "Transform technical communication into structured business formats."
+description: "Transform technical communication into business formats."
 user-invocable: false
 allowed-tools:
   - Read

@@ -1,6 +1,6 @@
 ---
 name: generate-claudemd
-description: "Generate project-specific CLAUDE.md from repo analysis."
+description: "Generate CLAUDE.md from repo analysis."
 user-invocable: false
 command: /generate-claudemd
 allowed-tools:

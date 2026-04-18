@@ -1,6 +1,6 @@
 ---
 name: headless-cron-creator
-description: "Generate headless Claude Code cron jobs with safety."
+description: "Generate headless Claude Code cron jobs."
 user-invocable: false
 argument-hint: "<name> <schedule> <prompt>"
 agent: python-general-engineer

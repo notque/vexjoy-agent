@@ -1,6 +1,6 @@
 ---
 name: install
-description: "Verify Claude Code Toolkit installation, diagnose issues, and guide first-time setup."
+description: "Verify toolkit installation and diagnose issues."
 user-invocable: true
 allowed-tools:
   - Read

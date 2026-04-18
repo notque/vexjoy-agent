@@ -1,6 +1,6 @@
 ---
 name: typescript-check
-description: "TypeScript type checking via tsc --noEmit with actionable error output."
+description: "TypeScript type checking via tsc --noEmit."
 user-invocable: false
 allowed-tools:
   - Read

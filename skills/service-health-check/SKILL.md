@@ -1,6 +1,6 @@
 ---
 name: service-health-check
-description: "Service health monitoring: Discover, Check, Report in 3 phases."
+description: "Service health: discover, check, report."
 user-invocable: false
 allowed-tools:
   - Bash

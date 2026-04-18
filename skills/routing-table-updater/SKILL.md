@@ -1,6 +1,6 @@
 ---
 name: routing-table-updater
-description: "Maintain /do routing tables when skills or agents change."
+description: "Update routing tables when skills or agents change."
 user-invocable: false
 allowed-tools:
   - Read

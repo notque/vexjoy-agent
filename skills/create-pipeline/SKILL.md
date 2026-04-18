@@ -1,8 +1,6 @@
 ---
 name: create-pipeline
-description: |
-  Create a new pipeline from a task description. Fans out agent, skill, and
-  hook scaffolding in parallel, then integrates into the routing system.
+description: "Create a pipeline from a task description."
 version: 1.0.0
 user-invocable: true
 allowed-tools:

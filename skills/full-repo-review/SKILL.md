@@ -1,6 +1,6 @@
 ---
 name: full-repo-review
-description: "Comprehensive 3-wave review of all repo source files, producing a prioritized issue backlog."
+description: "Full-repo review producing prioritized issue backlog."
 user-invocable: true
 command: full-repo-review
 context: fork

@@ -1,6 +1,6 @@
 ---
 name: explanation-traces
-description: "Query and display structured decision traces from routing, agent selection, and skill execution."
+description: "Query routing and skill execution traces."
 user-invocable: true
 argument-hint: "<optional: specific decision to explain>"
 allowed-tools:
