@@ -22,13 +22,13 @@ routing:
 
 # /do - Smart Router
 
-/do is a **ROUTER**, not a worker. Its ONLY job is to classify requests, select the right agent + skill, and dispatch. It delegates all execution, implementation, debugging, review, and fixes to specialized agents.
+/do is a **ROUTER**, not a worker. Its ONLY job is to classify requests, assemble a dispatch package (agent + skill + pipeline + directives), and send it. The dispatched agent reads the skill and executes it. The router never opens the package.
 
-**What the main thread does:** (1) Classify, (2) Select agent+skill, (3) Dispatch via Agent tool, (4) Evaluate if more work needed, (5) Route to ANOTHER agent if yes, (6) Report results.
+**What the main thread does:** (1) Classify the request, (2) Select which agent to dispatch and which skill/pipeline to attach, (3) Dispatch the agent via Agent tool, (4) Evaluate if more work is needed, (5) Dispatch ANOTHER agent if yes, (6) Report results.
 
-**The main thread delegates to agents:** code reading (Explore agent), file edits (domain agents), test runs (agent with skill), documentation (technical-documentation-engineer), all Simple+ tasks.
+**What the dispatched agent does:** reads its own .md file, loads the attached skill's SKILL.md, loads reference files, and executes the methodology. The agent is the consumer of the skill. The router is the logistics layer.
 
-The main thread is an **orchestrator**. If you find yourself reading source code, writing code, or doing analysis — pause and route to an agent instead.
+The main thread is an **orchestrator**. If you find yourself reading source code, writing code, or doing analysis, you are doing the agent's job. Pause and dispatch instead.
 
 ---
 
@@ -112,7 +112,7 @@ This early detection ensures Phase 4 Step 0 fires reliably by catching the signa
 
 ### Phase 2: ROUTE
 
-**Goal**: Select the correct agent + skill combination via the Haiku routing agent.
+**Goal**: Determine which agent to dispatch and which skill + pipeline to attach to it. The Haiku routing agent makes this selection.
 
 All routing goes through a single Haiku agent dispatch. The manifest includes `FORCE`-labeled entries that the Haiku agent must prefer when intent matches — but matching is semantic, not keyword-based. This replaced the prior two-tier system (deterministic keyword check + LLM fallback) after A/B testing showed Haiku-only scored 10/10 vs 9/10 for the two-tier approach, with the keyword matcher producing false positives on ambiguous words (e.g. "fish for bugs" → `fish-shell-config`).
 
@@ -173,24 +173,24 @@ When `[cross-repo]` output is present, route to `.claude/agents/` local agents. 
 
 Route all code modifications to domain agents. Domain agents carry language-specific expertise, testing methodology, and quality gates built for that language.
 
-**Step 2: Apply skill override** (task verb overrides default skill)
+**Step 2: Apply skill override** (task verb overrides which skill the agent carries)
 
-When the request verb implies a specific methodology, override the agent's default skill. Common overrides: "review" → systematic-code-review, "debug" → systematic-debugging, "refactor" → systematic-refactoring, "TDD" → test-driven-development. Full override table in `references/routing-tables.md`.
+When the request verb implies a specific methodology, override the default skill attached to the dispatch. Common overrides: "review" → systematic-code-review, "debug" → systematic-debugging, "refactor" → systematic-refactoring, "TDD" → test-driven-development. Full override table in `references/routing-tables.md`.
 
-**Step 3: Display routing decision** (MANDATORY — do this NOW, before anything else)
+**Step 3: Display dispatch decision** (MANDATORY — do this NOW, before anything else)
 
-This banner MUST be the FIRST visible output for EVERY /do invocation. Display BEFORE creating plans, BEFORE invoking agents, BEFORE any work begins. No exceptions.
+This banner MUST be the FIRST visible output for EVERY /do invocation. Display BEFORE creating plans, BEFORE dispatching agents, BEFORE any work begins. No exceptions.
 
 ```
 ===================================================================
  ROUTING: [brief summary]
 ===================================================================
- Selected:
-   -> Agent: [name] - [why]
-   -> Skill: [name] - [why]
-   -> Pipeline: PHASE1 → PHASE2 → ... (if pipeline; phases from skills/workflow/references/pipeline-index.json)
-   -> Extra Rigor: [add verification patterns for code/security/testing tasks when needed]
- Invoking...
+ Dispatching:
+   -> Agent: [name] - [why this agent]
+      carries skill: [name] - [what methodology the agent will follow]
+      carries pipeline: PHASE1 → PHASE2 → ... (if pipeline; phases from skills/workflow/references/pipeline-index.json)
+   -> Extra Rigor: [verification patterns attached to dispatch, if any]
+ The agent will load its references and execute the skill.
 ===================================================================
 ```
 
@@ -213,26 +213,26 @@ python3 ~/.claude/scripts/learning-db.py record \
 Tags: `auto-pipeline` (as applicable), `thinking:slow` (if "think carefully" directive injected in Phase 4 Step 2), `thinking:fast` (if "respond quickly" directive injected in Phase 4 Step 2). This call is advisory — if it fails, continue.
 Valid categories: `error, pivot, review, design, debug, gotcha, effectiveness, misroute`. Use `effectiveness` for successful routing, `misroute` for reroutes.
 
-**Gate**: Agent and skill selected. Banner displayed. Routing decision recorded. Proceed to Phase 3.
+**Gate**: Agent and skill selected for dispatch. Banner displayed. Routing decision recorded. Proceed to Phase 3.
 
 ---
 
 ### Phase 3: ENHANCE
 
-**Goal**: Stack additional skills based on signals in the request.
+**Goal**: Attach additional skills and directives to the dispatch package based on signals in the request. Enhancements are instructions the dispatched agent will receive, not work the router performs.
 
 If relevant retro knowledge is already present in context, use it. If it is absent, continue without spending prompt space restating hook mechanics.
 
-| Signal in Request | Enhancement to Add |
-|-------------------|-------------------|
-| Any substantive work (code, design, plan) | Add relevant retro knowledge only when it materially helps the task |
-| "comprehensive" / "thorough" / "full" | Add parallel reviewers (security + business + quality) |
-| "with tests" / "production ready" | Append test-driven-development + verification-before-completion |
-| "research needed" / "investigate first" | Prepend research-coordinator-engineer |
-| "review" with 5+ files | Use parallel-code-review (3 reviewers) |
+| Signal in Request | Enhancement to Attach |
+|-------------------|----------------------|
+| Any substantive work (code, design, plan) | Attach relevant retro knowledge only when it materially helps the agent |
+| "comprehensive" / "thorough" / "full" | Dispatch parallel reviewers (security + business + quality) |
+| "with tests" / "production ready" | Attach test-driven-development + verification-before-completion to dispatch |
+| "research needed" / "investigate first" | Dispatch research-coordinator-engineer first |
+| "review" with 5+ files | Dispatch parallel-code-review (3 reviewers) |
 | Complex implementation | Offer subagent-driven-development |
 
-Before stacking any enhancement, check the target skill's `pairs_with` field in `skills/INDEX.json`. Some skills ship with their own verification gates and work best on their own terms. Specifically: empty `pairs_with: []` means no stacking allowed. Skills with built-in verification gates handle their own verification. The `quick --trivial` mode handles its own testing. Stack only compatible enhancements.
+Before attaching any enhancement, check the target skill's `pairs_with` field in `skills/INDEX.json`. Some skills ship with their own verification gates and work best on their own terms. Specifically: empty `pairs_with: []` means no stacking allowed. Skills with built-in verification gates handle their own verification. The `quick --trivial` mode handles its own testing. Attach only compatible enhancements.
 
 Add anti-rationalization patterns for these task types when the task benefits from explicit rigor:
 
@@ -253,7 +253,7 @@ For explicit maximum rigor, use `/with-anti-rationalization [task]`.
 
 ### Phase 4: EXECUTE
 
-**Goal**: Invoke the selected agent + skill and deliver results.
+**Goal**: Assemble the dispatch package and send it. The package contains: the agent identity, the skill to follow, any pipeline wrapper, thinking directives, the completeness standard, and reference loading instructions. The dispatched agent opens and executes the package. The router waits for results.
 
 **Step 0: Execute Creation Protocol** (for creation requests ONLY)
 
@@ -272,16 +272,16 @@ When the request is a code modification (implementation, bug fix, feature additi
 
 When quality-loop applies, it absorbs Step 0 (ADR creation) and Step 1 (plan creation) into its own PHASES 0-1. Do not run Steps 0-1 separately — the quality-loop handles them.
 
-The router still selects the best agent+skill in Phase 2 (e.g., `golang-general-engineer` + `go-patterns`). That selection becomes the implementation agent for quality-loop PHASE 1. Force-route skills like `go-patterns` are used INSIDE the loop, not excluded from it — a Go implementation gets Go-specific patterns AND testing, review, and PR gates.
+The router still selects the best agent+skill in Phase 2 (e.g., `golang-general-engineer` carrying `go-patterns`). That agent becomes the implementation executor for quality-loop PHASE 1. Force-route skills like `go-patterns` travel with the agent INSIDE the loop, not excluded from it. A Go implementation gets Go-specific patterns AND testing, review, and PR gates.
 
 The quality-loop does NOT apply when:
 - Complexity is Trivial or Simple (use fast/quick instead)
 - The task is review-only, research, debugging, or content creation
 - The user explicitly requests a simpler flow
 
-**Step 2: Invoke agent with skill**
+**Step 2: Dispatch the agent**
 
-Dispatch the agent. MCP tool discovery is the agent's responsibility — each agent's markdown declares which MCP tools it needs. Do not inject MCP instructions from /do.
+Send the assembled package. The agent receives: its identity (agent .md), the skill to execute (SKILL.md), any pipeline phases, thinking directives, and the completeness standard. MCP tool discovery is the agent's responsibility from its own .md file. Do not inject MCP instructions from /do.
 
 **Opus 4.7 override: Prepend first-turn Task Specification block for Medium+ tasks.** Opus 4.7 benefits most from well-specified first-turn task descriptions. The router has upstream context the dispatched agent does not (memory feedback, operator profile, CLAUDE.md files) — enrich the first turn rather than passing the user request verbatim. For Medium+ tasks, compose and prepend this block to the dispatched agent's prompt. For Simple tasks, include Intent and Acceptance criteria if extractable; otherwise skip the block. Do not invent acceptance criteria the user did not imply. Do not expand task scope beyond the user request.
 
@@ -332,7 +332,7 @@ Always invoke `auto-pipeline` for unmatched requests. Every unmatched request is
 
 When uncertain which route: **ROUTE ANYWAY.** Add verification-before-completion as safety net. Routing up finds the right agent and gives the work a home; routing down leaves the main thread improvising in isolation.
 
-**Gate**: Agent invoked, results delivered. Proceed to Phase 5.
+**Gate**: Agent dispatched, results received. Proceed to Phase 5.
 
 ---
 
