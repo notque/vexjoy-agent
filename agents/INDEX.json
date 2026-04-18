@@ -5,6 +5,7 @@
     "ansible-automation-engineer": {
       "file": "agents/ansible-automation-engineer.md",
       "short_description": "Ansible automation: playbooks, roles, collections, Molecule testing, Vault security",
+      "model": "sonnet",
       "triggers": [
         "ansible",
         "playbook",
@@ -23,6 +24,7 @@
     "combat-effects-upgrade": {
       "file": "agents/combat-effects-upgrade.md",
       "short_description": "Zero-dependency combat visual upgrades: CSS particle replacement, Framer Motion combat juice, CSS 3D card transforms",
+      "model": "sonnet",
       "triggers": [
         "combat effects",
         "CSS particles",
@@ -47,6 +49,7 @@
     "data-engineer": {
       "file": "agents/data-engineer.md",
       "short_description": "Data pipelines, ETL/ELT, warehouse design, dimensional modeling, stream processing",
+      "model": "sonnet",
       "triggers": [
         "data pipeline",
         "ETL",
@@ -85,6 +88,7 @@
     "database-engineer": {
       "file": "agents/database-engineer.md",
       "short_description": "Database design, optimization, query performance, migrations, indexing strategies",
+      "model": "sonnet",
       "triggers": [
         "database",
         "schema",
@@ -105,6 +109,7 @@
     "github-profile-rules-engineer": {
       "file": "agents/github-profile-rules-engineer.md",
       "short_description": "Extract coding conventions and style rules from GitHub user profiles via API",
+      "model": "sonnet",
       "triggers": [
         "github rules",
         "profile analysis",
@@ -121,6 +126,7 @@
     "golang-general-engineer-compact": {
       "file": "agents/golang-general-engineer-compact.md",
       "short_description": "Compact Go development for tight context budgets",
+      "model": "sonnet",
       "triggers": [
         "go",
         "golang",
@@ -138,6 +144,7 @@
     "golang-general-engineer": {
       "file": "agents/golang-general-engineer.md",
       "short_description": "Go development: features, debugging, code review, performance",
+      "model": "sonnet",
       "triggers": [
         "go",
         "golang",
@@ -157,6 +164,7 @@
     "hook-development-engineer": {
       "file": "agents/hook-development-engineer.md",
       "short_description": "Python hook development for Claude Code event-driven system and learning database",
+      "model": "sonnet",
       "triggers": [
         "create hook",
         "hook development",
@@ -177,6 +185,7 @@
     "kotlin-general-engineer": {
       "file": "agents/kotlin-general-engineer.md",
       "short_description": "Kotlin development: features, coroutines, debugging, code quality, multiplatform",
+      "model": "sonnet",
       "triggers": [
         "kotlin",
         "ktor",
@@ -205,6 +214,7 @@
     "kubernetes-helm-engineer": {
       "file": "agents/kubernetes-helm-engineer.md",
       "short_description": "Kubernetes and Helm: deployments, troubleshooting, cloud-native infrastructure",
+      "model": "sonnet",
       "triggers": [
         "kubernetes",
         "helm",
@@ -224,6 +234,7 @@
     "mcp-local-docs-engineer": {
       "file": "agents/mcp-local-docs-engineer.md",
       "short_description": "MCP server development for local documentation access in TypeScript/Node",
+      "model": "sonnet",
       "triggers": [
         "MCP",
         "docs server",
@@ -239,6 +250,7 @@
     "nextjs-ecommerce-engineer": {
       "file": "agents/nextjs-ecommerce-engineer.md",
       "short_description": "Use this agent when building a NextJS e-commerce site: shopping cart, Stripe payments, product catalogs, order management, and checkout flows",
+      "model": "sonnet",
       "triggers": [
         "next.js e-commerce",
         "nextjs ecommerce",
@@ -258,6 +270,7 @@
     "nodejs-api-engineer": {
       "file": "agents/nodejs-api-engineer.md",
       "short_description": "Use this agent when you need expert assistance with NodeJS backend API development: REST endpoints, authentication, file uploads, webhooks, middleware, and database integration",
+      "model": "sonnet",
       "triggers": [
         "node.js",
         "nodejs",
@@ -277,6 +290,7 @@
     "opensearch-elasticsearch-engineer": {
       "file": "agents/opensearch-elasticsearch-engineer.md",
       "short_description": "OpenSearch/Elasticsearch: cluster management, performance tuning, index optimization",
+      "model": "sonnet",
       "triggers": [
         "opensearch",
         "elasticsearch",
@@ -294,6 +308,7 @@
     "performance-optimization-engineer": {
       "file": "agents/performance-optimization-engineer.md",
       "short_description": "Web performance optimization: Core Web Vitals, rendering, bundle analysis, monitoring",
+      "model": "sonnet",
       "triggers": [
         "performance",
         "optimization",
@@ -309,6 +324,7 @@
     "perses-engineer": {
       "file": "agents/perses-engineer.md",
       "short_description": "Perses observability platform: dashboards, plugins, operator, core development",
+      "model": "sonnet",
       "triggers": [
         "perses",
         "perses dashboard",
@@ -353,6 +369,7 @@
     "php-general-engineer": {
       "file": "agents/php-general-engineer.md",
       "short_description": "PHP development: features, debugging, code quality, security, modern PHP 8",
+      "model": "sonnet",
       "triggers": [
         "php",
         "laravel",
@@ -385,6 +402,7 @@
     "pipeline-orchestrator-engineer": {
       "file": "agents/pipeline-orchestrator-engineer.md",
       "short_description": "Pipeline orchestration: scaffold multi-component workflows, fan-out/fan-in patterns",
+      "model": "sonnet",
       "triggers": [
         "create pipeline",
         "new pipeline",
@@ -403,6 +421,7 @@
     "pixijs-combat-renderer": {
       "file": "agents/pixijs-combat-renderer.md",
       "short_description": "PixiJS v8 2D WebGL combat rendering: @pixi/react hybrid canvas, normal maps, GPU particles, post-processing",
+      "model": "sonnet",
       "triggers": [
         "pixijs",
         "pixi.js",
@@ -426,6 +445,7 @@
     "project-coordinator-engineer": {
       "file": "agents/project-coordinator-engineer.md",
       "short_description": "Multi-agent project coordination: task breakdown, dependency management, progress tracking",
+      "model": "sonnet",
       "triggers": [
         "coordinate",
         "multi-agent",
@@ -444,6 +464,7 @@
     "prometheus-grafana-engineer": {
       "file": "agents/prometheus-grafana-engineer.md",
       "short_description": "Prometheus and Grafana: monitoring, alerting, dashboard design, PromQL optimization",
+      "model": "sonnet",
       "triggers": [
         "prometheus",
         "grafana",
@@ -463,6 +484,7 @@
     "python-general-engineer": {
       "file": "agents/python-general-engineer.md",
       "short_description": "Python development: features, debugging, code review, performance",
+      "model": "sonnet",
       "triggers": [
         "python",
         ".py files",
@@ -482,6 +504,7 @@
     "python-openstack-engineer": {
       "file": "agents/python-openstack-engineer.md",
       "short_description": "OpenStack Python development: Nova, Neutron, Cinder, Oslo libraries, WSGI middleware",
+      "model": "sonnet",
       "triggers": [
         "openstack",
         "oslo",
@@ -502,6 +525,7 @@
     "rabbitmq-messaging-engineer": {
       "file": "agents/rabbitmq-messaging-engineer.md",
       "short_description": "RabbitMQ: message queue architecture, clustering, high-availability, routing patterns",
+      "model": "sonnet",
       "triggers": [
         "rabbitmq",
         "messaging",
@@ -518,6 +542,7 @@
     "react-native-engineer": {
       "file": "agents/react-native-engineer.md",
       "short_description": "React Native and Expo development: performance, animations, navigation, native UI patterns",
+      "model": "sonnet",
       "triggers": [
         "react native",
         "expo",
@@ -537,6 +562,7 @@
     "react-portfolio-engineer": {
       "file": "agents/react-portfolio-engineer.md",
       "short_description": "React portfolio/gallery sites for creatives: React 18+, Next",
+      "model": "sonnet",
       "triggers": [
         "portfolio",
         "gallery",
@@ -555,6 +581,7 @@
     "research-coordinator-engineer": {
       "file": "agents/research-coordinator-engineer.md",
       "short_description": "Research coordination: systematic investigation, multi-source analysis, synthesis",
+      "model": "sonnet",
       "triggers": [
         "research",
         "investigate",
@@ -574,6 +601,7 @@
     "research-subagent-executor": {
       "file": "agents/research-subagent-executor.md",
       "short_description": "Research subagent execution: OODA-loop investigation, intelligence gathering, source evaluation",
+      "model": "sonnet",
       "triggers": [
         "research subtask",
         "delegated research"
@@ -587,6 +615,7 @@
     "reviewer-code": {
       "file": "agents/reviewer-code.md",
       "short_description": "Code quality review: conventions, naming, dead code, performance, test coverage",
+      "model": "sonnet",
       "triggers": [
         "code review",
         "review code quality",
@@ -609,6 +638,7 @@
     "reviewer-domain": {
       "file": "agents/reviewer-domain.md",
       "short_description": "Domain-specific review: ADR compliance, business logic, SAP CC structural, pragmatic builder",
+      "model": "sonnet",
       "triggers": [
         "adr compliance",
         "adr review",
@@ -644,6 +674,7 @@
     "reviewer-perspectives": {
       "file": "agents/reviewer-perspectives.md",
       "short_description": "Multi-perspective review: newcomer, senior, pedant, contrarian, user advocate, meta-process",
+      "model": "sonnet",
       "triggers": [
         "newcomer perspective",
         "fresh eyes review",
@@ -684,6 +715,7 @@
     "reviewer-system": {
       "file": "agents/reviewer-system.md",
       "short_description": "System-level review: security, concurrency, error handling, observability, API contracts",
+      "model": "sonnet",
       "triggers": [
         "system review",
         "security review",
@@ -707,6 +739,7 @@
     "rive-skeletal-animator": {
       "file": "agents/rive-skeletal-animator.md",
       "short_description": "Rive skeletal animation: @rive-app/react-canvas, state machines, character pipelines, combat integration",
+      "model": "sonnet",
       "triggers": [
         "rive",
         "rive-app",
@@ -730,6 +763,7 @@
     "sqlite-peewee-engineer": {
       "file": "agents/sqlite-peewee-engineer.md",
       "short_description": "SQLite with Peewee ORM: model definition, query optimization, migrations, transactions",
+      "model": "sonnet",
       "triggers": [
         "peewee",
         "sqlite",
@@ -747,6 +781,7 @@
     "swift-general-engineer": {
       "file": "agents/swift-general-engineer.md",
       "short_description": "Swift development: iOS, macOS, server-side Swift, SwiftUI, concurrency, testing",
+      "model": "sonnet",
       "triggers": [
         "swift",
         "ios",
@@ -782,6 +817,7 @@
     "system-upgrade-engineer": {
       "file": "agents/system-upgrade-engineer.md",
       "short_description": "Systematic toolkit upgrades: adapt agents, skills, hooks when Claude Code ships updates",
+      "model": "sonnet",
       "triggers": [
         "upgrade agents",
         "system upgrade",
@@ -808,6 +844,7 @@
     "technical-documentation-engineer": {
       "file": "agents/technical-documentation-engineer.md",
       "short_description": "Technical documentation: API docs, system architecture, runbooks, enterprise standards",
+      "model": "sonnet",
       "triggers": [
         "API documentation",
         "technical docs",
@@ -823,6 +860,7 @@
     "technical-journalist-writer": {
       "file": "agents/technical-journalist-writer.md",
       "short_description": "Technical journalism: explainers, opinion pieces, analysis articles, long-form content",
+      "model": "sonnet",
       "triggers": [
         "technical article",
         "technical writing",
@@ -839,6 +877,7 @@
     "testing-automation-engineer": {
       "file": "agents/testing-automation-engineer.md",
       "short_description": "Testing automation: Vitest, Playwright, E2E, coverage enforcement, CI/CD integration",
+      "model": "sonnet",
       "triggers": [
         "testing",
         "E2E",
@@ -857,6 +896,7 @@
     "toolkit-governance-engineer": {
       "file": "agents/toolkit-governance-engineer.md",
       "short_description": "Toolkit governance: edit skills, update routing tables, manage ADR lifecycle, enforce standards",
+      "model": "sonnet",
       "triggers": [
         "edit skill",
         "update routing",
@@ -879,6 +919,7 @@
     "typescript-debugging-engineer": {
       "file": "agents/typescript-debugging-engineer.md",
       "short_description": "TypeScript debugging: race conditions, async/await issues, type errors, runtime exceptions",
+      "model": "sonnet",
       "triggers": [
         "typescript debug",
         "async bug",
@@ -897,6 +938,7 @@
     "typescript-frontend-engineer": {
       "file": "agents/typescript-frontend-engineer.md",
       "short_description": "TypeScript frontend architecture: type-safe components, state management, build optimization",
+      "model": "sonnet",
       "triggers": [
         "typescript",
         "react",
@@ -916,6 +958,7 @@
     "ui-design-engineer": {
       "file": "agents/ui-design-engineer.md",
       "short_description": "UI/UX design: design systems, responsive layouts, accessibility, animations",
+      "model": "sonnet",
       "triggers": [
         "UI",
         "design",
