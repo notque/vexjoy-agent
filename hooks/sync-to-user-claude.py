@@ -459,7 +459,6 @@ def main():
             toolkit_agent_paths: set = set()
             count, _ = _sync_dir(repo_agents, toolkit_agents, toolkit_agent_paths, False, errors)
             synced.append(f"~/.toolkit/agents({count})")
-            _stale_cleanup(toolkit_agents, toolkit_agent_paths, errors, "toolkit/agents")
         except Exception as e:
             errors.append(f"toolkit/agents: {e}")
 
@@ -471,8 +470,14 @@ def main():
                 count, _ = _sync_dir(private_agents_dir, toolkit_agents, priv_paths, False, errors)
                 if count:
                     synced.append(f"~/.toolkit/agents/private({count})")
+                toolkit_agent_paths.update(priv_paths)
             except Exception as e:
                 errors.append(f"toolkit/agents/private: {e}")
+
+        try:
+            _stale_cleanup(toolkit_agents, toolkit_agent_paths, errors, "toolkit/agents")
+        except Exception as e:
+            errors.append(f"toolkit/agents/stale: {e}")
 
         # Create symlinks in ~/.claude/agents/ pointing to ~/.toolkit/agents/
         # for each top-level .md file. This enables subagent_type dispatch.
@@ -521,6 +526,15 @@ def main():
                                 item.unlink()
                     except OSError:
                         pass
+                elif item.is_file():
+                    # Regular files (e.g. README.md, INDEX.json) copied by old sync
+                    # runs: remove if the toolkit has a canonical copy.
+                    toolkit_counterpart = toolkit_agents / item.name
+                    if toolkit_counterpart.exists():
+                        try:
+                            item.unlink()
+                        except OSError:
+                            pass
                 elif item.is_dir():
                     # Agent reference subdirectories: remove if they mirror toolkit
                     toolkit_counterpart = toolkit_agents / item.name
@@ -742,6 +756,7 @@ def main():
             elif codex_agents_dst.is_dir():
                 total = sum(1 for _ in codex_agents_dst.rglob("*") if _.is_file())
                 synced.append(f".codex/agents({total} current)")
+            _stale_cleanup(codex_agents_dst, codex_agent_paths, errors, "codex/agents")
         except Exception as e:
             errors.append(f"codex-agents: {e}")
 
