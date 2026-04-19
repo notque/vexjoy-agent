@@ -157,3 +157,66 @@ class TestCheckLogic:
         data = json.loads(result.stdout)
         checks = {c["name"]: c for c in data["results"][0]["checks"]}
         assert checks["Registered in routing"]["status"] == "PASS"
+
+
+class TestDispatcherSkillShape:
+    """Pin scoring behavior for ADR-195 dispatcher-style skills.
+
+    The /do skill is a thin orchestration dispatcher: the parent reads a
+    single prompt file, spawns Haiku, and dispatches the worker Haiku chose.
+    It intentionally lacks the domain-skill shapes (prose patterns section,
+    'because X' reasoning, '## Instructions' wrapper, repo-relative file
+    references). The scorer must recognize the dispatcher's forms as valid.
+    """
+
+    def test_do_skill_grades_b_or_above(self) -> None:
+        """The /do dispatcher must score at least B — rc 0 for the single file."""
+        run_script("skills/do/SKILL.md", expect_rc=0)
+
+    def test_tilde_paths_not_counted_as_missing(self) -> None:
+        """`~/.claude/...` and `~/.toolkit/...` paths are user-home references.
+
+        They can't be resolved from REPO_ROOT and the sync hook is what
+        validates they land on disk. The scorer must skip them rather than
+        flag them as missing.
+        """
+        result = run_script("skills/do/SKILL.md", "--json")
+        data = json.loads(result.stdout)
+        checks = {c["name"]: c for c in data["results"][0]["checks"]}
+        ref_check = checks["Referenced files exist"]
+        assert ref_check["status"] == "PASS"
+        assert "~/." not in ref_check["detail"]
+
+    def test_phases_satisfy_patterns_section(self) -> None:
+        """2+ '## Phase N:' headings count as a procedural pattern.
+
+        Dispatcher skills encode their pattern as numbered phases, not a
+        prose 'Preferred Patterns' / 'Anti-Patterns' heading.
+        """
+        result = run_script("skills/do/SKILL.md", "--json")
+        data = json.loads(result.stdout)
+        checks = {c["name"]: c for c in data["results"][0]["checks"]}
+        assert checks["Patterns section"]["status"] == "PASS"
+
+    def test_phases_satisfy_instructions_section(self) -> None:
+        """2+ numbered phases count as the Instructions section.
+
+        An explicit '## Instructions' wrapper is redundant when phases are
+        the ordered steps.
+        """
+        result = run_script("skills/do/SKILL.md", "--json")
+        data = json.loads(result.stdout)
+        checks = {c["name"]: c for c in data["results"][0]["checks"]}
+        assert checks["Workflow instructions"]["earned"] == checks["Workflow instructions"]["max"]
+
+    def test_imperative_constraints_counted(self) -> None:
+        """MUST NOT / Do not imperatives count as inline constraints.
+
+        Dispatcher skills state constraints as directives, not as
+        'because X' reasoning or table rows.
+        """
+        result = run_script("skills/do/SKILL.md", "--json")
+        data = json.loads(result.stdout)
+        checks = {c["name"]: c for c in data["results"][0]["checks"]}
+        assert checks["Inline constraints"]["status"] == "PASS"
+        assert "imperative" in checks["Inline constraints"]["detail"].lower()
