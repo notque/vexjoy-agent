@@ -212,6 +212,12 @@ def check_referenced_files(content: str) -> CheckResult:
         # environment-specific paths, not repo-relative references
         if p.startswith(".") and "/" in p:
             continue
+        # Filter out tilde-prefixed paths (~/.claude/..., ~/.toolkit/...) —
+        # these are user-home references that the ADR-195 split writes from
+        # one repo into two runtime roots. They can't be resolved at
+        # REPO_ROOT, and the sync hook is what validates they land on disk.
+        if p.startswith("~"):
+            continue
         file_like.append(p)
 
     if not file_like:
@@ -241,10 +247,26 @@ def check_referenced_files(content: str) -> CheckResult:
 
 
 def check_anti_patterns_section(content: str) -> CheckResult:
-    """Check: Has patterns section heading — either 'Preferred Patterns' (ADR-127) or legacy 'Anti-Patterns' (10 pts)."""
+    """Check: Has a pattern structure (10 pts).
+
+    Accepts three forms:
+    - 'Preferred Patterns' heading (ADR-127)
+    - 'Anti-Patterns' heading (legacy)
+    - Phase-structured workflow (2+ numbered phases) — ADR-195 router/dispatcher
+      skills encode their procedural pattern as phases, not as a prose patterns
+      section.
+    """
     if re.search(r"^#{1,3}\s+.*(preferred\s+pattern|anti.?pattern|pattern)", content, re.IGNORECASE | re.MULTILINE):
         return CheckResult("Patterns section", 10, 10)
-    return CheckResult("Patterns section", 10, 0, "No '## Preferred Patterns' or '## Anti-Patterns' heading found")
+    phase_count = len(re.findall(r"^#{1,4}\s+Phase\s+\d", content, re.IGNORECASE | re.MULTILINE))
+    if phase_count >= 2:
+        return CheckResult("Patterns section", 10, 10, f"Phase-structured workflow ({phase_count} phases)")
+    return CheckResult(
+        "Patterns section",
+        10,
+        0,
+        "No '## Preferred Patterns', '## Anti-Patterns', or phase-structured workflow found",
+    )
 
 
 def check_error_handling_section(content: str) -> CheckResult:
@@ -344,8 +366,13 @@ def check_workflow_instructions(content: str) -> CheckResult:
     check (Hardcoded/Default/Optional subsections were removed in the
     workflow-first migration).
     """
-    has_instructions = bool(re.search(r"#{2,4}\s+Instructions", content, re.IGNORECASE))
-    has_phases = bool(re.search(r"#{2,4}\s+(Phase|Step)\s+\d", content, re.IGNORECASE))
+    has_instructions_heading = bool(re.search(r"#{2,4}\s+Instructions", content, re.IGNORECASE))
+    phase_count = len(re.findall(r"#{2,4}\s+(Phase|Step)\s+\d", content, re.IGNORECASE))
+    has_phases = phase_count >= 1
+    # Dispatcher-style skills (ADR-195) use 2+ numbered phases as the full
+    # instruction surface; an explicit '## Instructions' wrapper is redundant
+    # when the phases themselves are the ordered steps.
+    has_instructions = has_instructions_heading or phase_count >= 2
     has_gates = bool(re.search(r"\*\*Gate\*\*|#{2,4}\s+.*\bGATE\b", content))
 
     found = sum([has_instructions, has_phases, has_gates])
@@ -356,7 +383,7 @@ def check_workflow_instructions(content: str) -> CheckResult:
 
     missing = []
     if not has_instructions:
-        missing.append("Instructions section")
+        missing.append("Instructions section or 2+ numbered phases")
     if not has_phases:
         missing.append("Phase/Step numbering")
     if not has_gates:
@@ -373,18 +400,24 @@ def check_inline_constraints(content: str) -> CheckResult:
     """
     because_count = len(re.findall(r"\bbecause\b", content, re.IGNORECASE))
     table_rule_count = len(re.findall(r"^\|.*\|.*\|", content, re.MULTILINE))
+    # Dispatcher-style skills encode constraints as imperative directives
+    # (MUST NOT read the manifest / Do not pre-load / Do not invent a fallback)
+    # rather than 'because X' reasoning or tables. Count those too.
+    imperative_count = len(re.findall(r"\b(?:MUST NOT|must not|Do not|do not)\b", content))
 
     if because_count >= 5:
         return CheckResult("Inline constraints", 10, 10, f"{because_count} inline 'because' reasoning instances")
     if table_rule_count >= 5:
         return CheckResult("Inline constraints", 10, 10, f"{table_rule_count} table-driven constraint rules")
-    combined = because_count + table_rule_count
+    if imperative_count >= 5:
+        return CheckResult("Inline constraints", 10, 10, f"{imperative_count} imperative constraint statements")
+    combined = because_count + table_rule_count + imperative_count
     if combined >= 5:
         return CheckResult(
             "Inline constraints",
             10,
             10,
-            f"{combined} constraints ({because_count} prose + {table_rule_count} table rules)",
+            f"{combined} constraints ({because_count} prose + {table_rule_count} table rules + {imperative_count} imperatives)",
         )
     elif combined >= 2:
         return CheckResult("Inline constraints", 10, 5, f"{combined} constraints found (target: 5+)")
