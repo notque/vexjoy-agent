@@ -20,6 +20,4 @@ python3 scripts/generate-skill-index.py --include-private --output skills/INDEX.
 python3 scripts/generate-agent-index.py --include-private --output agents/INDEX.local.json
 ```
 
-The router (`scripts/routing-manifest.py`) prefers the local file when present,
-so local runs see all entries while the tracked index stays public. The
-`*.local.json` files are gitignored and never committed.
+The `*.local.json` files are gitignored and never committed.

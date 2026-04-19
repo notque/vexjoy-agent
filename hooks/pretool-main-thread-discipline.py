@@ -16,7 +16,6 @@ Two responsibilities (both handled as PreToolUse):
    exists, block with exit code 2 unless the call is routing-safe.
 
 Routing-safe Bash allowlist (pass these through unconditionally):
-  - python3 scripts/routing-manifest.py
   - python3 ~/.claude/scripts/learning-db.py record ...
   - git status
   - git log
@@ -48,7 +47,6 @@ __EVENT_NAME = "PreToolUse"
 # Bash command patterns that are safe for the main thread during /do sessions.
 # These cover the routing bookkeeping calls described in skills/do/SKILL.md.
 _ROUTING_SAFE_PATTERNS = [
-    r"python3\s+scripts/routing-manifest\.py",
     r"python3\s+~?[^\s]*/scripts/learning-db\.py",
     r"python3\s+scripts/classify-repo\.py",
     r"python3\s+scripts/check-routing-drift\.py",
@@ -149,7 +147,7 @@ def main() -> None:
             "[main-thread-discipline] BLOCKED: "
             f"Non-routing Bash called from the main thread during an active /do session.\n"
             f"Command: {command[:120]!r}\n"
-            "Allowed Bash during /do: routing-manifest.py, learning-db.py record, "
+            "Allowed Bash during /do: learning-db.py record, "
             "git status/log/branch, ls, cat, classify-repo.py.\n"
             "For analysis or execution, dispatch an agent instead.\n"
             'PHILOSOPHY.md: "Router as Orchestrator, Not Worker"'
