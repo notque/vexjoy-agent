@@ -1,6 +1,5 @@
 ---
 name: perses-engineer
-model: sonnet
 description: "Perses observability platform: dashboards, plugins, operator, core development."
 color: green
 routing:

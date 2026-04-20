@@ -3,7 +3,6 @@ name: pipeline-scaffolder
 description: "Scaffold pipeline components from a Pipeline Spec JSON."
 user-invocable: false
 agent: pipeline-orchestrator-engineer
-model: sonnet
 allowed-tools:
   - Read
   - Write

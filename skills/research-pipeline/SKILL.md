@@ -9,7 +9,6 @@ user-invocable: true
 argument-hint: "<research topic>"
 agent: research-coordinator-engineer
 context: fork
-model: sonnet
 allowed-tools:
   - Read
   - Bash

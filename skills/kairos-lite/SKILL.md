@@ -4,7 +4,6 @@ description: Proactive monitoring — checks GitHub, CI, and toolkit health, pro
 user-invocable: true
 command: kairos
 context: fork
-model: sonnet
 allowed-tools:
   - Read
   - Write

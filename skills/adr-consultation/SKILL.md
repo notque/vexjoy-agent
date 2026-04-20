@@ -1,7 +1,6 @@
 ---
 name: adr-consultation
 description: "Multi-agent consultation for architecture decisions."
-model: sonnet
 user-invocable: false
 allowed-tools:
   - Read

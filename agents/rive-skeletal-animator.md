@@ -1,6 +1,5 @@
 ---
 name: rive-skeletal-animator
-model: sonnet
 description: "Rive skeletal animation: @rive-app/react-canvas, state machines, character pipelines, combat integration."
 color: emerald
 routing:

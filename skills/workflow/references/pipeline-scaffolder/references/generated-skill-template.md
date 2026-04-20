@@ -60,7 +60,6 @@ description: |
   Use for {{trigger_keywords}} inside the {{subdomain_name}} subdomain.
 user-invocable: true
 agent: {{agent_name}}
-model: sonnet
 allowed-tools:
   - Read
   - Write

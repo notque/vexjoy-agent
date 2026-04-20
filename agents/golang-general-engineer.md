@@ -1,6 +1,5 @@
 ---
 name: golang-general-engineer
-model: sonnet
 description: "Go development: features, debugging, code review, performance. Modern Go 1.26+ patterns."
 color: blue
 hooks:

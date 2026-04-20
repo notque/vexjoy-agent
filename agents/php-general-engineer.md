@@ -1,6 +1,5 @@
 ---
 name: php-general-engineer
-model: sonnet
 description: "PHP development: features, debugging, code quality, security, modern PHP 8.x patterns."
 color: purple
 hooks:

@@ -1,6 +1,5 @@
 ---
 name: github-profile-rules-engineer
-model: sonnet
 description: "Extract coding conventions and style rules from GitHub user profiles via API."
 color: blue
 routing:
