@@ -2,6 +2,17 @@
 
 Check GitHub Actions workflow status after a git push, identify failures, and suggest local reproduction commands. This reference observes and reports -- it modifies workflow files or auto-fixes code only with explicit permission.
 
+## Pre-Push Checks for Python Changes
+
+Before pushing any branch that touches Python files, run both commands locally. The toolkit's `Tests` workflow (enforced by branch protection) runs both; running only `ruff check` misses formatting violations and leaks the failure to CI.
+
+```bash
+ruff check . --config pyproject.toml
+ruff format --check . --config pyproject.toml
+```
+
+Both must exit 0 before `git push`. Fix failures locally; do not rely on CI to surface them.
+
 ## Instructions
 
 ### Step 1: Identify Repository and Branch

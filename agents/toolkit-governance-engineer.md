@@ -187,6 +187,25 @@ Use this format for consistency checks, audits, and multi-file operations. Singl
 | tasks related to this reference | `hook-standardization.md` | Loads detailed guidance from `hook-standardization.md`. |
 | implementation patterns | `routing-table-patterns.md` | Loads detailed guidance from `routing-table-patterns.md`. |
 
+## Agent Reference File Validation
+
+When creating or modifying any agent that has a `references/` directory, run these two commands before committing. They cover the structural and progressive-disclosure checks the CI workflow enforces on PR.
+
+```bash
+# Structural checks: filenames, frontmatter, line counts, loading tables.
+python3 scripts/validate-references.py --agent {agent-name}
+
+# Progressive-disclosure behavior: agent loads the correct reference per signal.
+python3 -m pytest scripts/tests/test_reference_loading.py -k {agent-name}
+```
+
+Standards enforced:
+- Reference files must be <= 500 lines (progressive disclosure budget).
+- Framing is joy-checked (no grievance-mode prose in reference bodies).
+- The agent body must contain a loading table that maps signals to reference files.
+
+The full spec lives in `skills/do/references/repo-architecture.md`.
+
 ## Error Handling
 
 ### Broken YAML Frontmatter
