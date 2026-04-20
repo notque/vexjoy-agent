@@ -116,4 +116,10 @@ No markdown fences. No explanation of your reasoning outside the JSON.
 }
 ```
 
-Do not add extra fields. Do not wrap in markdown. Do not narrate.
+- Do not invent agent or skill names. If your chosen name is not in the
+  `INDEX.json` you read or the `~/.toolkit/skills/*/SKILL.md` glob result
+  you saw, return `agent: null`, `skill: null`, `confidence: "low"`, and
+  explain the miss in `reasoning`. A downstream validator rejects any
+  name that does not resolve to a real file and wastes a round trip on
+  every invented name.
+- Do not add extra fields. Do not wrap in markdown. Do not narrate.

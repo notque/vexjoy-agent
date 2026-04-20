@@ -82,6 +82,46 @@ invent a fallback.
 
 ---
 
+## Phase 2.5: VALIDATE
+
+Before printing the banner or dispatching the worker, confirm Haiku's chosen
+`agent` and `skill` actually exist on disk. This catches the case where the
+router returns a name that is not in the canonical toolkit (`INDEX.json` and
+`~/.toolkit/skills/*/SKILL.md`).
+
+If either `agent` or `skill` is non-null, run:
+
+```bash
+python3 ~/.claude/scripts/resolve-dispatch.py \
+    --agent "<agent-or-empty>" \
+    --skill "<skill-or-empty>"
+```
+
+Substitute empty strings for any field Haiku returned as null.
+
+- **Exit 0**: both resolved. Proceed to Phase 3 unchanged.
+- **Exit 2**: at least one name does not exist. The script prints
+  "router picked invalid <kind>: <name>. closest matches: ..." on stderr.
+  Do the following:
+  1. Record the failure so we can measure how often the router picks
+     nonexistent names over time. Run this once per invalid name reported:
+
+     ```bash
+     python3 ~/.claude/scripts/learning-db.py record-invalid-route \
+         --kind "<agent|skill>" \
+         --name "<name-the-router-returned>" \
+         --reason "<resolve-dispatch stderr line for this name>"
+     ```
+
+  2. Surface the stderr back to the user with this framing:
+
+     > Router picked an invalid name: `<stderr>`. Please narrow your request.
+
+  3. Stop. Do NOT retry Haiku (retries waste tokens chasing the same mistake).
+     Do NOT invent a fallback agent or skill.
+
+---
+
 ## Phase 3: DISPATCH
 
 1. Print the routing banner exactly as Haiku provided it:
@@ -128,4 +168,7 @@ Use the values from Haiku's JSON verbatim. Do not add commentary.
 - `~/.claude/skills/do/haiku-router-prompt.md`: self-contained routing prompt
   Haiku executes. All routing knowledge (agent names, skill names, triggers,
   routing tables) lives behind this file and is never loaded into the parent.
-- `~/.claude/scripts/learning-db.py`: routing outcome recorder (optional).
+- `~/.claude/scripts/resolve-dispatch.py`: Phase 2.5 validator. Exits 0 when
+  every non-null name resolves; exits 2 with a stderr suggestion line otherwise.
+- `~/.claude/scripts/learning-db.py`: routing outcome recorder (Phase 4) and
+  invalid-route logger (Phase 2.5 failure branch).

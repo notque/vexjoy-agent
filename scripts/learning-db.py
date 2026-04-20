@@ -80,6 +80,32 @@ def cmd_record(args):
     )
 
 
+def cmd_record_invalid_route(args: argparse.Namespace) -> None:
+    """Record that the router picked a name that did not resolve to a real file.
+
+    Called from the /do Phase 2.5 validation failure branch so we can track
+    how often the router returns names outside the canonical agent/skill lists.
+    """
+    value = f"router picked invalid {args.kind}: {args.name}"
+    if args.reason:
+        value = f"{value} | reason: {args.reason}"
+
+    key = f"{args.kind}:{args.name}"
+    result = record_learning(
+        topic="invalid-route",
+        key=key,
+        value=value,
+        category="effectiveness",
+        tags=["invalid-route", "routing-feedback", args.kind],
+        source="hook:resolve-dispatch",
+    )
+    action = "Updated" if not result["is_new"] else "Recorded"
+    print(
+        f"{action}: [invalid-route] {key} "
+        f"(confidence: {result['confidence']:.2f}, observations: {result['observation_count']})"
+    )
+
+
 def cmd_query(args):
     results = query_learnings(
         topic=args.topic,
@@ -740,6 +766,29 @@ def main():
     p_record.add_argument("--source-detail", help="Additional source context")
     p_record.add_argument("--project-path", help="Project path")
     p_record.set_defaults(func=cmd_record)
+
+    # record-invalid-route — log when resolve-dispatch rejects a router pick
+    p_rec_invalid = subparsers.add_parser(
+        "record-invalid-route",
+        help="Record that the router picked a name that does not resolve to a real file",
+    )
+    p_rec_invalid.add_argument(
+        "--kind",
+        required=True,
+        choices=["agent", "skill"],
+        help="Which kind of name the router got wrong",
+    )
+    p_rec_invalid.add_argument(
+        "--name",
+        required=True,
+        help="The invalid name the router returned",
+    )
+    p_rec_invalid.add_argument(
+        "--reason",
+        default="",
+        help="Optional context (e.g. closest-match suggestions from resolve-dispatch)",
+    )
+    p_rec_invalid.set_defaults(func=cmd_record_invalid_route)
 
     # query
     p_query = subparsers.add_parser("query", help="Query learnings")
