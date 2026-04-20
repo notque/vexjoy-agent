@@ -1,0 +1,19 @@
+# Raw Harbor trial output may contain full Claude transcripts, which can
+# include task content, API responses, and intermediate state. Keep the
+# summary report (results/<timestamp>/report.md) but exclude everything
+# else under results/.
+#
+# Rules are file-scoped rather than directory-scoped so that git can
+# re-include nested files: git does not descend into ignored directories,
+# so "results/*" would mask "!results/**/report.md".
+
+results/*/raw/
+results/*/harbor-run.log
+results/*/*.json
+results/*/*.jsonl
+
+# Python build / cache artifacts
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/

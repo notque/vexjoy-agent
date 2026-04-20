@@ -1,0 +1,56 @@
+# Harbor job: /do router dry run against terminal-bench-2, 5 tasks.
+#
+# Schema notes (verified 2026-04-19 against harbor 0.4.0 docs):
+#   - "dataset" accepts the "<org>/<name>@<version>" form used by
+#     ``harbor run --dataset terminal-bench@2.0``.
+#   - "agent" points at the module path of the BaseInstalledAgent
+#     subclass; Harbor imports it dynamically.
+#   - "environment.runtime: local" uses Docker on the host. Swap to
+#     "daytona" / "modal" / "e2b" / "runloop" with the corresponding
+#     API keys for cloud execution.
+#   - "task_filter" is the mechanism observed in the Harbor cookbook
+#     for running a subset. If the deployed Harbor build exposes a
+#     different knob (e.g. --tasks or --limit), run_dry_run.sh passes
+#     it on the CLI and this field is ignored.
+#
+# If any field name drifts in a newer Harbor release, cross-check with
+# ``harbor run --help`` before editing the adapter — the CLI is the
+# source of truth, not this file.
+
+name: do-router-dry-run-5
+
+dataset: terminal-bench@2.0
+
+# Run /do via the in-repo adapter.
+agent:
+  module: harbor_adapter.claude_code_do_agent
+  class: ClaudeCodeDoAgent
+
+# The adapter ignores --model; /do picks the model per-agent. This field
+# is present because Harbor requires it. Use opus-4-1 because that is what
+# /do's default pipeline agents target; swapping it does not change /do's
+# internal model routing.
+model: anthropic/claude-opus-4-1
+
+environment:
+  runtime: local          # Docker on host. Replace with 'daytona' etc. for cloud.
+  image: do-router-benchmark:latest
+  dockerfile: ./Dockerfile
+
+# Dry run cap. 89 tasks total in terminal-bench-2; 5 is enough to sanity
+# check token spend and pass/fail plumbing before scaling.
+task_filter:
+  limit: 5
+
+# Serial for the dry run. Concurrency can explode costs if /do misroutes
+# early tasks; easier to read serial logs when debugging.
+n_concurrent: 1
+
+# Env var passthrough. ANTHROPIC_API_KEY is read from the host shell by
+# Harbor and injected into the container for ``claude -p`` to consume.
+env_passthrough:
+  - ANTHROPIC_API_KEY
+
+# Persist everything so the results report can be assembled after the
+# fact. run_dry_run.sh moves this under results/<timestamp>/.
+output_dir: ./results/_pending
