@@ -1,6 +1,5 @@
 ---
 name: reviewer-domain
-model: sonnet
 description: "Domain-specific review: ADR compliance, business logic, SAP CC structural, pragmatic builder."
 color: orange
 isolation: worktree

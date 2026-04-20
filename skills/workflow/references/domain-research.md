@@ -3,7 +3,6 @@ name: domain-research
 description: "Discover and classify subdomains for pipeline generation."
 user-invocable: false
 agent: pipeline-orchestrator-engineer
-model: sonnet
 allowed-tools:
   - Read
   - Write

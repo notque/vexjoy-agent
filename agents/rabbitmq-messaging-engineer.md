@@ -1,6 +1,5 @@
 ---
 name: rabbitmq-messaging-engineer
-model: sonnet
 description: "RabbitMQ: message queue architecture, clustering, high-availability, routing patterns."
 color: orange
 routing:

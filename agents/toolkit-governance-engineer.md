@@ -1,6 +1,5 @@
 ---
 name: toolkit-governance-engineer
-model: sonnet
 description: "Toolkit governance: edit skills, update routing tables, manage ADR lifecycle, enforce standards."
 color: blue
 routing:

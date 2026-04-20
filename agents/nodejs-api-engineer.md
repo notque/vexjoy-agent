@@ -1,6 +1,5 @@
 ---
 name: nodejs-api-engineer
-model: sonnet
 description: "Use this agent when you need expert assistance with NodeJS backend API development: REST endpoints, authentication, file uploads, webhooks, middleware, and database integration"
 color: red
 memory: project

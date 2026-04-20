@@ -1,6 +1,5 @@
 ---
 name: typescript-debugging-engineer
-model: sonnet
 description: "TypeScript debugging: race conditions, async/await issues, type errors, runtime exceptions."
 color: blue
 memory: project

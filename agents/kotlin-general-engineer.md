@@ -1,6 +1,5 @@
 ---
 name: kotlin-general-engineer
-model: sonnet
 description: "Kotlin development: features, coroutines, debugging, code quality, multiplatform."
 color: purple
 hooks:

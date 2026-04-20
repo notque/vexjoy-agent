@@ -1,6 +1,5 @@
 ---
 name: python-openstack-engineer
-model: sonnet
 description: "OpenStack Python development: Nova, Neutron, Cinder, Oslo libraries, WSGI middleware."
 color: red
 memory: project

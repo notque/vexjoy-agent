@@ -1,6 +1,5 @@
 ---
 name: database-engineer
-model: sonnet
 description: "Database design, optimization, query performance, migrations, indexing strategies."
 color: purple
 memory: project

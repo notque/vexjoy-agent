@@ -3,7 +3,6 @@ name: perses
 description: "Perses platform operations: dashboards, plugins, deployment, migration, and quality."
 context: fork
 agent: perses-engineer
-model: sonnet
 allowed-tools:
   - Read
   - Edit

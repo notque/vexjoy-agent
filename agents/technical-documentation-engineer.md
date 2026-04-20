@@ -1,6 +1,5 @@
 ---
 name: technical-documentation-engineer
-model: sonnet
 description: "Technical documentation: API docs, system architecture, runbooks, enterprise standards"
 color: blue
 routing:

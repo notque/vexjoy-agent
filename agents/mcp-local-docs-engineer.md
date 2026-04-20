@@ -1,6 +1,5 @@
 ---
 name: mcp-local-docs-engineer
-model: sonnet
 description: "MCP server development for local documentation access in TypeScript/Node.js and Go."
 color: teal
 routing:

@@ -1,6 +1,5 @@
 ---
 name: prometheus-grafana-engineer
-model: sonnet
 description: "Prometheus and Grafana: monitoring, alerting, dashboard design, PromQL optimization."
 color: red
 routing:

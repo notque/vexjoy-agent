@@ -1,6 +1,5 @@
 ---
 name: hook-development-engineer
-model: sonnet
 description: "Python hook development for Claude Code event-driven system and learning database."
 color: purple
 routing:

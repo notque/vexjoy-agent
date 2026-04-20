@@ -4,7 +4,6 @@ description: Background memory consolidation and learning graduation — overnig
 user-invocable: true
 command: dream
 context: fork
-model: sonnet
 allowed-tools:
   - Read
   - Write

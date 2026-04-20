@@ -3,7 +3,6 @@ name: pipeline-test-runner
 description: "Test generated pipeline skills against real targets."
 user-invocable: false
 agent: pipeline-orchestrator-engineer
-model: sonnet
 allowed-tools:
   - Read
   - Write

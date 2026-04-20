@@ -4,7 +4,6 @@ description: "Comprehensive 3-wave review of all repo source files, producing a 
 user-invocable: true
 command: full-repo-review
 context: fork
-model: sonnet
 allowed-tools:
   - Agent
   - Bash

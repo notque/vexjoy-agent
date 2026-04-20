@@ -1,6 +1,5 @@
 ---
 name: kubernetes-helm-engineer
-model: sonnet
 description: "Kubernetes and Helm: deployments, troubleshooting, cloud-native infrastructure."
 color: green
 memory: project

@@ -3,7 +3,6 @@ name: frontend-slides
 description: "Browser-based HTML presentation generation."
 user-invocable: false
 agent: typescript-frontend-engineer
-model: sonnet
 allowed-tools:
   - Read
   - Write

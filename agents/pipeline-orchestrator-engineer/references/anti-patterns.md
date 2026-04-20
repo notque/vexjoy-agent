@@ -161,7 +161,6 @@ grep -rL 'allowed-tools' agents/*.md
 ```yaml
 ---
 name: my-new-agent
-model: sonnet
 description: "..."
 ---
 ```

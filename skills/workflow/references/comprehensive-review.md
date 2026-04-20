@@ -4,7 +4,6 @@ description: "Four-wave code review pipeline for large or high-risk changes."
 effort: high
 user-invocable: false
 command: /comprehensive-review
-model: sonnet
 allowed-tools:
   - Agent
   - Read

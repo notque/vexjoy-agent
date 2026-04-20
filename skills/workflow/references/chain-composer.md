@@ -3,7 +3,6 @@ name: chain-composer
 description: "Compose valid pipeline chains from the step menu per subdomain."
 user-invocable: false
 agent: pipeline-orchestrator-engineer
-model: sonnet
 allowed-tools:
   - Read
   - Write

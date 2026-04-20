@@ -1,6 +1,5 @@
 ---
 name: golang-general-engineer-compact
-model: sonnet
 description: "Compact Go development for tight context budgets. Modern Go 1.26+ patterns."
 color: blue
 memory: project

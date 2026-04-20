@@ -1,6 +1,5 @@
 ---
 name: react-native-engineer
-model: sonnet
 description: "React Native and Expo development: performance, animations, navigation, native UI patterns."
 color: green
 routing:
