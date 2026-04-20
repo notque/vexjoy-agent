@@ -47,6 +47,31 @@ _EXCEPTION_ANNOTATION = re.compile(r"<!--\s*no-pair-required\s*:", re.IGNORECASE
 _SKIP_FILENAMES = {"INDEX.json", "README.md"}
 
 
+def _strip_fenced_blocks(content: str) -> str:
+    """Replace content inside fenced code blocks with empty lines, preserving line count."""
+    lines = content.splitlines()
+    out: list[str] = []
+    in_fence = False
+    fence_marker = ""
+    for line in lines:
+        stripped = line.strip()
+        if not in_fence:
+            m = re.match(r"^(`{3,}|~{3,})", stripped)
+            if m:
+                in_fence = True
+                fence_marker = m.group(1)[0] * len(m.group(1))
+                out.append(line)
+            else:
+                out.append(line)
+        else:
+            if re.match(r"^" + re.escape(fence_marker) + r"[\s]*$", stripped):
+                in_fence = False
+                out.append(line)
+            else:
+                out.append("")  # blank out code content, preserve line count
+    return "\n".join(out)
+
+
 def _split_blocks(content: str) -> list[tuple[int, str]]:
     """Split content by H1-H4 headings. Returns (start_line_1indexed, text) pairs."""
     lines = content.splitlines()
@@ -92,9 +117,11 @@ def check_do_framing_in_file(path: Path) -> list[DoFramingIssue]:
         rel = str(path)
 
     all_lines = content.splitlines()
+    stripped_content = _strip_fenced_blocks(content)
 
-    for start_line, block in _split_blocks(content):
-        if not _ANTIPATTERN_HEADING.search(block):
+    for start_line, block in _split_blocks(stripped_content):
+        heading_line = block.splitlines()[0] if block.splitlines() else ""
+        if not _ANTIPATTERN_HEADING.search(heading_line):
             continue
         if _DO_INSTEAD.search(block):
             continue
