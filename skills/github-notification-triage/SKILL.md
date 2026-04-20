@@ -3,7 +3,6 @@ name: github-notification-triage
 description: "Triage GitHub notifications and report actions needed."
 user-invocable: false
 context: fork
-model: sonnet
 allowed-tools:
   - Bash
   - Read

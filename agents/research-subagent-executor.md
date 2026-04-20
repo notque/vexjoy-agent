@@ -1,6 +1,5 @@
 ---
 name: research-subagent-executor
-model: sonnet
 description: "Research subagent execution: OODA-loop investigation, intelligence gathering, source evaluation."
 color: purple
 background: true

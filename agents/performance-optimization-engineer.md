@@ -1,6 +1,5 @@
 ---
 name: performance-optimization-engineer
-model: sonnet
 description: "Web performance optimization: Core Web Vitals, rendering, bundle analysis, monitoring."
 color: yellow
 routing:

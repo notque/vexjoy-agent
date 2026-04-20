@@ -1,6 +1,5 @@
 ---
 name: testing-automation-engineer
-model: sonnet
 description: "Testing automation: Vitest, Playwright, E2E, coverage enforcement, CI/CD integration"
 color: yellow
 routing:

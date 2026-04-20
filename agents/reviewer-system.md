@@ -1,6 +1,5 @@
 ---
 name: reviewer-system
-model: sonnet
 description: "System-level review: security, concurrency, error handling, observability, API contracts"
 color: red
 routing:

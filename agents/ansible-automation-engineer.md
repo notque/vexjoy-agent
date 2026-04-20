@@ -1,6 +1,5 @@
 ---
 name: ansible-automation-engineer
-model: sonnet
 description: "Ansible automation: playbooks, roles, collections, Molecule testing, Vault security."
 color: orange
 routing:

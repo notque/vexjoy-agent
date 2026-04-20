@@ -3,7 +3,6 @@ name: e2e-testing
 description: "Playwright-based end-to-end testing workflow."
 user-invocable: false
 agent: testing-automation-engineer
-model: sonnet
 allowed-tools:
   - Read
   - Write

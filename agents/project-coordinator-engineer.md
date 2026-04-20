@@ -1,6 +1,5 @@
 ---
 name: project-coordinator-engineer
-model: sonnet
 description: "Multi-agent project coordination: task breakdown, dependency management, progress tracking."
 color: teal
 routing:

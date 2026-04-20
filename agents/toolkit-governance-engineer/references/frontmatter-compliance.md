@@ -105,7 +105,6 @@ rg -L 'allowed-tools' --glob 'agents/*.md'
 ```yaml
 ---
 name: my-agent
-model: sonnet
 description: "Does something"
 routing:
   triggers: [do thing]

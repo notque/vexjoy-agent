@@ -1,6 +1,5 @@
 ---
 name: data-engineer
-model: sonnet
 description: "Data pipelines, ETL/ELT, warehouse design, dimensional modeling, stream processing."
 color: cyan
 memory: project

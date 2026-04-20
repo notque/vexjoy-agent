@@ -10,7 +10,6 @@ user-invocable: true
 argument-hint: "<topic or title>"
 command: /voice-writer
 context: fork
-model: sonnet
 allowed-tools:
   - Read
   - Write

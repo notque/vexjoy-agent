@@ -1,6 +1,5 @@
 ---
 name: pipeline-orchestrator-engineer
-model: sonnet
 description: "Pipeline orchestration: scaffold multi-component workflows, fan-out/fan-in patterns."
 color: purple
 routing:

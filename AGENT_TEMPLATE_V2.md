@@ -50,7 +50,6 @@ Bad: `description: "Use this agent when working with Go files, .go extensions, o
 ```yaml
 ---
 name: {domain}-{function}-engineer
-model: sonnet
 description: "{60-100 char single-line description of domain expertise}"
 
 color: blue | green | orange | red | purple | teal | cyan | yellow
