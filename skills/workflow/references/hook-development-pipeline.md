@@ -1,5 +1,4 @@
 ---
-name: hook-development-pipeline
 description: "5-phase hook creation pipeline with performance gates."
 user-invocable: false
 agent: hook-development-engineer

@@ -1,5 +1,4 @@
 ---
-name: research-pipeline
 description: "Formal 5-phase research pipeline with artifact saving and source quality gates. Min 3 parallel agents."
 user-invocable: true
 argument-hint: "<research topic>"

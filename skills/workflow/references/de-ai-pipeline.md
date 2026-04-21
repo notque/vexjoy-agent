@@ -1,5 +1,4 @@
 ---
-name: de-ai-pipeline
 description: "Scan-fix-verify loop for removing AI writing patterns from docs."
 user-invocable: false
 argument-hint: "[<path-or-glob>]"

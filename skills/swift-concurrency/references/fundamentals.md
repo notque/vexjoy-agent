@@ -1,5 +1,4 @@
 ---
-name: swift-concurrency-fundamentals
 description: "async/await basics, Task and Task.detached patterns, Sendable/@Sendable protocol."
 type: reference
 ---

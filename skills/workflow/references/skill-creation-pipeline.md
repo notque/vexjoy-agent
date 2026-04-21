@@ -1,5 +1,4 @@
 ---
-name: skill-creation-pipeline
 description: "5-phase skill creation pipeline with quality gates."
 user-invocable: false
 allowed-tools:

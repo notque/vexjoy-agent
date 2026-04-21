@@ -1,5 +1,4 @@
 ---
-name: auto-pipeline
 description: "Automatic pipeline generation for unrouted tasks via /do."
 user-invocable: false
 allowed-tools:

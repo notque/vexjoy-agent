@@ -1,5 +1,4 @@
 ---
-name: systematic-refactoring
 description: "Safe 5-phase refactoring with test characterization and learning."
 user-invocable: false
 context: fork

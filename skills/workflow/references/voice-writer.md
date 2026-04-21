@@ -1,5 +1,4 @@
 ---
-name: voice-writer
 description: "Unified voice content generation with 9-phase pipeline: validation, joy-check, voice profile support."
 user-invocable: true
 argument-hint: "<topic or title>"

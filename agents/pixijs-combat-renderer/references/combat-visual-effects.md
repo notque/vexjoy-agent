@@ -1,5 +1,4 @@
 ---
-name: PixiJS Combat Visual Effects
 description: Custom GLSL filters for hit effects, glow chaining, DisplacementFilter shockwaves, Spine integration, particle emitter combat patterns, z-ordering, and alpha masking in PixiJS v8+
 agent: pixijs-combat-renderer
 category: visual-techniques

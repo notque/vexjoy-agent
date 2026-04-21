@@ -1,5 +1,4 @@
 ---
-name: do-perspectives
 description: "Inline multi-perspective analysis with 10 analytical lenses."
 user-invocable: false
 argument-hint: "<target-name> <source-path>"

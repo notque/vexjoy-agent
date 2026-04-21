@@ -1,5 +1,4 @@
 ---
-name: perses-plugin-pipeline
 user-invocable: false
 description: "End-to-end Perses plugin development pipeline."
 allowed-tools:

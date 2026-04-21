@@ -1,5 +1,4 @@
 ---
-name: Three.js Performance Patterns
 description: InstancedMesh, BufferGeometry manipulation, draw call batching, LOD, texture compression, and memory disposal for Three.js r150+
 agent: threejs-builder
 category: performance

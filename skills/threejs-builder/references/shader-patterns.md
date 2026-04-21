@@ -1,5 +1,4 @@
 ---
-name: Three.js Shader Patterns
 description: Custom GLSL shaders in Three.js — ShaderMaterial, vertex displacement, fragment effects, and EffectComposer postprocessing pipeline
 agent: threejs-builder
 category: visual-techniques

@@ -1,5 +1,4 @@
 ---
-name: research-to-article
 description: "Multi-agent research pipeline for voice content generation."
 user-invocable: false
 context: fork

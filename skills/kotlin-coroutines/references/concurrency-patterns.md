@@ -1,5 +1,4 @@
 ---
-name: concurrency-patterns
 description: "Kotlin structured concurrency: coroutineScope, supervisorScope, cancellation, dispatchers, exception handling."
 level: 2
 ---

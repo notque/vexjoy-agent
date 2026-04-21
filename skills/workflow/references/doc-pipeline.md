@@ -1,5 +1,4 @@
 ---
-name: doc-pipeline
 description: "Structured 5-phase documentation pipeline with research."
 user-invocable: false
 allowed-tools:

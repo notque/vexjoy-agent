@@ -1,5 +1,4 @@
 ---
-name: workflow-orchestrator
 user-invocable: false
 description: "Three-phase task orchestration: BRAINSTORM, WRITE-PLAN, EXECUTE-PLAN."
 success-criteria:

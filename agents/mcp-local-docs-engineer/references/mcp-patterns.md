@@ -1,5 +1,4 @@
 ---
-name: MCP Server Development Patterns
 description: Core MCP SDK patterns for TypeScript/Node.js server implementation, tool registration, and resource handling
 ---
 

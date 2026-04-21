@@ -1,5 +1,4 @@
 ---
-name: voice-calibrator
 description: "Analyze writing samples and extract voice patterns for profiles."
 user-invocable: false
 command: /voice

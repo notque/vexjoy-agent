@@ -1,5 +1,4 @@
 ---
-name: swift-concurrency-anti-patterns
 description: "Common concurrency mistakes: blocking MainActor, task leaking, actor reentrancy."
 type: reference
 ---

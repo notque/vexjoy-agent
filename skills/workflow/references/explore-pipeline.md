@@ -1,5 +1,4 @@
 ---
-name: explore-pipeline
 description: "Systematic codebase exploration with parallel subagents."
 user-invocable: false
 allowed-tools:

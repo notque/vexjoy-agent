@@ -1,5 +1,4 @@
 ---
-name: comprehensive-review
 description: "Four-wave code review pipeline for large or high-risk changes."
 effort: high
 user-invocable: false

@@ -1,5 +1,4 @@
 ---
-name: swift-task-patterns
 description: "TaskGroup, AsyncSequence, AsyncStream, and cancellation patterns."
 type: reference
 ---

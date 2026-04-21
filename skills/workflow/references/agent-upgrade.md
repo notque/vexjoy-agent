@@ -1,5 +1,4 @@
 ---
-name: agent-upgrade
 description: "5-phase agent/skill improvement: AUDIT, DIFF, PLAN, IMPLEMENT, RE-EVALUATE."
 user-invocable: false
 argument-hint: "<agent-or-skill-name>"

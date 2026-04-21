@@ -1,5 +1,4 @@
 ---
-name: TypeScript Async Patterns for MCP Servers
 description: Async/await, concurrency control, and error propagation patterns for MCP documentation server performance
 ---
 
