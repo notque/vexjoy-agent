@@ -60,6 +60,8 @@ Three mechanisms enforce this:
 
 **Memory corollary:** if it can be re-derived from a source of truth, do not save it to memory. Git log, the file system, and running queries are always available. Memory should capture what cannot be derived: feedback about working style, project context that lives outside the codebase, references to external systems the model cannot introspect. Saving derivable facts to memory turns it into a noisy cache that drifts out of sync with reality. Save human judgment, not machine-readable state.
 
+**Auto-memory is disabled in this repo** (`.claude/settings.json` sets `autoMemoryEnabled: false`). Claude Code's auto-memory feature surfaces an index of session-level fragments (feedback snippets, parallel project names, insight entries) at the top of every conversation. That index is useful as a lookup target but wrong as a constant context injection: it loads granular state at the wrong level of abstraction, on every turn, regardless of task relevance. The toolkit already has better homes for each fragment type. User feedback belongs in hooks and skill instructions where it becomes an enforced rule rather than a reminder. Project state lives in `adr/`, the codebase itself, and git history. Session insights belong in `learning.db`, where retro-knowledge injection can surface only the entries relevant to the current task. Loading all of it every turn violates the progressive context principle this toolkit is built on. Off by default, retrieved on demand.
+
 ## Tokens Are Expensive, Use Progressive Context
 
 Spending tokens on the right context ensures correctness. Spending tokens on unfocused context adds cost without improving quality.
