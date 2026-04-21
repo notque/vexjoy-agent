@@ -1,5 +1,4 @@
 ---
-name: MCP Server Anti-Patterns
 description: Common MCP server mistakes with detection commands and fixes — front matter parsing, caching failures, protocol violations
 ---
 

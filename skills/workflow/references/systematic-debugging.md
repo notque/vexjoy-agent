@@ -1,5 +1,4 @@
 ---
-name: systematic-debugging
 description: "Evidence-based 5-phase debugging: OBSERVE, HYPOTHESIZE, TEST, FIX, RECORD."
 effort: high
 user-invocable: false

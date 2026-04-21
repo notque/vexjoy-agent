@@ -1,5 +1,4 @@
 ---
-name: toolkit-improvement
 description: "Multi-angle toolkit evaluation, ADR creation, and fix pipeline."
 effort: high
 context: fork

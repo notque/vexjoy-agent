@@ -1,5 +1,4 @@
 ---
-name: anti-patterns
 description: "Kotlin coroutine anti-patterns: GlobalScope, unstructured launch, CancellationException swallowing."
 level: 2
 ---

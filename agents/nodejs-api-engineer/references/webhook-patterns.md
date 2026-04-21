@@ -1,5 +1,4 @@
 ---
-name: Webhook Patterns for Node.js APIs
 description: Webhook processing patterns — signature verification, idempotency, retry handling, and queue integration
 ---
 

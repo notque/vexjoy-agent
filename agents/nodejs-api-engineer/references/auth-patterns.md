@@ -1,5 +1,4 @@
 ---
-name: Authentication Patterns for Node.js APIs
 description: JWT, OAuth, session management, and token refresh implementations with security-correct patterns
 ---
 

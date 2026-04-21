@@ -1,5 +1,4 @@
 ---
-name: Express/Next.js Middleware Patterns
 description: Error handling middleware, validation, rate limiting, and security header patterns for Node.js APIs
 ---
 

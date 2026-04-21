@@ -1,5 +1,4 @@
 ---
-name: swift-actor-isolation
 description: "Actor isolation, @MainActor, nonisolated patterns with code examples."
 type: reference
 ---

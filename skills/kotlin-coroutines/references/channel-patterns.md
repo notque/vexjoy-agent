@@ -1,5 +1,4 @@
 ---
-name: channel-patterns
 description: "Kotlin Channel types, fan-in/fan-out, and producer-consumer patterns."
 level: 2
 ---

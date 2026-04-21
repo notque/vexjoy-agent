@@ -1,5 +1,4 @@
 ---
-name: OpenSearch/Elasticsearch Index Management
 description: Mapping design, ILM policies, index templates, and reindexing strategies with anti-pattern detection
 ---
 

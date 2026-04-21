@@ -1,5 +1,4 @@
 ---
-name: article-evaluation-pipeline
 description: "Wabi-sabi-aware 4-phase article evaluation for voice authenticity."
 user-invocable: false
 allowed-tools:

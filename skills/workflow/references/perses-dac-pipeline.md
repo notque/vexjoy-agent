@@ -1,5 +1,4 @@
 ---
-name: perses-dac-pipeline
 user-invocable: false
 description: "Dashboard-as-Code pipeline for Perses with CUE and percli."
 allowed-tools:

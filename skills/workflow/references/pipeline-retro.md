@@ -1,5 +1,4 @@
 ---
-name: pipeline-retro
 description: "Trace pipeline test failures to generator root causes."
 user-invocable: false
 agent: pipeline-orchestrator-engineer

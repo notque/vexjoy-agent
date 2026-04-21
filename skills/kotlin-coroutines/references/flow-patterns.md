@@ -1,5 +1,4 @@
 ---
-name: flow-patterns
 description: "Kotlin Flow patterns: cold streams, StateFlow, SharedFlow comparison and usage."
 level: 2
 ---
