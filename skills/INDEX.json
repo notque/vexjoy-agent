@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-17T20:49:52Z",
+  "generated": "2026-04-21T20:19:43Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -19,8 +19,7 @@
       "user_invocable": false,
       "pairs_with": [
         "feature-lifecycle"
-      ],
-      "model": "sonnet"
+      ]
     },
     "agent-comparison": {
       "file": "skills/agent-comparison/SKILL.md",
@@ -78,8 +77,7 @@
       ],
       "category": "meta-tooling",
       "user_invocable": true,
-      "pairs_with": [],
-      "model": "sonnet"
+      "pairs_with": []
     },
     "bluesky-reader": {
       "file": "skills/bluesky-reader/SKILL.md",
@@ -231,8 +229,7 @@
       "user_invocable": false,
       "pairs_with": [
         "x-api"
-      ],
-      "model": "sonnet"
+      ]
     },
     "create-voice": {
       "file": "skills/create-voice/SKILL.md",
@@ -421,8 +418,7 @@
         "typescript-frontend-engineer",
         "test-driven-development"
       ],
-      "agent": "testing-automation-engineer",
-      "model": "sonnet"
+      "agent": "testing-automation-engineer"
     },
     "endpoint-validator": {
       "file": "skills/endpoint-validator/SKILL.md",
@@ -572,8 +568,7 @@
         "typescript-frontend-engineer",
         "pptx-generator"
       ],
-      "agent": "typescript-frontend-engineer",
-      "model": "sonnet"
+      "agent": "typescript-frontend-engineer"
     },
     "full-repo-review": {
       "file": "skills/full-repo-review/SKILL.md",
@@ -589,8 +584,7 @@
       "user_invocable": true,
       "pairs_with": [
         "comprehensive-review"
-      ],
-      "model": "sonnet"
+      ]
     },
     "game-asset-generator": {
       "file": "skills/game-asset-generator/SKILL.md",
@@ -703,8 +697,7 @@
       ],
       "category": "github",
       "user_invocable": false,
-      "pairs_with": [],
-      "model": "sonnet"
+      "pairs_with": []
     },
     "go-patterns": {
       "file": "skills/go-patterns/SKILL.md",
@@ -874,8 +867,7 @@
       "user_invocable": true,
       "pairs_with": [
         "auto-dream"
-      ],
-      "model": "sonnet"
+      ]
     },
     "kb": {
       "file": "skills/kb/SKILL.md",
@@ -1087,8 +1079,7 @@
         "perses-engineer",
         "prometheus-grafana-engineer"
       ],
-      "agent": "perses-engineer",
-      "model": "sonnet"
+      "agent": "perses-engineer"
     },
     "phaser-gamedev": {
       "file": "skills/phaser-gamedev/SKILL.md",
@@ -1466,8 +1457,7 @@
       "pairs_with": [
         "workflow"
       ],
-      "agent": "research-coordinator-engineer",
-      "model": "sonnet"
+      "agent": "research-coordinator-engineer"
     },
     "research-pipeline": {
       "file": "skills/research-pipeline/SKILL.md",
@@ -1483,8 +1473,7 @@
       ],
       "category": "research",
       "user_invocable": true,
-      "agent": "research-coordinator-engineer",
-      "model": "sonnet"
+      "agent": "research-coordinator-engineer"
     },
     "retro": {
       "file": "skills/retro/SKILL.md",
@@ -1564,8 +1553,7 @@
         "go-patterns",
         "sapcc-audit"
       ],
-      "agent": "golang-general-engineer",
-      "model": "sonnet"
+      "agent": "golang-general-engineer"
     },
     "security-threat-model": {
       "file": "skills/security-threat-model/SKILL.md",
@@ -1586,8 +1574,7 @@
       "user_invocable": false,
       "pairs_with": [
         "python-general-engineer"
-      ],
-      "model": "sonnet"
+      ]
     },
     "series-planner": {
       "file": "skills/series-planner/SKILL.md",
@@ -1614,6 +1601,28 @@
       ],
       "category": "infrastructure",
       "user_invocable": false
+    },
+    "shell-process-patterns": {
+      "file": "skills/shell-process-patterns/SKILL.md",
+      "description": "Safely start, supervise, and terminate shell processes: background jobs, PID capture, signals, traps, cleanup verification.",
+      "triggers": [
+        "background process",
+        "nohup",
+        "kill process",
+        "pid lookup",
+        "shell cleanup",
+        "trap handler",
+        "signal handling",
+        "set -e",
+        "bash process"
+      ],
+      "category": "process",
+      "user_invocable": false,
+      "pairs_with": [
+        "condition-based-waiting",
+        "service-health-check",
+        "cron-job-auditor"
+      ]
     },
     "skill-composer": {
       "file": "skills/skill-composer/SKILL.md",
@@ -1922,8 +1931,7 @@
       "pairs_with": [
         "typescript-frontend-engineer"
       ],
-      "agent": "python-general-engineer",
-      "model": "sonnet"
+      "agent": "python-general-engineer"
     },
     "vitest-runner": {
       "file": "skills/vitest-runner/SKILL.md",
@@ -1962,8 +1970,7 @@
         "content pipeline"
       ],
       "category": "voice",
-      "user_invocable": true,
-      "model": "sonnet"
+      "user_invocable": true
     },
     "webgl-card-effects": {
       "file": "skills/webgl-card-effects/SKILL.md",
@@ -2032,8 +2039,7 @@
         "orchestrated workflow"
       ],
       "category": "meta-tooling",
-      "user_invocable": false,
-      "model": "sonnet"
+      "user_invocable": false
     },
     "workflow-help": {
       "file": "skills/workflow-help/SKILL.md",
@@ -2084,8 +2090,7 @@
       "pairs_with": [
         "content-engine"
       ],
-      "agent": "python-general-engineer",
-      "model": "sonnet"
+      "agent": "python-general-engineer"
     }
   }
 }
