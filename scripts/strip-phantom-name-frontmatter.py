@@ -29,10 +29,37 @@ Safety
   modified file aborts the run with a non-zero exit code.
 - Files with no ``name:`` field are never touched.
 
+Verified-safe mode
+==================
+The default audit is conservative: any substring match in the routing table
+or a pipeline JSON is treated as a dispatch dependency and the file is
+skipped. A prior investigation showed that for the 29 files under
+``skills/workflow/references/*.md`` plus
+``skills/kotlin-coroutines/references/anti-patterns.md``, the substring
+matches are false positives for dispatch purposes:
+
+1. The pipeline dispatcher in ``scripts/index-router.py`` keys on JSON keys
+   from ``skills/workflow/references/pipeline-index.json`` and on file paths,
+   not on the YAML ``name:`` field inside the reference files themselves.
+2. The only script that reads the YAML ``name:`` field is
+   ``scripts/generate-pipeline-catalog.py``. When ``name`` is absent it
+   falls back to ``skill_file.stem`` (line using ``frontmatter.get("name",
+   skill_file.stem)``), which produces the same string for these files
+   because the YAML name already matches the filename stem.
+3. Hits against the routing table are on prose descriptions of routed
+   *skills*, not on the reference-file umbrella entries.
+
+The ``--verified-safe`` flag enables an allowlist of these 29 paths so the
+strip proceeds on them. The proof of no behavioral change is a
+byte-identical ``skills/workflow/references/auto-pipeline/references/pipeline-catalog.json``
+before and after the strip. Always regenerate and diff that file when
+running with ``--verified-safe``.
+
 Usage
 =====
-    python3 scripts/strip-phantom-name-frontmatter.py            # apply edits
-    python3 scripts/strip-phantom-name-frontmatter.py --dry-run  # inventory only
+    python3 scripts/strip-phantom-name-frontmatter.py                    # default audit
+    python3 scripts/strip-phantom-name-frontmatter.py --dry-run          # inventory only
+    python3 scripts/strip-phantom-name-frontmatter.py --verified-safe    # allowlist mode
 
 Rollback
 ========
@@ -64,6 +91,48 @@ AGENT_REF_GLOB = "agents/*/references/*.md"
 SKILL_REF_GLOB = "skills/*/references/*.md"
 
 ROUTING_TABLE = REPO_ROOT / "skills" / "do" / "references" / "routing-tables.md"
+
+
+# Verified-safe allowlist. These files were flagged by the conservative
+# audit as potentially routed, but investigation showed the matches are
+# false positives: dispatch is JSON-keyed (see scripts/index-router.py)
+# and scripts/generate-pipeline-catalog.py has a skill_file.stem fallback
+# that reproduces the same string after name: is removed. The proof of
+# no behavioral change is a byte-identical pipeline-catalog.json before
+# and after running with --verified-safe.
+VERIFIED_SAFE_PATHS: frozenset[str] = frozenset(
+    {
+        "skills/kotlin-coroutines/references/anti-patterns.md",
+        "skills/workflow/references/agent-upgrade.md",
+        "skills/workflow/references/article-evaluation-pipeline.md",
+        "skills/workflow/references/auto-pipeline.md",
+        "skills/workflow/references/chain-composer.md",
+        "skills/workflow/references/comprehensive-review.md",
+        "skills/workflow/references/de-ai-pipeline.md",
+        "skills/workflow/references/do-perspectives.md",
+        "skills/workflow/references/doc-pipeline.md",
+        "skills/workflow/references/domain-research.md",
+        "skills/workflow/references/explore-pipeline.md",
+        "skills/workflow/references/github-profile-rules.md",
+        "skills/workflow/references/hook-development-pipeline.md",
+        "skills/workflow/references/mcp-pipeline-builder.md",
+        "skills/workflow/references/perses-dac-pipeline.md",
+        "skills/workflow/references/perses-plugin-pipeline.md",
+        "skills/workflow/references/pipeline-retro.md",
+        "skills/workflow/references/pipeline-scaffolder.md",
+        "skills/workflow/references/pipeline-test-runner.md",
+        "skills/workflow/references/research-pipeline.md",
+        "skills/workflow/references/research-to-article.md",
+        "skills/workflow/references/skill-creation-pipeline.md",
+        "skills/workflow/references/system-upgrade.md",
+        "skills/workflow/references/systematic-debugging.md",
+        "skills/workflow/references/systematic-refactoring.md",
+        "skills/workflow/references/toolkit-improvement.md",
+        "skills/workflow/references/voice-calibrator.md",
+        "skills/workflow/references/voice-writer.md",
+        "skills/workflow/references/workflow-orchestrator.md",
+    }
+)
 
 
 FRONTMATTER_RE = re.compile(
@@ -270,6 +339,15 @@ def main() -> int:
         action="store_true",
         help="Inventory and audit only; do not modify any file.",
     )
+    parser.add_argument(
+        "--verified-safe",
+        action="store_true",
+        help=(
+            "Strip name: from paths on the VERIFIED_SAFE_PATHS allowlist even "
+            "if the conservative audit would otherwise skip them. See the "
+            "module docstring for the verdict evidence."
+        ),
+    )
     args = parser.parse_args()
 
     print("== Inventory ==")
@@ -297,6 +375,28 @@ def main() -> int:
                     skip_list.add(path)
     else:
         print("No phantom names appear as routed targets.")
+
+    if args.verified_safe:
+        print()
+        print("== Verified-safe overrides ==")
+        overridden: list[Path] = []
+        for path in list(skip_list):
+            rel = str(path.relative_to(REPO_ROOT))
+            if rel in VERIFIED_SAFE_PATHS:
+                skip_list.discard(path)
+                overridden.append(path)
+        print(f"Allowlist hits removed from skip list: {len(overridden)}")
+        for path in overridden:
+            print(f"  OVERRIDE: {path.relative_to(REPO_ROOT)}")
+        # Warn if the allowlist references paths that are not even
+        # candidates (e.g. already stripped on a prior run). This is
+        # informational, not fatal.
+        candidate_paths = {str(p.relative_to(REPO_ROOT)) for p, _ in candidates}
+        stale = sorted(VERIFIED_SAFE_PATHS - candidate_paths)
+        if stale:
+            print(f"Allowlist entries already stripped (no-op): {len(stale)}")
+            for rel in stale:
+                print(f"  NO-OP: {rel}")
 
     safe = [(p, n) for p, n in candidates if p not in skip_list]
     print()

@@ -1,5 +1,4 @@
 ---
-name: github-profile-rules
 description: "Extract coding conventions from a GitHub user's public profile."
 user-invocable: false
 argument-hint: "<github-username>"
