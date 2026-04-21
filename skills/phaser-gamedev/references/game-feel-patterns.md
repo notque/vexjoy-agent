@@ -1,5 +1,4 @@
 ---
-name: Phaser Game Feel Patterns
 description: Screen shake, particle bursts, hit pause, scale punch, tween chaining, sound timing — techniques that make Phaser 3 games feel polished and responsive
 agent: phaser-gamedev
 category: visual-techniques

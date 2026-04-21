@@ -1,5 +1,4 @@
 ---
-name: Three.js Advanced Animation
 description: AnimationMixer with morph targets, skeletal animation, procedural IK approximation, GSAP integration, particle system animation via BufferGeometry attributes
 agent: threejs-builder
 category: visual-techniques

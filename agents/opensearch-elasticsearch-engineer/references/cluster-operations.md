@@ -1,5 +1,4 @@
 ---
-name: OpenSearch/Elasticsearch Cluster Operations
 description: Cluster health, shard allocation, capacity planning, rolling upgrades, and snapshot/restore operations
 ---
 

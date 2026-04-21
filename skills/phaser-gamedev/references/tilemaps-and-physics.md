@@ -1,5 +1,4 @@
 ---
-name: Phaser Tilemaps and Physics
 description: Tiled map integration, Matter.js vs Arcade physics decision table, collision groups, slopes, object layers for enemy spawning, and physics performance patterns
 agent: phaser-gamedev
 category: patterns

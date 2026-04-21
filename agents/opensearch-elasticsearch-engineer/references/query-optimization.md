@@ -1,5 +1,4 @@
 ---
-name: OpenSearch/Elasticsearch Query Optimization
 description: Query DSL patterns, aggregation optimization, caching strategies, and search profiling for performance tuning
 ---
 
