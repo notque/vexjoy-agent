@@ -79,6 +79,18 @@ There is no opt-out flag. The mirror is harmless when Codex CLI is not installed
 
 **Reference**: [`adr/182-codex-hooks-mirror.md`](adr/182-codex-hooks-mirror.md). Upstream Phase 2 tracker: [openai/codex#16732](https://github.com/openai/codex/issues/16732).
 
+## Running Claude Code with the toolkit
+
+The toolkit already supplies routing (`/do`), domain knowledge (agents), methodology (skills), and enforcement (hooks, CLAUDE.md). The shipped Claude Code system prompt, which is several thousand tokens, largely duplicates that structure for toolkit users. Override it to shrink per-request token cost:
+
+```bash
+claude --system-prompt "."
+```
+
+The `.` is just a non-empty placeholder (some shells reject an empty string). This is a token-economy and architectural-fit pattern, not a claim about output quality.
+
+Trade-off: overriding the default strips Claude Code's built-in tool-use instructions and style guidance. That context comes back through the toolkit's own agents, skills, hooks, and CLAUDE.md, which is why the pattern fits here. On a bare Claude Code install without the toolkit, use `--append-system-prompt "..."` instead so the default guidance stays in place.
+
 ## The Core Workflow
 
 1. **Routing.** You type a request. The router entry point is `/do` in Claude Code and `$do` in Codex. It classifies intent, selects a domain agent and a workflow skill, and dispatches. No menus, no configuration.
