@@ -1,7 +1,21 @@
 ---
+name: pr-review
 description: "Comprehensive PR review using specialized agents, with automatic retro knowledge capture"
-argument-hint: "[review-aspects]"
-allowed-tools: ["Bash", "Glob", "Grep", "Read", "Agent"]
+user-invocable: false
+allowed-tools:
+  - Bash
+  - Glob
+  - Grep
+  - Read
+  - Task
+routing:
+  triggers:
+    - "pr review"
+    - "review pr"
+    - "pull request review"
+    - "comprehensive pr review"
+    - "review pull request"
+  category: code-review
 ---
 
 # Comprehensive PR Review (with Retro Learning)
