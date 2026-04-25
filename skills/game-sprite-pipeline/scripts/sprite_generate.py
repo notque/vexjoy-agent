@@ -2,9 +2,17 @@
 """
 Backend dispatcher for the game-sprite-pipeline skill.
 
-Selects between Codex CLI imagegen (primary) and Gemini Nano Banana
-(fallback). Fails loudly when neither backend is available -- the skill
-does NOT call paid APIs directly.
+Codex CLI imagegen is the SOLE backend. The skill fails LOUDLY when Codex is
+unavailable rather than silently falling back to paid APIs (no Gemini, no
+Nano Banana, no OpenAI direct). This is intentional per the Local-First
+principle (PHILOSOPHY.md).
+
+Codex CLI does not have a `codex image generate` subcommand. Image
+generation happens through `codex exec`: the Codex agent has access to an
+internal imagegen tool, and we invoke it by prompting the agent to "generate
+an image of <subject> and save it to <absolute-path>". Codex first writes
+the file under ``$CODEX_HOME/generated_images/<session-id>/ig_*.png`` and
+then the agent copies/moves it to the requested path inside its workspace.
 
 Subcommands:
     generate-portrait       Single portrait image
@@ -15,50 +23,42 @@ Usage:
     python3 sprite_generate.py generate-portrait \\
         --prompt-file prompt.txt --output portrait.png --seed 42
 
-The script never touches paid endpoints. Detection logic:
-    1. `codex` in PATH and `codex --version` exits 0 -> Codex CLI.
-    2. GEMINI_API_KEY (or GOOGLE_API_KEY) set -> Nano Banana.
-    3. Else: BackendUnavailableError with explicit fix instructions.
+Detection logic on every call:
+    1. ``codex`` in PATH and ``codex --version`` exits 0 -> use Codex CLI.
+    2. Else -> raise BackendUnavailableError with explicit fix instructions.
 """
 
 from __future__ import annotations
 
 import argparse
-import os
 import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-# Resolve nano-banana script paths. Prefer ~/.claude/scripts/ (deployed),
-# fall back to repo path when running in a dev checkout.
-NANO_BANANA_GENERATE_CANDIDATES = [
-    Path.home() / ".claude" / "scripts" / "nano-banana-generate.py",
-    Path("/home/feedgen/.claude/scripts/nano-banana-generate.py"),
-]
-
-
-def find_nano_banana_script() -> Path | None:
-    """Return the first existing nano-banana-generate.py path."""
-    for candidate in NANO_BANANA_GENERATE_CANDIDATES:
-        if candidate.exists():
-            return candidate
-    return None
+# Default Codex exec wall-clock cap per generation (seconds).
+# A typical imagegen run takes ~20-60s; allow a comfortable margin.
+DEFAULT_CODEX_TIMEOUT_S = 240
 
 
 class BackendUnavailableError(RuntimeError):
-    """Raised when no image-generation backend is available."""
+    """Raised when the Codex CLI backend is not available."""
 
 
 @dataclass
 class BackendChoice:
-    backend: str  # 'codex' | 'nano-banana'
+    backend: str  # always 'codex' in this Codex-only build
     detected_via: str
 
 
 def select_backend() -> BackendChoice:
-    """Detect which backend to use. Fail loudly if none available."""
+    """Detect Codex CLI availability. Fail loudly if unavailable.
+
+    Codex is the only supported backend. No fallback. If Codex is missing or
+    unauthenticated, the skill raises rather than silently calling a paid
+    alternative.
+    """
     if shutil.which("codex"):
         try:
             subprocess.run(
@@ -69,24 +69,22 @@ def select_backend() -> BackendChoice:
             )
             return BackendChoice(backend="codex", detected_via="codex --version exit 0")
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as e:
-            print(
-                f"[backend] codex CLI present but auth check failed ({e}); trying Nano Banana",
-                file=sys.stderr,
-            )
-
-    if os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"):
-        return BackendChoice(backend="nano-banana", detected_via="GEMINI_API_KEY env set")
+            raise BackendUnavailableError(
+                "Codex CLI is on PATH but the auth/version check failed: "
+                f"{e}.\n\n"
+                "Run `codex login` to authenticate, then retry. This skill\n"
+                "does not fall back to paid APIs (no Gemini, no Nano Banana,\n"
+                "no OpenAI direct) by design -- absence of the free backend\n"
+                "must be visible, not silently monetized."
+            ) from e
 
     raise BackendUnavailableError(
-        "No image-generation backend available.\n\n"
-        "Tried in order:\n"
-        "  1. Codex CLI (`codex` not in PATH or auth failed)\n"
-        "  2. Gemini Nano Banana (GEMINI_API_KEY not set)\n\n"
-        "This skill does not call paid APIs directly. To proceed:\n"
-        "  - Install Codex CLI and run `codex auth`, OR\n"
-        "  - Set GEMINI_API_KEY: export GEMINI_API_KEY=<your-key>\n\n"
-        "Never set OPENAI_API_KEY for this skill -- paid fallbacks are\n"
-        "intentionally prohibited per the Local-First principle."
+        "Codex CLI is not available.\n\n"
+        "Install Codex CLI and run `codex login`, then retry.\n\n"
+        "This skill uses Codex CLI imagegen as its sole backend. There is\n"
+        "no fallback to paid APIs (no Gemini, no Nano Banana, no OpenAI\n"
+        "direct). The skill fails loud rather than silently charging your\n"
+        "card on a backend you did not opt into."
     )
 
 
@@ -104,111 +102,127 @@ def read_prompt(prompt: str | None, prompt_file: Path | None) -> str:
 # ---------------------------------------------------------------------------
 # Codex CLI dispatch
 # ---------------------------------------------------------------------------
+def _build_codex_prompt(
+    user_prompt: str,
+    output: Path,
+    reference: Path | None,
+) -> str:
+    """Wrap the user's prompt with explicit imagegen + save instructions.
+
+    Codex CLI's image generation is invoked by *asking the agent* to use its
+    imagegen tool and to save the result at a specific path. The wrapper
+    below forces both behaviors and asks for a final ``ls -la`` so the call
+    fails loudly if the file is missing.
+    """
+    ref_clause = ""
+    if reference is not None:
+        ref_clause = f"\nReference image to follow for character identity: {reference}\n"
+
+    return (
+        "Use your image_gen tool to create the following image. Then save\n"
+        f"the resulting PNG file to this absolute path: {output}\n"
+        "After saving, run `ls -la <path>` to verify the file exists.\n"
+        f"{ref_clause}\n"
+        "Image specification:\n"
+        f"{user_prompt}\n"
+    )
+
+
 def generate_via_codex(
     prompt: str,
     output: Path,
-    aspect_ratio: str | None = None,
     reference: Path | None = None,
     seed: int = 0,
-    model: str = "image-1",
+    timeout_s: int = DEFAULT_CODEX_TIMEOUT_S,
+    log_file: Path | None = None,
 ) -> int:
-    """Run Codex CLI imagegen via subprocess. Returns exit code."""
+    """Run Codex CLI imagegen via subprocess. Returns exit code.
+
+    The Codex CLI exec sandbox blocks file writes through bubblewrap on
+    machines without proper bwrap setup; we use
+    ``--dangerously-bypass-approvals-and-sandbox`` because this skill is
+    intentionally invoked from controlled, user-initiated automation only.
+    Reference images are passed via the ``-i`` flag (Codex 0.125+).
+
+    The ``seed`` argument is not piped to Codex (no public seed flag) but is
+    embedded in the prompt body for the model's awareness; reproducibility
+    is best-effort here.
+    """
     output.parent.mkdir(parents=True, exist_ok=True)
 
-    cmd: list[str] = ["codex", "exec", prompt, "--output-image", str(output), "--model", model]
-    if aspect_ratio:
-        cmd.extend(["--aspect-ratio", aspect_ratio])
-    if reference:
-        cmd.extend(["--reference", str(reference)])
+    wrapped = _build_codex_prompt(prompt, output, reference)
     if seed:
-        cmd.extend(["--seed", str(seed)])
+        wrapped = f"# seed={seed}\n{wrapped}"
 
-    print(f"[backend:codex] $ {' '.join(cmd[:3])} ...", file=sys.stderr)
+    cmd: list[str] = [
+        "codex",
+        "exec",
+        "--dangerously-bypass-approvals-and-sandbox",
+        "--skip-git-repo-check",
+    ]
+    if reference is not None:
+        cmd.extend(["-i", str(reference)])
+    cmd.append(wrapped)
+
+    print(f"[backend:codex] generating -> {output} (timeout {timeout_s}s)", file=sys.stderr)
     try:
-        subprocess.run(cmd, check=True, capture_output=True, timeout=180)
+        if log_file is not None:
+            log_file.parent.mkdir(parents=True, exist_ok=True)
+            with log_file.open("w", encoding="utf-8") as fp:
+                proc = subprocess.run(
+                    cmd,
+                    check=False,
+                    stdout=fp,
+                    stderr=subprocess.STDOUT,
+                    timeout=timeout_s,
+                )
+        else:
+            proc = subprocess.run(
+                cmd,
+                check=False,
+                capture_output=True,
+                timeout=timeout_s,
+            )
+
+        if proc.returncode != 0:
+            print(f"[backend:codex] non-zero exit {proc.returncode}", file=sys.stderr)
+            if log_file is None and proc.stderr:
+                print(proc.stderr.decode(errors="replace"), file=sys.stderr)
+            return proc.returncode
+
+        if not output.exists() or output.stat().st_size == 0:
+            print(
+                f"[backend:codex] codex exec exited 0 but {output} is missing/empty.\n"
+                "  Common causes: prompt did not invoke imagegen tool, sandbox\n"
+                "  blocked file save, or model declined the request. Inspect the\n"
+                f"  Codex log at {log_file if log_file else 'stderr'} for details.",
+                file=sys.stderr,
+            )
+            return 5
         return 0
-    except subprocess.CalledProcessError as e:
-        print(f"[backend:codex] failed exit {e.returncode}", file=sys.stderr)
-        if e.stderr:
-            print(e.stderr.decode(errors="replace"), file=sys.stderr)
-        return e.returncode
     except subprocess.TimeoutExpired:
-        print("[backend:codex] timed out after 180s", file=sys.stderr)
-        return 124
-
-
-# ---------------------------------------------------------------------------
-# Nano Banana dispatch
-# ---------------------------------------------------------------------------
-def generate_via_nano_banana(
-    prompt: str,
-    output: Path,
-    aspect_ratio: str = "1:1",
-    reference: Path | None = None,
-    seed: int = 0,
-    model: str = "pro",
-) -> int:
-    """Shell out to nano-banana-generate.py. Returns exit code."""
-    script = find_nano_banana_script()
-    if script is None:
-        print(
-            "[backend:nano-banana] nano-banana-generate.py not found at expected paths",
-            file=sys.stderr,
-        )
-        return 127
-
-    output.parent.mkdir(parents=True, exist_ok=True)
-
-    if reference:
-        cmd = [
-            sys.executable,
-            str(script),
-            "with-reference",
-            "--prompt",
-            prompt,
-            "--reference",
-            str(reference),
-            "--output",
-            str(output),
-            "--model",
-            model,
-            "--aspect-ratio",
-            aspect_ratio,
-        ]
-    else:
-        cmd = [
-            sys.executable,
-            str(script),
-            "generate",
-            "--prompt",
-            prompt,
-            "--output",
-            str(output),
-            "--model",
-            model,
-            "--aspect-ratio",
-            aspect_ratio,
-        ]
-
-    print(f"[backend:nano-banana] $ {script.name} ({'with-reference' if reference else 'generate'})", file=sys.stderr)
-    try:
-        subprocess.run(cmd, check=True, timeout=300)
-        return 0
-    except subprocess.CalledProcessError as e:
-        print(f"[backend:nano-banana] failed exit {e.returncode}", file=sys.stderr)
-        return e.returncode
-    except subprocess.TimeoutExpired:
-        print("[backend:nano-banana] timed out after 300s", file=sys.stderr)
+        print(f"[backend:codex] timed out after {timeout_s}s", file=sys.stderr)
         return 124
 
 
 # ---------------------------------------------------------------------------
 # Subcommand wrappers
 # ---------------------------------------------------------------------------
-def cmd_generate_portrait(args: argparse.Namespace) -> int:
+def _run_generate(
+    args: argparse.Namespace,
+    *,
+    aspect_hint: str,
+    use_reference: bool,
+) -> int:
+    """Shared dispatch path for portrait, character, and spritesheet modes.
+
+    aspect_hint is informational only -- Codex CLI does not expose a public
+    aspect-ratio flag, so we encode the desired aspect in the prompt body.
+    """
     if args.dry_run:
-        print("[backend] DRY-RUN: skipping backend call (portrait)", file=sys.stderr)
+        print(f"[backend] DRY-RUN: skipping Codex call ({aspect_hint})", file=sys.stderr)
         return 0
+
     try:
         choice = select_backend()
     except BackendUnavailableError as e:
@@ -219,52 +233,41 @@ def cmd_generate_portrait(args: argparse.Namespace) -> int:
     prompt = read_prompt(args.prompt, Path(args.prompt_file) if args.prompt_file else None)
     output = Path(args.output)
 
-    if choice.backend == "codex":
-        return generate_via_codex(prompt, output, aspect_ratio="4:5", seed=args.seed)
-    return generate_via_nano_banana(prompt, output, aspect_ratio="4:5", seed=args.seed)
+    aspect_line = f"\nAspect ratio target: {aspect_hint}.\n"
+    full_prompt = prompt + aspect_line
+
+    reference: Path | None = None
+    if use_reference:
+        canvas = getattr(args, "canvas", None)
+        ref = getattr(args, "reference", None)
+        # spritesheet generation prefers the canvas template as structural ref;
+        # fall back to character reference when canvas is missing.
+        if canvas:
+            reference = Path(canvas)
+        elif ref:
+            reference = Path(ref)
+
+    log_file = Path(args.log_file) if args.log_file else None
+    return generate_via_codex(
+        full_prompt,
+        output,
+        reference=reference,
+        seed=args.seed,
+        timeout_s=args.timeout,
+        log_file=log_file,
+    )
+
+
+def cmd_generate_portrait(args: argparse.Namespace) -> int:
+    return _run_generate(args, aspect_hint="4:5 portrait", use_reference=False)
 
 
 def cmd_generate_character(args: argparse.Namespace) -> int:
-    if args.dry_run:
-        print("[backend] DRY-RUN: skipping backend call (character reference)", file=sys.stderr)
-        return 0
-    try:
-        choice = select_backend()
-    except BackendUnavailableError as e:
-        print(f"ERROR: {e}", file=sys.stderr)
-        return 3
-    print(f"[backend] selected={choice.backend} ({choice.detected_via})", file=sys.stderr)
-
-    prompt = read_prompt(args.prompt, Path(args.prompt_file) if args.prompt_file else None)
-    output = Path(args.output)
-
-    if choice.backend == "codex":
-        return generate_via_codex(prompt, output, aspect_ratio="1:1", seed=args.seed)
-    return generate_via_nano_banana(prompt, output, aspect_ratio="1:1", seed=args.seed)
+    return _run_generate(args, aspect_hint="1:1 square (1024x1024)", use_reference=False)
 
 
 def cmd_generate_spritesheet(args: argparse.Namespace) -> int:
-    if args.dry_run:
-        print("[backend] DRY-RUN: skipping backend call (spritesheet)", file=sys.stderr)
-        return 0
-    try:
-        choice = select_backend()
-    except BackendUnavailableError as e:
-        print(f"ERROR: {e}", file=sys.stderr)
-        return 3
-    print(f"[backend] selected={choice.backend} ({choice.detected_via})", file=sys.stderr)
-
-    prompt = read_prompt(args.prompt, Path(args.prompt_file) if args.prompt_file else None)
-    output = Path(args.output)
-    canvas = Path(args.canvas) if args.canvas else None
-    reference = Path(args.reference) if args.reference else None
-
-    # spritesheet generation prefers a structural reference (canvas template)
-    structural_ref = canvas or reference
-
-    if choice.backend == "codex":
-        return generate_via_codex(prompt, output, reference=structural_ref, seed=args.seed)
-    return generate_via_nano_banana(prompt, output, reference=structural_ref, seed=args.seed)
+    return _run_generate(args, aspect_hint="1:1 square (1024x1024)", use_reference=True)
 
 
 # ---------------------------------------------------------------------------
@@ -275,7 +278,14 @@ def _add_common_args(parser: argparse.ArgumentParser) -> None:
     grp.add_argument("--prompt", help="Prompt text")
     grp.add_argument("--prompt-file", help="Path to a file containing the prompt")
     parser.add_argument("--output", required=True, help="Output PNG path")
-    parser.add_argument("--seed", type=int, default=0, help="Reproducibility seed")
+    parser.add_argument("--seed", type=int, default=0, help="Reproducibility seed (best-effort)")
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=DEFAULT_CODEX_TIMEOUT_S,
+        help=f"Wall-clock cap for the Codex run (default {DEFAULT_CODEX_TIMEOUT_S}s)",
+    )
+    parser.add_argument("--log-file", help="Optional path to capture Codex stdout/stderr")
     parser.add_argument("--dry-run", action="store_true", help="Skip backend call (smoke testing)")
 
 
@@ -293,7 +303,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     gs = sub.add_parser("generate-spritesheet", help="Phase C: spritesheet generation")
     _add_common_args(gs)
-    gs.add_argument("--canvas", help="Phase B grid canvas template path")
+    gs.add_argument("--canvas", help="Phase B grid canvas template path (used as -i reference)")
     gs.add_argument("--reference", help="Reference character path (Phase A output)")
     gs.set_defaults(func=cmd_generate_spritesheet)
 

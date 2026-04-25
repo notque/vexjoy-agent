@@ -34,6 +34,41 @@ except ImportError as e:
 
 ALLOWED_CELL_SIZES = {64, 128, 192, 256, 384, 512}
 MAX_CANVAS_DIM = 2048
+DEFAULT_MAX_CANVAS = 1024
+
+
+def compute_max_grid(cell_size: int, max_canvas: int = DEFAULT_MAX_CANVAS) -> tuple[int, int]:
+    """Return ``(rows, cols)`` for the largest square grid that fits.
+
+    One Codex CLI imagegen call produces ONE image, so the pipeline should
+    pack as many frames as possible into that one image. This helper picks
+    the largest square ``rows x cols`` that fits a ``max_canvas`` square at
+    the given ``cell_size``.
+
+    >>> compute_max_grid(256, 1024)
+    (4, 4)
+    >>> compute_max_grid(128, 1024)
+    (8, 8)
+    >>> compute_max_grid(64, 1024)
+    (16, 16)
+    >>> compute_max_grid(192, 1024)
+    (5, 5)
+
+    Raises ``ValueError`` when the cell does not fit even once.
+    """
+    if cell_size <= 0:
+        raise ValueError(f"cell_size must be positive, got {cell_size}")
+    if max_canvas <= 0:
+        raise ValueError(f"max_canvas must be positive, got {max_canvas}")
+    side = max_canvas // cell_size
+    if side < 1:
+        raise ValueError(
+            f"cell_size {cell_size} is larger than max_canvas {max_canvas}; "
+            "no grid fits. Reduce cell-size or raise --max-canvas."
+        )
+    return side, side
+
+
 MAGENTA = (255, 0, 255, 255)
 BORDER_COLOR = (32, 32, 32, 255)
 BORDER_WIDTH = 2
@@ -111,9 +146,29 @@ def render_canvas(spec: CanvasSpec) -> Image.Image:
 
 def cmd_make_template(args: argparse.Namespace) -> int:
     """make-template subcommand entry."""
+    rows, cols = args.rows, args.cols
+    if args.max_frames:
+        try:
+            r, c = compute_max_grid(args.cell_size, args.max_canvas)
+        except ValueError as e:
+            print(f"ERROR: {e}", file=sys.stderr)
+            return 2
+        rows, cols = r, c
+        print(
+            f"[canvas] auto-grid: {cols}x{rows} = {cols * rows} frames @ "
+            f"{args.cell_size}px on {args.max_canvas}x{args.max_canvas} canvas",
+            file=sys.stderr,
+        )
+    if rows is None or cols is None:
+        print(
+            "ERROR: --rows and --cols are required unless --max-frames is set.",
+            file=sys.stderr,
+        )
+        return 2
+
     spec = CanvasSpec(
-        rows=args.rows,
-        cols=args.cols,
+        rows=rows,
+        cols=cols,
         cell_size=args.cell_size,
         pattern=args.pattern,
     )
@@ -141,13 +196,27 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     mk = sub.add_parser("make-template", help="Generate a grid canvas template")
-    mk.add_argument("--rows", type=int, required=True, help="Number of rows in the grid")
-    mk.add_argument("--cols", type=int, required=True, help="Number of columns in the grid")
+    mk.add_argument("--rows", type=int, default=None, help="Number of rows in the grid (omit with --max-frames)")
+    mk.add_argument("--cols", type=int, default=None, help="Number of columns in the grid (omit with --max-frames)")
     mk.add_argument(
         "--cell-size",
         type=int,
         default=256,
         help="Cell size in px (one of 64,128,192,256,384,512; default 256)",
+    )
+    mk.add_argument(
+        "--max-frames",
+        action="store_true",
+        help=(
+            "Auto-fill the canvas: compute the largest square rows x cols that fits "
+            "--max-canvas at the given --cell-size, ignoring --rows/--cols."
+        ),
+    )
+    mk.add_argument(
+        "--max-canvas",
+        type=int,
+        default=DEFAULT_MAX_CANVAS,
+        help=f"Max canvas side in px when --max-frames is set (default {DEFAULT_MAX_CANVAS})",
     )
     mk.add_argument(
         "--pattern",
