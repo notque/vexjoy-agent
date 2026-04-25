@@ -24,7 +24,6 @@ routing:
   complexity: Complex
   category: game
   pairs_with:
-    - nano-banana-builder
     - phaser-gamedev
     - threejs-builder
     - python-general-engineer
@@ -37,7 +36,7 @@ Local-first AI sprite generation. One skill, two modes behind `--mode`:
 - `portrait` — single full-body character PNG (road-to-aew wrestlers, card-game characters).
 - `spritesheet` — animated multi-frame grid with connected-components detection, anchor alignment, and Phaser atlas output.
 
-Backend chain: Codex CLI imagegen primary, Gemini Nano Banana fallback, fail-loud on absence. No paid APIs (no `remove.bg`, no separate `OPENAI_API_KEY`). Reference implementation of the "Local-First, Deterministic Systems Over External APIs" principle in `docs/PHILOSOPHY.md`.
+Backend: Codex CLI imagegen, sole backend. No fallback. No paid APIs (no Gemini, no Nano Banana, no `remove.bg`, no separate `OPENAI_API_KEY`). When Codex is unavailable, the skill fails loud with an actionable error message rather than silently calling a paid alternative. Reference implementation of the "Local-First, Deterministic Systems Over External APIs" principle in `docs/PHILOSOPHY.md`.
 
 ## When to use
 
@@ -59,7 +58,7 @@ Portrait is the road-to-aew immediate need; spritesheet is the forward-looking c
 | `--target road-to-aew` or `--archetype` | `references/wrestler-archetypes.md` | 9 color archetypes + 10 gimmick types + tier |
 | sizing `--grid CxR` / `--cell-size` | `references/grid-shapes.md` | allowed dims, direction conventions |
 | building a prompt | `references/prompt-rules.md` | ART_STYLE, CHAR_STYLE, GRID_RULES slot contents |
-| picking or troubleshooting a backend | `references/backend-chain.md` | Codex CLI vs Nano Banana decision tree |
+| picking or troubleshooting a backend | `references/backend-chain.md` | Codex CLI invocation pattern + failure modes |
 | spritesheet Phase D | `references/frame-detection.md` | connected-components algorithm |
 | spritesheet Phase F | `references/anchor-alignment.md` | shared-scale + bottom-anchor math |
 | any bg removal phase | `references/bg-removal-local.md` | magenta chroma + rembg |
@@ -96,20 +95,42 @@ End-to-end: `python3 scripts/portrait_pipeline.py --prompt "<desc>" --style <pre
 
 End-to-end: `python3 scripts/sprite_pipeline.py --prompt "<desc>" --grid <CxR> --cell-size 256`.
 
-## Backend chain
+## Backend (Codex CLI only)
 
-Decision tree, evaluated per generation call:
+Per generation call:
 
-1. `codex` in `PATH` and auth check succeeds → Codex CLI imagegen via `codex exec "<prompt>"`. User's existing paid subscription. No separate API key.
-2. Else `GEMINI_API_KEY` in env → dispatch to `nano-banana-builder`'s scripts (`nano-banana-generate.py generate` or `with-reference`).
-3. Else fail loudly:
+1. `codex` in `PATH` and `codex --version` exits 0 → use Codex CLI imagegen via `codex exec` (the agent's internal `image_gen` tool, prompted to save at an absolute path).
+2. Else fail loudly:
    ```
-   ERROR: No image-generation backend available.
-   Install Codex CLI and authenticate, or set GEMINI_API_KEY.
-   This skill does not call paid APIs directly.
+   ERROR: Codex CLI is not available.
+   Install Codex CLI and run `codex login`, then retry.
+   This skill uses Codex as its sole backend. There is no fallback to
+   paid APIs (no Gemini, no Nano Banana, no OpenAI direct).
    ```
 
-Never call `api.openai.com`, `remove.bg`, or any other paid endpoint. A silent paid fallback violates the Local-First principle — breakage must be visible. See `references/backend-chain.md` for detection commands and failure modes.
+Never call `api.openai.com`, `remove.bg`, Gemini, Nano Banana, or any other paid endpoint. A silent paid fallback violates the Local-First principle — breakage must be visible. See `references/backend-chain.md` for the actual invocation shape and failure modes.
+
+## --max-frames: pack the canvas
+
+One Codex imagegen call produces ONE image. To get N frames, pack as many cells as possible into that one image rather than firing N calls.
+
+`--max-frames` (on `sprite_canvas.py make-template` and `sprite_pipeline.py`) auto-computes the largest square grid that fits `--max-canvas` (default 1024x1024) at the given `--cell-size`:
+
+```bash
+# 4x4 = 16 frames at 256px on a 1024 canvas (default)
+python3 sprite_pipeline.py --description "knight walk cycle" \
+    --style snes-16bit-jrpg --cell-size 256 --max-frames --action walking
+
+# 8x8 = 64 frames at 128px on a 1024 canvas
+python3 sprite_pipeline.py --description "tiny adventurer, attack cycle" \
+    --style nes-8bit --cell-size 128 --max-frames --action attack-punch
+
+# 16x16 = 256 frames at 64px on a 1024 canvas (extreme density)
+python3 sprite_pipeline.py --description "GB-era hero, 4-direction walk" \
+    --style gameboy-4color --cell-size 64 --max-frames --action walking
+```
+
+`--max-frames` overrides `--grid`; the chosen grid is logged to stderr. See `references/grid-shapes.md` for the cell-size → max-grid → total-frames table at canvas sizes 1024, 1536, and 2048.
 
 ## Dimension and cell policy
 
@@ -136,9 +157,9 @@ Default. Applied when `--variants N` > 1.
 
 ## Shared constraints
 
-- **Paid APIs are forbidden.** The skill uses only Codex CLI and Gemini Nano Banana (both user-existing). No `remove.bg`, no separate `OPENAI_API_KEY`. Violating this violates the Local-First principle.
+- **Paid APIs are forbidden.** Codex CLI is the sole backend. No Gemini, no Nano Banana, no `remove.bg`, no separate `OPENAI_API_KEY`. Violating this violates the Local-First principle.
 - **Magenta background (`#FF00FF`)** is the chroma-key default because it never appears in realistic character skin or wrestling gear. Backend prompts include explicit "solid magenta background" instruction; post-processing validates the dominant corner color.
-- **Fixed seed per run** for reproducibility. Re-running with the same `--seed` should produce identical output given identical backend output.
+- **Fixed seed per run** for reproducibility. Re-running with the same `--seed` should produce identical output given identical backend output (best-effort: Codex CLI does not currently expose a public seed flag, so the seed travels in the prompt body as a comment).
 
 ## Verification
 
@@ -170,9 +191,9 @@ Both dry-run modes skip the backend call, generate a synthetic fixture, and exer
 
 ## Error handling
 
-**Error: "No image-generation backend available"**
-- Cause: Neither `codex` CLI nor `GEMINI_API_KEY` is detectable.
-- Solution: Install Codex CLI and authenticate with `codex auth`; or `export GEMINI_API_KEY=...`. Never add `OPENAI_API_KEY` — the skill does not use it directly.
+**Error: "Codex CLI is not available"**
+- Cause: `codex` CLI is not installed or `codex --version` failed.
+- Solution: Install Codex CLI (`npm install -g @openai/codex` or per-OS) and run `codex login`. Never add `OPENAI_API_KEY`/`GEMINI_API_KEY` for this skill — paid fallbacks are intentionally prohibited.
 
 **Error: "Aspect ratio X outside allowed range [1:1.5, 1:2.5]"**
 - Cause: Character rendered too wide (crouched pose) or too tall (full-extension jump pose).
@@ -197,13 +218,13 @@ Both dry-run modes skip the backend call, generate a synthetic fixture, and exer
 <!-- no-pair-required: section header; pairs live in subsections -->
 ## Anti-patterns
 
-### Anti-pattern: Calling a paid API when a free one fails
+### Anti-pattern: Calling a paid API when Codex fails
 
-**What it looks like:** Adding a try/except that falls back from Codex CLI → Nano Banana → OpenAI API with a separate key.
+**What it looks like:** Adding a try/except that falls back from Codex CLI → Nano Banana / Gemini / OpenAI direct.
 
-**Why wrong:** Silent paid fallbacks make cost invisible; the user loses the ability to opt out. The Local-First principle requires visible failure when free backends are absent, not silent monetization.
+**Why wrong:** Silent paid fallbacks make cost invisible; the user loses the ability to opt out. The Local-First principle requires visible failure when free backends are absent, not silent monetization. We removed the Nano Banana branch from this skill exactly to enforce this.
 
-**Do instead**: Keep the two-step chain (Codex → Nano Banana) and fail loudly at step 3. If a user wants a third backend, they add it explicitly in configuration with a deliberate environment variable, not as a silent fallback.
+**Do instead**: Fail loudly when Codex is missing or unauthenticated. Tell the user exactly what is missing and how to fix it. If they want a second backend, they should add it explicitly via a separate skill or a deliberate env-var-gated path — not a silent runtime fallback.
 
 ### Anti-pattern: Naive grid-math frame cropping
 
@@ -235,7 +256,7 @@ Both dry-run modes skip the backend call, generate a synthetic fixture, and exer
 - `references/wrestler-archetypes.md` — 9 color archetypes, 10 gimmick types, tier modifiers (Act 1/2/3).
 - `references/grid-shapes.md` — cell-size table, grid validation, direction-to-row mapping.
 - `references/prompt-rules.md` — ART_STYLE, CHAR_STYLE, GRID_RULES slot content; negative prompts.
-- `references/backend-chain.md` — Codex CLI vs Nano Banana detection, auth checks, failure modes.
+- `references/backend-chain.md` — Codex CLI invocation pattern, auth checks, failure modes.
 - `references/frame-detection.md` — connected-components algorithm, minimum-separation gap, component filter.
 - `references/anchor-alignment.md` — shared-scale percentile, bottom-anchor math, horizontal centering.
 - `references/bg-removal-local.md` — two-pass chroma, rembg opt-in, anti-patterns.
@@ -245,7 +266,6 @@ Both dry-run modes skip the backend call, generate a synthetic fixture, and exer
 
 ## Related skills
 
-- `nano-banana-builder` — fallback backend; this skill dispatches to its scripts.
 - `phaser-gamedev` — downstream consumer of spritesheet output (atlas JSON).
 - `threejs-builder` — may consume portrait output for 3D card framing.
 - `game-asset-generator` — sibling umbrella for 3D models / textures / matrix-driven pixel art. Its `references/pixel-art-sprites.md` redirects AI-driven sprite work here.

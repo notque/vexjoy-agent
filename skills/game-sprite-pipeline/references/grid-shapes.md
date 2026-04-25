@@ -66,6 +66,85 @@ For `--grid 8xR` (8-directional games), rows map to:
 
 8-direction sheets cost roughly 2x generation budget vs 4-direction.
 
+## Maximum frames per generation
+
+One Codex CLI imagegen call produces ONE image. Callers who want N frames
+in a single Codex run should pack as many cells as possible into that one
+image rather than firing N calls.
+
+`--max-frames` (on both `sprite_canvas.py make-template` and
+`sprite_pipeline.py`) auto-fills the canvas: it computes the largest
+square `rows x cols` grid that fits a `--max-canvas` (default 1024x1024)
+square at the given `--cell-size`. The math is just integer division:
+
+```python
+side = max_canvas // cell_size
+rows, cols = side, side  # square grid; symmetry helps the model
+```
+
+### Cell-size to max-grid table
+
+For the **default** `--max-canvas 1024`:
+
+| `--cell-size` | side = 1024 // cell-size | grid | total frames |
+|---------------|--------------------------|------|--------------|
+| `512` | 2 | 2x2 | 4 |
+| `384` | 2 | 2x2 | 4 |
+| `256` | 4 | 4x4 | **16** |
+| `192` | 5 | 5x5 | **25** |
+| `128` | 8 | 8x8 | **64** |
+| `64`  | 16 | 16x16 | **256** |
+
+For `--max-canvas 1536`:
+
+| `--cell-size` | side | grid | total frames |
+|---------------|------|------|--------------|
+| `512` | 3 | 3x3 | 9 |
+| `384` | 4 | 4x4 | 16 |
+| `256` | 6 | 6x6 | 36 |
+| `192` | 8 | 8x8 | 64 |
+| `128` | 12 | 12x12 | 144 |
+| `64`  | 24 | 24x24 | 576 |
+
+For `--max-canvas 2048` (the absolute hardware ceiling — backends silently
+downsample anything larger):
+
+| `--cell-size` | side | grid | total frames |
+|---------------|------|------|--------------|
+| `512` | 4 | 4x4 | 16 |
+| `384` | 5 | 5x5 | 25 |
+| `256` | 8 | 8x8 | 64 |
+| `192` | 10 | 10x10 | 100 |
+| `128` | 16 | 16x16 | 256 |
+| `64`  | 32 | 32x32 | 1024 |
+
+In practice, **64-256 frames** at **128-256px** cells is the sweet spot:
+big enough that detail survives, dense enough that one call covers a full
+4-direction walk + idle + attack + hit + death cycle.
+
+### Usage
+
+```bash
+# Phase B canvas: max-fill 1024x1024 with 256px cells -> 4x4 = 16 frames
+python3 sprite_canvas.py make-template \
+    --cell-size 256 --max-frames \
+    --output canvas.png
+
+# Pipeline: same flag flows through Phase B + C
+python3 sprite_pipeline.py \
+    --description "pixel knight, 4-direction walk cycle" \
+    --style snes-16bit-jrpg \
+    --cell-size 256 --max-frames \
+    --action walking
+```
+
+When `--max-frames` is set, `--rows`/`--cols`/`--grid` are overridden and a
+notice is printed to stderr:
+
+```
+[canvas] auto-grid: 4x4 = 16 frames @ 256px on 1024x1024 canvas
+```
+
 ## Validator behavior
 
 `sprite_canvas.py make-template` validates inputs and rejects with clear errors:

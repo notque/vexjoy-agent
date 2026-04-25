@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-25T06:23:43Z",
+  "generated": "2026-04-25T16:39:57Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -667,7 +667,6 @@
       "user_invocable": false,
       "version": "1.0.0",
       "pairs_with": [
-        "nano-banana-builder",
         "phaser-gamedev",
         "threejs-builder",
         "python-general-engineer"

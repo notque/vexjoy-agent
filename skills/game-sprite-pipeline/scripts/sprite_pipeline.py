@@ -97,7 +97,21 @@ def run_pipeline(args: argparse.Namespace) -> int:
     started = datetime.now(timezone.utc)
     phases: list[dict] = []
 
-    cols, rows = sprite_prompt.parse_grid(args.grid)
+    if args.max_frames:
+        try:
+            r, c = sprite_canvas.compute_max_grid(args.cell_size, args.max_canvas)
+        except ValueError as e:
+            print(f"ERROR: {e}", file=sys.stderr)
+            return 2
+        cols, rows = c, r
+        args.grid = f"{cols}x{rows}"
+        print(
+            f"[pipeline] --max-frames: auto-grid {cols}x{rows} = {cols * rows} "
+            f"frames @ {args.cell_size}px on {args.max_canvas}x{args.max_canvas} canvas",
+            file=sys.stderr,
+        )
+    else:
+        cols, rows = sprite_prompt.parse_grid(args.grid)
 
     # Phase A: reference character (skipped in dry-run, optional otherwise)
     char_prompt_path = work_dir / f"{name}_char_prompt.txt"
@@ -335,8 +349,22 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--style-string", help="Free-form style fragment for --style custom")
     parser.add_argument("--archetype", help="Wrestler archetype")
     parser.add_argument("--gimmick", help="Wrestler gimmick")
-    parser.add_argument("--grid", default="4x1", help="Grid CxR (default 4x1)")
+    parser.add_argument("--grid", default="4x1", help="Grid CxR (default 4x1; ignored with --max-frames)")
     parser.add_argument("--cell-size", type=int, default=256, choices=[64, 128, 192, 256, 384, 512])
+    parser.add_argument(
+        "--max-frames",
+        action="store_true",
+        help=(
+            "Auto-fill the canvas: pack the largest square grid that fits "
+            "--max-canvas at --cell-size. Overrides --grid."
+        ),
+    )
+    parser.add_argument(
+        "--max-canvas",
+        type=int,
+        default=sprite_canvas.DEFAULT_MAX_CANVAS,
+        help=f"Max canvas side in px when --max-frames is set (default {sprite_canvas.DEFAULT_MAX_CANVAS})",
+    )
     parser.add_argument("--action", default="walking")
     parser.add_argument("--pattern", default="alternating", choices=["magenta-only", "alternating", "checkerboard"])
     parser.add_argument("--seed", type=int, default=0)
