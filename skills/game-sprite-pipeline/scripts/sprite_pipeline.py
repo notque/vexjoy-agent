@@ -113,6 +113,18 @@ def run_pipeline(args: argparse.Namespace) -> int:
     else:
         cols, rows = sprite_prompt.parse_grid(args.grid)
 
+    # Density warning: image-gen models cannot reliably keep characters within
+    # cells when the per-cell budget shrinks below ~128px and the grid is
+    # dense. See references/frame-detection.md "Grid density limits".
+    total_frames = cols * rows
+    if total_frames > 64 and not args.confirm_dense_grid:
+        print(
+            f"WARNING: grid {cols}x{rows}={total_frames} frames is dense; "
+            f"per-cell frame extraction may drift. Consider 8x8 or smaller. "
+            f"Set --confirm-dense-grid to suppress this warning.",
+            file=sys.stderr,
+        )
+
     # Phase A: reference character (skipped in dry-run, optional otherwise)
     char_prompt_path = work_dir / f"{name}_char_prompt.txt"
     char_ref_path = work_dir / f"{name}_reference.png"
@@ -250,18 +262,22 @@ def run_pipeline(args: argparse.Namespace) -> int:
     if not raw_frames:
         print("ERROR: no frames extracted in Phase D", file=sys.stderr)
         return 5
-    rc = sprite_process.main(
-        [
-            "remove-bg",
-            *(str(f) for f in raw_frames),
-            "--output-dir",
-            str(frames_nobg_dir),
-            "--mode",
-            args.bg_mode,
-            "--chroma-threshold",
-            str(args.chroma_threshold),
-        ]
-    )
+    # Map pipeline-level --bg-mode to sprite_process's --mode/--bg-mode pair.
+    # "magenta" / "gray-tolerance" go through --bg-mode; "chroma"/"rembg"/"auto"
+    # stay on --mode for backward compat.
+    rb_argv: list[str] = [
+        "remove-bg",
+        *(str(f) for f in raw_frames),
+        "--output-dir",
+        str(frames_nobg_dir),
+        "--chroma-threshold",
+        str(args.chroma_threshold),
+    ]
+    if args.bg_mode in ("magenta", "gray-tolerance"):
+        rb_argv += ["--bg-mode", args.bg_mode]
+    else:
+        rb_argv += ["--mode", args.bg_mode]
+    rc = sprite_process.main(rb_argv)
     if rc != 0:
         return rc
     phases.append({"phase": "E", "name": "remove-bg", "rc": rc, "mode": args.bg_mode})
@@ -369,8 +385,26 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--pattern", default="alternating", choices=["magenta-only", "alternating", "checkerboard"])
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--variants", type=int, default=1)
-    parser.add_argument("--bg-mode", choices=["chroma", "rembg", "auto"], default="chroma")
+    parser.add_argument(
+        "--bg-mode",
+        choices=["chroma", "rembg", "auto", "magenta", "gray-tolerance"],
+        default="chroma",
+        help=(
+            "Background removal: chroma=magenta despill (default), "
+            "magenta=alias of chroma, gray-tolerance=road-to-aew #3a3a3a "
+            "algorithm, rembg=opt-in ML, auto=chroma+rembg fallback."
+        ),
+    )
     parser.add_argument("--chroma-threshold", type=int, default=30)
+    parser.add_argument(
+        "--confirm-dense-grid",
+        action="store_true",
+        help=(
+            "Suppress the dense-grid warning when rows*cols > 64. "
+            "Image-gen models drop sprite quality at high density; "
+            "see references/frame-detection.md."
+        ),
+    )
     parser.add_argument("--min-pixels", type=int, default=200)
     parser.add_argument("--scale-percentile", type=float, default=95)
     parser.add_argument("--anchor-mode", choices=["bottom", "center", "auto"], default="bottom")
