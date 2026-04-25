@@ -120,8 +120,62 @@ These are stored in `sprite_prompt.py` as named action templates. Adding a new a
 | `hit-stagger` | 3 frames | Recoil → off-balance → recover |
 | `death` | 4 frames | Stagger → fall-start → fall-mid → ground |
 | `entrance` | 6 frames | Standing → arms-up → flex-pose → recovery → standing (loop variant) |
+| `running-to-ropes` | 16 frames (4x4) | Stand → lean-forward → push-off → strides 1-12 → arrive-at-ropes |
+| `top-rope-dive` | 8 frames (4x2) | Climb 1-3 → balance → leap → mid-air → descent → land/impact |
+| `clothesline` | 16 frames (4x4) | Stand → run-up x4 → windup-arm-out → lean-into → impact → recover x6 |
+| `vertical-suplex` | 16 frames (4x4) | Setup → grip → lift x3 → flip-airborne → impact → pin-cover → hold |
+| `megaphone-rant` | 16 frames (4x4) | Idle → raise-megaphone → shout → lean-forward → arm-wave → sneer → recover |
+| `spinning-heel-kick` | 16 frames (4x4) | Stance → turn 1-4 → leg-extend → foot-impact → spin-out → recover-stance |
 
 Action templates are non-exhaustive; users can supply free-form `--action` text.
+
+## Action-mode prompt template (painted styles)
+
+Painted-style action spritesheets (slay-the-spire-painted, hand-painted
+illustration) are HARDER than pixel-art animation because the model must
+keep painted brushwork consistent across many cells while changing only
+the pose. Without explicit cross-cell consistency stress, the model
+produces N different paintings of similar characters instead of N frames
+of one character animating.
+
+The action-mode prompt template (used for the 19-24 demo assets):
+
+```
+ART_STYLE: {painted style fragment from style-presets}
+
+DESCRIPTION: {character description, gear, build}
+
+ACTION_RULES (cross-cell consistency, LOAD-BEARING):
+- the SAME character appears in EVERY cell — same face, same costume,
+  same hair, same gear, same proportions, same color palette
+- the SAME painted-style treatment in every cell — same rim lighting
+  direction, same brushwork density, same outline thickness, same
+  shadow contrast
+- the ONLY thing that changes between cells is the POSE for {ACTION}
+- treat the cells as 16 (or 8, or N) ANIMATION FRAMES of a single
+  continuous motion, not 16 separate portraits
+
+{GRID_RULES — cell layout, magenta bg, NEGATIVE block}
+```
+
+The repetition of identity ("SAME character", "SAME costume", "SAME rim
+lighting") is the load-bearing instruction. Drop it and the model
+defaults to "draw 16 wrestlers" rather than "draw 16 frames of one
+wrestler". The phrase "treat the cells as N animation frames of a single
+continuous motion" frames the task as animation rather than illustration.
+
+Tested actions in `slay-the-spire-painted` style (demo assets 19-24):
+
+- `19-veteran-running-to-ropes` — 4x4=16 frames, 256px cells: sprint cycle
+- `20-luchadora-top-rope-dive` — 4x2=8 frames, 256px cells: climb + dive
+- `21-giant-clothesline` — 4x4=16 frames, 256px cells: windup + impact
+- `22-tech-suplex` — 4x4=16 frames, 256px cells: lift + flip + impact
+- `23-manager-megaphone-rant` — 4x4=16 frames, 256px cells: gesticulation
+- `24-spinning-heel-kick` — 4x4=16 frames, 256px cells: turn + extend
+
+Painted-style action sheets cost ~2-3x more Codex generation time than
+pixel-art equivalents because the model needs more attention budget to
+maintain cross-cell consistency. Budget accordingly.
 
 ## Backend-specific tweaks
 
