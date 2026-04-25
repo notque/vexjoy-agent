@@ -184,7 +184,8 @@ def test_verify_asset_outputs_spritesheet_clean(tmp_path: Path) -> None:
 def test_verify_asset_outputs_spritesheet_with_off_grid(tmp_path: Path) -> None:
     asset_dir = tmp_path / "test-sheet-bad"
     asset_dir.mkdir()
-    # 4x4 grid: 16 cells. Tolerance=int(16*0.50)=8. Need 9+ violations.
+    # 4x4 grid: 16 cells. With 5% tolerance: int(16*0.05)=0 -> max(1,0)=1.
+    # Need 2+ violations to fail. 12 horizontal slices well exceeds that.
     cell, rows, cols = 32, 4, 4
     canvas = _new_canvas(cols * cell, rows * cell)
     arr = np.array(canvas)
@@ -197,6 +198,75 @@ def test_verify_asset_outputs_spritesheet_with_off_grid(tmp_path: Path) -> None:
     res = sprite_process.verify_asset_outputs(asset_dir, mode="spritesheet", grid=(cols, rows), cell_size=cell)
     assert res["passed"] is False, res
     assert any(f["check"] == "grid_alignment" for f in res["failures"]), res
+
+
+def test_verify_asset_outputs_8x8_four_cropped_fails(tmp_path: Path) -> None:
+    """8x8 sheet with 4 cropped cells must FAIL under tightened 5% threshold.
+
+    Tolerance = int(64*0.05) = 3. Four violations exceeds tolerance, so the
+    verifier must surface a grid_alignment failure. This is the regression
+    test for the powerhouse rubber-stamp finding: at 50% tolerance (32
+    cells allowed bad), this case would have wrongly passed.
+    """
+    asset_dir = tmp_path / "test-sheet-8x8-4bad"
+    asset_dir.mkdir()
+    cell, rows, cols = 32, 8, 8
+    canvas = _new_canvas(cols * cell, rows * cell)
+    arr = np.array(canvas)
+    # Fill every cell with a small centered character.
+    for r in range(rows):
+        for c in range(cols):
+            x0, y0 = c * cell + 8, r * cell + 8
+            arr[y0 : y0 + 16, x0 : x0 + 16] = (60, 180, 60, 255)
+    # Now add 4 horizontal slices (cropped cells) in row 0 cols 0..3.
+    for c in range(4):
+        x0 = c * cell
+        arr[8:24, x0 : x0 + cell] = (60, 180, 60, 255)
+    Image.fromarray(arr, "RGBA").save(asset_dir / "final-sheet.png")
+    res = sprite_process.verify_asset_outputs(asset_dir, mode="spritesheet", grid=(cols, rows), cell_size=cell)
+    assert res["passed"] is False, res
+    assert any(f["check"] == "grid_alignment" for f in res["failures"]), res
+
+
+def test_verify_asset_outputs_8x8_clean_passes(tmp_path: Path) -> None:
+    """8x8 sheet with 0 cropped cells must PASS."""
+    asset_dir = tmp_path / "test-sheet-8x8-clean"
+    asset_dir.mkdir()
+    cell, rows, cols = 32, 8, 8
+    canvas = _new_canvas(cols * cell, rows * cell)
+    arr = np.array(canvas)
+    for r in range(rows):
+        for c in range(cols):
+            x0, y0 = c * cell + 8, r * cell + 8
+            arr[y0 : y0 + 16, x0 : x0 + 16] = (60, 180, 60, 255)
+    Image.fromarray(arr, "RGBA").save(asset_dir / "final-sheet.png")
+    res = sprite_process.verify_asset_outputs(asset_dir, mode="spritesheet", grid=(cols, rows), cell_size=cell)
+    assert res["passed"] is True, res
+
+
+def test_verify_asset_outputs_8x8_two_cropped_passes(tmp_path: Path) -> None:
+    """8x8 sheet with 2 cropped cells PASSES (within 5% tolerance of 3).
+
+    Validates the threshold was loosened from "every cell perfect" to "5%
+    of cells may be edge-spanning art". Two violations <= tolerance(3)
+    is the legitimate big-character case the verifier should NOT flag.
+    """
+    asset_dir = tmp_path / "test-sheet-8x8-2bad"
+    asset_dir.mkdir()
+    cell, rows, cols = 32, 8, 8
+    canvas = _new_canvas(cols * cell, rows * cell)
+    arr = np.array(canvas)
+    for r in range(rows):
+        for c in range(cols):
+            x0, y0 = c * cell + 8, r * cell + 8
+            arr[y0 : y0 + 16, x0 : x0 + 16] = (60, 180, 60, 255)
+    # Add 2 horizontal slices.
+    for c in range(2):
+        x0 = c * cell
+        arr[8:24, x0 : x0 + cell] = (60, 180, 60, 255)
+    Image.fromarray(arr, "RGBA").save(asset_dir / "final-sheet.png")
+    res = sprite_process.verify_asset_outputs(asset_dir, mode="spritesheet", grid=(cols, rows), cell_size=cell)
+    assert res["passed"] is True, res
 
 
 def main() -> int:
@@ -218,6 +288,9 @@ def main() -> int:
         test_verify_asset_outputs_portrait_missing_file,
         test_verify_asset_outputs_spritesheet_clean,
         test_verify_asset_outputs_spritesheet_with_off_grid,
+        test_verify_asset_outputs_8x8_four_cropped_fails,
+        test_verify_asset_outputs_8x8_clean_passes,
+        test_verify_asset_outputs_8x8_two_cropped_passes,
     ]
     failures: list[tuple[str, str]] = []
     for t in tests:

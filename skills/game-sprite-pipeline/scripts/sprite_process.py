@@ -2003,20 +2003,21 @@ def verify_asset_outputs(
             failures.append({"file": fname, "check": "magenta", "details": f"error: {e}"})
 
         # Grid alignment check on the canonical sheet only (frames-strip is
-        # 1xN row; alignment math doesn't apply the same way). The check
-        # hard-fails ONLY when violations exceed 50% of cells -- that's the
-        # naive-grid cell_size bug pattern (every character sliced). Below
-        # that threshold the violations are recorded as `warnings` (visible
-        # to the user) but do NOT fail the gate. Big characters in dense
-        # 8x8 sheets legitimately fill the cell edge-to-edge; that's art,
-        # not a slicing failure. The strict gate stays on the magenta check
-        # which is unambiguous.
+        # 1xN row; alignment math doesn't apply the same way). Tolerance is
+        # 5% of cells: legitimate big-character art can occasionally span an
+        # edge, but more than that signals a slicing failure or a generator
+        # that lost track of cell boundaries. Per docs/PHILOSOPHY.md
+        # "Verifier pattern" -- a verifier that confirms success at 50%
+        # bad-cell tolerance is a rubber stamp; the threshold must be tight
+        # enough that "passed" carries evidence. For an 8x8 sheet that is 3
+        # violations; for a 4x4 sheet that is 1 (matching verify_grid_alignment's
+        # default tolerance of 1).
         if kind == "sheet" and mode in ("portrait-loop", "spritesheet"):
             if cell_size is None:
                 cell_size = 512 if mode == "portrait-loop" else None
             if cell_size is not None:
                 total_cells = cols * rows
-                grid_tolerance = max(1, int(total_cells * 0.50))
+                grid_tolerance = max(1, int(total_cells * 0.05))
                 try:
                     grid_check = verify_grid_alignment(
                         fpath,
