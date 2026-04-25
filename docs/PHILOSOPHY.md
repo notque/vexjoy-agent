@@ -45,6 +45,10 @@ LLMs orchestrate. Programs execute.
 
 For large mechanical sweeps, the default must be even stricter: if the change can be expressed as a detector plus a rewrite rule, build or use a script. Repo-wide edits like adding boilerplate markers, normalizing headings, or applying structural framing across hundreds of files should not be performed by asking an LLM to hand-edit files one by one. Use scripts to find candidates, apply the deterministic transformation where safe, and hand the smaller exception set to an LLM only when judgment is actually required.
 
+## Local-First, Deterministic Systems Over External APIs
+
+Whenever feasible, build local, deterministic versions of functionality rather than outsource to external APIs. An external API is a runtime dependency that couples the toolkit to a third-party service's availability, cost model, rate limits, and API stability — all of which are someone else's problem until they become yours at the worst possible moment. A local script is deterministic, cost-predictable, offline-capable, and under our control. When an API is unavoidable — generating images from text, for example — wrap it in a skill that makes the dependency explicit (required environment variables, visible fallback chain, single point of invocation) and captures the API contract in the skill's references, so a breaking change is localized rather than systemic. The rule is not "never use APIs." The rule is default to local solutions and treat APIs as explicit, managed dependencies rather than invisible infrastructure. And no paid APIs hidden inside fallback chains — a paid path that silently activates when the free one fails is the worst of both worlds: unpredictable cost plus unpredictable availability.
+
 ## Load Only What You Need
 
 A handyman brings tools for the specific job, not every tool they own. Context works the same way — it's a scarce resource, not a dumpster.
