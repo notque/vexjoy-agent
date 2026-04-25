@@ -340,18 +340,24 @@ def run_portrait_loop(args: argparse.Namespace) -> int:
             return rc
         phases.append({"phase": "A2", "name": "generate", "rc": rc})
 
-    # Phase D: per-cell extract + bg removal
+    # Phase D: per-cell extract + bg removal.
+    # Use sprite_process.slice_grid_cells: derives cell pitch from the actual
+    # raw size (cols * cell_size if exact, raw_size/cols otherwise) instead of
+    # assuming the raw is already a clean canonical canvas. Image-gen backends
+    # routinely return sizes like 1254x1254 for an 8x8 grid; a whole-image
+    # resize before slicing is the bug we are NOT doing here.
     sheet = Image.open(raw_path).convert("RGBA")
-    if sheet.size != (canvas, canvas):
-        sheet = sheet.resize((canvas, canvas), Image.Resampling.LANCZOS)
-
-    raw_frames: list[Image.Image] = []
-    for r in range(2):
-        for c in range(2):
-            x0, y0 = c * cell, r * cell
-            f = sheet.crop((x0, y0, x0 + cell, y0 + cell)).convert("RGBA")
-            raw_frames.append(f)
-    phases.append({"phase": "D", "name": "extract", "rc": 0, "frames": 4})
+    raw_frames: list[Image.Image] = [c.convert("RGBA") for c in sprite_process.slice_grid_cells(sheet, 2, 2, cell)]
+    phases.append(
+        {
+            "phase": "D",
+            "name": "extract",
+            "rc": 0,
+            "frames": 4,
+            "raw_size": list(sheet.size),
+            "canvas_size": canvas,
+        }
+    )
 
     # Phase E: bg removal per cell
     nobg_frames: list[Image.Image] = []
@@ -405,25 +411,8 @@ def run_portrait_loop(args: argparse.Namespace) -> int:
     for i, fr in enumerate(anchored_frames):
         fr.save(frames_dir / f"{name}_frame_{i:02d}.png", format="PNG")
 
-    # Animated GIF (200ms per frame = 800ms loop)
-    gif_path = out_dir / f"{name}.gif"
-    # Flatten over a dark theme bg for clean preview rendering
-    gif_imgs: list[Image.Image] = []
-    for fr in anchored_frames:
-        bg = Image.new("RGBA", fr.size, (24, 26, 33, 255))
-        bg.paste(fr, (0, 0), fr)
-        gif_imgs.append(bg.convert("P", palette=Image.Palette.ADAPTIVE))
-    gif_imgs[0].save(
-        gif_path,
-        save_all=True,
-        append_images=gif_imgs[1:],
-        duration=200,
-        loop=0,
-        optimize=False,
-        disposal=2,
-    )
-
-    # Animated WebP (full alpha)
+    # Animated WebP (full 8-bit alpha; preferred output). No palette
+    # quantization, so silhouettes stay clean.
     webp_path = out_dir / f"{name}.webp"
     anchored_frames[0].save(
         webp_path,
@@ -432,6 +421,24 @@ def run_portrait_loop(args: argparse.Namespace) -> int:
         duration=200,
         loop=0,
         format="WebP",
+    )
+
+    # Animated GIF (200ms per frame = 800ms loop) — compatibility fallback.
+    # Matte-composite each frame over neutral mid-gray BEFORE quantizing.
+    # See sprite_process.matte_composite docstring for the rationale.
+    gif_path = out_dir / f"{name}.gif"
+    gif_imgs = [
+        sprite_process.matte_composite(fr, matte=(40, 40, 40)).convert("P", palette=Image.Palette.ADAPTIVE)
+        for fr in anchored_frames
+    ]
+    gif_imgs[0].save(
+        gif_path,
+        save_all=True,
+        append_images=gif_imgs[1:],
+        duration=200,
+        loop=0,
+        optimize=False,
+        disposal=2,
     )
     phases.append({"phase": "H", "name": "assemble", "rc": 0})
 
