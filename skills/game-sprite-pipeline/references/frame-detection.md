@@ -311,6 +311,29 @@ python3 skills/game-sprite-pipeline/scripts/test_slice_grid_cells.py
 This is the deterministic gate the toolkit philosophy demands — algorithms
 verified by code, not eyeballs.
 
+### v8 mega-component fallback (asset 19 painted-veteran)
+
+When the chroma threshold is loose enough that the painted-style rim
+light bridges adjacent cells, `extract_components` returns one giant
+component spanning most of the sheet. Concrete reproduction (April 2026):
+asset 19 (`19-veteran-running-to-ropes`, slay-the-spire-painted, 4x4 grid
+at 256px) generated component 0 with bbox=(0,0,1024,1024) and area
+550,888 pixels. The centroid mapping then assigned that mega-blob to
+ONE cell (cell 9, centroid at (499,527)), leaving the other 15 cells
+empty. Final-sheet had 1 cell of content, 15 blanks.
+
+Fix: post-extraction, check whether any single component has area
+> cell_area * 1.5 (a single component covering more than 1.5x a cell is
+the signature of cross-cell bridging). If so, abandon the components
+path and use per-cell despill via `slice_grid_cells`. Implementation
+in `/tmp/sprite-demo/generate.py post_process_spritesheet` (search for
+"mega_component_detected").
+
+The per-cell path uses a tighter pass2 threshold (60 instead of the
+default 90) for painted-style assets so the despill chain doesn't bridge
+within cells either. Pixel-art styles (NES, SNES, GB, Genesis) keep the
+default 90 because their backgrounds are flat solid magenta.
+
 ### Where the cell-pitch rule applies
 
 Every consumer that takes a raw multi-cell sheet and slices it into

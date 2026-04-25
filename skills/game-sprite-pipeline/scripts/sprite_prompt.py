@@ -193,8 +193,8 @@ PORTRAIT_RULES = (
 # Each cell shows the SAME character, SAME pose, SAME framing, with only minor
 # breath/blink variation between frames. Played back at ~5fps the result is a
 # subtle living-portrait loop (not a new pose cycle).
-PORTRAIT_LOOP_RULES = (
-    "PORTRAIT_LOOP_RULES:\n"
+PORTRAIT_LOOP_RULES_IDLE_BREATH = (
+    "PORTRAIT_LOOP_RULES (intensity: idle-breath):\n"
     "- 2x2 grid of FOUR cells; each cell contains the SAME character at the\n"
     "  SAME framing, SAME pose, SAME background, SAME camera angle\n"
     "- the four cells differ ONLY in subtle breath + blink variation:\n"
@@ -209,6 +209,55 @@ PORTRAIT_LOOP_RULES = (
     "- the four characters must be PIXEL-IDENTICAL except for eye state and\n"
     "  the subtle chest-breath delta — viewers should barely notice the change"
 )
+
+# v8: gestural-movement intensity. Visible per-frame change. The user explicitly
+# requested this mode after observing that idle-breath loops are "boring — almost
+# no change between frames". Distinct gestures with visible body motion.
+PORTRAIT_LOOP_RULES_GESTURAL = (
+    "PORTRAIT_LOOP_RULES (intensity: gestural-movement):\n"
+    "- 2x2 grid of FOUR cells; each cell contains the SAME character at the\n"
+    "  SAME framing, SAME camera angle, SAME costume, SAME lighting\n"
+    "- the four cells show DIFFERENT GESTURES with VISIBLE per-frame change:\n"
+    "  - frame 0 (top-left):  neutral resting pose, hands at sides, looking forward\n"
+    "  - frame 1 (top-right): expressive HEAD/FACE gesture (eyebrow raise, smirk,\n"
+    "    head tilt 5-10 degrees, OR open mouth mid-word)\n"
+    "  - frame 2 (bottom-left): visible HAND/ARM gesture (point at viewer, raise\n"
+    "    a hand to chin, gesticulate outward, or rotate-the-wrist tell)\n"
+    "  - frame 3 (bottom-right): full POSTURE shift (lean forward, shrug shoulders,\n"
+    "    cross arms, or shift weight to one side)\n"
+    '- gestures must be CLEARLY visible at thumbnail size — no "barely notice"\n'
+    "  variations; viewers should immediately see distinct frames\n"
+    "- KEEP same character identity (face, hair, costume, accessories) across all\n"
+    "  cells — only the gesture/pose changes\n"
+    "- treat the 4 cells as 4 selected key-frames of a personality-driven character\n"
+    "  loop, not 4 separate portraits"
+)
+
+# v8: action-loop intensity. Strong per-frame motion — character actively doing
+# something across the 4 frames (not posing). For wizards casting spells,
+# samurai with sword flourishes, dragons breathing fire, etc.
+PORTRAIT_LOOP_RULES_ACTION = (
+    "PORTRAIT_LOOP_RULES (intensity: action-loop):\n"
+    "- 2x2 grid of FOUR cells; each cell contains the SAME character at the\n"
+    "  SAME framing, SAME camera angle, SAME costume\n"
+    "- the four cells show DISTINCT ACTION FRAMES of a continuous loop motion:\n"
+    "  - frame 0 (top-left):  starting state of the action (hands lowered, calm)\n"
+    "  - frame 1 (top-right): ramping up — partial gesture, energy gathering,\n"
+    "    arms rising, mouth opening, eyes lighting up\n"
+    "  - frame 2 (bottom-left): peak of the action — strongest pose, energy\n"
+    "    visible (glow, sparks, motion blur), most extreme expression\n"
+    "  - frame 3 (bottom-right): release/return — energy fading, posture relaxing,\n"
+    "    transitioning back to start state\n"
+    '- the action has a CLEAR subject described in the DESCRIPTION (e.g. "casting\n'
+    '  a glowing spell", "sword flourish", "flame breath")\n'
+    "- the 4 frames loop seamlessly: frame 3 transitions naturally back to frame 0\n"
+    "- KEEP same character identity, same costume, same camera; the ACTION is\n"
+    "  what changes\n"
+    "- treat the 4 cells as a single short action cycle, not 4 separate portraits"
+)
+
+# Backwards-compat alias (older callers that don't specify intensity).
+PORTRAIT_LOOP_RULES = PORTRAIT_LOOP_RULES_IDLE_BREATH
 
 UNIVERSAL_NEGATIVE = (
     "NEGATIVE:\n"
@@ -304,17 +353,41 @@ def compose_portrait_prompt(meta: PromptMetadata) -> str:
     return "\n\n".join(parts)
 
 
-def compose_portrait_loop_prompt(meta: PromptMetadata) -> str:
-    """Build a portrait-loop prompt: 2x2 grid of subtle idle variations.
+def compose_portrait_loop_prompt(
+    meta: PromptMetadata,
+    loop_intensity: str = "idle-breath",
+) -> str:
+    """Build a portrait-loop prompt: 2x2 grid of subtle-to-aggressive variations.
+
+    Args:
+        meta: PromptMetadata bundle with style/archetype/description.
+        loop_intensity: one of "idle-breath" (subtle breath+blink), "gestural-
+            movement" (visible head/hand/posture gestures), or "action-loop"
+            (full action cycle: cast spell, sword flourish, flame breath).
 
     Output: a single 1024x1024 image with 2x2 cells (512x512 each), each
-    cell showing the same character with only breath/blink variation.
+    cell showing the same character with the per-intensity variation.
     Downstream extraction treats this as a 4-frame spritesheet.
+
+    The user reported in v8 that pure idle-breath loops show "almost no change
+    between frames — boring." Gestural-movement and action-loop modes were
+    added for character-loop assets where the motion should be the point.
     """
     art = resolve_style(meta.style_preset, meta.style_string)
     arch = resolve_archetype(meta.archetype)
     gim = resolve_gimmick(meta.gimmick)
     tier = resolve_tier(meta.tier)
+
+    if loop_intensity == "gestural-movement":
+        rules_block = PORTRAIT_LOOP_RULES_GESTURAL
+    elif loop_intensity == "action-loop":
+        rules_block = PORTRAIT_LOOP_RULES_ACTION
+    elif loop_intensity == "idle-breath":
+        rules_block = PORTRAIT_LOOP_RULES_IDLE_BREATH
+    else:
+        raise ValueError(
+            f"unknown loop_intensity {loop_intensity!r}. Choose: idle-breath, gestural-movement, action-loop."
+        )
 
     parts: list[str] = []
     parts.append(f"ART_STYLE: {art}")
@@ -326,7 +399,7 @@ def compose_portrait_loop_prompt(meta: PromptMetadata) -> str:
     if meta.description:
         parts.append(f"DESCRIPTION: {meta.description}")
     parts.append(UNIVERSAL_RULES)
-    parts.append(PORTRAIT_LOOP_RULES)
+    parts.append(rules_block)
     parts.append(UNIVERSAL_NEGATIVE)
     return "\n\n".join(parts)
 
