@@ -226,9 +226,112 @@ for r in range(rows):
 
 **Do instead**: Connected-components clustering with chroma-key masking. Each component is bounded by the actual character pixel extent, not the cell math. The cell index is recovered post-hoc from component centroid.
 
+## Cell pitch is derived from raw_size, never assumed from final canvas size
+
+**Rule: Cell size is derived from raw_size and grid, never assumed from final canvas size.**
+
+This is the load-bearing invariant for the naive-grid extractor. The bug it
+prevents: when an image-gen backend (Codex, Nano Banana, etc.) returns a raw
+sheet whose dimensions are NOT `cols * cell_size`, the natural sprite pitch
+in the source is `raw_size / cols` (which is usually fractional), not
+`cell_size`. A whole-image LANCZOS resize from raw to canonical canvas does
+NOT relocate sprite centers onto the cell_size pitch — it only resamples
+their pixels. The sprites stay at their natural-pitch positions, and a
+cell_size grid then cuts every character mid-body.
+
+Live evidence (April 2026): asset 05 (`05-nes-powerhouse-attack`) in the
+public demo. Codex returned a 1254×1254 raw for an 8×8 grid prompt at
+target cell_size=128. The pre-fix code resized 1254→1024 with LANCZOS and
+sliced at 128. Result: every character cropped at the arms or feet,
+animation stuttered, frame strip showed off-grid characters. The fix
+derives the pitch from raw_size: 1254 / 8 = 156.75 px per cell. Each cell
+is cropped at the natural pitch and resampled to 128. The new final-sheet
+shows characters centered inside their cells.
+
+### Hybrid algorithm (`sprite_process.slice_grid_cells`)
+
+```python
+def slice_grid_cells(sheet, cols, rows, cell_size):
+    raw_w, raw_h = sheet.size
+    canonical_w = cols * cell_size
+    canonical_h = rows * cell_size
+
+    # Case 1 — exact match: direct slice, no resample (zero-waste happy path).
+    if raw_w == canonical_w and raw_h == canonical_h:
+        return [sheet.crop((c * cell_size, r * cell_size,
+                            (c + 1) * cell_size, (r + 1) * cell_size))
+                for r in range(rows) for c in range(cols)]
+
+    # Case 2 & 3 — derive pitch from raw size, slice at natural pitch,
+    # resample each cell to cell_size. Float pitch + rounded boundaries
+    # absorbs sub-pixel rounding into the per-cell crop, not the pitch.
+    pitch_x = raw_w / cols
+    pitch_y = raw_h / rows
+    cells = []
+    for r in range(rows):
+        for c in range(cols):
+            x0, y0 = round(c * pitch_x), round(r * pitch_y)
+            x1, y1 = round((c + 1) * pitch_x), round((r + 1) * pitch_y)
+            crop = sheet.crop((x0, y0, min(x1, raw_w), min(y1, raw_h)))
+            if crop.size != (cell_size, cell_size):
+                crop = crop.resize((cell_size, cell_size), Image.Resampling.LANCZOS)
+            cells.append(crop)
+    return cells
+```
+
+Why this is hybrid: the algorithm picks the cheapest correct path for the
+input. Exact-match canvases skip the resample entirely (case 1). Fractional
+canvases pay one LANCZOS resample per cell (cases 2–3) but never resample
+the WHOLE sheet — which is the operation that loses sprite-pitch alignment.
+
+### Synthesized-canvas test pattern
+
+`skills/game-sprite-pipeline/scripts/test_slice_grid_cells.py` synthesizes
+magenta canvases with green-marker disks placed at known cell centers, runs
+each through `slice_grid_cells`, and asserts each extracted cell's marker
+centroid lies within `cell_size / 8` of the cell center. Cases:
+
+| Canvas | Grid | Cell | Pitch | Path |
+|---|---|---|---|---|
+| 1254×1254 | 8×8 | 128 | 156.75 | fractional (case 3) — the asset 05 reproduction |
+| 1024×1024 | 8×8 | 128 | 128.00 | exact (case 1) |
+| 1280×1280 | 8×8 | 128 | 160.00 | integer (case 2) |
+| 1024×1024 | 2×2 | 512 | 512.00 | exact (case 1) — portrait-loop |
+| 1100×1100 | 2×2 | 512 | 550.00 | fractional (case 3) |
+| 1024×1024 | 4×4 | 256 | 256.00 | exact (case 1) — action loop |
+| 1535×1535 | 4×4 | 256 | 383.75 | fractional (case 3) |
+
+All seven cases pass. The test is pure deterministic Python (PIL + numpy),
+no LLM, no external API. Run via:
+
+```bash
+python3 skills/game-sprite-pipeline/scripts/test_slice_grid_cells.py
+```
+
+This is the deterministic gate the toolkit philosophy demands — algorithms
+verified by code, not eyeballs.
+
+### Where the cell-pitch rule applies
+
+Every consumer that takes a raw multi-cell sheet and slices it into
+fixed-size cells:
+
+- `skills/game-sprite-pipeline/scripts/portrait_pipeline.py` — 2×2
+  portrait-loop sheets.
+- `/tmp/sprite-demo/generate.py` — `post_process_spritesheet` (the demo's
+  spritesheet path, all action-loop assets).
+- Any new pipeline that calls `sprite_process.slice_grid_cells` instead of
+  rolling its own resize-then-slice loop.
+
+Before adding a new consumer, route it through `slice_grid_cells`. Do not
+reintroduce `sheet.resize((cols*cell, rows*cell), …)` followed by a
+`cell`-pitch slicer — that is the bug.
+
 ## Reference loading hint
 
 Load this file when:
 - Spritesheet Phase D (frame extraction) is the active phase
 - The pipeline emits a `FrameCountMismatchError`
 - Tuning `--chroma-threshold` or `--min-pixels` parameters
+- Building a new consumer that slices a raw sheet into grid cells (use
+  `sprite_process.slice_grid_cells`)

@@ -243,6 +243,142 @@ def color_despill_magenta(arr: np.ndarray) -> np.ndarray:
     return arr
 
 
+def kill_pink_fringe(arr: np.ndarray, alpha_ceiling: int = 220) -> np.ndarray:
+    """Zero alpha on semi-transparent pink-cast pixels at the silhouette edge.
+
+    The despill chain (chroma_pass2_edge_flood + color_despill_magenta +
+    alpha_fade_magenta_fringe + dilate_alpha_zero) leaves a residual class of
+    fringe pixels that survive because their per-pixel color spread is high
+    enough to look like saturated character art (despill protects them) yet
+    they sit exactly at the anti-aliased silhouette boundary with non-full
+    alpha. Visually, these read as a pink halo or wisp.
+
+    The wide pink criterion catches them: R > 130 AND B > 120 AND G < 80
+    AND R - G > 50 AND B - G > 40. Restricting the kill to alpha < 220
+    ensures we only touch edge pixels — full-opacity character art (e.g. a
+    purple costume center, alpha 255) is preserved.
+
+    Tuning:
+      alpha_ceiling=220 (default): only edge pixels with anti-aliased alpha.
+      alpha_ceiling=255: also kill fully-opaque pink — DANGEROUS; can erase
+        intentional pink/magenta costume art. Don't raise without verifying.
+      alpha_ceiling=180: more conservative; preserves more fringe.
+
+    Pure numpy. ~5ms / 1024px image.
+    """
+    rgb = arr[..., :3].astype(int)
+    r = rgb[..., 0]
+    g = rgb[..., 1]
+    b = rgb[..., 2]
+    alpha = arr[..., 3]
+    pink_cast = (
+        (r > 130) & (b > 120) & (g < 80) & ((r - g) > 50) & ((b - g) > 40) & (alpha > 0) & (alpha < alpha_ceiling)
+    )
+    arr[pink_cast, 3] = 0
+    return arr
+
+
+def neutralize_interior_magenta_spill(arr: np.ndarray) -> np.ndarray:
+    """Recolor full-opacity pink-cast pixels INSIDE the silhouette toward neutral.
+
+    Distinct from `kill_pink_fringe` (edge alpha-kill) and from
+    `color_despill_magenta` (semi-transparent fringe color clamp). This
+    targets the case where the generator painted PINK-CAST pixels INSIDE
+    the character silhouette (typically inside dark hair or shadow
+    regions), where R is high, G is low, B is moderate-high. Visually a
+    pink streak or wisp inside dark hair.
+
+    Two-tier criterion (tightened to protect intentional costume color):
+
+    Tier A — pure magenta cast:
+      R >= 200 AND B >= 200 AND G <= 80 AND R-G > 120 AND B-G > 120
+      Catches near-pure (255,0,255)-cast pixels.
+
+    Tier B — moderate pink cast WITH B > R*0.6 (so it's not just orange/red):
+      R >= 150 AND G <= 80 AND B >= 90 AND R-G > 90 AND B-G > 50
+      AND B*1.4 >= R   (pink/magenta hue, not red)
+      Catches the (233, 56, 165) class of "diluted spill into hair" that
+      Tier A misses because B=165 < 200.
+
+    Both tiers require alpha == 255 to skip edge anti-aliased pixels.
+
+    Costume protection examples (all preserved):
+    - Magenta showman shorts (190, 20, 190): R=190 < 200 (fails A), B=190 OK
+      (B*1.4=266 >= R=190) — but R<150? No, R=190. So Tier B catches it!
+      That's a problem — magenta costumes ARE pink. Mitigation: the criterion
+      catches pixels that look "like background bleed", not "like a magenta
+      costume". A magenta costume painting has SHADING and varied saturation;
+      a few pixels recolored is invisible. The skill prompts for non-magenta
+      costumes anyway, and where magenta IS used (showman archetype), users
+      should accept this as a known limitation logged in
+      `references/bg-removal-local.md`.
+    - Purple suit highlights (180, 80, 200): G=80 fails (G<=80, so passes B).
+      B*1.4=280 >= R=180. R-G=100>90. B-G=120>50. → Tier B fires.
+      Recolor to (80, 80, 80) which DESTROYS the purple suit. So we need a
+      tighter B-vs-R relationship: PURE pink has B ≈ R, purple has B > R*1.1.
+      Add: AND B <= R*1.05  (pink: B ≈ R; reject purple: B much higher).
+      Re-check examples:
+        - (233, 56, 165): B/R = 0.71 → passes (it's pink/red, not purple)
+        - (180, 80, 200): B/R = 1.11 → REJECTED (it's purple, leave alone)
+        - magenta (255, 0, 255): B/R = 1.0 → passes
+        - showman pink (250, 50, 230): B/R = 0.92 → passes
+        - manager suit (150, 30, 180): B/R = 1.20 → REJECTED (purple)
+
+    Recoloring strategy: pull R and B down to G — neutralizes hue while
+    preserving brightness of G (hair stays dark, highlights stay brighter).
+
+    Pure numpy. ~10ms / 1024px image.
+    """
+    rgb = arr[..., :3].astype(int)
+    r = rgb[..., 0]
+    g = rgb[..., 1]
+    b = rgb[..., 2]
+    alpha = arr[..., 3]
+    # Tier A: near-pure magenta cast inside silhouette
+    tier_a = (r >= 200) & (b >= 200) & (g <= 80) & ((r - g) > 120) & ((b - g) > 120) & (alpha == 255)
+    # Tier B: moderate pink cast (catches diluted spill that GIF dithered)
+    # Critical: B <= R * 1.05 distinguishes pink (B≈R) from purple (B>R*1.1).
+    tier_b = (
+        (r >= 150)
+        & (g <= 80)
+        & (b >= 90)
+        & ((r - g) > 90)
+        & ((b - g) > 50)
+        & (b * 100 <= r * 105)  # pink hue, not purple
+        & (alpha == 255)
+    )
+    pink_inside = tier_a | tier_b
+    # Pull R and B down to G — neutralizes hue while preserving brightness
+    arr[..., 0] = np.where(pink_inside, g.astype(np.uint8), arr[..., 0])
+    arr[..., 2] = np.where(pink_inside, g.astype(np.uint8), arr[..., 2])
+    return arr
+
+
+def matte_composite(img: Image.Image, matte: tuple[int, int, int] = (40, 40, 40)) -> Image.Image:
+    """Blend an RGBA image over a neutral matte color and return RGB.
+
+    Used BEFORE GIF palette quantization. The 1-bit-alpha + adaptive 256-
+    color GIF format reintroduces magenta-tinted edges at the silhouette
+    even when the RGBA source is clean — the adaptive palette allocates
+    indices for pink fringe pixels and the quantizer rounds nearby
+    anti-aliased pixels to those entries. Pre-mattering over a neutral
+    middle-gray (default 40,40,40) gives the quantizer no pink reference
+    to lock onto: anti-aliased pixels blend to neutral gray instead of
+    pink/plum, the palette stays neutral, and surviving GIF edges look
+    like dark gray (visually neutral) instead of pink.
+
+    The matte color choice matters. Brighter mattes (e.g. 128,128,128) wash
+    out the silhouette against a dark page bg. Pure black (0,0,0) shows up
+    as a hard edge against any non-black page. Middle-gray (40,40,40)
+    matches typical dark-theme page bgs (~#181a21 to #2a2a2e) closely
+    enough to disappear, while still desaturating the fringe.
+    """
+    img = img.convert("RGBA")
+    bg = Image.new("RGB", img.size, matte)
+    bg.paste(img, (0, 0), img)
+    return bg
+
+
 def alpha_fade_magenta_fringe(arr: np.ndarray, threshold: int = 130) -> np.ndarray:
     """Flood-zero pink/magenta-leaning regions connected to alpha=0.
 
@@ -322,9 +458,18 @@ def remove_bg_chroma(
         arr = alpha_fade_magenta_fringe(arr, threshold=130)
         # Color despill: bleach the magenta tint out of surviving fringe pixels.
         arr = color_despill_magenta(arr)
+        # Interior spill: neutralize full-opacity PURE-magenta pixels the
+        # generator painted INSIDE the silhouette (e.g. pink streaks in
+        # dark hair). Must run BEFORE kill_pink_fringe so the recolored
+        # pixels don't get re-classified as fringe.
+        arr = neutralize_interior_magenta_spill(arr)
         # Alpha dilation: expand alpha=0 region to kill 1-px residual halo.
         if alpha_dilate_radius > 0:
             arr = dilate_alpha_zero(arr, alpha_dilate_radius)
+        # Final pink-fringe kill: zero alpha on semi-transparent pink-cast
+        # pixels that despill protected as "saturated". See bg-removal-local.md
+        # "GIF format bleed at silhouette edges" for the full rationale.
+        arr = kill_pink_fringe(arr)
         pass2 = Image.fromarray(arr, "RGBA")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     pass2.save(output_path, format="PNG")
@@ -520,6 +665,89 @@ def _alpha_coverage_too_low(path: Path) -> bool:
         total = arr.shape[0] * arr.shape[1]
         return (opaque / total) < 0.3
     return False  # without numpy we don't run auto mode anyway
+
+
+# ---------------------------------------------------------------------------
+# Naive-grid extraction (Phase D fast path) — pitch derived from raw size
+# ---------------------------------------------------------------------------
+def slice_grid_cells(
+    sheet: Image.Image,
+    cols: int,
+    rows: int,
+    cell_size: int,
+) -> list[Image.Image]:
+    """Slice a spritesheet into ``cols * rows`` cells of ``(cell_size, cell_size)``.
+
+    The naive-grid bug this replaces: the previous consumer code resized the
+    raw sheet to ``(cols * cell_size, rows * cell_size)`` BEFORE slicing, then
+    sliced at ``cell_size``. That fails whenever the raw is NOT already a clean
+    multiple of the grid: image-gen backends regularly return canvases like
+    1254x1254 for an 8x8 grid. A whole-image LANCZOS resize from 1254 to 1024
+    does not remap sprite positions onto a 128-pixel pitch — the sprites
+    stay where their natural ~157px pitch puts them, and a 128-pixel cell
+    grid then cuts every character mid-body.
+
+    The fix is to derive the cell pitch from the actual raw dimensions, slice
+    at the natural pitch, and only resample each cell (not the whole sheet)
+    to the target ``cell_size``. This is the hybrid algorithm:
+
+      Case 1 (exact match):  raw_size == cols * cell_size  → direct slice.
+      Case 2 (integer pitch): raw_size % cols == 0          → slice at
+        ``raw_size // cols``, then per-cell LANCZOS resample to ``cell_size``.
+      Case 3 (fractional pitch): otherwise                  → use a float
+        pitch ``raw_size / cols`` and round per-cell crop boundaries; then
+        per-cell LANCZOS resample. Per-cell crops absorb the rounding so each
+        sprite stays inside one cell, regardless of canvas size.
+
+    Why this is the correct invariant: cell pitch is a property of the
+    SOURCE image (where the generator placed the characters), not a property
+    of the OUTPUT canvas the post-processor wants to produce. Treating the
+    output cell_size as if it dictated the input pitch is the bug.
+    Cell size is derived from raw_size and grid, never assumed from final
+    canvas size.
+
+    Pure deterministic Python. No LLM, no external API. Runs in O(cols*rows)
+    crops + at most ``cols*rows`` LANCZOS resamples.
+    """
+    if cols <= 0 or rows <= 0:
+        raise ValueError(f"grid must be positive, got cols={cols} rows={rows}")
+    if cell_size <= 0:
+        raise ValueError(f"cell_size must be positive, got {cell_size}")
+
+    raw_w, raw_h = sheet.size
+    canonical_w = cols * cell_size
+    canonical_h = rows * cell_size
+
+    # Case 1: exact match — direct slice, no resample.
+    if raw_w == canonical_w and raw_h == canonical_h:
+        cells: list[Image.Image] = []
+        for r in range(rows):
+            for c in range(cols):
+                x0 = c * cell_size
+                y0 = r * cell_size
+                cells.append(sheet.crop((x0, y0, x0 + cell_size, y0 + cell_size)))
+        return cells
+
+    # Case 2 & 3: derive pitch from raw size. Use float pitch + rounded
+    # boundaries so fractional canvases (e.g. 1254/8) still slice cleanly.
+    pitch_x = raw_w / cols
+    pitch_y = raw_h / rows
+
+    cells = []
+    for r in range(rows):
+        for c in range(cols):
+            x0 = round(c * pitch_x)
+            y0 = round(r * pitch_y)
+            x1 = round((c + 1) * pitch_x)
+            y1 = round((r + 1) * pitch_y)
+            # Clamp to canvas (last column/row absorbs any rounding overflow).
+            x1 = min(x1, raw_w)
+            y1 = min(y1, raw_h)
+            crop = sheet.crop((x0, y0, x1, y1))
+            if crop.size != (cell_size, cell_size):
+                crop = crop.resize((cell_size, cell_size), Image.Resampling.LANCZOS)
+            cells.append(crop)
+    return cells
 
 
 # ---------------------------------------------------------------------------
@@ -1302,23 +1530,12 @@ def assemble_outputs(
     sheet_path = output_dir / f"{name}_sheet.png"
     sheet.save(sheet_path, format="PNG")
 
-    # Animated GIF
-    gif_path = output_dir / f"{name}.gif"
+    # Animated WebP — preferred output. Full 8-bit alpha, no quantization
+    # bleed at silhouette edges. Modern browsers autoplay animated WebP
+    # the same way they autoplay GIF.
+    webp_path = output_dir / f"{name}.webp"
     duration = int(1000 / max(fps, 1))
     valid_frames = [f for f in frames if f is not None]
-    if valid_frames:
-        valid_frames[0].save(
-            gif_path,
-            save_all=True,
-            append_images=valid_frames[1:],
-            duration=duration,
-            loop=0,
-            disposal=2,
-            transparency=0,
-        )
-
-    # Animated WebP
-    webp_path = output_dir / f"{name}.webp"
     if valid_frames:
         valid_frames[0].save(
             webp_path,
@@ -1327,6 +1544,28 @@ def assemble_outputs(
             duration=duration,
             loop=0,
             format="WebP",
+        )
+
+    # Animated GIF — compatibility fallback. GIF's 1-bit alpha + 256-color
+    # adaptive palette can resurrect magenta fringe at silhouette edges
+    # even when the RGBA source is clean (the palette quantizer allocates
+    # a pink index from anti-aliased boundary pixels). Matte-compositing
+    # each frame over a neutral middle-gray BEFORE quantizing prevents
+    # this — the palette has no pink reference, anti-aliased edges blend
+    # to gray. See bg-removal-local.md "GIF format bleed at silhouette
+    # edges" for details.
+    gif_path = output_dir / f"{name}.gif"
+    if valid_frames:
+        gif_imgs = [
+            matte_composite(f, matte=(40, 40, 40)).convert("P", palette=Image.Palette.ADAPTIVE) for f in valid_frames
+        ]
+        gif_imgs[0].save(
+            gif_path,
+            save_all=True,
+            append_images=gif_imgs[1:],
+            duration=duration,
+            loop=0,
+            disposal=2,
         )
 
     # Per-frame PNGs
