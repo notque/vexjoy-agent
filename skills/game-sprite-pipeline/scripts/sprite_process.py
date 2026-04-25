@@ -43,6 +43,11 @@ except ImportError:
 # ---------------------------------------------------------------------------
 MAGENTA = (255, 0, 255)
 DEFAULT_CHROMA_THRESHOLD = 30
+# Pass-2 default loosened from 60 (= 2 * pass1) to 90 because despill now
+# protects character pixels at the fringe. See bg-removal-local.md.
+DEFAULT_PASS2_THRESHOLD = 90
+DEFAULT_DESPILL_STRENGTH = 0.5
+DEFAULT_ALPHA_DILATE_RADIUS = 1
 DEFAULT_MIN_COMPONENT_PIXELS = 200
 PORTRAIT_WIDTH_RANGE = (350, 850)
 PORTRAIT_HEIGHT_RANGE = (900, 1100)
@@ -50,6 +55,15 @@ PORTRAIT_ASPECT_MIN = 1.5  # height / width
 PORTRAIT_ASPECT_MAX = 2.5
 DEFAULT_BOTTOM_MARGIN = 8
 DEFAULT_GIF_FPS = 10
+
+# Adapted from ~/road-to-aew/scripts/generate_enemy_sprite.py (lines 1048-1128).
+# road-to-aew uses Gemini Nano Banana which paints a #3a3a3a background;
+# this skill exposes the same algorithm under --bg-mode gray-tolerance for
+# any backend that does not honor the magenta-bg prompt.
+GRAY_BG_DEFAULT = (58, 58, 58)
+GRAY_BG_TOLERANCE_DEFAULT = 30
+WATERMARK_MARGIN_DEFAULT = 40
+WATERMARK_BRIGHTNESS_THRESHOLD = 180
 
 
 # ---------------------------------------------------------------------------
@@ -77,8 +91,29 @@ def chroma_pass1(img: Image.Image, chroma: tuple[int, int, int], threshold: int)
     return img
 
 
-def chroma_pass2_edge_flood(img: Image.Image, chroma: tuple[int, int, int], threshold: int) -> Image.Image:
-    """Flood-fill from canvas edges with looser threshold to catch fringe."""
+def chroma_pass2_edge_flood(
+    img: Image.Image,
+    chroma: tuple[int, int, int],
+    threshold: int,
+    despill_strength: float = DEFAULT_DESPILL_STRENGTH,
+) -> Image.Image:
+    """Despill-aware flood-fill from canvas edges with looser threshold.
+
+    Pass 2 walks inward from canvas edges and zeros alpha for any pixel that
+    is "close enough" to the chroma color (`threshold`). The despill check
+    protects pixels whose RGB is off-color relative to the chroma — this is
+    the character's anti-aliased fringe where lighting/spill has shifted the
+    pixel away from pure magenta. Without despill, threshold=90 bites into
+    character silhouettes; with despill it cleans the halo while preserving
+    art.
+
+    A pixel is preserved (not zeroed) when:
+      diff <= threshold (i.e. nominally background) AND
+      color_balance(max-min RGB) > 20 * despill_strength
+
+    `color_balance` is large for "saturated, distinct" colors and small for
+    pure magenta-ish pixels. Set `despill_strength=0` to disable.
+    """
     img = img.convert("RGBA")
     if not HAS_NUMPY:
         # Without numpy this would be very slow; skip pass 2 in pure-Python mode
@@ -97,6 +132,40 @@ def chroma_pass2_edge_flood(img: Image.Image, chroma: tuple[int, int, int], thre
         for y in range(h):
             queue.append((y, x))
 
+    # Despill: a pixel is "off the magenta axis" when its chroma-orthogonal
+    # channel (green for magenta) is closer to the off-axis channels (R, B)
+    # than expected for true magenta. For magenta=(255,0,255), the off-axis
+    # channel is green; pure-magenta pixels have G near 0 and R, B near 255.
+    # Spill pixels (character art tinted by magenta) have G > 0 by a margin.
+    # The cutoff `despill_off_axis_cutoff` is the minimum off-axis "lift"
+    # needed to mark a pixel as character (preserve).
+    on_axis_lo = min(chroma)
+    on_axis_hi = max(chroma)
+    despill_lift_cutoff = int(40 * despill_strength)
+
+    def is_off_axis(rgb_arr: np.ndarray) -> bool:
+        """Return True if this pixel is off the chroma axis (preserve as character)."""
+        r_, g_, b_ = int(rgb_arr[0]), int(rgb_arr[1]), int(rgb_arr[2])
+        # For magenta=(255,0,255): on-axis channels are R and B (high), off-axis is G (low).
+        # Build the per-channel "expected on-axis vs off-axis" from chroma.
+        deviations = []
+        for ch_val, px_val in zip(chroma, (r_, g_, b_)):
+            if ch_val == on_axis_hi:
+                # We expect this channel to be high; lift = how much it dropped below max
+                deviations.append(255 - px_val)
+            elif ch_val == on_axis_lo:
+                # We expect this channel to be low; lift = how much it rose above min
+                deviations.append(px_val)
+            else:
+                deviations.append(abs(px_val - ch_val))
+        # Pixel is off-axis (character spill) if any deviation exceeds the cutoff
+        # AND that deviation is in the off-axis (low) channel.
+        # Use the off-axis lift specifically: for magenta, that is the green channel lift.
+        if chroma == (255, 0, 255):
+            return g_ >= despill_lift_cutoff
+        # General fallback: any large deviation
+        return max(deviations) >= despill_lift_cutoff
+
     while queue:
         y, x = queue.popleft()
         if not (0 <= y < h and 0 <= x < w):
@@ -109,8 +178,14 @@ def chroma_pass2_edge_flood(img: Image.Image, chroma: tuple[int, int, int], thre
                 queue.append((y + dy, x + dx))
             continue
         rgb = arr[y, x, :3].astype(int)
-        diff = int(abs(rgb - chroma_arr).sum())
+        diff = int(np.abs(rgb - chroma_arr).sum())
         if diff > threshold:
+            continue
+        # Despill: a pixel that nominally matches the bg threshold but has
+        # significant off-axis lift (e.g. green channel for magenta-bg) is
+        # character spill. Preserve it.
+        if despill_strength > 0 and arr[y, x, 3] > 128 and is_off_axis(rgb):
+            visited[y, x] = True
             continue
         visited[y, x] = True
         arr[y, x, 3] = 0
@@ -120,13 +195,223 @@ def chroma_pass2_edge_flood(img: Image.Image, chroma: tuple[int, int, int], thre
     return Image.fromarray(arr, "RGBA")
 
 
-def remove_bg_chroma(input_path: Path, output_path: Path, threshold: int) -> None:
-    """Two-pass chroma key: tight pass + edge flood."""
+def dilate_alpha_zero(arr: np.ndarray, radius: int = DEFAULT_ALPHA_DILATE_RADIUS) -> np.ndarray:
+    """Expand the alpha=0 region by `radius` pixels (4-connected dilation).
+
+    Kills the 1-pixel halo that survives even pass-2 flood-fill on
+    anti-aliased generator output. Pure numpy, no scipy. The 4-connected
+    shifted-OR is correct for radius=1; iterate for larger radii.
+    """
+    if radius <= 0:
+        return arr
+    alpha = arr[..., 3]
+    mask = alpha == 0
+    for _ in range(radius):
+        shifted = np.zeros_like(mask)
+        shifted[1:, :] |= mask[:-1, :]
+        shifted[:-1, :] |= mask[1:, :]
+        shifted[:, 1:] |= mask[:, :-1]
+        shifted[:, :-1] |= mask[:, 1:]
+        mask = mask | shifted
+    arr[..., 3] = np.where(mask, 0, alpha)
+    return arr
+
+
+def color_despill_magenta(arr: np.ndarray) -> np.ndarray:
+    """VFX-style despill: bleach magenta tint from semi-transparent silhouette.
+
+    For magenta=(255,0,255), a pixel at the silhouette has high R, low G,
+    high B (pink). Despill clamps R and B to max(G, R, B) when G < min(R, B):
+    in practice, set R = min(R, max(G, B-margin)) so the pink fringe gets
+    pulled toward neutral.
+
+    This runs AFTER pass-2 alpha masking so it only touches non-zero alpha
+    pixels (the surviving fringe).
+    """
+    rgb = arr[..., :3].astype(int)
+    r = rgb[..., 0]
+    g = rgb[..., 1]
+    b = rgb[..., 2]
+    # A pixel "leans magenta" when both R and B are higher than G by a margin.
+    # We pull R and B down toward G (kills the pink/magenta tint).
+    leans_magenta = (r > g + 10) & (b > g + 10) & (arr[..., 3] > 0) & (arr[..., 3] < 255)
+    # Cap R and B at a value that keeps the pixel hue-balanced
+    cap = np.maximum(g, np.minimum(r, b))
+    new_r = np.where(leans_magenta, np.minimum(r, cap + 30), r)
+    new_b = np.where(leans_magenta, np.minimum(b, cap + 30), b)
+    arr[..., 0] = np.clip(new_r, 0, 255).astype(np.uint8)
+    arr[..., 2] = np.clip(new_b, 0, 255).astype(np.uint8)
+    return arr
+
+
+def alpha_fade_magenta_fringe(arr: np.ndarray, threshold: int = 130) -> np.ndarray:
+    """Zero alpha for pixels that look magenta-tinted (R high + B high + G low).
+
+    A pixel is "magenta-tinted" when R > 200, B > 170, and G < 60. Pure character
+    pixels rarely satisfy all three (they have high green-lift, lower R, or lower
+    B). The signal is reliable enough that we use a hard alpha=0 rather than a
+    soft fade — soft fade leaves visible pink at low alpha values, which the
+    browser composites against dark bg as visible pink.
+
+    `threshold` is a legacy parameter kept for backward compat but unused; the
+    rule is hardcoded. Adjust by editing constants if needed.
+    """
+    rgb = arr[..., :3].astype(int)
+    r = rgb[..., 0]
+    g = rgb[..., 1]
+    b = rgb[..., 2]
+    alpha = arr[..., 3]
+    # Magenta-tinted: high R, high B, low G — i.e. pinkish/magenta
+    magenta_tinted = (r > 200) & (b > 170) & (g < 60) & (alpha > 0)
+    arr[..., 3] = np.where(magenta_tinted, 0, alpha)
+    return arr
+
+
+def remove_bg_chroma(
+    input_path: Path,
+    output_path: Path,
+    threshold: int,
+    pass2_threshold: int | None = None,
+    despill_strength: float = DEFAULT_DESPILL_STRENGTH,
+    alpha_dilate_radius: int = DEFAULT_ALPHA_DILATE_RADIUS,
+) -> None:
+    """Two-pass despill-aware chroma key + alpha-fade + dilation.
+
+    pass1: tight match to chroma color (default threshold=30) — catches the
+        bulk solid magenta.
+    pass2: edge flood with looser threshold (default 90) and despill — catches
+        feathered fringe without biting into character interior.
+    fringe-fade: any remaining pixels close to magenta in weighted-RGB space
+        get their alpha attenuated proportionally (kills the visible pink halo).
+    color-despill: bleach magenta tint out of remaining semi-opaque pixels.
+    dilate: expand alpha=0 by 1 px so the 1-pixel residual halo at the
+        silhouette is removed.
+    """
+    if pass2_threshold is None:
+        pass2_threshold = DEFAULT_PASS2_THRESHOLD
     img = Image.open(input_path)
     pass1 = chroma_pass1(img, MAGENTA, threshold)
-    pass2 = chroma_pass2_edge_flood(pass1, MAGENTA, threshold * 2)
+    pass2 = chroma_pass2_edge_flood(
+        pass1,
+        MAGENTA,
+        pass2_threshold,
+        despill_strength=despill_strength,
+    )
+    if HAS_NUMPY:
+        arr = np.array(pass2.convert("RGBA"))
+        # Fringe alpha-fade: kill remaining pink halo by attenuating alpha
+        # in proportion to magenta-distance.
+        arr = alpha_fade_magenta_fringe(arr, threshold=130)
+        # Color despill: bleach the magenta tint out of surviving fringe pixels.
+        arr = color_despill_magenta(arr)
+        # Alpha dilation: expand alpha=0 region to kill 1-px residual halo.
+        if alpha_dilate_radius > 0:
+            arr = dilate_alpha_zero(arr, alpha_dilate_radius)
+        pass2 = Image.fromarray(arr, "RGBA")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     pass2.save(output_path, format="PNG")
+
+
+# Adapted from ~/road-to-aew/scripts/generate_enemy_sprite.py lines 1048-1128
+# (`remove_watermark` + `make_background_transparent`). road-to-aew has produced
+# 87 clean transparent PNGs in production with this algorithm. Used here as
+# the secondary backend for image generators that paint a gray background
+# (Gemini Nano Banana) instead of honoring our magenta-bg prompt.
+def remove_watermark_corners(
+    img: Image.Image,
+    bg_color: tuple[int, int, int],
+    margin: int,
+    brightness_threshold: int = WATERMARK_BRIGHTNESS_THRESHOLD,
+) -> Image.Image:
+    """Replace bright corner pixels with bg_color so they get masked later."""
+    img = img.convert("RGBA")
+    if not HAS_NUMPY:
+        # Slow path: per-pixel
+        pixels = img.load()
+        w, h = img.size
+        corner_boxes = [
+            (0, 0, margin, margin),
+            (w - margin, 0, w, margin),
+            (0, h - margin, margin, h),
+            (w - margin, h - margin, w, h),
+        ]
+        for x1, y1, x2, y2 in corner_boxes:
+            for y in range(max(0, y1), min(h, y2)):
+                for x in range(max(0, x1), min(w, x2)):
+                    r, g, b, _ = pixels[x, y]
+                    if (r + g + b) / 3 > brightness_threshold:
+                        pixels[x, y] = (bg_color[0], bg_color[1], bg_color[2], 255)
+        return img
+    arr = np.array(img)
+    h, w = arr.shape[:2]
+    brightness = arr[..., :3].mean(axis=-1)
+    corner_mask = np.zeros((h, w), dtype=bool)
+    m = min(margin, h, w)
+    corner_mask[:m, :m] = True
+    corner_mask[:m, w - m :] = True
+    corner_mask[h - m :, :m] = True
+    corner_mask[h - m :, w - m :] = True
+    bright_corners = corner_mask & (brightness > brightness_threshold)
+    arr[bright_corners, 0] = bg_color[0]
+    arr[bright_corners, 1] = bg_color[1]
+    arr[bright_corners, 2] = bg_color[2]
+    arr[bright_corners, 3] = 255
+    return Image.fromarray(arr, "RGBA")
+
+
+def gray_tolerance_to_alpha(
+    img: Image.Image,
+    bg_color: tuple[int, int, int],
+    tolerance: int,
+) -> Image.Image:
+    """Set alpha=0 for any pixel within `tolerance` of `bg_color` (per channel)."""
+    img = img.convert("RGBA")
+    if not HAS_NUMPY:
+        pixels = img.load()
+        w, h = img.size
+        for y in range(h):
+            for x in range(w):
+                r, g, b, a = pixels[x, y]
+                if (
+                    abs(r - bg_color[0]) <= tolerance
+                    and abs(g - bg_color[1]) <= tolerance
+                    and abs(b - bg_color[2]) <= tolerance
+                ):
+                    pixels[x, y] = (r, g, b, 0)
+        return img
+    arr = np.array(img)
+    rgb = arr[..., :3].astype(int)
+    bg_arr = np.array(bg_color, dtype=int)
+    within = np.all(np.abs(rgb - bg_arr) <= tolerance, axis=-1)
+    arr[within, 3] = 0
+    return Image.fromarray(arr, "RGBA")
+
+
+def remove_bg_gray_tolerance(
+    input_path: Path,
+    output_path: Path,
+    bg_color: tuple[int, int, int] = GRAY_BG_DEFAULT,
+    tolerance: int = GRAY_BG_TOLERANCE_DEFAULT,
+    watermark_margin: int = WATERMARK_MARGIN_DEFAULT,
+    alpha_dilate_radius: int = DEFAULT_ALPHA_DILATE_RADIUS,
+) -> None:
+    """road-to-aew's algorithm: watermark-corner clean + gray-tolerance alpha.
+
+    Step 1: bright pixels in the four corner boxes get repainted to bg_color
+        (kills Gemini's watermark before the mask sees it).
+    Step 2: any pixel within `tolerance` of bg_color (per-channel abs-diff)
+        gets alpha=0.
+    Step 3: alpha dilation by 1 px (kills 1-pixel halo).
+    """
+    img = Image.open(input_path)
+    cleaned = remove_watermark_corners(img, bg_color, watermark_margin)
+    transparent = gray_tolerance_to_alpha(cleaned, bg_color, tolerance)
+    if HAS_NUMPY and alpha_dilate_radius > 0:
+        arr = np.array(transparent.convert("RGBA"))
+        arr = dilate_alpha_zero(arr, alpha_dilate_radius)
+        transparent = Image.fromarray(arr, "RGBA")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    transparent.save(output_path, format="PNG")
 
 
 def remove_bg_rembg(input_path: Path, output_path: Path) -> None:
@@ -149,6 +434,8 @@ def cmd_remove_bg(args: argparse.Namespace) -> int:
         print("ERROR: --output-dir required when processing multiple inputs", file=sys.stderr)
         return 2
 
+    bg_mode = args.bg_mode if args.bg_mode is not None else _bg_mode_from_legacy(args.mode)
+
     for src in inputs:
         if output_dir:
             dst = output_dir / src.name
@@ -156,26 +443,54 @@ def cmd_remove_bg(args: argparse.Namespace) -> int:
             dst = Path(args.output) if args.output else src.with_suffix(".nobg.png")
 
         try:
-            if args.mode == "chroma":
-                remove_bg_chroma(src, dst, args.chroma_threshold)
+            if bg_mode == "magenta" or args.mode == "chroma":
+                remove_bg_chroma(
+                    src,
+                    dst,
+                    args.chroma_threshold,
+                    pass2_threshold=args.pass2_threshold,
+                    despill_strength=args.despill_strength,
+                    alpha_dilate_radius=args.alpha_dilate,
+                )
+            elif bg_mode == "gray-tolerance":
+                remove_bg_gray_tolerance(
+                    src,
+                    dst,
+                    bg_color=tuple(args.gray_bg),
+                    tolerance=args.gray_tolerance,
+                    watermark_margin=args.watermark_margin,
+                    alpha_dilate_radius=args.alpha_dilate,
+                )
             elif args.mode == "rembg":
                 remove_bg_rembg(src, dst)
             elif args.mode == "auto":
                 # try chroma; if alpha mask is suspiciously small, fall through to rembg
-                remove_bg_chroma(src, dst, args.chroma_threshold)
+                remove_bg_chroma(
+                    src,
+                    dst,
+                    args.chroma_threshold,
+                    pass2_threshold=args.pass2_threshold,
+                    despill_strength=args.despill_strength,
+                    alpha_dilate_radius=args.alpha_dilate,
+                )
                 if _alpha_coverage_too_low(dst):
                     print(
                         f"[remove-bg] auto: chroma low-coverage; falling back to rembg for {src.name}", file=sys.stderr
                     )
                     remove_bg_rembg(src, dst)
             else:
-                print(f"ERROR: unknown bg-mode {args.mode!r}", file=sys.stderr)
+                print(f"ERROR: unknown bg-mode {bg_mode!r} / mode {args.mode!r}", file=sys.stderr)
                 return 2
         except RuntimeError as e:
             print(f"ERROR: {e}", file=sys.stderr)
             return 4
-        print(f"[remove-bg] {src} -> {dst}", file=sys.stderr)
+        print(f"[remove-bg] {src} -> {dst} (bg-mode={bg_mode})", file=sys.stderr)
     return 0
+
+
+def _bg_mode_from_legacy(mode: str) -> str:
+    """Map legacy --mode to --bg-mode (chroma -> magenta, rembg/auto pass through)."""
+    return "magenta" if mode == "chroma" else mode
 
 
 def _alpha_coverage_too_low(path: Path) -> bool:
@@ -896,12 +1211,59 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    rb = sub.add_parser("remove-bg", help="Remove background (chroma key default)")
+    rb = sub.add_parser("remove-bg", help="Remove background (magenta chroma key default)")
     rb.add_argument("input", nargs="+", help="Input PNG path(s)")
     rb.add_argument("--output", help="Output path (single input)")
     rb.add_argument("--output-dir", help="Output directory (multi-input)")
+    # Legacy --mode kept for backward compat with the pipeline orchestrator.
     rb.add_argument("--mode", choices=["chroma", "rembg", "auto"], default="chroma")
+    # New canonical flag. magenta = the default two-pass despill chroma key.
+    # gray-tolerance = road-to-aew's algorithm for backends that paint #3a3a3a.
+    rb.add_argument(
+        "--bg-mode",
+        choices=["magenta", "gray-tolerance"],
+        default=None,
+        help="Background removal strategy. magenta=despill chroma; gray-tolerance=road-to-aew #3a3a3a algorithm.",
+    )
     rb.add_argument("--chroma-threshold", type=int, default=DEFAULT_CHROMA_THRESHOLD)
+    rb.add_argument(
+        "--pass2-threshold",
+        type=int,
+        default=DEFAULT_PASS2_THRESHOLD,
+        help="Pass-2 edge-flood threshold (default 90; despill protects character pixels).",
+    )
+    rb.add_argument(
+        "--despill-strength",
+        type=float,
+        default=DEFAULT_DESPILL_STRENGTH,
+        help="Despill strength for pass 2 (0=off; 1.0=aggressive preserve).",
+    )
+    rb.add_argument(
+        "--alpha-dilate",
+        type=int,
+        default=DEFAULT_ALPHA_DILATE_RADIUS,
+        help="Pixel radius for alpha-zero dilation after chroma key (kills 1-px halo).",
+    )
+    rb.add_argument(
+        "--gray-bg",
+        type=int,
+        nargs=3,
+        default=list(GRAY_BG_DEFAULT),
+        metavar=("R", "G", "B"),
+        help="Background RGB for --bg-mode gray-tolerance (default 58 58 58).",
+    )
+    rb.add_argument(
+        "--gray-tolerance",
+        type=int,
+        default=GRAY_BG_TOLERANCE_DEFAULT,
+        help="Per-channel tolerance for gray-tolerance mode (default 30).",
+    )
+    rb.add_argument(
+        "--watermark-margin",
+        type=int,
+        default=WATERMARK_MARGIN_DEFAULT,
+        help="Corner box size (px) cleaned of bright pixels before gray-tolerance masking.",
+    )
     rb.set_defaults(func=cmd_remove_bg)
 
     ef = sub.add_parser("extract-frames", help="Phase D: connected-components frame detection")
