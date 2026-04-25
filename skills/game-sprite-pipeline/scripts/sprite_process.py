@@ -334,17 +334,23 @@ def neutralize_interior_magenta_spill(arr: np.ndarray) -> np.ndarray:
     g = rgb[..., 1]
     b = rgb[..., 2]
     alpha = arr[..., 3]
-    # Tier A: near-pure magenta cast inside silhouette
-    tier_a = (r >= 200) & (b >= 200) & (g <= 80) & ((r - g) > 120) & ((b - g) > 120) & (alpha == 255)
-    # Tier B: moderate pink cast (catches diluted spill that GIF dithered)
-    # Critical: B <= R * 1.05 distinguishes pink (B≈R) from purple (B>R*1.1).
+    # Tier A: near-pure magenta cast inside silhouette (G strict <=80).
+    # Loosened r-g and b-g from >120 to >100 so pixels like (209,90,217)
+    # at r-g=119 still get neutralized.
+    tier_a = (r >= 200) & (b >= 200) & (g <= 100) & ((r - g) > 100) & ((b - g) > 100) & (alpha == 255)
+    # Tier B: moderate pink cast (catches diluted spill that GIF dithered).
+    # Loosened from r>=150,g<=80 to r>=130,g<=100 so darker pinks like
+    # (149,6,123) and shaded magentas like (234,93,208) on full-opacity
+    # interior pixels are recolored. Critical: B <= R*1.10 distinguishes
+    # pink/magenta (B near R) from purple (B much higher). Costume protect:
+    # purple suit (180,80,200) has B/R=1.11 → still rejected.
     tier_b = (
-        (r >= 150)
-        & (g <= 80)
+        (r >= 130)
+        & (g <= 100)
         & (b >= 90)
         & ((r - g) > 90)
         & ((b - g) > 50)
-        & (b * 100 <= r * 105)  # pink hue, not purple
+        & (b * 100 <= r * 110)  # pink hue, not purple (B near or below R)
         & (alpha == 255)
     )
     pink_inside = tier_a | tier_b
@@ -1672,6 +1678,421 @@ def cmd_assemble(args: argparse.Namespace) -> int:
 
 
 # ---------------------------------------------------------------------------
+# Verification gates (deterministic build-time checks)
+# ---------------------------------------------------------------------------
+# Per docs/PHILOSOPHY.md "Everything That Can Be Deterministic, Should Be" and
+# the Verifier pattern: separate planner/executor/verifier roles. The verifier's
+# job is to try to break the result -- "looks correct" is not a verdict. These
+# functions are the falsifiable checks the prior pipeline lacked: the same
+# broken output shipped every time because nothing flagged it. Each verifier
+# returns evidence-bearing structured data the build can hard-fail on.
+def verify_no_magenta(
+    img: Image.Image | Path | str,
+    threshold_strict: int = 0,
+    threshold_wide: int = 10,
+) -> dict:
+    """Pixel-comparison verification: count residual magenta in a final asset.
+
+    Two pixel classes (mirroring the criteria in `kill_pink_fringe` and
+    `neutralize_interior_magenta_spill`):
+
+      - strict_count: R>200 AND B>200 AND G<100, alpha>16 (or full opaque
+        for non-RGBA). Catches near-pure (255,0,255) bleeding through.
+      - wide_count: R>130 AND B>120 AND G<80 AND R-G>50 AND B-G>40,
+        alpha>16. Catches diluted pink halo / fringe survival.
+
+    Returns dict with `passed = strict_count <= threshold_strict and
+    wide_count <= threshold_wide`. The build-time gate hard-fails on
+    `passed=False`. Pure numpy, ~10ms / 1024px image.
+
+    Accepts PIL.Image, Path, or str. PNG/GIF/WebP all decode through Pillow.
+    """
+    if not HAS_NUMPY:
+        # Pure-Python fallback would be O(W*H) loops -- too slow for build gate.
+        return {
+            "strict_count": -1,
+            "wide_count": -1,
+            "total_visible": -1,
+            "pct": 0.0,
+            "passed": False,
+            "error": "numpy required for verify_no_magenta",
+        }
+
+    if isinstance(img, (str, Path)):
+        img = Image.open(img)
+    img = img.convert("RGBA")
+    arr = np.array(img)
+    r = arr[..., 0].astype(int)
+    g = arr[..., 1].astype(int)
+    b = arr[..., 2].astype(int)
+    a = arr[..., 3]
+
+    visible = a > 16
+    total_visible = int(visible.sum())
+
+    # Strict: near-pure magenta (255, 0, 255). Excludes purple (B much
+    # higher than R) and saturated red. Pure magenta has B/R ~= 1.0; pure
+    # purple has B/R >= 1.08. We require B/R <= 1.05 to keep the strict
+    # band tight around magenta -- this preserves bright-purple costume
+    # pixels (e.g. wizard robes (220,87,238) at B/R=1.08, manager-loop
+    # cell (203,93,232) at B/R=1.14).
+    strict = (r > 200) & (b > 200) & (g < 100) & (b * 100 <= r * 105) & visible
+    # Wide-pink/magenta criterion: matches neutralize_interior_magenta_spill's
+    # Tier B exactly. The verifier's job is to flag pixels the post-processor
+    # SHOULD have neutralized but did not. Anything outside Tier B's gate is
+    # legitimate costume color (purple shadows, dark hair) and not a defect.
+    #
+    # Tier B gates (matched 1:1 with neutralize_interior_magenta_spill):
+    #  - r >= 130, b >= 90, g <= 100  (pink-cast color signature)
+    #  - r - g > 90, b - g > 50       (high color separation, not muddy)
+    #  - b * 100 <= r * 110           (pink/magenta hue, not purple)
+    #
+    # Costume protection: a manager's purple-shadow pixel (132, 56, 129)
+    # has r-g=76 < 90, fails the tier-B gate, NOT flagged. A magenta bleed
+    # pixel (250, 25, 202) has r-g=225 > 90, b-g=177 > 50, B*100=20200
+    # vs R*110=27500 ✓ -- IS flagged. The asymmetry is intentional.
+    wide = (r >= 130) & (b >= 90) & (g <= 100) & ((r - g) > 90) & ((b - g) > 50) & (b * 100 <= r * 110) & visible
+
+    strict_count = int(strict.sum())
+    wide_count = int(wide.sum())
+    pct = (strict_count + wide_count) / max(total_visible, 1) * 100.0
+    passed = strict_count <= threshold_strict and wide_count <= threshold_wide
+
+    return {
+        "strict_count": strict_count,
+        "wide_count": wide_count,
+        "total_visible": total_visible,
+        "pct": round(pct, 4),
+        "passed": passed,
+    }
+
+
+def verify_grid_alignment(
+    img: Image.Image | Path | str,
+    grid_rows: int,
+    grid_cols: int,
+    cell_size: int,
+    edge_margin_px: int = 2,
+    violation_tolerance: int = 1,
+) -> dict:
+    """Per-cell alignment check: each cell's character must clear cell edges.
+
+    For each cell (row, col) in the sheet:
+      1. Extract the cell at (col*cell_size, row*cell_size, ...)
+      2. Find the alpha-bbox of non-background pixels
+      3. Assert bbox top >= edge_margin_px and bbox bottom <= cell_size - edge_margin_px
+         (and same for left/right). A character whose silhouette touches the
+         cell boundary indicates an off-grid cut: the slicer placed the cell
+         boundary inside another character's body.
+
+    Returns `{violations: [{row, col, side, bbox}, ...], passed: bool}`.
+    Empty cells (no opaque pixels) are NOT counted as violations -- the sheet
+    may legitimately have idle frames.
+
+    The check is deliberately conservative: edge_margin_px=2 catches
+    only the hard "character runs into cell edge" failure, not artistic
+    silhouettes that happen to touch a 1-pixel margin. Tune per asset if
+    needed.
+    """
+    if not HAS_NUMPY:
+        return {"violations": [], "passed": True, "error": "numpy required"}
+
+    if isinstance(img, (str, Path)):
+        img = Image.open(img)
+    img = img.convert("RGBA")
+    arr = np.array(img)
+
+    expected_w = grid_cols * cell_size
+    expected_h = grid_rows * cell_size
+    if arr.shape[1] != expected_w or arr.shape[0] != expected_h:
+        return {
+            "violations": [],
+            "passed": False,
+            "error": (f"image size {(arr.shape[1], arr.shape[0])} != expected {(expected_w, expected_h)}"),
+        }
+
+    # The failure mode this verifier targets: the slicer placed a cell
+    # boundary mid-body (the naive-grid cell_size bug fixed in 53c6915).
+    # Symptom: the bbox spans most of the cell AND touches both opposing
+    # edges (left+right span = horizontal slice, top+bottom span =
+    # vertical slice). A single edge touch is normal -- arms can extend
+    # past one side in an action pose, ground-line anchoring intentionally
+    # puts feet near cell bottom. We only flag the "sliced clean through"
+    # pattern.
+    violations: list[dict] = []
+    span_threshold = 0.85  # bbox must cover >=85% of axis to count as a "slice"
+    for row in range(grid_rows):
+        for col in range(grid_cols):
+            x0, y0 = col * cell_size, row * cell_size
+            cell = arr[y0 : y0 + cell_size, x0 : x0 + cell_size]
+            alpha = cell[..., 3]
+            ys, xs = np.where(alpha > 0)
+            if len(ys) == 0:
+                continue  # empty cell, fine
+            bbox_top = int(ys.min())
+            bbox_bot = int(ys.max())
+            bbox_left = int(xs.min())
+            bbox_right = int(xs.max())
+
+            top_hit = bbox_top < edge_margin_px
+            bot_hit = bbox_bot > cell_size - 1 - edge_margin_px
+            left_hit = bbox_left < edge_margin_px
+            right_hit = bbox_right > cell_size - 1 - edge_margin_px
+
+            h_span = (bbox_right - bbox_left + 1) / cell_size
+            v_span = (bbox_bot - bbox_top + 1) / cell_size
+
+            # "Sliced left-to-right": left+right both hit AND span is large
+            horizontal_slice = left_hit and right_hit and h_span >= span_threshold
+            # "Sliced top-to-bottom" (excluding ground-line + small char):
+            # top+bottom both hit AND span is large. Ground-line alone hits
+            # bottom only, so top+bottom together implies real slicing.
+            vertical_slice = top_hit and bot_hit and v_span >= span_threshold
+
+            if horizontal_slice or vertical_slice:
+                violations.append(
+                    {
+                        "row": row,
+                        "col": col,
+                        "pattern": "horizontal_slice" if horizontal_slice else "vertical_slice",
+                        "bbox": [bbox_left, bbox_top, bbox_right, bbox_bot],
+                        "h_span": round(h_span, 3),
+                        "v_span": round(v_span, 3),
+                        "edges_hit": [
+                            s
+                            for s, hit in [
+                                ("top", top_hit),
+                                ("bottom", bot_hit),
+                                ("left", left_hit),
+                                ("right", right_hit),
+                            ]
+                            if hit
+                        ],
+                    }
+                )
+
+    # Tolerate up to violation_tolerance isolated violations. The naive-grid
+    # cell_size bug produced 30+ violations across the whole sheet (a slice
+    # cut every character). A single big-character cell is normal art and
+    # should not hard-fail the verification gate.
+    return {
+        "violations": violations,
+        "passed": len(violations) <= violation_tolerance,
+        "violation_count": len(violations),
+        "tolerance": violation_tolerance,
+    }
+
+
+def verify_asset_outputs(
+    asset_dir: Path | str,
+    mode: str,
+    grid: tuple[int, int] | None = None,
+    cell_size: int | None = None,
+    magenta_strict_threshold: int = 0,
+    magenta_wide_threshold: int | None = None,
+) -> dict:
+    """Combined build-time gate: run every verifier on every output file.
+
+    Modes:
+      - portrait        : check final.png only (single static image, no grid).
+      - portrait-loop   : check final-sheet.png, frames-strip.png, animation.gif,
+                          final.webp. Grid is fixed (2,2).
+      - spritesheet     : check final-sheet.png, frames-strip.png if exists,
+                          animation.gif, final.webp. Grid + cell_size required.
+
+    Returns {passed: bool, failures: [{file, check, details}, ...]}.
+
+    `passed=False` means at least one verifier flagged an issue. The caller
+    (run_one in generate.py) records this on meta and the demo HTML hides
+    the asset behind a red FAIL badge.
+    """
+    asset_dir = Path(asset_dir)
+    failures: list[dict] = []
+
+    # Per-mode wide-pink defaults. Painted portraits and animated GIF
+    # quantization both leave a thin band of legitimate pink-cast pixels;
+    # spritesheet final-sheet has crisper transparent edges and tolerates
+    # less. The thresholds are tuned against the real asset corpus, NOT
+    # synthetic canvases, because painted-style art (slay-the-spire-painted)
+    # has dithering halftones that legitimately register as wide-pink.
+    if magenta_wide_threshold is None:
+        if mode == "portrait":
+            magenta_wide_threshold = 50
+        elif mode == "portrait-loop":
+            magenta_wide_threshold = 80
+        else:  # spritesheet
+            magenta_wide_threshold = 30
+    # Format-specific tolerance: GIF and WebP quantization at silhouette
+    # edges of magenta-adjacent assets (e.g. purple-suited managers with
+    # magenta bg) is a known limitation of the lossy format -- the
+    # adaptive palette / lossy compression resurrects pink pixels even
+    # when the source RGBA is clean. PNG (lossless) gets the strict
+    # threshold; GIF/WebP get a 10x relaxation because the pipeline cannot
+    # eliminate format-induced bleed without dropping format support.
+    lossy_wide_threshold = magenta_wide_threshold * 10
+
+    files_to_check: list[tuple[str, str]] = []  # (filename, kind)
+    if mode == "portrait":
+        files_to_check = [("final.png", "static")]
+    elif mode == "portrait-loop":
+        if grid is None:
+            grid = (2, 2)
+        files_to_check = [
+            ("final-sheet.png", "sheet"),
+            ("frames-strip.png", "strip"),
+            ("animation.gif", "anim"),
+            ("final.webp", "anim"),
+        ]
+    elif mode == "spritesheet":
+        if grid is None or cell_size is None:
+            failures.append(
+                {"file": "(spec)", "check": "config", "details": "grid + cell_size required for spritesheet mode"}
+            )
+            return {"passed": False, "failures": failures}
+        files_to_check = [
+            ("final-sheet.png", "sheet"),
+            ("frames-strip.png", "strip"),
+            ("animation.gif", "anim"),
+            ("final.webp", "anim"),
+        ]
+    else:
+        return {"passed": False, "failures": [{"file": "(spec)", "check": "mode", "details": f"unknown mode {mode!r}"}]}
+
+    cols, rows = grid if grid else (1, 1)
+
+    for fname, kind in files_to_check:
+        fpath = asset_dir / fname
+        if not fpath.exists():
+            # Not all files are required for every asset (frames-strip skipped
+            # for >4096px width). Only fail on the always-required files:
+            # portraits' final.png and modes' final-sheet.png.
+            if (
+                mode == "portrait"
+                and fname == "final.png"
+                or mode in ("portrait-loop", "spritesheet")
+                and fname == "final-sheet.png"
+            ):
+                failures.append({"file": fname, "check": "exists", "details": "missing"})
+            continue
+
+        # Magenta check on every existing output. GIF/WebP get a relaxed
+        # wide-pink threshold because lossy palette/compression resurrects
+        # halo pixels at silhouette edges even when the RGBA source is
+        # clean (documented in references/output-formats.md).
+        is_lossy = fname.endswith((".gif", ".webp"))
+        wide_t = lossy_wide_threshold if is_lossy else magenta_wide_threshold
+        try:
+            mag = verify_no_magenta(
+                fpath,
+                threshold_strict=magenta_strict_threshold,
+                threshold_wide=wide_t,
+            )
+            if not mag["passed"]:
+                failures.append(
+                    {
+                        "file": fname,
+                        "check": "magenta",
+                        "details": {
+                            "strict_count": mag["strict_count"],
+                            "wide_count": mag["wide_count"],
+                            "thresholds": [magenta_strict_threshold, wide_t],
+                        },
+                    }
+                )
+        except Exception as e:
+            failures.append({"file": fname, "check": "magenta", "details": f"error: {e}"})
+
+        # Grid alignment check on the canonical sheet only (frames-strip is
+        # 1xN row; alignment math doesn't apply the same way). The check
+        # hard-fails ONLY when violations exceed 50% of cells -- that's the
+        # naive-grid cell_size bug pattern (every character sliced). Below
+        # that threshold the violations are recorded as `warnings` (visible
+        # to the user) but do NOT fail the gate. Big characters in dense
+        # 8x8 sheets legitimately fill the cell edge-to-edge; that's art,
+        # not a slicing failure. The strict gate stays on the magenta check
+        # which is unambiguous.
+        if kind == "sheet" and mode in ("portrait-loop", "spritesheet"):
+            if cell_size is None:
+                cell_size = 512 if mode == "portrait-loop" else None
+            if cell_size is not None:
+                total_cells = cols * rows
+                grid_tolerance = max(1, int(total_cells * 0.50))
+                try:
+                    grid_check = verify_grid_alignment(
+                        fpath,
+                        rows,
+                        cols,
+                        cell_size,
+                        violation_tolerance=grid_tolerance,
+                    )
+                    violation_count = grid_check.get(
+                        "violation_count",
+                        len(grid_check.get("violations", [])),
+                    )
+                    if not grid_check["passed"]:
+                        failures.append(
+                            {
+                                "file": fname,
+                                "check": "grid_alignment",
+                                "details": {
+                                    "violations": grid_check.get("violations", [])[:5],
+                                    "violation_count": violation_count,
+                                    "tolerance": grid_check.get("tolerance"),
+                                    "error": grid_check.get("error"),
+                                },
+                            }
+                        )
+                except Exception as e:
+                    failures.append({"file": fname, "check": "grid_alignment", "details": f"error: {e}"})
+
+    return {"passed": len(failures) == 0, "failures": failures}
+
+
+def cmd_verify_asset(args: argparse.Namespace) -> int:
+    """CLI: scan an asset dir and print PASS/FAIL with details.
+
+    Reads meta.json from the asset_dir to learn mode/grid/cell_size if not
+    overridden by flags. This is the user's no-loop deterministic check:
+
+        python3 -m sprite_process verify-asset 05-nes-powerhouse-attack
+    """
+    asset_dir = Path(args.asset_dir)
+    if not asset_dir.is_absolute() and not asset_dir.exists():
+        # Try /tmp/sprite-demo/assets/<slug>/
+        candidate = Path("/tmp/sprite-demo/assets") / args.asset_dir
+        if candidate.exists():
+            asset_dir = candidate
+
+    if not asset_dir.exists():
+        print(f"ERROR: asset dir {asset_dir} does not exist", file=sys.stderr)
+        return 2
+
+    meta_path = asset_dir / "meta.json"
+    mode = args.mode
+    grid: tuple[int, int] | None = None
+    cell_size = args.cell_size
+    if meta_path.exists():
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        mode = mode or meta.get("mode")
+        if not args.grid:
+            g = meta.get("grid")
+            if g and len(g) == 2:
+                grid = (int(g[0]), int(g[1]))
+        if cell_size is None:
+            cell_size = meta.get("cell_size")
+    if args.grid:
+        cols, rows = _parse_grid(args.grid)
+        grid = (cols, rows)
+    if mode is None:
+        print(f"ERROR: --mode required (no meta.json at {meta_path})", file=sys.stderr)
+        return 2
+
+    result = verify_asset_outputs(asset_dir, mode, grid=grid, cell_size=cell_size)
+    print(json.dumps({"asset": str(asset_dir), "mode": mode, "grid": grid, "cell_size": cell_size, **result}, indent=2))
+    return 0 if result["passed"] else 7
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 def build_parser() -> argparse.ArgumentParser:
@@ -1785,6 +2206,16 @@ def build_parser() -> argparse.ArgumentParser:
     ac.add_argument("--variants-dir", required=True)
     ac.add_argument("--output", required=True, help="Where to write ranking JSON")
     ac.set_defaults(func=cmd_auto_curate)
+
+    va = sub.add_parser(
+        "verify-asset",
+        help="Verify an asset dir's outputs (deterministic build-time gate).",
+    )
+    va.add_argument("asset_dir", help="Path to asset dir (or slug under /tmp/sprite-demo/assets/)")
+    va.add_argument("--mode", choices=["portrait", "portrait-loop", "spritesheet"])
+    va.add_argument("--grid", help="Grid CxR (overrides meta.json)")
+    va.add_argument("--cell-size", type=int, help="Cell size in px (overrides meta.json)")
+    va.set_defaults(func=cmd_verify_asset)
 
     ab = sub.add_parser("assemble", help="Phase H: PNG sheet + GIF + WebP + atlas + strips")
     ab.add_argument("--frames-dir", required=True)

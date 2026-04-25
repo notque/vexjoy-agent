@@ -376,7 +376,13 @@ def run_portrait_loop(args: argparse.Namespace) -> int:
             arr = np.array(p2.convert("RGBA"))
             arr = sprite_process.alpha_fade_magenta_fringe(arr)
             arr = sprite_process.color_despill_magenta(arr)
+            # Interior magenta spill (catches full-opacity pink streaks the
+            # generator painted INSIDE the silhouette). Must run BEFORE
+            # kill_pink_fringe so neutralized pixels are not re-classified.
+            arr = sprite_process.neutralize_interior_magenta_spill(arr)
             arr = sprite_process.dilate_alpha_zero(arr, sprite_process.DEFAULT_ALPHA_DILATE_RADIUS)
+            # Final pink-fringe alpha kill at silhouette edges.
+            arr = sprite_process.kill_pink_fringe(arr)
             p2 = Image.fromarray(arr, "RGBA")
         nobg_frames.append(p2)
     phases.append({"phase": "E", "name": "remove-bg", "rc": 0})
