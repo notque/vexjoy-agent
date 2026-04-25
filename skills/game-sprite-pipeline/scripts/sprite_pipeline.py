@@ -407,7 +407,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--min-pixels", type=int, default=200)
     parser.add_argument("--scale-percentile", type=float, default=95)
-    parser.add_argument("--anchor-mode", choices=["bottom", "center", "auto"], default="bottom")
+    parser.add_argument(
+        "--anchor-mode",
+        choices=["bottom", "center", "auto", "ground-line", "per-frame-bottom"],
+        default="ground-line",
+        help=(
+            "Anchor strategy. ground-line (default): each frame's "
+            "alpha-bbox-bottom lands at a globally-stable Y; drift-free. "
+            "per-frame-bottom / bottom: legacy. See "
+            "references/anchor-alignment.md."
+        ),
+    )
     parser.add_argument("--fps", type=int, default=10)
     parser.add_argument("--no-strips", action="store_true")
     parser.add_argument("--skip-reference", action="store_true", help="Skip Phase A reference generation")
@@ -419,6 +429,11 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    # portrait-loop mode delegates to portrait_pipeline.run_portrait_loop
+    if getattr(args, "mode", None) == "portrait-loop":
+        import portrait_pipeline as pp
+
+        return pp.run_portrait_loop(args)
     return run_pipeline(args)
 
 

@@ -31,10 +31,11 @@ routing:
 
 # Game Sprite Pipeline
 
-Local-first AI sprite generation. One skill, two modes behind `--mode`:
+Local-first AI sprite generation. One skill, three modes behind `--mode`:
 
 - `portrait` — single full-body character PNG (road-to-aew wrestlers, card-game characters).
-- `spritesheet` — animated multi-frame grid with connected-components detection, anchor alignment, and Phaser atlas output.
+- `portrait-loop` — 2×2 = 4-frame subtle idle (breathing + blink) at 200ms/frame in ONE Codex call. Animated portraits without re-prompting new poses.
+- `spritesheet` — animated multi-frame grid with connected-components detection, ground-line anchor alignment, and Phaser atlas output.
 
 Backend: Codex CLI imagegen, sole backend. No fallback. No paid APIs (no Gemini, no Nano Banana, no `remove.bg`, no separate `OPENAI_API_KEY`). When Codex is unavailable, the skill fails loud with an actionable error message rather than silently calling a paid alternative. Reference implementation of the "Local-First, Deterministic Systems Over External APIs" principle in `docs/PHILOSOPHY.md`.
 
@@ -44,6 +45,7 @@ Backend: Codex CLI imagegen, sole backend. No fallback. No paid APIs (no Gemini,
 |-----------|------|--------------|
 | "generate a wrestler portrait" | `portrait` | `portrait_pipeline.py` |
 | "add a new enemy to road-to-aew" | `portrait` | `portrait_pipeline.py --target road-to-aew` |
+| "animated idle portrait" / "subtle breathing loop" | `portrait-loop` | `portrait_pipeline.py --mode portrait-loop` |
 | "make a walk cycle spritesheet" | `spritesheet` | `sprite_pipeline.py` |
 | "4-direction character sheet" | `spritesheet` | `sprite_pipeline.py --grid 4x4` |
 | "Phaser-ready texture atlas" | `spritesheet` | `sprite_pipeline.py` (emits atlas JSON) |
@@ -79,6 +81,21 @@ Load greedily when a signal matches — references are only read on demand, so t
 | E — Project-aware deploy | `road_to_aew_integration.py deploy` | Snake_case name, path resolution; `npm run generate:sprites` if `--regen-manifest`. |
 
 End-to-end: `python3 scripts/portrait_pipeline.py --prompt "<desc>" --style <preset> [--target road-to-aew]`.
+
+## Portrait-loop-mode pipeline (5 phases)
+
+| Phase | Script | What |
+|-------|--------|------|
+| A1 — Prompt build | `sprite_prompt.py build-portrait-loop` | Slot-structured prompt: same character, same pose, same framing, only breath + blink variation across 4 cells. |
+| A2 — Backend dispatch | `sprite_generate.py generate-portrait` | Codex CLI call; produces a 1024×1024 PNG with 2×2 cells of 512×512. |
+| D — Per-cell extract | inline in `portrait_pipeline.run_portrait_loop` | Naive 2×2 cell crop (cells are well-defined here). |
+| E — Per-cell bg removal | `sprite_process.chroma_pass1` + `chroma_pass2_edge_flood` + `alpha_fade_magenta_fringe` + `color_despill_magenta` + `dilate_alpha_zero` | Same despill chain as portrait/spritesheet modes. |
+| F — Ground-line anchor | `sprite_process.detect_ground_line` + `apply_ground_line_anchor` | Drift-free: the four near-identical bodies stay perfectly registered across the loop. |
+| H — Assembly | inline | PNG sheet, animated GIF (200ms/frame, 800ms loop), animated WebP, per-frame PNGs. |
+
+End-to-end: `python3 scripts/portrait_pipeline.py --mode portrait-loop --display-name "..." --description "..." --style <preset>`.
+
+The loop must be SUBTLE: viewers should barely notice the animation (just feels alive). New poses defeat the purpose — that's spritesheet mode. See `references/prompt-rules.md` for the loop prompt template.
 
 ## Spritesheet-mode pipeline (8 phases)
 
@@ -263,6 +280,26 @@ Both dry-run modes skip the backend call, generate a synthetic fixture, and exer
 - `references/output-formats.md` — PNG / GIF / WebP / atlas JSON / strips matrix per mode.
 - `references/error-catalog.md` — error message → cause → fix, per phase.
 - `references/road-to-aew-integration.md` — snake_case naming, deploy paths, manifest regen.
+
+## Demo idempotency
+
+Demo orchestrators (e.g. `/tmp/sprite-demo/generate.py`) should be idempotent: running them again on a partial output skips assets whose `assets/<slug>/final.png` (or `final-sheet.png`) AND `meta.json` already exist. This saves ~30-60s per asset of Codex CLI time when iterating. The pattern:
+
+```python
+def _is_done(asset_dir: Path) -> bool:
+    if not (asset_dir / "meta.json").exists():
+        return False
+    if (asset_dir / "final.png").exists() or (asset_dir / "final-sheet.png").exists():
+        return True
+    return False
+
+def run_one(spec, force=False):
+    if not force and _is_done(asset_dir):
+        return existing_meta  # log "skipping" + return
+    ...
+```
+
+Provide `--force` to override (re-run all) and `--force-slug <prefix>` to re-run a specific asset. Document the behavior in the orchestrator's docstring so future maintainers don't accidentally regenerate everything.
 
 ## Related skills
 

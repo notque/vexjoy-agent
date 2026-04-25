@@ -189,6 +189,27 @@ PORTRAIT_RULES = (
     "- head visible at top with small margin (~5% of canvas height)"
 )
 
+# Portrait-loop mode: 2x2 grid of subtle idle variations (breathing + blink)
+# Each cell shows the SAME character, SAME pose, SAME framing, with only minor
+# breath/blink variation between frames. Played back at ~5fps the result is a
+# subtle living-portrait loop (not a new pose cycle).
+PORTRAIT_LOOP_RULES = (
+    "PORTRAIT_LOOP_RULES:\n"
+    "- 2x2 grid of FOUR cells; each cell contains the SAME character at the\n"
+    "  SAME framing, SAME pose, SAME background, SAME camera angle\n"
+    "- the four cells differ ONLY in subtle breath + blink variation:\n"
+    "  - frame 0 (top-left):  neutral, eyes open, chest at rest\n"
+    "  - frame 1 (top-right): subtle inhale, eyes still open, chest slightly\n"
+    "    expanded (2-3 pixel difference, NOT a deep breath)\n"
+    "  - frame 2 (bottom-left): blink — eyes CLOSED, body identical to frame 0\n"
+    "  - frame 3 (bottom-right): subtle exhale, eyes open, chest slightly\n"
+    "    compressed (2-3 pixel difference, NOT a deflated chest)\n"
+    "- DO NOT change the pose, the camera angle, the lighting, or the costume\n"
+    "  between cells; this is an idle loop, not an action sequence\n"
+    "- the four characters must be PIXEL-IDENTICAL except for eye state and\n"
+    "  the subtle chest-breath delta — viewers should barely notice the change"
+)
+
 UNIVERSAL_NEGATIVE = (
     "NEGATIVE:\n"
     "- cropped body, head cut off, legs cut off, arms cut off\n"
@@ -279,6 +300,33 @@ def compose_portrait_prompt(meta: PromptMetadata) -> str:
         parts.append(f"DESCRIPTION: {meta.description}")
     parts.append(UNIVERSAL_RULES)
     parts.append(PORTRAIT_RULES)
+    parts.append(UNIVERSAL_NEGATIVE)
+    return "\n\n".join(parts)
+
+
+def compose_portrait_loop_prompt(meta: PromptMetadata) -> str:
+    """Build a portrait-loop prompt: 2x2 grid of subtle idle variations.
+
+    Output: a single 1024x1024 image with 2x2 cells (512x512 each), each
+    cell showing the same character with only breath/blink variation.
+    Downstream extraction treats this as a 4-frame spritesheet.
+    """
+    art = resolve_style(meta.style_preset, meta.style_string)
+    arch = resolve_archetype(meta.archetype)
+    gim = resolve_gimmick(meta.gimmick)
+    tier = resolve_tier(meta.tier)
+
+    parts: list[str] = []
+    parts.append(f"ART_STYLE: {art}")
+    if arch or gim:
+        char_parts = [p for p in (arch, gim) if p]
+        parts.append("CHAR_STYLE: " + ". ".join(char_parts) + ".")
+    if tier:
+        parts.append(f"TIER: {tier}")
+    if meta.description:
+        parts.append(f"DESCRIPTION: {meta.description}")
+    parts.append(UNIVERSAL_RULES)
+    parts.append(PORTRAIT_LOOP_RULES)
     parts.append(UNIVERSAL_NEGATIVE)
     return "\n\n".join(parts)
 
@@ -401,6 +449,29 @@ def cmd_build_portrait(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_build_portrait_loop(args: argparse.Namespace) -> int:
+    meta = PromptMetadata(
+        mode="portrait-loop",
+        style_preset=args.style,
+        style_string=args.style_string,
+        archetype=args.archetype,
+        gimmick=args.gimmick,
+        tier=args.tier,
+        description=args.description,
+        action="idle-breath-blink",
+        grid_cols=2,
+        grid_rows=2,
+        seed=args.seed,
+    )
+    try:
+        prompt = compose_portrait_loop_prompt(meta)
+    except ValueError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        return 2
+    write_outputs(prompt, meta, Path(args.output), Path(args.metadata_out) if args.metadata_out else None)
+    return 0
+
+
 def cmd_build_character(args: argparse.Namespace) -> int:
     meta = PromptMetadata(
         mode="character",
@@ -465,6 +536,13 @@ def build_parser() -> argparse.ArgumentParser:
     bp = sub.add_parser("build-portrait", help="Build portrait-mode prompt")
     _add_common_args(bp)
     bp.set_defaults(func=cmd_build_portrait)
+
+    bpl = sub.add_parser(
+        "build-portrait-loop",
+        help="Build portrait-loop prompt (2x2 subtle breathing/blink idle)",
+    )
+    _add_common_args(bpl)
+    bpl.set_defaults(func=cmd_build_portrait_loop)
 
     bc = sub.add_parser("build-character", help="Build Phase A reference character prompt")
     _add_common_args(bc)
