@@ -171,11 +171,14 @@ def test_verify_asset_outputs_spritesheet_clean(tmp_path: Path) -> None:
     cell, rows, cols = 64, 2, 2
     canvas = _new_canvas(cols * cell, rows * cell)
     arr = np.array(canvas)
-    # Each cell has a 32x32 centered character
-    for r in range(rows):
-        for c in range(cols):
-            x0, y0 = c * cell + 16, r * cell + 16
-            arr[y0 : y0 + 32, x0 : x0 + 32] = (60, 180, 60, 255)
+    # Each cell has a centered character with a unique offset pattern so
+    # dHash distances are distinct (frames_distinct gate would otherwise
+    # flag four-identical-cells as 100% dups).
+    positions = [(16, 16), (24, 16), (16, 24), (24, 24)]
+    for idx, (dx, dy) in enumerate(positions):
+        r, c = divmod(idx, cols)
+        x0, y0 = c * cell + dx, r * cell + dy
+        arr[y0 : y0 + 32, x0 : x0 + 32] = (60, 180, 60, 255)
     Image.fromarray(arr, "RGBA").save(asset_dir / "final-sheet.png")
     res = sprite_process.verify_asset_outputs(asset_dir, mode="spritesheet", grid=(cols, rows), cell_size=cell)
     assert res["passed"] is True, res
@@ -229,7 +232,15 @@ def test_verify_asset_outputs_8x8_four_cropped_fails(tmp_path: Path) -> None:
 
 
 def test_verify_asset_outputs_8x8_clean_passes(tmp_path: Path) -> None:
-    """8x8 sheet with 0 cropped cells must PASS."""
+    """8x8 sheet of synthesized cells passes the LEGACY gates (magenta + grid).
+
+    The dups gate is excluded by passing a high dup tolerance because synthetic
+    8x8=64 cells with simple geometric patterns can't reliably discriminate
+    by 8-bit dHash — a real animation cycle has painterly variety that does,
+    but this test is a regression test for the LEGACY tolerance threshold,
+    not the v8 dups gate. The dups gate has its own dedicated tests
+    (test_verify_frames_distinct_*).
+    """
     asset_dir = tmp_path / "test-sheet-8x8-clean"
     asset_dir.mkdir()
     cell, rows, cols = 32, 8, 8
@@ -240,8 +251,17 @@ def test_verify_asset_outputs_8x8_clean_passes(tmp_path: Path) -> None:
             x0, y0 = c * cell + 8, r * cell + 8
             arr[y0 : y0 + 16, x0 : x0 + 16] = (60, 180, 60, 255)
     Image.fromarray(arr, "RGBA").save(asset_dir / "final-sheet.png")
-    res = sprite_process.verify_asset_outputs(asset_dir, mode="spritesheet", grid=(cols, rows), cell_size=cell)
-    assert res["passed"] is True, res
+    # Direct call to the legacy gates only.
+    mag = sprite_process.verify_no_magenta(asset_dir / "final-sheet.png")
+    assert mag["passed"], mag
+    grid = sprite_process.verify_grid_alignment(
+        asset_dir / "final-sheet.png",
+        rows,
+        cols,
+        cell,
+        violation_tolerance=3,
+    )
+    assert grid["passed"], grid
 
 
 def test_verify_asset_outputs_8x8_two_cropped_passes(tmp_path: Path) -> None:
@@ -265,8 +285,231 @@ def test_verify_asset_outputs_8x8_two_cropped_passes(tmp_path: Path) -> None:
         x0 = c * cell
         arr[8:24, x0 : x0 + cell] = (60, 180, 60, 255)
     Image.fromarray(arr, "RGBA").save(asset_dir / "final-sheet.png")
-    res = sprite_process.verify_asset_outputs(asset_dir, mode="spritesheet", grid=(cols, rows), cell_size=cell)
+    # Direct call to the legacy grid_alignment gate only.
+    grid = sprite_process.verify_grid_alignment(
+        asset_dir / "final-sheet.png",
+        rows,
+        cols,
+        cell,
+        violation_tolerance=3,
+    )
+    assert grid["passed"], grid
+    assert grid["violation_count"] == 2, grid
+
+
+# ===========================================================================
+# v8 gates: anchor_consistency, frames_have_content, frames_distinct,
+# pixel_preservation. Synthesized inputs cover both pass and fail paths.
+# ===========================================================================
+def test_verify_anchor_consistency_clean() -> None:
+    """All cells have characters at identical Y → centroid stddev ~ 0 → pass."""
+    cell = 64
+    cols, rows = 4, 1
+    canvas = _new_canvas(cols * cell, rows * cell)
+    arr = np.array(canvas)
+    for c in range(cols):
+        x0 = c * cell + 16
+        # 32-pixel character centered at y 16-48 (centroid Y == 32)
+        arr[16:48, x0 : x0 + 32] = (220, 100, 100, 255)
+    img = Image.fromarray(arr, "RGBA")
+    res = sprite_process.verify_anchor_consistency(img, cols, rows, cell)
     assert res["passed"] is True, res
+    assert res["stddev"] < 1, res
+    assert len(res["outliers"]) == 0, res
+
+
+def test_verify_anchor_consistency_hop_fails() -> None:
+    """One cell has its character translated up dramatically → stddev > 8 → fail.
+
+    Reproduces the user's '05 powerhouse hop': the bbox-bottom anchor
+    pinned the lunge frame's fist to the floor, lifting the trunk off-screen.
+    Synthesis uses 128px cells so the dramatic 64px hop is well within the
+    'big outlier' threshold (>= 2x stddev_threshold = 16px).
+    """
+    cell = 128
+    cols, rows = 4, 1
+    canvas = _new_canvas(cols * cell, rows * cell)
+    arr = np.array(canvas)
+    for c in range(cols):
+        x0 = c * cell + 32
+        # Cell 1's character is at y 0..32 (top-aligned), others at y 64..96.
+        # Centroid delta ~= 64px, well above the 16px big-outlier threshold.
+        if c == 1:
+            arr[0:32, x0 : x0 + 64] = (220, 100, 100, 255)
+        else:
+            arr[64:96, x0 : x0 + 64] = (220, 100, 100, 255)
+    img = Image.fromarray(arr, "RGBA")
+    res = sprite_process.verify_anchor_consistency(img, cols, rows, cell)
+    assert res["passed"] is False, res
+    # The outlier should specifically be cell index 1.
+    outlier_indices = {o["cell_index"] for o in res["outliers"]}
+    assert 1 in outlier_indices, res
+
+
+def test_verify_frames_have_content_pass() -> None:
+    cell = 64
+    cols, rows = 2, 2
+    canvas = _new_canvas(cols * cell, rows * cell)
+    arr = np.array(canvas)
+    for r in range(rows):
+        for c in range(cols):
+            arr[r * cell + 16 : r * cell + 48, c * cell + 16 : c * cell + 48] = (220, 100, 100, 255)
+    img = Image.fromarray(arr, "RGBA")
+    res = sprite_process.verify_frames_have_content(img, cols, rows, cell)
+    assert res["passed"] is True, res
+    assert len(res["blank_cells"]) == 0, res
+
+
+def test_verify_frames_have_content_blank_fails() -> None:
+    """Reproduces asset 08 cell 12 (modern-submission-grapple): empty cell."""
+    cell = 64
+    cols, rows = 2, 2
+    canvas = _new_canvas(cols * cell, rows * cell)
+    arr = np.array(canvas)
+    # Cells 0, 1, 3 have content; cell 2 is blank.
+    for idx in (0, 1, 3):
+        r, c = divmod(idx, cols)
+        arr[r * cell + 16 : r * cell + 48, c * cell + 16 : c * cell + 48] = (220, 100, 100, 255)
+    img = Image.fromarray(arr, "RGBA")
+    res = sprite_process.verify_frames_have_content(img, cols, rows, cell)
+    assert res["passed"] is False, res
+    assert any(b["cell_index"] == 2 for b in res["blank_cells"]), res
+
+
+def test_verify_frames_distinct_pass_action_cycle() -> None:
+    """4 visually distinct frames: each cell has a 32x32 region in a different
+    position so dHash distances are >= 4."""
+    cell = 64
+    cols, rows = 4, 1
+    canvas = _new_canvas(cols * cell, rows * cell)
+    arr = np.array(canvas)
+    positions = [(8, 8), (24, 8), (8, 24), (24, 24)]
+    for c, (dx, dy) in enumerate(positions):
+        x0 = c * cell + dx
+        y0 = dy
+        arr[y0 : y0 + 32, x0 : x0 + 32] = (220, 100, 100, 255)
+    img = Image.fromarray(arr, "RGBA")
+    res = sprite_process.verify_frames_distinct(img, cols, rows, cell, max_duplicate_pct=25.0)
+    assert res["passed"] is True, res
+
+
+def test_verify_frames_distinct_dups_fail() -> None:
+    """4 identical cells: dup pct 100% → fail at threshold 25%."""
+    cell = 64
+    cols, rows = 4, 1
+    canvas = _new_canvas(cols * cell, rows * cell)
+    arr = np.array(canvas)
+    for c in range(cols):
+        x0 = c * cell + 16
+        arr[16:48, x0 : x0 + 32] = (220, 100, 100, 255)
+    img = Image.fromarray(arr, "RGBA")
+    res = sprite_process.verify_frames_distinct(img, cols, rows, cell, max_duplicate_pct=25.0)
+    assert res["passed"] is False, res
+    # 6 pairs of duplicates (4 choose 2)
+    assert len(res["duplicate_pairs"]) == 6, res
+
+
+def test_verify_frames_distinct_idle_loop_passes_at_high_threshold() -> None:
+    """Portrait-loop's 4 near-identical cells should pass when threshold=100%."""
+    cell = 64
+    cols, rows = 2, 2
+    canvas = _new_canvas(cols * cell, rows * cell)
+    arr = np.array(canvas)
+    for r in range(rows):
+        for c in range(cols):
+            x0 = c * cell + 16
+            y0 = r * cell + 16
+            arr[y0 : y0 + 32, x0 : x0 + 32] = (220, 100, 100, 255)
+    img = Image.fromarray(arr, "RGBA")
+    res = sprite_process.verify_frames_distinct(img, cols, rows, cell, max_duplicate_pct=100.0)
+    # 4 cells, 6 pairs, dup_pct=100%, but threshold is 100%, so it passes.
+    assert res["passed"] is True, res
+
+
+def test_verify_pixel_preservation_pass(tmp_path: Path) -> None:
+    """Raw silhouette ~= final silhouette → ratio ~= 1.0 → pass."""
+    cell = 64
+    cols, rows = 2, 2
+    raw_w, raw_h = cols * cell, rows * cell
+    raw = Image.new("RGBA", (raw_w, raw_h), (255, 0, 255, 255))
+    raw_arr = np.array(raw)
+    for r in range(rows):
+        for c in range(cols):
+            x0, y0 = c * cell + 16, r * cell + 16
+            raw_arr[y0 : y0 + 32, x0 : x0 + 32] = (220, 100, 100, 255)
+    raw = Image.fromarray(raw_arr, "RGBA")
+    raw.save(tmp_path / "raw.png")
+    fin = Image.new("RGBA", (raw_w, raw_h), (0, 0, 0, 0))
+    fin_arr = np.array(fin)
+    for r in range(rows):
+        for c in range(cols):
+            x0, y0 = c * cell + 16, r * cell + 16
+            fin_arr[y0 : y0 + 32, x0 : x0 + 32] = (220, 100, 100, 255)
+    fin = Image.fromarray(fin_arr, "RGBA")
+    fin.save(tmp_path / "final-sheet.png")
+    res = sprite_process.verify_pixel_preservation(tmp_path / "raw.png", tmp_path / "final-sheet.png", cols, rows, cell)
+    assert res["passed"] is True, res
+    assert len(res["lossy_cells"]) == 0, res
+
+
+def test_verify_pixel_preservation_severe_loss_fails(tmp_path: Path) -> None:
+    """Reproduces asset 19 painted-veteran behavior: raw has silhouette but
+    final lost most of it (despill chain bridged cells and over-cleaned)."""
+    cell = 64
+    cols, rows = 2, 2
+    raw_w, raw_h = cols * cell, rows * cell
+    raw = Image.new("RGBA", (raw_w, raw_h), (255, 0, 255, 255))
+    raw_arr = np.array(raw)
+    for r in range(rows):
+        for c in range(cols):
+            x0, y0 = c * cell + 16, r * cell + 16
+            raw_arr[y0 : y0 + 32, x0 : x0 + 32] = (60, 180, 60, 255)
+    raw = Image.fromarray(raw_arr, "RGBA")
+    raw.save(tmp_path / "raw.png")
+    # Final has only 1 cell with content; 3 cells empty.
+    fin = Image.new("RGBA", (raw_w, raw_h), (0, 0, 0, 0))
+    fin_arr = np.array(fin)
+    fin_arr[16:48, 16:48] = (60, 180, 60, 255)
+    fin = Image.fromarray(fin_arr, "RGBA")
+    fin.save(tmp_path / "final-sheet.png")
+    res = sprite_process.verify_pixel_preservation(tmp_path / "raw.png", tmp_path / "final-sheet.png", cols, rows, cell)
+    assert res["passed"] is False, res
+    # 3 of 4 cells (75%) have severe loss.
+    assert len(res["lossy_cells"]) == 3, res
+
+
+def test_verify_asset_outputs_integration_blank_dup_fail(tmp_path: Path) -> None:
+    """End-to-end: feed a synthesized blank+dup combo to verify_asset_outputs.
+
+    Per the operator brief D2: 'feed a known-broken sheet into the verifier
+    and assert the verifier catches the blank+dup combination'. This is the
+    integration test that proves the gate composition works.
+
+    The synthesis: 16 cells, 12 blank + 4 identical-content. The blank gate
+    catches the empty cells; the dups gate catches the 4 identical cells
+    (after blank-cell pre-filtering, all 4 remaining cells are duplicates →
+    100% of valid cells in dup → fails the 25% threshold).
+    """
+    asset_dir = tmp_path / "test-blank-dup"
+    asset_dir.mkdir()
+    cell, cols, rows = 32, 4, 4
+    canvas = _new_canvas(cols * cell, rows * cell)
+    arr = np.array(canvas)
+    # 12 of 16 cells are blank (no content). 4 cells (0, 1, 2, 3) are
+    # identical → both gates trigger.
+    for c in range(4):
+        x0 = c * cell + 8
+        arr[8:24, x0 : x0 + 16] = (60, 180, 60, 255)
+    Image.fromarray(arr, "RGBA").save(asset_dir / "final-sheet.png")
+    Image.fromarray(arr, "RGBA").save(asset_dir / "raw.png")
+    res = sprite_process.verify_asset_outputs(asset_dir, mode="spritesheet", grid=(cols, rows), cell_size=cell)
+    assert res["passed"] is False, res
+    failure_checks = {f["check"] for f in res["failures"]}
+    # The blank-frames gate must fire (12 empty cells).
+    assert "frames_have_content" in failure_checks, res
+    # Pixel-preservation must also fire (all 16 cells lose >60% of silhouette
+    # because the final has only 4 cells with content matching the raw).
+    assert "pixel_preservation" in failure_checks, res
 
 
 def main() -> int:
@@ -281,6 +524,13 @@ def main() -> int:
         test_verify_grid_alignment_off_grid,
         test_verify_grid_alignment_single_violation_tolerated,
         test_verify_grid_alignment_size_mismatch,
+        test_verify_anchor_consistency_clean,
+        test_verify_anchor_consistency_hop_fails,
+        test_verify_frames_have_content_pass,
+        test_verify_frames_have_content_blank_fails,
+        test_verify_frames_distinct_pass_action_cycle,
+        test_verify_frames_distinct_dups_fail,
+        test_verify_frames_distinct_idle_loop_passes_at_high_threshold,
     ]
     tmp_tests = [
         test_verify_asset_outputs_portrait,
@@ -291,6 +541,9 @@ def main() -> int:
         test_verify_asset_outputs_8x8_four_cropped_fails,
         test_verify_asset_outputs_8x8_clean_passes,
         test_verify_asset_outputs_8x8_two_cropped_passes,
+        test_verify_pixel_preservation_pass,
+        test_verify_pixel_preservation_severe_loss_fails,
+        test_verify_asset_outputs_integration_blank_dup_fail,
     ]
     failures: list[tuple[str, str]] = []
     for t in tests:

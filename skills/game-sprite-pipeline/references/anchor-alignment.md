@@ -2,16 +2,49 @@
 
 Phase F of the spritesheet pipeline. Per-frame normalization: shared-scale rescale + anchor alignment. Without this, walk-cycle frames have wildly different character heights and the character's feet bounce vertically as the animation plays.
 
-## Three anchor modes
+## Anchor modes
 
-The skill exposes three anchor strategies via `--anchor-mode`:
+The skill exposes anchor strategies via `--anchor-mode`. v8 introduced
+`mass-centroid` as the default for spritesheets and portrait-loops; the
+older `ground-line` mode is kept for backward compatibility.
 
 | Mode | Default? | Behavior | Use when |
 |---|---|---|---|
-| `ground-line` | Yes (sheets) | Detect a globally-stable ground-Y across all frames; translate each frame so its alpha-bbox-bottom lands AT that Y. | Mixed grounded/aerial poses. Attack/jump/lunge cycles. The default. |
+| `mass-centroid` | Yes (sheets, loops) | Translate each frame so its alpha-mass centroid lands at a globally-stable Y. The centroid integrates over ALL opaque pixels, so limb extensions don't dominate. Eliminates the "trunk hops up when bbox-bottom is a fist" failure. | Mixed grounded/aerial poses, idle loops, action cycles. The default since v8. |
+| `ground-line` | Legacy | Detect a globally-stable ground-Y across all frames; translate each frame so its alpha-bbox-bottom lands AT that Y. | Backward compat. The bbox-bottom-Y is dominated by extended limbs (mic, raised arm), causing the "hop" failure on action cycles. |
 | `per-frame-bottom` (alias: `bottom`) | Legacy | Translate so each frame's OWN alpha-bbox-bottom lands at `cell_h - bottom_margin`. Drift increases with bbox-height variance. | Pure same-pose loops where every frame's bottom truly is the feet (idle breathing where the silhouette barely changes). |
 | `center` | Opt-in | Vertically center the frame on the canvas. | Genuinely off-ground sequences (jump-loop, fly, falling-loop). |
-| `auto` | Legacy fallback | `bottom` when `height/width > 1.2` else `center`. Per-frame heuristic. | Compatibility only; superseded by `ground-line`. |
+| `auto` | Legacy fallback | `bottom` when `height/width > 1.2` else `center`. Per-frame heuristic. | Compatibility only; superseded by `mass-centroid`. |
+
+## v8 mass-centroid anchor (the new default)
+
+The bbox-bottom-anchor approach (ground-line) had a residual failure mode:
+when every frame's bbox-bottom is artificially identical (because the
+ground-line translator forced it there), the **trunk** position varied by
+the difference between the bbox-bottom and the body's actual mass center.
+For action frames where the bbox-bottom is a fist or extended leg, the
+trunk floats up by 30-50 pixels relative to the rest pose — the user's
+"hop" complaint on assets 05 (powerhouse) and 23 (manager megaphone).
+
+Mass centroid fixes this by anchoring on the quantity people actually
+notice. The mass centroid Y is the alpha-weighted mean of all opaque pixel
+Y coordinates: it represents "where the body is on average". A single
+extended limb adds at most a few percent to the centroid — never the 30-50
+pixel shift bbox-bottom suffers.
+
+Concrete metrics from the live demo (`/tmp/sprite-demo/assets/05-nes-
+powerhouse-attack`, 16 frames at 256x256 cells, after the ground-line fix
+landed):
+
+| Metric | bbox-bottom anchor | mass-centroid anchor |
+|---|---|---|
+| bbox-bottom-Y stddev | 0px (anchor pinned) | 0-2px |
+| centroid-Y stddev | **15.84px** (the visible hop) | **<2px** (drift-free) |
+| Visible trunk drift across 16 frames | 30+ pixels on 3 lunge frames | None |
+
+The new gate `verify_anchor_consistency` enforces a centroid-Y stddev
+below 8px (4px for portrait-loops). It catches the hop class of failure
+that the bbox-bottom verifier missed.
 
 ## The drift bug (what `ground-line` fixes)
 

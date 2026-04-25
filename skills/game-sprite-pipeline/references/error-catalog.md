@@ -193,6 +193,59 @@ Or re-run with `--bg-mode chroma` (default; no extra deps).
 
 **Fix:** Check upstream errors. Phase A or C failed silently; look at `<output-dir>/error.log` for backend stderr.
 
+## Verifier gate failures (v8 added)
+
+These are the deterministic build-time gates wired into `verify_asset_outputs`.
+Each gate reports `passed: bool` plus diagnosis details. The `pipeline.run_one`
+hard-fails the asset and records the failure on `meta["verification_failures"]`
+so the demo HTML shows a red FAIL badge instead of broken art.
+
+### `anchor_consistency` failure
+
+**Cause:** mass-centroid Y stddev across cells exceeds 8px (4px for portrait-loops),
+OR a single frame's centroid is more than 16px from the median (a "hop" outlier).
+Reproduces the asset 05 powerhouse failure where bbox-bottom anchor pinned the
+fist to the floor and the trunk floated up.
+
+**Fix:** Use mass-centroid anchor (`apply_mass_centroid_anchor` rather than the
+legacy `apply_ground_line_anchor`). The mass centroid integrates over all opaque
+pixels so limb extensions only nudge it a few percent rather than the dozens of
+pixels bbox-bottom shifts. See `references/anchor-alignment.md`.
+
+### `frames_have_content` failure
+
+**Cause:** One or more cells have <2% alpha pixels (effectively blank). The
+generator left a cell empty (asset 08 cell 12, asset 28 cell 0). The post-
+processor cannot infer content from nothing.
+
+**Fix:** Regenerate the asset via Codex. The blank-cell rate is non-deterministic
+across runs; up to 2 retries usually clears it. If consistent, the prompt may be
+overconstrained — try lowering action_mode constraints or splitting the cycle
+across two grids (e.g. 2x2 of 4-frame mini-cycles instead of 4x4).
+
+### `frames_distinct` warning (non-blocking by default)
+
+**Cause:** Pairwise dHash distances < 4 across many cells, indicating high
+inter-cell similarity. Set to non-blocking (threshold=100%) for spritesheets
+because legitimate animation cycles routinely measure 70-95% dup_pct: walk
+cycles repeat poses across strides, idle loops are by construction near-
+identical, 3-count animations have 4 reference poses repeated 4 times each.
+
+**Fix:** Investigate when both `frames_distinct` AND `frames_have_content` fire
+together — that's the "cells merged into one" pattern. Otherwise treat as
+informational diagnosis output.
+
+### `pixel_preservation` failure
+
+**Cause:** Area-normalized ratio of final-cell visible pixels to expected
+silhouette pixels is below 0.40, for more than 25% of cells. The despill chain
+has bridged cells (asset 19 painted veteran in v7) or over-aggressively wiped
+silhouette pixels.
+
+**Fix:** Tighten chroma_pass2_edge_flood threshold. v8 uses pass2=60 for painted-
+style assets (default 90 for pixel-art styles). For effect-bearing assets (fire,
+energy), set `has_effects=True` in the spec to skip neutralize_interior_magenta_spill.
+
 ## Reference loading hint
 
 Load when an error message matches one in this catalog. The catalog is exhaustive for known failures; novel errors should be added here when fixed (the file is the institutional memory).
