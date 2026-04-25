@@ -7,8 +7,8 @@ Per-mode output matrix. Phase H (spritesheet) and Phase E (portrait) write the c
 | File | Always produced? | Notes |
 |------|-------------------|-------|
 | `<name>_sheet.png` | Yes | Full grid, RGBA transparent bg |
-| `<name>.gif` | Yes | Animated GIF, 8-12 fps default loop |
-| `<name>.webp` | Yes | Animated WebP, smaller than GIF |
+| `<name>.webp` | Yes | **Preferred animated output.** Full 8-bit alpha. |
+| `<name>.gif` | Yes | Compatibility fallback. 1-bit alpha; matte-composited. |
 | `<name>_frames/<name>_frame_NN.png` | Yes | One PNG per frame, RGBA, cell_w × cell_h |
 | `<name>.json` | Yes | Phaser 3 texture atlas |
 | `<name>_<dir>.png` | Only when `--grid 4xR` or `8xR` | One per direction row |
@@ -25,30 +25,11 @@ Layout matches the `--grid CxR` spec. RGBA so transparency survives. Used by:
 - Web games via CSS `background-position` animation.
 - Other game engines that consume sprite-grid PNGs.
 
-### Animated GIF
-
-```python
-def write_gif(frames, output_path, fps=10):
-    """Animated GIF with transparency."""
-    duration_ms = int(1000 / fps)
-    frames[0].save(
-        output_path,
-        save_all=True,
-        append_images=frames[1:],
-        duration=duration_ms,
-        loop=0,
-        disposal=2,  # restore to bg color → transparent
-        transparency=0,
-    )
-```
-
-GIF transparency is finicky — alpha is binary (on/off), no smooth edges. Pillow's `disposal=2` plus `transparency=0` produces the cleanest output, but anti-aliased edges will have visible halos because GIF cannot represent the gradient.
-
-### Animated WebP
+### Animated WebP — preferred output
 
 ```python
 def write_webp(frames, output_path, fps=10):
-    """Animated WebP with full alpha."""
+    """Animated WebP with full 8-bit alpha. No quantization bleed."""
     duration_ms = int(1000 / fps)
     frames[0].save(
         output_path,
@@ -60,7 +41,60 @@ def write_webp(frames, output_path, fps=10):
     )
 ```
 
-WebP supports full alpha (8-bit). Recommended over GIF for any modern target. Smaller files, smoother edges.
+WebP supports **full 8-bit alpha** so silhouettes stay clean. No
+256-color palette quantization, so anti-aliased edges don't get rounded
+to a nearby pink palette index. Modern browsers (Chrome 32+, Firefox
+65+, Safari 14+, Edge 18+) autoplay animated WebP exactly like GIF.
+
+WebP files are also typically 30-60% smaller than the equivalent GIF.
+
+### Animated GIF — compatibility fallback
+
+```python
+def write_gif_with_matte(frames, output_path, fps=10, matte=(40, 40, 40)):
+    """Animated GIF with neutral-gray matte composite to prevent fringe bleed."""
+    duration_ms = int(1000 / fps)
+    matted = [matte_composite(f, matte=matte).convert("P", palette=Image.Palette.ADAPTIVE) for f in frames]
+    matted[0].save(
+        output_path,
+        save_all=True,
+        append_images=matted[1:],
+        duration=duration_ms,
+        loop=0,
+        disposal=2,
+    )
+```
+
+GIF transparency is **1-bit** (on/off, no smooth edges) and the
+**256-color adaptive palette** can resurrect magenta/pink at silhouette
+edges even when the RGBA source is clean. The fix is to matte-composite
+each frame over a neutral middle-gray (`(40, 40, 40)`) BEFORE quantizing,
+so the palette has no pink reference to lock onto. See
+`bg-removal-local.md` "GIF format bleed at silhouette edges" for the
+full root-cause analysis and benchmarks.
+
+GIF stays as the long-tail-compatibility output. Prefer WebP via
+`<picture>` or by checking for `final.webp` in your loader.
+
+### HTML pattern for WebP-first / GIF-fallback
+
+```html
+<picture>
+  <source srcset="walk_cycle.webp" type="image/webp">
+  <img src="walk_cycle.gif" alt="walk cycle">
+</picture>
+```
+
+Or imperatively in the demo's `build_html.py`:
+
+```python
+def card_image_for(meta):
+    asset_dir = ASSETS / meta["slug"]
+    webp = asset_dir / "final.webp"
+    if webp.exists():
+        return f"assets/{meta['slug']}/final.webp"
+    return f"assets/{meta['slug']}/animation.gif"
+```
 
 ### Per-frame PNGs
 

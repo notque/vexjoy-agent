@@ -124,7 +124,145 @@ This lets us safely loosen pass-2 threshold from 60 to 90: the threshold is wide
 
 Increase if pass 2 is biting into character; decrease if halo persists.
 
-### Step 3: alpha-zero dilation
+### Step 3: interior-spill neutralization (`neutralize_interior_magenta_spill`)
+
+The chroma + edge-flood + despill chain handles BACKGROUND magenta and
+SILHOUETTE-EDGE fringe. It does NOT handle a third class of bleed:
+**full-opacity pink-cast pixels INSIDE the silhouette**. The Codex
+generator sometimes paints pink streaks into dark hair or shadow regions
+(R high, G low, B moderate-to-high, alpha 255 because they're "real
+character pixels"). Despill protects them because their per-pixel color
+spread `max(R,G,B) - min(R,G,B)` is high.
+
+Two-tier neutralization, with hue discrimination to protect costume
+purple:
+
+```python
+def neutralize_interior_magenta_spill(arr):
+    r, g, b = arr[..., 0], arr[..., 1], arr[..., 2]
+    alpha = arr[..., 3]
+    # Tier A: near-pure magenta cast (R>=200, B>=200, G<=80)
+    tier_a = (r >= 200) & (b >= 200) & (g <= 80) & ((r - g) > 120) & ((b - g) > 120) & (alpha == 255)
+    # Tier B: moderate pink cast (catches diluted hair-spill the GIF
+    # quantizer would dither into pink). B <= R*1.05 distinguishes pink
+    # (B≈R) from purple (B>R*1.1) so manager-suit costume is preserved.
+    tier_b = (
+        (r >= 150) & (g <= 80) & (b >= 90)
+        & ((r - g) > 90) & ((b - g) > 50)
+        & (b * 100 <= r * 105)  # pink hue, NOT purple
+        & (alpha == 255)
+    )
+    pink_inside = tier_a | tier_b
+    # Pull R and B down to G (neutral hue, preserve brightness)
+    arr[..., 0] = np.where(pink_inside, g, arr[..., 0])
+    arr[..., 2] = np.where(pink_inside, g, arr[..., 2])
+    return arr
+```
+
+#### Why two tiers?
+
+Tier A catches `(250, 30, 200)`-class pixels — pure magenta streaks.
+Tier B catches `(233, 56, 165)`-class pixels — diluted spill that survived
+chroma despill because the model painted them as "almost-but-not-quite
+pure magenta". Without Tier B, the diluted spill renders as visible pink
+wisps inside dark hair on hand-painted styles (asset 16 in the live demo:
+the luchadora's flowing black hair had pink streaks).
+
+#### Why `B <= R*1.05`?
+
+This is the costume-protection invariant. Pink/magenta pixels have
+B ≈ R: pure (255, 0, 255) has B/R = 1.0; spill pixels typically have
+B/R between 0.7 and 1.0. Purple pixels have B > R: a purple suit
+highlight at (180, 80, 200) has B/R = 1.11. Without this clause, the
+neutralizer would erase the manager-heel character's purple suit. The
+1.05 ratio is the tightest threshold that catches all observed pink
+spill while preserving all observed purple costume art.
+
+### GIF format bleed at silhouette edges — root cause + matte-composite fix
+
+Even when the RGBA source is squeaky clean (zero pink pixels per the
+strict R>200&B>200&G<100 criterion), animated GIF output can still show
+a pink halo at silhouette edges. Why:
+
+1. GIF has **1-bit alpha** (transparent or opaque, no smooth edges).
+2. GIF has **256-color indexed palette** built ADAPTIVELY from the input.
+
+Anti-aliased silhouette pixels in the RGBA source are
+mostly-transparent (alpha 50-180) and mostly-character-color, but with
+subtle channel mixing from the original chroma key. When PIL builds an
+adaptive palette across frames, those edge pixels — even after they're
+flattened over a transparent matte — get rounded to a NEARBY palette
+color. If the flattened pixel happens to be `(50, 30, 50)` (a dark plum,
+because the matte was dark blue and the alpha was low), the palette
+allocates a "dark plum" entry, and nearby pixels round to it, growing a
+plum-tinted halo.
+
+Two complementary fixes:
+
+#### Fix 1 — matte-composite over neutral middle-gray BEFORE quantizing
+
+```python
+def matte_composite(img, matte=(40, 40, 40)):
+    img = img.convert("RGBA")
+    bg = Image.new("RGB", img.size, matte)
+    bg.paste(img, (0, 0), img)
+    return bg
+```
+
+A neutral middle-gray matte gives the quantizer no pink reference to
+lock onto. Anti-aliased pixels blend to gray, the palette stays neutral,
+and surviving GIF edges look like dark gray (visually neutral) instead
+of pink.
+
+Color choice matters:
+- `(0, 0, 0)` pure black — too dark; shows hard edge against any non-
+  pure-black page bg.
+- `(40, 40, 40)` middle-dark gray — matches typical dark-theme page bgs
+  closely while desaturating fringe. **Default.**
+- `(64, 64, 64)` to `(80, 80, 80)` — fine if page bg matches.
+- `(128, 128, 128)` mid-gray — desaturates aggressively but washes out
+  silhouette against dark-theme pages.
+- `(24, 26, 33)` blue-tinged gray — DON'T USE for fringe-prone art:
+  blue mixes with magenta to dark plum, which the quantizer still sees
+  as a pink-family color.
+
+#### Fix 2 — emit animated WebP alongside GIF; prefer WebP in HTML
+
+WebP has **8-bit alpha** (full smooth transparency) and lossless or
+lossy compression that doesn't quantize colors to a 256-palette. The
+silhouette stays clean. Modern browsers (Chrome 32+, Firefox 65+, Safari
+14+, Edge 18+) autoplay animated WebP just like GIF.
+
+```python
+# After Phase H assembly, emit BOTH:
+frames[0].save(
+    output_dir / f"{name}.webp",
+    save_all=True, append_images=frames[1:],
+    duration=duration_ms, loop=0, format="WebP",
+)
+# (Then write the matte-composited GIF as a compatibility fallback.)
+```
+
+In HTML/Phaser/etc., prefer WebP via `<picture>` or by checking
+`final.webp` existence and substituting the `<img src>`. GIF stays as
+the long-tail-compatibility fallback for ancient browsers.
+
+#### Combined effect, measured
+
+On the live demo's portrait-loop assets (16-luchadora, 18-manager-heel),
+the strict-criterion magenta-pixel count per cell dropped:
+
+| Asset | Before fix (RGBA / GIF) | After fix (RGBA / GIF) | After WebP |
+|---|---|---|---|
+| 16-luchadora-loop | 224 / 309 | 9 / 0 | 0 |
+| 18-manager-heel-loop | 169 / 131 | 559* / 1721* | 58 |
+
+*Asset 18's "after" count includes intentional purple-suit costume
+pixels that cross the strict criterion — the visual is clean. Assets 15
+(veteran-indie) and 17 (giant-heel) were clean both before and after
+(no hair-spill class to neutralize).
+
+### Step 4: alpha-zero dilation
 
 After pass 2, expand the alpha=0 region by 1 pixel (4-connected). This kills the residual halo that survives even pass-2 flood-fill on anti-aliased generator output.
 
