@@ -136,34 +136,33 @@ def chroma_pass2_edge_flood(
     # channel (green for magenta) is closer to the off-axis channels (R, B)
     # than expected for true magenta. For magenta=(255,0,255), the off-axis
     # channel is green; pure-magenta pixels have G near 0 and R, B near 255.
-    # Spill pixels (character art tinted by magenta) have G > 0 by a margin.
-    # The cutoff `despill_off_axis_cutoff` is the minimum off-axis "lift"
-    # needed to mark a pixel as character (preserve).
-    on_axis_lo = min(chroma)
-    on_axis_hi = max(chroma)
-    despill_lift_cutoff = int(40 * despill_strength)
+    # Spill pixels (character art tinted by magenta) have G high relative to
+    # the on-axis channels: a TRUE character pixel has G close to or higher
+    # than R+B/2; a halo pixel has G << R+B/2.
+    despill_lift_cutoff = int(80 * despill_strength)
 
     def is_off_axis(rgb_arr: np.ndarray) -> bool:
-        """Return True if this pixel is off the chroma axis (preserve as character)."""
+        """Return True if this pixel is off the chroma axis (preserve as character).
+
+        For magenta=(255,0,255): a character pixel has its OFF-AXIS channel (G)
+        lifted toward the ON-AXIS channels (R, B). The "off-axis lift ratio" is
+        G compared to (R+B)/2; if G is at least `despill_lift_cutoff` of (R+B)/2,
+        the pixel is sufficiently de-magenta to count as character.
+
+        At cutoff=40 (default 0.5 strength * 80): G must be at least 40 less
+        than (R+B)/2 to be classified as halo. Halo pixels like (252,33,219)
+        have (R+B)/2=235, gap=235-33=202 → not preserved (halo).
+        Character pixels like skin (220,130,100) have (R+B)/2=160, gap=30 →
+        preserved (character).
+        """
         r_, g_, b_ = int(rgb_arr[0]), int(rgb_arr[1]), int(rgb_arr[2])
-        # For magenta=(255,0,255): on-axis channels are R and B (high), off-axis is G (low).
-        # Build the per-channel "expected on-axis vs off-axis" from chroma.
-        deviations = []
-        for ch_val, px_val in zip(chroma, (r_, g_, b_)):
-            if ch_val == on_axis_hi:
-                # We expect this channel to be high; lift = how much it dropped below max
-                deviations.append(255 - px_val)
-            elif ch_val == on_axis_lo:
-                # We expect this channel to be low; lift = how much it rose above min
-                deviations.append(px_val)
-            else:
-                deviations.append(abs(px_val - ch_val))
-        # Pixel is off-axis (character spill) if any deviation exceeds the cutoff
-        # AND that deviation is in the off-axis (low) channel.
-        # Use the off-axis lift specifically: for magenta, that is the green channel lift.
         if chroma == (255, 0, 255):
-            return g_ >= despill_lift_cutoff
-        # General fallback: any large deviation
+            on_axis_avg = (r_ + b_) / 2
+            gap = on_axis_avg - g_
+            # Pixel is off-axis (character) if gap from on-axis avg to G is small.
+            return gap < despill_lift_cutoff
+        # Generic fallback: deviations from chroma color.
+        deviations = [abs(p - c) for p, c in zip((r_, g_, b_), chroma)]
         return max(deviations) >= despill_lift_cutoff
 
     while queue:
@@ -245,25 +244,44 @@ def color_despill_magenta(arr: np.ndarray) -> np.ndarray:
 
 
 def alpha_fade_magenta_fringe(arr: np.ndarray, threshold: int = 130) -> np.ndarray:
-    """Zero alpha for pixels that look magenta-tinted (R high + B high + G low).
+    """Flood-zero pink/magenta-leaning regions connected to alpha=0.
 
-    A pixel is "magenta-tinted" when R > 200, B > 170, and G < 60. Pure character
-    pixels rarely satisfy all three (they have high green-lift, lower R, or lower
-    B). The signal is reliable enough that we use a hard alpha=0 rather than a
-    soft fade — soft fade leaves visible pink at low alpha values, which the
-    browser composites against dark bg as visible pink.
+    Strategy: classify each opaque pixel as "pink-leaning" or not. Then flood
+    from the alpha=0 boundary INTO connected pink-leaning regions, zeroing
+    them. This kills entire halo blobs (any thickness) without eroding into
+    non-pink character pixels — the flood stops as soon as it hits
+    non-pink-leaning pixels.
 
-    `threshold` is a legacy parameter kept for backward compat but unused; the
-    rule is hardcoded. Adjust by editing constants if needed.
+    Pink-leaning rule:
+      (a) "Saturated pink/magenta": R > 180, B > 100, R+B-2G > 180
+      (b) "Near-magenta": weighted distance (R + 2G + B)-space < threshold
     """
     rgb = arr[..., :3].astype(int)
     r = rgb[..., 0]
     g = rgb[..., 1]
     b = rgb[..., 2]
     alpha = arr[..., 3]
-    # Magenta-tinted: high R, high B, low G — i.e. pinkish/magenta
-    magenta_tinted = (r > 200) & (b > 170) & (g < 60) & (alpha > 0)
-    arr[..., 3] = np.where(magenta_tinted, 0, alpha)
+    chroma = np.array((255, 0, 255), dtype=int)
+    weighted = np.abs(r - chroma[0]) + 2 * np.abs(g - chroma[1]) + np.abs(b - chroma[2])
+    pink_leaning = ((r > 180) & (b > 100) & ((r + b - 2 * g) > 180)) | (weighted < threshold)
+
+    # Iterative dilation flood: at each step, mark as fringe any opaque-pink
+    # pixel adjacent to a fringe pixel (or alpha=0). Stop when no new pixels
+    # are marked (or after a sane upper bound).
+    cur_alpha = alpha.copy()
+    for _ in range(20):
+        zero_mask = cur_alpha == 0
+        # 4-connected expansion of zero_mask
+        adj = np.zeros_like(zero_mask)
+        adj[1:, :] |= zero_mask[:-1, :]
+        adj[:-1, :] |= zero_mask[1:, :]
+        adj[:, 1:] |= zero_mask[:, :-1]
+        adj[:, :-1] |= zero_mask[:, 1:]
+        new_zero = (cur_alpha > 0) & adj & pink_leaning
+        if not new_zero.any():
+            break
+        cur_alpha = np.where(new_zero, 0, cur_alpha)
+    arr[..., 3] = cur_alpha
     return arr
 
 
