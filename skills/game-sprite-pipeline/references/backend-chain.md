@@ -1,182 +1,181 @@
 # Backend Chain
 
-Codex CLI imagegen is the **sole** backend. There is no fallback. If Codex is unavailable, the skill fails loudly rather than silently calling a paid alternative. The Local-First principle (PHILOSOPHY.md) requires that absence of the free backend be visible, not silently monetized.
-
-> **Why no fallback?** Earlier drafts of this skill chained Codex -> Gemini Nano Banana -> fail-loud. We removed Nano Banana entirely because (a) it is a separate paid surface the user must opt into deliberately, (b) Codex's existing subscription already covers the user's image-gen budget, and (c) silent multi-backend chains are the failure mode the principle exists to prevent. If you need a second backend, add it explicitly with a deliberate environment variable, not a runtime fallback.
+Two-step backend selection. Codex CLI first (user's existing paid subscription), Gemini Nano Banana fallback (user's existing API key), fail-loud on absence. No third backend, no paid-API fallback. The Local-First principle (PHILOSOPHY.md) requires that absence of free backends be visible, not silently monetized.
 
 ## Detection logic
 
-`sprite_generate.py` runs this on every generation call:
+`sprite_generate.py` runs this in order on every generation call:
 
 ```python
-def select_backend() -> BackendChoice:
+def select_backend() -> Literal["codex", "nano-banana"]:
+    # Step 1: Codex CLI
     if shutil.which("codex"):
+        # auth check via lightweight invocation
         try:
-            subprocess.run(["codex", "--version"],
-                           check=True, capture_output=True, timeout=10)
-            return BackendChoice("codex", "codex --version exit 0")
-        except (...) as e:
-            raise BackendUnavailableError(
-                "Codex CLI is on PATH but the auth/version check failed. "
-                "Run `codex login` and retry. This skill does not fall "
-                "back to paid APIs."
-            ) from e
+            subprocess.run(["codex", "--version"], check=True, capture_output=True, timeout=10)
+            return "codex"
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError):
+            print("[backend] codex CLI present but auth check failed; trying Nano Banana", file=sys.stderr)
 
+    # Step 2: Nano Banana via GEMINI_API_KEY
+    if os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"):
+        return "nano-banana"
+
+    # Step 3: fail loudly
     raise BackendUnavailableError(
-        "Codex CLI is not available. Install Codex CLI and run "
-        "`codex login`. This skill uses Codex as its sole backend."
+        "No image-generation backend available. "
+        "Install Codex CLI and authenticate, or set GEMINI_API_KEY. "
+        "This skill does not call paid APIs directly."
     )
 ```
 
-## Codex CLI invocation pattern
+The error message explicitly mentions both options and tells the user paid APIs are not consulted. This is intentional — silent paid fallbacks are the failure mode the principle exists to prevent.
 
-Codex CLI does **not** have a `codex image generate` subcommand. Image
-generation happens via `codex exec`: the Codex agent has access to an
-internal `image_gen` tool, and we invoke it by *prompting the agent* to use
-that tool and to save the result at a specific absolute path.
+## Codex CLI invocation
 
-The actual command line shape, as built by `sprite_generate.py`:
+Codex CLI is invoked via subprocess:
 
 ```bash
-codex exec \
-    --dangerously-bypass-approvals-and-sandbox \
-    --skip-git-repo-check \
-    [-i /path/to/reference.png] \
-    "$WRAPPED_PROMPT"
+codex exec "<full prompt>" --output-image <path> --model image-1
 ```
 
-`$WRAPPED_PROMPT` is the user's prompt wrapped with explicit imagegen
-instructions:
-
-```
-Use your image_gen tool to create the following image. Then save the
-resulting PNG file to this absolute path: /tmp/sprite-demo/raw/foo.png
-After saving, run `ls -la <path>` to verify the file exists.
-
-Image specification:
-ART_STYLE: ...
-DESCRIPTION: ...
-RULES: solid magenta background, single character centered, ...
-NEGATIVE: cropped body, multiple characters, watermarks, ...
-
-Aspect ratio target: 1:1 square (1024x1024).
-```
-
-Codex first writes the generated PNG into
-`$CODEX_HOME/generated_images/<session-id>/ig_<hash>.png`, then the agent
-runs `cp` to move it to the requested output path, then runs `ls -la` to
-confirm. The Python wrapper checks `output.exists() and st_size > 0` after
-the subprocess returns so a missing file is caught loudly.
-
-### Why `--dangerously-bypass-approvals-and-sandbox`?
-
-The default `--full-auto`/`--sandbox workspace-write` mode runs every shell
-command through bubblewrap. On hosts without correctly-configured
-bubblewrap (DigitalOcean droplets, many Linux containers), bubblewrap fails
-with `loopback: Failed RTM_NEWADDR: Operation not permitted` *before* the
-agent's `cp` step can run. The image is generated inside Codex's session
-dir but never reaches the requested output path.
-
-The skill therefore uses `--dangerously-bypass-approvals-and-sandbox`,
-which trusts Codex to run inside the user's existing OS-level sandboxing
-(this is consistent with how the Codex CLI is invoked elsewhere in the
-toolkit and how the user already runs trusted automation). The flag name
-is loud on purpose: it signals that this code path runs Codex with normal
-shell privileges. We rely on the user's existing OS isolation.
+Flags vary by Codex CLI version; `sprite_generate.py` runs `codex --help` once at startup to detect supported flags and adapts. If imagegen subcommand syntax is not detected (older Codex versions), the script falls through to Nano Banana.
 
 ### Capability matrix
 
-| Capability | Codex CLI | Notes |
-|------------|-----------|-------|
-| Single image from text | Yes | Both modes |
-| Reference image input | Yes | `-i <path>` flag (Codex 0.125+) |
-| Aspect-ratio control | Encoded in prompt | No public CLI flag; embed in prompt body |
-| Seed reproducibility | Best-effort | No public CLI flag; comment in prompt body |
-| Wall-clock per call | ~20-60s typical | Cap at 180-240s |
+| Capability | Codex CLI | Nano Banana | Notes |
+|------------|-----------|-------------|-------|
+| Single image from text | Yes | Yes | Both work for portrait mode |
+| Reference image input | Yes (1 ref) | Yes (1 ref) | Both support `--reference` |
+| Multiple reference inputs | Empirical | No | Codex may accept 2; Nano Banana is single-ref |
+| Grid-template input for layout | Empirical | No | Codex empirically tested at skill build; Nano Banana lacks layout awareness |
+| Aspect-ratio control | Limited | Full (10 ratios) | Nano Banana has finer control |
+| Seed reproducibility | Yes | Yes | Both honor `--seed` |
+| Cost | Subscription | API per-call | Both are user-existing; no separate billing surface |
 
-`sprite_generate.py` exposes `--timeout` (default 240s) so callers can
-tighten the cap when they know what they want.
+### Empirical validation note
+
+The `Empirical` cells above need real-call validation during skill build. If Codex CLI does not consume a magenta grid canvas as a structural input for spritesheet mode, the skill auto-falls-back to per-frame generation + Pillow compositing. This fallback is implemented and is the safe default until Codex grid support is confirmed.
+
+The current behavior:
+
+```python
+def generate_spritesheet(...):
+    if backend == "codex" and CODEX_GRID_TEMPLATE_SUPPORTED:
+        # single call: pass canvas + reference, prompt for "place character in each cell"
+        ...
+    else:
+        # fallback: generate N frames individually, composite with Pillow
+        for cell in grid_cells:
+            frame = generate_single_frame(cell)
+            paste(canvas, frame, cell.bbox)
+```
+
+`CODEX_GRID_TEMPLATE_SUPPORTED` defaults to `False` (conservative). Flip to `True` after empirical validation confirms it works.
+
+## Nano Banana dispatch
+
+Calls the existing `nano-banana-builder` skill's scripts:
+
+```bash
+python3 ~/.claude/scripts/nano-banana-generate.py with-reference \
+    --prompt "<full prompt>" \
+    --reference <canvas-or-ref-image> \
+    --output <path> \
+    --model pro \
+    --aspect-ratio 1:1
+```
+
+For portrait mode (no reference image needed):
+
+```bash
+python3 ~/.claude/scripts/nano-banana-generate.py generate \
+    --prompt "<full prompt>" \
+    --output <path> \
+    --model pro \
+    --aspect-ratio 4:5
+```
+
+`--model pro` (gemini-3-pro-image-preview) is the default for portrait/spritesheet because quality matters more than speed for canonical assets. Drafts can pass `--backend-flag --model=flash`.
 
 ## Auth checks
 
 | Backend | Auth check | Failure indicator |
 |---------|------------|-------------------|
 | Codex CLI | `codex --version` returns 0 | Non-zero exit or timeout |
+| Nano Banana | `GEMINI_API_KEY` or `GOOGLE_API_KEY` non-empty | Both empty |
 
-Auth-check failure raises `BackendUnavailableError` immediately. There is
-no second step.
+Auth-check failures fall through to the next step rather than aborting the skill. Only step 3 (no backend at all) raises.
 
 ## Fail-loud message
 
-When Codex is unavailable, the user sees:
+When no backend is available, the user must see this exact message (or equivalent):
 
 ```
-ERROR: Codex CLI is not available.
+ERROR: No image-generation backend available.
 
-Install Codex CLI and run `codex login`, then retry.
+Tried in order:
+  1. Codex CLI (`codex` not in PATH or auth failed)
+  2. Gemini Nano Banana (GEMINI_API_KEY not set)
 
-This skill uses Codex CLI imagegen as its sole backend. There is no
-fallback to paid APIs (no Gemini, no Nano Banana, no OpenAI direct).
-The skill fails loud rather than silently charging your card on a
-backend you did not opt into.
+This skill does not call paid APIs directly. To proceed:
+  - Install Codex CLI: npm install -g @openai/codex (or equivalent), then `codex auth`
+  - OR set GEMINI_API_KEY: export GEMINI_API_KEY=<your-key>
+
+Never set OPENAI_API_KEY for this skill — paid fallbacks are intentionally
+prohibited per the Local-First principle (docs/PHILOSOPHY.md).
 ```
 
-If Codex is on PATH but unauthenticated:
+## Backend-specific tweaks
 
-```
-ERROR: Codex CLI is on PATH but the auth/version check failed: <error>.
+`sprite_generate.py` adapts prompts when it knows the active backend:
 
-Run `codex login` to authenticate, then retry.
-```
+| Tweak | Codex | Nano Banana |
+|-------|-------|-------------|
+| Magenta-bg repetition | Repeat at start AND end | Single mention (compact prompts work better) |
+| Negative-prompt block | Inline in main prompt | Inline (no separate negative-prompt API) |
+| Aspect-ratio | Use `--aspect-ratio` flag | Use `--aspect-ratio` flag |
+| Reference-image weight | Default | Strong (Nano Banana respects refs heavily) |
 
-## Failure modes
-
-| Symptom | Cause | Fix |
-|---------|-------|-----|
-| `codex login` required, then no PNG file | Auth not refreshed | Run `codex login`; check `~/.codex/auth.json` is valid |
-| `bwrap: loopback: Failed RTM_NEWADDR` in log | bubblewrap sandbox broken on host | Skill already uses `--dangerously-bypass-approvals-and-sandbox`; if you patched it out, restore it |
-| Codex returns 0 but output file missing | Prompt did not invoke imagegen tool | Prompt body must say "Use your image_gen tool..."; the wrapper handles this. If you bypassed the wrapper, restore `_build_codex_prompt` |
-| Codex hangs >180s | Backend slow / model retry | Raise `--timeout`; check `--log-file` for the agent's reasoning trace |
-| Output is wrong aspect (e.g., 1254x1254 vs 1024x1024) | Codex picks dimensions; aspect hint is best-effort | Post-process resize in Phase D/F |
-| `codex` not in PATH | Codex CLI not installed | `npm install -g @openai/codex` (or per OS) |
-| Repeated `failed to record rollout items` warnings | Cosmetic Codex bug | Ignore; not a real failure |
+These adaptations are applied automatically; user does not specify them.
 
 ## Cost visibility
 
-Codex CLI image generation is billed under the user's Codex subscription
-(no per-call charge surface visible to the skill). `sprite_generate.py`
-logs every dispatch so the user can audit batch cost attribution after a
-run:
+Both backends are billed under user-existing accounts:
+
+- **Codex CLI**: monthly subscription; image generation counts against the subscription's token/image budget.
+- **Nano Banana**: per-call billing on the user's Gemini API key. Free tier covers ~hundreds of generations per day; paid tier scales linearly.
+
+`sprite_generate.py` logs which backend was used per call so the user can audit cost attribution after a batch run:
 
 ```
-[backend] selected=codex (codex --version exit 0)
-[backend:codex] generating -> /tmp/sprite-demo/raw/01.png (timeout 240s)
-[backend:codex] generating -> /tmp/sprite-demo/raw/02.png (timeout 240s)
+[backend] portrait gen for "bangkok_belle_nisa" → codex (call 1/8)
+[backend] portrait gen for "general_gideon" → codex (call 2/8)
 ...
 ```
 
 <!-- no-pair-required: section header; pair lives in subsection -->
 ## Anti-pattern
 
-### Anti-pattern: Adding a paid-API fallback as silent step 2
+### Anti-pattern: Adding a third paid backend as silent fallback
 
-**What it looks like:** "If Codex fails, try OpenAI directly with `OPENAI_API_KEY`" or "fall back to Gemini Nano Banana via `GEMINI_API_KEY`".
+**What it looks like:** "If Codex fails AND Gemini fails, try OpenAI directly with `OPENAI_API_KEY`".
 
-**Why wrong:** Silent paid fallbacks make cost invisible. The user expects free-tier behavior because the skill says "local-first"; their card gets charged because step 2 quietly hit a paid endpoint. Trust violation, principle violation. We removed the Nano Banana branch from this skill exactly to enforce this.
+**Why wrong:** Silent paid fallbacks make cost invisible. The user expects free-tier behavior because the skill says "local-first"; their card gets charged because step 3 quietly hit a paid endpoint. Trust violation, principle violation.
 
-**Do instead**: Fail loudly. Tell the user exactly what is missing and how to fix it. If they want OpenAI direct calls, they should add it explicitly via a separate skill or a deliberate env-var-gated path -- not a silent runtime fallback.
+**Do instead**: Fail loudly at step 3. Tell the user exactly what is missing and how to fix it. If the user wants OpenAI direct calls, they should add it explicitly via a separate skill or a deliberate config knob — not a silent runtime fallback.
 
 ### Anti-pattern: Caching auth state across runs without revalidation
 
 **What it looks like:** Storing `BACKEND_DETECTED=codex` in a config file and trusting it on subsequent runs.
 
-**Why wrong:** Codex auth tokens expire. A cached "yes" produces stale failures that look like the backend itself is broken.
+**Why wrong:** Codex auth tokens expire. `GEMINI_API_KEY` may be revoked. A cached "yes" can produce stale failures that look like the backend itself is broken.
 
-**Do instead**: Run the detection logic at the start of every `sprite_generate.py` invocation. The check is fast (<=100ms for `codex --version`). Cheap to re-run; expensive to debug stale auth.
+**Do instead**: Run the detection logic at the start of every `sprite_generate.py` invocation. The check is fast (≤100ms for `codex --version`, instant for env-var check). Cheap to re-run; expensive to debug stale auth.
 
 ## Reference loading hint
 
 Load when:
 - Backend selection is failing (see fail-loud error above)
-- Codex returns 0 but the expected output file is missing
-- Debugging a Codex-CLI prompt that does not appear to invoke imagegen
+- Adding a new backend (rare; principle is two-step + fail-loud)
+- Debugging cost attribution across a batch run
