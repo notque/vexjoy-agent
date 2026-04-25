@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-21T20:19:43Z",
+  "generated": "2026-04-25T06:23:43Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -647,6 +647,30 @@
         "threejs-builder",
         "phaser-gamedev",
         "game-asset-generator"
+      ]
+    },
+    "game-sprite-pipeline": {
+      "file": "skills/game-sprite-pipeline/SKILL.md",
+      "description": "AI sprite generation: portrait + animated spritesheet modes, local backends, road-to-aew integration",
+      "triggers": [
+        "generate sprite",
+        "generate wrestler",
+        "generate character portrait",
+        "spritesheet pipeline",
+        "animated sprite",
+        "road-to-aew sprite",
+        "sprite for road-to-aew",
+        "wrestler portrait",
+        "character sheet"
+      ],
+      "category": "game",
+      "user_invocable": false,
+      "version": "1.0.0",
+      "pairs_with": [
+        "nano-banana-builder",
+        "phaser-gamedev",
+        "threejs-builder",
+        "python-general-engineer"
       ]
     },
     "gemini-image-generator": {
