@@ -37,6 +37,7 @@ Optional capabilities (off unless explicitly enabled by the user): design system
 | implementation patterns | `css-audit-patterns.md` | Loads detailed guidance from `css-audit-patterns.md`. |
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
 | example-driven tasks | `examples.md` | Loads detailed guidance from `examples.md`. |
+| game UI, AAA game, polished game, Steam game, roguelike UI, Slay the Spire | `game-ui-polish.md` | Loads game-native polish rules that prevent website-like surfaces, excessive gradients, nested boxes, and fake-premium chrome. |
 | example-driven tasks | `implementation-examples.md` | Loads detailed guidance from `implementation-examples.md`. |
 | performance work | `performance-budgets.md` | Loads detailed guidance from `performance-budgets.md`. |
 | tasks related to this reference | `phase-details.md` | Loads detailed guidance from `phase-details.md`. |
@@ -209,6 +210,7 @@ These reference files contain the curated domain knowledge that drives design de
 - `${CLAUDE_SKILL_DIR}/references/app-vs-landing-rules.md`: Full rule sets for landing vs app surface types
 - `${CLAUDE_SKILL_DIR}/references/examples.md`: Worked examples for new landing page and design audit
 - `${CLAUDE_SKILL_DIR}/references/error-handling.md`: Recovery for banned fonts, cliche palettes, low distinctiveness scores
+- `${CLAUDE_SKILL_DIR}/references/game-ui-polish.md`: Game-native UI polish rules for AAA/Steam/roguelike surfaces, including anti-patterns learned from Road to AEW
 - `${CLAUDE_SKILL_DIR}/references/css-audit-patterns.md`: grep/rg detection commands for banned fonts, hardcoded colors, over-animation, and flat backgrounds in implementation code — load when auditing CSS/SCSS/TSX files or verifying a generated spec was implemented correctly
 - `${CLAUDE_SKILL_DIR}/references/performance-budgets.md`: CSS property render costs, compositor-thread promotion rules, layout thrashing detection commands, frame budget reference — load when animation performance is in scope or "animation performance profiling" optional capability is enabled
 
@@ -225,5 +227,6 @@ See `references/error-handling.md` for recovery procedures covering banned fonts
 - `${CLAUDE_SKILL_DIR}/references/anti-patterns.json`
 - `${CLAUDE_SKILL_DIR}/references/implementation-examples.md`
 - `${CLAUDE_SKILL_DIR}/references/project-history.json`
+- `${CLAUDE_SKILL_DIR}/references/game-ui-polish.md`
 - `${CLAUDE_SKILL_DIR}/references/css-audit-patterns.md`
 - `${CLAUDE_SKILL_DIR}/references/performance-budgets.md`
