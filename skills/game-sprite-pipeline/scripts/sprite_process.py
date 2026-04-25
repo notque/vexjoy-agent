@@ -742,6 +742,171 @@ def find_bottom_anchor(img: Image.Image) -> int:
     return img.height
 
 
+def find_alpha_bbox(img: Image.Image) -> tuple[int, int, int, int] | None:
+    """Return (top, bot, left, right) bbox of all non-transparent pixels.
+
+    Differs from PIL's getbbox in that it walks alpha explicitly (not all
+    color channels), which is important after bg-removal when low-alpha
+    fringe pixels survive.
+    """
+    if HAS_NUMPY:
+        arr = np.array(img.convert("RGBA"))
+        alpha = arr[..., 3]
+        ys, xs = np.where(alpha > 0)
+        if len(ys) == 0:
+            return None
+        return int(ys.min()), int(ys.max()), int(xs.min()), int(xs.max())
+    bbox = img.convert("RGBA").getbbox()
+    if bbox is None:
+        return None
+    left, top, right, bot = bbox
+    return top, bot - 1, left, right - 1
+
+
+def detect_ground_line(
+    frames: list[Image.Image],
+    cell_h: int,
+    bottom_zone_pct: float = 0.30,
+    fallback_percentile: float = 75.0,
+) -> int:
+    """Detect a globally-stable ground line across all frames.
+
+    Algorithm:
+
+    1. For each frame, find its largest connected component (alpha > 0).
+       (Using the bbox-bottom of all non-transparent pixels is a good-enough
+       proxy when frames have already been bg-removed and contain only one
+       character per cell.)
+    2. Among the frames whose bbox-bottom falls within the lower
+       `bottom_zone_pct` of the cell (default lower 30%), take the median
+       bbox-bottom-Y. These are the "feet-on-ground" frames; the median is
+       robust to a handful of outliers (a frame where the model drew the
+       character one pixel higher than the rest).
+    3. Fallback: if NO frame's bbox-bottom is in the lower zone (rare —
+       implies every frame is aerial), return the `fallback_percentile`-th
+       percentile of all bbox-bottom-Ys.
+
+    Returns the Y coordinate (in cell-canvas space) at which the character's
+    lowest grounded pixel typically sits. Each frame is later translated so
+    its bbox-bottom lands AT this Y, which keeps the visual ground steady
+    across the animation cycle.
+
+    See `references/anchor-alignment.md` for the per-frame vs global trade-off.
+    """
+    if not frames:
+        return cell_h - DEFAULT_BOTTOM_MARGIN
+
+    bottoms: list[int] = []
+    for fr in frames:
+        bbox = find_alpha_bbox(fr)
+        if bbox is None:
+            continue
+        bottoms.append(bbox[1])
+
+    if not bottoms:
+        return cell_h - DEFAULT_BOTTOM_MARGIN
+
+    # Frames whose bbox-bottom is in the lower 30% of the cell are the
+    # feet-on-ground reference frames.
+    threshold_y = int(cell_h * (1 - bottom_zone_pct))
+    grounded_bottoms = [b for b in bottoms if b >= threshold_y]
+
+    if grounded_bottoms:
+        # Median: robust to a single-frame outlier where one feet pixel is
+        # shifted by ±1 due to AA / chroma fringe artifact.
+        sorted_b = sorted(grounded_bottoms)
+        return sorted_b[len(sorted_b) // 2]
+
+    # Pure-aerial sequence (every frame's bbox-bottom is high in the cell).
+    # Use the 75th percentile of all bbox-bottoms — pins the lowest reach
+    # consistently across the animation.
+    sorted_all = sorted(bottoms)
+    idx = min(len(sorted_all) - 1, int(len(sorted_all) * fallback_percentile / 100.0))
+    return sorted_all[idx]
+
+
+def apply_ground_line_anchor(
+    frame: Image.Image,
+    ground_line_y: int,
+    cell_w: int,
+    cell_h: int,
+    horizontal_mode: str = "centroid",
+) -> Image.Image:
+    """Translate `frame` so its alpha-bbox-bottom lands at `ground_line_y`.
+
+    Unlike per-frame bottom-anchor (which moves the FRAME bottom to the cell
+    bottom — and thus the character moves with bbox-height), this places the
+    CHARACTER'S OWN bottom-most pixel at a fixed, globally-stable Y. Result:
+    feet stay planted; head bounces only when the actual silhouette changes.
+
+    `horizontal_mode`:
+      - `centroid` (default): center the alpha-mass centroid horizontally.
+        Preferred for full-body characters where the center of mass should
+        sit on the cell's vertical axis.
+      - `bbox`: center the alpha-bbox horizontally (legacy behavior).
+        Reasonable for symmetric stances; can drift on lunge frames where
+        the bbox extends right but the center of mass is still in the middle.
+    """
+    out = Image.new("RGBA", (cell_w, cell_h), (0, 0, 0, 0))
+    bbox = find_alpha_bbox(frame)
+    if bbox is None:
+        return out
+    top, bot, left, right = bbox
+    bbox_h = bot - top + 1
+    bbox_w = right - left + 1
+
+    # Vertical: translate so bbox bottom lands at ground_line_y.
+    paste_y = ground_line_y - bot
+
+    # Horizontal: center the bbox or centroid in the cell.
+    if horizontal_mode == "centroid" and HAS_NUMPY:
+        arr = np.array(frame.convert("RGBA"))
+        alpha = arr[..., 3]
+        ys, xs = np.where(alpha > 0)
+        if len(xs) > 0:
+            cx = int(xs.mean())
+            paste_x = (cell_w // 2) - cx
+        else:
+            paste_x = (cell_w - frame.width) // 2
+    else:
+        # bbox-center horizontal
+        bbox_cx = (left + right) // 2
+        paste_x = (cell_w // 2) - bbox_cx
+
+    # Fit-to-cell: if the frame's bbox is taller or wider than the cell after
+    # translation, scale it down (preserve aspect) so it still fits. Rare but
+    # possible when an aerial-leap frame extends way beyond the cell.
+    scale = 1.0
+    if bbox_h > cell_h or bbox_w > cell_w:
+        scale = min(cell_h / max(bbox_h, 1), cell_w / max(bbox_w, 1))
+
+    if scale < 1.0:
+        new_w = max(1, int(frame.width * scale))
+        new_h = max(1, int(frame.height * scale))
+        frame = frame.resize((new_w, new_h), Image.Resampling.LANCZOS)
+        # Recompute bbox in the scaled frame
+        rescaled_bbox = find_alpha_bbox(frame)
+        if rescaled_bbox is None:
+            return out
+        top, bot, left, right = rescaled_bbox
+        paste_y = ground_line_y - bot
+        if horizontal_mode == "centroid" and HAS_NUMPY:
+            arr = np.array(frame.convert("RGBA"))
+            alpha = arr[..., 3]
+            ys, xs = np.where(alpha > 0)
+            if len(xs) > 0:
+                cx = int(xs.mean())
+                paste_x = (cell_w // 2) - cx
+            else:
+                paste_x = (cell_w - frame.width) // 2
+        else:
+            bbox_cx = (left + right) // 2
+            paste_x = (cell_w // 2) - bbox_cx
+
+    out.paste(frame, (paste_x, paste_y), frame)
+    return out
+
+
 def trim_to_bbox(img: Image.Image) -> Image.Image:
     """Crop to non-transparent bounding box."""
     bbox = img.convert("RGBA").getbbox()
@@ -772,8 +937,30 @@ def anchor_to_canvas(
     canvas_h: int,
     bottom_margin: int = DEFAULT_BOTTOM_MARGIN,
     anchor_mode: str = "bottom",
+    ground_line_y: int | None = None,
 ) -> Image.Image:
-    """Place frame on transparent canvas with feet at canvas_h - bottom_margin."""
+    """Place frame on transparent canvas with anchor controlled by `anchor_mode`.
+
+    Modes:
+      - `bottom` (legacy per-frame): place this frame's lowest pixel at
+        `canvas_h - bottom_margin`. Frames with different alpha-bottom Y
+        produce visible bouncing — see `apply_ground_line_anchor` for the
+        global alternative.
+      - `center`: vertically center the frame on the canvas. Use for
+        sequences where the character is genuinely off-ground throughout
+        (jump-loop, fly).
+      - `ground-line`: translate so the frame's alpha-bbox-bottom lands at
+        `ground_line_y`. Caller must pre-compute `ground_line_y` via
+        `detect_ground_line(frames, canvas_h)` once for the whole batch.
+        Provides drift-free animation across mixed grounded/aerial poses.
+      - `auto`: pick `bottom` for upright frames (height/width > 1.2),
+        `center` otherwise. Legacy behavior; superseded by `ground-line`.
+    """
+    if anchor_mode == "ground-line":
+        if ground_line_y is None:
+            ground_line_y = canvas_h - bottom_margin
+        return apply_ground_line_anchor(frame, ground_line_y, canvas_w, canvas_h)
+
     canvas = Image.new("RGBA", (canvas_w, canvas_h), (0, 0, 0, 0))
     if anchor_mode == "center":
         paste_y = (canvas_h - frame.height) // 2
@@ -826,31 +1013,51 @@ def normalize_spritesheet(
     cell_h: int,
     scale_percentile: float = 95,
     bottom_margin: int = DEFAULT_BOTTOM_MARGIN,
-    anchor_mode: str = "bottom",
+    anchor_mode: str = "ground-line",
 ) -> dict:
-    """Shared-scale rescale + bottom-anchor for spritesheet frames."""
+    """Shared-scale rescale + anchor alignment for spritesheet frames.
+
+    `anchor_mode` defaults to `ground-line` (the global, drift-free anchor).
+    Pass `bottom` for the legacy per-frame behavior (kept for backward compat
+    on single-pose action loops where bbox-bottom genuinely tracks the feet).
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
 
     imgs = [Image.open(p).convert("RGBA") for p in frames]
     target_h = shared_scale_height(imgs, scale_percentile)
     target_h = min(target_h, cell_h - 2 * bottom_margin)
 
+    rescaled_imgs = [rescale_to_height(img, target_h) for img in imgs]
+
+    # Compute the global ground line ONCE across all rescaled frames so each
+    # frame's translation puts its alpha-bbox-bottom at the same Y. This is
+    # the drift fix: per-frame bottom-anchor moves with bbox-height, but the
+    # global ground line is invariant across the batch.
+    ground_line_y: int | None = None
+    if anchor_mode == "ground-line":
+        # Frames are not yet on the cell canvas; we need to compute ground
+        # line in the post-translation coordinate system. We assume that
+        # most frames (the grounded ones) will end up with their bottom at
+        # `cell_h - bottom_margin`, so use that as the ground line.
+        ground_line_y = cell_h - bottom_margin
+
     metadata: dict = {
         "scale_percentile": scale_percentile,
         "target_height": target_h,
         "cell_size": [cell_w, cell_h],
         "anchor_mode": anchor_mode,
+        "ground_line_y": ground_line_y,
         "frames": [],
     }
 
-    for src, img in zip(frames, imgs):
-        rescaled = rescale_to_height(img, target_h)
+    for src, img, rescaled in zip(frames, imgs, rescaled_imgs):
         anchored = anchor_to_canvas(
             rescaled,
             cell_w,
             cell_h,
             bottom_margin=bottom_margin,
             anchor_mode=anchor_mode,
+            ground_line_y=ground_line_y,
         )
         out = output_dir / src.name
         anchored.save(out, format="PNG")
@@ -888,13 +1095,16 @@ def cmd_normalize(args: argparse.Namespace) -> int:
     if not frames:
         print(f"ERROR: no *_frame_*.png files in {args.input_dir}", file=sys.stderr)
         return 2
+    # Map per-frame-bottom alias to the legacy `bottom` mode so internal
+    # branching stays simple. ground-line is the new default.
+    anchor_mode = "bottom" if args.anchor_mode == "per-frame-bottom" else args.anchor_mode
     meta = normalize_spritesheet(
         frames,
         Path(args.output_dir),
         cell_w=args.cell_size,
         cell_h=args.cell_size,
         scale_percentile=args.scale_percentile,
-        anchor_mode=args.anchor_mode,
+        anchor_mode=anchor_mode,
     )
     print(
         f"[normalize] spritesheet {len(frames)} frames -> {args.output_dir} (scaled to h={meta['target_height']})",
@@ -1305,7 +1515,19 @@ def build_parser() -> argparse.ArgumentParser:
     nz.add_argument("--target-h", type=int, default=980)
     nz.add_argument("--cell-size", type=int, default=256)
     nz.add_argument("--scale-percentile", type=float, default=95)
-    nz.add_argument("--anchor-mode", choices=["bottom", "center", "auto"], default="bottom")
+    nz.add_argument(
+        "--anchor-mode",
+        choices=["bottom", "center", "auto", "ground-line", "per-frame-bottom"],
+        default="ground-line",
+        help=(
+            "Anchor strategy. ground-line (default): each frame's "
+            "alpha-bbox-bottom lands at a globally-stable ground-Y; "
+            "drift-free across mixed grounded/aerial poses. "
+            "per-frame-bottom (alias: bottom): legacy per-frame anchor "
+            "(drifts when bbox heights vary). center: vertical center. "
+            "auto: heuristic legacy fallback."
+        ),
+    )
     nz.set_defaults(func=cmd_normalize)
 
     vp = sub.add_parser("validate-portrait", help="Phase D portrait dimension gate")

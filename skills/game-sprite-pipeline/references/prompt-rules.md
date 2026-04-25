@@ -55,6 +55,37 @@ PORTRAIT_RULES:
 
 Why these specifics: road-to-aew's existing 87 enemy + 8 player sprites cluster around 1:1.8 aspect. The dimension validator gates on this range. Prompting for the desired aspect up front reduces re-generation rate.
 
+## Portrait-loop-mode addendum
+
+Portrait-loop generates a 2x2 = 4-frame subtle idle loop (breathing + blink) in ONE Codex call. The output is a 1024x1024 image with 4 cells of 512x512 each; downstream extraction treats it as a 4-frame spritesheet at 200ms/frame (800ms total cycle).
+
+The prompt must stress that the four cells are NEAR-IDENTICAL — only minor breath/blink variation, never new poses. If the model interprets "loop" as "animation cycle" it will draw four different poses and the result looks like a flipbook, not a portrait.
+
+Append after the Universal Rules (replaces PORTRAIT_RULES, do not include both):
+
+```
+PORTRAIT_LOOP_RULES:
+- 2x2 grid of FOUR cells; each cell contains the SAME character at the
+  SAME framing, SAME pose, SAME background, SAME camera angle
+- the four cells differ ONLY in subtle breath + blink variation:
+  - frame 0 (top-left):  neutral, eyes open, chest at rest
+  - frame 1 (top-right): subtle inhale, eyes still open, chest slightly
+    expanded (2-3 pixel difference, NOT a deep breath)
+  - frame 2 (bottom-left): blink — eyes CLOSED, body identical to frame 0
+  - frame 3 (bottom-right): subtle exhale, eyes open, chest slightly
+    compressed (2-3 pixel difference, NOT a deflated chest)
+- DO NOT change the pose, the camera angle, the lighting, or the costume
+  between cells; this is an idle loop, not an action sequence
+- the four characters must be PIXEL-IDENTICAL except for eye state and
+  the subtle chest-breath delta — viewers should barely notice the change
+```
+
+Tuning notes:
+- 1024x1024 source, 512x512 cells. Smaller cells produce muddy faces; larger requires `--max-canvas` overrides.
+- 200ms/frame at 4 frames = 800ms loop. Longer (300ms) feels sleepy; shorter (150ms) reads as twitchy.
+- Always pair with `ground-line` anchor (default) so the four near-identical bodies stay perfectly registered.
+- Reuse the same DESCRIPTION text as a static portrait — no need to add "looking forward" or "neutral pose"; the loop rules carry the pose constraint.
+
 ## Spritesheet-mode addendum
 
 Append after the Universal Rules in Phase C:
