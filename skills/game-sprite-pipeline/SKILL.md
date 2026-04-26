@@ -66,6 +66,8 @@ Portrait is the road-to-aew immediate need; spritesheet is the forward-looking c
 | any bg removal phase | `references/bg-removal-local.md` | magenta chroma + rembg |
 | Phase H assembly / output shape | `references/output-formats.md` | PNG / GIF / WebP / atlas JSON |
 | any phase errors | `references/error-catalog.md` | failure mode → fix mapping |
+| user reports clipping / blank cells / cut effects | `references/error-catalog.md` (top section) | "Codex Regeneration as a Post-Processing Fix" anti-pattern; debug slicer, never raw |
+| asset has effects (fire, projectile trails, auras, extended limbs) | `references/error-catalog.md` + use `slice_with_content_awareness` | content extending past cell boundaries needs centroid-ownership extraction |
 | `--target road-to-aew` deploy | `references/road-to-aew-integration.md` | snake_case, paths, manifest regen |
 
 Load greedily when a signal matches — references are only read on demand, so the cost is paid once per execution, not once per routing decision.
@@ -234,6 +236,23 @@ Both dry-run modes skip the backend call, generate a synthetic fixture, and exer
 
 <!-- no-pair-required: section header; pairs live in subsections -->
 ## Anti-patterns
+
+### Anti-pattern: Codex regeneration as a post-processing fix
+
+**What it looks like:** A verifier flags a blank cell, clipped fire, missing silhouette, or any other final-asset defect. The reflex is to re-run `codex exec` to redraw the raw with a different prompt or seed. STOP.
+
+**Why wrong:** Codex generation is treated as ground truth. The raw PNG in `/tmp/sprite-demo/raw/<slug>.png` is what Codex painted, and it is almost always correct. If the final-sheet shows blank cells, clipped effects, or missing silhouettes, the bug is in one of the post-processing steps:
+- `slice_grid_cells` derived the wrong pitch (raw_size / grid math) and cut the cell at the wrong place
+- `slice_with_content_awareness` claimed a component to the wrong cell (centroid mapping bug)
+- The despill chain (`chroma_pass2_edge_flood`, `kill_pink_fringe`, `neutralize_interior_magenta_spill`) ate the silhouette
+- The mass-centroid anchor pinned the wrong body part to the ground line
+- The LANCZOS resize between magenta padding and content created pink fringe
+
+The user's framing: "the codex generation has never failed, it is working perfectly, the rest has failed."
+
+**Do instead:** Open the raw and the final side-by-side. Confirm the raw has the content (it almost always does). Trace which post-processing step lost it. Specifically for boundary clipping (asset 27 dragon flame, asset 30 plasma trail): set `has_effects: True` and/or `content_aware_extraction: True` in the spec to use `slice_with_content_awareness`, which expands cell windows to recover content extending past conceptual cell boundaries.
+
+See `references/error-catalog.md` for the full diagnostic procedure.
 
 ### Anti-pattern: Calling a paid API when Codex fails
 
