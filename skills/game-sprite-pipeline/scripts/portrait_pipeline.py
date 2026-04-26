@@ -315,6 +315,8 @@ def run_portrait_loop(args: argparse.Namespace) -> int:
         prompt_argv.extend(["--gimmick", args.gimmick])
     if args.tier:
         prompt_argv.extend(["--tier", args.tier])
+    if args.style_string:
+        prompt_argv.extend(["--style-string", args.style_string])
     rc = sprite_prompt.main(prompt_argv)
     if rc != 0:
         return rc
