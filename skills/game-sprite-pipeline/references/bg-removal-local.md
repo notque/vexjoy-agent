@@ -124,6 +124,51 @@ This lets us safely loosen pass-2 threshold from 60 to 90: the threshold is wide
 
 Increase if pass 2 is biting into character; decrease if halo persists.
 
+### Step 2.5: fire-pixel preservation through LANCZOS resample (`_preserve_fire_pixels`)
+
+When a cell crop is resampled to `cell_size × cell_size` at sub-unity scale
+(typical: 0.82x for fractional-pitch slicers), LANCZOS downsampling smears
+anti-aliased fire boundary pixels into "warm but not fire" colors. Concrete:
+asset 27 (dragon flame breath, painted dragon body in orange-red ring on
+green torso) loses ~25-35% of its per-cell fire-pixel count even though the
+slicer captured 100% of the source content. The resample averages
+`(R=255, G=80, B=20)` fire pixels with neighboring `(R=80, G=180, B=60)`
+green dragon-body pixels into `(R=240, G=40, B=20)` — fails the
+`G > 60` fire criterion and reads as "dark red".
+
+`_preserve_fire_pixels` runs after the LANCZOS resample, before despill.
+It is a **no-op for non-fire assets**: when the source crop has zero pixels
+matching `_is_fire`, the entire restoration block exits immediately.
+
+**Algorithm:**
+
+1. Build the source fire mask on the kept-content crop (`_is_fire(crop_arr)`
+   AND `keep_mask`).
+2. Resample mask to target via PIL **BOX filter**; threshold > 0 marks every
+   target pixel whose source neighborhood had ANY fire.
+3. Sample source fire RGB to target via **MaxFilter(5) + NEAREST** so the
+   painted color carries the dominant fire hue from the local neighborhood
+   (median fallback if NEAREST samples a non-fire spread pixel).
+4. If painted target fire count is below `fire_target_ratio × source_fire_count`
+   (default 0.88), iteratively dilate the fire mask 4-connected into adjacent
+   target pixels that already look hot (`R > 200`, `B < 80`, `alpha > 16`).
+   This rescues the deep-red shading at fire boundaries that LANCZOS pushed
+   below the `G > 60` threshold.
+5. Cap each ring's painted pixels at `target_count` so output is reproducible
+   and never overpaints.
+
+**Why 0.88 not 1.0?** Downstream despill (`alpha_fade_magenta_fringe`,
+`dilate_alpha_zero`, `kill_pink_fringe`) and the mass-centroid anchor (which
+translates and can clip at canvas edges) trim a few percent more. 0.88
+overshoots the 95% pixel-preservation gate (see `verify_pixel_preservation`)
+with margin.
+
+**Result on asset 27.** Before fix: per-cell fire-pixel ratio 73% (slicer
+captured 100% but LANCZOS+despill ate 27%). After fix: per-cell fire-pixel
+ratio 100%, `verify_pixel_preservation` passes. Implementation:
+`sprite_process.py:796`. Triggered automatically inside `slice_with_content_awareness`
+when `preserve_fire=True` (default).
+
 ### Step 3: interior-spill neutralization (`neutralize_interior_magenta_spill`)
 
 The chroma + edge-flood + despill chain handles BACKGROUND magenta and

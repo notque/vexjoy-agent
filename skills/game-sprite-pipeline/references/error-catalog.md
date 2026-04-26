@@ -237,6 +237,43 @@ Each gate reports `passed: bool` plus diagnosis details. The `pipeline.run_one`
 hard-fails the asset and records the failure on `meta["verification_failures"]`
 so the demo HTML shows a red FAIL badge instead of broken art.
 
+The full set is six gates: `verify_no_magenta`, `verify_grid_alignment`,
+`verify_anchor_consistency`, `verify_frames_have_content`, `verify_frames_distinct`
+(advisory for spritesheets), `verify_pixel_preservation`. All six run on every
+final-sheet, frames-strip, animation.gif, and final.webp where applicable;
+file-format tolerance bands are applied per-format inside `verify_asset_outputs`
+(GIF/WebP get 10x relaxation on wide-pink because lossy palettes resurrect
+halo pixels).
+
+### `no_magenta` failure
+
+**Cause:** Residual magenta survives in the final asset. Two pixel classes:
+- `strict_count`: near-pure (R>200, B>200, G<100) — catches `(255,0,255)` bleeding
+  through despill.
+- `wide_count`: diluted pink halo (R>130, B>120, G<80, R-G>50, B-G>40) — catches
+  fringe survival.
+
+The strict band excludes purple (`B/R <= 1.05` clause) so legitimate purple-
+costume art (manager suit, wizard robes) does not register.
+
+**Fix:** Tighten `chroma_pass2_edge_flood` threshold (drop pass2_threshold from
+90 to 60 for painted styles), or check whether the asset has legitimate purple
+art crossing the wide threshold. For `has_effects: True` assets the wide
+threshold relaxes 30x so plasma/fire/aura content is not misread as fringe.
+
+### `grid_alignment` failure
+
+**Cause:** Per-cell alignment check finds character silhouettes touching cell
+boundaries (within `edge_margin_px=2`). Threshold is **5% of cells violating**,
+NOT 50%. A 50% tolerance is permissive enough to admit the failure it exists
+to catch — see the `Rubber-stamp verifier thresholds` anti-pattern below. For
+a 4x4 sheet this is 1 violation; for an 8x8 it is 3.
+
+**Fix:** When the gate fires, the slicer placed a cell boundary inside another
+character's body. Either reduce grid density (8x8 → 4x4 — see the Codex grid-
+density limit in `frame-detection.md`), or switch to `slice_with_content_awareness`
+via `has_effects: True`.
+
 ### `anchor_consistency` failure
 
 **Cause:** mass-centroid Y stddev across cells exceeds 8px (4px for portrait-loops),
@@ -283,12 +320,102 @@ silhouette pixels.
 style assets (default 90 for pixel-art styles). For effect-bearing assets (fire,
 energy), set `has_effects=True` in the spec to skip neutralize_interior_magenta_spill.
 
+## Operational errors
+
+### Demo HTML staleness — `index.html` does not reflect new/modified assets
+
+**Symptom:** User reports "I do not see the improvements" after a generation
+or reprocess run. `curl -sI http://144.126.223.3:8080/` returns the same
+`Content-Length` after work that should grow the file. Newly-generated asset
+directories exist on disk but the live demo page shows the old asset list.
+
+**Cause:** `build_html.py` is a **separate manual step** from `generate.py`
+and `reprocess_all.py`. Adding or modifying assets does NOT auto-rebuild
+`/tmp/sprite-demo/index.html`. The Python `http.server` keeps serving the
+stale index until `build_html.py` runs.
+
+**Fix:** Every asset-modifying workflow MUST run `build_html.py` before
+declaring the work done:
+
+```bash
+cd /tmp/sprite-demo
+python3 generate.py [...]            # or reprocess_all.py
+python3 build_html.py                # rebuild index from per-asset meta.json
+```
+
+**Verification:** Compare the cards-in-HTML count vs asset-dirs-on-disk, or
+check the curl size delta:
+
+```bash
+ls /tmp/sprite-demo/assets/ | wc -l                # asset directory count
+grep -c 'class="card"' /tmp/sprite-demo/index.html # cards rendered in HTML
+curl -sI http://144.126.223.3:8080/ | grep Content-Length
+```
+
+If counts disagree, run `build_html.py` and re-check.
+
+## `has_effects: True` spec flag (consolidated)
+
+A single flag in the asset spec that propagates through the pipeline:
+
+1. **Slicer:** triggers `slice_with_content_awareness` instead of
+   `slice_grid_cells` (frame-detection.md). Recovers content extending past
+   conceptual cell boundaries (dragon flame, plasma trails, extended limbs).
+2. **Despill:** sets `skip_interior_neutralize=True` so
+   `neutralize_interior_magenta_spill` does NOT fire. Effect art (red/orange
+   fire, magenta plasma arcs, purple aura) is legitimate-pink-cast pixels
+   that the interior neutralizer would erase.
+3. **Verifier:** in `verify_asset_outputs`, `magenta_wide_threshold` relaxes
+   30x and `magenta_strict_threshold` relaxes from 0 to 200. Plasma orbs
+   paint near-pure magenta arcs intentionally; the verifier tolerates that
+   while still catching whole-silhouette-magenta failures.
+
+Set `has_effects: True` in the asset spec when the character has fire,
+projectile trails, plasma, energy auras, magic effects, or any saturated
+warm-cast art that overlaps the fringe-detection band. `content_aware_extraction:
+True` is a more-targeted variant: enables only the slicer change without the
+despill and verifier relaxation. `has_effects=True` is the right default for
+effect-heavy assets.
+
+**Known limitation (deliberate, per session 2026-04-25):** the wide-pink
+verifier criterion still produces false positives on a small subset of
+legitimate purple/red painted art even with the 30x relaxation. The user
+explicitly chose to leave this for future work rather than add an
+effects-aware bypass — wide thresholds are easier to retune than to
+re-introduce after deletion.
+
 ## Reference loading hint
 
 Load when an error message matches one in this catalog. The catalog is exhaustive for known failures; novel errors should be added here when fixed (the file is the institutional memory).
 
 <!-- no-pair-required: section header; pair lives in subsection -->
 ## Anti-pattern
+
+### Anti-pattern: Rubber-stamp verifier thresholds
+
+**What it looks like:** Adding a verifier gate but tuning its tolerance
+loose enough that it almost never fires. Concrete examples from this skill's
+own history: `verify_grid_alignment` shipped with `violation_tolerance=50%`
+of cells (commit `ea01a21`); a 4x4 sheet would need 8 of 16 cells to fail
+before the gate flagged anything. Tightened to `5%` in `182bf03` after
+the 50% threshold admitted a 4x4 powerhouse asset whose every cell was
+clipped at the arms.
+
+**Why wrong:** A verifier whose threshold is ≥10% of total cases is
+permissive enough to admit the failure class it exists to catch. The
+`docs/PHILOSOPHY.md` "Verifier pattern" requires evidence-bearing verdicts:
+"passed" must carry meaning. A 50% threshold means "passed" can hide a sheet
+where half the cells are broken — the gate becomes a rubber stamp.
+
+**Do instead:** Justify each threshold against real failure data, not
+synthetic test cases. Rule of thumb: tolerance should be `max(1, ceil(0.05 *
+total_cells))` for grid-shape gates, `8px` (mass-centroid Y stddev) for
+anchor gates, `0` blank cells for content gates. When tightening an existing
+threshold, regression-test against the known-bad asset that motivated the
+original (loose) value — the tighter gate must catch it. When relaxing, you
+need a stronger reason than "the gate is firing on legitimate art": find
+the disjoint criterion that distinguishes legitimate cases from real failures
+and encode that, instead of widening the band.
 
 ### Anti-pattern: Suppressing dimension errors with `--force-dimensions` routinely
 
