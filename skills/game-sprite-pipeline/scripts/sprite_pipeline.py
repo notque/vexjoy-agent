@@ -235,23 +235,24 @@ def run_pipeline(args: argparse.Namespace) -> int:
 
     # Phase D: extract frames
     frames_raw_dir = work_dir / "frames_raw"
-    rc = sprite_process.main(
-        [
-            "extract-frames",
-            "--input",
-            str(sheet_raw_path),
-            "--grid",
-            args.grid,
-            "--output-dir",
-            str(frames_raw_dir),
-            "--name",
-            name,
-            "--chroma-threshold",
-            str(args.chroma_threshold),
-            "--min-pixels",
-            str(args.min_pixels),
-        ]
-    )
+    extract_args = [
+        "extract-frames",
+        "--input",
+        str(sheet_raw_path),
+        "--grid",
+        args.grid,
+        "--output-dir",
+        str(frames_raw_dir),
+        "--name",
+        name,
+        "--chroma-threshold",
+        str(args.chroma_threshold),
+        "--min-pixels",
+        str(args.min_pixels),
+    ]
+    if getattr(args, "content_aware_extraction", False):
+        extract_args.append("--content-aware")
+    rc = sprite_process.main(extract_args)
     if rc != 0:
         return rc
     phases.append({"phase": "D", "name": "extract-frames", "rc": rc})
@@ -423,6 +424,18 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--skip-reference", action="store_true", help="Skip Phase A reference generation")
     parser.add_argument("--output-dir", help="Working dir (default: tempdir)")
     parser.add_argument("--dry-run", action="store_true", help="Skip backend; synthetic fixture for D-H")
+    parser.add_argument(
+        "--content-aware-extraction",
+        action="store_true",
+        help=(
+            "Use connected-components + centroid ownership (slice_with_content_awareness) "
+            "instead of strict-pitch slicing. REQUIRED for assets with effects (fire breath, "
+            "projectile trails, auras) where Codex paints content extending past conceptual "
+            "cell boundaries. Codex output is ground truth; clipping happens in our slicer. "
+            "See references/error-catalog.md 'Anti-pattern: Codex Regeneration as a "
+            "Post-Processing Fix'."
+        ),
+    )
     return parser
 
 

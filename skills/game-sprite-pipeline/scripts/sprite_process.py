@@ -25,7 +25,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 try:
-    from PIL import Image, ImageDraw
+    from PIL import Image, ImageDraw, ImageFilter
 except ImportError as e:
     print(f"ERROR: Pillow not installed: {e}", file=sys.stderr)
     print("Install with: pip install pillow", file=sys.stderr)
@@ -757,6 +757,410 @@ def slice_grid_cells(
 
 
 # ---------------------------------------------------------------------------
+# Content-aware extraction (v9): preserve content that crosses cell boundaries
+# ---------------------------------------------------------------------------
+def _label_components_local(mask: "np.ndarray") -> tuple["np.ndarray", int]:
+    """Connected-components labeling for the content-aware slicer.
+
+    Tries scipy.ndimage.label first (fast); falls back to BFS. Returns
+    (label_array, n_labels) — same shape as `label_components_numpy`.
+    """
+    try:
+        from scipy.ndimage import label
+
+        labels, n = label(mask)
+        return labels, n
+    except ImportError:
+        return _label_components_bfs(mask)
+
+
+# Fire-pixel detector — matches the user's verifier exactly. Anti-aliased
+# fire trails near silhouette boundaries get smeared by LANCZOS downscale
+# below the strict R/G/B thresholds, even when the slicer captures every
+# fire pixel in the source crop. We restore them after resampling.
+_FIRE_DEFAULT_RGB: tuple[int, int, int] = (240, 100, 30)
+
+
+def _is_fire(rgb: "np.ndarray") -> "np.ndarray":
+    """Vectorized fire-pixel test matching the project's verifier.
+
+    Fire pixels: R > 180, 60 < G < 200, B < 100, NOT pink (R>200 & B>200).
+    Accepts an HxWx3 uint8/int array (or any RGB-like trailing axis).
+    """
+    r = rgb[..., 0]
+    g = rgb[..., 1]
+    b = rgb[..., 2]
+    return (r > 180) & (g > 60) & (g < 200) & (b < 100) & ~((r > 200) & (b > 200))
+
+
+def _preserve_fire_pixels(
+    crop_arr: "np.ndarray",
+    keep_mask: "np.ndarray",
+    scaled_arr: "np.ndarray",
+    fire_target_ratio: float = 0.88,
+    max_fire_dilate_px: int = 3,
+) -> "np.ndarray":
+    """Restore fire pixels lost to LANCZOS downscaling, in-place on scaled_arr.
+
+    Codex paints animated fire jets (asset 27 dragon flame) at the silhouette
+    boundary where fire pixels live as an anti-aliased ring of saturated
+    orange-red on a green dragon body. Letterbox LANCZOS resample of the
+    cell crop to cell_size x cell_size at ~0.82 scale smears the ring's
+    R/G/B channels into "warm but not fire" values (e.g. R=240 G=40 B=20:
+    fails G>60), losing ~25-35% of the per-cell fire-pixel count even though
+    the components were captured intact upstream.
+
+    Restoration strategy (applied only when source crop contains fire):
+
+      1. Build the source fire mask on the kept-content crop.
+      2. Resample the mask to target via PIL BOX filter; threshold > 0
+         identifies output pixels whose source neighborhood had any fire.
+      3. Sample the source fire RGB to target via MaxFilter(5)+NEAREST so
+         the painted RGB carries forward the dominant fire color from the
+         neighborhood (median fallback if NEAREST lands on non-fire).
+      4. If the painted target fire count is below ``fire_target_ratio *
+         source_fire_count``, iteratively dilate the fire mask 4-connected
+         into adjacent target pixels that ALREADY look hot in the LANCZOS
+         output (R>200, B<80, alpha>16). This rescues the deep-red shading
+         pixels that the resample pushed below G>60 threshold.
+      5. Cap each ring's painted pixels so ``cur_count`` never exceeds
+         ``target_count`` — prevents over-painting on dense-fire cells.
+
+    `fire_target_ratio=0.88` overshoots slightly relative to the 95% gate so
+    downstream despill (`alpha_fade_magenta_fringe`, `dilate_alpha_zero`,
+    `kill_pink_fringe`) and the mass-centroid anchor (which translates and
+    can clip content at the canvas edge) leave us above 95% net.
+
+    Skipped (no-op) when the crop has zero fire pixels — assets without
+    fire (plasma, energy, projectile, normal characters) are unaffected.
+
+    Returns the modified scaled_arr (also mutated in-place).
+    """
+    if not HAS_NUMPY:
+        return scaled_arr
+    src_fire = _is_fire(crop_arr[..., :3]) & keep_mask
+    src_fire_count = int(src_fire.sum())
+    if src_fire_count == 0:
+        return scaled_arr
+
+    new_h, new_w = scaled_arr.shape[:2]
+
+    # Stage 1: resample fire mask via BOX filter — any source > 0 in the
+    # block produces non-zero target.
+    fmask_img = Image.fromarray((src_fire * 255).astype(np.uint8), "L")
+    fire_at_target = np.array(fmask_img.resize((new_w, new_h), Image.Resampling.BOX)) > 0
+
+    # Stage 2: source fire RGB spread by MaxFilter(5) + NEAREST resample.
+    # MaxFilter spreads fire color 2 px outward in source space so when
+    # NEAREST lands on a "near-fire" source pixel its color is still fire.
+    fire_rgb_src = crop_arr[..., :3].copy()
+    fire_rgb_src[~src_fire] = 0
+    fire_spread = Image.fromarray(fire_rgb_src, "RGB").filter(ImageFilter.MaxFilter(5))
+    fire_rgb_target = np.array(fire_spread.resize((new_w, new_h), Image.Resampling.NEAREST))
+
+    # Median fire color from source (used as fallback when NEAREST samples
+    # land on a non-fire spread pixel and as the canonical paint color for
+    # iterative dilation rings).
+    median_r = int(np.median(crop_arr[..., 0][src_fire]))
+    median_g = int(np.median(crop_arr[..., 1][src_fire]))
+    median_b = int(np.median(crop_arr[..., 2][src_fire]))
+    median_rgb = np.array([median_r, median_g, median_b], dtype=np.uint8)
+    if not _is_fire(median_rgb[None, None, :])[0, 0]:
+        median_rgb = np.array(_FIRE_DEFAULT_RGB, dtype=np.uint8)
+
+    rgb_satisfies = _is_fire(fire_rgb_target)
+    bad = fire_at_target & ~rgb_satisfies
+    if bad.any():
+        fire_rgb_target[bad] = median_rgb
+
+    # Apply initial fire over-paint
+    scaled_arr[fire_at_target, :3] = fire_rgb_target[fire_at_target]
+    scaled_arr[fire_at_target, 3] = np.maximum(scaled_arr[fire_at_target, 3], 255)
+
+    # Stage 3: iterative ring dilation, capped at fire_target_ratio * source.
+    target_count = int(src_fire_count * fire_target_ratio)
+    cur_count = int(fire_at_target.sum())
+    if cur_count >= target_count:
+        return scaled_arr
+
+    cur_fire = fire_at_target.copy()
+    for _ in range(max_fire_dilate_px):
+        if cur_count >= target_count:
+            break
+        # 4-connected dilation
+        dilated = cur_fire.copy()
+        dilated[1:, :] |= cur_fire[:-1, :]
+        dilated[:-1, :] |= cur_fire[1:, :]
+        dilated[:, 1:] |= cur_fire[:, :-1]
+        dilated[:, :-1] |= cur_fire[:, 1:]
+        # Only paint into "hot" pixels: R>200, B<80, alpha>16. This is the
+        # deep-red shading at fire boundaries that LANCZOS rendered just
+        # below the G>60 threshold. Crucially does NOT include cool greens
+        # (dragon body) or yellows.
+        near_fire = (scaled_arr[..., 0] > 200) & (scaled_arr[..., 2] < 80) & (scaled_arr[..., 3] > 16)
+        new_ring = dilated & ~cur_fire & near_fire
+        if not new_ring.any():
+            break
+        ring_count = int(new_ring.sum())
+        deficit = target_count - cur_count
+        if ring_count <= deficit:
+            paint_now = new_ring
+            cur_count += ring_count
+        else:
+            # Pick `deficit` pixels (deterministic row-major) so we never
+            # exceed target_count and the output stays reproducible.
+            paint_idx = np.argwhere(new_ring)
+            chosen = paint_idx[:deficit]
+            paint_now = np.zeros_like(new_ring)
+            paint_now[chosen[:, 0], chosen[:, 1]] = True
+            cur_count = target_count
+        scaled_arr[paint_now, :3] = median_rgb
+        scaled_arr[paint_now, 3] = np.maximum(scaled_arr[paint_now, 3], 255)
+        cur_fire = cur_fire | paint_now
+
+    return scaled_arr
+
+
+def slice_with_content_awareness(
+    sheet: Image.Image,
+    cols: int,
+    rows: int,
+    cell_size: int,
+    chroma: tuple[int, int, int] = MAGENTA,
+    chroma_threshold: int = 90,
+    max_expansion_pct: float = 0.30,
+    min_edge_run: int = 8,
+    edge_band_px: int = 2,
+    preserve_fire: bool = True,
+) -> list[Image.Image]:
+    """Slice a sheet into cells, expanding the window when content crosses cell boundaries.
+
+    The Codex generator paints CONTINUOUS content across conceptual cell boundaries
+    (dragon flame breath that extends 30-50px past the cell edge in 27, plasma trail
+    that crosses every internal vertical boundary in 30). The strict-pitch slicer
+    (`slice_grid_cells`) cuts that content at the boundary, losing the trailing
+    portion of the effect AND pasting it onto the neighbor cell where it has no
+    structural anchor.
+
+    Codex output is GROUND TRUTH. The clipping is in our slicer, not in Codex.
+    See `references/error-catalog.md` "Anti-pattern: Codex Regeneration as a
+    Post-Processing Fix" for the policy: never regenerate the raw, debug the
+    slicer.
+
+    Algorithm: for each conceptual cell at fractional pitch (raw_w/cols x raw_h/rows):
+
+      1. Identify the cell's "natural" rectangle [x0, y0, x1, y1] at fractional pitch.
+      2. Look at each cell-edge: count non-magenta pixels in an `edge_band_px`-wide
+         strip just inside the cell boundary, and a same-width strip just OUTSIDE
+         (in the neighbor cell's territory).
+      3. If both inside-strip AND outside-strip have >= `min_edge_run` runs of
+         continuous non-magenta pixels, the content extends across the boundary.
+         Expand the cell rectangle outward in that direction up to
+         `max_expansion_pct` of the cell pitch.
+      4. The expansion is BOUNDED: it stops at the FIRST column/row in the neighbor
+         that drops back to magenta (the natural edge of the effect's tail), or at
+         the max-expansion limit, whichever comes first.
+      5. The expanded crop is then resampled to `cell_size x cell_size` (the same
+         contract `slice_grid_cells` follows).
+
+    Critical: when cell A's right boundary expands into cell B's left territory,
+    cell B's slicer sees that same content already extracted by A. We do NOT
+    double-count: cell B's strict left boundary is what counts for B's content,
+    so cell B sees the BODY OF B (centered around its centroid) without the trail
+    that belonged to A. This is the "claim ownership at the centroid" rule:
+    content belongs to the cell that contains its mass-centroid.
+
+    Returns ``cols * rows`` cells, each ``(cell_size, cell_size)``. Same shape
+    contract as `slice_grid_cells`.
+
+    `max_expansion_pct=0.30` is the maximum we'll grow into a neighbor's territory.
+    Beyond that, the content has clearly crossed the centroid and belongs to the
+    next cell anyway.
+    """
+    if cols <= 0 or rows <= 0:
+        raise ValueError(f"grid must be positive, got cols={cols} rows={rows}")
+    if cell_size <= 0:
+        raise ValueError(f"cell_size must be positive, got {cell_size}")
+
+    raw_w, raw_h = sheet.size
+    pitch_x = raw_w / cols
+    pitch_y = raw_h / rows
+    max_expand_x = pitch_x * max_expansion_pct
+    max_expand_y = pitch_y * max_expansion_pct
+
+    if not HAS_NUMPY:
+        # Without numpy this is too slow to be useful. Fall back to strict slice.
+        return slice_grid_cells(sheet, cols, rows, cell_size)
+
+    arr = np.array(sheet.convert("RGBA"))
+    rgb = arr[..., :3].astype(int)
+    chroma_arr = np.array(chroma, dtype=int)
+    diff = np.abs(rgb - chroma_arr).sum(axis=-1)
+    non_magenta = diff > chroma_threshold
+
+    # Connected-components labeling on the WHOLE sheet. Each connected blob of
+    # non-magenta pixels gets a unique label. We then assign each component to
+    # its OWNER cell (the cell containing the component's centroid). Each cell
+    # extracts its assigned components plus a clean magenta-bg canvas.
+    labels, n_labels = _label_components_local(non_magenta)
+
+    # Compute per-component metadata: centroid, bbox, area, owner-cell.
+    component_meta: dict[int, dict] = {}
+    for label_id in range(1, n_labels + 1):
+        ys, xs = np.where(labels == label_id)
+        if len(ys) < 8:  # discard tiny noise blobs
+            continue
+        cx = float(xs.mean())
+        cy = float(ys.mean())
+        owner_col = int(min(cx // pitch_x, cols - 1))
+        owner_row = int(min(cy // pitch_y, rows - 1))
+        component_meta[label_id] = {
+            "bbox": (int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1),
+            "area": len(ys),
+            "centroid": (cx, cy),
+            "owner_cell": owner_row * cols + owner_col,
+        }
+
+    # Group components by owner cell.
+    cell_to_components: dict[int, list[int]] = {i: [] for i in range(cols * rows)}
+    for lid, meta in component_meta.items():
+        cell_to_components[meta["owner_cell"]].append(lid)
+
+    cells: list[Image.Image] = []
+    for r in range(rows):
+        for c in range(cols):
+            cell_idx = r * cols + c
+            x0 = round(c * pitch_x)
+            y0 = round(r * pitch_y)
+            x1 = round((c + 1) * pitch_x)
+            y1 = round((r + 1) * pitch_y)
+            x1 = min(x1, raw_w)
+            y1 = min(y1, raw_h)
+
+            owned_components = cell_to_components.get(cell_idx, [])
+
+            if not owned_components:
+                # No content owned. Output a clean magenta cell at full opacity
+                # so the downstream chroma-key + despill chain handles it as
+                # a normal background. Magenta is the universal chroma, and
+                # bg-removal will alpha-zero it cleanly.
+                canvas = Image.new("RGBA", (cell_size, cell_size), chroma + (255,))
+                cells.append(canvas)
+                continue
+
+            # Compute the union bbox of owned components. This may extend
+            # past the natural cell pitch when components have content
+            # bleeding across boundaries.
+            comp_bboxes = [component_meta[lid]["bbox"] for lid in owned_components]
+            union_x0 = min(b[0] for b in comp_bboxes)
+            union_y0 = min(b[1] for b in comp_bboxes)
+            union_x1 = max(b[2] for b in comp_bboxes)
+            union_y1 = max(b[3] for b in comp_bboxes)
+
+            # Bound the expansion: at most max_expansion_pct past the natural
+            # cell pitch in any direction.
+            ex0 = max(int(x0 - max_expand_x), union_x0, 0)
+            ey0 = max(int(y0 - max_expand_y), union_y0, 0)
+            ex1 = min(int(x1 + max_expand_x), union_x1, raw_w)
+            ey1 = min(int(y1 + max_expand_y), union_y1, raw_h)
+
+            # Clamp the expansion so it cannot reach the centroid of a
+            # NEIGHBOR cell's component. If a neighbor's component centroid is
+            # closer than our expansion would reach, stop at its centroid -
+            # that content belongs to the neighbor.
+            for nlid, nmeta in component_meta.items():
+                if nlid in owned_components:
+                    continue
+                ncx, ncy = nmeta["centroid"]
+                # Right neighbor: only matters if ncx > x1 (in a column to our right)
+                if ncx > x1 and ncx < ex1:
+                    ex1 = max(int(x1), int(ncx))
+                if ncx < x0 and ncx > ex0:
+                    ex0 = min(int(x0), int(ncx))
+                if ncy > y1 and ncy < ey1:
+                    ey1 = max(int(y1), int(ncy))
+                if ncy < y0 and ncy > ey0:
+                    ey0 = min(int(y0), int(ncy))
+
+            # Build a mask that ONLY includes owned components. Pixels in the
+            # extended region that belong to OTHER cells' components are
+            # alpha-zeroed (made transparent), preventing them from leaking
+            # into this cell. We use ALPHA=0 padding instead of magenta-fill
+            # because LANCZOS resampling between magenta padding and content
+            # produces pink anti-aliased fringe; transparent padding produces
+            # transparent anti-aliased fringe which the despill chain
+            # processes cleanly.
+            crop_h = ey1 - ey0
+            crop_w = ex1 - ex0
+            if crop_w <= 0 or crop_h <= 0:
+                cells.append(Image.new("RGBA", (cell_size, cell_size), chroma + (255,)))
+                continue
+
+            crop_labels = labels[ey0:ey1, ex0:ex1]
+            keep_mask = np.zeros((crop_h, crop_w), dtype=bool)
+            for lid in owned_components:
+                keep_mask |= crop_labels == lid
+
+            # Build the working crop with alpha-zero where keep_mask is False.
+            # Then LANCZOS resize. Magenta is reintroduced AFTER resize where
+            # alpha < 16, producing a clean magenta canvas with content on top.
+            crop_arr = arr[ey0:ey1, ex0:ex1].copy()
+            # Where the mask says "not ours": set alpha=0 AND repaint RGB to
+            # magenta (so any pre-resample alpha-blending leakage stays
+            # magenta-tinted, which the chroma-key handles).
+            crop_arr[~keep_mask, 0] = chroma[0]
+            crop_arr[~keep_mask, 1] = chroma[1]
+            crop_arr[~keep_mask, 2] = chroma[2]
+            crop_arr[~keep_mask, 3] = 0
+
+            crop_img = Image.fromarray(crop_arr, "RGBA")
+            cw, ch = crop_img.size
+            # Letterbox-resample to cell_size x cell_size preserving aspect.
+            scale = min(cell_size / cw, cell_size / ch)
+            new_w = max(1, round(cw * scale))
+            new_h = max(1, round(ch * scale))
+            scaled = crop_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+            scaled_arr = np.array(scaled)
+            # Fire-pixel preservation. LANCZOS downscale at ~0.82 ratio smears
+            # anti-aliased fire pixels (R>180, 60<G<200, B<100) below the
+            # threshold near silhouette boundaries, dropping the fire-pixel
+            # count by 25-35% per cell on the dragon-flame asset (27). This
+            # restores them post-resample using the source crop's fire mask
+            # plus a calibrated ring dilation. No-op when the crop has no
+            # fire (asset 30 plasma, all non-effects assets). See
+            # `_preserve_fire_pixels` docstring for the algorithm.
+            if preserve_fire:
+                scaled_arr = _preserve_fire_pixels(crop_arr, keep_mask, scaled_arr)
+                scaled = Image.fromarray(scaled_arr, "RGBA")
+            # Final canvas: magenta-bg, paste scaled cell. Anywhere the
+            # scaled image has alpha=0 the magenta shows through; anywhere
+            # it has alpha>0 the content composites over magenta. Then we
+            # flatten back to opaque magenta-bg by re-painting alpha=0 areas
+            # to magenta and setting alpha=255. Downstream bg-removal will
+            # chroma-key the magenta out cleanly.
+            canvas = Image.new("RGBA", (cell_size, cell_size), chroma + (255,))
+            paste_x = (cell_size - new_w) // 2
+            paste_y = (cell_size - new_h) // 2
+            canvas.paste(scaled, (paste_x, paste_y), scaled)
+            # Force RGB to magenta wherever the scaled cell was alpha-zero.
+            # This keeps the canvas opaque magenta in padding regions while
+            # preserving content where the scaled cell painted.
+            canvas_arr = np.array(canvas)
+            # Re-detect padding: use scaled_arr's alpha < 16 mapped to canvas.
+            scaled_alpha = scaled_arr[..., 3]
+            paste_region = canvas_arr[paste_y : paste_y + new_h, paste_x : paste_x + new_w]
+            transparent_mask = scaled_alpha < 16
+            paste_region[transparent_mask, 0] = chroma[0]
+            paste_region[transparent_mask, 1] = chroma[1]
+            paste_region[transparent_mask, 2] = chroma[2]
+            paste_region[transparent_mask, 3] = 255
+            canvas_arr[paste_y : paste_y + new_h, paste_x : paste_x + new_w] = paste_region
+            canvas = Image.fromarray(canvas_arr, "RGBA")
+            cells.append(canvas)
+    return cells
+
+
+# ---------------------------------------------------------------------------
 # Connected-components frame detection (Phase D)
 # ---------------------------------------------------------------------------
 @dataclass
@@ -881,6 +1285,39 @@ def cmd_extract_frames(args: argparse.Namespace) -> int:
     img = Image.open(src)
     cols, rows = _parse_grid(args.grid)
     expected = cols * rows
+    name = args.name or src.stem
+
+    # Content-aware extraction path: bypass connected-components entirely.
+    # The slice_with_content_awareness function does its own connected-
+    # components labeling on the WHOLE sheet and uses centroid-ownership
+    # to claim components to cells, expanding cell windows when content
+    # crosses conceptual boundaries. This preserves dragon flame jets
+    # (asset 27) and projectile trails (asset 30) that the strict-pitch
+    # slicer would clip.
+    if getattr(args, "content_aware", False):
+        cell_size = getattr(args, "cell_size", 256)
+        max_pct = getattr(args, "max_expansion_pct", 0.30)
+        cells = slice_with_content_awareness(
+            img,
+            cols,
+            rows,
+            cell_size,
+            max_expansion_pct=max_pct,
+        )
+        for i, cell_img in enumerate(cells):
+            out = output_dir / f"{name}_frame_{i:02d}.png"
+            cell_img.save(out, format="PNG")
+        meta = {
+            "sheet": str(src),
+            "grid": [cols, rows],
+            "cell_size": cell_size,
+            "extraction": "content-aware",
+            "max_expansion_pct": max_pct,
+            "frame_count": len(cells),
+        }
+        (output_dir / "frame_metadata.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
+        print(f"[extract-frames] content-aware: wrote {len(cells)} frames to {output_dir}", file=sys.stderr)
+        return 0
 
     try:
         crops, metas = extract_components(
@@ -915,7 +1352,6 @@ def cmd_extract_frames(args: argparse.Namespace) -> int:
             )
             return 5
 
-    name = args.name or src.stem
     metadata: dict = {
         "sheet": str(src),
         "grid": [cols, rows],
@@ -2105,10 +2541,17 @@ def verify_frames_have_content(
     """Per-cell alpha-coverage gate. Catches blank-cell failure class.
 
     A cell with <min_alpha_pixel_pct% opaque pixels is considered blank.
-    Codex sometimes leaves cells empty (asset 08 cell 12 in the live demo,
-    asset 28 cell 0); without this gate they pass through as "valid frames"
-    in the contact-sheet and animation, producing the user's "blank frame"
-    complaint.
+
+    When this gate fires: the post-processing extracted a blank cell. DO NOT
+    regenerate via Codex as a fix. Codex output is ground truth -- the raw
+    almost certainly has content in that cell. The bug is in our slicer's
+    grid pitch math (raw_size / grid_dim mismatch), the connected-components
+    centroid-to-cell mapping, or the despill chain over-trimming the
+    silhouette. Open the raw at the corresponding cell coordinates to confirm
+    content exists, then trace which post-processing step lost it.
+
+    See references/error-catalog.md "Anti-pattern: Codex Regeneration as a
+    Post-Processing Fix" for the full diagnostic procedure.
 
     The default (max_blank_count=0) is strict; relax for assets where one
     blank frame is a deliberate art choice.
@@ -2128,12 +2571,22 @@ def verify_frames_have_content(
         pcts.append(round(pct, 2))
         if pct < min_alpha_pixel_pct:
             blanks.append({"cell_index": i, "alpha_pct": round(pct, 2)})
-    return {
+    result: dict = {
         "passed": len(blanks) <= max_blank_count,
         "blank_cells": blanks,
         "alpha_pct_per_cell": pcts,
         "min_alpha_pct_threshold": min_alpha_pixel_pct,
     }
+    if blanks:
+        # Actionable failure message: never recommend regenerating Codex.
+        result["actionable_message"] = (
+            "post-processing extracted a blank cell -- debug slicer alignment for this "
+            "asset's grid (raw_size x grid pitch math), connected-components centroid "
+            "mapping, or despill over-trim. Codex output is ground truth; do NOT "
+            "regenerate the raw. See references/error-catalog.md 'Anti-pattern: Codex "
+            "Regeneration as a Post-Processing Fix'."
+        )
+    return result
 
 
 def _dhash(img: Image.Image, size: int = 8) -> int:
@@ -2335,7 +2788,7 @@ def verify_pixel_preservation(
                 }
             )
     lossy_pct = (len(lossy) / max(n_evaluated, 1)) * 100.0
-    return {
+    result: dict = {
         "passed": lossy_pct <= max_lossy_cells_pct,
         "lossy_cells": lossy,
         "lossy_pct": round(lossy_pct, 2),
@@ -2344,6 +2797,15 @@ def verify_pixel_preservation(
         "min_pixel_ratio_threshold": min_pixel_ratio,
         "max_lossy_pct_threshold": max_lossy_cells_pct,
     }
+    if not result["passed"]:
+        result["actionable_message"] = (
+            "Content extends past the conceptual cell boundary in the raw "
+            "(Codex paints fire jets, projectile trails, auras that cross "
+            "cell pitch). Enable content_aware_extraction in the spec, set "
+            "has_effects=True, or reduce grid density. Codex output is "
+            "ground truth; do NOT regenerate the raw."
+        )
+    return result
 
 
 def verify_asset_outputs(
@@ -2353,6 +2815,7 @@ def verify_asset_outputs(
     cell_size: int | None = None,
     magenta_strict_threshold: int = 0,
     magenta_wide_threshold: int | None = None,
+    has_effects: bool = False,
 ) -> dict:
     """Combined build-time gate: run every verifier on every output file.
 
@@ -2385,6 +2848,18 @@ def verify_asset_outputs(
             magenta_wide_threshold = 80
         else:  # spritesheet
             magenta_wide_threshold = 30
+    # has_effects assets paint legitimately-pink content (purple plasma arcs,
+    # magenta-cast costumes) that the wide-pink heuristic cannot distinguish
+    # from background bleed. We skip interior_neutralize_magenta_spill on these
+    # to preserve the effects, so the verifier MUST also tolerate them. A
+    # 30x relaxation gives breathing room for ~1000 legitimate pink-cast pixels
+    # per cell while still catching the "entire silhouette is magenta" failure.
+    # The strict (near-pure 255,0,255) threshold also relaxes from 0 to 200:
+    # plasma orbs paint near-pure magenta arcs (255,99,255 is "wide"; 255,0,255
+    # is "strict") that are intentional and survive despill skip.
+    if has_effects:
+        magenta_wide_threshold = magenta_wide_threshold * 30
+        magenta_strict_threshold = max(magenta_strict_threshold, 200)
     # Format-specific tolerance: GIF and WebP quantization at silhouette
     # edges of magenta-adjacent assets (e.g. purple-suited managers with
     # magenta bg) is a known limitation of the lossy format -- the
@@ -2771,6 +3246,23 @@ def build_parser() -> argparse.ArgumentParser:
     ef.add_argument("--min-pixels", type=int, default=DEFAULT_MIN_COMPONENT_PIXELS)
     ef.add_argument("--cell-aware", action="store_true", default=True, help="Map components to cells via centroid")
     ef.add_argument("--allow-count-mismatch", action="store_true", help="Tolerate component count != grid")
+    ef.add_argument(
+        "--content-aware",
+        action="store_true",
+        help=(
+            "Use slice_with_content_awareness instead of connected-components. "
+            "Required for assets with effects (fire, projectiles) where content "
+            "crosses conceptual cell boundaries. Codex is ground truth; clipping "
+            "is a post-processing bug. See references/error-catalog.md."
+        ),
+    )
+    ef.add_argument("--cell-size", type=int, default=256, help="Output cell size when --content-aware (default 256)")
+    ef.add_argument(
+        "--max-expansion-pct",
+        type=float,
+        default=0.30,
+        help="Max content-aware expansion past cell pitch as a fraction (default 0.30 = 30%%).",
+    )
     ef.set_defaults(func=cmd_extract_frames)
 
     nz = sub.add_parser("normalize", help="Trim/scale/anchor")

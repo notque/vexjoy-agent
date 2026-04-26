@@ -2,6 +2,43 @@
 
 Per-phase failure mode → cause → fix mapping. Loaded when a pipeline emits a recognizable error or when debugging a stuck run.
 
+## Anti-pattern: Codex Regeneration as a Post-Processing Fix
+
+Codex generation is treated as ground truth. If a final-sheet, animation, or contact-sheet shows clipping/blank-cells/cuts, the bug is in post-processing, never in Codex output. Never regenerate the raw as a fix; debug the slicer, anchor, despill, or matte step instead. The user's framing: "the codex generation has never failed, it is working perfectly, the rest has failed."
+
+**What it looks like:** A verifier flags a "blank cell" or "missing content" or "clipped fire". The diagnostic urge is to re-run `codex exec` to redraw the raw with a different prompt. STOP.
+
+**Why wrong:** The raw PNG in `/tmp/sprite-demo/raw/<slug>.png` is what Codex painted. It is the ground truth. If post-processing shows blank cells, the bug is one of:
+- `slice_grid_cells` derived the wrong pitch (raw_size / grid math) and cut the cell at the wrong place
+- `slice_with_content_awareness` claimed a component to the wrong cell (centroid mapping bug)
+- The despill chain (`chroma_pass2_edge_flood`, `kill_pink_fringe`, `neutralize_interior_magenta_spill`) ate the silhouette
+- The mass-centroid anchor pinned the wrong body part to the ground line
+- The LANCZOS resize between magenta padding and content created pink fringe that downstream gates flagged
+
+**Do instead:** Open the raw and the final side-by-side. Verify the raw is correct (it almost always is). Then trace which post-processing step lost the content:
+
+```bash
+# 1. Inspect raw
+xdg-open /tmp/sprite-demo/raw/<slug>.png
+
+# 2. Inspect final
+xdg-open /tmp/sprite-demo/assets/<slug>/final-sheet.png
+
+# 3. Run the slicer in isolation
+python3 -c "
+import sys
+sys.path.insert(0, '/home/feedgen/claude-code-toolkit/skills/game-sprite-pipeline/scripts')
+from PIL import Image
+from sprite_process import slice_grid_cells, slice_with_content_awareness
+sheet = Image.open('/tmp/sprite-demo/raw/<slug>.png')
+cells = slice_grid_cells(sheet, COLS, ROWS, CELL_SIZE)  # or slice_with_content_awareness
+for i, c in enumerate(cells):
+    c.save(f'/tmp/_dbg_cell_{i}.png')
+"
+```
+
+**Specifically for boundary clipping** (asset 27 dragon flame, asset 30 plasma trail): Codex paints content that extends past the conceptual cell boundary in the raw (e.g. fire jets extend 30-50 px past the 313.5 px cell pitch). The strict-pitch slicer cuts that content; use `slice_with_content_awareness` with `content_aware_extraction: True` in the spec, OR set `has_effects: True`.
+
 ## Backend errors
 
 ### `BackendUnavailableError: No image-generation backend available`
