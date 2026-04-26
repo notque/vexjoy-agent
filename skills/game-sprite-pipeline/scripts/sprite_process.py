@@ -612,7 +612,13 @@ def cmd_remove_bg(args: argparse.Namespace) -> int:
             dst = Path(args.output) if args.output else src.with_suffix(".nobg.png")
 
         try:
-            if bg_mode == "magenta" or args.mode == "chroma":
+            # Dispatch on bg_mode FIRST: --bg-mode is the canonical flag, and
+            # _bg_mode_from_legacy() already maps legacy --mode chroma -> magenta
+            # when --bg-mode wasn't passed. Checking `args.mode == "chroma"` here
+            # would shadow `--bg-mode gray-tolerance` because --mode defaults to
+            # "chroma" (Codex repro: --bg-mode gray-tolerance on a #3a3a3a image
+            # removed 0 pixels because we fell into the magenta branch).
+            if bg_mode == "magenta":
                 remove_bg_chroma(
                     src,
                     dst,
@@ -1336,7 +1342,11 @@ def cmd_extract_frames(args: argparse.Namespace) -> int:
         order = sorted(range(len(crops)), key=lambda i: (metas[i].bbox[1], metas[i].bbox[0]))
         ordered = [crops[i] for i in order]
 
-    if not args.allow_count_mismatch and len(ordered) != expected:
+    if not args.allow_count_mismatch:
+        # Cell-aware mode always returns a list of length `expected` (with None
+        # for missing/colliding cells), so checking len(ordered) != expected
+        # would never fire and the count-mismatch guard would be unreachable.
+        # Count actual mapped components instead.
         if args.cell_aware:
             non_none = sum(1 for x in ordered if x is not None)
             if non_none != expected:
@@ -1345,7 +1355,7 @@ def cmd_extract_frames(args: argparse.Namespace) -> int:
                     file=sys.stderr,
                 )
                 return 5
-        else:
+        elif len(ordered) != expected:
             print(
                 f"ERROR: detected {len(ordered)} components, grid expected {expected}",
                 file=sys.stderr,
