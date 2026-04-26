@@ -22,7 +22,7 @@ Public surface (re-exported through `sprite_process` for backward compat):
         gray_tolerance_to_alpha, remove_bg_gray_tolerance,
         remove_bg_rembg.
     CLI:
-        cmd_remove_bg, _bg_mode_from_legacy, _alpha_coverage_too_low.
+        cmd_remove_bg, _alpha_coverage_too_low.
 """
 
 from __future__ import annotations
@@ -72,7 +72,16 @@ WATERMARK_BRIGHTNESS_THRESHOLD = 180
 # Canonical --bg-mode CLI choices. Owned here because every bg-removal
 # command-line surface (sprite_process.py, sprite_pipeline.py,
 # portrait_pipeline.py) should advertise the same set.
-BG_MODE_CHOICES = ("magenta", "gray-tolerance")
+#
+# `chroma`: two-pass chroma key (default magenta #FF00FF matte). Default.
+# `gray-tolerance`: tolerance-banded gray-to-alpha (road-to-aew #3a3a3a algorithm).
+# `rembg`: ONNX-model-based bg removal (opt-in dep).
+# `auto`: try chroma; fall back if mask coverage looks suspicious.
+#
+# See ADR-204 for the unified vocabulary across pipelines. The legacy
+# `magenta` alias was dropped — it was always a misnomer for the chroma
+# algorithm with the default magenta matte.
+BG_MODE_CHOICES = ("chroma", "gray-tolerance", "rembg", "auto")
 
 
 # ---------------------------------------------------------------------------
@@ -612,7 +621,7 @@ def cmd_remove_bg(args: argparse.Namespace) -> int:
         print("ERROR: --output-dir required when processing multiple inputs", file=sys.stderr)
         return 2
 
-    bg_mode = args.bg_mode if args.bg_mode is not None else _bg_mode_from_legacy(args.mode)
+    bg_mode = args.bg_mode
 
     for src in inputs:
         if output_dir:
@@ -621,13 +630,11 @@ def cmd_remove_bg(args: argparse.Namespace) -> int:
             dst = Path(args.output) if args.output else src.with_suffix(".nobg.png")
 
         try:
-            # Dispatch on bg_mode FIRST: --bg-mode is the canonical flag, and
-            # _bg_mode_from_legacy() already maps legacy --mode chroma -> magenta
-            # when --bg-mode wasn't passed. Checking `args.mode == "chroma"` here
-            # would shadow `--bg-mode gray-tolerance` because --mode defaults to
-            # "chroma" (Codex repro: --bg-mode gray-tolerance on a #3a3a3a image
-            # removed 0 pixels because we fell into the magenta branch).
-            if bg_mode == "magenta":
+            # Dispatch on bg_mode against the unified ADR-204 vocabulary:
+            # chroma | gray-tolerance | rembg | auto. The legacy `magenta`
+            # alias was dropped — `chroma` (with the default magenta matte)
+            # is the only spelling.
+            if bg_mode == "chroma":
                 remove_bg_chroma(
                     src,
                     dst,
@@ -645,9 +652,9 @@ def cmd_remove_bg(args: argparse.Namespace) -> int:
                     watermark_margin=args.watermark_margin,
                     alpha_dilate_radius=args.alpha_dilate,
                 )
-            elif args.mode == "rembg":
+            elif bg_mode == "rembg":
                 remove_bg_rembg(src, dst)
-            elif args.mode == "auto":
+            elif bg_mode == "auto":
                 # try chroma; if alpha mask is suspiciously small, fall through to rembg
                 remove_bg_chroma(
                     src,
@@ -663,18 +670,13 @@ def cmd_remove_bg(args: argparse.Namespace) -> int:
                     )
                     remove_bg_rembg(src, dst)
             else:
-                print(f"ERROR: unknown bg-mode {bg_mode!r} / mode {args.mode!r}", file=sys.stderr)
+                print(f"ERROR: unknown bg-mode {bg_mode!r}", file=sys.stderr)
                 return 2
         except RuntimeError as e:
             print(f"ERROR: {e}", file=sys.stderr)
             return 4
         print(f"[remove-bg] {src} -> {dst} (bg-mode={bg_mode})", file=sys.stderr)
     return 0
-
-
-def _bg_mode_from_legacy(mode: str) -> str:
-    """Map legacy --mode to --bg-mode (chroma -> magenta, rembg/auto pass through)."""
-    return "magenta" if mode == "chroma" else mode
 
 
 def _alpha_coverage_too_low(path: Path) -> bool:

@@ -2,7 +2,7 @@
 
 No paid APIs. No `remove.bg`, no cloud bg-removal services. Three local strategies, all run on the user's machine:
 
-1. **Magenta chroma key** (default; `--bg-mode magenta`) — pure Pillow + numpy. Two-pass despill-aware key plus 1-pixel alpha dilation.
+1. **Chroma key** (default; `--bg-mode chroma`) — pure Pillow + numpy. Two-pass despill-aware key against the magenta `#FF00FF` matte plus 1-pixel alpha dilation.
 2. **Gray-tolerance** (`--bg-mode gray-tolerance`) — adapted from road-to-aew's production algorithm. Best when the backend paints a gray (#3a3a3a) background instead of honoring the magenta-bg prompt.
 3. **rembg** (`--bg-mode rembg`, opt-in) — ONNX U^2-Net model (~200MB). Use only when neither chroma assumption holds.
 
@@ -12,7 +12,7 @@ The chroma key handles the spritesheet workflow because the skill controls the i
 
 | Backend / scenario | Mode | Why |
 |---|---|---|
-| Codex CLI image_gen, magenta bg honored | `magenta` (default) | Generator paints true #FF00FF; despill chroma is fastest and cleanest. |
+| Codex CLI image_gen, magenta bg honored | `chroma` (default) | Generator paints true #FF00FF; despill chroma is fastest and cleanest. |
 | Codex CLI but the "magenta bg" instruction was ignored | `gray-tolerance` (or `auto`) | Generator picked its own neutral gray; chroma key won't match. |
 | Gemini Nano Banana / similar | `gray-tolerance` | road-to-aew has 87 production-clean PNGs with this approach. |
 | User-supplied photo / non-game asset | `rembg` | No chroma assumption; ML segmentation handles arbitrary bg. |
@@ -29,14 +29,14 @@ python3 sprite_process.py remove-bg input.png --output out.png --bg-mode gray-to
 
 # tune
 python3 sprite_process.py remove-bg input.png --output out.png \
-    --bg-mode magenta \
+    --bg-mode chroma \
     --chroma-threshold 30 \
     --pass2-threshold 90 \
     --despill-strength 0.5 \
     --alpha-dilate 1
 ```
 
-## Magenta mode (default)
+## Chroma mode (default)
 
 The skill prompts the backend to produce magenta (`#FF00FF`) backgrounds, then removes magenta in post in three steps: pass 1 tight, pass 2 despill-aware, dilation cleanup.
 
@@ -389,13 +389,13 @@ The same alpha dilation step (radius=1) runs after step 2.
 | `--gray-bg R G B` | `58 58 58` | Backend paints a different gray (e.g. `64 64 64`). |
 | `--gray-tolerance` | 30 | Halo persists → 40; biting into character → 20. |
 | `--watermark-margin` | 40 | Watermark in larger corner area → 60. Set to 0 to skip step 1. |
-| `--alpha-dilate` | 1 | Same tuning as magenta mode. |
+| `--alpha-dilate` | 1 | Same tuning as chroma mode. |
 
 ### When to use which mode
 
 ```
 Did the backend paint magenta as instructed?
-├── YES → --bg-mode magenta (default)
+├── YES → --bg-mode chroma (default)
 ├── NO, painted gray → --bg-mode gray-tolerance
 └── NO, painted white/photo → --bg-mode rembg
 ```
@@ -505,6 +505,6 @@ The gray-tolerance algorithm and watermark-corner cleanup are adapted from `~/ro
 Load when:
 - Phase B or Phase E (bg removal) is active
 - Output has visible magenta halos
-- Choosing between `--bg-mode magenta` and `--bg-mode gray-tolerance`
+- Choosing between `--bg-mode chroma` and `--bg-mode gray-tolerance`
 - Considering rembg for difficult subjects
 - Investigating a paid-API leakage finding (the grep gate flagged something)

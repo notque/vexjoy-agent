@@ -43,6 +43,7 @@ except ImportError as e:
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
+import sprite_bg
 import sprite_canvas
 import sprite_generate
 import sprite_process
@@ -426,21 +427,19 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
     if not raw_frames:
         print("ERROR: no frames extracted in Phase D", file=sys.stderr)
         return 5
-    # Map pipeline-level --bg-mode to sprite_process's --mode/--bg-mode pair.
-    # "magenta" / "gray-tolerance" go through --bg-mode; "chroma"/"rembg"/"auto"
-    # stay on --mode for backward compat.
+    # ADR-204: pass through pipeline-level --bg-mode to sprite_process's
+    # canonical --bg-mode flag. Both surfaces share BG_MODE_CHOICES so the
+    # value passes through unchanged.
     rb_argv: list[str] = [
         "remove-bg",
         *(str(f) for f in raw_frames),
         "--output-dir",
         str(frames_nobg_dir),
+        "--bg-mode",
+        args.bg_mode,
         "--chroma-threshold",
         str(args.chroma_threshold),
     ]
-    if args.bg_mode in ("magenta", "gray-tolerance"):
-        rb_argv += ["--bg-mode", args.bg_mode]
-    else:
-        rb_argv += ["--mode", args.bg_mode]
     rc = sprite_process.main(rb_argv)
     if rc != 0:
         return rc
@@ -600,12 +599,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--variants", type=int, default=1)
     parser.add_argument(
         "--bg-mode",
-        choices=["chroma", "rembg", "auto", "magenta", "gray-tolerance"],
+        choices=list(sprite_bg.BG_MODE_CHOICES),
         default="chroma",
         help=(
-            "Background removal: chroma=magenta despill (default), "
-            "magenta=alias of chroma, gray-tolerance=road-to-aew #3a3a3a "
-            "algorithm, rembg=opt-in ML, auto=chroma+rembg fallback."
+            "Background removal (ADR-204 unified vocabulary): "
+            "chroma=two-pass magenta despill (default), "
+            "gray-tolerance=road-to-aew #3a3a3a algorithm, "
+            "rembg=opt-in ML, auto=chroma with rembg fallback."
         ),
     )
     parser.add_argument("--chroma-threshold", type=int, default=30)

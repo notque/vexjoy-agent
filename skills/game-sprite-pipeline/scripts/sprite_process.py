@@ -82,7 +82,6 @@ from sprite_bg import (
     WATERMARK_BRIGHTNESS_THRESHOLD,
     WATERMARK_MARGIN_DEFAULT,
     _alpha_coverage_too_low,
-    _bg_mode_from_legacy,
     alpha_fade_magenta_fringe,
     chroma_pass1,
     chroma_pass2_edge_flood,
@@ -134,19 +133,24 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    rb = sub.add_parser("remove-bg", help="Remove background (magenta chroma key default)")
+    rb = sub.add_parser("remove-bg", help="Remove background (chroma key with magenta matte by default)")
     rb.add_argument("input", nargs="+", help="Input PNG path(s)")
     rb.add_argument("--output", help="Output path (single input)")
     rb.add_argument("--output-dir", help="Output directory (multi-input)")
-    # Legacy --mode kept for backward compat with the pipeline orchestrator.
-    rb.add_argument("--mode", choices=["chroma", "rembg", "auto"], default="chroma")
-    # New canonical flag. magenta = the default two-pass despill chroma key.
-    # gray-tolerance = road-to-aew's algorithm for backends that paint #3a3a3a.
+    # Unified --bg-mode vocabulary (ADR-204). The 4 canonical values are
+    # shared with sprite_pipeline.py and portrait_pipeline.py via
+    # sprite_bg.BG_MODE_CHOICES.
     rb.add_argument(
         "--bg-mode",
         choices=list(BG_MODE_CHOICES),
-        default=None,
-        help="Background removal strategy. magenta=despill chroma; gray-tolerance=road-to-aew #3a3a3a algorithm.",
+        default="chroma",
+        help=(
+            "Background removal strategy. "
+            "chroma=two-pass despill chroma key (default; magenta #FF00FF matte); "
+            "gray-tolerance=road-to-aew #3a3a3a algorithm; "
+            "rembg=ONNX-model fallback (opt-in dep); "
+            "auto=chroma with rembg fallback on low coverage."
+        ),
     )
     rb.add_argument("--chroma-threshold", type=int, default=DEFAULT_CHROMA_THRESHOLD)
     rb.add_argument(

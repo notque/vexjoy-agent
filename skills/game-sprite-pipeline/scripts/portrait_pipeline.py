@@ -41,6 +41,7 @@ except ImportError as e:
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
+import sprite_bg
 import sprite_generate
 import sprite_process
 import sprite_prompt
@@ -237,7 +238,7 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
             str(raw_path),
             "--output",
             str(nobg_path),
-            "--mode",
+            "--bg-mode",
             args.bg_mode,
             "--chroma-threshold",
             str(args.chroma_threshold),
@@ -722,7 +723,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--target-dir", help="Override road-to-aew root (default: ~/road-to-aew)")
     parser.add_argument("--player", choices=["male", "female"], help="Deploy as player sprite")
     parser.add_argument("--regen-manifest", action="store_true", help="Run npm run generate:sprites after deploy")
-    parser.add_argument("--bg-mode", choices=["chroma", "rembg", "auto"], default="chroma")
+    parser.add_argument(
+        "--bg-mode",
+        choices=list(sprite_bg.BG_MODE_CHOICES),
+        default="chroma",
+        help=(
+            "Background removal (ADR-204 unified vocabulary): "
+            "chroma=two-pass magenta despill (default), "
+            "gray-tolerance=road-to-aew #3a3a3a algorithm, "
+            "rembg=opt-in ML, auto=chroma with rembg fallback."
+        ),
+    )
     parser.add_argument("--chroma-threshold", type=int, default=30)
     parser.add_argument("--target-w", type=int, default=600)
     parser.add_argument("--target-h", type=int, default=980)
