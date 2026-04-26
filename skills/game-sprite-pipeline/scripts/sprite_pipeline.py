@@ -26,8 +26,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import shutil
 import sys
 import tempfile
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -44,6 +47,156 @@ import sprite_canvas
 import sprite_generate
 import sprite_process
 import sprite_prompt
+from sprite_verify import (
+    verify_anchor_consistency,
+    verify_frames_distinct,
+    verify_frames_have_content,
+    verify_grid_alignment,
+    verify_no_magenta,
+    verify_pixel_preservation,
+)
+
+# Exit code emitted by run_pipeline / run_portrait_loop when --verify is on
+# and at least one gate fails. Distinct from the generic pipeline-error rc=1
+# so road-to-aew CI can branch on "verifier said no" vs "the pipeline blew
+# up". Locked by ADR-199 ("Exit code: 0 when passed: true, 2 when any gate
+# fails").
+VERIFIER_EXIT_CODE = 2
+
+
+def _detect_backends_available() -> dict[str, bool]:
+    """Best-effort backend availability for the verifier failure JSON.
+
+    ADR-198 governs the Codex -> Nano Banana fallback chain. The verifier
+    surfaces what's available so failure hints can recommend "try the other
+    backend" as an actionable fix path. We avoid invoking ``select_backend``
+    here because that runs ``codex --version`` and we do not want a
+    verifier emission to spawn a subprocess; cheap shutil/env checks are
+    enough for the JSON context field.
+    """
+    nano_script = sprite_generate.find_nano_banana_script()
+    return {
+        "codex": shutil.which("codex") is not None,
+        "nano_banana": nano_script is not None
+        and bool(os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")),
+    }
+
+
+def _emit_verifier_result(
+    gates_run: list[str],
+    failures: list[dict],
+    elapsed_seconds: float,
+) -> int:
+    """Print the structured verifier JSON to stdout and return the exit code.
+
+    Per ADR-199, verifier output goes to stdout (not stderr, not a logger
+    call) so callers can pipe pipeline runs and parse the last JSON block.
+    Schema mirrors the ADR contract:
+
+        {
+          "passed": bool,
+          "gates_run": [gate_name, ...],
+          "failures": [{check, file?, details, ...}, ...],
+          "backends_available": {"codex": bool, "nano_banana": bool},
+          "elapsed_seconds": float,
+        }
+
+    Returns ``VERIFIER_EXIT_CODE`` (2) when any gate fails; 0 otherwise.
+    """
+    payload = {
+        "passed": len(failures) == 0,
+        "gates_run": gates_run,
+        "failures": failures,
+        "backends_available": _detect_backends_available(),
+        "elapsed_seconds": round(elapsed_seconds, 3),
+    }
+    print(json.dumps(payload, indent=2))
+    return 0 if payload["passed"] else VERIFIER_EXIT_CODE
+
+
+def _run_spritesheet_verifiers(
+    sheet_path: Path,
+    raw_path: Path | None,
+    cols: int,
+    rows: int,
+    cell_size: int,
+) -> tuple[list[str], list[dict]]:
+    """Run the spritesheet gate suite against a final sheet PNG.
+
+    Gates (per ADR-199 spritesheet contract):
+      - verify_no_magenta
+      - verify_grid_alignment
+      - verify_anchor_consistency
+      - verify_frames_have_content
+      - verify_frames_distinct
+      - verify_pixel_preservation (only if ``raw_path`` is supplied)
+
+    Each gate is best-effort isolated: a single gate raising or returning
+    ``error`` does not prevent the others from running. The caller hard-fails
+    on any non-empty failures list.
+    """
+    gates_run: list[str] = []
+    failures: list[dict] = []
+
+    def _record_gate(name: str, result: dict) -> None:
+        gates_run.append(name)
+        if not result.get("passed", True):
+            failures.append({"check": name, "file": str(sheet_path), "details": result})
+
+    try:
+        _record_gate("verify_no_magenta", verify_no_magenta(sheet_path))
+    except Exception as e:  # pragma: no cover - defensive
+        gates_run.append("verify_no_magenta")
+        failures.append({"check": "verify_no_magenta", "file": str(sheet_path), "details": f"error: {e}"})
+
+    try:
+        _record_gate(
+            "verify_grid_alignment",
+            verify_grid_alignment(sheet_path, rows, cols, cell_size),
+        )
+    except Exception as e:  # pragma: no cover - defensive
+        gates_run.append("verify_grid_alignment")
+        failures.append({"check": "verify_grid_alignment", "file": str(sheet_path), "details": f"error: {e}"})
+
+    try:
+        _record_gate(
+            "verify_anchor_consistency",
+            verify_anchor_consistency(sheet_path, cols, rows, cell_size),
+        )
+    except Exception as e:  # pragma: no cover - defensive
+        gates_run.append("verify_anchor_consistency")
+        failures.append({"check": "verify_anchor_consistency", "file": str(sheet_path), "details": f"error: {e}"})
+
+    try:
+        _record_gate(
+            "verify_frames_have_content",
+            verify_frames_have_content(sheet_path, cols, rows, cell_size),
+        )
+    except Exception as e:  # pragma: no cover - defensive
+        gates_run.append("verify_frames_have_content")
+        failures.append({"check": "verify_frames_have_content", "file": str(sheet_path), "details": f"error: {e}"})
+
+    try:
+        _record_gate(
+            "verify_frames_distinct",
+            verify_frames_distinct(sheet_path, cols, rows, cell_size),
+        )
+    except Exception as e:  # pragma: no cover - defensive
+        gates_run.append("verify_frames_distinct")
+        failures.append({"check": "verify_frames_distinct", "file": str(sheet_path), "details": f"error: {e}"})
+
+    if raw_path is not None and raw_path.exists():
+        try:
+            _record_gate(
+                "verify_pixel_preservation",
+                verify_pixel_preservation(raw_path, sheet_path, cols, rows, cell_size),
+            )
+        except Exception as e:  # pragma: no cover - defensive
+            gates_run.append("verify_pixel_preservation")
+            failures.append({"check": "verify_pixel_preservation", "file": str(sheet_path), "details": f"error: {e}"})
+
+    return gates_run, failures
+
 
 FIXTURE_COLORS = [
     (220, 60, 60, 255),
@@ -364,7 +517,42 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
         f"\n[spritesheet] PASS: {name} written to {work_dir / 'out'} (phases: {len(phases)})",
         file=sys.stderr,
     )
-    return 0
+
+    # Phase I: verifier gates (ADR-199). Default-on; opt out with --no-verify.
+    # Gates run on the assembled sheet at work_dir/out/{name}_sheet.png while
+    # the work dir is still in scope (ADR-200 requires gates to fire INSIDE
+    # the TemporaryDirectory context so the asset is still on disk).
+    if not getattr(args, "verify", True):
+        print(
+            "WARNING: --no-verify opted out; output not validated",
+            file=sys.stderr,
+        )
+        return 0
+
+    sheet_path = work_dir / "out" / f"{name}_sheet.png"
+    if not sheet_path.exists():
+        # Pipeline shipped without a sheet -- treat as a verifier failure so
+        # callers don't silently green-light empty output. (Defensive: Phase H
+        # error path returns nonzero before we get here, but handle it anyway.)
+        return _emit_verifier_result(
+            gates_run=[],
+            failures=[{"check": "asset_exists", "file": str(sheet_path), "details": "missing"}],
+            elapsed_seconds=0.0,
+        )
+
+    # Pixel-preservation needs the raw alongside the final. Phase C wrote the
+    # raw to {name}_sheet_raw.png; pass it when present so the gate runs.
+    raw_path = work_dir / f"{name}_sheet_raw.png"
+    started_verify = time.perf_counter()
+    gates_run, failures = _run_spritesheet_verifiers(
+        sheet_path=sheet_path,
+        raw_path=raw_path if raw_path.exists() else None,
+        cols=cols,
+        rows=rows,
+        cell_size=args.cell_size,
+    )
+    elapsed = time.perf_counter() - started_verify
+    return _emit_verifier_result(gates_run=gates_run, failures=failures, elapsed_seconds=elapsed)
 
 
 def run_pipeline(args: argparse.Namespace) -> int:
@@ -455,6 +643,20 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument("--dry-run", action="store_true", help="Skip backend; synthetic fixture for D-H")
+    parser.add_argument(
+        "--verify",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Run verifier gates as the last pipeline step (default ON). "
+            "Spritesheet gates: verify_no_magenta, verify_grid_alignment, "
+            "verify_anchor_consistency, verify_frames_have_content, "
+            "verify_frames_distinct, verify_pixel_preservation. "
+            "On failure, prints structured JSON to stdout and exits with "
+            "code 2. Opt out with --no-verify (logs WARNING). "
+            "See ADR-199 for the contract."
+        ),
+    )
     parser.add_argument(
         "--content-aware-extraction",
         action="store_true",

@@ -24,8 +24,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import shutil
 import sys
 import tempfile
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -41,6 +44,56 @@ sys.path.insert(0, str(SCRIPT_DIR))
 import sprite_generate
 import sprite_process
 import sprite_prompt
+from sprite_verify import (
+    verify_anchor_consistency,
+    verify_frames_distinct,
+    verify_frames_have_content,
+    verify_no_magenta,
+)
+
+# See ADR-199. Distinct from generic pipeline error rc=1 so callers can
+# branch on "verifier said no" vs "the pipeline blew up".
+VERIFIER_EXIT_CODE = 2
+
+
+def _detect_backends_available() -> dict[str, bool]:
+    """Best-effort backend availability for the verifier failure JSON.
+
+    Cheap shutil/env checks only; we never spawn ``codex --version`` here.
+    Mirrors sprite_pipeline._detect_backends_available; duplicated by
+    design (per CLAUDE.md "three-line repetition is better than premature
+    abstraction") rather than introducing a new module solely for this.
+    """
+    nano_script = sprite_generate.find_nano_banana_script()
+    return {
+        "codex": shutil.which("codex") is not None,
+        "nano_banana": nano_script is not None
+        and bool(os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")),
+    }
+
+
+def _emit_verifier_result(
+    gates_run: list[str],
+    failures: list[dict],
+    elapsed_seconds: float,
+) -> int:
+    """Print the structured verifier JSON to stdout and return the exit code.
+
+    Per ADR-199. JSON shape:
+
+        {passed, gates_run, failures, backends_available, elapsed_seconds}
+
+    Returns ``VERIFIER_EXIT_CODE`` (2) when failures is non-empty; else 0.
+    """
+    payload = {
+        "passed": len(failures) == 0,
+        "gates_run": gates_run,
+        "failures": failures,
+        "backends_available": _detect_backends_available(),
+        "elapsed_seconds": round(elapsed_seconds, 3),
+    }
+    print(json.dumps(payload, indent=2))
+    return 0 if payload["passed"] else VERIFIER_EXIT_CODE
 
 
 def _make_fixture_portrait(output: Path) -> None:
@@ -276,7 +329,51 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
         f"\n[portrait] PASS: {name} written to {work_dir} (phases: {len(phases)})",
         file=sys.stderr,
     )
-    return 0
+
+    # Phase F: verifier gates (ADR-199). Default-on; opt out with --no-verify.
+    # Portrait mode runs the subset of gates that apply to a single static
+    # image:
+    #   - verify_no_magenta: catches residual chroma-key bleed-through.
+    #
+    # Gates NOT run for portrait mode (and why):
+    #   - verify_pixel_preservation: ADR-199 lists it for portraits, but the
+    #     function fundamentally takes grid+cell_size and slices both raw and
+    #     final into per-cell tiles. A variable-dimension single portrait
+    #     does not have a meaningful cell grid; treating the whole image as
+    #     one 1x1 cell with raw_size != final_size produces a misleading
+    #     area_ratio and false-positive "lossy" verdicts. The dominant
+    #     defect surface for portraits is chroma bleed, which verify_no_magenta
+    #     covers cleanly. Documented as a deviation from ADR-199's literal
+    #     gate list with rationale.
+    #   - verify_grid_alignment / _frames_have_content / _frames_distinct /
+    #     _anchor_consistency: per-cell gates over a grid sheet. Not
+    #     applicable to a single-portrait output.
+    if not getattr(args, "verify", True):
+        print(
+            "WARNING: --no-verify opted out; output not validated",
+            file=sys.stderr,
+        )
+        return 0
+
+    final_path = work_dir / f"{name}.png"
+    if not final_path.exists():
+        return _emit_verifier_result(
+            gates_run=[],
+            failures=[{"check": "asset_exists", "file": str(final_path), "details": "missing"}],
+            elapsed_seconds=0.0,
+        )
+    started_verify = time.perf_counter()
+    gates_run: list[str] = []
+    failures: list[dict] = []
+    try:
+        gates_run.append("verify_no_magenta")
+        result = verify_no_magenta(final_path)
+        if not result.get("passed", True):
+            failures.append({"check": "verify_no_magenta", "file": str(final_path), "details": result})
+    except Exception as e:  # pragma: no cover - defensive
+        failures.append({"check": "verify_no_magenta", "file": str(final_path), "details": f"error: {e}"})
+    elapsed = time.perf_counter() - started_verify
+    return _emit_verifier_result(gates_run=gates_run, failures=failures, elapsed_seconds=elapsed)
 
 
 def run_pipeline(args: argparse.Namespace) -> int:
@@ -501,7 +598,82 @@ def _run_portrait_loop_body(args: argparse.Namespace, work_dir: Path, name: str)
         f"\n[portrait-loop] PASS: {name} written to {out_dir} (4 frames, ground_line_y={ground_line_y})",
         file=sys.stderr,
     )
-    return 0
+
+    # Phase I: verifier gates (ADR-199). Portrait-loop runs the gate subset
+    # that applies to animated 2x2 frames:
+    #   - verify_no_magenta: residual chroma bleed
+    #   - verify_frames_have_content: catches a blank cell (the despill
+    #     chain ate one of the four frames)
+    #   - verify_frames_distinct: catches the "all four frames identical"
+    #     failure (ground-line anchor with zero variation = no animation)
+    #   - verify_anchor_consistency: catches drift across the loop
+    #
+    # verify_grid_alignment is not run because portrait-loop frames are
+    # tightly framed faces; the alignment gate's "character touches cell
+    # edge" failure pattern doesn't apply when the pose deliberately fills
+    # the cell vertically (head + shoulders).
+    # verify_pixel_preservation is not run because the raw is upstream of
+    # per-cell extraction here -- there is no canonical raw-sheet to
+    # final-sheet pair on disk in this pipeline (raw_path is the whole
+    # canvas, not a sheet at the same grid pitch as out/{name}_sheet.png).
+    if not getattr(args, "verify", True):
+        print(
+            "WARNING: --no-verify opted out; output not validated",
+            file=sys.stderr,
+        )
+        return 0
+
+    sheet_path = out_dir / f"{name}_sheet.png"
+    if not sheet_path.exists():
+        return _emit_verifier_result(
+            gates_run=[],
+            failures=[{"check": "asset_exists", "file": str(sheet_path), "details": "missing"}],
+            elapsed_seconds=0.0,
+        )
+    started_verify = time.perf_counter()
+    gates_run: list[str] = []
+    failures: list[dict] = []
+
+    def _record(name_: str, result: dict) -> None:
+        gates_run.append(name_)
+        if not result.get("passed", True):
+            failures.append({"check": name_, "file": str(sheet_path), "details": result})
+
+    cols, rows = 2, 2
+    try:
+        _record("verify_no_magenta", verify_no_magenta(sheet_path))
+    except Exception as e:  # pragma: no cover - defensive
+        failures.append({"check": "verify_no_magenta", "file": str(sheet_path), "details": f"error: {e}"})
+    try:
+        _record(
+            "verify_frames_have_content",
+            verify_frames_have_content(sheet_path, cols, rows, cell),
+        )
+    except Exception as e:  # pragma: no cover - defensive
+        failures.append({"check": "verify_frames_have_content", "file": str(sheet_path), "details": f"error: {e}"})
+    try:
+        # Portrait-loop frames are intentionally near-identical (subtle
+        # breath + blink). Use the same relaxed dup_pct threshold the
+        # verify_asset_outputs orchestrator uses for portrait-loop mode
+        # (max_duplicate_pct=100.0); the gate then only fires if EVERY
+        # cell is byte-identical, which would itself be a pipeline bug.
+        _record(
+            "verify_frames_distinct",
+            verify_frames_distinct(sheet_path, cols, rows, cell, max_duplicate_pct=100.0),
+        )
+    except Exception as e:  # pragma: no cover - defensive
+        failures.append({"check": "verify_frames_distinct", "file": str(sheet_path), "details": f"error: {e}"})
+    try:
+        # Portrait-loop has a fixed camera, so drift is more obvious; use
+        # the tighter 4px stddev threshold from verify_asset_outputs.
+        _record(
+            "verify_anchor_consistency",
+            verify_anchor_consistency(sheet_path, cols, rows, cell, max_centroid_y_stddev_px=4.0),
+        )
+    except Exception as e:  # pragma: no cover - defensive
+        failures.append({"check": "verify_anchor_consistency", "file": str(sheet_path), "details": f"error: {e}"})
+    elapsed = time.perf_counter() - started_verify
+    return _emit_verifier_result(gates_run=gates_run, failures=failures, elapsed_seconds=elapsed)
 
 
 def run_portrait_loop(args: argparse.Namespace) -> int:
@@ -557,6 +729,20 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--force-dimensions", action="store_true")
     parser.add_argument(
         "--dry-run", action="store_true", help="Skip backend; use synthetic fixture for post-processing"
+    )
+    parser.add_argument(
+        "--verify",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Run verifier gates as the last pipeline step (default ON). "
+            "Portrait gates: verify_no_magenta. Portrait-loop gates: "
+            "verify_no_magenta, verify_frames_have_content, "
+            "verify_frames_distinct, verify_anchor_consistency. "
+            "On failure, prints structured JSON to stdout and exits with "
+            "code 2. Opt out with --no-verify (logs WARNING). "
+            "See ADR-199 for the contract."
+        ),
     )
     parser.add_argument(
         "--mode",

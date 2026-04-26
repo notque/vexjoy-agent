@@ -15,12 +15,14 @@ no longer reproduces. Run:
 
 from __future__ import annotations
 
+import json
 import sys
 import tempfile
 from pathlib import Path
 from unittest import mock
 
 import numpy as np
+import pytest
 from PIL import Image
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -280,6 +282,215 @@ def test_portrait_loop_uses_generate_character_not_generate_portrait() -> None:
         f"portrait-loop must use generate-character (1:1), got {subcmd!r}. "
         f"generate-portrait forces 4:5 and crops the 2x2 grid."
     )
+
+
+# ---------------------------------------------------------------------------
+# ADR-199: --verify is default-on; --no-verify opts out.
+# These tests assert the wiring stays.
+# ---------------------------------------------------------------------------
+def _stub_prompt_main_factory() -> object:
+    """Build a fake sprite_prompt.main that writes stub --output / --metadata-out files."""
+
+    def fake_prompt_main(argv: list[str]) -> int:
+        for i, tok in enumerate(argv):
+            if tok in ("--output", "--metadata-out") and i + 1 < len(argv):
+                Path(argv[i + 1]).parent.mkdir(parents=True, exist_ok=True)
+                Path(argv[i + 1]).write_text("stub", encoding="utf-8")
+        return 0
+
+    return fake_prompt_main
+
+
+def test_sprite_pipeline_verify_default_on_emits_json(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """ADR-199: a default sprite_pipeline run produces a verifier JSON block on stdout."""
+    fake_prompt = _stub_prompt_main_factory()
+    argv = [
+        "--prompt",
+        "wrestler walk cycle",
+        "--grid",
+        "4x1",
+        "--cell-size",
+        "256",
+        "--output-dir",
+        str(tmp_path),
+        "--dry-run",
+    ]
+    with mock.patch.object(sprite_pipeline.sprite_prompt, "main", side_effect=fake_prompt):
+        sprite_pipeline.main(argv)
+    out = capsys.readouterr().out
+    assert out.strip().startswith("{") and out.strip().endswith("}"), (
+        f"expected verifier JSON block on stdout, got first 200 chars: {out[:200]!r}"
+    )
+    payload = json.loads(out)
+    assert "passed" in payload
+    assert "gates_run" in payload and len(payload["gates_run"]) > 0, payload
+    # The full spritesheet gate suite (minus pixel_preservation when raw is
+    # absent) should be invoked; assert the irreducible four are present.
+    for gate in (
+        "verify_no_magenta",
+        "verify_grid_alignment",
+        "verify_frames_have_content",
+        "verify_anchor_consistency",
+    ):
+        assert gate in payload["gates_run"], f"{gate} missing from gates_run: {payload['gates_run']}"
+    assert "backends_available" in payload
+    assert "elapsed_seconds" in payload
+
+
+def test_sprite_pipeline_no_verify_skips_gates(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """--no-verify must skip all gates (no JSON on stdout) and exit 0."""
+    fake_prompt = _stub_prompt_main_factory()
+    argv = [
+        "--prompt",
+        "wrestler walk cycle",
+        "--grid",
+        "4x1",
+        "--cell-size",
+        "256",
+        "--output-dir",
+        str(tmp_path),
+        "--dry-run",
+        "--no-verify",
+    ]
+    with mock.patch.object(sprite_pipeline.sprite_prompt, "main", side_effect=fake_prompt):
+        rc = sprite_pipeline.main(argv)
+    assert rc == 0, f"expected rc=0 with --no-verify (gates skipped), got {rc}"
+    out = capsys.readouterr().out
+    assert out.strip() == "", f"expected no JSON on stdout with --no-verify, got: {out!r}"
+
+
+def test_sprite_pipeline_verify_failure_returns_exit_2(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """The dry-run synthetic fixture has 4 near-identical figures, which trips
+    verify_frames_distinct. The pipeline must surface that as exit code 2 and
+    a passed=false JSON block (per ADR-199 exit-code contract)."""
+    fake_prompt = _stub_prompt_main_factory()
+    argv = [
+        "--prompt",
+        "wrestler walk cycle",
+        "--grid",
+        "4x1",
+        "--cell-size",
+        "256",
+        "--output-dir",
+        str(tmp_path),
+        "--dry-run",
+    ]
+    with mock.patch.object(sprite_pipeline.sprite_prompt, "main", side_effect=fake_prompt):
+        rc = sprite_pipeline.main(argv)
+    assert rc == sprite_pipeline.VERIFIER_EXIT_CODE == 2, f"expected verifier-failure rc=2, got {rc}"
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["passed"] is False, payload
+    assert payload["failures"], "expected non-empty failures list when passed=false"
+    failed_checks = {f["check"] for f in payload["failures"]}
+    # The synthetic fixture's most reliable failure is frames_distinct (all
+    # 4 cells use rotating colors but identical silhouettes). Other gates
+    # may also fail; we only require the dups gate as a stable signal.
+    assert "verify_frames_distinct" in failed_checks, (
+        f"frames_distinct should fail on synthetic fixture: {failed_checks}"
+    )
+
+
+def test_portrait_pipeline_verify_default_on_emits_json(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """Default portrait run emits the verifier JSON block on stdout."""
+    fake_prompt = _stub_prompt_main_factory()
+    argv = [
+        "--description",
+        "test character",
+        "--display-name",
+        "Verify Default",
+        "--style",
+        "slay-the-spire-painted",
+        "--output-dir",
+        str(tmp_path),
+        "--dry-run",
+    ]
+    with mock.patch.object(portrait_pipeline.sprite_prompt, "main", side_effect=fake_prompt):
+        portrait_pipeline.main(argv)
+    out = capsys.readouterr().out
+    assert out.strip().startswith("{"), f"expected JSON on stdout: {out[:200]!r}"
+    payload = json.loads(out)
+    assert "verify_no_magenta" in payload["gates_run"], payload
+    # Portrait mode runs ONLY verify_no_magenta (per the run_pipeline
+    # docstring rationale around verify_pixel_preservation).
+    assert payload["gates_run"] == ["verify_no_magenta"], payload["gates_run"]
+
+
+def test_portrait_pipeline_no_verify_skips_gates(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """portrait --no-verify writes no JSON and exits 0."""
+    fake_prompt = _stub_prompt_main_factory()
+    argv = [
+        "--description",
+        "test character",
+        "--display-name",
+        "Verify Skip",
+        "--style",
+        "slay-the-spire-painted",
+        "--output-dir",
+        str(tmp_path),
+        "--dry-run",
+        "--no-verify",
+    ]
+    with mock.patch.object(portrait_pipeline.sprite_prompt, "main", side_effect=fake_prompt):
+        rc = portrait_pipeline.main(argv)
+    assert rc == 0, f"expected rc=0 with --no-verify, got {rc}"
+    out = capsys.readouterr().out
+    assert out.strip() == "", f"expected no JSON on stdout with --no-verify, got: {out!r}"
+
+
+def test_portrait_loop_verify_default_on_emits_json(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """portrait-loop default-on emits JSON with all 4 portrait-loop gates."""
+    fake_prompt = _stub_prompt_main_factory()
+    argv = [
+        "--mode",
+        "portrait-loop",
+        "--description",
+        "test character",
+        "--display-name",
+        "Loop Verify",
+        "--style",
+        "slay-the-spire-painted",
+        "--output-dir",
+        str(tmp_path),
+        "--dry-run",
+    ]
+    with mock.patch.object(portrait_pipeline.sprite_prompt, "main", side_effect=fake_prompt):
+        portrait_pipeline.main(argv)
+    out = capsys.readouterr().out
+    assert out.strip().startswith("{"), f"expected JSON on stdout: {out[:200]!r}"
+    payload = json.loads(out)
+    expected_gates = {
+        "verify_no_magenta",
+        "verify_frames_have_content",
+        "verify_frames_distinct",
+        "verify_anchor_consistency",
+    }
+    assert set(payload["gates_run"]) == expected_gates, (
+        f"portrait-loop gates mismatch. expected={expected_gates} got={set(payload['gates_run'])}"
+    )
+
+
+def test_portrait_loop_no_verify_skips_gates(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """portrait-loop --no-verify writes no JSON and exits 0."""
+    fake_prompt = _stub_prompt_main_factory()
+    argv = [
+        "--mode",
+        "portrait-loop",
+        "--description",
+        "test character",
+        "--display-name",
+        "Loop Skip",
+        "--style",
+        "slay-the-spire-painted",
+        "--output-dir",
+        str(tmp_path),
+        "--dry-run",
+        "--no-verify",
+    ]
+    with mock.patch.object(portrait_pipeline.sprite_prompt, "main", side_effect=fake_prompt):
+        rc = portrait_pipeline.main(argv)
+    assert rc == 0, f"expected rc=0 with --no-verify, got {rc}"
+    out = capsys.readouterr().out
+    assert out.strip() == "", f"expected no JSON on stdout with --no-verify, got: {out!r}"
 
 
 # ---------------------------------------------------------------------------

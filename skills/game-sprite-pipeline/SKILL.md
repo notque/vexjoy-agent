@@ -210,13 +210,48 @@ python3 skills/game-sprite-pipeline/scripts/portrait_pipeline.py \
     --prompt "veteran wrestler, indie circuit, 35yo, scarred face, leather jacket" \
     --style slay-the-spire-painted --target road-to-aew --dry-run
 
-# Spritesheet (no backend required in dry-run)
+# Spritesheet (no backend required in dry-run; --no-verify because the
+# synthetic fixture has 4 near-identical figures that trip the
+# verify_frames_distinct gate by construction; see "Verifier gates" below)
 python3 skills/game-sprite-pipeline/scripts/sprite_pipeline.py \
     --prompt "wrestler walk cycle, 4 frames" \
-    --grid 4x1 --cell-size 256 --dry-run
+    --grid 4x1 --cell-size 256 --dry-run --no-verify
 ```
 
 Both dry-run modes skip the backend call, generate a synthetic fixture, and exercise every post-processing phase. Pass criteria: exit 0, expected output files present, dimension gates satisfied.
+
+## Verifier gates (default-on, ADR-199)
+
+Both pipelines run a verifier suite as the LAST step (after assemble). Default-on; opt out with `--no-verify`.
+
+| Flag | Default | Effect |
+|------|---------|--------|
+| `--verify` | ON | Run the applicable verifier gate suite after assembly. Print structured JSON to stdout; exit 2 on any failure. |
+| `--no-verify` | — | Skip all gates. Pipeline returns 0 even on dirty output. Logs `WARNING: --no-verify opted out; output not validated` to stderr so silent skips remain visible. |
+
+Per-mode gate selection:
+
+| Mode | Entry | Gates |
+|------|-------|-------|
+| spritesheet | `sprite_pipeline.py run_pipeline` | `verify_no_magenta`, `verify_grid_alignment`, `verify_anchor_consistency`, `verify_frames_have_content`, `verify_frames_distinct`, `verify_pixel_preservation` (when `{name}_sheet_raw.png` is present) |
+| portrait | `portrait_pipeline.py run_pipeline` (mode=portrait) | `verify_no_magenta` (single-image mode; per-cell gates do not apply) |
+| portrait-loop | `portrait_pipeline.py run_portrait_loop` | `verify_no_magenta`, `verify_frames_have_content`, `verify_frames_distinct`, `verify_anchor_consistency` |
+
+Output JSON shape on stdout (last thing the pipeline prints before exit):
+
+```json
+{
+  "passed": false,
+  "gates_run": ["verify_no_magenta", "verify_grid_alignment", ...],
+  "failures": [{"check": "verify_no_magenta", "file": "...", "details": {...}}],
+  "backends_available": {"codex": true, "nano_banana": true},
+  "elapsed_seconds": 0.21
+}
+```
+
+Exit codes:
+- 0: `passed: true` (or `--no-verify`).
+- 2: at least one gate failed (distinct from generic pipeline error rc=1 so CI can branch on "verifier said no" vs "the pipeline blew up").
 
 ## Error handling
 
