@@ -1,6 +1,6 @@
-# Backend Chain
+# Codex CLI default with Nano Banana fallback
 
-Two-step backend selection. Codex CLI first (user's existing paid subscription), Gemini Nano Banana fallback (user's existing API key), fail-loud on absence. No third backend, no paid-API fallback. The Local-First principle (PHILOSOPHY.md) requires that absence of free backends be visible, not silently monetized.
+Operational documentation for the backend chain locked in by ADR-198. Two-step backend selection: Codex CLI first (user's existing paid subscription), Gemini Nano Banana fallback (user's existing API key), fail-loud on absence. Both paths use keys the user already holds — there is no third-party billing the toolkit hides. The Local-First principle (PHILOSOPHY.md, user-owned-key clause) authorizes this fallback chain.
 
 ## Detection logic
 
@@ -10,74 +10,61 @@ Two-step backend selection. Codex CLI first (user's existing paid subscription),
 def select_backend() -> Literal["codex", "nano-banana"]:
     # Step 1: Codex CLI
     if shutil.which("codex"):
-        # auth check via lightweight invocation
         try:
             subprocess.run(["codex", "--version"], check=True, capture_output=True, timeout=10)
             return "codex"
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError):
             print("[backend] codex CLI present but auth check failed; trying Nano Banana", file=sys.stderr)
 
-    # Step 2: Nano Banana via GEMINI_API_KEY
+    # Step 2: Nano Banana via GEMINI_API_KEY (or GOOGLE_API_KEY)
     if os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"):
         return "nano-banana"
 
-    # Step 3: fail loudly
+    # Step 3: fail loudly with both fix paths
     raise BackendUnavailableError(
-        "No image-generation backend available. "
-        "Install Codex CLI and authenticate, or set GEMINI_API_KEY. "
-        "This skill does not call paid APIs directly."
+        "No image-generation backend available.\n\n"
+        "Fix path 1 (Codex CLI, recommended):\n"
+        "  Install Codex CLI and run `codex auth` to authenticate against your existing subscription.\n\n"
+        "Fix path 2 (Nano Banana fallback):\n"
+        "  Set GEMINI_API_KEY (or GOOGLE_API_KEY) in your environment to enable the Nano Banana fallback."
     )
 ```
 
-The error message explicitly mentions both options and tells the user paid APIs are not consulted. This is intentional — silent paid fallbacks are the failure mode the principle exists to prevent.
+The error message lists BOTH fix paths so the user knows which key/install they need. Surfacing both surfaces is intentional — the user picks whichever is convenient.
 
-## Codex CLI invocation
+## Codex CLI invocation contract (v0.125+)
 
-Codex CLI is invoked via subprocess:
+ADR-198 locked in this contract. Codex CLI 0.125+ does NOT expose `--output-image`, `--aspect-ratio`, `--reference`, or `--seed` as direct CLI flags. Image generation happens through the agent's internal `image_gen` tool, invoked from prompt text.
 
-```bash
-codex exec "<full prompt>" --output-image <path> --model image-1
-```
-
-Flags vary by Codex CLI version; `sprite_generate.py` runs `codex --help` once at startup to detect supported flags and adapts. If imagegen subcommand syntax is not detected (older Codex versions), the script falls through to Nano Banana.
-
-### Capability matrix
-
-| Capability | Codex CLI | Nano Banana | Notes |
-|------------|-----------|-------------|-------|
-| Single image from text | Yes | Yes | Both work for portrait mode |
-| Reference image input | Yes (1 ref) | Yes (1 ref) | Both support `--reference` |
-| Multiple reference inputs | Empirical | No | Codex may accept 2; Nano Banana is single-ref |
-| Grid-template input for layout | Empirical | No | Codex empirically tested at skill build; Nano Banana lacks layout awareness |
-| Aspect-ratio control | Limited | Full (10 ratios) | Nano Banana has finer control |
-| Seed reproducibility | Yes | Yes | Both honor `--seed` |
-| Cost | Subscription | API per-call | Both are user-existing; no separate billing surface |
-
-### Empirical validation note
-
-The `Empirical` cells above need real-call validation during skill build. If Codex CLI does not consume a magenta grid canvas as a structural input for spritesheet mode, the skill auto-falls-back to per-frame generation + Pillow compositing. This fallback is implemented and is the safe default until Codex grid support is confirmed.
-
-The current behavior:
-
-```python
-def generate_spritesheet(...):
-    if backend == "codex" and CODEX_GRID_TEMPLATE_SUPPORTED:
-        # single call: pass canvas + reference, prompt for "place character in each cell"
-        ...
-    else:
-        # fallback: generate N frames individually, composite with Pillow
-        for cell in grid_cells:
-            frame = generate_single_frame(cell)
-            paste(canvas, frame, cell.bbox)
-```
-
-`CODEX_GRID_TEMPLATE_SUPPORTED` defaults to `False` (conservative). Flip to `True` after empirical validation confirms it works.
-
-## Nano Banana dispatch
-
-Calls the existing `nano-banana-builder` skill's scripts:
+**Command shape:**
 
 ```bash
+codex exec --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check \
+  [-i <ref1> <ref2> ... --] \
+  "<wrapped prompt>"
+```
+
+**Wrapped-prompt semantics:**
+
+- Aspect ratio, seed, and reference-image semantics are encoded INTO the wrapped prompt text, not as CLI flags.
+- The wrapped prompt instructs the agent: `"Use your image_gen tool to create the following image. Then save the resulting PNG to this absolute path: <output>. After saving, run ls -la <path> to verify the file exists."`
+- Reference images use `-i` (alias `--image`), `nargs=*`. The reference list MUST be terminated with `--` before the positional prompt — otherwise the prompt string is consumed as another image filename.
+- `reference` accepts either a single `Path` or a list of `Path`s. The sprite pipeline passes a list when both a grid-canvas template and a character portrait are inputs.
+
+**Subprocess and verification:**
+
+- Subprocess timeout: **360 seconds**. The agent loop wrapping `image_gen` is slower than the old direct-imagegen call (the v0.124 path was ~180s; v0.125 needs the larger budget).
+- Verify on success: `output.exists() and output.stat().st_size > 0`. A 0-exit with missing/empty output is treated as failure.
+- The implementation lives in `scripts/sprite_generate.py:codex_generate` (HEAD commit `0178861`).
+
+When Codex CLI evolves its image-generation surface again, this section needs an explicit revision — probably a new ADR superseding ADR-198's invocation-contract subsection. The contract is documented in this one canonical place so the next CLI revision has a clear amend target.
+
+## Nano Banana fallback dispatch
+
+When Codex is unavailable AND `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) is set, dispatch through the existing `nano-banana-builder` skill's scripts. The skill never imports the Gemini SDK directly — composition through the existing skill is the contract.
+
+```bash
+# Reference-guided generation (spritesheet Phase C, portrait-loop with reference)
 python3 ~/.claude/scripts/nano-banana-generate.py with-reference \
     --prompt "<full prompt>" \
     --reference <canvas-or-ref-image> \
@@ -86,9 +73,8 @@ python3 ~/.claude/scripts/nano-banana-generate.py with-reference \
     --aspect-ratio 1:1
 ```
 
-For portrait mode (no reference image needed):
-
 ```bash
+# Portrait mode (no reference image needed)
 python3 ~/.claude/scripts/nano-banana-generate.py generate \
     --prompt "<full prompt>" \
     --output <path> \
@@ -98,46 +84,56 @@ python3 ~/.claude/scripts/nano-banana-generate.py generate \
 
 `--model pro` (gemini-3-pro-image-preview) is the default for portrait/spritesheet because quality matters more than speed for canonical assets. Drafts can pass `--backend-flag --model=flash`.
 
+## Capability matrix
+
+| Capability | Codex CLI (v0.125+) | Nano Banana | Notes |
+|------------|----------------------|-------------|-------|
+| Single image from text | Yes (via `image_gen` tool) | Yes | Both work for portrait mode |
+| Reference image input | Yes (`-i ref --`) | Yes (1 ref) | Codex accepts a list; Nano Banana single-ref |
+| Multiple reference inputs | Yes | No | Codex passes 2+ via `-i` list with `--` terminator |
+| Grid-template input for layout | Yes (with prompt instructions) | No | Codex consumes a magenta grid canvas as one of the `-i` references; Nano Banana lacks layout awareness |
+| Aspect-ratio control | Encoded in prompt text | Full (10 ratios via flag) | Nano Banana has finer flag-level control |
+| Seed reproducibility | Encoded in prompt text | Yes (via `--seed`) | Codex seed travels in the prompt body (no flag exposed) |
+| Cost | User's Codex subscription | User's Gemini API key | Both billed under existing user accounts |
+
 ## Auth checks
 
-| Backend | Auth check | Failure indicator |
-|---------|------------|-------------------|
-| Codex CLI | `codex --version` returns 0 | Non-zero exit or timeout |
-| Nano Banana | `GEMINI_API_KEY` or `GOOGLE_API_KEY` non-empty | Both empty |
+| Backend | Auth check | Failure indicator | Fall-through? |
+|---------|------------|-------------------|---------------|
+| Codex CLI | `codex --version` returns 0 | Non-zero exit or timeout | Yes — try Nano Banana |
+| Nano Banana | `GEMINI_API_KEY` or `GOOGLE_API_KEY` non-empty | Both empty | No — raise `BackendUnavailableError` |
 
 Auth-check failures fall through to the next step rather than aborting the skill. Only step 3 (no backend at all) raises.
 
 ## Fail-loud message
 
-When no backend is available, the user must see this exact message (or equivalent):
+When no backend is available, the user sees this exact message (or equivalent):
 
 ```
-ERROR: No image-generation backend available.
+BackendUnavailableError: No image-generation backend available.
 
-Tried in order:
-  1. Codex CLI (`codex` not in PATH or auth failed)
-  2. Gemini Nano Banana (GEMINI_API_KEY not set)
+Fix path 1 (Codex CLI, recommended):
+  Install Codex CLI and run `codex auth` to authenticate against your existing subscription.
 
-This skill does not call paid APIs directly. To proceed:
-  - Install Codex CLI: npm install -g @openai/codex (or equivalent), then `codex auth`
-  - OR set GEMINI_API_KEY: export GEMINI_API_KEY=<your-key>
-
-Never set OPENAI_API_KEY for this skill — paid fallbacks are intentionally
-prohibited per the Local-First principle (docs/PHILOSOPHY.md).
+Fix path 2 (Nano Banana fallback):
+  Set GEMINI_API_KEY (or GOOGLE_API_KEY) in your environment to enable the Nano Banana fallback.
 ```
+
+Both fix paths surface together. The user picks whichever is convenient; the skill does not prefer one over the other beyond the chain order.
 
 ## Backend-specific tweaks
 
 `sprite_generate.py` adapts prompts when it knows the active backend:
 
-| Tweak | Codex | Nano Banana |
-|-------|-------|-------------|
-| Magenta-bg repetition | Repeat at start AND end | Single mention (compact prompts work better) |
+| Tweak | Codex (v0.125+) | Nano Banana |
+|-------|-----------------|-------------|
+| Magenta-bg repetition | Repeat at start AND end of wrapped prompt | Single mention (compact prompts work better) |
 | Negative-prompt block | Inline in main prompt | Inline (no separate negative-prompt API) |
-| Aspect-ratio | Use `--aspect-ratio` flag | Use `--aspect-ratio` flag |
-| Reference-image weight | Default | Strong (Nano Banana respects refs heavily) |
+| Aspect-ratio | Encoded in wrapped prompt text | `--aspect-ratio` flag |
+| Reference-image weight | Pass via `-i ref --`; weight encoded in prompt | Strong (Nano Banana respects refs heavily) |
+| Save instruction | "save to absolute path: <output>; verify with ls -la" | `--output <path>` flag |
 
-These adaptations are applied automatically; user does not specify them.
+These adaptations are applied automatically; the user does not specify them.
 
 ## Cost visibility
 
@@ -151,19 +147,22 @@ Both backends are billed under user-existing accounts:
 ```
 [backend] portrait gen for "bangkok_belle_nisa" → codex (call 1/8)
 [backend] portrait gen for "general_gideon" → codex (call 2/8)
+[backend] portrait gen for "test_subject_03" → nano-banana (call 3/8)  # codex auth refresh
 ...
 ```
+
+The mid-batch backend switch is a feature: when Codex's auth token expires partway through a long batch, the chain auto-falls-through to Nano Banana so the batch completes rather than fail-loud-and-stop. The log records which calls hit which backend for cost attribution.
 
 <!-- no-pair-required: section header; pair lives in subsection -->
 ## Anti-pattern
 
 ### Anti-pattern: Adding a third paid backend as silent fallback
 
-**What it looks like:** "If Codex fails AND Gemini fails, try OpenAI directly with `OPENAI_API_KEY`".
+**What it looks like:** "If Codex fails AND Gemini fails, try OpenAI directly with `OPENAI_API_KEY`" or "fall through to remove.bg for bg removal."
 
-**Why wrong:** Silent paid fallbacks make cost invisible. The user expects free-tier behavior because the skill says "local-first"; their card gets charged because step 3 quietly hit a paid endpoint. Trust violation, principle violation.
+**Why wrong:** The user-owned-key clause (PHILOSOPHY.md, ADR-198) authorizes fallbacks gated on environment variables the user explicitly set — Codex auth and `GEMINI_API_KEY` qualify because the user holds the keys. A direct OpenAI API call billed to whoever set `OPENAI_API_KEY` is a different relationship: the toolkit is now picking which billing account gets charged. The user expects the documented chain (Codex → Nano Banana → fail loud); their card gets charged because step 3 quietly hit a paid endpoint they did not authorize. Trust violation, principle violation.
 
-**Do instead**: Fail loudly at step 3. Tell the user exactly what is missing and how to fix it. If the user wants OpenAI direct calls, they should add it explicitly via a separate skill or a deliberate config knob — not a silent runtime fallback.
+**Do instead**: Stop at the two authorized backends. Raise `BackendUnavailableError` at step 3 with both fix paths. If a third backend is genuinely needed, propose an ADR amendment that gates it on an explicit env var the user must set (the same pattern as `GEMINI_API_KEY` does for Nano Banana) — never a silent runtime fallback.
 
 ### Anti-pattern: Caching auth state across runs without revalidation
 
@@ -177,5 +176,6 @@ Both backends are billed under user-existing accounts:
 
 Load when:
 - Backend selection is failing (see fail-loud error above)
-- Adding a new backend (rare; principle is two-step + fail-loud)
+- Codex CLI version updates and the invocation contract may need amendment (current contract: v0.125+, ADR-198)
+- Adding a new backend (rare; principle is two-step + fail-loud, requires ADR amendment)
 - Debugging cost attribution across a batch run

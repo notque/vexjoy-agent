@@ -32,9 +32,9 @@ Y coordinates: it represents "where the body is on average". A single
 extended limb adds at most a few percent to the centroid — never the 30-50
 pixel shift bbox-bottom suffers.
 
-Concrete metrics from the live demo (`/tmp/sprite-demo/assets/05-nes-
-powerhouse-attack`, 16 frames at 256x256 cells, after the ground-line fix
-landed):
+Concrete metrics from the live demo (author's local validation harness,
+replace before use: `<your-output-dir>/assets/05-nes-powerhouse-attack`),
+16 frames at 256x256 cells, after the ground-line fix landed:
 
 | Metric | bbox-bottom anchor | mass-centroid anchor |
 |---|---|---|
@@ -50,7 +50,7 @@ that the bbox-bottom verifier missed.
 
 Per-frame bottom-anchor produces visible vertical drift on extreme-pose animations. The lunge frame of an attack cycle has its character's bbox-bottom at the extended fist or trailing leg — NOT the feet. Pinning that bottom to the cell bottom puts the FIST at the ground-line and the feet float somewhere above.
 
-Concrete example from the live demo (`/tmp/sprite-demo/assets/05-nes-powerhouse-attack`):
+Concrete example from the live demo (author's local validation harness, replace before use: `<your-output-dir>/assets/05-nes-powerhouse-attack`):
 
 | Stat | Per-frame bottom-anchor | Global ground-line |
 |---|---|---|
@@ -267,7 +267,7 @@ For animations where the character is genuinely off-ground for the entire sequen
 
 **What it looks like:** Default `--anchor-mode bottom` on an attack/jump/aerial cycle. Each frame's lowest pixel pinned to the cell bottom.
 
-**Why wrong:** The lowest pixel of a lunge frame is the extended fist or trailing leg — not the feet. Pinning that to the ground-Y puts the wrong body part on the floor. Across the cycle the character bounces vertically by tens of pixels (live demo evidence: 74-px range on a 128-px cell, see `/tmp/sprite-demo/screenshots/05-drift-evidence/`).
+**Why wrong:** The lowest pixel of a lunge frame is the extended fist or trailing leg — not the feet. Pinning that to the ground-Y puts the wrong body part on the floor. Across the cycle the character bounces vertically by tens of pixels (live demo evidence: 74-px range on a 128-px cell, see `<your-output-dir>/screenshots/05-drift-evidence/`).
 
 **Do instead**: Use `--anchor-mode ground-line` (default since Apr 2026). The detector picks a single global ground-Y from the grounded frames and pins each frame's lowest pixel to THAT Y. Result: standing-frame feet are correct AND lunge frames look correct because their lowest reach (fist) is consistent with where standing-frame feet sit.
 

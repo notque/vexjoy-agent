@@ -8,7 +8,7 @@ Codex generation is treated as ground truth. If a final-sheet, animation, or con
 
 **What it looks like:** A verifier flags a "blank cell" or "missing content" or "clipped fire". The diagnostic urge is to re-run `codex exec` to redraw the raw with a different prompt. STOP.
 
-**Why wrong:** The raw PNG in `/tmp/sprite-demo/raw/<slug>.png` is what Codex painted. It is the ground truth. If post-processing shows blank cells, the bug is one of:
+**Why wrong:** The raw PNG in `<your-output-dir>/raw/<slug>.png` is what Codex painted. It is the ground truth. If post-processing shows blank cells, the bug is one of:
 - `slice_grid_cells` derived the wrong pitch (raw_size / grid math) and cut the cell at the wrong place
 - `slice_with_content_awareness` claimed a component to the wrong cell (centroid mapping bug)
 - The despill chain (`chroma_pass2_edge_flood`, `kill_pink_fringe`, `neutralize_interior_magenta_spill`) ate the silhouette
@@ -19,18 +19,18 @@ Codex generation is treated as ground truth. If a final-sheet, animation, or con
 
 ```bash
 # 1. Inspect raw
-xdg-open /tmp/sprite-demo/raw/<slug>.png
+xdg-open <your-output-dir>/raw/<slug>.png
 
 # 2. Inspect final
-xdg-open /tmp/sprite-demo/assets/<slug>/final-sheet.png
+xdg-open <your-output-dir>/assets/<slug>/final-sheet.png
 
 # 3. Run the slicer in isolation
 python3 -c "
 import sys
-sys.path.insert(0, '/home/feedgen/claude-code-toolkit/skills/game-sprite-pipeline/scripts')
+sys.path.insert(0, '<your-toolkit-root>/skills/game-sprite-pipeline/scripts')
 from PIL import Image
 from sprite_process import slice_grid_cells, slice_with_content_awareness
-sheet = Image.open('/tmp/sprite-demo/raw/<slug>.png')
+sheet = Image.open('<your-output-dir>/raw/<slug>.png')
 cells = slice_grid_cells(sheet, COLS, ROWS, CELL_SIZE)  # or slice_with_content_awareness
 for i, c in enumerate(cells):
     c.save(f'/tmp/_dbg_cell_{i}.png')
@@ -331,14 +331,14 @@ directories exist on disk but the live demo page shows the old asset list.
 
 **Cause:** `build_html.py` is a **separate manual step** from `generate.py`
 and `reprocess_all.py`. Adding or modifying assets does NOT auto-rebuild
-`/tmp/sprite-demo/index.html`. The Python `http.server` keeps serving the
+`<your-output-dir>/index.html`. The Python `http.server` keeps serving the
 stale index until `build_html.py` runs.
 
 **Fix:** Every asset-modifying workflow MUST run `build_html.py` before
 declaring the work done:
 
 ```bash
-cd /tmp/sprite-demo
+cd <your-output-dir>
 python3 generate.py [...]            # or reprocess_all.py
 python3 build_html.py                # rebuild index from per-asset meta.json
 ```
@@ -347,9 +347,9 @@ python3 build_html.py                # rebuild index from per-asset meta.json
 check the curl size delta:
 
 ```bash
-ls /tmp/sprite-demo/assets/ | wc -l                # asset directory count
-grep -c 'class="card"' /tmp/sprite-demo/index.html # cards rendered in HTML
-curl -sI http://144.126.223.3:8080/ | grep Content-Length
+ls <your-output-dir>/assets/ | wc -l                # asset directory count
+grep -c 'class="card"' <your-output-dir>/index.html # cards rendered in HTML
+curl -sI http://<your-demo-host>:8080/ | grep Content-Length
 ```
 
 If counts disagree, run `build_html.py` and re-check.

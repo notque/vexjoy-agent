@@ -1,7 +1,7 @@
 ---
 name: game-sprite-pipeline
 version: 1.0.0
-description: "AI sprite generation: portrait + animated spritesheet modes, local backends, road-to-aew integration"
+description: "AI sprite generation: portraits, idle loops, animated sheets via Codex/Nano Banana. Use for generated character art."
 user-invocable: false
 allowed-tools:
   - Read
@@ -12,11 +12,17 @@ allowed-tools:
   - Edit
 routing:
   triggers:
+    - AI sprite
+    - AI character art
+    - generate character
     - generate sprite
     - generate wrestler
     - generate character portrait
     - spritesheet pipeline
+    - animated spritesheet
     - animated sprite
+    - portrait loop
+    - idle loop
     - road-to-aew sprite
     - sprite for road-to-aew
     - wrestler portrait
@@ -37,7 +43,7 @@ Local-first AI sprite generation. One skill, three modes behind `--mode`:
 - `portrait-loop` — 2×2 = 4-frame subtle idle (breathing + blink) at 200ms/frame in ONE Codex call. Animated portraits without re-prompting new poses.
 - `spritesheet` — animated multi-frame grid with connected-components detection, ground-line anchor alignment, and Phaser atlas output.
 
-Backend: Codex CLI imagegen, sole backend. No fallback. No paid APIs (no Gemini, no Nano Banana, no `remove.bg`, no separate `OPENAI_API_KEY`). When Codex is unavailable, the skill fails loud with an actionable error message rather than silently calling a paid alternative. Reference implementation of the "Local-First, Deterministic Systems Over External APIs" principle in `docs/PHILOSOPHY.md`.
+Backend chain (per ADR-198): Codex CLI imagegen is the default when installed and authed. When Codex is unavailable AND `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) is set, the skill falls back to Nano Banana via `nano-banana-builder`'s scripts. When neither is available, the skill fails loud with `BackendUnavailableError` listing both fix paths. Both paths use keys the user already holds — there is no third-party billing the toolkit hides. Reference implementation of the "Local-First, Deterministic Systems Over External APIs" principle in `docs/PHILOSOPHY.md` (user-owned-key clause).
 
 ## When to use
 
@@ -114,20 +120,24 @@ The loop must be SUBTLE: viewers should barely notice the animation (just feels 
 
 End-to-end: `python3 scripts/sprite_pipeline.py --prompt "<desc>" --grid <CxR> --cell-size 256`.
 
-## Backend (Codex CLI only)
+## Backend (Codex default with Nano Banana fallback, per ADR-198)
 
-Per generation call:
+Per generation call, evaluated in order:
 
-1. `codex` in `PATH` and `codex --version` exits 0 → use Codex CLI imagegen via `codex exec` (the agent's internal `image_gen` tool, prompted to save at an absolute path).
-2. Else fail loudly:
+1. `codex` in `PATH` and `codex --version` exits 0 → use Codex CLI imagegen. Codex CLI 0.125+ no longer exposes `--output-image`/`--aspect-ratio`/`--reference`/`--seed` as direct flags; image generation goes through the agent's internal `image_gen` tool, invoked from prompt text. Canonical invocation: `codex exec --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check [-i <ref>... --] "<wrapped prompt>"`. The wrapped prompt instructs the agent to call `image_gen` and save to an absolute path; aspect ratio, seed, and reference semantics are encoded into the prompt text. Reference list (when used) MUST be terminated with `--` before the positional prompt or it consumes the prompt as another image filename. Subprocess timeout: 360s.
+2. Else if `GEMINI_API_KEY` or `GOOGLE_API_KEY` is set → fall back to Nano Banana via `nano-banana-builder`'s scripts (`scripts/nano-banana-generate.py with-reference` for reference-guided, `batch` for multi-variant). The skill never imports the Gemini SDK directly — composition through the existing skill is the contract.
+3. Else fail loudly with `BackendUnavailableError` listing BOTH fix paths:
    ```
-   ERROR: Codex CLI is not available.
-   Install Codex CLI and run `codex login`, then retry.
-   This skill uses Codex as its sole backend. There is no fallback to
-   paid APIs (no Gemini, no Nano Banana, no OpenAI direct).
+   BackendUnavailableError: No image-generation backend available.
+
+   Fix path 1 (Codex CLI, recommended):
+     Install Codex CLI and run `codex auth` to authenticate against your existing subscription.
+
+   Fix path 2 (Nano Banana fallback):
+     Set GEMINI_API_KEY (or GOOGLE_API_KEY) in your environment to enable the Nano Banana fallback.
    ```
 
-Never call `api.openai.com`, `remove.bg`, Gemini, Nano Banana, or any other paid endpoint. A silent paid fallback violates the Local-First principle — breakage must be visible. See `references/backend-chain.md` for the actual invocation shape and failure modes.
+Both paths use keys the user already holds (Codex subscription, Gemini API key). There is no third-party billing the toolkit hides. The skill never calls `api.openai.com` directly, `remove.bg`, or any service the user did not authorize. See `references/backend-chain.md` for the locked-in invocation contract and failure modes.
 
 ## --max-frames: pack the canvas
 
@@ -176,7 +186,7 @@ Default. Applied when `--variants N` > 1.
 
 ## Shared constraints
 
-- **Paid APIs are forbidden.** Codex CLI is the sole backend. No Gemini, no Nano Banana, no `remove.bg`, no separate `OPENAI_API_KEY`. Violating this violates the Local-First principle.
+- **User-owned keys only.** Codex CLI (default) and Nano Banana via `GEMINI_API_KEY`/`GOOGLE_API_KEY` (fallback) are the two authorized backends — both billed under the user's existing accounts. The skill never calls `api.openai.com` directly, `remove.bg`, or any service the user did not authorize. See ADR-198 and the user-owned-key clause in `docs/PHILOSOPHY.md`.
 - **Magenta background (`#FF00FF`)** is the chroma-key default because it never appears in realistic character skin or wrestling gear. Backend prompts include explicit "solid magenta background" instruction; post-processing validates the dominant corner color.
 - **Fixed seed per run** for reproducibility. Re-running with the same `--seed` should produce identical output given identical backend output (best-effort: Codex CLI does not currently expose a public seed flag, so the seed travels in the prompt body as a comment).
 
@@ -210,9 +220,9 @@ Both dry-run modes skip the backend call, generate a synthetic fixture, and exer
 
 ## Error handling
 
-**Error: "Codex CLI is not available"**
-- Cause: `codex` CLI is not installed or `codex --version` failed.
-- Solution: Install Codex CLI (`npm install -g @openai/codex` or per-OS) and run `codex login`. Never add `OPENAI_API_KEY`/`GEMINI_API_KEY` for this skill — paid fallbacks are intentionally prohibited.
+**Error: "BackendUnavailableError: No image-generation backend available"**
+- Cause: Neither `codex` CLI nor `GEMINI_API_KEY`/`GOOGLE_API_KEY` is available.
+- Solution: Install Codex CLI (`npm install -g @openai/codex` or per-OS) and run `codex auth`, OR set `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) in your environment to use the Nano Banana fallback. Both paths use keys the user already holds; pick whichever is available. Never set `OPENAI_API_KEY` for this skill — direct OpenAI calls are not an authorized path.
 
 **Error: "Aspect ratio X outside allowed range [1:1.5, 1:2.5]"**
 - Cause: Character rendered too wide (crouched pose) or too tall (full-extension jump pose).
@@ -241,7 +251,7 @@ Both dry-run modes skip the backend call, generate a synthetic fixture, and exer
 
 **What it looks like:** A verifier flags a blank cell, clipped fire, missing silhouette, or any other final-asset defect. The reflex is to re-run `codex exec` to redraw the raw with a different prompt or seed. STOP.
 
-**Why wrong:** Codex generation is treated as ground truth. The raw PNG in `/tmp/sprite-demo/raw/<slug>.png` is what Codex painted, and it is almost always correct. If the final-sheet shows blank cells, clipped effects, or missing silhouettes, the bug is in one of the post-processing steps:
+**Why wrong:** Codex generation is treated as ground truth. The raw PNG in `<your-output-dir>/raw/<slug>.png` is what Codex painted, and it is almost always correct. If the final-sheet shows blank cells, clipped effects, or missing silhouettes, the bug is in one of the post-processing steps:
 - `slice_grid_cells` derived the wrong pitch (raw_size / grid math) and cut the cell at the wrong place
 - `slice_with_content_awareness` claimed a component to the wrong cell (centroid mapping bug)
 - The despill chain (`chroma_pass2_edge_flood`, `kill_pink_fringe`, `neutralize_interior_magenta_spill`) ate the silhouette
@@ -254,13 +264,13 @@ The user's framing: "the codex generation has never failed, it is working perfec
 
 See `references/error-catalog.md` for the full diagnostic procedure.
 
-### Anti-pattern: Calling a paid API when Codex fails
+### Anti-pattern: Calling a third-party paid API the user did not authorize
 
-**What it looks like:** Adding a try/except that falls back from Codex CLI → Nano Banana / Gemini / OpenAI direct.
+**What it looks like:** Adding a try/except that falls back from Codex CLI → `api.openai.com` direct / `remove.bg` / any service whose billing relationship the user did not establish.
 
-**Why wrong:** Silent paid fallbacks make cost invisible; the user loses the ability to opt out. The Local-First principle requires visible failure when free backends are absent, not silent monetization. We removed the Nano Banana branch from this skill exactly to enforce this.
+**Why wrong:** The user-owned-key clause (PHILOSOPHY.md, ADR-198) authorizes fallbacks gated on environment variables the user explicitly set — Codex's auth and `GEMINI_API_KEY`/`GOOGLE_API_KEY` for Nano Banana qualify because the user holds the keys. A fallback that hits a service the toolkit pays for, or that silently charges a card the user never connected, does not. That's the failure mode the Local-First principle exists to prevent.
 
-**Do instead**: Fail loudly when Codex is missing or unauthenticated. Tell the user exactly what is missing and how to fix it. If they want a second backend, they should add it explicitly via a separate skill or a deliberate env-var-gated path — not a silent runtime fallback.
+**Do instead**: Stop at the two authorized backends (Codex CLI, then Nano Banana via user-set Gemini key). When neither is available, raise `BackendUnavailableError` with both fix paths in the message. Adding a third backend requires a new env-var-gated path AND an ADR amendment — never a silent runtime fallback.
 
 ### Anti-pattern: Naive grid-math frame cropping
 
@@ -302,7 +312,7 @@ See `references/error-catalog.md` for the full diagnostic procedure.
 
 ## Demo idempotency
 
-Demo orchestrators (e.g. `/tmp/sprite-demo/generate.py`) should be idempotent: running them again on a partial output skips assets whose `assets/<slug>/final.png` (or `final-sheet.png`) AND `meta.json` already exist. This saves ~30-60s per asset of Codex CLI time when iterating. The pattern:
+Demo orchestrators (e.g. `<your-output-dir>/generate.py`) should be idempotent: running them again on a partial output skips assets whose `assets/<slug>/final.png` (or `final-sheet.png`) AND `meta.json` already exist. This saves ~30-60s per asset of Codex CLI time when iterating. The pattern:
 
 ```python
 def _is_done(asset_dir: Path) -> bool:

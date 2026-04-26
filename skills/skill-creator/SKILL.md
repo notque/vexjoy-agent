@@ -210,6 +210,45 @@ the skill's workflow.
 | Agent shared across skills | Keep in repo `agents/` directory |
 | Agent needs routing metadata | Keep in repo `agents/` directory |
 
+### Path placeholder convention (per ADR-201)
+
+Author-machine paths leak into reference docs as casually as paste-from-shell-history. They look like stable interfaces ("see `/tmp/foo/` for the canonical layout") but they exist on the author's box only. A user who follows the doc literally arrives at a path that does not exist — or, worse, finds an unrelated `/tmp/foo/` from someone else's tooling.
+
+Any path appearing in a published reference doc that matches one of the following MUST be either an angle-bracket placeholder OR a path explicitly labelled as the author's local validation harness:
+
+- `/tmp/...`
+- `/home/<author>/...`
+- `~/<author-specific>/...` (anything with a user-name segment)
+- `/Users/<author>/...` (macOS user dir)
+- `/private/var/folders/...` (macOS tmp dir)
+
+**Form (a) — placeholder (preferred):**
+
+```markdown
+Place outputs at `<your-output-dir>/assets/<slug>/final.png`.
+```
+
+**Form (b) — labelled author-harness (only when the path has documentary value as a worked example):**
+
+```markdown
+> **Author's local validation harness, replace before use:** `/tmp/sprite-demo/...`
+```
+
+Form (b) is allowed only when the path is referenced for evidence (e.g. "in our test run we observed X at /tmp/sprite-demo/foo.png"). Form (a) is preferred everywhere else.
+
+**Integration-target paths stay as-is.** When a skill explicitly knows about a target project — `~/road-to-aew`, `~/deeproute` — those references stay literal. The skill's frontmatter and body explain that the skill targets that project; the path is part of the integration contract, not a leak.
+
+**Authoring-time enforcement.** Before declaring a skill shippable, run the toolkit-wide audit grep. Any non-empty result is a violation requiring placeholder replacement:
+
+```bash
+grep -rnE '(/tmp/[a-z][a-z0-9_-]+|/home/[a-z][a-z0-9_-]+|/Users/[a-z][a-z0-9_-]+)' \
+  skills/<your-skill>/SKILL.md skills/<your-skill>/references/*.md 2>/dev/null \
+  | grep -v '<your-' \
+  | grep -v "Author's local validation harness"
+```
+
+The validation pass invoked at the post-scaffold gate (next section) includes this grep. New skills do not ship with leaked author paths.
+
 ### Post-scaffold: regenerate skills INDEX.json (mandatory)
 
 After the skill directory + SKILL.md are on disk, regenerate the skills index.
