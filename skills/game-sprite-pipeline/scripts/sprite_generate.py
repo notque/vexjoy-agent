@@ -108,32 +108,93 @@ def generate_via_codex(
     prompt: str,
     output: Path,
     aspect_ratio: str | None = None,
-    reference: Path | None = None,
+    reference: Path | list[Path] | None = None,
     seed: int = 0,
     model: str = "image-1",
 ) -> int:
-    """Run Codex CLI imagegen via subprocess. Returns exit code."""
+    """Run Codex CLI imagegen via subprocess. Returns exit code.
+
+    Codex CLI 0.125+ does not expose --output-image / --aspect-ratio /
+    --reference / --seed flags directly. Image generation happens through
+    the agent's internal image_gen tool: we PROMPT codex exec to use that
+    tool and save to an absolute path, then verify the file exists. The
+    aspect_ratio / reference / seed values are encoded into the prompt
+    itself rather than as CLI flags. This mirrors the working invocation
+    pattern in /tmp/sprite-demo/generate.py:codex_generate.
+    """
     output.parent.mkdir(parents=True, exist_ok=True)
 
-    cmd: list[str] = ["codex", "exec", prompt, "--output-image", str(output), "--model", model]
+    extras: list[str] = []
     if aspect_ratio:
-        cmd.extend(["--aspect-ratio", aspect_ratio])
-    if reference:
-        cmd.extend(["--reference", str(reference)])
+        extras.append(f"Aspect ratio target: {aspect_ratio}.")
     if seed:
-        cmd.extend(["--seed", str(seed)])
+        extras.append(f"Seed (encode in image_gen call when supported): {seed}.")
 
-    print(f"[backend:codex] $ {' '.join(cmd[:3])} ...", file=sys.stderr)
+    ref_count = len(reference) if isinstance(reference, list) else (1 if reference else 0)
+    if ref_count > 1:
+        ref_note = (
+            "\nReference images attached: image 1 is the magenta GRID CANVAS "
+            "TEMPLATE — use it to locate cell boundaries and place exactly "
+            "one frame per cell. Image 2 is the CHARACTER REFERENCE — "
+            "preserve this character's identity (face, hair, costume, "
+            "colors, body type) in every cell.\n"
+        )
+    elif ref_count == 1:
+        ref_note = (
+            "\nReference image attached: use it as the structural / identity reference for the generated image.\n"
+        )
+    else:
+        ref_note = ""
+
+    wrapped = (
+        "Use your image_gen tool to create the following image. Then save the "
+        f"resulting PNG to this absolute path: {output}\n"
+        "After saving, run `ls -la <path>` to verify the file exists.\n"
+        f"{ref_note}\n"
+        f"Image specification:\n{prompt}\n"
+    )
+    if extras:
+        wrapped += "\n" + "\n".join(extras) + "\n"
+
+    cmd: list[str] = [
+        "codex",
+        "exec",
+        "--dangerously-bypass-approvals-and-sandbox",
+        "--skip-git-repo-check",
+    ]
+    if reference:
+        # -i / --image takes nargs=*; must be followed by `--` to terminate
+        # before the positional prompt argument, otherwise the prompt is
+        # consumed as another image filename. `reference` may be a single
+        # Path or a list of Paths (canvas template + character portrait).
+        ref_list = reference if isinstance(reference, list) else [reference]
+        cmd.append("-i")
+        cmd.extend(str(p) for p in ref_list)
+        cmd.append("--")
+    cmd.append(wrapped)
+
+    print(f"[backend:codex] $ codex exec ... (output={output})", file=sys.stderr)
     try:
-        subprocess.run(cmd, check=True, capture_output=True, timeout=180)
+        proc = subprocess.run(cmd, check=False, capture_output=True, timeout=420)
+        if proc.returncode != 0:
+            print(
+                f"[backend:codex] failed exit {proc.returncode}",
+                file=sys.stderr,
+            )
+            if proc.stderr:
+                print(proc.stderr.decode(errors="replace")[-1000:], file=sys.stderr)
+            return proc.returncode
+        if not output.exists() or output.stat().st_size == 0:
+            print(
+                f"[backend:codex] codex exit 0 but {output} missing/empty",
+                file=sys.stderr,
+            )
+            if proc.stdout:
+                print(proc.stdout.decode(errors="replace")[-1000:], file=sys.stderr)
+            return 5
         return 0
-    except subprocess.CalledProcessError as e:
-        print(f"[backend:codex] failed exit {e.returncode}", file=sys.stderr)
-        if e.stderr:
-            print(e.stderr.decode(errors="replace"), file=sys.stderr)
-        return e.returncode
     except subprocess.TimeoutExpired:
-        print("[backend:codex] timed out after 180s", file=sys.stderr)
+        print("[backend:codex] timed out after 420s", file=sys.stderr)
         return 124
 
 
@@ -259,11 +320,15 @@ def cmd_generate_spritesheet(args: argparse.Namespace) -> int:
     canvas = Path(args.canvas) if args.canvas else None
     reference = Path(args.reference) if args.reference else None
 
-    # spritesheet generation prefers a structural reference (canvas template)
-    structural_ref = canvas or reference
-
+    # Codex backend: pass BOTH images when both exist (canvas template +
+    # character portrait). Codex `-i` accepts nargs=*; the model uses the
+    # canvas for structural cell layout and the portrait for character
+    # identity. Nano Banana single-ref API falls back to canvas-only.
     if choice.backend == "codex":
-        return generate_via_codex(prompt, output, reference=structural_ref, seed=args.seed)
+        refs: list[Path] = [p for p in (canvas, reference) if p]
+        ref_arg: Path | list[Path] | None = refs if len(refs) > 1 else (refs[0] if refs else None)
+        return generate_via_codex(prompt, output, reference=ref_arg, seed=args.seed)
+    structural_ref = canvas or reference
     return generate_via_nano_banana(prompt, output, reference=structural_ref, seed=args.seed)
 
 
