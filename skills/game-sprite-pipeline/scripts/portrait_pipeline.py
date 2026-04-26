@@ -322,14 +322,19 @@ def run_portrait_loop(args: argparse.Namespace) -> int:
         return rc
     phases.append({"phase": "A1", "name": "prompt-build", "rc": rc})
 
-    # Phase A2: generate (or fixture in dry-run)
+    # Phase A2: generate (or fixture in dry-run).
+    # Portrait-loop produces a 2x2 grid (canvas = cell * 2), which is square by
+    # construction. We MUST NOT call `generate-portrait` here -- that subcommand
+    # forces aspect_ratio="4:5" which crops the bottom row of the grid. Use
+    # `generate-character` instead (aspect_ratio="1:1") so the backend returns
+    # a square sheet matching our cell layout.
     raw_path = work_dir / f"{name}_raw.png"
     if args.dry_run:
         _make_fixture_portrait_loop(raw_path, cell=cell)
         phases.append({"phase": "A2", "name": "generate", "rc": 0, "dry_run": True})
     else:
         gen_argv = [
-            "generate-portrait",
+            "generate-character",
             "--prompt-file",
             str(prompt_path),
             "--output",
