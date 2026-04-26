@@ -122,8 +122,8 @@ def generate_via_codex(
     the agent's internal image_gen tool: we PROMPT codex exec to use that
     tool and save to an absolute path, then verify the file exists. The
     aspect_ratio / reference / seed values are encoded into the prompt
-    itself rather than as CLI flags. This mirrors the working invocation
-    pattern in /tmp/sprite-demo/generate.py:codex_generate.
+    itself rather than as CLI flags. See this module's `generate_via_codex`
+    callers for how the prompt is constructed and post-verified.
     """
     output.parent.mkdir(parents=True, exist_ok=True)
 

@@ -268,7 +268,13 @@ def build_parser() -> argparse.ArgumentParser:
         "verify-asset",
         help="Verify an asset dir's outputs (deterministic build-time gate).",
     )
-    va.add_argument("asset_dir", help="Path to asset dir (or slug under /tmp/sprite-demo/assets/)")
+    va.add_argument(
+        "asset_dir",
+        help=(
+            "Absolute path to an asset dir. If a bare slug is given and "
+            "$SPRITE_DEMO_ROOT is set, resolves to $SPRITE_DEMO_ROOT/assets/<slug>/."
+        ),
+    )
     va.add_argument("--mode", choices=["portrait", "portrait-loop", "spritesheet"])
     va.add_argument("--grid", help="Grid CxR (overrides meta.json)")
     va.add_argument("--cell-size", type=int, help="Cell size in px (overrides meta.json)")

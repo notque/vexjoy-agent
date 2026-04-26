@@ -109,18 +109,18 @@ frames at 200ms each (800ms loop). What changes is the per-cell rule block:
 while `action-loop` says "treat the four cells as four phases of a
 continuous motion".
 
-**How specs declare intensity.** In `/tmp/sprite-demo/generate.py`, the
-asset spec dict carries `"loop_intensity": "action-loop"` (or
-`"gestural-movement"`). `compose_portrait_loop_prompt` reads
-`meta.loop_intensity` (defaulting to `idle-breath` for backward compat).
-Assets 33-46 use the gestural and action modes; assets 31-32 keep
-`idle-breath` for their meditative druid/samurai portraits.
+**How specs declare intensity.** The asset spec dict carries
+`"loop_intensity": "action-loop"` (or `"gestural-movement"`).
+`compose_portrait_loop_prompt` reads `meta.loop_intensity` (defaulting to
+`idle-breath` for backward compat). Use the gestural and action modes for
+character-loop assets where motion should read across the cycle; keep
+`idle-breath` for meditative or contemplative portraits.
 
-**Diff baseline measurement.** `/tmp/sprite-demo/check_frame_diffs.py`
-computes mean per-pixel RGBA delta across the 4-cell loop. The baselines
-above are the empirical floor / ceiling per intensity, useful as a sanity
-check: a `gestural-movement` asset that measures 2.x is suspiciously close
-to idle and the prompt likely failed to cross the intensity boundary.
+**Diff baseline measurement.** A simple offline check computes the mean
+per-pixel RGBA delta across the 4-cell loop. The baselines above are the
+empirical floor / ceiling per intensity, useful as a sanity check: a
+`gestural-movement` asset that measures 2.x is suspiciously close to idle
+and the prompt likely failed to cross the intensity boundary.
 
 ## Spritesheet-mode addendum
 

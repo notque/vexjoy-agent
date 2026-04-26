@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -964,14 +965,18 @@ def cmd_verify_asset(args: argparse.Namespace) -> int:
     Reads meta.json from the asset_dir to learn mode/grid/cell_size if not
     overridden by flags. This is the user's no-loop deterministic check:
 
-        python3 -m sprite_process verify-asset 05-nes-powerhouse-attack
+        python3 -m sprite_process verify-asset /abs/path/to/asset_dir
+
+    For convenience, callers may export `SPRITE_DEMO_ROOT` and pass a bare
+    slug; the resolver then tries `$SPRITE_DEMO_ROOT/assets/<slug>/`.
     """
     asset_dir = Path(args.asset_dir)
     if not asset_dir.is_absolute() and not asset_dir.exists():
-        # Try /tmp/sprite-demo/assets/<slug>/
-        candidate = Path("/tmp/sprite-demo/assets") / args.asset_dir
-        if candidate.exists():
-            asset_dir = candidate
+        demo_root = os.environ.get("SPRITE_DEMO_ROOT")
+        if demo_root:
+            candidate = Path(demo_root) / "assets" / args.asset_dir
+            if candidate.exists():
+                asset_dir = candidate
 
     if not asset_dir.exists():
         logger.error("asset dir %s does not exist", asset_dir)
@@ -999,4 +1004,6 @@ def cmd_verify_asset(args: argparse.Namespace) -> int:
 
     result = verify_asset_outputs(asset_dir, mode, grid=grid, cell_size=cell_size)
     print(json.dumps({"asset": str(asset_dir), "mode": mode, "grid": grid, "cell_size": cell_size, **result}, indent=2))
-    return 0 if result["passed"] else 7
+    # Exit code 2 == "verifier gates failed" per ADR-199; same code regardless
+    # of standalone-CLI vs orchestrator surface.
+    return 0 if result["passed"] else 2
