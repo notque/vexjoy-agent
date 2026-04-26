@@ -334,6 +334,53 @@ default 90) for painted-style assets so the despill chain doesn't bridge
 within cells either. Pixel-art styles (NES, SNES, GB, Genesis) keep the
 default 90 because their backgrounds are flat solid magenta.
 
+### Content-aware slicing (`slice_with_content_awareness`)
+
+When Codex paints content that legitimately extends past the conceptual cell
+boundary — dragon flame breath that trails 30-50 px past the cell edge (asset
+27), plasma trails that cross every internal vertical boundary (asset 30),
+extended limbs that reach into the neighbor (boss-character punches) — the
+strict-pitch slicer cuts that content at the boundary, dropping the trailing
+portion AND pasting it onto the neighbor cell where it has no anchor.
+
+`slice_with_content_awareness` is the alternative slicer for assets where
+this happens. The `has_effects: True` (or explicit `content_aware_extraction:
+True`) flag in the asset spec switches the pipeline from `slice_grid_cells`
+to this function.
+
+**Algorithm (per cell at fractional pitch):**
+
+1. Identify the cell's natural rectangle `[x0, y0, x1, y1]` at `raw_w/cols` ×
+   `raw_h/rows` pitch.
+2. For each cell-edge: count non-magenta pixels in an `edge_band_px`-wide
+   strip just INSIDE the cell boundary AND a same-width strip just OUTSIDE
+   (in neighbor territory).
+3. If both strips have ≥ `min_edge_run` (default 8) continuous non-magenta
+   pixels, content extends across the boundary. Expand the cell rectangle
+   outward up to `max_expansion_pct` of the cell pitch (default 0.30 = 30%).
+4. The expansion stops at the FIRST column/row in the neighbor that drops
+   back to magenta (the natural tail of the effect), or at `max_expansion_pct`
+   — whichever comes first.
+5. Resample the expanded crop to `cell_size × cell_size` (same shape contract
+   as `slice_grid_cells`).
+
+**Centroid-ownership invariant.** When cell A's right boundary expands into
+B's left territory, the slicer does NOT double-count: components are assigned
+to the cell that contains their mass-centroid. B sees only the body of B
+(centered on its centroid) without the trail that belongs to A. Beyond
+`max_expansion_pct=0.30` the content has crossed the centroid and now belongs
+to the next cell anyway.
+
+**No-op for clean assets.** If neither inside nor outside strip has the
+`min_edge_run` of non-magenta pixels at any cell edge, the slicer reduces to
+the strict pitch behavior. Pixel-art assets (NES, SNES, GB) where the model
+respects cell boundaries get the same output as `slice_grid_cells`.
+
+**Where wired in.** `/tmp/sprite-demo/generate.py post_process_spritesheet`
+checks `spec.get("content_aware_extraction") or spec.get("has_effects")` and
+dispatches accordingly. Implementation in `sprite_process.slice_with_content_awareness`
+(scripts/sprite_process.py:924).
+
 ### Where the cell-pitch rule applies
 
 Every consumer that takes a raw multi-cell sheet and slices it into

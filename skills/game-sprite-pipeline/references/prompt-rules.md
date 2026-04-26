@@ -86,6 +86,42 @@ Tuning notes:
 - Always pair with `ground-line` anchor (default) so the four near-identical bodies stay perfectly registered.
 - Reuse the same DESCRIPTION text as a static portrait — no need to add "looking forward" or "neutral pose"; the loop rules carry the pose constraint.
 
+## Portrait-loop intensity modes (`loop_intensity` parameter)
+
+The default `idle-breath` rules (above) produce a near-static loop —
+breathing + blink only. User feedback during 2026-04-25 session: "almost
+no change between frames — boring" for character-loop assets where the
+motion should be the point (samurai sword flourish, mage spell circle
+casting, cyberpunk hacker typing).
+
+`compose_portrait_loop_prompt(meta, loop_intensity=...)` selects between
+three rule blocks based on the spec's `loop_intensity` field:
+
+| Mode | Per-frame variation | Mean frame-diff baseline | When to use |
+|---|---|---|---|
+| `idle-breath` (default) | breath + blink only; "viewers should barely notice" | 2.46-2.50 | static portrait that should feel alive but not animated |
+| `gestural-movement` | 4 distinct visible gestures (head turns, hand poses, weight shifts) at the SAME pose framing | 11.69-13.x | character-loop assets where personality should read across the cycle |
+| `action-loop` | full continuous action cycle (cast spell, sword flourish, flame breath, ripple) | 14.x-39.50 | effect-bearing or motion-heavy character loops where motion IS the asset |
+
+The intensity is NOT a frame-count change — every mode is still 2x2 = 4
+frames at 200ms each (800ms loop). What changes is the per-cell rule block:
+`idle-breath` says "PIXEL-IDENTICAL except for eye state and chest delta",
+while `action-loop` says "treat the four cells as four phases of a
+continuous motion".
+
+**How specs declare intensity.** In `/tmp/sprite-demo/generate.py`, the
+asset spec dict carries `"loop_intensity": "action-loop"` (or
+`"gestural-movement"`). `compose_portrait_loop_prompt` reads
+`meta.loop_intensity` (defaulting to `idle-breath` for backward compat).
+Assets 33-46 use the gestural and action modes; assets 31-32 keep
+`idle-breath` for their meditative druid/samurai portraits.
+
+**Diff baseline measurement.** `/tmp/sprite-demo/check_frame_diffs.py`
+computes mean per-pixel RGBA delta across the 4-cell loop. The baselines
+above are the empirical floor / ceiling per intensity, useful as a sanity
+check: a `gestural-movement` asset that measures 2.x is suspiciously close
+to idle and the prompt likely failed to cross the intensity boundary.
+
 ## Spritesheet-mode addendum
 
 Append after the Universal Rules in Phase C:
