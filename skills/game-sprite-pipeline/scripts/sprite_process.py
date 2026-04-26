@@ -33,6 +33,7 @@ Subcommands:
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 
 # Re-export numpy availability flag so callers can branch on it. Read from
@@ -287,6 +288,17 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Idempotent default logging config so standalone CLI invocations of
+    # sprite_process subcommands surface logger.{info,warning,error} records
+    # on stderr. When called by a parent pipeline that already configured
+    # the root logger (sprite_pipeline / portrait_pipeline), basicConfig
+    # is a no-op (the root logger already has handlers).
+    if not logging.getLogger().handlers:
+        logging.basicConfig(
+            level=logging.INFO,
+            format="[%(name)s] %(levelname)s: %(message)s",
+            stream=sys.stderr,
+        )
     parser = build_parser()
     args = parser.parse_args(argv)
     return args.func(args)

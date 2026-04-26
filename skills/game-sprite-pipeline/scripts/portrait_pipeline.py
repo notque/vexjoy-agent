@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 import shutil
 import sys
@@ -32,10 +33,12 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+logger = logging.getLogger("sprite-pipeline.portrait_pipeline")
+
 try:
     from PIL import Image, ImageDraw
 except ImportError as e:
-    print(f"ERROR: Pillow not installed: {e}", file=sys.stderr)
+    logger.error("Pillow not installed: %s", e)
     sys.exit(1)
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -326,9 +329,11 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
     }
     (work_dir / f"{name}_metadata.json").write_text(json.dumps(sidecar, indent=2), encoding="utf-8")
 
-    print(
-        f"\n[portrait] PASS: {name} written to {work_dir} (phases: {len(phases)})",
-        file=sys.stderr,
+    logger.info(
+        "[portrait] PASS: %s written to %s (phases: %d)",
+        name,
+        work_dir,
+        len(phases),
     )
 
     # Phase F: verifier gates (ADR-199). Default-on; opt out with --no-verify.
@@ -350,10 +355,7 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
     #     _anchor_consistency: per-cell gates over a grid sheet. Not
     #     applicable to a single-portrait output.
     if not getattr(args, "verify", True):
-        print(
-            "WARNING: --no-verify opted out; output not validated",
-            file=sys.stderr,
-        )
+        logger.warning("--no-verify opted out; output not validated")
         return 0
 
     final_path = work_dir / f"{name}.png"
@@ -595,9 +597,11 @@ def _run_portrait_loop_body(args: argparse.Namespace, work_dir: Path, name: str)
     }
     (work_dir / f"{name}_metadata.json").write_text(json.dumps(sidecar, indent=2), encoding="utf-8")
 
-    print(
-        f"\n[portrait-loop] PASS: {name} written to {out_dir} (4 frames, ground_line_y={ground_line_y})",
-        file=sys.stderr,
+    logger.info(
+        "[portrait-loop] PASS: %s written to %s (4 frames, ground_line_y=%s)",
+        name,
+        out_dir,
+        ground_line_y,
     )
 
     # Phase I: verifier gates (ADR-199). Portrait-loop runs the gate subset
@@ -618,10 +622,7 @@ def _run_portrait_loop_body(args: argparse.Namespace, work_dir: Path, name: str)
     # final-sheet pair on disk in this pipeline (raw_path is the whole
     # canvas, not a sheet at the same grid pitch as out/{name}_sheet.png).
     if not getattr(args, "verify", True):
-        print(
-            "WARNING: --no-verify opted out; output not validated",
-            file=sys.stderr,
-        )
+        logger.warning("--no-verify opted out; output not validated")
         return 0
 
     sheet_path = out_dir / f"{name}_sheet.png"
@@ -771,12 +772,43 @@ def build_parser() -> argparse.ArgumentParser:
         default=512,
         help="Cell size for portrait-loop mode (default 512 → 1024x1024 canvas).",
     )
+    # Logging level controls (ADR-202). Mutually exclusive; default INFO.
+    log_group = parser.add_mutually_exclusive_group()
+    log_group.add_argument(
+        "--quiet",
+        "-q",
+        action="store_true",
+        help="Suppress INFO log records; only emit WARNING and above on stderr.",
+    )
+    log_group.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Emit DEBUG-level diagnostic log records on stderr.",
+    )
     return parser
+
+
+def configure_logging(quiet: bool, verbose: bool) -> None:
+    """Configure the root logger for sprite-pipeline scripts (ADR-202).
+
+    --quiet → WARNING, --verbose → DEBUG, default → INFO. Records are
+    formatted as ``[<logger-name>] LEVEL: message`` and written to stderr
+    so structured stdout (verifier JSON, generated paths) stays clean.
+    """
+    level = logging.WARNING if quiet else (logging.DEBUG if verbose else logging.INFO)
+    logging.basicConfig(
+        level=level,
+        format="[%(name)s] %(levelname)s: %(message)s",
+        stream=sys.stderr,
+        force=True,
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    configure_logging(quiet=args.quiet, verbose=args.verbose)
     if not args.description and args.prompt:
         args.description = args.prompt
     if args.mode == "portrait-loop":

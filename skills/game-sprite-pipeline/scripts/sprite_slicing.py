@@ -19,16 +19,19 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import sys
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 
+logger = logging.getLogger("sprite-pipeline.sprite_slicing")
+
 try:
     from PIL import Image, ImageFilter
 except ImportError as e:
-    print(f"ERROR: Pillow not installed: {e}", file=sys.stderr)
-    print("Install with: pip install pillow", file=sys.stderr)
+    logger.error("Pillow not installed: %s", e)
+    logger.error("Install with: pip install pillow")
     sys.exit(1)
 
 try:
@@ -677,7 +680,7 @@ def cmd_extract_frames(args: argparse.Namespace) -> int:
             "frame_count": len(cells),
         }
         (output_dir / "frame_metadata.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
-        print(f"[extract-frames] content-aware: wrote {len(cells)} frames to {output_dir}", file=sys.stderr)
+        logger.info("[extract-frames] content-aware: wrote %d frames to %s", len(cells), output_dir)
         return 0
 
     try:
@@ -687,7 +690,7 @@ def cmd_extract_frames(args: argparse.Namespace) -> int:
             min_pixels=args.min_pixels,
         )
     except RuntimeError as e:
-        print(f"ERROR: {e}", file=sys.stderr)
+        logger.error("%s", e)
         return 4
 
     if args.cell_aware and cols > 1 and rows > 1:
@@ -705,16 +708,10 @@ def cmd_extract_frames(args: argparse.Namespace) -> int:
         if args.cell_aware:
             non_none = sum(1 for x in ordered if x is not None)
             if non_none != expected:
-                print(
-                    f"ERROR: detected {non_none} components, grid expected {expected}",
-                    file=sys.stderr,
-                )
+                logger.error("detected %d components, grid expected %d", non_none, expected)
                 return 5
         elif len(ordered) != expected:
-            print(
-                f"ERROR: detected {len(ordered)} components, grid expected {expected}",
-                file=sys.stderr,
-            )
+            logger.error("detected %d components, grid expected %d", len(ordered), expected)
             return 5
 
     metadata: dict = {
@@ -743,7 +740,7 @@ def cmd_extract_frames(args: argparse.Namespace) -> int:
         )
     (output_dir / "frame_metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
 
-    print(f"[extract-frames] wrote {len(metas)} frames to {output_dir}", file=sys.stderr)
+    logger.info("[extract-frames] wrote %d frames to %s", len(metas), output_dir)
     return 0
 
 

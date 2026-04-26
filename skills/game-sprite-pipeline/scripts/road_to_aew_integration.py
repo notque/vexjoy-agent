@@ -21,10 +21,13 @@ is set. Otherwise, prints a reminder.
 from __future__ import annotations
 
 import argparse
+import logging
 import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+logger = logging.getLogger("sprite-pipeline.road_to_aew_integration")
 
 
 def snake_case(name: str) -> str:
@@ -77,31 +80,31 @@ def cmd_deploy(args: argparse.Namespace) -> int:
     if args.dry_run:
         # In dry-run we still validate the path resolution but do not require the project on disk
         dst = resolve_deploy_path(root, sprite_id, args.player)
-        print(f"[deploy:dry-run] would copy {args.source} -> {dst}", file=sys.stderr)
+        logger.info("[deploy:dry-run] would copy %s -> %s", args.source, dst)
         if args.regen_manifest:
-            print(
-                f"[deploy:dry-run] would run `cd {root} && npm run generate:sprites`",
-                file=sys.stderr,
+            logger.info(
+                "[deploy:dry-run] would run `cd %s && npm run generate:sprites`",
+                root,
             )
         return 0
 
     if not root.exists():
-        print(
-            f"ERROR: road-to-aew directory not found at {root}\n"
-            f"Pass --target-dir <explicit-path> or clone the repo to ~/road-to-aew.",
-            file=sys.stderr,
+        logger.error(
+            "road-to-aew directory not found at %s\n"
+            "Pass --target-dir <explicit-path> or clone the repo to ~/road-to-aew.",
+            root,
         )
         return 7
 
     src = Path(args.source).resolve()
     if not src.exists():
-        print(f"ERROR: source PNG not found: {src}", file=sys.stderr)
+        logger.error("source PNG not found: %s", src)
         return 2
 
     dst = resolve_deploy_path(root, sprite_id, args.player)
     dst.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(src, dst)
-    print(f"[deploy] {src} -> {dst}", file=sys.stderr)
+    logger.info("[deploy] %s -> %s", src, dst)
 
     if args.regen_manifest:
         try:
@@ -111,20 +114,20 @@ def cmd_deploy(args: argparse.Namespace) -> int:
                 check=True,
                 timeout=120,
             )
-            print(f"[deploy] manifest regenerated via npm run generate:sprites", file=sys.stderr)
+            logger.info("[deploy] manifest regenerated via npm run generate:sprites")
         except FileNotFoundError:
-            print("ERROR: npm not in PATH; cannot regen manifest", file=sys.stderr)
+            logger.error("npm not in PATH; cannot regen manifest")
             return 8
         except subprocess.CalledProcessError as e:
-            print(f"ERROR: npm run generate:sprites failed (exit {e.returncode})", file=sys.stderr)
+            logger.error("npm run generate:sprites failed (exit %d)", e.returncode)
             return e.returncode
         except subprocess.TimeoutExpired:
-            print("ERROR: npm run generate:sprites timed out after 120s", file=sys.stderr)
+            logger.error("npm run generate:sprites timed out after 120s")
             return 124
     else:
-        print(
-            f"[deploy] To refresh manifest: cd {root} && npm run generate:sprites",
-            file=sys.stderr,
+        logger.info(
+            "[deploy] To refresh manifest: cd %s && npm run generate:sprites",
+            root,
         )
     return 0
 
@@ -132,7 +135,7 @@ def cmd_deploy(args: argparse.Namespace) -> int:
 def cmd_list_existing(args: argparse.Namespace) -> int:
     root = resolve_project_root(args.target_dir)
     if not root.exists():
-        print(f"ERROR: road-to-aew directory not found at {root}", file=sys.stderr)
+        logger.error("road-to-aew directory not found at %s", root)
         return 7
 
     enemies_dir = root / "public" / "assets" / "characters" / "enemies"
@@ -146,7 +149,7 @@ def cmd_list_existing(args: argparse.Namespace) -> int:
 
     for sprite_id in ids:
         print(sprite_id)
-    print(f"\n[list-existing] {len(ids)} sprite IDs in {root}", file=sys.stderr)
+    logger.info("[list-existing] %d sprite IDs in %s", len(ids), root)
     return 0
 
 
@@ -175,6 +178,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    if not logging.getLogger().handlers:
+        logging.basicConfig(
+            level=logging.INFO,
+            format="[%(name)s] %(levelname)s: %(message)s",
+            stream=sys.stderr,
+        )
     parser = build_parser()
     args = parser.parse_args(argv)
     return args.func(args)

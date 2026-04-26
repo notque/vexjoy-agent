@@ -253,6 +253,18 @@ Exit codes:
 - 0: `passed: true` (or `--no-verify`).
 - 2: at least one gate failed (distinct from generic pipeline error rc=1 so CI can branch on "verifier said no" vs "the pipeline blew up").
 
+## Logging (ADR-202)
+
+Both pipelines emit diagnostic logs via stdlib `logging` on stderr. Verifier JSON and other structured machine-readable output stays on stdout. Logger name pattern: `sprite-pipeline.<module>` (e.g., `sprite-pipeline.sprite_pipeline`, `sprite-pipeline.sprite_bg`). Default level: INFO.
+
+| Flag | Default | Effect |
+|------|---------|--------|
+| (none) | — | INFO level. Phase boundaries, backend selection, asset paths, per-phase status. |
+| `--quiet` / `-q` | — | WARNING level. Suppresses INFO chatter; only fallback warnings + errors reach stderr. Mutually exclusive with `--verbose`. |
+| `--verbose` / `-v` | — | DEBUG level. Adds detailed parameter dumps and intermediate counters. Mutually exclusive with `--quiet`. |
+
+Stream contract: stdout carries structured output (verifier JSON, generated paths); stderr carries diagnostic logs. Redirect them independently (e.g., `python3 sprite_pipeline.py ... 1>out.json 2>logs.txt`).
+
 ## Error handling
 
 **Error: "BackendUnavailableError: No image-generation backend available"**

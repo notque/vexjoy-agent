@@ -28,15 +28,18 @@ Public surface (re-exported through `sprite_process` for backward compat):
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 from collections import deque
 from pathlib import Path
 
+logger = logging.getLogger("sprite-pipeline.sprite_bg")
+
 try:
     from PIL import Image
 except ImportError as e:
-    print(f"ERROR: Pillow not installed: {e}", file=sys.stderr)
-    print("Install with: pip install pillow", file=sys.stderr)
+    logger.error("Pillow not installed: %s", e)
+    logger.error("Install with: pip install pillow")
     sys.exit(1)
 
 try:
@@ -618,7 +621,7 @@ def cmd_remove_bg(args: argparse.Namespace) -> int:
     inputs = [Path(p) for p in args.input]
     output_dir = Path(args.output_dir) if args.output_dir else None
     if len(inputs) > 1 and output_dir is None:
-        print("ERROR: --output-dir required when processing multiple inputs", file=sys.stderr)
+        logger.error("--output-dir required when processing multiple inputs")
         return 2
 
     bg_mode = args.bg_mode
@@ -665,17 +668,15 @@ def cmd_remove_bg(args: argparse.Namespace) -> int:
                     alpha_dilate_radius=args.alpha_dilate,
                 )
                 if _alpha_coverage_too_low(dst):
-                    print(
-                        f"[remove-bg] auto: chroma low-coverage; falling back to rembg for {src.name}", file=sys.stderr
-                    )
+                    logger.warning("[remove-bg] auto: chroma low-coverage; falling back to rembg for %s", src.name)
                     remove_bg_rembg(src, dst)
             else:
-                print(f"ERROR: unknown bg-mode {bg_mode!r}", file=sys.stderr)
+                logger.error("unknown bg-mode %r", bg_mode)
                 return 2
         except RuntimeError as e:
-            print(f"ERROR: {e}", file=sys.stderr)
+            logger.error("%s", e)
             return 4
-        print(f"[remove-bg] {src} -> {dst} (bg-mode={bg_mode})", file=sys.stderr)
+        logger.info("[remove-bg] %s -> %s (bg-mode=%s)", src, dst, bg_mode)
     return 0
 
 

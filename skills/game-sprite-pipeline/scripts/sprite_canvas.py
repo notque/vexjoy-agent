@@ -20,15 +20,18 @@ Total canvas (cell-size * cols, cell-size * rows) <= 2048 x 2048.
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+logger = logging.getLogger("sprite-pipeline.sprite_canvas")
+
 try:
     from PIL import Image, ImageDraw
 except ImportError as e:
-    print(f"ERROR: Pillow not installed: {e}", file=sys.stderr)
-    print("Install with: pip install pillow", file=sys.stderr)
+    logger.error("Pillow not installed: %s", e)
+    logger.error("Install with: pip install pillow")
     sys.exit(1)
 
 
@@ -151,19 +154,20 @@ def cmd_make_template(args: argparse.Namespace) -> int:
         try:
             r, c = compute_max_grid(args.cell_size, args.max_canvas)
         except ValueError as e:
-            print(f"ERROR: {e}", file=sys.stderr)
+            logger.error("%s", e)
             return 2
         rows, cols = r, c
-        print(
-            f"[canvas] auto-grid: {cols}x{rows} = {cols * rows} frames @ "
-            f"{args.cell_size}px on {args.max_canvas}x{args.max_canvas} canvas",
-            file=sys.stderr,
+        logger.info(
+            "[canvas] auto-grid: %dx%d = %d frames @ %dpx on %dx%d canvas",
+            cols,
+            rows,
+            cols * rows,
+            args.cell_size,
+            args.max_canvas,
+            args.max_canvas,
         )
     if rows is None or cols is None:
-        print(
-            "ERROR: --rows and --cols are required unless --max-frames is set.",
-            file=sys.stderr,
-        )
+        logger.error("--rows and --cols are required unless --max-frames is set.")
         return 2
 
     spec = CanvasSpec(
@@ -175,17 +179,21 @@ def cmd_make_template(args: argparse.Namespace) -> int:
     try:
         validate_spec(spec)
     except ValueError as e:
-        print(f"ERROR: {e}", file=sys.stderr)
+        logger.error("%s", e)
         return 2
 
     img = render_canvas(spec)
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     img.save(output_path, format="PNG")
-    print(
-        f"[canvas] {output_path} written ({spec.width}x{spec.height}, "
-        f"{spec.cols}x{spec.rows} grid, pattern={spec.pattern})",
-        file=sys.stderr,
+    logger.info(
+        "[canvas] %s written (%dx%d, %dx%d grid, pattern=%s)",
+        output_path,
+        spec.width,
+        spec.height,
+        spec.cols,
+        spec.rows,
+        spec.pattern,
     )
     return 0
 
@@ -231,6 +239,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     """Entry point."""
+    if not logging.getLogger().handlers:
+        logging.basicConfig(
+            level=logging.INFO,
+            format="[%(name)s] %(levelname)s: %(message)s",
+            stream=sys.stderr,
+        )
     parser = build_parser()
     args = parser.parse_args(argv)
     return args.func(args)

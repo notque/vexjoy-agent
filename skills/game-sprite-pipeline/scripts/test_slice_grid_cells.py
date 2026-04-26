@@ -19,6 +19,7 @@ Exits 0 on success, non-zero on failure with a diagnostic message.
 
 from __future__ import annotations
 
+import logging
 import sys
 from pathlib import Path
 
@@ -27,6 +28,8 @@ from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import sprite_slicing  # canonical home post-ADR-205 split
+
+logger = logging.getLogger("sprite-pipeline.test_slice_grid_cells")
 
 MAGENTA = (255, 0, 255, 255)
 MARKER_RGB = (32, 224, 64)  # bright green; far from magenta in chroma space
@@ -80,15 +83,19 @@ def run_case(label: str, raw_w: int, raw_h: int, cols: int, rows: int, cell_size
     cells = sprite_slicing.slice_grid_cells(sheet, cols, rows, cell_size)
     expected = cols * rows
     if len(cells) != expected:
-        print(f"FAIL {label}: got {len(cells)} cells, expected {expected}", file=sys.stderr)
+        logger.error("FAIL %s: got %d cells, expected %d", label, len(cells), expected)
         return 1
 
     # Each extracted cell must be (cell_size, cell_size).
     for i, cell in enumerate(cells):
         if cell.size != (cell_size, cell_size):
-            print(
-                f"FAIL {label}: cell {i} size {cell.size} != ({cell_size}, {cell_size})",
-                file=sys.stderr,
+            logger.error(
+                "FAIL %s: cell %d size %s != (%d, %d)",
+                label,
+                i,
+                cell.size,
+                cell_size,
+                cell_size,
             )
             return 2
 
@@ -116,11 +123,11 @@ def run_case(label: str, raw_w: int, raw_h: int, cols: int, rows: int, cell_size
             )
 
     if failures:
-        print(f"FAIL {label}: {len(failures)} of {expected} cells off-center:", file=sys.stderr)
+        logger.error("FAIL %s: %d of %d cells off-center:", label, len(failures), expected)
         for f in failures[:8]:
-            print(f"  {f}", file=sys.stderr)
+            logger.error("  %s", f)
         if len(failures) > 8:
-            print(f"  ... ({len(failures) - 8} more)", file=sys.stderr)
+            logger.error("  ... (%d more)", len(failures) - 8)
         return 3
 
     print(f"PASS {label}: {expected} cells extracted, all centroids within {tolerance:.1f}px")
@@ -128,6 +135,12 @@ def run_case(label: str, raw_w: int, raw_h: int, cols: int, rows: int, cell_size
 
 
 def main() -> int:
+    if not logging.getLogger().handlers:
+        logging.basicConfig(
+            level=logging.INFO,
+            format="[%(name)s] %(levelname)s: %(message)s",
+            stream=sys.stderr,
+        )
     cases = [
         # The exact bug from asset 05 (Codex 1254x1254 / 8x8, target 128).
         ("1254x1254/8x8/cell=128 (smoking-gun reproduction)", 1254, 1254, 8, 8, 128),
@@ -148,7 +161,7 @@ def main() -> int:
     if rc == 0:
         print("\nAll cases PASS — slice_grid_cells is pixel-perfect across canvases.")
     else:
-        print("\nFAIL: at least one case did not meet the centroid invariant.", file=sys.stderr)
+        logger.error("FAIL: at least one case did not meet the centroid invariant.")
     return rc
 
 

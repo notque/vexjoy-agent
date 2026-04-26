@@ -16,15 +16,18 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+logger = logging.getLogger("sprite-pipeline.sprite_assemble")
+
 try:
     from PIL import Image, ImageDraw
 except ImportError as e:
-    print(f"ERROR: Pillow not installed: {e}", file=sys.stderr)
-    print("Install with: pip install pillow", file=sys.stderr)
+    logger.error("Pillow not installed: %s", e)
+    logger.error("Install with: pip install pillow")
     sys.exit(1)
 
 from sprite_anchor import find_bottom_anchor
@@ -73,7 +76,7 @@ def cmd_auto_curate(args: argparse.Namespace) -> int:
     variants_dir = Path(args.variants_dir)
     variants = sorted([p for p in variants_dir.iterdir() if p.is_dir()])
     if not variants:
-        print(f"ERROR: no variant subdirectories in {variants_dir}", file=sys.stderr)
+        logger.error("no variant subdirectories in %s", variants_dir)
         return 5
 
     stats: list[VariantStats] = []
@@ -90,10 +93,12 @@ def cmd_auto_curate(args: argparse.Namespace) -> int:
 
     stats.sort(key=lambda s: (s.edge_touch_frames, s.height_variance, s.seed))
     winner = stats[0]
-    print(
-        f"[auto-curate] winner: {winner.path.name} "
-        f"(edge_touch={winner.edge_touch_frames}, variance={winner.height_variance:.2f}, seed={winner.seed})",
-        file=sys.stderr,
+    logger.info(
+        "[auto-curate] winner: %s (edge_touch=%d, variance=%.2f, seed=%d)",
+        winner.path.name,
+        winner.edge_touch_frames,
+        winner.height_variance,
+        winner.seed,
     )
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -125,7 +130,7 @@ def cmd_contact_sheet(args: argparse.Namespace) -> int:
     variants_dir = Path(args.variants_dir)
     variants = sorted([p for p in variants_dir.iterdir() if p.is_dir()])
     if not variants:
-        print(f"ERROR: no variants in {variants_dir}", file=sys.stderr)
+        logger.error("no variants in %s", variants_dir)
         return 5
 
     thumbs: list[Image.Image] = []
@@ -138,7 +143,7 @@ def cmd_contact_sheet(args: argparse.Namespace) -> int:
         thumbs.append(img)
 
     if not thumbs:
-        print("ERROR: no images found in any variant dir", file=sys.stderr)
+        logger.error("no images found in any variant dir")
         return 5
 
     cols = max(1, args.cols)
@@ -156,7 +161,7 @@ def cmd_contact_sheet(args: argparse.Namespace) -> int:
 
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)
     sheet.save(args.output, format="PNG")
-    print(f"[contact-sheet] {args.output} ({len(thumbs)} variants, {cols}x{rows})", file=sys.stderr)
+    logger.info("[contact-sheet] %s (%d variants, %dx%d)", args.output, len(thumbs), cols, rows)
     return 0
 
 
@@ -319,12 +324,13 @@ def cmd_assemble(args: argparse.Namespace) -> int:
         fps=args.fps,
         emit_strips=emit_strips,
     )
-    print(
-        f"[assemble] {name}: sheet+gif+webp+atlas+frames written to {args.output_dir}",
-        file=sys.stderr,
+    logger.info(
+        "[assemble] %s: sheet+gif+webp+atlas+frames written to %s",
+        name,
+        args.output_dir,
     )
     if result["strips"]:
-        print(f"[assemble] strips: {', '.join(result['strips'].keys())}", file=sys.stderr)
+        logger.info("[assemble] strips: %s", ", ".join(result["strips"].keys()))
     return 0
 
 

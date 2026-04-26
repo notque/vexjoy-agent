@@ -31,14 +31,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import sys
 from pathlib import Path
+
+logger = logging.getLogger("sprite-pipeline.sprite_anchor")
 
 try:
     from PIL import Image
 except ImportError as e:
-    print(f"ERROR: Pillow not installed: {e}", file=sys.stderr)
-    print("Install with: pip install pillow", file=sys.stderr)
+    logger.error("Pillow not installed: %s", e)
+    logger.error("Install with: pip install pillow")
     sys.exit(1)
 
 try:
@@ -528,15 +531,15 @@ def cmd_normalize(args: argparse.Namespace) -> int:
                 target_h=args.target_h,
             )
         except RuntimeError as e:
-            print(f"ERROR: {e}", file=sys.stderr)
+            logger.error("%s", e)
             return 4
-        print(f"[normalize] portrait {args.input} -> {args.output} ({meta['output_size']})", file=sys.stderr)
+        logger.info("[normalize] portrait %s -> %s (%s)", args.input, args.output, meta["output_size"])
         return 0
 
     # spritesheet
     frames = sorted(Path(args.input_dir).glob("*_frame_*.png"))
     if not frames:
-        print(f"ERROR: no *_frame_*.png files in {args.input_dir}", file=sys.stderr)
+        logger.error("no *_frame_*.png files in %s", args.input_dir)
         return 2
     # Map per-frame-bottom alias to the legacy `bottom` mode so internal
     # branching stays simple. ground-line is the new default.
@@ -549,9 +552,11 @@ def cmd_normalize(args: argparse.Namespace) -> int:
         scale_percentile=args.scale_percentile,
         anchor_mode=anchor_mode,
     )
-    print(
-        f"[normalize] spritesheet {len(frames)} frames -> {args.output_dir} (scaled to h={meta['target_height']})",
-        file=sys.stderr,
+    logger.info(
+        "[normalize] spritesheet %d frames -> %s (scaled to h=%s)",
+        len(frames),
+        args.output_dir,
+        meta["target_height"],
     )
     return 0
 
@@ -574,17 +579,14 @@ def cmd_validate_portrait(args: argparse.Namespace) -> int:
 
     if errors:
         if args.force:
-            print(
-                f"WARNING: --force-dimensions used; output bypasses gate ({'; '.join(errors)})",
-                file=sys.stderr,
+            logger.warning(
+                "--force-dimensions used; output bypasses gate (%s)",
+                "; ".join(errors),
             )
             return 0
         for e in errors:
-            print(f"ERROR: {e}", file=sys.stderr)
+            logger.error("%s", e)
         return 6
 
-    print(
-        f"[validate-portrait] PASS ({w}x{h}, aspect 1:{aspect:.2f})",
-        file=sys.stderr,
-    )
+    logger.info("[validate-portrait] PASS (%dx%d, aspect 1:%.2f)", w, h, aspect)
     return 0

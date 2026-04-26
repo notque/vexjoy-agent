@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 import shutil
 import sys
@@ -34,10 +35,12 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+logger = logging.getLogger("sprite-pipeline.sprite_pipeline")
+
 try:
     from PIL import Image, ImageDraw
 except ImportError as e:
-    print(f"ERROR: Pillow not installed: {e}", file=sys.stderr)
+    logger.error("Pillow not installed: %s", e)
     sys.exit(1)
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -261,14 +264,18 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
         try:
             r, c = sprite_canvas.compute_max_grid(args.cell_size, args.max_canvas)
         except ValueError as e:
-            print(f"ERROR: {e}", file=sys.stderr)
+            logger.error("%s", e)
             return 2
         cols, rows = c, r
         args.grid = f"{cols}x{rows}"
-        print(
-            f"[pipeline] --max-frames: auto-grid {cols}x{rows} = {cols * rows} "
-            f"frames @ {args.cell_size}px on {args.max_canvas}x{args.max_canvas} canvas",
-            file=sys.stderr,
+        logger.info(
+            "[pipeline] --max-frames: auto-grid %dx%d = %d frames @ %dpx on %dx%d canvas",
+            cols,
+            rows,
+            cols * rows,
+            args.cell_size,
+            args.max_canvas,
+            args.max_canvas,
         )
     else:
         cols, rows = sprite_prompt.parse_grid(args.grid)
@@ -278,11 +285,12 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
     # dense. See references/frame-detection.md "Grid density limits".
     total_frames = cols * rows
     if total_frames > 64 and not args.confirm_dense_grid:
-        print(
-            f"WARNING: grid {cols}x{rows}={total_frames} frames is dense; "
-            f"per-cell frame extraction may drift. Consider 8x8 or smaller. "
-            f"Set --confirm-dense-grid to suppress this warning.",
-            file=sys.stderr,
+        logger.warning(
+            "grid %dx%d=%d frames is dense; per-cell frame extraction may drift. "
+            "Consider 8x8 or smaller. Set --confirm-dense-grid to suppress this warning.",
+            cols,
+            rows,
+            total_frames,
         )
 
     # Phase A: reference character (skipped in dry-run, optional otherwise)
@@ -425,7 +433,7 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
     frames_nobg_dir = work_dir / "frames_nobg"
     raw_frames = sorted(frames_raw_dir.glob("*_frame_*.png"))
     if not raw_frames:
-        print("ERROR: no frames extracted in Phase D", file=sys.stderr)
+        logger.error("no frames extracted in Phase D")
         return 5
     # ADR-204: pass through pipeline-level --bg-mode to sprite_process's
     # canonical --bg-mode flag. Both surfaces share BG_MODE_CHOICES so the
@@ -512,9 +520,11 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
     }
     (work_dir / f"{name}_metadata.json").write_text(json.dumps(sidecar, indent=2), encoding="utf-8")
 
-    print(
-        f"\n[spritesheet] PASS: {name} written to {work_dir / 'out'} (phases: {len(phases)})",
-        file=sys.stderr,
+    logger.info(
+        "[spritesheet] PASS: %s written to %s (phases: %d)",
+        name,
+        work_dir / "out",
+        len(phases),
     )
 
     # Phase I: verifier gates (ADR-199). Default-on; opt out with --no-verify.
@@ -522,10 +532,7 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
     # the work dir is still in scope (ADR-200 requires gates to fire INSIDE
     # the TemporaryDirectory context so the asset is still on disk).
     if not getattr(args, "verify", True):
-        print(
-            "WARNING: --no-verify opted out; output not validated",
-            file=sys.stderr,
-        )
+        logger.warning("--no-verify opted out; output not validated")
         return 0
 
     sheet_path = work_dir / "out" / f"{name}_sheet.png"
@@ -669,12 +676,43 @@ def build_parser() -> argparse.ArgumentParser:
             "Post-Processing Fix'."
         ),
     )
+    # Logging level controls (ADR-202). Mutually exclusive; default INFO.
+    log_group = parser.add_mutually_exclusive_group()
+    log_group.add_argument(
+        "--quiet",
+        "-q",
+        action="store_true",
+        help="Suppress INFO log records; only emit WARNING and above on stderr.",
+    )
+    log_group.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Emit DEBUG-level diagnostic log records on stderr.",
+    )
     return parser
+
+
+def configure_logging(quiet: bool, verbose: bool) -> None:
+    """Configure the root logger for sprite-pipeline scripts (ADR-202).
+
+    --quiet → WARNING, --verbose → DEBUG, default → INFO. Records are
+    formatted as ``[<logger-name>] LEVEL: message`` and written to stderr
+    so structured stdout (verifier JSON, generated paths) stays clean.
+    """
+    level = logging.WARNING if quiet else (logging.DEBUG if verbose else logging.INFO)
+    logging.basicConfig(
+        level=level,
+        format="[%(name)s] %(levelname)s: %(message)s",
+        stream=sys.stderr,
+        force=True,
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    configure_logging(quiet=args.quiet, verbose=args.verbose)
     # portrait-loop mode delegates to portrait_pipeline.run_portrait_loop
     if getattr(args, "mode", None) == "portrait-loop":
         import portrait_pipeline as pp

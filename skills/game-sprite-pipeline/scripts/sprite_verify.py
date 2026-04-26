@@ -26,14 +26,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import sys
 from pathlib import Path
+
+logger = logging.getLogger("sprite-pipeline.sprite_verify")
 
 try:
     from PIL import Image
 except ImportError as e:
-    print(f"ERROR: Pillow not installed: {e}", file=sys.stderr)
-    print("Install with: pip install pillow", file=sys.stderr)
+    logger.error("Pillow not installed: %s", e)
+    logger.error("Install with: pip install pillow")
     sys.exit(1)
 
 try:
@@ -971,7 +974,7 @@ def cmd_verify_asset(args: argparse.Namespace) -> int:
             asset_dir = candidate
 
     if not asset_dir.exists():
-        print(f"ERROR: asset dir {asset_dir} does not exist", file=sys.stderr)
+        logger.error("asset dir %s does not exist", asset_dir)
         return 2
 
     meta_path = asset_dir / "meta.json"
@@ -991,7 +994,7 @@ def cmd_verify_asset(args: argparse.Namespace) -> int:
         cols, rows = _parse_grid(args.grid)
         grid = (cols, rows)
     if mode is None:
-        print(f"ERROR: --mode required (no meta.json at {meta_path})", file=sys.stderr)
+        logger.error("--mode required (no meta.json at %s)", meta_path)
         return 2
 
     result = verify_asset_outputs(asset_dir, mode, grid=grid, cell_size=cell_size)

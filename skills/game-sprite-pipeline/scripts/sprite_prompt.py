@@ -26,10 +26,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import sys
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+
+logger = logging.getLogger("sprite-pipeline.sprite_prompt")
 
 # ---------------------------------------------------------------------------
 # Style preset catalog (mirrors references/style-presets.md)
@@ -471,12 +474,12 @@ def write_outputs(prompt: str, meta: PromptMetadata, output: Path, metadata_out:
     """Write prompt text + optional metadata JSON sidecar."""
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(prompt, encoding="utf-8")
-    print(f"[prompt] {output} written ({len(prompt)} chars)", file=sys.stderr)
+    logger.info("[prompt] %s written (%d chars)", output, len(prompt))
 
     if metadata_out is not None:
         metadata_out.parent.mkdir(parents=True, exist_ok=True)
         metadata_out.write_text(json.dumps(asdict(meta), indent=2), encoding="utf-8")
-        print(f"[prompt] {metadata_out} metadata written", file=sys.stderr)
+        logger.info("[prompt] %s metadata written", metadata_out)
 
 
 # ---------------------------------------------------------------------------
@@ -516,7 +519,7 @@ def cmd_build_portrait(args: argparse.Namespace) -> int:
     try:
         prompt = compose_portrait_prompt(meta)
     except ValueError as e:
-        print(f"ERROR: {e}", file=sys.stderr)
+        logger.error("%s", e)
         return 2
     write_outputs(prompt, meta, Path(args.output), Path(args.metadata_out) if args.metadata_out else None)
     return 0
@@ -539,7 +542,7 @@ def cmd_build_portrait_loop(args: argparse.Namespace) -> int:
     try:
         prompt = compose_portrait_loop_prompt(meta)
     except ValueError as e:
-        print(f"ERROR: {e}", file=sys.stderr)
+        logger.error("%s", e)
         return 2
     write_outputs(prompt, meta, Path(args.output), Path(args.metadata_out) if args.metadata_out else None)
     return 0
@@ -559,7 +562,7 @@ def cmd_build_character(args: argparse.Namespace) -> int:
     try:
         prompt = compose_character_prompt(meta)
     except ValueError as e:
-        print(f"ERROR: {e}", file=sys.stderr)
+        logger.error("%s", e)
         return 2
     write_outputs(prompt, meta, Path(args.output), Path(args.metadata_out) if args.metadata_out else None)
     return 0
@@ -583,7 +586,7 @@ def cmd_build_spritesheet(args: argparse.Namespace) -> int:
     try:
         prompt = compose_spritesheet_prompt(meta)
     except ValueError as e:
-        print(f"ERROR: {e}", file=sys.stderr)
+        logger.error("%s", e)
         return 2
     write_outputs(prompt, meta, Path(args.output), Path(args.metadata_out) if args.metadata_out else None)
     return 0
@@ -631,6 +634,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    if not logging.getLogger().handlers:
+        logging.basicConfig(
+            level=logging.INFO,
+            format="[%(name)s] %(levelname)s: %(message)s",
+            stream=sys.stderr,
+        )
     parser = build_parser()
     args = parser.parse_args(argv)
     return args.func(args)

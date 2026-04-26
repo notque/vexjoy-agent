@@ -24,12 +24,15 @@ The script never touches paid endpoints. Detection logic:
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+
+logger = logging.getLogger("sprite-pipeline.sprite_generate")
 
 # Resolve nano-banana script paths. Prefer ~/.claude/scripts/ (deployed),
 # fall back to repo path when running in a dev checkout.
@@ -69,9 +72,9 @@ def select_backend() -> BackendChoice:
             )
             return BackendChoice(backend="codex", detected_via="codex --version exit 0")
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as e:
-            print(
-                f"[backend] codex CLI present but auth check failed ({e}); trying Nano Banana",
-                file=sys.stderr,
+            logger.warning(
+                "[backend] codex CLI present but auth check failed (%s); trying Nano Banana",
+                e,
             )
 
     if os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"):
@@ -173,28 +176,22 @@ def generate_via_codex(
         cmd.append("--")
     cmd.append(wrapped)
 
-    print(f"[backend:codex] $ codex exec ... (output={output})", file=sys.stderr)
+    logger.info("[backend:codex] $ codex exec ... (output=%s)", output)
     try:
         proc = subprocess.run(cmd, check=False, capture_output=True, timeout=420)
         if proc.returncode != 0:
-            print(
-                f"[backend:codex] failed exit {proc.returncode}",
-                file=sys.stderr,
-            )
+            logger.error("[backend:codex] failed exit %d", proc.returncode)
             if proc.stderr:
-                print(proc.stderr.decode(errors="replace")[-1000:], file=sys.stderr)
+                logger.error("%s", proc.stderr.decode(errors="replace")[-1000:])
             return proc.returncode
         if not output.exists() or output.stat().st_size == 0:
-            print(
-                f"[backend:codex] codex exit 0 but {output} missing/empty",
-                file=sys.stderr,
-            )
+            logger.error("[backend:codex] codex exit 0 but %s missing/empty", output)
             if proc.stdout:
-                print(proc.stdout.decode(errors="replace")[-1000:], file=sys.stderr)
+                logger.error("%s", proc.stdout.decode(errors="replace")[-1000:])
             return 5
         return 0
     except subprocess.TimeoutExpired:
-        print("[backend:codex] timed out after 420s", file=sys.stderr)
+        logger.error("[backend:codex] timed out after 420s")
         return 124
 
 
@@ -212,10 +209,7 @@ def generate_via_nano_banana(
     """Shell out to nano-banana-generate.py. Returns exit code."""
     script = find_nano_banana_script()
     if script is None:
-        print(
-            "[backend:nano-banana] nano-banana-generate.py not found at expected paths",
-            file=sys.stderr,
-        )
+        logger.error("[backend:nano-banana] nano-banana-generate.py not found at expected paths")
         return 127
 
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -251,15 +245,19 @@ def generate_via_nano_banana(
             aspect_ratio,
         ]
 
-    print(f"[backend:nano-banana] $ {script.name} ({'with-reference' if reference else 'generate'})", file=sys.stderr)
+    logger.info(
+        "[backend:nano-banana] $ %s (%s)",
+        script.name,
+        "with-reference" if reference else "generate",
+    )
     try:
         subprocess.run(cmd, check=True, timeout=300)
         return 0
     except subprocess.CalledProcessError as e:
-        print(f"[backend:nano-banana] failed exit {e.returncode}", file=sys.stderr)
+        logger.error("[backend:nano-banana] failed exit %d", e.returncode)
         return e.returncode
     except subprocess.TimeoutExpired:
-        print("[backend:nano-banana] timed out after 300s", file=sys.stderr)
+        logger.error("[backend:nano-banana] timed out after 300s")
         return 124
 
 
@@ -268,14 +266,14 @@ def generate_via_nano_banana(
 # ---------------------------------------------------------------------------
 def cmd_generate_portrait(args: argparse.Namespace) -> int:
     if args.dry_run:
-        print("[backend] DRY-RUN: skipping backend call (portrait)", file=sys.stderr)
+        logger.info("[backend] DRY-RUN: skipping backend call (portrait)")
         return 0
     try:
         choice = select_backend()
     except BackendUnavailableError as e:
-        print(f"ERROR: {e}", file=sys.stderr)
+        logger.error("%s", e)
         return 3
-    print(f"[backend] selected={choice.backend} ({choice.detected_via})", file=sys.stderr)
+    logger.info("[backend] selected=%s (%s)", choice.backend, choice.detected_via)
 
     prompt = read_prompt(args.prompt, Path(args.prompt_file) if args.prompt_file else None)
     output = Path(args.output)
@@ -287,14 +285,14 @@ def cmd_generate_portrait(args: argparse.Namespace) -> int:
 
 def cmd_generate_character(args: argparse.Namespace) -> int:
     if args.dry_run:
-        print("[backend] DRY-RUN: skipping backend call (character reference)", file=sys.stderr)
+        logger.info("[backend] DRY-RUN: skipping backend call (character reference)")
         return 0
     try:
         choice = select_backend()
     except BackendUnavailableError as e:
-        print(f"ERROR: {e}", file=sys.stderr)
+        logger.error("%s", e)
         return 3
-    print(f"[backend] selected={choice.backend} ({choice.detected_via})", file=sys.stderr)
+    logger.info("[backend] selected=%s (%s)", choice.backend, choice.detected_via)
 
     prompt = read_prompt(args.prompt, Path(args.prompt_file) if args.prompt_file else None)
     output = Path(args.output)
@@ -306,14 +304,14 @@ def cmd_generate_character(args: argparse.Namespace) -> int:
 
 def cmd_generate_spritesheet(args: argparse.Namespace) -> int:
     if args.dry_run:
-        print("[backend] DRY-RUN: skipping backend call (spritesheet)", file=sys.stderr)
+        logger.info("[backend] DRY-RUN: skipping backend call (spritesheet)")
         return 0
     try:
         choice = select_backend()
     except BackendUnavailableError as e:
-        print(f"ERROR: {e}", file=sys.stderr)
+        logger.error("%s", e)
         return 3
-    print(f"[backend] selected={choice.backend} ({choice.detected_via})", file=sys.stderr)
+    logger.info("[backend] selected=%s (%s)", choice.backend, choice.detected_via)
 
     prompt = read_prompt(args.prompt, Path(args.prompt_file) if args.prompt_file else None)
     output = Path(args.output)
@@ -366,6 +364,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    if not logging.getLogger().handlers:
+        logging.basicConfig(
+            level=logging.INFO,
+            format="[%(name)s] %(levelname)s: %(message)s",
+            stream=sys.stderr,
+        )
     parser = build_parser()
     args = parser.parse_args(argv)
     return args.func(args)
