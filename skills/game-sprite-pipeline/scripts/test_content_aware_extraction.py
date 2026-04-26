@@ -36,7 +36,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import sprite_process
+import sprite_slicing  # canonical home post-ADR-205 split
 
 MAGENTA = (255, 0, 255)
 CHAR_COLOR = (0, 200, 0)  # green character body
@@ -100,7 +100,7 @@ def test_strict_slicer_loses_more_than_20pct_of_trail():
     """
     sheet, total_fire = build_fire_trail_sheet()
     cols, rows = 4, 4
-    cells = sprite_process.slice_grid_cells(sheet, cols, rows, 256)
+    cells = sprite_slicing.slice_grid_cells(sheet, cols, rows, 256)
     target_cell = cells[1 * cols + 0]
     strict_fire = count_fire_pixels(target_cell)
 
@@ -126,7 +126,7 @@ def test_content_aware_recovers_full_trail():
     """
     sheet, total_fire = build_fire_trail_sheet()
     cols, rows = 4, 4
-    cells = sprite_process.slice_with_content_awareness(sheet, cols, rows, 256, max_expansion_pct=0.30)
+    cells = sprite_slicing.slice_with_content_awareness(sheet, cols, rows, 256, max_expansion_pct=0.30)
     target_cell = cells[1 * cols + 0]
     neighbor_cell = cells[1 * cols + 1]
     ca_fire_target = count_fire_pixels(target_cell)
@@ -164,7 +164,7 @@ def test_content_aware_recovers_full_trail():
 
     # Also assert that the strict slicer would do MUCH worse on the same
     # input (sanity check that we're improving over the baseline).
-    strict_cells = sprite_process.slice_grid_cells(sheet, cols, rows, 256)
+    strict_cells = sprite_slicing.slice_grid_cells(sheet, cols, rows, 256)
     strict_target = strict_cells[1 * cols + 0]
     strict_target_fire = count_fire_pixels(strict_target)
     # CA should recover at least 1.3x what strict does on the boundary cell.
@@ -184,7 +184,7 @@ def test_content_aware_centroid_ownership():
     components by centroid.
     """
     sheet, total_fire = build_fire_trail_sheet(fire_extension_px=80)
-    cells = sprite_process.slice_with_content_awareness(sheet, 4, 4, 256)
+    cells = sprite_slicing.slice_with_content_awareness(sheet, 4, 4, 256)
     neighbor = cells[1 * 4 + 1]
     nb_fire = count_fire_pixels(neighbor)
     # Centroid-based ownership: the trail's mass-centroid is in cell (1,0)
@@ -198,7 +198,7 @@ def test_content_aware_centroid_ownership():
 def test_content_aware_returns_correct_cell_count_and_size():
     """Output contract: cols*rows cells, each cell_size x cell_size."""
     sheet, _ = build_fire_trail_sheet()
-    cells = sprite_process.slice_with_content_awareness(sheet, 4, 4, 256)
+    cells = sprite_slicing.slice_with_content_awareness(sheet, 4, 4, 256)
     assert len(cells) == 16, f"expected 16 cells, got {len(cells)}"
     for i, c in enumerate(cells):
         assert c.size == (256, 256), f"cell {i} size {c.size} != (256, 256)"
@@ -246,14 +246,14 @@ def test_fire_preservation_recovers_resample_loss():
 
     # Source fire-pixel count using the verifier's exact criterion
     src_arr = np.array(sheet)
-    src_fire_count = int(sprite_process._is_fire(src_arr).sum())
+    src_fire_count = int(sprite_slicing._is_fire(src_arr).sum())
     assert src_fire_count > 1000, f"setup: expected dense fire trail, got {src_fire_count}"
 
     # Run content-aware slicer with preservation enabled (default).
-    cells = sprite_process.slice_with_content_awareness(sheet, cols, rows, 256)
+    cells = sprite_slicing.slice_with_content_awareness(sheet, cols, rows, 256)
     target_cell = cells[2 * cols + 1]
     target_arr = np.array(target_cell.convert("RGBA"))
-    target_fire = int((sprite_process._is_fire(target_arr[..., :3]) & (target_arr[..., 3] > 32)).sum())
+    target_fire = int((sprite_slicing._is_fire(target_arr[..., :3]) & (target_arr[..., 3] > 32)).sum())
 
     print(
         f"[fire-preserve] source={src_fire_count} target={target_fire} target/source={target_fire / src_fire_count:.1%}"
@@ -292,11 +292,11 @@ def test_fire_preservation_skips_non_fire_assets():
 
     # Source has zero fire pixels
     src_arr = np.array(sheet)
-    assert sprite_process._is_fire(src_arr).sum() == 0
+    assert sprite_slicing._is_fire(src_arr).sum() == 0
 
-    cells = sprite_process.slice_with_content_awareness(sheet, cols, rows, 256)
+    cells = sprite_slicing.slice_with_content_awareness(sheet, cols, rows, 256)
     target_arr = np.array(cells[2 * cols + 1].convert("RGBA"))
-    target_fire = int((sprite_process._is_fire(target_arr[..., :3]) & (target_arr[..., 3] > 32)).sum())
+    target_fire = int((sprite_slicing._is_fire(target_arr[..., :3]) & (target_arr[..., 3] > 32)).sum())
     # With no fire in source, no fire should be painted at target.
     assert target_fire == 0, f"Non-fire content should not get fire over-painted; got {target_fire} fire pixels"
 

@@ -20,7 +20,7 @@ from PIL import Image
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
-import sprite_process
+import sprite_verify  # canonical home post-ADR-205 split
 
 
 def _new_canvas(w: int, h: int, rgba: tuple[int, int, int, int] = (0, 0, 0, 0)) -> Image.Image:
@@ -29,7 +29,7 @@ def _new_canvas(w: int, h: int, rgba: tuple[int, int, int, int] = (0, 0, 0, 0)) 
 
 def test_verify_no_magenta_clean_canvas() -> None:
     img = _new_canvas(64, 64, (50, 50, 50, 255))
-    res = sprite_process.verify_no_magenta(img)
+    res = sprite_verify.verify_no_magenta(img)
     assert res["passed"] is True, res
     assert res["strict_count"] == 0, res
     assert res["wide_count"] == 0, res
@@ -41,7 +41,7 @@ def test_verify_no_magenta_strict_fail() -> None:
     # 5 strict-magenta pixels in middle of canvas
     arr[10:11, 10:15] = (255, 0, 255, 255)
     img = Image.fromarray(arr, "RGBA")
-    res = sprite_process.verify_no_magenta(img, threshold_strict=0)
+    res = sprite_verify.verify_no_magenta(img, threshold_strict=0)
     assert res["passed"] is False, res
     assert res["strict_count"] == 5, res
     assert res["wide_count"] == 5, res
@@ -53,19 +53,19 @@ def test_verify_no_magenta_within_wide_threshold() -> None:
     # 3 wide-pink pixels (R=200, G=30, B=180) -- caught by wide criterion only
     arr[20:21, 20:23] = (200, 30, 180, 255)
     img = Image.fromarray(arr, "RGBA")
-    res = sprite_process.verify_no_magenta(img, threshold_strict=0, threshold_wide=10)
+    res = sprite_verify.verify_no_magenta(img, threshold_strict=0, threshold_wide=10)
     assert res["passed"] is True, res  # within tolerance
     assert res["strict_count"] == 0, res  # strict requires R>200, here R==200
     assert res["wide_count"] == 3, res
 
-    res2 = sprite_process.verify_no_magenta(img, threshold_strict=0, threshold_wide=2)
+    res2 = sprite_verify.verify_no_magenta(img, threshold_strict=0, threshold_wide=2)
     assert res2["passed"] is False, res2  # exceeds tolerance
 
 
 def test_verify_no_magenta_alpha_gate() -> None:
     """Pixels with alpha <= 16 must NOT count -- they are background."""
     img = _new_canvas(64, 64, (255, 0, 255, 0))  # full magenta but alpha=0
-    res = sprite_process.verify_no_magenta(img)
+    res = sprite_verify.verify_no_magenta(img)
     assert res["passed"] is True, res
     assert res["strict_count"] == 0, res
 
@@ -81,7 +81,7 @@ def test_verify_grid_alignment_clean() -> None:
             x0, y0 = c * cell + 16, r * cell + 16
             arr[y0 : y0 + 32, x0 : x0 + 32] = (220, 100, 100, 255)
     img = Image.fromarray(arr, "RGBA")
-    res = sprite_process.verify_grid_alignment(img, rows, cols, cell, edge_margin_px=2)
+    res = sprite_verify.verify_grid_alignment(img, rows, cols, cell, edge_margin_px=2)
     assert res["passed"] is True, res
     assert len(res["violations"]) == 0, res
 
@@ -105,7 +105,7 @@ def test_verify_grid_alignment_off_grid() -> None:
     # Cell (1,0) vertical slice (top to bottom)
     arr[64:128, 16:48] = (220, 100, 100, 255)
     img = Image.fromarray(arr, "RGBA")
-    res = sprite_process.verify_grid_alignment(img, rows, cols, cell, edge_margin_px=2)
+    res = sprite_verify.verify_grid_alignment(img, rows, cols, cell, edge_margin_px=2)
     assert res["passed"] is False, res
     patterns = {(v["row"], v["col"], v["pattern"]) for v in res["violations"]}
     assert (0, 1, "horizontal_slice") in patterns, res
@@ -122,14 +122,14 @@ def test_verify_grid_alignment_single_violation_tolerated() -> None:
     # One slice violation only
     arr[16:48, 64:128] = (220, 100, 100, 255)
     img = Image.fromarray(arr, "RGBA")
-    res = sprite_process.verify_grid_alignment(img, rows, cols, cell, edge_margin_px=2)
+    res = sprite_verify.verify_grid_alignment(img, rows, cols, cell, edge_margin_px=2)
     assert res["passed"] is True, res  # 1 <= tolerance(1)
     assert res["violation_count"] == 1, res
 
 
 def test_verify_grid_alignment_size_mismatch() -> None:
     canvas = _new_canvas(100, 100)
-    res = sprite_process.verify_grid_alignment(canvas, 2, 2, 64)
+    res = sprite_verify.verify_grid_alignment(canvas, 2, 2, 64)
     assert res["passed"] is False, res
     assert "size" in res.get("error", ""), res
 
@@ -140,7 +140,7 @@ def test_verify_asset_outputs_portrait(tmp_path: Path) -> None:
     asset_dir.mkdir()
     canvas = _new_canvas(600, 980, (40, 60, 80, 255))
     canvas.save(asset_dir / "final.png")
-    res = sprite_process.verify_asset_outputs(asset_dir, mode="portrait")
+    res = sprite_verify.verify_asset_outputs(asset_dir, mode="portrait")
     assert res["passed"] is True, res
 
 
@@ -153,7 +153,7 @@ def test_verify_asset_outputs_portrait_with_magenta(tmp_path: Path) -> None:
     # 100 strict magenta pixels
     arr[100:110, 100:110] = (255, 0, 255, 255)
     Image.fromarray(arr, "RGBA").save(asset_dir / "final.png")
-    res = sprite_process.verify_asset_outputs(asset_dir, mode="portrait")
+    res = sprite_verify.verify_asset_outputs(asset_dir, mode="portrait")
     assert res["passed"] is False, res
     assert any(f["check"] == "magenta" for f in res["failures"]), res
 
@@ -161,7 +161,7 @@ def test_verify_asset_outputs_portrait_with_magenta(tmp_path: Path) -> None:
 def test_verify_asset_outputs_portrait_missing_file(tmp_path: Path) -> None:
     asset_dir = tmp_path / "test-portrait-empty"
     asset_dir.mkdir()
-    res = sprite_process.verify_asset_outputs(asset_dir, mode="portrait")
+    res = sprite_verify.verify_asset_outputs(asset_dir, mode="portrait")
     assert res["passed"] is False, res
 
 
@@ -180,7 +180,7 @@ def test_verify_asset_outputs_spritesheet_clean(tmp_path: Path) -> None:
         x0, y0 = c * cell + dx, r * cell + dy
         arr[y0 : y0 + 32, x0 : x0 + 32] = (60, 180, 60, 255)
     Image.fromarray(arr, "RGBA").save(asset_dir / "final-sheet.png")
-    res = sprite_process.verify_asset_outputs(asset_dir, mode="spritesheet", grid=(cols, rows), cell_size=cell)
+    res = sprite_verify.verify_asset_outputs(asset_dir, mode="spritesheet", grid=(cols, rows), cell_size=cell)
     assert res["passed"] is True, res
 
 
@@ -198,7 +198,7 @@ def test_verify_asset_outputs_spritesheet_with_off_grid(tmp_path: Path) -> None:
             x0, y0 = c * cell, r * cell
             arr[y0 + 8 : y0 + 24, x0 : x0 + cell] = (60, 180, 60, 255)
     Image.fromarray(arr, "RGBA").save(asset_dir / "final-sheet.png")
-    res = sprite_process.verify_asset_outputs(asset_dir, mode="spritesheet", grid=(cols, rows), cell_size=cell)
+    res = sprite_verify.verify_asset_outputs(asset_dir, mode="spritesheet", grid=(cols, rows), cell_size=cell)
     assert res["passed"] is False, res
     assert any(f["check"] == "grid_alignment" for f in res["failures"]), res
 
@@ -226,7 +226,7 @@ def test_verify_asset_outputs_8x8_four_cropped_fails(tmp_path: Path) -> None:
         x0 = c * cell
         arr[8:24, x0 : x0 + cell] = (60, 180, 60, 255)
     Image.fromarray(arr, "RGBA").save(asset_dir / "final-sheet.png")
-    res = sprite_process.verify_asset_outputs(asset_dir, mode="spritesheet", grid=(cols, rows), cell_size=cell)
+    res = sprite_verify.verify_asset_outputs(asset_dir, mode="spritesheet", grid=(cols, rows), cell_size=cell)
     assert res["passed"] is False, res
     assert any(f["check"] == "grid_alignment" for f in res["failures"]), res
 
@@ -252,9 +252,9 @@ def test_verify_asset_outputs_8x8_clean_passes(tmp_path: Path) -> None:
             arr[y0 : y0 + 16, x0 : x0 + 16] = (60, 180, 60, 255)
     Image.fromarray(arr, "RGBA").save(asset_dir / "final-sheet.png")
     # Direct call to the legacy gates only.
-    mag = sprite_process.verify_no_magenta(asset_dir / "final-sheet.png")
+    mag = sprite_verify.verify_no_magenta(asset_dir / "final-sheet.png")
     assert mag["passed"], mag
-    grid = sprite_process.verify_grid_alignment(
+    grid = sprite_verify.verify_grid_alignment(
         asset_dir / "final-sheet.png",
         rows,
         cols,
@@ -286,7 +286,7 @@ def test_verify_asset_outputs_8x8_two_cropped_passes(tmp_path: Path) -> None:
         arr[8:24, x0 : x0 + cell] = (60, 180, 60, 255)
     Image.fromarray(arr, "RGBA").save(asset_dir / "final-sheet.png")
     # Direct call to the legacy grid_alignment gate only.
-    grid = sprite_process.verify_grid_alignment(
+    grid = sprite_verify.verify_grid_alignment(
         asset_dir / "final-sheet.png",
         rows,
         cols,
@@ -312,7 +312,7 @@ def test_verify_anchor_consistency_clean() -> None:
         # 32-pixel character centered at y 16-48 (centroid Y == 32)
         arr[16:48, x0 : x0 + 32] = (220, 100, 100, 255)
     img = Image.fromarray(arr, "RGBA")
-    res = sprite_process.verify_anchor_consistency(img, cols, rows, cell)
+    res = sprite_verify.verify_anchor_consistency(img, cols, rows, cell)
     assert res["passed"] is True, res
     assert res["stddev"] < 1, res
     assert len(res["outliers"]) == 0, res
@@ -339,7 +339,7 @@ def test_verify_anchor_consistency_hop_fails() -> None:
         else:
             arr[64:96, x0 : x0 + 64] = (220, 100, 100, 255)
     img = Image.fromarray(arr, "RGBA")
-    res = sprite_process.verify_anchor_consistency(img, cols, rows, cell)
+    res = sprite_verify.verify_anchor_consistency(img, cols, rows, cell)
     assert res["passed"] is False, res
     # The outlier should specifically be cell index 1.
     outlier_indices = {o["cell_index"] for o in res["outliers"]}
@@ -355,7 +355,7 @@ def test_verify_frames_have_content_pass() -> None:
         for c in range(cols):
             arr[r * cell + 16 : r * cell + 48, c * cell + 16 : c * cell + 48] = (220, 100, 100, 255)
     img = Image.fromarray(arr, "RGBA")
-    res = sprite_process.verify_frames_have_content(img, cols, rows, cell)
+    res = sprite_verify.verify_frames_have_content(img, cols, rows, cell)
     assert res["passed"] is True, res
     assert len(res["blank_cells"]) == 0, res
 
@@ -371,7 +371,7 @@ def test_verify_frames_have_content_blank_fails() -> None:
         r, c = divmod(idx, cols)
         arr[r * cell + 16 : r * cell + 48, c * cell + 16 : c * cell + 48] = (220, 100, 100, 255)
     img = Image.fromarray(arr, "RGBA")
-    res = sprite_process.verify_frames_have_content(img, cols, rows, cell)
+    res = sprite_verify.verify_frames_have_content(img, cols, rows, cell)
     assert res["passed"] is False, res
     assert any(b["cell_index"] == 2 for b in res["blank_cells"]), res
 
@@ -389,7 +389,7 @@ def test_verify_frames_distinct_pass_action_cycle() -> None:
         y0 = dy
         arr[y0 : y0 + 32, x0 : x0 + 32] = (220, 100, 100, 255)
     img = Image.fromarray(arr, "RGBA")
-    res = sprite_process.verify_frames_distinct(img, cols, rows, cell, max_duplicate_pct=25.0)
+    res = sprite_verify.verify_frames_distinct(img, cols, rows, cell, max_duplicate_pct=25.0)
     assert res["passed"] is True, res
 
 
@@ -403,7 +403,7 @@ def test_verify_frames_distinct_dups_fail() -> None:
         x0 = c * cell + 16
         arr[16:48, x0 : x0 + 32] = (220, 100, 100, 255)
     img = Image.fromarray(arr, "RGBA")
-    res = sprite_process.verify_frames_distinct(img, cols, rows, cell, max_duplicate_pct=25.0)
+    res = sprite_verify.verify_frames_distinct(img, cols, rows, cell, max_duplicate_pct=25.0)
     assert res["passed"] is False, res
     # 6 pairs of duplicates (4 choose 2)
     assert len(res["duplicate_pairs"]) == 6, res
@@ -421,7 +421,7 @@ def test_verify_frames_distinct_idle_loop_passes_at_high_threshold() -> None:
             y0 = r * cell + 16
             arr[y0 : y0 + 32, x0 : x0 + 32] = (220, 100, 100, 255)
     img = Image.fromarray(arr, "RGBA")
-    res = sprite_process.verify_frames_distinct(img, cols, rows, cell, max_duplicate_pct=100.0)
+    res = sprite_verify.verify_frames_distinct(img, cols, rows, cell, max_duplicate_pct=100.0)
     # 4 cells, 6 pairs, dup_pct=100%, but threshold is 100%, so it passes.
     assert res["passed"] is True, res
 
@@ -447,7 +447,7 @@ def test_verify_pixel_preservation_pass(tmp_path: Path) -> None:
             fin_arr[y0 : y0 + 32, x0 : x0 + 32] = (220, 100, 100, 255)
     fin = Image.fromarray(fin_arr, "RGBA")
     fin.save(tmp_path / "final-sheet.png")
-    res = sprite_process.verify_pixel_preservation(tmp_path / "raw.png", tmp_path / "final-sheet.png", cols, rows, cell)
+    res = sprite_verify.verify_pixel_preservation(tmp_path / "raw.png", tmp_path / "final-sheet.png", cols, rows, cell)
     assert res["passed"] is True, res
     assert len(res["lossy_cells"]) == 0, res
 
@@ -472,7 +472,7 @@ def test_verify_pixel_preservation_severe_loss_fails(tmp_path: Path) -> None:
     fin_arr[16:48, 16:48] = (60, 180, 60, 255)
     fin = Image.fromarray(fin_arr, "RGBA")
     fin.save(tmp_path / "final-sheet.png")
-    res = sprite_process.verify_pixel_preservation(tmp_path / "raw.png", tmp_path / "final-sheet.png", cols, rows, cell)
+    res = sprite_verify.verify_pixel_preservation(tmp_path / "raw.png", tmp_path / "final-sheet.png", cols, rows, cell)
     assert res["passed"] is False, res
     # 3 of 4 cells (75%) have severe loss.
     assert len(res["lossy_cells"]) == 3, res
@@ -502,7 +502,7 @@ def test_verify_asset_outputs_integration_blank_dup_fail(tmp_path: Path) -> None
         arr[8:24, x0 : x0 + 16] = (60, 180, 60, 255)
     Image.fromarray(arr, "RGBA").save(asset_dir / "final-sheet.png")
     Image.fromarray(arr, "RGBA").save(asset_dir / "raw.png")
-    res = sprite_process.verify_asset_outputs(asset_dir, mode="spritesheet", grid=(cols, rows), cell_size=cell)
+    res = sprite_verify.verify_asset_outputs(asset_dir, mode="spritesheet", grid=(cols, rows), cell_size=cell)
     assert res["passed"] is False, res
     failure_checks = {f["check"] for f in res["failures"]}
     # The blank-frames gate must fire (12 empty cells).

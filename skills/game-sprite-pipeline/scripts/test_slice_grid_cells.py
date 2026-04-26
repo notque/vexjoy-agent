@@ -1,4 +1,4 @@
-"""Pixel-perfect alignment tests for sprite_process.slice_grid_cells.
+"""Pixel-perfect alignment tests for sprite_slicing.slice_grid_cells.
 
 The naive-grid extraction bug we are testing: when the raw spritesheet's size
 is not a clean multiple of (cols * cell_size), the previous consumer code
@@ -26,7 +26,7 @@ import numpy as np
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import sprite_process
+import sprite_slicing  # canonical home post-ADR-205 split
 
 MAGENTA = (255, 0, 255, 255)
 MARKER_RGB = (32, 224, 64)  # bright green; far from magenta in chroma space
@@ -77,7 +77,7 @@ def _disk_centroid(cell_img: Image.Image) -> tuple[float, float] | None:
 
 def run_case(label: str, raw_w: int, raw_h: int, cols: int, rows: int, cell_size: int) -> int:
     sheet = _build_synthetic_sheet(raw_w, raw_h, cols, rows)
-    cells = sprite_process.slice_grid_cells(sheet, cols, rows, cell_size)
+    cells = sprite_slicing.slice_grid_cells(sheet, cols, rows, cell_size)
     expected = cols * rows
     if len(cells) != expected:
         print(f"FAIL {label}: got {len(cells)} cells, expected {expected}", file=sys.stderr)
