@@ -144,6 +144,8 @@ def run_pipeline(args: argparse.Namespace) -> int:
             char_argv.extend(["--archetype", args.archetype])
         if args.gimmick:
             char_argv.extend(["--gimmick", args.gimmick])
+        if args.style_string:
+            char_argv.extend(["--style-string", args.style_string])
         rc = sprite_prompt.main(char_argv)
         if rc != 0:
             return rc
@@ -206,6 +208,8 @@ def run_pipeline(args: argparse.Namespace) -> int:
         sheet_argv.extend(["--archetype", args.archetype])
     if args.gimmick:
         sheet_argv.extend(["--gimmick", args.gimmick])
+    if args.style_string:
+        sheet_argv.extend(["--style-string", args.style_string])
     rc = sprite_prompt.main(sheet_argv)
     if rc != 0:
         return rc
