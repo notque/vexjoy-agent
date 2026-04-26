@@ -89,9 +89,15 @@ def _make_fixture_sheet(output: Path, cols: int, rows: int, cell: int) -> None:
     img.save(output, format="PNG")
 
 
-def run_pipeline(args: argparse.Namespace) -> int:
-    name = args.name or "spritesheet"
-    work_dir = Path(args.output_dir or tempfile.mkdtemp(prefix=f"sprite_{name}_"))
+def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> int:
+    """Pipeline body. ``work_dir`` lifetime is bounded by the caller.
+
+    When ``--output-dir`` is unset the caller wraps this in a
+    ``tempfile.TemporaryDirectory`` and the directory is reaped on exit
+    (success, exception, or KeyboardInterrupt). When ``--output-dir`` is
+    set the user owns the directory and intermediates persist for
+    inspection. See ADR-200.
+    """
     work_dir.mkdir(parents=True, exist_ok=True)
 
     started = datetime.now(timezone.utc)
@@ -361,6 +367,20 @@ def run_pipeline(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_pipeline(args: argparse.Namespace) -> int:
+    """Spritesheet pipeline entry point.
+
+    When ``--output-dir`` is set, the directory is preserved (user owns
+    its lifecycle). When unset, a ``tempfile.TemporaryDirectory`` is
+    created and reaped on exit (ADR-200).
+    """
+    name = args.name or "spritesheet"
+    if args.output_dir:
+        return _run_pipeline_body(args, Path(args.output_dir), name)
+    with tempfile.TemporaryDirectory(prefix=f"sprite_{name}_") as td:
+        return _run_pipeline_body(args, Path(td), name)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--prompt", help="Free-form prompt; alternative to --description")
@@ -426,7 +446,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--fps", type=int, default=10)
     parser.add_argument("--no-strips", action="store_true")
     parser.add_argument("--skip-reference", action="store_true", help="Skip Phase A reference generation")
-    parser.add_argument("--output-dir", help="Working dir (default: tempdir)")
+    parser.add_argument(
+        "--output-dir",
+        help=(
+            "Working directory. When unset, a temporary directory is "
+            "created and cleaned up automatically. When set, the "
+            "directory is preserved (you own its lifecycle)."
+        ),
+    )
     parser.add_argument("--dry-run", action="store_true", help="Skip backend; synthetic fixture for D-H")
     parser.add_argument(
         "--content-aware-extraction",

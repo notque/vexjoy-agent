@@ -115,9 +115,13 @@ def _snake_case(name: str) -> str:
     return out.strip("_")
 
 
-def run_pipeline(args: argparse.Namespace) -> int:
-    name = args.name or (_snake_case(args.display_name) if args.display_name else "unnamed_portrait")
-    work_dir = Path(args.output_dir or tempfile.mkdtemp(prefix=f"portrait_{name}_"))
+def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> int:
+    """Portrait pipeline body. ``work_dir`` lifetime is bounded by caller.
+
+    See ADR-200 for the lifecycle contract: ``--output-dir`` set means
+    the user owns the directory; unset means the caller wraps this in a
+    ``tempfile.TemporaryDirectory`` that reaps on exit.
+    """
     work_dir.mkdir(parents=True, exist_ok=True)
 
     started = datetime.now(timezone.utc)
@@ -222,7 +226,10 @@ def run_pipeline(args: argparse.Namespace) -> int:
 
     # Phase E: deploy (or local copy)
     final_path = work_dir / f"{name}.png"
-    Image.open(trimmed_path).save(final_path, format="PNG")
+    # Context-managed open ensures the source handle is closed
+    # deterministically (ADR-200 file-handle hygiene).
+    with Image.open(trimmed_path) as im:
+        im.save(final_path, format="PNG")
     if args.target == "road-to-aew":
         deploy_argv = [
             "deploy",
@@ -272,19 +279,27 @@ def run_pipeline(args: argparse.Namespace) -> int:
     return 0
 
 
-def run_portrait_loop(args: argparse.Namespace) -> int:
-    """Portrait-loop pipeline: 2x2 subtle idle, output 4-frame animation.
+def run_pipeline(args: argparse.Namespace) -> int:
+    """Portrait pipeline entry point.
 
-    Phases:
-      A1: prompt build (build-portrait-loop)
-      A2: backend dispatch (Codex CLI; or fixture in dry-run) — produces a
-          1024x1024 PNG with 2x2 cells (512x512 each)
-      D:  per-cell extract + per-cell bg removal
-      F:  ground-line anchor across the 4 frames (drift-free)
-      H:  PNG sheet + animated GIF + animated WebP + per-frame PNGs
+    When ``--output-dir`` is set, the directory is preserved (user owns
+    its lifecycle). When unset, a ``tempfile.TemporaryDirectory`` is
+    created and reaped on exit (ADR-200).
     """
-    name = args.name or (_snake_case(args.display_name) if args.display_name else "portrait_loop")
-    work_dir = Path(args.output_dir or tempfile.mkdtemp(prefix=f"portrait_loop_{name}_"))
+    name = args.name or (_snake_case(args.display_name) if args.display_name else "unnamed_portrait")
+    if args.output_dir:
+        return _run_pipeline_body(args, Path(args.output_dir), name)
+    with tempfile.TemporaryDirectory(prefix=f"portrait_{name}_") as td:
+        return _run_pipeline_body(args, Path(td), name)
+
+
+def _run_portrait_loop_body(args: argparse.Namespace, work_dir: Path, name: str) -> int:
+    """Portrait-loop pipeline body. ``work_dir`` lifetime is bounded by caller.
+
+    See ADR-200: when ``--output-dir`` is set the user owns the
+    directory; otherwise the caller wraps this in a
+    ``tempfile.TemporaryDirectory`` that reaps on exit.
+    """
     work_dir.mkdir(parents=True, exist_ok=True)
 
     started = datetime.now(timezone.utc)
@@ -353,7 +368,10 @@ def run_portrait_loop(args: argparse.Namespace) -> int:
     # assuming the raw is already a clean canonical canvas. Image-gen backends
     # routinely return sizes like 1254x1254 for an 8x8 grid; a whole-image
     # resize before slicing is the bug we are NOT doing here.
-    sheet = Image.open(raw_path).convert("RGBA")
+    # Context-managed open: close the source PNG handle once we have
+    # the in-memory RGBA copy (ADR-200 file-handle hygiene).
+    with Image.open(raw_path) as raw_im:
+        sheet = raw_im.convert("RGBA")
     raw_frames: list[Image.Image] = [c.convert("RGBA") for c in sprite_process.slice_grid_cells(sheet, 2, 2, cell)]
     phases.append(
         {
@@ -486,6 +504,28 @@ def run_portrait_loop(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_portrait_loop(args: argparse.Namespace) -> int:
+    """Portrait-loop pipeline entry point.
+
+    Phases:
+      A1: prompt build (build-portrait-loop)
+      A2: backend dispatch (Codex CLI; or fixture in dry-run) — produces a
+          1024x1024 PNG with 2x2 cells (512x512 each)
+      D:  per-cell extract + per-cell bg removal
+      F:  ground-line anchor across the 4 frames (drift-free)
+      H:  PNG sheet + animated GIF + animated WebP + per-frame PNGs
+
+    When ``--output-dir`` is set, the directory is preserved (user owns
+    its lifecycle). When unset, a ``tempfile.TemporaryDirectory`` is
+    created and reaped on exit (ADR-200).
+    """
+    name = args.name or (_snake_case(args.display_name) if args.display_name else "portrait_loop")
+    if args.output_dir:
+        return _run_portrait_loop_body(args, Path(args.output_dir), name)
+    with tempfile.TemporaryDirectory(prefix=f"portrait_loop_{name}_") as td:
+        return _run_portrait_loop_body(args, Path(td), name)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--prompt", help="Free-form prompt; alternative to --description")
@@ -498,7 +538,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--gimmick", help="face, heel, manager, referee, ...")
     parser.add_argument("--tier", choices=["act1", "act2", "act3"])
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--output-dir", help="Working output dir (default: tempdir)")
+    parser.add_argument(
+        "--output-dir",
+        help=(
+            "Working output directory. When unset, a temporary directory "
+            "is created and cleaned up automatically. When set, the "
+            "directory is preserved (you own its lifecycle)."
+        ),
+    )
     parser.add_argument("--target", choices=["road-to-aew", "local"], default="local")
     parser.add_argument("--target-dir", help="Override road-to-aew root (default: ~/road-to-aew)")
     parser.add_argument("--player", choices=["male", "female"], help="Deploy as player sprite")
