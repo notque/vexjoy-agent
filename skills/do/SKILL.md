@@ -231,6 +231,20 @@ If relevant retro knowledge is already present in context, use it. If it is abse
 | "research needed" / "investigate first" | Prepend research-coordinator-engineer |
 | "review" with 5+ files | Use parallel-code-review (3 reviewers) |
 | Complex implementation | Offer subagent-driven-development |
+| Vague verb + ambiguous object + no concrete file/symbol named + multiple plausible interpretations | `planning` (interview mode) — load `depth-first-interview.md` |
+
+**Interview-mode signal heuristic.** The interview-mode row fires when the request shape suggests the user is uncertain about decisions, not just unclear about scope. Concrete shape: short request (typically <15 words), verb in `{build, design, make, fix, figure out, set up}`, object is a noun without a file/symbol/path qualifier, no acceptance criteria stated. Document the heuristic with example match/non-match pairs to bound false-positive rate:
+
+| Example | Match? | Why |
+|---|---|---|
+| "i'm not sure how to approach this complex build" | MATCH | Uncertainty signal + vague verb (`approach`) + ambiguous object (`this complex build`) + no concrete target. |
+| "fix the typo on line 42 of foo.py" | NON-MATCH | Concrete file (`foo.py`), concrete location (`line 42`), unambiguous verb (`fix the typo`). |
+| "build a thing that does X" | MATCH | Vague verb (`build`), ambiguous object (`a thing`), no file or symbol named, no acceptance criteria. |
+| "add a test for `parseConfig` in src/config.go" | NON-MATCH | Concrete symbol (`parseConfig`), concrete file (`src/config.go`), unambiguous verb (`add a test`). |
+| "where do i even start with this rewrite" | MATCH | Explicit uncertainty trigger (`where do i even start`), no concrete subject of the rewrite named. |
+| "rename `cfg` to `config` in `internal/`" | NON-MATCH | Concrete symbol, concrete directory, unambiguous mechanical operation. |
+
+When in doubt, do NOT inject — the manual `/quick --interview` flag and the explicit phrase triggers are alternative paths that cover deliberate cases. False positives on auto-injection cost the user one round of friction (Phase 0 opt-out question); false negatives are fully recoverable via the manual paths.
 
 Before stacking any enhancement, check the target skill's `pairs_with` field in `skills/INDEX.json`. Some skills ship with their own verification gates and work best on their own terms. Specifically: empty `pairs_with: []` means no stacking allowed. Skills with built-in verification gates handle their own verification. The `quick --trivial` mode handles its own testing. Stack only compatible enhancements.
 
