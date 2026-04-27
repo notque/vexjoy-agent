@@ -132,3 +132,13 @@ those slots are better spent on patterns with stronger signal.
 A pattern that can't pass triple-validation is a pattern that will degrade
 the voice when the model leans on it. Spending the gate's effort upfront
 saves correction work in Step 6 (VALIDATE) and Step 7 (ITERATE).
+
+---
+
+## Citation
+
+The triple-check rubric (cross-domain recurrence + generative power +
+exclusivity) originates with the `alchaincyf/nuwa-skill` extraction
+framework. We adopted the three checks; the wiring into Step 3 / Step 4
+gates, the verdict vocabulary (KEEP / FOOTNOTE / DROP), and the toolkit
+examples are ours.

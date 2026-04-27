@@ -65,6 +65,8 @@ A pattern that fails any check is demoted (kept as observation, not enforced) or
 
 The point is not extraction quantity. A profile with five high-confidence traits beats one with twenty plausible-looking ones, because the five drive correct downstream decisions and the twenty force the model to pick which to honor.
 
+The three-check rubric originates with the `alchaincyf/nuwa-skill` extraction framework; the wiring into our pipelines and the toolkit examples above are ours.
+
 ## Deterministic Phase Checkpoints
 
 The determinism principle has a specific, high-value application between research and synthesis phases: the stats table as gate.
