@@ -45,6 +45,48 @@ LLMs orchestrate. Programs execute.
 
 For large mechanical sweeps, the default must be even stricter: if the change can be expressed as a detector plus a rewrite rule, build or use a script. Repo-wide edits like adding boilerplate markers, normalizing headings, or applying structural framing across hundreds of files should not be performed by asking an LLM to hand-edit files one by one. Use scripts to find candidates, apply the deterministic transformation where safe, and hand the smaller exception set to an LLM only when judgment is actually required.
 
+## Triple-Validation Extraction Gate
+
+When an LLM extracts patterns — voice traits from writing samples, conventions from a codebase, learnings from a retro — the model will produce more than belongs in the final artifact. Some patterns are real signal. Others are coincidence dressed up as insight. Without a gate, all of them ship.
+
+A pattern earns its place in a profile, ruleset, or knowledge base only if it passes three checks:
+
+1. **Recurrence:** the pattern appears in at least two distinct samples or contexts. One occurrence is an anecdote, not a rule.
+2. **Generative power:** the pattern predicts new decisions or output the source has not produced yet. A trait that only describes existing samples is a summary, not a model.
+3. **Exclusivity:** the pattern distinguishes the subject from peers in the same category. A "rule" that every Go codebase, every tech blogger, or every retro shares is not domain knowledge — it's background.
+
+A pattern that fails any check is demoted (kept as observation, not enforced) or dropped. The rubric is applied as a deterministic phase, not as a vibe check at the end.
+
+**What this means in practice:**
+
+- `create-voice` runs every candidate trait through `references/extraction-validation.md` before it gets written to the voice profile. A "uses lists frequently" candidate that fails exclusivity (every tech blogger uses lists) gets dropped, even if recurrence is high.
+- `codebase-analyzer` discovers patterns by counting occurrences across files; the count is the recurrence check, codified.
+- Retro graduation requires a learning to fire across at least two sessions and to produce a falsifiable rule before it leaves `learning.db` and enters an agent's reference file. A one-off observation stays in the database; only triple-validated entries graduate into prompts.
+
+The point is not extraction quantity. A profile with five high-confidence traits beats one with twenty plausible-looking ones, because the five drive correct downstream decisions and the twenty force the model to pick which to honor.
+
+## Deterministic Phase Checkpoints
+
+The determinism principle has a specific, high-value application between research and synthesis phases: the stats table as gate.
+
+Between any phase that gathers material in parallel and any phase that synthesizes from it, insert a script that walks the artifact directory, counts what's there, computes ratios, surfaces conflicts, and emits a Markdown table. The table is the gate. Synthesis does not begin until the table looks right. LLM judgment runs downstream of the deterministic count, not in place of it.
+
+The script answers questions the LLM should not be guessing:
+- How many sources did each parallel agent return?
+- What is the primary-to-secondary ratio across the corpus?
+- Which claims appear in only one source (low corroboration)?
+- Where do sources directly contradict each other?
+
+These are counting problems. Counting problems belong to scripts. The Markdown table makes the count visible and auditable; the model reads the table and decides whether to proceed, expand the search, or flag the conflict — but it never invents the count.
+
+**What this means in practice:**
+
+- `research-pipeline` Phase 1.5 runs `scripts/research-stats-checkpoint.py` between GATHER and SYNTHESIZE. The script walks `research/{topic}/`, emits a per-agent source table, and refuses to mark the phase complete if any agent returned fewer sources than the configured floor.
+- `voice-writer` Phase 2 (GATHER → VALIDATE) uses the same checkpoint to confirm sample coverage across modes before any prose generation begins. A profile with three samples in one mode and zero in another stalls at the gate — the table shows the gap and the operator either supplies more samples or accepts the narrowed scope explicitly.
+- The gate is structural, not advisory. A phase that the script flags as incomplete does not advance because the table is the artifact the next phase reads, and the next phase's instructions require the table to show passing counts.
+
+We rely on the verifier loop to surface failures, rather than asking output to declare its own limits. The deterministic checkpoint is one half of that loop: it catches what's missing before the model is asked to reason over it. The voice-validator critique pass is the other half, applied after generation. Between the two, undocumented edge cases get caught by being tested, not by being preemptively confessed.
+
 ## Local-First, Deterministic Systems Over External APIs
 
 Whenever feasible, build local, deterministic versions of functionality rather than outsource to external APIs. An external API is a runtime dependency that couples the toolkit to a third-party service's availability, cost model, rate limits, and API stability — all of which are someone else's problem until they become yours at the worst possible moment. A local script is deterministic, cost-predictable, offline-capable, and under our control. When an API is unavoidable — generating images from text, for example — wrap it in a skill that makes the dependency explicit (required environment variables, visible fallback chain, single point of invocation) and captures the API contract in the skill's references, so a breaking change is localized rather than systemic. The rule is not "never use APIs." The rule is default to local solutions and treat APIs as explicit, managed dependencies rather than invisible infrastructure. User-owned-key fallbacks are acceptable when (a) the user holds the key, (b) the fallback is opt-in by environment variable presence, (c) the fallback path is documented and visible in error messages. What is forbidden is third-party billing the user did not authorize — a fallback that hits a service the toolkit pays for, or that silently charges a card the user never connected, is the worst of both worlds: unpredictable cost plus unpredictable availability.
@@ -314,6 +356,25 @@ Making a skill shorter by deleting content is not progressive disclosure — it'
 - Deleted without orphaning dependencies elsewhere
 
 **Repo-level `scripts/`** is reserved for toolkit-wide operations (learning-db.py, INDEX generation) — tools that operate on the system as a whole, not on a single skill's workflow.
+
+## Skills Contain Execution Context Only
+
+A skill's content is exactly what the LLM needs at runtime to perform the action. Nothing else lives there. SKILL.md is a working tool the model executes against, not a portfolio piece about the tool.
+
+This is "Load Only What You Need" applied at the skill-content level. The same handyman analogy holds: the toolbox carries the tools the job requires, not a placard about the carpenter's training history. Every byte the model reads at invocation should change what it does next.
+
+**What this means in practice:**
+
+- The workflow, phases, and gates the LLM executes — IN. These are the steps the model walks through to produce the output.
+- The decision criteria, verdict vocabulary, scoring rubrics, and worked examples the LLM judges against — IN. The model needs concrete patterns to match against ("a trait that fails exclusivity gets dropped"), not abstract definitions.
+- References loaded on demand for domain depth — IN, in `references/`. SKILL.md tells the model when to load each one; the deep content stays out of the always-loaded prefix until a phase requires it.
+- Install instructions, license text, contributor lists, "About the Author" sections — OUT. They belong in `docs/`, `README.md`, and `CITATIONS.md`. The model performing the skill's action does not consume them at runtime.
+- Discussion of what the skill could be misused for, ethical boundaries about its subject, source-discipline disclaimers — OUT. Ethical judgment happens at the moment of use, by the operator and the agent reading the actual request, not by encoding worry into the prompt context. A voice profile that documents "what this voice cannot honestly claim about its subject" is meta-discussion about the profile, not input the generator uses to write a sentence.
+- General philosophical framing about why the skill matters — OUT. Irrelevant to execution. If a principle is load-bearing for the toolkit, it goes here in PHILOSOPHY.md, where it shapes every skill at once. Restating it inside one skill duplicates the policy and makes drift inevitable.
+
+The runtime-priming argument is empirical, not aesthetic. Every byte of context shapes the output distribution. Negative framing — "do not claim X about Feynman's personal life" — biases generation toward those exact topics by salience; the model has now been told they exist and are sensitive, which is the worst of both worlds when the user asked for something else entirely. Positive framing — "apply mechanism-first thinking; cite primary sources" — biases toward the desired output. The same logic that drives the joy-check rubric for instruction-mode content (ADR-127) drives this rule for skill-body content: tell the LLM what to do, not what to fear.
+
+This is also "Workflow First, Constraints Inline" applied with discipline about *which* constraints belong inline. Constraints that govern the workflow's decision points belong attached to those decision points — "use table-driven tests because they make adding cases trivial" inside the testing phase. Constraints that are *about* the skill rather than *executed by* it (provenance, ethics framing, marketing copy) do not belong in the skill at all. The `create-voice` skill, after this principle is enforced, will not document author-personality caveats; that judgment happens at the moment a writer asks the voice to produce text on a sensitive topic, where the operator and the validator can see the actual request, not at profile-build time where the worry would only contaminate the generator's context.
 
 ## Workflow First, Constraints Inline
 

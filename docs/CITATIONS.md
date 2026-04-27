@@ -29,6 +29,21 @@ TypeScript CLI that fingerprints projects and generates AI configs for Claude, C
 - Multi-platform config generation (Claude + Cursor + Codex writers). We're Claude Code focused.
 - Session event JSONL format for learning capture. Our SQLite + FTS5 approach serves better for search and graduation.
 
+### alchaincyf/nuwa-skill
+https://github.com/alchaincyf/nuwa-skill
+
+Single-skill Claude Code repository that distills public figures into runnable voice/cognition skills. Studied during the voice-cloner upgrade for its extraction discipline and deterministic phase gating.
+
+**Patterns adopted:**
+- Triple-validation extraction rubric (recurrence + generative power + exclusivity). A pattern is kept only if it appears across ≥2 distinct sources, predicts new behavior the source has not yet produced, and distinguishes the subject from peers in the same category. Wired into our `create-voice` Step 3 (PATTERN) and Step 4 (RULE) gates via `skills/create-voice/references/extraction-validation.md`. Codified at the philosophy layer in the "Triple-Validation Extraction Gate" section of `docs/PHILOSOPHY.md`.
+- Deterministic phase checkpoints. Their Phase-1.5 stats-table-as-gate pattern between research-gathering and synthesis became `scripts/research-stats-checkpoint.py`, wired into `voice-writer` Phase 2.5. Codified as the "Deterministic Phase Checkpoints" section of `docs/PHILOSOPHY.md`.
+
+**Patterns noted but not adopted:**
+- Mandatory "honest limits" output block declaring what the produced skill cannot do. Conflicts with our positive-instruction framing — we rely on the verifier loop to surface failures rather than asking output to declare its own limits.
+- Persona-impersonation template that rewrites the produced skill into first-person "I" voice. Out of scope for our voice-cloner, which keeps profile and content separated.
+- Required attribution footer in every generated skill. We attribute in this file; produced artifacts stay clean.
+- `npx skills add` distribution layer. Orthogonal to our flat `~/.claude/skills/` model.
+
 ### notque/consensuscode
 https://github.com/notque/consensuscode
 

@@ -18,6 +18,7 @@ Allow-through conditions:
 - Tool is not Write
 - Target file does not match a component path pattern
 - Target file already exists on disk (update, not creation)
+- Target path matches _ADR_PATH_ALLOWLIST (producer-allowlisted skills like create-voice)
 - adr/{name}.md exists in the project root
 - ADR_CREATION_GATE_BYPASS=1 env var
 """
@@ -40,6 +41,22 @@ _AGENT_RE = re.compile(r"/agents/([^/]+)\.md$")
 _SKILL_RE = re.compile(r"/skills/([^/]+)/SKILL\.md$")
 # Match pipelines/foo-bar/SKILL.md → "foo-bar"
 _PIPELINE_RE = re.compile(r"/pipelines/([^/]+)/SKILL\.md$")
+
+# Path-shape allowlist for components whose creation is governed by an upstream
+# skill's own methodology, not by a per-component ADR. Mirrors the allowlist in
+# pretool-unified-gate.py:_CREATION_PATH_ALLOWLIST. Keep these two in sync —
+# anything that bypasses the creation-gate also bypasses the ADR gate, because
+# the upstream skill's methodology *is* the architectural justification.
+#
+# Maintainer note: do NOT broaden these patterns. Each entry must point to a
+# path shape produced by exactly one well-known upstream skill. If a new
+# component type wants in, write the producer skill first, then add the entry.
+_ADR_PATH_ALLOWLIST: list[tuple[re.Pattern[str], str]] = [
+    # voice-* skills are produced by `create-voice` (skills/create-voice/
+    # SKILL.md Step 5: GENERATE). The create-voice skill itself documents the
+    # voice-creation methodology; a per-voice ADR would be redundant.
+    (re.compile(r"/skills/voice-[^/]+/SKILL\.md$"), "create-voice"),
+]
 
 
 def _extract_component_name(file_path: str) -> str | None:
@@ -95,6 +112,18 @@ def main() -> None:
         if debug:
             print(f"[adr-creation-gate] File already exists (update), allowing: {file_path}", file=sys.stderr)
         sys.exit(0)
+
+    # Path-shape allowlist: skills produced by named upstream pipelines whose
+    # own methodology is the architectural justification.
+    normalised = file_path.replace("\\", "/")
+    for allowed_pattern, producer in _ADR_PATH_ALLOWLIST:
+        if allowed_pattern.search(normalised):
+            if debug:
+                print(
+                    f"[adr-creation-gate] Producer-allowlisted ({producer}), allowing: {file_path}",
+                    file=sys.stderr,
+                )
+            sys.exit(0)
 
     # Resolve project root: prefer event["cwd"], then CLAUDE_PROJECT_DIR, then cwd.
     cwd_str = event.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR", ".")
