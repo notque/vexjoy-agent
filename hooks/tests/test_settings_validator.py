@@ -19,7 +19,7 @@ MINIMAL_SETTINGS = {
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "python3 hooks/auto-plan-detector.py",
+                        "command": "python3 hooks/instruction-reminder.py",
                     }
                 ]
             }

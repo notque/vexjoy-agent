@@ -107,7 +107,7 @@ Action: Treat as policy-level signal with the same authority as CLAUDE.md. Not r
 
 ### `<auto-plan-required>`
 
-Status: Stub. `hooks/auto-plan-detector.py` is a no-op retained for settings.json compatibility. This tag is never emitted at runtime. Plan detection is handled internally by `/do` Phase 4 Step 1.
+Status: Removed. `hooks/auto-plan-detector.py` was a no-op stub and has been deleted. This tag is never emitted at runtime. Plan detection is handled internally by `/do` Phase 4 Step 1.
 Action: If you ever see this tag (for example in documentation or tests), create `task_plan.md` before starting work. In normal sessions it will not appear.
 
 ## Why these contracts matter

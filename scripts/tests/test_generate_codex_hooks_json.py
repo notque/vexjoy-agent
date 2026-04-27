@@ -196,7 +196,7 @@ def test_malformed_unknown_event_raises():
 
 def test_user_prompt_submit_no_matcher_field():
     """UserPromptSubmit entry produces a block without a 'matcher' key."""
-    text = "UserPromptSubmit:auto-plan-detector.py\n"
+    text = "UserPromptSubmit:instruction-reminder.py\n"
     entries = parse_allowlist(text)
     result = build_hooks_json(entries, codex_hooks_dir="/fake/hooks")
 
@@ -228,7 +228,7 @@ def test_cli_dry_run_produces_valid_json():
     allowlist_text = (
         "# Phase 1 hooks\n"
         "SessionStart:kairos-briefing-injector.py\n"
-        "UserPromptSubmit:auto-plan-detector.py\n"
+        "UserPromptSubmit:instruction-reminder.py\n"
         "PreToolUse:pretool-bash-injection-scan.py Bash\n"
         "Stop:suggest-compact.py\n"
     )
@@ -278,7 +278,7 @@ def test_event_ordering():
         "PostToolUse:posttool-bash-injection-scan.py Bash\n"
         "SessionStart:kairos-briefing-injector.py\n"
         "PreToolUse:pretool-bash-injection-scan.py Bash\n"
-        "UserPromptSubmit:auto-plan-detector.py\n"
+        "UserPromptSubmit:instruction-reminder.py\n"
     )
     entries = parse_allowlist(text)
     result = build_hooks_json(entries, codex_hooks_dir="/fake/hooks")

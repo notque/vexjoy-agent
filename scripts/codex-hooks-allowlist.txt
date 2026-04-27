@@ -52,4 +52,4 @@ PostToolUse:posttool-bash-injection-scan.py Bash
 #   instruction-reminder.py              -- stub retained for settings.json compatibility
 #   retro-knowledge-injector.py          -- stub; injection handled by session-context.py
 #   creation-request-enforcer-userprompt.py -- stub retained for settings.json compatibility
-#   auto-plan-detector.py                -- stub retained for settings.json compatibility
+#   auto-plan-detector.py                -- removed (no-op stub deleted)

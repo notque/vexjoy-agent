@@ -118,7 +118,6 @@ Trivial = reading a file the user named by exact path. Everything else routes th
 | `cross-repo-agents.py` | SessionStart | Discover `.claude/agents/` in other repos |
 | `fish-shell-detector.py` | SessionStart | Detect fish shell, inject bash workarounds |
 | `skill-evaluator.py` | UserPromptSubmit | Inject agent/skill routing hints |
-| `auto-plan-detector.py` | UserPromptSubmit | Inject `<auto-plan-required>` for complex tasks |
 | `session-context.py` (dream payload) | SessionStart | Inject pre-built dream payload (LLM-curated by nightly auto-dream, ADR-147) |
 | `instruction-reminder.py` | UserPromptSubmit | Re-inject CLAUDE.md instructions periodically |
 | `capability-catalog-injector.py` | UserPromptSubmit | Inject available capabilities list |
