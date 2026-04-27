@@ -39,6 +39,8 @@ for i, c in enumerate(cells):
 
 **Specifically for boundary clipping** (asset 27 dragon flame, asset 30 plasma trail): Codex paints content that extends past the conceptual cell boundary in the raw (e.g. fire jets extend 30-50 px past the 313.5 px cell pitch). The strict-pitch slicer cuts that content; use `slice_with_content_awareness` with `content_aware_extraction: True` in the spec, OR set `has_effects: True`.
 
+**Caveat (ADR-207 RC-1, dense-grid downgrade).** On dense grids (`cols * rows >= 16` AND both dims >= 4 — i.e. 4x4 and denser), `--content-aware-extraction` and `content_aware_extraction: True` are silently downgraded to strict-pitch with a WARNING log because content-aware routing on Codex's fractional-pitch raws drops cells via centroid drift. To opt INTO content-aware on a dense grid for genuine sparse effects content, pass the new `--effects-asset` flag (orchestrator-side) or set `effects_asset: True` (spec-side). Sparse grids (3x3 and below) keep content-aware as a free choice.
+
 ## Backend errors
 
 ### `BackendUnavailableError: No image-generation backend available`
@@ -272,7 +274,13 @@ a 4x4 sheet this is 1 violation; for an 8x8 it is 3.
 **Fix:** When the gate fires, the slicer placed a cell boundary inside another
 character's body. Either reduce grid density (8x8 → 4x4 — see the Codex grid-
 density limit in `frame-detection.md`), or switch to `slice_with_content_awareness`
-via `has_effects: True`.
+via `has_effects: True`. **Caveat (ADR-207 RC-1, dense-grid downgrade):** on
+dense grids (4x4 and denser) `has_effects: True` is silently downgraded to
+strict-pitch unless `--effects-asset` (orchestrator) / `effects_asset: True`
+(spec) is also set. Use `--effects-asset` for legitimate sparse effects
+content (fire, plasma, auras) only — character grids with arms touching
+cell edges should stay on the strict slicer and rely on the verifier to
+flag genuine slicing bugs.
 
 ### `anchor_consistency` failure
 
@@ -319,6 +327,13 @@ silhouette pixels.
 **Fix:** Tighten chroma_pass2_edge_flood threshold. v8 uses pass2=60 for painted-
 style assets (default 90 for pixel-art styles). For effect-bearing assets (fire,
 energy), set `has_effects=True` in the spec to skip neutralize_interior_magenta_spill.
+**Caveat (ADR-207 RC-1):** on dense grids the spec's
+`content_aware_extraction` part of `has_effects` is silently downgraded to
+strict-pitch unless `--effects-asset` is also set. The despill-skip and
+verifier-relax parts of `has_effects` still apply. For dense-grid blank-cell
+diagnostics, see `verify_raw_vs_final_cell_parity` (ADR-207 Rule 3) — that
+gate flags raw-has-content / final-blank cases with a clearer signature
+than `pixel_preservation`'s silhouette-loss ratio.
 
 ## Operational errors
 
@@ -361,6 +376,16 @@ A single flag in the asset spec that propagates through the pipeline:
 1. **Slicer:** triggers `slice_with_content_awareness` instead of
    `slice_grid_cells` (frame-detection.md). Recovers content extending past
    conceptual cell boundaries (dragon flame, plasma trails, extended limbs).
+   **Caveat (ADR-207 RC-1, dense-grid downgrade):** on dense grids
+   (`cols * rows >= 16` AND both dims >= 4) the slicer dispatch downgrades
+   `content_aware_extraction: True` to strict-pitch with a WARNING log
+   because content-aware routes by component centroid, and on Codex
+   fractional-pitch raws (1254/8 = 156.75) those centroids drift one cell
+   over, leaving the original cell with zero owners. To opt INTO
+   content-aware on a dense grid for genuine sparse effects, also pass
+   `--effects-asset` (orchestrator-side) or set `effects_asset: True`
+   (spec-side). The `--effects-asset` flag is the explicit "I accept the
+   risk; my asset is sparse-with-cross-boundary content" gate.
 2. **Despill:** sets `skip_interior_neutralize=True` so
    `neutralize_interior_magenta_spill` does NOT fire. Effect art (red/orange
    fire, magenta plasma arcs, purple aura) is legitimate-pink-cast pixels
@@ -374,8 +399,11 @@ Set `has_effects: True` in the asset spec when the character has fire,
 projectile trails, plasma, energy auras, magic effects, or any saturated
 warm-cast art that overlaps the fringe-detection band. `content_aware_extraction:
 True` is a more-targeted variant: enables only the slicer change without the
-despill and verifier relaxation. `has_effects=True` is the right default for
-effect-heavy assets.
+despill and verifier relaxation; subject to the same dense-grid downgrade
+described above. `has_effects=True` is the right default for effect-heavy
+assets that genuinely cross cell boundaries; on dense character grids
+without effects content, leave the flag UNSET and let the strict-pitch
+slicer handle it (default since ADR-207).
 
 **Known limitation (deliberate, per session 2026-04-25):** the wide-pink
 verifier criterion still produces false positives on a small subset of

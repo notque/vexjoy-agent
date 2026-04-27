@@ -166,8 +166,9 @@ with margin.
 **Result on asset 27.** Before fix: per-cell fire-pixel ratio 73% (slicer
 captured 100% but LANCZOS+despill ate 27%). After fix: per-cell fire-pixel
 ratio 100%, `verify_pixel_preservation` passes. Implementation:
-`sprite_process.py:796`. Triggered automatically inside `slice_with_content_awareness`
-when `preserve_fire=True` (default).
+`sprite_slicing.py:216` (`_preserve_fire_pixels`). Triggered automatically
+inside `slice_with_content_awareness` when `preserve_fire=True` (default).
+Module location updated per ADR-205 (sprite_process split).
 
 ### Step 3: interior-spill neutralization (`neutralize_interior_magenta_spill`)
 

@@ -73,7 +73,7 @@ Portrait is the road-to-aew immediate need; spritesheet is the forward-looking c
 | Phase H assembly / output shape | `references/output-formats.md` | PNG / GIF / WebP / atlas JSON |
 | any phase errors | `references/error-catalog.md` | failure mode → fix mapping |
 | user reports clipping / blank cells / cut effects | `references/error-catalog.md` (top section) | "Codex Regeneration as a Post-Processing Fix" anti-pattern; debug slicer, never raw |
-| asset has effects (fire, projectile trails, auras, extended limbs) | `references/error-catalog.md` + use `slice_with_content_awareness` | content extending past cell boundaries needs centroid-ownership extraction |
+| asset has effects (fire, projectile trails, auras, extended limbs) | `references/error-catalog.md` + use `slice_with_content_awareness` | content extending past cell boundaries needs centroid-ownership extraction. ADR-207 RC-1: on dense grids (`cols * rows >= 16` AND both dims >= 4) `--content-aware-extraction` is silently downgraded to strict-pitch with a warning unless `--effects-asset` is also passed (orchestrator-side) or `effects_asset: True` is set (spec-side). Use `--effects-asset` only for genuine sparse-but-cross-boundary content (fire breath, plasma trails, projectile auras). |
 | `--target road-to-aew` deploy | `references/road-to-aew-integration.md` | snake_case, paths, manifest regen |
 
 Load greedily when a signal matches — references are only read on demand, so the cost is paid once per execution, not once per routing decision.
@@ -210,12 +210,14 @@ python3 skills/game-sprite-pipeline/scripts/portrait_pipeline.py \
     --prompt "veteran wrestler, indie circuit, 35yo, scarred face, leather jacket" \
     --style slay-the-spire-painted --target road-to-aew --dry-run
 
-# Spritesheet (no backend required in dry-run; --no-verify because the
-# synthetic fixture has 4 near-identical figures that trip the
-# verify_frames_distinct gate by construction; see "Verifier gates" below)
+# Spritesheet (no backend required in dry-run; --allow-frame-duplication
+# because the synthetic fixture has 4 near-identical figures that trip the
+# verify_frames_distinct gate by construction at the new 70% threshold;
+# see "Verifier gates" below). Default-on verify; exits 0 on success,
+# 2 on gate failure, 3 on --no-verify (ADR-207 Rule 4).
 python3 skills/game-sprite-pipeline/scripts/sprite_pipeline.py \
     --prompt "wrestler walk cycle, 4 frames" \
-    --grid 4x1 --cell-size 256 --dry-run --no-verify
+    --grid 4x1 --cell-size 256 --dry-run --allow-frame-duplication
 ```
 
 Both dry-run modes skip the backend call, generate a synthetic fixture, and exercise every post-processing phase. Pass criteria: exit 0, expected output files present, dimension gates satisfied.
@@ -227,13 +229,15 @@ Both pipelines run a verifier suite as the LAST step (after assemble). Default-o
 | Flag | Default | Effect |
 |------|---------|--------|
 | `--verify` | ON | Run the applicable verifier gate suite after assembly. Print structured JSON to stdout; exit 2 on any failure. |
-| `--no-verify` | — | Skip all gates. Pipeline returns 0 even on dirty output. Logs `WARNING: --no-verify opted out; output not validated` to stderr so silent skips remain visible. |
+| `--no-verify` | — | Skip all gates. Logs `WARNING: --no-verify opted out; output not validated` to stderr so silent skips remain visible. **Spritesheet mode (ADR-207 Rule 4)**: returns exit code 3 (`VERIFIER_SKIPPED_EXIT_CODE`) instead of 0 so orchestrators cannot silently mask spritesheet failures with the same exit status as success. **Portrait + portrait-loop modes**: retain exit 0 because their verifier surface is small enough (`verify_no_magenta` only) that an explicit skip is plausibly intentional. |
+| `--allow-frame-duplication` | OFF | Relax `verify_frames_distinct` from 70% to 100% duplicate-pct (ADR-208 RC-3). Use for spec-known sheets with legitimate frame repetition: idle loops where 8 frames repeat to fill 64 cells, taunt poses where the character holds a stance, or any animation where >70% duplicate-pct is the artist's intent. Without this flag the gate fires at 70% to catch the layout-drift signature where centroid mis-routing lands most cells on a few near-identical poses. |
+| `--effects-asset` | OFF | Opt INTO content-aware routing on a DENSE grid (>= 4x4 with >= 16 cells). Use ONLY for sparse-but-cross-boundary content: fire breath, plasma trails, projectile auras. Do NOT use for character grids -- content-aware on dense character grids drops cells via centroid drift (ADR-207 RC-1). |
 
 Per-mode gate selection:
 
 | Mode | Entry | Gates |
 |------|-------|-------|
-| spritesheet | `sprite_pipeline.py run_pipeline` | `verify_no_magenta`, `verify_grid_alignment`, `verify_anchor_consistency`, `verify_frames_have_content`, `verify_frames_distinct`, `verify_pixel_preservation` (when `{name}_sheet_raw.png` is present) |
+| spritesheet | `sprite_pipeline.py run_pipeline` | `verify_no_magenta`, `verify_grid_alignment`, `verify_anchor_consistency`, `verify_frames_have_content`, `verify_frames_distinct`, `verify_pixel_preservation` (when `{name}_sheet_raw.png` is present), `verify_raw_vs_final_cell_parity` (ADR-207 Rule 3 — same precondition as `verify_pixel_preservation`) |
 | portrait | `portrait_pipeline.py run_pipeline` (mode=portrait) | `verify_no_magenta` (single-image mode; per-cell gates do not apply) |
 | portrait-loop | `portrait_pipeline.py run_portrait_loop` | `verify_no_magenta`, `verify_frames_have_content`, `verify_frames_distinct`, `verify_anchor_consistency` |
 
@@ -242,6 +246,7 @@ Output JSON shape on stdout (last thing the pipeline prints before exit):
 ```json
 {
   "passed": false,
+  "verifier_verdict": "FAIL",
   "gates_run": ["verify_no_magenta", "verify_grid_alignment", ...],
   "failures": [{"check": "verify_no_magenta", "file": "...", "details": {...}}],
   "backends_available": {"codex": true, "nano_banana": true},
@@ -249,9 +254,12 @@ Output JSON shape on stdout (last thing the pipeline prints before exit):
 }
 ```
 
+`verifier_verdict` (ADR-207 Rule 2) is the contracted consumer-facing field. Manifest writers, orchestrators, and downstream classifiers MUST derive their own status fields from this string; the toolkit's `write_manifest_record` writer asserts at write time that `verifier_verdict == "PASS"` implies an empty `verifier_failures` list (and vice versa).
+
 Exit codes:
-- 0: `passed: true` (or `--no-verify`).
+- 0: `passed: true` (or `--no-verify` for portrait / portrait-loop modes).
 - 2: at least one gate failed (distinct from generic pipeline error rc=1 so CI can branch on "verifier said no" vs "the pipeline blew up").
+- 3: `--no-verify` was passed in spritesheet mode (ADR-207 Rule 4 — `VERIFIER_SKIPPED_EXIT_CODE`). Orchestrators that explicitly want to skip spritesheet verification must explicitly accept exit code 3.
 
 ## Logging (ADR-202)
 
@@ -308,6 +316,8 @@ Stream contract: stdout carries structured output (verifier JSON, generated path
 The user's framing: "the codex generation has never failed, it is working perfectly, the rest has failed."
 
 **Do instead:** Open the raw and the final side-by-side. Confirm the raw has the content (it almost always does). Trace which post-processing step lost it. Specifically for boundary clipping (asset 27 dragon flame, asset 30 plasma trail): set `has_effects: True` and/or `content_aware_extraction: True` in the spec to use `slice_with_content_awareness`, which expands cell windows to recover content extending past conceptual cell boundaries.
+
+**Caveat (ADR-207 RC-1, dense-grid downgrade):** on dense grids (`cols * rows >= 16` AND both dims >= 4 — i.e. 4x4 and denser), the slicer dispatch in `sprite_pipeline.py` and `cmd_extract_frames` silently downgrades `--content-aware-extraction` (and the spec's `content_aware_extraction` / `has_effects` slicer leg) to strict-pitch with a WARNING log because content-aware routing on Codex's fractional-pitch raws drops cells via centroid drift. To opt INTO content-aware on a dense grid for genuine sparse effects assets, also pass `--effects-asset` (orchestrator-side) or set `effects_asset: True` (spec-side). Character grids with arms touching cell edges should stay on the strict slicer and rely on `verify_raw_vs_final_cell_parity` to flag genuine slicing bugs.
 
 See `references/error-catalog.md` for the full diagnostic procedure.
 

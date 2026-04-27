@@ -16,7 +16,6 @@ routing:
     - tile pattern
     - palette quantize
     - matrix sprite
-    - generate sprite
     - meshy
     - meshyai
     - generate 3d model

@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-26T17:43:44Z",
+  "generated": "2026-04-27T02:05:18Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -594,7 +594,6 @@
         "tile pattern",
         "palette quantize",
         "matrix sprite",
-        "generate sprite",
         "meshy",
         "meshyai",
         "generate 3d model",

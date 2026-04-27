@@ -378,8 +378,23 @@ respects cell boundaries get the same output as `slice_grid_cells`.
 
 **Where wired in.** `<your-output-dir>/generate.py post_process_spritesheet`
 checks `spec.get("content_aware_extraction") or spec.get("has_effects")` and
-dispatches accordingly. Implementation in `sprite_process.slice_with_content_awareness`
-(scripts/sprite_process.py:924).
+dispatches accordingly. Implementation in `sprite_slicing.slice_with_content_awareness`
+(`scripts/sprite_slicing.py:344`). Module location updated per ADR-205
+(sprite_process split into 5 cohesive modules); also re-exported from
+`sprite_process` for backward compat with `from sprite_process import
+slice_with_content_awareness` callers.
+
+**Caveat (ADR-207 RC-1, dense-grid downgrade).** On dense grids
+(`cols * rows >= 16` AND both `cols >= 4` and `rows >= 4` — i.e. 4x4 and
+denser), the slicer dispatch in `sprite_pipeline.py` and `cmd_extract_frames`
+silently downgrades `--content-aware-extraction` (or
+`content_aware_extraction: True` in the spec) to strict-pitch slicing with a
+WARNING log. The downgrade exists because content-aware routing on dense
+Codex fractional-pitch raws drops cells via centroid drift (RC-1). To
+explicitly opt INTO content-aware on a dense grid (legitimate sparse
+effects assets — fire breath, plasma trails, projectile auras) pass the
+new `--effects-asset` flag. Sparse grids (3x3 and below, or with a
+degenerate dim like 1xN) keep content-aware as a free choice.
 
 ### Where the cell-pitch rule applies
 
