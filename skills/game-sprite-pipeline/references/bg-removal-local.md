@@ -126,49 +126,38 @@ Increase if pass 2 is biting into character; decrease if halo persists.
 
 ### Step 2.5: fire-pixel preservation through LANCZOS resample (`_preserve_fire_pixels`)
 
-When a cell crop is resampled to `cell_size × cell_size` at sub-unity scale
-(typical: 0.82x for fractional-pitch slicers), LANCZOS downsampling smears
-anti-aliased fire boundary pixels into "warm but not fire" colors. Concrete:
-asset 27 (dragon flame breath, painted dragon body in orange-red ring on
-green torso) loses ~25-35% of its per-cell fire-pixel count even though the
-slicer captured 100% of the source content. The resample averages
-`(R=255, G=80, B=20)` fire pixels with neighboring `(R=80, G=180, B=60)`
-green dragon-body pixels into `(R=240, G=40, B=20)` — fails the
-`G > 60` fire criterion and reads as "dark red".
+Sub-unity LANCZOS resample (typical 0.82x for fractional-pitch slicers) smears
+anti-aliased fire boundary pixels into "warm but not fire" colors. Asset 27
+(dragon flame breath on green torso) loses 25-35% of per-cell fire pixels even
+when the slicer captured 100% of source content: `(R=255, G=80, B=20)` fire
+averaged with `(R=80, G=180, B=60)` body becomes `(R=240, G=40, B=20)` — fails
+the `G > 60` fire criterion and reads as "dark red".
 
-`_preserve_fire_pixels` runs after the LANCZOS resample, before despill.
-It is a **no-op for non-fire assets**: when the source crop has zero pixels
-matching `_is_fire`, the entire restoration block exits immediately.
+`_preserve_fire_pixels` runs after LANCZOS, before despill. It is a **no-op
+for non-fire assets**: zero source `_is_fire` matches exits the block.
 
 **Algorithm:**
 
-1. Build the source fire mask on the kept-content crop (`_is_fire(crop_arr)`
-   AND `keep_mask`).
-2. Resample mask to target via PIL **BOX filter**; threshold > 0 marks every
-   target pixel whose source neighborhood had ANY fire.
-3. Sample source fire RGB to target via **MaxFilter(5) + NEAREST** so the
-   painted color carries the dominant fire hue from the local neighborhood
-   (median fallback if NEAREST samples a non-fire spread pixel).
-4. If painted target fire count is below `fire_target_ratio × source_fire_count`
+1. Build the source fire mask on the kept-content crop (`_is_fire(crop_arr)
+   AND keep_mask`).
+2. Resample mask via PIL **BOX filter**; threshold > 0 marks any target pixel
+   whose source neighborhood had fire.
+3. Sample source fire RGB via **MaxFilter(5) + NEAREST** so painted color
+   carries the dominant local fire hue (median fallback for non-fire spread).
+4. If painted count is below `fire_target_ratio × source_fire_count`
    (default 0.88), iteratively dilate the fire mask 4-connected into adjacent
-   target pixels that already look hot (`R > 200`, `B < 80`, `alpha > 16`).
-   This rescues the deep-red shading at fire boundaries that LANCZOS pushed
-   below the `G > 60` threshold.
-5. Cap each ring's painted pixels at `target_count` so output is reproducible
-   and never overpaints.
+   hot-looking target pixels (`R > 200`, `B < 80`, `alpha > 16`). Rescues
+   deep-red shading LANCZOS pushed below `G > 60`.
+5. Cap each ring's painted pixels at `target_count` for reproducibility.
 
 **Why 0.88 not 1.0?** Downstream despill (`alpha_fade_magenta_fringe`,
-`dilate_alpha_zero`, `kill_pink_fringe`) and the mass-centroid anchor (which
-translates and can clip at canvas edges) trim a few percent more. 0.88
-overshoots the 95% pixel-preservation gate (see `verify_pixel_preservation`)
-with margin.
+`dilate_alpha_zero`, `kill_pink_fringe`) and the mass-centroid anchor trim a
+few percent more. 0.88 overshoots the 95% `verify_pixel_preservation` gate.
 
-**Result on asset 27.** Before fix: per-cell fire-pixel ratio 73% (slicer
-captured 100% but LANCZOS+despill ate 27%). After fix: per-cell fire-pixel
-ratio 100%, `verify_pixel_preservation` passes. Implementation:
-`sprite_slicing.py:216` (`_preserve_fire_pixels`). Triggered automatically
-inside `slice_with_content_awareness` when `preserve_fire=True` (default).
-Module location updated per ADR-205 (sprite_process split).
+**Result on asset 27.** Before: 73% per-cell fire ratio. After: 100%,
+`verify_pixel_preservation` passes. Implementation: `sprite_slicing.py:216`
+(`_preserve_fire_pixels`), triggered inside `slice_with_content_awareness`
+when `preserve_fire=True` (default). Module per ADR-205 split.
 
 ### Step 3: interior-spill neutralization (`neutralize_interior_magenta_spill`)
 
