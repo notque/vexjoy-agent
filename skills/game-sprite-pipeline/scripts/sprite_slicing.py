@@ -641,6 +641,29 @@ def assign_components_to_cells(
     return [assignments[i][1] if i in assignments else None for i in range(grid_cols * grid_rows)]
 
 
+# ADR-207 dense-grid threshold. Grids at or above this size MUST use the
+# strict-pitch slicer unless explicitly opted into the content-aware
+# slicer via --effects-asset. Calibrated against observed failure: 8x8
+# always fails under content-aware on Codex's fractional-pitch raws; 4x4
+# has been observed to fail similarly; 3x3 and smaller have not been
+# observed to fail (sparse-enough that components do not collide with
+# neighbor centroids). See ADR-207 RC-1.
+DENSE_GRID_MIN_CELLS = 16
+DENSE_GRID_MIN_DIM = 4
+
+
+def is_dense_grid(cols: int, rows: int) -> bool:
+    """Return True for grids the strict-pitch slicer must own (ADR-207 Rule 1).
+
+    Dense = at least 16 cells AND both dims >= 4 (e.g. 4x4, 4x8, 8x8).
+    Sparse grids (3x3 and smaller, anything with a degenerate dim like
+    1xN or Nx1) remain eligible for content-aware routing because their
+    component centroids do not collide with neighbor centroids in the
+    failure mode RC-1 catalogues.
+    """
+    return cols * rows >= DENSE_GRID_MIN_CELLS and cols >= DENSE_GRID_MIN_DIM and rows >= DENSE_GRID_MIN_DIM
+
+
 def cmd_extract_frames(args: argparse.Namespace) -> int:
     src = Path(args.input)
     output_dir = Path(args.output_dir)
@@ -658,16 +681,51 @@ def cmd_extract_frames(args: argparse.Namespace) -> int:
     # crosses conceptual boundaries. This preserves dragon flame jets
     # (asset 27) and projectile trails (asset 30) that the strict-pitch
     # slicer would clip.
-    if getattr(args, "content_aware", False):
-        cell_size = getattr(args, "cell_size", 256)
-        max_pct = getattr(args, "max_expansion_pct", 0.30)
-        cells = slice_with_content_awareness(
-            img,
+    #
+    # ADR-207 Rule 1: on dense grids (cols*rows >= 16 with both dims >= 4)
+    # content-aware routing fails because component centroids drift across
+    # cell boundaries on Codex's fractional-pitch raws. On dense grids,
+    # --content-aware is downgraded to strict-pitch with a warning UNLESS
+    # the caller opts in via --effects-asset. Effects assets (fire breath,
+    # plasma trails, auras) genuinely need centroid routing to follow
+    # content past the cell boundary; character grids do not.
+    use_content_aware = getattr(args, "content_aware", False)
+    is_effects = getattr(args, "effects_asset", False)
+    downgraded_to_strict = False
+    if use_content_aware and is_dense_grid(cols, rows) and not is_effects:
+        logger.warning(
+            "[extract-frames] --content-aware on a dense grid (%dx%d) is unsafe "
+            "(ADR-207 RC-1: centroid drift drops cells on fractional-pitch raws). "
+            "Falling back to strict-pitch slicer. Pass --effects-asset to "
+            "explicitly opt into content-aware on a dense grid.",
             cols,
             rows,
-            cell_size,
-            max_expansion_pct=max_pct,
         )
+        # ADR-207 Rule 1: route the downgrade through slice_grid_cells (the
+        # strict-pitch slicer). Do NOT fall through to the connected-
+        # components extractor below: that path expects exactly `expected`
+        # connected components and fails with rc=5 on dense character grids
+        # whose silhouettes touch and merge into fewer-than-expected blobs.
+        # The strict slicer has no such constraint; it crops by pitch.
+        downgraded_to_strict = True
+        use_content_aware = False
+    if use_content_aware or downgraded_to_strict:
+        cell_size = getattr(args, "cell_size", 256)
+        if downgraded_to_strict:
+            cells = slice_grid_cells(img, cols, rows, cell_size)
+            extraction_label = "strict-pitch (downgraded from content-aware per ADR-207 RC-1)"
+            extra_meta = {"downgraded_from": "content-aware", "downgrade_reason": "ADR-207 RC-1 dense grid"}
+        else:
+            max_pct = getattr(args, "max_expansion_pct", 0.30)
+            cells = slice_with_content_awareness(
+                img,
+                cols,
+                rows,
+                cell_size,
+                max_expansion_pct=max_pct,
+            )
+            extraction_label = "content-aware"
+            extra_meta = {"max_expansion_pct": max_pct}
         for i, cell_img in enumerate(cells):
             out = output_dir / f"{name}_frame_{i:02d}.png"
             cell_img.save(out, format="PNG")
@@ -675,12 +733,13 @@ def cmd_extract_frames(args: argparse.Namespace) -> int:
             "sheet": str(src),
             "grid": [cols, rows],
             "cell_size": cell_size,
-            "extraction": "content-aware",
-            "max_expansion_pct": max_pct,
+            "extraction": "content-aware" if not downgraded_to_strict else "strict-pitch",
             "frame_count": len(cells),
+            "effects_asset": is_effects,
+            **extra_meta,
         }
         (output_dir / "frame_metadata.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
-        logger.info("[extract-frames] content-aware: wrote %d frames to %s", len(cells), output_dir)
+        logger.info("[extract-frames] %s: wrote %d frames to %s", extraction_label, len(cells), output_dir)
         return 0
 
     try:

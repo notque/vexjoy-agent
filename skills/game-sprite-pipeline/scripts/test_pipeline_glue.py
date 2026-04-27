@@ -338,7 +338,14 @@ def test_sprite_pipeline_verify_default_on_emits_json(tmp_path: Path, capsys: py
 
 
 def test_sprite_pipeline_no_verify_skips_gates(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    """--no-verify must skip all gates (no JSON on stdout) and exit 0."""
+    """spritesheet --no-verify must skip gates AND return VERIFIER_SKIPPED_EXIT_CODE.
+
+    ADR-207 Rule 4 (RC-4): the previous contract returned exit code 0 for
+    spritesheet --no-verify, which silently masked failures with the same
+    exit status as success. The new contract returns
+    VERIFIER_SKIPPED_EXIT_CODE (3) so orchestrators must explicitly accept
+    the skipped-verifier outcome.
+    """
     fake_prompt = _stub_prompt_main_factory()
     argv = [
         "--prompt",
@@ -354,7 +361,9 @@ def test_sprite_pipeline_no_verify_skips_gates(tmp_path: Path, capsys: pytest.Ca
     ]
     with mock.patch.object(sprite_pipeline.sprite_prompt, "main", side_effect=fake_prompt):
         rc = sprite_pipeline.main(argv)
-    assert rc == 0, f"expected rc=0 with --no-verify (gates skipped), got {rc}"
+    assert rc == sprite_pipeline.VERIFIER_SKIPPED_EXIT_CODE == 3, (
+        f"expected rc=3 (VERIFIER_SKIPPED_EXIT_CODE) with spritesheet --no-verify, got {rc}"
+    )
     out = capsys.readouterr().out
     assert out.strip() == "", f"expected no JSON on stdout with --no-verify, got: {out!r}"
 

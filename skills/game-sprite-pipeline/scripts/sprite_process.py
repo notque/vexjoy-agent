@@ -208,9 +208,21 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help=(
             "Use slice_with_content_awareness instead of connected-components. "
-            "Required for assets with effects (fire, projectiles) where content "
-            "crosses conceptual cell boundaries. Codex is ground truth; clipping "
-            "is a post-processing bug. See references/error-catalog.md."
+            "Required for SPARSE EFFECTS assets (fire breath, plasma trails, auras) "
+            "where Codex paints content extending past the conceptual cell boundary. "
+            "On DENSE CHARACTER grids (>= 4x4) this flag is unsafe and is downgraded "
+            "to strict-pitch slicing with a warning unless --effects-asset is also "
+            "passed. See ADR-207 RC-1 and references/error-catalog.md."
+        ),
+    )
+    ef.add_argument(
+        "--effects-asset",
+        action="store_true",
+        help=(
+            "Opt INTO content-aware routing on a DENSE grid (>= 4x4 with >= 16 cells). "
+            "Use ONLY for sparse-but-cross-boundary content: fire breath, plasma "
+            "trails, projectile auras. Do NOT use for character grids — content-aware "
+            "on dense character grids drops cells via centroid drift (ADR-207 RC-1)."
         ),
     )
     ef.add_argument("--cell-size", type=int, default=256, help="Output cell size when --content-aware (default 256)")

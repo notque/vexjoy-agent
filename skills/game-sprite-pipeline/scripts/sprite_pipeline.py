@@ -52,12 +52,15 @@ import sprite_generate
 import sprite_process
 import sprite_prompt
 from sprite_verify import (
+    verifier_verdict_from_passed,
     verify_anchor_consistency,
     verify_frames_distinct,
     verify_frames_have_content,
     verify_grid_alignment,
     verify_no_magenta,
     verify_pixel_preservation,
+    verify_raw_vs_final_cell_parity,
+    write_manifest_record,
 )
 
 # Exit code emitted by run_pipeline / run_portrait_loop when --verify is on
@@ -66,6 +69,26 @@ from sprite_verify import (
 # up". Locked by ADR-199 ("Exit code: 0 when passed: true, 2 when any gate
 # fails").
 VERIFIER_EXIT_CODE = 2
+
+# ADR-207 Rule 4: spritesheet-mode --no-verify returns a distinct non-zero
+# exit code so orchestrators cannot silently mask spritesheet failures with
+# the same exit status as success. Portrait and portrait-loop modes retain
+# --no-verify -> exit 0 because their verifier surface is small enough
+# (verify_no_magenta only) that an explicit skip is plausibly intentional.
+VERIFIER_SKIPPED_EXIT_CODE = 3
+
+# TODO(ADR-207 RC-4 follow-up): audit every consumer of `--no-verify` for
+# spritesheet mode and migrate them to either accept exit code 3 or drop
+# `--no-verify` entirely. The street-fighter-demo orchestrator was the
+# only known consumer at ship time and is updated in this same wave. Other
+# consumers may exist in road-to-aew CI or external scripts; tracked as an
+# RC-4 follow-up.
+
+# TODO(ADR-207 RC-5 follow-up): the reverify-after-reprocess pattern is
+# implemented as a separate helper script in the street-fighter-demo repo
+# (`scripts/reverify_after_reprocess.py`). A toolkit-level helper that any
+# consumer can import would centralize the contract. Tracked as an RC-5
+# follow-up; not in scope for ADR-207.
 
 
 def _detect_backends_available() -> dict[str, bool]:
@@ -106,16 +129,23 @@ def _emit_verifier_result(
         }
 
     Returns ``VERIFIER_EXIT_CODE`` (2) when any gate fails; 0 otherwise.
+
+    ADR-207 Rule 2: ``verifier_verdict`` ("PASS"|"FAIL") is added as the
+    consumer-facing contract field. Consumers (orchestrators, manifest
+    writers) MUST derive their own status fields from this, not from any
+    other heuristic.
     """
+    passed = len(failures) == 0
     payload = {
-        "passed": len(failures) == 0,
+        "passed": passed,
+        "verifier_verdict": verifier_verdict_from_passed(passed),
         "gates_run": gates_run,
         "failures": failures,
         "backends_available": _detect_backends_available(),
         "elapsed_seconds": round(elapsed_seconds, 3),
     }
     print(json.dumps(payload, indent=2))
-    return 0 if payload["passed"] else VERIFIER_EXIT_CODE
+    return 0 if passed else VERIFIER_EXIT_CODE
 
 
 def _run_spritesheet_verifiers(
@@ -198,6 +228,23 @@ def _run_spritesheet_verifiers(
         except Exception as e:  # pragma: no cover - defensive
             gates_run.append("verify_pixel_preservation")
             failures.append({"check": "verify_pixel_preservation", "file": str(sheet_path), "details": f"error: {e}"})
+
+        # ADR-207 Rule 3: cell-parity gate. Conservative blank-cell check
+        # that catches RC-1 directly (raw has content, final lost it). Runs
+        # alongside verify_pixel_preservation; both can fire on the same
+        # underlying failure with distinct diagnostics (parity surfaces the
+        # blank-cell symptom; preservation surfaces the silhouette-loss
+        # symptom).
+        try:
+            _record_gate(
+                "verify_raw_vs_final_cell_parity",
+                verify_raw_vs_final_cell_parity(raw_path, sheet_path, cols, rows, cell_size),
+            )
+        except Exception as e:  # pragma: no cover - defensive
+            gates_run.append("verify_raw_vs_final_cell_parity")
+            failures.append(
+                {"check": "verify_raw_vs_final_cell_parity", "file": str(sheet_path), "details": f"error: {e}"}
+            )
 
     return gates_run, failures
 
@@ -422,8 +469,39 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
         "--min-pixels",
         str(args.min_pixels),
     ]
-    if getattr(args, "content_aware_extraction", False):
+    # ADR-207 Rule 1: dense grids (>= 4x4 with >= 16 cells) ALWAYS use the
+    # slicer dispatch path, never the legacy connected-components extractor.
+    # The dispatch routes to strict-pitch by default; --effects-asset opts
+    # into content-aware (correct only for sparse-but-cross-boundary content
+    # like fire breath / plasma trails / auras). The deprecation warning
+    # below fires when the user explicitly passed --content-aware-extraction
+    # for a dense grid -- the flag is silently downgraded to strict-pitch
+    # at the sprite_process layer; this log explains WHY.
+    from sprite_slicing import is_dense_grid
+
+    grid_is_dense = is_dense_grid(cols, rows)
+    use_effects_asset = getattr(args, "effects_asset", False)
+    legacy_content_aware = getattr(args, "content_aware_extraction", False)
+    if grid_is_dense:
+        # Dispatch through the slicer surface always.
         extract_args.append("--content-aware")
+        if use_effects_asset:
+            extract_args.append("--effects-asset")
+        if legacy_content_aware and not use_effects_asset:
+            logger.warning(
+                "[pipeline] --content-aware-extraction on dense grid %dx%d is "
+                "deprecated per ADR-207 RC-1; the slicer dispatch will downgrade "
+                "to strict-pitch. Pass --effects-asset to explicitly opt into "
+                "content-aware (correct only for sparse-but-cross-boundary "
+                "content like fire breath / plasma trails / auras).",
+                cols,
+                rows,
+            )
+    elif legacy_content_aware:
+        # Sparse grid: content-aware is fine; pass through.
+        extract_args.append("--content-aware")
+        if use_effects_asset:
+            extract_args.append("--effects-asset")
     rc = sprite_process.main(extract_args)
     if rc != 0:
         return rc
@@ -531,9 +609,18 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
     # Gates run on the assembled sheet at work_dir/out/{name}_sheet.png while
     # the work dir is still in scope (ADR-200 requires gates to fire INSIDE
     # the TemporaryDirectory context so the asset is still on disk).
+    #
+    # ADR-207 Rule 4: spritesheet --no-verify returns VERIFIER_SKIPPED_EXIT_CODE
+    # (3) instead of 0. Orchestrators that explicitly want to skip verification
+    # must explicitly accept exit code 3 -- no silent masking with the same
+    # exit status as success.
     if not getattr(args, "verify", True):
-        logger.warning("--no-verify opted out; output not validated")
-        return 0
+        logger.warning(
+            "--no-verify opted out; spritesheet output not validated. "
+            "Returning exit code %d (ADR-207 Rule 4: distinct from success).",
+            VERIFIER_SKIPPED_EXIT_CODE,
+        )
+        return VERIFIER_SKIPPED_EXIT_CODE
 
     sheet_path = work_dir / "out" / f"{name}_sheet.png"
     if not sheet_path.exists():
@@ -558,6 +645,24 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
         cell_size=args.cell_size,
     )
     elapsed = time.perf_counter() - started_verify
+
+    # ADR-207 Rule 2: rewrite the metadata sidecar to include the
+    # contracted verifier_verdict + verifier_failures. Use the asserting
+    # writer so consumers cannot read a sidecar that claims PASS while
+    # listing failures.
+    sidecar_path = work_dir / f"{name}_metadata.json"
+    if sidecar_path.exists():
+        try:
+            sidecar_data = json.loads(sidecar_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:  # pragma: no cover - defensive
+            sidecar_data = {}
+        sidecar_data["verifier_verdict"] = verifier_verdict_from_passed(len(failures) == 0)
+        sidecar_data["verifier_failures"] = failures
+        sidecar_data["verifier_gates_run"] = gates_run
+        sidecar_data["verifier_elapsed_seconds"] = round(elapsed, 3)
+        # write_manifest_record raises ValueError if PASS+failures contradict.
+        write_manifest_record(sidecar_path, sidecar_data)
+
     return _emit_verifier_result(gates_run=gates_run, failures=failures, elapsed_seconds=elapsed)
 
 
@@ -668,12 +773,25 @@ def build_parser() -> argparse.ArgumentParser:
         "--content-aware-extraction",
         action="store_true",
         help=(
-            "Use connected-components + centroid ownership (slice_with_content_awareness) "
-            "instead of strict-pitch slicing. REQUIRED for assets with effects (fire breath, "
-            "projectile trails, auras) where Codex paints content extending past conceptual "
-            "cell boundaries. Codex output is ground truth; clipping happens in our slicer. "
-            "See references/error-catalog.md 'Anti-pattern: Codex Regeneration as a "
+            "Use slice_with_content_awareness (connected-components + centroid "
+            "ownership) instead of strict-pitch slicing. ADR-207 Rule 1: on dense "
+            "grids (>= 4x4 with >= 16 cells) this flag is unsafe and is downgraded "
+            "to strict-pitch with a warning unless --effects-asset is also passed. "
+            "Use --effects-asset for legitimate sparse-but-cross-boundary content "
+            "(fire breath, plasma trails, projectile auras). Codex output is "
+            "ground truth; clipping happens in our slicer. See ADR-207 RC-1 and "
+            "references/error-catalog.md 'Anti-pattern: Codex Regeneration as a "
             "Post-Processing Fix'."
+        ),
+    )
+    parser.add_argument(
+        "--effects-asset",
+        action="store_true",
+        help=(
+            "Opt INTO content-aware routing on a DENSE grid (>= 4x4 with >= 16 cells). "
+            "Use ONLY for sparse-but-cross-boundary content: fire breath, plasma "
+            "trails, projectile auras. Do NOT use for character grids — content-aware "
+            "on dense character grids drops cells via centroid drift (ADR-207 RC-1)."
         ),
     )
     # Logging level controls (ADR-202). Mutually exclusive; default INFO.

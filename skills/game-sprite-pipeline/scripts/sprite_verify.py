@@ -358,6 +358,14 @@ def verify_anchor_consistency(
     }
 
 
+# TODO(ADR-207 RC-3 follow-up): verify_frames_have_content checks alpha
+# pixel count on the FINAL only. It does not cross-reference the raw
+# silhouette per cell. ADR-207 partially closes this with the new
+# verify_raw_vs_final_cell_parity gate, which IS the raw-vs-final
+# cross-check. A future RC-3 closure would unify the two gates: a single
+# gate that examines per-cell alpha-coverage in the FINAL, conditioned on
+# raw silhouette presence, with a unified diagnostic. Tracked as an
+# RC-3 follow-up; not in scope for ADR-207.
 def verify_frames_have_content(
     img: Image.Image | Path | str,
     grid_cols: int,
@@ -634,6 +642,145 @@ def verify_pixel_preservation(
             "ground truth; do NOT regenerate the raw."
         )
     return result
+
+
+def verify_raw_vs_final_cell_parity(
+    raw_path: Path | str,
+    final_sheet_path: Path | str,
+    grid_cols: int,
+    grid_rows: int,
+    cell_size: int,
+    chroma_threshold: int = 80,
+    min_raw_pixels_per_cell: int = 200,
+    min_final_alpha_pixels_per_cell: int = 200,
+) -> dict:
+    """Per-cell parity gate: if raw cell has content, final cell MUST have content.
+
+    ADR-207 Rule 3 / RC-1: catches the smoking-gun blank-cell failure mode.
+    `verify_pixel_preservation` measures silhouette-survival ratio (how
+    much of the raw silhouette landed in the final). This gate is the
+    conservative complement: it only asks "did SOMETHING land?" When the
+    raw has > `min_raw_pixels_per_cell` non-magenta pixels in a cell, the
+    final's corresponding cell MUST have > `min_final_alpha_pixels_per_cell`
+    visible alpha pixels.
+
+    The two thresholds are intentionally symmetric (200 each) so the gate
+    fires precisely when the cell went from "has content" to "blank" --
+    the RC-1 failure signature. Cells the raw legitimately leaves empty
+    (e.g. an animation pose where the character is briefly off-frame)
+    skip the check because the precondition is not met.
+
+    Pure numpy. Returns:
+      passed: bool
+      blank_cells: list[{cell_index, raw_silhouette, final_visible}]
+      total_cells_with_raw_content: int
+      ratio_pass: float (cells with content -> cells preserved / total)
+    """
+    if not HAS_NUMPY:
+        return {"passed": True, "blank_cells": [], "error": "numpy required"}
+    raw = Image.open(raw_path).convert("RGBA")
+    fin = Image.open(final_sheet_path).convert("RGBA")
+    rw, rh = raw.size
+    raw_cell_w = rw / grid_cols
+    raw_cell_h = rh / grid_rows
+    raw_cells: list[Image.Image] = []
+    for r in range(grid_rows):
+        for c in range(grid_cols):
+            x0 = round(c * raw_cell_w)
+            y0 = round(r * raw_cell_h)
+            x1 = round((c + 1) * raw_cell_w)
+            y1 = round((r + 1) * raw_cell_h)
+            raw_cells.append(raw.crop((x0, y0, x1, y1)))
+    fin_cells = _slice_grid_into_cells(fin, grid_cols, grid_rows)
+    chroma = np.array((255, 0, 255))
+    blanks: list[dict] = []
+    cells_with_raw_content = 0
+    cells_preserved = 0
+    for i, (rc, fc) in enumerate(zip(raw_cells, fin_cells)):
+        ra = np.array(rc.convert("RGBA"))
+        rgb = ra[..., :3].astype(int)
+        diff = np.abs(rgb - chroma).sum(axis=-1)
+        raw_n = int((diff > chroma_threshold).sum())
+        if raw_n <= min_raw_pixels_per_cell:
+            # Raw cell is essentially empty; gate's precondition not met.
+            continue
+        cells_with_raw_content += 1
+        fa = np.array(fc.convert("RGBA"))
+        fin_n = int((fa[..., 3] > 16).sum())
+        if fin_n <= min_final_alpha_pixels_per_cell:
+            blanks.append(
+                {
+                    "cell_index": i,
+                    "raw_silhouette": raw_n,
+                    "final_visible": fin_n,
+                }
+            )
+        else:
+            cells_preserved += 1
+    ratio = (cells_preserved / cells_with_raw_content) if cells_with_raw_content > 0 else 1.0
+    result: dict = {
+        "passed": len(blanks) == 0,
+        "blank_cells": blanks,
+        "total_cells_with_raw_content": cells_with_raw_content,
+        "cells_preserved": cells_preserved,
+        "preservation_ratio": round(ratio, 3),
+        "min_raw_pixels_per_cell": min_raw_pixels_per_cell,
+        "min_final_alpha_pixels_per_cell": min_final_alpha_pixels_per_cell,
+    }
+    if blanks:
+        result["actionable_message"] = (
+            "ADR-207 RC-1 cell-parity violation: raw cell(s) have content but the "
+            "corresponding final cell(s) are blank. Most common cause: the slicer "
+            "routed the cell's content to a neighbor cell via centroid drift "
+            "(content-aware on a dense Codex raw). Check that the pipeline used "
+            "slice_grid_cells (strict-pitch), not slice_with_content_awareness, "
+            "for this dense grid. Codex output is ground truth; do NOT regenerate."
+        )
+    return result
+
+
+def verifier_verdict_from_passed(passed: bool) -> str:
+    """Derive the contracted verifier_verdict string from the passed bool.
+
+    ADR-207 Rule 2: this is the ONLY function that maps verifier outcomes
+    to the public verdict string. Consumers (manifest writers, orchestrators)
+    MUST derive their `verifier_verdict` field from this function so the
+    field is structurally consistent across producers.
+    """
+    return "PASS" if passed else "FAIL"
+
+
+def write_manifest_record(path: Path | str, record: dict) -> None:
+    """Asserting writer for manifest records (ADR-207 Rule 2).
+
+    Enforces the verifier-truthfulness contract at WRITE time: a record
+    with ``verifier_verdict == "PASS"`` AND a non-empty ``verifier_failures``
+    is structurally inconsistent and cannot be persisted. Raises ``ValueError``.
+
+    The contract:
+      verifier_verdict == "PASS"  =>  verifier_failures empty (or absent)
+      verifier_verdict == "FAIL"  =>  verifier_failures non-empty
+      verifier_verdict missing    =>  no enforcement (legacy records)
+
+    Consumers (orchestrators, manifest writers) SHOULD use this writer
+    instead of writing JSON directly. The street-fighter-demo orchestrator
+    is the reference consumer (see scripts/sf-orchestrator.py).
+    """
+    verdict = record.get("verifier_verdict")
+    failures = record.get("verifier_failures") or []
+    if verdict == "PASS" and len(failures) > 0:
+        raise ValueError(
+            f"manifest contract violation (ADR-207 Rule 2): record claims "
+            f"verifier_verdict='PASS' but verifier_failures has {len(failures)} "
+            f"entries. Re-run the verifier or set verifier_verdict='FAIL'."
+        )
+    if verdict == "FAIL" and len(failures) == 0:
+        raise ValueError(
+            "manifest contract violation (ADR-207 Rule 2): record claims "
+            "verifier_verdict='FAIL' but verifier_failures is empty. A FAIL "
+            "verdict must carry at least one failure entry."
+        )
+    Path(path).write_text(json.dumps(record, indent=2), encoding="utf-8")
 
 
 def verify_asset_outputs(
@@ -956,7 +1103,44 @@ def verify_asset_outputs(
                     except Exception as e:
                         failures.append({"file": fname, "check": "pixel_preservation", "details": f"error: {e}"})
 
-    return {"passed": len(failures) == 0, "failures": failures}
+                    # ADR-207 Rule 3: cell-parity gate. Conservative blank-cell
+                    # check that catches RC-1 directly (raw has content, final
+                    # lost it). Runs alongside verify_pixel_preservation; both
+                    # can fire on the same underlying failure with distinct
+                    # diagnostics.
+                    try:
+                        parity = verify_raw_vs_final_cell_parity(
+                            raw_path,
+                            fpath,
+                            cols,
+                            rows,
+                            cell_size,
+                        )
+                        if not parity["passed"]:
+                            failures.append(
+                                {
+                                    "file": fname,
+                                    "check": "cell_parity",
+                                    "details": {
+                                        "blank_cells": parity.get("blank_cells"),
+                                        "total_cells_with_raw_content": parity.get("total_cells_with_raw_content"),
+                                        "preservation_ratio": parity.get("preservation_ratio"),
+                                    },
+                                }
+                            )
+                    except Exception as e:
+                        failures.append({"file": fname, "check": "cell_parity", "details": f"error: {e}"})
+
+    # ADR-207 Rule 2: include the contracted verifier_verdict alongside the
+    # legacy 'passed' field so consumers can derive their status fields from
+    # an authoritative producer-side string. Legacy callers reading 'passed'
+    # continue to work unchanged.
+    passed = len(failures) == 0
+    return {
+        "passed": passed,
+        "verifier_verdict": verifier_verdict_from_passed(passed),
+        "failures": failures,
+    }
 
 
 def cmd_verify_asset(args: argparse.Namespace) -> int:
