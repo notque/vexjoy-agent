@@ -1,6 +1,6 @@
 ---
 name: skill-eval
-description: "Evaluate skills: trigger testing, A/B benchmarks, structure validation."
+description: "Evaluate skills: trigger testing, A/B benchmarks, structure validation, head-to-head bake-offs."
 user-invocable: false
 argument-hint: "<skill-name>"
 allowed-tools:
@@ -21,6 +21,13 @@ routing:
     - self-improve skill
     - skill self-improvement
     - improve skill with variants
+    - bake-off
+    - bake off
+    - head-to-head
+    - head to head
+    - compare implementations
+    - grade two versions
+    - which skill is better
   pairs_with:
     - agent-evaluation
     - verification-before-completion
@@ -30,7 +37,7 @@ routing:
 
 # Skill Evaluation & Improvement
 
-Measure and improve skill quality through empirical testing — because structure doesn't guarantee behavior, and measurement beats assumption.
+Measure and improve skill quality through empirical testing — because structure doesn't guarantee behavior, and measurement beats assumption. Also covers head-to-head bake-offs of two peer implementations of the same artifact (Mode F).
 
 ## Reference Loading Table
 
@@ -38,6 +45,7 @@ Measure and improve skill quality through empirical testing — because structur
 |---|---|---|
 | tasks related to this reference | `schemas.md` | Loads detailed guidance from `schemas.md`. |
 | tasks related to this reference | `self-improve-loop.md` | Loads detailed guidance from `self-improve-loop.md`. |
+| "bake-off", "head-to-head", "compare implementations", "grade two versions", "which Feynman skill is better" | `bake-off-methodology.md` | Loads the bake-off rubric, anti-rationalization gate, fold-filter, and worked Feynman example. |
 
 ## Instructions
 
@@ -61,6 +69,7 @@ This checks: SKILL.md exists, valid frontmatter, required fields (name, descript
 | "Compare skill vs no-skill output" | Output benchmark | Manual + `aggregate_benchmark.py` |
 | "Validate skill structure" | Quick validate | `quick_validate.py` |
 | "Self-improve skill" / "optimize skill" / "improve skill with A/B" | Self-improvement loop | `references/self-improve-loop.md` |
+| "Bake-off" / "head-to-head grade these two" / "compare X vs Y implementation" | Head-to-head bake-off | `references/bake-off-methodology.md` |
 
 **GATE**: Skill path confirmed, mode selected.
 
@@ -180,6 +189,18 @@ The loop runs 5 phases: BASELINE (establish metrics with 3+ test cases), HYPOTHE
 
 **GATE**: Self-improvement protocol loaded from reference. Proceed through the 5 phases.
 
+#### Mode F: Head-to-Head Bake-Off
+
+Score two peer implementations of the same artifact (e.g., toolkit `voice-feynman` vs an external Feynman voice profile) on a numeric rubric and declare a decisive winner. Use when the user says "bake-off", "head-to-head", "compare implementations", "grade these two", or "which X is better".
+
+Read the full protocol: `${CLAUDE_SKILL_DIR}/references/bake-off-methodology.md`
+
+The protocol runs 5 phases: PREPARE (read both artifacts in full, pick a verifier that built neither side), RUBRIC (define 5–12 criteria scored 0–10, pre-state the loser-of-each-criterion before reading evidence), GRADE (every score cites a path/line range or quote; build the matrix; apply anti-rationalization gate), FOLD (filter loser-wins through `docs/PHILOSOPHY.md` before recommending any folds into the winner), REPORT (output to `tmp/<topic>-bakeoff-report.md`, gitignored).
+
+The Feynman bake-off (toolkit 86 vs external 74 across 11 criteria, 12-point margin) is the canonical worked example carried in the reference.
+
+**GATE**: Bake-off protocol loaded from reference. Proceed through the 5 phases.
+
 ### Phase 3: IMPROVE — Apply results
 
 **Step 1: Review results**
@@ -250,3 +271,4 @@ If description optimization found a better description:
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/schemas.md` — JSON schemas for evals.json, grading.json, benchmark.json
 - `${CLAUDE_SKILL_DIR}/references/self-improve-loop.md` — Self-improvement loop protocol: variant generation, blind A/B testing, promotion criteria
+- `${CLAUDE_SKILL_DIR}/references/bake-off-methodology.md` — Head-to-head bake-off protocol: rubric construction, anti-rationalization gate, philosophy-filtered fold-list, Feynman worked example
