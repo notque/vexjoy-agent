@@ -43,6 +43,7 @@ Create a complete voice profile from writing samples through a 7-phase pipeline.
 | Signal | Load These Files | Why |
 |---|---|---|
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
+| extraction validation, pattern verdict, triple-validation | `extraction-validation.md` | Triple-validation rubric (recurrence, generative power, exclusivity) gating which patterns survive into the profile. |
 | tasks related to this reference | `iteration-guide.md` | Loads detailed guidance from `iteration-guide.md`. |
 | implementation patterns | `pattern-identification.md` | Loads detailed guidance from `pattern-identification.md`. |
 | tasks related to this reference | `phase-banners.md` | Loads detailed guidance from `phase-banners.md`. |
@@ -137,7 +138,11 @@ The script extracted WHAT (numbers). This step identifies WHY those numbers are 
 
 See `references/pattern-identification.md` for detailed guidance on "Phrase Fingerprints", "Thinking Patterns", "Response Length Distribution", "Natural Typos", "Wabi-Sabi Markers", and all 4 "Linguistic Architectures" (Argument, Concession, Analogy, Bookend) with documentation templates.
 
-**GATE**: At least 10 phrase fingerprints documented with exact quotes. At least 3 thinking patterns identified. Response length distribution estimated. At least 5 natural typos found. Wabi-sabi markers identified. At least 2 of 4 linguistic architectures documented with evidence quotes.
+#### Apply the Triple-Validation Rubric
+
+Every candidate pattern (phrase fingerprint, thinking pattern, linguistic architecture) is run through the triple-validation rubric in `references/extraction-validation.md` before it is documented. Each documented pattern carries an explicit verdict (KEEP, FOOTNOTE, or DROP) with evidence for cross-domain recurrence, generative power, and distinguishing exclusivity. KEEP and FOOTNOTE patterns advance to Step 4; DROP patterns are recorded in working notes only and never reach the rules document. This rubric is mandatory because patterns that pass on intuition alone tend to be generic-writer features that produce hollow voice profiles downstream.
+
+**GATE**: At least 10 phrase fingerprints documented with exact quotes AND triple-validation verdicts. At least 3 thinking patterns identified with verdicts. Response length distribution estimated. At least 5 natural typos found. Wabi-sabi markers identified. At least 2 of 4 linguistic architectures documented with evidence quotes and verdicts. Every documented pattern carries a KEEP or FOOTNOTE verdict (DROP-verdict patterns are excluded from the documented set).
 
 See `references/phase-banners.md` for the Phase 3 status banner template.
 
@@ -151,7 +156,9 @@ Rules set boundaries while samples show execution. You need both, but samples do
 
 See `references/voice-rules-template.md` for the full "What This Voice IS" positive identity format, the "What This Voice IS NOT" contrastive table template, "Hard Prohibitions" checklist, "Wabi-Sabi Rules", "Anti-Essay Patterns", and the "Architectural Patterns" template with all 4 rule sections (Argument Flow, Concessions, Analogy Domains, Bookends).
 
-**GATE**: Positive identity has 4+ traits with dampening adverbs. Contrastive table covers 6+ aspects. At least 3 hard prohibitions defined. Wabi-sabi rules specify which imperfections to preserve. Anti-essay patterns documented. Architectural patterns documented for each architecture identified in Step 3.
+Build rules only from KEEP and FOOTNOTE patterns produced by Step 3's triple-validation rubric (`references/extraction-validation.md`). FOOTNOTE patterns are scoped to the domain or mode where the rubric verified them -- write the rule with the scope as a guard clause. DROP-verdict candidates are intentionally absent from the rules document.
+
+**GATE**: Positive identity has 4+ traits with dampening adverbs, each traceable to a KEEP-verdict pattern from Step 3. Contrastive table covers 6+ aspects. At least 3 hard prohibitions defined. Wabi-sabi rules specify which imperfections to preserve. Anti-essay patterns documented. Architectural patterns documented for each architecture identified in Step 3 with a KEEP or FOOTNOTE verdict.
 
 See `references/phase-banners.md` for the Phase 4 status banner template.
 
