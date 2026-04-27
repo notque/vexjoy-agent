@@ -19,7 +19,7 @@ The evaluator (in `skill-evaluator.py`'s `classify_complexity` function, also mi
 
 Complex signals are verbs like `implement`, `create`, `build`, `refactor`, `review`, `analyze`, `debug`, `fix`, `add feature`, plus multi-step indicators like `and also`, `then`, `first`, `after that`. Word count is a rough proxy for scope.
 
-An `auto-plan-detector` hook exists but is a **disabled stub** -- plan detection is now handled by the `/do` skill's Phase 1 (CLASSIFY) and Phase 4 Step 1, making per-prompt injection redundant. The `pretool-plan-gate` hook (PreToolUse) enforces the plan requirement by blocking Write/Edit without a `task_plan.md`.
+The `auto-plan-detector` hook has been removed -- plan detection is handled by the `/do` skill's Phase 1 (CLASSIFY) and Phase 4 Step 1, making per-prompt injection redundant. The `pretool-plan-gate` hook (PreToolUse) enforces the plan requirement by blocking Write/Edit without a `task_plan.md`.
 
 ### Agent Selection
 

@@ -7,7 +7,7 @@ useful hook registrations, and writes the updated file.
 
 Dead stubs removed:
   - instruction-reminder.py (UserPromptSubmit) -- fires every prompt, does nothing
-  - auto-plan-detector.py (UserPromptSubmit) -- fires every prompt, does nothing
+  - auto-plan-detector.py (UserPromptSubmit) -- removed (no-op stub deleted from repo)
   - retro-knowledge-injector.py (SessionStart) -- replaced by session-context.py
 
 Hooks registered:
