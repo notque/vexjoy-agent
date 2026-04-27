@@ -45,6 +45,48 @@ LLMs orchestrate. Programs execute.
 
 For large mechanical sweeps, the default must be even stricter: if the change can be expressed as a detector plus a rewrite rule, build or use a script. Repo-wide edits like adding boilerplate markers, normalizing headings, or applying structural framing across hundreds of files should not be performed by asking an LLM to hand-edit files one by one. Use scripts to find candidates, apply the deterministic transformation where safe, and hand the smaller exception set to an LLM only when judgment is actually required.
 
+## Triple-Validation Extraction Gate
+
+When an LLM extracts patterns — voice traits from writing samples, conventions from a codebase, learnings from a retro — the model will produce more than belongs in the final artifact. Some patterns are real signal. Others are coincidence dressed up as insight. Without a gate, all of them ship.
+
+A pattern earns its place in a profile, ruleset, or knowledge base only if it passes three checks:
+
+1. **Recurrence:** the pattern appears in at least two distinct samples or contexts. One occurrence is an anecdote, not a rule.
+2. **Generative power:** the pattern predicts new decisions or output the source has not produced yet. A trait that only describes existing samples is a summary, not a model.
+3. **Exclusivity:** the pattern distinguishes the subject from peers in the same category. A "rule" that every Go codebase, every tech blogger, or every retro shares is not domain knowledge — it's background.
+
+A pattern that fails any check is demoted (kept as observation, not enforced) or dropped. The rubric is applied as a deterministic phase, not as a vibe check at the end.
+
+**What this means in practice:**
+
+- `create-voice` runs every candidate trait through `references/extraction-validation.md` before it gets written to the voice profile. A "uses lists frequently" candidate that fails exclusivity (every tech blogger uses lists) gets dropped, even if recurrence is high.
+- `codebase-analyzer` discovers patterns by counting occurrences across files; the count is the recurrence check, codified.
+- Retro graduation requires a learning to fire across at least two sessions and to produce a falsifiable rule before it leaves `learning.db` and enters an agent's reference file. A one-off observation stays in the database; only triple-validated entries graduate into prompts.
+
+The point is not extraction quantity. A profile with five high-confidence traits beats one with twenty plausible-looking ones, because the five drive correct downstream decisions and the twenty force the model to pick which to honor.
+
+## Deterministic Phase Checkpoints
+
+The determinism principle has a specific, high-value application between research and synthesis phases: the stats table as gate.
+
+Between any phase that gathers material in parallel and any phase that synthesizes from it, insert a script that walks the artifact directory, counts what's there, computes ratios, surfaces conflicts, and emits a Markdown table. The table is the gate. Synthesis does not begin until the table looks right. LLM judgment runs downstream of the deterministic count, not in place of it.
+
+The script answers questions the LLM should not be guessing:
+- How many sources did each parallel agent return?
+- What is the primary-to-secondary ratio across the corpus?
+- Which claims appear in only one source (low corroboration)?
+- Where do sources directly contradict each other?
+
+These are counting problems. Counting problems belong to scripts. The Markdown table makes the count visible and auditable; the model reads the table and decides whether to proceed, expand the search, or flag the conflict — but it never invents the count.
+
+**What this means in practice:**
+
+- `research-pipeline` Phase 1.5 runs `scripts/research-stats-checkpoint.py` between GATHER and SYNTHESIZE. The script walks `research/{topic}/`, emits a per-agent source table, and refuses to mark the phase complete if any agent returned fewer sources than the configured floor.
+- `voice-writer` Phase 2 (GATHER → VALIDATE) uses the same checkpoint to confirm sample coverage across modes before any prose generation begins. A profile with three samples in one mode and zero in another stalls at the gate — the table shows the gap and the operator either supplies more samples or accepts the narrowed scope explicitly.
+- The gate is structural, not advisory. A phase that the script flags as incomplete does not advance because the table is the artifact the next phase reads, and the next phase's instructions require the table to show passing counts.
+
+We rely on the verifier loop to surface failures, rather than asking output to declare its own limits. The deterministic checkpoint is one half of that loop: it catches what's missing before the model is asked to reason over it. The voice-validator critique pass is the other half, applied after generation. Between the two, undocumented edge cases get caught by being tested, not by being preemptively confessed.
+
 ## Local-First, Deterministic Systems Over External APIs
 
 Whenever feasible, build local, deterministic versions of functionality rather than outsource to external APIs. An external API is a runtime dependency that couples the toolkit to a third-party service's availability, cost model, rate limits, and API stability — all of which are someone else's problem until they become yours at the worst possible moment. A local script is deterministic, cost-predictable, offline-capable, and under our control. When an API is unavoidable — generating images from text, for example — wrap it in a skill that makes the dependency explicit (required environment variables, visible fallback chain, single point of invocation) and captures the API contract in the skill's references, so a breaking change is localized rather than systemic. The rule is not "never use APIs." The rule is default to local solutions and treat APIs as explicit, managed dependencies rather than invisible infrastructure. User-owned-key fallbacks are acceptable when (a) the user holds the key, (b) the fallback is opt-in by environment variable presence, (c) the fallback path is documented and visible in error messages. What is forbidden is third-party billing the user did not authorize — a fallback that hits a service the toolkit pays for, or that silently charges a card the user never connected, is the worst of both worlds: unpredictable cost plus unpredictable availability.
