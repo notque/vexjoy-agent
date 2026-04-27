@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-27T02:05:18Z",
+  "generated": "2026-04-27T17:52:17Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -1690,7 +1690,7 @@
     },
     "skill-eval": {
       "file": "skills/skill-eval/SKILL.md",
-      "description": "Evaluate skills: trigger testing, A/B benchmarks, structure validation.",
+      "description": "Evaluate skills: trigger testing, A/B benchmarks, structure validation, head-to-head bake-offs.",
       "triggers": [
         "improve skill",
         "test skill",
@@ -1700,7 +1700,14 @@
         "skill quality",
         "self-improve skill",
         "skill self-improvement",
-        "improve skill with variants"
+        "improve skill with variants",
+        "bake-off",
+        "bake off",
+        "head-to-head",
+        "head to head",
+        "compare implementations",
+        "grade two versions",
+        "which skill is better"
       ],
       "category": "meta",
       "user_invocable": false,
@@ -1976,6 +1983,17 @@
       ],
       "category": "testing",
       "user_invocable": false
+    },
+    "voice-feynman": {
+      "file": "skills/voice-feynman/SKILL.md",
+      "description": "Apply Richard Feynman's voice profile for content generation: mechanism-first thinking, refusal of jargon, plain English when truth is embarrassing...",
+      "triggers": [
+        "voice-feynman",
+        "voice",
+        "feynman"
+      ],
+      "user_invocable": false,
+      "version": "1.0.0"
     },
     "voice-validator": {
       "file": "skills/voice-validator/SKILL.md",

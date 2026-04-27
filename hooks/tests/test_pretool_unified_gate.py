@@ -360,6 +360,33 @@ class TestCheckCreationGate:
         with patch("os.path.exists", return_value=False):
             assert _run_main(payload) == 2
 
+    def test_voice_skill_creation_allowlisted(self):
+        """skills/voice-*/SKILL.md is produced by create-voice — must pass through."""
+        payload = _make_write_event("/project/skills/voice-feynman/SKILL.md")
+        with patch("os.path.exists", return_value=False):
+            assert _run_main(payload) == 0
+
+    def test_voice_skill_creation_allowlisted_alt_name(self):
+        """The voice-* allowlist accepts any name suffix, not just one example."""
+        payload = _make_write_event("/project/skills/voice-someone-else/SKILL.md")
+        with patch("os.path.exists", return_value=False):
+            assert _run_main(payload) == 0
+
+    def test_non_voice_skill_still_blocked(self):
+        """Allowlist must not leak: a generic skill name still routes through skill-creator."""
+        payload = _make_write_event("/project/skills/some-other-skill/SKILL.md")
+        with patch("os.path.exists", return_value=False):
+            assert _run_main(payload) == 2
+
+    def test_voice_prefix_does_not_match_non_skill_md(self):
+        """Allowlist matches SKILL.md only — other files in voice-*/ aren't its concern."""
+        # The creation gate doesn't fire on non-SKILL.md files anyway, so this
+        # confirms the allowlist regex is anchored correctly and doesn't
+        # accidentally widen the gate's surface.
+        payload = _make_write_event("/project/skills/voice-feynman/notes.md")
+        with patch("os.path.exists", return_value=False):
+            assert _run_main(payload) == 0
+
 
 # ---------------------------------------------------------------------------
 # TestCheckSensitiveFile

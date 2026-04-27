@@ -170,6 +170,47 @@ without one fail the check. If a prohibition genuinely has no correct alternativ
 annotate it with `<!-- no-pair-required: reason -->` to pass validation without
 a "Do instead" block. Ship the skill only after this check exits 0.
 
+**Triple-validation verdicts on documented patterns** -- When the skill
+documents patterns the model is supposed to apply (mental models, heuristics,
+phrase fingerprints, voice traits, code conventions), every pattern block
+carries an explicit verdict from the triple-validation rubric: **KEEP**,
+**FOOTNOTE**, or **DROP**. KEEP and FOOTNOTE patterns ship in the SKILL.md;
+DROP patterns stay in working notes (`pattern-candidates.md` or equivalent)
+and never reach the published file.
+
+The rubric (recurrence, generative power, exclusivity) lives at
+`skills/create-voice/references/extraction-validation.md`. Load it on demand
+when running the gate; do not duplicate the content here.
+
+Three accepted verdict markers, in priority order:
+
+1. A line in the pattern's body containing `**Verdict**: KEEP` /
+   `**Verdict**: FOOTNOTE` / `**Verdict**: DROP`.
+2. An inline tag at the end of the H3 heading: `### M1: Mechanism-first (KEEP)`.
+3. A blanket tag on the parent H2 heading covering every child:
+   `## Mental Models (KEEP-verdict)`. Per-block markers override the blanket.
+
+For each KEEP or FOOTNOTE pattern, attach one line of evidence covering the
+three checks ("appears in X and Y; predicts Z; distinguishes from peer W").
+Patterns without that evidence fail the gate even if they carry a verdict
+word -- the verdict is a claim, the evidence is what makes it auditable.
+
+**Phase gate (before shipping):** every documented pattern carries a KEEP or
+FOOTNOTE verdict with one-line evidence covering the three checks. Patterns
+without verdicts fail the gate. The deterministic check below enforces the
+verdict half; the evidence half is read by reviewers.
+
+```bash
+python3 scripts/check-skill-verdicts.py skills/<your-skill>/SKILL.md
+```
+
+The script walks H3 sections under H2 parents named Mental Models, Heuristics,
+Phrase Fingerprints, or Patterns (case-insensitive substring match) and exits
+non-zero on any block lacking a KEEP or FOOTNOTE verdict, or carrying DROP.
+Wire it into the post-scaffold gate alongside `validate-references.py`. Skills
+that document no patterns (pure workflow skills) exit 0 trivially -- the gate
+only fires when there are patterns to verdict.
+
 **Progressive disclosure** -- SKILL.md is the routing target, not the reference
 library. It stays lean so it loads fast when Claude considers invoking it, then
 reads `references/` on demand as phases execute. See

@@ -48,7 +48,7 @@ routing:
 
 # Voice Writer Skill
 
-This skill operates as the unified entry point for all voiced content generation. It implements an 9-phase pipeline architecture with deterministic validation at quality gates, joy-check enforcement before output, and strict iteration limits.
+This skill operates as the unified entry point for all voiced content generation. It implements a phased pipeline (LOAD, GROUND, STATS-CHECKPOINT, GENERATE, VALIDATE, REFINE, JOY-CHECK, ANTI-AI CHECK, OUTPUT, CLEANUP) with deterministic validation at quality gates, a research-stats gate when artifacts back the piece, joy-check enforcement before output, and strict iteration limits.
 
 ---
 
@@ -107,6 +107,41 @@ See `references/grounding-guide.md` for full question tables, templates, and con
 **Important constraint**: This grounding is mandatory, not optional. Content generated without emotional anchor and mode selection sounds mechanical regardless of metrics match. The validator catches style mismatches but cannot fix a hollow emotional foundation. Do not skip this step even briefly — complete it fully before moving to GENERATE.
 
 **Gate**: Emotion, audience, and mode are established. If blog post, topic assessed and structure planned. Proceed only when gate passes.
+
+### Phase 2.5: STATS-CHECKPOINT (Deterministic, Conditional)
+
+**Goal**: When the piece is grounded on research artifacts under `research/{topic}/`, run a deterministic stats gate before synthesis. Skip this phase when no research directory is in scope.
+
+This phase replaces an LLM-judgment gate with a deterministic one. The script counts artifacts per agent, computes the primary-source ratio, surfaces conflicting frontmatter values across artifacts, and exits non-zero when configurable thresholds are not met. If the gate fails, dispatch additional researchers or add primary sources before generating.
+
+**Step 1: Detect research directory**
+
+```bash
+test -d research/{topic}/ && echo "research dir present" || echo "no research dir"
+```
+
+If absent, skip to Phase 3.
+
+**Step 2: Run the checkpoint script**
+
+Run the script at `scripts/research-stats-checkpoint.py` from the toolkit repo root:
+
+```bash
+python3 $HOME/claude-code-toolkit/scripts/research-stats-checkpoint.py research/{topic}/
+```
+
+The script emits a Markdown summary table (artifacts total, per-agent counts, primary-source ratio, conflicts) to stdout. Read the table and treat conflicts as advisory signals worth resolving with the user before generation.
+
+Default thresholds: `--min-primary 3` and `--max-agent-share 0.75`. Override per topic when justified, but document the override reason in the OUTPUT validation report.
+
+**Step 3: Decision logic**
+
+- Exit 0: gate passed -- proceed to Phase 3 (GENERATE).
+- Exit non-zero: gate failed -- STOP. Show the script output to the user. The fix is upstream: dispatch additional researchers, add primary-source artifacts, or rebalance coverage. Do not work around the gate by raising thresholds without the user's explicit approval.
+
+**Important constraint**: The stats checkpoint exists because synthesizing on a thin or single-sourced research base produces voice content that asserts more than the corpus supports. The deterministic gate prevents that failure mode at low cost. Skipping the gate when a research directory exists is a regression.
+
+**Gate**: When a research directory exists, the script exits 0 and the table has been reviewed. When no research directory exists, this phase is recorded as N/A. Proceed only when gate passes.
 
 ### Phase 3: GENERATE
 
@@ -331,6 +366,7 @@ Result: Voice-consistent technical piece with full validation
 - `${CLAUDE_SKILL_DIR}/references/structure-templates.md`: Templates for Problem-Solution, Technical Explainer, and Walkthrough content types
 
 ### Related Skills and Scripts
+- `scripts/research-stats-checkpoint.py` -- Deterministic Phase 2.5 stats gate over `research/{topic}/` (artifacts per agent, primary-source ratio, conflicts)
 - `joy-check` -- Standalone joy framing validation (invoked as Phase 6 of this pipeline)
 - `scan-negative-framing.py` -- Regex pre-filter for obvious negative framing patterns
 - `voice-validator` -- Deterministic voice fidelity validation

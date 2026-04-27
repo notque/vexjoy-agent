@@ -125,7 +125,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **agent-comparison** | User wants to A/B test agents, run autoresearch, optimize a skill description, or optimize a skill body with benchmark tasks. |
 | **agent-upgrade** | User wants to audit and systematically improve a specific agent to bring it up to current template standards. |
 | **testing-agents-with-subagents** | User wants to validate an agent by running it against real test cases in subagents. |
-| **skill-eval** | User wants to evaluate a skill, test triggers manually, benchmark it against scenarios, or inspect skill quality without running the autoresearch optimizer. |
+| **skill-eval** | User wants to evaluate a skill, test triggers manually, benchmark it against scenarios, inspect skill quality without running the autoresearch optimizer, OR run a head-to-head bake-off between two peer implementations of the same artifact (Mode F). Triggers: "evaluate skill", "test skill", "skill quality", "bake-off", "head-to-head", "compare implementations", "grade two versions", "which skill is better". NOT: A/B testing variants of one author's agent (use `agent-comparison`). NOT: with-skill vs without-skill output benchmarks (Mode C of skill-eval, not bake-off). |
 | **full-repo-review** | User wants a comprehensive 3-wave review of all source files in the entire repository. |
 | **github-notification-triage** | User wants to triage GitHub notifications: fetch, classify, and report actions needed. Common phrasings: "check notifications", "github inbox", "triage notifications". |
 | **repo-value-analysis** | User wants to systematically analyze an external repository to determine what ideas or patterns are worth adopting. |
@@ -337,6 +337,9 @@ Consolidated reviewer agents, each covering multiple review perspectives:
 | "review my K8s manifests" | kubernetes-helm-engineer + systematic-code-review | K8s domain, review task |
 | "roast this design doc" | roast (5 personas) | Multi-persona critique |
 | "execute plan with subagents" | subagent-driven-development | Explicit subagent execution |
+| "bake-off voice-feynman vs external" | skill-eval (Mode F) | Head-to-head peer-implementation bake-off |
+| "head-to-head grade these two skills" | skill-eval (Mode F) | Numeric rubric, decisive winner, fold-list |
+| "compare two implementations of X" | skill-eval (Mode F) | Peer artifacts, not author-variants |
 | "debug TypeScript race condition" | typescript-debugging-engineer + systematic-debugging | TS debugging domain |
 | "write in custom voice" | voice-writer + [your-voice-skill] | Voice generation task |
 | "comprehensive code review" | parallel-code-review (3 reviewers) | Multi-reviewer parallel review |

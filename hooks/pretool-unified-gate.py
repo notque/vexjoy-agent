@@ -14,6 +14,10 @@ Attribution blocking removed: use settings.json {"attribution": {"commit": "", "
 Each check preserves its original stderr prefix and bypass mechanism.
 Exit 0 always. Blocks emit JSON permissionDecision:deny to stdout. Entire main() wrapped in try/except to fail OPEN.
 
+Creation-gate allowlist: see _CREATION_PATH_ALLOWLIST. Path shapes produced
+by named non-skill-creator skills (e.g. create-voice → skills/voice-*/SKILL.md)
+pass through. Without this, those skills had to bypass via /tmp + cp.
+
 Performance: <50ms. Early-exit for non-matching tools. Only gitignore bypass uses subprocess.
 """
 
@@ -98,6 +102,32 @@ _CREATION_BYPASS_ENV = "CREATION_GATE_BYPASS"
 _AGENT_PATTERN = re.compile(r"/agents/[^/]+\.md$")
 _SKILL_PATTERN = re.compile(r"/(skills|pipelines)/[^/]+/SKILL\.md$")
 _WORKFLOW_REF_PATTERN = re.compile(r"/skills/workflow/references/[^/]+\.md$")
+
+# Path-shape allowlist for components produced by non-skill-creator paths.
+#
+# Why this exists: the creation gate's default policy is "all new skills must
+# route through skill-creator." That is correct for general-purpose skills,
+# but several specialised skills are themselves the documented authoring
+# pipeline for a specific kind of component. Forcing those outputs through
+# skill-creator would break their methodology and (as observed) silently
+# pushes agents into bypass workarounds (Write to /tmp/, then `cp`).
+#
+# Each entry must point to a path shape produced by exactly one well-known
+# upstream skill/pipeline whose methodology is the de-facto SOP for that
+# component type. Add new entries sparingly and document the producer.
+#
+# Maintainer note: this allowlist is intentionally narrow. Do NOT add broad
+# patterns like `/skills/.+/SKILL\.md$` — that would defeat the gate. The
+# correct test for a new entry is: "Is there a single, named skill whose
+# documented output is this path shape?" If not, route through skill-creator.
+_CREATION_PATH_ALLOWLIST: list[tuple[re.Pattern[str], str]] = [
+    # voice-* skills are produced by the `create-voice` skill (Step 5: GENERATE
+    # in skills/create-voice/SKILL.md and skills/create-voice/references/
+    # skill-generation.md). create-voice is the canonical SOP for voice
+    # profiles; it scaffolds skills/voice-{name}/SKILL.md, config.json, and
+    # profile.json directly via Write.
+    (re.compile(r"/skills/voice-[^/]+/SKILL\.md$"), "create-voice"),
+]
 
 # ═══════════════════════════════════════════════════════════════
 # 5. SENSITIVE FILE PATTERNS (pretool-sensitive-file-guard.py)
@@ -380,7 +410,7 @@ def check_dangerous_command(command: str) -> None:
 
 
 def check_creation_gate(file_path: str) -> None:
-    """Block new agent/skill file creation unless bypassed."""
+    """Block new agent/skill file creation unless bypassed or on the producer allowlist."""
     if os.environ.get(_CREATION_BYPASS_ENV) == "1":
         return
 
@@ -393,6 +423,12 @@ def check_creation_gate(file_path: str) -> None:
     # Allow overwrites of existing files (update, not creation)
     if os.path.exists(file_path):
         return
+
+    # Allow creation paths produced by named upstream skills (see
+    # _CREATION_PATH_ALLOWLIST docstring).
+    for allowed_pattern, _producer in _CREATION_PATH_ALLOWLIST:
+        if allowed_pattern.search(file_path):
+            return
 
     component_type = "agent" if is_agent else "workflow reference" if is_workflow_ref else "skill"
     _block(
