@@ -405,6 +405,36 @@ Skill documents place the workflow (Instructions/Phases) immediately after the f
 
 **Progressive disclosure completes the picture:** Workflow-first ordering keeps SKILL.md navigable. For skills exceeding ~500 lines, detailed catalogs, agent rosters, and specification tables move to `references/` files. The SKILL.md workflow tells the model when to load each reference -- "Read `references/wave-1-foundation.md` for the agent list and dispatch prompts." The model gets the orchestration logic upfront and loads deep context only when the current phase needs it.
 
+## Plain Language Over Jargon
+
+Clear writing proves clear thinking. Padding and jargon prove the opposite.
+
+George Orwell codified this in "Politics and the English Language" (1946) with six rules that apply directly to how this toolkit communicates:
+
+1. Never use a metaphor, simile, or figure of speech you are accustomed to seeing in print.
+2. Never use a long word where a short one will do.
+3. If it is possible to cut a word out, always cut it out.
+4. Never use the passive where you can use the active.
+5. Never use a foreign phrase, a scientific word, or a jargon word if you can think of an everyday English equivalent.
+6. Break any of these rules sooner than say anything outright barbarous.
+
+These rules govern all toolkit output: agent summaries, error messages, phase banners, skill instructions, and documentation. A user reading output from this system should feel they're talking to someone who understands the problem, not someone performing understanding.
+
+**What this means in practice:**
+
+| Instead of | Write |
+|------------|-------|
+| "I've identified several potential optimization vectors for consideration" | "Three things are slow. Here's why." |
+| "Leverage the existing infrastructure" | "Use what's already there" |
+| "An unexpected condition was encountered during processing" | "This broke. Here's what happened." |
+| "The implementation has been successfully completed" | "Done." |
+
+The test: if a sentence sounds like it was written by a corporate communications department, rewrite it until it sounds like it was written by someone who knows the subject.
+
+Rule 6 matters as much as rules 1-5. Sometimes the clearest way to say something requires a long word, a passive construction, or a technical term. Use them when they earn their place. The goal is clarity, not a word game.
+
+*Citation: Orwell, George. "Politics and the English Language." Horizon, vol. 13, no. 76, April 1946, pp. 252-265.*
+
 ## One Domain, One Component
 
 The system prompt token budget is finite. Every agent description and every skill description appears in the system prompt at session start. As agent and skill counts grow, description bloat directly degrades routing quality and consumes tokens before any work begins.

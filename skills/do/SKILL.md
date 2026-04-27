@@ -52,6 +52,33 @@ When the model feels confident handling a task directly, treat that confidence a
 
 ---
 
+## Output Discipline
+
+Say more with fewer words. Every sentence the router prints is a sentence the user reads before seeing results.
+
+**Orwell's Six Rules** apply to all output from this router and every agent it dispatches. From George Orwell, "Politics and the English Language" (1946):
+
+1. Never use a metaphor, simile, or figure of speech you are accustomed to seeing in print.
+2. Never use a long word where a short one will do.
+3. If it is possible to cut a word out, always cut it out.
+4. Never use the passive where you can use the active.
+5. Never use a foreign phrase, a scientific word, or a jargon word if you can think of an everyday English equivalent.
+6. Break any of these rules sooner than say anything outright barbarous.
+
+Clear language proves understanding. Jargon proves the opposite. If output sounds like a committee wrote it, rewrite it until it sounds like a person who knows the subject wrote it.
+
+**What the user sees:**
+- Phase banners — always shown, they orient the reader
+- The routing decision banner — always shown, it explains the dispatch
+- A brief summary after each agent completes — what changed, not how
+
+**What stays internal:**
+- Haiku routing agent responses — consumed by the router, never printed
+- Classification reasoning
+- Enhancement stacking details (unless Verbose Routing is ON)
+
+---
+
 ## Instructions
 
 ### Phase Banners (MANDATORY)
@@ -164,6 +191,8 @@ Rules:
 **Step 1b: Apply the Haiku agent's recommendation**
 
 Use the Haiku agent's `agent` and `skill` fields directly. If `confidence` is "low", fall back to reading INDEX files (`agents/INDEX.json`, `skills/INDEX.json`) and `references/routing-tables.md` to verify or override manually.
+
+**The Haiku agent's response is internal.** Do not print its JSON or reasoning to the user. Extract the fields, apply them, move on. The routing banner is the user-facing summary.
 
 **Critical**: "push", "commit", "create PR", "merge" are NOT trivial git commands. They MUST route through skills that run quality gates. The skills bundle lint, tests, review loops, CI verification, and repo classification into the single command so the push lands cleanly.
 
