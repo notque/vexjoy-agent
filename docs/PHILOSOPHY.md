@@ -357,6 +357,25 @@ Making a skill shorter by deleting content is not progressive disclosure — it'
 
 **Repo-level `scripts/`** is reserved for toolkit-wide operations (learning-db.py, INDEX generation) — tools that operate on the system as a whole, not on a single skill's workflow.
 
+## Skills Contain Execution Context Only
+
+A skill's content is exactly what the LLM needs at runtime to perform the action. Nothing else lives there. SKILL.md is a working tool the model executes against, not a portfolio piece about the tool.
+
+This is "Load Only What You Need" applied at the skill-content level. The same handyman analogy holds: the toolbox carries the tools the job requires, not a placard about the carpenter's training history. Every byte the model reads at invocation should change what it does next.
+
+**What this means in practice:**
+
+- The workflow, phases, and gates the LLM executes — IN. These are the steps the model walks through to produce the output.
+- The decision criteria, verdict vocabulary, scoring rubrics, and worked examples the LLM judges against — IN. The model needs concrete patterns to match against ("a trait that fails exclusivity gets dropped"), not abstract definitions.
+- References loaded on demand for domain depth — IN, in `references/`. SKILL.md tells the model when to load each one; the deep content stays out of the always-loaded prefix until a phase requires it.
+- Install instructions, license text, contributor lists, "About the Author" sections — OUT. They belong in `docs/`, `README.md`, and `CITATIONS.md`. The model performing the skill's action does not consume them at runtime.
+- Discussion of what the skill could be misused for, ethical boundaries about its subject, source-discipline disclaimers — OUT. Ethical judgment happens at the moment of use, by the operator and the agent reading the actual request, not by encoding worry into the prompt context. A voice profile that documents "what this voice cannot honestly claim about its subject" is meta-discussion about the profile, not input the generator uses to write a sentence.
+- General philosophical framing about why the skill matters — OUT. Irrelevant to execution. If a principle is load-bearing for the toolkit, it goes here in PHILOSOPHY.md, where it shapes every skill at once. Restating it inside one skill duplicates the policy and makes drift inevitable.
+
+The runtime-priming argument is empirical, not aesthetic. Every byte of context shapes the output distribution. Negative framing — "do not claim X about Feynman's personal life" — biases generation toward those exact topics by salience; the model has now been told they exist and are sensitive, which is the worst of both worlds when the user asked for something else entirely. Positive framing — "apply mechanism-first thinking; cite primary sources" — biases toward the desired output. The same logic that drives the joy-check rubric for instruction-mode content (ADR-127) drives this rule for skill-body content: tell the LLM what to do, not what to fear.
+
+This is also "Workflow First, Constraints Inline" applied with discipline about *which* constraints belong inline. Constraints that govern the workflow's decision points belong attached to those decision points — "use table-driven tests because they make adding cases trivial" inside the testing phase. Constraints that are *about* the skill rather than *executed by* it (provenance, ethics framing, marketing copy) do not belong in the skill at all. The `create-voice` skill, after this principle is enforced, will not document author-personality caveats; that judgment happens at the moment a writer asks the voice to produce text on a sensitive topic, where the operator and the validator can see the actual request, not at profile-build time where the worry would only contaminate the generator's context.
+
 ## Workflow First, Constraints Inline
 
 Skill documents place the workflow (Instructions/Phases) immediately after the frontmatter. Constraints appear inline within the phases they govern, with reasoning attached ("because X"), not in a separate upfront section.
