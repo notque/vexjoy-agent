@@ -50,7 +50,6 @@ Task completes: TaskCompleted
 |------|-------------|
 | `adr-context-injector` | Stub — previously injected ADR session context; disabled pending redesign |
 | `anti-rationalization-injector` | Stub — previously injected anti-rationalization warnings; now handled by `/do` Phase 3 |
-| `auto-plan-detector` | Stub — previously detected complex tasks; now handled by `/do` Phase 1/Phase 4 |
 | `capability-catalog-injector` | Injects full skill/agent catalog into `/do` routing context |
 | `creation-request-enforcer-userprompt` | Stub — previously detected creation requests; now handled by `/do` Phase 1 |
 | `instruction-reminder` | Stub — previously re-injected CLAUDE.md; now handled natively by Claude Code |

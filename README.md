@@ -131,7 +131,7 @@ Agents carry domain-specific expertise. Not thin wrappers that say "you are an e
 - System upgrades, toolkit governance, technical documentation
 - MCP server development, Perses observability platform
 
-### 125 Workflow Skills
+### 110 Workflow Skills
 
 Skills enforce methodology. They are phased workflows with gates that prevent skipping steps.
 
@@ -145,11 +145,11 @@ Skills enforce methodology. They are phased workflows with gates that prevent sk
 
 **Meta:** skill evaluation, agent comparison, A/B testing, toolkit evolution, reference enrichment, routing table management
 
-### 69 Hooks
+### 72 Hooks
 
 Event-driven automation that fires on session start, before/after tool use, at compaction, and on stop. Error learning, context injection, quality enforcement, and anti-rationalization all run automatically.
 
-### 81 Scripts
+### 110 Scripts
 
 Deterministic Python utilities for mechanical operations: INDEX generation, learning database management, voice validation, routing manifests, reference validation. LLMs orchestrate; programs execute.
 
