@@ -1,5 +1,7 @@
 # Pixel Art Sprites — Code-Only Generation
 
+> **Note:** For AI-driven sprite generation (portrait and animated spritesheet modes), see `skills/game-sprite-pipeline/SKILL.md`. This reference covers matrix-based deterministic pixel-art generation only.
+
 Canvas-based sprite generation with no external API dependency. Works in any browser or Node.js (via `canvas` package). All output is PNG.
 
 ---
