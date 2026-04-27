@@ -109,6 +109,9 @@ draft-*.md
 scratch/
 research-*.md
 
+# Working artifacts (verifier reports, scratch notes, bake-offs)
+tmp/
+
 # Eval workspaces (A/B/C test outputs, generated code, grading artifacts)
 # These are ephemeral experiment data — not committed
 *-workspace/
