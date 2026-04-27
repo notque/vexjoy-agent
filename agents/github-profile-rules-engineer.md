@@ -10,7 +10,7 @@ routing:
     - github conventions
     - programming rules
   pairs_with:
-    - github-profile-rules
+    - workflow
   complexity: Medium
   category: meta
 allowed-tools:

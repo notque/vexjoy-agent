@@ -16,11 +16,11 @@ routing:
     - new claude version
     - apply retro
   pairs_with:
-    - system-upgrade
+    - toolkit-evolution
     - agent-evaluation
     - codebase-analyzer
     - routing-table-updater
-    - pr-pipeline
+    - pr-workflow
   complexity: Complex
   category: meta
 allowed-tools:
