@@ -11,6 +11,9 @@ routing:
     - "Swift Testing framework"
     - "async test swift"
   category: swift
+  pairs_with:
+    - swift-concurrency
+    - test-driven-development
 ---
 
 # Swift Testing Patterns

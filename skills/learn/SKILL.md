@@ -14,6 +14,9 @@ routing:
     - "teach error pattern"
     - "save learning"
   category: meta-tooling
+  pairs_with:
+    - retro
+    - auto-dream
 ---
 
 # Learn Error Pattern Skill

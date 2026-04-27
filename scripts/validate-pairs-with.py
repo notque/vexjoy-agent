@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate that all pairs_with entries in agent frontmatter resolve to real
+"""Validate that all pairs_with entries in agent and skill frontmatter resolve to real
 skills, pipelines, or other agents.
 
 Exit 0 if every reference resolves; exit 1 if any are broken.
@@ -84,7 +84,7 @@ def parse_frontmatter(text: str) -> dict[str, object] | None:
             # Block list item
             list_match = re.match(r"^\s+-\s+(.*)", stripped)
             if list_match:
-                item = list_match.group(1).strip()
+                item = list_match.group(1).strip().strip("'\"")
                 if current_list is None:
                     current_list = []
                     # Figure out which key this list belongs to
@@ -212,8 +212,53 @@ def validate_agents(agents_dir: Path, skills_dir: Path, pipelines_dir: Path) -> 
     return broken
 
 
+def validate_skills(skills_dir: Path, pipelines_dir: Path, agents_dir: Path) -> list[tuple[str, str, str]]:
+    """Validate all pairs_with references in skill frontmatter.
+
+    Returns list of (skill_dir_name, broken_ref, suggestion).
+    """
+    valid_names = collect_valid_names(skills_dir, pipelines_dir, agents_dir)
+    broken: list[tuple[str, str, str]] = []
+
+    if not skills_dir.is_dir():
+        return broken
+
+    for skill_dir in sorted(skills_dir.iterdir()):
+        if not skill_dir.is_dir():
+            continue
+        skill_file = skill_dir / "SKILL.md"
+        if not skill_file.exists():
+            continue
+
+        text = skill_file.read_text(encoding="utf-8")
+        frontmatter = parse_frontmatter(text)
+        if not frontmatter:
+            continue
+
+        routing = frontmatter.get("routing")
+        if not isinstance(routing, dict):
+            continue
+
+        pairs_with = routing.get("pairs_with")
+        if not pairs_with:
+            continue
+
+        if isinstance(pairs_with, str):
+            pairs_with = [pairs_with]
+        if not isinstance(pairs_with, list):
+            continue
+
+        for ref in pairs_with:
+            ref = str(ref).strip()
+            if ref and ref not in valid_names:
+                suggestion = suggest_fix(ref, valid_names)
+                broken.append((skill_dir.name, ref, suggestion))
+
+    return broken
+
+
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Validate pairs_with references in agent frontmatter")
+    parser = argparse.ArgumentParser(description="Validate pairs_with references in agent and skill frontmatter")
     parser.add_argument(
         "--agents-dir",
         default="agents",
@@ -237,24 +282,27 @@ def main() -> None:
     pipelines_dir = Path(args.pipelines_dir).resolve()
 
     broken = validate_agents(agents_dir, skills_dir, pipelines_dir)
+    skill_broken = validate_skills(skills_dir, pipelines_dir, agents_dir)
 
-    if not broken:
+    all_broken = [(f"agent:{b[0]}", b[1], b[2]) for b in broken] + [(f"skill:{b[0]}", b[1], b[2]) for b in skill_broken]
+
+    if not all_broken:
         print("All pairs_with references are valid.")
         sys.exit(0)
 
     # Print results table
-    max_agent = max(len(b[0]) for b in broken)
-    max_ref = max(len(b[1]) for b in broken)
-    max_sug = max(len(b[2]) for b in broken)
+    max_source = max(len(b[0]) for b in all_broken)
+    max_ref = max(len(b[1]) for b in all_broken)
+    max_sug = max(len(b[2]) for b in all_broken)
 
-    header = f"{'Agent File':<{max_agent}}  {'Broken Reference':<{max_ref}}  {'Suggested Fix':<{max_sug}}"
+    header = f"{'Source':<{max_source}}  {'Broken Reference':<{max_ref}}  {'Suggested Fix':<{max_sug}}"
     print(header)
     print("-" * len(header))
 
-    for agent_file, ref, suggestion in broken:
-        print(f"{agent_file:<{max_agent}}  {ref:<{max_ref}}  {suggestion:<{max_sug}}")
+    for source, ref, suggestion in all_broken:
+        print(f"{source:<{max_source}}  {ref:<{max_ref}}  {suggestion:<{max_sug}}")
 
-    print(f"\nTotal broken references: {len(broken)}")
+    print(f"\nTotal broken references: {len(all_broken)}")
     sys.exit(1)
 
 

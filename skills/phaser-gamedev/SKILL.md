@@ -1,6 +1,7 @@
 ---
 name: phaser-gamedev
 description: "Phaser 3 2D game dev: scenes, physics, tilemaps, sprites, polish."
+agent: typescript-frontend-engineer
 user-invocable: false
 allowed-tools:
   - Read

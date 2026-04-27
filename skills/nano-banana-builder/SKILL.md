@@ -1,6 +1,7 @@
 ---
 name: nano-banana-builder
 description: "Image generation and post-processing via Gemini Nano Banana APIs."
+agent: python-general-engineer
 user-invocable: false
 allowed-tools:
   - Read

@@ -18,6 +18,9 @@ routing:
     - "validate agent"
     - "agent test harness"
   category: testing
+  pairs_with:
+    - agent-evaluation
+    - subagent-driven-development
 ---
 
 # Testing Agents With Subagents

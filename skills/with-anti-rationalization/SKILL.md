@@ -19,6 +19,8 @@ routing:
     - "strict mode"
     - "no shortcuts"
   category: process
+  pairs_with:
+    - verification-before-completion
 ---
 
 # Anti-Rationalization Enforcement Skill

@@ -19,7 +19,7 @@ routing:
     - wiring check
   pairs_with:
     - feature-lifecycle
-    - comprehensive-review
+    - systematic-code-review
   complexity: Medium
   category: process
 ---

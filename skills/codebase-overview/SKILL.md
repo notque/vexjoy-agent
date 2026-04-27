@@ -21,6 +21,9 @@ routing:
     - "summarize this repo"
     - "understand this codebase"
   category: analysis
+  pairs_with:
+    - codebase-analyzer
+    - generate-claudemd
 ---
 
 # Codebase Overview Skill

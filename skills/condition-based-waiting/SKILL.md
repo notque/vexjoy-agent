@@ -19,6 +19,9 @@ routing:
     - "poll until ready"
     - "retry until success"
   category: process
+  pairs_with:
+    - shell-process-patterns
+    - service-health-check
 ---
 
 # Condition-Based Waiting

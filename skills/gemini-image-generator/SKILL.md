@@ -1,6 +1,7 @@
 ---
 name: gemini-image-generator
 description: "Generate images from text prompts via Google Gemini."
+agent: python-general-engineer
 user-invocable: false
 allowed-tools:
   - Read

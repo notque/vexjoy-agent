@@ -17,6 +17,10 @@ routing:
     - "grade agent"
     - "agent quality"
   category: meta-tooling
+  pairs_with:
+    - agent-comparison
+    - skill-eval
+    - skill-creator
 ---
 
 # Agent Evaluation Skill

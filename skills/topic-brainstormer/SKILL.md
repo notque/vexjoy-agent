@@ -18,6 +18,10 @@ routing:
     - "blog topic ideas"
     - "what to write about"
   category: content-creation
+  pairs_with:
+    - content-calendar
+    - series-planner
+    - research-pipeline
 ---
 
 # Topic Brainstormer

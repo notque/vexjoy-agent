@@ -21,6 +21,10 @@ routing:
     - "should I use"
     - "evaluate options"
   category: process
+  pairs_with:
+    - multi-persona-critique
+    - adr-consultation
+    - planning
 ---
 
 # Decision Helper Skill

@@ -17,6 +17,10 @@ routing:
     - "format code"
     - "lint errors"
   category: code-quality
+  pairs_with:
+    - code-cleanup
+    - universal-quality-gate
+    - python-quality-gate
 ---
 
 # Code Linting Skill

@@ -1,6 +1,7 @@
 ---
 name: webgl-card-effects
 description: "Standalone WebGL fragment shaders for card visual effects: holographic foil, shimmer, rarity glow."
+agent: typescript-frontend-engineer
 user-invocable: false
 command: /card-effects
 allowed-tools:

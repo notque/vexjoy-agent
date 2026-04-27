@@ -18,6 +18,9 @@ routing:
     - "coaching mode"
     - "teach me to find it"
   category: process
+  pairs_with:
+    - forensics
+    - systematic-code-review
 ---
 # Socratic Debugging Skill
 

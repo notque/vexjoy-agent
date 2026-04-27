@@ -26,6 +26,9 @@ routing:
     - "research report"
     - "gather evidence"
   category: research
+  pairs_with:
+    - kb
+    - topic-brainstormer
 ---
 
 # Research Pipeline

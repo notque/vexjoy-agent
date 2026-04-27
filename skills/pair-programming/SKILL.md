@@ -20,6 +20,9 @@ routing:
     - "walk me through"
     - "interactive coding"
   category: process
+  pairs_with:
+    - test-driven-development
+    - subagent-driven-development
 ---
 
 # Pair Programming Skill

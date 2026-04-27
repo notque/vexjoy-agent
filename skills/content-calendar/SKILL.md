@@ -17,6 +17,10 @@ routing:
     - "content schedule"
     - "publication plan"
   category: content-creation
+  pairs_with:
+    - topic-brainstormer
+    - series-planner
+    - publish
 ---
 
 # Content Calendar Skill

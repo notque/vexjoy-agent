@@ -19,6 +19,10 @@ routing:
     - "visual identity"
     - "design language"
   category: frontend
+  pairs_with:
+    - threejs-builder
+    - webgl-card-effects
+    - frontend-slides
 ---
 
 # Distinctive Frontend Design Skill

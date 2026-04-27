@@ -11,6 +11,9 @@ routing:
     - "pest php"
     - "php mock"
   category: php
+  pairs_with:
+    - php-quality
+    - test-driven-development
 ---
 
 # PHP Testing Skill

@@ -15,6 +15,8 @@ routing:
     - "browse code"
     - "inspect only"
   category: process
+  pairs_with:
+    - codebase-overview
 ---
 
 # Read-Only Operations Skill
