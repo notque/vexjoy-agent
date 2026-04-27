@@ -21,8 +21,6 @@ routing:
     - social content from
     - platform variants
     - repurpose for
-  pairs_with:
-    - x-api
   category: content
   disambiguate: voice-writer
 ---

@@ -26,10 +26,6 @@ routing:
     - "understand this repo"
     - "map the codebase"
     - "what is in this repo"
-  pairs_with:
-    - codebase-overview
-    - codebase-analyzer
-    - technical-documentation-engineer
   complexity: medium
   category: meta
 ---

@@ -15,9 +15,6 @@ routing:
     - multi-perspective analysis
     - do-perspectives
     - analyze from multiple angles
-  pairs_with:
-    - anti-ai-editor
-    - voice-validator
   complexity: Medium
   category: content
 ---

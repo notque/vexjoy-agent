@@ -39,10 +39,6 @@ routing:
     - eventbus game
     - game state management three
     - three.js game
-  pairs_with:
-    - typescript-frontend-engineer
-    - react-native-engineer
-    - distinctive-frontend-design
   complexity: Medium
   category: frontend
 ---

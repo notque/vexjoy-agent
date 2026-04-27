@@ -8,8 +8,6 @@ routing:
     - technical docs
     - documentation validation
     - integration guide
-  pairs_with:
-    - verification-before-completion
   complexity: Complex
   category: documentation
 allowed-tools:

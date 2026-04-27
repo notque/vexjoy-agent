@@ -23,10 +23,6 @@ routing:
     - over-mocking
     - fragile test
     - testing implementation details
-  pairs_with:
-    - test-driven-development
-    - go-patterns
-    - vitest-runner
   complementary: test-driven-development
 ---
 

@@ -39,7 +39,6 @@ SAMPLE_SKILLS_INDEX = {
             ],
             "force_route": True,
             "agent": "golang-general-engineer",
-            "pairs_with": [],
             "category": "language",
         },
         "systematic-debugging": {
@@ -80,14 +79,12 @@ SAMPLE_PIPELINES_INDEX = {
             "triggers": ["submit PR", "create pull request", "push and PR"],
             "force_route": True,
             "phases": ["STAGE", "COMMIT", "PUSH", "CREATE", "VERIFY"],
-            "pairs_with": ["pr-workflow"],
         },
         "doc-pipeline": {
             "file": "skills/workflow/references/doc-pipeline.md",
             "description": "Create documentation.",
             "triggers": ["document this", "create documentation", "write docs"],
             "force_route": True,
-            "pairs_with": ["generate-claudemd"],
         },
         "explore-pipeline": {
             "file": "skills/workflow/references/explore-pipeline.md",
@@ -105,7 +102,6 @@ SAMPLE_AGENTS_INDEX = {
             "file": "golang-general-engineer.md",
             "short_description": "Go development expert.",
             "triggers": ["go", "golang", ".go files", "gofmt"],
-            "pairs_with": ["go-patterns"],
             "complexity": "Medium-Complex",
             "category": "language",
         },
@@ -113,7 +109,6 @@ SAMPLE_AGENTS_INDEX = {
             "file": "python-general-engineer.md",
             "short_description": "Python development expert.",
             "triggers": ["python", ".py", "pip", "pytest"],
-            "pairs_with": ["python-quality-gate"],
             "complexity": "Medium-Complex",
             "category": "language",
         },
@@ -455,37 +450,6 @@ class TestResolveAgent:
 
 
 # ---------------------------------------------------------------------------
-# suggest_pairs tests
-# ---------------------------------------------------------------------------
-
-
-class TestSuggestPairs:
-    """Tests for suggest_pairs."""
-
-    def test_collects_pairs(self) -> None:
-        entry = index_router.IndexEntry(name="go-patterns", entry_type="skill", pairs_with=["systematic-debugging"])
-        pairs = index_router.suggest_pairs([entry])
-        assert pairs == ["systematic-debugging"]
-
-    def test_deduplicates(self) -> None:
-        entries = [
-            index_router.IndexEntry(name="a", entry_type="skill", pairs_with=["x", "y"]),
-            index_router.IndexEntry(name="b", entry_type="skill", pairs_with=["y", "z"]),
-        ]
-        pairs = index_router.suggest_pairs(entries)
-        assert pairs == ["x", "y", "z"]
-
-    def test_excludes_self_references(self) -> None:
-        entries = [
-            index_router.IndexEntry(name="a", entry_type="skill", pairs_with=["b"]),
-            index_router.IndexEntry(name="b", entry_type="skill", pairs_with=["a", "c"]),
-        ]
-        pairs = index_router.suggest_pairs(entries)
-        # "a" and "b" are matched entries, so excluded from pairs
-        assert pairs == ["c"]
-
-
-# ---------------------------------------------------------------------------
 # check_composition_chains tests
 # ---------------------------------------------------------------------------
 
@@ -540,7 +504,6 @@ class TestRouteRequest:
         result = index_router.route_request("xyzzy plugh zzzzz")
         assert result.force_route is None
         assert result.candidates == []
-        assert result.pairs_with == []
         assert result.model_preference is None
 
     def test_candidates_populated_for_non_force(self) -> None:
@@ -569,7 +532,6 @@ class TestFormatting:
         parsed = json.loads(output)
         assert "force_route" in parsed
         assert "candidates" in parsed
-        assert "pairs_with" in parsed
         assert "model_preference" in parsed
         assert "composition_chains" in parsed
 

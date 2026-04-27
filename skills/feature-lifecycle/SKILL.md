@@ -43,15 +43,6 @@ routing:
     - design to release
     - complete feature pipeline
     - feature pipeline
-  pairs_with:
-    - workflow
-    - subagent-driven-development
-    - pr-pipeline
-    - pr-workflow
-    - verification-before-completion
-    - universal-quality-gate
-    - adr-consultation
-    - planning
   complexity: Complex
   category: process
 ---

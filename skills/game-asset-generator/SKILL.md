@@ -37,9 +37,6 @@ routing:
     - sketchfab
     - poly pizza
     - poly haven
-  pairs_with:
-    - threejs-builder
-    - typescript-frontend-engineer
   complexity: Medium
   category: game-development
 ---

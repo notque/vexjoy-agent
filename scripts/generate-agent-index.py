@@ -75,12 +75,6 @@ def extract_frontmatter(content: str) -> dict | None:
             triggers = re.findall(r"-\s+[\"']?([^\"'\n]+)[\"']?", triggers_match.group(1))
             routing["triggers"] = [t.strip() for t in triggers]
 
-        # Extract pairs_with list
-        pairs_match = re.search(r"pairs_with:\s*\n((?:\s+-\s+.+\n?)+)", routing_content)
-        if pairs_match:
-            pairs = re.findall(r"-\s+[\"']?([^\"'\n]+)[\"']?", pairs_match.group(1))
-            routing["pairs_with"] = [p.strip() for p in pairs]
-
         # Extract complexity
         complexity_match = re.search(r"complexity:\s*(.+)$", routing_content, re.MULTILINE)
         if complexity_match:
@@ -172,8 +166,6 @@ def generate_index(
             routing = frontmatter["routing"]
             if "triggers" in routing:
                 agent_entry["triggers"] = routing["triggers"]
-            if "pairs_with" in routing:
-                agent_entry["pairs_with"] = routing["pairs_with"]
             if "complexity" in routing:
                 agent_entry["complexity"] = routing["complexity"]
             if "category" in routing:

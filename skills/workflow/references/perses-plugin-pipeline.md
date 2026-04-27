@@ -16,9 +16,6 @@ routing:
     - full plugin development
     - perses plugin create and deploy
     - plugin end to end
-  pairs_with:
-    - perses-plugin-create
-    - perses-dac-pipeline
   complexity: Complex
   category: devops
 ---

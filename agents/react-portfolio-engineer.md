@@ -10,9 +10,6 @@ routing:
     - art website
     - image gallery
     - lightbox
-  pairs_with:
-    - ui-design-engineer
-    - typescript-frontend-engineer
   complexity: Medium
   category: language
 allowed-tools:

@@ -13,11 +13,6 @@ routing:
     - "migration safety review"
     - "dependency audit"
     - "API doc accuracy review"
-  pairs_with:
-    - workflow
-    - systematic-code-review
-    - parallel-code-review
-    - go-patterns
   complexity: Medium-Complex
   category: review
 allowed-tools:

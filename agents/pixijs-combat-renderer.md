@@ -14,10 +14,6 @@ routing:
     - normal map 2D
     - pixi filters
     - sprite rendering GPU
-  pairs_with:
-    - typescript-frontend-engineer
-    - ui-design-engineer
-    - combat-effects-upgrade
   complexity: Medium
   category: frontend
 allowed-tools:

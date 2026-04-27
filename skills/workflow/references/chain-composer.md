@@ -16,9 +16,6 @@ routing:
     - chain composition
     - pipeline spec
     - compose pipeline
-  pairs_with:
-    - pipeline-scaffolder
-    - domain-research
   complexity: Medium
   category: meta
 ---

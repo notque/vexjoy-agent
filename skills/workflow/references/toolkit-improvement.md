@@ -70,10 +70,6 @@ routing:
     - agent swarm
     - team evaluation
     - dispatch evaluation agents
-  pairs_with:
-    - comprehensive-review
-    - skill-eval
-    - agent-evaluation
   complexity: Complex
   category: meta
 ---

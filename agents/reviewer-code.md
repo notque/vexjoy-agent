@@ -13,10 +13,6 @@ routing:
     - "type design review"
     - "test coverage review"
     - "config safety review"
-  pairs_with:
-    - workflow
-    - parallel-code-review
-    - systematic-code-review
   complexity: Medium
   category: review
 allowed-tools:

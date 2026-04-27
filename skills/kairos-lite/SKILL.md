@@ -23,8 +23,6 @@ routing:
     - health check
     - kairos
   category: meta-tooling
-  pairs_with:
-    - auto-dream
 ---
 
 Proactive monitoring and briefing agent. Runs between sessions via `cron + claude -p`, checks GitHub (PRs, CI, issues, dependabot), local repo state (stale branches, uncommitted changes), and toolkit health (hook errors, stale memories, state files). Produces structured briefings injected at session start.

@@ -11,9 +11,6 @@ routing:
     - improve skill
     - optimize description
     - skill eval
-  pairs_with:
-    - agent-evaluation
-    - verification-before-completion
   complexity: Complex
   category: meta
 allowed-tools:

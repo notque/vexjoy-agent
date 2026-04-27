@@ -22,9 +22,6 @@ routing:
     - edit skill          # primary trigger phrase
     - update routing      # secondary trigger phrase
     - ADR management      # domain-specific trigger
-  pairs_with:
-    - adr-consultation    # agents commonly invoked together
-    - routing-table-updater
   complexity: Medium
   category: meta
 ```
@@ -32,7 +29,6 @@ routing:
 | Field | Required | Type | Purpose |
 |-------|----------|------|---------|
 | `triggers` | yes | list of strings | Intent phrases that route to this component |
-| `pairs_with` | no | list of agent names | Agents frequently co-dispatched with this one |
 | `complexity` | yes | `Low`/`Medium`/`High` | Selects execution strategy |
 | `category` | yes | string | Groups components in coverage reports |
 
@@ -70,11 +66,6 @@ ls agents/toolkit-governance-engineer/
 
 # Verify skill exists
 ls skills/routing-table-updater/SKILL.md
-
-# Verify all pairs_with entries exist
-for name in adr-consultation routing-table-updater docs-sync-checker; do
-  ls agents/${name}.md 2>/dev/null || ls skills/${name}/SKILL.md 2>/dev/null || echo "MISSING: ${name}"
-done
 ```
 
 **Why**: Adding a routing entry for a nonexistent component creates a phantom route. The router selects it, the component lookup fails, and the request falls through to a generic handler — often silently.
@@ -121,44 +112,41 @@ category: content       # writing, documentation, content agents
 ## Pattern Catalog
 <!-- no-pair-required: section header with no content -->
 
-### ❌ Phantom Route — Entry References Nonexistent Component
+### ❌ Phantom Route — INDEX Entry References Nonexistent Component
 
 **Detection**:
 ```bash
-# Check all pairs_with entries exist
+# Check all agents in INDEX.json exist on disk
 python3 -c "
-import yaml, glob, os
-for f in glob.glob('agents/*.md'):
-    txt = open(f).read()
-    if '---' not in txt: continue
-    try:
-        fm = yaml.safe_load(txt.split('---')[1])
-        pairs = fm.get('routing', {}).get('pairs_with', [])
-        for p in pairs:
-            if not os.path.exists(f'agents/{p}.md') and not os.path.exists(f'skills/{p}/SKILL.md'):
-                print(f'PHANTOM: {f} -> pairs_with: {p}')
-    except: pass
+import json, os
+idx = json.load(open('agents/INDEX.json'))
+for a in idx.get('agents', []):
+    name = a['name']
+    if not os.path.exists(f'agents/{name}.md') and not os.path.isdir(f'agents/{name}'):
+        print(f'PHANTOM: INDEX.json references {name} but file missing')
 "
 
-# Quick grep for a specific missing component
-grep -rn "pairs_with" agents/*.md | grep "deleted-agent-name"
+# Check all skills in INDEX.json exist on disk
+python3 -c "
+import json, os
+idx = json.load(open('skills/INDEX.json'))
+for s in idx.get('skills', []):
+    name = s['name']
+    if not os.path.exists(f'skills/{name}/SKILL.md'):
+        print(f'PHANTOM: INDEX.json references {name} but file missing')
+"
 ```
 
 **What it looks like**:
-```yaml
-routing:
-  pairs_with:
-    - old-reviewer-agent    # renamed or deleted 3 months ago
-    - legacy-skill-name     # skill was removed in a cleanup
-```
+An agent or skill appears in INDEX.json but the corresponding `.md` file was renamed or deleted.
 
-**Why wrong**: The router follows `pairs_with` hints when orchestrating multi-agent workflows. A phantom entry either causes a lookup failure or triggers a fallback to a generic agent, breaking the intended workflow.
+**Why wrong**: The router selects the component based on its INDEX entry, but the file lookup fails at dispatch time. The request falls through to a generic handler — often silently.
 
 **Do instead:**
 
-Before committing a routing change, run `ls agents/{name}.md 2>/dev/null || ls skills/{name}/SKILL.md 2>/dev/null || echo "MISSING"` for every component in `pairs_with`. Update stale names to their current filenames, or remove entries for components that no longer exist.
+Before committing a routing change, verify every referenced component exists on disk: `ls agents/{name}.md 2>/dev/null || ls skills/{name}/SKILL.md 2>/dev/null || echo "MISSING"`. After renames or deletions, regenerate INDEX files immediately.
 
-**Fix**: Run the detection script above. For each phantom entry, either update to the current component name or remove the entry.
+**Fix**: Regenerate INDEX files from filesystem state. Remove stale entries.
 
 ---
 
@@ -231,44 +219,13 @@ Regenerate `agents/INDEX.json` immediately after any agent add, rename, or delet
 
 ---
 
-### ❌ `pairs_with` Circular Reference
-
-**Detection**:
-```bash
-# Find pairs_with that reference the agent itself
-python3 -c "
-import yaml, glob, os
-for f in glob.glob('agents/*.md'):
-    name = os.path.basename(f).replace('.md','')
-    txt = open(f).read()
-    if '---' not in txt: continue
-    try:
-        fm = yaml.safe_load(txt.split('---')[1])
-        pairs = fm.get('routing', {}).get('pairs_with', [])
-        if name in pairs:
-            print(f'CIRCULAR: {name} pairs_with itself')
-    except: pass
-"
-```
-
-**Why wrong**: An agent that lists itself in `pairs_with` causes a routing loop when the orchestrator resolves co-dispatch recommendations.
-
-**Do instead:**
-
-List only OTHER agents in `pairs_with` that are genuinely co-dispatched alongside this one. Run the circular reference detection script after editing any agent's frontmatter to catch self-references before committing.
-
-**Fix**: Remove the self-reference from `pairs_with`.
-
----
-
 ## Error-Fix Mappings
 
 | Symptom | Root Cause | Fix |
 |---------|------------|-----|
-| Router selects generic handler for specific request | Phantom route in `pairs_with` | Run phantom detection script; remove or update stale entries |
+| Router selects generic handler for specific request | Phantom route in INDEX.json | Run phantom detection script; regenerate INDEX files |
 | Two agents both invoked for same trigger phrase | Duplicate triggers | Run conflict detection script; differentiate trigger phrases |
 | Agent on disk but never routed | Not in INDEX.json | Regenerate INDEX.json from filesystem |
-| `pairs_with` agent lookup fails at runtime | Component renamed or deleted | Glob for current name; update pairs_with or remove entry |
 | INDEX.json count mismatch after cleanup | Stale entries after agent deletion | Regenerate INDEX.json; verify `registered == on_disk` |
 
 ---
@@ -276,18 +233,14 @@ List only OTHER agents in `pairs_with` that are genuinely co-dispatched alongsid
 ## Detection Commands Reference
 
 ```bash
-# Find phantom pairs_with references
+# Find phantom INDEX.json references (agents)
 python3 -c "
-import yaml, glob, os
-for f in glob.glob('agents/*.md'):
-    txt = open(f).read()
-    if '---' not in txt: continue
-    try:
-        fm = yaml.safe_load(txt.split('---')[1])
-        for p in fm.get('routing', {}).get('pairs_with', []):
-            if not os.path.exists(f'agents/{p}.md') and not os.path.exists(f'skills/{p}/SKILL.md'):
-                print(f'PHANTOM: {f} -> {p}')
-    except: pass
+import json, os
+idx = json.load(open('agents/INDEX.json'))
+for a in idx.get('agents', []):
+    name = a['name']
+    if not os.path.exists(f'agents/{name}.md') and not os.path.isdir(f'agents/{name}'):
+        print(f'PHANTOM: {name}')
 "
 
 # Find duplicate trigger phrases

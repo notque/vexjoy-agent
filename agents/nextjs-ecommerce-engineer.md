@@ -11,9 +11,6 @@ routing:
     - e-commerce
     - online store
     - product catalog
-  pairs_with:
-    - verification-before-completion
-    - typescript-frontend-engineer
   complexity: Medium-Complex
   category: language
 allowed-tools:

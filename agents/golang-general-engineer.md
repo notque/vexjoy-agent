@@ -43,8 +43,6 @@ routing:
     - go-patterns
     - concurrency
     - debugging
-  pairs_with:
-    - go-patterns
   complexity: Medium-Complex
   category: language
 allowed-tools:

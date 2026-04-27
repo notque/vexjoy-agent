@@ -16,11 +16,6 @@ routing:
     - ephemeral pipeline
     - no route found
     - unrouted task
-  pairs_with:
-    - chain-composer
-    - pipeline-scaffolder
-    - domain-research
-    - pipeline-test-runner
   complexity: Complex
   category: meta
 ---

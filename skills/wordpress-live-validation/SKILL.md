@@ -31,10 +31,6 @@ routing:
     - responsive check wordpress
     - post rendering check
     - live site validation
-  pairs_with:
-    - wordpress-uploader
-    - pre-publish-checker
-    - seo-optimizer
   complexity: Medium
   category: content-publishing
 ---

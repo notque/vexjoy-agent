@@ -11,9 +11,6 @@ routing:
     - responsive
     - animations
     - design system
-  pairs_with:
-    - distinctive-frontend-design
-    - typescript-frontend-engineer
   complexity: Medium
   category: language
 allowed-tools:

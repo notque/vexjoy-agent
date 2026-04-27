@@ -21,10 +21,6 @@ routing:
     - full repo audit
     - sapcc secondary review
     - sapcc standards check
-  pairs_with:
-    - golang-general-engineer
-    - golang-general-engineer-compact
-    - go-patterns
   force_route: false
   complexity: Complex
   category: language

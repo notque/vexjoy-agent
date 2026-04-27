@@ -19,9 +19,6 @@ routing:
     - tilemap
     - sprite sheet
     - side scroller
-  pairs_with:
-    - typescript-frontend-engineer
-    - game-asset-generator
   complexity: Medium
   category: game-development
 ---

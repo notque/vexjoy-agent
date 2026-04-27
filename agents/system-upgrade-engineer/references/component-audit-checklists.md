@@ -41,10 +41,7 @@ grep -A 10 "allowed-tools:" agents/*.md | grep "deprecated_tool_name"
 # 3. Check routing triggers for gaps (compare against routing table)
 grep -A 20 "triggers:" agents/*.md
 
-# 4. Check pairs_with for removed agents/skills
-grep -A 10 "pairs_with:" agents/*.md
-
-# 5. Check for outdated entries (patterns already resolved in prior upgrades)
+# 4. Check for outdated entries (patterns already resolved in prior upgrades)
 grep -rn "Anti-Pattern" agents/*.md
 ```
 
@@ -55,7 +52,6 @@ grep -rn "Anti-Pattern" agents/*.md
 | `model:` | Is this a current model name? | Model ID no longer in active release |
 | `allowed-tools:` | Are all listed tools still available? | Tool removed from Claude Code |
 | `routing.triggers` | Does at least one trigger match the user's actual phrasing? | All triggers are technical jargon users never say |
-| `routing.pairs_with` | Do all listed components still exist? | Agent or skill in the list no longer in the repo |
 | `version:` | Is version incremented after substantive changes? | Version stuck at `1.0.0` across many commits |
 
 ---
@@ -197,7 +193,6 @@ Do instead: Scope audit to the component types identified in the Change Manifest
 | Symptom | Root Cause | Fix |
 |---------|-----------|-----|
 | Session deadlocks on every tool call | Hook with exit code 2 deployed to `~/.claude/hooks/` with syntax error | `python3 -c "import ast; ast.parse(...)"` on every hook before deploying |
-| Agent dispatch fails silently | `pairs_with` references a removed component | Audit `pairs_with` for all in-scope agents |
 | Routing gap — user triggers fall through to default | Routing table references old trigger text | Re-run `routing-table-updater` skill after agent changes |
 | Script call at runtime raises FileNotFoundError | Skill references moved or deleted script | `find scripts/ -name "*.py"` and reconcile all skill references |
 

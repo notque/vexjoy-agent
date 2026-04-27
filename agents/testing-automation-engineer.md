@@ -13,9 +13,6 @@ routing:
   retro-topics:
     - testing
     - debugging
-  pairs_with:
-    - test-driven-development
-    - e2e-testing
   complexity: Medium-Complex
   category: testing
 allowed-tools:

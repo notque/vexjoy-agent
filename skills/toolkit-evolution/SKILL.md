@@ -25,9 +25,6 @@ routing:
     - "discover skill gaps"
     - "what skills are missing"
     - "systematic improvement"
-  pairs_with:
-    - multi-persona-critique
-    - skill-eval
   complexity: Complex
   category: meta-tooling
 ---

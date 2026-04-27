@@ -29,10 +29,6 @@ routing:
     - character sheet
   complexity: Complex
   category: game
-  pairs_with:
-    - phaser-gamedev
-    - threejs-builder
-    - python-general-engineer
 ---
 
 # Game Sprite Pipeline

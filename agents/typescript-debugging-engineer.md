@@ -14,9 +14,6 @@ routing:
   retro-topics:
     - typescript-patterns
     - debugging
-  pairs_with:
-    - workflow
-    - typescript-frontend-engineer
   complexity: Medium-Complex
   category: language
 allowed-tools:

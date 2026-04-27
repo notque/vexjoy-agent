@@ -90,10 +90,6 @@ routing:
     - debugging
     - laravel
     - symfony
-  pairs_with:
-    - workflow
-    - verification-before-completion
-    - systematic-code-review
   complexity: Medium-Complex
   category: language
 allowed-tools:

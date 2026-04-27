@@ -23,9 +23,6 @@ routing:
     - calibrate voice
     - voice profile from scratch
     - make a voice
-  pairs_with:
-    - voice-calibrator
-    - voice-writer
   complexity: Medium
   category: content
 ---

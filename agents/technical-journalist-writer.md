@@ -9,8 +9,6 @@ routing:
     - journalist voice
     - technical writer
     - technical journalism
-  pairs_with:
-    - voice-writer
   complexity: Comprehensive
   category: content
 allowed-tools:

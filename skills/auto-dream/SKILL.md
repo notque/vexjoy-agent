@@ -22,7 +22,6 @@ routing:
     - graduate learnings
     - promote learnings
   category: meta-tooling
-  pairs_with: []
 ---
 
 Background memory consolidation cycle. Scans memory files, finds stale/duplicate/conflicting entries, consolidates, synthesizes cross-session insights, builds an injection-ready payload for next session start, and writes a dated dream report.

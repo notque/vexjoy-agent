@@ -110,7 +110,7 @@ def extract_frontmatter(content: str) -> tuple[dict | None, bool]:
     #       - trigger2
     #     category: category-name
     #     force_route: true
-    #     pairs_with:
+    #     category: category-name
     #       - agent-name
     routing_match = re.search(r"^routing:\s*\n((?:\s+.+\n?)+)", yaml_content, re.MULTILINE)
     if routing_match:
@@ -130,16 +130,6 @@ def extract_frontmatter(content: str) -> tuple[dict | None, bool]:
         if force_route_match:
             val = force_route_match.group(1).strip().lower()
             routing["force_route"] = val == "true"
-
-        pairs_match = re.search(r"pairs_with:\s*\n((?:\s+-\s+.+\n?)+)", routing_content)
-        if pairs_match:
-            pairs = re.findall(r'-\s+["\']?([^"\'\n]+)["\']?', pairs_match.group(1))
-            routing["pairs_with"] = [p.strip() for p in pairs]
-
-        # Also handle inline empty list: pairs_with: []
-        pairs_empty_match = re.search(r"pairs_with:\s*\[\]", routing_content)
-        if pairs_empty_match and "pairs_with" not in routing:
-            routing["pairs_with"] = []
 
         if routing:
             frontmatter["routing"] = routing
@@ -251,10 +241,6 @@ def build_entry(
         phases = extract_phases(content)
         if phases:
             entry["phases"] = phases
-
-    # Pairs with: from routing.pairs_with, omit if not present
-    if isinstance(routing, dict) and "pairs_with" in routing:
-        entry["pairs_with"] = routing["pairs_with"]
 
     # Agent: top-level frontmatter field, omit if not present
     if "agent" in frontmatter:

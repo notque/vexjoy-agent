@@ -10,9 +10,6 @@ routing:
     - molecule
     - ansible-tower
     - AWX
-  pairs_with:
-    - verification-before-completion
-    - kubernetes-helm-engineer
   complexity: Medium-Complex
   category: infrastructure
 allowed-tools:

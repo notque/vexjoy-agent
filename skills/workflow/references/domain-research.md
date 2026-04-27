@@ -17,9 +17,6 @@ routing:
     - domain decomposition
     - what pipelines
     - domain research
-  pairs_with:
-    - pipeline-scaffolder
-    - codebase-analyzer
   complexity: Medium
   category: meta
 ---

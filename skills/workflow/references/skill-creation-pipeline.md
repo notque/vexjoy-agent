@@ -19,9 +19,6 @@ routing:
     - "new skill with gates"
     - "skill creation pipeline"
     - "formal skill creation"
-  pairs_with:
-    - agent-evaluation
-    - routing-table-updater
   complexity: Medium
   category: meta
 ---

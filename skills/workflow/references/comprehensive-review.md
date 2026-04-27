@@ -33,10 +33,6 @@ routing:
     - adversarial review
     - "full code review"
     - "review all packages"
-  pairs_with:
-    - systematic-code-review
-    - parallel-code-review
-    - systematic-code-review
   complexity: Complex
   category: review
 ---

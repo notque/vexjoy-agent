@@ -18,8 +18,6 @@ routing:
     - "architecture consultation"
     - "should we proceed"
     - "adr consultation"
-  pairs_with:
-    - feature-lifecycle
   complexity: Medium
   category: meta
 ---

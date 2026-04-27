@@ -22,9 +22,6 @@ routing:
     - generate presentation
     - make a deck
     - conference talk slides
-  pairs_with:
-    - workflow
-    - gemini-image-generator
   complexity: Medium-Complex
   category: content-generation
 ---

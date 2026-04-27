@@ -19,9 +19,6 @@ routing:
     - scan and fix docs
     - remove ai tells
     - de-ai pipeline
-  pairs_with:
-    - anti-ai-editor
-    - voice-validator
   complexity: Medium
   category: content
 ---

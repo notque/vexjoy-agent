@@ -22,11 +22,6 @@ routing:
     - reframe positively
     - positive framing check
     - instruction framing
-  pairs_with:
-    - voice-writer
-    - anti-ai-editor
-    - voice-validator
-    - skill-creator
   complexity: Simple
   category: content
 ---

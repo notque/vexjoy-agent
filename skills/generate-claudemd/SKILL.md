@@ -17,9 +17,6 @@ routing:
     - init claude.md
     - bootstrap claude.md
     - make claude.md
-  pairs_with:
-    - go-patterns
-    - codebase-overview
   complexity: Medium
   category: documentation
 ---

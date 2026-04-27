@@ -35,13 +35,6 @@ routing:
     - write piece
     - write essay
     - ghost write
-  pairs_with:
-    - create-voice
-    - voice-calibrator
-    - voice-validator
-    - joy-check
-    - anti-ai-editor
-    - research-to-article
   complexity: Medium
   category: content
 ---

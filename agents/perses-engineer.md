@@ -32,13 +32,6 @@ routing:
     - perses plugin development
     - perses cue schema
     - plugin schema
-  pairs_with:
-    - perses-onboard
-    - perses
-    - golang-general-engineer
-    - typescript-frontend-engineer
-    - kubernetes-helm-engineer
-    - prometheus-grafana-engineer
   complexity: Medium-Complex
   category: infrastructure
 allowed-tools:

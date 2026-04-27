@@ -70,7 +70,6 @@ allowed-tools:
   - Task
 routing:
   triggers: [{{trigger_keywords}}]
-  pairs_with: [{{agent_name}}]
   complexity: {{complexity}}
   category: domain
 ---

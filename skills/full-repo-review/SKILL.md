@@ -18,8 +18,6 @@ routing:
     - codebase health check
     - review all files
     - full codebase review
-  pairs_with:
-    - comprehensive-review
   complexity: Medium
   category: analysis
 ---

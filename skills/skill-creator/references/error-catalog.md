@@ -198,7 +198,6 @@ rm .claude/skills/my-skill/README.md
 routing:
   triggers:
     - keyword1
-  pairs_with: []
   complexity: Simple | Medium | Medium-Complex | Complex  # Add this
   category: meta
 ```

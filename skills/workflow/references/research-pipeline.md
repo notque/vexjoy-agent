@@ -23,9 +23,6 @@ routing:
     - "deep research"
     - "systematic research"
     - "multi-source research"
-  pairs_with:
-    - domain-research
-    - explore-pipeline
   complexity: Medium
   category: meta
 ---

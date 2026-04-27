@@ -12,9 +12,6 @@ routing:
   retro-topics:
     - database-patterns
     - debugging
-  pairs_with:
-    - python-general-engineer
-    - database-engineer
   complexity: Medium
   category: language
 allowed-tools:

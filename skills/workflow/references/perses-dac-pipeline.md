@@ -16,9 +16,6 @@ routing:
     - perses cue
     - perses gitops
     - perses ci/cd
-  pairs_with:
-    - perses-dashboard-create
-    - perses-plugin-pipeline
   complexity: Complex
   category: devops
 ---

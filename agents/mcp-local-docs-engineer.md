@@ -8,8 +8,6 @@ routing:
     - docs server
     - documentation server
     - hugo
-  pairs_with:
-    - verification-before-completion
   complexity: Medium
   category: devops
 allowed-tools:

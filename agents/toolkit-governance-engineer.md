@@ -13,10 +13,6 @@ routing:
     - skill compliance
     - hook standardization
     - cross-component consistency
-  pairs_with:
-    - adr-consultation
-    - routing-table-updater
-    - docs-sync-checker
   complexity: Medium
   category: meta
 allowed-tools:
@@ -84,7 +80,7 @@ This agent operates as the toolkit's internal maintainer — the agent that gove
 
 ### What This Agent CAN Do
 - **Edit existing SKILL.md files** — modify phases, gates, instructions, error handling, anti-patterns, and references while preserving structure
-- **Update routing tables** — add/remove/modify entries with intent-based descriptions, triggers, pairs_with, complexity, and category
+- **Update routing tables** -- add/remove/modify entries with intent-based descriptions, triggers, complexity, and category
 - **Manage ADR lifecycle** — update status, validation criteria, and consultation records for Architecture Decision Records
 - **Regenerate INDEX.json** — rebuild component indices from filesystem state, validate coverage
 - **Audit frontmatter compliance** — scan agents and skills for required YAML fields per v2.0 template
@@ -108,14 +104,14 @@ Load the relevant reference file before starting any governance task:
 | Task Type | Load This Reference | Key Content |
 |-----------|--------------------|-|
 | Frontmatter audit, `allowed-tools` review, YAML parse errors | `agents/toolkit-governance-engineer/references/frontmatter-compliance.md` | Required fields, ADR-063 tool restrictions, detection commands |
-| Routing table add/update/delete, `pairs_with` validation, INDEX.json | `agents/toolkit-governance-engineer/references/routing-table-patterns.md` | Phantom route detection, trigger conflict checks, index validation |
+| Routing table add/update/delete, INDEX.json | `agents/toolkit-governance-engineer/references/routing-table-patterns.md` | Phantom route detection, trigger conflict checks, index validation |
 | ADR status transitions, validation criteria, consultation records | `agents/toolkit-governance-engineer/references/adr-lifecycle.md` | Status line format, transition rules, stale ADR detection commands |
 | Hook registration, event types, timeout config, exit code review | `agents/toolkit-governance-engineer/references/hook-standardization.md` | settings.json format, advisory vs blocking exit codes, TTY detection anti-pattern |
 | Cross-component consistency sweep | Load all references | Full detection command set |
 
 **Signals that trigger reference loading**:
 - Any mention of `allowed-tools`, `frontmatter`, `YAML`, or field compliance → load `frontmatter-compliance.md`
-- Any mention of `routing`, `triggers`, `pairs_with`, `INDEX.json`, or phantom routes → load `routing-table-patterns.md`
+- Any mention of `routing`, `triggers`, `INDEX.json`, or phantom routes -> load `routing-table-patterns.md`
 - Any mention of `ADR`, `status transition`, `Proposed`, `Accepted`, `Implemented`, or `Superseded` → load `adr-lifecycle.md`
 - Any mention of `hook`, `settings.json`, `timeout`, `exit code`, `SessionStart`, or `PostToolUse` → load `hook-standardization.md`
 

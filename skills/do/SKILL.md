@@ -275,7 +275,7 @@ If relevant retro knowledge is already present in context, use it. If it is abse
 
 When in doubt, do NOT inject — the manual `/quick --interview` flag and the explicit phrase triggers are alternative paths that cover deliberate cases. False positives on auto-injection cost the user one round of friction (Phase 0 opt-out question); false negatives are fully recoverable via the manual paths.
 
-Before stacking any enhancement, check the target skill's `pairs_with` field in `skills/INDEX.json`. Some skills ship with their own verification gates and work best on their own terms. Specifically: empty `pairs_with: []` means no stacking allowed. Skills with built-in verification gates handle their own verification. The `quick --trivial` mode handles its own testing. Stack only compatible enhancements.
+Before stacking any enhancement, check whether the target skill has built-in verification gates and works best on its own terms. Skills with built-in verification gates handle their own verification. The `quick --trivial` mode handles its own testing. Stack only compatible enhancements.
 
 Add anti-rationalization patterns for these task types when the task benefits from explicit rigor:
 
@@ -430,6 +430,6 @@ Solution: Stop execution. Create `task_plan.md`. Resume routing after plan is in
 - `${CLAUDE_SKILL_DIR}/references/routing-tables.md`: Complete category-specific skill routing
 - `${CLAUDE_SKILL_DIR}/references/progressive-depth.md`: Progressive depth escalation protocol
 - `agents/INDEX.json`: Agent triggers and metadata
-- `skills/INDEX.json`: Skill triggers, force-route flags, pairs_with
+- `skills/INDEX.json`: Skill triggers, force-route flags
 - `skills/workflow/SKILL.md`: Workflow phases, triggers, composition chains
 - `skills/workflow/references/pipeline-index.json`: Pipeline metadata, triggers, phases

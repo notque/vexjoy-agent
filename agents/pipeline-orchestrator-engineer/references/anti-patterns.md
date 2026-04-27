@@ -101,7 +101,7 @@ prometheus-operations-skill.md     — cluster ops, storage, retention
 prometheus-dashboards-skill.md     — Grafana integration, panel patterns
 ```
 
-Same agent, different recipes. Each skill in `pairs_with: [prometheus-grafana-engineer]`.
+Same agent, different recipes. Each skill bound to `prometheus-grafana-engineer` via the `agent:` frontmatter field.
 
 ---
 

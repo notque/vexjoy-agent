@@ -19,7 +19,6 @@ routing:
     - "show decisions"
     - "trace log"
   force_route: true
-  pairs_with: []
   complexity: Simple
   category: analysis
 ---

@@ -15,9 +15,6 @@ routing:
   retro-topics:
     - infrastructure
     - debugging
-  pairs_with:
-    - verification-before-completion
-    - prometheus-grafana-engineer
   complexity: Medium-Complex
   category: infrastructure
 allowed-tools:

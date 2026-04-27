@@ -76,7 +76,7 @@ def scan_agents(base_dir: Path) -> list[dict]:
     file reads + YAML parses). Falls back to filesystem glob only when
     INDEX.json is missing or unparseable.
 
-    Returns list of {name, triggers, pairs_with, category} dicts.
+    Returns list of {name, triggers, category} dicts.
     """
     agents_dir = base_dir / "agents"
     if not agents_dir.is_dir():
@@ -93,7 +93,6 @@ def scan_agents(base_dir: Path) -> list[dict]:
                     {
                         "name": name,
                         "triggers": entry.get("triggers", []),
-                        "pairs_with": entry.get("pairs_with", []),
                         "category": entry.get("category", "unknown"),
                     }
                     for name, entry in agents_dict.items()
@@ -118,7 +117,6 @@ def scan_agents(base_dir: Path) -> list[dict]:
                     {
                         "name": frontmatter.get("name", md_file.stem),
                         "triggers": routing.get("triggers", []),
-                        "pairs_with": routing.get("pairs_with", []),
                         "category": routing.get("category", "unknown"),
                     }
                 )
@@ -127,7 +125,6 @@ def scan_agents(base_dir: Path) -> list[dict]:
                     {
                         "name": frontmatter.get("name", md_file.stem),
                         "triggers": [],
-                        "pairs_with": [],
                         "category": "unknown",
                     }
                 )

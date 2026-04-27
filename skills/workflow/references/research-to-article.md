@@ -20,8 +20,6 @@ routing:
     - research and article
     - full article pipeline
     - comprehensive article
-  pairs_with:
-    - voice-writer
   complexity: complex
   category: content
 ---

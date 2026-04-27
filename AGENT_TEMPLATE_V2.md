@@ -75,8 +75,6 @@ routing:
   retro-topics:
     - topic1
     - topic2
-  pairs_with:
-    - related-skill
   complexity: Simple | Medium | Medium-Complex | Complex
   category: language | infrastructure | review | meta | testing | content | documentation | devops | performance | research
 allowed-tools:
@@ -138,8 +136,6 @@ This agent operates as an operator for [domain/function], configuring Claude's b
 - **[Domain Default 3]**: [Description]
 
 ### Companion Skills (invoke via Skill tool when applicable)
-
-<!-- Auto-generated from routing.pairs_with in frontmatter. To regenerate: python3 scripts/add-companion-skills.py -->
 
 | Skill | When to Invoke |
 |-------|---------------|
@@ -434,7 +430,7 @@ When upgrading an agent to v2.0:
 
 ### YAML Frontmatter
 - [ ] Model specified (`model: sonnet` for most executors, `model: haiku` for cheap classifiers/extractors)
-- [ ] All routing metadata preserved (triggers, retro-topics, pairs_with, complexity, category)
+- [ ] All routing metadata preserved (triggers, retro-topics, complexity, category)
 - [ ] Hooks preserved
 - [ ] Color preserved
 - [ ] Description: single quoted line, 60-100 characters

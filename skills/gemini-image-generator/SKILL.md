@@ -19,9 +19,6 @@ routing:
     - python image generation
     - create sprite
     - generate character art
-  pairs_with:
-    - python-general-engineer
-    - workflow
   complexity: simple
   category: image-generation
 ---

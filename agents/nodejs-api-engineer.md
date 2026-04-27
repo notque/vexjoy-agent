@@ -12,9 +12,6 @@ routing:
     - backend
     - webhook
     - authentication
-  pairs_with:
-    - systematic-code-review
-    - database-engineer
   complexity: Medium-Complex
   category: language
 allowed-tools:

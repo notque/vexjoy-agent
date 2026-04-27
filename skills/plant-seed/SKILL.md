@@ -19,8 +19,6 @@ routing:
     - remember this for when
     - seed this
     - plant-seed
-  pairs_with:
-    - feature-lifecycle
   complexity: Simple
   category: process
 ---

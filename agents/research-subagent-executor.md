@@ -7,8 +7,6 @@ routing:
   triggers:
     - research subtask
     - delegated research
-  pairs_with:
-    - research-coordinator-engineer
   complexity: Medium
   category: research
 allowed-tools:

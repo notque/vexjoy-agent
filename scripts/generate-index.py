@@ -110,14 +110,6 @@ def extract_frontmatter(content: str) -> dict | None:
         if fr_m:
             routing["force_route"] = fr_m.group(1).strip().lower() == "true"
 
-        pw_m = re.search(r"pairs_with:\s*\n((?:\s+-\s+.+\n?)+)", rc)
-        if pw_m:
-            routing["pairs_with"] = [p.strip() for p in re.findall(r'-\s+["\']?([^"\'\n]+)["\']?', pw_m.group(1))]
-
-        pw_empty = re.search(r"pairs_with:\s*\[\]", rc)
-        if pw_empty and "pairs_with" not in routing:
-            routing["pairs_with"] = []
-
         cx_m = re.search(r"complexity:\s*(.+)$", rc, re.MULTILINE)
         if cx_m:
             routing["complexity"] = cx_m.group(1).strip()
@@ -182,8 +174,6 @@ def generate_agents_index(agents_dir: Path) -> dict:
             routing = fm["routing"]
             if "triggers" in routing:
                 entry["triggers"] = routing["triggers"]
-            if "pairs_with" in routing:
-                entry["pairs_with"] = routing["pairs_with"]
             if "complexity" in routing:
                 entry["complexity"] = routing["complexity"]
             if "category" in routing:
@@ -211,8 +201,6 @@ def generate_agents_index(agents_dir: Path) -> dict:
                 routing = fm["routing"]
                 if "triggers" in routing:
                     entry["triggers"] = routing["triggers"]
-                if "pairs_with" in routing:
-                    entry["pairs_with"] = routing["pairs_with"]
                 if "complexity" in routing:
                     entry["complexity"] = routing["complexity"]
                 if "category" in routing:
@@ -297,9 +285,6 @@ def generate_skill_or_pipeline_index(
             phases = extract_phases(content)
             if phases:
                 entry["phases"] = phases
-
-        if isinstance(routing, dict) and "pairs_with" in routing:
-            entry["pairs_with"] = routing["pairs_with"]
 
         if "agent" in fm:
             entry["agent"] = fm["agent"]

@@ -172,8 +172,6 @@ Simple skill (pr-workflow (cleanup)) with:
 routing:
   triggers:
     - deploy
-  pairs_with:
-    - verification-before-completion
   # Missing complexity field
   category: infrastructure
 ```
@@ -183,13 +181,11 @@ routing:
 - Skill evaluation can't assess if size matches tier
 - Makes maintenance harder
 
-**✅ Correct approach**:
+**Correct approach**:
 ```yaml
 routing:
   triggers:
     - deploy
-  pairs_with:
-    - verification-before-completion
   complexity: Medium  # Add this
   category: infrastructure
 ```

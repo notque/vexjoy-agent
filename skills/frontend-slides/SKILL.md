@@ -25,9 +25,6 @@ routing:
     - kiosk presentation
     - interactive presentation keyboard
     - projector browser
-  pairs_with:
-    - typescript-frontend-engineer
-    - pptx-generator
   complexity: Medium
   category: frontend
 ---

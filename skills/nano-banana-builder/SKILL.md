@@ -21,9 +21,6 @@ routing:
     - image post-processing
     - sprite generation
     - generate card art
-  pairs_with:
-    - python-general-engineer
-    - universal-quality-gate
 ---
 
 # Nano Banana Builder

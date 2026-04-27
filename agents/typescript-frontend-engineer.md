@@ -15,9 +15,6 @@ routing:
   retro-topics:
     - typescript-patterns
     - debugging
-  pairs_with:
-    - universal-quality-gate
-    - go-patterns
   complexity: Medium-Complex
   category: language
 allowed-tools:

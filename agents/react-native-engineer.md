@@ -16,8 +16,6 @@ routing:
     - react-native-patterns
     - mobile-performance
     - animations
-  pairs_with:
-    - universal-quality-gate
   complexity: Medium-Complex
   category: language
 allowed-tools:

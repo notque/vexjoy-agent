@@ -66,7 +66,6 @@ def load_entries() -> list[dict]:
                     "category": data.get("category", ""),
                     "agent": data.get("agent"),
                     "model": data.get("model"),
-                    "pairs_with": data.get("pairs_with", []),
                     "force_route": bool(data.get("force_route", False)),
                 }
             )
@@ -87,11 +86,9 @@ def format_compact(entries: list[dict]) -> str:
     for e in entries:
         name = e["name"]
         desc = e["description"]
-        pairs = ", ".join(e["pairs_with"][:3]) if e["pairs_with"] else ""
 
         if e["type"] == "agent":
-            pairs_str = f" [{pairs}]" if pairs else ""
-            agents.append(f"  {name}{pairs_str} — {desc}")
+            agents.append(f"  {name} — {desc}")
         elif e["type"] == "pipeline":
             pipelines.append(f"  {name} — {desc}")
         else:

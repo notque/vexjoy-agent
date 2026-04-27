@@ -15,10 +15,6 @@ routing:
   retro-topics:
     - database-patterns
     - debugging
-  pairs_with:
-    - nodejs-api-engineer
-    - sqlite-peewee-engineer
-    - data-engineer
   complexity: Medium-Complex
   category: infrastructure
 allowed-tools:

@@ -28,9 +28,6 @@ routing:
     - "perses CUE"
     - "dashboard-as-code"
   category: infrastructure
-  pairs_with:
-    - "perses-engineer"
-    - "prometheus-grafana-engineer"
 ---
 
 # Perses Operations

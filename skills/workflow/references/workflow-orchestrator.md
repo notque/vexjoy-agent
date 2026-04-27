@@ -22,9 +22,6 @@ routing:
     - plan and execute
     - break this down
     - multi-step implementation
-  pairs_with:
-    - planning
-    - research-pipeline
   complexity: Complex
   category: meta
 ---

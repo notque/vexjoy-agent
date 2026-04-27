@@ -25,8 +25,6 @@ routing:
     - "move content to references"
   category: meta-tooling
   complexity: medium
-  pairs_with:
-    - verification-before-completion
 ---
 
 # Reference Enrichment Skill

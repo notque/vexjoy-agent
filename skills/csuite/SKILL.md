@@ -56,7 +56,6 @@ routing:
     - "project evaluation"
     - "go no go"
     - "viability"
-  pairs_with: []
   complexity: Medium
   category: decision-support
 ---

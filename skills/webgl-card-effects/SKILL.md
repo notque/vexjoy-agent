@@ -22,9 +22,6 @@ routing:
     - rarity effects
     - Balatro effect
     - card visual effects
-  pairs_with:
-    - typescript-frontend-engineer
-    - ui-design-engineer
   complexity: Medium
   category: frontend
 ---

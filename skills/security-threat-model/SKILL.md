@@ -22,8 +22,6 @@ routing:
     - surface scan
     - audit hooks
     - audit skills
-  pairs_with:
-    - python-general-engineer
   complexity: Complex
   category: security
 ---

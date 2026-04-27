@@ -9,8 +9,6 @@ routing:
     - coding style extraction
     - github conventions
     - programming rules
-  pairs_with:
-    - github-profile-rules
   complexity: Medium
   category: meta
 allowed-tools:

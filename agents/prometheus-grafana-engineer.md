@@ -11,9 +11,6 @@ routing:
     - dashboards
     - metrics
     - observability
-  pairs_with:
-    - verification-before-completion
-    - kubernetes-helm-engineer
   complexity: Medium-Complex
   category: infrastructure
 allowed-tools:

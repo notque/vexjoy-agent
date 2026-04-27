@@ -31,9 +31,6 @@ routing:
     - "statistical analysis"
     - "CSV analysis"
     - "explore dataset"
-  pairs_with:
-    - workflow
-    - codebase-analyzer
   complexity: medium
   category: analysis
 ---

@@ -21,10 +21,6 @@ routing:
     - "libvirt exporter"
     - "cloud hypervisor"
   category: infrastructure
-  pairs_with:
-    - go-patterns
-    - prometheus-grafana-engineer
-    - kubernetes-helm-engineer
 ---
 
 # Cobalt Core

@@ -35,7 +35,6 @@ hooks:                   # Agent-specific lifecycle hooks
       timeout: 3000
 routing:                 # Agent routing metadata (agents only)
   triggers: [keyword1, keyword2]
-  pairs_with: [skill1, skill2]
   complexity: Simple | Medium | Complex
   category: domain | devops | meta
 ---

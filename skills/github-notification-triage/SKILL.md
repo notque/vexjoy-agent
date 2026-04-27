@@ -14,7 +14,6 @@ routing:
     - check notifications
     - notification cleanup
     - github inbox
-  pairs_with: []
   complexity: Simple
   category: github
 ---

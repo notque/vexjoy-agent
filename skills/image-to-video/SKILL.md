@@ -21,9 +21,6 @@ routing:
     - combine image audio
     - album art video
     - cover art video
-  pairs_with:
-    - gemini-image-generator
-    - workflow
   complexity: simple
   category: video-creation
 ---

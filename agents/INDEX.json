@@ -3,7 +3,7 @@
   "generated_by": "scripts/generate-agent-index.py",
   "agents": {
     "ansible-automation-engineer": {
-      "file": "agents/ansible-automation-engineer.md",
+      "file": "ansible-automation-engineer.md",
       "short_description": "Ansible automation: playbooks, roles, collections, Molecule testing, Vault security",
       "triggers": [
         "ansible",
@@ -13,15 +13,11 @@
         "ansible-tower",
         "AWX"
       ],
-      "pairs_with": [
-        "verification-before-completion",
-        "kubernetes-helm-engineer"
-      ],
       "complexity": "Medium-Complex",
       "category": "infrastructure"
     },
     "combat-effects-upgrade": {
-      "file": "agents/combat-effects-upgrade.md",
+      "file": "combat-effects-upgrade.md",
       "short_description": "Zero-dependency combat visual upgrades: CSS particle replacement, Framer Motion combat juice, CSS 3D card transforms",
       "triggers": [
         "combat effects",
@@ -36,16 +32,11 @@
         "effects.ts",
         "combat polish"
       ],
-      "pairs_with": [
-        "typescript-frontend-engineer",
-        "ui-design-engineer",
-        "pixijs-combat-renderer"
-      ],
       "complexity": "Medium",
       "category": "frontend"
     },
     "data-engineer": {
-      "file": "agents/data-engineer.md",
+      "file": "data-engineer.md",
       "short_description": "Data pipelines, ETL/ELT, warehouse design, dimensional modeling, stream processing",
       "triggers": [
         "data pipeline",
@@ -75,15 +66,11 @@
         "SCD",
         "data lineage"
       ],
-      "pairs_with": [
-        "database-engineer",
-        "data-analysis"
-      ],
       "complexity": "Medium",
       "category": "infrastructure"
     },
     "database-engineer": {
-      "file": "agents/database-engineer.md",
+      "file": "database-engineer.md",
       "short_description": "Database design, optimization, query performance, migrations, indexing strategies",
       "triggers": [
         "database",
@@ -94,16 +81,11 @@
         "indexing",
         "query optimization"
       ],
-      "pairs_with": [
-        "nodejs-api-engineer",
-        "sqlite-peewee-engineer",
-        "data-engineer"
-      ],
       "complexity": "Medium-Complex",
       "category": "infrastructure"
     },
     "github-profile-rules-engineer": {
-      "file": "agents/github-profile-rules-engineer.md",
+      "file": "github-profile-rules-engineer.md",
       "short_description": "Extract coding conventions and style rules from GitHub user profiles via API",
       "triggers": [
         "github rules",
@@ -112,14 +94,11 @@
         "github conventions",
         "programming rules"
       ],
-      "pairs_with": [
-        "github-profile-rules"
-      ],
       "complexity": "Medium",
       "category": "meta"
     },
     "golang-general-engineer-compact": {
-      "file": "agents/golang-general-engineer-compact.md",
+      "file": "golang-general-engineer-compact.md",
       "short_description": "Compact Go development for tight context budgets",
       "triggers": [
         "go",
@@ -128,15 +107,11 @@
         "compact",
         "focused go"
       ],
-      "pairs_with": [
-        "go-patterns",
-        "go-patterns"
-      ],
       "complexity": "Medium-Complex",
       "category": "language"
     },
     "golang-general-engineer": {
-      "file": "agents/golang-general-engineer.md",
+      "file": "golang-general-engineer.md",
       "short_description": "Go development: features, debugging, code review, performance",
       "triggers": [
         "go",
@@ -148,14 +123,11 @@
         "channel",
         "gopls"
       ],
-      "pairs_with": [
-        "go-patterns"
-      ],
       "complexity": "Medium-Complex",
       "category": "language"
     },
     "hook-development-engineer": {
-      "file": "agents/hook-development-engineer.md",
+      "file": "hook-development-engineer.md",
       "short_description": "Python hook development for Claude Code event-driven system and learning database",
       "triggers": [
         "create hook",
@@ -167,15 +139,11 @@
         "learning database",
         "error detection hook"
       ],
-      "pairs_with": [
-        "verification-before-completion",
-        "python-quality-gate"
-      ],
       "complexity": "Comprehensive",
       "category": "meta"
     },
     "kotlin-general-engineer": {
-      "file": "agents/kotlin-general-engineer.md",
+      "file": "kotlin-general-engineer.md",
       "short_description": "Kotlin development: features, coroutines, debugging, code quality, multiplatform",
       "triggers": [
         "kotlin",
@@ -194,16 +162,11 @@
         "android kotlin",
         "kotlin-multiplatform"
       ],
-      "pairs_with": [
-        "workflow",
-        "verification-before-completion",
-        "systematic-code-review"
-      ],
       "complexity": "Medium-Complex",
       "category": "language"
     },
     "kubernetes-helm-engineer": {
-      "file": "agents/kubernetes-helm-engineer.md",
+      "file": "kubernetes-helm-engineer.md",
       "short_description": "Kubernetes and Helm: deployments, troubleshooting, cloud-native infrastructure",
       "triggers": [
         "kubernetes",
@@ -214,15 +177,11 @@
         "argocd",
         "deployment"
       ],
-      "pairs_with": [
-        "verification-before-completion",
-        "prometheus-grafana-engineer"
-      ],
       "complexity": "Medium-Complex",
       "category": "infrastructure"
     },
     "mcp-local-docs-engineer": {
-      "file": "agents/mcp-local-docs-engineer.md",
+      "file": "mcp-local-docs-engineer.md",
       "short_description": "MCP server development for local documentation access in TypeScript/Node",
       "triggers": [
         "MCP",
@@ -230,14 +189,11 @@
         "documentation server",
         "hugo"
       ],
-      "pairs_with": [
-        "verification-before-completion"
-      ],
       "complexity": "Medium",
       "category": "devops"
     },
     "nextjs-ecommerce-engineer": {
-      "file": "agents/nextjs-ecommerce-engineer.md",
+      "file": "nextjs-ecommerce-engineer.md",
       "short_description": "Use this agent when building a NextJS e-commerce site: shopping cart, Stripe payments, product catalogs, order management, and checkout flows",
       "triggers": [
         "next.js e-commerce",
@@ -248,15 +204,11 @@
         "online store",
         "product catalog"
       ],
-      "pairs_with": [
-        "verification-before-completion",
-        "typescript-frontend-engineer"
-      ],
       "complexity": "Medium-Complex",
       "category": "language"
     },
     "nodejs-api-engineer": {
-      "file": "agents/nodejs-api-engineer.md",
+      "file": "nodejs-api-engineer.md",
       "short_description": "Use this agent when you need expert assistance with NodeJS backend API development: REST endpoints, authentication, file uploads, webhooks, middleware, and database integration",
       "triggers": [
         "node.js",
@@ -267,15 +219,11 @@
         "webhook",
         "authentication"
       ],
-      "pairs_with": [
-        "systematic-code-review",
-        "database-engineer"
-      ],
       "complexity": "Medium-Complex",
       "category": "language"
     },
     "opensearch-elasticsearch-engineer": {
-      "file": "agents/opensearch-elasticsearch-engineer.md",
+      "file": "opensearch-elasticsearch-engineer.md",
       "short_description": "OpenSearch/Elasticsearch: cluster management, performance tuning, index optimization",
       "triggers": [
         "opensearch",
@@ -285,14 +233,11 @@
         "kibana",
         "search performance"
       ],
-      "pairs_with": [
-        "verification-before-completion"
-      ],
       "complexity": "Medium-Complex",
       "category": "infrastructure"
     },
     "performance-optimization-engineer": {
-      "file": "agents/performance-optimization-engineer.md",
+      "file": "performance-optimization-engineer.md",
       "short_description": "Web performance optimization: Core Web Vitals, rendering, bundle analysis, monitoring",
       "triggers": [
         "performance",
@@ -300,14 +245,11 @@
         "speed",
         "profiling"
       ],
-      "pairs_with": [
-        "verification-before-completion"
-      ],
       "complexity": "Medium-Complex",
       "category": "performance"
     },
     "perses-engineer": {
-      "file": "agents/perses-engineer.md",
+      "file": "perses-engineer.md",
       "short_description": "Perses observability platform: dashboards, plugins, operator, core development",
       "triggers": [
         "perses",
@@ -339,19 +281,11 @@
         "perses cue schema",
         "plugin schema"
       ],
-      "pairs_with": [
-        "perses-onboard",
-        "perses",
-        "golang-general-engineer",
-        "typescript-frontend-engineer",
-        "kubernetes-helm-engineer",
-        "prometheus-grafana-engineer"
-      ],
       "complexity": "Medium-Complex",
       "category": "infrastructure"
     },
     "php-general-engineer": {
-      "file": "agents/php-general-engineer.md",
+      "file": "php-general-engineer.md",
       "short_description": "PHP development: features, debugging, code quality, security, modern PHP 8",
       "triggers": [
         "php",
@@ -374,16 +308,11 @@
         "phpstan",
         "psalm"
       ],
-      "pairs_with": [
-        "workflow",
-        "verification-before-completion",
-        "systematic-code-review"
-      ],
       "complexity": "Medium-Complex",
       "category": "language"
     },
     "pipeline-orchestrator-engineer": {
-      "file": "agents/pipeline-orchestrator-engineer.md",
+      "file": "pipeline-orchestrator-engineer.md",
       "short_description": "Pipeline orchestration: scaffold multi-component workflows, fan-out/fan-in patterns",
       "triggers": [
         "create pipeline",
@@ -392,16 +321,11 @@
         "build pipeline",
         "pipeline creator"
       ],
-      "pairs_with": [
-        "workflow",
-        "codebase-analyzer",
-        "routing-table-updater"
-      ],
       "complexity": "Complex",
       "category": "meta"
     },
     "pixijs-combat-renderer": {
-      "file": "agents/pixijs-combat-renderer.md",
+      "file": "pixijs-combat-renderer.md",
       "short_description": "PixiJS v8 2D WebGL combat rendering: @pixi/react hybrid canvas, normal maps, GPU particles, post-processing",
       "triggers": [
         "pixijs",
@@ -415,16 +339,11 @@
         "pixi filters",
         "sprite rendering GPU"
       ],
-      "pairs_with": [
-        "typescript-frontend-engineer",
-        "ui-design-engineer",
-        "combat-effects-upgrade"
-      ],
       "complexity": "Medium",
       "category": "frontend"
     },
     "project-coordinator-engineer": {
-      "file": "agents/project-coordinator-engineer.md",
+      "file": "project-coordinator-engineer.md",
       "short_description": "Multi-agent project coordination: task breakdown, dependency management, progress tracking",
       "triggers": [
         "coordinate",
@@ -434,15 +353,11 @@
         "task management",
         "agent coordination"
       ],
-      "pairs_with": [
-        "workflow",
-        "subagent-driven-development"
-      ],
       "complexity": "Complex",
       "category": "meta"
     },
     "prometheus-grafana-engineer": {
-      "file": "agents/prometheus-grafana-engineer.md",
+      "file": "prometheus-grafana-engineer.md",
       "short_description": "Prometheus and Grafana: monitoring, alerting, dashboard design, PromQL optimization",
       "triggers": [
         "prometheus",
@@ -453,15 +368,11 @@
         "metrics",
         "observability"
       ],
-      "pairs_with": [
-        "verification-before-completion",
-        "kubernetes-helm-engineer"
-      ],
       "complexity": "Medium-Complex",
       "category": "infrastructure"
     },
     "python-general-engineer": {
-      "file": "agents/python-general-engineer.md",
+      "file": "python-general-engineer.md",
       "short_description": "Python development: features, debugging, code review, performance",
       "triggers": [
         "python",
@@ -473,14 +384,11 @@
         "django",
         "flask"
       ],
-      "pairs_with": [
-        "python-quality-gate"
-      ],
       "complexity": "Medium-Complex",
       "category": "language"
     },
     "python-openstack-engineer": {
-      "file": "agents/python-openstack-engineer.md",
+      "file": "python-openstack-engineer.md",
       "short_description": "OpenStack Python development: Nova, Neutron, Cinder, Oslo libraries, WSGI middleware",
       "triggers": [
         "openstack",
@@ -492,15 +400,11 @@
         "oslo.config",
         "oslo.messaging"
       ],
-      "pairs_with": [
-        "python-quality-gate",
-        "python-general-engineer"
-      ],
       "complexity": "Complex",
       "category": "language"
     },
     "rabbitmq-messaging-engineer": {
-      "file": "agents/rabbitmq-messaging-engineer.md",
+      "file": "rabbitmq-messaging-engineer.md",
       "short_description": "RabbitMQ: message queue architecture, clustering, high-availability, routing patterns",
       "triggers": [
         "rabbitmq",
@@ -509,14 +413,11 @@
         "amqp",
         "event bus"
       ],
-      "pairs_with": [
-        "verification-before-completion"
-      ],
       "complexity": "Medium-Complex",
       "category": "infrastructure"
     },
     "react-native-engineer": {
-      "file": "agents/react-native-engineer.md",
+      "file": "react-native-engineer.md",
       "short_description": "React Native and Expo development: performance, animations, navigation, native UI patterns",
       "triggers": [
         "react native",
@@ -528,14 +429,11 @@
         "gesture handler",
         "native stack"
       ],
-      "pairs_with": [
-        "universal-quality-gate"
-      ],
       "complexity": "Medium-Complex",
       "category": "language"
     },
     "react-portfolio-engineer": {
-      "file": "agents/react-portfolio-engineer.md",
+      "file": "react-portfolio-engineer.md",
       "short_description": "React portfolio/gallery sites for creatives: React 18+, Next",
       "triggers": [
         "portfolio",
@@ -545,15 +443,11 @@
         "image gallery",
         "lightbox"
       ],
-      "pairs_with": [
-        "ui-design-engineer",
-        "typescript-frontend-engineer"
-      ],
       "complexity": "Medium",
       "category": "language"
     },
     "research-coordinator-engineer": {
-      "file": "agents/research-coordinator-engineer.md",
+      "file": "research-coordinator-engineer.md",
       "short_description": "Research coordination: systematic investigation, multi-source analysis, synthesis",
       "triggers": [
         "research",
@@ -564,28 +458,21 @@
         "study",
         "examine"
       ],
-      "pairs_with": [
-        "workflow",
-        "subagent-driven-development"
-      ],
       "complexity": "Complex",
       "category": "meta"
     },
     "research-subagent-executor": {
-      "file": "agents/research-subagent-executor.md",
+      "file": "research-subagent-executor.md",
       "short_description": "Research subagent execution: OODA-loop investigation, intelligence gathering, source evaluation",
       "triggers": [
         "research subtask",
         "delegated research"
       ],
-      "pairs_with": [
-        "research-coordinator-engineer"
-      ],
       "complexity": "Medium",
       "category": "research"
     },
     "reviewer-code": {
-      "file": "agents/reviewer-code.md",
+      "file": "reviewer-code.md",
       "short_description": "Code quality review: conventions, naming, dead code, performance, test coverage",
       "triggers": [
         "code review",
@@ -598,16 +485,11 @@
         "test coverage review",
         "config safety review"
       ],
-      "pairs_with": [
-        "workflow",
-        "parallel-code-review",
-        "systematic-code-review"
-      ],
       "complexity": "Medium",
       "category": "review"
     },
     "reviewer-domain": {
-      "file": "agents/reviewer-domain.md",
+      "file": "reviewer-domain.md",
       "short_description": "Domain-specific review: ADR compliance, business logic, SAP CC structural, pragmatic builder",
       "triggers": [
         "adr compliance",
@@ -633,16 +515,11 @@
         "ops",
         "operational"
       ],
-      "pairs_with": [
-        "workflow",
-        "parallel-code-review",
-        "systematic-code-review"
-      ],
       "complexity": "Medium-Complex",
       "category": "review"
     },
     "reviewer-perspectives": {
-      "file": "agents/reviewer-perspectives.md",
+      "file": "reviewer-perspectives.md",
       "short_description": "Multi-perspective review: newcomer, senior, pedant, contrarian, user advocate, meta-process",
       "triggers": [
         "newcomer perspective",
@@ -674,15 +551,11 @@
         "authority concentration",
         "reversibility check"
       ],
-      "pairs_with": [
-        "systematic-code-review",
-        "workflow"
-      ],
       "complexity": "Medium",
       "category": "review"
     },
     "reviewer-system": {
-      "file": "agents/reviewer-system.md",
+      "file": "reviewer-system.md",
       "short_description": "System-level review: security, concurrency, error handling, observability, API contracts",
       "triggers": [
         "system review",
@@ -695,17 +568,11 @@
         "dependency audit",
         "API doc accuracy review"
       ],
-      "pairs_with": [
-        "workflow",
-        "systematic-code-review",
-        "parallel-code-review",
-        "go-patterns"
-      ],
       "complexity": "Medium-Complex",
       "category": "review"
     },
     "rive-skeletal-animator": {
-      "file": "agents/rive-skeletal-animator.md",
+      "file": "rive-skeletal-animator.md",
       "short_description": "Rive skeletal animation: @rive-app/react-canvas, state machines, character pipelines, combat integration",
       "triggers": [
         "rive",
@@ -719,16 +586,11 @@
         "@rive-app/react-canvas",
         ".riv files"
       ],
-      "pairs_with": [
-        "typescript-frontend-engineer",
-        "ui-design-engineer",
-        "pixijs-combat-renderer"
-      ],
       "complexity": "Medium",
       "category": "frontend"
     },
     "sqlite-peewee-engineer": {
-      "file": "agents/sqlite-peewee-engineer.md",
+      "file": "sqlite-peewee-engineer.md",
       "short_description": "SQLite with Peewee ORM: model definition, query optimization, migrations, transactions",
       "triggers": [
         "peewee",
@@ -737,15 +599,11 @@
         "python database",
         "playhouse"
       ],
-      "pairs_with": [
-        "python-general-engineer",
-        "database-engineer"
-      ],
       "complexity": "Medium",
       "category": "language"
     },
     "swift-general-engineer": {
-      "file": "agents/swift-general-engineer.md",
+      "file": "swift-general-engineer.md",
       "short_description": "Swift development: iOS, macOS, server-side Swift, SwiftUI, concurrency, testing",
       "triggers": [
         "swift",
@@ -771,16 +629,11 @@
         "swiftdata",
         "coredata"
       ],
-      "pairs_with": [
-        "workflow",
-        "verification-before-completion",
-        "systematic-code-review"
-      ],
       "complexity": "Medium-Complex",
       "category": "language"
     },
     "system-upgrade-engineer": {
-      "file": "agents/system-upgrade-engineer.md",
+      "file": "system-upgrade-engineer.md",
       "short_description": "Systematic toolkit upgrades: adapt agents, skills, hooks when Claude Code ships updates",
       "triggers": [
         "upgrade agents",
@@ -795,18 +648,11 @@
         "new claude version",
         "apply retro"
       ],
-      "pairs_with": [
-        "system-upgrade",
-        "agent-evaluation",
-        "codebase-analyzer",
-        "routing-table-updater",
-        "pr-pipeline"
-      ],
       "complexity": "Complex",
       "category": "meta"
     },
     "technical-documentation-engineer": {
-      "file": "agents/technical-documentation-engineer.md",
+      "file": "technical-documentation-engineer.md",
       "short_description": "Technical documentation: API docs, system architecture, runbooks, enterprise standards",
       "triggers": [
         "API documentation",
@@ -814,14 +660,11 @@
         "documentation validation",
         "integration guide"
       ],
-      "pairs_with": [
-        "verification-before-completion"
-      ],
       "complexity": "Complex",
       "category": "documentation"
     },
     "technical-journalist-writer": {
-      "file": "agents/technical-journalist-writer.md",
+      "file": "technical-journalist-writer.md",
       "short_description": "Technical journalism: explainers, opinion pieces, analysis articles, long-form content",
       "triggers": [
         "technical article",
@@ -830,14 +673,11 @@
         "technical writer",
         "technical journalism"
       ],
-      "pairs_with": [
-        "voice-writer"
-      ],
       "complexity": "Comprehensive",
       "category": "content"
     },
     "testing-automation-engineer": {
-      "file": "agents/testing-automation-engineer.md",
+      "file": "testing-automation-engineer.md",
       "short_description": "Testing automation: Vitest, Playwright, E2E, coverage enforcement, CI/CD integration",
       "triggers": [
         "testing",
@@ -847,15 +687,11 @@
         "test automation",
         "visual regression"
       ],
-      "pairs_with": [
-        "test-driven-development",
-        "e2e-testing"
-      ],
       "complexity": "Medium-Complex",
       "category": "testing"
     },
     "toolkit-governance-engineer": {
-      "file": "agents/toolkit-governance-engineer.md",
+      "file": "toolkit-governance-engineer.md",
       "short_description": "Toolkit governance: edit skills, update routing tables, manage ADR lifecycle, enforce standards",
       "triggers": [
         "edit skill",
@@ -868,16 +704,11 @@
         "hook standardization",
         "cross-component consistency"
       ],
-      "pairs_with": [
-        "adr-consultation",
-        "routing-table-updater",
-        "docs-sync-checker"
-      ],
       "complexity": "Medium",
       "category": "meta"
     },
     "typescript-debugging-engineer": {
-      "file": "agents/typescript-debugging-engineer.md",
+      "file": "typescript-debugging-engineer.md",
       "short_description": "TypeScript debugging: race conditions, async/await issues, type errors, runtime exceptions",
       "triggers": [
         "typescript debug",
@@ -887,15 +718,11 @@
         "production error",
         "memory leak"
       ],
-      "pairs_with": [
-        "workflow",
-        "typescript-frontend-engineer"
-      ],
       "complexity": "Medium-Complex",
       "category": "language"
     },
     "typescript-frontend-engineer": {
-      "file": "agents/typescript-frontend-engineer.md",
+      "file": "typescript-frontend-engineer.md",
       "short_description": "TypeScript frontend architecture: type-safe components, state management, build optimization",
       "triggers": [
         "typescript",
@@ -906,15 +733,11 @@
         ".ts",
         "zod"
       ],
-      "pairs_with": [
-        "universal-quality-gate",
-        "go-patterns"
-      ],
       "complexity": "Medium-Complex",
       "category": "language"
     },
     "ui-design-engineer": {
-      "file": "agents/ui-design-engineer.md",
+      "file": "ui-design-engineer.md",
       "short_description": "UI/UX design: design systems, responsive layouts, accessibility, animations",
       "triggers": [
         "UI",
@@ -924,10 +747,6 @@
         "responsive",
         "animations",
         "design system"
-      ],
-      "pairs_with": [
-        "distinctive-frontend-design",
-        "typescript-frontend-engineer"
       ],
       "complexity": "Medium",
       "category": "language"

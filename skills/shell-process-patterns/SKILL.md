@@ -20,10 +20,6 @@ routing:
     - "signal handling"
     - "set -e"
     - "bash process"
-  pairs_with:
-    - condition-based-waiting
-    - service-health-check
-    - cron-job-auditor
   category: process
 ---
 

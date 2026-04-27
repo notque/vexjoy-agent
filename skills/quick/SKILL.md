@@ -31,7 +31,6 @@ routing:
     - rename this variable
     - update value
     - fix import
-  pairs_with: []
   complexity: Simple
   category: process
 ---

@@ -15,9 +15,6 @@ routing:
     - scaffold pipeline
     - create pipeline components
     - generate pipeline from spec
-  pairs_with:
-    - chain-composer
-    - pipeline-test-runner
   complexity: Medium
   category: meta
 ---
@@ -109,7 +106,6 @@ If `adr_hash` field is absent from the spec: Log a warning and continue (older p
 **Step 2**: Generate the agent file at `agents/{new_agent.name}.md` with:
 - YAML frontmatter: name, version, description (with 3 examples), color, routing metadata
 - `routing.triggers` from `new_agent.triggers`
-- `routing.pairs_with` listing ALL subdomain skill names from the spec—incomplete pairs_with means the agent can't be discovered for all subdomains
 - `routing.complexity` from `new_agent.complexity`
 - `routing.category` from `new_agent.category`
 - Operator declaration with `new_agent.expertise` items
@@ -125,7 +121,6 @@ If `adr_hash` field is absent from the spec: Log a warning and continue (older p
 **Step 4**: Validate the agent:
 - [ ] All required AGENT_TEMPLATE_V2 sections present
 - [ ] Main file under 10,000 words—no monolithic prompts. If content exceeds this limit, move detail to `references/` subdirectory
-- [ ] `pairs_with` lists all N subdomain skill names
 - [ ] Naming follows `{domain}-{function}-engineer` pattern
 
 **Gate**: Either existing agent confirmed in INDEX.json, or new agent file created and validated. Proceed to Phase 3.
@@ -234,7 +229,6 @@ For steps with `profile_gate` set: include the phase only if the gate matches th
 
 Agent verification:
 - [ ] Agent appears in `agents/INDEX.json` (new or existing)
-- [ ] Agent's `pairs_with` lists all N subdomain skill names
 
 Skill verification (for each of N skills):
 - [ ] Skill has routing entry in `skills/do/references/routing-tables.md`

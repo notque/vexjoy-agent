@@ -12,9 +12,6 @@ routing:
     - generate mcp
     - mcp builder
     - mcp from repo
-  pairs_with:
-    - workflow-orchestrator
-    - systematic-debugging
   complexity: Complex
   category: meta
 allowed-tools:

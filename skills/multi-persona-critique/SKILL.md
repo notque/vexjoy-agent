@@ -20,9 +20,6 @@ routing:
     - "evaluate from multiple perspectives"
     - "get different viewpoints"
     - "critique proposals"
-  pairs_with:
-    - roast
-    - decision-helper
   complexity: Complex
   category: analysis
 ---

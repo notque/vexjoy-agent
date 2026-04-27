@@ -182,7 +182,7 @@ Add to `skills/do/references/routing-tables.md`:
 | your-skill | trigger phrase, another phrase | domain | description |
 ```
 
-[Specify triggers, category, and any `pairs_with` entries.]
+[Specify triggers and category.]
 
 ### Deploy Order
 

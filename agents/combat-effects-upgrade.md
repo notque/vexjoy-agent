@@ -15,10 +15,6 @@ routing:
     - visual effects upgrade
     - effects.ts
     - combat polish
-  pairs_with:
-    - typescript-frontend-engineer
-    - ui-design-engineer
-    - pixijs-combat-renderer
   complexity: Medium
   category: frontend
 allowed-tools:

@@ -17,9 +17,6 @@ routing:
     - check connections
     - integration-checker
     - wiring check
-  pairs_with:
-    - feature-lifecycle
-    - comprehensive-review
   complexity: Medium
   category: process
 ---

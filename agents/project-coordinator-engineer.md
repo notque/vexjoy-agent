@@ -10,9 +10,6 @@ routing:
     - project
     - task management
     - agent coordination
-  pairs_with:
-    - workflow
-    - subagent-driven-development
   complexity: Complex
   category: meta
 allowed-tools:

@@ -23,10 +23,6 @@ routing:
     - page object model
     - POM
     - test flakiness
-  pairs_with:
-    - testing-automation-engineer
-    - typescript-frontend-engineer
-    - test-driven-development
 ---
 
 # E2E Testing Skill (Playwright)

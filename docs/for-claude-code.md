@@ -184,7 +184,7 @@ The `.claude/` directory inside the repo is gitignored. Only `settings.local.jso
 | Path | Purpose |
 |------|---------|
 | `CLAUDE.md` | Soul document -- global instructions for all sessions |
-| `agents/INDEX.json` | Auto-generated agent registry (triggers, pairs_with, complexity) |
+| `agents/INDEX.json` | Auto-generated agent registry (triggers, complexity) |
 | `skills/INDEX.json` | Auto-generated skill registry |
 | `install.sh` | One-shot installer: `--symlink` or `--copy` to `~/.claude/` |
 | `scripts/learning-db.py` | CLI for learning.db: learn, record, query, stats, graduate, prune |
@@ -302,8 +302,6 @@ routing:
   triggers:
     - keyword1
     - keyword2
-  pairs_with:
-    - related-skill
   complexity: Simple | Medium | Medium-Complex | Complex
   category: language | infrastructure | review | meta
 ---
@@ -334,8 +332,6 @@ allowed-tools:
 routing:
   triggers:
     - keyword1
-  pairs_with:
-    - related-skill
   complexity: Simple | Medium | Complex
   category: process | content | pipeline | validation
 ---

@@ -31,10 +31,6 @@ routing:
     - production
     - ops
     - operational
-  pairs_with:
-    - workflow
-    - parallel-code-review
-    - systematic-code-review
   complexity: Medium-Complex
   category: review
 allowed-tools:

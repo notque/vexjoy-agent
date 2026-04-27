@@ -15,12 +15,6 @@ routing:
     - update system
     - new claude version
     - apply retro
-  pairs_with:
-    - system-upgrade
-    - agent-evaluation
-    - codebase-analyzer
-    - routing-table-updater
-    - pr-pipeline
   complexity: Complex
   category: meta
 allowed-tools:

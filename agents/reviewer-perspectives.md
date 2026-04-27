@@ -38,9 +38,6 @@ routing:
     - complexity audit
     - authority concentration
     - reversibility check
-  pairs_with:
-    - systematic-code-review
-    - workflow
   complexity: Medium
   category: review
 allowed-tools:

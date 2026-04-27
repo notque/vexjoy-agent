@@ -14,10 +14,6 @@ routing:
     - hit reaction animation
     - "@rive-app/react-canvas"
     - .riv files
-  pairs_with:
-    - typescript-frontend-engineer
-    - ui-design-engineer
-    - pixijs-combat-renderer
   complexity: Medium
   category: frontend
 allowed-tools:

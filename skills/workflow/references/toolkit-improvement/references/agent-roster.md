@@ -334,8 +334,7 @@ list all pipelines, `docs/` for stated use cases.
 trigger lists, and force_route flags are correct and consistent.
 
 **Focus**: Skills with `force_routing` instead of `force_route` (dead key), skills
-missing from INDEX.json, triggers that are too broad or too narrow, pairs_with
-references to non-existent skills.
+missing from INDEX.json, triggers that are too broad or too narrow.
 
 **Files to read**: `skills/INDEX.json`, `skills/INDEX.json (workflow section)`, representative
 SKILL.md files — check frontmatter routing blocks.

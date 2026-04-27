@@ -25,10 +25,6 @@ routing:
     - comprehensive sapcc audit
     - full sapcc check
     - review sapcc standards
-  pairs_with:
-    - golang-general-engineer
-    - go-patterns
-    - sapcc-audit
   force_route: false
   complexity: Complex
   category: language

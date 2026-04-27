@@ -35,9 +35,6 @@ routing:
     - data-pipeline-patterns
     - data-quality
     - debugging
-  pairs_with:
-    - database-engineer
-    - data-analysis
   complexity: Medium
   category: infrastructure
 allowed-tools:

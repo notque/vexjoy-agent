@@ -16,9 +16,6 @@ routing:
   retro-topics:
     - python-patterns
     - debugging
-  pairs_with:
-    - python-quality-gate
-    - python-general-engineer
   complexity: Complex
   category: language
 allowed-tools:

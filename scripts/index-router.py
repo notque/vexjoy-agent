@@ -69,7 +69,6 @@ class IndexEntry:
     force_route: bool = False
     agent: str | None = None
     model: str | None = None
-    pairs_with: list[str] = field(default_factory=list)
     description: str = ""
     category: str = ""
 
@@ -91,7 +90,6 @@ class RoutingResult:
 
     force_route: dict[str, str] | None = None
     candidates: list[Candidate] = field(default_factory=list)
-    pairs_with: list[str] = field(default_factory=list)
     model_preference: str | None = None
     composition_chains: list[list[str]] = field(default_factory=list)
 
@@ -134,7 +132,6 @@ def load_indexes() -> list[IndexEntry]:
                 force_route=bool(data.get("force_route", False)),
                 agent=data.get("agent"),
                 model=data.get("model"),
-                pairs_with=data.get("pairs_with", []),
                 description=data.get("description", ""),
                 category=data.get("category", ""),
             )
@@ -317,9 +314,7 @@ def resolve_agent(candidate: Candidate, entries: list[IndexEntry]) -> str | None
 
     Resolution order:
     1. If the candidate already declares an agent field, return it.
-    2. Look up the candidate's full IndexEntry; if its pairs_with list contains
-       an agent name, return the first such match.
-    3. Fall back to trigger-word overlap against agent entries, but require at
+    2. Fall back to trigger-word overlap against agent entries, requiring at
        least 2 words overlap. If no match meets that threshold, return None.
 
     Args:
@@ -332,23 +327,10 @@ def resolve_agent(candidate: Candidate, entries: list[IndexEntry]) -> str | None
     if candidate.agent:
         return candidate.agent
 
-    # Build a fast lookup: name → entry
-    entry_by_name: dict[str, IndexEntry] = {e.name: e for e in entries}
+    # Build a fast lookup
     agent_names: set[str] = {e.name for e in entries if e.entry_type == "agent"}
 
-    # Step 2: check pairs_with on the candidate's own IndexEntry
-    candidate_entry = entry_by_name.get(candidate.name)
-    if candidate_entry:
-        for paired in candidate_entry.pairs_with:
-            if paired in agent_names:
-                return paired
-        # If pairs_with exists and is non-empty but contains no agent,
-        # the skill author deliberately didn't pair it with one — return None
-        # rather than guessing via word-bag overlap.
-        if candidate_entry.pairs_with:
-            return None
-
-    # Step 3: trigger-word overlap fallback (only when no pairs_with metadata)
+    # Trigger-word overlap fallback
     # Require strict majority overlap (minimum 2 words, scales with name length).
     candidate_words = set(candidate.name.lower().replace("-", " ").split())
     min_overlap = max(2, len(candidate_words) // 2 + 1)
@@ -367,35 +349,6 @@ def resolve_agent(candidate: Candidate, entries: list[IndexEntry]) -> str | None
             best_agent = entry.name
 
     return best_agent
-
-
-# ---------------------------------------------------------------------------
-# Pair suggestions
-# ---------------------------------------------------------------------------
-
-
-def suggest_pairs(matched_entries: list[IndexEntry]) -> list[str]:
-    """Collect unique pairs_with values from matched entries.
-
-    Args:
-        matched_entries: Entries that matched the request.
-
-    Returns:
-        Deduplicated list of pair suggestions, preserving first-seen order.
-    """
-    seen: set[str] = set()
-    pairs: list[str] = []
-
-    # Also collect the names of matched entries to exclude self-references
-    matched_names = {e.name for e in matched_entries}
-
-    for entry in matched_entries:
-        for pair in entry.pairs_with:
-            if pair not in seen and pair not in matched_names:
-                seen.add(pair)
-                pairs.append(pair)
-
-    return pairs
 
 
 # ---------------------------------------------------------------------------
@@ -461,7 +414,6 @@ def route_request(request: str, force_only: bool = False) -> RoutingResult:
             force_dict["agent"] = agent
         result.force_route = force_dict
         result.model_preference = force_match.model
-        result.pairs_with = suggest_pairs([force_match])
         result.composition_chains = check_composition_chains(force_match.name)
         if force_only:
             return result
@@ -485,8 +437,6 @@ def route_request(request: str, force_only: bool = False) -> RoutingResult:
         if not result.force_route and candidates:
             # Find full entries for top candidates
             entry_map = {e.name: e for e in entries}
-            matched = [entry_map[c.name] for c in candidates[:3] if c.name in entry_map]
-            result.pairs_with = suggest_pairs(matched)
 
         # Step 5: Check composition chains from top candidate
         if not result.composition_chains and candidates:
@@ -521,7 +471,6 @@ def format_json_output(result: RoutingResult) -> str:
             }
             for c in result.candidates
         ],
-        "pairs_with": result.pairs_with,
         "model_preference": result.model_preference,
         "composition_chains": result.composition_chains,
     }
@@ -548,9 +497,6 @@ def format_text_output(result: RoutingResult) -> str:
         for c in result.candidates:
             agent_str = f" (agent={c.agent})" if c.agent else ""
             lines.append(f"  {c.entry_type}:{c.name} score={c.score}{agent_str}")
-
-    if result.pairs_with:
-        lines.append(f"pairs_with: {', '.join(result.pairs_with)}")
 
     if result.model_preference:
         lines.append(f"model: {result.model_preference}")

@@ -27,10 +27,6 @@ routing:
     - add juice
     - screen shake
     - capacitor ios
-  pairs_with:
-    - threejs-builder
-    - phaser-gamedev
-    - game-asset-generator
   complexity: Complex
   category: game-development
 ---

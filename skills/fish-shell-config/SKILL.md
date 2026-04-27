@@ -26,7 +26,6 @@ routing:
     - fish abbreviation
     - .fish file
     - "#!/usr/bin/env fish"
-  pairs_with: []
   force_route: true
 ---
 

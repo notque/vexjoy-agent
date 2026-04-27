@@ -26,8 +26,6 @@ routing:
     - make a clip
     - assemble clips
     - video editing
-  pairs_with:
-    - typescript-frontend-engineer
 ---
 
 # Video Editing Skill

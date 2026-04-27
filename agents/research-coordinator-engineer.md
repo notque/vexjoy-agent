@@ -12,9 +12,6 @@ routing:
     - comprehensive analysis
     - study
     - examine
-  pairs_with:
-    - workflow
-    - subagent-driven-development
   complexity: Complex
   category: meta
 allowed-tools:

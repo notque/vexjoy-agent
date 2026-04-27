@@ -25,9 +25,6 @@ routing:
     - "write docs"
     - "generate README"
     - "document the API"
-  pairs_with:
-    - codebase-overview
-    - technical-documentation-engineer
   complexity: medium
   category: documentation
 ---

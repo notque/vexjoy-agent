@@ -375,9 +375,6 @@ def cmd_show(args) -> int:
             print(f"Triggers:       {', '.join(agent_info.get('triggers', []))}")
             print(f"Complexity:     {agent_info.get('complexity', 'unknown')}")
             print(f"Category:       {agent_info.get('category', 'unknown')}")
-            pairs = agent_info.get("pairs_with", [])
-            if pairs:
-                print(f"Pairs with:     {', '.join(pairs)}")
             print(f"File:           agents/{agent_info.get('file', '')}")
         return 0
 
@@ -623,9 +620,6 @@ def cmd_catalog(args) -> int:
             triggers = info.get("triggers", [])
             if triggers:
                 entry["triggers"] = triggers
-            pairs = info.get("pairs_with", [])
-            if pairs:
-                entry["pairs_with"] = pairs
             entries.append(entry)
         return entries
 

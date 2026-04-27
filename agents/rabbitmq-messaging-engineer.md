@@ -9,8 +9,6 @@ routing:
     - message queue
     - amqp
     - event bus
-  pairs_with:
-    - verification-before-completion
   complexity: Medium-Complex
   category: infrastructure
 allowed-tools:

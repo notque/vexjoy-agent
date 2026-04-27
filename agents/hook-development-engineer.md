@@ -15,9 +15,6 @@ routing:
   retro-topics:
     - debugging
     - hook-patterns
-  pairs_with:
-    - verification-before-completion
-    - python-quality-gate
   complexity: Comprehensive
   category: meta
 allowed-tools:

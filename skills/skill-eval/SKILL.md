@@ -28,9 +28,6 @@ routing:
     - compare implementations
     - grade two versions
     - which skill is better
-  pairs_with:
-    - agent-evaluation
-    - verification-before-completion
   complexity: Medium-Complex
   category: meta
 ---

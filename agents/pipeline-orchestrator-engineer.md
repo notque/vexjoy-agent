@@ -9,10 +9,6 @@ routing:
     - scaffold pipeline
     - build pipeline
     - pipeline creator
-  pairs_with:
-    - workflow
-    - codebase-analyzer
-    - routing-table-updater
   complexity: Complex
   category: meta
 allowed-tools:
@@ -147,7 +143,7 @@ Note: The `adr-enforcement.py` PostToolUse hook automatically runs compliance ch
 
 **Step 3**: Create `commands/{pipeline-name}.md` manifest (route-to agent/skill, component list, trigger definitions).
 
-**Step 4**: Wire inter-component relationships: `pairs_with` on agents, `agent` field on skills, hook auto-skill injection, script references from skills.
+**Step 4**: Wire inter-component relationships: `agent` field on skills, hook auto-skill injection, script references from skills.
 
 **Step 5**: Verify integration (agents in INDEX.json, routing entries match triggers, hooks are valid Python, skills have frontmatter, no orphaned components). See [references/orchestration-patterns.md](references/orchestration-patterns.md) for the integration verification checklist.
 

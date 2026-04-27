@@ -21,9 +21,6 @@ routing:
     - investigate failure
     - "why did this break"
     - "incident review"
-  pairs_with:
-    - workflow
-    - planning
   complexity: Medium
   category: process
 ---

@@ -17,9 +17,6 @@ routing:
     - agent upgrade
     - fix agent quality
     - align agent to template
-  pairs_with:
-    - agent-evaluation
-    - system-upgrade
   complexity: Medium
   category: meta
 ---
@@ -101,7 +98,7 @@ grep -rl "AGENT_TEMPLATE_V2" agents/ skills/ | head -5
 ```
 
 Check for required sections. For agents:
-- Frontmatter with `routing:` block (triggers, pairs_with, complexity, category)
+- Frontmatter with `routing:` block (triggers, complexity, category)
 - Operator Context with all three subsections (Hardcoded, Default, Optional)
 - Error Handling section
 
@@ -244,7 +241,6 @@ If joy-check flags lines in EXISTING content (not modified by this upgrade):
 - Routing triggers (`triggers:` frontmatter field)
 - Domain coverage statements
 - Core methodology or phase structure (for skills)
-- Agent pairing recommendations (`pairs_with:`)
 
 **Gate**: All approved items implemented. No pending items from the approved plan.
 

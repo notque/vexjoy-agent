@@ -19,8 +19,6 @@ routing:
     - what can we learn from
     - compare against repo
     - read every file in repo
-  pairs_with:
-    - workflow
   complexity: Complex
   category: analysis
 ---

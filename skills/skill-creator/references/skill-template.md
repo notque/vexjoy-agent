@@ -22,8 +22,6 @@ routing:
   triggers:
     - keyword1
     - keyword2
-  pairs_with:
-    - related-skill
   complexity: Simple | Medium | Medium-Complex | Complex
   category: language | infrastructure | review | meta | content
 ---

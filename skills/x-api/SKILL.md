@@ -23,8 +23,6 @@ routing:
     - search twitter
     - publish to X
     - publish to twitter
-  pairs_with:
-    - content-engine
   complexity: Medium
   category: content-publishing
 ---

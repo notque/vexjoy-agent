@@ -17,8 +17,6 @@ routing:
     - generator improvement
     - three-layer fix
     - fix generator
-  pairs_with:
-    - workflow
   complexity: Medium
   category: meta
 ---

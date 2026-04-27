@@ -17,8 +17,6 @@ routing:
     - profile analysis
     - coding style extraction
     - github conventions
-  pairs_with:
-    - domain-research
   complexity: Medium
   category: meta
 ---

@@ -10,8 +10,6 @@ routing:
     - logstash
     - kibana
     - search performance
-  pairs_with:
-    - verification-before-completion
   complexity: Medium-Complex
   category: infrastructure
 allowed-tools:

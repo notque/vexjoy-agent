@@ -20,8 +20,6 @@ routing:
     - voice evaluation
     - article evaluation
     - check my voice
-  pairs_with:
-    - voice-writer
   complexity: medium
   category: content
 ---

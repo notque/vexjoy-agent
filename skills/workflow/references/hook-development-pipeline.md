@@ -15,9 +15,6 @@ routing:
     - create hook pipeline
     - new hook formal
     - hook with gates
-  pairs_with:
-    - hook-development-engineer
-    - systematic-debugging
   complexity: Medium
   category: infrastructure
 ---

@@ -16,10 +16,6 @@ routing:
     - run pipeline tests
     - validate scaffolded skills
     - pipeline test runner
-  pairs_with:
-    - pipeline-scaffolder
-    - pipeline-retro
-    - chain-composer
   complexity: Medium
   category: meta
 ---

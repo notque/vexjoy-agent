@@ -19,9 +19,6 @@ routing:
     - upgrade skills
     - adapt workflow
     - system health
-  pairs_with:
-    - agent-upgrade
-    - agent-evaluation
   complexity: Complex
   category: meta
 ---

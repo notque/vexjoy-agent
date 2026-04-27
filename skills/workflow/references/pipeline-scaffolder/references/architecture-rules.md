@@ -108,7 +108,7 @@ Phase 4: VERIFY (sequential — validate all components + relationships)
 
 Every pipeline MUST be routable via `/do`. This means:
 
-1. Agent has `routing:` metadata in YAML frontmatter with `triggers`, `pairs_with`, `complexity`, `category`
+1. Agent has `routing:` metadata in YAML frontmatter with `triggers`, `complexity`, `category`
 2. Skill has trigger keywords in its description
 3. `routing-table-updater` is invoked to add entries to:
    - `skills/do/SKILL.md` (main routing tables)
