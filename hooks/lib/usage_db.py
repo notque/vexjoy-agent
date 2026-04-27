@@ -44,6 +44,7 @@ def get_connection():
     """Get a database connection with automatic cleanup."""
     conn = sqlite3.connect(get_db_path(), timeout=5.0)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
     try:
         yield conn
     finally:
