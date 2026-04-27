@@ -117,6 +117,7 @@ tmp/
 *-workspace/
 evals/*
 # But track A/B test design files (cases, rubrics, methodology)
+!evals/README.md
 !evals/new-skills-ab-test/
 
 # Evolution reports (weekly toolkit-evolution cycle output)
