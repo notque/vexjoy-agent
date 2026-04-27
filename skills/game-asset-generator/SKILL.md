@@ -1,6 +1,6 @@
 ---
 name: game-asset-generator
-description: "AI game asset generation: 3D models, environments, sprites, images."
+description: "Deterministic palette/matrix pixel art (not AI). Use for procedural tile art, color-quantized output, matrix sprites."
 user-invocable: false
 command: /game-assets
 allowed-tools:
@@ -12,6 +12,10 @@ allowed-tools:
   - Edit
 routing:
   triggers:
+    - pixel art
+    - tile pattern
+    - palette quantize
+    - matrix sprite
     - meshy
     - meshyai
     - generate 3d model
@@ -21,8 +25,6 @@ routing:
     - gaussian splat
     - splat environment
     - game asset
-    - generate sprite
-    - pixel art
     - fal ai
     - fal.ai
     - generate texture
