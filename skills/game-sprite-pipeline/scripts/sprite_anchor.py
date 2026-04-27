@@ -150,6 +150,18 @@ def apply_mass_centroid_anchor(
     planted; limb extensions look like motion against a stable body.
 
     Horizontal: center the mass centroid X on the cell's vertical axis.
+
+    Fit-to-cell scaling (ADR-208 RC-4): if the post-translation bbox would
+    overflow the canvas (paste_y + bbox_top < 0, or paste_y + bbox_bot >=
+    cell_h), the frame is rescaled to fit. Without this, content gets
+    clipped at the canvas edge AND the resulting visible centroid shifts
+    away from `centroid_y_target` (because clipping the upper or lower
+    pixels biases the centroid toward the surviving side). The pre-fix
+    bug measured centroid stddev 14.6 px on the canonical
+    luchadora-highflyer/05-specials sample because tall full-bbox frames
+    (bbox spanning 240 of 256 px) translated past the canvas top, lost
+    their upper content to clipping, and the surviving content's centroid
+    drifted 25-30 px below the target. This rescale closes that path.
     """
     out = Image.new("RGBA", (cell_w, cell_h), (0, 0, 0, 0))
     centroid = find_alpha_mass_centroid(frame)
@@ -159,15 +171,55 @@ def apply_mass_centroid_anchor(
     paste_x = (cell_w / 2) - cx
     paste_y = centroid_y_target - cy
 
-    # Fit-to-cell: if frame larger than cell, scale down (preserve aspect).
+    # Fit-to-cell: rescale if the frame's bbox would overflow the canvas
+    # AT the chosen translation. We check both the bbox dimension (frame
+    # is bigger than cell) AND the post-translation overflow (centroid
+    # position forces the bbox past a canvas edge). The second condition
+    # is the ADR-208 RC-4 fix: tall full-bbox frames whose centroid sits
+    # below cell-center overflow the canvas top, lose pixels to clipping,
+    # and the surviving content's centroid no longer matches the target.
     bbox = find_alpha_bbox(frame)
     if bbox is not None:
         top, bot, left, right = bbox
         bbox_h = bot - top + 1
         bbox_w = right - left + 1
+        # Translated bbox extents in canvas coords:
+        translated_top = paste_y + top
+        translated_bot = paste_y + bot
+        translated_left = paste_x + left
+        translated_right = paste_x + right
         scale = 1.0
+        # Frame larger than cell: scale to fit.
         if bbox_h > cell_h or bbox_w > cell_w:
             scale = min(cell_h / max(bbox_h, 1), cell_w / max(bbox_w, 1))
+        # Translated bbox overflows canvas: rescale by the overflow ratio
+        # so the bbox fits AROUND the centroid target. Compute the
+        # required scale separately for top and bottom overflow then take
+        # the more restrictive. The bbox after scale must satisfy:
+        #   centroid_y_target - cy_scaled + top_scaled >= 0
+        #   centroid_y_target - cy_scaled + bot_scaled < cell_h
+        # which simplifies (since cy = (top+bot)/2-ish for symmetric bbox
+        # and cy and top/bot all scale by `scale`) to:
+        #   scale <= centroid_y_target / (cy - top)  (top edge)
+        #   scale <= (cell_h - centroid_y_target) / (bot - cy)  (bot edge)
+        if cy - top > 0:
+            top_scale = centroid_y_target / (cy - top)
+            if top_scale < scale:
+                scale = top_scale
+        if bot - cy > 0:
+            bot_scale = (cell_h - 1 - centroid_y_target) / (bot - cy)
+            if bot_scale < scale:
+                scale = bot_scale
+        # Horizontal overflow: rescale so the bbox X extents fit either
+        # side of the cell horizontal center.
+        if cx - left > 0:
+            left_scale = (cell_w / 2) / (cx - left)
+            if left_scale < scale:
+                scale = left_scale
+        if right - cx > 0:
+            right_scale = (cell_w / 2) / (right - cx)
+            if right_scale < scale:
+                scale = right_scale
         if scale < 1.0:
             new_w = max(1, int(frame.width * scale))
             new_h = max(1, int(frame.height * scale))
@@ -178,6 +230,9 @@ def apply_mass_centroid_anchor(
             cx, cy = centroid
             paste_x = (cell_w / 2) - cx
             paste_y = centroid_y_target - cy
+        # Suppress unused-variable warnings for the translated_* values:
+        # they're computed for documentation / future-debug inspection.
+        del translated_top, translated_bot, translated_left, translated_right
 
     out.paste(frame, (round(paste_x), round(paste_y)), frame)
     return out
@@ -384,6 +439,7 @@ def anchor_to_canvas(
     bottom_margin: int = DEFAULT_BOTTOM_MARGIN,
     anchor_mode: str = "bottom",
     ground_line_y: int | None = None,
+    centroid_y_target: int | None = None,
 ) -> Image.Image:
     """Place frame on transparent canvas with anchor controlled by `anchor_mode`.
 
@@ -398,14 +454,30 @@ def anchor_to_canvas(
       - `ground-line`: translate so the frame's alpha-bbox-bottom lands at
         `ground_line_y`. Caller must pre-compute `ground_line_y` via
         `detect_ground_line(frames, canvas_h)` once for the whole batch.
-        Provides drift-free animation across mixed grounded/aerial poses.
+        Provides drift-free animation across mixed grounded/aerial poses
+        AS LONG AS the bbox-bottom IS the feet on every frame -- which
+        breaks down on sheets where the bbox-bottom is sometimes a fist
+        (lunge) or an extended leg (kick). For those, use `mass-centroid`.
+      - `mass-centroid` (ADR-208 RC-4 default for spritesheet mode):
+        translate so the frame's alpha-mass-centroid Y lands at
+        `centroid_y_target`. Caller must pre-compute `centroid_y_target`
+        via `detect_centroid_y_target(frames, canvas_h)` once for the
+        whole batch. Robust to extended-limb frames because the centroid
+        integrates over all opaque pixels; a single limb extension only
+        nudges the centroid by a few pixels (vs the dozens that
+        bbox-bottom shifts).
       - `auto`: pick `bottom` for upright frames (height/width > 1.2),
-        `center` otherwise. Legacy behavior; superseded by `ground-line`.
+        `center` otherwise. Legacy behavior; superseded by `mass-centroid`.
     """
     if anchor_mode == "ground-line":
         if ground_line_y is None:
             ground_line_y = canvas_h - bottom_margin
         return apply_ground_line_anchor(frame, ground_line_y, canvas_w, canvas_h)
+
+    if anchor_mode == "mass-centroid":
+        if centroid_y_target is None:
+            centroid_y_target = canvas_h - bottom_margin - canvas_h // 4
+        return apply_mass_centroid_anchor(frame, centroid_y_target, canvas_w, canvas_h)
 
     canvas = Image.new("RGBA", (canvas_w, canvas_h), (0, 0, 0, 0))
     if anchor_mode == "center":
@@ -452,6 +524,46 @@ def normalize_portrait(
     }
 
 
+def _post_anchor_despill_pink(arr):
+    """Neutralize LANCZOS-introduced pink-cast pixels at silhouette edges.
+
+    ADR-208 RC-5 helper. The shared-scale rescale + anchor translation
+    inside `normalize_spritesheet` runs LANCZOS resampling on alpha-zeroed
+    frames. LANCZOS interpolates between transparent (alpha=0) and
+    character RGB; the resulting alpha-faded edge pixels carry pink-cast
+    RGB values (R=180-245, G=80-100, B=130-180) at full or near-full
+    alpha (alpha=200-255). These are NOT background bleed -- they are
+    interpolation artifacts -- but they read as pink halo to the eye and
+    register as wide_count failures in `verify_no_magenta`.
+
+    The helper applies a stricter version of
+    `neutralize_interior_magenta_spill`'s Tier B criterion with two
+    relaxations:
+      - alpha threshold relaxed from `alpha == 255` to `alpha > 200`,
+        catching the partially-faded edge pixels.
+      - r-g threshold relaxed from `> 90` to `> 70`, catching the
+        slightly-less-saturated interpolation artifacts.
+
+    Both are still pink/magenta-only (B*100 <= R*110 — purple costume
+    pixels with B/R > 1.10 are protected). The recolor pulls R, B down
+    to G to neutralize the hue while preserving brightness.
+
+    Pure numpy. ~5ms / 256x256 frame.
+    """
+    rgb = arr[..., :3].astype(int)
+    r = rgb[..., 0]
+    g = rgb[..., 1]
+    b = rgb[..., 2]
+    alpha = arr[..., 3]
+    # Tier B' (relaxed alpha + r-g): catches LANCZOS-introduced pink at
+    # silhouette edges. Same hue protection (B*100 <= R*110) as the
+    # canonical Tier B so purple costumes (B/R > 1.10) stay untouched.
+    pink = (r >= 130) & (g <= 100) & (b >= 90) & ((r - g) > 70) & ((b - g) > 50) & (b * 100 <= r * 110) & (alpha > 200)
+    arr[..., 0] = np.where(pink, g.astype(np.uint8), arr[..., 0])
+    arr[..., 2] = np.where(pink, g.astype(np.uint8), arr[..., 2])
+    return arr
+
+
 def normalize_spritesheet(
     frames: list[Path],
     output_dir: Path,
@@ -459,13 +571,22 @@ def normalize_spritesheet(
     cell_h: int,
     scale_percentile: float = 95,
     bottom_margin: int = DEFAULT_BOTTOM_MARGIN,
-    anchor_mode: str = "ground-line",
+    anchor_mode: str = "mass-centroid",
 ) -> dict:
     """Shared-scale rescale + anchor alignment for spritesheet frames.
 
-    `anchor_mode` defaults to `ground-line` (the global, drift-free anchor).
-    Pass `bottom` for the legacy per-frame behavior (kept for backward compat
-    on single-pose action loops where bbox-bottom genuinely tracks the feet).
+    `anchor_mode` defaults to `mass-centroid` (ADR-208 RC-4) — the
+    drift-free anchor that survives extended-limb frames because it pins
+    the alpha-mass centroid (the body trunk's center of mass) instead of
+    the bbox bottom (a fist or kicking leg on action frames). Pre-fix
+    anchor stddev on the canonical luchadora-highflyer/05-specials sample
+    measured 21-31 px against an 8 px threshold under `ground-line`;
+    `mass-centroid` drops it below 8 px on the same input.
+
+    Pass `ground-line` for the legacy global-bbox-bottom strategy (still
+    correct for portrait modes where the camera is fixed and every frame
+    is grounded). Pass `bottom` for per-frame bbox-bottom (drifts on
+    mixed grounded/aerial poses; kept for backward compat).
     """
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -475,17 +596,26 @@ def normalize_spritesheet(
 
     rescaled_imgs = [rescale_to_height(img, target_h) for img in imgs]
 
-    # Compute the global ground line ONCE across all rescaled frames so each
-    # frame's translation puts its alpha-bbox-bottom at the same Y. This is
-    # the drift fix: per-frame bottom-anchor moves with bbox-height, but the
-    # global ground line is invariant across the batch.
+    # Compute the global anchor target ONCE across all rescaled frames so
+    # each frame's translation pins the same quantity (centroid-Y for
+    # mass-centroid mode, bbox-bottom-Y for ground-line mode). This is the
+    # drift fix: per-frame anchors move with whatever bbox/centroid changes
+    # across the batch, but a global target is invariant.
     ground_line_y: int | None = None
+    centroid_y_target: int | None = None
     if anchor_mode == "ground-line":
         # Frames are not yet on the cell canvas; we need to compute ground
         # line in the post-translation coordinate system. We assume that
         # most frames (the grounded ones) will end up with their bottom at
         # `cell_h - bottom_margin`, so use that as the ground line.
         ground_line_y = cell_h - bottom_margin
+    elif anchor_mode == "mass-centroid":
+        # The mass-centroid target is the median centroid Y across the
+        # rescaled frames. For walk cycles + idle loops the centroid stays
+        # in a tight band; for action cycles the median is the "rest pose"
+        # centroid and outlier frames (e.g. a leap) get translated relative
+        # to that stable Y.
+        centroid_y_target = detect_centroid_y_target(rescaled_imgs, cell_h)
 
     metadata: dict = {
         "scale_percentile": scale_percentile,
@@ -493,8 +623,32 @@ def normalize_spritesheet(
         "cell_size": [cell_w, cell_h],
         "anchor_mode": anchor_mode,
         "ground_line_y": ground_line_y,
+        "centroid_y_target": centroid_y_target,
         "frames": [],
     }
+
+    # ADR-208 RC-5: post-anchor despill pass. The shared-scale rescale +
+    # anchor translation runs LANCZOS at the silhouette edges of frames
+    # whose magenta bg was already alpha-zeroed. LANCZOS interpolates
+    # between alpha-faded character pixels and adjacent painted pixels
+    # (purple costume shadows, dark hair near magenta-bg-cleaned interior),
+    # producing pink-cast pixels (R=200-240, G=80-100, B=125-180) at
+    # silhouette boundaries. These look like background bleed but are
+    # actually interpolation artifacts. The Phase E despill chain ran
+    # BEFORE this rescale so it cannot catch them.
+    #
+    # Re-running the despill chain on anchored frames cleans up the
+    # LANCZOS-introduced pink. The local _post_anchor_despill helper uses
+    # an alpha-relaxed variant of neutralize_interior_magenta_spill (alpha
+    # > 200 instead of alpha == 255) to also catch the alpha-faded edge
+    # pink left by paste-with-alpha. Drop on the canonical
+    # luchadora-highflyer/05-specials sample: wide_count 232 -> ~25.
+    # Lazily import sprite_bg to avoid a circular import at module-load
+    # time (sprite_bg already imports anchor for find_alpha_mass_centroid
+    # via sprite_verify).
+    has_numpy_local = HAS_NUMPY
+    if has_numpy_local:
+        from sprite_bg import kill_pink_fringe
 
     for src, img, rescaled in zip(frames, imgs, rescaled_imgs):
         anchored = anchor_to_canvas(
@@ -504,7 +658,14 @@ def normalize_spritesheet(
             bottom_margin=bottom_margin,
             anchor_mode=anchor_mode,
             ground_line_y=ground_line_y,
+            centroid_y_target=centroid_y_target,
         )
+        # ADR-208 RC-5: post-anchor despill pass.
+        if has_numpy_local:
+            arr = np.array(anchored)
+            arr = _post_anchor_despill_pink(arr)
+            arr = kill_pink_fringe(arr, alpha_ceiling=255)
+            anchored = Image.fromarray(arr, "RGBA")
         out = output_dir / src.name
         anchored.save(out, format="PNG")
         anchor_y = find_bottom_anchor(anchored)

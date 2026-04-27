@@ -62,7 +62,7 @@ def test_write_manifest_record_blocks_pass_with_failures(tmp_path: Path) -> None
         "verifier_verdict": "PASS",
         "verifier_failures": [
             {"check": "frames_have_content", "details": {"blank_cells": [{"cell_index": 17}]}},
-            {"check": "cell_parity", "details": {"blank_cells": [{"cell_index": 32}]}},
+            {"check": "verify_raw_vs_final_cell_parity", "details": {"blank_cells": [{"cell_index": 32}]}},
         ],
     }
     out = tmp_path / "bad.json"
@@ -84,7 +84,7 @@ def test_write_manifest_record_fail_with_failures(tmp_path: Path) -> None:
         "name": "veteran-indie-05-specials",
         "verifier_verdict": "FAIL",
         "verifier_failures": [
-            {"check": "cell_parity", "details": {"blank_cells": [{"cell_index": 32}]}},
+            {"check": "verify_raw_vs_final_cell_parity", "details": {"blank_cells": [{"cell_index": 32}]}},
         ],
     }
     out = tmp_path / "fail.json"

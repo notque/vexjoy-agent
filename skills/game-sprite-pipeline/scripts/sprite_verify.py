@@ -637,9 +637,14 @@ def verify_pixel_preservation(
         result["actionable_message"] = (
             "Content extends past the conceptual cell boundary in the raw "
             "(Codex paints fire jets, projectile trails, auras that cross "
-            "cell pitch). Enable content_aware_extraction in the spec, set "
-            "has_effects=True, or reduce grid density. Codex output is "
-            "ground truth; do NOT regenerate the raw."
+            "cell pitch). For LEGITIMATE EFFECTS ASSETS (fire breath, plasma "
+            "trails, projectile auras), pass --effects-asset on the spec to "
+            "opt INTO content-aware routing on a dense grid. ADR-207 RC-1: "
+            "do NOT enable content_aware_extraction on dense character grids "
+            "(>= 4x4 with >= 16 cells) -- the slicer dispatch will downgrade "
+            "it to strict-pitch with a warning. For dense-grid blank-cell "
+            "diagnostics, see verify_raw_vs_final_cell_parity instead. "
+            "Codex output is ground truth; do NOT regenerate the raw."
         )
     return result
 
@@ -791,6 +796,7 @@ def verify_asset_outputs(
     magenta_strict_threshold: int = 0,
     magenta_wide_threshold: int | None = None,
     has_effects: bool = False,
+    allow_frame_duplication: bool = False,
 ) -> dict:
     """Combined build-time gate: run every verifier on every output file.
 
@@ -861,7 +867,10 @@ def verify_asset_outputs(
             failures.append(
                 {"file": "(spec)", "check": "config", "details": "grid + cell_size required for spritesheet mode"}
             )
-            return {"passed": False, "failures": failures}
+            # ADR-208 N3: include verifier_verdict on early-return paths so
+            # consumers reading the contract field always have it (matches
+            # the late-return path at the bottom of this function).
+            return {"passed": False, "verifier_verdict": "FAIL", "failures": failures}
         files_to_check = [
             ("final-sheet.png", "sheet"),
             ("frames-strip.png", "strip"),
@@ -869,7 +878,12 @@ def verify_asset_outputs(
             ("final.webp", "anim"),
         ]
     else:
-        return {"passed": False, "failures": [{"file": "(spec)", "check": "mode", "details": f"unknown mode {mode!r}"}]}
+        # ADR-208 N3: include verifier_verdict on early-return paths.
+        return {
+            "passed": False,
+            "verifier_verdict": "FAIL",
+            "failures": [{"file": "(spec)", "check": "mode", "details": f"unknown mode {mode!r}"}],
+        }
 
     cols, rows = grid if grid else (1, 1)
 
@@ -992,22 +1006,41 @@ def verify_asset_outputs(
                     dup_pct_max = 100.0
                 else:
                     anchor_stddev = 8.0
-                    # The dups gate is non-blocking by default for
-                    # spritesheets: legitimate animation cycles routinely
-                    # measure 70-100% duplicate-pct because of natural
-                    # redundancy (walk cycles repeat poses, idle loops
-                    # are by construction near-identical, 3-count
-                    # animations have 4 reference poses repeated 4 times
-                    # each). Setting threshold=100.0 means the gate fires
-                    # only on the pathological "every cell IS the same"
-                    # failure mode -- which is also caught by
-                    # frames_have_content when most cells are blank.
-                    # The blanks gate (frames_have_content) catches the
-                    # primary user-reported failure (08 grapple cell 12
-                    # blank, 28 astronaut cell 0 blank) and remains
-                    # hard-fail. The dups gate's pct is recorded in
-                    # diagnosis output for analyst review.
-                    dup_pct_max = 100.0
+                    # ADR-208 RC-3: dup_pct_max tightened from 100.0 to 70.0.
+                    # The forensic post-mortem on PR #530 found the 100.0
+                    # value rendered the gate a no-op: it fired only on the
+                    # "every single cell is identical" pathological case,
+                    # which frames_have_content already catches via blank-
+                    # cell detection. With 100.0 the gate could not detect
+                    # the layout-drift failure mode where 60-90% of cells
+                    # land on the same pose due to centroid mis-routing.
+                    #
+                    # 70.0 calibrated against the corpus:
+                    #   - Action sheets (locomotion, kicks, punches): ~15-50%
+                    #     duplicate pct under proper extraction; 70 leaves
+                    #     headroom.
+                    #   - 8x8 specials sheets containing a 4-frame anim
+                    #     repeated 16 times: ~75-100% duplicate pct.
+                    #     These need --allow-frame-duplication explicitly.
+                    #   - The RC-1 layout-drift signature: 60-90% of cells
+                    #     land on a few near-identical poses. 70 catches
+                    #     this without false-positive on real animation.
+                    #
+                    # Idle loops (8 frames repeated to fill the sheet) opt
+                    # out via --allow-frame-duplication on the spec, which
+                    # passes through to dup_pct_max=100.0 for that asset.
+                    dup_pct_max = 70.0
+                    if has_effects:
+                        # Effects assets (fire jets, plasma trails) often
+                        # have repeated near-identical frames between
+                        # animation peaks; relax to 100.0 like the legacy
+                        # behavior.
+                        dup_pct_max = 100.0
+                    if allow_frame_duplication:
+                        # Spec-level opt-out: idle loops, taunt poses, or
+                        # 8-frame anims tiled across an 8x8 sheet
+                        # legitimately have 70-100% duplicate-pct.
+                        dup_pct_max = 100.0
                 try:
                     anc = verify_anchor_consistency(
                         fpath,
@@ -1120,7 +1153,7 @@ def verify_asset_outputs(
                             failures.append(
                                 {
                                     "file": fname,
-                                    "check": "cell_parity",
+                                    "check": "verify_raw_vs_final_cell_parity",
                                     "details": {
                                         "blank_cells": parity.get("blank_cells"),
                                         "total_cells_with_raw_content": parity.get("total_cells_with_raw_content"),
@@ -1129,7 +1162,9 @@ def verify_asset_outputs(
                                 }
                             )
                     except Exception as e:
-                        failures.append({"file": fname, "check": "cell_parity", "details": f"error: {e}"})
+                        failures.append(
+                            {"file": fname, "check": "verify_raw_vs_final_cell_parity", "details": f"error: {e}"}
+                        )
 
     # ADR-207 Rule 2: include the contracted verifier_verdict alongside the
     # legacy 'passed' field so consumers can derive their status fields from
@@ -1186,7 +1221,22 @@ def cmd_verify_asset(args: argparse.Namespace) -> int:
         logger.error("--mode required (no meta.json at %s)", meta_path)
         return 2
 
-    result = verify_asset_outputs(asset_dir, mode, grid=grid, cell_size=cell_size)
+    # ADR-208 RC-3: --allow-frame-duplication relaxes the dup_pct_max gate
+    # for spec-known idle-loop / taunt-pose / 8-into-64 sheets. Read from
+    # CLI arg first; fall back to meta.json for sheets generated with the
+    # spec opt-in.
+    allow_dup = bool(getattr(args, "allow_frame_duplication", False))
+    if not allow_dup and meta_path.exists():
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        allow_dup = bool(meta.get("allow_frame_duplication", False))
+
+    result = verify_asset_outputs(
+        asset_dir,
+        mode,
+        grid=grid,
+        cell_size=cell_size,
+        allow_frame_duplication=allow_dup,
+    )
     print(json.dumps({"asset": str(asset_dir), "mode": mode, "grid": grid, "cell_size": cell_size, **result}, indent=2))
     # Exit code 2 == "verifier gates failed" per ADR-199; same code regardless
     # of standalone-CLI vs orchestrator surface.

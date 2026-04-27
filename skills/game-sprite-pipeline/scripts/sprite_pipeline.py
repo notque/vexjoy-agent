@@ -154,6 +154,7 @@ def _run_spritesheet_verifiers(
     cols: int,
     rows: int,
     cell_size: int,
+    allow_frame_duplication: bool = False,
 ) -> tuple[list[str], list[dict]]:
     """Run the spritesheet gate suite against a final sheet PNG.
 
@@ -211,9 +212,13 @@ def _run_spritesheet_verifiers(
         failures.append({"check": "verify_frames_have_content", "file": str(sheet_path), "details": f"error: {e}"})
 
     try:
+        # ADR-208 RC-3: dup_pct_max defaults to 70.0 for spritesheets;
+        # opt-out via --allow-frame-duplication relaxes to 100.0 for
+        # legitimate idle loops + 8-frame anims tiled across 64 cells.
+        dup_pct_max = 100.0 if allow_frame_duplication else 70.0
         _record_gate(
             "verify_frames_distinct",
-            verify_frames_distinct(sheet_path, cols, rows, cell_size),
+            verify_frames_distinct(sheet_path, cols, rows, cell_size, max_duplicate_pct=dup_pct_max),
         )
     except Exception as e:  # pragma: no cover - defensive
         gates_run.append("verify_frames_distinct")
@@ -643,6 +648,7 @@ def _run_pipeline_body(args: argparse.Namespace, work_dir: Path, name: str) -> i
         cols=cols,
         rows=rows,
         cell_size=args.cell_size,
+        allow_frame_duplication=getattr(args, "allow_frame_duplication", False),
     )
     elapsed = time.perf_counter() - started_verify
 
@@ -734,13 +740,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--scale-percentile", type=float, default=95)
     parser.add_argument(
         "--anchor-mode",
-        choices=["bottom", "center", "auto", "ground-line", "per-frame-bottom"],
-        default="ground-line",
+        choices=["bottom", "center", "auto", "ground-line", "per-frame-bottom", "mass-centroid"],
+        default="mass-centroid",
         help=(
-            "Anchor strategy. ground-line (default): each frame's "
-            "alpha-bbox-bottom lands at a globally-stable Y; drift-free. "
-            "per-frame-bottom / bottom: legacy. See "
-            "references/anchor-alignment.md."
+            "Anchor strategy. mass-centroid (ADR-208 RC-4 default): each "
+            "frame's alpha-mass-centroid lands at a globally-stable Y; "
+            "drift-free even on extended-limb frames (lunge, kick). "
+            "ground-line: legacy global bbox-bottom anchor (correct for "
+            "portrait-loop / fixed-camera modes; wobbles on action sheets "
+            "where bbox-bottom is sometimes a fist or kicking leg). "
+            "per-frame-bottom / bottom: per-frame bbox anchor (drifts). "
+            "See references/anchor-alignment.md and ADR-208."
         ),
     )
     parser.add_argument("--fps", type=int, default=10)
@@ -792,6 +802,19 @@ def build_parser() -> argparse.ArgumentParser:
             "Use ONLY for sparse-but-cross-boundary content: fire breath, plasma "
             "trails, projectile auras. Do NOT use for character grids — content-aware "
             "on dense character grids drops cells via centroid drift (ADR-207 RC-1)."
+        ),
+    )
+    parser.add_argument(
+        "--allow-frame-duplication",
+        action="store_true",
+        help=(
+            "Opt OUT of the frames-distinct gate's tightened threshold (ADR-208 RC-3). "
+            "Use for spec-known sheets with legitimate frame repetition: idle loops "
+            "where 8 frames repeat to fill 64 cells, taunt poses where the character "
+            "holds a stance for most of the cycle, or any animation where >70% "
+            "duplicate-pct is the artist's intent. Without this flag the gate fires "
+            "at 70% to catch the layout-drift signature where centroid mis-routing "
+            "lands most cells on a few near-identical poses (ADR-208 RC-3)."
         ),
     )
     # Logging level controls (ADR-202). Mutually exclusive; default INFO.

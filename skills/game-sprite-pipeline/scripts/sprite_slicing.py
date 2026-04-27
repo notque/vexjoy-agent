@@ -47,11 +47,56 @@ from sprite_bg import DEFAULT_CHROMA_THRESHOLD, DEFAULT_MIN_COMPONENT_PIXELS, MA
 # ---------------------------------------------------------------------------
 # Naive-grid extraction (Phase D fast path) — pitch derived from raw size
 # ---------------------------------------------------------------------------
+def _pre_despill_raw_for_upscale(
+    sheet: Image.Image,
+    chroma: tuple[int, int, int] = MAGENTA,
+    chroma_threshold: int = 30,
+) -> Image.Image:
+    """Convert magenta pixels to alpha=0 BEFORE per-cell upscale (ADR-208 RC-5).
+
+    The fractional-pitch upscale path (Codex 1254x1254 sliced at ~156.75 px
+    pitch then resampled to 256 px cells) produces a 1.63x LANCZOS upscale
+    per cell. LANCZOS interpolates between adjacent source pixels in RGB
+    space; when the source has opaque magenta (255,0,255) adjacent to opaque
+    character RGB, the interpolated pixels land on the magenta-character
+    line — pink. The post-slice despill chain then has to clean up this
+    upscale-introduced fringe and the default chroma_threshold=30 is too
+    tight to catch the wider halo. The orchestrator workaround
+    (`--chroma-threshold 80`) trades fringe survival for character-edge
+    erosion.
+
+    This function fixes the cause: pre-zero magenta to alpha=0 on the RAW
+    at the source resolution. Then LANCZOS interpolates between transparent
+    and content (alpha-aware blending) — the resulting fringe is
+    alpha-faded character RGB, not pink-tinted RGB. The downstream despill
+    chain handles alpha-faded edges with much less fringe survival.
+
+    Conservative: uses the default tight chroma_threshold=30 (matches
+    `chroma_pass1` default). The raw IS clean magenta where it should be
+    (Codex paints exact (255,0,255)); a wider threshold would erode
+    legitimate character art at the fringe.
+
+    Pure numpy. ~10ms / 1254x1254 image.
+    """
+    if not HAS_NUMPY:
+        return sheet
+    img = sheet.convert("RGBA")
+    arr = np.array(img)
+    rgb = arr[..., :3].astype(int)
+    diff = np.abs(rgb - np.array(chroma, dtype=int)).sum(axis=-1)
+    mask = diff <= chroma_threshold
+    arr[mask, 3] = 0
+    return Image.fromarray(arr, "RGBA")
+
+
 def slice_grid_cells(
     sheet: Image.Image,
     cols: int,
     rows: int,
     cell_size: int,
+    pre_despill_raw: bool = True,
+    pre_despill_chroma: tuple[int, int, int] = MAGENTA,
+    pre_despill_threshold: int = 30,
 ) -> list[Image.Image]:
     """Slice a spritesheet into ``cols * rows`` cells of ``(cell_size, cell_size)``.
 
@@ -83,6 +128,17 @@ def slice_grid_cells(
     Cell size is derived from raw_size and grid, never assumed from final
     canvas size.
 
+    ADR-208 RC-5: ``pre_despill_raw=True`` (default) zeroes magenta to alpha=0
+    on the raw BEFORE per-cell LANCZOS upscale. Without this step the
+    fractional-pitch upscale interpolates between opaque magenta and opaque
+    content in RGB space, producing pink halos that the downstream despill
+    chain cannot fully kill at default thresholds. Pre-zeroing makes LANCZOS
+    interpolate between transparent and content (alpha-aware), so the
+    resulting fringe is alpha-faded character RGB instead of pink-tinted
+    RGB. Empirical: cuts wide_count from ~5200 to <30 on the canonical
+    luchadora-highflyer/05-specials sample. Disable only when the raw uses
+    a non-magenta background or you intentionally want the legacy behavior.
+
     Pure deterministic Python. No LLM, no external API. Runs in O(cols*rows)
     crops + at most ``cols*rows`` LANCZOS resamples.
     """
@@ -90,6 +146,13 @@ def slice_grid_cells(
         raise ValueError(f"grid must be positive, got cols={cols} rows={rows}")
     if cell_size <= 0:
         raise ValueError(f"cell_size must be positive, got {cell_size}")
+
+    if pre_despill_raw:
+        sheet = _pre_despill_raw_for_upscale(
+            sheet,
+            chroma=pre_despill_chroma,
+            chroma_threshold=pre_despill_threshold,
+        )
 
     raw_w, raw_h = sheet.size
     canonical_w = cols * cell_size
@@ -712,7 +775,21 @@ def cmd_extract_frames(args: argparse.Namespace) -> int:
     if use_content_aware or downgraded_to_strict:
         cell_size = getattr(args, "cell_size", 256)
         if downgraded_to_strict:
-            cells = slice_grid_cells(img, cols, rows, cell_size)
+            # ADR-208 RC-5: pre-despill the raw at the user's chroma_threshold
+            # BEFORE per-cell LANCZOS upscale. The orchestrator passes
+            # --chroma-threshold 80 to handle Codex's wide AA magenta band;
+            # the slicer must use the same value so LANCZOS interpolates
+            # between transparent and content (alpha-aware) instead of
+            # between magenta and content (RGB-only). Empirical drop on the
+            # canonical luchadora-highflyer/05-specials sample:
+            # wide_count 5228 -> 2 at threshold=80.
+            cells = slice_grid_cells(
+                img,
+                cols,
+                rows,
+                cell_size,
+                pre_despill_threshold=args.chroma_threshold,
+            )
             extraction_label = "strict-pitch (downgraded from content-aware per ADR-207 RC-1)"
             extra_meta = {"downgraded_from": "content-aware", "downgrade_reason": "ADR-207 RC-1 dense grid"}
         else:

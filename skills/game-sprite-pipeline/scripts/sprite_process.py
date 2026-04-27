@@ -246,15 +246,17 @@ def build_parser() -> argparse.ArgumentParser:
     nz.add_argument("--scale-percentile", type=float, default=95)
     nz.add_argument(
         "--anchor-mode",
-        choices=["bottom", "center", "auto", "ground-line", "per-frame-bottom"],
-        default="ground-line",
+        choices=["bottom", "center", "auto", "ground-line", "per-frame-bottom", "mass-centroid"],
+        default="mass-centroid",
         help=(
-            "Anchor strategy. ground-line (default): each frame's "
-            "alpha-bbox-bottom lands at a globally-stable ground-Y; "
-            "drift-free across mixed grounded/aerial poses. "
-            "per-frame-bottom (alias: bottom): legacy per-frame anchor "
-            "(drifts when bbox heights vary). center: vertical center. "
-            "auto: heuristic legacy fallback."
+            "Anchor strategy. mass-centroid (ADR-208 RC-4 default for "
+            "spritesheet mode): pin alpha-mass-centroid Y; drift-free on "
+            "action sheets with extended-limb frames. ground-line: pin "
+            "global bbox-bottom Y (legacy default; correct for fixed-"
+            "camera portrait-loop modes). per-frame-bottom (alias: "
+            "bottom): legacy per-frame anchor (drifts when bbox heights "
+            "vary). center: vertical center. auto: heuristic legacy "
+            "fallback. See ADR-208."
         ),
     )
     nz.set_defaults(func=cmd_normalize)
@@ -290,6 +292,16 @@ def build_parser() -> argparse.ArgumentParser:
     va.add_argument("--mode", choices=["portrait", "portrait-loop", "spritesheet"])
     va.add_argument("--grid", help="Grid CxR (overrides meta.json)")
     va.add_argument("--cell-size", type=int, help="Cell size in px (overrides meta.json)")
+    va.add_argument(
+        "--allow-frame-duplication",
+        action="store_true",
+        help=(
+            "Relax the verify_frames_distinct gate from 70% to 100% duplicate-pct "
+            "(ADR-208 RC-3). Use for idle-loop / taunt-pose / 8-frame-tiled-into-64 "
+            "sheets where high duplicate-pct is intentional. Also honored via "
+            "meta.json's allow_frame_duplication field if present."
+        ),
+    )
     va.set_defaults(func=cmd_verify_asset)
 
     ab = sub.add_parser("assemble", help="Phase H: PNG sheet + GIF + WebP + atlas + strips")
