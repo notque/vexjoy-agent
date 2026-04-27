@@ -293,6 +293,7 @@ Positive instructions the model follows at the moment of generating in this voic
 
 ---
 
+<!-- no-pair-required: each bullet pairs the anti-pattern with its replacement move inline (e.g., "open flat or interrogative instead", "use scoping hedges instead"); a separate "Do instead" block would duplicate the per-entry framing. -->
 ## Anti-Patterns
 
 Common AI / popularizer defaults that degrade the voice. Each entry names the pull and gives the move that replaces it.
