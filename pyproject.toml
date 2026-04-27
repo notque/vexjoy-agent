@@ -51,6 +51,7 @@ select = [
 ]
 
 ignore = [
+    # --- Globally necessary (violations spread across hooks/, scripts/, skills/) ---
     # Allow print statements in hooks/demo files (they're meant for output)
     "T201",
     # Allow broad exception catching in hooks (they need to be robust)
@@ -67,12 +68,10 @@ ignore = [
     "ARG001",
     # Collapsible if statements (readability preference)
     "SIM102",
-    # Unused variables (acceptable in hooks/scripts)
+    # Unused variables (acceptable in hooks/scripts/skills)
     "F841",
     # Ambiguous variable names (e, l, etc. are fine in context)
     "E741",
-    # Implicit Optional (pre-3.10 style)
-    "RUF013",
     # Ternary instead of if/else (readability preference)
     "SIM108",
     # Suppressible exception (contextlib.suppress preference)
@@ -81,31 +80,13 @@ ignore = [
     "RUF005",
     # Import not at top (conditional imports are intentional)
     "E402",
-    # Bare except (hooks need to catch everything)
-    "E722",
     # Unused imports (conditional/template imports in generated code)
     "F401",
-    # Redefined unused (fixture overrides in tests)
-    "F811",
-    # Loop variable unused (intentional iteration for counting)
-    "B007",
     # raise without from in except (style preference)
     "B904",
     "B905",
-    # Use dict.get instead of ternary (readability preference)
-    "SIM116",
-    # Membership test (readability preference)
-    "SIM103",
-    # any() instead of for loop (readability preference)
-    "SIM110",
-    # isinstance union (3.10+ only)
-    "RUF021",
-    # Explicit conversion flag (readability)
-    "RUF010",
     # Unused variable in loop unpacking
     "RUF059",
-    # .membership test
-    "F601",
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -113,6 +94,15 @@ ignore = [
 "**/tests/*.py" = ["T201", "S101", "RUF059", "SIM115", "ARG002", "B007", "RUF005"]
 # Scripts are allowed to use print for user feedback
 "**/scripts/*.py" = ["T201"]
+# --- Rules moved from global ignore (scoped to directories that need them) ---
+# Bare except: only used in skills/ codebase-analyzer cartographer scripts
+"skills/**/*.py" = ["E722", "RUF013", "RUF021", "SIM116"]
+# Hooks: fail-open patterns, dynamic code, simple boolean returns
+"hooks/*.py" = ["SIM110", "SIM103"]
+"hooks/**/*.py" = ["RUF010"]
+# Scripts: loop-variable-unused (counting loops), redefined-unused (test fixtures), boolean returns
+"scripts/*.py" = ["B007", "SIM103"]
+"scripts/**/*.py" = ["F811", "RUF010"]
 
 [tool.ruff.format]
 quote-style = "double"
