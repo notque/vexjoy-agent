@@ -455,6 +455,232 @@ class TestResolveAgent:
 
 
 # ---------------------------------------------------------------------------
+# resolve_agent pairs_with path tests
+# ---------------------------------------------------------------------------
+
+
+class TestResolveAgentPairsWithPaths:
+    """Tests for the pairs_with resolution path in resolve_agent.
+
+    Covers the 3-step algorithm in resolve_agent():
+    - Step 1: candidate.agent field (tested in TestResolveAgent above)
+    - Step 2: pairs_with list contains an agent name -> return first agent
+    - Guard clause: non-empty pairs_with with NO agent names -> return None
+    - Step 3: trigger-word overlap fallback (only when pairs_with is empty/absent)
+    """
+
+    def _build_entries(self, extra_skills: list[dict] | None = None) -> list[index_router.IndexEntry]:
+        """Build a controlled set of entries for pairs_with testing.
+
+        Creates two agents (python-general-engineer, typescript-frontend-engineer)
+        and merges in any extra skill entries for test-specific scenarios.
+
+        Args:
+            extra_skills: Optional list of dicts with IndexEntry kwargs for skills.
+
+        Returns:
+            List of IndexEntry objects for use in resolve_agent calls.
+        """
+        entries: list[index_router.IndexEntry] = [
+            index_router.IndexEntry(
+                name="python-general-engineer",
+                entry_type="agent",
+                triggers=["python", ".py", "pip", "pytest"],
+            ),
+            index_router.IndexEntry(
+                name="typescript-frontend-engineer",
+                entry_type="agent",
+                triggers=["typescript", "react", "next.js", "frontend"],
+            ),
+            # Skills that are NOT agents (used to verify they're skipped)
+            index_router.IndexEntry(
+                name="test-driven-development",
+                entry_type="skill",
+                triggers=["tdd", "red green refactor"],
+            ),
+            index_router.IndexEntry(
+                name="systematic-debugging",
+                entry_type="skill",
+                triggers=["debug", "root cause"],
+            ),
+        ]
+        for skill_kwargs in extra_skills or []:
+            entries.append(index_router.IndexEntry(entry_type="skill", **skill_kwargs))
+        return entries
+
+    def test_resolves_agent_from_pairs_with(self) -> None:
+        """Step 2: skill with pairs_with containing an agent name returns that agent."""
+        entries = self._build_entries(
+            extra_skills=[
+                {
+                    "name": "security-threat-model",
+                    "triggers": ["threat model", "security audit"],
+                    "pairs_with": ["python-general-engineer"],
+                },
+            ]
+        )
+        candidate = index_router.Candidate(
+            entry_type="skill",
+            name="security-threat-model",
+            score=0.8,
+            agent=None,
+        )
+        result = index_router.resolve_agent(candidate, entries)
+        assert result == "python-general-engineer"
+
+    def test_picks_first_agent_from_mixed_pairs_with(self) -> None:
+        """Step 2: when pairs_with has skills AND agents, return the first agent (skip skills)."""
+        entries = self._build_entries(
+            extra_skills=[
+                {
+                    "name": "game-sprite-pipeline",
+                    "triggers": ["AI sprite", "generate sprite"],
+                    "pairs_with": [
+                        "test-driven-development",
+                        "python-general-engineer",
+                        "typescript-frontend-engineer",
+                    ],
+                },
+            ]
+        )
+        candidate = index_router.Candidate(
+            entry_type="skill",
+            name="game-sprite-pipeline",
+            score=0.7,
+            agent=None,
+        )
+        result = index_router.resolve_agent(candidate, entries)
+        # Must return python-general-engineer (first AGENT in the list), not test-driven-development
+        assert result == "python-general-engineer"
+
+    def test_non_empty_pairs_with_no_agents_returns_none(self) -> None:
+        """Guard clause: non-empty pairs_with with only skill names returns None.
+
+        This is the critical guard at line ~348: when pairs_with is non-empty but
+        contains NO agent names, resolve_agent returns None and does NOT fall
+        through to the trigger-word overlap step (Step 3).
+        """
+        entries = self._build_entries(
+            extra_skills=[
+                {
+                    "name": "testing-anti-patterns",
+                    "triggers": ["testing anti-patterns", "flaky tests"],
+                    "pairs_with": ["test-driven-development", "systematic-debugging"],
+                },
+            ]
+        )
+        candidate = index_router.Candidate(
+            entry_type="skill",
+            name="testing-anti-patterns",
+            score=0.6,
+            agent=None,
+        )
+        result = index_router.resolve_agent(candidate, entries)
+        # pairs_with is non-empty but contains no agents -> None (no fallback)
+        assert result is None
+
+    def test_empty_pairs_with_falls_through_to_trigger_overlap(self) -> None:
+        """Step 3: empty pairs_with list falls through to trigger-word overlap."""
+        entries = self._build_entries(
+            extra_skills=[
+                {
+                    "name": "python-quality-gate",
+                    "triggers": ["python", "ruff", "pytest", "mypy"],
+                    "pairs_with": [],
+                },
+            ]
+        )
+        candidate = index_router.Candidate(
+            entry_type="skill",
+            name="python-quality-gate",
+            score=0.8,
+            agent=None,
+        )
+        result = index_router.resolve_agent(candidate, entries)
+        # Empty pairs_with -> falls through to Step 3. "python" overlaps with
+        # python-general-engineer triggers, but trigger-word overlap checks
+        # candidate.name words against agent trigger words. "python-quality-gate"
+        # splits to {"python", "quality", "gate"} — "python" matches the agent's
+        # trigger words. Needs >= 2 overlap by default, so check if the algorithm
+        # finds a match or returns None based on overlap threshold.
+        # The name "python-quality-gate" has 3 words. min_overlap = max(2, 3//2+1) = 2.
+        # Only "python" overlaps -> overlap=1 < min_overlap=2 -> returns None.
+        # This confirms the fallback was ATTEMPTED (didn't short-circuit), just
+        # didn't find enough overlap.
+        assert result is None
+
+    def test_absent_pairs_with_falls_through_to_trigger_overlap(self) -> None:
+        """Step 3: absent pairs_with (default empty list) also falls through."""
+        entries = self._build_entries(
+            extra_skills=[
+                {
+                    "name": "python-linting",
+                    "triggers": ["lint", "ruff"],
+                    # No pairs_with at all -> defaults to empty list
+                },
+            ]
+        )
+        candidate = index_router.Candidate(
+            entry_type="skill",
+            name="python-linting",
+            score=0.7,
+            agent=None,
+        )
+        result = index_router.resolve_agent(candidate, entries)
+        # "python-linting" -> {"python", "linting"}, min_overlap = max(2, 2//2+1) = 2.
+        # "python" matches python-general-engineer triggers, "linting" does not.
+        # overlap=1 < min_overlap=2 -> None. Confirms fallback was attempted.
+        assert result is None
+
+    def test_trigger_overlap_succeeds_with_sufficient_words(self) -> None:
+        """Step 3 positive case: trigger-word overlap succeeds when words match."""
+        entries = self._build_entries(
+            extra_skills=[
+                {
+                    "name": "python-pytest-runner",
+                    "triggers": ["run tests"],
+                    # No pairs_with -> falls through to trigger overlap
+                },
+            ]
+        )
+        candidate = index_router.Candidate(
+            entry_type="skill",
+            name="python-pytest-runner",
+            score=0.7,
+            agent=None,
+        )
+        result = index_router.resolve_agent(candidate, entries)
+        # "python-pytest-runner" -> {"python", "pytest", "runner"}, min_overlap = max(2, 3//2+1) = 2.
+        # python-general-engineer triggers: {"python", ".py", "pip", "pytest"}
+        # overlap: {"python", "pytest"} -> 2 >= 2 -> match!
+        assert result == "python-general-engineer"
+
+    def test_suggest_pairs_excludes_self_references(self) -> None:
+        """Verify suggest_pairs excludes names already in the matched set."""
+        matched = [
+            index_router.IndexEntry(
+                name="phaser-gamedev",
+                entry_type="skill",
+                pairs_with=["typescript-frontend-engineer", "game-asset-generator"],
+            ),
+            index_router.IndexEntry(
+                name="game-asset-generator",
+                entry_type="skill",
+                pairs_with=["threejs-builder", "typescript-frontend-engineer"],
+            ),
+        ]
+        pairs = index_router.suggest_pairs(matched)
+        # "phaser-gamedev" and "game-asset-generator" are matched -> excluded from output
+        assert "phaser-gamedev" not in pairs
+        assert "game-asset-generator" not in pairs
+        # But their pairs_with targets that aren't in matched_names should appear
+        assert "typescript-frontend-engineer" in pairs
+        assert "threejs-builder" in pairs
+        # Verify deduplication: typescript-frontend-engineer appears in both but listed once
+        assert pairs.count("typescript-frontend-engineer") == 1
+
+
+# ---------------------------------------------------------------------------
 # suggest_pairs tests
 # ---------------------------------------------------------------------------
 

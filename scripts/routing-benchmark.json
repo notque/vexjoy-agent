@@ -363,6 +363,38 @@
       "category": "go-development",
       "routing_tier": "force_route",
       "notes": "Isolates %w trigger without fmt.Errorf as backup"
+    },
+    {
+      "request": "build a phaser 2d game with tilemaps and arcade physics",
+      "expected_agent": "typescript-frontend-engineer",
+      "expected_skill": "phaser-gamedev",
+      "category": "pairs-with-agent-resolution",
+      "routing_tier": "candidate",
+      "notes": "Phaser game dev — agent resolved via pairs_with (no agent field). phaser-gamedev pairs_with=['typescript-frontend-engineer', ...]. Exercises Step 2 of resolve_agent."
+    },
+    {
+      "request": "generate sprite sheet for AI character art",
+      "expected_agent": "python-general-engineer",
+      "expected_skill": "game-sprite-pipeline",
+      "category": "pairs-with-agent-resolution",
+      "routing_tier": "candidate",
+      "notes": "AI sprite generation — agent resolved via pairs_with. game-sprite-pipeline pairs_with=['phaser-gamedev', 'threejs-builder', 'python-general-engineer']. First AGENT in list is python-general-engineer (skips skill names)."
+    },
+    {
+      "request": "add holographic foil card effects with WebGL shader",
+      "expected_agent": "typescript-frontend-engineer",
+      "expected_skill": "webgl-card-effects",
+      "category": "pairs-with-agent-resolution",
+      "routing_tier": "candidate",
+      "notes": "WebGL card effects — agent resolved via pairs_with. webgl-card-effects pairs_with=['typescript-frontend-engineer', 'ui-design-engineer']. First agent in list is typescript-frontend-engineer."
+    },
+    {
+      "request": "run a security threat model audit on the toolkit",
+      "expected_agent": "python-general-engineer",
+      "expected_skill": "security-threat-model",
+      "category": "pairs-with-agent-resolution",
+      "routing_tier": "candidate",
+      "notes": "Security threat model — agent resolved via pairs_with=['python-general-engineer']. Single agent in pairs_with, no agent field on skill."
     }
   ]
 }
