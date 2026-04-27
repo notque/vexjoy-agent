@@ -45,7 +45,8 @@ Quick covers the full lightweight tier from zero-ceremony inline fixes (≤3 edi
 | Flag | Effect |
 |------|--------|
 | `--trivial` | Zero-ceremony inline mode for ≤3 file edits: no plan display, no branch, direct commit. Scope-gates strictly — escalates automatically if the task needs more than 3 edits. Use for typo fixes, one-line constant changes, renaming a variable, fixing an import. |
-| `--discuss` | Add a pre-planning discussion phase to resolve ambiguities |
+| `--discuss` | Add a pre-planning discussion phase to resolve ambiguities (breadth-first — surfaces all gray areas at once) |
+| `--interview` | Add a depth-first decision-tree interview before the edit phase. One question at a time with a recommendation per question. Sibling to `--discuss` — pick `--interview` when decisions are interdependent and answer A constrains valid options for B. |
 | `--research` | Add a research phase before planning to build context on unfamiliar code |
 | `--full` | Add plan verification + full quality gates (tests, lint, diff review) |
 | `--no-branch` | Skip feature branch creation, work on current branch |
@@ -107,7 +108,7 @@ Read and follow the repository's CLAUDE.md before doing anything else, because r
 
 **Step 2: Parse flags**
 
-Extract `--discuss`, `--research`, `--full`, `--no-branch`, and `--no-commit` from the invocation. Everything remaining after flag extraction is the task description.
+Extract `--discuss`, `--interview`, `--research`, `--full`, `--no-branch`, and `--no-commit` from the invocation. Everything remaining after flag extraction is the task description.
 
 **Step 3: Scope check**
 
@@ -129,6 +130,24 @@ Read the request and list specific questions:
 Use the DISCUSS banner format from `references/templates.md`. Wait for user response. Do not proceed until ambiguities are resolved.
 
 **GATE**: All ambiguities resolved. Proceed to Phase 2 or Phase 3.
+
+### Phase 1.5: INTERVIEW (only with --interview flag)
+
+This phase activates when the user passes `--interview`. It is the depth-first sibling to `--discuss` — pick this mode when decisions are interdependent and answering A would change the valid options for B, so batch-asking forces premature commitments.
+
+**Step 1: Load the depth-first reference**
+
+Load `planning/references/depth-first-interview.md` and follow its phases (PRIME → ENUMERATE BRANCHES → TRAVERSE → COMPILE OUTPUT). The reference enforces a hard cap of 5 total questions and 3-level recursion per branch — these limits are infrastructure, not advisory.
+
+**Step 2: Treat `--interview` as an explicit trigger**
+
+Per the reference's Phase 0 trigger classification, `/quick --interview` is an explicit invocation. Skip the Phase 0 opt-out question — the user already opted in by passing the flag. Go directly to ENUMERATE BRANCHES.
+
+**Step 3: Compile output to inline context**
+
+The reference's Phase 3 emits a structured block (Resolved Decisions / Carried Forward / Scope Boundary / Mode Used). Keep this block inline as the discussion artifact and use it to inform Phase 3 PLAN. Do not write a separate `task_plan.md` for `/quick` tier.
+
+**GATE**: Interview output emitted. Resolved decisions inform the inline plan. Proceed to Phase 2 or Phase 3.
 
 ### Phase 2: RESEARCH (only with --research flag)
 

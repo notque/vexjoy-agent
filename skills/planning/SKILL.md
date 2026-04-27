@@ -36,6 +36,24 @@ routing:
     - "what are the gray areas"
     - "before we plan"
     - "pre-planning discussion"
+    - "interview me"
+    - "grill me"
+    - "depth-first review"
+    - "depth-first interview"
+    - "not sure"
+    - "i'm not sure"
+    - "not exactly sure"
+    - "unsure"
+    - "where do i start"
+    - "where do i even start"
+    - "want clarity on"
+    - "need clarity on"
+    - "what am i missing"
+    - "poke holes in"
+    - "challenge my assumptions"
+    - "think this through with me"
+    - "lots of moving parts"
+    - "many decisions"
     - "create plan"
     - "task plan"
     - "working memory"
@@ -84,6 +102,7 @@ Detect the user's intent and load the appropriate reference file:
 |--------|----------------|-----------|
 | **Spec** | "write spec", "user stories", "define requirements", "scope this", "acceptance criteria", "define scope", "spec out" | `${CLAUDE_SKILL_DIR}/references/spec.md` |
 | **Pre-plan** | "discuss ambiguities", "resolve gray areas", "clarify before planning", "assumptions mode", "before we plan", "pre-planning discussion" | `${CLAUDE_SKILL_DIR}/references/pre-plan.md` |
+| **Interview** | depth-first decision-tree, one question at a time, recommendation per question. Triggers: "interview me", "grill me", "depth-first review", "depth-first interview", "not sure", "i'm not sure", "where do i start", "want clarity on", "need clarity on", "what am i missing", "poke holes in", "challenge my assumptions", "think this through with me", "lots of moving parts", "many decisions" | `${CLAUDE_SKILL_DIR}/references/depth-first-interview.md` |
 | **Plan-files** | "create plan", "task plan", "working memory", "persistent plan", "file-backed planning" | `${CLAUDE_SKILL_DIR}/references/plan-files.md` |
 | **Check** | "check plan", "validate plan", "plan checker", "review plan", "is this plan ready", "pre-execution check" | `${CLAUDE_SKILL_DIR}/references/check.md` |
 | **Manage** | "list plans", "show plan", "complete plan", "plan status", "manage plans" | `${CLAUDE_SKILL_DIR}/references/manage.md` |
@@ -96,6 +115,7 @@ Detect the user's intent and load the appropriate reference file:
 |---|---|---|
 | "write spec", "user stories", "define requirements", "scope this", "acceptance criteria", "define scope", "spec out" | `spec.md` | **Spec** |
 | "discuss ambiguities", "resolve gray areas", "clarify before planning", "assumptions mode", "before we plan", "pre-planning discussion" | `pre-plan.md` | **Pre-plan** |
+| "interview me", "grill me", "depth-first review", "depth-first interview", "not sure", "i'm not sure", "where do i start", "want clarity on", "need clarity on", "what am i missing", "poke holes in", "challenge my assumptions", "think this through with me", "lots of moving parts", "many decisions" | `depth-first-interview.md` | **Interview** |
 | "create plan", "task plan", "working memory", "persistent plan", "file-backed planning" | `plan-files.md` | **Plan-files** |
 | "check plan", "validate plan", "plan checker", "review plan", "is this plan ready", "pre-execution check" | `check.md` | **Check** |
 | "list plans", "show plan", "complete plan", "plan status", "manage plans" | `manage.md` | **Manage** |
