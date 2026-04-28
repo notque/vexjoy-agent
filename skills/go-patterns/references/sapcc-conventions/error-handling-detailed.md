@@ -410,7 +410,7 @@ panic("WithRoundTripper calls may not be nested")
 panic(err.Error())  // test helpers that must succeed
 ```
 
-### 5.2 Panic is NEVER Used For
+### 5.2 Use Error Returns Instead of Panic
 
 - Request handling errors
 - Recoverable errors

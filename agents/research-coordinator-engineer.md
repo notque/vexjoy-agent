@@ -240,20 +240,17 @@ Common research coordination errors. See [references/error-catalog.md](reference
 
 Research coordination patterns to follow. See [references/delegation-patterns.md](references/delegation-patterns.md) for the anti-pattern catalog with detection commands.
 
-### ❌ Vague Subagent Instructions
-**What it looks like**: "Research AI trends"
-**Why wrong**: Subagent has no clear boundaries, will expand scope
-**✅ Do instead**: "Research AI compute trends 2025-2030: GPU availability, chip production forecasts, supply constraints. 300-500 words. Sources: Cloud providers, semiconductor analysts."
+### Give Subagents Specific Instructions
+**Preferred action**: "Research AI compute trends 2025-2030: GPU availability, chip production forecasts, supply constraints. 300-500 words. Sources: Cloud providers, semiconductor analysts."
+**Why this matters**: Vague instructions like "Research AI trends" give the subagent no clear boundaries, causing scope expansion
 
-### ❌ Sequential Instead of Parallel
-**What it looks like**: Deploy subagent 1, wait for result, deploy subagent 2...
-**Why wrong**: Wastes time on independent research streams
-**✅ Do instead**: Deploy all independent subagents in single message (3 TaskCreate calls)
+### Dispatch Independent Research Agents in Parallel
+**Preferred action**: Deploy all independent subagents in single message (3 TaskCreate calls)
+**Why this matters**: Deploying subagent 1, waiting for the result, then deploying subagent 2 wastes time on independent research streams
 
-### ❌ Delegating Final Synthesis
-**What it looks like**: "Subagent: Write final report combining all findings"
-**Why wrong**: Lead agent must synthesize - hardcoded behavior
-**✅ Do instead**: Lead agent reads all subagent outputs and writes final report
+### Synthesize Findings in the Coordinator
+**Preferred action**: Lead agent reads all subagent outputs and writes final report
+**Why this matters**: Delegating final synthesis to a subagent violates the lead synthesis requirement -- the coordinator must synthesize
 
 ## Anti-Rationalization
 

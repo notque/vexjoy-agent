@@ -154,20 +154,17 @@ Common OpenSearch/Elasticsearch errors and solutions.
 
 Common search infrastructure mistakes and their corrections.
 
-### ❌ Too Many Small Shards
-**What it looks like**: 1000+ shards of 1GB each instead of fewer larger shards
-**Why wrong**: Overhead per shard (memory, file descriptors), slow cluster state updates, poor performance
-**✅ Do instead**: Target 20-50GB per shard, consolidate small indices with rollover, use shrink API to reduce shard count
+### Size Shards Between 10-50 GB
+**Preferred action**: Target 20-50GB per shard, consolidate small indices with rollover, use shrink API to reduce shard count
+**Why this matters**: 1000+ shards of 1GB each creates overhead per shard (memory, file descriptors), slows cluster state updates, and degrades performance
 
-### ❌ No Index Lifecycle Management
-**What it looks like**: Indices grow forever, old data on hot nodes, manual deletion
-**Why wrong**: Storage costs, performance degradation, manual maintenance burden
-**✅ Do instead**: Implement ILM with hot-warm-cold phases, automatic rollover, deletion after retention period
+### Configure Index Lifecycle Policies
+**Preferred action**: Implement ILM with hot-warm-cold phases, automatic rollover, deletion after retention period
+**Why this matters**: Without lifecycle management, indices grow forever, old data stays on hot nodes, and manual deletion becomes a maintenance burden
 
-### ❌ Unbounded Dynamic Mapping
-**What it looks like**: `"dynamic": true` in production, accepting any field structure
-**Why wrong**: Mapping explosion, type conflicts, performance issues, hard to query
-**✅ Do instead**: Define explicit mapping, use `"dynamic": "strict"` to reject unknown fields, or `"dynamic": false` to ignore them
+### Set Explicit Mappings for Production Indexes
+**Preferred action**: Define explicit mapping, use `"dynamic": "strict"` to reject unknown fields, or `"dynamic": false` to ignore them
+**Why this matters**: `"dynamic": true` in production causes mapping explosion, type conflicts, performance issues, and makes indices hard to query
 
 ## Anti-Rationalization
 

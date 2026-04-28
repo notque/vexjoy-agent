@@ -204,36 +204,36 @@ rm -f "$TMPFILE"
 
 ---
 
-## What NOT to Do
+## Integration Boundaries
 
-### Do not treat Codex output as authoritative
+### Treat Codex output as a second opinion
 
 Codex is a second opinion, not a senior reviewer with merge authority. Its
 findings need the same scrutiny you'd apply to any automated tool output. It can
 hallucinate issues, misread control flow, or flag patterns that are intentional
 in this codebase.
 
-### Do not loop or retry on failure
+### Report failures instead of retrying
 
 If Codex fails (non-zero exit, empty output, garbled response), report it to the
 user and let them decide. Automatic retry loops burn API quota and rarely fix the
 underlying problem (auth issues, rate limits, model errors).
 
-### Do not embed large diffs in the prompt
+### Point Codex at git commands instead of embedding diffs
 
 Codex has filesystem access in its sandbox. Tell it which git command to run
 (e.g., "run `git diff main...HEAD` to see the changes") rather than pasting the
 diff into the prompt. Embedded diffs waste tokens, lose formatting, and hit
 prompt length limits on large changes.
 
-### Do not skip the assessment phase
+### Always run the assessment phase
 
 The entire value of this skill is cross-model triangulation. If Claude just
 passes through Codex output verbatim, the user could have run `codex exec`
 themselves. The assessment phase is where Claude adds context, catches errors,
 and filters noise.
 
-### Do not apply fixes without user confirmation
+### Present fixes for user confirmation before applying
 
 Even if a finding is clearly correct and the fix is obvious, present it to the
 user and let them decide. The user invoked this skill for a review, not for

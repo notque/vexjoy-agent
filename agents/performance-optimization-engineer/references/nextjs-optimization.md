@@ -160,7 +160,7 @@ export const revalidate = false // or: export const dynamic = 'force-static'
 
 ## Pattern Catalog
 
-### ❌ Blocking Layout with Slow Data Fetching
+### Stream Slow Data with Suspense Boundaries
 
 **Detection**:
 ```bash
@@ -195,7 +195,7 @@ const config = await fetchSiteConfig()
 
 ---
 
-### ❌ Using `next/dynamic` When Server Components Are Available
+### Prefer Server Components Over next/dynamic
 
 **Detection**:
 ```bash
@@ -223,7 +223,7 @@ import { ProductCard } from './ProductCard' // Server Component
 
 ---
 
-### ❌ Missing `priority` on Above-Fold Images
+### Set priority={true} on Above-Fold Images
 
 **Detection**:
 ```bash

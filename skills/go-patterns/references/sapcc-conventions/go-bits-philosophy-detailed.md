@@ -367,7 +367,7 @@ Pragmatic, implementation-focused:
 2. **Library is actively maintained**
 3. **Dependency is acceptable** -- consider dependency tree impact
 
-### NEVER Use
+### Deprecated Functions
 
 1. **Library that duplicates go-bits** -- No testify when `go-bits/assert` exists. No logrus when `logg` exists.
 2. **Library with heavy transitive deps for small features** -- UUID moved to `internal` to avoid AMQP deps

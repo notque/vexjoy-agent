@@ -1618,9 +1618,9 @@ Each package does one thing. If you need something the package doesn't provide, 
 
 ---
 
-## 24. Anti-Patterns That Will Get Code Rejected
+## 24. Patterns That Pass Code Review
 
-These are the specific patterns that the lead review standard will reject in PR review. They're ordered by how likely an LLM is to generate them.
+These are specific patterns the lead review standard enforces in PR review. They are ordered by how likely an LLM is to generate the incorrect version. Each entry shows the correct pattern first, then the rejected form as a detection note.
 
 ### AP-1: Generating Wrapper Functions
 
@@ -3715,7 +3715,7 @@ The file is named for the domain concept, not generically. `storage_driver.go` n
 | `RBACPolicy` type + `RBACPermission` constants + `ValidateAndNormalize()` | `rbac_policy.go` | Type + its constants + its validation in same file |
 | `GCPolicy` type + `Validate()` | `gc_policy.go` | Type + its validation in same file |
 
-### Anti-Pattern: Scattered Contract Artifacts
+### Co-locate Contract Artifacts
 
 ```go
 // util.go -- REJECTED: this constant is part of the Storage contract

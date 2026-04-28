@@ -229,16 +229,16 @@ func TestHandler(t *testing.T) {
 
 ## Preferred Patterns (Compact)
 
-### ❌ Bare Error Return
+### Wrap Errors With Context
 **Fix**: Wrap with context using %w
 
-### ❌ interface{} Instead of any
+### Use `any` Over `interface{}`
 **Fix**: Use `any` keyword
 
-### ❌ Loop in Benchmark
+### Use b.N Loop in Benchmarks
 **Fix**: Use `b.Loop()` instead of `for i := 0; i < b.N; i++`
 
-### ❌ Outdated Idiom (Version-Specific)
+### Use Current Go Idioms
 | Old | Modern | Since |
 |-----|--------|-------|
 | `if a > b { return a }` | `max(a, b)` | 1.21 |
