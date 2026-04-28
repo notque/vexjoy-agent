@@ -83,9 +83,9 @@ Return:
 - [Confidence level if applicable]
 ```
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
-| Anti-Pattern | Why It Fails | Correct Approach |
+| Signal | Why It Fails | Preferred Action |
 |-------------|--------------|-----------------|
 | Sequential dispatch | Serializes work, wastes time | All agents in one message |
 | Vague prompts | Agents wander, modify wrong files | Explicit scope + constraints |

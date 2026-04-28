@@ -84,7 +84,7 @@ Is there a security risk?
 
 ## Common Misclassifications
 
-### Under-Classification (Don't Do This)
+### Common Misclassification Corrections
 
 | Finding | Wrong | Correct | Why |
 |---------|-------|---------|-----|

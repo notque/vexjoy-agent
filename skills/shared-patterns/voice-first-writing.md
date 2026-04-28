@@ -157,9 +157,9 @@ python3 ~/.claude/scripts/voice-validator.py validate \
 
 ---
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
-| Anti-Pattern | Why Wrong | Do Instead |
+| Signal | Why It Matters | Preferred Action |
 |--------------|-----------|------------|
 | Writing without research | Shallow content | Research first, always |
 | Skipping grounding | Inconsistent voice | Establish frame before writing |

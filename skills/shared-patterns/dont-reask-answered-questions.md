@@ -19,7 +19,7 @@ Re-asking questions that have been answered erodes user trust and wastes interac
 
 All investigation and implementation agents. This pattern applies whenever an agent is about to ask the user a question.
 
-## Anti-Pattern
+## Common Mistakes and Fixes
 
 **What it looks like**: "What framework are you using?" when `package.json` lists React 19.
 **Why wrong**: The answer is in the codebase. Reading a file is cheaper than an interaction cycle.

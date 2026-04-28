@@ -84,9 +84,9 @@ Required: Write tests for `calculateTotal()` function.
 Returning to IMPLEMENT phase.
 ```
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
-| Anti-Pattern | Why It's Wrong | Correct Behavior |
+| Signal | Why It Matters | Preferred Action |
 |--------------|----------------|------------------|
 | "Quick test at end" | Tests should guide implementation | Tests before/during implementation |
 | "Verify later" | Bugs compound over time | Verify immediately |

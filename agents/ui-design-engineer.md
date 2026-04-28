@@ -235,7 +235,7 @@ STOP and ask the user (always get explicit approval) before proceeding when:
 | Animation complexity unclear | Simple vs complex animations | "Subtle micro-interactions or prominent animations?" |
 | Accessibility level unclear | AA vs AAA has different requirements | "WCAG 2.1 AA (standard) or AAA (stricter)?" |
 
-### Never Guess On
+### Verify Before Assuming
 - Surface type (landing page vs app)
 - Real content for the hero section
 - Brand color palette choices

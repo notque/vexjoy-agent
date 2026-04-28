@@ -99,7 +99,7 @@ Load these reference files when the task type matches:
 |------|------|
 | Full expertise, default behaviors, STOP blocks, optional behaviors | [golang-general-engineer/references/expertise.md](golang-general-engineer/references/expertise.md) |
 | gopls MCP tool menu, Read/Edit workflows, fallback guidance | [golang-general-engineer/references/gopls-workflows.md](golang-general-engineer/references/gopls-workflows.md) |
-| Modern idiom replacement table, anti-patterns, hard gates, blockers, death loop prevention | [golang-general-engineer/references/patterns-and-gates.md](golang-general-engineer/references/patterns-and-gates.md) |
+| Modern idiom replacement table, preferred patterns, hard gates, blockers, death loop prevention | [golang-general-engineer/references/patterns-and-gates.md](golang-general-engineer/references/patterns-and-gates.md) |
 | Go version features, modern idioms, migration checklist | [golang-general-engineer/references/go-modern-features.md](golang-general-engineer/references/go-modern-features.md) |
 | Error catalog (goroutine leak, race condition, nil pointer, context deadline) | [golang-general-engineer/references/go-errors.md](golang-general-engineer/references/go-errors.md) |
 | Code smell detection and pattern review | [golang-general-engineer/references/go-anti-patterns.md](golang-general-engineer/references/go-anti-patterns.md) |
@@ -141,9 +141,9 @@ Report exit status with real command output. No "should work" — either the gat
 
 ## Preferred Patterns
 
-See `agents/golang-general-engineer/references/patterns-and-gates.md` for the full preferred-patterns and anti-patterns catalog (modern idiom replacements, hard gates, blockers, death-loop prevention).
+See `agents/golang-general-engineer/references/patterns-and-gates.md` for the full preferred-patterns catalog (modern idiom replacements, hard gates, blockers, death-loop prevention).
 
-See `agents/golang-general-engineer/references/go-anti-patterns.md` for anti-pattern examples with detection commands.
+See `agents/golang-general-engineer/references/go-anti-patterns.md` for pattern examples with detection commands.
 
 ## Error Handling
 

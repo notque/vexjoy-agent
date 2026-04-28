@@ -154,7 +154,7 @@ function CameraController({ target }: { target: THREE.Vector3 }) {
 
 **When to use**: Games, guided experiences, cinematic sequences, any scene where the app decides camera position.
 
-### NEVER Do This
+### Single Camera Controller Per Scene
 
 ```tsx
 // BAD: OrbitControls + custom camera = conflict

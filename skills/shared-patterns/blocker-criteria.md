@@ -75,7 +75,7 @@ STOP and ask the user (do NOT proceed autonomously) when:
 | Breaking change detected | User needs to coordinate | "This would change behavior of Z. Is that intended?" |
 | [Domain-specific blocker] | [Reason] | [Question template] |
 
-### Never Guess On
+### Verify Before Assuming
 - [Domain-specific critical decisions]
 - [Irreversible actions]
 - [Security-relevant choices]

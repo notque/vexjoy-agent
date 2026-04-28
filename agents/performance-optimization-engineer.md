@@ -190,22 +190,22 @@ Common performance optimization scenarios.
 
 Performance optimization patterns to follow.
 
-### ❌ Optimizing Without Profiling
+### Optimizing Without Profiling
 **What it looks like**: Making changes without measuring current performance.
 **Why wrong**: Without data, you lack visibility into what is actually slow, may optimize the wrong things, and have no way to prove improvement.
 **✅ Do instead**: Profile first with Lighthouse, RUM, bundle analyzer. Identify actual bottlenecks with data.
 
-### ❌ Micro-Optimizations Over Real Bottlenecks
+### Micro-Optimizations Over Real Bottlenecks
 **What it looks like**: Optimizing trivial operations while ignoring large bundle or slow images.
 **Why wrong**: Wastes time on negligible improvements, misses real performance impact.
 **✅ Do instead**: Focus on measurable bottlenecks: large bundles, unoptimized images, blocking resources.
 
-### ❌ Ignoring RUM Data
+### Ignoring RUM Data
 **What it looks like**: "Lighthouse score is 95, performance is fine" while users complain.
 **Why wrong**: Lab tests only approximate real user conditions (slow networks, old devices).
 **✅ Do instead**: Implement RUM with web-vitals library. Prioritize p75/p95 metrics from real users.
 
-See [performance-optimization/anti-patterns.md](performance-optimization-engineer/references/anti-patterns.md) for comprehensive anti-pattern examples.
+See [performance-optimization/anti-patterns.md](performance-optimization-engineer/references/anti-patterns.md) for comprehensive pattern examples with detection and fixes.
 
 ## Anti-Rationalization
 
@@ -259,7 +259,7 @@ STOP and ask the user (get explicit confirmation) before proceeding when:
 For detailed performance patterns and implementation examples:
 - **Core Web Vitals Implementation**: [performance-optimization/core-web-vitals.md](performance-optimization-engineer/references/core-web-vitals.md)
 - **Bundle Optimization**: [performance-optimization/bundle-optimization.md](performance-optimization-engineer/references/bundle-optimization.md)
-- **Pattern Guide**: [performance-optimization/anti-patterns.md](performance-optimization-engineer/references/anti-patterns.md)
+- **Pattern Detection Guide**: [performance-optimization/anti-patterns.md](performance-optimization-engineer/references/anti-patterns.md)
 
 See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for Implementation Schema details.
 
@@ -274,9 +274,9 @@ Load these reference files when the task matches the keyword category. Reference
 | render, CLS, layout shift, hydration, SVG, content-visibility, script defer, conditional render, resource hint, Activity, useTransition | [react-rendering-performance.md](performance-optimization-engineer/references/react-rendering-performance.md) | MEDIUM — 10 rendering performance patterns |
 | Set, Map, array, loop, sort, flatMap, early return, index map, cache | [js-algorithm-optimizations.md](performance-optimization-engineer/references/js-algorithm-optimizations.md) | LOW-MEDIUM — 10 algorithm and data structure optimizations |
 | DOM, CSS, requestIdleCallback, localStorage, RegExp, batch reads, batch writes | [browser-dom-optimizations.md](performance-optimization-engineer/references/browser-dom-optimizations.md) | LOW-MEDIUM — 4 browser and DOM hot path optimizations |
-| INP, FID, sendBeacon, web-vitals, RUM, sampling, attribution, metric reporting | [metrics-and-monitoring.md](performance-optimization-engineer/references/metrics-and-monitoring.md) | CRITICAL — INP setup, anti-patterns, error-fix mappings for metric collection |
-| Next.js, App Router, next/image, next/font, streaming, ISR, revalidate, Server Component, dynamic | [nextjs-optimization.md](performance-optimization-engineer/references/nextjs-optimization.md) | CRITICAL — Next.js 13.4+ performance patterns with anti-pattern detection |
+| INP, FID, sendBeacon, web-vitals, RUM, sampling, attribution, metric reporting | [metrics-and-monitoring.md](performance-optimization-engineer/references/metrics-and-monitoring.md) | CRITICAL — INP setup, patterns to detect, error-fix mappings for metric collection |
+| Next.js, App Router, next/image, next/font, streaming, ISR, revalidate, Server Component, dynamic | [nextjs-optimization.md](performance-optimization-engineer/references/nextjs-optimization.md) | CRITICAL — Next.js 13.4+ performance patterns with pattern detection |
 | Lighthouse CI, performance budget, lhci, size-limit, CI/CD performance, regression, synthetic | [performance-testing.md](performance-optimization-engineer/references/performance-testing.md) | HIGH — Lighthouse CI setup, assertions, bundle gates, CI configuration |
 | Core Web Vitals implementation, LCP optimization, FID reduction, CLS fixes, web-vitals library | [core-web-vitals.md](performance-optimization-engineer/references/core-web-vitals.md) | CRITICAL — Core Web Vitals optimization patterns and thresholds |
 | webpack analyzer, code splitting, dynamic import, chunk optimization, tree shaking | [bundle-optimization.md](performance-optimization-engineer/references/bundle-optimization.md) | HIGH — Bundle size analysis and splitting strategies |
-| anti-pattern examples, premature optimization, ignoring RUM, blocking main thread | [anti-patterns.md](performance-optimization-engineer/references/anti-patterns.md) | MEDIUM — Comprehensive anti-pattern catalog with fixes |
+| pattern examples, premature optimization, ignoring RUM, blocking main thread | [anti-patterns.md](performance-optimization-engineer/references/anti-patterns.md) | MEDIUM — Comprehensive pattern catalog with detection and fixes |

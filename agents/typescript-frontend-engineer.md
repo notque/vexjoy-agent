@@ -131,14 +131,14 @@ Load [typescript-frontend-engineer/references/engineering-rules.md](typescript-f
 | Signal | Load These Files | Why |
 |---|---|---|
 | type error, build error, tsc, tsconfig, compilation | `typescript-errors.md` | Routes to the matching deep reference |
-| any, type assertion, validation, anti-pattern | `typescript-anti-patterns.md` | Routes to the matching deep reference |
+| any, type assertion, validation, pattern detection | `typescript-anti-patterns.md` | Routes to the matching deep reference |
 | forwardRef, useFormState, Context.Provider, React 19 migration | `react19-typescript-patterns.md` | Routes to the matching deep reference |
 | RSC, server component, data fetching, server action, React.cache, LRU, serialization | `react-server-patterns.md` | Routes to the matching deep reference |
 | SWR, fetch, data loading, event listeners, localStorage | `react-client-data-fetching.md` | Routes to the matching deep reference |
 | useState, useEffect, derived state, memo, useRef, transitions | `react-client-state-patterns.md` | Routes to the matching deep reference |
 | compound component, provider, context interface, boolean props, render props, composition | `react-composition-patterns.md` | Routes to the matching deep reference |
 | ViewTransition, page animation, shared element, navigation animation, view transition | `react-view-transitions.md` | Routes to the matching deep reference |
-| output format, errors, anti-patterns, anti-rationalization, hard boundaries, blockers, phases, death-loop | `engineering-rules.md` | Routes to the matching deep reference |
+| output format, errors, preferred patterns, anti-rationalization, hard boundaries, blockers, phases, death-loop | `engineering-rules.md` | Routes to the matching deep reference |
 
 ## References
 
@@ -147,18 +147,18 @@ Load the relevant reference file(s) before implementing. References are loaded o
 | Task Keywords | Reference File |
 |---------------|---------------|
 | type error, build error, tsc, tsconfig, compilation | [typescript-errors.md](typescript-frontend-engineer/references/typescript-errors.md) |
-| any, type assertion, validation, anti-pattern | [typescript-anti-patterns.md](typescript-frontend-engineer/references/typescript-anti-patterns.md) |
+| any, type assertion, validation, pattern detection | [typescript-anti-patterns.md](typescript-frontend-engineer/references/typescript-anti-patterns.md) |
 | forwardRef, useFormState, Context.Provider, React 19 migration | [react19-typescript-patterns.md](typescript-frontend-engineer/references/react19-typescript-patterns.md) |
 | RSC, server component, data fetching, server action, React.cache, LRU, serialization | [react-server-patterns.md](typescript-frontend-engineer/references/react-server-patterns.md) |
 | SWR, fetch, data loading, event listeners, localStorage | [react-client-data-fetching.md](typescript-frontend-engineer/references/react-client-data-fetching.md) |
 | useState, useEffect, derived state, memo, useRef, transitions | [react-client-state-patterns.md](typescript-frontend-engineer/references/react-client-state-patterns.md) |
 | compound component, provider, context interface, boolean props, render props, composition | [react-composition-patterns.md](typescript-frontend-engineer/references/react-composition-patterns.md) |
 | ViewTransition, page animation, shared element, navigation animation, view transition | [react-view-transitions.md](typescript-frontend-engineer/references/react-view-transitions.md) |
-| output format, errors, anti-patterns, anti-rationalization, hard boundaries, blockers, phases, death-loop | [engineering-rules.md](typescript-frontend-engineer/references/engineering-rules.md) |
+| output format, errors, preferred patterns, anti-rationalization, hard boundaries, blockers, phases, death-loop | [engineering-rules.md](typescript-frontend-engineer/references/engineering-rules.md) |
 
 **Reference Descriptions:**
 - **typescript-errors.md** — Build errors, type system errors, React errors, form errors, API errors, performance issues
-- **typescript-anti-patterns.md** — Using any, over-engineering types, not validating data, ignoring errors, incorrect state patterns, type vs interface confusion, deprecated React patterns
+- **typescript-anti-patterns.md** — Pattern detection: using any, over-engineering types, not validating data, ignoring errors, incorrect state patterns, type vs interface confusion, deprecated React patterns
 - **react19-typescript-patterns.md** — forwardRef migration, Context simplification, useActionState, useOptimistic, use() hook, ref callbacks, document metadata, form actions
 - **react-server-patterns.md** — RSC parallel fetching, React.cache() deduplication, request-scoped state, RSC serialization, LRU caching, static I/O hoisting, Server Action auth, non-blocking post-response work
 - **react-client-data-fetching.md** — SWR deduplication, global listener deduplication, passive event listeners, localStorage versioning and schema migration patterns

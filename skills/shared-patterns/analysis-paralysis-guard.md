@@ -58,9 +58,9 @@ To adjust, explicitly note: "Raising analysis paralysis threshold to [N] because
 
 **Bad**: After reading 8 files: "I need to understand the codebase better." → No hypothesis, no termination condition, no action plan.
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
-| Anti-Pattern | Why It's Wrong | Do Instead |
+| Signal | Why It Matters | Preferred Action |
 |--------------|----------------|------------|
 | Running a no-op Bash command to reset counter | Defeats the guard; action must be meaningful | Only real actions reset the counter |
 | Explaining with "gathering context" then continuing to read | Vague explanation without hypothesis means still lost | Form a specific hypothesis or ask for help |

@@ -156,7 +156,7 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ---
 
-## What NOT to Include
+## Scope Boundaries
 
 - Generic language advice ("use meaningful variable names")
 - IDE setup instructions (user-specific)

@@ -13,7 +13,7 @@ STOP and ask the user (get explicit confirmation) before proceeding when:
 | New dependency | Security and maintenance burden | "Add package X or implement? What's the maintenance posture?" |
 | Breaking API change | Downstream consumers affected | "This changes the API. How should we handle migration?" |
 
-### Never Guess On
+### Verify Before Assuming
 - Database migrations (schema changes)
 - Authentication/authorization changes
 - Async vs synchronous design

@@ -135,9 +135,9 @@ In your SKILL.md references section:
 
 In your classification prompt, include the security preamble and use `wrap_untrusted()` on all user-sourced fields.
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
-| Anti-Pattern | Why It's Wrong | Do Instead |
+| Signal | Why It Matters | Preferred Action |
 |-------------|----------------|------------|
 | Inserting user text directly into prompt | Data crosses into instruction channel | Wrap in `<untrusted-content>` tags |
 | Trusting report reason text | Report reasons are user-supplied strings | Wrap in untrusted tags, evaluate independently |

@@ -413,7 +413,7 @@ STOP and ask the user (wait for explicit confirmation) when:
 | No skill files exist for any subdomain | Scaffolder may not have run | "No generated skills found. Has pipeline-scaffolder completed? Should I run it first?" |
 | All subdomains FAIL on first batch | Systemic issue, not per-subdomain | "All 5 subdomains failed. This suggests a systemic issue (agent problem, template bug). Investigate before testing remaining batches?" |
 
-### Never Guess On
+### Verify Before Assuming
 - Whether a failure is a target issue vs a skill issue (report both possibilities, let retro decide)
 - Whether to increase timeout (ask the user first)
 - Whether to skip a subdomain (test everything the spec defines)
