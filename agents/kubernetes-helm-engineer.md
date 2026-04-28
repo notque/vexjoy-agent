@@ -170,20 +170,17 @@ Common Kubernetes/Helm errors and solutions.
 
 Common Kubernetes/Helm mistakes and their corrections.
 
-### ❌ No Resource Limits
-**What it looks like**: Pods without resource requests/limits specified
-**Why wrong**: Pod can consume all node resources, causes node instability, prevents effective scheduling
-**✅ Do instead**: Always specify: `resources: {requests: {cpu: "100m", memory: "128Mi"}, limits: {cpu: "200m", memory: "256Mi"}}`
+### Set Resource Requests and Limits
+**Preferred action**: Always specify: `resources: {requests: {cpu: "100m", memory: "128Mi"}, limits: {cpu: "200m", memory: "256Mi"}}`
+**Why this matters**: Pods without resource requests/limits can consume all node resources, causing node instability and preventing effective scheduling
 
-### ❌ Missing Health Checks
-**What it looks like**: Deployments without liveness/readiness probes
-**Why wrong**: Kubernetes can't detect unhealthy pods, traffic sent to broken pods, no automatic restarts
-**✅ Do instead**: Add probes: `livenessProbe: {httpGet: {path: /health, port: 8080}, periodSeconds: 10}` and readinessProbe
+### Configure Liveness and Readiness Probes
+**Preferred action**: Add probes: `livenessProbe: {httpGet: {path: /health, port: 8080}, periodSeconds: 10}` and readinessProbe
+**Why this matters**: Without health probes, Kubernetes cannot detect unhealthy pods -- traffic is sent to broken pods and automatic restarts do not trigger
 
-### ❌ Latest Tag in Production
-**What it looks like**: `image: myapp:latest` in production deployments
-**Why wrong**: Non-deterministic, can't rollback, unclear what's deployed, breaks reproducibility
-**✅ Do instead**: Use specific tags: `image: myapp:v1.2.3` or commit SHA tags
+### Pin Image Tags to Specific Versions
+**Preferred action**: Use specific tags: `image: myapp:v1.2.3` or commit SHA tags
+**Why this matters**: `image: myapp:latest` in production is non-deterministic -- you cannot rollback, cannot tell what is deployed, and reproducibility breaks
 
 ## Anti-Rationalization
 

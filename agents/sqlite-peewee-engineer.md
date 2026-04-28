@@ -169,10 +169,9 @@ Common Peewee/SQLite errors and solutions.
 
 Peewee/SQLite patterns to follow.
 
-### ❌ N+1 Queries with Related Data
-**What it looks like**: `for user in User.select(): print(user.posts.count())`
-**Why wrong**: Executes separate query per user, very slow
-**✅ Do instead**: `users = User.select().prefetch(Post); for user in users: print(len(user.posts))`
+### Prefetch Related Data to Avoid N+1
+**Preferred action**: `users = User.select().prefetch(Post); for user in users: print(len(user.posts))`
+**Why this matters**: `for user in User.select(): print(user.posts.count())` executes a separate query per user, which is very slow
 
 ### ❌ No Transactions for Multi-Step Operations
 **What it looks like**: `user.save(); post.save(); comment.save()` without atomic()

@@ -170,20 +170,17 @@ Common Node.js API errors and solutions.
 
 Common Node.js backend mistakes and their corrections.
 
-### ❌ Not Validating User Input
-**What it looks like**: Trusting `req.body` directly, using data without validation
-**Why wrong**: SQL injection, XSS, business logic errors from malformed data
-**✅ Do instead**: Validate all inputs with Zod schemas, sanitize HTML, use parameterized queries
+### Validate All User Input
+**Preferred action**: Validate all inputs with Zod schemas, sanitize HTML, use parameterized queries
+**Why this matters**: Trusting `req.body` directly enables SQL injection, XSS, and business logic errors from malformed data
 
-### ❌ Exposing Stack Traces in Production
-**What it looks like**: Sending full error.stack to client in production
-**Why wrong**: Leaks sensitive info (file paths, code structure, dependencies)
-**✅ Do instead**: Generic error messages in production, detailed logging server-side, use error tracking (Sentry)
+### Return Generic Error Messages in Production
+**Preferred action**: Generic error messages in production, detailed logging server-side, use error tracking (Sentry)
+**Why this matters**: Sending full error.stack to the client leaks sensitive info (file paths, code structure, dependencies)
 
-### ❌ No Rate Limiting on Public Endpoints
-**What it looks like**: Unlimited requests allowed to login, signup, contact forms
-**Why wrong**: Brute force attacks, DoS, resource exhaustion, spam
-**✅ Do instead**: Rate limit by IP (100 req/min default), stricter limits on auth endpoints (5 req/min), use express-rate-limit or upstash-ratelimit
+### Rate-Limit Public Endpoints
+**Preferred action**: Rate limit by IP (100 req/min default), stricter limits on auth endpoints (5 req/min), use express-rate-limit or upstash-ratelimit
+**Why this matters**: Unlimited requests to login, signup, and contact forms enable brute force attacks, DoS, resource exhaustion, and spam
 
 ## Anti-Rationalization
 
