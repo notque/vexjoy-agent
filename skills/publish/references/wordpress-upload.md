@@ -58,6 +58,21 @@ python3 ~/.claude/scripts/wordpress-upload.py \
 
 The `--title` flag is optional. If omitted, the script extracts the title from markdown H1. If both `--title` AND H1 exist, this creates a duplicate title rendering in WordPress (anti-pattern). Use one or the other, not both.
 
+**Auto-create missing categories (opt-in):**
+
+By default, frontmatter or `--category` names that don't exist on the target site are skipped with a warning, and the post lands without them. Pass `--create-missing-categories` to create them on the fly via `POST /wp/v2/categories`:
+
+```bash
+python3 ~/.claude/scripts/wordpress-upload.py \
+  --file <path-to-markdown> \
+  --create-missing-categories \
+  --human
+```
+
+When the flag is on, every missing category triggers `Created category '<name>' (id <new-id>)` in `--human` output, the new ID is cached for the rest of the run, and the new ID is attached to the post. On permission denied or any 4xx/5xx from the categories endpoint, the script logs a warning and falls back to the existing skip behavior — the upload never crashes.
+
+Auto-create only applies at upload time. `wordpress-edit-post.py` accepts category IDs (not names) and does not perform name resolution or auto-create; create categories at upload time, or pre-create them via the REST API, before editing.
+
 **For media uploads:**
 
 ```bash
@@ -116,6 +131,78 @@ Use `--get` to retrieve post details for review before making edits.
 **No partial success**. If a multi-step operation fails at step N, report which steps succeeded and which failed. Do not claim completion.
 
 **Gate**: User has received confirmation with URLs and IDs, all steps in workflow completed (or explicit failure report). Operation is complete.
+
+### Phase 3.5: SEARCH MEDIA LIBRARY BEFORE UPLOADING (Optional)
+
+**Goal**: Reuse imagery the site already hosts before uploading new media.
+
+Before calling `wordpress-media-upload.py` for a new image, search the existing library by keyword. If a match exists, embed its URL inline in the markdown body or pass its ID to `wordpress-edit-post.py --featured-image <id>`. This saves CDN bytes, keeps the library tidy, and reuses already-licensed/already-cleared imagery.
+
+**Workflow:**
+
+1. Query `GET /wp/v2/media?search=<KEYWORD>&per_page=N&_fields=id,source_url,title,alt_text,date` with Application-Password basic auth.
+2. Pick existing media items (by `id` or `source_url`) that match the article subject. Prefer recent results when ranking ties.
+3. Embed the chosen `source_url` inline in the markdown body, or pass the `id` to `wordpress-edit-post.py --featured-image <id>` for the hero image.
+4. Skip the new upload entirely when the library already covers the topic.
+
+**Stdlib search snippet** (no third-party deps; uses the same `~/.env` credentials as the upload scripts):
+
+```python
+import base64
+import json
+import os
+import urllib.parse
+import urllib.request
+from pathlib import Path
+
+
+def load_env(path: Path = Path.home() / ".env") -> dict[str, str]:
+    out: dict[str, str] = {}
+    if not path.exists():
+        return out
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        out[k.strip()] = v.strip()
+    return out
+
+
+def search_media(keyword: str, per_page: int = 10) -> list[dict]:
+    env = load_env()
+    site = os.environ.get("WORDPRESS_SITE", env.get("WORDPRESS_SITE", "")).rstrip("/")
+    user = os.environ.get("WORDPRESS_USER", env.get("WORDPRESS_USER", ""))
+    pwd = os.environ.get("WORDPRESS_APP_PASSWORD", env.get("WORDPRESS_APP_PASSWORD", ""))
+    token = base64.b64encode(f"{user}:{pwd}".encode()).decode()
+
+    qs = urllib.parse.urlencode(
+        {
+            "search": keyword,
+            "per_page": per_page,
+            "_fields": "id,source_url,title,alt_text,date",
+        }
+    )
+    req = urllib.request.Request(
+        f"{site}/wp-json/wp/v2/media?{qs}",
+        headers={"Authorization": f"Basic {token}"},
+    )
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        return json.loads(resp.read().decode())
+
+
+if __name__ == "__main__":
+    import sys
+
+    keyword = sys.argv[1] if len(sys.argv) > 1 else "<KEYWORD>"
+    for item in search_media(keyword):
+        title = item.get("title", {}).get("rendered", "") if isinstance(item.get("title"), dict) else item.get("title", "")
+        print(f"{item['id']}\t{title}\t{item['source_url']}")
+```
+
+Save as `wp_media_search.py` and run `python3 wp_media_search.py "<KEYWORD>"` to print `id<TAB>title<TAB>source_url` for the top matches. Pipe through `head` or `grep` to narrow further.
+
+**When to skip the search**: brand-new subjects with zero prior coverage, or imagery that must be unique to this post (custom hero art, screenshots of a specific UI state). Otherwise, search first.
 
 ### Phase 4: POST-UPLOAD WORKFLOWS (Optional)
 

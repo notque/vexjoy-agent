@@ -5,11 +5,14 @@ Uploads markdown files to WordPress as posts using Application Passwords authent
 Parses YAML frontmatter for metadata (title, categories, tags, slug, excerpt).
 Categories and tags are resolved by name via the WordPress REST API.
 Tags are created automatically if they don't exist.
+Categories are skipped with a warning if they don't exist, unless
+``--create-missing-categories`` is passed (then they are created on demand).
 
 Usage:
     python3 scripts/wordpress-upload.py --file article.md --status draft --human
     python3 scripts/wordpress-upload.py --file article.md --title "My Title" --category "News" --status draft
     python3 scripts/wordpress-upload.py --file article.md --classic --status draft
+    python3 scripts/wordpress-upload.py --file article.md --create-missing-categories --human
 
 Environment Variables (from ~/.env):
     WORDPRESS_SITE         WordPress site URL (e.g., https://your-blog.com)
@@ -268,6 +271,95 @@ def lookup_category_id(config: dict[str, str], name: str) -> int | None:
     return None
 
 
+def create_category(config: dict[str, str], name: str) -> int | None:
+    """Create a WordPress category by name and return its new ID.
+
+    Used when ``--create-missing-categories`` is enabled and a frontmatter
+    or CLI category doesn't exist on the target site.
+
+    Args:
+        config: WordPress config dict.
+        name: Category name to create.
+
+    Returns:
+        New category ID on success, None on failure (permission denied,
+        validation error, network failure, etc.). Failures are logged to
+        stderr and the caller falls back to skip-with-warning behavior.
+    """
+    api_url = f"{config['site'].rstrip('/')}/wp-json/wp/v2/categories"
+    headers = _get_auth_headers(config)
+
+    try:
+        response = requests.post(api_url, headers=headers, json={"name": name}, timeout=15)
+        if response.status_code == 201:
+            new_cat = response.json()
+            return new_cat.get("id")
+
+        # Handle "term_exists" race: a category with this slug already exists
+        # but the prior search didn't surface it (e.g., slug vs name mismatch).
+        if response.status_code == 400:
+            error_data: dict[str, Any] = {}
+            with contextlib.suppress(Exception):
+                error_data = response.json()
+            if error_data.get("code") == "term_exists":
+                existing_id = error_data.get("data", {}).get("term_id")
+                if existing_id:
+                    return existing_id
+
+        # Permission denied or other API error — warn and let the caller skip.
+        print(f"Warning: failed to create category '{name}': HTTP {response.status_code}", file=sys.stderr)
+    except Exception as e:
+        print(f"Warning: category creation failed for '{name}': {e}", file=sys.stderr)
+
+    return None
+
+
+def lookup_or_create_category_id(
+    config: dict[str, str],
+    name: str,
+    *,
+    create_missing: bool = False,
+    human: bool = False,
+) -> int | None:
+    """Look up a category by name; optionally create it if it doesn't exist.
+
+    Wraps ``lookup_category_id`` with an opt-in create-on-miss path. The
+    new ID (if creation succeeds) is written back into ``_category_cache``
+    so subsequent lookups within the same run skip the API.
+
+    Args:
+        config: WordPress config dict.
+        name: Category name to find or create.
+        create_missing: If True, attempt to create the category when the
+            lookup misses. Defaults to False (preserves the legacy
+            skip-with-warning behavior).
+        human: If True, print a human-readable line on successful creation.
+
+    Returns:
+        Category ID if found or created, None on miss-and-no-create or
+        on creation failure.
+    """
+    cat_id = lookup_category_id(config, name)
+    if cat_id is not None:
+        return cat_id
+
+    if not create_missing:
+        return None
+
+    new_id = create_category(config, name)
+    if new_id is not None:
+        # Cache the new ID under the same lower-cased key used by
+        # lookup_category_id so future lookups in this run hit the cache.
+        _category_cache[name.lower()] = new_id
+        if human:
+            print(f"Created category '{name}' (id {new_id})")
+        else:
+            print(f"Info: created category '{name}' (id {new_id})", file=sys.stderr)
+        return new_id
+
+    return None
+
+
 def lookup_or_create_tag_id(config: dict[str, str], name: str) -> int | None:
     """Look up a WordPress tag by name, creating it if it doesn't exist.
 
@@ -317,15 +409,27 @@ def lookup_or_create_tag_id(config: dict[str, str], name: str) -> int | None:
     return None
 
 
-def resolve_taxonomy_ids(config: dict[str, str], frontmatter: dict[str, Any]) -> tuple[list[int], list[int]]:
+def resolve_taxonomy_ids(
+    config: dict[str, str],
+    frontmatter: dict[str, Any],
+    *,
+    create_missing_categories: bool = False,
+    human: bool = False,
+) -> tuple[list[int], list[int]]:
     """Resolve frontmatter category/tag names to WordPress taxonomy IDs.
 
-    Categories that don't exist are skipped with a warning.
+    Categories that don't exist are skipped with a warning by default.
+    When ``create_missing_categories`` is True, missing categories are
+    created via ``POST /wp/v2/categories`` and the new IDs are reused.
     Tags that don't exist are created automatically.
 
     Args:
         config: WordPress config dict.
         frontmatter: Parsed YAML frontmatter dict.
+        create_missing_categories: If True, auto-create categories that
+            don't exist on the target site. Falls back to skip-with-
+            warning on creation failure (e.g., permission denied).
+        human: If True, log creation events on stdout for ``--human`` mode.
 
     Returns:
         Tuple of (category_ids, tag_ids).
@@ -342,7 +446,12 @@ def resolve_taxonomy_ids(config: dict[str, str], frontmatter: dict[str, Any]) ->
         raw_tags = [raw_tags]
 
     for cat_name in raw_categories:
-        cat_id = lookup_category_id(config, cat_name)
+        cat_id = lookup_or_create_category_id(
+            config,
+            cat_name,
+            create_missing=create_missing_categories,
+            human=human,
+        )
         if cat_id is not None:
             category_ids.append(cat_id)
         else:
@@ -975,6 +1084,15 @@ def main() -> int:
     )
     parser.add_argument("--classic", action="store_true", help="Use classic HTML format instead of Gutenberg blocks")
     parser.add_argument(
+        "--create-missing-categories",
+        action="store_true",
+        help=(
+            "Auto-create frontmatter and --category names that don't exist on the target site "
+            "(POST /wp/v2/categories). Default off; missing categories are skipped with a warning. "
+            "On permission denied or other API failure, falls back to skip-with-warning."
+        ),
+    )
+    parser.add_argument(
         "--validate",
         action="store_true",
         help="Convert to Gutenberg HTML, validate blocks, print results, and exit (no upload)",
@@ -1042,7 +1160,12 @@ def main() -> int:
         return 1
 
     # Resolve taxonomy IDs from frontmatter
-    fm_category_ids, fm_tag_ids = resolve_taxonomy_ids(config, frontmatter)
+    fm_category_ids, fm_tag_ids = resolve_taxonomy_ids(
+        config,
+        frontmatter,
+        create_missing_categories=args.create_missing_categories,
+        human=args.human,
+    )
 
     # Resolve taxonomy IDs from CLI args
     cli_category_ids: list[int] = []
@@ -1050,7 +1173,12 @@ def main() -> int:
 
     if args.category:
         for cat_name in args.category:
-            cat_id = lookup_category_id(config, cat_name)
+            cat_id = lookup_or_create_category_id(
+                config,
+                cat_name,
+                create_missing=args.create_missing_categories,
+                human=args.human,
+            )
             if cat_id is not None:
                 cli_category_ids.append(cat_id)
             else:

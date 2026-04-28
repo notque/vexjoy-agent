@@ -10,10 +10,11 @@
 | `--category` | | Category by NAME, e.g. `--category "News"` (script looks up ID via REST API). Repeatable. |
 | `--tag` | | Tag by NAME, e.g. `--tag "Example Tag"` (creates if missing). Repeatable. |
 | `--author` | | Author user ID |
+| `--create-missing-categories` | | Auto-create frontmatter / `--category` names that don't exist on the target site. Off by default; missing categories are skipped with a warning. Falls back to skip-with-warning on permission denied or API failure. |
 | `--validate` | | Convert to Gutenberg HTML, validate block structure, print results as JSON, and exit without uploading |
 | `--human` | | Human-readable output |
 
-**WordPress categories**: Look up your site's category IDs via the REST API or wp-admin. Use category names with `--category` and the script resolves IDs automatically.
+**WordPress categories**: Look up your site's category IDs via the REST API or wp-admin. Use category names with `--category` and the script resolves IDs automatically. Pass `--create-missing-categories` to create names that don't already exist on the target site instead of skipping them.
 
 **YAML frontmatter**: The upload script auto-strips frontmatter from the article body. No YAML should appear in the published content. If you see `---` or key-value pairs in the published article, the upload failed to strip it.
 
