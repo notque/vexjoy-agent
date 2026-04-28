@@ -1,8 +1,8 @@
-# Endpoint Config Validation Reference
+# Endpoint Configuration Patterns Guide
 
-<!-- no-pair-required: document title block, not an anti-pattern description -->
+<!-- no-pair-required: document title block, not a pattern description -->
 
-> **Scope**: Common pitfalls in `endpoints.json` configuration and validation mistakes to detect.
+> **Scope**: Correct patterns for `endpoints.json` configuration and common validation mistakes to detect.
 > **Version range**: All versions of endpoint-validator
 > **Generated**: 2026-04-17
 
@@ -11,18 +11,20 @@
 ## Overview
 
 Most endpoint validation failures trace to configuration errors, not actual API bugs. This
-reference covers the most common `endpoints.json` mistakes: hardcoded values that break CI,
-mutating endpoints run against production, and timeout values that mask real problems.
+reference covers the correct approach for `endpoints.json`: environment-variable base URLs,
+proper timeout values, secret management, and response type matching.
 
 ---
 
-## Correct Configuration Patterns
+## Configuration Patterns
 
-### Standard endpoints.json Structure
+### Use Environment-Variable Base URLs
+
+Configure `base_url` with `${VAR:-default}` syntax so CI can override the URL without maintaining separate config files per environment. Local dev falls back to localhost automatically.
 
 ```json
 {
-  "base_url": "http://localhost:8000",
+  "base_url": "${BASE_URL:-http://localhost:8000}",
   "endpoints": [
     {"path": "/health", "expect_status": 200},
     {"path": "/api/v1/users", "expect_key": "data", "timeout": 10},
@@ -36,77 +38,46 @@ mutating endpoints run against production, and timeout values that mask real pro
 }
 ```
 
-**Why**: Environment variables in header values (`${API_TOKEN}`) keep secrets out of config
-files. The validator expands them at runtime — never commit actual tokens.
-
----
-
-### Environment-Variable Base URL
-
-```json
-{
-  "base_url": "${BASE_URL:-http://localhost:8000}",
-  "endpoints": [...]
-}
-```
-
-**Why**: `${VAR:-default}` allows CI to override the base URL without maintaining separate
-config files per environment. Local dev falls back to localhost automatically.
-
----
-
-## Pattern Catalog
-
-### ❌ Hardcoded IP Address in base_url
+**Why this matters**: Environment variables in header values (`${API_TOKEN}`) keep secrets out of config files. The validator expands them at runtime — never commit actual tokens. Hardcoded IP addresses break on every other developer machine, in CI, and after any network reconfiguration.
 
 **Detection**:
 ```bash
 grep -rn '"base_url"' . --include="*.json" | grep -E '"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+'
-rg '"base_url".*[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' --type json
 ```
-
-**What it looks like**:
-```json
-{"base_url": "http://192.168.1.42:8000"}
-```
-
-**Why wrong**: IP addresses are machine-local. The config breaks on every other developer
-machine, in CI, and after any network reconfiguration.
-
-**Do instead**:
-```json
-{"base_url": "http://localhost:8000"}
-```
-Or use an environment variable: `{"base_url": "${API_URL}"}`
 
 ---
 
-### ❌ Write Endpoints Against Production base_url
+### Restrict Write Methods to Non-Production URLs
 
-**Detection**:
-```bash
-grep -rn '"method"' . --include="*.json" | grep -iE '"POST"|"PUT"|"DELETE"|"PATCH"'
-```
+Reserve production config for GET-only health checks. Use staging for mutating endpoints (POST, PUT, DELETE, PATCH). The validator warns when it detects write methods with a non-localhost `base_url`.
 
-**What it looks like**:
 ```json
 {
-  "base_url": "https://api.example.com",
+  "base_url": "${STAGING_URL:-http://localhost:8000}",
   "endpoints": [
     {"path": "/api/v1/users", "method": "POST", "body": {"name": "test"}}
   ]
 }
 ```
 
-**Why wrong**: POST/PUT/DELETE against a production URL creates/mutates/deletes real data.
-A smoke test that runs pre-deploy will insert test records, trigger webhooks, or bill users.
+**Why this matters**: POST/PUT/DELETE against a production URL creates/mutates/deletes real data. A smoke test that runs pre-deploy will insert test records, trigger webhooks, or bill users.
 
-**Do instead**: Use staging for mutating endpoints. Reserve production config for GET-only health
-checks. The validator warns when it detects write methods with a non-localhost `base_url`.
+**Detection**:
+```bash
+grep -rn '"method"' . --include="*.json" | grep -iE '"POST"|"PUT"|"DELETE"|"PATCH"'
+```
 
 ---
 
-### ❌ Zero or Very High Timeout
+### Set Meaningful Timeouts With Performance Ceilings
+
+Use `timeout: 5` (default) for health checks. For legitimately slow endpoints, set `timeout: 15` and `max_time: 5.0` to distinguish "too slow" from "timed out completely." Never use `timeout: 0` (no timeout) or values above 60 seconds.
+
+```json
+{"path": "/api/report", "timeout": 15, "max_time": 5.0}
+```
+
+**Why this matters**: `timeout: 0` means no timeout — a hung connection blocks the entire validation suite forever. `timeout: 300` hides performance regressions; an endpoint taking 60 seconds is clearly degraded but passes validation.
 
 **Detection**:
 ```bash
@@ -114,48 +85,35 @@ grep -rn '"timeout"' . --include="*.json" | grep -E '"timeout":\s*0\b'
 grep -rn '"timeout"' . --include="*.json" | grep -E '"timeout":\s*[6-9][0-9]|[1-9][0-9]{2,}'
 ```
 
-**What it looks like**:
-```json
-{"path": "/api/slow", "timeout": 0}
-{"path": "/api/upload", "timeout": 300}
-```
-
-**Why wrong**: `timeout: 0` means no timeout. A hung connection blocks the entire validation
-suite forever. `timeout: 300` hides performance regressions; an endpoint that starts taking
-60 seconds is clearly degraded but passes validation.
-
-**Do instead**: Use `timeout: 5` (default) for health checks. For legitimately slow endpoints, set
-`timeout: 15` and `max_time: 5.0` to distinguish "too slow" from "timed out completely":
-```json
-{"path": "/api/report", "timeout": 15, "max_time": 5.0}
-```
-
 ---
 
-### ❌ expect_key on Non-JSON Endpoint
+### Use `expect_status` Only for Non-JSON Endpoints
+
+For XML, HTML, CSV, and other non-JSON responses, check `expect_status` only. Reserve `expect_key` for endpoints that return JSON — it parses the response as JSON and checks for a top-level key.
+
+```json
+{"path": "/sitemap.xml", "expect_status": 200}
+{"path": "/api/v1/users", "expect_key": "data"}
+```
+
+**Why this matters**: `expect_key` on a non-JSON endpoint always fails JSON parsing, generating "Invalid JSON response" errors that obscure the real issue.
 
 **Detection**:
 ```bash
 grep -B2 '"expect_key"' endpoints.json | grep -E '"path".*\.(html|xml|csv|txt|pdf)'
 ```
 
-**What it looks like**:
-```json
-{"path": "/sitemap.xml", "expect_key": "urlset"}
-```
-
-**Why wrong**: `expect_key` parses the response as JSON and checks for a top-level key.
-XML, HTML, and CSV responses will always fail JSON parsing, generating "Invalid JSON response"
-errors that obscure the real issue.
-
-**Do instead**: For non-JSON endpoints, only check `expect_status`:
-```json
-{"path": "/sitemap.xml", "expect_status": 200}
-```
-
 ---
 
-### ❌ Missing expect_status on Non-200 Endpoints
+### Set `expect_status` for Non-200 Endpoints
+
+When validating endpoints that intentionally return non-200 status codes (e.g., 404 handlers, rate limiters), set `expect_status` explicitly. The default is 200.
+
+```json
+{"path": "/api/v1/nonexistent-resource", "expect_status": 404}
+```
+
+**Why this matters**: An endpoint that intentionally returns 404 (validating your 404 handler) will report FAIL when it should PASS if no `expect_status` is set.
 
 **Detection**:
 ```bash
@@ -170,41 +128,22 @@ for ep in cfg.get('endpoints', []):
 "
 ```
 
-**What it looks like**:
-```json
-{"path": "/api/v1/nonexistent-resource"}
-```
-
-**Why wrong**: Default `expect_status` is 200. An endpoint that intentionally returns 404
-(e.g., validating your 404 handler) will report FAIL when it should PASS.
-
-**Do instead**:
-```json
-{"path": "/api/v1/nonexistent-resource", "expect_status": 404}
-```
-
 ---
 
-### ❌ Credentials in Config File
+### Use Environment Variable Interpolation for Credentials
+
+Reference secrets via `${ENV_VAR}` in header values. Never commit Bearer tokens, API keys, or passwords directly in config files — they end up in git history permanently.
+
+```json
+{"headers": {"Authorization": "Bearer ${API_TOKEN}"}}
+```
+
+**Why this matters**: Tokens committed to config files persist in git history even after rotation. GitHub secret scanning will flag hardcoded tokens, and the old token may be valid elsewhere or extractable from history.
 
 **Detection**:
 ```bash
 grep -rn '"Authorization"\|"X-Api-Key"\|"api_key"\|"token"' endpoints.json | grep -v '\${[A-Z_]*}'
 rg '"Bearer [A-Za-z0-9+/=._-]{20,}"' --type json
-```
-
-**What it looks like**:
-```json
-{"headers": {"Authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.actual-token-here"}}
-```
-
-**Why wrong**: Tokens committed to config files end up in git history permanently. Even if
-rotated, the old token may be valid elsewhere or extractable from history. GitHub secret
-scanning will flag this.
-
-**Do instead**: Use environment variable interpolation:
-```json
-{"headers": {"Authorization": "Bearer ${API_TOKEN}"}}
 ```
 
 ---

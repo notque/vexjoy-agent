@@ -1,6 +1,6 @@
-# Decision Analysis Patterns to Detect and Fix
+# Decision Analysis Patterns Guide
 
-> **Scope**: Behavioral failure modes that corrupt weighted decision scoring. Covers framing, scoring, and interpretation errors. Does not cover domain-specific criteria selection (see `decision-archetypes.md`).
+> **Scope**: Behavioral patterns that protect the integrity of weighted decision scoring. Covers framing, scoring, and interpretation discipline. Does not cover domain-specific criteria selection (see `decision-archetypes.md`).
 > **Version range**: All versions of decision-helper skill
 > **Generated**: 2026-04-16
 
@@ -8,84 +8,53 @@
 
 ## Overview
 
-The weighted scoring framework exists to surface hidden reasoning and reduce bias. The anti-patterns below defeat that purpose. Most are invisible to the user doing them — the matrix looks correct but the inputs were already corrupted. The detection signals below are observable language and behavior patterns that indicate an anti-pattern is in progress.
+The weighted scoring framework exists to surface hidden reasoning and reduce bias. The patterns below protect that purpose by catching the moments where bias re-enters the process. Most corruption is invisible to the person doing it — the matrix looks correct but the inputs were already compromised. The detection signals below are observable language and behavior patterns.
 
 ---
 
 ## Pattern Catalog
 
-### ❌ Confirmation Bias via Post-Hoc Weight Adjustment
+### Lock Weights Before Scoring Begins
 
-**Detection signal**: User adjusts weights AFTER seeing the scored matrix, specifically to change the winner.
+Set all criterion weights in Step 2, then freeze them. If a user wants to change weights after seeing results, require a substantive reason — not just that their preferred option scored badly.
 
-```
-"Actually, I think Familiarity should be weight 4, not 2."  [after seeing their preferred option lost on Familiarity]
-"Can we lower Risk? I don't think it's that important here." [after seeing their preferred option scored badly on Risk]
-```
+When a user says "Can we lower Risk? I don't think it's that important here" after seeing their preferred option score badly on Risk, name the pattern directly: "That would be adjusting weights to reach a preferred outcome. Is there a criterion we're missing instead?"
 
-**Why wrong**: Weights represent what matters for this decision. If weights were set correctly before scoring, changing them afterward is just math to reach a predetermined conclusion. The matrix now proves nothing — it just launders a gut feeling as structured analysis.
+**Re-run protocol**: If weights legitimately need changing (new constraint discovered, misunderstood criterion), reset: wipe scores, update weights, re-score from scratch with updated weights visible.
 
-**Fix**: Lock weights before scoring begins (Step 2 gate). If a user wants to change weights after seeing results:
-1. Ask why the criterion now seems less important — what changed?
-2. If they can give a substantive reason (new constraint discovered, misunderstood criterion), accept it and re-score
-3. If the only reason is that their preferred option scored badly: name it directly — "That would be adjusting weights to reach a preferred outcome. Is there a criterion we're missing instead?"
+**Why this matters**: Weights represent what matters for this decision. Changing them after seeing the scored matrix is math to reach a predetermined conclusion. The matrix now proves nothing — it launders a gut feeling as structured analysis.
 
-**Re-run protocol**: If weights legitimately need changing, reset: wipe scores, update weights, re-score from scratch with updated weights visible.
+**Detection**: User adjusts weights AFTER seeing the scored matrix, specifically to change the winner.
 
 ---
 
-### ❌ Analysis Paralysis via Option Proliferation
+### Filter Options to Four Before Scoring
 
-**Detection signal**: User presents 5+ options, or keeps adding options mid-scoring.
+Apply a two-pass filter before building the scoring matrix. First, eliminate any option that fails a hard constraint. Second, eliminate any option dominated on ALL criteria at first glance. After filtering, if more than 4 remain, group similar options or ask the user to pick the top 3-4 worth deep analysis.
 
-```
-"We're also considering Option D, and actually Option E is worth looking at..."
-"Before we score, what if we added the hybrid approach as Option F?"
-```
+Never score more than 4 options. The framework says this explicitly. Enforce it.
 
-**Why wrong**: Scoring more than 4 options dilutes focus and invites false precision. A 6-option matrix signals the decision hasn't been framed yet — it's research, not decision-making. The math becomes meaningless when the options haven't been pre-filtered.
+**Why this matters**: Scoring more than 4 options dilutes focus and invites false precision. A 6-option matrix signals the decision has not been framed yet — it is research, not decision-making.
 
-**Fix** (Step 1 gate): Before scoring, apply a two-pass filter:
-1. **Hard constraint elimination**: any option that fails a hard constraint is removed, not scored
-2. **Dominance elimination**: if Option B dominates Option C on ALL criteria at first glance, remove Option C
-
-After filtering, if >4 remain: group similar options or ask the user to identify the top 3-4 worth deep analysis. Name the others as "out of scope for this decision."
-
-**Never score more than 4 options**. The framework says this explicitly. Enforce it.
+**Detection**: User presents 5+ options, or keeps adding options mid-scoring ("We're also considering Option D, and actually Option E is worth looking at...").
 
 ---
 
-### ❌ Anchoring to the First Option
+### Score Each Option Independently
 
-**Detection signal**: First option stated gets systematically higher scores across criteria, even weak ones, or other options are evaluated relative to the first rather than absolutely.
+Evaluate each option on each criterion using absolute scoring (1-10 on the criterion itself), not relative to another option. When scoring Option B on Maintainability, ask "how maintainable is this, independently?" — not "is it more or less maintainable than A?"
 
-```
-"Option A does X well. Option B doesn't do X as well as A." [A becomes the reference point]
-```
+For options where anchoring to the first option is suspected: re-score the anchored option last and check for systematic differences.
 
-**Why wrong**: Scores should be absolute (1-10 on the criterion itself), not relative to another option. When the first option anchors scoring, the matrix measures "distance from Option A," not actual quality.
+**Why this matters**: When the first option anchors scoring, the matrix measures "distance from Option A," not actual quality. Scores should reflect each option's absolute performance on the criterion, not its position relative to whichever option was mentioned first.
 
-**Fix**: Score criteria independently per option. When scoring Option B on Maintainability, ask "how maintainable is this, independently?" — not "is it more or less maintainable than A?"
-
-For options where anchoring is suspected: re-score the anchored option last and check for systematic differences.
+**Detection**: First option stated gets systematically higher scores across criteria, or other options are evaluated relative to the first ("Option B doesn't do X as well as A").
 
 ---
 
-### ❌ False Precision on Tied Scores
+### Apply the Close-Call Rule for Margins Under 0.5
 
-**Detection signal**: User treats a 0.1 or 0.2 weighted score difference as a meaningful recommendation.
-
-```
-Option A: 6.89
-Option B: 6.71
-"So we should go with Option A."
-```
-
-**Why wrong**: Individual scores are subjective 1-10 estimates. A score of 7 vs 8 on Complexity is not a measurement — it's an opinion. Weighted differences below 0.5 are noise, not signal. Treating them as decisive ignores the uncertainty in every input score.
-
-**Fix**: Apply the close-call rule: any margin within 0.5 is a close call, regardless of which option is numerically higher. Flag it explicitly and identify what additional factor should decide, rather than defaulting to "higher number wins."
-
-**Error-fix mapping**:
+Any weighted score margin within 0.5 is a close call, regardless of which option is numerically higher. Flag it explicitly and identify what additional factor should decide, rather than defaulting to "higher number wins."
 
 | Symptom | Root Cause | Fix |
 |---------|-----------|-----|
@@ -93,71 +62,53 @@ Option B: 6.71
 | Long discussion about whether score should be 7 or 8 | Precision theater | Use the midpoint and move on — these debates add no value |
 | Re-scoring same criterion 3+ times | Discomfort with uncertainty | Accept the range, note it as uncertain, proceed |
 
----
+**Why this matters**: Individual scores are subjective 1-10 estimates. A score of 7 vs 8 on Complexity is an opinion, not a measurement. Treating sub-0.5 differences as decisive ignores the uncertainty in every input score.
 
-### ❌ Criteria Scope Creep Mid-Scoring
-
-**Detection signal**: New criteria added after scoring has started, especially if the new criterion favors a particular option that was losing.
-
-```
-"Actually, we should add 'Vendor Support' as a criterion."  [halfway through scoring]
-"I forgot to include 'Team Learning Opportunity.'"  [after Option A is clearly losing]
-```
-
-**Why wrong**: Adding criteria after partial scoring means earlier options were scored on a different basis than later ones. The matrix is now comparing apples and partially-scored oranges. It also creates an opening for sneaking in criteria that reverse an unwanted result.
-
-**Fix**: Criteria are frozen at the Step 2 gate. If a genuinely forgotten criterion is discovered mid-scoring:
-1. Stop scoring
-2. Add the criterion to the table
-3. Back-fill scores for ALL already-scored options on the new criterion
-4. Continue
-
-If the user can't justify the new criterion without referencing a specific option's weakness, it's probably scope creep. Ask: "Would you have added this criterion if Option B were winning?"
+**Detection**: User treats a 0.1 or 0.2 weighted score difference as a meaningful recommendation.
 
 ---
 
-### ❌ Skipping Hard Constraint Elimination
+### Freeze Criteria at the Step 2 Gate
 
-**Detection signal**: Options with obvious eliminators still make it into the scoring matrix.
+All criteria must be defined before scoring begins. If a genuinely forgotten criterion is discovered mid-scoring: stop scoring, add the criterion, back-fill scores for ALL already-scored options on the new criterion, then continue.
 
-```
-Scoring a vendor that doesn't support the required data residency region.
-Scoring an open-source library with a GPL license for a commercial product.
-Scoring a framework whose last commit was 4 years ago.
-```
+Test for scope creep: "Would you have added this criterion if Option B were winning?" If the user cannot justify the new criterion without referencing a specific option's weakness, it is scope creep.
 
-**Why wrong**: Hard constraints are binary eliminators, not scored criteria. Including non-starters in the matrix wastes time and creates noise. Worse, a non-starter that scores well on other criteria may appear competitive and require re-justifying the constraint.
+**Why this matters**: Adding criteria after partial scoring means earlier options were scored on a different basis than later ones. It also creates an opening for sneaking in criteria that reverse an unwanted result.
 
-**Detection commands**:
+**Detection**: New criteria added after scoring has started, especially if the new criterion favors a particular option that was losing.
+
+---
+
+### Eliminate Hard-Constraint Failures Before Scoring
+
+Run hard constraint checks before framing options in the matrix. A vendor that does not support the required data residency region, a GPL library for a commercial product, or a framework with no commits in 4 years should be eliminated, not scored.
+
+Document which options were eliminated and why — this is important context for the decision record.
+
 ```bash
 # Check license before scoring a library
 gh repo view {org}/{repo} --json licenseInfo
 
 # Check activity before scoring a framework
 gh repo view {org}/{repo} --json pushedAt,isArchived
-
-# Check compliance before scoring a cloud provider
-# (manual — verify against provider's compliance documentation)
 ```
 
-**Fix**: Run hard constraint checks before framing options in the matrix. Document which options were eliminated and why — this is important context for the decision record.
+**Why this matters**: Hard constraints are binary eliminators, not scored criteria. Including non-starters in the matrix wastes time and creates noise. A non-starter that scores well on other criteria may appear competitive, forcing re-justification of the constraint.
+
+**Detection**: Options with obvious eliminators (unsupported region, incompatible license, abandoned project) still present in the scoring matrix.
 
 ---
 
-### ❌ No Hard Criteria for "Scores Feel Wrong"
+### Require Justification for Every Score Change
 
-**Detection signal**: User repeatedly adjusts scores without reasoning, or says "something feels off."
+Every score change requires a one-sentence justification: "I'm changing Risk from 7 to 9 because we just learned the vendor has had three outages this quarter." Without justification, name the pattern: "That would be adjusting a score without new information. What specifically changed your view?"
 
-```
-"I think Risk should be 9, not 7." [no explanation]
-"Let's change Maintainability to 5." [changing a score without new information]
-```
+If many scores feel wrong, the criteria may be mismatched to the decision. Return to Step 2 and check whether the archetype-specific criteria from `decision-archetypes.md` are more appropriate.
 
-**Why wrong**: Score changes without justification are gut feelings overriding the framework. The framework's value is making implicit reasoning explicit. Unexplained score changes re-obscure the reasoning.
+**Why this matters**: The framework's value is making implicit reasoning explicit. Unexplained score changes re-obscure the reasoning. Score changes without justification are gut feelings overriding the framework.
 
-**Fix**: Every score change requires a one-sentence justification: "I'm changing Risk from 7 to 9 because we just learned the vendor has had three outages this quarter." Without justification, name the pattern: "That would be adjusting a score without new information. What specifically changed your view?"
-
-If many scores feel wrong: the criteria may be mismatched to the decision. Return to Step 2 and check whether the archetype-specific criteria from `decision-archetypes.md` are more appropriate.
+**Detection**: User repeatedly adjusts scores without reasoning, or says "something feels off" without specifics.
 
 ---
 

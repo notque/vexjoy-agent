@@ -1,21 +1,11 @@
-# Skill Creator Patterns to Detect and Fix
+# Skill Creator Patterns Guide
 
 Common skill design issues, the signals that reveal them, and the preferred correction.
 
-## Description Without Triggers
+## Write Trigger-Rich Descriptions
 
-**What it looks like**:
-```yaml
-description: |
-  A comprehensive workflow automation tool for deployment pipelines.
-```
+Every skill description must state what the skill does, when to invoke it, and what to exclude. Include literal trigger phrases so the /do router can match user intent.
 
-**Why wrong**:
-- /do router can't determine when to invoke skill
-- Users can't discover when skill applies
-- Undertriggers on relevant requests
-
-**✅ Correct approach**:
 ```yaml
 description: |
   Deploy applications to Kubernetes via Helm with validation gates. Use when
@@ -23,29 +13,19 @@ description: |
   use for Docker-only deploys (use docker-deploy skill).
 ```
 
-**When to use**: Every skill - triggers are mandatory for discovery
+**Why this matters**: The /do router selects skills by matching user intent against descriptions. A description without trigger phrases undertriggers on relevant requests, making the skill invisible to users who need it.
+
+**Detection**: Check for descriptions that lack trigger phrases or exclusion clauses:
+```bash
+grep -A5 'description:' skills/*/SKILL.md | grep -vE 'Use (when|for)|Do NOT'
+```
 
 ---
 
-## Phases With Explicit Gates
+## Gate Every Phase Transition
 
-**What it looks like**:
-```markdown
-### Phase 1: Analyze
-- Read configuration
-- Validate inputs
+Define an explicit GATE condition at the end of each phase, with failure behavior. Phase 2 should never execute if Phase 1 validation failed.
 
-### Phase 2: Execute
-- Run deployment
-- Update status
-```
-
-**Why wrong**:
-- Phase 2 executes even if Phase 1 validation failed
-- No clear failure points
-- Cascading errors difficult to debug
-
-**✅ Correct approach**:
 ```markdown
 ### Phase 1: Analyze
 - Read configuration
@@ -63,31 +43,19 @@ If gate fails:
 - **GATE**: Deployment succeeded
 ```
 
-**When to use**: All Medium+ complexity skills with multiple phases
+**Why this matters**: Without gates, phase failures cascade silently. A bad configuration flows into execution, producing errors that are hard to trace back to the real cause. Gates isolate failures to the phase that caused them.
+
+**Detection**: Look for multi-phase skills missing GATE markers:
+```bash
+grep -c 'GATE' skills/*/SKILL.md | awk -F: '$2 == 0 {print $1": no gates"}'
+```
 
 ---
 
-## Keep the Main File Focused
+## Keep the Main File Under 500 Lines
 
-**What it looks like**:
-```
-.claude/skills/my-complex-skill/
-└── SKILL.md (4500 lines)
-    - Frontmatter (100 lines)
-    - Instructions (500 lines)
-    - Error catalog (1500 lines)
-    - Code examples (1200 lines)
-    - Failure modes and fixes (800 lines)
-    - Workflows (400 lines)
-```
+Structure complex skills with SKILL.md as a thin orchestrator (~500 lines) and deep content in `references/`. The orchestrator tells the model what to do and when to load references. Heavy catalogs, examples, and failure modes live in reference files.
 
-**Why wrong**:
-- Bloats context with Level 3 details
-- Violates progressive disclosure
-- Makes skill hard to navigate
-- Slower loading times
-
-**✅ Correct approach**:
 ```
 .claude/skills/my-complex-skill/
 ├── SKILL.md (1200 lines)
@@ -104,26 +72,19 @@ If gate fails:
     └── workflows.md (400 lines)
 ```
 
-**When to use**: All Complex+ skills - anything approaching 2000+ lines needs references/
+**Why this matters**: A 4500-line SKILL.md bloats context with detail irrelevant to most invocations. Progressive disclosure means the content still exists, but only the relevant slice enters context at any given phase.
+
+**Detection**: Find oversized skill files:
+```bash
+wc -l skills/*/SKILL.md | awk '$1 > 2000 {print}'
+```
 
 ---
 
-## Specific What, When, and Why
+## State What, When, and Why in the Name and Description
 
-**What it looks like**:
-```yaml
-name: data-processor
-description: |
-  Processes various types of data files efficiently.
-```
+Name skills with `{action}-{domain}` and write descriptions that answer three questions: what does it do, when should it fire, and what should it exclude.
 
-**Why wrong**:
-- Doesn't state WHAT it actually does
-- Doesn't state WHEN to use it
-- Missing trigger phrases
-- Will undertrigger
-
-**✅ Correct approach**:
 ```yaml
 name: csv-statistical-analyzer
 description: |
@@ -133,87 +94,62 @@ description: |
   exploration (use data-viz skill instead).
 ```
 
-**When to use**: Every skill - What+When is mandatory for all descriptions
+**Why this matters**: A skill named `data-processor` with a vague description will undertrigger because the router cannot determine when it applies. Specificity in naming and description drives correct routing.
+
+**Detection**: Find generic descriptions missing trigger phrases:
+```bash
+grep -A3 'description:' skills/*/SKILL.md | grep -v 'Use for\|Use when\|Do NOT'
+```
 
 ---
 
 ## Match Workflow Depth to Task Complexity
 
-**What it looks like**:
-Simple skill (pr-workflow (cleanup)) with:
-- 6 phases with complex gates
-- 15 error cases with detailed recovery
-- 8 anti-patterns
-- references/ directory with 4 files
-- 2500 lines total
+Size the skill's structure to its actual complexity. A simple cleanup workflow needs 4 phases and 300-600 lines, not 6 phases with complex gates and 2500 lines.
 
-**Why wrong**:
-- Simple workflow doesn't justify complexity
-- Violates Over-Engineering Prevention
-- Creates maintenance burden
-- Confuses users
-
-**✅ Correct approach**:
-Simple skill (pr-workflow (cleanup)) with:
+Simple skill (pr-workflow cleanup) should have:
 - 4 phases with basic gates
 - 3-5 common errors inline
 - 2-3 anti-patterns inline
 - No references/ directory
 - 300-600 lines total
 
-**When to use**: Match complexity to workflow needs - don't add features "for completeness"
+**Why this matters**: Over-engineering creates maintenance burden and confuses users. The framework's value is proportional to the workflow's complexity — a simple task with a complex skill wastes tokens loading unused structure.
+
+**Detection**: Compare line count to complexity tier:
+```bash
+wc -l skills/*/SKILL.md | awk '$1 > 1500 {print $1, $2}'
+```
 
 ---
 
 ## Add a Complexity Tier
 
-**What it looks like**:
+Every skill must include a `complexity` field in its routing metadata. This lets /do prioritize skills appropriately and enables evaluation to assess whether the skill's size matches its tier.
+
 ```yaml
 routing:
   triggers:
     - deploy
   pairs_with:
     - verification-before-completion
-  # Missing complexity field
+  complexity: Medium
   category: infrastructure
 ```
 
-**Why wrong**:
-- /do can't prioritize skill appropriately
-- Skill evaluation can't assess if size matches tier
-- Makes maintenance harder
+**Why this matters**: Without a complexity tier, the router cannot prioritize and evaluation tools cannot assess whether the skill is over- or under-engineered for its purpose.
 
-**✅ Correct approach**:
-```yaml
-routing:
-  triggers:
-    - deploy
-  pairs_with:
-    - verification-before-completion
-  complexity: Medium  # Add this
-  category: infrastructure
+**Detection**: Find skills missing the complexity field:
+```bash
+grep -L 'complexity:' skills/*/SKILL.md
 ```
-
-**When to use**: Every skill - complexity is mandatory routing metadata
 
 ---
 
-## Bounded Retries With Escalation
+## Bound Retries With Escalation
 
-**What it looks like**:
-```markdown
-### Phase 2: Refine
-- Run quality check
-- If fails: Go back to Phase 2
-```
+Every iterative loop must have a maximum iteration count and an escalation path when retries are exhausted. Open-ended retry loops cause session hangs and unbounded token usage.
 
-**Why wrong**:
-- No exit condition
-- Can loop indefinitely
-- High token usage
-- Session hangs
-
-**✅ Correct approach**:
 ```markdown
 ### Phase 2: Refine (max 3 iterations)
 - Run quality check
@@ -224,29 +160,19 @@ routing:
   - Suggest manual intervention
 ```
 
-**When to use**: All iterative workflows - always include max iterations
+**Why this matters**: An unbounded "if fails, go back to Phase 2" loop can consume the entire session budget without producing useful output. Bounded retries with escalation give users actionable information when automatic fixing fails.
+
+**Detection**: Find retry patterns without bounds:
+```bash
+grep -n 'Go back to\|Retry Phase\|retry' skills/*/SKILL.md | grep -vi 'max\|iteration\|limit'
+```
 
 ---
 
 ## Load Secrets From the Environment
 
-**What it looks like**:
-```python
-# scripts/deploy.py
-API_KEY = "sk-1234567890abcdef"
-DB_PASSWORD = "password123"
+Never hardcode credentials in skill scripts. Read secrets from environment variables and fail with a clear error message naming the missing variable.
 
-def deploy():
-    connect(api_key=API_KEY, password=DB_PASSWORD)
-```
-
-**Why wrong**:
-- Security risk
-- Credential leaks
-- Can't share skill
-- Audit failures
-
-**✅ Correct approach**:
 ```python
 # scripts/deploy.py
 import os
@@ -264,38 +190,20 @@ def deploy():
     connect(api_key=api_key, password=db_password)
 ```
 
-**When to use**: All skills with credentials - never hardcode secrets
+**Why this matters**: Hardcoded secrets leak into git history, prevent sharing the skill, and fail audit. Environment variables keep secrets out of version control and allow per-environment configuration.
+
+**Detection**: Find hardcoded credential patterns in skill scripts:
+```bash
+grep -rn 'API_KEY\|PASSWORD\|TOKEN\|SECRET' --include="*.py" skills/*/scripts/ | grep -v 'environ\|os.getenv'
+```
 
 ---
 
 ## Add Explicit Error Handling
 
-**What it looks like**:
+Every skill must document at least 3-5 common error scenarios with cause and solution. Place the error handling section after the workflow instructions.
+
 ```markdown
-## Instructions
-
-### Step 1: Analyze
-Run: `python3 ~/.claude/scripts/analyze.py --input file.csv`
-
-### Step 2: Process
-Run: `python3 ~/.claude/scripts/process.py --output results.json`
-```
-
-**Why wrong**:
-- No guidance when commands fail
-- Users stuck without solutions
-- No recovery path
-
-**✅ Correct approach**:
-```markdown
-## Instructions
-
-### Step 1: Analyze
-Run: `python3 ~/.claude/scripts/analyze.py --input file.csv`
-
-### Step 2: Process
-Run: `python3 ~/.claude/scripts/process.py --output results.json`
-
 ## Error Handling
 
 ### Error: "FileNotFoundError: file.csv"
@@ -314,33 +222,19 @@ Run: `python3 ~/.claude/scripts/process.py --output results.json`
 **Solution**: `chmod +w $(dirname results.json)`
 ```
 
-**When to use**: All Simple+ skills - minimum 3-5 error cases
+**Why this matters**: Without error handling guidance, users hit a wall when commands fail. Documented error-fix mappings turn a blocked user into a self-sufficient one.
+
+**Detection**: Find skills without error handling sections:
+```bash
+grep -L 'Error Handling\|Error-Fix\|error.*cause.*solution' skills/*/SKILL.md
+```
 
 ---
 
-## Keep Frontmatter Lean
+## Keep Frontmatter Under 700 Characters
 
-**What it looks like**:
-```yaml
-description: |
-  This skill provides comprehensive deployment automation for modern
-  cloud-native applications. It begins by validating your local
-  environment including Docker, Kubernetes, kubectl, Helm, and all
-  necessary CLI tools. Next, it builds your Docker image with
-  optimized caching, tags it appropriately, and pushes to your
-  configured container registry. Following that, it updates your
-  Helm values files with the new image tag, runs Helm lint to
-  validate your charts, and then performs a Helm upgrade with
-  appropriate flags... [continues for 2000 characters]
-```
+Frontmatter is loaded on every request. Keep descriptions concise — state what the skill does, its trigger phrases, and exclusions. Move detailed workflow descriptions to the SKILL.md body.
 
-**Why wrong**:
-- Frontmatter loaded on EVERY request (token cost)
-- Exceeds 1024 character limit
-- Violates progressive disclosure
-- Details belong in SKILL.md body
-
-**✅ Correct approach**:
 ```yaml
 description: |
   Deploy applications to Kubernetes via Helm with validation gates.
@@ -348,55 +242,46 @@ description: |
   use for Docker-only deploys. See SKILL.md for detailed workflow.
 ```
 
-**When to use**: Every skill - keep frontmatter under 700 characters
+**Why this matters**: Frontmatter is part of every session's token budget. A 2000-character description wastes tokens on content that belongs in the skill body, and violates progressive disclosure.
+
+**Detection**: Check frontmatter description length:
+```bash
+python3 -c "
+import yaml, glob
+for f in glob.glob('skills/*/SKILL.md'):
+    with open(f) as fh:
+        content = fh.read().split('---')
+        if len(content) >= 3:
+            meta = yaml.safe_load(content[1])
+            desc = meta.get('description', '')
+            if len(desc) > 700:
+                print(f'{f}: {len(desc)} chars')
+"
+```
 
 ---
 
 ## Use Valid Skill Names
 
-**What it looks like**:
-- Folder: `.claude/skills/DeploymentWizard/`
-- Name: `deployment_ninja`
-- File: `skill.md`
+Name skills using `{action}-{domain}` in kebab-case. The file must be named `SKILL.md` (exact case). Avoid decorative terms (wizard, guru, ninja, master, oracle).
 
-**Why wrong**:
-- Case mismatch (folder vs file)
-- Fancy names (wizard, ninja) instead of plain function names
-- SKILL.md must be exact case
-- Underscore instead of kebab-case
-
-**✅ Correct approach**:
 - Folder: `.claude/skills/deployment-automation/`
 - Name: `deployment-automation`
 - File: `SKILL.md`
 
-**Naming Rules**:
-- Folder and name: `{action}-{domain}` in kebab-case
-- File: `SKILL.md` (exact case)
-- No fancy terms: wizard, guru, ninja, master, oracle
+**Why this matters**: Consistent naming enables tooling, routing, and human navigation. Case mismatches between folder and name cause lookup failures. Decorative terms obscure function.
 
-**When to use**: Every skill - naming is non-negotiable
+**Detection**: Find naming violations:
+```bash
+find skills/ -name 'SKILL.md' -exec dirname {} \; | xargs -I{} basename {} | grep -E '_|[A-Z]'
+```
 
 ---
 
 ## Pair Mandates With Rationale
 
-**What it looks like**:
-```markdown
-## Instructions
-- ALWAYS use structured logging
-- NEVER use fmt.Println for error output
-- MUST validate all inputs
-- ALWAYS check return values
-```
+Attach a "because X" reason to every instruction. Bare imperatives (ALWAYS, NEVER, MUST) cannot generalize to edge cases the author did not anticipate. Reasoned constraints let the model make the right call in ambiguous situations.
 
-**Why wrong**:
-- LLMs follow instructions better when they understand the reasoning
-- Bare imperatives can't generalize to edge cases the author didn't anticipate
-- All-caps MUSTs without explanation read as arbitrary rules rather than principled guidance
-- When the model encounters an ambiguous case, understanding intent helps it make the right call
-
-**✅ Correct approach**:
 ```markdown
 ## Instructions
 - Use structured logging (fmt.Println output isn't captured by the log aggregator
@@ -407,27 +292,19 @@ description: |
   ignored errors cause silent failures that are hard to debug in production
 ```
 
-**Principle**: Explain the why AND keep your gates. Motivation makes the model follow willingly; gates catch failures regardless.
+**Why this matters**: LLMs follow instructions better when they understand the reasoning. Motivation makes the model follow willingly; gates catch failures regardless. When the model encounters an ambiguous case, understanding intent helps it make the right call.
 
-**When to use**: All skills — review every MUST/ALWAYS/NEVER and ask "does the model know why?"
+**Detection**: Find bare imperatives without reasoning:
+```bash
+grep -n 'ALWAYS\|NEVER\|MUST' skills/*/SKILL.md | grep -v 'because\|since\|so that'
+```
 
 ---
 
 ## Add Negative Triggers for Exclusions
 
-**What it looks like**:
-```yaml
-description: |
-  Analyzes code and provides quality recommendations. Use for "code review",
-  "check code", "analyze quality".
-```
+When a skill has a broad domain that overlaps with specialized skills, add explicit "Do NOT use for" clauses. This prevents overtriggering on requests that belong to a more specialized skill.
 
-**Why wrong**:
-- Skill will overtrigger on all code review requests
-- Can't distinguish from specialized reviewers (security, performance)
-- Users will disable due to overtriggering
-
-**✅ Correct approach**:
 ```yaml
 description: |
   General code quality analysis: style, complexity, maintainability. Use for
@@ -437,4 +314,9 @@ description: |
   python-code-review).
 ```
 
-**When to use**: Skills with broad domains that could conflict with specialized skills
+**Why this matters**: Without negative triggers, a broad skill overtriggers on requests meant for specialists. Users disable overtriggering skills, which means legitimate requests also stop routing correctly.
+
+**Detection**: Find broad descriptions without exclusion clauses:
+```bash
+grep -A5 'description:' skills/*/SKILL.md | grep -v 'Do NOT\|do not use'
+```
