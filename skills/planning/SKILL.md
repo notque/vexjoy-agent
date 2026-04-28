@@ -88,6 +88,10 @@ routing:
     - "what's next"
   category: process
   complexity: medium
+  pairs_with:
+    - workflow
+    - feature-lifecycle
+    - decision-helper
 ---
 
 # Planning Skill

@@ -15,6 +15,10 @@ routing:
     - "vite tests"
     - "vitest output"
   category: testing
+  pairs_with:
+    - test-driven-development
+    - typescript-check
+    - e2e-testing
 ---
 
 # Vitest Test Runner Skill

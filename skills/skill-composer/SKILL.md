@@ -19,6 +19,9 @@ routing:
     - "skill pipeline"
     - "combine skills"
   category: meta-tooling
+  pairs_with:
+    - workflow
+    - feature-lifecycle
 ---
 
 # Skill Composer

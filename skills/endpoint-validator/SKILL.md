@@ -17,6 +17,9 @@ routing:
     - "check API"
     - "smoke test"
   category: infrastructure
+  pairs_with:
+    - service-health-check
+    - e2e-testing
 ---
 
 # Endpoint Validator Skill

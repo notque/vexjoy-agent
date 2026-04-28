@@ -18,6 +18,9 @@ routing:
     - "execute plan with agents"
     - "fresh context per task"
   category: process
+  pairs_with:
+    - pair-programming
+    - testing-agents-with-subagents
 ---
 
 # Subagent-Driven Development Skill

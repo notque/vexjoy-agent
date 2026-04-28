@@ -70,6 +70,10 @@ routing:
     - "gpt review"
     - "cross-model review"
   category: git-workflow
+  pairs_with:
+    - verification-before-completion
+    - code-linting
+    - systematic-code-review
 ---
 
 # PR Workflow Skill

@@ -16,6 +16,9 @@ routing:
     - "summarize for management"
     - "status update"
   category: content-creation
+  pairs_with:
+    - voice-writer
+    - pptx-generator
 ---
 
 # Professional Communication Skill

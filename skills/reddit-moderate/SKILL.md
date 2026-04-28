@@ -15,6 +15,8 @@ routing:
     - "Reddit moderation"
     - "check reports"
   category: process
+  pairs_with:
+    - content-engine
 ---
 
 # Reddit Moderate

@@ -1,6 +1,7 @@
 ---
 name: game-asset-generator
 description: "Deterministic palette/matrix pixel art (not AI). Use for procedural tile art, color-quantized output, matrix sprites."
+agent: typescript-frontend-engineer
 user-invocable: false
 command: /game-assets
 allowed-tools:

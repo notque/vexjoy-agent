@@ -32,9 +32,8 @@ routing:
     - post rendering check
     - live site validation
   pairs_with:
-    - wordpress-uploader
-    - pre-publish-checker
-    - seo-optimizer
+    - publish
+    - e2e-testing
   complexity: Medium
   category: content-publishing
 ---

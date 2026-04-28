@@ -2,6 +2,7 @@
 name: game-sprite-pipeline
 version: 1.0.0
 description: "AI sprite generation: portraits, idle loops, animated sheets via Codex/Nano Banana. Use for generated character art."
+agent: python-general-engineer
 user-invocable: false
 allowed-tools:
   - Read

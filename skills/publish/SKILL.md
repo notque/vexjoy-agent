@@ -80,6 +80,9 @@ routing:
     - "reuse existing media"
   category: content-publishing
   complexity: medium
+  pairs_with:
+    - content-calendar
+    - wordpress-live-validation
 ---
 
 # Publish Skill

@@ -11,6 +11,8 @@ routing:
     - "Swift Actor"
     - "Swift Task group"
   category: swift
+  pairs_with:
+    - swift-testing
 ---
 
 # Swift Structured Concurrency

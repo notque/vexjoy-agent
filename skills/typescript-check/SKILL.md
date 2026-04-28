@@ -16,6 +16,9 @@ routing:
     - "tsc errors"
     - "TypeScript type validation"
   category: code-quality
+  pairs_with:
+    - vitest-runner
+    - code-linting
 ---
 
 # TypeScript Type Check Skill

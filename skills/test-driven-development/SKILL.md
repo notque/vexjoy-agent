@@ -22,6 +22,10 @@ routing:
     - "start with failing test"
     - "tests before code"
   category: testing
+  pairs_with:
+    - verification-before-completion
+    - testing-anti-patterns
+    - vitest-runner
 ---
 
 # Test-Driven Development (TDD) Skill

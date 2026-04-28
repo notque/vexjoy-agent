@@ -19,6 +19,10 @@ routing:
     - "article series"
     - "content arc"
   category: content-creation
+  pairs_with:
+    - content-calendar
+    - topic-brainstormer
+    - publish
 ---
 
 # Series Planner Skill

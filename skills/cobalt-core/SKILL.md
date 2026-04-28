@@ -1,6 +1,7 @@
 ---
 name: cobalt-core
 description: "Cobalt Core infrastructure knowledge: KVM exporters, hypervisor tooling, OpenStack compute."
+agent: kubernetes-helm-engineer
 user-invocable: true
 argument-hint: "<cobaltcore topic or repo name>"
 allowed-tools:

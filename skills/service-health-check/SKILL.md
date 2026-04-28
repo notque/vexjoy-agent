@@ -15,6 +15,10 @@ routing:
     - "is service running"
     - "check health"
   category: infrastructure
+  pairs_with:
+    - kubernetes-debugging
+    - endpoint-validator
+    - condition-based-waiting
 ---
 
 # Service Health Check Skill

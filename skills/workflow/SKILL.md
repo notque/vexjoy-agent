@@ -5,6 +5,10 @@ user-invocable: false
 context: fork
 routing:
   category: meta-tooling
+  pairs_with:
+    - planning
+    - feature-lifecycle
+    - verification-before-completion
   triggers:
     - "workflow"
     - "multi-phase task"
