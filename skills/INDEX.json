@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-27T23:07:27Z",
+  "generated": "2026-04-28T20:39:19Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -1529,7 +1529,16 @@
         "upload image to wordpress",
         "edit wordpress post",
         "update wordpress post",
-        "wordpress media"
+        "wordpress media",
+        "create wp categories",
+        "auto-create categories",
+        "create missing categories",
+        "search wp media",
+        "search wordpress media",
+        "search media library",
+        "find existing wordpress image",
+        "find existing image",
+        "reuse existing media"
       ],
       "category": "content-publishing",
       "user_invocable": false,

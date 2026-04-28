@@ -16,9 +16,9 @@ Router handles directly. No agent dispatched.
 
 **Examples**: "Read `scripts/index-router.py`", "What branch am I on?", "Show me the last commit."
 
-### Level 1: Fast
+### Level 1: Quick Trivial
 
-Dispatch agent with `fast` skill. For tasks that appear to be 1-3 file edits.
+Use `quick --trivial` for tasks that appear to be 1-3 file edits.
 
 **When**: The change looks self-contained — a bug fix, a config tweak, adding a small block of code. The agent attempts the fix and watches for escalation signals.
 
@@ -87,7 +87,7 @@ Progressive depth modifies how classification maps to execution, not the classif
 | Router classification | Default depth | Progressive depth |
 |-----------------------|---------------|-------------------|
 | Trivial | Inline | Level 0: Inline (same) |
-| Simple | Agent + skill | Level 1: Fast (start shallow, escalate if needed) |
+| Simple | Agent + skill | Level 1: Quick Trivial (start shallow, escalate if needed) |
 | Medium | Agent + skill | Level 2: Methodical (or Level 1 if task looks simpler than Medium) |
 | Complex | Pipeline | Level 3: Pipeline (or Level 2 if task looks simpler than Complex) |
 

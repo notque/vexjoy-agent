@@ -326,8 +326,8 @@ Consolidated reviewer agents, each covering multiple review perspectives:
 
 | Request | Routes To | Reasoning |
 |---------|-----------|-----------|
-| "fix the typo in main.go" | **fast (FORCE)** | Mechanical one-character fix, no design judgment |
-| "rename this variable" | **fast (FORCE)** | Trivial rename, no logic change |
+| "fix the typo in main.go" | **quick --trivial (FORCE)** | Mechanical one-character fix, no design judgment |
+| "rename this variable" | **quick --trivial (FORCE)** | Trivial rename, no logic change |
 | "add a --verbose flag to the CLI" | **quick (FORCE)** | Small self-contained change |
 | "small refactor: extract helper function" | **quick (FORCE)** | Contained, no design ambiguity |
 | "debug Go tests" | golang-general-engineer + systematic-debugging | Debugging task in Go domain |
