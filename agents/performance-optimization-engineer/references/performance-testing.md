@@ -188,7 +188,7 @@ assertions: {
 },
 ```
 
-**Why wrong**: `warn` level assertions appear in logs but do NOT fail the CI step. LCP regressions will accumulate indefinitely. The only way a performance budget prevents regressions is if it fails the build.
+**Why it matters**: `warn` level assertions appear in logs but allow regressions to ship. LCP regressions only stop at the gate when the check fails the build.
 
 **Fix**:
 ```javascript

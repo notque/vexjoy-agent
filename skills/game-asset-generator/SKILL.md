@@ -51,7 +51,7 @@ routing:
 
 This skill generates game-ready assets (3D models, Gaussian Splat environments, 2D sprites, images/textures) using AI APIs and free asset sources. It follows a three-phase workflow: DETECT the asset type -> GENERATE via the appropriate API or source -> INTEGRATE into the game. Only the relevant reference is loaded per task -- do not load all references upfront.
 
-**Scope**: Use for AI-generated 3D models, world environments, pixel art sprites, concept art, textures, and sourcing free pre-built assets. Do NOT use for game engine scripting, physics, game loop logic, or shader authoring (use `threejs-builder` for scene integration after asset generation).
+**Scope**: Use for AI-generated 3D models, world environments, pixel art sprites, concept art, textures, and sourcing free pre-built assets. Keep game engine scripting, physics, game loop logic, and shader authoring in `threejs-builder` after asset generation.
 
 ---
 

@@ -26,7 +26,7 @@ TASK:
 3. Explain application to {target_name}
 4. Provide 2-3 concrete examples from source
 
-Do NOT analyze other perspectives. Focus ONLY on [perspective].
+Analyze only the assigned perspective so each agent produces an independent view.
 
 Output format:
 ## [Perspective Name] Analysis
@@ -217,7 +217,7 @@ Successfully analyzed from 10 perspectives:
 - Paul Graham's essays (narrative structure, persuasive techniques)
 - PostgreSQL optimization guides (technical depth, practical patterns)
 
-### Poor Sources (avoid)
+### Sources to Skip
 - Marketing fluff without technical depth
 - Auto-generated documentation
 - Listicles without underlying methodology

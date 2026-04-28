@@ -39,7 +39,7 @@ This skill is not a substitute for domain-specific methodologies (debugging, ref
 
 **Goal**: Load all anti-rationalization patterns relevant to the task before starting work.
 
-**Constraint**: Full pattern loading is mandatory—do not skip domain-specific patterns. Loading only core patterns misses domain-specific rationalizations that domain patterns catch.
+**Constraint**: Full pattern loading is mandatory because domain-specific patterns catch rationalizations that the core set misses.
 
 **Step 1: Identify task domain**
 
@@ -59,7 +59,7 @@ Classify the task to determine which domain-specific patterns apply:
 
 Read the identified shared-pattern files. Internalize the rationalization tables and enforcement rules. **Constraint**: State explicitly which patterns were loaded and why—this creates accountability and prevents performative checking.
 
-**Gate**: All relevant patterns loaded and acknowledged. Proceed only when you can articulate why each pattern applies. Do NOT rubber-stamp gate checks—if you cannot explain WHY a pattern is relevant, reconsider whether it applies.
+**Gate**: All relevant patterns are loaded and acknowledged. Proceed only when you can articulate why each pattern applies. Rubber-stamp gate checks fail the purpose of the skill, so explain why each pattern is relevant before moving on.
 
 ### Phase 2: EXECUTE WITH ENFORCEMENT
 
@@ -128,7 +128,7 @@ If any answer is YES: STOP and address the rationalization before proceeding.
 5. [ ] Can I show evidence (output, test results)?
 ```
 
-If ANY answer is uncertain, return to Phase 2 and address the gap. Do NOT weaken gate criteria to force a pass.
+If ANY answer is uncertain, return to Phase 2 and address the gap before continuing. Keep the gate criteria intact until the gap is closed.
 
 **Step 3: Document completion evidence**
 
@@ -181,30 +181,30 @@ This section catalogs the rationalization patterns this skill detects and preven
 
 ### Pattern Checklist: What to Detect and Fix
 
-#### Anti-Pattern 1: Performative Checking
-**What it looks like**: Running gate checks but rubber-stamping them all as PASS without reading evidence
-**Why wrong**: Gate checks that always pass provide zero value. The check is the evidence review, not the checkbox.
-**Do instead**: Read the evidence for each criterion. If you cannot articulate WHY it passes, it does not pass.
+#### Signal 1: Performative Checking
+**Signal**: Running gate checks but rubber-stamping them all as PASS without reading evidence
+**Why it matters**: Gate checks that always pass provide zero value. The check is the evidence review, not the checkbox.
+**Preferred action**: Read the evidence for each criterion. If you cannot articulate why it passes, it does not pass.
 
-#### Anti-Pattern 2: Rationalization Laundering
-**What it looks like**: Reframing a skipped step as "not applicable" rather than "skipped"
-**Why wrong**: "Not applicable" is sometimes legitimate, but it is also the most common way to rationalize skipping steps.
-**Do instead**: For every "N/A" judgment, state WHY it does not apply. If the reason is weak, do the step.
+#### Signal 2: Rationalization Laundering
+**Signal**: Reframing a skipped step as "not applicable" rather than "skipped"
+**Why it matters**: "Not applicable" is sometimes legitimate, but it is also the most common way to rationalize skipping steps.
+**Preferred action**: For every "N/A" judgment, state why it does not apply. If the reason is weak, do the step.
 
-#### Anti-Pattern 3: Selective Pattern Loading
-**What it looks like**: Loading only anti-rationalization-core and skipping domain-specific patterns
-**Why wrong**: Domain-specific patterns catch domain-specific rationalizations that the core misses.
-**Do instead**: Classify the task domain in Phase 1 and load ALL matching patterns.
+#### Signal 3: Selective Pattern Loading
+**Signal**: Loading only anti-rationalization-core and skipping domain-specific patterns
+**Why it matters**: Domain-specific patterns catch rationalizations that the core misses.
+**Preferred action**: Classify the task domain in Phase 1 and load all matching patterns.
 
-#### Anti-Pattern 4: Pressure Capitulation
-**What it looks like**: Immediately dropping verification when user says "just do it"
-**Why wrong**: The entire purpose of this skill is to resist shortcuts. Immediate capitulation defeats the purpose.
-**Do instead**: Follow the pressure resistance framework: acknowledge, explain, proceed. Comply only after explaining risk.
+#### Signal 4: Pressure Capitulation
+**Signal**: Immediately dropping verification when the user says "just do it"
+**Why it matters**: The entire purpose of this skill is to resist shortcuts. Immediate capitulation defeats the purpose.
+**Preferred action**: Follow the pressure resistance framework: acknowledge, explain, proceed. Comply only after explaining risk.
 
-#### Anti-Pattern 5: Anti-Rationalization Theater
-**What it looks like**: Spending more time on the checking framework than on the actual task
-**Why wrong**: The goal is correct output, not elaborate process documentation. Checks should be proportionate.
-**Do instead**: Scale check depth to task risk. Critical production changes get full ceremony. A three-file refactor gets lighter gates.
+#### Signal 5: Anti-Rationalization Theater
+**Signal**: Spending more time on the checking framework than on the actual task
+**Why it matters**: The goal is correct output, not elaborate process documentation. Checks should be proportionate.
+**Preferred action**: Scale check depth to task risk. Critical production changes get full ceremony. A three-file refactor gets lighter gates.
 
 ---
 
@@ -224,7 +224,7 @@ Solution:
 1. Re-read the gate criteria—are they appropriate for this task?
 2. If requirements are unclear, escalate to user for clarification
 3. If technically blocked, document the blocker and ask user how to proceed
-4. Do NOT weaken the gate criteria to force a pass
+4. Keep the gate criteria intact and resolve the gap before proceeding
 
 ### Error: "User Insists on Skipping Verification"
 Cause: Time pressure, frustration, or genuine scope reduction

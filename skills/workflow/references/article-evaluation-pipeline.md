@@ -196,7 +196,7 @@ Cause: Source does not match any known site mapping and no `--voice` flag provid
 Solution:
 1. Ask user which voice to validate against
 2. Use `--voice {name}` explicit flag
-3. Do NOT guess or assume — wrong profile produces meaningless scores and invalidates the entire evaluation
+3. Use the explicit `--voice {name}` flag so the evaluation uses the right profile; guessing here produces meaningless scores and invalidates the entire evaluation
 
 ### Error: "Article content empty or too short"
 Cause: WebFetch failed, URL is paywalled/auth-walled, or file path incorrect

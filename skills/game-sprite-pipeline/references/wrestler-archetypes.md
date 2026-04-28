@@ -82,7 +82,7 @@ This produces a prompt that includes:
 ## Adding an archetype or gimmick
 
 1. Add a row to the relevant table with a single concrete prompt fragment.
-2. Mention only color, build, and presentation. Avoid named individuals or trademarked moves.
+2. Mention only color, build, and presentation. Keep named individuals and trademarked moves out of the prompt fragment.
 3. Test the resulting prompt with both backends. Fragments that work on Nano Banana may produce flat output from Codex CLI and vice versa.
 4. Add the new key to the `--archetype` or `--gimmick` choices in `sprite_prompt.py`.
 5. Update the road-to-aew archetype enum if the project consumes archetype names directly.
@@ -97,12 +97,12 @@ Load this file when:
 Do not load for spritesheet-mode pipelines that lack the road-to-aew context. The catalog is wrestling-specific; non-wrestling characters use plain `--description` text without archetype slots.
 
 <!-- no-pair-required: section header; pair lives in subsection -->
-## Anti-pattern
+## Slot Discipline Check
 
-### Anti-pattern: Mixing archetype with custom style without slot discipline
+### Signal: Mixing archetype with custom style without slot discipline
 
-**What it looks like:** `--archetype showman --style-string "showman wrestler in pink and gold tights"`. The archetype already says showman/magenta/gold; the style string says the same thing.
+**Detection:** `--archetype showman --style-string "showman wrestler in pink and gold tights"`. The archetype already says showman/magenta/gold; the style string says the same thing.
 
-**Why wrong:** Duplicating slot content confuses the model — it interprets the second mention as a contradiction or doubles down to garish levels. Output drifts from the stable archetype baseline.
+**Why It Matters:** Duplicating slot content confuses the model — it interprets the second mention as a contradiction or doubles down to garish levels. Output drifts from the stable archetype baseline.
 
-**Do instead**: Let archetype own the color/build slot. Use `--style-string` only for visual treatment (palette dithering, outline weight, perspective). If you need archetype-aware art style, edit the relevant preset's prompt fragment in `style-presets.md` instead of layering slot content at runtime.
+**Preferred Action**: Let archetype own the color/build slot. Use `--style-string` only for visual treatment (palette dithering, outline weight, perspective). If you need archetype-aware art style, edit the relevant preset's prompt fragment in `style-presets.md` instead of layering slot content at runtime.

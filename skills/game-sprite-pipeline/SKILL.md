@@ -232,7 +232,7 @@ Both pipelines run a verifier suite as the LAST step (after assemble). Default-o
 | `--verify` | ON | Run the applicable verifier gate suite after assembly. Print structured JSON to stdout; exit 2 on any failure. |
 | `--no-verify` | — | Skip all gates. Logs `WARNING: --no-verify opted out; output not validated` to stderr so silent skips remain visible. **Spritesheet mode (ADR-207 Rule 4)**: returns exit code 3 (`VERIFIER_SKIPPED_EXIT_CODE`) instead of 0 so orchestrators cannot silently mask spritesheet failures with the same exit status as success. **Portrait + portrait-loop modes**: retain exit 0 because their verifier surface is small enough (`verify_no_magenta` only) that an explicit skip is plausibly intentional. |
 | `--allow-frame-duplication` | OFF | Relax `verify_frames_distinct` from 70% to 100% duplicate-pct (ADR-208 RC-3). Use for spec-known sheets with legitimate frame repetition: idle loops where 8 frames repeat to fill 64 cells, taunt poses where the character holds a stance, or any animation where >70% duplicate-pct is the artist's intent. Without this flag the gate fires at 70% to catch the layout-drift signature where centroid mis-routing lands most cells on a few near-identical poses. |
-| `--effects-asset` | OFF | Opt INTO content-aware routing on a DENSE grid (>= 4x4 with >= 16 cells). Use ONLY for sparse-but-cross-boundary content: fire breath, plasma trails, projectile auras. Do NOT use for character grids -- content-aware on dense character grids drops cells via centroid drift (ADR-207 RC-1). |
+| `--effects-asset` | OFF | Opt INTO content-aware routing on a DENSE grid (>= 4x4 with >= 16 cells). Use ONLY for sparse-but-cross-boundary content: fire breath, plasma trails, projectile auras. Keep dense character grids on strict-pitch slicing because content-aware routing can drop cells via centroid drift (ADR-207 RC-1). |
 
 Per-mode gate selection:
 
@@ -301,9 +301,9 @@ Stream contract: stdout carries structured output (verifier JSON, generated path
 - Solution: Pass `--target-dir <explicit-path>` or clone the repo to `~/road-to-aew`. The deploy step refuses to guess.
 
 <!-- no-pair-required: section header; pairs live in subsections -->
-## Anti-patterns
+## Failure Patterns
 
-### Anti-pattern: Codex regeneration as a post-processing fix
+### Failure mode: Codex regeneration as a post-processing fix
 
 **What it looks like:** A verifier flags a blank cell, clipped fire, missing silhouette, or any other final-asset defect. The reflex is to re-run `codex exec` to redraw the raw with a different prompt or seed. STOP.
 
@@ -322,7 +322,7 @@ The user's framing: "the codex generation has never failed, it is working perfec
 
 See `references/error-catalog.md` for the full diagnostic procedure.
 
-### Anti-pattern: Calling a third-party paid API the user did not authorize
+### Failure mode: Calling a third-party paid API the user did not authorize
 
 **What it looks like:** Adding a try/except that falls back from Codex CLI → `api.openai.com` direct / `remove.bg` / any service whose billing relationship the user did not establish.
 
@@ -330,7 +330,7 @@ See `references/error-catalog.md` for the full diagnostic procedure.
 
 **Do instead**: Stop at the two authorized backends (Codex CLI, then Nano Banana via user-set Gemini key). When neither is available, raise `BackendUnavailableError` with both fix paths in the message. Adding a third backend requires a new env-var-gated path AND an ADR amendment — never a silent runtime fallback.
 
-### Anti-pattern: Naive grid-math frame cropping
+### Failure mode: Naive grid-math frame cropping
 
 **What it looks like:** `frame = sheet.crop((col*CELL, row*CELL, (col+1)*CELL, (row+1)*CELL))` for every cell.
 
@@ -338,7 +338,7 @@ See `references/error-catalog.md` for the full diagnostic procedure.
 
 **Do instead**: Use connected-components clustering (flood-fill from non-magenta pixels, bound each cluster by its actual pixel extent). See `references/frame-detection.md`.
 
-### Anti-pattern: Trusting the backend's alpha channel
+### Failure mode: Trusting the backend's alpha channel
 
 **What it looks like:** Prompting "transparent background" and consuming the output PNG directly.
 
@@ -346,7 +346,7 @@ See `references/error-catalog.md` for the full diagnostic procedure.
 
 **Do instead**: Always post-process: prompt for a known chroma color (magenta `#FF00FF`), then run local bg removal. Two-pass flood fill handles feathering. `references/bg-removal-local.md` has the algorithm.
 
-### Anti-pattern: Interactive curation as the default
+### Failure mode: Interactive curation as the default
 
 **What it looks like:** Every pipeline run opens a contact-sheet viewer and waits for user confirmation.
 

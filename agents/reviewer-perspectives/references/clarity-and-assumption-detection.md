@@ -12,7 +12,7 @@ The Newcomer perspective needs evidence of where code confuses first-time reader
 
 ---
 
-## Newcomer: Clarity Anti-Patterns
+## Newcomer: Clarity Patterns to Detect
 
 ### ❌ Magic Numbers and Unexplained Constants
 

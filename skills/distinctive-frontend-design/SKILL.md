@@ -75,15 +75,15 @@ See `references/vocabulary.md` for term definitions (Hero, Full-bleed, Narrative
 
 **Step 4: Write the narrative brief**. Before any code or visual exploration, commit three sentences to the page: visual thesis, content plan, interaction thesis. See `references/phase-details.md` for the full definition with examples.
 
-**Gate**: Aesthetic direction defined with contextual justification linking project purpose, audience, and emotion to chosen direction. Narrative brief from Step 4 written (visual thesis, content plan, interaction thesis). Do NOT proceed without both gate items passing.
+**Gate**: Aesthetic direction is defined with contextual justification linking project purpose, audience, and emotion to the chosen direction. Narrative brief from Step 4 is written with visual thesis, content plan, and interaction thesis. Proceed only after both gate items pass.
 
-**Skip-if-answered**: If the user's original request already provides the surface type, the product name, and a clear promise for the hero, treat those answers as already gathered. Do not interrogate the user for information they have already supplied. The context-gathering questions exist to close gaps, not to gate every request on ceremony.
+**Skip-if-answered**: If the user's original request already provides the surface type, the product name, and a clear promise for the hero, treat those answers as already gathered. Ask only for missing context. The context-gathering questions exist to close gaps, not to gate every request on ceremony.
 
 ### Phase 2: Typography Selection
 
 **Goal**: Select distinctive, contextual font pairings that define the design's personality.
 
-**Step 1: Load** `references/font-catalog.json`. All fonts in the catalog are pre-approved. The following fonts are banned because they are overused to the point of invisibility and signal generic output: Inter, Roboto, Arial, Helvetica, system fonts (e.g., `-apple-system, BlinkMacSystemFont, 'Segoe UI'`), Space Grotesk. Do not use them in selections or fallback stacks.
+**Step 1: Load** `references/font-catalog.json`. All fonts in the catalog are pre-approved. Use alternatives to the following overused fonts, which are overused to the point of invisibility and signal generic output: Inter, Roboto, Arial, Helvetica, system fonts (e.g., `-apple-system, BlinkMacSystemFont, 'Segoe UI'`), Space Grotesk. Keep them out of selections and fallback stacks.
 
 **Step 2: Select font pairing** following the selection process and criteria in `references/phase-details.md` (5-step process, two-typefaces-maximum rule, brand-first rule).
 
@@ -91,7 +91,7 @@ See `references/vocabulary.md` for term definitions (Hero, Full-bleed, Narrative
 
 **Step 4: Document** typography specification with font families, weights, usage roles, and rationale for each selection. Be specific -- include exact font names and weights, not vague descriptions. See `references/implementation-examples.md` for template.
 
-**Gate**: Font validation passes (no banned fonts, no recent reuse, aesthetic match confirmed). Do NOT proceed until gate passes.
+**Gate**: Font validation passes with no banned fonts, no recent reuse, and a confirmed aesthetic match. Proceed only after the gate passes.
 
 ### Phase 3: Color Palette
 
@@ -109,11 +109,11 @@ Colors distributed evenly without a clear dominant create visual chaos. The 60/3
 
 **One accent color, not two.** The accent slot is for a single hue. If a second accent seems necessary, it is almost always either (a) a functional color (error/success/warning/info, which belongs in the Functional group), or (b) a weight variation of the dominant or secondary. Two competing accents dilute the hierarchy and signal a page that does not know what it wants the user to look at.
 
-**Step 3: Check against anti-patterns** in `references/anti-patterns.json`. See `references/phase-details.md` for the explicit anti-pattern list (purple-on-white, generic blue, etc.).
+**Step 3: Check the palette against the cliche list** in `references/anti-patterns.json`. See `references/phase-details.md` for the explicit reference set (purple-on-white, generic blue, etc.).
 
 **Step 4: Validate** palette against cliche detection. See `references/phase-details.md` for the validation block and manual verification steps.
 
-**Gate**: Palette passes cliche detection and demonstrates clear 60/30/10 dominance ratio. Do NOT proceed until gate passes.
+**Gate**: Palette passes cliche detection and demonstrates a clear 60/30/10 dominance ratio. Proceed only after the gate passes.
 
 ### Phase 4: Animation Strategy
 
@@ -127,7 +127,7 @@ Colors distributed evenly without a clear dominant create visual chaos. The 60/3
 
 **Step 3: Define easing curves and timing** for the design. See `references/phase-details.md` for the easing-by-purpose table and duration-by-scope table.
 
-**Gate**: At least one high-impact moment has a fully defined choreography including element order, easing curves, and timing values. Do NOT proceed without this.
+**Gate**: At least one high-impact moment has a fully defined choreography including element order, easing curves, and timing values. Proceed only after this is defined.
 
 ### Phase 5: Hero Composition, Background & Atmosphere
 
@@ -163,9 +163,9 @@ python3 ${CLAUDE_SKILL_DIR}/scripts/validate_design.py design-spec.json
 1. Review each failed check in the report
 2. Iterate on the specific problematic area (return to that phase)
 3. Re-run validation after each fix
-4. Do NOT proceed to specification output until score >= 80
+4. Keep iterating until the score is at least 80 before moving to specification output
 
-**Gate**: Validation score >= 80 (Grade B or higher). Do NOT deliver specification output until this gate passes.
+**Gate**: Validation score is at least 80 (Grade B or higher). Deliver specification output only after the gate passes.
 
 ### Phase 7: Design Specification Output
 

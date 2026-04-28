@@ -159,9 +159,9 @@ python3 portrait_pipeline.py \
 ```
 
 <!-- no-pair-required: section header; pair lives in subsection -->
-## Anti-pattern
+## Signals and Fixes
 
-### Anti-pattern: Hard-coding the road-to-aew path
+### Signal: Hard-coding the road-to-aew path
 
 **What it looks like:** `output_path = Path("/home/feedgen/road-to-aew/...")` hard-coded into the skill scripts.
 
@@ -169,7 +169,7 @@ python3 portrait_pipeline.py \
 
 **Do instead**: Resolve `--target-dir` at runtime; default to `~/road-to-aew` (`Path.home() / "road-to-aew"`); allow override via flag. The deploy step refuses to guess if the resolved path does not exist — explicit error with the resolved value, not silent fallback.
 
-### Anti-pattern: Auto-regen-on-every-sprite during a batch
+### Signal: Regenerating every sprite during a batch
 
 **What it looks like:** Loop over 50 wrestlers; each iteration runs `npm run generate:sprites`.
 

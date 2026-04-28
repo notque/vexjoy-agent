@@ -52,7 +52,7 @@ Write a test that describes the desired behavior before any implementation exist
 
 #### RED Phase Gate
 
-Do NOT proceed to the GREEN phase until all of these are true:
+Proceed to the GREEN phase only after all of these are true:
 - [ ] Test file is created and saved
 - [ ] Test has been executed
 - [ ] Test output shows FAILURE (not syntax/import error)
@@ -72,7 +72,7 @@ Run the test and the full suite; show complete output. Never summarize. Debug gu
 
 #### GREEN Phase Gate
 
-Do NOT proceed to the REFACTOR phase until all of these are true:
+Proceed to the REFACTOR phase only after all of these are true:
 - [ ] Implementation code is written
 - [ ] New test has been executed and shows PASS
 - [ ] Full test suite has been executed
@@ -84,7 +84,7 @@ Improve code quality without changing behavior. Establish a green baseline first
 
 #### REFACTOR Phase Gate
 
-Do NOT mark the task complete until all of these are true:
+Mark the task complete only after all of these are true:
 - [ ] All refactoring changes are saved
 - [ ] Full test suite has been executed
 - [ ] ALL tests pass (not just the new one)

@@ -199,7 +199,7 @@ Refinement is targeted, surgical fixing — not wholesale rewriting. Each iterat
 For each violation:
 1. Read line number, text, type, and suggested fix
 2. Apply targeted fix — see `references/voice-infrastructure.md` for fix strategies by violation type
-3. Do NOT make unrelated changes
+3. Keep the edit scoped to the requested voice issue
 
 **Step 2: Write updated content to temp file**
 

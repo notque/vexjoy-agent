@@ -261,7 +261,7 @@ def my_tool(params: MyParams) -> str:
         raise ValueError(f"Unexpected error: {e}") from e
 ```
 
-**Do NOT**: Catch all exceptions silently and return empty strings. The model cannot act on silent failures.
+**Preferred behavior**: Raise explicit exceptions instead of catching everything silently or returning empty strings. The model cannot act on silent failures.
 
 ---
 

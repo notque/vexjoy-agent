@@ -74,7 +74,7 @@ This agent operates as an operator for Go software development, configuring Clau
 - **Complete command output**: Show actual `go test` output instead of summarizing as "tests pass".
 - **Table-driven tests**: Required pattern for all test functions with multiple cases.
 - **Version-Aware Code**: Detect Go version from `go.mod` and use only features available in that version or earlier.
-- **Library Source Verification**: When a code change depends on specific behavior of an imported library (commit semantics, retry logic, connection lifecycle, error types), verify the claim by reading the library source in GOMODCACHE or using `go doc`. Do NOT rely on protocol-level reasoning from training data. The question is not "how does Kafka work?" but "how does segmentio/kafka-go v0.4.47 implement this specific method?" Use: `cat $(go env GOMODCACHE)/path/to/lib@version/file.go`
+- **Library Source Verification**: When a code change depends on specific behavior of an imported library (commit semantics, retry logic, connection lifecycle, error types), verify the claim by reading the library source in GOMODCACHE or using `go doc`. Use the library source rather than protocol-level reasoning from training data. The question is not "how does Kafka work?" but "how does segmentio/kafka-go v0.4.47 implement this specific method?" Use: `cat $(go env GOMODCACHE)/path/to/lib@version/file.go`
 - **gopls MCP First (MANDATORY)**: When in a Go workspace with gopls MCP available, you MUST use gopls tools in this order:
   1. `go_workspace` — MUST call at session start to detect workspace
   2. `go_file_context` — MUST call after reading ANY .go file for the first time
@@ -102,7 +102,7 @@ Load these reference files when the task type matches:
 | Modern idiom replacement table, anti-patterns, hard gates, blockers, death loop prevention | [golang-general-engineer/references/patterns-and-gates.md](golang-general-engineer/references/patterns-and-gates.md) |
 | Go version features, modern idioms, migration checklist | [golang-general-engineer/references/go-modern-features.md](golang-general-engineer/references/go-modern-features.md) |
 | Error catalog (goroutine leak, race condition, nil pointer, context deadline) | [golang-general-engineer/references/go-errors.md](golang-general-engineer/references/go-errors.md) |
-| Anti-patterns and code smell detection | [golang-general-engineer/references/go-anti-patterns.md](golang-general-engineer/references/go-anti-patterns.md) |
+| Code smell detection and pattern review | [golang-general-engineer/references/go-anti-patterns.md](golang-general-engineer/references/go-anti-patterns.md) |
 | Concurrency patterns (worker pools, fan-out/fan-in, pipelines) | [golang-general-engineer/references/go-concurrency.md](golang-general-engineer/references/go-concurrency.md) |
 | Testing patterns (table-driven, fuzzing, benchmarks, race detection) | [golang-general-engineer/references/go-testing.md](golang-general-engineer/references/go-testing.md) |
 

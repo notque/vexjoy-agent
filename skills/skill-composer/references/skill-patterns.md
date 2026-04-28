@@ -274,34 +274,39 @@ loop until clean:
 - **Exit condition**: Clear definition of "done"
 - **Timeout**: Overall time limit for loop
 
-**Avoid**:
-- Infinite loops (always set max iterations)
-- No progress detection (could loop forever)
-- Complex multi-skill loops (too hard to debug)
+**Watch for**:
+- Infinite loops; always set max iterations
+- No progress detection; require a progress check
+- Complex multi-skill loops; split them when the flow is harder to debug
 
 ---
 
 ## Patterns to Detect and Fix
 
-### Anti-Pattern 1: Over-Composition
-**Problem**: Chaining too many skills (6+) in single workflow
-**Solution**: Break into multiple compositions or use workflow-orchestrator to manage complexity
+### Signal 1: Over-Composition
+**Signal**: Chaining too many skills (6+) in a single workflow
+**Why It Matters**: The workflow becomes harder to reason about and easier to break
+**Preferred Action**: Break the work into multiple compositions or use workflow-orchestrator to manage complexity
 
-### Anti-Pattern 2: Circular Dependencies
-**Problem**: Skill A depends on B, B depends on C, C depends on A
-**Solution**: Redesign to remove cycles, or split into independent workflows
+### Signal 2: Circular Dependencies
+**Signal**: Skill A depends on B, B depends on C, C depends on A
+**Why It Matters**: Cycles make routing and execution order ambiguous
+**Preferred Action**: Redesign to remove cycles or split the work into independent workflows
 
-### Anti-Pattern 3: False Parallelism
-**Problem**: Running skills "in parallel" that actually share resources
-**Solution**: Identify resource conflicts, make sequential
+### Signal 3: False Parallelism
+**Signal**: Running skills "in parallel" that actually share resources
+**Why It Matters**: Shared resources create contention and non-deterministic behavior
+**Preferred Action**: Identify the resource conflicts and run the steps sequentially
 
-### Anti-Pattern 4: Missing Verification
-**Problem**: Implementing features without verification step
-**Solution**: Always end with verification-before-completion or equivalent
+### Signal 4: Missing Verification
+**Signal**: Implementing features without a verification step
+**Why It Matters**: Unverified work can regress silently
+**Preferred Action**: End with `verification-before-completion` or an equivalent check
 
-### Anti-Pattern 5: Premature Optimization
-**Problem**: Forcing parallelism where sequential is clearer
-**Solution**: Start sequential, parallelize only if bottleneck
+### Signal 5: Premature Optimization
+**Signal**: Forcing parallelism where sequential is clearer
+**Why It Matters**: Early parallelism adds coordination cost before there is evidence it helps
+**Preferred Action**: Start sequential and parallelize only when a bottleneck is confirmed
 
 ---
 

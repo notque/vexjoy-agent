@@ -122,8 +122,8 @@ Conclusion (H2)
 | Descriptive | "Hugo template debugging guide" | Best |
 | Keyword-based | "debugging Hugo templates" | Good |
 | Contextual | "I covered this in a previous post" | Acceptable |
-| Generic | "click here", "read more" | Avoid |
-| Naked URL | "https://example.com/post" | Avoid |
+| Generic | "click here", "read more" | Replace with descriptive anchor text |
+| Naked URL | "https://example.com/post" | Replace with descriptive anchor text |
 
 ### Orphan Pages
 - Every post should have at least one inbound internal link
@@ -168,12 +168,12 @@ keywords: ["optional", "additional", "keywords"]
 - Version numbers when relevant ("Hugo 0.120+")
 - Comparison posts ("X vs Y")
 
-### What to Avoid
-- Vague titles ("My Thoughts on Hugo")
-- Excessive jargon without explanation
-- Outdated information without date context
-- Promises that content doesn't deliver
-- Clickbait that contradicts technical brand
+### Preferred Alternatives
+- Use specific, problem-focused titles ("Fix Hugo Build Error X")
+- Explain jargon when it is necessary
+- Add date context when information changes over time
+- Make the title match the content it leads to
+- Keep language clear and aligned with the technical brand
 
 ### Long-Tail Keywords
 Technical blogs often rank for long-tail keywords:

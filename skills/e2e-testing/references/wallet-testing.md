@@ -71,4 +71,4 @@ test.describe('Wallet Connection', () => {
 
 - `addInitScript` runs before page scripts — the mock is available when the app initialises.
 - For transaction hash assertions, use the mock return value `0xMOCK_TX_HASH`.
-- Do NOT run wallet tests against real networks — always use mocks or local hardhat/anvil nodes.
+- Run wallet tests against mocks or local hardhat/anvil nodes so the suite stays deterministic and avoids real-network side effects.

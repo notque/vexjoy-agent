@@ -190,9 +190,9 @@ The borders disappear in Phase E (chroma-key removes everything that is not the 
 `checkerboard` adds a tinted variant of magenta that is still chroma-key-compatible (within `--chroma-threshold 30`). Do not use truly different colors — they survive the chroma key and pollute the alpha channel.
 
 <!-- no-pair-required: section header; pair lives in subsection -->
-## Anti-pattern
+## Pattern: Use a canvas template for grid layout
 
-### Anti-pattern: Skipping the canvas template and prompting "make a 4x4 grid"
+### Pattern: Start with the canvas template before prompting "make a 4x4 grid"
 
 **What it looks like:** Single-prompt request "generate a 4x4 walk-cycle spritesheet of a wrestler" without supplying a structural canvas reference.
 

@@ -225,7 +225,7 @@ def test_circuit_recovers_after_timeout(mocker):
 
 ---
 
-## Anti-Pattern: Using `time.sleep` in Tests Directly
+## Pattern: Use `waitFor` or mocked clocks instead of direct `time.sleep`
 
 **Detection**:
 ```bash

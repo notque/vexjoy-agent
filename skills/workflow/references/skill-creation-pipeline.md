@@ -77,7 +77,7 @@ If an umbrella skill exists for this domain:
 - The new skill MUST be added as a reference file on the existing umbrella skill,
   not created as a separate skill
 - Pattern: `skills/{domain}/references/{sub-concern}.md`
-- Anti-pattern: `skills/{domain}-{sub-concern}/SKILL.md`
+- Preferred pattern: `skills/{domain}-{sub-concern}/SKILL.md`
 - Report: "Domain umbrella exists at skills/{name}/. Adding reference file instead
   of creating new skill."
 - Skip to a modified Phase 3 that writes the reference file and updates the
@@ -283,10 +283,9 @@ Breakdown:
 **Step 3**: Run positive framing validation on the generated skill.
 
 Invoke `joy-check --mode instruction` on `skills/{name}/SKILL.md`. This validates that
-the skill's instructions use positive framing (action-based) rather than prohibition-based
-language (NEVER, do NOT, FORBIDDEN) per ADR-127. Positive framing makes instructions more
-actionable and easier for agents to internalize — prohibitions tell the agent what to avoid
-but not what to do instead.
+the skill's instructions use positive framing (action-based) instead of prohibition-heavy
+wording. Positive framing makes instructions more actionable and easier for agents to
+internalize because it tells the agent what to do instead of only naming what to avoid.
 
 After running, update the Joy-Check line in the Step 2 report from `[pending]` to
 `[PASS]` or `[N lines flagged]`.
@@ -346,7 +345,7 @@ A routing entry is needed if:
 
 If a routing entry is needed:
 - Run `routing-table-updater` or instruct the user to add the entries manually
-- Do NOT silently modify routing tables without reporting what changed
+- Report routing-table changes explicitly, including what was added or updated, so the user can review the effect before it lands
 
 If no routing entry is needed (internal skill, or triggers already covered):
 - Note this in the output and proceed.

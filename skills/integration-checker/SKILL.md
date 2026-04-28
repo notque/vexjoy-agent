@@ -195,7 +195,7 @@ Only fail the verdict on high-confidence contract mismatches. Low-confidence fin
 |---------|-----------|
 | **PASS** | Proceed to /feature-lifecycle (validate phase) |
 | **WARN** | Review warnings. Proceed if warnings are intentional (unused imports for future use, etc.). Fix if unintentional. |
-| **FAIL** | Route back to /feature-lifecycle (implement phase) with specific wiring tasks. Do NOT proceed to validation. |
+| **FAIL** | Route back to /feature-lifecycle (implement phase) with specific wiring tasks so validation runs only after the wiring is in place. |
 
 **Gate**: Report produced with verdict and actionable recommendations.
 

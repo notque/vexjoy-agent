@@ -1,6 +1,6 @@
-# Pipeline Orchestration — Anti-Patterns
+# Pipeline Orchestration — Preferred Patterns
 
-<!-- no-pair-required: section-header-only; document title for anti-patterns reference file -->
+<!-- no-pair-required: section-header-only; document title for preferred-patterns reference file -->
 
 > **Scope**: Common mistakes when creating, scaffolding, and routing toolkit pipelines. Does NOT cover general Go/Python anti-patterns — see those agents for language-specific issues.
 > **Version range**: claude-code-toolkit all versions

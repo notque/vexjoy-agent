@@ -225,7 +225,7 @@ Use these phrases:
 - "sharp outlines"
 - "heavy ink outlines"
 
-### To Avoid Unwanted Elements
+### Elements to Omit
 
 Always include:
 - "no text"

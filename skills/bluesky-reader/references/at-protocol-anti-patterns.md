@@ -1,4 +1,4 @@
-# AT Protocol Anti-Patterns
+# AT Protocol Patterns to Detect and Fix
 
 > **Scope**: Common mistakes when reading Bluesky/AT Protocol data with Python and the public XRPC API
 > **Version range**: AT Protocol v1, all versions

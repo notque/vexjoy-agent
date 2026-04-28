@@ -167,7 +167,7 @@ Subagent 3: "Performance characteristics of SPAs"
 | Subagents return overlapping content | Depth-first with no angle differentiation | Assign distinct methodological perspectives before dispatching |
 | Synthesis cannot produce comparison table | Breadth-first with mismatched formats | Enforce uniform word count + section headings across all parallel instructions |
 | Research is too broad, covers adjacent topics | Straightforward query over-deployed with 4+ subagents | Reduce to 1–2 subagents, add explicit OUT-OF-SCOPE clause to instructions |
-| Subagent returns meta-analysis instead of data | Scope boundary missing from instruction | Add explicit "Do NOT summarize other research — focus only on [specific topic]" |
+| Subagent returns meta-analysis instead of data | Scope boundary missing from instruction | Add an explicit scope boundary such as "Summarize only [specific topic]" |
 | Final report has gaps despite many subagents | Wrong query type selected | Re-classify before deploying — depth-first ≠ breadth-first ≠ straightforward |
 
 ---
@@ -179,7 +179,7 @@ Subagent 3: "Performance characteristics of SPAs"
 grep -L "Depth-first\|Breadth-first\|Straightforward" research/*/plan.md
 
 # Find parallel subagent instructions with no scope boundaries
-grep -L "OUT OF SCOPE\|Do NOT\|Focus only" research/*/instructions/*.md
+grep -L "OUT OF SCOPE\|Focus only" research/*/instructions/*.md
 
 # Detect comparison queries that should use breadth-first
 grep -il "compare\|vs\.\|versus\|difference between" research/*/plan.md

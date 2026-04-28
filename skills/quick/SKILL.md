@@ -189,7 +189,7 @@ If STATE.md is corrupted, scan git log for `Quick task YYMMDD-` patterns to find
 
 **Step 2: Create inline plan**
 
-Always display the inline plan, even for obvious tasks, because the plan catches misunderstandings before they become wrong edits and confirms alignment in 10 seconds that saves minutes. Do NOT write a task_plan.md file -- that is Simple+ tier, and using an inline plan here is the minimum viable ceremony.
+Always display the inline plan, even for obvious tasks, because the plan catches misunderstandings before they become wrong edits and confirms alignment in 10 seconds that saves minutes. Use the inline plan banner instead of writing a `task_plan.md` file; that keeps the workflow in the Simple+ tier and preserves the minimum viable ceremony.
 
 Use the inline plan banner format from `references/templates.md`.
 

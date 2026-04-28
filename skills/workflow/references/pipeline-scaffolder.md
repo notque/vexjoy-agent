@@ -88,7 +88,7 @@ python3 ~/.claude/scripts/adr-query.py verify \
 - **Exit 0**: ADR matches—proceed with scaffolding
 - **Exit 1**: ADR has changed since composition—STOP
 
-If exit 1: Do NOT proceed. The ADR changed after this Pipeline Spec was composed. The spec may now be inconsistent with the current ADR. Required action: Re-run `chain-composer` with the updated ADR to produce a fresh Pipeline Spec, then re-run scaffolder.
+If exit 1: Pause scaffolding. The ADR changed after this Pipeline Spec was composed, so the spec may now be inconsistent with the current ADR. Required action: Re-run `chain-composer` with the updated ADR to produce a fresh Pipeline Spec, then re-run scaffolder.
 
 If `adr_hash` field is absent from the spec: Log a warning and continue (older pipeline specs may not have this field).
 

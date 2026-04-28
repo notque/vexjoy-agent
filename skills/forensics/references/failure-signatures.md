@@ -216,7 +216,7 @@ git log main..HEAD --reverse --format="%h %s" | grep -iE "(fix|retry)"
 
 ---
 
-## Investigation Anti-Patterns
+## Investigation Guardrails
 <!-- no-pair-required: section header introducing paired-pattern subsections below -->
 
 ### ❌ Stopping after the first detector fires

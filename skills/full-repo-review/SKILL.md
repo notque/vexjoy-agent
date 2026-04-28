@@ -129,7 +129,7 @@ performed by `comprehensive-review` with `--review-only` mode.
 Invoke the `comprehensive-review` skill with these overrides:
 - **Scope**: Pass the full file list from Phase 1 (use `--focus [files]` mode)
 - **Mode**: Use `--review-only` to skip auto-fix. Output is a prioritized backlog for human triage, not patches -- full-repo auto-fix touches too many files at once and risks cascading breakage.
-- **All waves**: Do NOT use `--skip-wave0` or `--wave1-only`. Full-repo review needs maximum coverage. Wave 0 per-package context is what makes full-repo review valuable; deterministic checks catch structure, but only the full 3-wave review catches logic and design issues.
+- **All waves**: Run Wave 0, Wave 1, and Wave 2. Full-repo review needs maximum coverage. Wave 0 per-package context is what makes full-repo review valuable; deterministic checks catch structure, and the full 3-wave review catches logic and design issues.
 
 The comprehensive-review skill handles Wave 0 (per-package), Wave 1 (foundation agents), and Wave 2 (deep-dive agents) internally.
 

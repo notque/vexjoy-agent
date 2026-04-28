@@ -210,7 +210,7 @@ async function executeAttack(attackerId: 'player' | 'enemy') {
 
 This eliminates `setTimeout(resolveAttackDamage, 800)` patterns that drift when the game frame rate is inconsistent.
 
-## State Machine Anti-Patterns
+## State Machine Patterns to Watch
 
 **Dead-end states**: Every state must have a transition back to idle. Test this by manually triggering each input in the Rive Editor's preview — if any state doesn't return to idle, add the transition.
 

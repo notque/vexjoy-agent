@@ -24,7 +24,7 @@ framework, or tool by name.}}
 
 ## Pattern Table
 
-| Pattern | Version | Use When | Avoid When |
+| Pattern | Version | Use When | Prefer When |
 |---------|---------|----------|------------|
 | `{{function_or_construct}}` | `{{X.Y+}}` | {{condition}} | {{counter-condition}} |
 | `{{function_or_construct}}` | `{{X.Y+}}` | {{condition}} | {{counter-condition}} |
@@ -58,9 +58,9 @@ framework, or tool by name.}}
 
 ---
 
-## Pattern Catalog
+## Pattern Catalog: Detection and Fixes
 
-### ❌ {{Anti-Pattern Name}}
+### {{Pattern Name}}
 
 **Detection**:
 ```bash
@@ -68,15 +68,15 @@ grep -rn '{{pattern}}' --include="*.{{ext}}"
 rg '{{pattern}}' --type {{lang}}
 ```
 
-**What it looks like**:
+**Signal**:
 ```{{language}}
 {{bad code example — should be something grep above would find}}
 ```
 
-**Why wrong**: {{Behavioral consequence — what actually breaks, not just "it's bad practice".
+**Why it matters**: {{Behavioral consequence — what actually breaks, not just "it's bad practice".
 Mention the specific failure mode: data loss, silent error, performance degradation, etc.}}
 
-**Fix**:
+**Preferred action**:
 ```{{language}}
 {{corrected code example}}
 ```
@@ -85,21 +85,21 @@ Mention the specific failure mode: data loss, silent error, performance degradat
 
 ---
 
-### ❌ {{Anti-Pattern Name}}
+### {{Pattern Name}}
 
 **Detection**:
 ```bash
 grep -rn '{{pattern}}' --include="*.{{ext}}"
 ```
 
-**What it looks like**:
+**Signal**:
 ```{{language}}
 {{bad code}}
 ```
 
-**Why wrong**: {{Consequence.}}
+**Why it matters**: {{Consequence.}}
 
-**Fix**:
+**Preferred action**:
 ```{{language}}
 {{fix}}
 ```
@@ -133,10 +133,10 @@ grep -rn '{{pattern}}' --include="*.{{ext}}"
 Quick collection of all grep/rg commands from this file:
 
 ```bash
-# {{Anti-pattern 1 name}}
+# {{Pattern 1 name}}
 grep -rn '{{pattern1}}' --include="*.{{ext}}"
 
-# {{Anti-pattern 2 name}}
+# {{Pattern 2 name}}
 rg '{{pattern2}}' --type {{lang}}
 ```
 

@@ -30,7 +30,7 @@ Format: `{service}_{verb}_{noun}` — all lowercase, underscores as separators.
 | Component | Rules |
 |-----------|-------|
 | `{service}` | Short name of the target service (1–2 words max). Examples: `github`, `jira`, `kubectl`, `pg` |
-| `{verb}` | Action word. Prefer: `get`, `list`, `search`, `create`, `update`, `delete`. Avoid: `fetch`, `retrieve`, `obtain` |
+| `{verb}` | Action word. Prefer: `get`, `list`, `search`, `create`, `update`, `delete`. Reserve `fetch`, `retrieve`, and `obtain` for cases where those verbs are already part of the target API |
 | `{noun}` | Primary entity being operated on. Use singular for single-entity ops, plural for list ops |
 
 **Examples**:
@@ -84,7 +84,7 @@ Ask for each pair of operations: "Would a user ever call operation A without als
 
 By default (no `--allow-destructive` flag):
 1. Read every write operation from `analysis.md` → Write Operations section
-2. Do NOT include any of them in `design.md`
+2. Leave destructive operations out of `design.md` by default
 3. Add a single `design.md` section: "Excluded Operations" listing what was dropped and why
 
 If `--allow-destructive` is set:
@@ -129,7 +129,7 @@ name: {param_name}
 - Prefer `string` for identifiers, even numeric-looking ones (e.g., issue numbers → string for flexibility)
 - Use `number` for quantities and numeric comparisons
 - Use `boolean` for flags (e.g., `include_comments: true`)
-- Avoid `object` for top-level parameters — flatten into individual fields
+- Prefer flat top-level parameters; use individual fields instead of `object`
 
 **Description format**:
 - One sentence, plain language

@@ -78,7 +78,7 @@ export const useCameraDevices = jest.fn(() => ({ back: {}, front: {} }))
 
 ### Use `waitFor` for Async State Changes
 
-Avoid `setTimeout` delays. Use `waitFor` from RNTL which polls until assertion passes or timeout expires.
+Use `waitFor` from RNTL for async state changes. It polls until the assertion passes or the timeout expires.
 
 ```tsx
 import { render, waitFor, screen } from '@testing-library/react-native'

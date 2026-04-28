@@ -177,7 +177,7 @@ Evidence: Consistent across all three lenses
 ```
 Constructor Standard:
 1. Always use New{Type} pattern (94% consistency)
-2. Avoid Create{Type} (only 6% usage)
+2. Prefer New{Type} over Create{Type} (Create{Type} appears only 6% of the time)
 
 Confidence: HIGH
 Evidence: Strong statistical preference in naming
@@ -202,7 +202,7 @@ Rules are derived when statistical evidence is strong:
 **Action**: Don't create a rule
 **Example**: 55% use single-letter receivers → No rule
 
-## Avoiding False Positives
+## False Positive Guardrails
 
 ### Pattern: Vendor Code
 **Problem**: Vendor directories skew statistics

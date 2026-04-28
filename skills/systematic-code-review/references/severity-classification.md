@@ -53,7 +53,7 @@ Is there a security, correctness, or reliability risk?
                    |- NO -> Re-evaluate: probably SHOULD FIX
 ```
 
-## Common Misclassifications to Avoid
+## Common Misclassification Checks
 
 | Issue | Wrong | Correct | Why |
 |-------|-------|---------|-----|

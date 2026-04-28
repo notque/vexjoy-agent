@@ -261,7 +261,7 @@ result = client.query(filters={"status": "active"})
 # Why: Remove marketing language, show actual usage
 ```
 
-## Common Pitfalls to Avoid
+## Common Pitfalls and Preferred Fixes
 
 <!-- no-pair-required: section heading organizing pitfall examples; each pitfall subsection carries its own Good example -->
 

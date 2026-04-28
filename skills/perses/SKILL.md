@@ -46,7 +46,7 @@ Umbrella skill for all Perses platform operations.
 3. **Follow** the instructions in the loaded reference exactly
 4. If the task spans multiple sub-domains, load each relevant reference
 
-**Anti-pattern**: Do NOT attempt Perses operations from general knowledge alone. The reference files contain percli commands, CUE schema patterns, and deployment procedures specific to this toolkit's Perses setup.
+**Preferred action**: Load the reference files before Perses operations. They contain the percli commands, CUE schema patterns, and deployment procedures specific to this toolkit's Perses setup.
 
 ## Sub-domains
 

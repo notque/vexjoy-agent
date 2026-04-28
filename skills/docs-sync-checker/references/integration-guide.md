@@ -27,7 +27,7 @@ Exit codes:
 - `0` = no issues found
 - `1` = issues found (fail build)
 
-Do NOT use `continue-on-error: true` -- this defeats the purpose of the check.
+Set `continue-on-error: false` so the check fails when docs drift is present.
 
 ## Pre-Commit Hook
 

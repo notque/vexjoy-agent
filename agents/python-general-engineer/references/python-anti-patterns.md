@@ -1,10 +1,10 @@
-# Python General Engineer - Anti-Patterns
+# Python General Engineer - Preferred Patterns
 
-Common Python mistakes and their corrections.
+Common Python mistakes, preferred fixes, and why they matter.
 
-## ❌ Anti-Pattern: Over-Engineering with Abstract Base Classes
+## Pattern: Over-Engineering with Abstract Base Classes
 
-**What it looks like**:
+**Signal**:
 ```python
 from abc import ABC, abstractmethod
 
@@ -24,13 +24,13 @@ class DatabaseUserRepository(UserRepository):
         insert_db(user)
 ```
 
-**Why wrong**:
+**Why it matters**:
 - Adding abstraction layer before you have a second implementation
 - Increases complexity without proven benefit
 - Makes code harder to navigate and understand
 - Violates YAGNI (You Aren't Gonna Need It)
 
-**✅ Correct approach**:
+**Preferred action**:
 ```python
 # Simple concrete class - add abstraction later if needed
 class UserRepository:
@@ -51,16 +51,16 @@ class UserRepository(Protocol):
 # No inheritance needed!
 ```
 
-**When to use ABCs**:
+**Use ABCs when**:
 - You have 2+ implementations already
 - You're building a framework with extension points
 - You need method implementation sharing via inheritance
 
 ---
 
-## ❌ Anti-Pattern: Premature Async Conversion
+## Pattern: Premature Async Conversion
 
-**What it looks like**:
+**Signal**:
 ```python
 # Converting synchronous code to async without I/O benefit
 async def calculate_total(items: list[Item]) -> float:
@@ -73,13 +73,13 @@ async def calculate_price(item: Item) -> float:
     return item.price * item.quantity  # Just math, no I/O
 ```
 
-**Why wrong**:
+**Why it matters**:
 - Adding async overhead for CPU-bound operations
 - No concurrent I/O operations to benefit from
 - Makes code more complex with no performance gain
 - async/await is for I/O concurrency, not CPU parallelism
 
-**✅ Correct approach**:
+**Preferred action**:
 ```python
 # Synchronous for pure computation
 def calculate_total(items: list[Item]) -> float:
@@ -110,9 +110,9 @@ async def fetch_multiple_users(user_ids: list[int]) -> list[float]:
 
 ---
 
-## ❌ Anti-Pattern: Type: Ignore Instead of Fixing Types
+## Pattern: Type: Ignore Instead of Fixing Types
 
-**What it looks like**:
+**Signal**:
 ```python
 def process_data(data: dict) -> list[User]:
     users = []
@@ -125,13 +125,13 @@ def process_data(data: dict) -> list[User]:
     return users
 ```
 
-**Why wrong**:
+**Why it matters**:
 - Silencing type checker instead of fixing the underlying issue
 - Loses type safety benefits
 - Hides potential bugs that mypy would catch
 - Makes refactoring dangerous
 
-**✅ Correct approach**:
+**Preferred action**:
 ```python
 from typing import TypedDict
 
@@ -167,9 +167,9 @@ def process_data(data: dict) -> list[User]:
 
 ---
 
-## ❌ Anti-Pattern: Mutable Default Arguments
+## Pattern: Mutable Default Arguments
 
-**What it looks like**:
+**Signal**:
 ```python
 def add_item(item: str, items: list[str] = []) -> list[str]:
     items.append(item)
@@ -180,13 +180,13 @@ result1 = add_item("a")  # ["a"]
 result2 = add_item("b")  # ["a", "b"] - unexpected!
 ```
 
-**Why wrong**:
+**Why it matters**:
 - Default mutable arguments are created once at function definition
 - All calls share the same mutable object
 - Causes unexpected state sharing between function calls
 - Classic Python gotcha that leads to hard-to-debug issues
 
-**✅ Correct approach**:
+**Preferred action**:
 ```python
 def add_item(item: str, items: list[str] | None = None) -> list[str]:
     if items is None:
@@ -214,9 +214,9 @@ class Cart:
 
 ---
 
-## ❌ Anti-Pattern: String Concatenation in Loops
+## Pattern: String Concatenation in Loops
 
-**What it looks like**:
+**Signal**:
 ```python
 def build_message(items: list[str]) -> str:
     message = ""
@@ -225,13 +225,13 @@ def build_message(items: list[str]) -> str:
     return message
 ```
 
-**Why wrong**:
+**Why it matters**:
 - Strings are immutable in Python
 - Each concatenation creates a new string object
 - O(n²) time complexity for n items
 - Significant performance impact for large lists
 
-**✅ Correct approach**:
+**Preferred action**:
 ```python
 def build_message(items: list[str]) -> str:
     return "\n".join(items)
@@ -262,9 +262,9 @@ result = "".join(str(i) for i in range(1000))
 
 ---
 
-## ❌ Anti-Pattern: Catching Bare Exceptions
+## Pattern: Catching Bare Exceptions
 
-**What it looks like**:
+**Signal**:
 ```python
 try:
     process_data()
@@ -272,13 +272,13 @@ except:  # Catches EVERYTHING including SystemExit, KeyboardInterrupt
     log.error("Error occurred")
 ```
 
-**Why wrong**:
+**Why it matters**:
 - Catches `SystemExit`, `KeyboardInterrupt`, `GeneratorExit`
 - Prevents graceful shutdown (Ctrl+C won't work)
 - Hides programming errors during development
 - Makes debugging very difficult
 
-**✅ Correct approach**:
+**Preferred action**:
 ```python
 # Specific exceptions
 try:
@@ -309,16 +309,16 @@ except* ConnectionError as eg:
         log.error(f"Network error: {exc}")
 ```
 
-**FORBIDDEN**:
+**Required checks**:
 - `except:` without type (use `except Exception:`)
 - Catching without logging or re-raising
 - Silencing errors with `pass`
 
 ---
 
-## ❌ Anti-Pattern: print() in Production Code
+## Pattern: print() in Production Code
 
-**What it looks like**:
+**Signal**:
 ```python
 def process_order(order_id: int):
     print(f"Processing order {order_id}")  # No log levels
@@ -328,14 +328,14 @@ def process_order(order_id: int):
     print("Done")  # No timestamp, no structure
 ```
 
-**Why wrong**:
+**Why it matters**:
 - No log levels (can't filter by severity)
 - No timestamps or structured metadata
 - Can't route to different destinations
 - Sensitive data might be logged
 - No correlation IDs for distributed systems
 
-**✅ Correct approach**:
+**Preferred action**:
 ```python
 import logging
 
@@ -373,9 +373,9 @@ class JSONFormatter(logging.Formatter):
 
 ---
 
-## ❌ Anti-Pattern: Not Using Context Managers
+## Pattern: Not Using Context Managers
 
-**What it looks like**:
+**Signal**:
 ```python
 def process_file(path: str):
     f = open(path)
@@ -393,13 +393,13 @@ def fetch_data():
         conn.close()  # Manual cleanup
 ```
 
-**Why wrong**:
+**Why it matters**:
 - Easy to forget cleanup
 - Exception handling becomes verbose
 - Resource leaks if cleanup is missed
 - Python has built-in context managers for this
 
-**✅ Correct approach**:
+**Preferred action**:
 ```python
 # Use with statement
 def process_file(path: str):
@@ -445,9 +445,9 @@ with transaction(db):
 
 ---
 
-## ❌ Anti-Pattern: Importing * (Star Imports)
+## Pattern: Importing * (Star Imports)
 
-**What it looks like**:
+**Signal**:
 ```python
 from module import *
 
@@ -456,14 +456,14 @@ from module import *
 user = User()
 ```
 
-**Why wrong**:
+**Why it matters**:
 - Pollutes namespace with unknown names
 - Makes it impossible to know where names come from
 - Can cause name conflicts
 - Makes refactoring dangerous
 - IDE autocomplete becomes useless
 
-**✅ Correct approach**:
+**Preferred action**:
 ```python
 # Import specific names
 from module import User, Order, Product
@@ -485,15 +485,15 @@ if TYPE_CHECKING:
     from services import UserService  # Only for type hints
 ```
 
-**FORBIDDEN by ruff**:
+**Ruff check**:
 - `from module import *` in production code
 - Only acceptable in `__init__.py` for public API definition with `__all__`
 
 ---
 
-## ❌ Anti-Pattern: Using == for True/False Comparisons
+## Pattern: Using == for True/False Comparisons
 
-**What it looks like**:
+**Signal**:
 ```python
 if value == True:
     do_something()
@@ -502,13 +502,13 @@ if flag == False:
     do_other_thing()
 ```
 
-**Why wrong**:
+**Why it matters**:
 - Redundant and verbose
 - Can have unexpected behavior with truthy/falsy values
 - Violates PEP 8 style guide
 - Ruff will flag as E712 error
 
-**✅ Correct approach**:
+**Preferred action**:
 ```python
 if value:
     do_something()
@@ -533,9 +533,9 @@ query = User.select().where(User.active == True)
 
 ---
 
-## ❌ Anti-Pattern: Complex Decorator Chains
+## Pattern: Complex Decorator Chains
 
-**What it looks like**:
+**Signal**:
 ```python
 @timer
 @retry(max_attempts=3)
@@ -547,14 +547,14 @@ def fetch_user(user_id: int) -> User:
     return api.get(f"/users/{user_id}")
 ```
 
-**Why wrong**:
+**Why it matters**:
 - Difficult to understand execution order
 - Hard to debug when something goes wrong
 - Obscures the actual function behavior
 - Makes testing complicated
 - Order of decorators matters but isn't obvious
 
-**✅ Correct approach**:
+**Preferred action**:
 ```python
 # Keep decorator usage minimal (1-2 max)
 @timer

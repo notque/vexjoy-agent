@@ -120,7 +120,7 @@ See `references/templates.md` for the POM Pattern, data-testid convention, and w
      ...
    });
    ```
-5. Do NOT use `test.skip()` to hide broken tests. `test.skip()` is for conditional environment guards (e.g., "skip on WebKit"), not for sweeping failures under the rug.
+5. Use `test.skip()` only for conditional environment guards (e.g., "skip on WebKit"), not for sweeping failures under the rug.
 
 **Artifact:** `playwright-results.json` (presence is the gate -- pass rate is not).
 

@@ -120,7 +120,7 @@ How to [Action] [Subject] [Optional: Context]
 
 ---
 
-## Title Anti-Patterns
+## Titles That Miss the Mark
 
 ### Generic/Vague
 ```
@@ -230,7 +230,7 @@ Each alternative:
 "Hugo Shortcode Context: The Variable Scoping Gotcha"
 ```
 
-### Avoid for YourBlog
+### Less Suitable for YourBlog
 ```
 "My Frustrating Journey with Hugo"  <- Too personal/blog-y
 "Hugo Tips and Tricks"              <- Too generic

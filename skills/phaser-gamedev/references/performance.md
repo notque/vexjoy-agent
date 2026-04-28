@@ -96,7 +96,7 @@ class EnemyPool {
 
 ---
 
-## GC Optimization — Avoid Allocations in update()
+## GC Optimization — Keep `update()` Allocation-Free
 
 Every object created in `update()` becomes garbage. Garbage collection pauses manifest as micro-stutters.
 

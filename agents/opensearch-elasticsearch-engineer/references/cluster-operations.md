@@ -18,7 +18,7 @@ Cluster operations have asymmetric consequences: misconfigured heap or shard cou
 
 ## Pattern Table
 
-| Pattern | Version | Use When | Avoid When |
+| Pattern | Version | Use When | Prefer Another Pattern When |
 |---------|---------|----------|------------|
 | `cluster.routing.allocation.enable: all` | All versions | After maintenance window | Never set to `none` and forget |
 | `indices.recovery.max_bytes_per_sec` | All versions | Limiting recovery bandwidth | Default is unlimited (saturates network) |
@@ -294,7 +294,7 @@ PUT /tiny-index
 
 | Error Message | Root Cause | Fix |
 |---------------|------------|-----|
-| `cluster_block_exception: blocked by: [FORBIDDEN/12/index read-only]` | Disk flood stage (95%) reached | Free disk space, then: `PUT /index/_settings {"index.blocks.read_only_allow_delete": null}` |
+| `cluster_block_exception: read-only index block` | Disk flood stage (95%) reached | Free disk space, then: `PUT /index/_settings {"index.blocks.read_only_allow_delete": null}` |
 | `no_shard_available_action_exception` | All shards unassigned (cluster RED) | `GET /_cluster/allocation/explain` to diagnose; check disk space and node health |
 | `primary shard is not active` | Primary shard lost (node down, no replica) | Restore from snapshot; use `GET /_cat/snapshots` |
 | `circuit_breaking_exception: [parent]` | Coordinating node OOM during large operation | Reduce query scope; increase circuit breaker limit or heap |

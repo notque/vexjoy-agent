@@ -10,7 +10,7 @@ Focus animation effort on moments that matter:
 - Feature showcases (pricing reveal, testimonial carousel)
 - User achievements (form submission, milestone reached)
 
-Avoid animating everything. Not every hover state needs motion.
+Reserve motion for moments that carry meaning. Not every hover state needs motion.
 
 ---
 
@@ -482,7 +482,7 @@ Choose easing based on animation purpose:
 - `opacity`
 - `filter` (use sparingly)
 
-**Avoid animating**:
+**Prefer animating**:
 - `width`, `height` (causes reflow)
 - `top`, `left`, `right`, `bottom` (use `transform` instead)
 - `margin`, `padding` (causes reflow)
@@ -515,9 +515,9 @@ Choose easing based on animation purpose:
 
 ---
 
-## Animation Anti-Patterns
+## Animation Patterns to Detect and Fix
 
-**❌ Don't do**:
+**Signals to avoid**:
 - Animate every element on every page
 - Use slow animations (>1000ms) for UI
 - Ignore `prefers-reduced-motion`
@@ -525,7 +525,7 @@ Choose easing based on animation purpose:
 - Add hover animations to touch devices
 - Use animations that block user interaction
 
-**✅ Do instead**:
+**Preferred action**:
 - Focus on 1-2 high-impact moments per page
 - Keep UI animations quick (150-500ms)
 - Respect accessibility preferences

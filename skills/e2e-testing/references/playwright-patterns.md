@@ -218,7 +218,7 @@ test.beforeEach(async () => {
 
 ```typescript
 // Guard for blockchain/async confirmation waits
-// Do NOT use waitForTimeout — poll for confirmation state instead
+// Use polling for confirmation state instead of `waitForTimeout`
 async function waitForTransactionConfirmed(page: Page, txId: string) {
   await expect(async () => {
     const status = await page.getByTestId(`tx-status-${txId}`).textContent();
@@ -231,7 +231,7 @@ async function waitForTransactionConfirmed(page: Page, txId: string) {
 
 ## Shared Authentication State
 
-Avoid logging in for every test — use `storageState` to reuse sessions:
+Reuse sessions with `storageState` instead of logging in for every test:
 
 ```typescript
 // tests/e2e/auth/setup.ts (global setup)

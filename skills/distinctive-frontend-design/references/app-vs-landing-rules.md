@@ -14,8 +14,8 @@ The surface type classified in Phase 1 determines which rule set governs layout.
 - Few colors. Usually one accent, one or two functional hues, the rest is neutral
 - Dense but readable information. Operators scan headings, labels, and numbers
 - Cards only when the card is the interaction (a selectable item, a sortable row, a drag target). No cards for purely visual grouping
-- Avoid dashboard-card mosaics where every region is wrapped in a bordered box
-- Avoid decorative gradients, thick borders on every region, and multiple competing accent colors
+- Prefer calm dashboard surfaces with a few well-defined regions instead of a bordered-box mosaic
+- Prefer restrained gradients, selective borders, and a single accent color so the hierarchy stays clear
 - Motion is minimal and functional: a focus ring, a row expand, a drawer slide. Not ambient flourish
 
 **App litmus test**. If an operator scans only the headings, labels, and numbers on the page, can they understand what the page is showing them immediately? If they need to read paragraphs of body copy or decode ornamental UI to figure out what they are looking at, the page is failing its job.

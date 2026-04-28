@@ -91,7 +91,7 @@ For each error hit, use this strategy table:
 
 **Step 2: Respect protected zones**
 
-Do NOT modify text inside:
+Leave the text inside these zones unchanged:
 - Code blocks (``` ... ```)
 - Inline code (` ... `)
 - YAML frontmatter (--- ... ---)

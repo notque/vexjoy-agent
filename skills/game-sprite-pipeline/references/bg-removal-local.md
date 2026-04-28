@@ -440,9 +440,9 @@ def validate_alpha(img: Image.Image) -> None:
 
 A non-transparent corner usually means the chroma threshold is too tight or the bg color was something other than magenta. With gray-tolerance mode, a non-transparent corner means the bg color guess (`#3a3a3a`) was wrong — try `--gray-bg 64 64 64` or measure the corner pixel directly.
 
-## Forbidden paths
+## Supported local paths
 
-The skill MUST NOT call any of:
+The skill uses only these local paths:
 
 - `remove.bg` API (`api.remove.bg/v1.0/removebg`)
 - `removebg` Python package that wraps the above
@@ -456,39 +456,39 @@ The grep gate (`grep -rE 'remove\.bg|REMOVEBG|clipdrop' skills/game-sprite-pipel
 The gray-tolerance algorithm and watermark-corner cleanup are adapted from `~/road-to-aew/scripts/generate_enemy_sprite.py` (Andy Nemmity, 2025). That project produces 87 clean transparent enemy PNGs in production. The despill addition to pass 2 is original to this skill, calibrated against the live demo's anti-aliased Codex output.
 
 <!-- no-pair-required: section header; pair lives in subsection -->
-## Anti-pattern
+## Patterns to Detect and Fix
 
-### Anti-pattern: Calling a cloud bg-removal service
+### Signal: Calling a cloud bg-removal service
 
-**What it looks like:** `requests.post('https://api.remove.bg/v1.0/removebg', files={'image_file': open(path, 'rb')}, headers={'X-Api-Key': KEY})`.
+**Detection**: `requests.post('https://api.remove.bg/v1.0/removebg', files={'image_file': open(path, 'rb')}, headers={'X-Api-Key': KEY})`.
 
-**Why wrong:** Paid API call, requires a key the user did not authorize. Violates the Local-First principle — the user expects free-tier behavior because the skill says "local-first"; their card gets charged.
+**Why it matters**: A paid API call requires a key the user did not authorize. That breaks the local-first expectation and makes results depend on a third-party billing path.
 
-**Do instead**: Use chroma key (free, fast, deterministic) by default. Use rembg (free, local, slower) as opt-in fallback. Never reach for a cloud service for what is fundamentally a pixel-classification problem.
+**Preferred action**: Use chroma key (free, fast, deterministic) by default. Use rembg (free, local, slower) as an opt-in fallback. Keep cloud services out of a problem that is fundamentally pixel classification.
 
-### Anti-pattern: Single-pass chroma with no edge flood
+### Signal: Single-pass chroma with no edge flood
 
-**What it looks like:** Just `arr[matches_chroma] = transparent` and shipping the output.
+**Detection**: Just `arr[matches_chroma] = transparent` and shipping the output.
 
-**Why wrong:** Anti-aliased edges between magenta and the character produce intermediate pink shades that don't match the chroma threshold exactly. These survive and form a visible halo around the character. Downstream consumers see "magenta-tinted edges" and the character looks dirty.
+**Why it matters**: Anti-aliased edges between magenta and the character produce intermediate pink shades that miss the threshold. Those pixels survive and form a visible halo around the character.
 
-**Do instead**: Two-pass with despill: pass 1 catches solid magenta; pass 2 flood-fills from edges with looser threshold and despill (preserving off-color pixels at the fringe); 1-pixel alpha dilation kills the residual halo. Pillow + numpy is enough; no extra deps.
+**Preferred action**: Use a two-pass workflow with despill. Pass 1 catches solid magenta; pass 2 flood-fills from edges with a looser threshold and despill, then 1-pixel alpha dilation removes the residual halo. Pillow plus numpy is enough.
 
-### Anti-pattern: Skipping despill on pass 2
+### Signal: Skipping despill on pass 2
 
-**What it looks like:** Bumping pass-2 threshold above 60 without despill; output looks "eaten" — character silhouette has chunks missing where saturated colors lived.
+**Detection**: Bumping pass-2 threshold above 60 without despill; output looks "eaten" and the silhouette has chunks missing where saturated colors lived.
 
-**Why wrong:** Loose pass 2 catches everything within the wider band, including fully-opaque saturated character pixels that happen to have a magenta-ish hue (a luchador's pink tights, a deep-purple cape near magenta).
+**Why it matters**: A loose pass 2 catches everything in the wider band, including fully opaque saturated character pixels that happen to have a magenta-ish hue.
 
-**Do instead**: Keep despill at 0.5 minimum when pass-2 threshold > 60. Despill checks `max(rgb) - min(rgb)` — saturated character pixels have high spread (yellow has spread 255; off-magenta gray fringe has spread <20) and stay visible.
+**Preferred action**: Keep despill at 0.5 minimum when pass-2 threshold is above 60. Despill checks `max(rgb) - min(rgb)` so saturated character pixels stay visible and fringe pixels can fall away.
 
-### Anti-pattern: Skipping alpha dilation on a "clean" output
+### Signal: Skipping alpha dilation on a "clean" output
 
-**What it looks like:** Trusting a clean-looking pass 2 result and shipping; downstream consumers report a faint 1-pixel halo at the silhouette.
+**Detection**: A clean-looking pass 2 result ships, and downstream consumers report a faint 1-pixel halo at the silhouette.
 
-**Why wrong:** The chroma key thresholds are calibrated against direct color, but anti-aliased pixels with low alpha can still be visible against light backgrounds. A 1-pixel dilation of the alpha=0 region effectively strips those translucent pixels. Cost: invisible (~5ms / 1024px image).
+**Why it matters**: Chroma thresholds are calibrated against direct color, but anti-aliased pixels with low alpha can still show up against light backgrounds.
 
-**Do instead**: Ship `--alpha-dilate 1` by default. Only set to 0 when you specifically need pixel-perfect silhouettes for tooling that does its own anti-aliasing.
+**Preferred action**: Ship `--alpha-dilate 1` by default. Set it to 0 only when pixel-perfect silhouettes are required by tooling that performs its own anti-aliasing.
 
 ## Reference loading hint
 

@@ -11,7 +11,7 @@
 **Best Practices:**
 - Front-load important keywords
 - Make it compelling and clickable
-- Avoid clickbait that doesn't deliver
+- Use clickworthy phrasing that matches the post's actual value
 - Include brand only if space allows
 
 **Examples:**

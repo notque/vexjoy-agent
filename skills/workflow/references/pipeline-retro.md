@@ -81,7 +81,7 @@ These are provided by `pipeline-orchestrator-engineer` when invoking Phase 6 (RE
 
 **Step 4**: If all results are PASS:
 - Produce a minimal report: "No retro needed. All N subdomains passed."
-- Write the report artifact and exit. Do not proceed to Phase 2.
+- Write the report artifact and exit after the minimal report is produced.
 
 **Step 5**: Group failures by pattern similarity. Look for:
 - Same failure type across multiple subdomains (suggests a generator-level issue, not a subdomain issue)
@@ -213,7 +213,7 @@ For each proposed fix:
 |-----------|--------|
 | Trivial | Apply directly. Log the change. |
 | Moderate | Apply directly. Log the change. Flag for post-retro review. |
-| Complex | Present to user for approval. Do NOT apply without confirmation. |
+| Complex | Present to user for approval. Apply only after confirmation. |
 
 If the user rejects a complex fix, log the rejection and skip regeneration for that failure.
 
@@ -405,7 +405,7 @@ Save the report to the pipeline run directory alongside the test runner output.
 
 ### Error: All Failures Classify as test-target-issue
 **Cause**: The test targets were inadequate, not the generator.
-**Solution**: This is not a generator problem. Report the finding and suggest better test targets. Do NOT modify generator components.
+**Solution**: This is not a generator problem. Report the finding and suggest better test targets. Leave generator components unchanged.
 
 ---
 

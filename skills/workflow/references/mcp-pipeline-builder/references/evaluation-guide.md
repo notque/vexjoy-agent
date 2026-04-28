@@ -203,7 +203,7 @@ Write to `mcp-design/{repo-slug}/evaluation-report.md`:
 |----------|--------|
 | **≥ 7/10** | Proceed to Phase 6 (REGISTER) |
 | **< 7/10 (first attempt)** | Trigger one Phase 3 regeneration with failure analysis. Re-run Phase 4 and Phase 5. |
-| **< 7/10 (second attempt)** | Halt. Surface the evaluation report. Tell the user which tools are failing and why. Do NOT attempt a third regeneration. |
+| **< 7/10 (second attempt)** | Halt. Surface the evaluation report. Tell the user which tools are failing and why. Stop after the second regeneration attempt. |
 
 ### Regeneration Guidance
 

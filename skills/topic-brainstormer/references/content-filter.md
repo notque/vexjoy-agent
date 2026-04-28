@@ -65,7 +65,7 @@ Apply these questions to every topic candidate. All three must be YES.
 | "Env var order matters in shell" | YES - clear insight | PASS |
 | "Some race condition I think" | NO - uncertain | FAIL |
 
-### Question 3: Would this help others avoid the same struggle?
+### Question 3: Would this help others solve the same struggle?
 
 **YES signals:**
 - Problem is common (not unique to your setup)

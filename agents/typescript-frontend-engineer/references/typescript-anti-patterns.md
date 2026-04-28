@@ -1,4 +1,4 @@
-# TypeScript Frontend Anti-Patterns
+# TypeScript Frontend Review Patterns
 
 Common mistakes and their corrections for TypeScript frontend development.
 
@@ -234,7 +234,7 @@ const settings = rawSettings
 
 ---
 
-## Fix Root Causes — Use @ts-expect-error When Unavoidable
+## Fix Root Causes — Prefer `@ts-expect-error` When Necessary
 
 **What it looks like**:
 ```typescript

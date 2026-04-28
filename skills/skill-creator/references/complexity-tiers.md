@@ -21,7 +21,7 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
     - Frontmatter (40 lines)
     - Instructions - 4 phases (180 lines)
     - Error Handling - 3 errors (60 lines)
-    - Anti-Patterns - 2 patterns (40 lines)
+    - Detection and Fix Patterns - 2 patterns (40 lines)
     - Anti-Rationalization (30 lines)
 ```
 
@@ -46,7 +46,7 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
     - Frontmatter (60 lines)
     - Instructions - 4 phases (500 lines)
     - Error Handling - 7 errors (250 lines)
-    - Anti-Patterns - 4 patterns (200 lines)
+    - Detection and Fix Patterns - 4 patterns (200 lines)
     - Anti-Rationalization (100 lines)
     - Blocker Criteria (90 lines)
 ```
@@ -96,7 +96,7 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 │   - Instructions - 4 phases (700 lines)
 │   - Death Loop Prevention (200 lines)
 │   - Error Handling - top 5 (150 lines)
-│   - Anti-Patterns - top 5 (200 lines)
+│   - Detection and Fix Patterns - top 5 (200 lines)
 │   - Anti-Rationalization (150 lines)
 │   - References (120 lines)
 └── references/
@@ -125,7 +125,7 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 │   - Instructions - 4 phases (800 lines)
 │   - State Management (200 lines)
 │   - Error Handling - top 5 (150 lines)
-│   - Anti-Patterns - top 5 (180 lines)
+│   - Detection and Fix Patterns - top 5 (180 lines)
 │   - References (100 lines)
 └── references/
     ├── error-catalog.md (350 lines)
@@ -256,7 +256,7 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 
 ---
 
-## Anti-Patterns in Tier Selection
+## Complexity Tier Selection Guidelines
 
 ### ❌ Over-Tiering
 **What it looks like**: Simple workflow (pr-workflow (cleanup)) implemented as Complex tier with references/, death loop prevention, 10+ error cases

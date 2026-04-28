@@ -123,9 +123,9 @@ Part 3 covers error handling for these edge cases.
 If you want to customize templates further, Part 2 goes deep on that.
 ```
 
-### Bad Patterns (Avoid)
+### Preferred Forward References
 
-Do not gate content behind future parts:
+Keep content available on the current page instead of gating it behind a future part:
 
 ```markdown
 <!-- BAD: Cliff-hanger -->
@@ -144,7 +144,7 @@ The code will be provided in the next part.
 
 ### Good Patterns
 
-Brief context inline, don't repeat content:
+Keep context inline and avoid repeating content the reader already has:
 
 ```markdown
 Building on the configuration from Part 1, we now add template overrides.
@@ -158,9 +158,9 @@ If you haven't set up the base project yet, see Part 1 first.
 Using the CLI we built in Part 2:
 ```
 
-### Bad Patterns (Avoid)
+### Preferred Backward References
 
-Don't re-explain or over-reference:
+Keep references brief and avoid re-explaining material the reader already has:
 
 ```markdown
 <!-- BAD: Re-explanation -->
@@ -301,7 +301,7 @@ When one series references another:
 For the basics of Hugo templating, see the [Hugo from Scratch](/series/hugo-from-scratch/) series, particularly Part 2.
 ```
 
-Do not:
+Prefer:
 ```markdown
 <!-- BAD: Assumes reading order -->
 After completing the Hugo from Scratch series, you're ready for this advanced content.
@@ -319,7 +319,7 @@ After completing the Hugo from Scratch series, you're ready for this advanced co
 
 ### Inserting a Part
 
-Avoid if possible. If necessary:
+Use only when the reference truly needs the future context:
 1. Renumber `series_part` values for subsequent posts
 2. Update all navigation references
 3. Add redirects if URLs change

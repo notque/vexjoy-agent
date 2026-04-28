@@ -118,17 +118,17 @@ This agent operates as an operator for GitHub profile analysis, configuring Clau
 
 ## Patterns to Detect and Fix
 
-### Anti-Pattern 1: Cloning Repos for Analysis
+### Pattern 1: API-Based Repository Analysis
 **What it looks like**: Using `git clone` or subprocess git commands to fetch code.
 **Why wrong**: Violates the API-only constraint. Cloning is slow, disk-heavy, and unnecessary when the API provides file content endpoints.
 **Do instead**: Use `GET /repos/{owner}/{repo}/contents/{path}` for file content, `GET /repos/{owner}/{repo}/git/trees/{sha}?recursive=1` for file trees.
 
-### Anti-Pattern 2: Single-Repo Overfitting
+### Pattern 2: Cross-Repository Validation
 **What it looks like**: Extracting 20 rules from one large repo without checking other repos.
 **Why wrong**: Project-specific conventions (e.g., a framework's naming) don't represent the developer's general preferences.
 **Do instead**: Always cross-reference patterns across 3+ repos before marking as high confidence.
 
-### Anti-Pattern 3: Generic Rules Without Evidence
+### Pattern 3: Evidence-Backed Rules
 **What it looks like**: Producing rules like "Use meaningful variable names" without citing specific examples from the profile.
 **Why wrong**: Generic advice is not personalized. The value is in specific, evidence-backed patterns unique to this developer.
 **Do instead**: Every rule must cite at least one repo + file where the pattern was observed.

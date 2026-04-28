@@ -41,7 +41,7 @@ routing:
 
 This skill orchestrates the full game development lifecycle: SCAFFOLD → ASSETS → DESIGN → AUDIO → QA → DEPLOY. Each phase can be entered independently — you do not need to start from SCAFFOLD. The orchestrator never writes game code directly; it delegates each phase to the appropriate engine-specific skill or domain reference.
 
-**Scope**: Use for any browser-based game (Three.js, Phaser, or vanilla canvas), cross-cutting concerns that span engines (audio, QA, promo, deploy), and iOS export via Capacitor. Do NOT use for Unity/Godot/native engines, non-game web apps, or server-side logic.
+**Scope**: Use for any browser-based game (Three.js, Phaser, or vanilla canvas), cross-cutting concerns that span engines (audio, QA, promo, deploy), and iOS export via Capacitor. Skip Unity/Godot/native engines, non-game web apps, and server-side logic.
 
 ---
 

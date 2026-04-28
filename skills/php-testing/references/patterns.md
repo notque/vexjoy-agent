@@ -264,9 +264,9 @@ php artisan test --coverage          # Laravel
 ---
 
 <!-- no-pair-required: section-header-only; individual anti-patterns below carry Do-instead blocks -->
-## Common Testing Anti-Patterns
+## Common Testing Patterns to Fix
 
-| Anti-Pattern | Problem | Fix |
+| Signal | Problem | Fix |
 |---|---|---|
 | Testing private methods directly | Couples tests to implementation | Test through public API |
 | One assertion per test (dogmatic) | Explosion of near-identical tests | Group related assertions; use data providers |

@@ -33,12 +33,12 @@ Build a contrastive table showing THIS voice vs Generic AI for at least 6 aspect
 
 ---
 
-## Hard Prohibitions
+## Voice Boundaries
 
 Identify patterns this voice NEVER uses. Apply attention anchoring (**bold**) to all negative constraints because the model pays more attention to bolded text:
 
-Common prohibitions to evaluate:
-- **Em-dashes**: Does this person ever use them? If not, FORBIDDEN
+Common boundaries to verify:
+- **Em-dashes**: Check whether the samples use them; if not, keep them out of the generated voice.
 - **Formal transitions**: "However", "Furthermore", "Moreover", "Additionally", "Consequently"
 - **AI-typical phrases**: "Let's dive in", "Here's the thing", "delve", "robust", "leverage", "ecosystem"
 - **The "It's not X. It's Y" pattern**: Signature AI structure. Almost always prohibited

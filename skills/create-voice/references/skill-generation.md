@@ -27,7 +27,7 @@ The sections, in order of importance by line count. Target 400+ lines of samples
 | Contrastive Examples | ~50 | Shows the model what NOT to do with concrete alternatives |
 | Thinking Patterns | ~80 | Cognitive architecture, not just surface style |
 
-**Total: 2000+ lines minimum. Most should be SAMPLES, not rules.** Do NOT pad with verbose rules to hit the line count -- the goal is 2000+ lines of USEFUL content, primarily samples.
+**Total: 2000+ lines minimum. Most should be SAMPLES, not rules.** Keep the line count focused on useful samples rather than verbose padding; the goal is 2000+ lines of USEFUL content, primarily samples.
 
 ---
 
@@ -49,8 +49,8 @@ allowed-tools:
 description: |
   Apply {Name}'s voice profile for content generation: [2-3 key traits],
   and modal writing. Use when generating content that must match {Name}'s
-  distinctive voice. Do NOT use for voice analysis, voice profile creation,
-  or generating content in other voices.
+  distinctive voice. Use a different pipeline for voice analysis, voice
+  profile creation, and generating content in other voices.
 command: /voice-{name}
 ---
 ```

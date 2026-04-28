@@ -65,7 +65,7 @@ routing:
 
 Umbrella skill for all executive decision-making: CEO-level strategy, CTO-level technology choices, CMO-level growth planning, competitive intelligence, and project evaluation. Each domain loads its own reference files on demand -- this skill detects the mode, loads the right references, and executes the appropriate framework.
 
-**Scope**: Business decisions with meaningful consequences. Do NOT use for: technical architecture micro-choices (use decision-helper), writing code (use domain agents), writing content (use voice-writer), or debugging (use systematic-debugging).
+**Scope**: Business decisions with meaningful consequences. Use decision-helper for technical architecture micro-choices, domain agents for code, voice-writer for content, and systematic-debugging for debugging.
 
 ---
 
@@ -85,7 +85,7 @@ Classify the user's request into exactly one mode before proceeding. If the requ
 
 ## Reference Loading Table
 
-Load references based on the detected mode. Do NOT load all references -- load only what the mode requires.
+Load references based on the detected mode. Load only the references required by the mode.
 
 | Signal | Mode | Reference |
 |--------|------|-----------|

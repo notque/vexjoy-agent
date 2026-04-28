@@ -1,10 +1,10 @@
-# Performance Optimization Anti-Patterns
+# Performance Optimization Patterns to Detect and Fix
 
-Common performance optimization mistakes to avoid with examples.
+Common performance optimization mistakes, preferred fixes, and why they matter.
 
-## ❌ Anti-Pattern 1: Premature Optimization Without Profiling
+## Pattern 1: Premature Optimization Without Profiling
 
-**What it looks like:**
+**Signal:**
 ```typescript
 // User: "Make my app faster"
 // Agent immediately starts optimizing:
@@ -14,13 +14,13 @@ Common performance optimization mistakes to avoid with examples.
 - Rewriting perfectly fine code
 ```
 
-**Why it's wrong:**
+**Why it matters:**
 - No baseline measurements to know what's actually slow
 - Optimizing the wrong things wastes time and adds complexity
 - May introduce bugs or make maintenance harder
 - Can't prove the optimizations actually helped
 
-**✅ Do this instead:**
+**Preferred action:**
 1. Profile first: Run Lighthouse, measure Core Web Vitals, check bundle sizes
 2. Identify bottlenecks: Find the actual performance problems with data
 3. Prioritize: Fix the biggest impact items first
@@ -35,9 +35,9 @@ lighthouse https://example.com --view
 
 ---
 
-## ❌ Anti-Pattern 2: Over-Engineering with Micro-Optimizations
+## Pattern 2: Over-Engineering with Micro-Optimizations
 
-**What it looks like:**
+**Signal:**
 ```typescript
 // Optimizing trivial operations that don't matter
 const memoizedAdd = useMemo(() => (a, b) => a + b, [])
@@ -52,13 +52,13 @@ const [cachedValue] = useState(() => {
 const TinyButton = lazy(() => import('./TinyButton'))
 ```
 
-**Why it's wrong:**
+**Why it matters:**
 - Simple operations are already fast (microseconds)
 - Optimization overhead costs more than the operation itself
 - Adds complexity that makes code harder to maintain
 - Distracts from real performance issues
 
-**✅ Do this instead:**
+**Preferred action:**
 - Profile to find actual bottlenecks (operations taking >16ms)
 - Optimize expensive operations: large list rendering, heavy calculations, large data fetching
 - Focus on bundle size: Split large routes/features, not tiny components
@@ -84,21 +84,21 @@ const ExpensiveChart = memo(({ data }) => {
 
 ---
 
-## ❌ Anti-Pattern 3: Ignoring Real User Monitoring (RUM) Data
+## Pattern 3: Ignoring Real User Monitoring (RUM) Data
 
-**What it looks like:**
+**Signal:**
 ```
 User: "Lighthouse shows 95 score but users complain it's slow"
 Agent: "Lighthouse score is good, no optimization needed"
 ```
 
-**Why it's wrong:**
+**Why it matters:**
 - Lab tests use fast networks and powerful devices
 - Real users have slow connections, old devices, poor conditions
 - 95 Lighthouse score doesn't mean good user experience
 - Missing the actual performance problems users face
 
-**✅ Do this instead:**
+**Preferred action:**
 - Implement Real User Monitoring with web-vitals library
 - Track p75 and p95 metrics, not just averages
 - Segment by device, network, geography
@@ -127,9 +127,9 @@ getLCP(sendToAnalytics)
 
 ---
 
-## ❌ Anti-Pattern 4: Bundle Optimization Without Analysis
+## Pattern 4: Bundle Optimization Without Analysis
 
-**What it looks like:**
+**Signal:**
 ```typescript
 // Blindly applying "best practices"
 - Lazy load everything
@@ -138,13 +138,13 @@ getLCP(sendToAnalytics)
 - Implement aggressive tree shaking configs
 ```
 
-**Why it's wrong:**
+**Why it matters:**
 - Too many chunks hurt performance (HTTP overhead)
 - Critical components shouldn't be lazy loaded
 - Some libraries provide essential functionality efficiently
 - Can break builds or introduce runtime errors
 
-**✅ Do this instead:**
+**Preferred action:**
 1. Analyze current bundle with webpack-bundle-analyzer
 2. Identify large dependencies (>100KB)
 3. Split by routes, not components
@@ -165,9 +165,9 @@ npx webpack-bundle-analyzer build/stats.json
 
 ---
 
-## ❌ Anti-Pattern 5: Optimizing Metrics Instead of User Experience
+## Pattern 5: Optimizing Metrics Instead of User Experience
 
-**What it looks like:**
+**Signal:**
 ```typescript
 // Gaming the metrics without improving UX
 - Hiding content to improve LCP, showing it later
@@ -176,13 +176,13 @@ npx webpack-bundle-analyzer build/stats.json
 - Serving minimal page, loading everything after metrics recorded
 ```
 
-**Why it's wrong:**
+**Why it matters:**
 - Metrics are proxies for UX, not the goal itself
 - Gaming metrics makes real experience worse
 - Users notice the tricks (delayed content, missing features)
 - Violates the purpose of performance optimization
 
-**✅ Do this instead:**
+**Preferred action:**
 - Optimize metrics by improving actual UX
 - Make content load faster, not appear faster
 - Fix layout shifts by reserving space, not removing features
@@ -207,22 +207,22 @@ npx webpack-bundle-analyzer build/stats.json
 
 ---
 
-## ❌ Anti-Pattern 6: Performance Budgets Without Context
+## Pattern 6: Performance Budgets Without Context
 
-**What it looks like:**
+**Signal:**
 ```
 Agent: "Total bundle must be <200KB"
 User: "But my app is a data visualization dashboard with charts"
 Agent: "No exceptions, remove libraries until under 200KB"
 ```
 
-**Why it's wrong:**
+**Why it matters:**
 - Different app types have different requirements
 - Some features require certain library sizes
 - Arbitrary limits don't consider business value
 - May force poor technical decisions
 
-**✅ Do this instead:**
+**Preferred action:**
 - Set context-appropriate budgets
 - Justify exceptions with business value
 - Monitor budgets as trends, not hard limits

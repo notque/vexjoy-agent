@@ -238,7 +238,7 @@ Structure varies by step family:
 {{#if_has_safety_steps}}
 ### Error: Safety Gate Failure
 **Cause**: A GUARD pre-condition check fails
-**Solution**: Do NOT proceed past the safety gate. Report the specific check that failed, the current state, and what remediation is needed. The user must resolve the safety concern before the pipeline continues. This is non-negotiable.
+**Solution**: Stop at the safety gate. Report the specific check that failed, the current state, and what remediation is needed. The user must resolve the safety concern before the pipeline continues. This is non-negotiable.
 {{/if_has_safety_steps}}
 
 <!-- SCAFFOLDER: Include task-type-specific errors from the Task Type Default Errors table -->
@@ -248,39 +248,39 @@ Structure varies by step family:
 **Solution**: {{error_solution}}
 {{/for_each_task_type_error}}
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 <!-- no-pair-required: section header organizing paired entries below -->
 
-### Anti-Pattern 1: Skipping the ADR
-**What it looks like**: Jumping directly to Phase 1 without creating the ADR
-**Why wrong**: Without the ADR, there is no persistent reference. Context drifts across phases, decisions become inconsistent, and retrospectives have no grading artifact. This violates Architecture Rule 10.
-**Do instead**: Always execute Phase 0 first. The ADR is mandatory.
+### Pattern 1: Start with the ADR
+**Signal**: Jumping directly to Phase 1 without creating the ADR
+**Why it matters**: The ADR creates a persistent reference. Without it, context drifts across phases, decisions become inconsistent, and retrospectives have no grading artifact. This violates Architecture Rule 10.
+**Preferred action**: Always execute Phase 0 first. The ADR is mandatory.
 
-### Anti-Pattern 2: Delivering Without Validation
-**What it looks like**: Producing output and delivering it without running the validation phase
-**Why wrong**: Unvalidated output may contain errors, missing elements, or structural problems that a deterministic validation script would catch.
-**Do instead**: Always run the validation phase. Fix issues found. Report the final score.
+### Pattern 2: Validate Before Delivery
+**Signal**: Producing output and delivering it without running the validation phase
+**Why it matters**: Unvalidated output may contain errors, missing elements, or structural problems that a deterministic validation script would catch.
+**Preferred action**: Always run the validation phase. Fix issues found. Report the final score.
 
-### Anti-Pattern 3: Hallucinated Content
-**What it looks like**: Output contains claims, examples, or recommendations not grounded in research findings or source analysis
-**Why wrong**: Hallucinated content misleads users and undermines trust in the pipeline
-**Do instead**: Ground every output element in a specific research finding or source artifact. If information is unavailable, say so rather than fabricating.
+### Pattern 3: Ground Output in Source Artifacts
+**Signal**: Output contains claims, examples, or recommendations not grounded in research findings or source analysis
+**Why it matters**: Hallucinated content misleads users and undermines trust in the pipeline
+**Preferred action**: Ground every output element in a specific research finding or source artifact. If information is unavailable, say so rather than fabricating.
 
 <!-- SCAFFOLDER: Include ONLY if chain contains a research-gathering step -->
 {{#if_has_research_step}}
-### Anti-Pattern 4: Sequential Research
-**What it looks like**: Running grep commands one at a time instead of dispatching parallel research agents
-**Why wrong**: Sequential search produces tunnel vision. A/B testing proved parallel research eliminates a 1.40-point quality gap (Architecture Rule 12).
-**Do instead**: Dispatch parallel research agents per the research phase instructions.
+### Pattern 4: Parallel Research
+**Signal**: Running grep commands one at a time instead of dispatching parallel research agents
+**Why it matters**: Sequential search produces tunnel vision. A/B testing proved parallel research eliminates a 1.40-point quality gap (Architecture Rule 12).
+**Preferred action**: Dispatch parallel research agents per the research phase instructions.
 {{/if_has_research_step}}
 
 <!-- SCAFFOLDER: Include task-type-specific anti-patterns from the Task Type Default
      Anti-Patterns table. Number them sequentially after the standard ones above. -->
 {{#for_each_task_type_anti_pattern}}
-### Anti-Pattern {{next_number}}: {{anti_pattern_name}}
-**What it looks like**: {{anti_pattern_description}}
-**Why wrong**: {{anti_pattern_reason}}
-**Do instead**: {{anti_pattern_alternative}}
+### Pattern {{next_number}}: {{anti_pattern_name}}
+**Signal**: {{anti_pattern_description}}
+**Why it matters**: {{anti_pattern_reason}}
+**Preferred action**: {{anti_pattern_alternative}}
 {{/for_each_task_type_anti_pattern}}
 
 ## Anti-Rationalization
@@ -566,7 +566,7 @@ Steps: GUARD, SIMULATE, SNAPSHOT, ROLLBACK, QUARANTINE
 - [ ] {{check}}
 {{/for_each}}
 
-**Step 2**: {{#if step.params.block_on_failure}}If any check fails, STOP. Report which check failed and what remediation is needed. Do NOT proceed.{{else}}Log failures as warnings. Continue with caution.{{/if}}
+**Step 2**: {{#if step.params.block_on_failure}}If any check fails, stop and report which check failed and what remediation is needed.{{else}}Log failures as warnings. Continue with caution.{{/if}}
 
 **Gate**: All checks pass (or warnings logged). Proceed to Phase {{i+1}}.
 {{/if}}
@@ -842,7 +842,7 @@ Steps: PROMPT, NOTIFY, APPROVE, PRESENT
 **Goal**: Gate on explicit human approval before proceeding.
 
 **Step 1**: Present the current state and proposed action to the user.
-**Step 2**: Wait for explicit approval. Do NOT proceed without it.
+**Step 2**: Wait for explicit approval before proceeding.
 **Step 3**: Record approval in interaction record artifact.
 
 **Gate**: User approval received. Proceed to Phase {{i+1}}.
@@ -861,7 +861,7 @@ Steps: PROMPT, NOTIFY, APPROVE, PRESENT
 **Goal**: Format intermediate results for human review without blocking.
 
 **Step 1**: Format current state summary for readability.
-**Step 2**: Display to user. Do NOT block -- proceed immediately.
+**Step 2**: Display to user, then proceed immediately.
 
 **Gate**: Presentation displayed. Proceed to Phase {{i+1}}.
 {{/if}}
@@ -985,7 +985,7 @@ Steps: WALK, MERGE, GATE, APPLY, CHECKPOINT
 | `testing` | Target Untestable | Target lacks testable interfaces | Report structural barriers. Suggest refactoring. |
 | `testing` | Flaky Test Generated | Tests pass intermittently | Identify non-determinism source. Add stability guards. |
 
-### Default Anti-Patterns by Task Type
+### Default Patterns by Task Type
 <!-- no-pair-required: table heading; alternatives are carried inline in the table -->
 
 | Task Type | Name | Description | Reason | Alternative |

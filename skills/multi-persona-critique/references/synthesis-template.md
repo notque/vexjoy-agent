@@ -148,7 +148,7 @@ When filling in the template:
 
 3. **Worth Investigating**: Score 8-11 only. Focus on the specific conditions that would upgrade the rating. Be concrete ("the Builder needs a migration path") not vague ("needs more thought").
 
-4. **Interesting Disagreements**: The most valuable section. Do NOT resolve disagreements. Present both sides with equal respect. Identify the nature of the disagreement (values vs facts vs perspective).
+4. **Interesting Disagreements**: The most valuable section. Present both sides with equal respect and identify the nature of the disagreement (values vs facts vs perspective). Leave resolution to a later synthesis section unless the personas already reached a shared conclusion.
 
 5. **Shelve**: Brief and respectful. One sentence per proposal. No mockery.
 

@@ -112,8 +112,7 @@ before/after delta, regressions are invisible until users report breakage. The u
 pipeline exists to *improve* quality, not maintain it.
 
 Do instead: Run `agent-evaluation` on each modified component. Report the numeric delta.
-If any component scores lower, surface it to the user. Do NOT auto-revert, but do NOT
-downgrade the regression as "necessary."
+If any component scores lower, surface it to the user and keep the modified component in place until they choose a rollback. Do not downgrade the regression as "necessary."
 
 ---
 
@@ -182,7 +181,7 @@ Dispatch Group A in a single message (parallel). Wait for completion. Then Group
 
 ### When NOT to Fan Out
 
-Do NOT dispatch parallel agents when:
+Use a single agent when:
 - Change B depends on output from Change A (sequential dependency)
 - Both agents would edit the same file (race condition)
 - The approval gate has not yet been cleared

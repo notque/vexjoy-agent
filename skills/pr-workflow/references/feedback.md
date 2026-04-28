@@ -134,7 +134,7 @@ For each validated fix:
 3. Verify the fix works (run tests, grep for correctness, inspect result)
 4. Confirm no regressions from the change
 
-Do NOT fix INVALID comments. Escalate NEEDS-DISCUSSION items to the user.
+Leave INVALID comments unchanged. Escalate NEEDS-DISCUSSION items to the user.
 
 **Gate**: All VALID issues fixed and verified. No regressions introduced.
 

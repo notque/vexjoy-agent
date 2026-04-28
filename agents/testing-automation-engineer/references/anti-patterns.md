@@ -1,8 +1,8 @@
-# Testing Automation Anti-Patterns
+# Testing Automation Patterns to Detect and Fix
 
-Common testing mistakes to avoid with examples.
+Common testing issues, the signals that reveal them, and the preferred correction.
 
-## ❌ Anti-Pattern 1: Testing Implementation Details
+## 1: Assert Behavior, Not Implementation Details
 
 **What it looks like:**
 ```typescript
@@ -36,7 +36,7 @@ it('displays incremented count when button clicked', async () => {
 
 ---
 
-## ❌ Anti-Pattern 2: Shared Test State and Dependencies
+## 2: Isolate Test State
 
 **What it looks like:**
 ```typescript
@@ -82,7 +82,7 @@ describe('User workflow', () => {
 
 ---
 
-## ❌ Anti-Pattern 3: Mocking Everything (Over-Mocking)
+## 3: Mock Only the Boundary
 
 **What it looks like:**
 ```typescript
@@ -137,7 +137,7 @@ it('fetches user orders from API', async () => {
 
 ---
 
-## ❌ Anti-Pattern 4: No Assertions or Weak Assertions
+## 4: Write Strong Assertions
 
 **What it looks like:**
 ```typescript
@@ -187,7 +187,7 @@ it('calculates 10% discount correctly', () => {
 
 ---
 
-## ❌ Anti-Pattern 5: Flaky Tests Without Root Cause Investigation
+## 5: Diagnose Flaky Tests at the Source
 
 **What it looks like:**
 ```typescript
@@ -250,7 +250,7 @@ it('handles async state updates correctly', async () => {
 
 ---
 
-## ❌ Anti-Pattern 6: Ignoring Test Coverage Gaps
+## 6: Track and Close Coverage Gaps
 
 **What it looks like:**
 ```typescript

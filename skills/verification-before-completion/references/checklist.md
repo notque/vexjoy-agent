@@ -298,7 +298,7 @@ Test if this addresses the issue. Please verify the changes work for your specif
 
 ---
 
-## Anti-Patterns to Avoid
+## Completion Checks
 
 ### ❌ NEVER Do This
 - Say "tests pass" without showing output

@@ -153,7 +153,7 @@ test -f synthesis.md || { echo "GATE FAIL: synthesis.md missing"; exit 1; }
 
 **Goal**: Improve the target agent or skill using synthesized recommendations.
 
-**Hardcoded requirement** (always apply): Do NOT remove existing working patterns. Existing patterns were validated through prior use. New patterns should augment, not replace. Only modify existing content when source material provides a strictly better approach.
+**Hardcoded requirement** (always apply): Preserve existing working patterns. Existing patterns were validated through prior use. New patterns should augment, not replace. Only modify existing content when source material provides a strictly better approach.
 
 **Step 1: Read current target**
 - Load the current agent or skill file
@@ -163,7 +163,7 @@ test -f synthesis.md || { echo "GATE FAIL: synthesis.md missing"; exit 1; }
 - Focus on Priority 1 (Must-Have) and Priority 2 (Should-Have)
 - Add new sections or enhance existing sections based on recommendations
 - Include concrete examples from source material where applicable
-- Do NOT remove existing working patterns
+- Preserve existing working patterns
 
 **Step 3: Validate integration**
 - Verify improvements integrate naturally with existing content

@@ -185,7 +185,7 @@ All descriptions should match or be consistent variations.
 
 ### Skill/Agent Namespaces
 
-**Current State**: Skills and agents do NOT use namespaces
+**Current State**: Skills and agents use flat, hyphenated names rather than namespaces
 
 **Format**: Flat structure with hyphenated names (e.g., `code-linting`, not `code/linting`)
 

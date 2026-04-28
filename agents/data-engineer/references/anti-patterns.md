@@ -1,4 +1,4 @@
-# Data Engineer Anti-Patterns and Rationalizations
+# Data Engineer Patterns to Detect and Fix
 
 Common data engineering mistakes and their corrections, plus domain-specific rationalizations. Loaded when reviewing pipeline designs or pushing back on shortcuts.
 

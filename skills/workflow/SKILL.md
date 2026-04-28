@@ -78,7 +78,7 @@ Load the appropriate workflow reference based on the task.
 
 If the task spans multiple workflows (e.g., research then write), load each reference in sequence and follow them in order.
 
-**Anti-pattern**: Do NOT execute a workflow by guessing phases from the table. The table shows names only — the reference file contains the actual instructions, gates, artifact requirements, and quality criteria.
+**Workflow rule**: Load the reference file before executing a workflow phase. The table shows names only; the reference file contains the actual instructions, gates, artifact requirements, and quality criteria.
 
 ## Reference Loading Table
 

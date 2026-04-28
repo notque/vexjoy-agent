@@ -1,4 +1,4 @@
-# Coordination Anti-Patterns Reference
+# Coordination Patterns to Detect and Fix
 <!-- no-pair-required: file header, not an individual anti-pattern -->
 
 > **Scope**: Common multi-agent coordination mistakes — what they look like, why they fail, and the corrected pattern.
@@ -236,7 +236,7 @@ grep -n "Edit\|Write\|Bash" coordinator-log.md 2>/dev/null
 
 ## Error-Fix Mappings
 
-| Symptom | Root Cause Anti-Pattern | Fix |
+| Symptom | Root Cause | Fix |
 |---------|------------------------|-----|
 | Integration phase produces merge conflicts | Overlapping file domains in parallel phase | Audit file assignments before parallel dispatch; enforce non-overlapping |
 | Agent B starts with wrong assumptions about Agent A's output | Parallel execution of sequential tasks | Map dependency chain; enforce gates between phases |

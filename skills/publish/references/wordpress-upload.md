@@ -220,7 +220,7 @@ See `${CLAUDE_SKILL_DIR}/references/wordpress-upload-script-reference.md` for fu
 
 ## Content Formatting
 
-**Do NOT include title or author in the article body.** WordPress manages these as metadata. Duplicating them in content creates inconsistency when editing in wp-admin.
+**Keep title and author out of the article body.** WordPress manages these as metadata, and duplicating them in content creates inconsistency when editing in wp-admin.
 
 See `${CLAUDE_SKILL_DIR}/references/wordpress-upload-content-formatting.md` for the full Gutenberg block type table, code block syntax, button links, and `--validate` output format.
 

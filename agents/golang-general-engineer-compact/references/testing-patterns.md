@@ -20,7 +20,7 @@ Go testing has evolved substantially from 1.21 to 1.24+. The compact agent defau
 | `b.Loop()` | `1.24+` | All benchmarks | Go < 1.24 |
 | `go test -fuzz=FuzzFoo` | `1.18+` | Input parsing, protocol handling | Pure computation with no external input |
 | `t.Cleanup(fn)` | `1.14+` | Resource teardown in helpers | Functions where deferred cleanup works fine |
-| `t.Setenv` | `1.17+` | Setting env vars in tests | Tests that must NOT run in parallel |
+| `t.Setenv` | `1.17+` | Setting env vars in tests | Tests that share process-global state and need serialization |
 | `t.TempDir()` | `1.15+` | Temp files in tests | Never — always prefer over os.TempDir() |
 
 ---

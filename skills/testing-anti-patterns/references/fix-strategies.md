@@ -197,7 +197,7 @@ afterEach(() => {
 ### The Mock Boundary Rule
 Mock at the **architectural boundary**, not at every dependency:
 - Mock: HTTP clients, databases, file systems, external APIs
-- Do NOT mock: Pure functions, value objects, internal collaborators
+- Prefer real executions for pure functions, value objects, and internal collaborators; reserve mocks for external boundaries
 
 ### The Assertion Density Rule
 Each test should have **1-3 focused assertions** on the behavior under test:

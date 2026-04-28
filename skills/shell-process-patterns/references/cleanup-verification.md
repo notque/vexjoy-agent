@@ -239,7 +239,7 @@ start_server
 
 <!-- no-pair-required: This section is a pointer index into anti-patterns.md; each referenced AP has its own paired "Do instead" block in that file. The body of THIS reference file (kill-and-check loop, resource verification, cleanup-on-exit) IS the "do instead" content for the referenced anti-patterns. -->
 
-## Anti-patterns
+## Failure patterns
 
 - `kill "$PID" && echo done` — `kill` returning 0 is not "done"; see `anti-patterns.md` AP-4
 - `kill -9` as the default — removes the process's chance to clean up; see AP-7

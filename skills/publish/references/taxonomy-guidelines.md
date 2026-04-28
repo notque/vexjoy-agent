@@ -23,7 +23,7 @@ Tags = specific, dynamic, many (10-30 active)
 
 Standard format: `lowercase-with-hyphens`
 
-Avoid:
+Prefer:
 - CamelCase: `HugoDebugging`
 - Underscores: `hugo_debugging`
 - Spaces: `hugo debugging`
@@ -187,7 +187,7 @@ Taxonomy creates automatic internal linking:
 
 ---
 
-## Common Mistakes to Avoid
+## Common Taxonomy Gaps
 
 ### 1. Over-Specific Tags
 

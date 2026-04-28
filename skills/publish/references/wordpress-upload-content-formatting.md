@@ -1,6 +1,6 @@
 # WordPress Uploader Content Formatting
 
-**Do NOT include title or author in the article body.** WordPress manages these as metadata. Duplicating them in content creates inconsistency when editing in wp-admin.
+**Keep title and author in WordPress metadata, not in the article body.** WordPress manages these fields separately, and duplicating them in content creates inconsistency when editing in wp-admin.
 
 ## Supported Gutenberg Block Types
 

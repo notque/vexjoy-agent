@@ -101,7 +101,7 @@ content/posts/2024-12-my-experience.md
 - In image alt text
 - In concluding summaries
 
-**Avoid**:
+**Prefer**:
 - Forcing keywords into unrelated sentences
 - Repeating exact phrase when variation is more natural
 - Breaking sentence flow for keyword insertion
@@ -131,7 +131,7 @@ content/posts/2024-12-my-experience.md
 
 ### Why Variations Matter
 Search engines understand semantic relationships. Using variations:
-- Avoids keyword stuffing
+- Keeps keyword usage natural
 - Sounds natural to readers
 - Captures related search queries
 
@@ -159,7 +159,7 @@ Search engines understand semantic relationships. Using variations:
 ### What It Is
 Multiple posts targeting the same primary keyword compete with each other in search results.
 
-### How to Avoid
+### Keep Primary Keywords Distinct
 - Each post should target unique primary keyword
 - Related posts can share secondary keywords
 - Use internal links to establish hierarchy

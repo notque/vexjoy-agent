@@ -82,7 +82,7 @@ Commands found: [N]
 YAML errors: [N] (must be 0 to proceed)
 ```
 
-**Gate**: All tools discovered, all YAML valid, counts >0 for each type. Do NOT proceed until gate passes.
+**Gate**: All tools discovered, all YAML valid, counts >0 for each type. Proceed only after the gate passes.
 
 ### Phase 2: CROSS-REFERENCE
 
@@ -116,7 +116,7 @@ For each documentation file, collect the set of tool names found. This creates a
 - No parse errors on table/list structures
 - Tool names extracted from each file
 
-**Gate**: All documentation files parsed without errors. Do NOT proceed until gate passes.
+**Gate**: All documentation files parsed without errors. Proceed only after the gate passes.
 
 ### Phase 3: DETECT
 
@@ -149,7 +149,7 @@ Severity reflects user impact: missing entries mean tools are undiscoverable, st
 
 For each issue, capture: tool type, tool name, tool path, affected documentation file(s), severity, and suggested fix action.
 
-**Gate**: All issues categorized with severity. Do NOT proceed until gate passes.
+**Gate**: All issues categorized with severity. Proceed only after the gate passes.
 
 ### Phase 4: REPORT
 

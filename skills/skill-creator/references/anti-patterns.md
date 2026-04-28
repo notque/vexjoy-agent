@@ -1,8 +1,8 @@
-# Skill Creator Anti-Patterns
+# Skill Creator Patterns to Detect and Fix
 
-Common mistakes when designing skills and their corrections.
+Common skill design issues, the signals that reveal them, and the preferred correction.
 
-## ❌ Anti-Pattern: Description Without Triggers
+## Description Without Triggers
 
 **What it looks like**:
 ```yaml
@@ -27,7 +27,7 @@ description: |
 
 ---
 
-## ❌ Anti-Pattern: Phases Without Gates
+## Phases With Explicit Gates
 
 **What it looks like**:
 ```markdown
@@ -67,7 +67,7 @@ If gate fails:
 
 ---
 
-## ❌ Anti-Pattern: Everything in Main File
+## Keep the Main File Focused
 
 **What it looks like**:
 ```
@@ -77,7 +77,7 @@ If gate fails:
     - Instructions (500 lines)
     - Error catalog (1500 lines)
     - Code examples (1200 lines)
-    - Anti-patterns (800 lines)
+    - Failure modes and fixes (800 lines)
     - Workflows (400 lines)
 ```
 
@@ -108,7 +108,7 @@ If gate fails:
 
 ---
 
-## ❌ Anti-Pattern: Vague What+When Formula
+## Specific What, When, and Why
 
 **What it looks like**:
 ```yaml
@@ -137,7 +137,7 @@ description: |
 
 ---
 
-## ❌ Anti-Pattern: Over-Engineering Simple Workflows
+## Match Workflow Depth to Task Complexity
 
 **What it looks like**:
 Simple skill (pr-workflow (cleanup)) with:
@@ -165,7 +165,7 @@ Simple skill (pr-workflow (cleanup)) with:
 
 ---
 
-## ❌ Anti-Pattern: Missing Complexity Tier
+## Add a Complexity Tier
 
 **What it looks like**:
 ```yaml
@@ -198,7 +198,7 @@ routing:
 
 ---
 
-## ❌ Anti-Pattern: Infinite Retry Loops
+## Bounded Retries With Escalation
 
 **What it looks like**:
 ```markdown
@@ -228,7 +228,7 @@ routing:
 
 ---
 
-## ❌ Anti-Pattern: Hardcoded Secrets
+## Load Secrets From the Environment
 
 **What it looks like**:
 ```python
@@ -268,7 +268,7 @@ def deploy():
 
 ---
 
-## ❌ Anti-Pattern: No Error Handling
+## Add Explicit Error Handling
 
 **What it looks like**:
 ```markdown
@@ -318,7 +318,7 @@ Run: `python3 ~/.claude/scripts/process.py --output results.json`
 
 ---
 
-## ❌ Anti-Pattern: Verbose Frontmatter
+## Keep Frontmatter Lean
 
 **What it looks like**:
 ```yaml
@@ -352,7 +352,7 @@ description: |
 
 ---
 
-## ❌ Anti-Pattern: Skill Naming Violations
+## Use Valid Skill Names
 
 **What it looks like**:
 - Folder: `.claude/skills/DeploymentWizard/`
@@ -379,7 +379,7 @@ description: |
 
 ---
 
-## ❌ Anti-Pattern: Mandates Without Motivation
+## Pair Mandates With Rationale
 
 **What it looks like**:
 ```markdown
@@ -413,7 +413,7 @@ description: |
 
 ---
 
-## ❌ Anti-Pattern: Missing Negative Triggers
+## Add Negative Triggers for Exclusions
 
 **What it looks like**:
 ```yaml
