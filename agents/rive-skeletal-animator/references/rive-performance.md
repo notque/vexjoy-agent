@@ -103,7 +103,7 @@ useEffect(() => {
 
 ## Pattern Catalog
 
-### ❌ Wrapping RiveComponent in Framer Motion
+### Use CSS Transitions Instead of Framer Motion for Rive
 
 **Detection**:
 ```bash
@@ -111,16 +111,16 @@ grep -rn 'motion\.' --include="*.tsx" | grep -i 'rive'
 rg 'motion\.(div|span)' --type tsx -l | xargs grep -l 'RiveComponent'
 ```
 
-**What it looks like**:
+**Signal**:
 ```tsx
 <motion.div animate={{ opacity: 1 }} initial={{ opacity: 0 }}>
   <RiveComponent />
 </motion.div>
 ```
 
-**Why wrong**: Framer Motion and Rive both own animation timing. When Framer Motion drives opacity/transform on the container, it forces composite layer repaints on every frame, doubling GPU work. For Rive characters, transition effects belong in the Rive state machine or in CSS transitions on the wrapper.
+**Why this matters**: Framer Motion and Rive both own animation timing. When Framer Motion drives opacity/transform on the container, it forces composite layer repaints on every frame, doubling GPU work. For Rive characters, transition effects belong in the Rive state machine or in CSS transitions on the wrapper.
 
-**Fix**:
+**Preferred action**:
 ```tsx
 // Use CSS transition on wrapper instead
 <div style={{ opacity: loaded ? 1 : 0, transition: 'opacity 0.3s ease' }}>
@@ -130,7 +130,7 @@ rg 'motion\.(div|span)' --type tsx -l | xargs grep -l 'RiveComponent'
 
 ---
 
-### ❌ Creating Rive Instances Outside React Lifecycle
+### Create Rive Instances via useRive Hook
 
 **Detection**:
 ```bash
@@ -138,15 +138,15 @@ grep -rn 'new Rive(' --include="*.ts" --include="*.tsx"
 rg 'new Rive\(' --type ts
 ```
 
-**What it looks like**:
+**Signal**:
 ```ts
 // In a Zustand store or utility function
 const riveInstance = new Rive({ src: '/characters/player.riv', canvas: canvasEl });
 ```
 
-**Why wrong**: Rive instances created outside React components lose their cleanup path. `useRive` manages the instance lifecycle — loading, resize observation, cleanup — and ties it to the component tree. Manual instances bypass all of this, causing WebGL context leaks when the canvas element is removed from the DOM.
+**Why this matters**: Rive instances created outside React components lose their cleanup path. `useRive` manages the instance lifecycle — loading, resize observation, cleanup — and ties it to the component tree. Manual instances bypass all of this, causing WebGL context leaks when the canvas element is removed from the DOM.
 
-**Fix**: Use `useRive` inside the React component. Pass the Rive instance to Zustand if other components need to fire inputs, but do not construct the instance in the store.
+**Preferred action**: Use `useRive` inside the React component. Pass the Rive instance to Zustand if other components need to fire inputs, but do not construct the instance in the store.
 
 ```tsx
 // In component
@@ -165,7 +165,7 @@ useEffect(() => {
 
 ---
 
-### ❌ Rendering Multiple Rive Canvases Simultaneously Without Shared Context
+### Share WebGL Context Across Multiple Rive Canvases
 
 **Detection**:
 ```bash
@@ -174,15 +174,15 @@ grep -rn 'useRive' --include="*.tsx" | grep -v 'test\|spec\|story'
 
 Count the number of `useRive` calls active at once. If more than 12, context exhaustion is likely.
 
-**What it looks like**:
+**Signal**:
 ```tsx
 // Character select screen with 8 previews + combat scene with 2 active characters = 10+ contexts
 {characters.map(c => <CharacterPreview key={c.id} rivFile={c.riv} />)}
 ```
 
-**Why wrong**: Each `useRive` acquires one WebGL context. Browser limit is typically 16. Exceeding it silently produces blank canvases with no error in the console.
+**Why this matters**: Each `useRive` acquires one WebGL context. Browser limit is typically 16. Exceeding it silently produces blank canvases with no error in the console.
 
-**Fix**: Use Rive's `SharedRenderer` to share one WebGL context across multiple canvases.
+**Preferred action**: Use Rive's `SharedRenderer` to share one WebGL context across multiple canvases.
 
 ```tsx
 import { useRive, RiveComponent, RuntimeLoader } from '@rive-app/react-canvas';

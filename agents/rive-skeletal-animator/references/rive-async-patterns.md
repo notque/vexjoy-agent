@@ -127,7 +127,7 @@ useEffect(() => {
 
 ## Pattern Catalog
 
-### ❌ Accessing Rive Instance Outside Effect or Callback
+### Guard Rive Instance Access in Effects
 
 **Detection**:
 ```bash
@@ -135,7 +135,7 @@ grep -rn 'rive\.' --include="*.tsx" | grep -v 'useEffect\|onLoad\|onStateChange\
 rg '^\s+rive\.' --type tsx
 ```
 
-**What it looks like**:
+**Signal**:
 ```tsx
 function PlayerCharacter() {
   const { rive, RiveComponent } = useRive({ ... });
@@ -147,13 +147,13 @@ function PlayerCharacter() {
 }
 ```
 
-**Why wrong**: On the first render, `rive` is `null`. Calling `.stateMachineInputs()` on null throws `TypeError: Cannot read properties of null`. React will catch this and unmount the component. No error appears in the Rive runtime — the throw happens before Rive is even involved.
+**Why this matters**: On the first render, `rive` is `null`. Calling `.stateMachineInputs()` on null throws `TypeError: Cannot read properties of null`. React will catch this and unmount the component. No error appears in the Rive runtime — the throw happens before Rive is even involved.
 
-**Fix**: Move to `useEffect` with `rive` in the dependency array and guard with `if (!rive) return`.
+**Preferred action**: Move to `useEffect` with `rive` in the dependency array and guard with `if (!rive) return`.
 
 ---
 
-### ❌ Using setTimeout for Animation Sequencing
+### Use onStateChange for Animation Sequencing
 
 **Detection**:
 ```bash
@@ -161,7 +161,7 @@ grep -rn 'setTimeout' --include="*.tsx" | grep -i 'anim\|rive\|attack\|hit\|stat
 rg 'setTimeout.*anim' --type tsx
 ```
 
-**What it looks like**:
+**Signal**:
 ```tsx
 const handleAttack = () => {
   attackInput?.fire();
@@ -171,15 +171,15 @@ const handleAttack = () => {
 };
 ```
 
-**Why wrong**: Animation duration in the Rive editor and the `setTimeout` duration in code drift independently. When a designer adjusts the `attack_strike` clip from 0.3s to 0.25s, the `setTimeout` stays at 300ms — recovery fires 50ms late. At 30fps (mobile under load), actual clip duration is longer still.
+**Why this matters**: Animation duration in the Rive editor and the `setTimeout` duration in code drift independently. When a designer adjusts the `attack_strike` clip from 0.3s to 0.25s, the `setTimeout` stays at 300ms — recovery fires 50ms late. At 30fps (mobile under load), actual clip duration is longer still.
 
-**Fix**: Use `onStateChange` to detect when the state machine enters `attack_recover` or `idle`, then dispatch the next action.
+**Preferred action**: Use `onStateChange` to detect when the state machine enters `attack_recover` or `idle`, then dispatch the next action.
 
 **Version note**: `onStateChange` was present in Rive Web runtime 1.x but the event shape changed in 2.x. In `@rive-app/react-canvas` 4.x, `event.data` is `string[]` of current state names.
 
 ---
 
-### ❌ Polling rive for Non-Null in a Loop or Interval
+### Use Effect Dependencies Instead of Polling
 
 **Detection**:
 ```bash
@@ -187,7 +187,7 @@ grep -rn 'setInterval\|while.*rive\|poll' --include="*.tsx" | grep -i 'rive'
 rg 'setInterval' --type tsx -l | xargs grep -l 'rive'
 ```
 
-**What it looks like**:
+**Signal**:
 ```tsx
 useEffect(() => {
   const poll = setInterval(() => {
@@ -200,9 +200,9 @@ useEffect(() => {
 }, []);
 ```
 
-**Why wrong**: This re-implements what `useRive` already does with `onLoad`. It's 10-20 polling ticks wasted before the instance is ready, and it captures the `rive` ref from the closure — missing the actual update if React doesn't re-render between polls.
+**Why this matters**: This re-implements what `useRive` already does with `onLoad`. It's 10-20 polling ticks wasted before the instance is ready, and it captures the `rive` ref from the closure — missing the actual update if React doesn't re-render between polls.
 
-**Fix**: Use `useEffect` with `[rive]` dependency array, or pass `onLoad` callback to `useRive`.
+**Preferred action**: Use `useEffect` with `[rive]` dependency array, or pass `onLoad` callback to `useRive`.
 
 ---
 

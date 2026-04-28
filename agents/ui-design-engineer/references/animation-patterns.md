@@ -117,7 +117,7 @@ function ParallaxSection() {
 
 ## Pattern Catalog
 
-### ❌ Missing `prefers-reduced-motion` Support
+### Support `prefers-reduced-motion`
 
 **Detection**:
 ```bash
@@ -129,7 +129,7 @@ grep -rn "transition:" --include="*.css" --include="*.tsx" | grep -v "prefers-re
 grep -rn "prefers-reduced-motion" --include="*.css"
 ```
 
-**What it looks like**:
+**Signal**:
 ```tsx
 // WRONG: No check for user preference
 <motion.div
@@ -148,9 +148,9 @@ grep -rn "prefers-reduced-motion" --include="*.css"
 }
 ```
 
-**Why wrong**: Users with vestibular disorders (motion sickness, Meniere's disease) can experience nausea or disorientation from unnecessary motion. `prefers-reduced-motion: reduce` is a system-level accessibility setting.
+**Why this matters**: Users with vestibular disorders (motion sickness, Meniere's disease) can experience nausea or disorientation from unnecessary motion. `prefers-reduced-motion: reduce` is a system-level accessibility setting.
 
-**Fix**:
+**Preferred action**:
 ```tsx
 // Framer Motion: use hook
 const shouldReduceMotion = useReducedMotion()
@@ -176,7 +176,7 @@ const shouldReduceMotion = useReducedMotion()
 
 ---
 
-### ❌ Exit Animation Not Running (Missing `AnimatePresence`)
+### Wrap Exit Animations in `AnimatePresence`
 
 **Detection**:
 ```bash
@@ -186,7 +186,7 @@ grep -rn "exit={{" --include="*.tsx"
 grep -rn "exit={{" --include="*.tsx" | xargs grep -L "AnimatePresence"
 ```
 
-**What it looks like**:
+**Signal**:
 ```tsx
 // WRONG: exit prop present but AnimatePresence is absent — exit never runs
 {isOpen && (
@@ -200,9 +200,9 @@ grep -rn "exit={{" --include="*.tsx" | xargs grep -L "AnimatePresence"
 )}
 ```
 
-**Why wrong**: React unmounts the component synchronously when `isOpen` becomes `false`. By the time Framer Motion would start the exit animation, the element is already gone from the DOM.
+**Why this matters**: React unmounts the component synchronously when `isOpen` becomes `false`. By the time Framer Motion would start the exit animation, the element is already gone from the DOM.
 
-**Fix**:
+**Preferred action**:
 ```tsx
 import { AnimatePresence, motion } from 'framer-motion'
 
@@ -224,7 +224,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 
 ---
 
-### ❌ Animating Everything (Motion Overload)
+### Limit to 2-3 Intentional Motions Per Page
 
 **Detection**:
 ```bash
@@ -234,7 +234,7 @@ grep -c "motion\." --include="*.tsx" $(find . -name "*.tsx") 2>/dev/null | awk -
 rg "motion\." --type tsx -c | awk -F: '$2 > 6'
 ```
 
-**What it looks like**:
+**Signal**:
 ```tsx
 // WRONG: Every element has entrance animation — hierarchy collapses into noise
 <motion.nav initial={{ y: -20 }} animate={{ y: 0 }}>
@@ -252,9 +252,9 @@ rg "motion\." --type tsx -c | awk -F: '$2 > 6'
 </motion.nav>
 ```
 
-**Why wrong**: When everything animates, nothing communicates. The brain uses motion as a signal for hierarchy and importance. Saturating the page with motion degrades every motion's signal value to zero.
+**Why this matters**: When everything animates, nothing communicates. The brain uses motion as a signal for hierarchy and importance. Saturating the page with motion degrades every motion's signal value to zero.
 
-**Fix**: Apply the 2-to-3 rule. Audit existing motion and remove any that aren't filling one of the three slots (entrance, scroll, interaction). Use `variants` with `staggerChildren` to coordinate list animations as a single entrance slot:
+**Preferred action**: Apply the 2-to-3 rule. Audit existing motion and remove any that aren't filling one of the three slots (entrance, scroll, interaction). Use `variants` with `staggerChildren` to coordinate list animations as a single entrance slot:
 
 ```tsx
 // CORRECT: One entrance slot using stagger — nav entrance counts as one motion
@@ -278,7 +278,7 @@ const itemVariants = {
 
 ---
 
-### ❌ Using `whileHover` on Non-Interactive Elements
+### Apply Hover Animations to Interactive Elements Only
 
 **Detection**:
 ```bash
@@ -286,7 +286,7 @@ const itemVariants = {
 grep -rn "whileHover" --include="*.tsx" | grep "motion\.div\|motion\.span\|motion\.p"
 ```
 
-**What it looks like**:
+**Signal**:
 ```tsx
 // WRONG: hover animation on non-interactive element confuses keyboard users
 <motion.div whileHover={{ scale: 1.02 }} className="card">
@@ -294,9 +294,9 @@ grep -rn "whileHover" --include="*.tsx" | grep "motion\.div\|motion\.span\|motio
 </motion.div>
 ```
 
-**Why wrong**: `whileHover` triggers on CSS `:hover`, not on keyboard focus. A card with hover animation but no `tabIndex` and no focus animation is inaccessible — keyboard users get no feedback and may not know the element is interactive.
+**Why this matters**: `whileHover` triggers on CSS `:hover`, not on keyboard focus. A card with hover animation but no `tabIndex` and no focus animation is inaccessible — keyboard users get no feedback and may not know the element is interactive.
 
-**Fix**:
+**Preferred action**:
 ```tsx
 // CORRECT: Use interactive element with both hover and focus states
 <motion.button

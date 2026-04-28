@@ -187,7 +187,7 @@ def test_add_email_column_migration(pre_migration_db):
 ## Pattern Catalog
 <!-- no-pair-required: section header with no content -->
 
-### ❌ Module-Level Database in Tests (State Leakage)
+### Use Per-Test Database Fixtures (State Leakage)
 
 **Detection**:
 ```bash
@@ -197,9 +197,9 @@ grep -rn 'setUpClass\|setup_module' --include="test_*.py" -A 5 | grep 'create_ta
 rg 'SqliteDatabase.*test' --type py | grep -v 'fixture\|conftest'
 ```
 
-**Do instead:** Use a per-test `db` fixture with `bind_ctx()` so each test gets a fresh in-memory database.
+**Preferred action:** Use a per-test `db` fixture with `bind_ctx()` so each test gets a fresh in-memory database.
 
-**What it looks like**:
+**Signal**:
 ```python
 # conftest.py — WRONG: shared database across all tests
 db = SqliteDatabase(':memory:')
@@ -214,11 +214,11 @@ def test_user_count():
     assert User.select().count() == 0
 ```
 
-**Why wrong**: Module-level `:memory:` databases persist for the entire test session. Rows
+**Why this matters**: Module-level `:memory:` databases persist for the entire test session. Rows
 created in one test are visible to all subsequent tests. Test order determines results —
 passing locally but failing in CI (different ordering) is the common symptom.
 
-**Do instead:**
+**Preferred action:**
 
 Create a fresh `:memory:` database per test using a `pytest.fixture` with `bind_ctx()`:
 
@@ -234,7 +234,7 @@ def db():
 
 ---
 
-### ❌ Testing Against Production Database File
+### Use In-Memory Databases for Tests
 
 **Detection**:
 ```bash
@@ -243,9 +243,9 @@ grep -rn 'SqliteDatabase(' --include="test_*.py" | grep -v ':memory:'
 rg 'SqliteDatabase\([^:)]' --type py --glob 'test_*'
 ```
 
-**Do instead:** Always use `SqliteDatabase(':memory:')` for unit tests, or a `tempfile.mkstemp()` path for integration tests with automatic cleanup.
+**Preferred action:** Always use `SqliteDatabase(':memory:')` for unit tests, or a `tempfile.mkstemp()` path for integration tests with automatic cleanup.
 
-**What it looks like**:
+**Signal**:
 ```python
 # Uses real app.db in tests — modifies production data
 db = SqliteDatabase('app.db')
@@ -255,11 +255,11 @@ def test_delete_user():
     # Deletes from real database!
 ```
 
-**Why wrong**: Test teardown failures, CI environment errors, or parallel test runs corrupt
+**Why this matters**: Test teardown failures, CI environment errors, or parallel test runs corrupt
 the production database file. SQLite file databases have no transaction isolation between
 processes.
 
-**Do instead:**
+**Preferred action:**
 
 Use `:memory:` for unit tests. For integration tests that genuinely require a file path, use
 `tempfile.mkstemp()` and delete the file in fixture teardown:
@@ -281,7 +281,7 @@ def file_db():
 
 ---
 
-### ❌ Not Enabling FK Constraints in Test DB
+### Enable FK Constraints in Test DB
 
 **Detection**:
 ```bash
@@ -289,9 +289,9 @@ rg 'SqliteDatabase.*:memory:' --type py | grep -v 'foreign_keys'
 grep -rn "SqliteDatabase(':memory:')" --include="*.py" -A 3 | grep -v 'foreign_keys'
 ```
 
-**Do instead:** Always pass `pragmas={'foreign_keys': 1}` when creating the test database so FK violations surface in tests, not in production.
+**Preferred action:** Always pass `pragmas={'foreign_keys': 1}` when creating the test database so FK violations surface in tests, not in production.
 
-**What it looks like**:
+**Signal**:
 ```python
 # SQLite disables FK checks by default — tests pass but prod fails
 db = SqliteDatabase(':memory:')  # No foreign_keys pragma
@@ -302,10 +302,10 @@ def test_post_without_user():
     # In production with foreign_keys=1 this raises IntegrityError
 ```
 
-**Why wrong**: SQLite disables foreign key constraints by default for backwards compatibility.
+**Why this matters**: SQLite disables foreign key constraints by default for backwards compatibility.
 Tests pass with invalid data that production rejects. The divergence is invisible until deploy.
 
-**Do instead:**
+**Preferred action:**
 
 Always enable FK enforcement in the test database pragma so tests catch the same integrity
 errors that production would raise:
@@ -316,7 +316,7 @@ db = SqliteDatabase(':memory:', pragmas={'foreign_keys': 1})
 
 ---
 
-### ❌ Using `truncate_table()` Instead of Fresh DB
+### Use Fresh bind_ctx() Database Per Test
 
 **Detection**:
 ```bash
@@ -324,7 +324,7 @@ grep -rn 'truncate_table\|DELETE FROM' --include="test_*.py"
 rg '\.truncate_table\(\)' --type py --glob '*test*'
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 def teardown_function():
     # Risky: only clears data, not schema changes or sequence state
@@ -332,12 +332,12 @@ def teardown_function():
     Post.truncate_table()
 ```
 
-**Why wrong**: `truncate_table()` clears rows but not schema state. If a test modifies a
+**Why this matters**: `truncate_table()` clears rows but not schema state. If a test modifies a
 column (via migration test), the schema change persists. Also fails to reset SQLite
 autoincrement counters, causing ID values to grow across tests (usually harmless but causes
 confusion in count-based assertions).
 
-**Fix**: Use `bind_ctx()` with `:memory:` — the database is garbage-collected between tests,
+**Preferred action**: Use `bind_ctx()` with `:memory:` — the database is garbage-collected between tests,
 resetting schema, data, and counters atomically.
 
 ---

@@ -169,20 +169,20 @@ Common Peewee/SQLite errors and solutions.
 
 Peewee/SQLite patterns to follow.
 
-### ❌ N+1 Queries with Related Data
-**What it looks like**: `for user in User.select(): print(user.posts.count())`
-**Why wrong**: Executes separate query per user, very slow
-**✅ Do instead**: `users = User.select().prefetch(Post); for user in users: print(len(user.posts))`
+### Use Prefetch for Related Data
+**Signal**: `for user in User.select(): print(user.posts.count())`
+**Why this matters**: Executes separate query per user, very slow
+**Preferred action**: `users = User.select().prefetch(Post); for user in users: print(len(user.posts))`
 
-### ❌ No Transactions for Multi-Step Operations
-**What it looks like**: `user.save(); post.save(); comment.save()` without atomic()
-**Why wrong**: Partial commit on error, data inconsistency
-**✅ Do instead**: `with db.atomic(): user.save(); post.save(); comment.save()`
+### Wrap Multi-Step Operations in atomic()
+**Signal**: `user.save(); post.save(); comment.save()` without atomic()
+**Why this matters**: Partial commit on error, data inconsistency
+**Preferred action**: `with db.atomic(): user.save(); post.save(); comment.save()`
 
-### ❌ Manual SQL for Schema Changes
-**What it looks like**: `db.execute_sql("ALTER TABLE users ADD COLUMN email TEXT")`
-**Why wrong**: No rollback, not tracked, SQLite ALTER limitations
-**✅ Do instead**: Use playhouse.migrate: `migrator.add_column('users', 'email', TextField(null=True))`
+### Use Playhouse Migrate for Schema Changes
+**Signal**: `db.execute_sql("ALTER TABLE users ADD COLUMN email TEXT")`
+**Why this matters**: No rollback, not tracked, SQLite ALTER limitations
+**Preferred action**: Use playhouse.migrate: `migrator.add_column('users', 'email', TextField(null=True))`
 
 ## Anti-Rationalization
 
