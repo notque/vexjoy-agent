@@ -126,14 +126,13 @@ def get_analysis_repos(username: str, max_repos: int = 5) -> list[dict]:
 
 ## Pattern Catalog
 
-### ❌ Fetching Files One by One Without Tree
-
+### Use Recursive Tree Endpoint for File Listing
 **Detection** (in your own code pattern):
 ```bash
 grep -rn 'GET /repos.*contents' scripts/ | grep -v 'tree'
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 # Expensive: 1 request per directory level, recursive
 def list_files(owner, repo, path=""):
@@ -145,28 +144,27 @@ def list_files(owner, repo, path=""):
             yield item["path"]
 ```
 
-**Why wrong**: A 200-file repo with 20 directories requires 21 API requests just to list files. The recursive tree endpoint does it in 1.
+**Why this matters**: A 200-file repo with 20 directories requires 21 API requests just to list files. The recursive tree endpoint does it in 1.
 
-**Fix**: Use `GET /repos/{owner}/{repo}/git/trees/{sha}?recursive=1` for full file tree in one request.
+**Preferred action**: Use `GET /repos/{owner}/{repo}/git/trees/{sha}?recursive=1` for full file tree in one request.
 
 ---
 
-### ❌ Not Checking Pagination
-
+### Handle Pagination for All List Endpoints
 **Detection**:
 ```bash
 grep -rn 'per_page' scripts/ | grep -v 'pagination\|next\|link'
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 repos = github_get(f"/users/{username}/repos?per_page=100")
 # Assumes all repos fit in one page — fails for users with 100+ repos
 ```
 
-**Why wrong**: GitHub API returns max 100 items per page. Users with 100+ repos silently get incomplete data. The API includes a `Link` header with `rel="next"` for pagination.
+**Why this matters**: GitHub API returns max 100 items per page. Users with 100+ repos silently get incomplete data. The API includes a `Link` header with `rel="next"` for pagination.
 
-**Fix**:
+**Preferred action**:
 ```python
 def paginate(url: str) -> list:
     results = []
@@ -180,22 +178,21 @@ def paginate(url: str) -> list:
 
 ---
 
-### ❌ Using Unauthenticated Requests for Full Analysis
-
+### Authenticate All API Requests
 **Detection**:
 ```bash
 grep -rn 'github_get\|requests.get' scripts/ | grep -v 'Authorization\|token'
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 headers = {"Accept": "application/vnd.github.v3+json"}
 # Missing: Authorization header — capped at 60 req/hr
 ```
 
-**Why wrong**: 60 requests/hr is exhausted by analyzing 2-3 repos. Profile analysis needs 50-200 requests minimum.
+**Why this matters**: 60 requests/hr is exhausted by analyzing 2-3 repos. Profile analysis needs 50-200 requests minimum.
 
-**Fix**: Accept `--token` CLI flag; check for `GITHUB_TOKEN` env var:
+**Preferred action**: Accept `--token` CLI flag; check for `GITHUB_TOKEN` env var:
 ```python
 import os
 token = args.token or os.environ.get("GITHUB_TOKEN")

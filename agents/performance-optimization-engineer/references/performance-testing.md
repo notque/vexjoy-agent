@@ -139,15 +139,14 @@ jobs:
 
 ## Pattern Catalog
 
-### ❌ Running Lighthouse Once (Not Averaging Multiple Runs)
-
+### Average Multiple Lighthouse Runs
 **Detection**:
 ```bash
 grep -rn "numberOfRuns\|number-of-runs" .lighthouserc.* .lhci* 2>/dev/null
 # If no output: numberOfRuns is not configured (defaults to 1)
 ```
 
-**What it looks like**:
+**Signal**:
 ```javascript
 // .lighthouserc.js
 module.exports = {
@@ -160,9 +159,9 @@ module.exports = {
 }
 ```
 
-**Why wrong**: A single Lighthouse run has 10-15 point score variance on CI machines (shared CPU, GC pauses, network jitter). A score of 85 one run, 72 the next — both from the same code. Single-run CI gates either false-positive (blocking good PRs) or miss real regressions.
+**Why this matters**: A single Lighthouse run has 10-15 point score variance on CI machines (shared CPU, GC pauses, network jitter). A score of 85 one run, 72 the next — both from the same code. Single-run CI gates either false-positive (blocking good PRs) or miss real regressions.
 
-**Fix**:
+**Preferred action**:
 ```javascript
 collect: {
   url: ['http://localhost:3000'],
@@ -172,15 +171,14 @@ collect: {
 
 ---
 
-### ❌ Using `warn` Instead of `error` for Critical Thresholds
-
+### Use error Level for Core Performance Assertions
 **Detection**:
 ```bash
 grep -rn "largest-contentful-paint\|first-contentful-paint\|total-blocking-time" .lighthouserc.*
 # Check if it uses 'warn' instead of 'error' for core metrics
 ```
 
-**What it looks like**:
+**Signal**:
 ```javascript
 assertions: {
   'largest-contentful-paint': ['warn', { maxNumericValue: 2500 }],
@@ -190,7 +188,7 @@ assertions: {
 
 **Why it matters**: `warn` level assertions appear in logs but allow regressions to ship. LCP regressions only stop at the gate when the check fails the build.
 
-**Fix**:
+**Preferred action**:
 ```javascript
 assertions: {
   'largest-contentful-paint': ['error', { maxNumericValue: 2500 }], // Fails CI
@@ -200,23 +198,22 @@ assertions: {
 
 ---
 
-### ❌ Running Lighthouse Against Development Server
-
+### Run Lighthouse Against Production Build
 **Detection**:
 ```bash
 grep -rn "next dev\|npm run dev\|yarn dev" .lighthouserc.* .github/workflows/*.yml
 ```
 
-**What it looks like**:
+**Signal**:
 ```javascript
 collect: {
   startServerCommand: 'npm run dev', // Development server!
 },
 ```
 
-**Why wrong**: `next dev` doesn't minify, doesn't split bundles, doesn't optimize images. A dev server Lighthouse score is meaningless for production performance — typically 20-40 points lower than production. You're testing the wrong artifact.
+**Why this matters**: `next dev` doesn't minify, doesn't split bundles, doesn't optimize images. A dev server Lighthouse score is meaningless for production performance — typically 20-40 points lower than production. You're testing the wrong artifact.
 
-**Fix**:
+**Preferred action**:
 ```javascript
 collect: {
   startServerCommand: 'npm run build && npm run start', // Production build
@@ -226,8 +223,7 @@ collect: {
 
 ---
 
-### ❌ No Performance Budget in CI for Bundle Size
-
+### Add Automated Bundle Size Gates to CI
 **Detection**:
 ```bash
 # Check for any bundle size monitoring
@@ -236,9 +232,9 @@ grep -rn "size-limit\|bundlesize" .github/workflows/*.yml
 # If neither exists: no automated bundle regression detection
 ```
 
-**Why wrong**: Without automated bundle size gates, bundle size grows incrementally. Each PR adds "just a small dependency" until the main bundle is 500KB and LCP is 4.5s. Manual review doesn't catch this — bundle analysis is only done when performance is already bad.
+**Why this matters**: Without automated bundle size gates, bundle size grows incrementally. Each PR adds "just a small dependency" until the main bundle is 500KB and LCP is 4.5s. Manual review doesn't catch this — bundle analysis is only done when performance is already bad.
 
-**Fix**: Add `size-limit` with `error` thresholds to CI. Start with current bundle size as the baseline and set limits 10% above it to allow headroom, then tighten over time.
+**Preferred action**: Add `size-limit` with `error` thresholds to CI. Start with current bundle size as the baseline and set limits 10% above it to allow headroom, then tighten over time.
 
 ---
 

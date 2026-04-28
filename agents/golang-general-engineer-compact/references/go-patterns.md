@@ -126,22 +126,21 @@ type EntityManager interface {
 
 ## Pattern Catalog
 
-### ❌ Using interface{} Instead of any
-
+### Use any Instead of interface{} (Go 1.18+)
 **Detection**:
 ```bash
 grep -rn 'interface{}' --include="*.go"
 rg 'interface\{\}' --type go
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 func process(v interface{}) interface{} { // Pre-1.18 style
     return v
 }
 ```
 
-**Fix**:
+**Preferred action**:
 ```go
 func process(v any) any { // Go 1.18+: any is an alias for interface{}
     return v
@@ -152,15 +151,14 @@ func process(v any) any { // Go 1.18+: any is an alias for interface{}
 
 ---
 
-### ❌ Bare Error Return (No Context)
-
+### Wrap Errors with Call-Site Context
 **Detection**:
 ```bash
 grep -rn 'return err$' --include="*.go" | grep -v "_test.go"
 rg 'return nil, err$' --type go | grep -v '_test.go'
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 func getConfig(path string) (*Config, error) {
     data, err := os.ReadFile(path)
@@ -171,9 +169,9 @@ func getConfig(path string) (*Config, error) {
 }
 ```
 
-**Why wrong**: Caller receives `open /etc/config: no such file or directory` with no indication that `getConfig` was the call site. Stack traces only available with `debug.Stack()`.
+**Why this matters**: Caller receives `open /etc/config: no such file or directory` with no indication that `getConfig` was the call site. Stack traces only available with `debug.Stack()`.
 
-**Fix**:
+**Preferred action**:
 ```go
 func getConfig(path string) (*Config, error) {
     data, err := os.ReadFile(path)
@@ -186,8 +184,7 @@ func getConfig(path string) (*Config, error) {
 
 ---
 
-### ❌ Outdated Slice/Range Patterns
-
+### Use Modern Range and WaitGroup Patterns
 **Detection**:
 ```bash
 # Old range pattern (loop variable capture)
@@ -198,7 +195,7 @@ grep -rn 'wg.Add(1)' --include="*.go"
 grep -rn 'for i := 0; i < [0-9]' --include="*.go"
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 for i := 0; i < 5; i++ { // Pre-1.22 numeric loop
     wg.Add(1)             // Pre-1.25 WaitGroup
@@ -209,7 +206,7 @@ for i := 0; i < 5; i++ { // Pre-1.22 numeric loop
 }
 ```
 
-**Fix** (Go 1.25+):
+**Preferred action** (Go 1.25+):
 ```go
 for i := range 5 { // Go 1.22+
     wg.Go(func() { process(i) }) // Go 1.25+: i captured by value in wg.Go

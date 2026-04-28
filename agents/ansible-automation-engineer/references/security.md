@@ -105,8 +105,7 @@ db_password: "{{ vault_db_password }}"
 
 ## Pattern Catalog
 
-### ❌ Plaintext Secrets in Playbooks or Vars Files
-
+### Encrypt All Secrets with Vault
 **Detection**:
 ```bash
 # Scan for hardcoded passwords/tokens (not vault-encrypted)
@@ -118,7 +117,7 @@ grep -rn "password:" playbooks/ roles/ \
   | grep -v "!vault" | grep -v "_password:" | grep -v "#"
 ```
 
-**What it looks like**:
+**Signal**:
 ```yaml
 # vars/main.yml — NEVER DO THIS
 db_password: MyS3cr3tP@ssword!
@@ -126,9 +125,9 @@ aws_access_key: AKIAIOSFODNN7EXAMPLE
 aws_secret_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 ```
 
-**Why wrong**: Plaintext secrets in any file will eventually reach git history. Git history is permanent — even after deletion, the secret exists in every clone and every CI artifact that ran during that period. Rotation requires assuming full compromise.
+**Why this matters**: Plaintext secrets in any file will eventually reach git history. Git history is permanent — even after deletion, the secret exists in every clone and every CI artifact that ran during that period. Rotation requires assuming full compromise.
 
-**Fix**:
+**Preferred action**:
 ```bash
 # Encrypt inline
 ansible-vault encrypt_string 'MyS3cr3tP@ssword!' --name 'db_password'
@@ -141,8 +140,7 @@ ansible-vault encrypt vars/secrets.yml
 
 ---
 
-### ❌ SSH Private Keys in Playbooks or Inventory
-
+### Store SSH Keys Outside the Repository
 **Detection**:
 ```bash
 grep -rn "ansible_ssh_private_key_file\|private_key_file" inventory/ group_vars/ \
@@ -152,16 +150,16 @@ grep -rn "ansible_ssh_private_key_file\|private_key_file" inventory/ group_vars/
 grep -rn "BEGIN.*PRIVATE KEY\|BEGIN RSA" .
 ```
 
-**What it looks like**:
+**Signal**:
 ```ini
 # inventory/hosts.ini — NEVER DO THIS
 [webservers]
 web01 ansible_ssh_private_key_file=keys/deploy_key.pem
 ```
 
-**Why wrong**: Private keys committed to a repository expose root access to every server in the inventory. Even with a gitignore rule added later, the key exists in git history.
+**Why this matters**: Private keys committed to a repository expose root access to every server in the inventory. Even with a gitignore rule added later, the key exists in git history.
 
-**Fix**:
+**Preferred action**:
 ```yaml
 # Use key file path outside repo, reference via variable
 ansible_ssh_private_key_file: "{{ lookup('env', 'SSH_DEPLOY_KEY_PATH') }}"
@@ -172,8 +170,7 @@ ansible_ssh_private_key_file: "{{ vault_deploy_key_path }}"
 
 ---
 
-### ❌ Storing Vault Password in Plaintext on Disk
-
+### Fetch Vault Password from a Secrets Manager
 **Detection**:
 ```bash
 # Find .vault_pass files tracked by git
@@ -183,16 +180,16 @@ git ls-files | grep -i vault_pass
 grep -n "vault_password_file" ansible.cfg
 ```
 
-**What it looks like**:
+**Signal**:
 ```ini
 # ansible.cfg
 [defaults]
 vault_password_file = .vault_pass  # .vault_pass contains plaintext password
 ```
 
-**Why wrong**: If `.vault_pass` is readable and stored with the repo, it defeats the purpose of encryption. Anyone with repo access can decrypt all vault values.
+**Why this matters**: If `.vault_pass` is readable and stored with the repo, it defeats the purpose of encryption. Anyone with repo access can decrypt all vault values.
 
-**Fix**:
+**Preferred action**:
 ```ini
 # ansible.cfg — use a script that fetches from a secrets manager
 [defaults]

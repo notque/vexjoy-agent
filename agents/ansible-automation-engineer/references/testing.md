@@ -137,8 +137,7 @@ ansible-playbook site.yml --check 2>&1 | grep -E "changed=|failed="
 
 ## Pattern Catalog
 
-### ❌ Using `command`/`shell` Without `changed_when`
-
+### Set changed_when on All command/shell Tasks
 **Detection**:
 ```bash
 # Find command/shell tasks missing changed_when
@@ -150,7 +149,7 @@ rg -t yaml '^\s+(command|shell):' roles/ playbooks/ -A5 \
   | grep -B3 -v "changed_when"
 ```
 
-**What it looks like**:
+**Signal**:
 ```yaml
 - name: Check disk usage
   command: df -h
@@ -158,9 +157,9 @@ rg -t yaml '^\s+(command|shell):' roles/ playbooks/ -A5 \
   # Missing: changed_when: false
 ```
 
-**Why wrong**: `command` and `shell` always report `changed` unless told otherwise. This breaks idempotency checks (idempotency scenario always fails), makes `--check` output noisy, and triggers handlers incorrectly.
+**Why this matters**: `command` and `shell` always report `changed` unless told otherwise. This breaks idempotency checks (idempotency scenario always fails), makes `--check` output noisy, and triggers handlers incorrectly.
 
-**Fix**:
+**Preferred action**:
 ```yaml
 - name: Check disk usage
   command: df -h
@@ -176,8 +175,7 @@ rg -t yaml '^\s+(command|shell):' roles/ playbooks/ -A5 \
 
 ---
 
-### ❌ No assertions in verify.yml (Empty or Trivial Verification)
-
+### Write Meaningful Assertions in verify.yml
 **Detection**:
 ```bash
 # Find verify.yml files without assert tasks
@@ -188,7 +186,7 @@ grep -rn "tasks:" molecule/*/verify.yml -A5 \
   | grep -v "assert\|stat\|uri\|service_facts\|command"
 ```
 
-**What it looks like**:
+**Signal**:
 ```yaml
 # molecule/default/verify.yml — provides zero value
 ---
@@ -199,9 +197,9 @@ grep -rn "tasks:" molecule/*/verify.yml -A5 \
       ping:
 ```
 
-**Why wrong**: Ping passing means the container is alive, not that the role worked. A role that fails to install nginx will still pass this verify.
+**Why this matters**: Ping passing means the container is alive, not that the role worked. A role that fails to install nginx will still pass this verify.
 
-**Fix**:
+**Preferred action**:
 ```yaml
 ---
 - name: Verify
@@ -231,8 +229,7 @@ grep -rn "tasks:" molecule/*/verify.yml -A5 \
 
 ---
 
-### ❌ ansible-lint Not Configured for Project
-
+### Configure ansible-lint with Production Profile
 **Detection**:
 ```bash
 # Check if ansible-lint config exists
@@ -242,11 +239,11 @@ ls -la .ansible-lint .ansible-lint.yml ansible-lint.yml 2>/dev/null || echo "No 
 ansible-lint --list-rules 2>&1 | wc -l
 ```
 
-**What it looks like**: Running `ansible-lint` without config defaults to the "basic" profile, which misses production-critical rules for key management and deprecated syntax.
+**Signal**: Running `ansible-lint` without config defaults to the "basic" profile, which misses production-critical rules for key management and deprecated syntax.
 
-**Why wrong**: The default profile skips rules that catch security issues (plaintext passwords, deprecated `include` vs `import_tasks`) and style issues that cause maintenance problems.
+**Why this matters**: The default profile skips rules that catch security issues (plaintext passwords, deprecated `include` vs `import_tasks`) and style issues that cause maintenance problems.
 
-**Fix**:
+**Preferred action**:
 ```yaml
 # .ansible-lint
 profile: production

@@ -189,8 +189,7 @@ PUT _index_template/logs-template
 
 ## Pattern Catalog
 
-### ❌ Mapping Explosion from Dynamic Mapping
-
+### Use Strict or Flattened Mapping for Variable Keys
 **Detection**:
 ```bash
 # Check current field count on an index
@@ -207,7 +206,7 @@ GET /_cat/indices?v&h=index,docs.count
 GET /your-index/_mapping | jq '.[] | .mappings.properties | keys | length'
 ```
 
-**What it looks like**:
+**Signal**:
 ```json
 {
   "mappings": {
@@ -226,9 +225,9 @@ GET /your-index/_mapping | jq '.[] | .mappings.properties | keys | length'
 }
 ```
 
-**Why wrong**: Each unique key in a JSON blob creates a new field mapping. Experiment names, user preference keys, and event properties grow unbounded. At `index.mapping.total_fields.limit` (default 1000), indexing fails with `limit of total fields [1000] has been exceeded`. Existing data is already corrupted by this point — reindexing required.
+**Why this matters**: Each unique key in a JSON blob creates a new field mapping. Experiment names, user preference keys, and event properties grow unbounded. At `index.mapping.total_fields.limit` (default 1000), indexing fails with `limit of total fields [1000] has been exceeded`. Existing data is already corrupted by this point — reindexing required.
 
-**Fix**: Use `"dynamic": false` on nested objects with variable keys, or use the `flattened` field type:
+**Preferred action**: Use `"dynamic": false` on nested objects with variable keys, or use the `flattened` field type:
 ```json
 {
   "properties": {
@@ -242,8 +241,7 @@ GET /your-index/_mapping | jq '.[] | .mappings.properties | keys | length'
 
 ---
 
-### ❌ Mapping `text` Fields for Exact-Match Queries
-
+### Use keyword Type for Exact-Match Fields
 **Detection**:
 ```bash
 # Find term queries on text fields (likely mistake)
@@ -252,7 +250,7 @@ grep -rn '"term"' --include="*.json" queries/ -A3 | grep -v '\.keyword'
 GET /your-index/_mapping
 ```
 
-**What it looks like**:
+**Signal**:
 ```json
 {
   "mappings": {
@@ -268,14 +266,13 @@ GET /your-index/_mapping
 }
 ```
 
-**Why wrong**: `text` fields are analyzed — `"active"` is tokenized and lowercased. A `term` query for `"active"` works, but `"Active"` misses. `"IS_ACTIVE"` gets tokenized to `["is", "active"]` — `term` query on `"IS_ACTIVE"` returns nothing. Aggregations on `text` fields throw `Fielddata is disabled on text fields`.
+**Why this matters**: `text` fields are analyzed — `"active"` is tokenized and lowercased. A `term` query for `"active"` works, but `"Active"` misses. `"IS_ACTIVE"` gets tokenized to `["is", "active"]` — `term` query on `"IS_ACTIVE"` returns nothing. Aggregations on `text` fields throw `Fielddata is disabled on text fields`.
 
-**Fix**: Use `keyword` for exact-match fields (status, IDs, category); use `text` with `.keyword` sub-field when both full-text search and aggregation are needed.
+**Preferred action**: Use `keyword` for exact-match fields (status, IDs, category); use `text` with `.keyword` sub-field when both full-text search and aggregation are needed.
 
 ---
 
-### ❌ Ignoring Mapping Before Reindexing
-
+### Compare Mappings Before Reindexing
 **Detection**:
 ```bash
 # Compare source and destination mappings before reindex
@@ -284,7 +281,7 @@ GET /dest-index/_mapping
 # Check for type conflicts
 ```
 
-**What it looks like**:
+**Signal**:
 ```bash
 # Blindly reindex without checking mapping compatibility
 POST _reindex
@@ -295,9 +292,9 @@ POST _reindex
 # Then discover v2 has "date" field mapped as "text" in v1
 ```
 
-**Why wrong**: If `published_at` is `text` in v1 and `date` in v2, reindex fails on any document where `published_at` doesn't parse as a date. `_reindex` continues by default, silently skipping failed documents. The result is an incomplete index with no clear indication of what was dropped.
+**Why this matters**: If `published_at` is `text` in v1 and `date` in v2, reindex fails on any document where `published_at` doesn't parse as a date. `_reindex` continues by default, silently skipping failed documents. The result is an incomplete index with no clear indication of what was dropped.
 
-**Fix**: Use `"conflicts": "proceed"` only intentionally, and check task results for failures:
+**Preferred action**: Use `"conflicts": "proceed"` only intentionally, and check task results for failures:
 ```bash
 GET _tasks/{taskId}
 # Check: "failures" array in response — should be empty

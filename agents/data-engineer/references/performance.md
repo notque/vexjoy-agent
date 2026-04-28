@@ -152,8 +152,7 @@ LEFT JOIN {{ ref('dim_customer') }} USING (customer_id)
 
 ## Pattern Catalog
 
-### ❌ Full Table Scan Due to Missing Partition Filter
-
+### Add Partition Filters to All Partitioned Table Queries
 **Detection**:
 ```sql
 -- BigQuery: find expensive queries without partition filter
@@ -173,7 +172,7 @@ LIMIT 20;
 grep -n "Seq Scan on fact_" query_plans/*.txt
 ```
 
-**What it looks like**:
+**Signal**:
 ```sql
 -- Dashboard query that scans ALL data despite date-partitioned table
 SELECT customer_segment, SUM(amount)
@@ -182,9 +181,9 @@ WHERE status = 'completed'  -- No date filter!
 GROUP BY customer_segment
 ```
 
-**Why wrong**: On a 3-year table partitioned by day (1095 partitions), this scans every partition. 1TB scanned instead of 1GB (30-day window). In BigQuery, costs ~$5 per query instead of $0.005.
+**Why this matters**: On a 3-year table partitioned by day (1095 partitions), this scans every partition. 1TB scanned instead of 1GB (30-day window). In BigQuery, costs ~$5 per query instead of $0.005.
 
-**Fix**:
+**Preferred action**:
 ```sql
 SELECT customer_segment, SUM(amount)
 FROM fact_orders
@@ -195,8 +194,7 @@ GROUP BY customer_segment
 
 ---
 
-### ❌ Joining Large Tables Without Cluster/Sort Keys
-
+### Add Cluster Keys Before Joining Large Tables
 **Detection**:
 ```bash
 # PostgreSQL: Look for hash joins on large tables (sort-merge join is cheaper with sort keys)
@@ -206,7 +204,7 @@ grep -n "Hash Join\|Nested Loop" explain_outputs/*.txt | grep -v "Seq Scan on sm
 # In BigQuery console: Query Plan tab → look for large "Write" steps
 ```
 
-**What it looks like**:
+**Signal**:
 ```sql
 -- fact_orders (1B rows) joined to dim_customer (10M rows)
 -- Neither table clustered on customer_id
@@ -216,9 +214,9 @@ JOIN dim_customer dc ON fo.customer_id = dc.customer_id
 WHERE fo.order_date = CURRENT_DATE
 ```
 
-**Why wrong**: Without clustering on `customer_id`, the join shuffles all data across nodes to co-locate matching rows. On 1B rows, this is a multi-minute shuffle.
+**Why this matters**: Without clustering on `customer_id`, the join shuffles all data across nodes to co-locate matching rows. On 1B rows, this is a multi-minute shuffle.
 
-**Fix**:
+**Preferred action**:
 ```sql
 -- BigQuery: add clustering to both tables
 ALTER TABLE fact_orders CLUSTER BY customer_id;
@@ -229,8 +227,7 @@ ALTER TABLE dim_customer CLUSTER BY customer_id;
 
 ---
 
-### ❌ Refreshing Materialized Views During Peak Hours
-
+### Schedule Materialized View Refreshes Off-Peak
 **Detection**:
 ```bash
 # PostgreSQL: Find REFRESH MATERIALIZED VIEW in scheduled jobs
@@ -241,7 +238,7 @@ grep -rn "schedule_interval\|cron" dags/ --include="*.py" \
   | grep -E "REFRESH|materialized"
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 # Airflow DAG that runs at 9 AM — peak dashboard hour
 refresh_mv = PostgresOperator(
@@ -250,9 +247,9 @@ refresh_mv = PostgresOperator(
 )
 ```
 
-**Why wrong**: `REFRESH MATERIALIZED VIEW` (non-CONCURRENT) takes an exclusive lock that blocks all queries to the view. Running during 9 AM peak hour blocks dashboards for the duration of the refresh (potentially minutes on large datasets).
+**Why this matters**: `REFRESH MATERIALIZED VIEW` (non-CONCURRENT) takes an exclusive lock that blocks all queries to the view. Running during 9 AM peak hour blocks dashboards for the duration of the refresh (potentially minutes on large datasets).
 
-**Fix**:
+**Preferred action**:
 ```python
 # Schedule during off-peak hours
 schedule_interval="0 4 * * *"  # 4 AM

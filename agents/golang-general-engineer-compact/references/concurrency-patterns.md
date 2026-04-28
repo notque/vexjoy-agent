@@ -91,15 +91,14 @@ func fanOut[T any](ctx context.Context, in <-chan T, n int, fn func(T) T) <-chan
 
 ## Pattern Catalog
 
-### ❌ Goroutine Without Exit Strategy
-
+### Provide an Exit Strategy for Every Goroutine
 **Detection**:
 ```bash
 grep -rn 'go func()' --include="*.go" | grep -v "_test.go"
 rg 'go func\(\)' --type go -l
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 func startBackgroundJob() {
     go func() {
@@ -110,9 +109,9 @@ func startBackgroundJob() {
 }
 ```
 
-**Why wrong**: The goroutine runs until process exit. If called repeatedly (e.g., in tests), goroutines accumulate. `goleak` in tests will catch this; production just slowly runs out of memory.
+**Why this matters**: The goroutine runs until process exit. If called repeatedly (e.g., in tests), goroutines accumulate. `goleak` in tests will catch this; production just slowly runs out of memory.
 
-**Fix**:
+**Preferred action**:
 ```go
 func startBackgroundJob(ctx context.Context) {
     go func() {
@@ -132,15 +131,14 @@ func startBackgroundJob(ctx context.Context) {
 
 ---
 
-### ❌ WaitGroup Add Inside Goroutine (Pre-1.25)
-
+### Call wg.Add Before Spawning the Goroutine
 **Detection**:
 ```bash
 grep -A2 'go func' --include="*.go" -rn . | grep 'wg.Add'
 rg 'go func.*\{' --type go -A 3 | grep 'wg\.Add'
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 for _, item := range items {
     go func(i Item) {
@@ -152,9 +150,9 @@ for _, item := range items {
 wg.Wait()
 ```
 
-**Why wrong**: `wg.Wait()` may return before some goroutines call `wg.Add(1)`. This is a race condition — Go's race detector catches it, but only if the timing is unlucky.
+**Why this matters**: `wg.Wait()` may return before some goroutines call `wg.Add(1)`. This is a race condition — Go's race detector catches it, but only if the timing is unlucky.
 
-**Fix** (Go < 1.25):
+**Preferred action** (Go < 1.25):
 ```go
 for _, item := range items {
     wg.Add(1) // Add BEFORE spawning goroutine
@@ -166,7 +164,7 @@ for _, item := range items {
 wg.Wait()
 ```
 
-**Fix** (Go 1.25+):
+**Preferred action** (Go 1.25+):
 ```go
 for _, item := range items {
     item := item
@@ -177,15 +175,14 @@ wg.Wait()
 
 ---
 
-### ❌ Closing Channel from Multiple Writers
-
+### Designate a Single Channel Close Owner
 **Detection**:
 ```bash
 grep -rn 'close(' --include="*.go" | grep -v "_test.go"
 rg 'close\(ch\)' --type go
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 for _, worker := range workers {
     go func(w Worker) {
@@ -196,9 +193,9 @@ for _, worker := range workers {
 }
 ```
 
-**Why wrong**: Only one goroutine should close a channel. Multiple goroutines closing the same channel causes a runtime panic.
+**Why this matters**: Only one goroutine should close a channel. Multiple goroutines closing the same channel causes a runtime panic.
 
-**Fix**:
+**Preferred action**:
 ```go
 var wg sync.WaitGroup
 for _, worker := range workers {
@@ -214,15 +211,14 @@ go func() {
 
 ---
 
-### ❌ Benchmark Using b.N Loop (Pre-1.24)
-
+### Use b.Loop() for Benchmarks (Go 1.24+)
 **Detection**:
 ```bash
 grep -rn 'for i := 0; i < b.N' --include="*_test.go"
 rg 'i < b\.N' --type go
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 func BenchmarkOp(b *testing.B) {
     for i := 0; i < b.N; i++ { // Old idiom, still works but verbose
@@ -231,7 +227,7 @@ func BenchmarkOp(b *testing.B) {
 }
 ```
 
-**Fix** (Go 1.24+):
+**Preferred action** (Go 1.24+):
 ```go
 func BenchmarkOp(b *testing.B) {
     for b.Loop() { // b.Loop() is idiomatic Go 1.24+

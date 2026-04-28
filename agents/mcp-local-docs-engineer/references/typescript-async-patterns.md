@@ -144,8 +144,7 @@ try {
 
 ## Pattern Catalog
 
-### ❌ Unbounded Promise.all on File List
-
+### Batch File Operations with Bounded Concurrency
 **Detection**:
 ```bash
 # Find Promise.all with .map() on potentially large arrays
@@ -153,7 +152,7 @@ grep -rn 'Promise\.all.*\.map' --include="*.ts" src/
 rg 'Promise\.all\(' --type ts src/ -A2 | grep '\.map'
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 // Reads ALL files simultaneously — EMFILE on large repos
 const docs = await Promise.all(
@@ -161,9 +160,9 @@ const docs = await Promise.all(
 );
 ```
 
-**Why wrong**: `EMFILE: too many open files` at runtime. Default ulimit is 1024 file descriptors on Linux. A repo with 2000 markdown files triggers this. The error appears non-deterministically depending on OS load, making it hard to reproduce locally.
+**Why this matters**: `EMFILE: too many open files` at runtime. Default ulimit is 1024 file descriptors on Linux. A repo with 2000 markdown files triggers this. The error appears non-deterministically depending on OS load, making it hard to reproduce locally.
 
-**Fix**:
+**Preferred action**:
 ```typescript
 // Process in batches of 50
 for (let i = 0; i < allFiles.length; i += 50) {
@@ -175,8 +174,7 @@ for (let i = 0; i < allFiles.length; i += 50) {
 
 ---
 
-### ❌ Floating Promise in Request Handler
-
+### Use async/await in All Request Handlers
 **Detection**:
 ```bash
 grep -rn 'setRequestHandler' --include="*.ts" src/ -A10 | grep -v 'async\|await\|return'
@@ -184,7 +182,7 @@ grep -rn 'setRequestHandler' --include="*.ts" src/ -A10 | grep -v 'async\|await\
 rg 'setRequestHandler.*\{' --type ts src/ -A5 | grep '^\s*[a-zA-Z].*\(\)' | grep -v 'await'
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 server.setRequestHandler(CallToolRequestSchema, (request) => {
   // Not async, not returning promise properly
@@ -195,9 +193,9 @@ server.setRequestHandler(CallToolRequestSchema, (request) => {
 });
 ```
 
-**Why wrong**: The handler returns `undefined` immediately. The MCP framework sends an empty/null response to the client. The `.then()` callback runs later and its return value is discarded. The client receives a malformed response and may log it as a server error.
+**Why this matters**: The handler returns `undefined` immediately. The MCP framework sends an empty/null response to the client. The `.then()` callback runs later and its return value is discarded. The client receives a malformed response and may log it as a server error.
 
-**Fix**:
+**Preferred action**:
 ```typescript
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const results = await this.searchIndex(request.params.arguments?.query as string);
@@ -207,15 +205,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 ---
 
-### ❌ Swallowing Errors in indexDocs
-
+### Log and Count Indexing Failures
 **Detection**:
 ```bash
 grep -rn 'catch.*{}' --include="*.ts" src/
 grep -rn 'catch.*return\s*$\|catch.*return;\s*$' --include="*.ts" src/
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 async indexDocs(): Promise<void> {
   const files = await glob('**/*.md', { cwd: this.docsPath });
@@ -229,9 +226,9 @@ async indexDocs(): Promise<void> {
 }
 ```
 
-**Why wrong**: Silent failures make debugging impossible. If 50% of files fail to index, the server starts with half the documentation. No error appears in logs. Users get incomplete results with no indication of why.
+**Why this matters**: Silent failures make debugging impossible. If 50% of files fail to index, the server starts with half the documentation. No error appears in logs. Users get incomplete results with no indication of why.
 
-**Fix**:
+**Preferred action**:
 ```typescript
 let failCount = 0;
 await Promise.allSettled(files.map(async (f) => {

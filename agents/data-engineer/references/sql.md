@@ -155,8 +155,7 @@ GROUP BY order_id, customer_id
 
 ## Pattern Catalog
 
-### ❌ Non-Idempotent INSERT Without Deduplication
-
+### Use MERGE or ON CONFLICT for Idempotent Inserts
 **Detection**:
 ```sql
 -- Review pipeline SQL for INSERT without ON CONFLICT or MERGE
@@ -171,7 +170,7 @@ grep -rn "INSERT INTO" pipelines/ dbt/ sql/ --include="*.sql" \
 rg 'INSERT INTO \w+ SELECT' --type sql | grep -v "ON CONFLICT"
 ```
 
-**What it looks like**:
+**Signal**:
 ```sql
 -- BROKEN: Creates duplicates on every pipeline re-run
 INSERT INTO fact_orders (order_id, amount, created_at)
@@ -180,29 +179,28 @@ FROM staging_orders
 GROUP BY order_id, created_at;
 ```
 
-**Why wrong**: Re-running this (after a failure, for a backfill, or due to a bug) adds duplicate rows. Aggregations on `fact_orders` will double-count, tripling the error with each re-run. Recovery requires manually deleting the partition and re-running.
+**Why this matters**: Re-running this (after a failure, for a backfill, or due to a bug) adds duplicate rows. Aggregations on `fact_orders` will double-count, tripling the error with each re-run. Recovery requires manually deleting the partition and re-running.
 
-**Fix**: Use MERGE or INSERT ON CONFLICT as shown above.
+**Preferred action**: Use MERGE or INSERT ON CONFLICT as shown above.
 
 ---
 
-### ❌ SELECT * in Pipeline Transforms
-
+### Use Explicit Column Lists in Pipeline SQL
 **Detection**:
 ```bash
 grep -rn "SELECT \*" models/ pipelines/ sql/ --include="*.sql"
 rg 'SELECT \*' --type sql
 ```
 
-**What it looks like**:
+**Signal**:
 ```sql
 -- Staging model that passes through everything
 SELECT * FROM raw.orders
 ```
 
-**Why wrong**: When the source schema adds a column, the staging model now passes that column downstream — potentially breaking downstream models that don't expect it, or silently including PII that shouldn't flow through the pipeline.
+**Why this matters**: When the source schema adds a column, the staging model now passes that column downstream — potentially breaking downstream models that don't expect it, or silently including PII that shouldn't flow through the pipeline.
 
-**Fix**:
+**Preferred action**:
 ```sql
 -- Explicit column selection — schema changes are opt-in
 SELECT
@@ -219,8 +217,7 @@ FROM raw.orders
 
 ---
 
-### ❌ Hardcoded Dates in Pipeline SQL
-
+### Parameterize All Date Values in Pipeline SQL
 **Detection**:
 ```bash
 # Find hardcoded date literals in SQL pipeline files
@@ -230,7 +227,7 @@ grep -rn "WHERE.*[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}" pipelines/ sql/ --include="*.
 rg "'\d{4}-\d{2}-\d{2}'" --type sql | grep -v "#"
 ```
 
-**What it looks like**:
+**Signal**:
 ```sql
 -- Can't backfill, can't test, breaks next day
 INSERT INTO fact_orders
@@ -238,9 +235,9 @@ SELECT * FROM staging_orders
 WHERE DATE(created_at) = '2026-04-04'  -- hardcoded!
 ```
 
-**Why wrong**: This pipeline can only run for one specific date. Backfilling requires manual edits. Testing requires changing the date. CI runs with a hardcoded date will eventually fail when the date passes.
+**Why this matters**: This pipeline can only run for one specific date. Backfilling requires manual edits. Testing requires changing the date. CI runs with a hardcoded date will eventually fail when the date passes.
 
-**Fix**:
+**Preferred action**:
 ```sql
 -- Parameterized (Airflow Jinja templating)
 WHERE DATE(created_at) = '{{ ds }}'

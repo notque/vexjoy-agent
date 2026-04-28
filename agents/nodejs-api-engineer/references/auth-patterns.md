@@ -147,15 +147,14 @@ export function verifyWebhookSignature(
 
 ## Pattern Catalog
 
-### ❌ Using jwt.decode() Instead of jwt.verify()
-
+### Always Use jwt.verify() with Algorithm Pinning
 **Detection**:
 ```bash
 grep -rn 'jwt\.decode(' --include="*.ts" --include="*.js" src/
 rg 'jwt\.decode\(' --type ts src/
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 // "decode" sounds like "verify" — it isn't
 const payload = jwt.decode(req.headers.authorization?.split(' ')[1] ?? '');
@@ -165,14 +164,13 @@ if (payload && payload.sub) {
 }
 ```
 
-**Why wrong**: `jwt.decode()` does NOT verify the signature. Any attacker can craft a token with any `sub` value by base64-encoding a JSON payload. Authentication is completely bypassed.
+**Why this matters**: `jwt.decode()` does NOT verify the signature. Any attacker can craft a token with any `sub` value by base64-encoding a JSON payload. Authentication is completely bypassed.
 
-**Fix**: Always use `jwt.verify()` with `algorithms` specified.
+**Preferred action**: Always use `jwt.verify()` with `algorithms` specified.
 
 ---
 
-### ❌ Timing-Based Username Enumeration
-
+### Use Constant-Time Auth Responses
 **Detection**:
 ```bash
 grep -rn 'return.*null\|return.*false' --include="*.ts" src/auth
@@ -180,7 +178,7 @@ grep -rn 'return.*null\|return.*false' --include="*.ts" src/auth
 grep -rn 'findUser\|findByEmail' --include="*.ts" src/ -A10 | grep -v 'compare\|bcrypt'
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 async function login(email: string, password: string) {
   const user = await db.users.findByEmail(email);
@@ -195,9 +193,9 @@ async function login(email: string, password: string) {
 }
 ```
 
-**Why wrong**: When user doesn't exist, the response is ~1ms (DB miss). When user exists but password is wrong, response is ~100ms (bcrypt). Attackers enumerate valid email addresses by measuring response time differences.
+**Why this matters**: When user doesn't exist, the response is ~1ms (DB miss). When user exists but password is wrong, response is ~100ms (bcrypt). Attackers enumerate valid email addresses by measuring response time differences.
 
-**Fix**:
+**Preferred action**:
 ```typescript
 async function login(email: string, password: string) {
   const user = await db.users.findByEmail(email);
@@ -218,8 +216,7 @@ async function login(email: string, password: string) {
 
 ---
 
-### ❌ Long-Lived Access Tokens
-
+### Use Short-Lived Access Tokens with Refresh
 **Detection**:
 ```bash
 grep -rn 'expiresIn' --include="*.ts" src/
@@ -227,7 +224,7 @@ grep -rn 'expiresIn' --include="*.ts" src/
 grep -rn "expiresIn.*['\"].*[0-9][dw]\|expiresIn.*3600[0-9]" --include="*.ts" src/
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 const token = jwt.sign(
   { sub: userId },
@@ -236,22 +233,21 @@ const token = jwt.sign(
 );
 ```
 
-**Why wrong**: A 7-day access token means a stolen token gives 7 days of unauthorized access. With no server-side revocation on logout, all active sessions for a user remain valid even after a password change.
+**Why this matters**: A 7-day access token means a stolen token gives 7 days of unauthorized access. With no server-side revocation on logout, all active sessions for a user remain valid even after a password change.
 
-**Fix**: `expiresIn: '15m'` for access tokens + `expiresIn: '7d'` for refresh tokens. Implement refresh token rotation and revocation in Redis.
+**Preferred action**: `expiresIn: '15m'` for access tokens + `expiresIn: '7d'` for refresh tokens. Implement refresh token rotation and revocation in Redis.
 
 ---
 
-### ❌ Storing Refresh Tokens in localStorage
-
+### Store Refresh Tokens in httpOnly Cookies
 **Detection**: This is a frontend anti-pattern but confirm with client team.
 ```bash
 grep -rn 'localStorage.*refresh\|localStorage.*token' --include="*.ts" --include="*.tsx" src/
 ```
 
-**Why wrong**: `localStorage` is accessible to any JavaScript running on the page, including XSS-injected scripts. Refresh tokens in localStorage are stolen by any XSS vulnerability.
+**Why this matters**: `localStorage` is accessible to any JavaScript running on the page, including XSS-injected scripts. Refresh tokens in localStorage are stolen by any XSS vulnerability.
 
-**Fix**: `httpOnly` cookies for refresh tokens — inaccessible to JavaScript:
+**Preferred action**: `httpOnly` cookies for refresh tokens — inaccessible to JavaScript:
 ```typescript
 res.cookie('refreshToken', refreshToken, {
   httpOnly: true,    // Not accessible via document.cookie

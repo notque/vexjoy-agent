@@ -114,23 +114,22 @@ onLCP((metric) => {
 
 ## Pattern Catalog
 
-### ❌ Using FID Instead of INP in New Code
-
+### Use INP for Interaction Responsiveness (web-vitals 3.0+)
 **Detection**:
 ```bash
 grep -rn 'getFID\|onFID\|FID' --include="*.ts" --include="*.tsx" --include="*.js"
 rg 'getFID|onFID' --type ts --type js
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 import { getFID } from 'web-vitals' // deprecated in 3.0, removed in 3.5+
 getFID(sendToAnalytics)
 ```
 
-**Why wrong**: FID was removed from web-vitals 3.0. It only captures the *first* interaction delay, missing the broader picture of all interactions. Google replaced it with INP for Core Web Vitals in March 2024. Code using `getFID` silently does nothing on web-vitals 3.0+.
+**Why this matters**: FID was removed from web-vitals 3.0. It only captures the *first* interaction delay, missing the broader picture of all interactions. Google replaced it with INP for Core Web Vitals in March 2024. Code using `getFID` silently does nothing on web-vitals 3.0+.
 
-**Fix**:
+**Preferred action**:
 ```typescript
 import { onINP } from 'web-vitals'
 onINP(sendToAnalytics, { reportAllChanges: true })
@@ -140,15 +139,14 @@ onINP(sendToAnalytics, { reportAllChanges: true })
 
 ---
 
-### ❌ Using `fetch()` Instead of `sendBeacon()` for Metric Reporting
-
+### Use sendBeacon() for Metric Reporting
 **Detection**:
 ```bash
 grep -rn "fetch.*vitals\|fetch.*analytics\|fetch.*metrics" --include="*.ts" --include="*.tsx"
 rg "fetch\(" --type ts -A 2 | grep -A 2 "vitals\|metric\|lcp\|cls\|inp"
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 function sendToAnalytics(metric) {
   fetch('/api/vitals', {
@@ -158,9 +156,9 @@ function sendToAnalytics(metric) {
 }
 ```
 
-**Why wrong**: `fetch()` calls initiated during page unload are cancelled by the browser. Metrics like CLS and INP report on page unload — fetch-based reporting loses 20-40% of metric events in production. The browser kills in-flight fetch requests when the user navigates away.
+**Why this matters**: `fetch()` calls initiated during page unload are cancelled by the browser. Metrics like CLS and INP report on page unload — fetch-based reporting loses 20-40% of metric events in production. The browser kills in-flight fetch requests when the user navigates away.
 
-**Fix**:
+**Preferred action**:
 ```typescript
 function sendToAnalytics(metric) {
   // sendBeacon is fire-and-forget: survives page unload
@@ -178,22 +176,21 @@ function sendToAnalytics(metric) {
 
 ---
 
-### ❌ Blocking Metric Reporting in the Critical Path
-
+### Defer Metric Setup After First Paint
 **Detection**:
 ```bash
 grep -rn "await.*vitals\|vitals.*await\|onLCP.*await" --include="*.ts" --include="*.tsx"
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 // In _app.tsx or layout.tsx
 await setupVitalsMonitoring() // Blocks rendering
 ```
 
-**Why wrong**: Metric setup code in the render critical path adds to LCP. Vitals measurement is observational — it should never affect what it's measuring.
+**Why this matters**: Metric setup code in the render critical path adds to LCP. Vitals measurement is observational — it should never affect what it's measuring.
 
-**Fix**:
+**Preferred action**:
 ```typescript
 // Use useEffect or defer to after first paint
 useEffect(() => {

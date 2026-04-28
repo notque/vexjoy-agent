@@ -112,20 +112,20 @@ Common e-commerce errors. See [error-catalog.md](error-catalog.md) for comprehen
 
 Common e-commerce mistakes and corrections. See [anti-patterns.md](anti-patterns.md) for full catalog.
 
-### ❌ Storing Credit Card Data
-**What it looks like**: Saving card numbers in database
-**Why wrong**: PCI compliance violation, security risk
-**✅ Do instead**: Use Stripe tokens exclusively for payment data
+### Use Stripe Tokens for Payment Data
+**Signal**: Saving card numbers in database
+**Why this matters**: PCI compliance violation, security risk
+**Preferred action**: Use Stripe tokens exclusively for payment data
 
-### ❌ Client-Side Price Calculation
-**What it looks like**: Computing total in React component
-**Why wrong**: Prices can be manipulated by client
-**✅ Do instead**: Calculate prices server-side, validate in API route
+### Calculate Prices Server-Side
+**Signal**: Computing total in React component
+**Why this matters**: Prices can be manipulated by client
+**Preferred action**: Calculate prices server-side, validate in API route
 
-### ❌ No Inventory Validation
-**What it looks like**: Creating orders without checking stock
-**Why wrong**: Overselling, disappointed customers
-**✅ Do instead**: Validate stock in transaction before order creation
+### Validate Stock in Transaction Before Order Creation
+**Signal**: Creating orders without checking stock
+**Why this matters**: Overselling, disappointed customers
+**Preferred action**: Validate stock in transaction before order creation
 
 ## Anti-Rationalization
 

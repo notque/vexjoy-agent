@@ -129,8 +129,7 @@ The most common Ansible anti-pattern is using `command` or `shell` when an idemp
 
 ## Pattern Catalog
 
-### ❌ Using `shell` for Package Management
-
+### Use Package Modules for Installation
 **Detection**:
 ```bash
 # Find shell/command used for package installation
@@ -140,7 +139,7 @@ grep -rn "command:\|shell:" playbooks/ roles/ \
 rg -t yaml '(command|shell):.*\b(apt-get|yum|dnf|pip)\b' roles/ playbooks/
 ```
 
-**What it looks like**:
+**Signal**:
 ```yaml
 - name: Install nginx
   shell: apt-get install -y nginx
@@ -149,9 +148,9 @@ rg -t yaml '(command|shell):.*\b(apt-get|yum|dnf|pip)\b' roles/ playbooks/
   command: yum update -y
 ```
 
-**Why wrong**: `shell`/`command` always report `changed` regardless of whether nginx was already installed. Running twice installs twice (or errors). No change tracking. Breaks `--check` mode (would show false changes).
+**Why this matters**: `shell`/`command` always report `changed` regardless of whether nginx was already installed. Running twice installs twice (or errors). No change tracking. Breaks `--check` mode (would show false changes).
 
-**Fix**:
+**Preferred action**:
 ```yaml
 - name: Install nginx
   ansible.builtin.apt:
@@ -163,8 +162,7 @@ rg -t yaml '(command|shell):.*\b(apt-get|yum|dnf|pip)\b' roles/ playbooks/
 
 ---
 
-### ❌ Using `command: systemctl` Instead of `systemd` Module
-
+### Use the systemd Module for Service Management
 **Detection**:
 ```bash
 grep -rn "command:\|shell:" roles/ playbooks/ \
@@ -173,7 +171,7 @@ grep -rn "command:\|shell:" roles/ playbooks/ \
 rg -t yaml '(command|shell):.*systemctl' roles/ playbooks/
 ```
 
-**What it looks like**:
+**Signal**:
 ```yaml
 - name: Start nginx
   command: systemctl start nginx
@@ -182,9 +180,9 @@ rg -t yaml '(command|shell):.*systemctl' roles/ playbooks/
   shell: systemctl enable nginx
 ```
 
-**Why wrong**: Doesn't report the service state as a change properly. Can't use `--check` mode (would actually run `systemctl`). Doesn't integrate with handlers. Two tasks when one suffices.
+**Why this matters**: Doesn't report the service state as a change properly. Can't use `--check` mode (would actually run `systemctl`). Doesn't integrate with handlers. Two tasks when one suffices.
 
-**Fix**:
+**Preferred action**:
 ```yaml
 - name: Start and enable nginx
   ansible.builtin.systemd:
@@ -195,8 +193,7 @@ rg -t yaml '(command|shell):.*systemctl' roles/ playbooks/
 
 ---
 
-### ❌ Using `copy` for Templated Content
-
+### Use template Module for Dynamic Content
 **Detection**:
 ```bash
 # Find copy tasks that use variables in src
@@ -208,7 +205,7 @@ grep -rn "copy:" roles/ playbooks/ -A3 \
   | grep "src:.*\.conf\|src:.*\.cfg\|src:.*\.ini"
 ```
 
-**What it looks like**:
+**Signal**:
 ```yaml
 - name: Copy nginx config
   ansible.builtin.copy:
@@ -217,9 +214,9 @@ grep -rn "copy:" roles/ playbooks/ -A3 \
     # But the file contains: listen {{ nginx_port }};  ← variable!
 ```
 
-**Why wrong**: `copy` sends the file verbatim — Jinja2 variables are NOT evaluated. The destination file will contain literal `{{ nginx_port }}` text, causing nginx to fail to parse it.
+**Why this matters**: `copy` sends the file verbatim — Jinja2 variables are NOT evaluated. The destination file will contain literal `{{ nginx_port }}` text, causing nginx to fail to parse it.
 
-**Fix**:
+**Preferred action**:
 ```yaml
 - name: Deploy nginx config
   ansible.builtin.template:

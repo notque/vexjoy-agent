@@ -356,15 +356,14 @@ export class HealthBar extends Container {
 
 ## Pattern Catalog
 
-### ❌ Creating New PIXI.Texture Per Frame
-
+### Pre-load Textures and Pool Sprites
 **Detection**:
 ```bash
 grep -rn "new PIXI\.Texture\|Texture\.from\|RenderTexture\.create" --include="*.ts" --include="*.js"
 rg "useTick|Ticker\.shared" --type ts -A 20 | grep "Texture"
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 app.ticker.add(() => {
   const texture = Texture.from('spark_' + Math.floor(Math.random() * 4)); // BAD
@@ -373,9 +372,9 @@ app.ticker.add(() => {
 });
 ```
 
-**Why wrong**: Each frame adds a sprite with uncleaned GPU texture references. After 60 seconds at 60fps: 3600 leaked sprites, visible GC stutter.
+**Why this matters**: Each frame adds a sprite with uncleaned GPU texture references. After 60 seconds at 60fps: 3600 leaked sprites, visible GC stutter.
 
-**Fix**: Pre-load textures array, pool sprites:
+**Preferred action**: Pre-load textures array, pool sprites:
 ```typescript
 const textures = ['spark_0', 'spark_1', 'spark_2', 'spark_3'].map(k => Texture.from(k));
 // Use object pool pattern — never create sprites in ticker
@@ -383,24 +382,23 @@ const textures = ['spark_0', 'spark_1', 'spark_2', 'spark_3'].map(k => Texture.f
 
 ---
 
-### ❌ Applying Filters to Individual Sprites Instead of Containers
-
+### Apply Filters to Parent Containers
 **Detection**:
 ```bash
 grep -rn "\.filters\s*=\s*\[" --include="*.ts" --include="*.js"
 rg "\.filters\s*=" --type ts
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 sprites.forEach(sprite => {
   sprite.filters = [new BlurFilter({ strength: 4 })]; // BAD: N filter passes per frame
 });
 ```
 
-**Why wrong**: Each filter on a Sprite triggers one render-to-texture pass. 20 sprites = 20 extra render passes per frame = 20fps drop on mid-range mobile.
+**Why this matters**: Each filter on a Sprite triggers one render-to-texture pass. 20 sprites = 20 extra render passes per frame = 20fps drop on mid-range mobile.
 
-**Fix**: Apply filters to a parent Container:
+**Preferred action**: Apply filters to a parent Container:
 ```typescript
 const entityContainer = new Container();
 entityContainer.filters = [new BlurFilter({ strength: 4 })]; // one pass for all
