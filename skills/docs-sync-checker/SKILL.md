@@ -18,6 +18,9 @@ routing:
     - "documentation drift"
     - "README outdated"
   category: documentation
+  pairs_with:
+    - generate-claudemd
+    - codebase-overview
 ---
 
 # Documentation Sync Checker Skill

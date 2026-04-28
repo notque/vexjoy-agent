@@ -21,6 +21,9 @@ routing:
     - "defense in depth"
     - "final verification"
   category: process
+  pairs_with:
+    - systematic-code-review
+    - with-anti-rationalization
 ---
 
 # Verification Before Completion Skill

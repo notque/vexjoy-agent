@@ -19,6 +19,9 @@ routing:
     - "background automation"
     - "recurring agent"
   category: process
+  pairs_with:
+    - cron-job-auditor
+    - shell-process-patterns
 ---
 
 # Headless Cron Creator Skill

@@ -13,6 +13,9 @@ routing:
     - "OOMKilled"
     - "pod pending"
   category: kubernetes
+  pairs_with:
+    - kubernetes-security
+    - service-health-check
 ---
 
 # Kubernetes Debugging Skill

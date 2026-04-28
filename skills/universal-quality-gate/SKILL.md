@@ -15,6 +15,9 @@ routing:
     - "code quality check"
     - "language-agnostic lint"
   category: code-quality
+  pairs_with:
+    - code-linting
+    - verification-before-completion
 ---
 
 # Universal Quality Gate Skill

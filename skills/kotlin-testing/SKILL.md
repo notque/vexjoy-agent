@@ -12,6 +12,9 @@ routing:
     - "junit 5 kotlin"
     - "kotlin test dispatcher"
   category: kotlin
+  pairs_with:
+    - kotlin-coroutines
+    - test-driven-development
 ---
 
 # Kotlin Testing Patterns

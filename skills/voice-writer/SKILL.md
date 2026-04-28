@@ -28,6 +28,11 @@ routing:
     - "blog post voice"
     - "content pipeline"
   category: voice
+  pairs_with:
+    - voice-validator
+    - anti-ai-editor
+    - joy-check
+    - voice-feynman
 ---
 
 # Voice Writer

@@ -23,6 +23,9 @@ routing:
     - "FABRIK"
     - "skeletal animation data"
   category: game-animation
+  pairs_with:
+    - game-sprite-pipeline
+    - phaser-gamedev
   agents:
     - rive-skeletal-animator
     - pixijs-combat-renderer

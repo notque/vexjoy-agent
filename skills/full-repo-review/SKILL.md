@@ -19,7 +19,8 @@ routing:
     - review all files
     - full codebase review
   pairs_with:
-    - comprehensive-review
+    - systematic-code-review
+    - parallel-code-review
   complexity: Medium
   category: analysis
 ---

@@ -19,6 +19,10 @@ routing:
     - "voice fidelity"
     - "writing style check"
   category: voice
+  pairs_with:
+    - voice-writer
+    - anti-ai-editor
+    - joy-check
 ---
 
 # Voice Validator Skill

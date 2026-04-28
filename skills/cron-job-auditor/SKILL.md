@@ -15,6 +15,9 @@ routing:
     - "cron reliability"
     - "scheduled task safety"
   category: infrastructure
+  pairs_with:
+    - shell-process-patterns
+    - headless-cron-creator
 ---
 
 # Cron Job Auditor Skill

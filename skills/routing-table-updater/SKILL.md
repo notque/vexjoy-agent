@@ -19,6 +19,9 @@ routing:
     - "rebuild routing index"
     - "routing drift"
   category: meta-tooling
+  pairs_with:
+    - toolkit-evolution
+    - generate-claudemd
 ---
 
 # Routing Table Updater Skill

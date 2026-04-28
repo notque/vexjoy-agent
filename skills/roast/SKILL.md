@@ -20,6 +20,9 @@ routing:
     - "stress test this idea"
     - "poke holes in this"
   category: analysis
+  pairs_with:
+    - multi-persona-critique
+    - systematic-code-review
 ---
 
 # Roast: Devil's Advocate Analysis

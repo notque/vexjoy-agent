@@ -46,7 +46,6 @@ routing:
   pairs_with:
     - workflow
     - subagent-driven-development
-    - pr-pipeline
     - pr-workflow
     - verification-before-completion
     - universal-quality-gate

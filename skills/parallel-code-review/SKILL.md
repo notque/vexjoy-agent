@@ -16,6 +16,9 @@ routing:
     - "multi-reviewer"
     - "concurrent review"
   category: code-review
+  pairs_with:
+    - systematic-code-review
+    - verification-before-completion
 ---
 
 # Parallel Code Review Skill

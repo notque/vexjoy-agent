@@ -17,6 +17,9 @@ routing:
     - "I am stuck"
     - "toolkit help"
   category: meta-tooling
+  pairs_with:
+    - workflow
+    - do
 ---
 
 # Workflow Help Skill

@@ -20,6 +20,10 @@ routing:
     - "remove AI voice"
     - "humanize text"
   category: content-creation
+  pairs_with:
+    - voice-writer
+    - voice-validator
+    - joy-check
 ---
 
 # Anti-AI Editor

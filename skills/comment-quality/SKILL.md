@@ -18,6 +18,9 @@ routing:
     - "stale comments"
     - "outdated comment"
   category: code-quality
+  pairs_with:
+    - code-cleanup
+    - systematic-code-review
 ---
 
 # Comment Quality Skill

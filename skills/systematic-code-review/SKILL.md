@@ -16,6 +16,10 @@ routing:
     - "review methodology"
     - "comprehensive review"
   category: code-review
+  pairs_with:
+    - forensics
+    - verification-before-completion
+    - parallel-code-review
 ---
 
 # Systematic Code Review Skill

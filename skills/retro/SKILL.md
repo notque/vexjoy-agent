@@ -17,6 +17,9 @@ routing:
     - "learning stats"
     - "search learnings"
   category: meta-tooling
+  pairs_with:
+    - learn
+    - auto-dream
 ---
 
 # Retro Knowledge Skill

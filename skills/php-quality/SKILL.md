@@ -12,6 +12,9 @@ routing:
     - "phpstan"
     - "php-cs-fixer"
   category: php
+  pairs_with:
+    - php-testing
+    - code-linting
 ---
 
 # PHP Quality Skill

@@ -24,6 +24,9 @@ routing:
     - "check python"
     - "pre-commit check"
   category: code-quality
+  pairs_with:
+    - code-linting
+    - test-driven-development
 ---
 
 # Python Quality Gate Skill

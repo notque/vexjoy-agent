@@ -1,4 +1,8 @@
 ---
+  pairs_with:
+    - voice-writer
+    - voice-validator
+    - anti-ai-editor
 name: voice-feynman
 user-invocable: false
 allowed-tools:

@@ -20,6 +20,9 @@ routing:
     - "pattern frequency"
     - "structural metrics"
   category: analysis
+  pairs_with:
+    - codebase-overview
+    - go-patterns
 ---
 
 # Codebase Analyzer Skill

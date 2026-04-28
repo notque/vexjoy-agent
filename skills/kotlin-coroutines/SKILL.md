@@ -13,6 +13,8 @@ routing:
     - "suspend function"
     - "structured concurrency kotlin"
   category: kotlin
+  pairs_with:
+    - kotlin-testing
 ---
 
 # Kotlin Coroutines Patterns

@@ -19,6 +19,9 @@ routing:
     - "optimize description"
     - "run autoresearch"
   category: meta-tooling
+  pairs_with:
+    - agent-evaluation
+    - skill-eval
 ---
 
 # Agent Comparison Skill

@@ -12,6 +12,9 @@ routing:
     - "pod security policy"
     - "network policy"
   category: kubernetes
+  pairs_with:
+    - kubernetes-debugging
+    - cobalt-core
 ---
 
 # Kubernetes Security Skill

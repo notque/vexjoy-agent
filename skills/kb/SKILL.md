@@ -34,6 +34,9 @@ routing:
     - "kb consistency"
   category: research
   complexity: medium
+  pairs_with:
+    - research-pipeline
+    - topic-brainstormer
 ---
 
 # KB Skill

@@ -113,7 +113,8 @@
         "programming rules"
       ],
       "pairs_with": [
-        "github-profile-rules"
+        "codebase-analyzer",
+        "generate-claudemd"
       ],
       "complexity": "Medium",
       "category": "meta"
@@ -340,7 +341,6 @@
         "plugin schema"
       ],
       "pairs_with": [
-        "perses-onboard",
         "perses",
         "golang-general-engineer",
         "typescript-frontend-engineer",
@@ -796,11 +796,11 @@
         "apply retro"
       ],
       "pairs_with": [
-        "system-upgrade",
+        "toolkit-evolution",
         "agent-evaluation",
         "codebase-analyzer",
         "routing-table-updater",
-        "pr-pipeline"
+        "pr-workflow"
       ],
       "complexity": "Complex",
       "category": "meta"

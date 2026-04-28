@@ -10,7 +10,8 @@ routing:
     - github conventions
     - programming rules
   pairs_with:
-    - workflow
+    - codebase-analyzer
+    - generate-claudemd
   complexity: Medium
   category: meta
 allowed-tools:

@@ -14,6 +14,8 @@ routing:
     - "Bluesky feed"
     - "bsky"
   category: research
+  pairs_with:
+    - content-engine
 ---
 
 # Bluesky Reader Skill

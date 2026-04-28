@@ -31,6 +31,10 @@ routing:
     - "remove dead code"
     - "find unused"
   category: code-quality
+  pairs_with:
+    - code-linting
+    - universal-quality-gate
+    - comment-quality
 ---
 
 # Code Cleanup Skill

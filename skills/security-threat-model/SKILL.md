@@ -1,6 +1,7 @@
 ---
 name: security-threat-model
 description: "Security threat model: scan toolkit for attack surface, supply-chain risks."
+agent: python-general-engineer
 effort: high
 user-invocable: false
 allowed-tools:
