@@ -95,6 +95,8 @@ In skill instructions, explain jargon if the skill might serve a broad audience.
 ```
 .claude/skills/[skill-name]/
 ├── SKILL.md           # Manifest (YAML + instructions) - REQUIRED, exact case
+├── SPEC.md            # Optional: contract for complex/high-impact skills
+├── EVAL.md            # Optional: repeatable behavior/routing eval cases
 ├── scripts/           # Deterministic operations
 │   ├── main.py       # Primary script
 │   └── validate.py   # Testing/validation
@@ -112,6 +114,36 @@ In skill instructions, explain jargon if the skill might serve a broad audience.
 | Folder name: kebab-case only | `deploy-pipeline` | `Deploy Pipeline`, `deploy_pipeline`, `DeployPipeline` |
 | Name field must match folder | `name: deploy-pipeline` | Mismatched name/folder |
 | No README.md inside skill folder | All docs in `SKILL.md` or `references/` | `README.md` inside skill folder |
+
+### Optional Maintenance Artifacts
+
+Create `SPEC.md` and `EVAL.md` for Complex skills, security-sensitive skills,
+router-facing skills, PR/release workflows, and skills expected to be iterated
+over time. Skip them for small one-purpose skills where the SKILL.md and tests
+already express the contract.
+
+`SPEC.md` should contain:
+- Purpose and scope
+- Non-goals and boundaries
+- Required inputs and outputs
+- Invariants the skill must preserve
+- Dependencies on scripts, agents, references, hooks, or external tools
+- Success criteria
+
+`EVAL.md` should contain:
+- Should-trigger and should-not-trigger prompts
+- Representative execution prompts
+- Expected behavior or output properties
+- Known failure modes
+- Deterministic checks or reviewer rubric
+
+`SPEC.md` and `EVAL.md` are maintenance context, not runtime context. Do not add
+ordinary execution instructions that tell the model to read them. They are loaded
+when creating, evaluating, redesigning, or modifying the skill.
+
+Do not create `SOURCES.md` as a standard artifact. Provenance belongs in docs,
+ADRs, citations, or research artifacts when it matters; it should not become
+default component context.
 
 ### Security Rules
 
