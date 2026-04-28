@@ -171,20 +171,20 @@ git log main..HEAD -p | \
 ## Pattern Catalog
 <!-- no-pair-required: section header introducing paired-pattern subsections below -->
 
-### ❌ Scanning full repo history instead of branch scope
+### Scope All Queries to the Branch Under Investigation
 
 **Detection**:
 ```bash
 git branch --show-current  # if "main" or "master", scope is wrong
 ```
 
-**Why wrong**: `git log --oneline` without `main..HEAD` scoping shows all commits across all history. The stuck loop detector produces false positives on unrelated commits from other branches. Every loop detection query must be scoped to the branch under investigation.
+**Why this matters**: `git log --oneline` without `main..HEAD` scoping shows all commits across all history. The stuck loop detector produces false positives on unrelated commits from other branches. Every loop detection query must be scoped to the branch under investigation.
 
-**Fix**: Always use `git log main..HEAD` or `git log $(git merge-base HEAD main)..HEAD` when the default branch name is uncertain.
+**Preferred action**: Always use `git log main..HEAD` or `git log $(git merge-base HEAD main)..HEAD` when the default branch name is uncertain.
 
 ---
 
-### ❌ Concluding loop from total frequency without checking consecutiveness
+### Verify Consecutive Commit Adjacency Before Assigning Loop Confidence
 
 **Detection**:
 <!-- no-pair-required: false positive - shell comment inside fenced code block; paired with Why wrong and Fix blocks below -->
@@ -195,9 +195,9 @@ git log main..HEAD --reverse --name-only --format="COMMIT %h" | \
 ```
 <!-- no-pair-required: false positive - shell comment inside fenced code block; paired with Why wrong and Fix blocks below -->
 
-**Why wrong**: A file touched 6 times across 60 commits is normal iterative development. Detector 1 confidence requires consecutive appearances, not just count. Reporting High confidence without consecutiveness check produces false positives that erode trust.
+**Why this matters**: A file touched 6 times across 60 commits is normal iterative development. Detector 1 confidence requires consecutive appearances, not just count. Reporting High confidence without consecutiveness check produces false positives that erode trust.
 
-**Fix**: Map file appearances to commit positions. Only assign High confidence when 3+ consecutive commits all contain the same file.
+**Preferred action**: Map file appearances to commit positions. Only assign High confidence when 3+ consecutive commits all contain the same file.
 
 ---
 

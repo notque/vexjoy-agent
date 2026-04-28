@@ -183,7 +183,7 @@ test('OAuth login flow completes', async ({ page }) => {
 
 ## Pattern Catalog
 
-### ❌ UI Login in Every Test
+### Authenticate via API and Reuse storageState
 
 **Detection**:
 ```bash
@@ -191,7 +191,7 @@ grep -rn 'getByTestId.*login\|getByTestId.*password\|getByTestId.*signin' --incl
 rg '(login-email|login-password|login-submit)' --type ts --include="*.spec.ts" -l
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 test.beforeEach(async ({ page }) => {
   await page.goto('/login');
@@ -202,13 +202,13 @@ test.beforeEach(async ({ page }) => {
 });
 ```
 
-**Why wrong**: A 10-test suite with a 3-second login flow spends 30 seconds on login alone. `storageState` eliminates this: authenticate once, reuse the session.
+**Why this matters**: A 10-test suite with a 3-second login flow spends 30 seconds on login alone. `storageState` eliminates this: authenticate once, reuse the session.
 
-**Fix**: Use `globalSetup` with `storageState` (single role) or worker-scoped fixtures (multiple roles). See `playwright-patterns.md` for the single-role pattern.
+**Preferred action**: Use `globalSetup` with `storageState` (single role) or worker-scoped fixtures (multiple roles). See `playwright-patterns.md` for the single-role pattern.
 
 ---
 
-### ❌ Sharing Auth Context Between Roles
+### Use Separate storageState Per Role
 
 **Detection**:
 ```bash
@@ -216,7 +216,7 @@ grep -rn 'storageState' --include="playwright.config.ts" -A 5
 rg 'storageState.*admin.*viewer|storageState.*viewer.*admin' --type ts
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 // playwright.config.ts — wrong: one storageState for all tests
 use: {
@@ -224,9 +224,9 @@ use: {
 },
 ```
 
-**Why wrong**: When tests for different roles share one auth file, they run with the same permissions. An admin-privilege test passes for a viewer because the session is still admin. RBAC bugs go undetected.
+**Why this matters**: When tests for different roles share one auth file, they run with the same permissions. An admin-privilege test passes for a viewer because the session is still admin. RBAC bugs go undetected.
 
-**Fix**: Use per-role `projects` in `playwright.config.ts`:
+**Preferred action**: Use per-role `projects` in `playwright.config.ts`:
 ```typescript
 projects: [
   { name: 'admin-tests', use: { storageState: 'playwright/.auth/admin.json' } },
@@ -237,7 +237,7 @@ projects: [
 
 ---
 
-### ❌ Hardcoded Credentials in Spec Files
+### Load Credentials from Environment Variables
 
 **Detection**:
 ```bash
@@ -245,14 +245,14 @@ grep -rn 'password.*:.*"[^"]\+"\|fill.*"password[^"]*"' --include="*.spec.ts"
 rg '(password|secret|token)\s*[:=]\s*["'"'"'][^"'"'"']+["'"'"']' --type ts --include="*.spec.ts"
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 await page.getByTestId('login-password').fill('MyP@ssw0rd123'); // hardcoded
 ```
 
-**Why wrong**: Credentials in source code appear in git history permanently. They also break when rotated.
+**Why this matters**: Credentials in source code appear in git history permanently. They also break when rotated.
 
-**Fix**:
+**Preferred action**:
 ```typescript
 await page.getByTestId('login-password').fill(process.env.TEST_USER_PASSWORD!);
 ```
@@ -260,7 +260,7 @@ Set `TEST_USER_PASSWORD` in `.env.test` (gitignored) and in CI secrets.
 
 ---
 
-### ❌ Testing Real OAuth Provider Endpoints
+### Mock OAuth Callbacks with page.route
 
 **Detection**:
 ```bash
@@ -268,15 +268,15 @@ grep -rn 'accounts\.google\.com\|github\.com/login/oauth\|login\.microsoftonline
 rg '(google|github|microsoft|auth0)\.com' --type ts --include="*.spec.ts"
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 await page.goto('https://accounts.google.com/o/oauth2/auth?...');
 await page.getByLabel('Email').fill(process.env.GOOGLE_TEST_EMAIL!);
 ```
 
-**Why wrong**: Hits a live external service. Flaky on network issues. Requires a real test account. May trigger bot detection. Rate-limited in CI.
+**Why this matters**: Hits a live external service. Flaky on network issues. Requires a real test account. May trigger bot detection. Rate-limited in CI.
 
-**Fix**: Mock the OAuth callback with `page.route` as shown in the Correct Patterns section.
+**Preferred action**: Mock the OAuth callback with `page.route` as shown in the Correct Patterns section.
 
 ---
 

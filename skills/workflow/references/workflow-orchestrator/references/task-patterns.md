@@ -817,7 +817,7 @@ python3 setup.py sdist && ls dist/
 
 ## Common Verification Mistakes
 
-### ❌ Too Vague
+### Write Specific Verification Commands
 ```json
 {
   "verification": {
@@ -829,7 +829,7 @@ python3 setup.py sdist && ls dist/
 ```
 **Problem**: Only checks existence, not correctness
 
-### ✅ Specific and Meaningful
+### Specific and Meaningful
 ```json
 {
   "verification": {
@@ -840,7 +840,7 @@ python3 setup.py sdist && ls dist/
 }
 ```
 
-### ❌ No Actual Verification
+### Verify with Real Commands
 ```json
 {
   "verification": {
@@ -852,7 +852,7 @@ python3 setup.py sdist && ls dist/
 ```
 **Problem**: Fake verification, always passes
 
-### ✅ Real Verification
+### Real Verification
 ```json
 {
   "verification": {
@@ -863,7 +863,7 @@ python3 setup.py sdist && ls dist/
 }
 ```
 
-### ❌ Too Slow
+### Target Verification to Changed Files
 ```json
 {
   "verification": {
@@ -875,7 +875,7 @@ python3 setup.py sdist && ls dist/
 ```
 **Problem**: May take >2 minutes for large test suites
 
-### ✅ Targeted Verification
+### Targeted Verification
 ```json
 {
   "verification": {

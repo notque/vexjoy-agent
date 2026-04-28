@@ -81,7 +81,7 @@ result = some_func()  # noqa
 
 ## Pattern Catalog
 
-### ❌ Using `== None` / `== True` / `== False` (E711/E712)
+### Use Identity Checks for None and Boolean Comparisons (E711/E712)
 
 **Detection**:
 ```bash
@@ -89,7 +89,7 @@ grep -rn '== None\|== True\|== False\|!= None' --include="*.py"
 rg '(==|!=)\s+(None|True|False)' --type py
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 if result == None:
     return
@@ -99,9 +99,9 @@ if items != None and len(items) == 0:
     return []
 ```
 
-**Why wrong**: `== None` uses equality comparison for an identity check. Works in CPython but `is None` is correct and triggers no E711. `== True` triggers E712 and fails for truthy non-bool values.
+**Why this matters**: `== None` uses equality comparison for an identity check. Works in CPython but `is None` is correct and triggers no E711. `== True` triggers E712 and fails for truthy non-bool values.
 
-**Fix**:
+**Preferred action**:
 ```python
 if result is None:
     return
@@ -113,7 +113,7 @@ if not items:
 
 ---
 
-### ❌ Mutable default argument (B006)
+### Avoid Mutable Default Arguments (B006)
 
 **Detection**:
 ```bash
@@ -121,7 +121,7 @@ rg 'def \w+\([^)]*=\s*(\[\]|\{\}|\(\))' --type py
 grep -rn 'def .*=\s*\[\|def .*=\s*{' --include="*.py"
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 def append_item(item, container=[]):   # B006
     container.append(item)
@@ -132,9 +132,9 @@ def merge_config(opts={}):  # B006
     return opts
 ```
 
-**Why wrong**: Default argument is evaluated once at function definition time. All callers share the same list/dict object. State leaks between calls — a debugging nightmare.
+**Why this matters**: Default argument is evaluated once at function definition time. All callers share the same list/dict object. State leaks between calls — a debugging nightmare.
 
-**Fix**:
+**Preferred action**:
 ```python
 def append_item(item, container=None):
     if container is None:
@@ -145,7 +145,7 @@ def append_item(item, container=None):
 
 ---
 
-### ❌ Deprecated typing generics (UP006/UP007/UP035)
+### Use Modern Type Annotations (UP006/UP007/UP035)
 
 **Detection**:
 ```bash
@@ -153,7 +153,7 @@ grep -rn 'from typing import.*List\|from typing import.*Dict\|from typing import
 rg 'typing\.(List|Dict|Optional|Tuple|Set|FrozenSet)\[' --type py
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 from typing import List, Dict, Optional, Tuple
 
@@ -161,9 +161,9 @@ def process(items: List[str], config: Dict[str, int]) -> Optional[Tuple[int, str
     ...
 ```
 
-**Why wrong**: Python 3.9+ supports `list[str]`, `dict[str, int]` directly. Python 3.10+ supports `str | None` instead of `Optional[str]`. Using old forms in 3.9+ codebases triggers UP006/UP007 and signals pre-3.9 vintage code.
+**Why this matters**: Python 3.9+ supports `list[str]`, `dict[str, int]` directly. Python 3.10+ supports `str | None` instead of `Optional[str]`. Using old forms in 3.9+ codebases triggers UP006/UP007 and signals pre-3.9 vintage code.
 
-**Fix**:
+**Preferred action**:
 ```python
 # Python 3.9+
 def process(items: list[str], config: dict[str, int]) -> tuple[int, str] | None:
@@ -180,7 +180,7 @@ target-version = "py311"
 
 ---
 
-### ❌ Lambda capturing loop variable (B023)
+### Capture Loop Variables by Value in Lambdas (B023)
 
 **Detection**:
 ```bash
@@ -188,7 +188,7 @@ rg 'lambda.*:\s*.*\b\w+\b' --type py -A2 | grep -B2 'for .* in'
 grep -rn 'lambda' --include="*.py"
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 handlers = [lambda x: x + i for i in range(5)]   # all lambdas use i=4
 callbacks = []
@@ -196,9 +196,9 @@ for name in names:
     callbacks.append(lambda: process(name))  # all use final name
 ```
 
-**Why wrong**: Lambda captures the variable by reference, not value. By execution time, the loop variable holds its final value. All lambdas behave identically regardless of which iteration created them.
+**Why this matters**: Lambda captures the variable by reference, not value. By execution time, the loop variable holds its final value. All lambdas behave identically regardless of which iteration created them.
 
-**Fix**:
+**Preferred action**:
 ```python
 handlers = [lambda x, i=i: x + i for i in range(5)]  # default arg captures value
 callbacks = []
@@ -208,7 +208,7 @@ for name in names:
 
 ---
 
-### ❌ Unused imports not cleaned up (F401)
+### Remove Unused Imports (F401)
 
 **Detection**:
 ```bash
@@ -216,16 +216,16 @@ ruff check --select F401 . --config pyproject.toml
 rg '^import |^from .* import' --type py
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 import os       # never used below
 import sys      # never used below
 from pathlib import Path  # used
 ```
 
-**Why wrong**: Dead imports slow startup, confuse readers, and fail CI. Common culprit: imports used in removed code, or imports that were only in type comments.
+**Why this matters**: Dead imports slow startup, confuse readers, and fail CI. Common culprit: imports used in removed code, or imports that were only in type comments.
 
-**Fix**:
+**Preferred action**:
 ```bash
 ruff check --fix --select F401 . --config pyproject.toml
 git diff  # review: --fix can remove imports used in __all__ or TYPE_CHECKING blocks

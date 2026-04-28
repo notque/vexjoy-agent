@@ -219,7 +219,7 @@ git log main..HEAD --reverse --format="%h %s" | grep -iE "(fix|retry)"
 ## Investigation Anti-Patterns
 <!-- no-pair-required: section header introducing paired-pattern subsections below -->
 
-### ❌ Stopping after the first detector fires
+### Run All Five Detectors Regardless of Early Findings
 
 **Detection**:
 <!-- no-pair-required: false positive - comment inside fenced code block; block is paired with Why wrong section below -->
@@ -229,11 +229,11 @@ git log main..HEAD --reverse --format="%h %s" | grep -iE "(fix|retry)"
 ```
 <!-- no-pair-required: false positive - comment inside fenced code block; paired with Why wrong section below -->
 
-**Why wrong**: Causal chains mean the first visible symptom is rarely the root cause. A stuck loop (Detector 1) often causes missing artifacts (Detector 2) and may have been triggered by scope drift (Detector 4). Stopping at the first finding produces a symptom report, not a root cause hypothesis.
+**Why this matters**: Causal chains mean the first visible symptom is rarely the root cause. A stuck loop (Detector 1) often causes missing artifacts (Detector 2) and may have been triggered by scope drift (Detector 4). Stopping at the first finding produces a symptom report, not a root cause hypothesis.
 
 ---
 
-### ❌ Assigning High confidence without verifying consecutiveness
+### Verify Consecutive Adjacency Before High Confidence
 
 **Detection**:
 <!-- no-pair-required: false positive - comment inside fenced code block; block is paired with Why wrong section below -->
@@ -245,7 +245,7 @@ git log main..HEAD --reverse --name-only --format="COMMIT %h" | \
 ```
 <!-- no-pair-required: false positive - shell comment inside fenced code block; this block pairs with Why wrong below -->
 
-**Why wrong**: A file in positions 1, 5, 9 of a 10-commit branch is not a stuck loop — it's iterative development. High confidence Detector 1 requires the same file in positions N, N+1, N+2 (adjacent).
+**Why this matters**: A file in positions 1, 5, 9 of a 10-commit branch is not a stuck loop — it's iterative development. High confidence Detector 1 requires the same file in positions N, N+1, N+2 (adjacent).
 
 ---
 

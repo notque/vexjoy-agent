@@ -395,7 +395,7 @@ const mat = new THREE.ShaderMaterial({
 
 ## Pattern Catalog
 
-### ❌ Recreating ShaderMaterial in Animation Loop
+### Create ShaderMaterial Once, Update Uniforms Per Frame
 
 **Detection**:
 ```bash
@@ -403,7 +403,7 @@ grep -rn "new THREE.ShaderMaterial" --include="*.js" --include="*.ts"
 rg "new THREE\.ShaderMaterial" --type js
 ```
 
-**What it looks like**:
+**Signal**:
 ```javascript
 renderer.setAnimationLoop((time) => {
   // BAD: creates new material every frame — leaks GPU memory
@@ -415,9 +415,9 @@ renderer.setAnimationLoop((time) => {
 });
 ```
 
-**Why wrong**: GPU memory leak. Each new `ShaderMaterial` allocates shader programs on the GPU. After 60 seconds at 60fps, you've allocated 3600 programs that are never freed.
+**Why this matters**: GPU memory leak. Each new `ShaderMaterial` allocates shader programs on the GPU. After 60 seconds at 60fps, you've allocated 3600 programs that are never freed.
 
-**Fix**:
+**Preferred action**:
 ```javascript
 // Create once, update uniform
 const mat = new THREE.ShaderMaterial({ uniforms: { uTime: { value: 0 } }, ... });
@@ -431,7 +431,7 @@ renderer.setAnimationLoop((time) => {
 
 ---
 
-### ❌ Forgetting OutputPass (Washed-Out Colors in r150+)
+### Add OutputPass as Final Composer Pass
 
 **Detection**:
 ```bash
@@ -439,15 +439,15 @@ grep -rn "EffectComposer" --include="*.js" --include="*.ts" -l
 rg "GammaCorrectionShader" --type js
 ```
 
-**What it looks like**:
+**Signal**:
 ```javascript
 // r150+ — GammaCorrectionShader is deprecated, OutputPass is required
 import { GammaCorrectionShader } from 'three/addons/shaders/GammaCorrectionShader.js'; // deprecated r154+
 ```
 
-**Why wrong**: In Three.js r150+, `renderer.outputColorSpace` defaults to `SRGBColorSpace`. Without `OutputPass` at the end of the composer chain, colors appear washed out or double-gamma-corrected.
+**Why this matters**: In Three.js r150+, `renderer.outputColorSpace` defaults to `SRGBColorSpace`. Without `OutputPass` at the end of the composer chain, colors appear washed out or double-gamma-corrected.
 
-**Fix**:
+**Preferred action**:
 ```javascript
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 composer.addPass(new OutputPass()); // always last pass
@@ -457,7 +457,7 @@ composer.addPass(new OutputPass()); // always last pass
 
 ---
 
-### ❌ Using ShaderChunk Injection Without Understanding Side Effects
+### Prefer ShaderMaterial Over onBeforeCompile Patching
 
 **Detection**:
 ```bash
@@ -465,7 +465,7 @@ grep -rn "onBeforeCompile" --include="*.js" --include="*.ts"
 rg "shader\.vertexShader\.replace" --type js
 ```
 
-**What it looks like**:
+**Signal**:
 ```javascript
 material.onBeforeCompile = (shader) => {
   shader.vertexShader = shader.vertexShader.replace(
@@ -475,9 +475,9 @@ material.onBeforeCompile = (shader) => {
 };
 ```
 
-**Why wrong**: `#include` tokens change between Three.js versions. Replacing `<begin_vertex>` in r155 may not match the chunk in r160. The material silently renders incorrectly with no error.
+**Why this matters**: `#include` tokens change between Three.js versions. Replacing `<begin_vertex>` in r155 may not match the chunk in r160. The material silently renders incorrectly with no error.
 
-**Fix**: Use `ShaderMaterial` for custom vertex displacement instead of patching `onBeforeCompile`. Reserve `onBeforeCompile` only for lightweight additions to standard materials (fog, lights) where a custom `ShaderMaterial` would be too verbose.
+**Preferred action**: Use `ShaderMaterial` for custom vertex displacement instead of patching `onBeforeCompile`. Reserve `onBeforeCompile` only for lightweight additions to standard materials (fog, lights) where a custom `ShaderMaterial` would be too verbose.
 
 ---
 
