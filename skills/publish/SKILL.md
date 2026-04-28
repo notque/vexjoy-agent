@@ -10,7 +10,8 @@ description: |
   frontmatter update", "mass edit", "audit links", "broken links", "audit
   images", "alt text check", "audit taxonomy", "fix tags", "merge
   categories", "upload to wordpress", "create wordpress draft", "post to
-  wordpress", or "edit wordpress post".
+  wordpress", "edit wordpress post", "create wp categories", "auto-create
+  categories", "search wp media", or "find existing wordpress image".
 user-invocable: false
 agent: general-purpose
 allowed-tools:
@@ -68,6 +69,15 @@ routing:
     - "edit wordpress post"
     - "update wordpress post"
     - "wordpress media"
+    - "create wp categories"
+    - "auto-create categories"
+    - "create missing categories"
+    - "search wp media"
+    - "search wordpress media"
+    - "search media library"
+    - "find existing wordpress image"
+    - "find existing image"
+    - "reuse existing media"
   category: content-publishing
   complexity: medium
 ---
@@ -89,7 +99,7 @@ Detect the user's intent and load the appropriate reference file:
 | **Link-audit** | "audit links", "find broken links", "link health", "broken links", "dead links" | `${CLAUDE_SKILL_DIR}/references/link-audit.md` |
 | **Image-audit** | "audit images", "check broken images", "image accessibility", "alt text check", "image optimization" | `${CLAUDE_SKILL_DIR}/references/image-audit.md` |
 | **Taxonomy** | "audit taxonomy", "fix tags", "merge categories", "tag cleanup", "category management" | `${CLAUDE_SKILL_DIR}/references/taxonomy.md` |
-| **WordPress-upload** | "upload to wordpress", "create wordpress draft", "post to wordpress", "wordpress draft", "upload article", "upload image to wordpress", "edit wordpress post", "update wordpress post", "wordpress media" | `${CLAUDE_SKILL_DIR}/references/wordpress-upload.md` |
+| **WordPress-upload** | "upload to wordpress", "create wordpress draft", "post to wordpress", "wordpress draft", "upload article", "upload image to wordpress", "edit wordpress post", "update wordpress post", "wordpress media", "create wp categories", "auto-create categories", "create missing categories", "search wp media", "search wordpress media", "search media library", "find existing wordpress image", "find existing image", "reuse existing media" | `${CLAUDE_SKILL_DIR}/references/wordpress-upload.md` |
 
 ## Reference Loading Table
 
@@ -102,7 +112,7 @@ Detect the user's intent and load the appropriate reference file:
 | "audit links", "find broken links", "link health", "broken links", "dead links" | `link-audit.md` | **Link-audit** |
 | "audit images", "check broken images", "image accessibility", "alt text check", "image optimization" | `image-audit.md` | **Image-audit** |
 | "audit taxonomy", "fix tags", "merge categories", "tag cleanup", "category management" | `taxonomy.md` | **Taxonomy** |
-| "upload to wordpress", "create wordpress draft", "post to wordpress", "wordpress draft", "upload article", "upload image to wordpress", "edit wordpress post", "update wordpress post", "wordpress media" | `wordpress-upload.md` | **WordPress-upload** |
+| "upload to wordpress", "create wordpress draft", "post to wordpress", "wordpress draft", "upload article", "upload image to wordpress", "edit wordpress post", "update wordpress post", "wordpress media", "create wp categories", "auto-create categories", "create missing categories", "search wp media", "search wordpress media", "search media library", "find existing wordpress image", "find existing image", "reuse existing media" | `wordpress-upload.md` | **WordPress-upload** |
 
 ## Instructions
 

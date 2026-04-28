@@ -127,6 +127,56 @@ def _get_auth_headers(config: dict[str, str], content_type: str | None = "applic
 # ---------------------------------------------------------------------------
 
 
+def strip_yaml_frontmatter(text: str) -> str:
+    """Strip a leading YAML frontmatter block from markdown text.
+
+    A frontmatter block opens with a line containing only ``---`` (after an
+    optional UTF-8 BOM) and closes with the next line that is exactly ``---``.
+    Anything between those fences is discarded; everything after the closing
+    fence is returned, with leading blank lines stripped.
+
+    No-op cases (input returned verbatim):
+        - Text that does not start with a ``---`` fence line.
+        - Text that opens with ``---`` but never closes (malformed) — a
+          warning is logged to stderr so the caller notices, and the original
+          text is returned so the rendered post still ships rather than crashing.
+
+    Handles both LF and CRLF line endings.
+
+    Args:
+        text: Raw markdown content, possibly with frontmatter.
+
+    Returns:
+        Markdown body with frontmatter removed (or the original text if there
+        is no frontmatter or it is malformed).
+    """
+    # Strip optional UTF-8 BOM only for the leading-fence check; preserve in
+    # output if no frontmatter is present.
+    probe = text.lstrip("﻿")
+    # Normalize line endings for fence detection without mutating return value.
+    # We split on \n and strip trailing \r so CRLF input behaves like LF.
+    lines = probe.split("\n")
+    if not lines or lines[0].rstrip("\r").strip() != "---":
+        return text
+
+    # Find the closing fence line (exactly --- after stripping CR/whitespace).
+    end_idx: int | None = None
+    for i in range(1, len(lines)):
+        if lines[i].rstrip("\r").strip() == "---":
+            end_idx = i
+            break
+
+    if end_idx is None:
+        print(
+            "Warning: content file opens with '---' but no closing '---' fence was found; treating as no frontmatter.",
+            file=sys.stderr,
+        )
+        return text
+
+    body = "\n".join(lines[end_idx + 1 :])
+    return body.lstrip("\n").lstrip("\r\n")
+
+
 def markdown_to_html(markdown_content: str) -> str:
     """Convert markdown to HTML for content updates.
 
@@ -472,7 +522,7 @@ def main() -> int:
         if not file_path.exists():
             print(json.dumps({"status": "error", "error": f"Content file not found: {args.content_file}"}, indent=2))
             return 1
-        content = markdown_to_html(file_path.read_text())
+        content = markdown_to_html(strip_yaml_frontmatter(file_path.read_text()))
 
     result = edit_post(
         config=config,
