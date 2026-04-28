@@ -142,7 +142,7 @@ test('submits form and shows confirmation', async ({ page }) => {
 
 ## Pattern Catalog
 
-### ❌ setTimeout / sleep Delays in Tests
+### Wait for Deterministic Conditions in Tests
 
 **Detection**:
 ```bash
@@ -150,7 +150,7 @@ grep -rn 'setTimeout\|waitForTimeout\|new Promise.*sleep' --include="*.test.ts" 
 rg 'waitForTimeout|page\.waitFor\b' --type ts
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 // BAD: arbitrary delay in RTL
 it('shows result after fetch', async () => {
@@ -164,9 +164,9 @@ await page.waitForTimeout(2000)
 expect(await page.textContent('.result')).toBe('Done')
 ```
 
-**Why wrong**: Arbitrary delays make tests slow on fast machines and flaky on slow ones. If the operation takes 600ms instead of 500ms (CI under load), the test fails. These tests hide timing bugs rather than revealing them.
+**Why this matters**: Arbitrary delays make tests slow on fast machines and flaky on slow ones. If the operation takes 600ms instead of 500ms (CI under load), the test fails. These tests hide timing bugs rather than revealing them.
 
-**Do instead:**
+**Preferred action:**
 ```typescript
 // RTL — wait for actual DOM change
 await screen.findByText(/result/i)
@@ -179,7 +179,7 @@ await expect(page.getByText('Done')).toBeVisible()
 
 ---
 
-### ❌ Un-awaited userEvent Actions (RTL 14+)
+### Await All userEvent Actions (RTL 14+)
 
 **Detection**:
 ```bash
@@ -187,7 +187,7 @@ grep -rn 'user\.' --include="*.test.ts" --include="*.test.tsx" | grep -v 'await 
 rg 'userEvent\.(click|type|clear|selectOptions)\(' --type tsx | grep -v 'await '
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 // BAD: missing await on user actions (RTL 14+ requires await)
 const user = userEvent.setup()
@@ -196,9 +196,9 @@ user.type(input, 'hello')
 expect(screen.getByText(/hello/i)).toBeInTheDocument()
 ```
 
-**Why wrong**: `userEvent.setup()` returns async methods in RTL 14+. Without `await`, the events fire but React state updates haven't processed before assertions run. Test passes inconsistently depending on microtask scheduling.
+**Why this matters**: `userEvent.setup()` returns async methods in RTL 14+. Without `await`, the events fire but React state updates haven't processed before assertions run. Test passes inconsistently depending on microtask scheduling.
 
-**Do instead:**
+**Preferred action:**
 ```typescript
 const user = userEvent.setup()
 await user.click(button)
@@ -210,22 +210,22 @@ await screen.findByText(/hello/i)
 
 ---
 
-### ❌ getBy* After Async Operations
+### Use findBy* After Async Operations
 
 **Detection**:
 ```bash
 rg 'await user\.(click|submit|type)' --type ts -A1 | grep 'getBy'
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 await user.click(screen.getByRole('button', { name: /save/i }))
 expect(screen.getByText(/saved/i)).toBeInTheDocument()  // may not exist yet
 ```
 
-**Why wrong**: `user.click` resolves after the event dispatches, not after React re-renders from async work (API calls, state transitions). The `getByText` assertion runs synchronously and finds the element absent.
+**Why this matters**: `user.click` resolves after the event dispatches, not after React re-renders from async work (API calls, state transitions). The `getByText` assertion runs synchronously and finds the element absent.
 
-**Do instead:**
+**Preferred action:**
 ```typescript
 await user.click(screen.getByRole('button', { name: /save/i }))
 await screen.findByText(/saved/i)   // waits up to 1000ms by default
@@ -233,7 +233,7 @@ await screen.findByText(/saved/i)   // waits up to 1000ms by default
 
 ---
 
-### ❌ MSW Without onUnhandledRequest: 'error'
+### Set onUnhandledRequest: 'error' in MSW
 
 **Detection**:
 ```bash
@@ -241,14 +241,14 @@ grep -rn 'server\.listen' --include="*.ts" --include="*.tsx" | grep -v 'onUnhand
 rg 'setupServer' --type ts -l | xargs rg -L 'onUnhandledRequest'
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 server.listen()  // no onUnhandledRequest — silent network failures
 ```
 
-**Why wrong**: When a component makes an unexpected API call (wrong path, URL typo), MSW passes it through or returns undefined without failing the test. The component renders broken UI, tests assert on something unrelated, and the bug is hidden until production.
+**Why this matters**: When a component makes an unexpected API call (wrong path, URL typo), MSW passes it through or returns undefined without failing the test. The component renders broken UI, tests assert on something unrelated, and the bug is hidden until production.
 
-**Do instead:**
+**Preferred action:**
 ```typescript
 server.listen({ onUnhandledRequest: 'error' })
 // Unexpected requests now throw: "Error: No handler for GET /api/typo"

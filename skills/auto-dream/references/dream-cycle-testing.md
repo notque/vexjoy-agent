@@ -127,7 +127,7 @@ HASH=$(echo "/home/feedgen/claude-code-toolkit" | md5sum | cut -c1-8)
 ## Pattern Catalog
 <!-- no-pair-required: section heading only, paired Do instead blocks appear in each sub-entry below -->
 
-### ❌ Running `--execute` without reading the dry-run report first
+### Read Dry-Run Report Before Running --execute
 
 **Detection**:
 ```bash
@@ -138,16 +138,16 @@ grep -l 'execute' cron-logs/auto-dream/run-*.log | while read f; do
 done
 ```
 
-**What it looks like**:
+**Signal**:
 ```bash
 ./scripts/auto-dream-cron.sh --execute  # What will it consolidate? Unknown.
 ```
 
-**Why wrong**: The dream cycle can archive active memories if it mis-classifies them as stale. Without reading the dry-run report, you don't know which memories are flagged for archiving until they're already moved. New memory files that haven't appeared in recent sessions yet may have all three staleness signals trip at once.
+**Why this matters**: The dream cycle can archive active memories if it mis-classifies them as stale. Without reading the dry-run report, you don't know which memories are flagged for archiving until they're already moved. New memory files that haven't appeared in recent sessions yet may have all three staleness signals trip at once.
 
-**Do instead**: Always run the cron script without `--execute` first and read `~/.claude/state/last-dream.md` to confirm which memories would be consolidated or archived. Only pass `--execute` once the report shows the expected operations.
+**Preferred action**: Always run the cron script without `--execute` first and read `~/.claude/state/last-dream.md` to confirm which memories would be consolidated or archived. Only pass `--execute` once the report shows the expected operations.
 
-**Fix**:
+**Preferred action**:
 ```bash
 ./scripts/auto-dream-cron.sh              # Step 1: dry run
 cat ~/.claude/state/last-dream.md         # Step 2: read what would happen
@@ -156,7 +156,7 @@ cat ~/.claude/state/last-dream.md         # Step 2: read what would happen
 
 ---
 
-### ❌ Testing with learning.db missing
+### Verify learning.db Exists Before Testing
 
 **Detection**:
 ```bash
@@ -166,7 +166,7 @@ ls -la ~/.claude/learning.db 2>/dev/null || echo "MISSING: learning.db"
 grep -i 'sqlite\|database\|learning.db\|failed' ~/.claude/state/last-dream.md | head -5
 ```
 
-**What it looks like**:
+**Signal**:
 <!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
 ```
 ## Dream Report: 2026-04-16
@@ -176,11 +176,11 @@ SQLite query failed: unable to open database file
 ANALYZE: Cross-session patterns: none (no session data available)
 ```
 
-**Why wrong**: When learning.db is missing, SCAN notes the failure and continues — the cycle does not abort. But ANALYZE then lacks session data, so SYNTHESIZE produces low-quality or no cross-session insights. A silent SQLite failure looks like a successful run when it's actually missing half its input.
+**Why this matters**: When learning.db is missing, SCAN notes the failure and continues — the cycle does not abort. But ANALYZE then lacks session data, so SYNTHESIZE produces low-quality or no cross-session insights. A silent SQLite failure looks like a successful run when it's actually missing half its input.
 
-**Do instead**: Before running any test cycle, verify `~/.claude/learning.db` exists and contains at least one week of sessions. If the database is absent, run a normal Claude Code session with hooks enabled to seed it before testing the dream cycle.
+**Preferred action**: Before running any test cycle, verify `~/.claude/learning.db` exists and contains at least one week of sessions. If the database is absent, run a normal Claude Code session with hooks enabled to seed it before testing the dream cycle.
 
-**Fix**:
+**Preferred action**:
 ```bash
 # Verify learning.db exists before testing
 [ -f ~/.claude/learning.db ] || echo "Run at least one Claude Code session with hooks enabled"
@@ -192,7 +192,7 @@ sqlite3 ~/.claude/learning.db \
 
 ---
 
-### ❌ Wrapping cron script output and losing the exit code
+### Capture PIPESTATUS After Piped Cron Output
 
 **Detection**:
 ```bash
@@ -200,17 +200,17 @@ sqlite3 ~/.claude/learning.db \
 grep -n '\$?' test*.sh 2>/dev/null | grep -v 'PIPESTATUS'
 ```
 
-**What it looks like**:
+**Signal**:
 ```bash
 ./scripts/auto-dream-cron.sh --execute | tee test-output.log
 echo "Exit: $?"  # Always 0 — tee's exit code, not claude's
 ```
 
-**Why wrong**: The wrapper script handles `PIPESTATUS[0]` internally, but a custom test wrapper that pipes the cron script inherits the same problem. `$?` after a pipe reflects the last command (`tee`), not the cron script. A Claude session that errors mid-run silently appears as success.
+**Why this matters**: The wrapper script handles `PIPESTATUS[0]` internally, but a custom test wrapper that pipes the cron script inherits the same problem. `$?` after a pipe reflects the last command (`tee`), not the cron script. A Claude session that errors mid-run silently appears as success.
 
-**Do instead**: Capture `${PIPESTATUS[0]}` immediately after any pipe from the cron script. Treat any non-zero exit code as a test failure regardless of what the log file contains.
+**Preferred action**: Capture `${PIPESTATUS[0]}` immediately after any pipe from the cron script. Treat any non-zero exit code as a test failure regardless of what the log file contains.
 
-**Fix**:
+**Preferred action**:
 ```bash
 ./scripts/auto-dream-cron.sh --execute 2>&1 | tee test-output.log
 CRON_EXIT="${PIPESTATUS[0]}"

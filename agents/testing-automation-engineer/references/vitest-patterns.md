@@ -134,7 +134,7 @@ it('tests a Date.now() timestamp', () => {
 
 ## Pattern Catalog
 
-### ❌ Using jest.mock() or jest.fn() in Vitest files
+### Use vi.mock() and vi.fn() in Vitest
 
 **Detection**:
 ```bash
@@ -142,7 +142,7 @@ grep -rn 'jest\.mock\|jest\.fn\|jest\.spyOn' --include="*.test.ts" --include="*.
 rg 'jest\.(mock|fn|spyOn|clearAllMocks|resetAllMocks)' --type ts
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 // BAD: jest.fn() is undefined in Vitest
 const mockFn = jest.fn()
@@ -150,9 +150,9 @@ jest.mock('../utils')
 jest.spyOn(console, 'error')
 ```
 
-**Why wrong**: Vitest does not polyfill the `jest` global by default. These calls throw `ReferenceError: jest is not defined` at runtime or produce silent `undefined` if `globals: true` is configured with a partial shim.
+**Why this matters**: Vitest does not polyfill the `jest` global by default. These calls throw `ReferenceError: jest is not defined` at runtime or produce silent `undefined` if `globals: true` is configured with a partial shim.
 
-**Do instead:**
+**Preferred action:**
 ```typescript
 import { vi } from 'vitest'
 const mockFn = vi.fn()
@@ -164,7 +164,7 @@ vi.spyOn(console, 'error')
 
 ---
 
-### ❌ Missing vi.restoreAllMocks() — Spy Leak Between Tests
+### Restore All Mocks After Each Test
 
 **Detection**:
 ```bash
@@ -172,7 +172,7 @@ grep -rn 'vi\.spyOn' --include="*.test.ts" --include="*.test.tsx" -l | xargs gre
 rg 'vi\.spyOn' --type ts -l | xargs rg -l 'restoreAllMocks' --files-without-match
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 describe('Suite A', () => {
   it('mocks fetch', () => {
@@ -188,16 +188,16 @@ describe('Suite B', () => {
 })
 ```
 
-**Why wrong**: Spy state persists across test files in the same worker thread. Tests in unrelated files fail with unexpected mock behavior. Produces order-dependent failures that are hard to reproduce.
+**Why this matters**: Spy state persists across test files in the same worker thread. Tests in unrelated files fail with unexpected mock behavior. Produces order-dependent failures that are hard to reproduce.
 
-**Do instead:** Always pair `vi.spyOn` with `afterEach(() => vi.restoreAllMocks())`. Or configure globally:
+**Preferred action:** Always pair `vi.spyOn` with `afterEach(() => vi.restoreAllMocks())`. Or configure globally:
 ```typescript
 test: { restoreMocks: true }  // auto-restore after each test in vitest.config.ts
 ```
 
 ---
 
-### ❌ No Branch Coverage Threshold
+### Set Branch Coverage Threshold
 
 **Detection**:
 ```bash
@@ -205,7 +205,7 @@ grep -rn 'thresholds' vitest.config.ts vitest.config.js
 rg 'thresholds' vitest.config.ts | grep -v branches
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 coverage: {
   thresholds: {
@@ -216,13 +216,13 @@ coverage: {
 }
 ```
 
-**Why wrong**: A function with `if (user.isAdmin)` tested only with admin users shows 100% line coverage but 0% branch coverage. The non-admin code path is completely untested. CI passes, bugs ship.
+**Why this matters**: A function with `if (user.isAdmin)` tested only with admin users shows 100% line coverage but 0% branch coverage. The non-admin code path is completely untested. CI passes, bugs ship.
 
-**Do instead:** Always include `branches: 80` in thresholds (see Correct Patterns section above).
+**Preferred action:** Always include `branches: 80` in thresholds (see Correct Patterns section above).
 
 ---
 
-### ❌ External Snapshot Files Instead of Inline
+### Use Inline Snapshots or Behavioral Assertions
 
 **Detection**:
 ```bash
@@ -230,7 +230,7 @@ find . -name "*.snap" | grep -v node_modules | wc -l
 rg 'toMatchSnapshot\(\)' --type ts
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 it('renders correctly', () => {
   const { container } = render(<Button label="Click me" />)
@@ -238,9 +238,9 @@ it('renders correctly', () => {
 })
 ```
 
-**Why wrong**: External `.snap` files are updated with `--updateSnapshot` without review. Developers mindlessly accept them in CI, converting regression detectors into rubber stamps.
+**Why this matters**: External `.snap` files are updated with `--updateSnapshot` without review. Developers mindlessly accept them in CI, converting regression detectors into rubber stamps.
 
-**Do instead:** Use inline snapshots or explicit behavioral assertions:
+**Preferred action:** Use inline snapshots or explicit behavioral assertions:
 ```typescript
 // Inline snapshot — diff visible in the PR
 expect(button).toMatchInlineSnapshot(`<button class="btn">Click me</button>`)

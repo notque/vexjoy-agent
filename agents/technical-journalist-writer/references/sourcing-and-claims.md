@@ -94,7 +94,7 @@ The migration runs before the application starts.  # stated as fact, is inferenc
 <!-- no-pair-required: section-header-only — catalog heading, individual blocks carry the do-framing -->
 ## Pattern Catalog
 
-### ❌ Statistical Claims Without Source
+### Cite Sources for Statistical Claims
 
 **Detection**:
 ```bash
@@ -105,15 +105,15 @@ rg '\b[0-9]+%\b' article.md | grep -v 'per\|according\|source\|report\|survey\|s
 rg '\b[0-9]+ times (faster|slower|larger|smaller)\b' article.md
 ```
 
-**What it looks like**:
+**Signal**:
 ```
 Studies show that 80% of developers prefer this approach. It's 3x faster
 than the alternative in most workloads.
 ```
 
-**Why wrong**: "Studies show" without a specific study is not a source — it's a rhetorical move. "3x faster" without a benchmark methodology is marketing language. Both patterns erode credibility when readers verify them and find nothing.
+**Why this matters**: "Studies show" without a specific study is not a source — it's a rhetorical move. "3x faster" without a benchmark methodology is marketing language. Both patterns erode credibility when readers verify them and find nothing.
 
-**Do instead:**
+**Preferred action:**
 ```
 The Redis Labs 2023 benchmark showed 3.2x throughput improvement over
 Memcached for workloads with key sizes under 1KB. Results vary with
@@ -122,7 +122,7 @@ key distribution and value size.
 
 ---
 
-### ❌ Fake Certainty for Inferences
+### Mark Inferences as Inferences
 
 **Detection**:
 ```bash
@@ -133,15 +133,15 @@ rg '\b(definitely|certainly|always|never|guaranteed|impossible)\b' article.md
 rg '\b(the reason (is|was|for)\b|this is because\b|this happens because\b)' article.md -i
 ```
 
-**What it looks like**:
+**Signal**:
 ```
 The reason the system is slow is definitely the database. The query
 always takes 200ms because of missing indexes.
 ```
 
-**Why wrong**: Without profiling data or execution plans, this is inference stated as fact. If the reader checks and the database isn't the bottleneck, the article loses all credibility.
+**Why this matters**: Without profiling data or execution plans, this is inference stated as fact. If the reader checks and the database isn't the bottleneck, the article loses all credibility.
 
-**Do instead:**
+**Preferred action:**
 ```
 Profiling showed the database at 73% of request time. The slow_query_log
 identified three queries averaging 200ms — all on the users table without
@@ -156,7 +156,7 @@ usage typically indicates waiting on I/O or locks, not compute.
 
 ---
 
-### ❌ Historical Claims Without Date
+### Date All Historical Claims
 
 **Detection**:
 ```bash
@@ -167,15 +167,15 @@ rg '\b(originally|previously|historically|in the early days|back when|used to)\b
 rg 'when .* (was released|launched|introduced|shipped)' article.md -i | grep -v '\b(19|20)[0-9][0-9]\b'
 ```
 
-**What it looks like**:
+**Signal**:
 ```
 When Kubernetes was first released, the networking model was much simpler.
 Originally, services used flat networks without namespace isolation.
 ```
 
-**Why wrong**: "When Kubernetes was first released" is vague — Kubernetes 1.0 shipped July 2015. Without the date, the reader can't evaluate how much the ecosystem has changed since then.
+**Why this matters**: "When Kubernetes was first released" is vague — Kubernetes 1.0 shipped July 2015. Without the date, the reader can't evaluate how much the ecosystem has changed since then.
 
-**Do instead:**
+**Preferred action:**
 ```
 Kubernetes 1.0 shipped in July 2015 with a flat networking model.
 NetworkPolicy resources, which enable namespace isolation, arrived in
@@ -184,7 +184,7 @@ Kubernetes 1.3 (July 2016).
 
 ---
 
-### ❌ Unsourced Comparative Claims
+### Provide Baselines for Comparative Claims
 
 **Detection**:
 ```bash
@@ -195,15 +195,15 @@ rg '\b(better than|worse than|faster than|more reliable than|superior to|more po
 rg '\b(widely|commonly|most teams|most developers|industry standard|best practice)\b' article.md -i
 ```
 
-**What it looks like**:
+**Signal**:
 ```
 PostgreSQL is more reliable than MySQL for write-heavy workloads.
 Most teams have moved away from monolithic architectures.
 ```
 
-**Why wrong**: "More reliable" requires a specific reliability metric and measured workload. "Most teams" requires a survey. Without these, the claims are opinions presented as facts.
+**Why this matters**: "More reliable" requires a specific reliability metric and measured workload. "Most teams" requires a survey. Without these, the claims are opinions presented as facts.
 
-**Do instead:**
+**Preferred action:**
 ```
 In TPC-C benchmarks on write-heavy workloads, PostgreSQL's MVCC implementation
 shows lower lock contention than MySQL's row-level locking under high concurrency

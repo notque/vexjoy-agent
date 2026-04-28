@@ -129,7 +129,7 @@ When using `sync.Map` or channels in tests, the race detector validates the acce
 
 ## Pattern Catalog
 
-### ❌ Hand-Editing interface_mock_gen.go
+### Regenerate Mocks via make generate
 
 **Detection**:
 ```bash
@@ -139,7 +139,7 @@ rg 'interface_mock_gen' --type go
 ```
 Check if the file has commits that don't come from `make generate`.
 
-**What it looks like**:
+**Signal**:
 ```go
 // In interface_mock_gen.go — manually added method:
 func (m *LibVirtMock) NewMethod(ctx context.Context) error {
@@ -148,13 +148,13 @@ func (m *LibVirtMock) NewMethod(ctx context.Context) error {
 }
 ```
 
-**Why wrong**: The next `make generate` overwrites the file. The hand-written method disappears silently. Tests that relied on it compile but the mock no longer has the behavior.
+**Why this matters**: The next `make generate` overwrites the file. The hand-written method disappears silently. Tests that relied on it compile but the mock no longer has the behavior.
 
-**Fix**: Extend the actual `LibVirt` interface, then run `make generate`. The mock is always derived from the interface.
+**Preferred action**: Extend the actual `LibVirt` interface, then run `make generate`. The mock is always derived from the interface.
 
 ---
 
-### ❌ Skipping Race Detector in Tests with Goroutines
+### Run Race Detector on All Concurrent Tests
 
 **Detection**:
 ```bash
@@ -163,15 +163,15 @@ grep -n "go test" Makefile
 ```
 Check that all `go test` invocations in Makefile include `-race`.
 
-**What it looks like**:
+**Signal**:
 ```makefile
 test:
     go test ./internal/...   # no -race
 ```
 
-**Why wrong**: kvm-exporter's domain collection is concurrent. Tests that exercise collection without `-race` can pass even with data races — the race detector is not enabled by default. Race conditions surface only under load in production.
+**Why this matters**: kvm-exporter's domain collection is concurrent. Tests that exercise collection without `-race` can pass even with data races — the race detector is not enabled by default. Race conditions surface only under load in production.
 
-**Fix**:
+**Preferred action**:
 ```makefile
 test:
     go test -race ./internal/...
@@ -181,7 +181,7 @@ test:
 
 ---
 
-### ❌ Asserting Exact Metric Count Instead of Presence
+### Assert Metric Presence, Not Exact Count
 
 **Detection**:
 ```bash
@@ -189,14 +189,14 @@ rg 'assert\.Len\(t, metrics' --type go internal/
 grep -n "assert.Len" internal/libvirt/*_test.go
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 assert.Len(t, metrics, 3, "expected exactly 3 metrics")
 ```
 
-**Why wrong**: Adding a label to an existing metric (e.g., adding `numa_node` label to steal time) changes the cardinality. The exact-count assertion breaks, but the metric is still correct. Tests become a maintenance burden.
+**Why this matters**: Adding a label to an existing metric (e.g., adding `numa_node` label to steal time) changes the cardinality. The exact-count assertion breaks, but the metric is still correct. Tests become a maintenance burden.
 
-**Fix**: Assert metric presence and specific label values rather than total count:
+**Preferred action**: Assert metric presence and specific label values rather than total count:
 ```go
 assert.NotEmpty(t, metrics)
 // Find the specific metric you care about:
@@ -211,7 +211,7 @@ assert.True(t, found, "steal time metric must be present")
 
 ---
 
-### ❌ E2E Tests Without test-metrics.sh Coverage for New Collectors
+### Add test-metrics.sh Coverage for Every New Collector
 
 **Detection**:
 ```bash
@@ -220,12 +220,12 @@ grep -n "check_metric" test/test-metrics.sh
 ```
 If a new collector name does not appear in `test-metrics.sh`, its E2E coverage is missing.
 
-**What it looks like**:
+**Signal**:
 New collector `hugepages` is added to `internal/libvirt/hugepages.go` but `test/test-metrics.sh` has no `check_metric "kvm_domain_hugepages_bytes"` line.
 
-**Why wrong**: Unit tests cover the mock path. The E2E cluster deploys the exporter against real VMs. If hugepages collection silently returns no metrics (e.g., smaps not readable), no test catches it.
+**Why this matters**: Unit tests cover the mock path. The E2E cluster deploys the exporter against real VMs. If hugepages collection silently returns no metrics (e.g., smaps not readable), no test catches it.
 
-**Fix**: For every new collector, add at minimum one `check_metric "kvm_..."` line to `test/test-metrics.sh` targeting the primary metric the collector emits.
+**Preferred action**: For every new collector, add at minimum one `check_metric "kvm_..."` line to `test/test-metrics.sh` targeting the primary metric the collector emits.
 
 ---
 

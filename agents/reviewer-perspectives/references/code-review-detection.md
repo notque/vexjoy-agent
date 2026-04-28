@@ -14,7 +14,7 @@ Each perspective produces better findings when supported by concrete codebase ev
 
 ## Pattern Catalog
 
-### ❌ Ignored Errors (Skeptical Senior, Pedant)
+### Handle All Errors (Skeptical Senior, Pedant)
 
 Silent failures that turn bugs into production mysteries.
 
@@ -33,14 +33,14 @@ rg -n '\.then\(' --type ts | rg -v '\.catch|async'
 grep -rn '^\s*[a-z].*&&\|;\s*$' --include="*.sh" | grep -v 'if\|then\|else'
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 result, _ := db.Query("SELECT * FROM users WHERE id = ?", id)
 ```
 
-**Why wrong**: Silent error discard means data corruption or partial writes proceed undetected. In production, this surfaces as corrupted records with no error logs.
+**Why this matters**: Silent error discard means data corruption or partial writes proceed undetected. In production, this surfaces as corrupted records with no error logs.
 
-**Do instead:**
+**Preferred action:**
 ```go
 result, err := db.Query("SELECT * FROM users WHERE id = ?", id)
 if err != nil {
@@ -52,7 +52,7 @@ if err != nil {
 
 ---
 
-### ❌ HTTP Status Code Misuse (Pedant)
+### Use Correct HTTP Status Codes (Pedant)
 
 Violates RFC 7231 — breaks API clients that inspect status codes.
 
@@ -69,7 +69,7 @@ rg -n 'InternalServerError|status.*500' --type go | rg -i 'invalid\|bad.request\
 rg -n 'NotFound|status.*404' --type go | rg -i 'auth\|permission\|forbidden'
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 func handler(w http.ResponseWriter, r *http.Request) {
     user, err := getUser(id)
@@ -79,13 +79,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-**Why wrong**: RFC 7231 §6 defines status code semantics. Clients (including monitoring tools and API gateways) use status codes to route errors — a 200 error bypasses all error-handling middleware.
+**Why this matters**: RFC 7231 §6 defines status code semantics. Clients (including monitoring tools and API gateways) use status codes to route errors — a 200 error bypasses all error-handling middleware.
 
-**Do instead:** Use `http.StatusBadRequest` (400) for invalid input, `http.StatusNotFound` (404) for missing resources, `http.StatusUnauthorized` (401) for missing auth, `http.StatusForbidden` (403) for insufficient permissions.
+**Preferred action:** Use `http.StatusBadRequest` (400) for invalid input, `http.StatusNotFound` (404) for missing resources, `http.StatusUnauthorized` (401) for missing auth, `http.StatusForbidden` (403) for insufficient permissions.
 
 ---
 
-### ❌ Hardcoded Credentials (Skeptical Senior, Pedant)
+### Load Credentials from Environment (Skeptical Senior, Pedant)
 
 Secrets in source code survive beyond rotation.
 
@@ -105,13 +105,13 @@ rg -n 'aws_secret_access_key\s*='
 grep -rn 'postgres://\|mysql://\|mongodb://' --include="*.go" --include="*.ts" --include="*.py" | grep -v '_test\|example\|sample'
 ```
 
-**Why wrong**: Credentials in version history are permanent — `git filter-branch` does not remove them from forks or cached copies. Leaked credentials require key rotation even after removal.
+**Why this matters**: Credentials in version history are permanent — `git filter-branch` does not remove them from forks or cached copies. Leaked credentials require key rotation even after removal.
 
-**Do instead:** Load from environment variables (`os.Getenv`, `process.env`, `os.environ`) or a secrets manager. Never commit `.env` files containing real values.
+**Preferred action:** Load from environment variables (`os.Getenv`, `process.env`, `os.environ`) or a secrets manager. Never commit `.env` files containing real values.
 
 ---
 
-### ❌ Missing Pagination on List Queries (Skeptical Senior)
+### Paginate All List Queries (Skeptical Senior)
 
 Unbounded queries that work in development, fail in production with real data volumes.
 
@@ -128,13 +128,13 @@ rg -n 'find\(\{\}' --type ts | rg -v 'limit\|skip\|take'
 grep -rn 'findAll\|getAll\|fetchAll' --include="*.ts" --include="*.go"
 ```
 
-**Why wrong**: A query returning 1,000 rows in development returns 50 million in production, causing OOM crashes or 30-second response times that cascade into timeouts.
+**Why this matters**: A query returning 1,000 rows in development returns 50 million in production, causing OOM crashes or 30-second response times that cascade into timeouts.
 
-**Do instead:** Add `LIMIT`/`OFFSET` or cursor-based pagination. Default page size should be 100 or fewer records.
+**Preferred action:** Add `LIMIT`/`OFFSET` or cursor-based pagination. Default page size should be 100 or fewer records.
 
 ---
 
-### ❌ Race Condition: Check-Then-Act (Skeptical Senior)
+### Use Atomic Operations (Skeptical Senior)
 
 Non-atomic read-modify-write sequences that fail under concurrent load.
 
@@ -150,20 +150,20 @@ grep -rn 'os.path.exists\|path.exists' --include="*.py" | rg -v 'test\|check'
 rg -n 'await.*get\|await.*find' --type ts -A2 | rg 'await.*set\|await.*update\|await.*save'
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 if _, exists := cache[key]; !exists {
     cache[key] = computeExpensive(key) // not atomic — two goroutines can reach this
 }
 ```
 
-**Why wrong**: Two goroutines can both pass the `!exists` check before either writes, causing double computation or overwriting a valid value.
+**Why this matters**: Two goroutines can both pass the `!exists` check before either writes, causing double computation or overwriting a valid value.
 
-**Do instead:** Use `sync.Map.LoadOrStore()`, a mutex-wrapped check-and-store, or database-level `INSERT ... ON CONFLICT DO NOTHING`.
+**Preferred action:** Use `sync.Map.LoadOrStore()`, a mutex-wrapped check-and-store, or database-level `INSERT ... ON CONFLICT DO NOTHING`.
 
 ---
 
-### ❌ N+1 Query Pattern (Skeptical Senior)
+### Batch Related Queries (Skeptical Senior)
 
 Queries inside loops that scale linearly with record count.
 
@@ -179,20 +179,20 @@ rg -n 'for.*range' --type go -A5 | rg 'db\.Query\|\.Find\|\.Get'
 rg -n 'for.*of\|for.*in' --type ts -A3 | rg 'await.*find\|await.*get\|await.*fetch'
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 posts = Post.objects.all()
 for post in posts:
     print(post.author.name)  # SELECT for every iteration
 ```
 
-**Why wrong**: 100 posts = 101 queries. 10,000 posts = 10,001 queries. Degrades exponentially with data growth.
+**Why this matters**: 100 posts = 101 queries. 10,000 posts = 10,001 queries. Degrades exponentially with data growth.
 
-**Do instead:** Use `select_related`/`prefetch_related` (Django), `JOIN` (raw SQL), or batch fetch with `IN (...)`.
+**Preferred action:** Use `select_related`/`prefetch_related` (Django), `JOIN` (raw SQL), or batch fetch with `IN (...)`.
 
 ---
 
-### ❌ Missing Authorization Check (Skeptical Senior, Pedant)
+### Enforce Authorization on Every Resource (Skeptical Senior, Pedant)
 
 Authentication (who are you?) verified but authorization (what can you do?) missing.
 
@@ -208,9 +208,9 @@ grep -rn 'def get\|def post\|def put' --include="*.py" | rg -v '@login_required\
 rg -n 'router\.(get|post|put|delete)\(' --type ts -B2 | rg -v 'auth\|verify\|require'
 ```
 
-**Why wrong**: Authenticated users can access other users' resources. Classic IDOR (Insecure Direct Object Reference) vulnerability — OWASP A01:2021.
+**Why this matters**: Authenticated users can access other users' resources. Classic IDOR (Insecure Direct Object Reference) vulnerability — OWASP A01:2021.
 
-**Do instead:** Always filter queries by the authenticated user's ID: `WHERE user_id = $currentUser`. For operations that modify resources, verify ownership before executing.
+**Preferred action:** Always filter queries by the authenticated user's ID: `WHERE user_id = $currentUser`. For operations that modify resources, verify ownership before executing.
 
 ---
 

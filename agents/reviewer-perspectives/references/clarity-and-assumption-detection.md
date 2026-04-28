@@ -14,7 +14,7 @@ The Newcomer perspective needs evidence of where code confuses first-time reader
 
 ## Newcomer: Clarity Anti-Patterns
 
-### ❌ Magic Numbers and Unexplained Constants
+### Name All Constants
 
 **Detection**:
 ```bash
@@ -28,15 +28,15 @@ rg -n '"[a-z_]{4,}"' --type go | sort | uniq -d | head -20
 rg -n 'if.*[^=!<>]=\s*[2-9][0-9]+' --type py
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 if response_code == 429:
     time.sleep(60)  # Why 60? Why 429 specifically?
 ```
 
-**Why wrong**: A newcomer cannot distinguish `60` (seconds) from `60` (max retries) or `60` (a business rule). When the value changes, they don't know all the places to update.
+**Why this matters**: A newcomer cannot distinguish `60` (seconds) from `60` (max retries) or `60` (a business rule). When the value changes, they don't know all the places to update.
 
-**Do instead:**
+**Preferred action:**
 ```python
 HTTP_TOO_MANY_REQUESTS = 429
 RATE_LIMIT_BACKOFF_SECONDS = 60
@@ -47,7 +47,7 @@ if response_code == HTTP_TOO_MANY_REQUESTS:
 
 ---
 
-### ❌ Missing Documentation on Public APIs
+### Document Public APIs
 
 **Detection**:
 ```bash
@@ -64,20 +64,20 @@ rg -n '^export (function|const|class)' --type ts -B2 | rg -v '/\*\*\|//'
 find . -name "*.go" -not -path "*/vendor/*" | xargs grep -L "^// Package" | grep -v "_test.go"
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 func ProcessEvent(e Event, cfg *Config, dry bool) (Result, error) {
     // 200 lines of business logic with no explanation
 }
 ```
 
-**Why wrong**: The newcomer cannot call this function without reading all 200 lines to understand what `dry bool` does or what errors to expect.
+**Why this matters**: The newcomer cannot call this function without reading all 200 lines to understand what `dry bool` does or what errors to expect.
 
-**Do instead:** Add a doc comment explaining the function's purpose, key parameters, and failure conditions in 2-4 lines.
+**Preferred action:** Add a doc comment explaining the function's purpose, key parameters, and failure conditions in 2-4 lines.
 
 ---
 
-### ❌ Non-Obvious Variable Names
+### Use Descriptive Variable Names
 
 **Detection**:
 ```bash
@@ -91,7 +91,7 @@ rg -n '\bpct\b|\bamt\b|\bcnt\b|\btmp\b|\bval\b|\bret\b|\bres\b' --type go --type
 rg -n 'var user User\|var config Config\|var err error\b' --type go | rg -v ':=\|_test'
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 func calc(d []float64, n int) float64 {
     var s float64
@@ -102,13 +102,13 @@ func calc(d []float64, n int) float64 {
 }
 ```
 
-**Why wrong**: `d`, `n`, `s`, `v` carry zero information. Is this averaging? Summing? What is `d`? Why is `n` separate from `len(d)`?
+**Why this matters**: `d`, `n`, `s`, `v` carry zero information. Is this averaging? Summing? What is `d`? Why is `n` separate from `len(d)`?
 
-**Do instead:** Name variables after what they hold, not their type or role in the computation. Replace `d` with `dataPoints`, `s` with `sum`, and `n` with `sampleSize`. A reader should be able to understand the intent without running the code.
+**Preferred action:** Name variables after what they hold, not their type or role in the computation. Replace `d` with `dataPoints`, `s` with `sum`, and `n` with `sampleSize`. A reader should be able to understand the intent without running the code.
 
 ---
 
-### ❌ Implicit Preconditions Not Documented
+### Document Preconditions Explicitly
 
 **Detection**:
 ```bash
@@ -122,7 +122,7 @@ rg -n 'panic\("' --type go | rg -v 'unreachable\|BUG\|test'
 rg -n '\[0\]\|\.first()\b' --type py -B3 | rg -v 'if.*len\|if.*empty\|assert'
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 func ProcessOrder(order *Order) {
     customer := order.Customer // panics if Customer is nil
@@ -130,15 +130,15 @@ func ProcessOrder(order *Order) {
 }
 ```
 
-**Why wrong**: A newcomer calling `ProcessOrder` does not know they must pre-populate `Customer`. The panic surfaces far from the actual mistake.
+**Why this matters**: A newcomer calling `ProcessOrder` does not know they must pre-populate `Customer`. The panic surfaces far from the actual mistake.
 
-**Do instead:** Either guard with a nil check and return an error, or document the precondition in the function's doc comment: `// ProcessOrder requires order.Customer to be non-nil`.
+**Preferred action:** Either guard with a nil check and return an error, or document the precondition in the function's doc comment: `// ProcessOrder requires order.Customer to be non-nil`.
 
 ---
 
 ## Contrarian: Hidden Assumption Detection
 
-### ❌ Hardcoded Environment Assumptions
+### Load Environment from Configuration
 
 **Detection**:
 ```bash
@@ -152,13 +152,13 @@ rg -n '"/home/\|"/Users/\|"C:\\' --type go --type py --type ts | rg -v '_test\|e
 rg -n ':8080|:3000|:5432|:6379' --type go --type py --type ts | rg -v 'test\|example\|default'
 ```
 
-**Why wrong**: The Contrarian perspective asks "what happens in CI, staging, or prod?" Code assuming `localhost:5432` silently breaks in containerized environments.
+**Why this matters**: The Contrarian perspective asks "what happens in CI, staging, or prod?" Code assuming `localhost:5432` silently breaks in containerized environments.
 
-**Do instead:** Load host, port, and path values from environment variables with sensible defaults. `os.Getenv("DB_HOST", "localhost")` documents the assumption explicitly and makes it overridable without a code change.
+**Preferred action:** Load host, port, and path values from environment variables with sensible defaults. `os.Getenv("DB_HOST", "localhost")` documents the assumption explicitly and makes it overridable without a code change.
 
 ---
 
-### ❌ Unvalidated Assumption About Input Size
+### Validate Input Bounds
 
 **Detection**:
 ```bash
@@ -172,20 +172,20 @@ rg -n 'args\[0\]\|args\[1\]\|parts\[0\]\|parts\[1\]' --type go | rg -v '_test\|i
 rg -n 'data\.\w+\.\w+' --type ts | rg -v '\?\.\|if.*data\.\w+\|&&'
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 func parseFlags(args []string) string {
     return args[1] // assumes at least 2 args — no validation
 }
 ```
 
-**Why wrong**: The Contrarian asks: "what if the caller passes zero args?" The assumption is invisible and produces a panic, not a clear error message.
+**Why this matters**: The Contrarian asks: "what if the caller passes zero args?" The assumption is invisible and produces a panic, not a clear error message.
 
-**Do instead:** Check bounds before indexing and return a descriptive error on violation. `if len(args) < 2 { return "", fmt.Errorf("expected at least 2 args, got %d", len(args)) }` converts a runtime panic into an actionable message.
+**Preferred action:** Check bounds before indexing and return a descriptive error on violation. `if len(args) < 2 { return "", fmt.Errorf("expected at least 2 args, got %d", len(args)) }` converts a runtime panic into an actionable message.
 
 ---
 
-### ❌ Sync-Only Code Assuming Sequential Execution
+### Scope Mutable State to Request or Transaction
 
 **Detection**:
 ```bash
@@ -199,13 +199,13 @@ rg -n '^[a-z_]+ = \[\|^[a-z_]+ = \{' --type py | rg -v 'test\|#\|TYPE_CHECKING'
 rg -n 'module\.exports\.\w+ = \[\|module\.exports\.\w+ = \{' --type js
 ```
 
-**Why wrong**: The Contrarian asks: "this code runs fine with one request — what about 100 simultaneous requests?" Module-level mutable state is shared across all requests in most web frameworks.
+**Why this matters**: The Contrarian asks: "this code runs fine with one request — what about 100 simultaneous requests?" Module-level mutable state is shared across all requests in most web frameworks.
 
-**Do instead:** Scope mutable state to the request or transaction, not the module. Where shared state is unavoidable, protect it with a `sync.Mutex` or `sync.RWMutex` and document which fields it guards.
+**Preferred action:** Scope mutable state to the request or transaction, not the module. Where shared state is unavoidable, protect it with a `sync.Mutex` or `sync.RWMutex` and document which fields it guards.
 
 ---
 
-### ❌ Implicit Ordering Assumption
+### Make Ordering Explicit
 
 **Detection**:
 ```bash
@@ -219,16 +219,16 @@ rg -n 'for.*in.*set(' --type py | rg -v 'sorted\|sort'
 rg -n '\.sort()' --type ts --type js | rg -v '(a,\s*b)\|(a:\|b:'
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 for key, val := range configMap {
     applyInOrder(key, val) // map iteration order is random in Go
 }
 ```
 
-**Why wrong**: The Contrarian asks: "what assumption is the author making here?" Map iteration being ordered is a frequent hidden assumption that causes intermittent bugs.
+**Why this matters**: The Contrarian asks: "what assumption is the author making here?" Map iteration being ordered is a frequent hidden assumption that causes intermittent bugs.
 
-**Do instead:** Extract the keys, sort them explicitly with `sort.Strings(keys)`, then iterate the sorted slice. This makes the ordering contract visible in the code rather than hidden in an assumption about language behavior.
+**Preferred action:** Extract the keys, sort them explicitly with `sort.Strings(keys)`, then iterate the sorted slice. This makes the ordering contract visible in the code rather than hidden in an assumption about language behavior.
 
 ---
 

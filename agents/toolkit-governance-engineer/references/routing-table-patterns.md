@@ -121,7 +121,7 @@ category: content       # writing, documentation, content agents
 ## Pattern Catalog
 <!-- no-pair-required: section header with no content -->
 
-### ❌ Phantom Route — Entry References Nonexistent Component
+### Verify Component Exists Before Adding Route
 
 **Detection**:
 ```bash
@@ -144,7 +144,7 @@ for f in glob.glob('agents/*.md'):
 grep -rn "pairs_with" agents/*.md | grep "deleted-agent-name"
 ```
 
-**What it looks like**:
+**Signal**:
 ```yaml
 routing:
   pairs_with:
@@ -152,17 +152,17 @@ routing:
     - legacy-skill-name     # skill was removed in a cleanup
 ```
 
-**Why wrong**: The router follows `pairs_with` hints when orchestrating multi-agent workflows. A phantom entry either causes a lookup failure or triggers a fallback to a generic agent, breaking the intended workflow.
+**Why this matters**: The router follows `pairs_with` hints when orchestrating multi-agent workflows. A phantom entry either causes a lookup failure or triggers a fallback to a generic agent, breaking the intended workflow.
 
-**Do instead:**
+**Preferred action:**
 
 Before committing a routing change, run `ls agents/{name}.md 2>/dev/null || ls skills/{name}/SKILL.md 2>/dev/null || echo "MISSING"` for every component in `pairs_with`. Update stale names to their current filenames, or remove entries for components that no longer exist.
 
-**Fix**: Run the detection script above. For each phantom entry, either update to the current component name or remove the entry.
+**Preferred action**: Run the detection script above. For each phantom entry, either update to the current component name or remove the entry.
 
 ---
 
-### ❌ Trigger Phrase Conflicts Between Two Agents
+### Differentiate Trigger Phrases Across Agents
 
 **Detection**:
 ```bash
@@ -185,22 +185,22 @@ for t, files in triggers.items():
 "
 ```
 
-**What it looks like**:
+**Signal**:
 ```
 CONFLICT: "update routing" claimed by: agents/toolkit-governance-engineer.md, agents/routing-table-updater.md
 ```
 
-**Why wrong**: The router cannot deterministically select between two agents claiming the same trigger. Resolution depends on ordering or scoring, which is non-obvious and changes silently when the index regenerates.
+**Why this matters**: The router cannot deterministically select between two agents claiming the same trigger. Resolution depends on ordering or scoring, which is non-obvious and changes silently when the index regenerates.
 
-**Do instead:**
+**Preferred action:**
 
 Run the duplicate trigger detection script before adding any new trigger phrase. If a conflict is found, make one agent's trigger more specific (e.g., change `update routing` to `update routing tables for skill`) or consolidate the two agents into one umbrella component with a `references/` subdirectory.
 
-**Fix**: Differentiate the triggers. One agent keeps the general phrase; the other uses a more specific variant. Or consolidate the two agents if their domains truly overlap.
+**Preferred action**: Differentiate the triggers. One agent keeps the general phrase; the other uses a more specific variant. Or consolidate the two agents if their domains truly overlap.
 
 ---
 
-### ❌ Stale INDEX.json After Component Changes
+### Regenerate INDEX.json After Component Changes
 
 **Detection**:
 ```bash
@@ -221,17 +221,17 @@ for f in glob.glob('agents/*.md'):
 "
 ```
 
-**Why wrong**: An unregistered component exists on disk but is invisible to the routing system. It can never be selected, even if its triggers perfectly match a user's intent.
+**Why this matters**: An unregistered component exists on disk but is invisible to the routing system. It can never be selected, even if its triggers perfectly match a user's intent.
 
-**Do instead:**
+**Preferred action:**
 
 Regenerate `agents/INDEX.json` immediately after any agent add, rename, or delete. Run `python3 scripts/generate-agent-index.py` and verify the registered count matches the on-disk count using the detection commands above.
 
-**Fix**: Regenerate `INDEX.json` after any agent/skill add, rename, or delete. The regeneration script rebuilds from filesystem state.
+**Preferred action**: Regenerate `INDEX.json` after any agent/skill add, rename, or delete. The regeneration script rebuilds from filesystem state.
 
 ---
 
-### ❌ `pairs_with` Circular Reference
+### Remove Self-References from pairs_with
 
 **Detection**:
 ```bash
@@ -251,13 +251,13 @@ for f in glob.glob('agents/*.md'):
 "
 ```
 
-**Why wrong**: An agent that lists itself in `pairs_with` causes a routing loop when the orchestrator resolves co-dispatch recommendations.
+**Why this matters**: An agent that lists itself in `pairs_with` causes a routing loop when the orchestrator resolves co-dispatch recommendations.
 
-**Do instead:**
+**Preferred action:**
 
 List only OTHER agents in `pairs_with` that are genuinely co-dispatched alongside this one. Run the circular reference detection script after editing any agent's frontmatter to catch self-references before committing.
 
-**Fix**: Remove the self-reference from `pairs_with`.
+**Preferred action**: Remove the self-reference from `pairs_with`.
 
 ---
 

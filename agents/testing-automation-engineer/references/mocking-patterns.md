@@ -126,7 +126,7 @@ it('sends welcome email on registration', async () => {
 
 ## Pattern Catalog
 
-### ❌ Over-Mocking — Mocking Internal Application Logic
+### Mock at Boundaries, Not Internal Logic
 
 **Detection**:
 ```bash
@@ -135,7 +135,7 @@ grep -rn "vi\.mock('\.\." --include="*.test.ts" --include="*.test.tsx" | grep "s
 rg "vi\.mock\('\./|vi\.mock\('\.\." --type ts | grep -v "node_modules\|__mocks__"
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 // BAD: mocking internal business logic
 vi.mock('../services/orderCalculator')
@@ -149,9 +149,9 @@ it('displays total', () => {
 })
 ```
 
-**Why wrong**: This test verifies that when `calculateTotal` returns `99.99`, the component displays it. It does NOT test whether `calculateTotal` returns the right value. A bug in the calculation is invisible to this test. Over-mocked tests pass while the real system is broken.
+**Why this matters**: This test verifies that when `calculateTotal` returns `99.99`, the component displays it. It does NOT test whether `calculateTotal` returns the right value. A bug in the calculation is invisible to this test. Over-mocked tests pass while the real system is broken.
 
-**Do instead:** Mock only the network boundary, let real internal logic run:
+**Preferred action:** Mock only the network boundary, let real internal logic run:
 ```typescript
 server.use(
   http.get('/api/cart', () => HttpResponse.json({ items: [{ price: 99.99, qty: 1 }] }))
@@ -162,7 +162,7 @@ await screen.findByText('$99.99')
 
 ---
 
-### ❌ Mocking What You Don't Own (Third-Party Libraries)
+### Use Real Providers for Third-Party Libraries
 
 **Detection**:
 ```bash
@@ -171,7 +171,7 @@ grep -rn "vi\.mock('" --include="*.test.ts" | grep -v "vi\.mock('\." | grep -v "
 rg "vi\.mock\('(?!\.)" --type ts | grep -v msw
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 // BAD: mocking React Router internals
 vi.mock('react-router-dom', () => ({
@@ -180,9 +180,9 @@ vi.mock('react-router-dom', () => ({
 }))
 ```
 
-**Why wrong**: When `react-router-dom` updates its API, the mock silently diverges. The test passes but the real component breaks in production. You're testing against a fake contract you wrote yourself.
+**Why this matters**: When `react-router-dom` updates its API, the mock silently diverges. The test passes but the real component breaks in production. You're testing against a fake contract you wrote yourself.
 
-**Do instead:** Use real providers in tests. For React Router v6+:
+**Preferred action:** Use real providers in tests. For React Router v6+:
 ```typescript
 import { MemoryRouter } from 'react-router-dom'
 
@@ -199,7 +199,7 @@ it('navigates to product page', async () => {
 
 ---
 
-### ❌ Asserting Only on Mock Calls, Not Behavior
+### Assert on User-Visible Behavior First
 
 **Detection**:
 ```bash
@@ -208,7 +208,7 @@ rg 'toHaveBeenCalledWith' --type ts -l | xargs rg -L 'toBeInTheDocument\|toBe\b\
 grep -rn 'expect.*toHaveBeenCalled' --include="*.test.ts" | wc -l
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 // BAD: asserting implementation, not behavior
 it('saves user preferences', async () => {
@@ -219,9 +219,9 @@ it('saves user preferences', async () => {
 })
 ```
 
-**Why wrong**: This test passes even if `savePreferences` is called but returns an error the component silently swallows. Or if the UI shows a stale state. It verifies that a function was invoked, not that the user got the right outcome.
+**Why this matters**: This test passes even if `savePreferences` is called but returns an error the component silently swallows. Or if the UI shows a stale state. It verifies that a function was invoked, not that the user got the right outcome.
 
-**Do instead:** Assert on user-visible result first; use call assertions as secondary verification:
+**Preferred action:** Assert on user-visible result first; use call assertions as secondary verification:
 ```typescript
 it('saves user preferences', async () => {
   server.use(http.post('/api/preferences', () => new HttpResponse(null, { status: 204 })))
@@ -236,7 +236,7 @@ it('saves user preferences', async () => {
 
 ---
 
-### ❌ Mocking console.error to Suppress All Warnings
+### Suppress Only Specific Known Warnings
 
 **Detection**:
 ```bash
@@ -244,7 +244,7 @@ grep -rn 'spyOn.*console.*error\|mock.*console\.error' --include="*.test.ts" --i
 rg 'console\.error.*mockImplementation\(\s*\)' --type ts
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 // BAD: blanket suppression hides real problems
 beforeAll(() => {
@@ -252,9 +252,9 @@ beforeAll(() => {
 })
 ```
 
-**Why wrong**: This suppresses all React prop-type warnings, act() warnings, and real errors. A broken component renders silently. Errors that should fail the test pass unnoticed.
+**Why this matters**: This suppresses all React prop-type warnings, act() warnings, and real errors. A broken component renders silently. Errors that should fail the test pass unnoticed.
 
-**Do instead:** Suppress only the specific known warning; assert others still fire:
+**Preferred action:** Suppress only the specific known warning; assert others still fire:
 ```typescript
 beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation((msg) => {
