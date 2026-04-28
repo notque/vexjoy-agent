@@ -1,38 +1,13 @@
-# Python General Engineer - Anti-Patterns
+# Python General Engineer - Preferred Patterns
 
-Common Python mistakes and their corrections.
+Action-first patterns for correct Python code. Each section leads with what to do and why, followed by detection commands for finding violations.
 
-## ❌ Anti-Pattern: Over-Engineering with Abstract Base Classes
+## Start With Concrete Classes, Add Abstraction When Needed
 
-**What it looks like**:
+Write a plain class first. Introduce `Protocol` (not ABC) when you have two or more implementations that need a shared interface. Protocols use structural subtyping -- any class with matching methods satisfies the protocol without inheritance.
+
 ```python
-from abc import ABC, abstractmethod
-
-# Creating ABCs before you have multiple implementations
-class UserRepository(ABC):
-    @abstractmethod
-    def get(self, id: int) -> User: ...
-
-    @abstractmethod
-    def save(self, user: User) -> None: ...
-
-class DatabaseUserRepository(UserRepository):
-    def get(self, id: int) -> User:
-        return query_db(id)
-
-    def save(self, user: User) -> None:
-        insert_db(user)
-```
-
-**Why wrong**:
-- Adding abstraction layer before you have a second implementation
-- Increases complexity without proven benefit
-- Makes code harder to navigate and understand
-- Violates YAGNI (You Aren't Gonna Need It)
-
-**✅ Correct approach**:
-```python
-# Simple concrete class - add abstraction later if needed
+# Simple concrete class -- add abstraction later if needed
 class UserRepository:
     def get(self, id: int) -> User:
         return query_db(id)
@@ -40,7 +15,7 @@ class UserRepository:
     def save(self, user: User) -> None:
         insert_db(user)
 
-# When you need interface abstraction, use Protocol
+# When you need interface abstraction, use Protocol (structural subtyping)
 from typing import Protocol
 
 class UserRepository(Protocol):
@@ -51,48 +26,34 @@ class UserRepository(Protocol):
 # No inheritance needed!
 ```
 
-**When to use ABCs**:
+**When ABCs are appropriate**:
 - You have 2+ implementations already
 - You're building a framework with extension points
 - You need method implementation sharing via inheritance
 
+**Why this matters**: ABCs before a second implementation add a layer of indirection with no proven benefit. Code becomes harder to navigate, and the abstraction often gets the interface wrong because it was designed without knowing the second consumer's needs.
+
+**Detection**: `grep -rn 'class.*ABC' --include="*.py" | grep -v 'test'` finds ABC usage to audit for premature abstraction.
+
 ---
 
-## ❌ Anti-Pattern: Premature Async Conversion
+## Keep CPU-Bound Code Synchronous
 
-**What it looks like**:
+Use `async/await` only for I/O-bound operations (network, database, file). Pure computation gains nothing from async -- it adds overhead and complexity without concurrency benefit. Use `asyncio.TaskGroup` to fan out concurrent I/O calls.
+
 ```python
-# Converting synchronous code to async without I/O benefit
-async def calculate_total(items: list[Item]) -> float:
-    total = 0.0
-    for item in items:
-        total += await calculate_price(item)  # CPU-bound work
-    return total
-
-async def calculate_price(item: Item) -> float:
-    return item.price * item.quantity  # Just math, no I/O
-```
-
-**Why wrong**:
-- Adding async overhead for CPU-bound operations
-- No concurrent I/O operations to benefit from
-- Makes code more complex with no performance gain
-- async/await is for I/O concurrency, not CPU parallelism
-
-**✅ Correct approach**:
-```python
-# Synchronous for pure computation
+# Synchronous for pure computation -- no async overhead
 def calculate_total(items: list[Item]) -> float:
     return sum(item.price * item.quantity for item in items)
 
-# Async only when doing I/O
+# Async only when doing actual I/O
 async def fetch_and_calculate(user_id: int) -> float:
     async with httpx.AsyncClient() as client:
         response = await client.get(f"/users/{user_id}/items")
         items = [Item(**item) for item in response.json()]
-    return calculate_total(items)  # Sync calculation
+    return calculate_total(items)  # Sync calculation -- no await needed
 
-# Use TaskGroup for concurrent I/O
+# Use TaskGroup for concurrent I/O (Python 3.11+)
 async def fetch_multiple_users(user_ids: list[int]) -> list[float]:
     async with asyncio.TaskGroup() as tg:
         tasks = [
@@ -105,33 +66,19 @@ async def fetch_multiple_users(user_ids: list[int]) -> list[float]:
 **When to use async**:
 - Network requests (HTTP, WebSocket)
 - Database queries
-- File I/O with aiof files
+- File I/O with aiofiles
 - Multiple concurrent I/O operations
+
+**Why this matters**: `async def` on a CPU-bound function adds the overhead of coroutine scheduling with zero concurrency benefit. Callers must now use `await`, propagating async through the call stack for no gain.
+
+**Detection**: `grep -rn 'async def' --include="*.py" | xargs grep -L 'await'` finds async functions that never await -- likely CPU-bound code wrapped in async unnecessarily.
 
 ---
 
-## ❌ Anti-Pattern: Type: Ignore Instead of Fixing Types
+## Fix Type Errors Instead of Suppressing Them
 
-**What it looks like**:
-```python
-def process_data(data: dict) -> list[User]:
-    users = []
-    for item in data["users"]:  # type: ignore
-        user = User(
-            id=item["id"],  # type: ignore
-            name=item["name"],  # type: ignore
-        )
-        users.append(user)  # type: ignore
-    return users
-```
+Define proper types for your data structures using `TypedDict` or Pydantic models. Each `# type: ignore` is a suppressed bug report -- fix the underlying type mismatch instead.
 
-**Why wrong**:
-- Silencing type checker instead of fixing the underlying issue
-- Loses type safety benefits
-- Hides potential bugs that mypy would catch
-- Makes refactoring dangerous
-
-**✅ Correct approach**:
 ```python
 from typing import TypedDict
 
@@ -160,33 +107,21 @@ def process_data(data: dict) -> list[User]:
     return [User(id=u.id, name=u.name) for u in response.users]
 ```
 
-**When type: ignore is acceptable**:
-- `# type: ignore[specific-error]  # Reason: explanation` with specific error code and explanation
-- Working around bugs in type stubs
-- Interfacing with truly untyped code (rare)
+**When `# type: ignore` is acceptable**:
+- `# type: ignore[specific-error]  # Reason: explanation` with specific error code and justification
+- Working around bugs in third-party type stubs
+- Interfacing with genuinely untyped C extensions (rare)
+
+**Why this matters**: Each `# type: ignore` disables the type checker at that line. Refactoring becomes dangerous -- the checker cannot warn about type mismatches in suppressed regions. Proper types catch bugs at check time instead of runtime.
+
+**Detection**: `grep -rn 'type: ignore' --include="*.py" | grep -v 'type: ignore\[' ` finds blanket suppressions without specific error codes.
 
 ---
 
-## ❌ Anti-Pattern: Mutable Default Arguments
+## Use None as Default for Mutable Arguments
 
-**What it looks like**:
-```python
-def add_item(item: str, items: list[str] = []) -> list[str]:
-    items.append(item)
-    return items
+Never use mutable objects (`[]`, `{}`, `set()`) as default parameter values. Python creates defaults once at function definition -- all calls share the same object. Use `None` and create a new instance inside the function body.
 
-# This creates shared state across calls!
-result1 = add_item("a")  # ["a"]
-result2 = add_item("b")  # ["a", "b"] - unexpected!
-```
-
-**Why wrong**:
-- Default mutable arguments are created once at function definition
-- All calls share the same mutable object
-- Causes unexpected state sharing between function calls
-- Classic Python gotcha that leads to hard-to-debug issues
-
-**✅ Correct approach**:
 ```python
 def add_item(item: str, items: list[str] | None = None) -> list[str]:
     if items is None:
@@ -194,7 +129,7 @@ def add_item(item: str, items: list[str] | None = None) -> list[str]:
     items.append(item)
     return items
 
-# Or better: don't mutate the input
+# Even better: don't mutate the input
 def add_item(item: str, items: list[str] | None = None) -> list[str]:
     items = items or []
     return [*items, item]
@@ -208,39 +143,26 @@ class Cart:
     # items: list[str] = []  # Wrong! Shared across instances
 ```
 
-**Detection**:
-- Ruff will flag this as B006 error
-- Run `ruff check .` to find all instances
+**Why this matters**: Mutable default arguments are shared across all calls to the function. The first call mutates the default, and every subsequent call sees the mutation. This produces mysterious state leakage between unrelated callers.
+
+**Detection**: Ruff flags this as `B006`. Run `ruff check . --select B006` to find all mutable default arguments.
 
 ---
 
-## ❌ Anti-Pattern: String Concatenation in Loops
+## Build Strings With join(), Not Loop Concatenation
 
-**What it looks like**:
+Use `"\n".join(items)` or a list-then-join pattern to assemble strings. String concatenation in a loop creates a new string object on every iteration because Python strings are immutable, giving O(n^2) time complexity.
+
 ```python
-def build_message(items: list[str]) -> str:
-    message = ""
-    for item in items:
-        message += f"{item}\n"  # Creates new string each iteration
-    return message
-```
-
-**Why wrong**:
-- Strings are immutable in Python
-- Each concatenation creates a new string object
-- O(n²) time complexity for n items
-- Significant performance impact for large lists
-
-**✅ Correct approach**:
-```python
+# Direct join for simple cases
 def build_message(items: list[str]) -> str:
     return "\n".join(items)
 
-# Or with formatting
+# Join with formatting
 def build_message(items: list[str]) -> str:
     return "\n".join(f"Item: {item}" for item in items)
 
-# For complex building, use list then join
+# List-then-join for complex assembly
 def build_html(items: list[str]) -> str:
     parts = ["<ul>"]
     for item in items:
@@ -249,38 +171,18 @@ def build_html(items: list[str]) -> str:
     return "\n".join(parts)
 ```
 
-**Performance comparison**:
-```python
-# BAD: O(n²)
-result = ""
-for i in range(1000):
-    result += str(i)
+**Why this matters**: `+=` on strings in a loop copies the entire accumulated string on every iteration. For 1000 items, that is 500,000 character copies. `join()` allocates once and copies each string exactly once -- O(n) instead of O(n^2).
 
-# GOOD: O(n)
-result = "".join(str(i) for i in range(1000))
-```
+**Detection**: `grep -rn '+= .*f"' --include="*.py"` and `grep -rn '+= "' --include="*.py"` find string concatenation patterns in loops.
 
 ---
 
-## ❌ Anti-Pattern: Catching Bare Exceptions
+## Catch Specific Exceptions, Never Bare except
 
-**What it looks like**:
+Always specify the exception type in `except` clauses. Use `except Exception` as the broadest acceptable catch-all -- it excludes `SystemExit`, `KeyboardInterrupt`, and `GeneratorExit`, which must propagate for graceful shutdown.
+
 ```python
-try:
-    process_data()
-except:  # Catches EVERYTHING including SystemExit, KeyboardInterrupt
-    log.error("Error occurred")
-```
-
-**Why wrong**:
-- Catches `SystemExit`, `KeyboardInterrupt`, `GeneratorExit`
-- Prevents graceful shutdown (Ctrl+C won't work)
-- Hides programming errors during development
-- Makes debugging very difficult
-
-**✅ Correct approach**:
-```python
-# Specific exceptions
+# Specific exceptions -- best practice
 try:
     process_data()
 except ValueError as e:
@@ -288,15 +190,14 @@ except ValueError as e:
 except ConnectionError as e:
     log.error(f"Network error: {e}")
 
-# Or Exception as catch-all (doesn't catch system exceptions)
+# Exception as catch-all (doesn't catch system exceptions)
 try:
     process_data()
 except Exception as e:
     log.error(f"Error: {e}", exc_info=True)
-    # Re-raise if you can't handle it
-    raise
+    raise  # Re-raise if you can't handle it
 
-# Python 3.11+ exception groups
+# Python 3.11+ exception groups for concurrent error handling
 try:
     async with asyncio.TaskGroup() as tg:
         tg.create_task(task1())
@@ -309,33 +210,16 @@ except* ConnectionError as eg:
         log.error(f"Network error: {exc}")
 ```
 
-**FORBIDDEN**:
-- `except:` without type (use `except Exception:`)
-- Catching without logging or re-raising
-- Silencing errors with `pass`
+**Why this matters**: Bare `except:` catches `KeyboardInterrupt` (Ctrl+C won't work), `SystemExit` (process won't terminate), and `GeneratorExit` (generators can't clean up). It also hides programming errors during development by silently swallowing `TypeError`, `AttributeError`, and other bugs.
+
+**Detection**: `grep -rn 'except:' --include="*.py"` finds bare except clauses. Also check for `except Exception` without `raise` -- swallowing errors silently.
 
 ---
 
-## ❌ Anti-Pattern: print() in Production Code
+## Use Structured Logging, Not print()
 
-**What it looks like**:
-```python
-def process_order(order_id: int):
-    print(f"Processing order {order_id}")  # No log levels
-    order = get_order(order_id)
-    print(f"Order data: {order}")  # Might contain sensitive data
-    process(order)
-    print("Done")  # No timestamp, no structure
-```
+Replace `print()` with `logging.getLogger(__name__)` and structured log calls. Loggers provide severity levels, timestamps, structured metadata, and routing to different destinations. `print()` provides none of these.
 
-**Why wrong**:
-- No log levels (can't filter by severity)
-- No timestamps or structured metadata
-- Can't route to different destinations
-- Sensitive data might be logged
-- No correlation IDs for distributed systems
-
-**✅ Correct approach**:
 ```python
 import logging
 
@@ -348,7 +232,7 @@ def process_order(order_id: int):
     process(order)
     logger.info("Order processed successfully", extra={"order_id": order_id})
 
-# Structured logging with JSON
+# Structured logging with JSON formatter
 import json
 
 class JSONFormatter(logging.Formatter):
@@ -367,47 +251,28 @@ class JSONFormatter(logging.Formatter):
 ```
 
 **When print() is acceptable**:
-- CLI applications for user output
+- CLI applications for user-facing output
 - Debug scripts (not production services)
 - Development/testing only
 
+**Why this matters**: `print()` has no severity levels (cannot filter warnings from info), no timestamps, no structured metadata for log aggregation, and no way to route output to files, syslog, or monitoring systems. Sensitive data in `print()` goes straight to stdout with no redaction.
+
+**Detection**: `grep -rn 'print(' --include="*.py" | grep -v '_test.py\|test_\|cli\|__main__'` finds print calls in non-test, non-CLI code.
+
 ---
 
-## ❌ Anti-Pattern: Not Using Context Managers
+## Use Context Managers for Resource Cleanup
 
-**What it looks like**:
+Use `with` statements for any resource that needs cleanup: files, database connections, locks, network sockets. Context managers guarantee cleanup runs even when exceptions occur, eliminating resource leaks.
+
 ```python
-def process_file(path: str):
-    f = open(path)
-    data = f.read()
-    # Forgot to close! Resource leak
-    return process(data)
-
-# Or manual cleanup
-def fetch_data():
-    conn = get_connection()
-    try:
-        data = conn.fetch()
-        return data
-    finally:
-        conn.close()  # Manual cleanup
-```
-
-**Why wrong**:
-- Easy to forget cleanup
-- Exception handling becomes verbose
-- Resource leaks if cleanup is missed
-- Python has built-in context managers for this
-
-**✅ Correct approach**:
-```python
-# Use with statement
+# File operations
 def process_file(path: str):
     with open(path) as f:
         data = f.read()
     return process(data)  # File automatically closed
 
-# Multiple context managers
+# Multiple context managers on one line
 def copy_file(src: str, dst: str):
     with open(src) as src_f, open(dst, "w") as dst_f:
         dst_f.write(src_f.read())
@@ -418,7 +283,7 @@ async def fetch_data():
         data = await conn.fetch()
         return data  # Connection automatically closed
 
-# Custom context manager
+# Custom context manager with transaction semantics
 from contextlib import contextmanager
 
 @contextmanager
@@ -439,76 +304,54 @@ with transaction(db):
 **Always use context managers for**:
 - File operations
 - Database connections
-- Locks (threading.Lock, asyncio.Lock)
+- Locks (`threading.Lock`, `asyncio.Lock`)
 - Network connections
 - Any resource that needs cleanup
 
+**Why this matters**: Manual cleanup with `try/finally` is verbose and easy to forget. A missing `finally` block means exceptions leak resources. Context managers make correct cleanup the default path.
+
+**Detection**: `grep -rn 'open(' --include="*.py" | grep -v 'with \|mock\|test'` finds file opens that may lack context managers.
+
 ---
 
-## ❌ Anti-Pattern: Importing * (Star Imports)
+## Import Specific Names, Never Use Star Imports
 
-**What it looks like**:
-```python
-from module import *
+Import specific names (`from module import User, Order`) or import the module itself (`import module`). Star imports (`from module import *`) pollute the namespace with unknown names, making it impossible to trace where a symbol originated.
 
-# Now you have dozens of names in namespace
-# Where did `User` come from? No idea!
-user = User()
-```
-
-**Why wrong**:
-- Pollutes namespace with unknown names
-- Makes it impossible to know where names come from
-- Can cause name conflicts
-- Makes refactoring dangerous
-- IDE autocomplete becomes useless
-
-**✅ Correct approach**:
 ```python
 # Import specific names
 from module import User, Order, Product
 
-# Or import module
+# Or import the module for namespaced access
 import module
 user = module.User()
 
-# For many imports, be explicit
+# For many imports, use explicit parenthesized form
 from typing import (
     Any, TypeVar, Protocol,
     Callable, Sequence, Mapping,
 )
 
-# Type-only imports
+# Type-only imports to avoid circular dependencies
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from services import UserService  # Only for type hints
+    from services import UserService  # Only used in type annotations
 ```
 
-**FORBIDDEN by ruff**:
-- `from module import *` in production code
-- Only acceptable in `__init__.py` for public API definition with `__all__`
+**When star imports are acceptable**:
+- In `__init__.py` for public API definition with `__all__` explicitly defined
+
+**Why this matters**: Star imports make it impossible to know where a name came from without checking every imported module. Name conflicts between modules are silent -- the last import wins. IDE autocomplete and refactoring tools cannot trace symbol origins.
+
+**Detection**: `grep -rn 'from .* import \*' --include="*.py" | grep -v '__init__'` finds star imports outside `__init__.py`.
 
 ---
 
-## ❌ Anti-Pattern: Using == for True/False Comparisons
+## Use Truthiness Directly, Not == True/False
 
-**What it looks like**:
-```python
-if value == True:
-    do_something()
+Test boolean values with `if value:` and `if not value:`. For `None` checks, use `is None` / `is not None` (identity, not equality). Avoid `== True` and `== False` comparisons.
 
-if flag == False:
-    do_other_thing()
-```
-
-**Why wrong**:
-- Redundant and verbose
-- Can have unexpected behavior with truthy/falsy values
-- Violates PEP 8 style guide
-- Ruff will flag as E712 error
-
-**✅ Correct approach**:
 ```python
 if value:
     do_something()
@@ -516,7 +359,7 @@ if value:
 if not flag:
     do_other_thing()
 
-# For None checks, use `is`
+# For None checks, use identity comparison
 if value is None:
     handle_none()
 
@@ -524,55 +367,30 @@ if value is not None:
     handle_value()
 ```
 
-**Exception: Peewee ORM**:
+**Exception -- Peewee ORM**:
 ```python
-# This is OK for Peewee ORM field comparisons
+# Peewee ORM field comparisons require == True for SQL generation
 query = User.select().where(User.active == True)
-# E712 should be ignored for this specific ORM pattern
+# E712 should be suppressed for this specific ORM pattern
 ```
+
+**Why this matters**: `== True` has unexpected behavior with non-boolean truthy values: `1 == True` is `True` but `2 == True` is `False`, even though `bool(2)` is `True`. Direct truthiness testing is both more correct and more readable.
+
+**Detection**: Ruff flags this as `E712`. Run `ruff check . --select E712` to find all `== True` / `== False` comparisons.
 
 ---
 
-## ❌ Anti-Pattern: Complex Decorator Chains
+## Limit Decorator Stacking to 1-2 Decorators
 
-**What it looks like**:
+Keep decorator usage to one or two per function. When behavior requires more cross-cutting concerns, extract them into a class with explicit configuration or inline the logic where it is needed.
+
 ```python
-@timer
-@retry(max_attempts=3)
-@cache(ttl=300)
-@rate_limit(calls=10, period=1)
-@validate_input
-@log_calls
-def fetch_user(user_id: int) -> User:
-    return api.get(f"/users/{user_id}")
-```
-
-**Why wrong**:
-- Difficult to understand execution order
-- Hard to debug when something goes wrong
-- Obscures the actual function behavior
-- Makes testing complicated
-- Order of decorators matters but isn't obvious
-
-**✅ Correct approach**:
-```python
-# Keep decorator usage minimal (1-2 max)
+# Clean: one decorator for the primary cross-cutting concern
 @timer
 def fetch_user(user_id: int) -> User:
     return api.get(f"/users/{user_id}")
 
-# Or make behavior explicit
-def fetch_user(user_id: int) -> User:
-    # Explicit retry logic where needed
-    for attempt in range(3):
-        try:
-            return api.get(f"/users/{user_id}")
-        except APIError:
-            if attempt == 2:
-                raise
-            time.sleep(1)
-
-# Use classes for complex behavior
+# For complex behavior, use a class with explicit configuration
 class UserFetcher:
     def __init__(self, cache_ttl: int = 300):
         self.cache = Cache(ttl=cache_ttl)
@@ -587,9 +405,23 @@ class UserFetcher:
 
         self.cache.set(user_id, user)
         return user
+
+# Or make retry logic explicit where needed
+def fetch_user(user_id: int) -> User:
+    for attempt in range(3):
+        try:
+            return api.get(f"/users/{user_id}")
+        except APIError:
+            if attempt == 2:
+                raise
+            time.sleep(1)
 ```
 
 **When decorators are appropriate**:
 - Single cross-cutting concern (`@property`, `@staticmethod`)
 - Framework requirements (`@app.route`, `@pytest.fixture`)
 - One or two simple decorators maximum
+
+**Why this matters**: Decorator execution order is bottom-up (closest to the function runs first), but readers scan top-down. A stack of 5+ decorators makes the actual call path opaque, complicates debugging (stack traces include wrapper frames), and makes testing difficult since each decorator adds a layer of indirection.
+
+**Detection**: `grep -B5 'def ' --include="*.py" -rn | grep -c '@'` gives a rough count of decorator usage. Functions preceded by 3+ `@` lines warrant review.

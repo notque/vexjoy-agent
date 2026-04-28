@@ -1,8 +1,8 @@
-# Pipeline Orchestration — Anti-Patterns
+# Pipeline Orchestration — Preferred Patterns
 
-<!-- no-pair-required: section-header-only; document title for anti-patterns reference file -->
+<!-- no-pair-required: section-header-only; document title for preferred-patterns reference file -->
 
-> **Scope**: Common mistakes when creating, scaffolding, and routing toolkit pipelines. Does NOT cover general Go/Python anti-patterns — see those agents for language-specific issues.
+> **Scope**: Correct patterns for creating, scaffolding, and routing toolkit pipelines. Does NOT cover general Go/Python patterns — see those agents for language-specific issues.
 > **Version range**: claude-code-toolkit all versions
 > **Generated**: 2026-04-09 — verify detection commands against current repo structure
 
@@ -16,24 +16,12 @@ Pipeline creation mistakes compound: a missing discovery step leads to duplicate
 
 ## Pattern Catalog
 
-<!-- no-pair-required: section-header-only; individual anti-patterns below carry Do-instead blocks -->
+<!-- no-pair-required: section-header-only; individual patterns below carry detection and rationale blocks -->
 
-### ❌ Dispatching Sub-Agents Without Context Package
+### Include a Full Context Package in Every Sub-Agent Dispatch
 
-**Detection**:
-```bash
-# Look for agent dispatch calls missing spec/manifest references in a worktree
-grep -rn 'subagent_type' agents/ --include="*.md" | grep -v "spec\|manifest\|discovery"
-```
+Pass three things to every sub-agent: (1) the full component list from discovery, (2) the Discovery Report or Pipeline Spec, and (3) inter-component relationships. All three are required. Missing any one produces orphaned output.
 
-**What it looks like**:
-```
-Agent(description="Create skill", prompt="Create a skill for Prometheus alerting.")
-```
-
-**Why wrong**: The sub-agent starts with no knowledge of existing components, naming conventions, or inter-component relationships. It will create components that conflict with or duplicate existing ones. The pipeline-creator A/B test validated this: agents dispatched without a Discovery Report produced orphaned components in 40% of runs.
-
-**Do instead**:
 ```
 Agent(
   description="Create Prometheus alerting skill",
@@ -48,77 +36,66 @@ Agent(
 )
 ```
 
-**Version note**: Required context package: (1) full component list, (2) Discovery Report or Pipeline Spec, (3) inter-component relationships. All three required. Missing any one produces orphaned output.
-
----
-
-### ❌ Skipping `codebase-analyzer` Before Scaffolding
+**Why this matters**: A sub-agent dispatched without a discovery report starts with no knowledge of existing components, naming conventions, or inter-component relationships. The pipeline-creator A/B test validated this: agents dispatched without a Discovery Report produced orphaned components in 40% of runs.
 
 **Detection**:
 ```bash
-# PRs that add agents without codebase-analyzer output in the ADR
-grep -rn 'codebase-analyzer' adr/ --include="*.md" | wc -l
-# If count is low relative to agent count, discovery was likely skipped
-ls agents/*.md | wc -l
+# Sub-agent dispatches missing spec/manifest/discovery references
+grep -rn 'subagent_type' agents/ --include="*.md" | grep -v "spec\|manifest\|discovery"
 ```
 
-**What it looks like**: Creating `monitoring-engineer.md` when `prometheus-grafana-engineer.md` already exists with 80% coverage.
+---
 
-**Why wrong**: Creates a duplicate routing entry. Two agents with overlapping triggers produce non-deterministic routing — `/do` will route to whichever appears first in the routing table. Users get inconsistent behavior. The duplicate is harder to merge later than to prevent now.
+### Run codebase-analyzer Before Scaffolding Any Component
 
-**Do instead**: Always run Phase 1 before Phase 3:
+Always run Phase 1 discovery before Phase 3 scaffolding. If any existing agent covers 80%+ of the request, bind it with new skills instead of creating a new agent. Duplicate agents create non-deterministic routing.
+
 ```bash
-# In Phase 1
+# Phase 1 discovery -- run before any scaffolding
 python3 scripts/artifact-utils.py discover --domain prometheus
 # OR invoke codebase-analyzer skill for full coverage scan
 ```
 
-Then check: if any existing agent covers 80%+ of the request, bind it with new skills instead of creating a new agent.
+Then check: if an existing agent covers the domain, add reference files and skills to it. Creating a second agent for the same domain fragments the routing table and produces inconsistent behavior.
 
----
-
-### ❌ Single Skill for Multi-Subdomain Domain
+**Why this matters**: Two agents with overlapping triggers produce non-deterministic routing -- `/do` routes to whichever appears first in the table. Users get different behavior depending on routing order, which erodes trust in the system.
 
 **Detection**:
 ```bash
-# Skills that handle more than one distinct task type in their frontmatter description
+# Compare agent count against codebase-analyzer output in ADRs
+grep -rn 'codebase-analyzer' adr/ --include="*.md" | wc -l
+ls agents/*.md | wc -l
+# If analyzer mentions are low relative to agent count, discovery was likely skipped
+```
+
+---
+
+### Create One Skill Per Subdomain, Not One Skill for Everything
+
+Decompose multi-subdomain domains into N skills, one per subdomain. Same agent, different recipes. Each skill in `pairs_with: [the-umbrella-agent]`. This enables independent routing, independent context loading, and independent evaluation.
+
+```yaml
+# Correct: one skill per subdomain
+prometheus-metrics-skill.md        # authoring and querying metrics
+prometheus-alerting-skill.md       # alert rules, inhibition, routing
+prometheus-operations-skill.md     # cluster ops, storage, retention
+prometheus-dashboards-skill.md     # Grafana integration, panel patterns
+```
+
+**Why this matters**: Each subdomain has different task types needing different pipeline chains. A single skill handling 5 subdomains dilutes expertise, overloads context, and cannot be routed independently. The A/B test on parallel dispatch showed sequential single-skill approaches lose 1.40 points on Examples quality vs. parallel N-skill approaches.
+
+**Detection**:
+```bash
+# Skills handling multiple subdomains (keywords "and" / "&" in description)
 grep -rn 'description:' skills/*/SKILL.md | grep ' and \| & ' | grep -v "test\|spec"
 ```
 
-**What it looks like**:
-```yaml
-name: prometheus-skill
-description: "Prometheus: metrics, alerting, dashboards, operations, performance tuning"
-```
-
-**Why wrong**: Each subdomain has different task types needing different pipeline chains. A skill handling 5 subdomains dilutes expertise, overloads context, and can't be routed independently. The A/B test on parallel dispatch showed sequential single-skill approaches lose 1.40 points on Examples quality vs. parallel N-skill approaches.
-
-**Do instead**: Decompose into N skills per domain:
-```
-prometheus-metrics-skill.md        — authoring and querying metrics
-prometheus-alerting-skill.md       — alert rules, inhibition, routing
-prometheus-operations-skill.md     — cluster ops, storage, retention
-prometheus-dashboards-skill.md     — Grafana integration, panel patterns
-```
-
-Same agent, different recipes. Each skill in `pairs_with: [prometheus-grafana-engineer]`.
-
 ---
 
-### ❌ Skipping `validate-chain` Before Scaffolding
+### Validate the Chain Before Scaffolding
 
-**Detection**:
-```bash
-# Check if ADR files contain chain validation output
-grep -rn 'validate-chain\|chain.*pass\|chain.*valid' adr/ --include="*.md"
-# Zero hits = validation was likely skipped
-```
+Run `validate-chain` on every composed pipeline chain before scaffolding any components. This catches type incompatibilities between steps at design time rather than at runtime, where they silently produce empty or malformed output.
 
-**What it looks like**: Composing a chain intuitively — `research → draft → review → publish` — without checking that each step's output type matches the next step's expected input type.
-
-**Why wrong**: Type incompatibilities surface at runtime, not during scaffolding. A `research` step produces a `ResearchReport` artifact; a `review` step expects `DraftContent`. Connecting them directly produces a type mismatch that silently produces empty or malformed output.
-
-**Do instead**:
 ```bash
 python3 scripts/artifact-utils.py validate-chain \
   --chain "research,draft,review,publish" \
@@ -127,55 +104,47 @@ python3 scripts/artifact-utils.py validate-chain \
 
 Fix type mismatches by adding adapter steps or choosing compatible alternatives from the step menu before scaffolding.
 
----
-
-### ❌ Routing Integration After Session End
+**Why this matters**: A `research` step produces a `ResearchReport` artifact; a `review` step expects `DraftContent`. Connecting them directly produces a type mismatch that silently yields empty or malformed output. Composing chains "by intuition" works for simple cases but breaks on non-obvious type boundaries.
 
 **Detection**:
 ```bash
-# Agents in agents/ that have no entry in skills/do/references/routing-tables.md
+# ADR files should contain chain validation output
+grep -rn 'validate-chain\|chain.*pass\|chain.*valid' adr/ --include="*.md"
+# Zero hits = validation was likely skipped
+```
+
+---
+
+### Integrate Routing in the Same Session as Scaffolding
+
+Phase 4 INTEGRATE is not optional. Run `routing-table-updater` in the same session as Phase 3 SCAFFOLD. Gate: all components must be routable via `/do` before the task is marked complete. "I'll add the routing entry in a follow-up PR" is how dead-code pipelines are born.
+
+**Why this matters**: An unrouted pipeline is invisible. No trigger phrase reaches it. It exists as a file but is dead code -- users get no error, just wrong routing to an unrelated agent. Routing integration takes 2 minutes; recovering user trust in the routing system takes longer.
+
+**Detection**:
+```bash
+# Agents in agents/ that have no entry in routing tables
 comm -23 \
   <(ls agents/*.md | xargs -I{} basename {} .md | sort) \
   <(grep -o '`[a-z-]*-engineer\|[a-z-]*-agent`' skills/do/references/routing-tables.md | tr -d '`' | sort)
 ```
 
-**What it looks like**: "I'll add the routing entry in a follow-up PR."
-
-**Why wrong**: An unrouted pipeline is invisible. No trigger phrase reaches it. It exists as a file but is dead code — users get no error, just wrong routing to an unrelated agent. Routing integration takes 2 minutes; recovering user trust in the routing system takes longer.
-
-**Do instead**: Phase 4 INTEGRATE is not optional. Run `routing-table-updater` in the same session as Phase 3 SCAFFOLD. Gate: all components routable via `/do` before task is marked complete.
-
 ---
 
-### ❌ Creating Agents Without `allowed-tools` Frontmatter
+### Set allowed-tools in Every Agent's Frontmatter
 
-**Detection**:
-```bash
-# Agents missing allowed-tools field (ADR-063 compliance)
-python3 ~/.claude/scripts/audit-tool-restrictions.py --audit 2>/dev/null | grep "missing"
-# OR manually:
-grep -rL 'allowed-tools' agents/*.md
-```
+Match tools to the agent's role type per ADR-063. Reviewers and research agents get read-only tools. Code-modifying agents get full access. Agents without `allowed-tools` get the full tool set regardless of their role, which means a reviewer can silently modify files during review.
 
-**What it looks like**:
 ```yaml
----
-name: my-new-agent
-description: "..."
----
-```
-
-**Why wrong**: Agents without `allowed-tools` get the full tool set regardless of their role. A read-only reviewer agent that can Edit/Write/Bash can silently modify files during review — a violation of the reviewer role. ADR-063 mandates tool restriction by role type.
-
-**Do instead**: Match tools to role:
-```yaml
-allowed-tools:  # for reviewers / research agents
+# Reviewers / research agents -- read-only
+allowed-tools:
   - Read
   - Glob
   - Grep
   - WebSearch
 
-allowed-tools:  # for code-modifying agents
+# Code-modifying agents -- full access
+allowed-tools:
   - Read
   - Glob
   - Grep
@@ -185,17 +154,38 @@ allowed-tools:  # for code-modifying agents
   - Agent
 ```
 
+**Why this matters**: An agent without `allowed-tools` gets every tool. A read-only reviewer that can `Edit` and `Write` can silently modify files during review -- a violation of role separation that undermines the specialist model.
+
+**Detection**:
+```bash
+# Agents missing allowed-tools field (ADR-063 compliance)
+grep -rL 'allowed-tools' agents/*.md
+```
+
+---
+
+### Fan Out Independent Components in Parallel
+
+When scaffolding agent, skill, and hook files, dispatch all three in parallel using the Task tool. These are independent components with no data dependencies between them. Sequential execution wastes time.
+
+**Why this matters**: Agent, skill, and hook files do not depend on each other's content during creation. Sequential scaffolding adds latency proportional to the number of components, with no quality benefit.
+
+**Detection**: Review session logs for sequential dispatch of independent components. If agent creation, skill creation, and hook creation run back-to-back with no data dependency, they should be parallelized.
+
 ---
 
 ## Error-Fix Mappings
 
 | Error | Root Cause | Fix |
 |-------|------------|-----|
-| `validate-chain: type mismatch at step N` | Step N output type ≠ step N+1 input type | Choose a compatible step from step-menu.md or add an adapter step |
+| `validate-chain: type mismatch at step N` | Step N output type does not match step N+1 input type | Choose a compatible step from step-menu.md or add an adapter step |
 | `routing-table-updater: trigger conflict with force-route` | New trigger overlaps existing force-route entry | Choose more specific trigger phrases; preserve existing force-routes |
 | `audit-tool-restrictions: missing allowed-tools` | Agent frontmatter lacks `allowed-tools` | Add role-appropriate tool list per ADR-063 |
 | `adr-enforcement: hash mismatch` | Pipeline Spec `adr_hash` doesn't match current ADR file | Recompute: `python3 ~/.claude/scripts/adr-query.py hash --adr {path}` |
 | `skill-creator: template section missing` | Generated skill missing required frontmatter or operator context | Re-run with explicit `AGENT_TEMPLATE_V2.md` reference |
+| Duplicate Component Detected | codebase-analyzer found an existing agent/skill covering the requested pipeline's purpose | Bind the existing component instead of creating a new one. Report the reuse decision to the user |
+| Chain Validation Failure | A composed pipeline chain has type incompatibilities between steps | Re-invoke the `workflow` skill (composition phase) with the failing chain and the validation error |
+| Domain Research Insufficient | The `workflow` skill returned fewer than 2 subdomains | The domain may be too narrow for multi-subdomain treatment. Fall back to single-pipeline mode |
 
 ---
 
@@ -219,45 +209,6 @@ grep -rn 'description:' skills/*/SKILL.md | grep ' and \| & '
 # Chains not validated before scaffolding (check ADR coverage)
 grep -rn 'validate-chain' adr/ --include="*.md"
 ```
-
----
-
-## Error-Fix Mappings
-
-| Error | Cause | Solution |
-|-------|-------|----------|
-| Duplicate Component Detected | codebase-analyzer found an existing agent/skill covering the requested pipeline's purpose | Bind the existing component instead of creating a new one. Report the reuse decision to the user. |
-| Template Validation Failure | Scaffolded agent doesn't follow AGENT_TEMPLATE_V2.md structure | Re-run the skill-creator sub-agent with explicit template reference. Validate required sections: frontmatter, operator context, capabilities, error handling, anti-patterns, blocker criteria. |
-| Routing Conflict | New trigger keywords overlap with existing force-route entries | Choose more specific triggers. Preserve existing force-routes. Report the conflict and suggest alternative trigger phrases. |
-| Chain Validation Failure | A composed pipeline chain has type incompatibilities between steps | Re-invoke the `workflow` skill (composition phase) with the failing chain and the validation error. The composer will select compatible step alternatives or reorder the chain. |
-| Domain Research Insufficient | The `workflow` skill returned fewer than 2 subdomains | The domain may be too narrow for multi-subdomain treatment. Fall back to single-pipeline mode (legacy DISCOVER → SCAFFOLD → INTEGRATE). |
-
-## Preferred Patterns
-
-### Pattern 1 (Monolithic Agent)
-**What it looks like**: Creating a single agent that handles discovery, scaffolding, AND integration
-**Why wrong**: Violates single-purpose principle; makes the pipeline brittle and hard to test
-**Do instead**: Fan out to specialized sub-agents. Each creates one component type.
-
-### Pattern 2 (Skipping Discovery)
-**What it looks like**: Scaffolding all components without checking what already exists
-**Why wrong**: Creates duplicate agents/skills that fragment the routing table
-**Do instead**: ALWAYS run Phase 1 (DOMAIN RESEARCH or legacy DISCOVER) before Phase 3 (SCAFFOLD).
-
-### Pattern 3 (Sequential Scaffolding)
-**What it looks like**: Creating agent, then skill, then hook one at a time
-**Why wrong**: These are independent components; sequential execution wastes time
-**Do instead**: Fan out all three in parallel using the Task tool.
-
-### Pattern 4 (Single Pipeline for Multi-Subdomain Domain)
-**What it looks like**: When the domain has clearly distinct subdomains, creating one skill that handles everything
-**Why wrong**: Monolithic skills dilute expertise, overload context, and can't be routed independently. Each subdomain has different task types needing different pipeline chains.
-**Do instead**: Decompose into N skills, one per subdomain. Same agent, different recipes.
-
-### Pattern 5 (Skipping Chain Validation)
-**What it looks like**: Composing a pipeline chain by intuition without running `validate-chain`
-**Why wrong**: Leads to type incompatibilities at runtime; a step's output format may not match the next step's expected input
-**Do instead**: Always validate chains via `scripts/artifact-utils.py validate-chain` before scaffolding.
 
 ---
 

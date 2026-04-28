@@ -1,22 +1,11 @@
-# Go General Engineer - Anti-Patterns
+# Go General Engineer - Preferred Patterns
 
-Common Go mistakes and corrections.
+Action-first patterns for correct Go code. Each section leads with what to do and why, followed by detection commands for finding violations.
 
-## ❌ Ignoring Errors
+## Handle Every Error Return
 
-**What it looks like**:
-```go
-result, _ := database.Query("SELECT ...")
-file.Write(data) // Ignores error return
-```
+Check every error return immediately after the call. Wrap errors with `fmt.Errorf("context: %w", err)` to build a traceable chain from the failure point to the caller. For write operations, also verify the byte count matches the expected length.
 
-**Why wrong**:
-- Silent failures compound
-- Bugs escape to production
-- Violates Go conventions
-- Makes debugging impossible
-
-**✅ Correct approach**:
 ```go
 result, err := database.Query("SELECT ...")
 if err != nil {
@@ -32,28 +21,16 @@ if n != len(data) {
 }
 ```
 
+**Why this matters**: Unchecked errors hide root causes. A nil-pointer panic three calls later is harder to debug than the original error. Silent failures compound in production and make debugging impossible.
+
+**Detection**: `grep -rn '_ :=' --include="*.go"` and `grep -rn '_ =' --include="*.go"` find suppressed error returns.
+
 ---
 
-## ❌ Starting Goroutines Without Exit Strategy
+## Give Every Goroutine an Exit Strategy
 
-**What it looks like**:
-```go
-func StartWorker() {
-    go func() {
-        for {
-            work() // No way to stop!
-        }
-    }()
-}
-```
+Pass a `context.Context` or a stop channel to every goroutine and `select` on it inside the loop. This ensures graceful shutdown and prevents goroutine leaks that grow memory unbounded.
 
-**Why wrong**:
-- Goroutine leaks
-- Resource exhaustion
-- No graceful shutdown
-- Memory grows unbounded
-
-**✅ Correct approach**:
 ```go
 func StartWorker(ctx context.Context) {
     go func() {
@@ -68,7 +45,7 @@ func StartWorker(ctx context.Context) {
     }()
 }
 
-// Or with channel
+// Alternative: channel-based stop signal
 func StartWorker(stop <-chan struct{}) {
     go func() {
         for {
@@ -83,33 +60,20 @@ func StartWorker(stop <-chan struct{}) {
 }
 ```
 
+**Why this matters**: A goroutine without an exit path runs until the process dies. In long-running services, leaked goroutines accumulate resources (memory, file descriptors, network connections) with no way to reclaim them.
+
+**Detection**: `grep -rn 'go func' --include="*.go" | grep -v 'ctx\|cancel\|stop\|done\|quit'` finds goroutines that may lack exit signals.
+
 ---
 
-## ❌ Using sync.WaitGroup Incorrectly
+## Call WaitGroup.Add Before Spawning the Goroutine
 
-**What it looks like**:
+Always call `wg.Add(1)` in the parent goroutine before the `go` statement, never inside the spawned goroutine. This eliminates the race between `Add()` and `Wait()`.
+
 ```go
 var wg sync.WaitGroup
 for _, item := range items {
-    go func() {
-        wg.Add(1) // WRONG: Add inside goroutine causes race
-        defer wg.Done()
-        process(item)
-    }()
-}
-wg.Wait()
-```
-
-**Why wrong**:
-- Race condition between Add() and Wait()
-- May wait before all Add() calls complete
-- Can cause panic or incorrect sync
-
-**✅ Correct approach**:
-```go
-var wg sync.WaitGroup
-for _, item := range items {
-    wg.Add(1) // CORRECT: Add before spawning goroutine
+    wg.Add(1) // Add BEFORE spawning goroutine
     go func(i Item) {
         defer wg.Done()
         process(i)
@@ -118,66 +82,43 @@ for _, item := range items {
 wg.Wait()
 ```
 
+**Why this matters**: When `Add()` runs inside the goroutine, `Wait()` can return before all goroutines have registered. This creates a race condition that causes intermittent panics or incorrect synchronization -- the kind of bug that passes tests 99% of the time.
+
+**Detection**: `grep -A3 'go func' --include="*.go" -rn | grep 'wg.Add'` finds `Add()` calls inside goroutines.
+
 ---
 
-## ❌ Mutating Loop Variable in Goroutine
+## Capture Loop Variables Before Passing to Goroutines
 
-**What it looks like**:
+Pass loop variables as function parameters to goroutines, or shadow them with a local copy. In Go versions before 1.22, closures capture the variable reference, not the value -- all goroutines see the last iteration's value.
+
 ```go
-for _, item := range items {
-    go func() {
-        process(item) // BUG: All goroutines see last value!
-    }()
-}
-```
-
-**Why wrong**:
-- Loop variable is reused
-- Closure captures variable reference, not value
-- All goroutines may process the last item
-
-**✅ Correct approach**:
-```go
-// Option 1: Pass as parameter
+// Option 1: Pass as parameter (works on all Go versions)
 for _, item := range items {
     go func(i Item) {
         process(i)
     }(item)
 }
 
-// Option 2: Create new variable (Go 1.22+ auto-fixes this)
+// Option 2: Shadow the loop variable
 for _, item := range items {
-    item := item // Shadow loop variable
+    item := item // Shadow loop variable -- creates a new copy per iteration
     go func() {
         process(item)
     }()
 }
 ```
 
+**Why this matters**: Without capturing, every goroutine processes the same (last) item. This produces correct-looking output that is silently wrong. Go 1.22+ changed loop variable semantics to create a new variable per iteration, but explicit capture remains the safe portable pattern.
+
+**Detection**: `grep -B2 -A3 'go func()' --include="*.go" -rn | grep 'range'` finds closures in range loops that may capture the loop variable.
+
 ---
 
-## ❌ Not Closing Channels
+## Close Channels When the Producer Finishes
 
-**What it looks like**:
-```go
-func produce(ch chan int) {
-    for i := 0; i < 10; i++ {
-        ch <- i
-    }
-    // Forgot to close!
-}
+Use `defer close(ch)` at the top of the producer function. The receiver's `range` loop exits automatically when the channel closes. Only the sender should close a channel -- never the receiver.
 
-for val := range ch { // Waits forever after 10 values
-    fmt.Println(val)
-}
-```
-
-**Why wrong**:
-- Range loop waits forever
-- Goroutine leak
-- Receiver never knows producer finished
-
-**✅ Correct approach**:
 ```go
 func produce(ch chan int) {
     defer close(ch) // Close when done producing
@@ -186,71 +127,58 @@ func produce(ch chan int) {
     }
 }
 
-for val := range ch { // Exits when channel closed
+// Receiver exits cleanly when channel closes
+for val := range ch {
     fmt.Println(val)
 }
 ```
 
+**Why this matters**: An unclosed channel causes `range` loops to block forever. The receiving goroutine leaks, and the program hangs or accumulates zombie goroutines.
+
+**Detection**: Look for `range ch` patterns where the producing function lacks a `close()` call. `grep -rn 'range.*chan\|for.*:=.*range' --include="*.go"` identifies range-over-channel consumers to audit.
+
 ---
 
-## ❌ Returning Pointer to Loop Variable
+## Copy Loop Variables Before Taking Their Address
 
-**What it looks like**:
+When appending pointers from a loop, create an explicit copy of the loop variable before taking its address. Without the copy, all pointers reference the same memory location and resolve to the last iteration's value.
+
 ```go
 func getUsers() []*User {
     var users []*User
     for _, data := range userData {
         user := parseUser(data)
-        users = append(users, &user) // BUG: All point to same variable!
-    }
-    return users
-}
-```
-
-**Why wrong**:
-- Loop variable is reused
-- All pointers point to last value
-- Subtle bug, hard to detect
-
-**✅ Correct approach**:
-```go
-func getUsers() []*User {
-    var users []*User
-    for _, data := range userData {
-        user := parseUser(data)
-        // Option 1: Create new variable
-        u := user
+        u := user // Create a new variable -- each pointer gets its own copy
         users = append(users, &u)
+    }
+    return users
+}
 
-        // Option 2: Return by value, take address later
-        users = append(users, &User{...})
+// Alternative: construct the value directly
+func getUsers() []*User {
+    var users []*User
+    for _, data := range userData {
+        users = append(users, &User{
+            Name: data.Name,
+            Email: data.Email,
+        })
     }
     return users
 }
 ```
 
+**Why this matters**: All pointers in the slice end up pointing to the same memory address, which holds only the last iteration's value. This is a silent data corruption bug -- the slice appears correctly sized but every element is identical.
+
+**Detection**: `grep -B3 -A1 'append.*&' --include="*.go" -rn | grep 'range'` finds pointer-append patterns inside range loops.
+
 ---
 
-## ❌ Using defer in Loop
+## Extract defer Cleanup Into a Separate Function
 
-**What it looks like**:
+`defer` runs at function exit, not at the end of a loop iteration. To release resources per iteration, extract the loop body into its own function so `defer` fires at each iteration's function return.
+
 ```go
-for _, file := range files {
-    f, _ := os.Open(file)
-    defer f.Close() // BUG: All defers run after loop exits!
-    process(f)
-}
-// All files still open until function returns
-```
-
-**Why wrong**:
-- defer runs at function exit, not loop iteration end
-- File descriptors accumulate
-- Resource leak for many iterations
-
-**✅ Correct approach**:
-```go
-// Option 1: Extract to function
+// Correct: extract to function so defer runs per iteration
 for _, file := range files {
     if err := processFile(file); err != nil {
         return err
@@ -262,12 +190,12 @@ func processFile(filename string) error {
     if err != nil {
         return err
     }
-    defer f.Close() // Runs at function exit
+    defer f.Close() // Runs when processFile returns -- once per file
 
     return process(f)
 }
 
-// Option 2: Explicit close
+// Alternative: explicit close without defer
 for _, file := range files {
     f, err := os.Open(file)
     if err != nil {
@@ -275,7 +203,7 @@ for _, file := range files {
     }
 
     err = process(f)
-    f.Close() // Close immediately
+    f.Close() // Close immediately, don't defer
 
     if err != nil {
         return err
@@ -283,53 +211,34 @@ for _, file := range files {
 }
 ```
 
+**Why this matters**: `defer` inside a loop accumulates all deferred calls until the enclosing function returns. For file handles, this means all files stay open simultaneously. With enough iterations, the process exhausts file descriptors and crashes.
+
+**Detection**: `grep -B2 'defer.*Close\|defer.*Unlock\|defer.*Release' --include="*.go" -rn | grep 'for '` finds defer-in-loop patterns.
+
 ---
 
-## ❌ Checking for Empty Slice with len() != nil
+## Check Slice Length Directly With len()
 
-**What it looks like**:
-```go
-if slice != nil && len(slice) > 0 {
-    // Process slice
-}
-```
+Use `len(slice) > 0` to check for a non-empty slice. A nil slice returns `len() == 0`, so a separate nil check is redundant. This applies to maps too: `len(m) > 0` covers both nil and empty.
 
-**Why wrong**:
-- Overly verbose
-- nil slice and empty slice behave identically
-- len(nil slice) is 0, safe to call
-
-**✅ Correct approach**:
 ```go
 if len(slice) > 0 {
     // Process slice
 }
 
-// len(nil) == 0, so this is safe
+// len(nil) == 0, so this is safe and idiomatic
 ```
+
+**Why this matters**: `if slice != nil && len(slice) > 0` is functionally identical but adds visual noise. Go's standard library treats nil slices and empty slices interchangeably, and idiomatic Go follows this convention.
+
+**Detection**: `grep -rn '!= nil && len(' --include="*.go"` finds redundant nil-before-length checks.
 
 ---
 
-## ❌ Using Panic for Normal Errors
+## Return Errors Instead of Panicking
 
-**What it looks like**:
-```go
-func getUser(id int) *User {
-    user := db.Find(id)
-    if user == nil {
-        panic("user not found") // BAD: Panic for expected error
-    }
-    return user
-}
-```
+Use the `(value, error)` return pattern for expected failure cases. Reserve `panic` for truly unrecoverable situations: corrupted invariants, impossible states, and startup configuration failures in `main()` or `init()`.
 
-**Why wrong**:
-- Panics should be for truly exceptional situations
-- Crashes caller's goroutine
-- Forces caller to recover
-- Makes error handling difficult
-
-**✅ Correct approach**:
 ```go
 func getUser(id int) (*User, error) {
     user := db.Find(id)
@@ -341,115 +250,73 @@ func getUser(id int) (*User, error) {
 ```
 
 **When panic IS appropriate**:
-- In `main()` or `init()` for config errors
-- Unrecoverable errors (corrupted state)
-- Programming errors (violated invariants)
+- In `main()` or `init()` for missing configuration
+- Unrecoverable corruption (violated data invariants)
+- Programming errors that indicate a logic bug (index out of range on a fixed-size array)
+
+**Why this matters**: `panic` crashes the goroutine's stack. If the caller has no `recover()`, the entire program dies. Using panic for expected conditions (user not found, network timeout) forces every caller to add recovery boilerplate and makes error handling unpredictable.
+
+**Detection**: `grep -rn 'panic(' --include="*.go" | grep -v '_test.go\|main.go\|init()'` finds panics outside test/init contexts.
 
 ---
 
-## ❌ Not Using Buffered Channels When Appropriate
+## Buffer Channels When the Sender Must Not Block
 
-**What it looks like**:
+Use `make(chan T, 1)` (buffer size 1) when a goroutine produces a single result and must not block if the receiver has not called receive yet. This prevents goroutine leaks when the receiver panics or returns early.
+
 ```go
-ch := make(chan Result)
-go func() {
-    result := compute()
-    ch <- result // May block forever if receiver doesn't exist
-}()
-
-// If this panics before receiving, sender blocks forever
-doSomethingThatMightPanic()
-result := <-ch
-```
-
-**Why wrong**:
-- Unbuffered send blocks until receive
-- Goroutine leak if receiver never reads
-- Fragile error handling
-
-**✅ Correct approach**:
-```go
-// Use buffer size 1 for send-and-forget
+// Buffer size 1: sender never blocks, even if receiver is delayed or absent
 ch := make(chan Result, 1)
 go func() {
     result := compute()
-    ch <- result // Never blocks
+    ch <- result // Never blocks because buffer absorbs the value
 }()
 
 doSomethingThatMightPanic()
 result := <-ch
 ```
 
+**Why this matters**: With an unbuffered channel, the sender blocks until a receiver is ready. If the receiver panics, returns early, or simply never reads, the sending goroutine leaks permanently. A buffer of 1 lets the sender complete and exit regardless of receiver timing.
+
+**Detection**: `grep -rn 'make(chan' --include="*.go" | grep -v ','` finds unbuffered channel allocations to audit.
+
 ---
 
-## ❌ Comparing Structs with ==
+## Use Field Comparison or Equal Methods for Structs With Non-Comparable Fields
 
-**What it looks like**:
+Structs containing slices, maps, or functions cannot use `==`. Compare individual fields, implement a custom `Equal` method, or use `reflect.DeepEqual` (slower, for tests only).
+
 ```go
-type User struct {
-    Name  string
-    Tags  []string // Slice is not comparable!
-}
-
-user1 := User{Name: "Alice", Tags: []string{"admin"}}
-user2 := User{Name: "Alice", Tags: []string{"admin"}}
-
-if user1 == user2 { // Compilation error!
-    fmt.Println("equal")
-}
-```
-
-**Why wrong**:
-- Structs containing slices, maps, or functions are not comparable
-- Results in compilation error
-
-**✅ Correct approach**:
-```go
-// Option 1: Compare individual fields
+// Option 1: Compare individual fields explicitly
 if user1.Name == user2.Name && slices.Equal(user1.Tags, user2.Tags) {
     fmt.Println("equal")
 }
 
-// Option 2: Implement custom Equal method
+// Option 2: Implement a custom Equal method
 func (u User) Equal(other User) bool {
     return u.Name == other.Name && slices.Equal(u.Tags, other.Tags)
 }
 
-// Option 3: Use reflection (slower)
+// Option 3: reflect.DeepEqual -- acceptable in tests, avoid in production
 if reflect.DeepEqual(user1, user2) {
     fmt.Println("equal")
 }
 ```
 
+**Why this matters**: Using `==` on a struct with slice or map fields produces a compile error. Using `reflect.DeepEqual` in production paths adds significant overhead. Explicit field comparison or custom `Equal` methods are both correct and performant.
+
+**Detection**: `grep -rn 'DeepEqual' --include="*.go" | grep -v '_test.go'` finds production use of reflection-based comparison.
+
 ---
 
-## ❌ Embedding Mutex in Exported Struct
+## Keep Mutexes Unexported and Wrap Access in Methods
 
-**What it looks like**:
+Embed mutexes as unexported fields (`mu sync.Mutex`) and expose thread-safe methods instead of exposing the lock to callers. This prevents external code from acquiring the lock without releasing it.
+
 ```go
 type Counter struct {
-    sync.Mutex // Embedded, exported!
-    Count int
-}
-
-// Caller can misuse the lock
-counter := &Counter{}
-counter.Lock() // External lock!
-counter.Count++
-// Forgot to unlock!
-```
-
-**Why wrong**:
-- Exposes internal locking mechanism
-- Callers can misuse the lock
-- Violates encapsulation
-- Difficult to change locking strategy
-
-**✅ Correct approach**:
-```go
-type Counter struct {
-    mu    sync.Mutex // Unexported
-    count int        // Unexported
+    mu    sync.Mutex // Unexported -- callers cannot misuse the lock
+    count int        // Unexported -- access only through methods
 }
 
 func (c *Counter) Increment() {
@@ -464,3 +331,7 @@ func (c *Counter) Value() int {
     return c.count
 }
 ```
+
+**Why this matters**: An exported `sync.Mutex` (or embedded `sync.Mutex` in an exported struct) lets any caller call `Lock()` directly. A caller who locks without unlocking deadlocks the entire struct. Unexported mutexes with method wrappers make correct locking the only option.
+
+**Detection**: `grep -rn 'sync.Mutex' --include="*.go" | grep -v 'mu \|mu  '` finds mutexes that may be exported or improperly named.
