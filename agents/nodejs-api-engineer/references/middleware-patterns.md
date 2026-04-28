@@ -221,8 +221,7 @@ app.use(cors({
 
 ## Pattern Catalog
 
-### ❌ 3-Argument Error Handler
-
+### Use 4-Argument Signature for Error Middleware
 **Detection**:
 ```bash
 grep -rn 'app\.use.*function.*err' --include="*.ts" --include="*.js" src/
@@ -231,7 +230,7 @@ grep -rn 'function.*err.*req.*res\b' --include="*.ts" src/
 rg '\(err,\s*req,\s*res\)' --type ts src/
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 // 3 args — Express treats this as REGULAR middleware, not error middleware
 app.use((err: Error, req: Request, res: Response) => {
@@ -239,40 +238,38 @@ app.use((err: Error, req: Request, res: Response) => {
 });
 ```
 
-**Why wrong**: Express identifies error-handling middleware by arity (argument count). A 3-argument function is a regular middleware. When `next(err)` is called or an error is thrown, Express skips all 3-argument middlewares looking for a 4-argument error handler. Errors propagate unhandled to Express's default error handler, which sends HTML error pages.
+**Why this matters**: Express identifies error-handling middleware by arity (argument count). A 3-argument function is a regular middleware. When `next(err)` is called or an error is thrown, Express skips all 3-argument middlewares looking for a 4-argument error handler. Errors propagate unhandled to Express's default error handler, which sends HTML error pages.
 
-**Fix**: Always use exactly 4 arguments: `(err, req, res, next)`.
+**Preferred action**: Always use exactly 4 arguments: `(err, req, res, next)`.
 
 ---
 
-### ❌ Wildcard CORS Origin
-
+### Use an Explicit CORS Origin Allowlist
 **Detection**:
 ```bash
 grep -rn "origin.*'\*'\|origin.*\"\\*\"" --include="*.ts" src/
 rg "cors\(\{.*origin.*\*" --type ts src/
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 app.use(cors({ origin: '*', credentials: true }));
 ```
 
-**Why wrong**: `origin: '*'` with `credentials: true` is rejected by browsers (CORS spec prohibits it), but `origin: '*'` without credentials still allows any malicious site to read API responses. Attack: attacker hosts `evil.com`, victim visits it, victim's browser sends cookies to your API, attacker reads the response.
+**Why this matters**: `origin: '*'` with `credentials: true` is rejected by browsers (CORS spec prohibits it), but `origin: '*'` without credentials still allows any malicious site to read API responses. Attack: attacker hosts `evil.com`, victim visits it, victim's browser sends cookies to your API, attacker reads the response.
 
-**Fix**: Explicit origin allowlist. If truly public (no auth), `origin: '*'` without `credentials` is acceptable.
+**Preferred action**: Explicit origin allowlist. If truly public (no auth), `origin: '*'` without `credentials` is acceptable.
 
 ---
 
-### ❌ Validation After Business Logic
-
+### Validate Input Before Any Side Effects
 **Detection**:
 ```bash
 # Find validation that comes after DB calls or side effects
 grep -rn 'parse\|safeParse\|validate' --include="*.ts" src/ -B10 | grep -E 'await.*db|await.*createUser|sendEmail'
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 app.post('/users', async (req, res) => {
   // Creates user BEFORE validating input
@@ -285,9 +282,9 @@ app.post('/users', async (req, res) => {
 });
 ```
 
-**Why wrong**: If `req.body.email` is `undefined`, `db.users.create()` may throw a database constraint error that leaks schema details, or worse — insert NULL values. Validation must run before any side effects.
+**Why this matters**: If `req.body.email` is `undefined`, `db.users.create()` may throw a database constraint error that leaks schema details, or worse — insert NULL values. Validation must run before any side effects.
 
-**Fix**: Validate first with middleware, then call handlers.
+**Preferred action**: Validate first with middleware, then call handlers.
 
 ---
 

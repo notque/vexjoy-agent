@@ -161,25 +161,25 @@ Common Perses dashboard errors and solutions.
 
 Common Perses dashboard mistakes and their corrections.
 
-### ❌ Global Datasources for Everything
-**What it looks like**: Every datasource defined at global scope even when only one project uses it.
-**Why wrong**: Pollutes the global namespace, makes it unclear which datasources belong to which teams, complicates access control.
-**✅ Do instead**: Scope datasources to the project that uses them. Use global scope only for shared infrastructure datasources (e.g., a central Prometheus).
+### Scope Datasources to the Narrowest Level
+**Signal**: Every datasource defined at global scope even when only one project uses it.
+**Why this matters**: Pollutes the global namespace, makes it unclear which datasources belong to which teams, complicates access control.
+**Preferred action**: Scope datasources to the project that uses them. Use global scope only for shared infrastructure datasources (e.g., a central Prometheus).
 
-### ❌ Hardcoded Label Values in Queries
-**What it looks like**: `container_cpu_usage_seconds_total{namespace="production", pod="api-server-abc123"}`
-**Why wrong**: Dashboard is not reusable, breaks when pods restart or namespaces change.
-**✅ Do instead**: Use variables: `container_cpu_usage_seconds_total{namespace="${namespace}", pod=~"${pod}"}` with List variables populated from label values.
+### Use Variables for All Label Filters
+**Signal**: `container_cpu_usage_seconds_total{namespace="production", pod="api-server-abc123"}`
+**Why this matters**: Dashboard is not reusable, breaks when pods restart or namespaces change.
+**Preferred action**: Use variables: `container_cpu_usage_seconds_total{namespace="${namespace}", pod=~"${pod}"}` with List variables populated from label values.
 
-### ❌ Flat Layout Without Row Grouping
-**What it looks like**: 20 panels in a single flat grid with no logical organization.
-**Why wrong**: Hard to navigate, overwhelming for users, impossible to collapse irrelevant sections.
-**✅ Do instead**: Group related panels into collapsible rows (e.g., "CPU Metrics", "Memory Metrics", "Network Metrics"). Use Grid layout with logical row breaks.
+### Group Panels into Collapsible Rows
+**Signal**: 20 panels in a single flat grid with no logical organization.
+**Why this matters**: Hard to navigate, overwhelming for users, impossible to collapse irrelevant sections.
+**Preferred action**: Group related panels into collapsible rows (e.g., "CPU Metrics", "Memory Metrics", "Network Metrics"). Use Grid layout with logical row breaks.
 
-### ❌ Skipping percli lint Before Apply
-**What it looks like**: Running `percli apply` directly without `percli lint` first.
-**Why wrong**: Invalid dashboards may be partially applied, causing broken state. Lint catches schema errors, missing references, and invalid plugin types before deployment.
-**✅ Do instead**: Always run `percli lint` first. Only proceed to `percli apply` when lint passes cleanly.
+### Run percli lint Before Every Apply
+**Signal**: Running `percli apply` directly without `percli lint` first.
+**Why this matters**: Invalid dashboards may be partially applied, causing broken state. Lint catches schema errors, missing references, and invalid plugin types before deployment.
+**Preferred action**: Always run `percli lint` first. Only proceed to `percli apply` when lint passes cleanly.
 
 ## Anti-Rationalization
 

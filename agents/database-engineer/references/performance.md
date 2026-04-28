@@ -140,8 +140,7 @@ ORDER BY duration DESC;
 
 ## Pattern Catalog
 
-### ❌ Over-Indexing (Index on Every Column)
-
+### Index Only Columns with Known Query Patterns
 **Detection**:
 ```sql
 -- Find tables with unusually high index count
@@ -167,7 +166,7 @@ WHERE idx_scan = 0
 ORDER BY pg_relation_size(indexrelid) DESC;
 ```
 
-**What it looks like**:
+**Signal**:
 ```sql
 -- Every column gets an index "just in case"
 CREATE INDEX idx_users_name ON users(name);
@@ -178,14 +177,13 @@ CREATE INDEX idx_users_country ON users(country);
 -- Plus 4 more indexes that are never queried
 ```
 
-**Why wrong**: Every index slows down writes (INSERT/UPDATE/DELETE must update all indexes). A table with 10 indexes has 10× write amplification. Index maintenance during VACUUM is slower. Buffer cache fills with index pages instead of table data.
+**Why this matters**: Every index slows down writes (INSERT/UPDATE/DELETE must update all indexes). A table with 10 indexes has 10× write amplification. Index maintenance during VACUUM is slower. Buffer cache fills with index pages instead of table data.
 
-**Do instead:** Check `pg_stat_user_indexes.idx_scan = 0` after running the application under production load for 1+ weeks. Drop indexes with zero usage. Keep only indexes that serve known query patterns.
+**Preferred action:** Check `pg_stat_user_indexes.idx_scan = 0` after running the application under production load for 1+ weeks. Drop indexes with zero usage. Keep only indexes that serve known query patterns.
 
 ---
 
-### ❌ Running ALTER TABLE on a Large Production Table Without a Plan
-
+### Plan ALTER TABLE Migrations for Large Tables
 **Detection**:
 ```bash
 # Find ALTER TABLE statements in pending migrations
@@ -196,7 +194,7 @@ grep -rn "ALTER TABLE\|ADD COLUMN.*NOT NULL\|CHANGE COLUMN\|MODIFY COLUMN" \
 psql -c "SELECT pg_size_pretty(pg_total_relation_size('orders'));"
 ```
 
-**What it looks like**:
+**Signal**:
 ```sql
 -- This takes an ExclusiveLock for the duration on a 500GB table
 ALTER TABLE orders ADD COLUMN processed BOOLEAN NOT NULL DEFAULT false;
@@ -204,9 +202,9 @@ ALTER TABLE orders ADD COLUMN processed BOOLEAN NOT NULL DEFAULT false;
 -- PostgreSQL < 11: rewrites entire table with new column!
 ```
 
-**Why wrong**: On PostgreSQL < 11, adding a column with a default value requires rewriting the entire table. On a 500GB table, this takes hours with an ExclusiveLock that blocks ALL reads and writes.
+**Why this matters**: On PostgreSQL < 11, adding a column with a default value requires rewriting the entire table. On a 500GB table, this takes hours with an ExclusiveLock that blocks ALL reads and writes.
 
-**Do instead:**
+**Preferred action:**
 ```sql
 -- PostgreSQL 11+: adding column with DEFAULT is safe (metadata only), do it directly
 
@@ -228,8 +226,7 @@ ALTER TABLE orders ALTER COLUMN processed SET NOT NULL;
 
 ---
 
-### ❌ No Query Timeout Set (Runaway Queries)
-
+### Set Statement Timeouts to Prevent Runaway Queries
 **Detection**:
 ```sql
 -- Find queries running longer than 5 minutes
@@ -239,11 +236,11 @@ WHERE state = 'active'
   AND query_start < NOW() - INTERVAL '5 minutes';
 ```
 
-**What it looks like**: Application has no statement timeout configured. A user runs `SELECT * FROM orders` (full table scan, no WHERE clause) that runs for 30 minutes and holds shared locks.
+**Signal**: Application has no statement timeout configured. A user runs `SELECT * FROM orders` (full table scan, no WHERE clause) that runs for 30 minutes and holds shared locks.
 
-**Why wrong**: Long-running queries on PostgreSQL prevent autovacuum from cleaning dead rows (transaction ID wraparound risk), hold shared memory, and block DDL operations that need ExclusiveLock.
+**Why this matters**: Long-running queries on PostgreSQL prevent autovacuum from cleaning dead rows (transaction ID wraparound risk), hold shared memory, and block DDL operations that need ExclusiveLock.
 
-**Do instead:**
+**Preferred action:**
 ```sql
 -- Set per-session timeout (application layer)
 SET statement_timeout = '30s';

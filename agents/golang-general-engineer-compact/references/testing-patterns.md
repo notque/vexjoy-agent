@@ -118,15 +118,14 @@ func FuzzParseURL(f *testing.F) {
 
 ## Pattern Catalog
 
-### ❌ Missing t.Parallel() in Subtests
-
+### Add t.Parallel() to Independent Subtests
 **Detection**:
 ```bash
 grep -A5 't.Run(' --include="*_test.go" -rn . | grep -v 't.Parallel'
 rg 't\.Run\(' --type go -A 3 | grep -v 't\.Parallel'
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 for _, tt := range tests {
     t.Run(tt.name, func(t *testing.T) {
@@ -137,21 +136,20 @@ for _, tt := range tests {
 }
 ```
 
-**Why wrong**: Sequential subtests are 10-100x slower on multi-core machines. `go test -count=10` reveals this.
+**Why this matters**: Sequential subtests are 10-100x slower on multi-core machines. `go test -count=10` reveals this.
 
-**Fix**: Add `t.Parallel()` as first line of each subtest. If subtests share mutable state, move that state inside the struct or use `t.Cleanup` for isolation.
+**Preferred action**: Add `t.Parallel()` as first line of each subtest. If subtests share mutable state, move that state inside the struct or use `t.Cleanup` for isolation.
 
 ---
 
-### ❌ Using os.TempDir() Instead of t.TempDir()
-
+### Use t.TempDir() for Test Temporary Files
 **Detection**:
 ```bash
 grep -rn 'os.TempDir()' --include="*_test.go"
 rg 'os\.TempDir\(\)' --type go --glob '*_test.go'
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 func TestWriteFile(t *testing.T) {
     dir := os.TempDir() // Manual cleanup needed
@@ -160,9 +158,9 @@ func TestWriteFile(t *testing.T) {
 }
 ```
 
-**Why wrong**: `os.TempDir()` returns the system temp dir, not a test-scoped dir. Multiple test runs in the same process share it. If the test panics before defer, temp files leak.
+**Why this matters**: `os.TempDir()` returns the system temp dir, not a test-scoped dir. Multiple test runs in the same process share it. If the test panics before defer, temp files leak.
 
-**Fix**:
+**Preferred action**:
 ```go
 func TestWriteFile(t *testing.T) {
     dir := t.TempDir() // Automatically cleaned up after test, even on failure
@@ -174,15 +172,14 @@ func TestWriteFile(t *testing.T) {
 
 ---
 
-### ❌ Context Not Canceled in Test Goroutines
-
+### Use t.Context() for Test Goroutines (Go 1.24+)
 **Detection**:
 ```bash
 grep -rn 'context.Background()' --include="*_test.go"
 rg 'context\.Background\(\)' --type go --glob '*_test.go'
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 func TestServer(t *testing.T) {
     ctx := context.Background() // Never canceled — goroutines may outlive test
@@ -191,9 +188,9 @@ func TestServer(t *testing.T) {
 }
 ```
 
-**Why wrong**: Goroutines started with `context.Background()` in tests run until process exit, causing goroutine leaks detected by `goleak`.
+**Why this matters**: Goroutines started with `context.Background()` in tests run until process exit, causing goroutine leaks detected by `goleak`.
 
-**Fix** (Go 1.24+):
+**Preferred action** (Go 1.24+):
 ```go
 func TestServer(t *testing.T) {
     ctx := t.Context() // Canceled when test ends, cancels dependent goroutines
@@ -202,7 +199,7 @@ func TestServer(t *testing.T) {
 }
 ```
 
-**Fix** (Go < 1.24):
+**Preferred action** (Go < 1.24):
 ```go
 func TestServer(t *testing.T) {
     ctx, cancel := context.WithCancel(context.Background())
@@ -214,15 +211,14 @@ func TestServer(t *testing.T) {
 
 ---
 
-### ❌ Benchmark Without Reset or Skip Setup
-
+### Reset Timer Before Benchmark Loop
 **Detection**:
 ```bash
 grep -B5 'for.*b\.N' --include="*_test.go" -rn . | grep -v 'b.ResetTimer'
 rg 'for i := 0.*b\.N' --type go --glob '*_test.go'
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 func BenchmarkProcess(b *testing.B) {
     data := loadLargeDataset() // Counted in benchmark time!
@@ -232,9 +228,9 @@ func BenchmarkProcess(b *testing.B) {
 }
 ```
 
-**Why wrong**: `loadLargeDataset()` runs once but the time is counted in benchmark initialization, skewing results.
+**Why this matters**: `loadLargeDataset()` runs once but the time is counted in benchmark initialization, skewing results.
 
-**Fix** (Go 1.24+):
+**Preferred action** (Go 1.24+):
 ```go
 func BenchmarkProcess(b *testing.B) {
     data := loadLargeDataset()

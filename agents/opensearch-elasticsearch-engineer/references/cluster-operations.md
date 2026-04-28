@@ -172,8 +172,7 @@ GET /_snapshot/backups/_all?pretty&s=start_time:desc
 
 ## Pattern Catalog
 
-### ❌ Heap Size Above 31GB
-
+### Keep JVM Heap at or Below 31GB
 **Detection**:
 ```bash
 # Check current heap for all nodes
@@ -189,21 +188,20 @@ for nid, n in data['nodes'].items():
 "
 ```
 
-**What it looks like**:
+**Signal**:
 ```bash
 # jvm.options
 -Xms64g
 -Xmx64g  # 64GB — loses compressed OOPs
 ```
 
-**Why wrong**: Above ~31GB, JVM object pointers are 64-bit instead of 32-bit compressed. Memory per object increases significantly. The JVM now needs a larger heap to hold the same amount of data. A 64GB heap may hold less effective data than a properly configured 31GB heap. GC pauses also increase with heap size.
+**Why this matters**: Above ~31GB, JVM object pointers are 64-bit instead of 32-bit compressed. Memory per object increases significantly. The JVM now needs a larger heap to hold the same amount of data. A 64GB heap may hold less effective data than a properly configured 31GB heap. GC pauses also increase with heap size.
 
-**Fix**: Split heap across two nodes rather than increase past 31GB. Two nodes with 15GB heap each outperform one node with 31GB.
+**Preferred action**: Split heap across two nodes rather than increase past 31GB. Two nodes with 15GB heap each outperform one node with 31GB.
 
 ---
 
-### ❌ Leaving Allocation Disabled After Maintenance
-
+### Re-enable Shard Allocation After Maintenance
 **Detection**:
 ```bash
 # Check allocation settings — should be 'all' during normal operation
@@ -211,7 +209,7 @@ GET /_cluster/settings?filter_path=*.cluster.routing.allocation.enable
 # Anything other than 'all' or null is suspect
 ```
 
-**What it looks like**:
+**Signal**:
 ```bash
 # Set during maintenance window, then forgotten
 PUT /_cluster/settings
@@ -223,9 +221,9 @@ PUT /_cluster/settings
 # Maintenance completes, engineer leaves — setting persists
 ```
 
-**Why wrong**: With `allocation.enable: none`, no new shard assignments occur. Adding a new node does nothing — no shards migrate to it. A data node failure causes replicas to become unassigned but not recovered. The cluster silently degrades toward red status.
+**Why this matters**: With `allocation.enable: none`, no new shard assignments occur. Adding a new node does nothing — no shards migrate to it. A data node failure causes replicas to become unassigned but not recovered. The cluster silently degrades toward red status.
 
-**Fix**: After every maintenance operation, verify allocation is re-enabled:
+**Preferred action**: After every maintenance operation, verify allocation is re-enabled:
 ```bash
 PUT /_cluster/settings { "transient": { "cluster.routing.allocation.enable": null } }
 GET /_cluster/health?wait_for_status=green&timeout=60s
@@ -233,8 +231,7 @@ GET /_cluster/health?wait_for_status=green&timeout=60s
 
 ---
 
-### ❌ No Replica Shards on Production Indices
-
+### Set Replicas to 1+ on Production Indices
 **Detection**:
 ```bash
 # Find indices with number_of_replicas: 0
@@ -245,7 +242,7 @@ GET /_cat/indices?v&h=index,rep&s=rep:asc | head -20
 GET /_all/_settings?filter_path=*.settings.index.number_of_replicas
 ```
 
-**What it looks like**:
+**Signal**:
 ```json
 PUT /logs-2024-01
 {
@@ -255,14 +252,13 @@ PUT /logs-2024-01
 }
 ```
 
-**Why wrong**: A node failure with 0 replicas causes data loss for all primary shards on that node. Cluster status goes RED. Documents indexed after the last snapshot are permanently lost.
+**Why this matters**: A node failure with 0 replicas causes data loss for all primary shards on that node. Cluster status goes RED. Documents indexed after the last snapshot are permanently lost.
 
-**Fix**: `number_of_replicas: 1` minimum in production. Even for a single-node dev cluster, set to 0 explicitly with a comment explaining it's dev-only — don't let it be the default.
+**Preferred action**: `number_of_replicas: 1` minimum in production. Even for a single-node dev cluster, set to 0 explicitly with a comment explaining it's dev-only — don't let it be the default.
 
 ---
 
-### ❌ Shard Count Not Matched to Data Volume
-
+### Size Shard Count to Data Volume
 **Detection**:
 ```bash
 # Check shard sizes
@@ -274,7 +270,7 @@ GET /_cat/indices?v&h=index,pri,store.size
 # Target: 20-50GB per shard
 ```
 
-**What it looks like**:
+**Signal**:
 ```bash
 # New index created with 5 shards for a 500MB dataset
 PUT /tiny-index
@@ -284,9 +280,9 @@ PUT /tiny-index
 # 5 shards of 100MB each — massive overhead for tiny data
 ```
 
-**Why wrong**: Each shard has overhead: file descriptors, JVM memory in the shard metadata, cluster state size. 1000 shards of 1MB each consume as much overhead as 1000 shards of 50GB each — but the 1MB shards return results 100x slower due to cross-shard coordination cost on empty shards.
+**Why this matters**: Each shard has overhead: file descriptors, JVM memory in the shard metadata, cluster state size. 1000 shards of 1MB each consume as much overhead as 1000 shards of 50GB each — but the 1MB shards return results 100x slower due to cross-shard coordination cost on empty shards.
 
-**Fix**: `number_of_shards: 1` for indices < 5GB. Use rollover for growing indices rather than pre-allocating many shards.
+**Preferred action**: `number_of_shards: 1` for indices < 5GB. Use rollover for growing indices rather than pre-allocating many shards.
 
 ---
 

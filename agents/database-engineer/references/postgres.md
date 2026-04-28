@@ -152,8 +152,7 @@ COMMIT;
 
 ## Pattern Catalog
 
-### ❌ Unindexed Foreign Key Column
-
+### Index All Foreign Key Columns
 **Detection**:
 ```sql
 -- Find all foreign keys without corresponding indexes (PostgreSQL)
@@ -177,11 +176,11 @@ AND (tc.table_name, kcu.column_name) NOT IN (
 );
 ```
 
-**What it looks like**: `orders.user_id` references `users.id` but has no index. Every `JOIN orders ON user_id = users.id` scans the entire orders table.
+**Signal**: `orders.user_id` references `users.id` but has no index. Every `JOIN orders ON user_id = users.id` scans the entire orders table.
 
-**Why wrong**: A JOIN on an unindexed foreign key does a sequential scan of the child table for every parent row. On a 1M row orders table with 100K users, that's 100K × 10ms sequential scans = 16 minutes for a simple user-orders join.
+**Why this matters**: A JOIN on an unindexed foreign key does a sequential scan of the child table for every parent row. On a 1M row orders table with 100K users, that's 100K × 10ms sequential scans = 16 minutes for a simple user-orders join.
 
-**Do instead:**
+**Preferred action:**
 ```sql
 CREATE INDEX idx_orders_user_id ON orders(user_id);
 -- Verify with EXPLAIN that query now uses Index Scan instead of Seq Scan
@@ -189,23 +188,22 @@ CREATE INDEX idx_orders_user_id ON orders(user_id);
 
 ---
 
-### ❌ Using LIKE '%term%' Without Full-Text Search
-
+### Use Full-Text Search for Substring Queries
 **Detection**:
 ```bash
 # Find LIKE patterns with leading wildcards in application queries
 grep -rn "LIKE '%\|ilike '%\|SIMILAR TO '%" src/ --include="*.py" --include="*.go" --include="*.ts"
 ```
 
-**What it looks like**:
+**Signal**:
 ```sql
 -- Scans entire table — no index can help with leading wildcard
 SELECT * FROM products WHERE name ILIKE '%laptop%';
 ```
 
-**Why wrong**: B-tree indexes require a known prefix. `LIKE '%term%'` always does a full sequential scan regardless of indexes. On 100K products, this is 100K string comparisons per query.
+**Why this matters**: B-tree indexes require a known prefix. `LIKE '%term%'` always does a full sequential scan regardless of indexes. On 100K products, this is 100K string comparisons per query.
 
-**Do instead:**
+**Preferred action:**
 ```sql
 -- Option 1: PostgreSQL full-text search (for natural language)
 ALTER TABLE products ADD COLUMN search_vector tsvector
@@ -228,8 +226,7 @@ WHERE name ILIKE '%laptop%';  -- Now uses trigram index
 
 ---
 
-### ❌ Not Updating Table Statistics After Bulk Loads
-
+### Run ANALYZE After Bulk Data Loads
 **Detection**:
 ```sql
 -- Find tables with stale statistics (last analyzed > 7 days for busy tables)
@@ -246,11 +243,11 @@ WHERE (last_analyze < NOW() - INTERVAL '7 days' OR last_analyze IS NULL)
 ORDER BY n_live_tup DESC;
 ```
 
-**What it looks like**: After a bulk insert of 500K rows into a table that previously had 10K rows, the query planner still thinks the table has 10K rows and uses nested loops instead of hash joins.
+**Signal**: After a bulk insert of 500K rows into a table that previously had 10K rows, the query planner still thinks the table has 10K rows and uses nested loops instead of hash joins.
 
-**Why wrong**: PostgreSQL's query planner uses row count estimates to choose join strategies and index selection. Stale statistics (50x off) cause the planner to pick catastrophically wrong query plans.
+**Why this matters**: PostgreSQL's query planner uses row count estimates to choose join strategies and index selection. Stale statistics (50x off) cause the planner to pick catastrophically wrong query plans.
 
-**Do instead:**
+**Preferred action:**
 ```sql
 -- After bulk loads, run ANALYZE immediately
 ANALYZE orders;

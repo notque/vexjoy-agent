@@ -80,8 +80,7 @@ kubectl get secret <secret-name> -n <namespace> \
 
 ## Pattern Catalog
 
-### ❌ No Resource Requests/Limits
-
+### Set Resource Requests and Limits on All Containers
 **Detection**:
 ```bash
 # Find deployments with containers missing resource limits
@@ -94,7 +93,7 @@ kubectl get pods --all-namespaces -o json | \
   jq '.items[] | select(.spec.containers[] | .resources.limits == null) | .metadata.name'
 ```
 
-**What it looks like**:
+**Signal**:
 ```yaml
 containers:
 - name: app
@@ -102,9 +101,9 @@ containers:
   # No resources block at all
 ```
 
-**Why wrong**: Without limits, a single pod can consume all node memory/CPU. OOMKiller will evict other pods first. Kubernetes scheduler can't pack nodes efficiently without requests.
+**Why this matters**: Without limits, a single pod can consume all node memory/CPU. OOMKiller will evict other pods first. Kubernetes scheduler can't pack nodes efficiently without requests.
 
-**Fix**:
+**Preferred action**:
 ```yaml
 containers:
 - name: app
@@ -122,8 +121,7 @@ containers:
 
 ---
 
-### ❌ :latest Tag in Production
-
+### Use Immutable Image Tags in Production
 **Detection**:
 ```bash
 # Find deployments using :latest tag
@@ -137,14 +135,13 @@ grep -rn ':latest' --include="*.yaml" --include="*.yml" .
 rg ':latest' --type yaml
 ```
 
-**Why wrong**: `:latest` is pulled differently based on `imagePullPolicy`. `Always` causes unnecessary registry calls; `IfNotPresent` means different nodes run different versions silently. Rollbacks are impossible — you can't pin `:latest` to a previous image.
+**Why this matters**: `:latest` is pulled differently based on `imagePullPolicy`. `Always` causes unnecessary registry calls; `IfNotPresent` means different nodes run different versions silently. Rollbacks are impossible — you can't pin `:latest` to a previous image.
 
-**Fix**: Use immutable tags: `image: myapp:v1.2.3` or `image: myapp:$(git rev-parse --short HEAD)`.
+**Preferred action**: Use immutable tags: `image: myapp:v1.2.3` or `image: myapp:$(git rev-parse --short HEAD)`.
 
 ---
 
-### ❌ Liveness Probe Too Aggressive
-
+### Configure Conservative Liveness Probes
 **Detection**:
 ```bash
 # Find pods with short liveness probe timeouts
@@ -155,7 +152,7 @@ kubectl get pods --all-namespaces -o json | \
 grep -rn 'failureThreshold: [12]$' --include="*.yaml" .
 ```
 
-**What it looks like**:
+**Signal**:
 ```yaml
 livenessProbe:
   httpGet:
@@ -166,9 +163,9 @@ livenessProbe:
   failureThreshold: 2  # Kills pod after 10 seconds of slowness
 ```
 
-**Why wrong**: A GC pause, high load, or slow startup triggers liveness failure, causing a restart loop. CrashLoopBackOff makes the pod worse, not better.
+**Why this matters**: A GC pause, high load, or slow startup triggers liveness failure, causing a restart loop. CrashLoopBackOff makes the pod worse, not better.
 
-**Fix**:
+**Preferred action**:
 ```yaml
 livenessProbe:
   httpGet:
@@ -191,8 +188,7 @@ readinessProbe:
 
 ---
 
-### ❌ No PodDisruptionBudget in Production
-
+### Add PodDisruptionBudget for Production Deployments
 **Detection**:
 ```bash
 # Find deployments without a matching PDB
@@ -203,9 +199,9 @@ kubectl get deployments -n <namespace> -o jsonpath='{.items[*].metadata.name}' |
   done
 ```
 
-**Why wrong**: Without a PDB, node drains (maintenance, rolling upgrades) can take down all replicas simultaneously, causing a production outage.
+**Why this matters**: Without a PDB, node drains (maintenance, rolling upgrades) can take down all replicas simultaneously, causing a production outage.
 
-**Fix**:
+**Preferred action**:
 ```yaml
 apiVersion: policy/v1
 kind: PodDisruptionBudget

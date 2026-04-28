@@ -146,8 +146,7 @@ Interpret the response:
 
 ## Pattern Catalog
 
-### ❌ Wildcard Leading Wildcard Query
-
+### Use Prefix or N-gram Search Instead of Leading Wildcards
 **Detection**:
 ```bash
 # Find wildcard queries with leading wildcard
@@ -157,7 +156,7 @@ rg '"wildcard"' --type json queries/
 grep -rn 'wildcard.*\*.*value\|value.*\*.*wild' --include="*.py" --include="*.ts" --include="*.go" src/
 ```
 
-**What it looks like**:
+**Signal**:
 ```json
 {
   "query": {
@@ -170,9 +169,9 @@ grep -rn 'wildcard.*\*.*value\|value.*\*.*wild' --include="*.py" --include="*.ts
 }
 ```
 
-**Why wrong**: Leading wildcards (`*smith`) force a full index scan — every term in the inverted index must be checked. On a 10M document index with 500K unique usernames, this scans 500K terms per shard. Query latency jumps from ~5ms to 5+ seconds. Trailing wildcards (`smith*`) can use the index efficiently.
+**Why this matters**: Leading wildcards (`*smith`) force a full index scan — every term in the inverted index must be checked. On a 10M document index with 500K unique usernames, this scans 500K terms per shard. Query latency jumps from ~5ms to 5+ seconds. Trailing wildcards (`smith*`) can use the index efficiently.
 
-**Fix**: Use `match_phrase_prefix` for prefix searches or `n-gram` tokenization for infix searches. For substring search, configure `edge_ngram` analyzer at index time.
+**Preferred action**: Use `match_phrase_prefix` for prefix searches or `n-gram` tokenization for infix searches. For substring search, configure `edge_ngram` analyzer at index time.
 
 ```json
 {
@@ -186,8 +185,7 @@ grep -rn 'wildcard.*\*.*value\|value.*\*.*wild' --include="*.py" --include="*.ts
 
 ---
 
-### ❌ Deep Pagination with from/size
-
+### Use search_after for Deep Pagination
 **Detection**:
 ```bash
 grep -rn '"from"' --include="*.json" queries/ | grep -v '"from": [0-9]$\|"from": [1-9][0-9]$'
@@ -195,7 +193,7 @@ grep -rn '"from"' --include="*.json" queries/ | grep -v '"from": [0-9]$\|"from":
 rg '"from":\s*[0-9]{4,}' --type json
 ```
 
-**What it looks like**:
+**Signal**:
 ```json
 {
   "from": 10000,
@@ -204,9 +202,9 @@ rg '"from":\s*[0-9]{4,}' --type json
 }
 ```
 
-**Why wrong**: `from: 10000` fetches 10,020 documents per shard, discards 10,000, returns 20. On a 5-shard index: 50,100 documents fetched, 50,080 discarded. Memory and CPU scale linearly with `from` value. Default limit is `index.max_result_window: 10000` — exceeding it throws an exception.
+**Why this matters**: `from: 10000` fetches 10,020 documents per shard, discards 10,000, returns 20. On a 5-shard index: 50,100 documents fetched, 50,080 discarded. Memory and CPU scale linearly with `from` value. Default limit is `index.max_result_window: 10000` — exceeding it throws an exception.
 
-**Fix**: Use search_after for deep pagination:
+**Preferred action**: Use search_after for deep pagination:
 ```json
 {
   "size": 20,
@@ -219,8 +217,7 @@ rg '"from":\s*[0-9]{4,}' --type json
 
 ---
 
-### ❌ Unbounded Aggregation Size
-
+### Set Explicit Size on Terms Aggregations
 **Detection**:
 ```bash
 # Find terms aggregations without explicit size
@@ -228,7 +225,7 @@ grep -rn '"terms"' --include="*.json" queries/ -A5 | grep -v '"size"'
 rg '"terms"' --type json queries/ -A5 | grep -B3 '"field"' | grep -v size
 ```
 
-**What it looks like**:
+**Signal**:
 ```json
 {
   "aggs": {
@@ -242,14 +239,13 @@ rg '"terms"' --type json queries/ -A5 | grep -B3 '"field"' | grep -v size
 }
 ```
 
-**Why wrong**: Default `size: 10` returns only the top 10 buckets, which is often wrong but doesn't cause performance issues. The real danger is `size: 0` (some clients send this meaning "all") — OpenSearch interprets 0 as default (10). Some versions also accept very large sizes that materialize all buckets in memory, causing heap pressure on the coordinating node.
+**Why this matters**: Default `size: 10` returns only the top 10 buckets, which is often wrong but doesn't cause performance issues. The real danger is `size: 0` (some clients send this meaning "all") — OpenSearch interprets 0 as default (10). Some versions also accept very large sizes that materialize all buckets in memory, causing heap pressure on the coordinating node.
 
-**Fix**: Always set explicit `size`. For cardinality estimates, use `cardinality` aggregation instead of `terms`.
+**Preferred action**: Always set explicit `size`. For cardinality estimates, use `cardinality` aggregation instead of `terms`.
 
 ---
 
-### ❌ Script in Hot Query Path
-
+### Precompute Scores at Index Time
 **Detection**:
 ```bash
 grep -rn '"script"' --include="*.json" queries/
@@ -257,7 +253,7 @@ grep -rn '"script"' --include="*.json" queries/
 grep -rn 'script_score\|script_fields\|scripted_metric' --include="*.json" queries/
 ```
 
-**What it looks like**:
+**Signal**:
 ```json
 {
   "query": {
@@ -272,9 +268,9 @@ grep -rn 'script_score\|script_fields\|scripted_metric' --include="*.json" queri
 }
 ```
 
-**Why wrong**: Painless scripts run JVM-compiled code per document. On a 1M document index with `match_all`, this executes 1M script invocations per query, per shard. Compiled script cache is limited — frequent cache misses add compilation overhead.
+**Why this matters**: Painless scripts run JVM-compiled code per document. On a 1M document index with `match_all`, this executes 1M script invocations per query, per shard. Compiled script cache is limited — frequent cache misses add compilation overhead.
 
-**Fix**: Precompute scores at index time using `rank_features` field type or store the computed value as a regular numeric field.
+**Preferred action**: Precompute scores at index time using `rank_features` field type or store the computed value as a regular numeric field.
 
 ---
 

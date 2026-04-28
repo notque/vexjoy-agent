@@ -165,20 +165,20 @@ Common Ansible errors and solutions.
 
 Common Ansible mistakes and their corrections.
 
-### ❌ Using Command Module When Specific Module Exists
-**What it looks like**: `command: apt-get install nginx` or `shell: systemctl restart nginx`
-**Why wrong**: Not idempotent, doesn't report changes properly, no parameter validation
-**✅ Do instead**: Use specific modules: `apt: name=nginx state=present` and `systemd: name=nginx state=restarted`
+### Use Specific Modules Over Command
+**Signal**: `command: apt-get install nginx` or `shell: systemctl restart nginx`
+**Why this matters**: Not idempotent, doesn't report changes properly, no parameter validation
+**Preferred action**: Use specific modules: `apt: name=nginx state=present` and `systemd: name=nginx state=restarted`
 
-### ❌ No Error Handling on Critical Tasks
-**What it looks like**: Tasks without `failed_when`, `ignore_errors`, or error checking
-**Why wrong**: Playbook continues after failures, leaves systems in inconsistent state
-**✅ Do instead**: Add error handling: `failed_when: result.rc != 0`, use `block/rescue` for complex error handling, validate critical tasks with `register` and assertions
+### Add Error Handling to Critical Tasks
+**Signal**: Tasks without `failed_when`, `ignore_errors`, or error checking
+**Why this matters**: Playbook continues after failures, leaves systems in inconsistent state
+**Preferred action**: Add error handling: `failed_when: result.rc != 0`, use `block/rescue` for complex error handling, validate critical tasks with `register` and assertions
 
-### ❌ Hardcoded Values Instead of Variables
-**What it looks like**: IP addresses, paths, versions hardcoded in tasks
-**Why wrong**: Not reusable across environments, hard to maintain, error-prone
-**✅ Do instead**: Use variables: define in `group_vars/`, `host_vars/`, or role `defaults/main.yml`, reference with `{{ variable_name }}`
+### Use Variables for All Environment-Specific Values
+**Signal**: IP addresses, paths, versions hardcoded in tasks
+**Why this matters**: Not reusable across environments, hard to maintain, error-prone
+**Preferred action**: Use variables: define in `group_vars/`, `host_vars/`, or role `defaults/main.yml`, reference with `{{ variable_name }}`
 
 ## Anti-Rationalization
 

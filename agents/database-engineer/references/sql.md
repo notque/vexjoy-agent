@@ -146,8 +146,7 @@ LIMIT 20;
 
 ## Pattern Catalog
 
-### ❌ SELECT * in Application Queries
-
+### Select Only Required Columns
 **Detection**:
 ```bash
 # Find SELECT * in application SQL strings
@@ -158,15 +157,15 @@ grep -rn "SELECT \*\|select \*" src/ --include="*.py" --include="*.go" \
 grep -rn "\.find_all\(\|\.all()\|fetchAll()" src/ --include="*.py" --include="*.rb"
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 # Python example
 cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
 ```
 
-**Why wrong**: Retrieves all columns including large TEXT/BLOB fields even when only `name` and `email` are needed. Breaks when schema adds columns (new columns appear in API responses). Prevents index-only scans (which need only indexed columns).
+**Why this matters**: Retrieves all columns including large TEXT/BLOB fields even when only `name` and `email` are needed. Breaks when schema adds columns (new columns appear in API responses). Prevents index-only scans (which need only indexed columns).
 
-**Do instead:**
+**Preferred action:**
 ```python
 cursor.execute(
     "SELECT id, name, email, created_at FROM users WHERE id = %s",
@@ -176,8 +175,7 @@ cursor.execute(
 
 ---
 
-### ❌ Implicit Type Conversion in WHERE Clause
-
+### Match Parameter Types to Column Types
 **Detection**:
 ```bash
 # Find potential type mismatch comparisons in SQL strings
@@ -191,7 +189,7 @@ WHERE shared_blks_read > 10000
 ORDER BY shared_blks_read DESC;
 ```
 
-**What it looks like**:
+**Signal**:
 ```sql
 -- users.id is BIGINT, but query passes a string
 SELECT * FROM users WHERE id = '12345';
@@ -200,9 +198,9 @@ SELECT * FROM users WHERE id = '12345';
 -- PostgreSQL: may work or throw type mismatch error depending on context
 ```
 
-**Why wrong**: In MySQL, comparing an integer column to a string `'12345'` coerces the string to integer for comparison but may or may not use the index depending on the column type. PostgreSQL is stricter and often throws an error, but implicit casts in some cases bypass indexes.
+**Why this matters**: In MySQL, comparing an integer column to a string `'12345'` coerces the string to integer for comparison but may or may not use the index depending on the column type. PostgreSQL is stricter and often throws an error, but implicit casts in some cases bypass indexes.
 
-**Do instead:** Pass the correct type from the application:
+**Preferred action:** Pass the correct type from the application:
 ```python
 # Python: pass integer, not string
 cursor.execute("SELECT * FROM users WHERE id = %s", (int(user_id),))
@@ -210,8 +208,7 @@ cursor.execute("SELECT * FROM users WHERE id = %s", (int(user_id),))
 
 ---
 
-### ❌ Unparameterized Queries (SQL Injection Risk)
-
+### Use Parameterized Queries for All User Input
 **Detection**:
 ```bash
 # Find string interpolation in SQL queries (critical security issue)
@@ -221,7 +218,7 @@ grep -rn "f\"SELECT\|f'SELECT\|\"SELECT.*%s.*%\" %\|'SELECT.*format(" \
 grep -rn "\"SELECT.*\+.*\|query.*\+.*where" src/ --include="*.go" --include="*.java"
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 # SQL injection vulnerability
 user_id = request.args.get('id')
@@ -229,9 +226,9 @@ query = f"SELECT * FROM users WHERE id = {user_id}"  # NEVER DO THIS
 cursor.execute(query)
 ```
 
-**Why wrong**: Attacker passes `id=1 OR 1=1` to dump all users, or `id=1; DROP TABLE users` to destroy data. This is OWASP Top 10 #3.
+**Why this matters**: Attacker passes `id=1 OR 1=1` to dump all users, or `id=1; DROP TABLE users` to destroy data. This is OWASP Top 10 #3.
 
-**Do instead:**
+**Preferred action:**
 ```python
 # Always use parameterized queries
 cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
@@ -242,8 +239,7 @@ user = session.query(User).filter(User.id == user_id).first()
 
 ---
 
-### ❌ Function on Indexed Column in WHERE Clause
-
+### Avoid Functions on Indexed Columns in WHERE
 **Detection**:
 ```bash
 # Find function calls wrapping column names in WHERE clauses
@@ -251,7 +247,7 @@ grep -rn "WHERE.*DATE(\|WHERE.*LOWER(\|WHERE.*UPPER(\|WHERE.*YEAR(\|WHERE.*MONTH
   src/ --include="*.sql" --include="*.py"
 ```
 
-**What it looks like**:
+**Signal**:
 ```sql
 -- B-tree index on created_at is useless here
 SELECT * FROM orders WHERE DATE(created_at) = '2026-04-04';
@@ -260,9 +256,9 @@ SELECT * FROM orders WHERE DATE(created_at) = '2026-04-04';
 SELECT * FROM users WHERE LOWER(email) = 'alice@example.com';
 ```
 
-**Why wrong**: Applying a function to an indexed column prevents index use. `DATE(created_at)` computes a new value for every row, forcing a full sequential scan. The index stores values of `created_at`, not values of `DATE(created_at)`.
+**Why this matters**: Applying a function to an indexed column prevents index use. `DATE(created_at)` computes a new value for every row, forcing a full sequential scan. The index stores values of `created_at`, not values of `DATE(created_at)`.
 
-**Do instead:**
+**Preferred action:**
 ```sql
 -- Date range instead of function (uses index)
 SELECT * FROM orders

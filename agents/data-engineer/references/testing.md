@@ -172,8 +172,7 @@ reconcile_task = PythonOperator(
 
 ## Pattern Catalog
 
-### ❌ dbt Models Without Any Tests
-
+### Add Minimum Test Coverage to Every dbt Model
 **Detection**:
 ```bash
 # Models with no tests at all
@@ -188,16 +187,15 @@ echo "Models: $(dbt ls --resource-type model | wc -l)"
 echo "Tests: $(dbt ls --resource-type test | wc -l)"
 ```
 
-**What it looks like**: Models in `models/` directory with no corresponding entries in `schema.yml`, or schema.yml entries with empty `tests:` lists.
+**Signal**: Models in `models/` directory with no corresponding entries in `schema.yml`, or schema.yml entries with empty `tests:` lists.
 
-**Why wrong**: Untransformed SQL that silently produces wrong data. Without `unique` + `not_null` tests on PKs, duplicate or null keys can corrupt downstream joins, producing 2x or 0.5x metrics with no error.
+**Why this matters**: Untransformed SQL that silently produces wrong data. Without `unique` + `not_null` tests on PKs, duplicate or null keys can corrupt downstream joins, producing 2x or 0.5x metrics with no error.
 
-**Fix**: Add minimum test set for every model. The absolute minimum is `unique` + `not_null` on the primary key column.
+**Preferred action**: Add minimum test set for every model. The absolute minimum is `unique` + `not_null` on the primary key column.
 
 ---
 
-### ❌ Testing Only the Staging Layer, Not Marts
-
+### Test Mart Models for Business Rule Correctness
 **Detection**:
 ```bash
 # Count tests by model path
@@ -212,16 +210,15 @@ for path_prefix in ['staging', 'intermediate', 'marts']:
 "
 ```
 
-**What it looks like**: Many tests on `models/staging/` but zero tests on `models/marts/` or `models/reporting/`.
+**Signal**: Many tests on `models/staging/` but zero tests on `models/marts/` or `models/reporting/`.
 
-**Why wrong**: Staging tests catch source quality issues. But mart models introduce aggregation logic, joins, and business rules that can produce wrong numbers even when source data is clean. Mart tests catch transform logic errors.
+**Why this matters**: Staging tests catch source quality issues. But mart models introduce aggregation logic, joins, and business rules that can produce wrong numbers even when source data is clean. Mart tests catch transform logic errors.
 
-**Fix**: Add singular tests to every mart model that assert business rules — grain, no negative revenue, referential integrity across dimensions.
+**Preferred action**: Add singular tests to every mart model that assert business rules — grain, no negative revenue, referential integrity across dimensions.
 
 ---
 
-### ❌ Using `test: not_null` on Non-Key Columns Without Context
-
+### Apply not_null Tests Only to Required Columns
 **Detection**:
 ```bash
 # Find not_null tests on potentially nullable columns
@@ -229,16 +226,16 @@ grep -rn "not_null" models/ --include="*.yml" -B2 \
   | grep -E "name: (description|notes|middle_name|phone|optional)"
 ```
 
-**What it looks like**:
+**Signal**:
 ```yaml
 - name: customer_notes
   tests:
     - not_null  # Customers often don't have notes
 ```
 
-**Why wrong**: `not_null` on optional columns causes valid data to fail tests. When tests always fail, engineers start skipping them or marking them as warnings, which erodes confidence in the entire test suite.
+**Why this matters**: `not_null` on optional columns causes valid data to fail tests. When tests always fail, engineers start skipping them or marking them as warnings, which erodes confidence in the entire test suite.
 
-**Fix**: Only add `not_null` to columns that are logically required (PKs, FKs, required business fields). Use `dbt_utils.not_null_proportion` for columns that are usually-but-not-always populated:
+**Preferred action**: Only add `not_null` to columns that are logically required (PKs, FKs, required business fields). Use `dbt_utils.not_null_proportion` for columns that are usually-but-not-always populated:
 
 ```yaml
 - name: customer_notes

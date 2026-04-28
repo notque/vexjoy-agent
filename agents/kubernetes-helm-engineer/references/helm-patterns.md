@@ -131,15 +131,14 @@ helm upgrade myapp ./charts/myapp \
 
 ## Pattern Catalog
 
-### ❌ Hardcoded Secrets in Values Files
-
+### Use External Secret Management
 **Detection**:
 ```bash
 grep -rn 'password\|secret\|token\|apiKey\|api_key' --include="values*.yaml" .
 rg '(password|secret|token|apiKey|api_key): ' --type yaml
 ```
 
-**What it looks like**:
+**Signal**:
 ```yaml
 # values-prod.yaml — NEVER DO THIS
 database:
@@ -147,9 +146,9 @@ database:
   connectionString: "postgres://user:pass@host/db"
 ```
 
-**Why wrong**: Values files are checked into git. Secrets in git history persist forever even after deletion. CI logs, PR previews, and `helm get values` all expose them.
+**Why this matters**: Values files are checked into git. Secrets in git history persist forever even after deletion. CI logs, PR previews, and `helm get values` all expose them.
 
-**Fix**: Use external secret management:
+**Preferred action**: Use external secret management:
 ```yaml
 # values-prod.yaml — reference only, no values
 database:
@@ -169,31 +168,29 @@ data:
 
 ---
 
-### ❌ Not Using `required` for Mandatory Values
-
+### Guard Mandatory Values with required
 **Detection**:
 ```bash
 grep -rn '\.Values\.' --include="*.yaml" charts/*/templates/ | grep -v 'default\|required' | head -20
 ```
 
-**What it looks like**:
+**Signal**:
 ```yaml
 # templates/deployment.yaml
 image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
 # If image.tag is missing: renders as "myapp:<no value>" — deploys broken pod
 ```
 
-**Why wrong**: Missing values render as `<no value>` or empty string. The chart deploys without error, but the pod fails at runtime with a confusing image pull error.
+**Why this matters**: Missing values render as `<no value>` or empty string. The chart deploys without error, but the pod fails at runtime with a confusing image pull error.
 
-**Fix**:
+**Preferred action**:
 ```yaml
 image: {{ .Values.image.repository }}:{{ required "image.tag is required" .Values.image.tag }}
 ```
 
 ---
 
-### ❌ Missing apiVersion Deprecation Check
-
+### Check apiVersion Against Target Cluster
 **Detection**:
 ```bash
 # Find deprecated API versions in chart templates
@@ -201,14 +198,14 @@ grep -rn 'apps/v1beta\|extensions/v1beta\|networking.k8s.io/v1beta1' --include="
 rg 'v1beta' --type yaml charts/
 ```
 
-**What it looks like**:
+**Signal**:
 ```yaml
 # Still works in K8s < 1.16 but deprecated since 1.16, removed in 1.25
 apiVersion: extensions/v1beta1
 kind: Ingress
 ```
 
-**Fix**: Check target cluster version and use appropriate apiVersion:
+**Preferred action**: Check target cluster version and use appropriate apiVersion:
 ```yaml
 apiVersion: networking.k8s.io/v1  # Stable since K8s 1.19
 kind: Ingress
@@ -218,19 +215,18 @@ kind: Ingress
 
 ---
 
-### ❌ No Chart Tests
-
+### Add Helm Chart Tests
 **Detection**:
 ```bash
 ls charts/*/templates/tests/ 2>/dev/null || echo "No test directory found"
 find charts/ -name "*test*" -path "*/templates/*"
 ```
 
-**What it looks like**: A chart with no `templates/tests/` directory and no `helm.sh/hook: test` annotated pods.
+**Signal**: A chart with no `templates/tests/` directory and no `helm.sh/hook: test` annotated pods.
 
-**Why wrong**: `helm install` can succeed with pods in Pending/Unready state. Without tests, there's no way to verify the chart actually works.
+**Why this matters**: `helm install` can succeed with pods in Pending/Unready state. Without tests, there's no way to verify the chart actually works.
 
-**Fix**:
+**Preferred action**:
 ```yaml
 # templates/tests/test-connection.yaml
 apiVersion: v1

@@ -133,15 +133,14 @@ class DocsServer {
 
 ## Pattern Catalog
 
-### ❌ Synchronous File I/O in Request Handlers
-
+### Use Async File I/O in Request Handlers
 **Detection**:
 ```bash
 grep -rn 'readFileSync\|existsSync\|readdirSync' --include="*.ts" src/
 rg 'Sync\(' --type ts src/
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 server.setRequestHandler(ReadResourceRequestSchema, (request) => {
   // NOT async — blocks the entire Node.js event loop
@@ -150,9 +149,9 @@ server.setRequestHandler(ReadResourceRequestSchema, (request) => {
 });
 ```
 
-**Why wrong**: `readFileSync` blocks the event loop. While one client is reading a large file, all other clients are frozen. Under concurrent load this causes cascading timeouts — the MCP client kills the connection thinking the server hung.
+**Why this matters**: `readFileSync` blocks the event loop. While one client is reading a large file, all other clients are frozen. Under concurrent load this causes cascading timeouts — the MCP client kills the connection thinking the server hung.
 
-**Fix**:
+**Preferred action**:
 ```typescript
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   const filePath = uriToPath(this.docsRoot, request.params.uri);
@@ -163,15 +162,14 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 
 ---
 
-### ❌ Re-indexing on Every List Request
-
+### Index Once at Startup and Serve from Cache
 **Detection**:
 ```bash
 grep -rn 'indexDocs\|parseDoc\|WalkDir' --include="*.ts" src/
 # Flag if found inside a setRequestHandler callback
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 server.setRequestHandler(ListResourcesRequestSchema, async () => {
   // Re-parses all markdown files on every list call — seconds of delay
@@ -180,9 +178,9 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
 });
 ```
 
-**Why wrong**: Claude calls `resources/list` repeatedly during a session. Re-parsing 1000 files takes 3-10 seconds each time. The LLM context window fills with timeout errors before any content arrives.
+**Why this matters**: Claude calls `resources/list` repeatedly during a session. Re-parsing 1000 files takes 3-10 seconds each time. The LLM context window fills with timeout errors before any content arrives.
 
-**Fix**: Index once at startup, serve from in-memory Map, use mtime-based cache invalidation:
+**Preferred action**: Index once at startup, serve from in-memory Map, use mtime-based cache invalidation:
 ```typescript
 private docsIndex = new Map<string, ParsedDoc>();
 
@@ -205,15 +203,14 @@ async parseAndCache(relativePath: string): Promise<void> {
 
 ---
 
-### ❌ Missing McpError for Protocol-Level Failures
-
+### Use McpError with Proper Error Codes
 **Detection**:
 ```bash
 grep -rn 'throw new Error(' --include="*.ts" src/
 # Should be McpError for protocol failures
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   const doc = this.docsIndex.get(request.params.uri);
@@ -224,9 +221,9 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 });
 ```
 
-**Why wrong**: Generic `Error` objects get wrapped in an internal error JSON-RPC response with code `-32603`. MCP clients cannot distinguish "resource not found" from "server crashed." Proper `McpError` with `ErrorCode.InvalidParams` or `ErrorCode.InternalError` lets clients handle the failure gracefully.
+**Why this matters**: Generic `Error` objects get wrapped in an internal error JSON-RPC response with code `-32603`. MCP clients cannot distinguish "resource not found" from "server crashed." Proper `McpError` with `ErrorCode.InvalidParams` or `ErrorCode.InternalError` lets clients handle the failure gracefully.
 
-**Fix**:
+**Preferred action**:
 ```typescript
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 

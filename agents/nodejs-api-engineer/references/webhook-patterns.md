@@ -161,8 +161,7 @@ app.post('/webhooks/stripe', async (req, res) => {
 
 ## Pattern Catalog
 
-### ❌ Parsing Body Before Signature Verification
-
+### Preserve Raw Body for Signature Verification
 **Detection**:
 ```bash
 grep -rn 'express\.json()' --include="*.ts" src/
@@ -170,7 +169,7 @@ grep -rn 'express\.json()' --include="*.ts" src/
 grep -rn 'app\.post.*webhook' --include="*.ts" src/ -B20 | grep 'express\.json'
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 app.use(express.json()); // Parses ALL bodies first
 
@@ -181,21 +180,20 @@ app.post('/webhooks/stripe', (req, res) => {
 });
 ```
 
-**Why wrong**: `express.json()` consumes the request stream and replaces `req.body` with a parsed object. The original bytes are gone. `stripe.webhooks.constructEvent()` requires the raw body to recompute the HMAC — it will always throw `No signatures found matching the expected signature for payload`.
+**Why this matters**: `express.json()` consumes the request stream and replaces `req.body` with a parsed object. The original bytes are gone. `stripe.webhooks.constructEvent()` requires the raw body to recompute the HMAC — it will always throw `No signatures found matching the expected signature for payload`.
 
-**Fix**: Register `express.raw({ type: 'application/json' })` on webhook paths before `express.json()` on the general middleware stack.
+**Preferred action**: Register `express.raw({ type: 'application/json' })` on webhook paths before `express.json()` on the general middleware stack.
 
 ---
 
-### ❌ Processing in Webhook Handler (Slow Path)
-
+### Acknowledge Webhooks Immediately, Process via Queue
 **Detection**:
 ```bash
 # Look for awaited DB calls or email sends inside webhook handlers
 grep -rn 'app\.post.*webhook' --include="*.ts" src/ -A30 | grep -E 'await.*db|await.*email|await.*stripe|sendMail'
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 app.post('/webhooks/stripe', async (req, res) => {
   const event = JSON.parse(req.body.toString());
@@ -211,14 +209,13 @@ app.post('/webhooks/stripe', async (req, res) => {
 });
 ```
 
-**Why wrong**: If any operation throws or takes > 30 seconds, Stripe retries the webhook. Without idempotency, the order gets updated twice, two receipts are sent, two shipments triggered. The `res.status(200)` after the operations also means a timeout sends no response at all.
+**Why this matters**: If any operation throws or takes > 30 seconds, Stripe retries the webhook. Without idempotency, the order gets updated twice, two receipts are sent, two shipments triggered. The `res.status(200)` after the operations also means a timeout sends no response at all.
 
-**Fix**: Respond 200 immediately, push to BullMQ for processing.
+**Preferred action**: Respond 200 immediately, push to BullMQ for processing.
 
 ---
 
-### ❌ Blocking on Webhook Queue Push
-
+### Respond Before Queue Push
 **Detection**:
 ```bash
 grep -rn 'await.*queue\.add\|await.*enqueue' --include="*.ts" src/
@@ -226,7 +223,7 @@ grep -rn 'await.*queue\.add\|await.*enqueue' --include="*.ts" src/
 grep -rn 'queue\.add' --include="*.ts" src/ -A5 | grep 'res\.status'
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 app.post('/webhooks', async (req, res) => {
   await webhookQueue.add('event', req.body); // Blocks if Redis is slow
@@ -234,9 +231,9 @@ app.post('/webhooks', async (req, res) => {
 });
 ```
 
-**Why wrong**: If Redis is slow or down, the queue push blocks and may exceed the webhook sender's timeout. The sender retries, causing duplicate queue entries.
+**Why this matters**: If Redis is slow or down, the queue push blocks and may exceed the webhook sender's timeout. The sender retries, causing duplicate queue entries.
 
-**Fix**: Respond first, queue second. If Redis is unavailable, log and still return 200 (accept the event, process manually later via retry mechanism):
+**Preferred action**: Respond first, queue second. If Redis is unavailable, log and still return 200 (accept the event, process manually later via retry mechanism):
 ```typescript
 res.status(200).json({ received: true });
 // Fire-and-forget the queue push — errors logged but don't affect HTTP response

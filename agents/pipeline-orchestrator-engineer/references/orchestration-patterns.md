@@ -146,8 +146,7 @@ Is the request for a single skill/agent with one clear purpose?
 
 ## Pattern Catalog
 
-### ❌ Fan-Out Without Waiting for All Sub-Agents
-
+### Wait for All Sub-Agents Before Integration
 **Detection**:
 ```bash
 # In pipeline orchestration code, look for synthesis before all agents complete
@@ -155,16 +154,15 @@ grep -rn 'integrate\|routing-table' agents/pipeline-orchestrator-engineer.md | h
 # Conceptually: synthesis lines appearing before all agent completions
 ```
 
-**What it looks like**: Starting Phase 4 INTEGRATE after only 2 of 3 scaffolding sub-agents complete (e.g., skills and hooks done, but agent manifest still running).
+**Signal**: Starting Phase 4 INTEGRATE after only 2 of 3 scaffolding sub-agents complete (e.g., skills and hooks done, but agent manifest still running).
 
-**Why wrong**: Partial integration produces inconsistent routing. An agent registered in INDEX.json that doesn't yet exist on disk will cause Agent tool failures. A skill registered in routing-tables.md whose agent isn't created yet produces "unknown agent" errors at dispatch time.
+**Why this matters**: Partial integration produces inconsistent routing. An agent registered in INDEX.json that doesn't yet exist on disk will cause Agent tool failures. A skill registered in routing-tables.md whose agent isn't created yet produces "unknown agent" errors at dispatch time.
 
-**Do instead**: Hard gate — `wait for ALL dispatched agents to complete` before any integration step. There is no acceptable partial state.
+**Preferred action**: Hard gate — `wait for ALL dispatched agents to complete` before any integration step. There is no acceptable partial state.
 
 ---
 
-### ❌ Skipping Phase 0 ADR for Domain Pipelines
-
+### Create ADR Before Starting Domain Pipelines
 **Detection**:
 ```bash
 # Domain pipeline PRs without a corresponding ADR file
@@ -172,11 +170,11 @@ grep -rn 'integrate\|routing-table' agents/pipeline-orchestrator-engineer.md | h
 ls adr/pipeline-*.md 2>/dev/null | wc -l
 ```
 
-**What it looks like**: Starting Phase 1 research without creating `adr/pipeline-{name}.md` first.
+**Signal**: Starting Phase 1 research without creating `adr/pipeline-{name}.md` first.
 
-**Why wrong**: Without an ADR, context drifts across phases. Phase 3 sub-agents don't know the Phase 2 decisions. The component manifest from Phase 1 gets lost between phases. In sessions longer than 30 minutes, orchestrators re-derive decisions already made in earlier phases — wasting context and sometimes reversing earlier conclusions.
+**Why this matters**: Without an ADR, context drifts across phases. Phase 3 sub-agents don't know the Phase 2 decisions. The component manifest from Phase 1 gets lost between phases. In sessions longer than 30 minutes, orchestrators re-derive decisions already made in earlier phases — wasting context and sometimes reversing earlier conclusions.
 
-**Do instead**: Phase 0 is always Phase 0. Create the ADR file, register the session:
+**Preferred action**: Phase 0 is always Phase 0. Create the ADR file, register the session:
 ```bash
 python3 ~/.claude/scripts/adr-query.py register --adr adr/{pipeline-name}.md
 ```
@@ -184,8 +182,7 @@ The hook auto-injects ADR context into all subsequent sub-agent prompts — prev
 
 ---
 
-### ❌ Decomposing Too Aggressively (Pipeline Overhead for Trivial Requests)
-
+### Match Pipeline Complexity to Request Scope
 **Detection**:
 ```bash
 # Pipelines with 5+ components for a single-purpose use case
@@ -193,11 +190,11 @@ The hook auto-injects ADR context into all subsequent sub-agent prompts — prev
 python3 scripts/artifact-utils.py discover --domain {name} 2>/dev/null | grep "subdomains"
 ```
 
-**What it looks like**: Creating 4 sub-agents, a hook, and 3 scripts for a request that needed one skill bound to an existing agent.
+**Signal**: Creating 4 sub-agents, a hook, and 3 scripts for a request that needed one skill bound to an existing agent.
 
-**Why wrong**: Over-decomposition creates maintenance overhead. Each component needs its own routing entry, its own template compliance check, its own reference files. A pipeline with 8 components for a 2-component problem adds 6 units of maintenance debt with zero user benefit.
+**Why this matters**: Over-decomposition creates maintenance overhead. Each component needs its own routing entry, its own template compliance check, its own reference files. A pipeline with 8 components for a 2-component problem adds 6 units of maintenance debt with zero user benefit.
 
-**Do instead**: Apply the 80% coverage rule — if an existing agent covers 80%+ of the request, bind new skills to it rather than creating new agents. Three reused components beat one new monolithic agent.
+**Preferred action**: Apply the 80% coverage rule — if an existing agent covers 80%+ of the request, bind new skills to it rather than creating new agents. Three reused components beat one new monolithic agent.
 
 ---
 
