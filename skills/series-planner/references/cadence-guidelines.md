@@ -288,7 +288,7 @@ When final part publishes:
 
 - Weekly works well (aligned with work week)
 - Bi-weekly for very complex topics
-- Avoid weekend-only schedules
+- Prefer schedules that include weekdays so the cadence reaches readers when they are most active
 
 ### Hobbyists/Learners
 

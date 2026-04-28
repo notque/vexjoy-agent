@@ -87,7 +87,7 @@ For each violation, record:
 2. Quoted text from the content
 3. Specific fix recommendation
 
-**Key constraint**: Only scan, don't revise yet. Subjective assessment without a checklist misses specific violations.
+**Key constraint**: Only scan at this stage; save revisions for the next phase. Subjective assessment without a checklist misses specific violations.
 
 **Gate**: Full checklist scanned. All violations documented with evidence. Proceed only when gate passes.
 
@@ -103,7 +103,7 @@ For each violation, record:
 **Step 2: Verify no overcorrection**
 - Ensure revisions did not strip necessary content
 - Confirm the substance and technical accuracy remain intact
-- Do NOT rewrite entire paragraphs or change arguments — voice validation fixes voice only
+- Keep the revision to voice-level changes only; leave paragraphs and arguments intact
 
 **Key constraint**: Make the smallest change that resolves each violation. Preserve all meaning. Changing substance is scope creep.
 

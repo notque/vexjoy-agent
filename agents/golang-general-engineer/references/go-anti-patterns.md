@@ -1,6 +1,6 @@
-# Go General Engineer - Anti-Patterns
+# Go General Engineer - Preferred Patterns
 
-Common Go mistakes and corrections.
+Common Go mistakes, preferred fixes, and why they matter.
 
 ## ❌ Ignoring Errors
 

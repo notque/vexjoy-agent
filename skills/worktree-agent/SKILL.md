@@ -37,8 +37,7 @@ Never hardcode absolute paths from the main repo. Use `$(git rev-parse --show-to
 
 ## Rule 4: Ignore Auto-Plan Hooks
 
-Do NOT create or modify `task_plan.md`. If auto-plan hook fires, ignore it.
-Focus exclusively on your implementation tasks.
+Keep planning inline instead of creating `task_plan.md`. If the auto-plan hook fires, continue with the current task and keep your attention on implementation.
 
 ## Rule 5: Stage Specific Files Only
 

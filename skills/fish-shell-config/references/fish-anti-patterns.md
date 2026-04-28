@@ -1,4 +1,4 @@
-# Fish Shell Anti-Patterns
+# Fish Shell Patterns to Fix
 
 > **Scope**: Common fish shell configuration mistakes that cause silent failures, broken environments, or scripts that work interactively but fail in CI/cron. Does not cover fish scripting logic errors unrelated to configuration.
 > **Version range**: Fish 3.0+ (Fish 4.0 Rust rewrite has identical syntax)

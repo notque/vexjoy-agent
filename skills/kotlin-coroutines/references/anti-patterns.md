@@ -3,7 +3,7 @@ description: "Kotlin coroutine anti-patterns: GlobalScope, unstructured launch, 
 level: 2
 ---
 
-# Kotlin Coroutine Anti-Patterns
+# Kotlin Coroutine Failure Patterns
 
 ## GlobalScope: Fire-and-Forget Leak
 

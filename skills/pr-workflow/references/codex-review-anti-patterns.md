@@ -1,4 +1,4 @@
-# Code Anti-Patterns for Review
+# Code Review Patterns for Verification
 <!-- no-pair-required: document introduction, not an individual anti-pattern block -->
 
 > **Scope**: Common code anti-patterns to detect during review, with grep commands for codebase verification.
@@ -16,7 +16,7 @@ model interpretation alone.
 
 ---
 
-## Go Anti-Patterns
+## Go Review Patterns
 <!-- no-pair-required: section header with no content -->
 
 ### Swallowed errors (blank identifier on error return)
@@ -129,7 +129,7 @@ func process(c *Counter) { ... }
 
 ---
 
-## TypeScript/JavaScript Anti-Patterns
+## TypeScript/JavaScript Review Patterns
 <!-- no-pair-required: section header with no content -->
 
 ### Floating Promise (unhandled async)
@@ -222,7 +222,7 @@ logger.info({ orderId: id }, 'processing order');
 
 ---
 
-## Python Anti-Patterns
+## Python Review Patterns
 <!-- no-pair-required: section header with no content -->
 
 ### Bare `except` clause

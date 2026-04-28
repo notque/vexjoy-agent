@@ -58,7 +58,8 @@ import paths, fenced code blocks, or enough concrete pattern hits to be useful.
 ## Error Wrapping (Go 1.13+)
 
 Use `fmt.Errorf("context: %w", err)` to wrap errors. Unwrap with `errors.Is()` and
-`errors.As()`. Do NOT use `errors.New()` when you need to preserve the original error.
+`errors.As()`. Reserve `errors.New()` for fresh sentinel errors; keep the original error
+when downstream handling depends on it.
 
 ```go
 // Good
@@ -91,7 +92,7 @@ hits, average 80+ lines per file).
 **What Level 3 looks like**:
 
 ```markdown
-## Anti-Pattern: Using errors.New() When Wrapping
+## Preferred Pattern: Wrapping Errors with Context
 
 **Detection**:
 ```bash
@@ -130,9 +131,9 @@ version qualifier.
 
 ---
 
-## Level 3 Checklist (Per Anti-Pattern Entry)
+## Level 3 Checklist (Per Pattern Entry)
 
-Use this checklist in Phase 4 Tier 2 self-assessment. Each anti-pattern entry should pass
+Use this checklist in Phase 4 Tier 2 self-assessment. Each pattern entry should pass
 at least 3 of 5:
 
 - [ ] Detection command that finds the pattern in a real codebase (`grep`, `rg`, `find`)
@@ -148,7 +149,7 @@ at least 3 of 5:
 | Failure | Symptom | Fix |
 |---------|---------|-----|
 | Generic advice | No code blocks, phrases like "handle errors properly" | Replace with specific pattern + code example |
-| No detection | Anti-patterns listed but no grep commands | Add `grep -rn` or `rg` command for each anti-pattern |
+| No detection | Pattern entries listed without detection commands | Add `grep -rn` or `rg` command for each pattern entry |
 | Version-free | Patterns stated without version context | Add version ranges where behavior changed |
 | No error-fix mapping | Common errors listed without root cause | Add "Error: X → Root cause: Y → Fix: Z" rows |
 | Too short | < 50 lines average across files | Each sub-domain warrants at least 80 lines of concrete content |

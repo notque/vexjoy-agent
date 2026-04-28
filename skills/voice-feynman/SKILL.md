@@ -21,8 +21,8 @@ description: |
   there is to it"), and modal writing across teaching, popular lecture,
   investigative memo, casual interview, and private letter. Use when generating
   explanations, blog posts, technical writing, or chat responses that must match
-  Feynman's distinctive voice. Do NOT use for voice analysis, voice profile
-  creation, or generating content in other voices.
+  Feynman's distinctive voice. Use a different skill for voice analysis,
+  voice profile creation, or generating content in other voices.
 version: 1.0.0
 command: /voice-feynman
 routing:
@@ -264,7 +264,7 @@ pad.
 
 ### Phrase Fingerprints (FOOTNOTE-verdict, scoped use only)
 
-- **P15 (spoken mode only): "y'know" / "see" / "gee".** Mode 5 and Mode 2 (transcribed) only. Do NOT inject into Mode 3 (memo) or Mode 4 (letter) -- those are written modes and the fillers are absent there.
+- **P15 (spoken mode only): "y'know" / "see" / "gee".** Reserve this fingerprint for Mode 5 and Mode 2 (transcribed), where the fillers appear in spoken delivery rather than written modes.
   > "I worked it out, you see, I had a piece of paper, and I worked it out, just for the fun of it." (Omni)
 - **P16 (emotional/moral register only): anaphora through repetition with substitution.** High-stakes letters and rare moral closers; not casual chat, not technical.
   > "You are not nameless to your wife and to your child... You are not nameless to me. Do not remain nameless to yourself." (Letters, to Mano)
@@ -298,7 +298,7 @@ Positive instructions the model follows at the moment of generating in this voic
 ---
 
 <!-- no-pair-required: each bullet pairs the anti-pattern with its replacement move inline (e.g., "open flat or interrogative instead", "use scoping hedges instead"); a separate "Do instead" block would duplicate the per-entry framing. -->
-## Anti-Patterns
+## Common Drift Signals
 
 Common AI / popularizer defaults that degrade the voice. Each entry names the pull and gives the move that replaces it.
 

@@ -1,4 +1,4 @@
-# Performance Comment Anti-Patterns
+# Performance Comment Patterns to Detect and Fix
 
 <!-- no-pair-required: document header and scope block, not an individual anti-pattern -->
 

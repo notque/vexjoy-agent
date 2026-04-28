@@ -128,7 +128,7 @@ Show the user:
 
 **Why this gate exists**: Phase 1 analysis is probabilistic. The user knows their target repo; the model does not. A 30-second review catches a wrong tool scope that would take 10 minutes to debug in generated code. Phase 1 analysis may misidentify the relevant API surface or pick wrong primitive types. A wrong `design.md` produces hundreds of lines of wrong code. User review at this point costs seconds.
 
-**Do NOT rationalize skipping this gate.** No time pressure, confidence level, or apparent obviousness of the design justifies proceeding without explicit user approval. The cost of wrong code is orders of magnitude higher than the cost of a review pause.
+**Keep this gate in place.** No time pressure, confidence level, or apparent obviousness of the design justifies proceeding without explicit user approval. The cost of wrong code is orders of magnitude higher than the cost of a review pause.
 
 **Gate**: User explicitly approves design.md by responding "y", "yes", or "proceed". Do not continue to Phase 3 without explicit approval.
 

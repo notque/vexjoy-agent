@@ -2,7 +2,7 @@
 description: Common MCP server mistakes with detection commands and fixes — front matter parsing, caching failures, protocol violations
 ---
 
-# MCP Server Anti-Patterns
+# MCP Server Patterns to Fix
 
 > **Scope**: Anti-patterns specific to MCP documentation servers in TypeScript/Node.js. Covers front matter parsing failures, indexing bugs, and protocol misuse.
 > **Version range**: `@modelcontextprotocol/sdk` 0.5.0+, Node.js 18+

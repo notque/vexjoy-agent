@@ -46,7 +46,7 @@ Orchestrate complex multi-step software development tasks using the BRAINSTORM /
 
 ### Phase 1: BRAINSTORM
 
-**PHASE GATE: Do NOT proceed to WRITE-PLAN phase until:**
+**PHASE GATE: Proceed to WRITE-PLAN phase only after:**
 - [ ] Requirements have been clarified (or user confirmed they're clear)
 - [ ] At least 2 approaches have been considered
 - [ ] Selected approach has documented rationale
@@ -106,7 +106,7 @@ Document the selected approach, rationale for choosing it, how it addresses cons
 
 ### Phase 2: WRITE-PLAN
 
-**PHASE GATE: Do NOT proceed to VALIDATE-PLAN phase until:**
+**PHASE GATE: Proceed to VALIDATE-PLAN phase only after:**
 - [ ] All tasks have absolute file paths (no relative paths)
 - [ ] All tasks have verification commands
 - [ ] All tasks are scoped to 2-5 minutes
@@ -214,7 +214,7 @@ T1 -> T2
 
 ### Phase 2.5: VALIDATE-PLAN
 
-**PHASE GATE: Do NOT proceed to EXECUTE-PLAN phase until:**
+**PHASE GATE: Proceed to EXECUTE-PLAN phase only after:**
 - [ ] Plan-checker has evaluated the plan
 - [ ] All blocker-severity findings are resolved (or documented as accepted risks after 3 revision iterations)
 - [ ] Context-budget estimate confirms plan is achievable within ~50% of remaining context
@@ -269,7 +269,7 @@ Record in the plan file:
 
 ### Phase 3: EXECUTE-PLAN
 
-**PHASE GATE: Do NOT mark workflow complete until:**
+**PHASE GATE: Mark workflow complete only after:**
 - [ ] All tasks have been attempted
 - [ ] All verification commands have been run
 - [ ] All passing tasks are logged with status

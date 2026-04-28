@@ -157,7 +157,7 @@ existing sapcc references
 
 ---
 
-## Testing (test-driven-development, testing-anti-patterns, e2e-testing)
+## Testing (test-driven-development, testing-patterns, e2e-testing)
 
 **Primary sources**
 - [Playwright docs](https://playwright.dev/docs/intro) — extract: Page Object Model

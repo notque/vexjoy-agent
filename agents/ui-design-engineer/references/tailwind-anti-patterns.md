@@ -1,4 +1,4 @@
-# Tailwind CSS Anti-Patterns Reference
+# Tailwind CSS Patterns to Detect and Fix
 <!-- Loaded by ui-design-engineer when task involves Tailwind configuration, class composition, theme customization, or build-time CSS issues -->
 
 > **Scope**: Tailwind-specific pitfalls that cause style breakage, build bloat, or maintenance debt. Does not cover general CSS anti-patterns.

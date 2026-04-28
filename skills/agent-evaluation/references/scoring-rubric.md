@@ -101,10 +101,10 @@ Detailed scoring criteria for evaluating Claude Code agents and skills against v
 **No Credit (0 points)**:
 - No CAN/CANNOT sections
 
-### 6. Anti-Patterns Section (5 points)
+### 6. Pattern Coverage Section (5 points)
 
 **Full Credit (5 points)**:
-- `## Anti-Patterns` section present with 3-5 patterns
+- `## Patterns to Detect and Fix` section present with 3-5 patterns
 - Each pattern has "What it looks like", "Why wrong", "Do instead" structure
 - Patterns are specific to the skill's domain
 

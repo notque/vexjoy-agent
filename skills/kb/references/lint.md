@@ -22,7 +22,7 @@ Last compiled: {last_compiled from _index.md frontmatter, or "never"}.
 
 ## Phase 2: STRUCTURAL CHECKS
 
-Run deterministic checks. Read file contents and frontmatter as needed. Do NOT read raw sources for structural checks — wiki files only.
+Run deterministic checks. Read file contents and frontmatter as needed. Structural checks use wiki files only, not raw sources.
 
 | Check | Pass Condition | Severity |
 |-------|----------------|----------|
@@ -92,12 +92,12 @@ If `--fix` was specified AND structural errors were found, offer to repair:
 - **Missing index entries**: append missing file paths to `_index.md` articles list
 - **Broken `[[wiki/path]]`-style links**: report only (cannot safely infer correct target)
 
-Before fixing, print each planned change and ask for confirmation. Do NOT auto-fix content quality issues — those require human or LLM judgment during compile.
+Before fixing, print each planned change and ask for confirmation. Content-quality issues stay with the compile workflow, where human or LLM judgment can evaluate them.
 
-## Anti-patterns
+## Fix Guidance
 
-- Do NOT fix issues silently — always report before fixing
-- Do NOT suggest concepts for every minor term — only significant gaps (max 5)
-- Do NOT report passing checks — only failures and suggestions
-- Do NOT read every raw source during lint — structural checks use wiki files only
-- Do NOT treat missing `research/{topic}/` as a lint failure — exit with a clear error message before phase 1
+- Report each planned fix before applying it
+- Suggest concepts only for significant gaps, up to 5
+- Report failures and suggestions; omit passing checks
+- Use wiki files only for structural checks
+- Treat a missing `research/{topic}/` directory as a pre-phase error and exit with a clear message

@@ -1,4 +1,4 @@
-# Hook Development Anti-Patterns Reference
+# Hook Development Patterns to Detect and Fix
 
 > Loaded by hook-development-engineer when reviewing hook code for correctness, performance, or registration safety issues.
 

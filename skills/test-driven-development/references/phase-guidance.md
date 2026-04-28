@@ -62,7 +62,7 @@ The test must fail because the feature is not implemented, NOT because of syntax
 **If the test fails for the WRONG reason:**
 - Fix the test setup/syntax
 - Re-run until it fails for the RIGHT reason (missing implementation)
-- Do NOT proceed until the failure clearly indicates "this feature does not exist yet"
+- Proceed only when the failure clearly indicates "this feature does not exist yet"
 
 ## Phase 3: Implement Minimum Code (GREEN)
 

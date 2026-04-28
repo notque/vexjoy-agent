@@ -61,7 +61,7 @@ Patterns for type assertions, type switches, reflection usage.
 - Use reflection for type introspection when needed
 - Defense in depth for type switch nil handling
 - Prefer type assertions with ok check: `val, ok := x.(Type)`
-- Avoid reflection in hot paths (performance)
+- Prefer direct type access in hot paths; use reflection only when the category truly needs runtime introspection
 
 ### 5. Performance Optimization
 Patterns for efficiency, resource usage, and bottlenecks.
@@ -69,7 +69,7 @@ Patterns for efficiency, resource usage, and bottlenecks.
 **Common Patterns**:
 - Preallocate slices when size is known
 - Use `strings.Builder` for string concatenation in loops
-- Avoid unnecessary allocations
+- Prefer allocation-aware code paths and preallocate only when the size is known
 - Profile before optimizing
 - Document performance-critical sections
 
@@ -120,7 +120,7 @@ Patterns for naming, formatting, and readability.
 - Follow effective Go guidelines
 - Use consistent naming conventions
 - Keep functions focused (single responsibility)
-- Avoid deep nesting (early returns)
+- Prefer early returns to keep control flow shallow
 
 ## Confidence Scoring Within Categories
 

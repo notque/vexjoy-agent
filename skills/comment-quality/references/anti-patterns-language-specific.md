@@ -1,4 +1,4 @@
-# Language-Specific and Documentation Anti-Patterns
+# Language-Specific and Documentation Comment Patterns
 
 <!-- no-pair-required: document introduction, not an individual anti-pattern block -->
 
@@ -6,11 +6,11 @@ Companion file to `anti-patterns.md`. Covers language-specific and documentation
 
 ## Language-Specific Patterns
 
-### Go-Specific Anti-Patterns
+### Go-Specific Patterns
 
 <!-- no-pair-required: subsection heading grouping language-specific examples -->
 
-#### Anti-Pattern: "Fixed panic"
+#### Preferred Pattern: "Fixed panic"
 
 **Do instead**: Describe the guard and what it prevents.
 
@@ -19,7 +19,7 @@ Companion file to `anti-patterns.md`. Covers language-specific and documentation
 // Good: Returns error when receiver is nil to prevent panic
 ```
 
-#### Anti-Pattern: "Now uses context"
+#### Preferred Pattern: "Now uses context"
 
 **Do instead**: State what the context controls and what happens when it expires.
 
@@ -28,7 +28,7 @@ Companion file to `anti-patterns.md`. Covers language-specific and documentation
 // Good: Accepts context for cancellation and timeout control
 ```
 
-#### Anti-Pattern: "Improved error handling"
+#### Preferred Pattern: "Improved error handling"
 
 **Do instead**: Name the wrapping mechanism and what context it adds.
 
@@ -37,11 +37,11 @@ Companion file to `anti-patterns.md`. Covers language-specific and documentation
 // Good: Wraps errors with operation context using fmt.Errorf
 ```
 
-### Python-Specific Anti-Patterns
+### Python-Specific Patterns
 
 <!-- no-pair-required: subsection heading grouping language-specific examples -->
 
-#### Anti-Pattern: "Changed to use type hints"
+#### Preferred Pattern: "Changed to use type hints"
 
 **Do instead**: Explain what the type hints constrain or enable.
 
@@ -50,7 +50,7 @@ Companion file to `anti-patterns.md`. Covers language-specific and documentation
 # Good: Type hints specify expected types for validation
 ```
 
-#### Anti-Pattern: "Refactored to use dataclass"
+#### Preferred Pattern: "Refactored to use dataclass"
 
 **Do instead**: Name the specific behavior the dataclass provides.
 
@@ -59,11 +59,11 @@ Companion file to `anti-patterns.md`. Covers language-specific and documentation
 # Good: Uses dataclass for automatic __init__ and __repr__
 ```
 
-### JavaScript/TypeScript Anti-Patterns
+### JavaScript/TypeScript Patterns
 
 <!-- no-pair-required: subsection heading grouping language-specific examples -->
 
-#### Anti-Pattern: "Migrated to async/await"
+#### Preferred Pattern: "Migrated to async/await"
 
 **Do instead**: Describe the execution model the pattern provides.
 
@@ -72,7 +72,7 @@ Companion file to `anti-patterns.md`. Covers language-specific and documentation
 // Good: Uses async/await for sequential asynchronous operations
 ```
 
-#### Anti-Pattern: "Updated to ES6 syntax"
+#### Preferred Pattern: "Updated to ES6 syntax"
 
 **Do instead**: Name the concrete behavior the syntax change enables.
 
@@ -81,13 +81,13 @@ Companion file to `anti-patterns.md`. Covers language-specific and documentation
 // Good: Arrow function preserves outer 'this' context
 ```
 
-## Documentation-Specific Anti-Patterns
+## Documentation-Specific Patterns
 
 <!-- no-pair-required: subsection heading grouping documentation anti-patterns -->
 
 ### README Files
 
-#### Anti-Pattern: Version-specific feature lists
+#### Preferred Pattern: Version-specific feature lists
 
 **Do instead**: List features by name and behavior, without tying them to a release version.
 
@@ -103,7 +103,7 @@ Companion file to `anti-patterns.md`. Covers language-specific and documentation
 - Response time < 100ms (p95)
 ```
 
-#### Anti-Pattern: Historical installation instructions
+#### Preferred Pattern: Historical installation instructions
 
 **Do instead**: Show the current installation steps with no reference to how they changed.
 
@@ -121,7 +121,7 @@ npm install mypackage
 
 ### API Documentation
 
-#### Anti-Pattern: Endpoint evolution
+#### Preferred Pattern: Endpoint evolution
 
 **Do instead**: Document the current response schema directly, without mentioning past changes.
 
@@ -137,7 +137,7 @@ Returns paginated results with:
 - `next_page`: Token for next page
 ```
 
-#### Anti-Pattern: Parameter history
+#### Preferred Pattern: Parameter history
 
 **Do instead**: Document the parameter's type and usage, not when or why it was introduced.
 

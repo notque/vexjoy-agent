@@ -1,10 +1,10 @@
-# Data Analysis Anti-Patterns
+# Data Analysis Patterns to Detect and Fix
 
-Extended catalog of anti-patterns beyond the top 5 in the main SKILL.md. Each pattern includes what it looks like, why it's wrong, and what to do instead.
+Extended catalog of patterns beyond the top 5 in the main SKILL.md. Each entry includes the signal, why it matters, and what to do instead.
 
 ---
 
-## Methodology Anti-Patterns
+## Methodology Patterns to Fix
 
 ### Data-First Analysis (also in SKILL.md)
 
@@ -87,7 +87,7 @@ print(f"Group sizes: {df.group.value_counts().to_dict()}")
 
 ---
 
-## Statistical Anti-Patterns
+## Statistical Patterns to Fix
 
 ### Point Estimates Without Uncertainty (also in SKILL.md)
 
@@ -143,7 +143,7 @@ print(f"Group sizes: {df.group.value_counts().to_dict()}")
 
 ---
 
-## Communication Anti-Patterns
+## Communication Patterns to Fix
 
 ### Methods-First Communication (also in SKILL.md)
 
@@ -194,7 +194,7 @@ print(f"Group sizes: {df.group.value_counts().to_dict()}")
 
 ---
 
-## Process Anti-Patterns
+## Process Patterns to Fix
 
 ### Silent Definition Changes (also in SKILL.md)
 

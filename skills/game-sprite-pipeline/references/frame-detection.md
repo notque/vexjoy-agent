@@ -114,7 +114,7 @@ That asset was downgraded to **8×8 = 64 frames at 128px** for the final demo, w
 
 - **Default to 4×4** for most action loops (walk, attack, idle). 16 frames is plenty for a smooth animation at 10fps.
 - **8×8 max** when you genuinely need 64 frames (multi-direction × multi-state). Use 128px cells minimum.
-- **Avoid 16×16+** unless you have a hard requirement and can manually validate the output.
+- **Use 16×16+** only when you have a hard requirement and can manually validate the output.
 - **Cell size is a quality knob:** doubling cell size from 64 to 128 quadruples the per-cell pixel budget for the model. Prefer fewer larger cells over more smaller cells.
 
 ## Tuning parameters
@@ -211,9 +211,9 @@ A metadata sidecar is written: `<output-dir>/frame_metadata.json`:
 `rejected` counts components below `--min-pixels`. Useful for tuning thresholds.
 
 <!-- no-pair-required: section header; pair lives in subsection -->
-## Anti-pattern
+## Signals and Fixes
 
-### Anti-pattern: Naive grid math for frame extraction
+### Signal: Naive grid math for frame extraction
 
 **What it looks like:**
 ```python

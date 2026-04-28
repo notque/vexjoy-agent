@@ -5,7 +5,7 @@ description: Concrete shell-process anti-patterns with detection commands and pa
 
 <!-- no-pair-required: this H1 is the file title; each AP-N section below contains its own "Do instead" block. -->
 
-# Shell Process Anti-Patterns
+# Shell Process Patterns to Detect and Fix
 
 Each entry pairs a detection command (runnable against a repo) with the broken pattern and a correct replacement. The detection commands are `rg`-first because ripgrep is available in the toolkit; fall back to `grep -rn` when `rg` is absent.
 

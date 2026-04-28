@@ -57,7 +57,7 @@ Inspiration sources include:
 
 Select an inspiration source that resonates with the project context from Phase 1. The palette must trace back to that context -- convenience or personal preference is not a valid reason for a color choice.
 
-### Phase 3: Anti-Pattern Checks
+### Phase 3: Palette Checks
 
 Check against anti-patterns in `references/anti-patterns.json`:
 - No purple (#8B5CF6, #A855F7) as accent on white background -- the most cliched color scheme in modern web design, signaling generic SaaS template
@@ -96,7 +96,7 @@ If a proposed motion does not fit into one of these three slots, it is extra noi
 
 **Decorative-only litmus**. For every motion in the design, ask: does removing this motion change what the user understands about the page? If the answer is no, the motion is decorative and should be cut. Motion is a tool for establishing hierarchy and presence, not a tool for making the page feel "alive".
 
-**Recommended stack**: Framer Motion for React, CSS transitions for simple hover/focus. Do not mix five animation libraries on one page.
+**Recommended stack**: Framer Motion for React, CSS transitions for simple hover/focus. Use one animation stack per page.
 
 **Step 2: Design choreography** for each identified moment. Reference `references/animation-patterns.md` for battle-tested patterns:
 - Orchestrated page load with staggered reveal

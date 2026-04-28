@@ -130,7 +130,7 @@ A memory is stale only when ALL THREE signals are present. One or two is insuffi
 
 **Example**: A project memory about "mobile release freeze ends 2026-01-15" with no matching git commits, no matching recent sessions, and file age 45 days → all three signals → candidate for archiving.
 
-**Counter-example**: A feedback memory about "never use --no-verify" with no recent git commits about it → only ONE signal (no recent refs). Still active guidance — do NOT archive.
+**Counter-example**: A feedback memory about "never use --no-verify" with no recent git commits about it → only ONE signal (no recent refs). Keep this guidance active until at least two corroborating signals appear.
 
 ---
 

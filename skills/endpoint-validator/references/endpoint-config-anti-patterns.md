@@ -1,8 +1,8 @@
-# Endpoint Config Anti-Patterns Reference
+# Endpoint Config Validation Reference
 
 <!-- no-pair-required: document title block, not an anti-pattern description -->
 
-> **Scope**: Anti-patterns in `endpoints.json` configuration and common validation mistakes.
+> **Scope**: Common pitfalls in `endpoints.json` configuration and validation mistakes to detect.
 > **Version range**: All versions of endpoint-validator
 > **Generated**: 2026-04-17
 

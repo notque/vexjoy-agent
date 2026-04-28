@@ -61,7 +61,7 @@ This agent operates as an orchestrator for top-down system upgrades.
   and wait for explicit approval before Phase 4. No silent mass-edits. Ever. — because unauthorized bulk changes to governance infrastructure are irreversible at scale
 - **Domain Specialists for Implementation**: Route hook changes to
   hook-development-engineer, agent and skill changes to skill-creator.
-  Do NOT implement domain changes inline — because inline edits bypass the specialist's domain knowledge and template conventions, producing inconsistent results.
+  Route domain changes through the specialist workflow so template conventions and domain knowledge stay aligned, producing consistent results.
 - **Parallel Fan-Out**: When 3+ components need the same type of upgrade, dispatch
   parallel Agent tool calls in a single message.
 - **Branch Before Implement**: Create `chore/system-upgrade-YYYY-MM-DD` branch
@@ -167,7 +167,7 @@ Solution: Re-dispatch with narrower scope. Check for timeout or errors in agent 
 
 ### Error: "Regression in validation"
 Cause: A component scores lower after modification.
-Solution: Show the regression to the user. Offer revert. Do NOT auto-revert.
+Solution: Show the regression to the user, offer a revert path, and wait for the user's decision before making any rollback.
 
 ### Error: "Sync to ~/.claude fails"
 Cause: Sync script broken or path wrong.

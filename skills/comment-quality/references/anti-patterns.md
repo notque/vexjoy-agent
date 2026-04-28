@@ -1,4 +1,4 @@
-# Comment Quality Anti-Patterns
+# Comment Quality Signals and Fixes
 
 <!-- no-pair-required: document introduction, not an individual anti-pattern block -->
 
@@ -6,13 +6,13 @@ This document catalogs common problematic patterns found in code comments and do
 
 For language-specific (Go, Python, JavaScript/TypeScript) and documentation-targeted (README, API docs) anti-patterns, see `anti-patterns-language-specific.md`.
 
-## High Priority Anti-Patterns
+## High Priority Signals to Detect and Fix
 
 <!-- no-pair-required: section heading organizing multiple anti-pattern blocks -->
 
-### Anti-Pattern 1: "X now does Y"
-**Problem**: The word "now" implies a temporal change - something used to work differently
-**Why it's bad**: Future readers don't care what it used to do, only what it does currently
+### Signal 1: "X now does Y"
+**Signal**: The word "now" implies a temporal change - something used to work differently
+**Why It Matters**: Future readers need the current behavior, not a history lesson
 
 **Do instead**: Remove the temporal word and describe the current behavior directly.
 
@@ -28,9 +28,9 @@ For language-specific (Go, Python, JavaScript/TypeScript) and documentation-targ
 // Good: Errors include stack traces for debugging
 ```
 
-### Anti-Pattern 2: "Improved/Better/Enhanced X"
-**Problem**: Comparative adjectives imply comparison to a past state
-**Why it's bad**: "Better" is meaningless without knowing what came before; focus on current behavior
+### Signal 2: "Improved/Better/Enhanced X"
+**Signal**: Comparative adjectives imply comparison to a past state
+**Why It Matters**: "Better" is only useful when the current behavior is stated directly
 
 **Do instead**: Replace vague comparative adjectives with specific, measurable descriptions.
 
@@ -46,9 +46,9 @@ For language-specific (Go, Python, JavaScript/TypeScript) and documentation-targ
 // Good: Processes requests in parallel (up to 10 concurrent)
 ```
 
-### Anti-Pattern 3: "Fixed bug where..."
-**Problem**: References a bug that existed in the past
-**Why it's bad**: Code should explain current behavior, not past problems
+### Signal 3: "Fixed bug where..."
+**Signal**: References a bug that existed in the past
+**Why It Matters**: Comments should explain the present behavior, not the old failure mode
 
 **Do instead**: Describe what the guard or check does and why it exists, not the bug it replaced.
 
@@ -64,9 +64,9 @@ For language-specific (Go, Python, JavaScript/TypeScript) and documentation-targ
 // Good: Closes connections to prevent resource exhaustion
 ```
 
-### Anti-Pattern 4: "Added/Removed/Changed X"
-**Problem**: Development activity language describes history, not current state
-**Why it's bad**: Focuses on what changed rather than what exists
+### Signal 4: "Added/Removed/Changed X"
+**Signal**: Development activity language describes history, not current state
+**Why It Matters**: Readers need to know what the code does now
 
 **Do instead**: State what exists now, using present tense and the actual mechanism.
 
@@ -82,9 +82,9 @@ For language-specific (Go, Python, JavaScript/TypeScript) and documentation-targ
 // Good: Uses PostgreSQL with connection pooling
 ```
 
-### Anti-Pattern 5: "New/Old system/approach/method"
-**Problem**: Temporal designation of current vs previous implementation
-**Why it's bad**: Everything is "new" until it's "old" - these labels are time-dependent
+### Signal 5: "New/Old system/approach/method"
+**Signal**: Temporal designation of current vs previous implementation
+**Why It Matters**: Time-dependent labels age out quickly and stop helping readers
 
 **Do instead**: Name the actual mechanism, protocol, or algorithm rather than labeling it by age.
 
@@ -100,13 +100,13 @@ For language-specific (Go, Python, JavaScript/TypeScript) and documentation-targ
 // Good: Error handling with structured logging and context
 ```
 
-## Medium Priority Anti-Patterns
+## Medium Priority Signals to Detect and Fix
 
 <!-- no-pair-required: section heading organizing multiple anti-pattern blocks -->
 
-### Anti-Pattern 6: "Updated/Refactored/Optimized X"
-**Problem**: Past tense development activity
-**Why it's bad**: Tells you something changed, not what it does now
+### Signal 6: "Updated/Refactored/Optimized X"
+**Signal**: Past tense development activity
+**Why It Matters**: The comment should describe the current behavior, not the work history
 
 **Do instead**: Describe the current structure or behavior, not the transformation that produced it.
 
@@ -122,9 +122,9 @@ For language-specific (Go, Python, JavaScript/TypeScript) and documentation-targ
 // Good: Uses indexed columns for O(log n) lookups
 ```
 
-### Anti-Pattern 7: "This allows us to..." / "We can now..."
-**Problem**: Focuses on capability gained rather than current functionality
-**Why it's bad**: "Allows us to" implies past limitation; describe what it does
+### Signal 7: "This allows us to..." / "We can now..."
+**Signal**: Focuses on capability gained rather than current functionality
+**Why It Matters**: Describe the behavior directly so future readers do not have to infer it
 
 **Do instead**: State what the code does as a fact, not as a newly acquired capability.
 
@@ -140,9 +140,9 @@ For language-specific (Go, Python, JavaScript/TypeScript) and documentation-targ
 // Good: Reports errors with file/line context
 ```
 
-### Anti-Pattern 8: "Instead of X" / "Rather than X"
-**Problem**: Comparison to previous approach
-**Why it's bad**: Describes what it replaced, not what it does
+### Signal 8: "Instead of X" / "Rather than X"
+**Signal**: Comparison to previous approach
+**Why It Matters**: Lead with the current behavior and only mention replacement context when it clarifies intent
 **Examples**:
 ```go
 // Bad: Uses map instead of array for lookups
@@ -155,9 +155,9 @@ For language-specific (Go, Python, JavaScript/TypeScript) and documentation-targ
 // Good: Logs to rotated files in /var/log/app/
 ```
 
-### Anti-Pattern 9: "Temporary/Interim/Stopgap X"
-**Problem**: Indicates non-permanent solution without context
-**Why it's bad**: If it's truly temporary, fix it properly or explain the constraint
+### Signal 9: "Temporary/Interim/Stopgap X"
+**Signal**: Indicates non-permanent solution without context
+**Why It Matters**: Time-bound work needs either a concrete constraint or a tracked follow-up
 
 **Do instead**: Explain the actual constraint that prevents a permanent solution, not just that it is temporary.
 
@@ -173,9 +173,9 @@ For language-specific (Go, Python, JavaScript/TypeScript) and documentation-targ
 // Good: In-memory cache (no persistence) for session data
 ```
 
-### Anti-Pattern 10: "As of version X" / "Since version X"
-**Problem**: Ties comment to specific version timeline
-**Why it's bad**: Future readers don't care when it was introduced, only what it does
+### Signal 10: "As of version X" / "Since version X"
+**Signal**: Ties comment to a specific version timeline
+**Why It Matters**: Version history belongs in changelogs or release notes, not in behavior comments
 
 **Do instead**: Drop the version reference and describe what the code does, or note a runtime requirement if relevant.
 
@@ -191,13 +191,13 @@ For language-specific (Go, Python, JavaScript/TypeScript) and documentation-targ
 // Good: Available in current version (requires feature flag ENABLE_X)
 ```
 
-## Subtle Anti-Patterns
+## Subtle Signals to Detect and Fix
 
 <!-- no-pair-required: section heading organizing multiple anti-pattern blocks -->
 
-### Anti-Pattern 11: "More/Less efficient/effective"
-**Problem**: Relative comparison without baseline
-**Why it's bad**: "More efficient" compared to what? Be specific.
+### Signal 11: "More/Less efficient/effective"
+**Signal**: Relative comparison without a baseline
+**Why It Matters**: Specific costs, timings, or resource usage make the comment verifiable
 
 **Do instead**: Replace the relative claim with a concrete bound, complexity class, or measured value.
 
@@ -213,9 +213,9 @@ For language-specific (Go, Python, JavaScript/TypeScript) and documentation-targ
 // Good: Error handling with retry logic (3 attempts, exponential backoff)
 ```
 
-### Anti-Pattern 12: "Unlike X" / "Compared to X"
-**Problem**: Defines behavior by what it's not
-**Why it's bad**: Focuses on difference rather than actual behavior
+### Signal 12: "Unlike X" / "Compared to X"
+**Signal**: Defines behavior by contrast instead of direct description
+**Why It Matters**: Direct behavior is easier to verify and easier to maintain
 
 **Do instead**: Define the behavior directly, using positive statements about what the code does.
 
@@ -231,9 +231,9 @@ For language-specific (Go, Python, JavaScript/TypeScript) and documentation-targ
 // Good: Thread-safe: uses mutex for concurrent access
 ```
 
-### Anti-Pattern 13: "Will/Going to/Eventually X"
-**Problem**: Future tense for current code
-**Why it's bad**: Code should describe current state, not future plans
+### Signal 13: "Will/Going to/Eventually X"
+**Signal**: Future tense for current code
+**Why It Matters**: Current code should describe the behavior that exists today
 
 **Do instead**: Convert to a concrete TODO with a specific dependency, or describe current state if the feature already exists.
 
@@ -249,9 +249,9 @@ For language-specific (Go, Python, JavaScript/TypeScript) and documentation-targ
 // Good: In-memory cache (Redis integration tracked in issue #123)
 ```
 
-### Anti-Pattern 14: "Used to X but now Y"
-**Problem**: Explicit before/after comparison
-**Why it's bad**: Historical context doesn't help understand current code
+### Signal 14: "Used to X but now Y"
+**Signal**: Explicit before/after comparison
+**Why It Matters**: Current behavior is the useful detail; historical contrast can move to changelogs
 
 **Do instead**: Keep only the "now Y" part, stated as a present fact without the historical contrast.
 
@@ -267,9 +267,9 @@ For language-specific (Go, Python, JavaScript/TypeScript) and documentation-targ
 // Good: Processes asynchronously and returns immediately
 ```
 
-### Anti-Pattern 15: "Originally X"
-**Problem**: References original implementation
-**Why it's bad**: Original design is irrelevant to current functionality
+### Signal 15: "Originally X"
+**Signal**: References the original implementation
+**Why It Matters**: Readers need the present contract, not the original design story
 
 **Do instead**: State the current invariant or constraint directly, without referencing the origin.
 

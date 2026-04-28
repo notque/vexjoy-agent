@@ -1,4 +1,4 @@
-# Decision Analysis Anti-Patterns
+# Decision Analysis Patterns to Detect and Fix
 
 > **Scope**: Behavioral failure modes that corrupt weighted decision scoring. Covers framing, scoring, and interpretation errors. Does not cover domain-specific criteria selection (see `decision-archetypes.md`).
 > **Version range**: All versions of decision-helper skill
@@ -163,7 +163,7 @@ If many scores feel wrong: the criteria may be mismatched to the decision. Retur
 
 ## Error-Fix Mappings
 
-| Signal | Anti-Pattern | Intervention |
+| Signal | Failure Mode | Intervention |
 |--------|-------------|-------------|
 | "Can we lower that weight?" after matrix shown | Confirmation bias | Lock weights; ask for substantive reason |
 | 5+ options presented | Analysis paralysis | Filter to 4 before scoring |

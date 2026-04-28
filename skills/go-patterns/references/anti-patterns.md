@@ -1,5 +1,5 @@
 
-# Go Anti-Patterns Skill
+# Go Patterns to Detect and Fix
 
 Detect and remediate the 7 core Go anti-patterns: premature interface abstraction, goroutine overkill, error wrapping without context, channel misuse, generic abuse, context soup, and unnecessary function extraction. Every detection is evidence-based with code location and concrete harm explanation, and every recommendation aligns with Go proverbs and standard library conventions.
 
@@ -12,7 +12,7 @@ Read and follow the repository's CLAUDE.md before reviewing any code. Identify w
 If the user requests a full codebase scan or historical git analysis, enable those modes explicitly. Otherwise, stay within the files presented.
 
 <!-- no-pair-required: section-header-only; individual anti-patterns below carry Do-instead blocks -->
-### Phase 2: Scan for Anti-Patterns
+### Phase 2: Scan for Patterns to Fix
 
 Use the Quick Detection Guide to systematically check each file under review. Work through the table row by row against the code.
 

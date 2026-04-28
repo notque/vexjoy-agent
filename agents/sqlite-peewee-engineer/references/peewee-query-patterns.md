@@ -95,7 +95,7 @@ readers to continue while a write transaction is open, essential for web applica
 
 ---
 
-### Targeted SELECT to Avoid Overfetch
+### Targeted SELECT for Minimal Column Loading
 <!-- no-pair-required: positive pattern section, title contains 'avoid' triggering false positive -->
 
 Specify only needed columns — prevents loading TEXT/BLOB columns when only IDs or names needed.

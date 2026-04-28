@@ -1,4 +1,4 @@
-# Toolkit Evolution — Anti-Patterns, Errors, and Cost
+# Toolkit Evolution — Patterns, Errors, and Cost
 
 Reference for Phase 3 CRITIQUE (fallback), anti-patterns, error handling, and cost estimates.
 

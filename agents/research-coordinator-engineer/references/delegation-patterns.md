@@ -79,7 +79,7 @@ Research GPU compute availability for AI workloads 2025-2030.
 (What is IN scope — one sentence, specific)
 
 [2] EXPLICIT OUT-OF-SCOPE
-Do NOT cover general semiconductor market, consumer GPU pricing, or gaming hardware.
+Keep the subagent focused on the intended research slice; general semiconductor market coverage, consumer GPU pricing, and gaming hardware belong in separate work.
 (What to ignore — prevents scope creep that makes synthesis harder)
 
 [3] REQUIRED DATA POINTS
@@ -109,7 +109,7 @@ When Wave 1 subagents reveal unexpected gaps or conflicts, Wave 2 instructions m
 Research AI data center energy consumption with focus on ACTUAL METERED DATA:
 - Find published case studies from hyperscalers with metered power figures
 - Specifically seek: Google sustainability reports, Microsoft datacenter PUE data
-- Avoid: Estimates and projections — only measured/reported figures
+- Prefer measured/reported figures; keep estimates and projections in separate research work
 - Gap from Wave 1: Initial research found projections but no verified metered data
 DELIVERABLE: List of 5+ specific measured data points with source, date, and URL.
 ```
@@ -125,7 +125,7 @@ DELIVERABLE: List of 5+ specific measured data points with source, date, and URL
 **Detection**:
 ```bash
 # Check instruction files for scope boundary markers
-grep -rL "Do NOT\|OUT OF SCOPE\|Not in scope\|Exclude" research/*/instructions/ 2>/dev/null
+grep -rL "OUT OF SCOPE\|Not in scope\|Exclude" research/*/instructions/ 2>/dev/null
 # Check for dangerously short instructions (under 50 words)
 awk 'NF>0{count+=NF} END{if(count<50) print FILENAME": too short ("count" words)"}' research/*/instructions/*.md 2>/dev/null
 ```
@@ -141,7 +141,7 @@ Subagent 1: "Research AI trends in 2025."
 ```markdown
 Subagent 1: "Research AI model training compute trends for frontier models (GPT-4 class and above)
 in 2024-2025. Focus on: training run sizes in FLOP, hardware configurations, cost estimates.
-Do NOT cover inference, edge AI, or models below 10B parameters.
+Focus on training run sizes in FLOP, hardware configurations, and cost estimates. Keep inference, edge AI, and models below 10B parameters in a separate subagent when they matter.
 DELIVERABLE: 300-400 words with at least 2 specific training run statistics."
 ```
 
@@ -198,7 +198,7 @@ grep -rL "word\|paragraph\|bullet\|table\|summary" research/*/instructions/ 2>/d
 |---------------|------------|-----|
 | Subagents return overlapping content | No scope differentiation or no OUT-OF-SCOPE clauses | Add explicit OUT-OF-SCOPE to every instruction |
 | One subagent returns 100 words, another 1000 | No word count specification | Add word count range to every instruction |
-| Subagent drifts to adjacent topic | Scope statement positive-only (no exclusions) | Add "Do NOT cover X" clause |
+| Subagent drifts to adjacent topic | Scope statement lacks boundaries | Add a clear out-of-scope statement that names the adjacent topic |
 | Synthesis takes longer than research | Findings in incompatible formats | Standardize deliverable format across parallel instructions |
 | Wave 2 duplicates Wave 1 findings | No Bayesian update in Wave 2 instructions | Reference Wave 1 gaps explicitly in Wave 2 scope |
 | Subagent count exceeds 20 | Over-scoped query without restructuring | Merge adjacent topics into single subagent or reduce scope |
@@ -222,7 +222,7 @@ Query complexity?
 
 ```bash
 # Find instructions missing OUT-OF-SCOPE clauses
-grep -rL "Do NOT\|OUT OF SCOPE\|Exclude" research/*/instructions/ 2>/dev/null
+grep -rL "OUT OF SCOPE\|Not in scope\|Exclude" research/*/instructions/ 2>/dev/null
 
 # Find instructions under 50 words (likely too vague)
 find research/ -name "*.md" -path "*/instructions/*" -exec \

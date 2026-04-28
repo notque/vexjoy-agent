@@ -56,16 +56,16 @@ Each slot is filled from the preset catalogs in this file and `wrestler-archetyp
 5. Add a one-line entry to the `--style` choices list in `sprite_prompt.py`.
 
 <!-- no-pair-required: section header; pair lives in subsection -->
-## Anti-pattern
+## Patterns to Detect and Fix
 
-### Anti-pattern: Trademarked franchise names in style strings
+### Signal: Trademarked franchise names in style strings
 
-**What it looks like:** `--style-string "Pokemon-style sprite"` or "in the style of Final Fantasy 6".
+**Detection**: `--style-string "Pokemon-style sprite"` or "in the style of Final Fantasy 6".
 
-**Why wrong:** Backends silently filter or transform trademarked terms, producing inconsistent output across runs. Some backends refuse the prompt entirely. Reproducibility breaks because filtering changes between provider updates.
+**Why it matters**: Backends silently filter or transform trademarked terms, producing inconsistent output across runs. Some backends refuse the prompt entirely, so reproducibility breaks when provider filtering changes.
 
-**Do instead**: Use era/hardware language (`gameboy-4color`, `snes-16bit-jrpg`). Describe the visual properties (palette, dithering, outline weight, perspective) directly. Era names are free of trademark friction and translate consistently.
+**Preferred action**: Use era/hardware language (`gameboy-4color`, `snes-16bit-jrpg`). Describe the visual properties directly: palette, dithering, outline weight, and perspective. Era names avoid trademark friction and translate consistently.
 
 ## Reference loading hint
 
-Load this file when the user picks a style or asks "what styles are available". Do not load it for routing — the SKILL.md table is enough at routing time.
+Load this file when the user picks a style or asks "what styles are available". Reserve it for style selection — the SKILL.md table is enough at routing time.

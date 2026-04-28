@@ -263,9 +263,9 @@ Manifest regeneration runs `npm run generate:sprites` in the road-to-aew directo
 The skill always emits all spritesheet outputs (cheap to produce in parallel after Phase G); consumers pick the format they want.
 
 <!-- no-pair-required: section header; pair lives in subsection -->
-## Anti-pattern
+## Failure mode
 
-### Anti-pattern: Emitting only a GIF for a spritesheet
+### Failure mode: Emitting only a GIF for a spritesheet
 
 **What it looks like:** Pipeline output is `<name>.gif` and nothing else.
 

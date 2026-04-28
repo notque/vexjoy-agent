@@ -185,7 +185,7 @@ Or install `procps`/`iproute2` at image build time.
 
 <!-- no-pair-required: This section is a pointer index into anti-patterns.md; each referenced AP has its own paired "Do instead" block in that file. -->
 
-## Anti-patterns to avoid
+## Patterns to Detect and Fix
 
 These come from the anti-patterns reference:
 - `$!` after `nohup` or any wrapper binary — see AP-1 in `anti-patterns.md`

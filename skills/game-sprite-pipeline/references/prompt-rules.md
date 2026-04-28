@@ -219,7 +219,7 @@ maintain cross-cell consistency. Budget accordingly.
 |---------|-------|-----|
 | Codex CLI | Repeat the magenta-bg instruction at the start AND end of the prompt | Codex sometimes drops the bg instruction when prompts run long |
 | Nano Banana | Use shorter prompts (≤400 chars) | Nano Banana favors compact prompts; longer ones produce flatter output |
-| Both | Avoid all-caps emphasis; the model interprets caps as shouting and may produce overly dramatic poses | Standard prose-case throughout |
+| Both | Keep all-caps emphasis out of prompts; standard prose-case keeps the pose instructions steady | Standard prose-case throughout |
 
 These tweaks are applied automatically by `sprite_generate.py` when it knows which backend will run — the user does not need to think about them.
 
@@ -256,15 +256,15 @@ NEGATIVE:
 `sprite_prompt.py build-portrait` produces this composition automatically; the user supplies only `--style`, `--archetype`, `--gimmick`, `--tier`, and `--description`.
 
 <!-- no-pair-required: section header; pair lives in subsection -->
-## Anti-pattern
+## Prompt Structure Patterns to Detect and Fix
 
-### Anti-pattern: Free-form prose without slot structure
+### Prompt Structure Patterns to Detect and Fix: Free-form prose without slot structure
 
-**What it looks like:** "Generate a wrestler character that looks like a flamboyant showman with kabuki makeup in a dramatic pose with golden lighting".
+**Signal:** "Generate a wrestler character that looks like a flamboyant showman with kabuki makeup in a dramatic pose with golden lighting".
 
-**Why wrong:** Output is wildly inconsistent across runs because the model fills missing structure (background, framing, aspect, character count) freely. Reproducibility is impossible — the same prompt produces a different aspect, different pose, different framing each call.
+**Why it matters:** Output is wildly inconsistent across runs because the model fills missing structure (background, framing, aspect, character count) freely. Reproducibility is impossible — the same prompt produces a different aspect, different pose, different framing each call.
 
-**Do instead**: Always go through `sprite_prompt.py` to compose a slot-structured prompt. The slot structure forces every required dimension (style, character, tier, rules, negatives) to be explicit. The same `--style --archetype --description` always produces the same prompt; only the model's stochastic sampling varies.
+**Preferred action**: Always go through `sprite_prompt.py` to compose a slot-structured prompt. The slot structure forces every required dimension (style, character, tier, rules, negatives) to be explicit. The same `--style --archetype --description` always produces the same prompt; only the model's stochastic sampling varies.
 
 ## Reference loading hint
 

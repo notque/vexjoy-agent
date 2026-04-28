@@ -48,23 +48,23 @@ Prefer:
 - One persistent preview/summary region if the interaction needs it.
 - Selection marks: left strip, lift, glow, check, slot fill, or value change.
 
-Avoid:
+Prefer:
 
-- A modal containing a header gradient, then panels, then cards, then badges.
-- Rounded boxes around every option.
-- Pill labels for every small attribute.
-- Repeating borders with the same visual weight.
-- Multiple section backgrounds inside one screen.
-- “Step 1 / Step 2” web-form structure unless the game fiction genuinely supports it.
+- A single screen shell instead of a modal layered with headers, panels, cards, and badges.
+- Framing only where the object itself needs emphasis.
+- Compact labels for small attributes instead of pill treatments.
+- Visual variety in borders and materials instead of repeated identical borders.
+- One background language per screen.
+- Sequence labels only when the game fiction genuinely calls for a staged flow.
 
 ## Color Rules
 
 Game UI can use any palette, but hierarchy must be obvious.
 
 - Choose material first, then color. Example: parchment, steel, canvas, leather, arcade plastic, CRT glass, blueprint paper.
-- Avoid “gold equals premium” unless the game fiction truly needs gold.
-- Avoid brown by default. Brown often reads muddy unless paired with strong material contrast and deliberate art direction.
-- Avoid pink/red fades as a generic drama layer. They often reduce readability and look like a web gradient.
+- Use gold only when the fiction genuinely makes it meaningful.
+- Use brown only with strong material contrast and deliberate art direction.
+- Reserve pink/red fades for cases where they support readability instead of generic drama.
 - Accent color should mark state or action, not decorate every border.
 - If color is doing too much, remove surfaces instead of inventing a better palette.
 
@@ -119,12 +119,12 @@ Prefer:
 - Minimal labels.
 - Layouts where the player understands the interaction from object placement.
 
-Avoid:
+Prefer:
 
-- Website modals with explanatory sections.
-- Reward choices in uniform rounded boxes when the card/relic itself should be the object.
-- Overdesigned chrome competing with card art.
-- Fake “premium” metallic treatments.
+- Reward layouts that center the card, relic, or map node as the object.
+- Clear object-first choices instead of explanatory modal sections.
+- Restraint in chrome so the art remains dominant.
+- Material treatments that fit the game world instead of decorative premium gloss.
 
 ## Corrective Workflow
 

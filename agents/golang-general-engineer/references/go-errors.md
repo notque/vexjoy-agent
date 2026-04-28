@@ -472,7 +472,7 @@ func transfer(from, to *Account, amount int) {
 
 **Prevention**:
 - Always use `defer` to unlock
-- Avoid recursive locking
+- Keep lock acquisition non-recursive; recursive locking creates deadlock risk
 - Establish consistent lock ordering
 - Use RWMutex for read-heavy workloads
 - Consider channels instead of mutexes
@@ -585,5 +585,5 @@ type UserRepository interface {
 - Design package structure carefully
 - Extract shared types to common package
 - Use interfaces to decouple packages
-- Avoid bidirectional dependencies
+- Keep package dependencies one-directional; bidirectional dependencies create import cycles
 - Draw package dependency graph

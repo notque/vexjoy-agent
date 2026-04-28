@@ -1,4 +1,4 @@
-# ADR Consultation — Anti-Patterns
+# ADR Consultation — Patterns to Detect and Fix
 
 > **Scope**: Common failures in ADR consultation orchestration and synthesis. Covers what goes wrong
 > and how to detect and fix it. Does NOT cover ADR authoring style or implementation quality.

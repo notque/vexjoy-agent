@@ -128,7 +128,7 @@ Comprehensive code review of [repo] against project standards, dispatching 10 do
 
 **Goal**: Launch 10 domain-specialist agents in a SINGLE message for true parallel execution.
 
-**CRITICAL**: All 10 agents must be dispatched in ONE message using the Agent tool. Do NOT serialize them. Serializing agents wastes time since domain specialists operate independently on disjoint concerns.
+**CRITICAL**: All 10 agents must be dispatched in ONE message using the Agent tool. Dispatch them in one message. Parallel domain specialists work independently on disjoint concerns, so a single dispatch keeps the review moving.
 
 Each agent receives:
 1. The path to sapcc-code-patterns.md to read

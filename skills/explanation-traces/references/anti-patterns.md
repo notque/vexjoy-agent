@@ -1,11 +1,11 @@
-# Explanation Traces — Anti-Patterns
+# Explanation Traces — Patterns to Fix
 
 Anti-patterns for both trace producers (hooks that write session-trace.json) and trace
 consumers (this skill reading it). Organized by who makes the mistake.
 
 ---
 
-## Producer Anti-Patterns (Hook Writers)
+## Producer Patterns to Fix (Hook Writers)
 
 ### AP-1: Post-Hoc Trace Writing
 
@@ -184,7 +184,7 @@ created, not at hook startup.
 
 ---
 
-## Consumer Anti-Patterns (Skill Behavior)
+## Consumer Patterns to Fix (Skill Behavior)
 
 ### AP-6: Reconstructing Decisions from Conversation History
 
@@ -231,7 +231,7 @@ Report count of entries with missing/empty evidence. Never fill gaps silently.
 
 ## Quick Detection Cheatsheet
 
-| Anti-pattern | Detection command |
+| Pattern | Detection command |
 |---|---|
 | Empty evidence | `rg '"evidence":\s*""' session-trace.json` |
 | Null alternatives | `rg '"alternatives":\s*null' session-trace.json` |

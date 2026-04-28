@@ -39,7 +39,7 @@ session-trace.json. See: skills/explanation-traces/references/trace-schema.md
 for the expected JSON format.
 ```
 
-Do NOT guess at decisions from conversation history. If no file exists, there is nothing
+Read decisions from the trace file only. If no file exists, report that there is nothing
 to read.
 
 ---

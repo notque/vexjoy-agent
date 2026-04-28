@@ -181,12 +181,12 @@ Load the synthesis template and populate all 7 sections (Consensus Matrix; Featu
 ---
 
 <!-- no-pair-required: section-header-only; individual anti-patterns below carry Do-instead blocks -->
-## Examples, Anti-Patterns, Error Handling
+## Examples, Error Handling, and Detection
 
 See `${CLAUDE_SKILL_DIR}/references/examples-and-errors.md` for:
 
 - **Examples**: critique provided proposals, generate+critique ideas, evaluate architectural options
-- **Anti-Patterns**: averaging disagreement, post-hoc rationalization, consensus-as-truth, skipping justification, resolving contested items, sequential execution
+- **Failure modes**: averaging disagreement, post-hoc rationalization, consensus-as-truth, skipping justification, resolving contested items, sequential execution
 - **Error Handling**: bare ratings, skipped proposals, uniform agreement, fewer than 2 proposals
 
 ---

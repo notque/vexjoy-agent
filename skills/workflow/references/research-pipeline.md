@@ -154,7 +154,7 @@ Format:
 [what you couldn't find]
 ```
 
-**Step 3**: Wait for all agents to complete. Do NOT proceed until all raw-{angle}.md files exist.
+**Step 3**: Proceed once all agents complete and all raw-{angle}.md files exist.
 
 ```bash
 ls research/{topic}/raw-*.md
@@ -164,7 +164,7 @@ ls research/{topic}/raw-*.md
 
 If an agent times out or fails to write its file:
 - Re-dispatch the failed agent once with the same instructions
-- If re-dispatch also fails, note the angle as "unavailable" and continue with remaining agents — keep the pipeline moving forward
+- If re-dispatch also fails, note the angle as "unavailable" and continue with remaining agents so the pipeline keeps moving forward
 
 ---
 
@@ -343,7 +343,7 @@ Evidence: {N} Strong, {N} Moderate, {N} Weak findings
 
 ### Error: "Agent timed out without writing raw-{angle}.md"
 Cause: Research sub-agent exceeded time or context limit.
-Solution: Re-dispatch once with identical instructions. If second attempt fails, mark angle as "unavailable" in synthesis.md and continue. Do NOT block Phase 3 indefinitely on one failed angle.
+Solution: Re-dispatch once with identical instructions. If the second attempt fails, mark the angle as "unavailable" in synthesis.md and continue. Keep Phase 3 moving instead of waiting indefinitely on one failed angle.
 
 ### Error: "Synthesis has fewer than 3 key findings"
 Cause: Raw files contained very sparse findings, or topic is too narrow.
@@ -351,7 +351,7 @@ Solution: Check if raw files have actual content. If raw files are empty or mini
 
 ### Error: "Primary question unanswerable — Research verdict: Insufficient"
 Cause: The topic is outside available sources, too specialized, or too recent.
-Solution: Report this to the user with specifics: which angles failed and why. Offer to (a) narrow the question, (b) change source types, or (c) deliver the partial findings with strong caveats. Do NOT silently deliver an insufficient report as if it were complete.
+Solution: Report this to the user with specifics: which angles failed and why. Offer to (a) narrow the question, (b) change source types, or (c) deliver the partial findings with strong caveats. Deliver only the partial findings that are supported, never present an insufficient report as complete.
 
 ### Error: "research/{topic}/ directory conflict — prior research exists"
 Cause: A previous run left artifacts at the same path.

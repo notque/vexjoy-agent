@@ -129,7 +129,7 @@ Modify the chain based on the operator profile from the Component Manifest. Thes
 - Add `APPROVE` before any dangerous operation
 - Add `PRESENT` before and after `EXECUTE` for visibility
 
-*Constraint: Apply exactly the gates specified by the operator profile. Personal = minimal gates. Production = maximum gates. No more, no less. Do NOT add production-grade gates to personal chains or vice versa.*
+*Constraint: Apply exactly the gates specified by the operator profile. Personal chains use the minimal gate set, and production chains use the maximum gate set, with no cross-over.*
 
 **Constraint: Operator profile must come from Component Manifest or user.** If the Component Manifest does not specify an operator_profile, default to `personal` profile (most permissive, fewest gates) and log a warning that profile was defaulted.
 
@@ -231,7 +231,7 @@ rm -f /tmp/pipeline-{run-id}/chain-*.json
 
 **Goal**: Produce the complete Pipeline Spec JSON and a human-readable summary. The Pipeline Spec is the contract that `pipeline-scaffolder` consumes.
 
-**Why the Pipeline Spec is JSON, not markdown**: *Constraint: The scaffolder needs machine-readable data to derive build targets (skills, references, scripts, agents, routing). JSON is the contract format defined in `pipeline-spec-format.md`.* The human-readable summary is a companion, not a replacement. *Constraint: Do NOT produce markdown instead of JSON. The scaffolder consumes JSON. It parses field names, iterates subdomain arrays, and extracts step objects programmatically.*
+**Why the Pipeline Spec is JSON, not markdown**: *Constraint: The scaffolder needs machine-readable data to derive build targets (skills, references, scripts, agents, routing). JSON is the contract format defined in `pipeline-spec-format.md`.* The human-readable summary is a companion, not a replacement. *Constraint: Produce JSON rather than markdown. The scaffolder consumes JSON, parses field names, iterates subdomain arrays, and extracts step objects programmatically.*
 
 **Step 1**: Load `skills/workflow/references/pipeline-scaffolder/references/pipeline-spec-format.md` for the exact format contract. Verify every field requirement against what you will produce.
 
@@ -278,7 +278,7 @@ Naming rules:
 ```
 
 Top-level validation:
-- Exactly one of `new_agent` or `reuse_agent` is non-null. *Constraint: Whether to create a new agent vs. reuse must come from Component Manifest or user. Do NOT guess.*
+- Exactly one of `new_agent` or `reuse_agent` is non-null. *Constraint: Whether to create a new agent vs. reuse must come from Component Manifest or user input.*
 - `operator_profile` is a valid profile enum value
 - `subdomains` is non-empty
 

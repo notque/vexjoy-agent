@@ -173,7 +173,7 @@ The coverage check works as follows:
 **Coverage must be 100%**. If any requirement is UNCOVERED:
 - Add tasks to cover the missing requirement, OR
 - Explicitly document why the requirement is deferred (with a follow-up ticket reference)
-- Do NOT proceed to approval with uncovered requirements
+- Proceed to approval only after every requirement is covered or explicitly deferred with a follow-up ticket reference
 
 **Step 2: Structural Validation Checklist**
 

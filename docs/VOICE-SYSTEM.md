@@ -115,7 +115,7 @@ Pick writing that is:
 - **Varied**:different topics, same author
 - **Substantial**:at least 500 words per sample
 
-Avoid:
+Prefer sample sets that exclude:
 - Heavily edited corporate copy
 - Co-authored pieces
 - Transcripts (speaking voice ≠ writing voice)

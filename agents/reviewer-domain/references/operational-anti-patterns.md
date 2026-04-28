@@ -1,10 +1,10 @@
-# Pragmatic Builder Roaster - Operational Anti-Patterns
+# Pragmatic Builder Roaster - Operational Corrections
 
-Common operational mistakes and their corrections.
+Common operational mistakes, their signals, and the preferred response.
 
-## ❌ Anti-Pattern: No Rollback Plan
+## Preferred Pattern: No Rollback Plan
 
-**What it looks like**:
+**Signal**:
 ```bash
 # deploy.sh
 docker build -t myapp:latest .
@@ -14,13 +14,13 @@ docker-compose up -d
 # No rollback documented, no previous version tagged
 ```
 
-**Why wrong**:
+**Why it matters**:
 - When deployments fail at 3 AM, there's no time to design rollback procedures
 - Panic decisions under pressure cause worse outages
 - "We'll just revert the commit" doesn't account for database migrations, config changes, or stateful systems
 - Testing rollback for the first time during an outage is too late
 
-**✅ Correct approach**:
+**Preferred action**:
 ```bash
 # deploy.sh
 #!/bin/bash
@@ -50,16 +50,16 @@ fi
 echo "Deployment successful. To rollback: docker tag $PREVIOUS_VERSION myapp:latest && docker-compose restart"
 ```
 
-**When to use**:
-- Every production deployment
-- Even "simple" changes need rollback plans
-- Test rollback procedure in staging before production
+**Verification**:
+- Every production deployment has a documented rollback path
+- Even "simple" changes include a previous-version tag or revert plan
+- Staging checks confirm the rollback procedure before production
 
 ---
 
-## ❌ Anti-Pattern: Logging After Failures
+## Preferred Pattern: Log Before and After Risky Operations
 
-**What it looks like**:
+**Signal**:
 ```python
 def process_payment(user_id, amount):
     # No logging before risky operation
@@ -72,13 +72,13 @@ def process_payment(user_id, amount):
     return result
 ```
 
-**Why wrong**:
+**Why it matters**:
 - When debugging production failures, you need logs at failure points
 - Absence of logs at error conditions means guessing what happened
 - Cannot reconstruct request flow without correlation IDs
 - Missing context (user_id, amount, API response) makes debugging impossible
 
-**✅ Correct approach**:
+**Preferred action**:
 ```python
 def process_payment(user_id, amount):
     correlation_id = generate_correlation_id()
@@ -116,17 +116,16 @@ def process_payment(user_id, amount):
         raise
 ```
 
-**When to use**:
-- Before all external API calls
-- In all error handlers
-- At decision branches
-- For state changes
+**Verification**:
+- Logs exist before each external API call
+- Error handlers include the same correlation ID and context
+- State changes and decision branches emit a traceable record
 
 ---
 
-## ❌ Anti-Pattern: Untested Edge Cases
+## Preferred Pattern: Test Boundary and Failure Cases
 
-**What it looks like**:
+**Signal**:
 ```python
 def calculate_discount(cart_total, discount_percent):
     return cart_total * (discount_percent / 100)
@@ -136,14 +135,14 @@ def test_calculate_discount():
     assert calculate_discount(100, 10) == 10.0
 ```
 
-**Why wrong**:
+**Why it matters**:
 - Edge cases ALWAYS happen in production
 - Users send empty carts, negative numbers, null values
 - Race conditions trigger under load
 - Network partitions cause partial state
 - No tests for cart_total=0, discount_percent=100, negative values, concurrent updates
 
-**✅ Correct approach**:
+**Preferred action**:
 ```python
 def calculate_discount(cart_total, discount_percent):
     if cart_total < 0:
@@ -172,17 +171,16 @@ def test_calculate_discount_edge_cases():
         calculate_discount(100, 150)  # Over 100% discount
 ```
 
-**When to use**:
-- Always test boundary conditions (0, max, negative, null)
-- Test error paths, not just happy path
-- Test concurrent access to shared state
-- Test partial failures (network, database, external APIs)
+**Verification**:
+- Boundary conditions are covered explicitly (0, max, negative, null)
+- Error paths have dedicated assertions, not just happy-path checks
+- Shared-state and partial-failure scenarios have repeatable tests
 
 ---
 
-## ❌ Anti-Pattern: No Circuit Breaker for External Dependencies
+## Preferred Pattern: Protect External Dependencies with a Circuit Breaker
 
-**What it looks like**:
+**Signal**:
 ```python
 def get_user_recommendations(user_id):
     # No protection against failing external service
@@ -190,13 +188,13 @@ def get_user_recommendations(user_id):
     return recommendations
 ```
 
-**Why wrong**:
+**Why it matters**:
 - When external service is down, every request waits for timeout (30s+)
 - Cascading failures: slow external service makes your service slow
 - Thread pool exhaustion from waiting on failed calls
 - No graceful degradation path
 
-**✅ Correct approach**:
+**Preferred action**:
 ```python
 from pybreaker import CircuitBreaker
 
@@ -229,9 +227,9 @@ def get_user_recommendations(user_id):
 
 ---
 
-## ❌ Anti-Pattern: Trusting User Input
+## Preferred Pattern: Validate User Input Before Use
 
-**What it looks like**:
+**Signal**:
 ```python
 @app.route('/search')
 def search():
@@ -241,13 +239,13 @@ def search():
     return jsonify(results)
 ```
 
-**Why wrong**:
+**Why it matters**:
 - SQL injection vulnerability: `q=' OR '1'='1`
 - XSS vulnerability: `q=<script>alert('xss')</script>`
 - Resource exhaustion: `q=%` returns all records
 - No input length limits
 
-**✅ Correct approach**:
+**Preferred action**:
 ```python
 from flask import request, jsonify
 from sqlalchemy import text
@@ -281,9 +279,9 @@ def search():
 
 ---
 
-## ❌ Anti-Pattern: Synchronous Long-Running Operations
+## Preferred Pattern: Move Long-Running Work Off the Request Path
 
-**What it looks like**:
+**Signal**:
 ```python
 @app.route('/process-video', methods=['POST'])
 def process_video():
@@ -297,13 +295,13 @@ def process_video():
     return jsonify({'status': 'success'})
 ```
 
-**Why wrong**:
+**Why it matters**:
 - Request thread blocked for 3+ minutes
 - HTTP clients timeout (usually 30-60s)
 - Thread pool exhausted under load
 - No progress visibility for user
 
-**✅ Correct approach**:
+**Preferred action**:
 ```python
 from celery import Celery
 
@@ -347,22 +345,22 @@ def task_status(task_id):
 
 ---
 
-## ❌ Anti-Pattern: No Monitoring Until After Launch
+## Preferred Pattern: Add Monitoring Before Launch
 
-**What it looks like**:
+**Signal**:
 ```
 Developer: "Let's launch and see what happens"
 3 AM: System is down, no metrics, no alerts, no visibility
 Team: "We should have added monitoring..."
 ```
 
-**Why wrong**:
+**Why it matters**:
 - Cannot diagnose issues without metrics and logs
 - No baseline to compare against
 - No alerts means outages go undetected
 - Dashboards created during outages miss critical data
 
-**✅ Correct approach**:
+**Preferred action**:
 ```python
 # Set up metrics BEFORE launch
 from prometheus_client import Counter, Histogram, Gauge
@@ -417,9 +415,9 @@ groups:
 
 ---
 
-## ❌ Anti-Pattern: Magic Numbers in Code
+## Preferred Pattern: Name Meaningful Constants
 
-**What it looks like**:
+**Signal**:
 ```python
 def should_retry(attempt):
     if attempt < 3:  # Why 3?
@@ -430,13 +428,13 @@ cache_ttl = 300  # Why 300?
 max_connections = 50  # Why 50?
 ```
 
-**Why wrong**:
+**Why it matters**:
 - Unclear reasoning for values
 - Cannot change without code deployment
 - Different values for different environments not possible
 - Difficult to tune under different load conditions
 
-**✅ Correct approach**:
+**Preferred action**:
 ```python
 import os
 
@@ -467,9 +465,9 @@ db_pool = create_pool(max_connections=Config.DB_MAX_CONNECTIONS)
 
 ---
 
-## ❌ Anti-Pattern: Ignoring Database Connection Pooling
+## Preferred Pattern: Size and Observe Database Connection Pools
 
-**What it looks like**:
+**Signal**:
 ```python
 def get_user(user_id):
     # Creates new connection every call
@@ -486,13 +484,13 @@ def get_user(user_id):
     return result
 ```
 
-**Why wrong**:
+**Why it matters**:
 - Database connection setup is expensive (TCP handshake, auth, session initialization)
 - Creates hundreds of connections under load
 - Database rejects connections after max_connections limit
 - Connection overhead dominates query time for fast queries
 
-**✅ Correct approach**:
+**Preferred action**:
 ```python
 from sqlalchemy import create_engine
 from sqlalchemy.pool import QueuePool

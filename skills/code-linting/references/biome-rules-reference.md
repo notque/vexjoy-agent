@@ -247,7 +247,7 @@ const sql = `SELECT * FROM ${table} WHERE id = ${id}`;
 
 ---
 
-### ❌ Optional chain avoidance (useOptionalChain)
+### Prefer optional chaining (useOptionalChain)
 
 **Detection**:
 ```bash

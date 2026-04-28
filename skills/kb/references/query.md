@@ -17,7 +17,7 @@ Answer a question using the compiled wiki for a knowledge base topic. Reads rele
 
 **Goal**: Select the wiki articles most likely to contain the answer.
 
-Using only the `_index.md` (do NOT read individual articles yet), identify the **3-10 most relevant** concept and/or source articles for this question.
+Using only the `_index.md`, identify the **3-10 most relevant** concept and/or source articles for this question.
 
 For each selected article, note:
 - Its path relative to `research/{topic}/wiki/`
@@ -42,7 +42,7 @@ If the index contains no obviously relevant entries, select the closest 3 and no
    - If the KB does not contain enough information to fully answer the question, say so explicitly. Name what is missing and which raw sources, if any, could be added to fill the gap.
 3. Aim for 300-1200 words. Shorter if the answer is simple. Longer only when the question requires depth.
 
-Do NOT draw on general knowledge when the KB has relevant content. Prefer KB sources. If you must supplement with general knowledge (because the KB is silent on a point), mark it clearly: "(from general knowledge, not in KB)".
+Prefer KB sources whenever the knowledge base has relevant content. If you must supplement with general knowledge because the KB is silent on a point, mark it clearly: "(from general knowledge, not in KB)".
 
 ---
 
@@ -86,12 +86,12 @@ Populate `sources_consulted` with the relative paths (within `wiki/`) of every a
 
 ## Patterns to Detect and Fix
 
-**Do NOT answer from general knowledge if the KB has relevant content.** The point of the system is to build and use a local knowledge base. Bypassing it defeats the flywheel.
+**Answer from KB sources when they cover the question.** The point of the system is to build and use a local knowledge base, and bypassing it defeats the flywheel.
 
-**Do NOT read every wiki file.** Use the `_index.md` to select relevant articles. Reading every file wastes time and context on irrelevant material.
+**Use the `_index.md` to select relevant articles.** Reading every wiki file wastes time and context on irrelevant material.
 
-**Do NOT write query files longer than 1500 words.** If the answer requires more than that, it is probably two separate questions. Answer the specific question asked.
+**Keep query files under 1500 words.** If the answer requires more than that, it is probably two separate questions. Answer the specific question asked.
 
-**Do NOT omit `sources_consulted`.** This field is the data the flywheel uses during the next compile run. An empty or incomplete list breaks the feedback loop.
+**Include `sources_consulted`.** This field is the data the flywheel uses during the next compile run, and an empty or incomplete list breaks the feedback loop.
 
-**Do NOT skip filing unless `--no-file` was explicitly specified.** Filed queries accumulate domain knowledge. Each one makes the next query better.
+**File the query unless `--no-file` was explicitly specified.** Filed queries accumulate domain knowledge, and each one makes the next query better.

@@ -1,4 +1,4 @@
-# Anti-Patterns Reference
+# E-commerce Review Patterns
 <!-- Loaded by nextjs-ecommerce-engineer when reviewing e-commerce code for security, correctness, or reliability issues -->
 
 These are the e-commerce mistakes that cause real damage — lost revenue, security incidents, overselling, and data corruption. Each one has a canonical fix.

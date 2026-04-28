@@ -1,4 +1,4 @@
-# Testing Anti-Pattern Catalog
+# Testing Patterns to Detect and Fix Catalog
 
 Detailed code examples for all 10 anti-patterns. Each section shows BAD (what to avoid) and GOOD (what to do instead) in Go, Python, and JavaScript where applicable.
 

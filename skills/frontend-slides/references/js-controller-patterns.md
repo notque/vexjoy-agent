@@ -102,10 +102,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 ---
 
-<!-- no-pair-required: section heading — each Anti-Pattern block below has its own Do-instead -->
-## Anti-Pattern Catalog
+<!-- no-pair-required: section heading — each signal block below has its own preferred action -->
+## Patterns to Detect and Fix
 
-### Anti-Pattern 1: Missing `navigating` flag
+### Signal 1: Missing `navigating` flag
 
 Do instead: add `if (this.navigating) return;` as the first line of `go()` and reset it via `setTimeout`.
 
@@ -146,7 +146,7 @@ go(index) {
 
 ---
 
-### Anti-Pattern 2: Wheel without debounce
+### Signal 2: Wheel without debounce
 
 Do instead: wrap the `wheel` handler body in `clearTimeout` + `setTimeout(() => { ... }, 150)` to collapse burst events.
 
@@ -186,7 +186,7 @@ _initWheel() {
 
 ---
 
-### Anti-Pattern 3: `display:none` on slides
+### Signal 3: `display:none` on slides
 
 **Detection**:
 ```bash
@@ -223,7 +223,7 @@ use `opacity: 0; pointer-events: none; position: absolute` instead.
 
 ---
 
-### Anti-Pattern 4: Touch swipe fires on vertical scroll
+### Signal 4: Touch swipe fires on vertical scroll
 
 Do instead: record `screenY` on `touchstart` and reject gestures where `Math.abs(dy) > Math.abs(dx)`.
 
@@ -267,7 +267,7 @@ _initTouch() {
 
 ---
 
-### Anti-Pattern 5: `Space` key not prevented from scrolling page
+### Signal 5: `Space` key not prevented from scrolling page
 
 Do instead: call `e.preventDefault()` before `this.next()` on every navigation key including Space.
 

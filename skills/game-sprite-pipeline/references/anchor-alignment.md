@@ -261,31 +261,31 @@ Ground-line anchor pins the GLOBAL FEET POSITION (the median across grounded fra
 For animations where the character is genuinely off-ground for the entire sequence (jumping, flying, falling), `--anchor-mode center` produces the right look. The default is `ground-line` because most game animations are mixed-state and the legacy per-frame-bottom drift was the most-reported regression.
 
 <!-- no-pair-required: section header; pair lives in subsection -->
-## Anti-pattern
+## Anchor Patterns to Detect and Fix
 
-### Anti-pattern: Per-frame bottom-anchor on extreme-pose animations
+### Anchor Patterns to Detect and Fix: Per-frame bottom-anchor on extreme-pose animations
 
-**What it looks like:** Default `--anchor-mode bottom` on an attack/jump/aerial cycle. Each frame's lowest pixel pinned to the cell bottom.
+**Signal:** Default `--anchor-mode bottom` on an attack/jump/aerial cycle. Each frame's lowest pixel pinned to the cell bottom.
 
-**Why wrong:** The lowest pixel of a lunge frame is the extended fist or trailing leg — not the feet. Pinning that to the ground-Y puts the wrong body part on the floor. Across the cycle the character bounces vertically by tens of pixels (live demo evidence: 74-px range on a 128-px cell, see `<your-output-dir>/screenshots/05-drift-evidence/`).
+**Why it matters:** The lowest pixel of a lunge frame is the extended fist or trailing leg — not the feet. Pinning that to the ground-Y puts the wrong body part on the floor. Across the cycle the character bounces vertically by tens of pixels (live demo evidence: 74-px range on a 128-px cell, see `<your-output-dir>/screenshots/05-drift-evidence/`).
 
-**Do instead**: Use `--anchor-mode ground-line` (default since Apr 2026). The detector picks a single global ground-Y from the grounded frames and pins each frame's lowest pixel to THAT Y. Result: standing-frame feet are correct AND lunge frames look correct because their lowest reach (fist) is consistent with where standing-frame feet sit.
+**Preferred action**: Use `--anchor-mode ground-line` (default since Apr 2026). The detector picks a single global ground-Y from the grounded frames and pins each frame's lowest pixel to THAT Y. Result: standing-frame feet are correct AND lunge frames look correct because their lowest reach (fist) is consistent with where standing-frame feet sit.
 
-### Anti-pattern: Center-anchoring all frames regardless of action
+### Anchor Patterns to Detect and Fix: Center-anchoring all frames regardless of action
 
-**What it looks like:** Always centering frames vertically, regardless of whether the character is grounded or aerial.
+**Signal:** Always centering frames vertically, regardless of whether the character is grounded or aerial.
 
-**Why wrong:** Walk-cycle feet bounce because center-anchored frames with different bbox heights produce different ground-Y. Animation looks broken even if individual frames are well-rendered.
+**Why it matters:** Walk-cycle feet bounce because center-anchored frames with different bbox heights produce different ground-Y. Animation looks broken even if individual frames are well-rendered.
 
-**Do instead**: `ground-line` for mixed sequences (default). `center` only when the entire sequence is genuinely off-ground.
+**Preferred action**: `ground-line` for mixed sequences (default). `center` only when the entire sequence is genuinely off-ground.
 
-### Anti-pattern: Skipping shared-scale and trusting per-frame bbox sizes
+### Anchor Patterns to Detect and Fix: Skipping shared-scale and trusting per-frame bbox sizes
 
-**What it looks like:** Outputting frames at their natural bbox dimensions without rescaling to a shared height.
+**Signal:** Outputting frames at their natural bbox dimensions without rescaling to a shared height.
 
-**Why wrong:** Walk-cycle frames have arms in different positions; their bboxes have different heights. Without shared-scale, the character's apparent height changes frame-to-frame even though the actual character is the same size.
+**Why it matters:** Walk-cycle frames have arms in different positions; their bboxes have different heights. Without shared-scale, the character's apparent height changes frame-to-frame even though the actual character is the same size.
 
-**Do instead**: Compute the 95th-percentile height across all frames and rescale every frame's height to that target, preserving per-frame aspect. Width varies (arms out vs arms in), but height stays constant.
+**Preferred action**: Compute the 95th-percentile height across all frames and rescale every frame's height to that target, preserving per-frame aspect. Width varies (arms out vs arms in), but height stays constant.
 
 ## Reference loading hint
 

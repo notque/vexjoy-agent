@@ -273,7 +273,7 @@ If relevant retro knowledge is already present in context, use it. If it is abse
 | "where do i even start with this rewrite" | MATCH | Explicit uncertainty trigger (`where do i even start`), no concrete subject of the rewrite named. |
 | "rename `cfg` to `config` in `internal/`" | NON-MATCH | Concrete symbol, concrete directory, unambiguous mechanical operation. |
 
-When in doubt, do NOT inject — the manual `/quick --interview` flag and the explicit phrase triggers are alternative paths that cover deliberate cases. False positives on auto-injection cost the user one round of friction (Phase 0 opt-out question); false negatives are fully recoverable via the manual paths.
+When in doubt, defer injection. The manual `/quick --interview` flag and the explicit phrase triggers cover deliberate cases. False positives on auto-injection cost the user one round of friction (Phase 0 opt-out question), while false negatives are fully recoverable through the manual paths.
 
 Before stacking any enhancement, check the target skill's `pairs_with` field in `skills/INDEX.json`. Skills that declare `pairs_with` list their compatible companions — prefer stacking with listed pairs. An empty `pairs_with: []` means pairings have not been declared yet, not that stacking is prohibited. Skills with built-in verification gates (like `quick --trivial`) handle their own testing and may not benefit from additional stacking. Use judgment based on the skill's documentation.
 

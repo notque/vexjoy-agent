@@ -33,7 +33,7 @@ routing:
 
 This skill builds complete Phaser 3 2D games using a **Phased Construction** pattern: DESIGN (plan game type, physics, scenes) → BUILD (scene lifecycle, sprites, tilemaps) → ANIMATE (physics, animation state machines, input) → POLISH (camera effects, particles, tweens, sound, mobile). Targets Phaser 3.60+ throughout.
 
-**Scope**: Platformers, arcade shooters, top-down RPGs, puzzle games, side-scrollers — anything 2D in Phaser 3. Do NOT use for 3D games (use threejs-builder), native mobile games, or non-Phaser canvas work.
+**Scope**: Platformers, arcade shooters, top-down RPGs, puzzle games, and side-scrollers — anything 2D in Phaser 3. Use `threejs-builder` for 3D games, native mobile games, and non-Phaser canvas work.
 
 ---
 
@@ -70,7 +70,7 @@ From the user's request, determine: game genre (platformer, shooter, RPG, puzzle
 
 **Step 2: Select the physics system**
 
-| Physics | Use When | Avoid When |
+| Physics | Use When | When Not to Use |
 |---------|----------|------------|
 | Arcade | Platformers, shooters, simple AABB | Rotating bodies, non-rectangular shapes |
 | Matter.js | Physics puzzles, destructible terrain | Performance-critical (100+ bodies) |

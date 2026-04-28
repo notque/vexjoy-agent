@@ -10,7 +10,7 @@ Load this file during composition to select the correct starting template for ea
 3. Review the common variants to see if any apply to the subdomain
 4. Adapt the template with domain-specific steps and operator profile gates (per Phase 2 Steps 2-4)
 
-Do NOT compose chains from scratch. Always start from a canonical template.
+Start every chain from a canonical template rather than composing from scratch.
 
 ---
 

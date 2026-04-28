@@ -341,7 +341,7 @@ grep -r 'ALTER TABLE\|DROP TABLE' migrations/ 2>/dev/null
 
 ---
 
-## Anti-Pattern: Running Perspective Without Detection Pass
+## Review Pass Detection Commands
 
 **Detection**:
 ```bash

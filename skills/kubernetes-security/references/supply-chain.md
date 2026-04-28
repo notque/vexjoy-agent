@@ -97,7 +97,7 @@ spec:
         property: password
 ```
 
-### Anti-Patterns (Do Not Use)
+### Practices to Detect and Fix
 
 - Mounting secrets as environment variables in the pod spec (visible in `kubectl describe pod`)
 - Storing secrets in ConfigMaps

@@ -125,7 +125,7 @@ async def managed_connection(url: str):
 
 ## Dependency Injection Patterns
 
-Avoid hard-coded dependencies. Pass them in so code is testable and configurable.
+Pass dependencies in so code stays testable and configurable.
 
 ```python
 from dataclasses import dataclass, field

@@ -24,8 +24,8 @@ loader.load('character.glb', (gltf) => {
 ```
 
 This is the #1 cause of "model faces wrong direction" bugs. Apply it by default for
-character and prop models. Do NOT apply it for environment meshes or terrain (those
-are authored to match the scene coordinate system).
+character and prop models. Leave it off for environment meshes or terrain, which
+are authored to match the scene coordinate system.
 
 ---
 

@@ -29,7 +29,7 @@ These rules are enforced by `pipeline-scaffolder` when generating pipeline compo
 | YAML description | 3 example blocks | Required by AGENT_TEMPLATE_V2 |
 | Hardcoded behaviors | 3-5 items | Excess indicates over-engineering |
 | Capabilities list | 4-6 items | More suggests scope creep |
-| Anti-patterns | 3+ items | Minimum for quality |
+| Pattern coverage | 3+ items | Minimum for quality |
 | Error categories | 3+ items | Minimum for robustness |
 
 ---
@@ -245,7 +245,7 @@ Each agent:
 
 The gap is NOT in accuracy or structure (both tied within 0.10). It's entirely in research breadth — which directly feeds example richness and completeness.
 
-### Anti-Pattern: Single-Threaded Research
+### Preferred Pattern: Parallel Research
 
 **BANNED**: Research phases that use sequential `grep` or `search` commands without dispatching parallel agents.
 

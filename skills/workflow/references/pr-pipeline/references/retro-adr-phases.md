@@ -63,8 +63,8 @@ Update the responsible agent or skill file with the graduated pattern:
 
 | Finding Target | Update Location | Section to Modify |
 |---------------|----------------|-------------------|
-| Agent produced bad code | `agents/{name}.md` | FORBIDDEN patterns or Anti-Patterns |
-| Skill methodology gap | `skills/{name}/SKILL.md` | Instructions or Anti-Patterns |
+| Agent produced incorrect code | `agents/{name}.md` | Problem signals or missing guidance |
+| Skill methodology gap | `skills/{name}/SKILL.md` | Instructions or missing guidance |
 | Router missed a pattern | `skills/do/SKILL.md` | Routing tables or Force-Routes |
 | Hook failed to catch | `hooks/{name}.py` | Detection logic |
 

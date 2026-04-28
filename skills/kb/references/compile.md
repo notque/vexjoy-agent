@@ -46,7 +46,7 @@ concepts:
 
 ## Summary
 
-{2-4 paragraph summary of the key points from the source. Write in your own words - do NOT copy verbatim from the source. Focus on the most important ideas, arguments, and conclusions.}
+{2-4 paragraph summary of the key points from the source. Write in your own words rather than copying verbatim from the source. Focus on the most important ideas, arguments, and conclusions.}
 
 ## Key Points
 
@@ -69,7 +69,7 @@ For each concept identified in 2b:
 **If `wiki/concepts/{concept}.md` already exists:**
 - Read the existing file.
 - Add this source to the `sources` list in the frontmatter (if not already present).
-- Incorporate any new, non-duplicate information into the article body. Add a new section or expand an existing one. Do NOT rewrite the article from scratch - make targeted additions.
+- Incorporate any new, non-duplicate information into the article body. Add a new section or expand an existing one. Keep rewrites targeted rather than replacing the article from scratch.
 - Update `related_concepts` if this source suggests new connections.
 
 **If `wiki/concepts/{concept}.md` does not exist:**
@@ -122,9 +122,9 @@ For **each unprocessed filed query**:
    - Cross-concept connections the query identified
    - Clarifications or nuances added during synthesis
 4. For each concept article that should be updated:
-   - Make targeted additions only — do NOT rewrite from scratch
+   - Keep changes targeted and preserve the existing article structure
    - Add a "See also" reference at the bottom of the article's Sources section: `- [Query: {original question}](../queries/{query-filename}.md)`
-5. Do NOT delete the query file — it is a permanent record.
+5. Keep the query file as a permanent record.
 6. Mark the query as processed by adding `incorporated: true` to its frontmatter.
 
 If `wiki/queries/` does not exist or contains no unprocessed filed queries, skip this phase and proceed to Phase 3.
@@ -181,12 +181,12 @@ If there are gaps, offer to fix them. Do not silently patch gaps during verifica
 
 ## Patterns to Detect and Fix
 
-**Do NOT rewrite existing concept articles from scratch.** Incremental updates preserve the accumulated knowledge from prior compilations. If the existing article is good, only add what is new.
+**Preserve existing concept articles and add only the new material they need.** Incremental updates keep the accumulated knowledge from prior compilations intact. If the existing article is already good, extend it with the new information.
 
-**Do NOT create concepts with a single source** unless the concept is clearly significant (a named algorithm, a major pattern, an established term). Single-source concepts that are not significant just create noise.
+**Create single-source concepts only when the concept is clearly significant** (a named algorithm, a major pattern, an established term). Single-source concepts that are not significant add noise.
 
-**Do NOT include raw source content verbatim.** Summarize and synthesize. The wiki is a compressed, queryable representation - not a mirror.
+**Summarize and synthesize source material instead of reproducing it verbatim.** The wiki is a compressed, queryable representation - not a mirror.
 
-**Do NOT skip `_index.md` maintenance.** The index is the entry point for humans and LLMs querying the KB. A stale index defeats the purpose of the system. Always rebuild it after any compilation run.
+**Rebuild `_index.md` after every compilation run.** The index is the entry point for humans and LLMs querying the KB, and a stale index defeats the purpose of the system.
 
-**Do NOT create concepts without a definition.** Every concept article needs at least a one-sentence definition. A concept page with only a title and a sources list is not useful.
+**Create concept articles with at least a one-sentence definition.** A concept page with only a title and a sources list is not useful.

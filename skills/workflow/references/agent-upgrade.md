@@ -196,7 +196,7 @@ Estimated quality delta: +12 to +18 points
 Proceed with implementation? (or specify which items to include/exclude)
 ```
 
-**Step 3**: Wait for user approval. Do NOT proceed to Phase 4 without it. The gate exists because the user may have strong opinions about which improvements are appropriate — silent mass edits violate the approval contract.
+**Step 3**: Wait for user approval before Phase 4. The gate exists because the user may have strong opinions about which improvements are appropriate, and the approval step keeps mass edits aligned with that decision.
 - "yes", "proceed", "go ahead", "do it" → proceed with all items
 - User specifies subset (e.g., "skip 5 and 6") → update plan, proceed with approved subset
 - "no" or "stop" → stop and summarize what was decided
@@ -240,7 +240,7 @@ If joy-check flags lines in the NEW content (content that was just added/modifie
 If joy-check flags lines in EXISTING content (not modified by this upgrade):
 - Note them in the upgrade report but do not fix them (out of scope for this upgrade)
 
-**Step 4**: Do NOT change any of the following without explicit user direction because domain logic changes require deliberate user decision, not opportunistic bundling:
+**Step 4**: Change the following only when the user explicitly directs it, because domain logic changes require deliberate user decision rather than opportunistic bundling:
 - Routing triggers (`triggers:` frontmatter field)
 - Domain coverage statements
 - Core methodology or phase structure (for skills)
@@ -265,7 +265,7 @@ delta = after_score - baseline_score
 - Show the exact diff of changes applied
 - Report which change likely caused the regression
 - Ask user whether to revert the specific change or proceed anyway
-- Do NOT auto-revert because the user may have context that justifies the regression
+- Offer the revert path instead of applying it automatically, because the user may have context that justifies the regression
 
 **Step 4**: Report upgrade completion:
 
@@ -307,7 +307,7 @@ Solution: Use the highest-scoring agent (from recent agent-evaluation runs or ME
 
 ### Error: "Regression detected in Phase 5 (delta is negative)"
 Cause: One or more applied improvements reduced the evaluation score.
-Solution: Show the diff, identify the likely culprit change, and ask the user whether to revert it. Do NOT auto-revert. Proceed only after user makes a decision.
+Solution: Show the diff, identify the likely culprit change, and ask the user whether to revert it. Keep rollback user-driven and proceed only after the user makes a decision.
 
 ### Error: "User approves plan but target file changes between Phase 3 and Phase 4"
 Cause: Another process or agent modified the file during the gap.

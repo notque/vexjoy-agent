@@ -17,7 +17,7 @@ hooks:
                 print('[swift-agent] Run: swiftformat . && swiftlint lint')
                 print('[swift-agent] Type-check: swift build')
 
-                # Read edited content to check for anti-patterns
+                # Read edited content to check for signal quality and fixups
                 try:
                     with open(filepath) as f:
                         content = f.read()

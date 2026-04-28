@@ -3,7 +3,7 @@ description: "Common concurrency mistakes: blocking MainActor, task leaking, act
 type: reference
 ---
 
-# Common Anti-Patterns
+# Common Concurrency Pitfalls and Fixes
 
 ## Blocking the Main Actor
 

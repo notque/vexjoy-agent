@@ -106,7 +106,7 @@ Bash's convention: exit codes 128+N indicate death by signal N. Preserving this 
 
 ## Subshell inheritance
 
-Traps set in the parent do NOT carry into subshells unless you re-set them. Each `(...)`, `$(...)`, and pipeline component runs in its own subshell.
+Traps set in the parent apply only to the current shell. Each `(...)`, `$(...)`, and pipeline component runs in its own subshell, so re-register the trap where you need it.
 
 ```bash
 trap 'echo parent cleanup' EXIT
@@ -218,7 +218,7 @@ Gotcha: `ERR` traps have the same `set -e` blind spots — they don't fire for c
 
 ## `wait` and signal delivery
 
-While a bash script is blocked inside `wait`, signal handlers do NOT run until the wait returns. The OS delivers the signal; bash queues it; the handler runs after the current builtin completes.
+While a bash script is blocked inside `wait`, signal handlers run after `wait` returns. The OS delivers the signal; bash queues it; the handler runs after the current builtin completes.
 
 This means SIGTERM sent to a script sitting in `wait` won't run the handler until the child exits on its own. Workaround: add a timeout.
 

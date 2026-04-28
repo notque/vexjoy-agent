@@ -169,7 +169,7 @@ Parallel dispatch: 3 groups (hooks, agents, skills)
 Proceed with implementation? (or modify the plan)
 ```
 
-**Step 3**: Wait for user approval. Do NOT proceed to Phase 4 without explicit approval.
+**Step 3**: Wait for user approval before moving to Phase 4.
 - If user says "yes", "proceed", "go ahead", "do it" → proceed to Phase 4
 - If user modifies the plan → update and re-present
 - If user says "no" or "stop" → stop and summarize what was decided
@@ -234,7 +234,7 @@ VALIDATION REPORT
 **Step 2**: Flag any regressions (after < before). For regressions:
 - Report to user
 - Suggest fix or revert
-- Do NOT auto-revert—user decides
+- Present the regression to the user and let them decide whether to revert
 
 **Step 3**: For hook modifications, run syntax check:
 ```bash
@@ -303,11 +303,11 @@ Solution: Ask user to be more specific. "Claude Code shipped X" → "what specif
 
 ### Error: "Domain agent returned incomplete work"
 Cause: Dispatched agent didn't finish all changes in its group.
-Solution: Re-dispatch with more specific instructions. Check agent output for errors. Do NOT skip to Phase 5 with incomplete work.
+Solution: Re-dispatch with more specific instructions. Check agent output for errors. Continue to Phase 5 only after the required work is complete.
 
 ### Error: "Regression detected in Phase 5"
 Cause: A component scored lower after modification.
-Solution: Show diff of changes to user. Offer to revert the specific component. Do NOT auto-revert without user approval.
+Solution: Show the diff of changes to the user. Offer to revert the specific component and wait for the user's choice.
 
 ### Error: "Sync script not found"
 Cause: `hooks/sync-to-user-claude.py` missing or broken.

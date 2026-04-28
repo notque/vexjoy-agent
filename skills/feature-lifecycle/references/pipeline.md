@@ -151,11 +151,11 @@ Solution: Time-box design to 2 iterations because unbounded design exploration d
 
 ### Error: "Implementation Diverges from Plan"
 Cause: Discovered complexity not anticipated in design/plan
-Solution: Return to Phase 2 (PLAN) to update the plan with new understanding because continuing with an outdated plan causes wasted implementation effort and integration rework. Do NOT continue implementing against an outdated plan.
+Solution: Return to Phase 2 (PLAN) to update the plan with the new understanding so implementation effort stays aligned and integration rework stays low.
 
 ### Error: "Validation Fails"
 Cause: Implementation bugs or missing requirements
-Solution: Return to Phase 3 (IMPLEMENT) to fix because proceeding to release with failing tests ships defects to end users. Do NOT proceed to RELEASE with failing validation. Re-run full validation after fixes to catch any regressions.
+Solution: Return to Phase 3 (IMPLEMENT) to fix the issue before release, then re-run full validation so failing tests do not reach end users and regressions are caught early.
 
 ### Error: "Release Blocked"
 Cause: Merge conflicts, CI failures, or review feedback

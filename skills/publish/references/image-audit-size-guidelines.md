@@ -80,7 +80,7 @@ Warning signs:
 - SVG with embedded bitmaps: Convert to PNG/WebP
 
 ### GIF
-- Avoid for static images (PNG/WebP better)
+- Prefer PNG/WebP for static images
 - For animations:
   - Simple loop: 100-500 KB
   - Complex animation: 500 KB - 2 MB

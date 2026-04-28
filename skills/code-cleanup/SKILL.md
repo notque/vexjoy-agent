@@ -182,7 +182,7 @@ Generate report with this structure:
 
 See `references/report-template.md` for complete template.
 
-Print complete report to stdout. Do NOT summarize or truncate findings.
+Print the complete report to stdout so the user can inspect every finding in full.
 
 If the user provided `--output {file}` flag, also write report to the specified file.
 
@@ -229,7 +229,7 @@ gofmt -w .                                # Consistent formatting
 go mod tidy                               # Clean up go.mod/go.sum
 ```
 
-Do NOT apply fixes flagged as "unsafe" by ruff. Do NOT rename variables, refactor functions, or make any semantic changes in this phase.
+Apply only fixes flagged as safe by ruff in this phase. Keep variable names, function structure, and semantic behavior unchanged.
 
 **Step 3: Validate fixes**
 
@@ -271,7 +271,7 @@ If tests fail after auto-fix:
 2. Report exactly which test(s) failed and why
 3. Suggest applying fixes incrementally (one file at a time) with testing between each
 
-Do NOT leave the repository in a broken state.
+Keep the repository in a working state after the cleanup pass.
 
 **Gate**: All auto-fixes applied, tests pass, diff shown to user. Repository is in a clean, working state.
 
@@ -300,7 +300,7 @@ Solution:
 ### Error: "Permission denied modifying files"
 Cause: Files are read-only, locked, or user did not grant write permission
 Solution:
-1. Do NOT attempt to bypass permissions
+1. Respect the current permission boundary and report any files that cannot be modified
 2. Report which files could not be modified and why
 3. Provide the fix commands so user can run them manually
 

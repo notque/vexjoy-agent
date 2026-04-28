@@ -27,7 +27,7 @@ When the voice skill has an `## Architectural Patterns` section, apply these rul
 
 - **Argument flow**: Build the piece using the documented direction (inductive/deductive/mixed). If inductive, lead with evidence and land the claim late. If deductive, open with the claim.
 - **Concessions**: When handling disagreement, follow the documented concession structure and use the documented pivot markers — not generic "however" or "on the other hand."
-- **Analogy domains**: Draw analogies ONLY from the documented source domains. Do NOT use generic analogies from undocumented domains.
+- **Analogy domains**: Draw analogies only from the documented source domains. Generic analogies from undocumented domains dilute the voice and make validation harder.
 - **Bookends**: Open with the documented opening move, close with the documented closing move.
 
 If the voice skill has no `## Architectural Patterns` section, skip this step entirely.

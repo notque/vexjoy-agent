@@ -1,4 +1,4 @@
-# Wait/Retry Anti-Patterns
+# Wait/Retry Patterns to Fix
 
 > **Scope**: Common mistakes in polling, retry, and backoff code — detection commands and fixes.
 > **Version range**: Python 3.8+, Bash (any POSIX)
@@ -12,9 +12,9 @@ Retry and wait code fails silently more than almost any other category: a loop t
 
 ---
 
-## Pattern Catalog
+## Patterns to Detect and Fix
 
-### ❌ Hardcoded `time.sleep()` Without Condition Check
+### Signal: Hardcoded `time.sleep()` Without Condition Check
 
 **Detection**:
 ```bash
@@ -43,7 +43,7 @@ wait_for(
 
 ---
 
-### ❌ Infinite Loop Without Timeout
+### Signal: Infinite Loop Without Timeout
 
 **Detection**:
 ```bash
@@ -75,7 +75,7 @@ raise TimeoutError(f"Service not ready after {timeout_seconds}s")
 
 ---
 
-### ❌ Using `time.time()` for Elapsed Time Measurement
+### Signal: Using `time.time()` for Elapsed Time Measurement
 
 **Detection**:
 ```bash
@@ -105,7 +105,7 @@ while time.monotonic() < deadline:
 
 ---
 
-### ❌ Retry Without Jitter (Thundering Herd)
+### Signal: Retry Without Jitter (Thundering Herd)
 
 **Detection**:
 ```bash
@@ -134,7 +134,7 @@ delay = min(delay * backoff_factor, max_delay)
 
 ---
 
-### ❌ Retrying Non-Retryable Errors
+### Signal: Retrying Non-Retryable Errors
 
 **Detection**:
 ```bash
@@ -173,7 +173,7 @@ for attempt in range(max_retries):
 
 ---
 
-### ❌ Busy-Wait (No Sleep in Poll Loop)
+### Signal: Busy-Wait (No Sleep in Poll Loop)
 
 **Detection**:
 ```bash
@@ -201,7 +201,7 @@ while time.monotonic() < deadline:
 
 ---
 
-### ❌ Bash Loop Without Timeout
+### Signal: Bash Loop Without Timeout
 
 **Detection**:
 ```bash

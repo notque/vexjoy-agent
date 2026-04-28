@@ -198,23 +198,23 @@ Result: Specific gate failure reason from the trace, with what was expected vs. 
 
 ## Patterns to Detect and Fix
 
-### Anti-Pattern 1: Post-Hoc Rationalization
+### Pattern 1: Evidence-Backed Trace Reading
 **Wrong**: Reconstructing "why" from memory when the trace file is missing.
 **Right**: If no trace file exists, say so and explain how to enable tracing. Never fabricate an explanation.
 
-### Anti-Pattern 2: Paraphrasing Away Evidence
+### Pattern 2: Preserve the Evidence Field
 **Wrong**: "The router probably picked that agent because it seemed relevant."
 **Right**: Quote the exact `evidence` field: "Trigger 'review this function' matched reviewer-code with score 0.92."
 
-### Anti-Pattern 3: Dumping Raw JSON
+### Pattern 3: Format, Don't Dump
 **Wrong**: Printing the entire session-trace.json as-is.
 **Right**: Parse, filter to the user's question, and format as a readable timeline with clear labels.
 
-### Anti-Pattern 4: Filling Gaps with Inference
+### Pattern 4: Report Missing Trace Data
 **Wrong**: "The alternatives field is empty, but it likely considered agents X and Y."
 **Right**: "No alternatives were recorded for this decision -- the trace is incomplete at this point."
 
-### Anti-Pattern 5: Ignoring the User's Specific Question
+### Pattern 5: Answer the Specific Question First
 **Wrong**: Always showing the full timeline regardless of what the user asked.
 **Right**: Lead with the specific answer, then offer full context as supplementary detail.
 

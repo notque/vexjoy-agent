@@ -252,10 +252,10 @@ function example() {
 
 ---
 
-<!-- no-pair-required: section heading — each Anti-Pattern block below has its own Do-instead -->
-## Overflow Anti-Pattern Catalog
+<!-- no-pair-required: section heading — each pattern block below has its own preferred action -->
+## Overflow Patterns to Detect and Fix
 
-### Anti-Pattern 1: Fixed inner height
+### Pattern 1: Fixed inner height
 
 **Detection**:
 ```bash
@@ -263,18 +263,18 @@ grep -n 'height: [0-9]*px' output.html | grep -v 'max-height\|min-height'
 rg 'height:\s*\d+px' output.html | grep -v 'max-height'
 ```
 
-**Wrong**:
+**Signal**:
 ```css
 .slide img { height: 300px; }
 .slide pre  { height: 400px; }
 ```
 
-**Why wrong**: Fixed pixel heights overflow at viewport heights below their value. A 300px image
+**Why it matters**: Fixed pixel heights overflow at viewport heights below their value. A 300px image
 on an iPhone landscape (414px tall) leaves barely 100px for heading + caption.
 
-**Fix**: `max-height: min(Xvh, Ypx)` with `overflow: hidden`. For images: `max-height: min(50vh, 400px)`.
+**Preferred action**: `max-height: min(Xvh, Ypx)` with `overflow: hidden`. For images: `max-height: min(50vh, 400px)`.
 
-**Do instead**
+**Preferred action**
 
 ```css
 /* Images: viewport-relative cap prevents overflow at any screen height */
@@ -286,7 +286,7 @@ on an iPhone landscape (414px tall) leaves barely 100px for heading + caption.
 
 ---
 
-### Anti-Pattern 2: `min-height` on `.slide`
+### Pattern 2: `min-height` on `.slide`
 
 **Detection**:
 ```bash
@@ -294,19 +294,19 @@ grep -n 'min-height' output.html | grep 'slide'
 rg 'min-height.*slide|\.slide.*min-height' output.html
 ```
 
-**Wrong**:
+**Signal**:
 ```css
 .slide { min-height: 100vh; }
 ```
 
-**Why wrong**: `min-height` allows the slide to grow taller than the viewport if content is
+**Why it matters**: `min-height` allows the slide to grow taller than the viewport if content is
 long, breaking the single-screen constraint. The validation script will report overflow at
 small breakpoints.
 
-**Fix**: Use `height: 100vh; height: 100dvh` (exact, not minimum). Split content across
+**Preferred action**: Use `height: 100vh; height: 100dvh` (exact, not minimum). Split content across
 multiple slides if it overflows.
 
-**Do instead**
+**Preferred action**
 
 ```css
 .slide {
@@ -318,7 +318,7 @@ multiple slides if it overflows.
 
 ---
 
-### Anti-Pattern 3: Nested bullets
+### Pattern 3: Nested bullets
 
 **Detection**:
 ```bash
@@ -326,7 +326,7 @@ grep -n '<ul>.*<ul>\|<li>.*<ul>' output.html
 rg '<ul>[^<]*<li>[^<]*<ul>' output.html
 ```
 
-**Wrong**:
+**Signal**:
 ```html
 <ul>
   <li>Top level
@@ -335,13 +335,13 @@ rg '<ul>[^<]*<li>[^<]*<ul>' output.html
 </ul>
 ```
 
-**Why wrong**: Nested lists double the line count and violate the density limit (max 6 bullets).
+**Why it matters**: Nested lists double the line count and violate the density limit (max 6 bullets).
 At small viewports, nested indentation causes overflow. Presentation slides are not documents.
 
-**Fix**: Flatten to a single level. Convert nested items to separate bullet points or a separate
+**Preferred action**: Flatten to a single level. Convert nested items to separate bullet points or a separate
 slide. Each bullet is max 10 words.
 
-**Do instead**
+**Preferred action**
 
 ```html
 <!-- Flat single-level list — each point is self-contained, max 10 words -->
@@ -355,9 +355,9 @@ slide. Each bullet is max 10 words.
 
 ---
 
-### Anti-Pattern 4: Long `<pre>` block without overflow guard
+### Pattern 4: Long `<pre>` block without overflow guard
 
-Do instead: add `max-height: min(55vh, 500px); overflow: hidden` to `.slide-code pre`.
+Preferred action: add `max-height: min(55vh, 500px); overflow: hidden` to `.slide-code pre`.
 
 **Detection**:
 ```bash
@@ -366,19 +366,19 @@ grep -c '<pre>' output.html
 grep -A5 '<pre>' output.html | grep 'overflow'
 ```
 
-**Wrong**:
+**Signal**:
 ```css
 .slide-code pre { max-width: 100%; }  /* no height or overflow constraint */
 ```
 
-**Why wrong**: A 15-line code block at `font-size: 1rem` is ~300px tall. On a 720px projector,
+**Why it matters**: A 15-line code block at `font-size: 1rem` is ~300px tall. On a 720px projector,
 that leaves 420px for the slide heading, padding, and navigation chrome — it overflows at small
 breakpoints.
 
-**Fix**: `max-height: min(55vh, 500px); overflow: hidden`. If the code block overflows even with
+**Preferred action**: `max-height: min(55vh, 500px); overflow: hidden`. If the code block overflows even with
 the cap, split it across two slides with a continuation heading.
 
-**Do instead**
+**Preferred action**
 
 ```css
 .slide-code pre {
@@ -391,7 +391,7 @@ the cap, split it across two slides with a continuation heading.
 
 ---
 
-### Anti-Pattern 5: Hard-coded colors in slide HTML
+### Pattern 5: Hard-coded colors in slide HTML
 
 **Detection**:
 ```bash
@@ -399,19 +399,19 @@ grep -n 'color: #\|background: #\|background-color: #' output.html | grep -v ':r
 rg 'color:\s*#[0-9a-fA-F]' output.html | grep -v ':root'
 ```
 
-**Wrong**:
+**Signal**:
 ```css
 .slide-title h1 { color: #F5F0E8; }  /* hard-coded — breaks when preset changes */
 ```
 
-**Why wrong**: Hard-coded colors survive preset swaps intact, causing mismatched palettes.
+**Why it matters**: Hard-coded colors survive preset swaps intact, causing mismatched palettes.
 If the user changes from `obsidian-gold` to `arctic-minimal`, the heading stays near-white on
 a now-white background, making text invisible.
 
-**Fix**: Use only CSS custom properties defined by the preset: `color: var(--text-primary)`.
+**Preferred action**: Use only CSS custom properties defined by the preset: `color: var(--text-primary)`.
 Never reference a hex value outside of `:root { }`.
 
-**Do instead**
+**Preferred action**
 
 ```css
 /* All color references use preset CSS variables — swap the preset, colors update automatically */

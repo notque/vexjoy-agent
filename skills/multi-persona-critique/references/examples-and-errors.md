@@ -1,4 +1,4 @@
-# Multi-Persona Critique — Templates, Examples, Anti-Patterns, and Error Handling
+# Multi-Persona Critique — Templates, Examples, and Error Handling
 
 ## Phase 2: Persona Prompt Construction
 
@@ -8,7 +8,7 @@ For each persona, construct a prompt that includes:
 2. **Proposal block**: ALL proposals, numbered exactly as presented in Phase 1
 3. **Rating requirement**: Rate each proposal as STRONG / PROMISING / WEAK / REJECT with 2-3 sentence justification per rating
 4. **Ranking requirement**: Order all proposals from strongest to weakest
-5. **Fairness mandate**: "Be 100% fair. If something is genuinely good, say so. If it's bad, say why with precision. Do not be contrarian for its own sake."
+5. **Fairness mandate**: "Be 100% fair. If something is genuinely good, say so. If it's bad, say why with precision. Stay aligned with the evidence rather than forcing contrarianism."
 6. **Output format**: Structured output matching the persona template from personas.md
 
 ## Phase 4: Consensus Matrix Template
@@ -34,7 +34,7 @@ Proposals with unanimous or near-unanimous STRONG ratings (consensus score 12+).
 PROMISING consensus (score 8-11) with specific conditions extracted from critics. What would need to be true for these to become STRONG?
 
 **Section 4: "Interesting Disagreements"**
-CONTESTED proposals where personas diverge. Present both sides with the reasoning each persona used. Do not resolve the disagreement — present it.
+CONTESTED proposals where personas diverge. Present both sides with the reasoning each persona used. Present the disagreement without forcing a premature resolution.
 
 **Section 5: "Shelve"**
 WEAK consensus (score 0-7) with brief reasons from the most critical personas. Not "bad ideas" — ideas that did not survive this particular gauntlet.
@@ -93,7 +93,7 @@ Result: Multi-lens comparison where disagreements highlight the real tradeoffs
 
 ## Patterns to Detect and Fix
 
-| Anti-Pattern | Why It Is Wrong | What To Do Instead |
+| Pattern | Why It Matters | Preferred Action |
 |--------------|----------------|-------------------|
 | Averaging away disagreement | The disagreements ARE the insight | Preserve and present disagreements as first-class findings |
 | Post-hoc rationalization of persona views | Each persona's output is final | Report persona outputs as-is; synthesize across them, do not edit them |

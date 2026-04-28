@@ -61,10 +61,10 @@ When the change modifies how a function/method is called or what parameters mean
    - Query parameters (`r.FormValue`, `r.URL.Query`): user-controlled — ANY string including sentinel values like `"*"`
    - Auth token fields: server-controlled (UUIDs, structured IDs)
    - Constants/enums: fixed set
-   - Do NOT conclude a sentinel is "unreachable" because no Go code constructs that string. If the source is user input, the user constructs it.
+   - Classify sentinel strings by their true source. If a value can originate from user input, treat it as reachable and verify the input path.
 3. **Verify each caller** — For each call site, check that parameters are validated before being passed. Pay special attention to sentinel values (e.g., `"*"` meaning "all/unfiltered") that bypass security filtering.
 4. **Report unvalidated paths** — Any caller that passes user input to a security-sensitive parameter without validation is a BLOCKING finding.
-5. **Do NOT trust PR descriptions** about who calls the function — verify independently. The PR author may have forgotten about callers, or new callers may have been added in other branches.
+5. **Verify callers independently** — Treat the PR description as a lead, then confirm the caller set directly in the codebase. The PR author may have forgotten about callers, or new callers may have been added in other branches.
 
 This step catches:
 - Unchecked paths where user input reaches a security-sensitive parameter

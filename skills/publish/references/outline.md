@@ -175,7 +175,7 @@ Cause: User provides broad topic without specific angle (e.g., "write about Kube
 Solution:
 1. Ask clarifying questions: "What specific problem with Kubernetes?"
 2. Suggest prompts: "What frustrated you? What did you learn?"
-3. Do NOT generate a generic outline -- wait for specifics
+3. Hold the outline until the user provides specifics, then shape the structure around those details
 
 ### Error: "Topic Too Broad for Single Post"
 Cause: Topic covers too much ground for target word count

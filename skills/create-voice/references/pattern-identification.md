@@ -47,7 +47,7 @@ This distribution is critical because most people write short responses most of 
 
 ## Natural Typos (Authenticity Markers)
 
-Scan samples for 5+ real typos. Document them with the correct spelling. These become wabi-sabi markers that signal authenticity. Do NOT treat these as errors to correct, because those "imperfections" ARE the voice -- perfection is an AI tell.
+Scan samples for 5+ real typos. Document them with the correct spelling. These become wabi-sabi markers that signal authenticity. Keep those spellings as voice markers when they are part of the sample, because the goal is to preserve the author's natural texture rather than smooth it away.
 
 Examples of what to look for:
 - Missing apostrophes ("dont" instead of "don't")

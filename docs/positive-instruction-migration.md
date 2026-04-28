@@ -25,14 +25,13 @@ Legacy negative-framing headings and prohibition labels should be treated as mig
 
 ## Low-Token Loop
 
-## Current Backlog
+## Completion Status
 
-Complete the positive-instruction migration backlog before treating the
-Sentry-inspired governance work as fully settled. The current validator output
-still reports legacy negative-framing blocks across agents, skills, and docs.
-This is tracked as follow-up work because the migration is broad and should run
-through the scripted extraction, batching, rewrite, and validation loop below
-rather than ad hoc whole-file edits.
+The repo-wide positive-instruction migration backlog is complete as of this
+branch. The validator reports zero legacy negative-framing blocks across
+agents, skills, and docs. Future broad migrations should still run through the
+scripted extraction, batching, rewrite, and validation loop below rather than ad
+hoc whole-file edits.
 
 Completion criteria:
 

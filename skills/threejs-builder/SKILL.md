@@ -54,7 +54,7 @@ routing:
 
 This skill builds complete Three.js web applications using a **Phased Construction** pattern with four phases: Design, Build, Animate, Polish. It supports three paradigms — imperative Three.js, React Three Fiber (R3F), and WebGPU — detected automatically from project context. Only the relevant paradigm's reference is loaded.
 
-**Scope**: Use for 3D web apps, interactive scenes, WebGL/WebGPU visualizations, R3F declarative 3D, and product viewers. Do NOT use for game engines, 3D model creation, VR/AR experiences, or CAD workflows.
+**Scope**: Use for 3D web apps, interactive scenes, WebGL/WebGPU visualizations, R3F declarative 3D, and product viewers. For game engines, 3D model creation, VR/AR experiences, or CAD workflows, use a more specialized skill.
 
 ---
 

@@ -79,7 +79,7 @@ Read the full ADR content. Extract: the decision being made, key components/chan
 mkdir -p adr/{adr-name}
 ```
 
-**Gate**: ADR content read, consultation directory created, ADR name confirmed. Do NOT dispatch agents until this gate passes.
+**Gate**: ADR content has been read, the consultation directory has been created, and the ADR name has been confirmed. Dispatch agents only after this gate passes.
 
 ---
 

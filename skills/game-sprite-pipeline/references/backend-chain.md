@@ -154,19 +154,19 @@ Both backends are billed under user-existing accounts:
 The mid-batch backend switch is a feature: when Codex's auth token expires partway through a long batch, the chain auto-falls-through to Nano Banana so the batch completes rather than fail-loud-and-stop. The log records which calls hit which backend for cost attribution.
 
 <!-- no-pair-required: section header; pair lives in subsection -->
-## Anti-pattern
+## Failure Modes to Detect
 
-### Anti-pattern: Adding a third paid backend as silent fallback
+### Signal: Adding a third paid backend as a silent fallback
 
-**What it looks like:** "If Codex fails AND Gemini fails, try OpenAI directly with `OPENAI_API_KEY`" or "fall through to remove.bg for bg removal."
+**Detection:** "If Codex fails AND Gemini fails, try OpenAI directly with `OPENAI_API_KEY`" or "fall through to remove.bg for bg removal."
 
 **Why wrong:** The user-owned-key clause (PHILOSOPHY.md, ADR-198) authorizes fallbacks gated on environment variables the user explicitly set — Codex auth and `GEMINI_API_KEY` qualify because the user holds the keys. A direct OpenAI API call billed to whoever set `OPENAI_API_KEY` is a different relationship: the toolkit is now picking which billing account gets charged. The user expects the documented chain (Codex → Nano Banana → fail loud); their card gets charged because step 3 quietly hit a paid endpoint they did not authorize. Trust violation, principle violation.
 
-**Do instead**: Stop at the two authorized backends. Raise `BackendUnavailableError` at step 3 with both fix paths. If a third backend is genuinely needed, propose an ADR amendment that gates it on an explicit env var the user must set (the same pattern as `GEMINI_API_KEY` does for Nano Banana) — never a silent runtime fallback.
+**Preferred Action**: Stop at the two authorized backends. Raise `BackendUnavailableError` at step 3 with both fix paths. If a third backend is genuinely needed, propose an ADR amendment that gates it on an explicit env var the user must set (the same pattern as `GEMINI_API_KEY` does for Nano Banana), so the fallback is explicit rather than silent.
 
-### Anti-pattern: Caching auth state across runs without revalidation
+### Signal: Caching auth state across runs without revalidation
 
-**What it looks like:** Storing `BACKEND_DETECTED=codex` in a config file and trusting it on subsequent runs.
+**Detection:** Storing `BACKEND_DETECTED=codex` in a config file and trusting it on subsequent runs.
 
 **Why wrong:** Codex auth tokens expire. `GEMINI_API_KEY` may be revoked. A cached "yes" can produce stale failures that look like the backend itself is broken.
 

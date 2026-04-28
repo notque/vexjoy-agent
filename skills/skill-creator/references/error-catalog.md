@@ -12,10 +12,10 @@ Comprehensive error patterns and solutions for skill creation.
 - /do router doesn't select skill for relevant requests
 
 **Cause**:
-Description doesn't clearly state What+When formula. Missing trigger phrases users would actually say.
+Description doesn't clearly state the What+When formula or the trigger phrases users would actually say.
 
 **Solution**:
-Apply formula: "Do [specific action] when [trigger condition]. Use for [use cases]. Do NOT use for [anti-triggers]."
+Apply formula: "Do [specific action] when [trigger condition]. Use for [use cases]. Route adjacent work to the dedicated skill."
 
 **Example Fix**:
 ```yaml
@@ -26,7 +26,7 @@ description: Helps with testing workflows
 description: |
   Run Vitest tests and parse results into actionable output. Use when user
   says "run tests", "vitest", "check if tests pass", or "test results".
-  Do NOT use for Jest, Mocha, or manual testing.
+  Best for Vitest-driven workflows; route Jest, Mocha, and manual testing to their dedicated paths.
 ```
 
 **Prevention**:
@@ -44,7 +44,7 @@ description: |
 - YAML parsing errors
 
 **Cause**:
-Anthropic enforces 1024 character maximum for skill descriptions.
+Anthropic enforces a 1024 character maximum for skill descriptions.
 
 **Solution**:
 Condense description to essential What+When, move details to SKILL.md body:
@@ -62,8 +62,8 @@ description: |
 description: |
   Advanced data analysis for CSV files: statistical modeling, regression,
   clustering, time series, anomaly detection. Use for "analyze data",
-  "csv statistics", "data modeling". Do NOT use for simple data exploration
-  (use data-viz skill instead).
+  "csv statistics", and "data modeling". Best for deeper analysis; use data-viz
+  for simple exploration.
 ```
 
 **Prevention**:
@@ -81,10 +81,10 @@ description: |
 - Overtriggering on generic requests
 
 **Cause**:
-Description doesn't specify what the skill should NOT be used for.
+Description doesn't state the intended scope or handoff points.
 
 **Solution**:
-Add "Do NOT use for..." clause with specific anti-triggers:
+Add a scope note that names related work routed elsewhere:
 
 ```yaml
 # Before (overtriggers)
@@ -94,9 +94,9 @@ description: |
 # After (scoped)
 description: |
   Deep security-focused code review with OWASP checks. Use for "security
-  review", "vulnerability scan", "security audit". Do NOT use for general
-  code review (use systematic-code-review), performance analysis, or style
-  checking.
+  review", "vulnerability scan", and "security audit". Best for security
+  concerns; route general code review, performance analysis, and style checks
+  to their dedicated workflows.
 ```
 
 **Prevention**:

@@ -184,7 +184,7 @@ Run the same test suite as PHASE 3.
 - If tests fail: loop back to PHASE 7
 
 **Loop counter:** Maximum 3 FIX→RETEST iterations. After 3 loops:
-- **HALT** — do NOT auto-create PR with unresolved CRITICALs
+- **HALT** — block PR creation until unresolved CRITICALs are addressed
 - Display remaining CRITICAL findings to the user
 - Ask: "Quality loop exhausted 3 fix iterations with unresolved CRITICALs. Create PR anyway? (findings will be listed in PR body)"
 - Only proceed to PHASE 9 if user confirms

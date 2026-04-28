@@ -303,14 +303,14 @@ gh run list --branch $(git branch --show-current) --limit 1
 gh run watch [run-id] --exit-status
 ```
 
-If CI fails, report which checks failed and the PR URL. Do NOT merge. Do NOT proceed to cleanup. This pipeline reports CI failures but does not fix them -- diagnosing CI requires different context than PR creation.
+If CI fails, report which checks failed and the PR URL. Keep the PR open and stop before cleanup. This pipeline reports CI failures but does not fix them -- diagnosing CI requires different context than PR creation.
 
 If CI passes and user requested merge:
 ```bash
 CLAUDE_GATE_BYPASS=1 gh pr merge --merge --delete-branch
 ```
 
-**HARD RULE**: Never merge a PR with failing or pending CI. CI must pass first. The `ci-merge-gate.py` hook enforces this mechanically -- it blocks `gh pr merge` when checks are failing or pending. Do NOT use `--admin` or any bypass to circumvent this. If CI fails on an "unrelated" test, investigate the root cause (date-dependent fixtures, flaky tests) rather than force-merging -- assuming CI is "probably flaky" masks real failures and normalizes broken builds.
+**HARD RULE**: Merge a PR only after CI passes. The `ci-merge-gate.py` hook enforces this mechanically -- it blocks `gh pr merge` when checks are failing or pending. Investigate the root cause (date-dependent fixtures, flaky tests) rather than bypassing the gate when CI fails on an "unrelated" test; treating CI as "probably flaky" masks real failures and normalizes broken builds.
 
 If `--no-wait` was passed, skip this phase and report the PR URL immediately.
 
@@ -597,8 +597,8 @@ Update the responsible agent or skill file with the graduated pattern:
 
 | Finding Target | Update Location | Section to Modify |
 |---------------|----------------|-------------------|
-| Agent produced bad code | `agents/{name}.md` | FORBIDDEN patterns or Anti-Patterns |
-| Skill methodology gap | `skills/{name}/SKILL.md` | Instructions or Anti-Patterns |
+| Agent produced bad code | `agents/{name}.md` | Preferred patterns or verification guidance |
+| Skill methodology gap | `skills/{name}/SKILL.md` | Instructions or preferred patterns |
 | Router missed a pattern | `skills/do/SKILL.md` | Routing tables or Force-Routes |
 | Hook failed to catch | `hooks/{name}.py` | Detection logic |
 

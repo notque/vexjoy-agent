@@ -14,7 +14,7 @@ The coordinator's primary routing decision is which agent to dispatch for a give
 
 ## Primary Routing Table
 
-| Task Type | Primary Agent | Fallback Agent | Do NOT Use |
+| Task Type | Primary Agent | Fallback Agent | Avoid for this task |
 |-----------|--------------|----------------|------------|
 | Go source code changes | `golang-general-engineer` | `golang-general-engineer-compact` | general-purpose |
 | TypeScript backend API | `nodejs-api-engineer` | `typescript-frontend-engineer` | general-purpose |
@@ -120,16 +120,16 @@ Step 3: Application agent → smoke test against deployed environment
 
 ---
 
-## Routing Anti-Patterns
+## Routing Mismatches
 <!-- no-pair-required: section header, not an individual anti-pattern -->
 
 ### ❌ General-Purpose Agent for Specialized Work
 
 **What it looks like**: Dispatching `Agent({ subagent_type: undefined })` for Go compilation errors.
 
-**Why wrong**: General-purpose agent lacks Go-specific pattern libraries, anti-pattern catalog, idiomatic corrections. Produces functional-but-non-idiomatic code that causes rework.
+**Why it matters**: A general-purpose agent lacks Go-specific pattern libraries, correction catalogs, and idiomatic guidance. It can still produce functional code, but the result often needs rework.
 
-**Do instead**: Look up the task type in the Primary Routing Table above and specify the exact `subagent_type`. For Go compilation errors, that is `golang-general-engineer`. Use the general-purpose agent only when no specialist is listed for the domain.
+**Preferred action**: Look up the task type in the Primary Routing Table above and specify the exact `subagent_type`. For Go compilation errors, use `golang-general-engineer`. Reserve the general-purpose agent for domains with no specialist listed.
 
 ---
 
@@ -137,9 +137,9 @@ Step 3: Application agent → smoke test against deployed environment
 
 **What it looks like**: Sending TypeScript backend work to `typescript-frontend-engineer`.
 
-**Why wrong**: Frontend agent optimizes for bundle size, React patterns, CSR/SSR — not REST APIs, database connection pooling, or request middleware.
+**Why it matters**: A frontend agent optimizes for bundle size, React patterns, and CSR/SSR rather than REST APIs, database connection pooling, or request middleware.
 
-**Do instead**: Run the detection commands below before dispatching. Backend imports (`express`, `@nestjs`, `fastify`) route to `nodejs-api-engineer`. Frontend imports (`react`, `next`) route to `typescript-frontend-engineer`. When the entry file has neither, read the first 20 lines — the import block makes the domain unambiguous.
+**Preferred action**: Run the detection commands below before dispatching. Backend imports (`express`, `@nestjs`, `fastify`) route to `nodejs-api-engineer`. Frontend imports (`react`, `next`) route to `typescript-frontend-engineer`. When the entry file has neither, read the first 20 lines and use the import block to resolve the domain.
 
 **Detection**:
 ```
@@ -155,9 +155,9 @@ rg "import.*react|import.*next" --files-with-matches src/
 
 **What it looks like**: Asking `nodejs-api-engineer` to add a database column.
 
-**Why wrong**: Application agent will add the column in the ORM model but not create the migration, causing runtime errors on deploy.
+**Why it matters**: An application agent may update the ORM model without creating the migration, which can cause runtime errors on deploy.
 
-**Do instead**: Dispatch `database-engineer` first to create and verify the migration. Once the migration is committed, dispatch the application agent to update ORM models against the stable schema. The mandatory sequencing rule is: schema changes first, application changes second.
+**Preferred action**: Dispatch `database-engineer` first to create and verify the migration. Once the migration is committed, dispatch the application agent to update ORM models against the stable schema. Keep schema changes first and application changes second.
 
 ---
 

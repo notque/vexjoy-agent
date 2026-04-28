@@ -68,7 +68,7 @@ Expected output is JSON with `skills_found`, `agents_found`, `skills` (array of 
 
 Compare discovered count against expected. If missing, check directory naming, agent file naming, or file permissions.
 
-**Gate**: All skill directories and agent files discovered with no permission errors. Do NOT proceed to Phase 2 until gate passes. See `references/error-handling.md` for gate failure recovery.
+**Gate**: All skill directories and agent files are discovered without permission errors. Proceed to Phase 2 only after the gate passes. See `references/error-handling.md` for gate failure recovery.
 
 ---
 
@@ -92,7 +92,7 @@ For each capability, confirm extracted fields: `name`, `description`, `trigger_p
 
 Review against `references/extraction-patterns.md`. Patterns must be specific enough to avoid false matches, broad enough to catch common phrasings, and free of generic terms.
 
-**Gate**: All YAML parsed successfully, required fields present, trigger patterns extracted for skills, domain keywords extracted for agents. Do NOT proceed to Phase 3 until gate passes. See `references/error-handling.md` for gate failure recovery.
+**Gate**: All YAML parsed successfully, required fields are present, trigger patterns are extracted for skills, and domain keywords are extracted for agents. Proceed to Phase 3 only after the gate passes. See `references/error-handling.md` for gate failure recovery.
 
 ---
 
@@ -120,7 +120,7 @@ python3 ~/.claude/skills/routing-table-updater/scripts/generate_routes.py --inpu
 
 Low-severity conflicts: script applies specificity rules automatically. High-severity conflicts: script blocks gate passage and requires manual resolution.
 
-**Gate**: All capabilities mapped, entries follow /do format, conflicts documented, no duplicates within same table. Do NOT proceed to Phase 4 until gate passes. See `references/error-handling.md` for gate failure recovery.
+**Gate**: All capabilities are mapped, entries follow /do format, conflicts are documented, and no duplicates remain within the same table. Proceed to Phase 4 only after the gate passes. See `references/error-handling.md` for gate failure recovery.
 
 ---
 

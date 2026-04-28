@@ -290,7 +290,7 @@ function Polymorphic<T extends React.ElementType = 'div'>({
 
 **Prevention**:
 - Use ref as a prop in React 19
-- Avoid `forwardRef` in new code
+- Prefer direct ref props in new components; reach for `forwardRef` only when interoperability requires it
 - Update existing components gradually
 
 ---

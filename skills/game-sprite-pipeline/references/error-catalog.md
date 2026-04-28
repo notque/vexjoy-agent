@@ -2,7 +2,7 @@
 
 Per-phase failure mode → cause → fix mapping. Loaded when a pipeline emits a recognizable error or when debugging a stuck run.
 
-## Anti-pattern: Codex Regeneration as a Post-Processing Fix
+## Failure mode: Codex regeneration as a post-processing fix
 
 Codex generation is treated as ground truth. If a final-sheet, animation, or contact-sheet shows clipping/blank-cells/cuts, the bug is in post-processing, never in Codex output. Never regenerate the raw as a fix; debug the slicer, anchor, despill, or matte step instead. The user's framing: "the codex generation has never failed, it is working perfectly, the rest has failed."
 
@@ -417,9 +417,9 @@ re-introduce after deletion.
 Load when an error message matches one in this catalog. The catalog is exhaustive for known failures; novel errors should be added here when fixed (the file is the institutional memory).
 
 <!-- no-pair-required: section header; pair lives in subsection -->
-## Anti-pattern
+## Failure modes
 
-### Anti-pattern: Rubber-stamp verifier thresholds
+### Failure mode: Rubber-stamp verifier thresholds
 
 **What it looks like:** Adding a verifier gate but tuning its tolerance
 loose enough that it almost never fires. Concrete examples from this skill's
@@ -445,7 +445,7 @@ need a stronger reason than "the gate is firing on legitimate art": find
 the disjoint criterion that distinguishes legitimate cases from real failures
 and encode that, instead of widening the band.
 
-### Anti-pattern: Suppressing dimension errors with `--force-dimensions` routinely
+### Failure mode: Suppressing dimension errors with `--force-dimensions` routinely
 
 **What it looks like:** Every portrait generation passes `--force-dimensions` because dimension validation "is annoying".
 

@@ -156,7 +156,7 @@ Key rules:
 
 1. **SIGTERM first, SIGKILL last.** SIGTERM lets the process run its cleanup (flush buffers, release locks, delete PID files). SIGKILL is unmaskable and leaves lock files behind. Send SIGTERM, wait a bounded interval (typically 10s), then escalate.
 2. **Signal the process group, not the PID, when you want the whole tree.** `kill -TERM -$pgid` (note the leading dash). Alternatively launch with `setsid` so the group ID equals the child's PID.
-3. **Traps do NOT inherit into subshells by default.** A trap set in a parent does not fire inside `$(...)` or `(...)`. If the subshell has work to clean up, set the trap inside it.
+3. **Subshells need their own trap setup.** A trap set in a parent does not fire inside `$(...)` or `(...)`. If the subshell has work to clean up, set the trap inside it.
 4. **`exec cmd` replaces the shell.** All traps set before `exec` are gone -- because `exec` overlays the process image. If you need a wrapping shell with traps, do not `exec`; run the command as a child and `wait` for it.
 5. **`trap 'handler' EXIT` fires on normal exit, `set -e` exit, and most signals -- but not SIGKILL and not `kill -9`.** Treat cleanup on SIGKILL as "impossible"; design the on-disk state to survive a hard kill.
 

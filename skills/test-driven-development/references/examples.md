@@ -763,9 +763,9 @@ describe('UserService', () => {
 
 ---
 
-## TDD Anti-Patterns to Avoid
+## TDD Patterns to Detect and Fix
 
-### ❌ Anti-Pattern 1: Writing Tests After Implementation
+### Signal 1: Writing Tests After Implementation
 
 **Wrong:**
 ```javascript
@@ -793,7 +793,7 @@ function calculateDiscount(price, percent) {
 }
 ```
 
-### ❌ Anti-Pattern 2: Testing Implementation Details
+### Signal 2: Testing Implementation Details
 
 **Wrong:**
 ```python
@@ -814,7 +814,7 @@ def test_user_service_returns_user():
     assert user.name is not None
 ```
 
-### ❌ Anti-Pattern 3: Overly Broad Tests
+### Signal 3: Overly Broad Tests
 
 **Wrong:**
 ```go

@@ -91,7 +91,7 @@ The model defaults to generic output without specific direction: generic card gr
 - Default to Linear-style restraint: calm surface hierarchy, strong typography, tight spacing, few colors
 - Dense but readable information. Operators scan headings, labels, and numbers
 - **Cards only when the card IS the interaction** (a selectable item, sortable row, drag target). No cards for purely visual grouping
-- Avoid dashboard-card mosaics, thick borders on every region, decorative gradients, multiple competing accent colors
+- Prefer calm, single-surface layouts: one card only when it is the interaction, restrained borders, and a small accent palette
 - Motion is minimal and functional: a focus ring, a row expand, a drawer slide. Not ambient flourish
 - App litmus: if an operator scans only the headings, labels, and numbers, can they understand the page immediately?
 

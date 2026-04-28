@@ -84,7 +84,7 @@ Result: CLAUDE.md.generated alongside existing file, with diff for comparison
 
 **Section 5 — Testing Conventions**: Document test framework, assertion library, mocking approach, file naming pattern, and integration test requirements from Phase 1 Step 5.
 
-**Section 6 — Common Pitfalls**: Derive from actual codebase analysis. Do NOT invent pitfalls because fabricated warnings erode trust. If nothing notable was found, include 1-2 based on the build system (e.g., "run make check before committing").
+**Section 6 — Common Pitfalls**: Derive from actual codebase analysis. Keep the pitfalls grounded in observed repository behavior because fabricated warnings erode trust. If nothing notable was found, include 1-2 based on the build system (e.g., "run make check before committing").
 
 ### Optional Section Details
 

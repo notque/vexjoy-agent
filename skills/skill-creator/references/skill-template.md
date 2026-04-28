@@ -292,16 +292,16 @@ Additional for this skill:
 | Security | anti-rationalization-core, anti-rationalization-security |
 | Workflow | gate-enforcement, pressure-resistance, execution-report-format |
 
-## Anti-Patterns Section (Medium+)
+## Preferred Patterns Section (Medium+)
 
 For skills with significant complexity, include 3-6 anti-patterns.
 
-**Do-pairing rule (mandatory):** Every anti-pattern block must include a "Do instead" counterpart that shows the correct approach. A bare negative ("don't do X") encodes no actionable knowledge. The positive counterpart is the actual learning. If a genuine absolute prohibition has no correct alternative (e.g., "never commit secrets"), annotate it with `<!-- no-pair-required: absolute prohibition, no safe alternative -->` to pass structural validation.
+**Pairing rule (mandatory):** Every pattern block must include a "Do instead" counterpart that shows the correct approach. A bare negative ("don't do X") encodes no actionable knowledge. The positive counterpart is the actual learning. If a genuine absolute prohibition has no correct alternative (e.g., "never commit secrets"), annotate it with `<!-- no-pair-required: absolute prohibition, no safe alternative -->` to pass structural validation.
 
 Validation gate: `python3 scripts/validate-references.py --check-do-framing` rejects anti-pattern blocks without a paired "Do instead" or `<!-- no-pair-required: ... -->` annotation.
 
 ```markdown
-### Anti-Pattern 1: [Pattern Name]
+### Pattern 1: [Pattern Name]
 
 **What it looks like:**
 [Example of misuse]

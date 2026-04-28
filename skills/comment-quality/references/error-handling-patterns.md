@@ -1,4 +1,4 @@
-# Error Handling Comment Anti-Patterns
+# Error Handling Comment Signals and Fixes
 
 <!-- no-pair-required: document header and scope block, not an individual anti-pattern -->
 

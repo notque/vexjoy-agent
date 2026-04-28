@@ -1,4 +1,4 @@
-# Go Comment Anti-Patterns
+# Go Comment Patterns
 
 <!-- no-pair-required: document header and scope block, not an individual anti-pattern -->
 
