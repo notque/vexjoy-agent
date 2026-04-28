@@ -115,7 +115,7 @@ Hypothesis B: Replacing the vague anti-pattern "don't over-engineer" with a
   specific examples are more actionable than abstract warnings.
 ```
 
-**Example using a real toolkit skill** — improving the `fast` skill's description:
+**Example using a real toolkit skill** — improving the `quick` skill's description:
 
 ```
 Hypothesis A: Shortening the description from "Zero-ceremony inline execution
@@ -153,7 +153,7 @@ cp skills/{skill-name}/SKILL.md \
 
 Edit the copy to implement Hypothesis A. The diff between original and variant should be small and targeted — if you find yourself rewriting large sections, the hypothesis is too broad. Split it.
 
-Name convention: `{skill-name}-variant-{letter}` (e.g., `fast-variant-a`, `roast-variant-b`).
+Name convention: `{skill-name}-variant-{letter}` (e.g., `quick-variant-a`, `roast-variant-b`).
 
 **Step 3: Verify variant diffs are minimal**
 
@@ -367,17 +367,17 @@ self-improve-workspace/{skill-name}/
 
 ---
 
-## Example: Improving the `fast` Skill
+## Example: Improving the `quick` Skill
 
 Walk-through of the full loop applied to a real toolkit skill.
 
-**Phase 1 — Baseline**: Run 4 test cases against `skills/fast/SKILL.md`. Baseline trigger rate: 75% (3/4 cases trigger correctly). One failure: the query "just tweak the import line" does not trigger `fast`.
+**Phase 1 — Baseline**: Run 4 test cases against `skills/quick/SKILL.md`. Baseline trigger rate: 75% (3/4 cases trigger correctly). One failure: the query "just tweak the import line" does not trigger `quick --trivial`.
 
 **Phase 2 — Hypothesize**:
 - Hypothesis A: Add "tweak" and "quick fix" to the description's trigger vocabulary. Expected: trigger rate improves for casual phrasing.
 - Hypothesis B: Reorder the phases so the file-count check happens before loading context. Expected: faster rejection of out-of-scope requests (more than 3 files).
 
-**Phase 3 — Generate**: Create `fast-variant-a` (description change only) and `fast-variant-b` (phase reorder only). Diffs are 2 lines and 8 lines respectively.
+**Phase 3 — Generate**: Create `quick-variant-a` (description change only) and `quick-variant-b` (phase reorder only). Diffs are 2 lines and 8 lines respectively.
 
 **Phase 4 — Blind A/B**: Run all 4 test cases through both variants. Comparator grades blind.
 

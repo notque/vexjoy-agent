@@ -21,7 +21,7 @@ Preferred section shapes:
 - `### Preferred Action`
 - `### Verification`
 
-Legacy headings like `Anti-Patterns`, `What NOT To Do`, `FORBIDDEN`, and `do NOT` should be treated as migration backlog, not as the target schema for new content.
+Legacy negative-framing headings and prohibition labels should be treated as migration backlog, not as the target schema for new content.
 
 ## Low-Token Loop
 

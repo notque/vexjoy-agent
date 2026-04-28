@@ -25,7 +25,7 @@ These skills **MUST** be invoked when their triggers appear:
 
 | Triggers | Skill |
 |----------|-------|
-| Typo, one-line fix, trivial mechanical change | `fast` |
+| Typo, one-line fix, trivial mechanical change | `quick --trivial` |
 | Small self-contained change, add CLI flag, extract helper | `quick` |
 | Go test, _test.go, table-driven, goroutine, channel, error handling, fmt.Errorf, sapcc, make check | `go-patterns` |
 | Push branch, create PR, open PR, PR status, fix PR comments, CI passed, GitHub Actions status, build results, name branch, generate branch name, stage files, commit, save work, checkpoint, codex review, second opinion | `pr-workflow` |

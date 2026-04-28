@@ -318,7 +318,7 @@ When quality-loop applies, it absorbs Step 0 (ADR creation) and Step 1 (plan cre
 The router still selects the best agent+skill in Phase 2 (e.g., `golang-general-engineer` + `go-patterns`). That selection becomes the implementation agent for quality-loop PHASE 1. Force-route skills like `go-patterns` are used INSIDE the loop, not excluded from it — a Go implementation gets Go-specific patterns AND testing, review, and PR gates.
 
 The quality-loop does NOT apply when:
-- Complexity is Trivial or Simple (use fast/quick instead)
+- Complexity is Trivial or Simple (use quick or quick --trivial instead)
 - The task is review-only, research, debugging, or content creation
 - The user explicitly requests a simpler flow
 

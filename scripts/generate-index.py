@@ -174,7 +174,7 @@ def generate_agents_index(agents_dir: Path) -> dict:
 
         name = fm.get("name", agent_file.stem)
         entry: dict = {
-            "file": agent_file.name,
+            "file": agent_file.relative_to(agents_dir.parent).as_posix(),
             "short_description": short_description_agent(fm.get("description", "")),
         }
 
@@ -204,7 +204,7 @@ def generate_agents_index(agents_dir: Path) -> dict:
                 continue
             name = fm.get("name", agent_file.stem)
             entry = {
-                "file": agent_file.name,
+                "file": agent_file.relative_to(agents_dir.parent).as_posix(),
                 "short_description": short_description_agent(fm.get("description", "")),
             }
             if "routing" in fm:

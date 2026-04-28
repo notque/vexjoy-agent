@@ -11,8 +11,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | Skill | Description |
 |-------|-------------|
 | `do` | Classify user requests and route to the correct agent + skill. Primary entry point for all delegated work. |
-| `fast` | Zero-ceremony inline execution for 3 or fewer file edits |
-| `quick` | Tracked lightweight execution with composable rigor flags: --discuss, --research, --full |
+| `quick` | Tracked lightweight execution with composable rigor flags: --trivial, --discuss, --research, --full |
 | `workflow` | Structured multi-phase workflows: review, debug, refactor, deploy, create, research, and more |
 | `workflow-help` | Interactive guide to workflow system: agents, skills, routing, execution patterns |
 | `install` | Verify Claude Code Toolkit installation, diagnose issues, and guide first-time setup |
