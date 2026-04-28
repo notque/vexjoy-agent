@@ -25,6 +25,24 @@ Legacy headings like `Anti-Patterns`, `What NOT To Do`, `FORBIDDEN`, and `do NOT
 
 ## Low-Token Loop
 
+## Current Backlog
+
+Complete the positive-instruction migration backlog before treating the
+Sentry-inspired governance work as fully settled. The current validator output
+still reports legacy negative-framing blocks across agents, skills, and docs.
+This is tracked as follow-up work because the migration is broad and should run
+through the scripted extraction, batching, rewrite, and validation loop below
+rather than ad hoc whole-file edits.
+
+Completion criteria:
+
+- `python3 scripts/validate_positive_instruction_docs.py` exits 0.
+- `python3 scripts/validate-references.py --check-do-framing` exits 0.
+- New skill and agent templates use positive-action schema headings instead of
+  legacy negative-framing headings or prohibition labels.
+- Rewrites preserve safety intent while leading with preferred actions,
+  reasons, and verification steps.
+
 ### Phase 0: Deterministic normalization
 
 Run the safe mechanical rewrites first:

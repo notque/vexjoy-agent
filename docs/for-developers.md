@@ -67,6 +67,12 @@ Describe what the agent should specialize in, what triggers should route to it, 
 
 The agent creator uses the `AGENT_TEMPLATE_V2.md` template and produces a complete agent with operator context, hardcoded/default/optional behaviors, anti-patterns, and reference files.
 
+For complex, security-sensitive, router-facing, or frequently tuned agents, the
+creator also adds optional maintenance files under `agents/[agent-name]/`:
+`SPEC.md` for the agent contract and `EVAL.md` for repeatable routing/behavior
+checks. These files are for maintenance and evaluation, not normal runtime
+loading.
+
 ### Creating a Skill
 
 ```
@@ -74,6 +80,12 @@ The agent creator uses the `AGENT_TEMPLATE_V2.md` template and produces a comple
 ```
 
 Describe the methodology, phases, and quality gates. The `skill-creator` builds the skill directory, SKILL.md with frontmatter, phase definitions, and updates the index.
+
+For complex, security-sensitive, router-facing, or frequently tuned skills, the
+creator also adds optional `SPEC.md` and `EVAL.md` beside `SKILL.md`. `SPEC.md`
+records the contract; `EVAL.md` records repeatable evaluation cases. Do not add
+`SOURCES.md` by default -- provenance belongs in docs, ADRs, citations, or
+research artifacts when it matters.
 
 **Example prompts:**
 - `/do create a skill for database migration safety with pre-migration checks, rollback validation, and post-migration verification`

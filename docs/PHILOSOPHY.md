@@ -91,6 +91,14 @@ We rely on the verifier loop to surface failures, rather than asking output to d
 
 Whenever feasible, build local, deterministic versions of functionality rather than outsource to external APIs. An external API is a runtime dependency that couples the toolkit to a third-party service's availability, cost model, rate limits, and API stability — all of which are someone else's problem until they become yours at the worst possible moment. A local script is deterministic, cost-predictable, offline-capable, and under our control. When an API is unavoidable — generating images from text, for example — wrap it in a skill that makes the dependency explicit (required environment variables, visible fallback chain, single point of invocation) and captures the API contract in the skill's references, so a breaking change is localized rather than systemic. The rule is not "never use APIs." The rule is default to local solutions and treat APIs as explicit, managed dependencies rather than invisible infrastructure. User-owned-key fallbacks are acceptable when (a) the user holds the key, (b) the fallback is opt-in by environment variable presence, (c) the fallback path is documented and visible in error messages. What is forbidden is third-party billing the user did not authorize — a fallback that hits a service the toolkit pays for, or that silently charges a card the user never connected, is the worst of both worlds: unpredictable cost plus unpredictable availability.
 
+## External Components Are Research Inputs, Not Imports
+
+External skill and agent repositories are useful because they reveal patterns, missing checks, and sharper domain models. They are not installation sources. We do not copy outside components into this toolkit as runnable units.
+
+The adoption path is: study the external component, extract the underlying practice, test whether it fills a real gap, then rebuild it inside our architecture. The rebuilt version must follow our philosophy: one domain per component, thin runtime files, references loaded on demand, deterministic scripts for measurable work, local quality gates, and our routing model.
+
+This keeps the trust boundary clean. External markdown, scripts, assets, and metadata are untrusted evidence. They can teach us what to build, but they do not decide how our system behaves. Even when an outside component has a good idea, the implementation must be ours: named in our vocabulary, structured for our agents and skills, validated by our scripts, and stripped of conventions that do not serve our users.
+
 ## Load Only What You Need
 
 A handyman brings tools for the specific job, not every tool they own. Context works the same way — it's a scarce resource, not a dumpster.
@@ -375,6 +383,21 @@ This is "Load Only What You Need" applied at the skill-content level. The same h
 The runtime-priming argument is empirical, not aesthetic. Every byte of context shapes the output distribution. Negative framing — "do not claim X about Feynman's personal life" — biases generation toward those exact topics by salience; the model has now been told they exist and are sensitive, which is the worst of both worlds when the user asked for something else entirely. Positive framing — "apply mechanism-first thinking; cite primary sources" — biases toward the desired output. The same logic that drives the joy-check rubric for instruction-mode content (ADR-127) drives this rule for skill-body content: tell the LLM what to do, not what to fear.
 
 This is also "Workflow First, Constraints Inline" applied with discipline about *which* constraints belong inline. Constraints that govern the workflow's decision points belong attached to those decision points — "use table-driven tests because they make adding cases trivial" inside the testing phase. Constraints that are *about* the skill rather than *executed by* it (provenance, ethics framing, marketing copy) do not belong in the skill at all. The `create-voice` skill, after this principle is enforced, will not document author-personality caveats; that judgment happens at the moment a writer asks the voice to produce text on a sensitive topic, where the operator and the validator can see the actual request, not at profile-build time where the worry would only contaminate the generator's context.
+
+## Maintenance Artifacts Are Not Runtime Context
+
+Complex components need a contract and tests, but those artifacts should not be loaded every time the component runs. Runtime files execute work. Maintenance files preserve intent for creators, evaluators, and future maintainers.
+
+For complex or high-impact skills and agents, use two optional support files:
+
+- `SPEC.md` defines the component contract: purpose, scope, non-goals, invariants, dependencies, and success criteria.
+- `EVAL.md` defines repeatable evaluation cases: prompts, expected routing or behavior, failure modes, and pass/fail checks.
+
+These files exist to support creation, review, and evolution. They are not part of the normal invocation path. The router should not load them. The agent or skill should not read them during ordinary execution unless the task is explicitly to evaluate, redesign, or modify that component.
+
+This keeps the component body lean without losing design memory. `SKILL.md` and agent `.md` files say what to do now. `references/` files provide execution depth on demand. `SPEC.md` and `EVAL.md` explain what the component is supposed to remain over time and how to prove it still works.
+
+Do not standardize source-provenance files as runtime-adjacent artifacts. If provenance matters for legal, citation, or research reasons, keep it in docs, ADRs, or research artifacts. If the LLM does not need the file to execute, evaluate, or maintain the component, it does not belong beside the component as a standard artifact.
 
 ## Workflow First, Constraints Inline
 
