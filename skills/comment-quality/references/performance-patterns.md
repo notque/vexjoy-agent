@@ -23,7 +23,7 @@ measurable, specific descriptions of what the optimization does.
 
 <!-- no-pair-required: section heading organizing multiple anti-pattern blocks -->
 
-### ❌ "Optimized/improved for performance" — Vague praise
+### State the Specific Mechanism and Tuning Knobs
 
 **Detection**:
 ```bash
@@ -32,7 +32,7 @@ grep -rn '//.*optimized.*\(for\|performance\|speed\|efficiency\)\|//.*improved.*
 rg '//\s*(optimized|improved|enhanced|tuned) (for )?(performance|speed|efficiency|throughput)' -i
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 // Optimized for performance using goroutine pool
 func processQueue(items []Item) {
@@ -50,12 +50,12 @@ func processQueue(items []Item) {
 cache := sync.Map{}
 ```
 
-**Why wrong**: "Optimized for performance" says nothing the reader can act on. What was the
+**Why this matters**: "Optimized for performance" says nothing the reader can act on. What was the
 bottleneck? What does the optimization constrain? What happens if the limit changes?
 
-**Do instead**: State the specific mechanism (pool size, semaphore limit, cache capacity) and how to tune it.
+**Preferred action**: State the specific mechanism (pool size, semaphore limit, cache capacity) and how to tune it.
 
-**Fix**:
+**Preferred action**:
 ```go
 // Limits concurrent processing to 10 goroutines to cap memory and CPU usage.
 // Increase cap if CPU is underutilized; decrease if memory pressure is high.
@@ -76,9 +76,9 @@ cache := sync.Map{}
 
 ---
 
-### ❌ "Faster than X" / "More efficient than X" — Comparative without baseline
+### State Parallelism Model and Constraints
 
-**Do instead**: State the parallelism model, its constraints, and any side-effect warnings.
+**Preferred action**: State the parallelism model, its constraints, and any side-effect warnings.
 
 **Detection**:
 ```bash
@@ -87,7 +87,7 @@ grep -rn '//.*faster than\|//.*more efficient than\|//.*quicker than\|//.*slower
 rg '//\s*(faster|more efficient|quicker|better) than' -i
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 # Faster than sequential processing
 results = await asyncio.gather(*[process(item) for item in items])
@@ -103,12 +103,12 @@ def get_users_paginated(page_size=100):
         offset += page_size
 ```
 
-**Why wrong**: "Faster than sequential" is historical context. How much faster? Under what
+**Why this matters**: "Faster than sequential" is historical context. How much faster? Under what
 conditions? The reader needs to know what the parallelism model is and its trade-offs.
 
-**Do instead**: State the parallelism model, its constraints, and any side-effect warnings.
+**Preferred action**: State the parallelism model, its constraints, and any side-effect warnings.
 
-**Fix**:
+**Preferred action**:
 ```python
 # Runs all process() calls concurrently; total time bounded by the slowest item.
 # Do not use if process() has side effects that must not interleave.
@@ -129,7 +129,7 @@ def get_users_paginated(page_size=100):
 
 ---
 
-### ❌ "Now uses cache" / "Added caching" — Cache capability addition
+### Document Cache Eviction, TTL, and Miss Behavior
 
 **Detection**:
 ```bash
@@ -138,7 +138,7 @@ grep -rn '//.*now.*cach\|//.*added.*cach\|//.*cach.*now\|//.*cach.*added' \
 rg '//\s*(now uses|added|uses) (a |the )?(cache|caching|LRU|Redis)' -i
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 // Now uses Redis cache to avoid repeated database lookups
 func getUser(id int) (*User, error) {
@@ -152,12 +152,12 @@ func getUser(id int) (*User, error) {
 var lru = lrucache.New(1000)
 ```
 
-**Why wrong**: "Now uses" describes migration history. The reader needs cache eviction policy,
+**Why this matters**: "Now uses" describes migration history. The reader needs cache eviction policy,
 TTL, capacity, and what happens on cache miss.
 
-**Do instead**: State the eviction policy, TTL, capacity, and miss behavior.
+**Preferred action**: State the eviction policy, TTL, capacity, and miss behavior.
 
-**Fix**:
+**Preferred action**:
 ```go
 // Returns cached user within 5-minute TTL; fetches from DB on miss and repopulates cache.
 func getUser(id int) (*User, error) {
@@ -173,9 +173,9 @@ var lru = lrucache.New(1000)
 
 ---
 
-### ❌ "Optimized database queries" / "Reduced N+1" — Query optimization narrative
+### Describe Current Loading Strategy
 
-**Do instead**: Describe the current loading strategy (eager, batch size, index type) and the problem it prevents.
+**Preferred action**: Describe the current loading strategy (eager, batch size, index type) and the problem it prevents.
 
 **Detection**:
 ```bash
@@ -184,7 +184,7 @@ grep -rn '//.*optimized.*quer\|//.*quer.*optimized\|//.*N\+1\|//.*reduced.*quer'
 rg '//\s*(optimized|reduced|fixed) (query|queries|N\+1|database)' -i
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 # Optimized to avoid N+1 query problem
 <!-- no-pair-required: bad example inside a What it looks like code block; the enclosing anti-pattern section carries the Do instead marker -->
@@ -195,12 +195,12 @@ def bulk_insert(records):
     db.bulk_create(records, batch_size=500)
 ```
 
-**Why wrong**: "Optimized to avoid" is history. The current behavior — eager loading, batch
+**Why this matters**: "Optimized to avoid" is history. The current behavior — eager loading, batch
 size, indexed column — is what matters.
 
-**Do instead**: Describe the current loading strategy (eager, batch size, index type) and the problem it prevents.
+**Preferred action**: Describe the current loading strategy (eager, batch size, index type) and the problem it prevents.
 
-**Fix**:
+**Preferred action**:
 ```python
 # Eager-loads orders in a single query to prevent one query per user in downstream loops.
 users = User.objects.prefetch_related('orders').filter(active=True)
@@ -212,7 +212,7 @@ def bulk_insert(records):
 
 ---
 
-### ❌ "Replaced X with Y for better performance" — Replacement narrative
+### State Complexity Class of Current Structure
 
 **Detection**:
 ```bash
@@ -221,7 +221,7 @@ grep -rn '//.*replaced.*\(better\|improve\|faster\|performance\)\|//.*\(better\|
 rg '//\s*replaced .* (for|with) better (performance|speed|efficiency)' -i
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 // Replaced array.find() with Map for better performance on large collections
 const userIndex = new Map(users.map(u => [u.id, u]));
@@ -230,11 +230,11 @@ const userIndex = new Map(users.map(u => [u.id, u]));
 const ws = new WebSocket(endpoint);
 ```
 
-**Why wrong**: Describes what was replaced instead of what the current structure provides.
+**Why this matters**: Describes what was replaced instead of what the current structure provides.
 
-**Do instead**: State the complexity class or behavior of the current structure and when it matters.
+**Preferred action**: State the complexity class or behavior of the current structure and when it matters.
 
-**Fix**:
+**Preferred action**:
 ```typescript
 // Map provides O(1) lookup by ID; array.find() is O(n) and slow for collections > 1000.
 const userIndex = new Map(users.map(u => [u.id, u]));
@@ -245,7 +245,7 @@ const ws = new WebSocket(endpoint);
 
 ---
 
-### ❌ "Reduced memory usage" / "Less memory" — Vague memory claim
+### State the Memory Bound Directly
 
 **Detection**:
 ```bash
@@ -254,7 +254,7 @@ grep -rn '//.*reduced.*memory\|//.*less.*memory\|//.*memory.*reduced\|//.*lower.
 rg '//\s*(reduced|lower|less|minimal) memory' -i
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 // Reduced memory usage by streaming instead of loading all data
 func exportCSV(w io.Writer, db *DB) error {
@@ -268,11 +268,11 @@ func exportCSV(w io.Writer, db *DB) error {
 }
 ```
 
-**Why wrong**: "Reduced memory usage" compared to what? State the bound, not the reduction.
+**Why this matters**: "Reduced memory usage" compared to what? State the bound, not the reduction.
 
-**Do instead**: State the memory bound directly (O(1) per item, capped at X MB, or O(n) total).
+**Preferred action**: State the memory bound directly (O(1) per item, capped at X MB, or O(n) total).
 
-**Fix**:
+**Preferred action**:
 ```go
 // Streams rows directly to w; memory usage is O(1) per row, not O(total rows).
 // Callers should buffer w if writing to a slow sink (network, disk).

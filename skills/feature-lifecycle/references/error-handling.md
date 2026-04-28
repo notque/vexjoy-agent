@@ -77,7 +77,7 @@ Tier 3 (arch):      schema change, API redesign, scope expansion → STOP, prese
 
 ## Pattern Catalog
 
-### ❌ Skipping State Check to Save a Command
+### Check Feature State Before Every Action
 
 **Detection**:
 ```bash
@@ -86,15 +86,15 @@ grep -rn 'feature-state.py advance' skills/feature-lifecycle/
 rg 'feature-state\.py (checkpoint|advance)' skills/
 ```
 
-**What it looks like**:
+**Signal**:
 ```bash
 # Missing: python3 ~/.claude/scripts/feature-state.py status my-feature
 python3 ~/.claude/scripts/feature-state.py advance my-feature
 ```
 
-**Why wrong**: Advancing without reading state can skip a phase or double-advance when a prior partial run already moved the state forward. The state file is authoritative; skipping the read assumes it matches session context.
+**Why this matters**: Advancing without reading state can skip a phase or double-advance when a prior partial run already moved the state forward. The state file is authoritative; skipping the read assumes it matches session context.
 
-**Fix**:
+**Preferred action**:
 ```bash
 python3 ~/.claude/scripts/feature-state.py status my-feature
 # Only if output confirms phase is ready:
@@ -103,7 +103,7 @@ python3 ~/.claude/scripts/feature-state.py advance my-feature
 
 ---
 
-### ❌ Retrying a Failed Agent More Than Three Times
+### Stop and Report After Three Agent Failures
 
 **Detection**:
 ```bash
@@ -111,7 +111,7 @@ grep -rn 'Attempt [4-9]\|Attempt [0-9][0-9]' .feature/state/implement/
 rg 'retry.*attempt|attempt.*[4-9]' .feature/ --ignore-case
 ```
 
-**What it looks like**:
+**Signal**:
 ```
 Attempt 1: Agent dispatch failed (no output)
 Attempt 2: Agent dispatch failed (timeout)
@@ -119,9 +119,9 @@ Attempt 3: Agent dispatch failed (malformed response)
 Attempt 4: Retrying with more context...  ← wrong
 ```
 
-**Why wrong**: Three consecutive failures signal a structural problem: wrong agent type, missing prerequisite context, or a malformed task spec. More retries don't fix structural problems — they burn budget while delaying root-cause diagnosis.
+**Why this matters**: Three consecutive failures signal a structural problem: wrong agent type, missing prerequisite context, or a malformed task spec. More retries don't fix structural problems — they burn budget while delaying root-cause diagnosis.
 
-**Fix**: After three failures, stop and report:
+**Preferred action**: After three failures, stop and report:
 ```
 Task [name] failed 3 times. Root cause candidates:
 - Agent type mismatch (assigned: X, task domain: Y)
@@ -133,7 +133,7 @@ Blocked. Requires user input to continue.
 
 ---
 
-### ❌ Proceeding Past a Gate Failure
+### Block Advancement on Gate Failure
 
 **Detection**:
 ```bash
@@ -141,15 +141,15 @@ grep -rn 'gate.*fail\|BLOCKED.*proceed\|proceeding.*fail' .feature/state/ --igno
 rg 'minor failure|appears minor|otherwise complete' .feature/
 ```
 
-**What it looks like**:
+**Signal**:
 ```
 Gate: Validate failed (2 tests failing), but proceeding to release because
       failures appear minor and the feature is otherwise complete.
 ```
 
-**Why wrong**: Gates are binary. Downstream phases depend on upstream correctness — releasing with failing validation tests ships broken code. There is no "minor failure" category.
+**Why this matters**: Gates are binary. Downstream phases depend on upstream correctness — releasing with failing validation tests ships broken code. There is no "minor failure" category.
 
-**Fix**:
+**Preferred action**:
 ```
 Gate failed: validate (2 tests failing)
   - auth_test.go:TestLoginExpiry
@@ -159,7 +159,7 @@ BLOCKED. Cannot advance to release. Fix failing tests and re-run validate.
 
 ---
 
-### ❌ Modifying State Files Directly
+### Use the CLI for All State Mutations
 
 **Detection**:
 ```bash
@@ -168,16 +168,16 @@ rg '\.feature/state.*\.json' . --type py
 grep -rn 'open.*feature.*state' . --include="*.py"
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 import json
 with open('.feature/state/my-feature.json', 'w') as f:
     json.dump({'phase': 'validate', ...}, f)  # direct write — wrong
 ```
 
-**Why wrong**: The state file format is an implementation detail of `feature-state.py`. Direct writes bypass validation, lock acquisition, and event recording. The CLI is the contract; the file schema is not.
+**Why this matters**: The state file format is an implementation detail of `feature-state.py`. Direct writes bypass validation, lock acquisition, and event recording. The CLI is the contract; the file schema is not.
 
-**Fix**:
+**Preferred action**:
 ```bash
 # Always use the CLI, never the file path
 python3 ~/.claude/scripts/feature-state.py advance my-feature

@@ -75,7 +75,7 @@ python3 -c "from datetime import date; print((date.today() - date.fromisoformat(
 
 ## Pattern Catalog
 
-### ❌ Reporting "Active" Without Flagging Stuck Items
+### Show Days-in-Stage for Every Active Item
 
 **Detection**:
 ```bash
@@ -85,16 +85,16 @@ grep -E "\(editing: [0-9]{4}-[0-9]{2}-[0-9]{2}\)" content-calendar.md | \
   awk -F'editing: ' '{print $2}' | tr -d ')' | awk -v c="$CUTOFF" '$1 < c'
 ```
 
-**What it looks like**:
+**Signal**:
 ```
 IN PROGRESS:
   -> "Hugo debugging guide" (editing)     ← no age shown
   -> "Image optimization" (drafted)       ← no age shown
 ```
 
-**Why wrong**: "In progress" with no age hides a piece that's been stuck in editing for 3 weeks. The pipeline view should surface stalls, not mask them.
+**Why this matters**: "In progress" with no age hides a piece that's been stuck in editing for 3 weeks. The pipeline view should surface stalls, not mask them.
 
-**Fix**:
+**Preferred action**:
 ```
 IN PROGRESS:
   -> "Hugo debugging guide" (editing, 18 days) ⚠ STUCK
@@ -103,7 +103,7 @@ IN PROGRESS:
 
 ---
 
-### ❌ Counting Ideas as Pipeline Velocity
+### Separate Idea Backlog from Active Pipeline Depth
 
 **Detection**:
 ```bash
@@ -113,7 +113,7 @@ grep "| Ideas" content-calendar.md
 grep -E "^\| (Outlined|Drafted|Editing|Ready)" content-calendar.md
 ```
 
-**What it looks like**:
+**Signal**:
 ```
 Pipeline Overview:
 | Ideas    | 23 |
@@ -121,13 +121,13 @@ Pipeline Overview:
 | Drafted  |  0 |
 ```
 
-**Why wrong**: 23 ideas with 1 outlined means idea generation is not bottlenecked — advancement is. Reporting a "full" pipeline when Ideas=23 gives false confidence. Ideas are potential, not velocity.
+**Why this matters**: 23 ideas with 1 outlined means idea generation is not bottlenecked — advancement is. Reporting a "full" pipeline when Ideas=23 gives false confidence. Ideas are potential, not velocity.
 
-**Fix**: When displaying pipeline health, separate "idea backlog depth" from "active pipeline depth". Flag pipelines where Ideas >> (Outlined + Drafted + Editing) as backlog-heavy.
+**Preferred action**: When displaying pipeline health, separate "idea backlog depth" from "active pipeline depth". Flag pipelines where Ideas >> (Outlined + Drafted + Editing) as backlog-heavy.
 
 ---
 
-### ❌ Not Prompting for Schedule Date on Move to Ready
+### Require Publication Date Before Move to Ready
 
 **Detection**:
 ```bash
@@ -139,20 +139,20 @@ done
 grep -A 1 "(ready:" content-calendar.md | grep -v "Scheduled:"
 ```
 
-**What it looks like**:
+**Signal**:
 ```markdown
 ## Ready
 - [x] **Hugo build errors** (ready: 2025-01-14)
 <!-- no Scheduled: line — when does this publish? -->
 ```
 
-**Why wrong**: Content without a scheduled date clogs the Ready stage indefinitely. A 3-month-old "Ready" item is effectively abandoned, but looks like active work.
+**Why this matters**: Content without a scheduled date clogs the Ready stage indefinitely. A 3-month-old "Ready" item is effectively abandoned, but looks like active work.
 
-**Fix**: Block the move-to-ready operation from completing until a publication date is provided. Show: "When should this be published? (YYYY-MM-DD or 'tbd' to skip)".
+**Preferred action**: Block the move-to-ready operation from completing until a publication date is provided. Show: "When should this be published? (YYYY-MM-DD or 'tbd' to skip)".
 
 ---
 
-### ❌ Archive Operation Skips Month Boundary Check
+### Check Month Boundaries Before Archive
 
 **Detection**:
 ```bash
@@ -162,15 +162,15 @@ grep -E "\(published: [0-9]{4}-[0-9]{2}-[0-9]{2}\)" content-calendar.md | \
   grep -v "published: ${CURRENT_MONTH}"
 ```
 
-**What it looks like**:
+**Signal**:
 ```
 # Running /content-calendar archive in February
 # December and January posts remain in Published — not moved to Historical
 ```
 
-**Why wrong**: The Published section grows unbounded. A 6-month-old pipeline will have dozens of entries in Published, making counts misleading and dashboard output unreadable.
+**Why this matters**: The Published section grows unbounded. A 6-month-old pipeline will have dozens of entries in Published, making counts misleading and dashboard output unreadable.
 
-**Fix**: Run archive check on every `view` operation (warn-only) and require explicit user confirmation before moving to Historical on `archive` operation.
+**Preferred action**: Run archive check on every `view` operation (warn-only) and require explicit user confirmation before moving to Historical on `archive` operation.
 
 ---
 

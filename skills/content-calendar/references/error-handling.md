@@ -66,7 +66,7 @@ grep -A 100 "^## Ideas" content-calendar.md | grep -B 100 "^## Outlined" | grep 
 
 ## Pattern Catalog
 
-### ❌ Assuming Topic Title Matches Exactly
+### Use Case-Insensitive Partial Matching for Topic Lookup
 
 **Detection**:
 ```bash
@@ -74,16 +74,16 @@ grep -A 100 "^## Ideas" content-calendar.md | grep -B 100 "^## Outlined" | grep 
 grep -in "topic keyword" content-calendar.md
 ```
 
-**What it looks like**:
+**Signal**:
 ```
 User: "move hugo caching to drafted"
 # Searching for exact string "hugo caching" — not found
 # Error: topic not found
 ```
 
-**Why wrong**: Users type partial titles or wrong case. "Hugo caching" and "Hugo partial caching issues" — the latter is the real entry. Hard stop wastes user time when a partial match could resolve it.
+**Why this matters**: Users type partial titles or wrong case. "Hugo caching" and "Hugo partial caching issues" — the latter is the real entry. Hard stop wastes user time when a partial match could resolve it.
 
-**Fix**:
+**Preferred action**:
 ```bash
 # Step 1: exact match (case-insensitive)
 grep -in "^- \[.\] \*\*hugo caching" content-calendar.md
@@ -94,7 +94,7 @@ grep -in "hugo caching" content-calendar.md
 
 ---
 
-### ❌ Writing Without Reading Current State
+### Read Current State Before Every Write
 
 **Detection**:
 ```bash
@@ -104,19 +104,19 @@ wc -l content-calendar.md  # before
 wc -l content-calendar.md  # after — should be >= before for add/move
 ```
 
-**What it looks like**:
+**Signal**:
 ```
 # Skill reconstructs file from memory instead of reading current state
 # Result: other stages' content is overwritten with cached state
 ```
 
-**Why wrong**: The calendar may have been edited manually or by another process between reads. Writing from cached state silently destroys changes. The file is the source of truth, not the model's memory.
+**Why this matters**: The calendar may have been edited manually or by another process between reads. Writing from cached state silently destroys changes. The file is the source of truth, not the model's memory.
 
-**Fix**: Always `Read content-calendar.md` immediately before any write, even if it was read earlier in the same operation.
+**Preferred action**: Always `Read content-calendar.md` immediately before any write, even if it was read earlier in the same operation.
 
 ---
 
-### ❌ Invalid Stage Transition Goes Unblocked
+### Enforce Checkbox State on Stage Transitions
 
 **Detection**:
 ```bash
@@ -125,19 +125,19 @@ grep -A 200 "^## Ready" content-calendar.md | grep "^- \[ \]"
 grep -A 200 "^## Published" content-calendar.md | grep "^- \[ \]"
 ```
 
-**What it looks like**:
+**Signal**:
 ```markdown
 ## Ready
 - [ ] **Hugo build errors** (ready: 2025-01-14)  <!-- should be [x] -->
 ```
 
-**Why wrong**: Checkbox state `[x]` must flip at the Editing→Ready transition. If a topic lands in Ready as `- [ ]`, the Published and Historical sections will contain unchecked items, making the file unreadable as a kanban board.
+**Why this matters**: Checkbox state `[x]` must flip at the Editing→Ready transition. If a topic lands in Ready as `- [ ]`, the Published and Historical sections will contain unchecked items, making the file unreadable as a kanban board.
 
-**Fix**: Enforce checkbox flip during move-to-ready. If a topic arrives in Ready with `[ ]`, convert to `[x]` before writing.
+**Preferred action**: Enforce checkbox flip during move-to-ready. If a topic arrives in Ready with `[ ]`, convert to `[x]` before writing.
 
 ---
 
-### ❌ Malformed Date Metadata
+### Normalize Dates to ISO Format on Read
 
 **Detection**:
 ```bash
@@ -149,27 +149,27 @@ grep -E "Scheduled: [A-Za-z]" content-calendar.md
 grep -E "\((outline|draft|editing|ready|published): [0-9]{4}-[0-9]-" content-calendar.md
 ```
 
-**What it looks like**:
+**Signal**:
 ```markdown
 - [ ] **Hugo debugging guide** (outline: Jan 10, 2025)
 - [x] **Build errors** (ready: 2025-1-5)
   - Scheduled: January 20
 ```
 
-**Why wrong**: Date parsing logic expects `YYYY-MM-DD`. Non-ISO dates break velocity calculations, stuck-content detection, and archive operations that compare dates to the current month.
+**Why this matters**: Date parsing logic expects `YYYY-MM-DD`. Non-ISO dates break velocity calculations, stuck-content detection, and archive operations that compare dates to the current month.
 
-**Fix**: Normalize on read. Detect non-ISO dates and convert before date arithmetic. Reject ambiguous formats (MM/DD vs DD/MM) and prompt user to clarify.
+**Preferred action**: Normalize on read. Detect non-ISO dates and convert before date arithmetic. Reject ambiguous formats (MM/DD vs DD/MM) and prompt user to clarify.
 
 ---
 
-### ❌ Duplicate Section Headers
+### Detect and Merge Duplicate Section Headers
 
 **Detection**:
 ```bash
 grep -n "^## Ideas\|^## Outlined\|^## Drafted\|^## Editing\|^## Ready\|^## Published" content-calendar.md | sort | uniq -d
 ```
 
-**What it looks like**:
+**Signal**:
 ```markdown
 ## Ideas
 - [ ] Topic A
@@ -181,9 +181,9 @@ grep -n "^## Ideas\|^## Outlined\|^## Drafted\|^## Editing\|^## Ready\|^## Publi
 - [ ] Topic B
 ```
 
-**Why wrong**: Only the first `## Ideas` section is parsed. Topic B is silently invisible to all operations and the count table is wrong.
+**Why this matters**: Only the first `## Ideas` section is parsed. Topic B is silently invisible to all operations and the count table is wrong.
 
-**Fix**: On load, detect duplicate section headers. Merge content from all instances into one section and warn the user before proceeding.
+**Preferred action**: On load, detect duplicate section headers. Merge content from all instances into one section and warn the user before proceeding.
 
 ---
 

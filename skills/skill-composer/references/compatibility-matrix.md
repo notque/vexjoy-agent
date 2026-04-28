@@ -139,7 +139,7 @@ This document maps which skills work well together, common input/output types, a
 
 ---
 
-### Incompatible Combinations (❌)
+### Incompatible Combinations
 
 | Skill A | → | Skill B | Reason |
 |---------|---|---------|--------|

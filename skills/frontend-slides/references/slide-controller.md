@@ -142,7 +142,7 @@ Slides must start hidden via CSS transforms, not `display: none`, so Intersectio
 
 ## Pattern Catalog
 
-### ❌ Missing `navigating` guard
+### Add a navigating Guard to Prevent Re-Entry
 
 **Detection**:
 ```bash
@@ -150,7 +150,7 @@ grep -n 'go(' output.html | grep -v 'navigating'
 rg 'scrollIntoView' output.html | grep -v 'navigating'
 ```
 
-**What it looks like**:
+**Signal**:
 ```javascript
 go(index) {
   this.current = Math.max(0, Math.min(index, this.slides.length - 1));
@@ -159,33 +159,33 @@ go(index) {
 }
 ```
 
-**Why wrong**: Each `go()` call triggers a smooth scroll. When the second call fires before the first completes, slides jump out of sync with `this.current`. On fast keyboards or trackpads, the deck can advance 3-5 slides per keypress.
+**Why this matters**: Each `go()` call triggers a smooth scroll. When the second call fires before the first completes, slides jump out of sync with `this.current`. On fast keyboards or trackpads, the deck can advance 3-5 slides per keypress.
 
 **Do instead:** Set `this.navigating = true` at the start of `go()`, clear it with `setTimeout(() => this.navigating = false, 600)`, and guard entry with `if (this.navigating) return`.
 
 ---
 
-### ❌ No wheel debounce
+### Debounce Wheel Events with clearTimeout
 
 **Detection**:
 ```bash
 grep -n 'wheel' output.html | grep -v 'clearTimeout\|debounce\|timer\|Timer'
 ```
 
-**What it looks like**:
+**Signal**:
 ```javascript
 document.addEventListener('wheel', (e) => {
   this.go(this.current + (e.deltaY > 0 ? 1 : -1));
 });
 ```
 
-**Why wrong**: A single trackpad scroll fires 20-80 `wheel` events. Without debounce, one swipe advances 20+ slides. The `navigating` guard alone is insufficient — it blocks concurrent calls, but debounce collapses burst events before they enter `go()`.
+**Why this matters**: A single trackpad scroll fires 20-80 `wheel` events. Without debounce, one swipe advances 20+ slides. The `navigating` guard alone is insufficient — it blocks concurrent calls, but debounce collapses burst events before they enter `go()`.
 
 **Do instead:** `clearTimeout(this._wheelTimer); this._wheelTimer = setTimeout(() => { ... }, 150);`
 
 ---
 
-### ❌ `display: none` on slides
+### Use opacity Instead of display:none for Slides
 
 **Detection**:
 ```bash
@@ -193,45 +193,45 @@ grep -n 'display.*none' output.html | grep -iv 'comment\|//'
 rg '\.slide[^}]*display\s*:\s*none' output.html
 ```
 
-**What it looks like**:
+**Signal**:
 ```css
 .slide { display: none; }
 .slide.active { display: flex; }
 ```
 
-**Why wrong**: `display: none` removes the element from the accessibility tree and from the IntersectionObserver callback cycle. The `.visible` class never gets added. All reveal animations silently fail. Screen readers skip hidden slides.
+**Why this matters**: `display: none` removes the element from the accessibility tree and from the IntersectionObserver callback cycle. The `.visible` class never gets added. All reveal animations silently fail. Screen readers skip hidden slides.
 
 **Do instead:** Use `opacity: 0; pointer-events: none; position: absolute` to hide, and `.visible { opacity: 1; pointer-events: auto; position: relative }` to show.
 
 ---
 
-### ❌ Missing `{ passive: true }` on touch/wheel listeners
+### Add { passive: true } to Touch and Wheel Listeners
 
 **Detection**:
 ```bash
 grep -n 'touchstart\|touchend\|wheel' output.html | grep -v 'passive'
 ```
 
-**What it looks like**:
+**Signal**:
 ```javascript
 document.addEventListener('touchstart', handler);
 document.addEventListener('wheel', handler);
 ```
 
-**Why wrong**: Without `{ passive: true }`, the browser must wait for the handler to return before scrolling, causing 50–200ms jank on mobile. Chrome 73+ logs a console warning.
+**Why this matters**: Without `{ passive: true }`, the browser must wait for the handler to return before scrolling, causing 50–200ms jank on mobile. Chrome 73+ logs a console warning.
 
 **Do instead:** Add `{ passive: true }` to all touch and wheel listeners. HTML slide decks should not call `preventDefault()` on these events.
 
 ---
 
-### ❌ `Space` key not captured
+### Capture Space Key for Slide Advance
 
 **Detection**:
 ```bash
 grep -n "case 'Space'" output.html
 ```
 
-**What it looks like**:
+**Signal**:
 ```javascript
 document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight') this.go(this.current + 1);
@@ -239,7 +239,7 @@ document.addEventListener('keydown', (e) => {
 });
 ```
 
-**Why wrong**: Space is the standard "advance" key in every presentation app. Missing it breaks presenter muscle memory. The browser default scrolls the viewport, causing visible flicker before the controller corrects position.
+**Why this matters**: Space is the standard "advance" key in every presentation app. Missing it breaks presenter muscle memory. The browser default scrolls the viewport, causing visible flicker before the controller corrects position.
 
 **Do instead:** `case 'Space': e.preventDefault(); this.go(this.current + 1); break;`
 

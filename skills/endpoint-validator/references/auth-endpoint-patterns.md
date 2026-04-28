@@ -112,7 +112,7 @@ print('All env vars present')
 
 ## Pattern Catalog
 
-### ❌ Hardcoded Bearer Token in Config
+### Use Environment Variables for Bearer Tokens
 
 **Detection**:
 ```bash
@@ -120,19 +120,19 @@ grep -rn '"Authorization"' endpoints.json | grep -v '\${[A-Z_]'
 rg '"Authorization".*"Bearer [A-Za-z0-9._-]{20,}"' --type json
 ```
 
-**What it looks like**:
+**Signal**:
 ```json
 {"headers": {"Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.actual.token"}}
 ```
 
-**Why wrong**: JWT tokens in config files get committed to git history. Even after rotation,
+**Why this matters**: JWT tokens in config files get committed to git history. Even after rotation,
 the old token remains in every git clone. GitHub secret scanning flags base64-encoded JWTs.
 
-**Do instead**: `{"headers": {"Authorization": "Bearer ${API_TOKEN}"}}`
+**Preferred action**: `{"headers": {"Authorization": "Bearer ${API_TOKEN}"}}`
 
 ---
 
-### ❌ Skipping expect_status on Protected Endpoint
+### Set Explicit expect_status on Auth Endpoints
 
 **Detection**:
 ```bash
@@ -146,7 +146,7 @@ for ep in cfg.get('endpoints', []):
 "
 ```
 
-**What it looks like**:
+**Signal**:
 ```json
 {
   "path": "/api/v1/admin/users",
@@ -154,44 +154,44 @@ for ep in cfg.get('endpoints', []):
 }
 ```
 
-**Why wrong**: Without explicit `expect_status`, default is 200. If the token expires or
+**Why this matters**: Without explicit `expect_status`, default is 200. If the token expires or
 loses its scope, the endpoint returns 401. The validator reports FAIL (expected 200, got 401)
 with no context that it's an auth failure, not an API bug.
 
-**Do instead**: Always set `expect_status: 200` explicitly on auth-protected endpoints so the
+**Preferred action**: Always set `expect_status: 200` explicitly on auth-protected endpoints so the
 failure message reads "expected 200, got 401" and the auth header is visible in the config.
 
 ---
 
-### ❌ Using Admin Credentials for Smoke Tests
+### Use Read-Only Service Account Tokens
 
 **Detection**:
 ```bash
 grep -rn "ADMIN\|ROOT\|MASTER\|SUPERUSER\|SUPER_" endpoints.json
 ```
 
-**What it looks like**:
+**Signal**:
 ```json
 {"headers": {"Authorization": "Bearer ${PROD_ADMIN_TOKEN}"}}
 ```
 
-**Why wrong**: A validation run with a compromised CI environment gets full admin access
+**Why this matters**: A validation run with a compromised CI environment gets full admin access
 to production. Blast radius is maximum. Use read-only service account tokens scoped to
 the specific paths being validated.
 
-**Do instead**: Create a dedicated `endpoint-validator` service account with read-only access.
+**Preferred action**: Create a dedicated `endpoint-validator` service account with read-only access.
 Rotate its token independently of admin credentials.
 
 ---
 
-### ❌ Session Cookie Validation Without Expiry Handling
+### Use Environment Variables for Session Tokens
 
 **Detection**:
 ```bash
 grep -rn '"Cookie"' endpoints.json | grep -v '\${[A-Z_]'
 ```
 
-**What it looks like**:
+**Signal**:
 ```json
 {
   "path": "/dashboard",
@@ -200,11 +200,11 @@ grep -rn '"Cookie"' endpoints.json | grep -v '\${[A-Z_]'
 }
 ```
 
-**Why wrong**: Sessions expire. A hardcoded session value that worked during setup will
+**Why this matters**: Sessions expire. A hardcoded session value that worked during setup will
 silently redirect to a login page (302), which the validator may follow and report 200
 (the login page), masking the auth failure entirely.
 
-**Do instead**: Use env var for session token and add `expect_key` on JSON dashboard APIs:
+**Preferred action**: Use env var for session token and add `expect_key` on JSON dashboard APIs:
 ```json
 {
   "path": "/api/dashboard",

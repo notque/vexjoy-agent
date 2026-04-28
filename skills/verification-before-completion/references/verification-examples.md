@@ -4,7 +4,7 @@ This document shows real-world examples of good and bad verification practices t
 
 ## Example 1: Python Bug Fix
 
-### ❌ BAD Verification
+### Insufficient Verification
 
 **User**: Fix the login bug where passwords aren't being validated
 
@@ -19,7 +19,7 @@ This document shows real-world examples of good and bad verification practices t
 
 ---
 
-### ✅ GOOD Verification
+### Thorough Verification
 
 **User**: Fix the login bug where passwords aren't being validated
 
@@ -108,7 +108,7 @@ Test if this addresses the issue.
 
 ## Example 2: Go Refactoring
 
-### ❌ BAD Verification
+### Insufficient Verification
 
 **User**: Refactor the user service to use the new database package
 
@@ -122,7 +122,7 @@ Test if this addresses the issue.
 
 ---
 
-### ✅ GOOD Verification
+### Thorough Verification
 
 **User**: Refactor the user service to use the new database package
 
@@ -199,7 +199,7 @@ Test if this addresses the issue.
 
 ## Example 3: JavaScript Feature Addition
 
-### ❌ BAD Verification
+### Insufficient Verification
 
 **User**: Add a "Clear All" button to the dashboard
 
@@ -213,7 +213,7 @@ Test if this addresses the issue.
 
 ---
 
-### ✅ GOOD Verification
+### Thorough Verification
 
 **User**: Add a "Clear All" button to the dashboard
 
@@ -300,7 +300,7 @@ Test if this addresses the issue.
 
 ## Example 4: Database Migration
 
-### ❌ BAD Verification
+### Insufficient Verification
 
 **User**: Add an index on the email column in the users table
 
@@ -314,7 +314,7 @@ Test if this addresses the issue.
 
 ---
 
-### ✅ GOOD Verification
+### Thorough Verification
 
 **User**: Add an index on the email column in the users table
 
@@ -404,7 +404,7 @@ Test if this addresses the issue.
 
 ## Example 5: Configuration Change
 
-### ❌ BAD Verification
+### Insufficient Verification
 
 **User**: Update nginx config to add rate limiting
 
@@ -418,7 +418,7 @@ Test if this addresses the issue.
 
 ---
 
-### ✅ GOOD Verification
+### Thorough Verification
 
 **User**: Update nginx config to add rate limiting
 

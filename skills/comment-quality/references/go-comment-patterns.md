@@ -22,7 +22,7 @@ of the API contract.
 
 <!-- no-pair-required: section heading organizing multiple anti-pattern blocks -->
 
-### ❌ "Now uses context" — Concurrency migration residue
+### Describe What the Context Controls
 
 **Detection**:
 ```bash
@@ -30,7 +30,7 @@ grep -rn '//.*now.*context\|//.*context.*now\|//.*added.*context' --include="*.g
 rg '//.*now uses context|//.*added context|//.*context.*added' --type go -i
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 // Bad: Updated to use context for cancellation
 func FetchUser(ctx context.Context, id int) (*User, error) { ... }
@@ -39,12 +39,12 @@ func FetchUser(ctx context.Context, id int) (*User, error) { ... }
 func processRequest(ctx context.Context, req *Request) error { ... }
 ```
 
-**Why wrong**: Describes the migration decision, not the current contract. Future maintainers
+**Why this matters**: Describes the migration decision, not the current contract. Future maintainers
 need to know what the context controls, not that it was "added".
 
-**Do instead**: State what the context controls and what the function returns when it expires.
+**Preferred action**: State what the context controls and what the function returns when it expires.
 
-**Fix**:
+**Preferred action**:
 ```go
 // Accepts context for cancellation; returns ctx.Err() if parent context expires.
 func FetchUser(ctx context.Context, id int) (*User, error) { ... }
@@ -55,7 +55,7 @@ func processRequest(ctx context.Context, req *Request) error { ... }
 
 ---
 
-### ❌ "Fixed panic" / "Fixed nil" — Bug fix residue
+### Describe the Invariant the Guard Maintains
 
 **Detection**:
 ```bash
@@ -63,7 +63,7 @@ grep -rn '//.*[Ff]ixed.*\(panic\|nil\|crash\|race\)' --include="*.go"
 rg '//\s*(Fixed|Fixes|Fixing) (panic|nil|crash|race condition)' --type go
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 // Fixed panic when receiver is nil
 if r == nil {
@@ -75,12 +75,12 @@ mu.Lock()
 defer mu.Unlock()
 ```
 
-**Why wrong**: The bug is gone. "Fixed" describes historical surgery; the invariant being
+**Why this matters**: The bug is gone. "Fixed" describes historical surgery; the invariant being
 maintained is what matters to future readers.
 
-**Do instead**: Describe the invariant the guard maintains and the consequence of violating it.
+**Preferred action**: Describe the invariant the guard maintains and the consequence of violating it.
 
-**Fix**:
+**Preferred action**:
 ```go
 // Guards against nil receiver to prevent panic in field access below.
 if r == nil {
@@ -94,7 +94,7 @@ defer mu.Unlock()
 
 ---
 
-### ❌ "Improved error handling" / "Better errors"
+### Name the Wrapping Context in Error Messages
 
 **Detection**:
 ```bash
@@ -102,7 +102,7 @@ grep -rn '//.*\(improved\|better\|enhanced\).*err\|//.*err.*\(improved\|better\|
 rg '//\s*(improved|better|enhanced) error' --type go -i
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 // Improved error handling for database operations
 func queryUser(id int) (*User, error) {
@@ -112,12 +112,12 @@ func queryUser(id int) (*User, error) {
 }
 ```
 
-**Why wrong**: "Improved" is relative to a past state that no longer exists. The comment
+**Why this matters**: "Improved" is relative to a past state that no longer exists. The comment
 should explain what context the wrapping provides, not that it improved.
 
-**Do instead**: Name the specific context the error wrapping adds and why it helps callers or operators.
+**Preferred action**: Name the specific context the error wrapping adds and why it helps callers or operators.
 
-**Fix**:
+**Preferred action**:
 ```go
 // Wraps database errors with user ID so log entries can be correlated to a specific user.
 func queryUser(id int) (*User, error) {
@@ -132,7 +132,7 @@ func queryUser(id int) (*User, error) {
 
 ---
 
-### ❌ "Updated to use goroutines" — Parallelism migration
+### Describe the Concurrency Model and Limits
 
 **Detection**:
 ```bash
@@ -140,7 +140,7 @@ grep -rn '//.*\(updated\|changed\|switched\|migrated\).*goroutine\|//.*now.*conc
 rg '//\s*(updated|changed|switched) to (use )?goroutine' --type go -i
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 // Updated to use goroutines for better performance
 func processItems(items []Item) error {
@@ -154,11 +154,11 @@ func processItems(items []Item) error {
 }
 ```
 
-**Why wrong**: "Updated to use" is history. The reader needs the concurrency model and its limits.
+**Why this matters**: "Updated to use" is history. The reader needs the concurrency model and its limits.
 
-**Do instead**: Describe the concurrency model, the blocking behavior, and any limits callers must enforce.
+**Preferred action**: Describe the concurrency model, the blocking behavior, and any limits callers must enforce.
 
-**Fix**:
+**Preferred action**:
 ```go
 // Processes each item in a separate goroutine; blocks until all complete.
 // No concurrency limit — callers must bound the items slice for large inputs.
@@ -175,7 +175,7 @@ func processItems(items []Item) error {
 
 ---
 
-### ❌ Package-level doc comments with activity language
+### Write Package Docs as API Contracts
 
 **Detection**:
 ```bash
@@ -183,19 +183,19 @@ grep -rn '^// Package.*\b\(added\|updated\|improved\|fixed\|now\|new\|recently\|
 rg '^// Package \w+ (was|has been|now|recently|is new)' --type go
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 // Package auth provides authentication. Recently updated to support OAuth 2.0 and JWT.
 
 // Package cache was refactored to use Redis instead of in-memory storage.
 ```
 
-**Why wrong**: Package doc comments appear in `go doc` output and should describe the
+**Why this matters**: Package doc comments appear in `go doc` output and should describe the
 package's permanent API contract, not its changelog. Use CHANGELOG.md for history.
 
-**Do instead**: Describe the package's current API contract and primary types or entry points.
+**Preferred action**: Describe the package's current API contract and primary types or entry points.
 
-**Fix**:
+**Preferred action**:
 ```go
 // Package auth provides authentication via OAuth 2.0 and JWT token validation.
 // Session tokens expire after 24 hours; use Refresh() to extend active sessions.

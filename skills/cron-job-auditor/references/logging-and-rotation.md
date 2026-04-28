@@ -90,7 +90,7 @@ exec >> "$LOG" 2>> "$ERR"
 <!-- no-pair-required: section heading; individual anti-patterns below carry Do-instead blocks -->
 ## Pattern Catalog
 
-### ❌ No logging at all (relying on cron email)
+### Redirect Output to Log Files
 
 **Detection**:
 ```bash
@@ -98,7 +98,7 @@ grep -rL '>> .*log\|tee.*log\|LOG=' --include="*.sh" scripts/ cron/ jobs/
 rg -L '>> .*\.log|tee .*\.log|LOG=' --type sh
 ```
 
-**What it looks like**:
+**Signal**:
 ```bash
 #!/bin/bash
 set -e
@@ -107,13 +107,13 @@ python3 process.py
 rsync -avz output/ backup/
 ```
 
-**Why wrong**: All output goes to cron's mail system (usually `nobody@localhost`, usually discarded). When the job fails, there is no record of what was running, what the error was, or when the last successful run occurred. Post-incident investigation is impossible.
+**Why this matters**: All output goes to cron's mail system (usually `nobody@localhost`, usually discarded). When the job fails, there is no record of what was running, what the error was, or when the last successful run occurred. Post-incident investigation is impossible.
 
 **Do instead:** Add `exec >> "$LOG_FILE" 2>&1` near the top, after defining `LOG_FILE`.
 
 ---
 
-### ❌ Timestamps missing or locale-dependent format
+### Use ISO Timestamps in All Log Output
 
 **Detection**:
 ```bash
@@ -123,7 +123,7 @@ grep -rn '\$(date)[^+]' --include="*.sh" scripts/ cron/
 grep -rl "echo\|printf" --include="*.sh" scripts/ | xargs grep -L "date"
 ```
 
-**What it looks like**:
+**Signal**:
 ```bash
 echo "Starting job"   # no timestamp at all
 
@@ -131,7 +131,7 @@ echo "Starting job"   # no timestamp at all
 echo "$(date): Starting"  # Thu Apr 16 20:07:00 UTC 2026 (hard to sort/grep)
 ```
 
-**Why wrong**: Without timestamps, log lines from different runs blend together. Locale-dependent `date` output sorts lexicographically wrong and is hard to parse programmatically. In a post-incident review, "which run caused this?" becomes guesswork.
+**Why this matters**: Without timestamps, log lines from different runs blend together. Locale-dependent `date` output sorts lexicographically wrong and is hard to parse programmatically. In a post-incident review, "which run caused this?" becomes guesswork.
 
 **Do instead:**
 ```bash
@@ -141,7 +141,7 @@ echo "$(date '+%Y-%m-%d %H:%M:%S'): Starting job"
 
 ---
 
-### ❌ No log rotation (unbounded growth)
+### Configure Log Rotation
 
 **Detection**:
 ```bash
@@ -149,7 +149,7 @@ grep -rl "\.log" --include="*.sh" scripts/ | xargs grep -L "mtime\|logrotate\|ro
 rg -l '\.log' --type sh | xargs rg -L 'mtime|logrotate|rotate'
 ```
 
-**What it looks like**:
+**Signal**:
 ```bash
 LOG="/var/log/myjob.log"
 exec >> "$LOG" 2>&1
@@ -157,7 +157,7 @@ echo "$(date): Starting"
   # ... no rotation, this file grows forever ...
 ```
 
-**Why wrong**: A daily cron job writing 1 MB of output fills 365 MB/year into a single file. On a VPS with a small `/var` partition, this causes disk-full failures in other services (nginx, postgres, syslog). The problem is usually noticed at 3am when cron itself fails to write.
+**Why this matters**: A daily cron job writing 1 MB of output fills 365 MB/year into a single file. On a VPS with a small `/var` partition, this causes disk-full failures in other services (nginx, postgres, syslog). The problem is usually noticed at 3am when cron itself fails to write.
 
 **Do instead:**
 ```bash
@@ -171,7 +171,7 @@ find "$LOG_DIR" -name "*.log" -mtime +30 -delete
 
 ---
 
-### ❌ Logging to stdout only (lost in cron daemon)
+### Redirect stdout to Persistent Log Files
 
 **Detection**:
 ```bash
@@ -179,7 +179,7 @@ grep -rL ">>" --include="*.sh" scripts/ cron/ | xargs grep -l "echo\|printf" 2>/
 rg -L '>>' --type sh | xargs rg -l 'echo|printf' 2>/dev/null
 ```
 
-**What it looks like**:
+**Signal**:
 ```bash
 #!/bin/bash
 set -e
@@ -189,7 +189,7 @@ echo "Done"
   # All output captured by cron daemon, usually discarded or emailed to root
 ```
 
-**Why wrong**: Cron captures stdout/stderr and emails them. Most systems have cron email disabled or pointing to an unread mailbox. Even when email works, you lose historical logs: only the most recent run's output is potentially available.
+**Why this matters**: Cron captures stdout/stderr and emails them. Most systems have cron email disabled or pointing to an unread mailbox. Even when email works, you lose historical logs: only the most recent run's output is potentially available.
 
 **Do instead:**
 ```bash
