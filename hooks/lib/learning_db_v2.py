@@ -822,8 +822,9 @@ def record_governance_event(
     try:
         init_db()
 
-        ts_ms = int(_time.time() * 1000)
-        suffix = hashlib.md5(f"{event_type}{session_id}{ts_ms}".encode()).hexdigest()[:6]
+        ts_ns = _time.time_ns()
+        ts_ms = ts_ns // 1_000_000
+        suffix = hashlib.md5(f"{event_type}{session_id}{ts_ns}".encode()).hexdigest()[:6]
         eid = event_id or f"gov-{ts_ms}-{suffix}"
 
         payload_str = _json.dumps(payload) if payload else None
