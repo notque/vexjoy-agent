@@ -140,7 +140,7 @@ Test Plan: [How to reproduce]
 |---|---|---|
 | workflow steps | `debugging-workflows.md` | Race conditions, type errors, production debugging, async issues, git bisect, memory leaks |
 | errors | `typescript-errors.md` | Build errors, type system errors, React errors |
-| implementation patterns | `typescript-anti-patterns.md` | Common mistakes to avoid |
+| implementation patterns | `typescript-anti-patterns.md` | Preferred patterns and detection |
 
 ## Error Handling
 
@@ -162,17 +162,17 @@ Common debugging scenarios and approaches. See [references/debugging-workflows.m
 
 Debugging patterns to follow. See [typescript-frontend-engineer/references/typescript-anti-patterns.md](../typescript-frontend-engineer/references/typescript-anti-patterns.md) for TypeScript-specific patterns.
 
-### ❌ Guessing Without Hypothesis
+### Guessing Without Hypothesis
 **What it looks like**: "Try changing X", "Maybe add this check", "What if you use Y instead"
 **Why wrong**: No learning happens, might fix symptom not cause, wastes time on random changes
 **✅ Do instead**: State hypothesis ("I believe X causes Y because..."), design experiment to test it, analyze results, iterate
 
-### ❌ Marking Fixed Without Reproduction
+### Marking Fixed Without Reproduction
 **What it looks like**: "The code looks right now", "This should fix it", "Try it and let me know"
 **Why wrong**: Can't verify fix works, might come back, didn't prove root cause
 **✅ Do instead**: Create failing test case, implement fix, verify test passes, no regressions
 
-### ❌ Suppressing Errors to Make Them Go Away
+### Suppressing Errors to Make Them Go Away
 **What it looks like**: Wrapping in try/catch with empty handler, adding `|| {}` everywhere, using `any` to silence types
 **Why wrong**: Hides real bugs, makes debugging harder later, errors still happen at runtime
 **✅ Do instead**: Handle errors properly (show to user, log to Sentry, retry), fix root cause (add validation, fix types), fail fast with clear message
@@ -203,7 +203,7 @@ STOP and ask the user (always get explicit approval) before proceeding when:
 | Production access needed | Security/permissions | "Can you provide production logs/stack traces?" |
 | Git history unclear | Need user to identify commits | "When did this start working incorrectly? Which commit last worked?" |
 
-### Never Guess On
+### Verify Before Assuming
 - Root cause without evidence (stack trace, logs, reproduction)
 - Environment differences (need actual env vars, config)
 - User flow that triggers bug (need exact steps)
@@ -256,6 +256,6 @@ These checkpoints are mandatory. Do not skip them even when confident.
 For detailed debugging workflows:
 - **Debugging Workflows**: [typescript-debugging-engineer/references/debugging-workflows.md](typescript-debugging-engineer/references/debugging-workflows.md) - Race conditions, type errors, production debugging, async issues, git bisect, memory leaks
 - **TypeScript Errors**: [typescript-frontend-engineer/references/typescript-errors.md](../typescript-frontend-engineer/references/typescript-errors.md) - Build errors, type system errors, React errors
-- **TypeScript Anti-Patterns**: [typescript-frontend-engineer/references/typescript-anti-patterns.md](../typescript-frontend-engineer/references/typescript-anti-patterns.md) - Common mistakes to avoid
+- **TypeScript Pattern Detection**: [typescript-frontend-engineer/references/typescript-anti-patterns.md](../typescript-frontend-engineer/references/typescript-anti-patterns.md) - Preferred patterns and detection
 
 See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for output format details.

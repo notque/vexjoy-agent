@@ -309,7 +309,7 @@ If you're parsing argument names in a switch statement, you should be using Cobr
 
 Command names must clearly describe what they do and leave room for siblings without renaming. `keppel test` -> `keppel test-driver storage`. (Comment 2)
 
-### Rule 5: DON'T BUILD INFERENCE THAT WON'T SCALE
+### Rule 5: Use Explicit Parameters Over Inference
 
 When a known design change is coming, don't build "smart" inference that will break. Use explicit parameters. But don't preemptively solve the future problem either. (Comment 4)
 

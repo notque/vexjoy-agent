@@ -40,7 +40,7 @@ This training creates text that is:
 
 ---
 
-## Anti-Patterns to AVOID
+## Patterns to Detect and Fix
 
 ### Correcting Natural Speech Patterns
 
@@ -59,7 +59,7 @@ everything crumble behind him."
 
 The run-on sentence IS the voice. The breathless quality conveys the energy.
 
-### ❌ Standardizing Punctuation
+### Standardizing Punctuation
 
 **Before (authentic):**
 ```
@@ -73,7 +73,7 @@ The run-on sentence IS the voice. The breathless quality conveys the energy.
 
 The fragment punches. Complete sentences smooth away the impact.
 
-### ❌ Eliminating Repetition
+### Eliminating Repetition
 
 **Before (authentic):**
 ```
@@ -87,7 +87,7 @@ The fragment punches. Complete sentences smooth away the impact.
 
 Repetition creates rhythm. Efficiency destroys it.
 
-### ❌ Fixing "Errors" That Are Style
+### Fixing "Errors" That Are Style
 
 | "Error" | Actually Is |
 |---------|-------------|

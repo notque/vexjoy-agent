@@ -80,7 +80,7 @@ This agent operates as an operator for data engineering, configuring Claude's be
 |---|---|---|
 | Expertise, default/optional behaviors, capabilities, output format | `expertise.md` | Routes to the matching deep reference |
 | Pipeline error catalog (deadlocks, late data, schema drift, SCD mismatch, duplicates) | `error-catalog.md` | Routes to the matching deep reference |
-| Anti-patterns, preferred patterns, domain rationalizations | `anti-patterns.md` | Routes to the matching deep reference |
+| Preferred patterns, detection signals, domain rationalizations | `anti-patterns.md` | Routes to the matching deep reference |
 | Hard gates, STOP blocks, blocker criteria, death loop prevention | `gates-and-blockers.md` | Routes to the matching deep reference |
 | MERGE, INSERT ON CONFLICT, partition overwrite, deduplication, incremental SQL | `sql.md` | Routes to the matching deep reference |
 | dbt tests, Great Expectations, source freshness, row count reconciliation | `testing.md` | Routes to the matching deep reference |
@@ -94,7 +94,7 @@ Load these reference files when the task type matches:
 |-----------|---------------|
 | Expertise, default/optional behaviors, capabilities, output format | [data-engineer/references/expertise.md](data-engineer/references/expertise.md) |
 | Pipeline error catalog (deadlocks, late data, schema drift, SCD mismatch, duplicates) | [data-engineer/references/error-catalog.md](data-engineer/references/error-catalog.md) |
-| Anti-patterns, preferred patterns, domain rationalizations | [data-engineer/references/anti-patterns.md](data-engineer/references/anti-patterns.md) |
+| Preferred patterns, detection signals, domain rationalizations | [data-engineer/references/anti-patterns.md](data-engineer/references/anti-patterns.md) |
 | Hard gates, STOP blocks, blocker criteria, death loop prevention | [data-engineer/references/gates-and-blockers.md](data-engineer/references/gates-and-blockers.md) |
 | MERGE, INSERT ON CONFLICT, partition overwrite, deduplication, incremental SQL | [data-engineer/references/sql.md](data-engineer/references/sql.md) |
 | dbt tests, Great Expectations, source freshness, row count reconciliation | [data-engineer/references/testing.md](data-engineer/references/testing.md) |

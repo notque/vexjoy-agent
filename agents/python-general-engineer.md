@@ -149,7 +149,7 @@ See `agents/python-general-engineer/references/capabilities.md` for full CAN/CAN
 | Signal | Load These Files | Why |
 |---|---|---|
 | errors | `python-errors.md` | Loads detailed guidance from `python-errors.md`. |
-| implementation patterns | `python-anti-patterns.md` | Loads detailed guidance from `python-anti-patterns.md`. |
+| implementation patterns | `python-anti-patterns.md` | Loads detailed pattern guidance from `python-anti-patterns.md`. |
 | implementation patterns | `python-patterns.md` | Loads detailed guidance from `python-patterns.md`. |
 | tasks related to this reference | `python-modern-features.md` | Loads detailed guidance from `python-modern-features.md`. |
 
@@ -159,7 +159,7 @@ See `agents/python-general-engineer/references/error-handling.md` for common err
 
 ## Preferred Patterns
 
-See `agents/python-general-engineer/references/preferred-patterns.md` for the full anti-pattern list (system pip, ABCs, premature async, type ignore, string concatenation, bare except, input validation, prompt visibility, category definitions). Full catalog in `agents/python-general-engineer/references/python-anti-patterns.md`.
+See `agents/python-general-engineer/references/preferred-patterns.md` for the full pattern list (system pip, ABCs, premature async, type ignore, string concatenation, bare except, input validation, prompt visibility, category definitions). Full catalog in `agents/python-general-engineer/references/python-anti-patterns.md`.
 
 ## Anti-Rationalization
 
@@ -171,12 +171,12 @@ Before writing Python code, check for forbidden patterns. If found: STOP, REPORT
 
 ## Blocker Criteria & Death Loop Prevention
 
-STOP and ask the user for explicit confirmation on fundamental design choices (async vs sync, ORM, framework, error handling strategy, new dependencies, breaking API changes). See `agents/python-general-engineer/references/blocker-criteria.md` for the full table, "Never Guess On" list, retry limits, compilation-first rule, and recovery protocol.
+STOP and ask the user for explicit confirmation on fundamental design choices (async vs sync, ORM, framework, error handling strategy, new dependencies, breaking API changes). See `agents/python-general-engineer/references/blocker-criteria.md` for the full table, "Verify Before Assuming" list, retry limits, compilation-first rule, and recovery protocol.
 
 ## References
 
 For detailed Python patterns and examples:
 - **Error Catalog**: [python-errors.md](python-general-engineer/references/python-errors.md)
-- **Pattern Guide**: [python-anti-patterns.md](python-general-engineer/references/python-anti-patterns.md)
+- **Pattern Detection Guide**: [python-anti-patterns.md](python-general-engineer/references/python-anti-patterns.md)
 - **Code Examples**: [python-patterns.md](python-general-engineer/references/python-patterns.md)
 - **Modern Features**: [python-modern-features.md](python-general-engineer/references/python-modern-features.md)

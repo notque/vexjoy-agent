@@ -88,9 +88,9 @@ Focus on non-obvious, specific insights — not generic best practices.
 | `hooks/confidence-decay.py` | Prune stale low-confidence entries |
 | `skills/retro/SKILL.md` | User-facing `/retro` commands (status, list, search, graduate) |
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
-| Anti-Pattern | Why Wrong | Do Instead |
+| Signal | Why It Matters | Preferred Action |
 |--------------|-----------|------------|
 | Skip recording because "nothing learned" | Every phase teaches something | Record specific insights; hooks catch errors automatically |
 | Record generic findings | "Follow best practices" teaches nothing | Record specific: "sync.Mutex for multi-field state machines in this project" |

@@ -1,40 +1,68 @@
-# Data Engineer Patterns to Detect and Fix
+# Data Engineer Preferred Patterns
 
-Common data engineering mistakes and their corrections, plus domain-specific rationalizations. Loaded when reviewing pipeline designs or pushing back on shortcuts.
+Common data engineering patterns and their rationale. Loaded when reviewing pipeline designs or pushing back on shortcuts.
 
 ## Preferred Patterns
 
-Common data engineering mistakes and their corrections.
+### Make Every Pipeline Step Idempotent
 
-### ❌ Non-Idempotent Pipeline Steps
-**What it looks like**: Using `INSERT INTO` without deduplication, appending to tables on every run without checking for existing data.
-**Why wrong**: Re-runs create duplicate records, inflating metrics. Recovery from failures requires manual intervention to delete duplicates before re-running.
-**Do instead**: Use `MERGE`/`INSERT ... ON CONFLICT`, partition overwrite, or deduplication with windowed `ROW_NUMBER()`. Test by running the pipeline twice and verifying identical output.
+Use `MERGE`/`INSERT ... ON CONFLICT`, partition overwrite, or deduplication with windowed `ROW_NUMBER()` so that running a pipeline twice produces identical output. Test idempotency explicitly: run the pipeline twice against the same input and verify the row count and checksums match.
 
-### ❌ Fact Table Without Defined Grain
-**What it looks like**: Creating a fact table and adding columns without first stating "one row represents ___."
-**Why wrong**: Ambiguous grain leads to double-counting in aggregations, inconsistent metrics across reports, and dimensions that don't join cleanly.
-**Do instead**: State grain explicitly before any column design: "one row per order line item per day." If stakeholders disagree on grain, that is a blocker -- resolve it before building.
+**Why this matters**: Non-idempotent steps (plain `INSERT INTO` without deduplication) create duplicate records on every re-run, inflating metrics silently. Recovery from failures requires manual intervention to delete duplicates before re-running -- an error-prone process that erodes trust in the data platform.
 
-### ❌ Testing Transforms in Production
-**What it looks like**: Running new or modified dbt models directly against the production warehouse without staging environment validation.
-**Why wrong**: Bad transforms corrupt production data, break downstream dashboards, and erode trust in the data platform.
-**Do instead**: Run transforms in a staging/dev environment first. Use dbt's `--target dev` to test against a non-production dataset. Add schema and data tests that must pass before promotion.
+**Detection**: `grep -rn 'INSERT INTO' --include="*.sql" | grep -v 'ON CONFLICT\|MERGE\|UPSERT'` finds insert statements without deduplication guards.
 
-### ❌ Monolithic Pipeline DAG
-**What it looks like**: A single Airflow DAG with 50+ tasks covering extraction, transformation, loading, and quality checks for multiple data domains.
-**Why wrong**: A single task failure blocks everything. Impossible to debug. Can't backfill one domain without re-running all. Deployment changes affect the entire pipeline.
-**Do instead**: Decompose into independent sub-DAGs per data domain with clear contracts. Use dataset-triggered DAGs (Airflow 2.4+) or Dagster assets for cross-pipeline dependencies.
+---
 
-### ❌ Hardcoded Business Logic in SQL
-**What it looks like**: Revenue calculation formula duplicated across 5 different dbt models with slight variations.
-**Why wrong**: Logic drift -- different reports show different numbers for the "same" metric. Fixing a bug requires finding and updating every copy.
-**Do instead**: Centralize business logic in dbt macros or a shared transformation layer. Define metrics once, reference everywhere.
+### Define the Grain Before Designing Columns
 
-### ❌ No Backfill Strategy
-**What it looks like**: Pipeline only processes "today's data" with no way to reprocess historical date ranges.
-**Why wrong**: When bugs are found, corrections require manual intervention. Schema changes that affect historical data can't be applied retroactively.
-**Do instead**: Parameterize pipelines with date ranges from day one. Use `{{ ds }}` in Airflow, `var()` in dbt. Test backfill by running for a historical date range before going to production.
+State the grain explicitly before any column design: "one row per order line item per day." If stakeholders disagree on grain, that is a requirement blocker -- resolve it before building. Document the grain in the model's YAML description or dbt schema.
+
+**Why this matters**: Ambiguous grain leads to double-counting in aggregations, inconsistent metrics across reports, and dimensions that don't join cleanly. The bug is invisible until two teams produce different numbers for the "same" metric.
+
+**Detection**: `grep -rL 'grain\|one row per' models/ --include="*.yml" --include="*.yaml"` finds dbt model docs that may lack grain definitions.
+
+---
+
+### Validate Transforms in a Staging Environment First
+
+Run transforms in a staging/dev environment before production. Use dbt's `--target dev` to test against a non-production dataset. Add schema tests and data tests (`not_null`, `unique`, `accepted_values`, row count assertions) that must pass before promotion to production.
+
+**Why this matters**: Running new or modified dbt models directly against the production warehouse risks corrupting production data, breaking downstream dashboards, and eroding stakeholder trust in the data platform. A staging validation that takes 10 minutes prevents a production incident that takes 10 hours.
+
+**Detection**: `grep -rn '\-\-target prod' --include="*.sh" --include="*.yml"` finds scripts that may run directly against production without a staging gate.
+
+---
+
+### Decompose Pipeline DAGs by Data Domain
+
+Split monolithic DAGs into independent sub-DAGs, one per data domain, with clear contracts between them. Use dataset-triggered DAGs (Airflow 2.4+) or Dagster assets for cross-pipeline dependencies. Each sub-DAG should be independently backfillable, deployable, and debuggable.
+
+**Why this matters**: A single 50+ task DAG is a single point of failure. One task failure blocks everything downstream, debugging requires tracing through unrelated tasks, backfilling one domain re-runs all domains, and deployment changes affect the entire pipeline.
+
+**Detection**: `grep -c 'task_id' dags/*.py` gives task counts per DAG file. Any DAG with 20+ tasks warrants decomposition review.
+
+---
+
+### Centralize Business Logic in Shared Transformations
+
+Define business calculations (revenue formulas, churn definitions, cohort logic) once in dbt macros or a shared transformation layer. Reference the centralized definition everywhere. Never duplicate formulas across models.
+
+**Why this matters**: Duplicated business logic drifts. When the revenue formula is in 5 models with slight variations, different reports show different numbers for the "same" metric. Fixing a bug requires finding and updating every copy -- and missing one creates a silent inconsistency.
+
+**Detection**: `grep -rn 'revenue\|total_amount\|net_amount' models/ --include="*.sql" | sort | uniq -c | sort -rn` surfaces formulas that may be duplicated across models.
+
+---
+
+### Parameterize Pipelines for Date-Range Backfill From Day One
+
+Design every pipeline to accept start and end dates as parameters. Use `{{ ds }}` in Airflow, `var()` in dbt, or environment variables in scripts. Test backfill by running for a historical date range before the first production deployment.
+
+**Why this matters**: When bugs are discovered, corrections require reprocessing historical data. Without date parameterization, this requires manual intervention, custom one-off scripts, and downtime. Schema changes that affect historical data become impossible to apply retroactively.
+
+**Detection**: `grep -rL 'ds\|execution_date\|date_range\|start_date' dags/ --include="*.py"` finds DAGs that may lack date parameterization.
+
+---
 
 ## Domain-Specific Rationalizations
 

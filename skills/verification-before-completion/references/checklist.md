@@ -300,7 +300,7 @@ Test if this addresses the issue. Please verify the changes work for your specif
 
 ## Completion Checks
 
-### ❌ NEVER Do This
+### Patterns That Fail Verification
 - Say "tests pass" without showing output
 - Skip verification because "it's a small change"
 - Assume tests exist without checking

@@ -72,9 +72,9 @@ project-root/
 4. **Archive branch tips** — tag `archive/feature/name` before deleting branch
 5. **Worktree paths in .gitignore** — add `.feature/worktrees/` and `.worktrees/`
 
-## Anti-Patterns
+## Patterns to Detect and Fix
 
-| Anti-Pattern | Why Wrong | Do Instead |
+| Signal | Why It Matters | Preferred Action |
 |--------------|-----------|------------|
 | Checkout branch in main tree | Loses uncommitted work, no isolation | Use worktree |
 | Keep worktrees after merge | Disk waste, stale state | Cleanup via script |

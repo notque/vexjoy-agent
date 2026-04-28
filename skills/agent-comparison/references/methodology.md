@@ -227,7 +227,7 @@ Record:
 - Comparing internal agents to external alternatives
 - Deciding which agent to use for production tasks
 
-### Don't run when:
+### Skip Conditions
 - The task is trivial (use any agent)
 - You only care about simple tasks (compact agents are fine)
 - You're prototyping (use cheapest agent)

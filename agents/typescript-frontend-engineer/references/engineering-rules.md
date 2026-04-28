@@ -129,7 +129,7 @@ STOP and ask the user (always get explicit approval) before proceeding when:
 | Breaking type changes | User coordination for migration | "This changes types used by 5 other components - proceed?" |
 | Form library choice | Project consistency matters | "Use React Hook Form (recommended) or Formik?" |
 
-### Never Guess On
+### Verify Before Assuming
 - API response structure - always ask for example response
 - Validation requirements - over-validation frustrates users
 - Breaking type changes - affects other developers

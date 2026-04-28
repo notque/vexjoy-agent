@@ -167,7 +167,7 @@ Describe the scene and context:
 - **Use natural language**: Write as you'd describe to someone
 - **Include relevant text**: If image contains important text, include it
 
-### DON'T
+### Common Mistakes
 
 - **Start with "Image of" or "Picture of"**: Redundant
 - **Use file names**: "logo-v2-final.png" is not alt text

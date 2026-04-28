@@ -291,7 +291,7 @@ Stop and ask the user before proceeding when:
 | Breaking change | User coordination needed | "This changes Z - is that intended?" |
 | [Domain-specific blocker] | [Reason] | [Question] |
 
-### Never Guess On
+### Verify Before Assuming
 - [Critical domain decision 1]
 - [Critical domain decision 2]
 - [Irreversible action 1]

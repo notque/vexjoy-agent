@@ -180,7 +180,7 @@ Every testing task MUST produce output with these 5 sections: SCOPE, TEST INVENT
 
 ### Flaky Tests
 **Cause**: Tests pass/fail non-deterministically due to timing, async, or race conditions.
-**Solution**: Find root cause instead of adding arbitrary waits: use proper `waitFor` with conditions, fix race conditions, stabilize test data. See [testing-automation/anti-patterns.md](testing-automation-engineer/references/anti-patterns.md#flaky-tests).
+**Solution**: Find root cause instead of adding arbitrary waits: use proper `waitFor` with conditions, fix race conditions, stabilize test data. See [testing-automation/patterns-to-detect.md](testing-automation-engineer/references/anti-patterns.md#flaky-tests).
 
 ### Low Coverage
 **Cause**: Tests miss too many code paths.
@@ -194,7 +194,7 @@ Every testing task MUST produce output with these 5 sections: SCOPE, TEST INVENT
 
 Four patterns to avoid: testing implementation details (test public API, not internals), shared test state (each test must be independent), over-mocking (mock only external boundaries), assertion-free tests (`toBeDefined()` alone is never sufficient — assert on specific values).
 
-> See `testing-automation-engineer/references/anti-patterns.md` for full anti-pattern catalog with examples.
+> See `testing-automation-engineer/references/anti-patterns.md` for full pattern catalog with examples.
 
 ## Anti-Rationalization
 
@@ -212,7 +212,7 @@ STOP and ask the user (get explicit confirmation) before proceeding when:
 | Coverage target differs | Project standards vary | "What's the coverage target for this project?" |
 | External service testing | Mock vs real service | "Should I mock this API or use test instance?" |
 
-### Never Guess On
+### Verify Before Assuming
 - What constitutes "critical path" (business decision)
 - Acceptable coverage threshold (project standard)
 - Whether to test implementation details (always no, but confirm)
@@ -227,17 +227,17 @@ Load on demand based on task signals. Do not load all at once — load only what
 | "vitest", "vi.fn", "vi.mock", "coverage config", "spy", "jest to vitest", "fake timers" | `references/vitest-patterns.md` |
 | "async", "waitFor", "findBy", "MSW", "flaky test", "setTimeout in test", "userEvent" | `references/async-testing.md` |
 | "mock", "over-mocking", "what to mock", "MSW vs mock", "spyOn", "mock boundary" | `references/mocking-patterns.md` |
-| anti-patterns, "testing implementation details", "shared state", "assertion-free" | `testing-automation-engineer/references/anti-patterns.md` |
+| pattern detection, "testing implementation details", "shared state", "assertion-free" | `testing-automation-engineer/references/anti-patterns.md` |
 | output format, output contract, hard gate patterns, verdict criteria | `references/output-contract.md` |
 
 ## References
 
 For detailed testing patterns and implementation examples:
 - **Output Contract**: [references/output-contract.md](testing-automation-engineer/references/output-contract.md) — 5-section output structure, VERDICT criteria, hard gate patterns
-- **Vitest Patterns**: [references/vitest-patterns.md](testing-automation-engineer/references/vitest-patterns.md) — Vitest 1.x/2.x config, spy lifecycle, coverage thresholds, anti-patterns
+- **Vitest Patterns**: [references/vitest-patterns.md](testing-automation-engineer/references/vitest-patterns.md) — Vitest 1.x/2.x config, spy lifecycle, coverage thresholds, patterns to detect
 - **Async Testing**: [references/async-testing.md](testing-automation-engineer/references/async-testing.md) — waitFor, findBy*, MSW, Playwright auto-wait patterns
 - **Mocking Patterns**: [references/mocking-patterns.md](testing-automation-engineer/references/mocking-patterns.md) — mock boundary decisions, over-mocking detection, MSW vs vi.mock
-- **Anti-Patterns**: [testing-automation/anti-patterns.md](testing-automation-engineer/references/anti-patterns.md)
+- **Preferred Patterns**: [testing-automation/anti-patterns.md](testing-automation-engineer/references/anti-patterns.md)
 - **Testing Anti-Rationalization**: [shared-patterns/anti-rationalization-testing.md](../skills/shared-patterns/anti-rationalization-testing.md)
 
 See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for Implementation Schema details.
