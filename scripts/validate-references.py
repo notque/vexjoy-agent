@@ -273,7 +273,10 @@ def validate_reference_file(ref_path: Path) -> list[ReferenceIssue]:
     """Check structural requirements of a single reference .md file."""
     issues: list[ReferenceIssue] = []
     content = ref_path.read_text(encoding="utf-8")
-    rel = str(ref_path.relative_to(AGENTS_DIR))
+    try:
+        rel = str(ref_path.relative_to(AGENTS_DIR))
+    except ValueError:
+        rel = str(ref_path.relative_to(REPO_ROOT))
 
     headings = [line for line in content.splitlines() if line.startswith("## ")]
     if not headings:
