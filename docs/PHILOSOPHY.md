@@ -382,6 +382,16 @@ This is "Load Only What You Need" applied at the skill-content level. The same h
 
 The runtime-priming argument is empirical, not aesthetic. Every byte of context shapes the output distribution. Negative framing — "do not claim X about Feynman's personal life" — biases generation toward those exact topics by salience; the model has now been told they exist and are sensitive, which is the worst of both worlds when the user asked for something else entirely. Positive framing — "apply mechanism-first thinking; cite primary sources" — biases toward the desired output. The same logic that drives the joy-check rubric for instruction-mode content (ADR-127) drives this rule for skill-body content: tell the LLM what to do, not what to fear.
 
+**Pattern catalogs follow the same rule.** A file that teaches domain patterns should lead with the correct approach, not the mistake. The structure:
+
+1. **Heading states the action**: "Handle Every Error Return" — not "Ignoring Errors"
+2. **Opening paragraph gives positive instruction**: what to do and how, in plain language
+3. **Correct code gets top billing**: the first code block is the right approach, with explanatory comments
+4. **"Why this matters"**: frames what you gain by doing it right — not just what goes wrong
+5. **"Detection"**: a grep command or lint rule that finds violations
+
+Renaming a heading from "Anti-Pattern" to "Signal" while keeping the same mistake-first structure changes nothing about how the model processes the file. The wrong code still gets read first. The model still internalizes the wrong pattern with more salience. A genuine transformation reorders the content so the correct approach gets the most context-window real estate and the mistake becomes a brief detection signal. Label-swapping is not positive instruction — content reordering is.
+
 This is also "Workflow First, Constraints Inline" applied with discipline about *which* constraints belong inline. Constraints that govern the workflow's decision points belong attached to those decision points — "use table-driven tests because they make adding cases trivial" inside the testing phase. Constraints that are *about* the skill rather than *executed by* it (provenance, ethics framing, marketing copy) do not belong in the skill at all. The `create-voice` skill, after this principle is enforced, will not document author-personality caveats; that judgment happens at the moment a writer asks the voice to produce text on a sensitive topic, where the operator and the validator can see the actual request, not at profile-build time where the worry would only contaminate the generator's context.
 
 ## Maintenance Artifacts Are Not Runtime Context
