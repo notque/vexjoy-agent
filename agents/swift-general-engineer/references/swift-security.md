@@ -306,9 +306,9 @@ rg -n 'pinnedCertificates\|pinnedPublicKeys\|certificatePinner' . --type swift
 
 ---
 
-## Avoid UserDefaults for Sensitive Data
+## Store Sensitive Data in Keychain Services
 
-Use UserDefaults only for non-sensitive preferences (theme, language, onboarding state). Sensitive data belongs in Keychain.
+Store tokens, keys, and credentials in Keychain Services, which encrypts data with the device passcode. Reserve UserDefaults for non-sensitive preferences (theme, language, onboarding state).
 
 ```swift
 // Correct: UserDefaults for preferences only
