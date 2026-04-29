@@ -56,9 +56,9 @@ python3 ~/.claude/scripts/bluesky_reader.py feed --handle HANDLE --cursor CURSOR
 | Task type | Load this reference |
 |-----------|-------------------|
 | Endpoint details, data shapes, pagination | `references/at-protocol-api.md` |
-| Debugging fetch errors, wrong output, missing posts | `references/at-protocol-anti-patterns.md` |
+| Debugging fetch errors, wrong output, missing posts | `references/at-protocol-preferred-patterns.md` |
 | Extending the script with new endpoints or search | `references/at-protocol-api.md` |
-| Code review of AT Protocol Python code | `references/at-protocol-anti-patterns.md` |
+| Code review of AT Protocol Python code | `references/at-protocol-preferred-patterns.md` |
 
 ## Exit Codes
 
@@ -72,6 +72,6 @@ python3 ~/.claude/scripts/bluesky_reader.py feed --handle HANDLE --cursor CURSOR
 | Signal | Load These Files | Why |
 |---|---|---|
 | Endpoint details, data shapes, pagination | `at-protocol-api.md` | Routes to the matching deep reference |
-| Debugging fetch errors, wrong output, missing posts | `at-protocol-anti-patterns.md` | Routes to the matching deep reference |
+| Debugging fetch errors, wrong output, missing posts | `at-protocol-preferred-patterns.md` | Routes to the matching deep reference |
 | Extending the script with new endpoints or search | `at-protocol-api.md` | Routes to the matching deep reference |
-| Code review of AT Protocol Python code | `at-protocol-anti-patterns.md` | Routes to the matching deep reference |
+| Code review of AT Protocol Python code | `at-protocol-preferred-patterns.md` | Routes to the matching deep reference |

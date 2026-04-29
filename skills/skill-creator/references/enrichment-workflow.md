@@ -119,7 +119,7 @@ Goal: add research content to the skill in a form that changes behavior at execu
 |---|---|
 | Pattern catalog with before/after | `references/patterns.md` (new) |
 | Checklist practitioners use | `references/checklist.md` (new) |
-| Common mistakes | `references/anti-patterns.md` (new, or add to existing) |
+| Common mistakes | `references/preferred-patterns.md` (new, or add to existing) |
 | Validation criteria | `references/validation-criteria.md` (new) |
 | Repeatable deterministic operation | `scripts/tool-name.py` (new) |
 

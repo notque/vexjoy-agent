@@ -33,7 +33,7 @@ Multi-agent architecture consultation that dispatches 3 specialized reviewers in
 | Signal | Load These Files | Why |
 |---|---|---|
 | tasks related to this reference | `agent-prompts.md` | Loads detailed guidance from `agent-prompts.md`. |
-| implementation patterns | `consultation-anti-patterns.md` | Loads detailed guidance from `consultation-anti-patterns.md`. |
+| implementation patterns | `consultation-preferred-patterns.md` | Loads detailed guidance from `consultation-preferred-patterns.md`. |
 | implementation patterns | `consultation-patterns.md` | Loads detailed guidance from `consultation-patterns.md`. |
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
 
@@ -204,8 +204,8 @@ The consultation directory is auto-created by Phase 1 (`mkdir -p adr/{adr-name}`
 | Synthesizing verdicts, aggregating PROCEED/BLOCK/NEEDS_CHANGES | `references/consultation-patterns.md` |
 | Classifying concern severity, writing concerns.md or synthesis.md | `references/consultation-patterns.md` |
 | Issuing BLOCKED or PROCEED verdict display | `references/consultation-patterns.md` |
-| Agent file missing, consultation incomplete, prior work overwritten | `references/consultation-anti-patterns.md` |
-| Rationalizing a blocking concern, treating NEEDS_CHANGES as PROCEED | `references/consultation-anti-patterns.md` |
+| Agent file missing, consultation incomplete, prior work overwritten | `references/consultation-preferred-patterns.md` |
+| Rationalizing a blocking concern, treating NEEDS_CHANGES as PROCEED | `references/consultation-preferred-patterns.md` |
 | Agent times out, empty file, output written to wrong path | `references/error-handling.md` |
 | concerns.md has blocking severity but synthesis says PROCEED | `references/error-handling.md` |
 
@@ -216,5 +216,5 @@ The consultation directory is auto-created by Phase 1 (`mkdir -p adr/{adr-name}`
 - [reviewer-perspectives](../../agents/reviewer-perspectives.md) -- Perspectives agent (contrarian, user-advocate, meta-process lenses)
 - `references/agent-prompts.md` -- Full prompt templates for all 3 standard agents + complex mode
 - `references/consultation-patterns.md` -- Correct patterns, artifact templates, verdict display formats
-- `references/consultation-anti-patterns.md` -- Anti-patterns with detection commands
+- `references/consultation-preferred-patterns.md` -- Anti-patterns with detection commands
 - `references/error-handling.md` -- Error recovery by phase

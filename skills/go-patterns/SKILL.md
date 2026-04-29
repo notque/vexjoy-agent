@@ -84,7 +84,7 @@ based on the Go task at hand.
 | Testing | `testing.md` | Writing, fixing, or reviewing Go tests |
 | Concurrency | `concurrency.md` | Goroutines, channels, sync primitives, race conditions |
 | Error handling | `error-handling.md` | Error wrapping, sentinels, custom types, errors.Is/As |
-| Review patterns | `anti-patterns.md` | Detecting code smells, over-engineering, bad Go patterns |
+| Review patterns | `preferred-patterns.md` | Detecting code smells, over-engineering, bad Go patterns |
 | Code review | `code-review.md` | Reviewing Go code or PRs for quality |
 | SAP CC conventions | `sapcc-conventions.md` | Working in sapcc/* repos with go-bits |
 | Quality gate | `quality-gate.md` | Running make check, linting, pre-commit validation |
@@ -101,7 +101,7 @@ Only load what is needed -- do not load all references for every task.
 | Testing | `references/testing.md` | Writing, fixing, or reviewing Go tests |
 | Concurrency | `references/concurrency.md` | Goroutines, channels, sync primitives, race conditions |
 | Error handling | `references/error-handling.md` | Error wrapping, sentinels, custom types, errors.Is/As |
-| Review patterns | `references/anti-patterns.md` | Detecting code smells, over-engineering, bad Go patterns |
+| Review patterns | `references/preferred-patterns.md` | Detecting code smells, over-engineering, bad Go patterns |
 | Code review | `references/code-review.md` | Reviewing Go code or PRs for quality |
 | SAP CC conventions | `references/sapcc-conventions.md` | Working in sapcc/* repos with go-bits |
 | Quality gate | `references/quality-gate.md` | Running make check, linting, pre-commit validation |
@@ -131,7 +131,7 @@ Some references point to their own sub-reference files for extended patterns:
 - `${CLAUDE_SKILL_DIR}/references/error-handling/patterns.md` -- gopls tracing, HTTP handler patterns, error wrapping in middleware
 
 **Review-pattern** sub-references:
-- `${CLAUDE_SKILL_DIR}/references/anti-patterns/code-examples.md` -- Extended before/after for all 7 anti-patterns
+- `${CLAUDE_SKILL_DIR}/references/preferred-patterns/code-examples.md` -- Extended before/after for all 7 anti-patterns
 
 **Code review** sub-references:
 - `${CLAUDE_SKILL_DIR}/references/code-review/common-review-comments.md` -- Go code patterns with good/bad examples
@@ -142,7 +142,7 @@ Some references point to their own sub-reference files for extended patterns:
 - `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/architecture-patterns.md` -- Full 102-rule architecture spec
 - `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/review-standards-lead.md` -- 21 lead review comments
 - `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/review-standards-secondary.md` -- 15 secondary review comments
-- `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/anti-patterns.md` -- 20+ quality issues with BAD/GOOD examples
+- `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/preferred-patterns.md` -- 20+ quality issues with BAD/GOOD examples
 - `${CLAUDE_SKILL_DIR}/references/sapcc-conventions/extended-patterns.md` -- Security, K8s, PR hygiene patterns
 - Plus: `api-design-detailed.md`, `build-ci-detailed.md`, `error-handling-detailed.md`,
   `go-bits-philosophy-detailed.md`, `pr-mining-insights.md`, `testing-patterns-detailed.md`

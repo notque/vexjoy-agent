@@ -43,7 +43,7 @@ For each target name in the targets list:
 
 1. **Audit before:** Run `python3 scripts/audit-reference-depth.py --agent {name} --verbose` to record the starting level
 2. **Gap analysis:** Run `python3 skills/reference-enrichment/scripts/gap-analyzer.py --agent {name}` to identify specific knowledge gaps
-3. **Read exemplars:** Read one high-quality reference file as a model (e.g., `~/.claude/agents/golang-general-engineer/references/go-anti-patterns.md`). This shows what Level 3 depth looks like.
+3. **Read exemplars:** Read one high-quality reference file as a model (e.g., `~/.claude/agents/golang-general-engineer/references/go-preferred-patterns.md`). This shows what Level 3 depth looks like.
 4. **Read the quality rubric:** Read `skills/reference-enrichment/references/quality-rubric.md` for Level classification criteria
 5. **Read the template:** Read `skills/reference-enrichment/references/reference-file-template.md` for the standard structure
 6. **Generate reference files:** For the top 2-3 gaps identified, create reference files that include:

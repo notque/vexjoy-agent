@@ -10,7 +10,7 @@ Load these files when the corresponding signals appear:
 |--------|------|
 | Constructing or debugging `codex exec` command; flag errors; mktemp issues; model errors | `${CLAUDE_SKILL_DIR}/references/codex-review-cli-patterns.md` |
 | Classifying findings; adjusting severity; filtering Codex output; writing the report | `${CLAUDE_SKILL_DIR}/references/codex-review-methodology.md` |
-| Looking up specific anti-patterns to verify; needs detection grep commands for Go/TS/Python | `${CLAUDE_SKILL_DIR}/references/codex-review-anti-patterns.md` |
+| Looking up specific anti-patterns to verify; needs detection grep commands for Go/TS/Python | `${CLAUDE_SKILL_DIR}/references/codex-review-preferred-patterns.md` |
 | Executing Phase 2-4 (invoke, assess, report); error handling; what NOT to do | `${CLAUDE_SKILL_DIR}/references/codex-review-invocation.md` |
 
 Claude orchestrates the review: scoping what to review, constructing the prompt, invoking Codex in a read-only sandbox, then critically assessing the feedback before presenting it to the user.

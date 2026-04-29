@@ -313,6 +313,6 @@ end
 
 ## See Also
 
-- `fish-anti-patterns.md` — Detection commands for common Fish config mistakes
+- `fish-preferred-patterns.md` — Detection commands for common Fish config mistakes
 - `bash-migration.md` — Bash-to-Fish syntax translation
 - `fish-quick-reference.md` — Variable scoping and PATH management cheatsheet

@@ -1,6 +1,6 @@
 # Python Preferred Patterns
 
-Common Python patterns to follow. See `python-anti-patterns.md` for full catalog.
+Common Python patterns to follow. See `python-preferred-patterns.md` for full catalog.
 
 ### Use Virtual Environments for All Installs
 **Signal**: Running `pip3 install` without a virtual environment, hitting version mismatches between Python and pip

@@ -135,7 +135,7 @@ Production-focused critique and operational reality checks for code, architectur
 
 For comprehensive operational catalogs:
 - [production-gaps.md](production-gaps.md) -- Full production readiness gap catalog with solutions
-- [operational-anti-patterns.md](operational-anti-patterns.md) -- Complete anti-pattern catalog with corrected code
+- [operational-preferred-patterns.md](operational-preferred-patterns.md) -- Complete anti-pattern catalog with corrected code
 
 ## Questions Always Asked
 - What's the first thing that breaks under load?

@@ -253,5 +253,5 @@ concerns.md, add it to concerns.md with proper severity, then re-verify the verd
 
 ## See Also
 
-- `consultation-anti-patterns.md` — Structural anti-patterns (sequential dispatch, context-only synthesis, rationalization)
+- `consultation-preferred-patterns.md` — Structural anti-patterns (sequential dispatch, context-only synthesis, rationalization)
 - `consultation-patterns.md` — Correct dispatch, synthesis, and verdict aggregation patterns

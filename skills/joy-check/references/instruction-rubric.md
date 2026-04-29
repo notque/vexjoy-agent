@@ -38,7 +38,7 @@ These are PASS even though they contain negative words:
 - **Code examples showing bad patterns**: `// NEVER` in a code comment demonstrating what SQL injection looks like — this is illustrative, not instructional
 - **Writing samples and user dialogue**: "Don't do this!" in an example of how users speak — this is quoted content
 - **Technical terms**: "Copula Avoidance" is a proper term for an AI writing pattern — the word "Avoidance" is part of the term, not a prohibition
-- **File path references**: `references/anti-patterns.md` — this is a filename, not an instruction
+- **File path references**: `references/preferred-patterns.md` — this is a filename, not an instruction
 - **Descriptive text about behavior**: "tests do not cover edge cases" — this describes a state, not an instruction
 
 ## Rewrite Rules

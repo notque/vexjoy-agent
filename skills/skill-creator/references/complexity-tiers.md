@@ -160,7 +160,7 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 └── references/
     ├── error-catalog.md (600 lines)
     ├── code-examples.md (800 lines)
-    ├── anti-patterns.md (500 lines)
+    ├── preferred-patterns.md (500 lines)
     └── table-driven-testing.md (400 lines)
 ```
 
@@ -190,7 +190,7 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 └── references/
     ├── error-catalog.md (700 lines)
     ├── code-examples.md (900 lines)
-    ├── anti-patterns.md (600 lines)
+    ├── preferred-patterns.md (600 lines)
     └── worker-pools.md (400 lines)
 ```
 

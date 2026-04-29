@@ -236,5 +236,5 @@ grep -rn "ATTEMPTS: 3/3" . --include="STATUS.md"
 
 ## See Also
 
-- `anti-patterns.md` — Full coordination anti-pattern catalog
+- `preferred-patterns.md` — Full coordination anti-pattern catalog
 - `communication-protocols.md` — STATUS.md, HANDOFF.md, BLOCKERS.md templates

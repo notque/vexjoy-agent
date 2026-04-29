@@ -66,7 +66,7 @@ Start, supervise, and terminate shell processes safely -- background jobs, subsh
 | capturing the child PID, `$!` lies, port still listening after kill | `pid-resolution.md` | How to get the real PID and reconcile with observed state |
 | trap ordering, SIGTERM/SIGKILL, subshell signal inheritance, `exec` | `signals-and-traps.md` | Signal and trap discipline |
 | verifying a process is actually gone, lock file still present, port still bound | `cleanup-verification.md` | Kill-and-check pattern |
-| implementation patterns, detection commands, fix snippets, `set -e` + `||` | `anti-patterns.md` | Catalog of gotchas with `rg`/`grep` detection and paired fixes |
+| implementation patterns, detection commands, fix snippets, `set -e` + `||` | `preferred-patterns.md` | Catalog of gotchas with `rg`/`grep` detection and paired fixes |
 
 ## Instructions
 
@@ -218,7 +218,7 @@ trap cleanup EXIT
 trap 'echo "ERROR: line $LINENO exit $?" >&2' ERR
 ```
 
-Constraint: a command followed by `|| something` has its exit code masked -- `set -e` does not fire, and neither does the ERR trap. Use `|| true` only where failure is genuinely harmless, and prefer `if ! cmd; then handle; fi` when you want to act on the failure -- because silent-swallow `|| true` is the top anti-pattern in this domain (see `references/anti-patterns.md`).
+Constraint: a command followed by `|| something` has its exit code masked -- `set -e` does not fire, and neither does the ERR trap. Use `|| true` only where failure is genuinely harmless, and prefer `if ! cmd; then handle; fi` when you want to act on the failure -- because silent-swallow `|| true` is the top anti-pattern in this domain (see `references/preferred-patterns.md`).
 
 ### Step 8: Verify
 
@@ -253,7 +253,7 @@ Solution: use `wait -n` (bash 4.3+) to wait for any child and return its exit co
 
 Cause: a command was followed by `|| true` or `|| :`, swallowing the real failure. Or the failing command was on the left side of a pipeline without `pipefail`.
 
-Solution: remove `|| true` unless you genuinely do not care. Add `set -o pipefail`. See `references/anti-patterns.md` for the `set -e` + `||` swallowing pattern with detection command.
+Solution: remove `|| true` unless you genuinely do not care. Add `set -o pipefail`. See `references/preferred-patterns.md` for the `set -e` + `||` swallowing pattern with detection command.
 
 ## References
 
@@ -265,7 +265,7 @@ Solution: remove `|| true` unless you genuinely do not care. Add `set -o pipefai
 | Killing or finding a process | "kill the process", "find the pid", "port still bound", "$!", "pgrep", "ss", "lsof" | `pid-resolution.md` |
 | Writing signal handlers / traps | "trap", "SIGTERM", "SIGKILL", "cleanup handler", "EXIT trap", "exec" | `signals-and-traps.md` |
 | Verifying a kill actually worked | "verify kill", "still running", "lock file", "stale pid", "port in use" | `cleanup-verification.md` |
-| Reviewing a script for gotchas | "audit bash", "shell anti-pattern", "set -e", "|| true", "code review bash" | `anti-patterns.md` |
+| Reviewing a script for gotchas | "audit bash", "shell anti-pattern", "set -e", "|| true", "code review bash" | `preferred-patterns.md` |
 
 ### Reference Files
 
@@ -273,4 +273,4 @@ Solution: remove `|| true` unless you genuinely do not care. Add `set -o pipefai
 - `references/pid-resolution.md` -- why `$!` lies, reliable PID capture, `ss`/`pgrep`/`lsof` recipes.
 - `references/signals-and-traps.md` -- SIGTERM/SIGKILL, trap ordering, subshell inheritance, `exec` semantics, process groups.
 - `references/cleanup-verification.md` -- kill-and-check pattern, state re-query after destructive operations.
-- `references/anti-patterns.md` -- concrete gotchas (`nohup` + `$!` wrapper PID, `set -e` + `||` swallowing, and more) with `rg` detection commands and paired fix snippets.
+- `references/preferred-patterns.md` -- concrete gotchas (`nohup` + `$!` wrapper PID, `set -e` + `||` swallowing, and more) with `rg` detection commands and paired fix snippets.

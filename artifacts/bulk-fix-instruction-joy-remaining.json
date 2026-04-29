@@ -5,7 +5,7 @@
   "applied_rewrites": 0,
   "findings": [
     {
-      "file": "agents/data-engineer/references/anti-patterns.md",
+      "file": "agents/data-engineer/references/preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# Data Engineer Anti-Patterns and Rationalizations",
@@ -33,7 +33,7 @@
       "safe_fix": null
     },
     {
-      "file": "agents/golang-general-engineer/references/go-anti-patterns.md",
+      "file": "agents/golang-general-engineer/references/go-preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# Go General Engineer - Anti-Patterns",
@@ -75,21 +75,21 @@
       "safe_fix": null
     },
     {
-      "file": "agents/hook-development-engineer/references/anti-patterns.md",
+      "file": "agents/hook-development-engineer/references/preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# Hook Development Anti-Patterns Reference",
       "safe_fix": null
     },
     {
-      "file": "agents/mcp-local-docs-engineer/references/mcp-anti-patterns.md",
+      "file": "agents/mcp-local-docs-engineer/references/mcp-preferred-patterns.md",
       "line": 6,
       "pattern": "Anti-Pattern",
       "text": "# MCP Server Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "agents/nextjs-ecommerce-engineer/references/anti-patterns.md",
+      "file": "agents/nextjs-ecommerce-engineer/references/preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# Anti-Patterns Reference",
@@ -103,49 +103,49 @@
       "safe_fix": null
     },
     {
-      "file": "agents/performance-optimization-engineer/references/anti-patterns.md",
+      "file": "agents/performance-optimization-engineer/references/preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# Performance Optimization Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "agents/performance-optimization-engineer/references/anti-patterns.md",
+      "file": "agents/performance-optimization-engineer/references/preferred-patterns.md",
       "line": 5,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern 1: Premature Optimization Without Profiling",
       "safe_fix": null
     },
     {
-      "file": "agents/performance-optimization-engineer/references/anti-patterns.md",
+      "file": "agents/performance-optimization-engineer/references/preferred-patterns.md",
       "line": 38,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern 2: Over-Engineering with Micro-Optimizations",
       "safe_fix": null
     },
     {
-      "file": "agents/performance-optimization-engineer/references/anti-patterns.md",
+      "file": "agents/performance-optimization-engineer/references/preferred-patterns.md",
       "line": 87,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern 3: Ignoring Real User Monitoring (RUM) Data",
       "safe_fix": null
     },
     {
-      "file": "agents/performance-optimization-engineer/references/anti-patterns.md",
+      "file": "agents/performance-optimization-engineer/references/preferred-patterns.md",
       "line": 130,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern 4: Bundle Optimization Without Analysis",
       "safe_fix": null
     },
     {
-      "file": "agents/performance-optimization-engineer/references/anti-patterns.md",
+      "file": "agents/performance-optimization-engineer/references/preferred-patterns.md",
       "line": 168,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern 5: Optimizing Metrics Instead of User Experience",
       "safe_fix": null
     },
     {
-      "file": "agents/performance-optimization-engineer/references/anti-patterns.md",
+      "file": "agents/performance-optimization-engineer/references/preferred-patterns.md",
       "line": 210,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern 6: Performance Budgets Without Context",
@@ -166,7 +166,7 @@
       "safe_fix": null
     },
     {
-      "file": "agents/pipeline-orchestrator-engineer/references/anti-patterns.md",
+      "file": "agents/pipeline-orchestrator-engineer/references/preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# Pipeline Orchestration \u2014 Anti-Patterns",
@@ -187,105 +187,105 @@
       "safe_fix": null
     },
     {
-      "file": "agents/project-coordinator-engineer/references/anti-patterns.md",
+      "file": "agents/project-coordinator-engineer/references/preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# Coordination Anti-Patterns Reference",
       "safe_fix": null
     },
     {
-      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "file": "agents/python-general-engineer/references/python-preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# Python General Engineer - Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "file": "agents/python-general-engineer/references/python-preferred-patterns.md",
       "line": 5,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Over-Engineering with Abstract Base Classes",
       "safe_fix": null
     },
     {
-      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "file": "agents/python-general-engineer/references/python-preferred-patterns.md",
       "line": 61,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Premature Async Conversion",
       "safe_fix": null
     },
     {
-      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "file": "agents/python-general-engineer/references/python-preferred-patterns.md",
       "line": 113,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Type: Ignore Instead of Fixing Types",
       "safe_fix": null
     },
     {
-      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "file": "agents/python-general-engineer/references/python-preferred-patterns.md",
       "line": 170,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Mutable Default Arguments",
       "safe_fix": null
     },
     {
-      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "file": "agents/python-general-engineer/references/python-preferred-patterns.md",
       "line": 217,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: String Concatenation in Loops",
       "safe_fix": null
     },
     {
-      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "file": "agents/python-general-engineer/references/python-preferred-patterns.md",
       "line": 265,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Catching Bare Exceptions",
       "safe_fix": null
     },
     {
-      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "file": "agents/python-general-engineer/references/python-preferred-patterns.md",
       "line": 312,
       "pattern": "FORBIDDEN",
       "text": "**FORBIDDEN**:",
       "safe_fix": null
     },
     {
-      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "file": "agents/python-general-engineer/references/python-preferred-patterns.md",
       "line": 319,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: print() in Production Code",
       "safe_fix": null
     },
     {
-      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "file": "agents/python-general-engineer/references/python-preferred-patterns.md",
       "line": 376,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Not Using Context Managers",
       "safe_fix": null
     },
     {
-      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "file": "agents/python-general-engineer/references/python-preferred-patterns.md",
       "line": 448,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Importing * (Star Imports)",
       "safe_fix": null
     },
     {
-      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "file": "agents/python-general-engineer/references/python-preferred-patterns.md",
       "line": 488,
       "pattern": "FORBIDDEN",
       "text": "**FORBIDDEN by ruff**:",
       "safe_fix": null
     },
     {
-      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "file": "agents/python-general-engineer/references/python-preferred-patterns.md",
       "line": 494,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Using == for True/False Comparisons",
       "safe_fix": null
     },
     {
-      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "file": "agents/python-general-engineer/references/python-preferred-patterns.md",
       "line": 536,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Complex Decorator Chains",
@@ -327,70 +327,70 @@
       "safe_fix": null
     },
     {
-      "file": "agents/reviewer-domain/references/operational-anti-patterns.md",
+      "file": "agents/reviewer-domain/references/operational-preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# Pragmatic Builder Roaster - Operational Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "agents/reviewer-domain/references/operational-anti-patterns.md",
+      "file": "agents/reviewer-domain/references/operational-preferred-patterns.md",
       "line": 5,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: No Rollback Plan",
       "safe_fix": null
     },
     {
-      "file": "agents/reviewer-domain/references/operational-anti-patterns.md",
+      "file": "agents/reviewer-domain/references/operational-preferred-patterns.md",
       "line": 60,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Logging After Failures",
       "safe_fix": null
     },
     {
-      "file": "agents/reviewer-domain/references/operational-anti-patterns.md",
+      "file": "agents/reviewer-domain/references/operational-preferred-patterns.md",
       "line": 127,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Untested Edge Cases",
       "safe_fix": null
     },
     {
-      "file": "agents/reviewer-domain/references/operational-anti-patterns.md",
+      "file": "agents/reviewer-domain/references/operational-preferred-patterns.md",
       "line": 183,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: No Circuit Breaker for External Dependencies",
       "safe_fix": null
     },
     {
-      "file": "agents/reviewer-domain/references/operational-anti-patterns.md",
+      "file": "agents/reviewer-domain/references/operational-preferred-patterns.md",
       "line": 232,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Trusting User Input",
       "safe_fix": null
     },
     {
-      "file": "agents/reviewer-domain/references/operational-anti-patterns.md",
+      "file": "agents/reviewer-domain/references/operational-preferred-patterns.md",
       "line": 284,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Synchronous Long-Running Operations",
       "safe_fix": null
     },
     {
-      "file": "agents/reviewer-domain/references/operational-anti-patterns.md",
+      "file": "agents/reviewer-domain/references/operational-preferred-patterns.md",
       "line": 350,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: No Monitoring Until After Launch",
       "safe_fix": null
     },
     {
-      "file": "agents/reviewer-domain/references/operational-anti-patterns.md",
+      "file": "agents/reviewer-domain/references/operational-preferred-patterns.md",
       "line": 420,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Magic Numbers in Code",
       "safe_fix": null
     },
     {
-      "file": "agents/reviewer-domain/references/operational-anti-patterns.md",
+      "file": "agents/reviewer-domain/references/operational-preferred-patterns.md",
       "line": 470,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Ignoring Database Connection Pooling",
@@ -432,21 +432,21 @@
       "safe_fix": null
     },
     {
-      "file": "agents/system-upgrade-engineer/references/upgrade-anti-patterns.md",
+      "file": "agents/system-upgrade-engineer/references/upgrade-preferred-patterns.md",
       "line": 2,
       "pattern": "Anti-Pattern",
       "text": "# Upgrade Orchestration Anti-Patterns Reference",
       "safe_fix": null
     },
     {
-      "file": "agents/system-upgrade-engineer/references/upgrade-anti-patterns.md",
+      "file": "agents/system-upgrade-engineer/references/upgrade-preferred-patterns.md",
       "line": 116,
       "pattern": "do NOT",
       "text": "If any component scores lower, surface it to the user. Do NOT auto-revert, but do NOT",
       "safe_fix": null
     },
     {
-      "file": "agents/system-upgrade-engineer/references/upgrade-anti-patterns.md",
+      "file": "agents/system-upgrade-engineer/references/upgrade-preferred-patterns.md",
       "line": 186,
       "pattern": "do NOT",
       "text": "Do NOT dispatch parallel agents when:",
@@ -488,91 +488,91 @@
       "safe_fix": null
     },
     {
-      "file": "agents/technical-documentation-engineer/references/api-doc-anti-patterns.md",
+      "file": "agents/technical-documentation-engineer/references/api-doc-preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# API Documentation Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "agents/testing-automation-engineer/references/anti-patterns.md",
+      "file": "agents/testing-automation-engineer/references/preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# Testing Automation Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "agents/testing-automation-engineer/references/anti-patterns.md",
+      "file": "agents/testing-automation-engineer/references/preferred-patterns.md",
       "line": 5,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern 1: Testing Implementation Details",
       "safe_fix": null
     },
     {
-      "file": "agents/testing-automation-engineer/references/anti-patterns.md",
+      "file": "agents/testing-automation-engineer/references/preferred-patterns.md",
       "line": 39,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern 2: Shared Test State and Dependencies",
       "safe_fix": null
     },
     {
-      "file": "agents/testing-automation-engineer/references/anti-patterns.md",
+      "file": "agents/testing-automation-engineer/references/preferred-patterns.md",
       "line": 85,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern 3: Mocking Everything (Over-Mocking)",
       "safe_fix": null
     },
     {
-      "file": "agents/testing-automation-engineer/references/anti-patterns.md",
+      "file": "agents/testing-automation-engineer/references/preferred-patterns.md",
       "line": 140,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern 4: No Assertions or Weak Assertions",
       "safe_fix": null
     },
     {
-      "file": "agents/testing-automation-engineer/references/anti-patterns.md",
+      "file": "agents/testing-automation-engineer/references/preferred-patterns.md",
       "line": 161,
       "pattern": "Don't",
       "text": "- Don't actually verify correct behavior",
       "safe_fix": null
     },
     {
-      "file": "agents/testing-automation-engineer/references/anti-patterns.md",
+      "file": "agents/testing-automation-engineer/references/preferred-patterns.md",
       "line": 190,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern 5: Flaky Tests Without Root Cause Investigation",
       "safe_fix": null
     },
     {
-      "file": "agents/testing-automation-engineer/references/anti-patterns.md",
+      "file": "agents/testing-automation-engineer/references/preferred-patterns.md",
       "line": 253,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern 6: Ignoring Test Coverage Gaps",
       "safe_fix": null
     },
     {
-      "file": "agents/typescript-frontend-engineer/references/typescript-anti-patterns.md",
+      "file": "agents/typescript-frontend-engineer/references/typescript-preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# TypeScript Frontend Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "agents/typescript-frontend-engineer/references/typescript-anti-patterns.md",
+      "file": "agents/typescript-frontend-engineer/references/typescript-preferred-patterns.md",
       "line": 64,
       "pattern": "NEVER",
       "text": "- NEVER use `any` without explicit justification",
       "safe_fix": null
     },
     {
-      "file": "agents/typescript-frontend-engineer/references/typescript-anti-patterns.md",
+      "file": "agents/typescript-frontend-engineer/references/typescript-preferred-patterns.md",
       "line": 237,
       "pattern": "Avoid",
       "text": "## Fix Root Causes \u2014 Use @ts-expect-error When Unavoidable",
       "safe_fix": null
     },
     {
-      "file": "agents/typescript-frontend-engineer/references/typescript-anti-patterns.md",
+      "file": "agents/typescript-frontend-engineer/references/typescript-preferred-patterns.md",
       "line": 302,
       "pattern": "NEVER",
       "text": "- NEVER use `@ts-ignore` or `@ts-nocheck` without thorough justification",
@@ -586,7 +586,7 @@
       "safe_fix": null
     },
     {
-      "file": "agents/ui-design-engineer/references/tailwind-anti-patterns.md",
+      "file": "agents/ui-design-engineer/references/tailwind-preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# Tailwind CSS Anti-Patterns Reference",
@@ -964,7 +964,7 @@
       "safe_fix": null
     },
     {
-      "file": "skills/adr-consultation/references/consultation-anti-patterns.md",
+      "file": "skills/adr-consultation/references/consultation-preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# ADR Consultation \u2014 Anti-Patterns",
@@ -1048,7 +1048,7 @@
       "safe_fix": null
     },
     {
-      "file": "skills/bluesky-reader/references/at-protocol-anti-patterns.md",
+      "file": "skills/bluesky-reader/references/at-protocol-preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# AT Protocol Anti-Patterns",
@@ -1069,245 +1069,245 @@
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "file": "skills/comment-quality/references/preferred-patterns-language-specific.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# Language-Specific and Documentation Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "file": "skills/comment-quality/references/preferred-patterns-language-specific.md",
       "line": 9,
       "pattern": "Anti-Pattern",
       "text": "### Go-Specific Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "file": "skills/comment-quality/references/preferred-patterns-language-specific.md",
       "line": 13,
       "pattern": "Anti-Pattern",
       "text": "#### Anti-Pattern: \"Fixed panic\"",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "file": "skills/comment-quality/references/preferred-patterns-language-specific.md",
       "line": 22,
       "pattern": "Anti-Pattern",
       "text": "#### Anti-Pattern: \"Now uses context\"",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "file": "skills/comment-quality/references/preferred-patterns-language-specific.md",
       "line": 31,
       "pattern": "Anti-Pattern",
       "text": "#### Anti-Pattern: \"Improved error handling\"",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "file": "skills/comment-quality/references/preferred-patterns-language-specific.md",
       "line": 40,
       "pattern": "Anti-Pattern",
       "text": "### Python-Specific Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "file": "skills/comment-quality/references/preferred-patterns-language-specific.md",
       "line": 44,
       "pattern": "Anti-Pattern",
       "text": "#### Anti-Pattern: \"Changed to use type hints\"",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "file": "skills/comment-quality/references/preferred-patterns-language-specific.md",
       "line": 53,
       "pattern": "Anti-Pattern",
       "text": "#### Anti-Pattern: \"Refactored to use dataclass\"",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "file": "skills/comment-quality/references/preferred-patterns-language-specific.md",
       "line": 62,
       "pattern": "Anti-Pattern",
       "text": "### JavaScript/TypeScript Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "file": "skills/comment-quality/references/preferred-patterns-language-specific.md",
       "line": 66,
       "pattern": "Anti-Pattern",
       "text": "#### Anti-Pattern: \"Migrated to async/await\"",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "file": "skills/comment-quality/references/preferred-patterns-language-specific.md",
       "line": 75,
       "pattern": "Anti-Pattern",
       "text": "#### Anti-Pattern: \"Updated to ES6 syntax\"",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "file": "skills/comment-quality/references/preferred-patterns-language-specific.md",
       "line": 84,
       "pattern": "Anti-Pattern",
       "text": "## Documentation-Specific Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "file": "skills/comment-quality/references/preferred-patterns-language-specific.md",
       "line": 90,
       "pattern": "Anti-Pattern",
       "text": "#### Anti-Pattern: Version-specific feature lists",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "file": "skills/comment-quality/references/preferred-patterns-language-specific.md",
       "line": 106,
       "pattern": "Anti-Pattern",
       "text": "#### Anti-Pattern: Historical installation instructions",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "file": "skills/comment-quality/references/preferred-patterns-language-specific.md",
       "line": 124,
       "pattern": "Anti-Pattern",
       "text": "#### Anti-Pattern: Endpoint evolution",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns-language-specific.md",
+      "file": "skills/comment-quality/references/preferred-patterns-language-specific.md",
       "line": 140,
       "pattern": "Anti-Pattern",
       "text": "#### Anti-Pattern: Parameter history",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns.md",
+      "file": "skills/comment-quality/references/preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# Comment Quality Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns.md",
+      "file": "skills/comment-quality/references/preferred-patterns.md",
       "line": 9,
       "pattern": "Anti-Pattern",
       "text": "## High Priority Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns.md",
+      "file": "skills/comment-quality/references/preferred-patterns.md",
       "line": 13,
       "pattern": "Anti-Pattern",
       "text": "### Anti-Pattern 1: \"X now does Y\"",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns.md",
+      "file": "skills/comment-quality/references/preferred-patterns.md",
       "line": 31,
       "pattern": "Anti-Pattern",
       "text": "### Anti-Pattern 2: \"Improved/Better/Enhanced X\"",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns.md",
+      "file": "skills/comment-quality/references/preferred-patterns.md",
       "line": 49,
       "pattern": "Anti-Pattern",
       "text": "### Anti-Pattern 3: \"Fixed bug where...\"",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns.md",
+      "file": "skills/comment-quality/references/preferred-patterns.md",
       "line": 67,
       "pattern": "Anti-Pattern",
       "text": "### Anti-Pattern 4: \"Added/Removed/Changed X\"",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns.md",
+      "file": "skills/comment-quality/references/preferred-patterns.md",
       "line": 85,
       "pattern": "Anti-Pattern",
       "text": "### Anti-Pattern 5: \"New/Old system/approach/method\"",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns.md",
+      "file": "skills/comment-quality/references/preferred-patterns.md",
       "line": 103,
       "pattern": "Anti-Pattern",
       "text": "## Medium Priority Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns.md",
+      "file": "skills/comment-quality/references/preferred-patterns.md",
       "line": 107,
       "pattern": "Anti-Pattern",
       "text": "### Anti-Pattern 6: \"Updated/Refactored/Optimized X\"",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns.md",
+      "file": "skills/comment-quality/references/preferred-patterns.md",
       "line": 125,
       "pattern": "Anti-Pattern",
       "text": "### Anti-Pattern 7: \"This allows us to...\" / \"We can now...\"",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns.md",
+      "file": "skills/comment-quality/references/preferred-patterns.md",
       "line": 143,
       "pattern": "Anti-Pattern",
       "text": "### Anti-Pattern 8: \"Instead of X\" / \"Rather than X\"",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns.md",
+      "file": "skills/comment-quality/references/preferred-patterns.md",
       "line": 158,
       "pattern": "Anti-Pattern",
       "text": "### Anti-Pattern 9: \"Temporary/Interim/Stopgap X\"",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns.md",
+      "file": "skills/comment-quality/references/preferred-patterns.md",
       "line": 176,
       "pattern": "Anti-Pattern",
       "text": "### Anti-Pattern 10: \"As of version X\" / \"Since version X\"",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns.md",
+      "file": "skills/comment-quality/references/preferred-patterns.md",
       "line": 194,
       "pattern": "Anti-Pattern",
       "text": "## Subtle Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns.md",
+      "file": "skills/comment-quality/references/preferred-patterns.md",
       "line": 198,
       "pattern": "Anti-Pattern",
       "text": "### Anti-Pattern 11: \"More/Less efficient/effective\"",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns.md",
+      "file": "skills/comment-quality/references/preferred-patterns.md",
       "line": 216,
       "pattern": "Anti-Pattern",
       "text": "### Anti-Pattern 12: \"Unlike X\" / \"Compared to X\"",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns.md",
+      "file": "skills/comment-quality/references/preferred-patterns.md",
       "line": 234,
       "pattern": "Anti-Pattern",
       "text": "### Anti-Pattern 13: \"Will/Going to/Eventually X\"",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns.md",
+      "file": "skills/comment-quality/references/preferred-patterns.md",
       "line": 252,
       "pattern": "Anti-Pattern",
       "text": "### Anti-Pattern 14: \"Used to X but now Y\"",
       "safe_fix": null
     },
     {
-      "file": "skills/comment-quality/references/anti-patterns.md",
+      "file": "skills/comment-quality/references/preferred-patterns.md",
       "line": 270,
       "pattern": "Anti-Pattern",
       "text": "### Anti-Pattern 15: \"Originally X\"",
@@ -1342,7 +1342,7 @@
       "safe_fix": null
     },
     {
-      "file": "skills/condition-based-waiting/references/anti-patterns.md",
+      "file": "skills/condition-based-waiting/references/preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# Wait/Retry Anti-Patterns",
@@ -1384,42 +1384,42 @@
       "safe_fix": null
     },
     {
-      "file": "skills/data-analysis/references/anti-patterns.md",
+      "file": "skills/data-analysis/references/preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# Data Analysis Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "skills/data-analysis/references/anti-patterns.md",
+      "file": "skills/data-analysis/references/preferred-patterns.md",
       "line": 7,
       "pattern": "Anti-Pattern",
       "text": "## Methodology Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "skills/data-analysis/references/anti-patterns.md",
+      "file": "skills/data-analysis/references/preferred-patterns.md",
       "line": 90,
       "pattern": "Anti-Pattern",
       "text": "## Statistical Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "skills/data-analysis/references/anti-patterns.md",
+      "file": "skills/data-analysis/references/preferred-patterns.md",
       "line": 146,
       "pattern": "Anti-Pattern",
       "text": "## Communication Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "skills/data-analysis/references/anti-patterns.md",
+      "file": "skills/data-analysis/references/preferred-patterns.md",
       "line": 197,
       "pattern": "Anti-Pattern",
       "text": "## Process Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "skills/decision-helper/references/decision-anti-patterns.md",
+      "file": "skills/decision-helper/references/decision-preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# Decision Analysis Anti-Patterns",
@@ -1510,28 +1510,28 @@
       "safe_fix": null
     },
     {
-      "file": "skills/endpoint-validator/references/endpoint-config-anti-patterns.md",
+      "file": "skills/endpoint-validator/references/endpoint-config-preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# Endpoint Config Anti-Patterns Reference",
       "safe_fix": null
     },
     {
-      "file": "skills/explanation-traces/references/anti-patterns.md",
+      "file": "skills/explanation-traces/references/preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# Explanation Traces \u2014 Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "skills/explanation-traces/references/anti-patterns.md",
+      "file": "skills/explanation-traces/references/preferred-patterns.md",
       "line": 8,
       "pattern": "Anti-Pattern",
       "text": "## Producer Anti-Patterns (Hook Writers)",
       "safe_fix": null
     },
     {
-      "file": "skills/explanation-traces/references/anti-patterns.md",
+      "file": "skills/explanation-traces/references/preferred-patterns.md",
       "line": 187,
       "pattern": "Anti-Pattern",
       "text": "## Consumer Anti-Patterns (Skill Behavior)",
@@ -1566,7 +1566,7 @@
       "safe_fix": null
     },
     {
-      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "file": "skills/fish-shell-config/references/fish-preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# Fish Shell Anti-Patterns",
@@ -1594,14 +1594,14 @@
       "safe_fix": null
     },
     {
-      "file": "skills/go-patterns/references/anti-patterns.md",
+      "file": "skills/go-patterns/references/preferred-patterns.md",
       "line": 2,
       "pattern": "Anti-Pattern",
       "text": "# Go Anti-Patterns Skill",
       "safe_fix": null
     },
     {
-      "file": "skills/go-patterns/references/anti-patterns.md",
+      "file": "skills/go-patterns/references/preferred-patterns.md",
       "line": 15,
       "pattern": "Anti-Pattern",
       "text": "### Phase 2: Scan for Anti-Patterns",
@@ -1853,7 +1853,7 @@
       "safe_fix": null
     },
     {
-      "file": "skills/kotlin-coroutines/references/anti-patterns.md",
+      "file": "skills/kotlin-coroutines/references/preferred-patterns.md",
       "line": 7,
       "pattern": "Anti-Pattern",
       "text": "# Kotlin Coroutine Anti-Patterns",
@@ -1902,28 +1902,28 @@
       "safe_fix": null
     },
     {
-      "file": "skills/pr-workflow/references/codex-review-anti-patterns.md",
+      "file": "skills/pr-workflow/references/codex-review-preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# Code Anti-Patterns for Review",
       "safe_fix": null
     },
     {
-      "file": "skills/pr-workflow/references/codex-review-anti-patterns.md",
+      "file": "skills/pr-workflow/references/codex-review-preferred-patterns.md",
       "line": 19,
       "pattern": "Anti-Pattern",
       "text": "## Go Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "skills/pr-workflow/references/codex-review-anti-patterns.md",
+      "file": "skills/pr-workflow/references/codex-review-preferred-patterns.md",
       "line": 132,
       "pattern": "Anti-Pattern",
       "text": "## TypeScript/JavaScript Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "skills/pr-workflow/references/codex-review-anti-patterns.md",
+      "file": "skills/pr-workflow/references/codex-review-preferred-patterns.md",
       "line": 225,
       "pattern": "Anti-Pattern",
       "text": "## Python Anti-Patterns",
@@ -2203,105 +2203,105 @@
       "safe_fix": null
     },
     {
-      "file": "skills/skill-creator/references/anti-patterns.md",
+      "file": "skills/skill-creator/references/preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# Skill Creator Anti-Patterns",
       "safe_fix": null
     },
     {
-      "file": "skills/skill-creator/references/anti-patterns.md",
+      "file": "skills/skill-creator/references/preferred-patterns.md",
       "line": 5,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Description Without Triggers",
       "safe_fix": null
     },
     {
-      "file": "skills/skill-creator/references/anti-patterns.md",
+      "file": "skills/skill-creator/references/preferred-patterns.md",
       "line": 30,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Phases Without Gates",
       "safe_fix": null
     },
     {
-      "file": "skills/skill-creator/references/anti-patterns.md",
+      "file": "skills/skill-creator/references/preferred-patterns.md",
       "line": 70,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Everything in Main File",
       "safe_fix": null
     },
     {
-      "file": "skills/skill-creator/references/anti-patterns.md",
+      "file": "skills/skill-creator/references/preferred-patterns.md",
       "line": 111,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Vague What+When Formula",
       "safe_fix": null
     },
     {
-      "file": "skills/skill-creator/references/anti-patterns.md",
+      "file": "skills/skill-creator/references/preferred-patterns.md",
       "line": 140,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Over-Engineering Simple Workflows",
       "safe_fix": null
     },
     {
-      "file": "skills/skill-creator/references/anti-patterns.md",
+      "file": "skills/skill-creator/references/preferred-patterns.md",
       "line": 168,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Missing Complexity Tier",
       "safe_fix": null
     },
     {
-      "file": "skills/skill-creator/references/anti-patterns.md",
+      "file": "skills/skill-creator/references/preferred-patterns.md",
       "line": 201,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Infinite Retry Loops",
       "safe_fix": null
     },
     {
-      "file": "skills/skill-creator/references/anti-patterns.md",
+      "file": "skills/skill-creator/references/preferred-patterns.md",
       "line": 231,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Hardcoded Secrets",
       "safe_fix": null
     },
     {
-      "file": "skills/skill-creator/references/anti-patterns.md",
+      "file": "skills/skill-creator/references/preferred-patterns.md",
       "line": 271,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: No Error Handling",
       "safe_fix": null
     },
     {
-      "file": "skills/skill-creator/references/anti-patterns.md",
+      "file": "skills/skill-creator/references/preferred-patterns.md",
       "line": 321,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Verbose Frontmatter",
       "safe_fix": null
     },
     {
-      "file": "skills/skill-creator/references/anti-patterns.md",
+      "file": "skills/skill-creator/references/preferred-patterns.md",
       "line": 355,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Skill Naming Violations",
       "safe_fix": null
     },
     {
-      "file": "skills/skill-creator/references/anti-patterns.md",
+      "file": "skills/skill-creator/references/preferred-patterns.md",
       "line": 382,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Mandates Without Motivation",
       "safe_fix": null
     },
     {
-      "file": "skills/skill-creator/references/anti-patterns.md",
+      "file": "skills/skill-creator/references/preferred-patterns.md",
       "line": 412,
       "pattern": "NEVER",
       "text": "**When to use**: All skills \u2014 review every MUST/ALWAYS/NEVER and ask \"does the model know why?\"",
       "safe_fix": null
     },
     {
-      "file": "skills/skill-creator/references/anti-patterns.md",
+      "file": "skills/skill-creator/references/preferred-patterns.md",
       "line": 416,
       "pattern": "Anti-Pattern",
       "text": "## \u274c Anti-Pattern: Missing Negative Triggers",
@@ -2318,7 +2318,7 @@
       "file": "skills/skill-creator/references/domain-research-targets.md",
       "line": 160,
       "pattern": "Anti-Pattern",
-      "text": "## Testing (test-driven-development, testing-anti-patterns, e2e-testing)",
+      "text": "## Testing (test-driven-development, testing-preferred-patterns, e2e-testing)",
       "safe_fix": null
     },
     {
@@ -2357,7 +2357,7 @@
       "safe_fix": null
     },
     {
-      "file": "skills/swift-concurrency/references/anti-patterns.md",
+      "file": "skills/swift-concurrency/references/preferred-patterns.md",
       "line": 7,
       "pattern": "Anti-Pattern",
       "text": "# Common Anti-Patterns",
@@ -2413,14 +2413,14 @@
       "safe_fix": null
     },
     {
-      "file": "skills/testing-anti-patterns/references/anti-pattern-catalog.md",
+      "file": "skills/testing-preferred-patterns/references/preferred-pattern-catalog.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# Testing Anti-Pattern Catalog",
       "safe_fix": null
     },
     {
-      "file": "skills/testing-anti-patterns/references/fix-strategies.md",
+      "file": "skills/testing-preferred-patterns/references/fix-strategies.md",
       "line": 200,
       "pattern": "do NOT",
       "text": "- Do NOT mock: Pure functions, value objects, internal collaborators",
@@ -2441,7 +2441,7 @@
       "safe_fix": null
     },
     {
-      "file": "skills/toolkit-evolution/references/evolve-anti-patterns.md",
+      "file": "skills/toolkit-evolution/references/evolve-preferred-patterns.md",
       "line": 1,
       "pattern": "Anti-Pattern",
       "text": "# Toolkit Evolution \u2014 Anti-Patterns, Errors, and Cost",

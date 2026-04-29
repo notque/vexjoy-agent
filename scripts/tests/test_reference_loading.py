@@ -479,11 +479,11 @@ ALL_REFERENCE_FILES = _all_reference_files()
 _KNOWN_OVERSIZED: set[str] = {
     "golang-general-engineer/references/go-errors.md",
     "hook-development-engineer/references/code-examples.md",
-    "python-general-engineer/references/python-anti-patterns.md",
-    "reviewer-domain/references/operational-anti-patterns.md",
+    "python-general-engineer/references/python-preferred-patterns.md",
+    "reviewer-domain/references/operational-preferred-patterns.md",
     "typescript-debugging-engineer/references/debugging-workflows.md",
     "typescript-frontend-engineer/references/react19-typescript-patterns.md",
-    "typescript-frontend-engineer/references/typescript-anti-patterns.md",
+    "typescript-frontend-engineer/references/typescript-preferred-patterns.md",
     "typescript-frontend-engineer/references/typescript-errors.md",
 }
 
@@ -743,7 +743,7 @@ _KNOWN_OVERSIZED_SKILL_REFS: set[str] = {
     "docs-sync-checker/references/examples.md",  #  508 lines
     "pr-workflow/references/commit-staging-rules.md",  #  590 lines
     "go-patterns/references/sapcc-conventions.md",  #  677 lines
-    "go-patterns/references/sapcc-conventions/anti-patterns.md",  #  566 lines
+    "go-patterns/references/sapcc-conventions/preferred-patterns.md",  #  566 lines
     "go-patterns/references/sapcc-conventions/api-design-detailed.md",  #  697 lines
     "go-patterns/references/sapcc-conventions/architecture-patterns.md",  #  543 lines
     "go-patterns/references/sapcc-conventions/build-ci-detailed.md",  #  547 lines
@@ -754,7 +754,7 @@ _KNOWN_OVERSIZED_SKILL_REFS: set[str] = {
     "pr-workflow/references/pipeline.md",  #  785 lines
     "skill-composer/references/examples.md",  #  719 lines
     "test-driven-development/references/examples.md",  #  874 lines
-    "testing-anti-patterns/references/anti-pattern-catalog.md",  #  568 lines
+    "testing-preferred-patterns/references/preferred-pattern-catalog.md",  #  568 lines
     "threejs-builder/references/react-three-fiber.md",  #  595 lines
     "threejs-builder/references/shader-patterns.md",  #  501 lines
     "threejs-builder/references/visual-polish.md",  #  528 lines

@@ -1,5 +1,5 @@
 ---
-name: testing-anti-patterns
+name: testing-preferred-patterns
 description: "Identify and fix testing mistakes: flaky, brittle, over-mocked tests."
 user-invocable: false
 allowed-tools:
@@ -46,7 +46,7 @@ This skill identifies and fixes common testing mistakes across unit, integration
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| implementation patterns | `anti-pattern-catalog.md` | Loads detailed guidance from `anti-pattern-catalog.md`. |
+| implementation patterns | `preferred-pattern-catalog.md` | Loads detailed guidance from `preferred-pattern-catalog.md`. |
 | tasks related to this reference | `blind-spot-taxonomy.md` | Loads detailed guidance from `blind-spot-taxonomy.md`. |
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
 | fixing review feedback | `fix-strategies.md` | Loads detailed guidance from `fix-strategies.md`. |
@@ -73,7 +73,7 @@ Check for project-specific testing conventions before flagging quality issues. S
 
 **Step 3: Classify quality issues**
 
-For each test file, scan for these 10 categories (detailed examples in `references/anti-pattern-catalog.md`):
+For each test file, scan for these 10 categories (detailed examples in `references/preferred-pattern-catalog.md`):
 
 | # | Pattern to Fix | Detection Signal |
 |---|-------------|-----------------|
@@ -209,7 +209,7 @@ See `references/quick-reference.md` for the quick reference table, red flags dur
 - `${CLAUDE_SKILL_DIR}/references/quality-catalog.md`: Detailed descriptions of all 10 anti-patterns
 - `${CLAUDE_SKILL_DIR}/references/error-handling.md`: Ambiguous patterns and large-scale cleanup guidance
 - `${CLAUDE_SKILL_DIR}/references/quick-reference.md`: Quick reference table, red flags, TDD relationship
-- `${CLAUDE_SKILL_DIR}/references/pattern-catalog.md`: Detailed code examples for all 10 anti-patterns (Go, Python, JavaScript)
+- `${CLAUDE_SKILL_DIR}/references/preferred-pattern-catalog.md`: Detailed code examples for all 10 anti-patterns (Go, Python, JavaScript)
 - `${CLAUDE_SKILL_DIR}/references/fix-strategies.md`: Language-specific fix patterns and tooling
 - `${CLAUDE_SKILL_DIR}/references/blind-spot-taxonomy.md`: 6-category taxonomy of what high-coverage test suites commonly miss (concurrency, state, boundaries, security, integration, resilience)
 - `${CLAUDE_SKILL_DIR}/references/load-test-scenarios.md`: 6 load test scenario types (smoke, load, stress, spike, soak, breakpoint) with configurations and critical endpoint priorities

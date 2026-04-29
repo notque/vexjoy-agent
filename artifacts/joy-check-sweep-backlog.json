@@ -47,7 +47,7 @@
       "domain_hint": "workflow"
     },
     {
-      "file": "skills/adr-consultation/references/consultation-anti-patterns.md",
+      "file": "skills/adr-consultation/references/consultation-preferred-patterns.md",
       "line_range": [
         1,
         8
@@ -56,7 +56,7 @@
       "domain_hint": "adr-consultation"
     },
     {
-      "file": "skills/adr-consultation/references/consultation-anti-patterns.md",
+      "file": "skills/adr-consultation/references/consultation-preferred-patterns.md",
       "line_range": [
         18,
         18
@@ -65,7 +65,7 @@
       "domain_hint": "adr-consultation"
     },
     {
-      "file": "skills/adr-consultation/references/consultation-anti-patterns.md",
+      "file": "skills/adr-consultation/references/consultation-preferred-patterns.md",
       "line_range": [
         29,
         45
@@ -74,7 +74,7 @@
       "domain_hint": "adr-consultation"
     },
     {
-      "file": "skills/adr-consultation/references/consultation-anti-patterns.md",
+      "file": "skills/adr-consultation/references/consultation-preferred-patterns.md",
       "line_range": [
         54,
         59
@@ -83,7 +83,7 @@
       "domain_hint": "adr-consultation"
     },
     {
-      "file": "skills/adr-consultation/references/consultation-anti-patterns.md",
+      "file": "skills/adr-consultation/references/consultation-preferred-patterns.md",
       "line_range": [
         61,
         72
@@ -92,7 +92,7 @@
       "domain_hint": "adr-consultation"
     },
     {
-      "file": "skills/adr-consultation/references/consultation-anti-patterns.md",
+      "file": "skills/adr-consultation/references/consultation-preferred-patterns.md",
       "line_range": [
         78,
         90
@@ -101,7 +101,7 @@
       "domain_hint": "adr-consultation"
     },
     {
-      "file": "skills/adr-consultation/references/consultation-anti-patterns.md",
+      "file": "skills/adr-consultation/references/consultation-preferred-patterns.md",
       "line_range": [
         91,
         105
@@ -110,7 +110,7 @@
       "domain_hint": "adr-consultation"
     },
     {
-      "file": "skills/adr-consultation/references/consultation-anti-patterns.md",
+      "file": "skills/adr-consultation/references/consultation-preferred-patterns.md",
       "line_range": [
         111,
         130
@@ -119,7 +119,7 @@
       "domain_hint": "adr-consultation"
     },
     {
-      "file": "skills/adr-consultation/references/consultation-anti-patterns.md",
+      "file": "skills/adr-consultation/references/consultation-preferred-patterns.md",
       "line_range": [
         138,
         152
@@ -128,7 +128,7 @@
       "domain_hint": "adr-consultation"
     },
     {
-      "file": "skills/adr-consultation/references/consultation-anti-patterns.md",
+      "file": "skills/adr-consultation/references/consultation-preferred-patterns.md",
       "line_range": [
         158,
         174
@@ -137,7 +137,7 @@
       "domain_hint": "adr-consultation"
     },
     {
-      "file": "skills/adr-consultation/references/consultation-anti-patterns.md",
+      "file": "skills/adr-consultation/references/consultation-preferred-patterns.md",
       "line_range": [
         180,
         185
@@ -146,7 +146,7 @@
       "domain_hint": "adr-consultation"
     },
     {
-      "file": "skills/adr-consultation/references/consultation-anti-patterns.md",
+      "file": "skills/adr-consultation/references/consultation-preferred-patterns.md",
       "line_range": [
         193,
         206
@@ -227,7 +227,7 @@
       "domain_hint": "anti-ai-editor"
     },
     {
-      "file": "skills/bluesky-reader/references/at-protocol-anti-patterns.md",
+      "file": "skills/bluesky-reader/references/at-protocol-preferred-patterns.md",
       "line_range": [
         1,
         7
@@ -236,7 +236,7 @@
       "domain_hint": "bluesky-reader"
     },
     {
-      "file": "skills/bluesky-reader/references/at-protocol-anti-patterns.md",
+      "file": "skills/bluesky-reader/references/at-protocol-preferred-patterns.md",
       "line_range": [
         18,
         18
@@ -245,7 +245,7 @@
       "domain_hint": "bluesky-reader"
     },
     {
-      "file": "skills/bluesky-reader/references/at-protocol-anti-patterns.md",
+      "file": "skills/bluesky-reader/references/at-protocol-preferred-patterns.md",
       "line_range": [
         20,
         29
@@ -254,7 +254,7 @@
       "domain_hint": "bluesky-reader"
     },
     {
-      "file": "skills/bluesky-reader/references/at-protocol-anti-patterns.md",
+      "file": "skills/bluesky-reader/references/at-protocol-preferred-patterns.md",
       "line_range": [
         30,
         39
@@ -263,7 +263,7 @@
       "domain_hint": "bluesky-reader"
     },
     {
-      "file": "skills/bluesky-reader/references/at-protocol-anti-patterns.md",
+      "file": "skills/bluesky-reader/references/at-protocol-preferred-patterns.md",
       "line_range": [
         56,
         66
@@ -272,7 +272,7 @@
       "domain_hint": "bluesky-reader"
     },
     {
-      "file": "skills/bluesky-reader/references/at-protocol-anti-patterns.md",
+      "file": "skills/bluesky-reader/references/at-protocol-preferred-patterns.md",
       "line_range": [
         84,
         93
@@ -281,7 +281,7 @@
       "domain_hint": "bluesky-reader"
     },
     {
-      "file": "skills/bluesky-reader/references/at-protocol-anti-patterns.md",
+      "file": "skills/bluesky-reader/references/at-protocol-preferred-patterns.md",
       "line_range": [
         94,
         103
@@ -290,7 +290,7 @@
       "domain_hint": "bluesky-reader"
     },
     {
-      "file": "skills/bluesky-reader/references/at-protocol-anti-patterns.md",
+      "file": "skills/bluesky-reader/references/at-protocol-preferred-patterns.md",
       "line_range": [
         115,
         124
@@ -299,7 +299,7 @@
       "domain_hint": "bluesky-reader"
     },
     {
-      "file": "skills/bluesky-reader/references/at-protocol-anti-patterns.md",
+      "file": "skills/bluesky-reader/references/at-protocol-preferred-patterns.md",
       "line_range": [
         125,
         144
@@ -308,7 +308,7 @@
       "domain_hint": "bluesky-reader"
     },
     {
-      "file": "skills/bluesky-reader/references/at-protocol-anti-patterns.md",
+      "file": "skills/bluesky-reader/references/at-protocol-preferred-patterns.md",
       "line_range": [
         151,
         155
@@ -317,7 +317,7 @@
       "domain_hint": "bluesky-reader"
     },
     {
-      "file": "skills/bluesky-reader/references/at-protocol-anti-patterns.md",
+      "file": "skills/bluesky-reader/references/at-protocol-preferred-patterns.md",
       "line_range": [
         156,
         184
@@ -326,7 +326,7 @@
       "domain_hint": "bluesky-reader"
     },
     {
-      "file": "skills/bluesky-reader/references/at-protocol-anti-patterns.md",
+      "file": "skills/bluesky-reader/references/at-protocol-preferred-patterns.md",
       "line_range": [
         191,
         196
@@ -335,7 +335,7 @@
       "domain_hint": "bluesky-reader"
     },
     {
-      "file": "skills/bluesky-reader/references/at-protocol-anti-patterns.md",
+      "file": "skills/bluesky-reader/references/at-protocol-preferred-patterns.md",
       "line_range": [
         201,
         217
@@ -344,7 +344,7 @@
       "domain_hint": "bluesky-reader"
     },
     {
-      "file": "skills/bluesky-reader/references/at-protocol-anti-patterns.md",
+      "file": "skills/bluesky-reader/references/at-protocol-preferred-patterns.md",
       "line_range": [
         219,
         227
@@ -353,7 +353,7 @@
       "domain_hint": "bluesky-reader"
     },
     {
-      "file": "skills/bluesky-reader/references/at-protocol-anti-patterns.md",
+      "file": "skills/bluesky-reader/references/at-protocol-preferred-patterns.md",
       "line_range": [
         228,
         237
@@ -542,7 +542,7 @@
       "domain_hint": "codebase-analyzer"
     },
     {
-      "file": "skills/condition-based-waiting/references/anti-patterns.md",
+      "file": "skills/condition-based-waiting/references/preferred-patterns.md",
       "line_range": [
         1,
         7
@@ -551,7 +551,7 @@
       "domain_hint": "condition-based-waiting"
     },
     {
-      "file": "skills/condition-based-waiting/references/anti-patterns.md",
+      "file": "skills/condition-based-waiting/references/preferred-patterns.md",
       "line_range": [
         15,
         15
@@ -560,7 +560,7 @@
       "domain_hint": "condition-based-waiting"
     },
     {
-      "file": "skills/condition-based-waiting/references/anti-patterns.md",
+      "file": "skills/condition-based-waiting/references/preferred-patterns.md",
       "line_range": [
         17,
         44
@@ -569,7 +569,7 @@
       "domain_hint": "condition-based-waiting"
     },
     {
-      "file": "skills/condition-based-waiting/references/anti-patterns.md",
+      "file": "skills/condition-based-waiting/references/preferred-patterns.md",
       "line_range": [
         46,
         59
@@ -578,7 +578,7 @@
       "domain_hint": "condition-based-waiting"
     },
     {
-      "file": "skills/condition-based-waiting/references/anti-patterns.md",
+      "file": "skills/condition-based-waiting/references/preferred-patterns.md",
       "line_range": [
         60,
         76
@@ -587,7 +587,7 @@
       "domain_hint": "condition-based-waiting"
     },
     {
-      "file": "skills/condition-based-waiting/references/anti-patterns.md",
+      "file": "skills/condition-based-waiting/references/preferred-patterns.md",
       "line_range": [
         78,
         106
@@ -596,7 +596,7 @@
       "domain_hint": "condition-based-waiting"
     },
     {
-      "file": "skills/condition-based-waiting/references/anti-patterns.md",
+      "file": "skills/condition-based-waiting/references/preferred-patterns.md",
       "line_range": [
         108,
         135
@@ -605,7 +605,7 @@
       "domain_hint": "condition-based-waiting"
     },
     {
-      "file": "skills/condition-based-waiting/references/anti-patterns.md",
+      "file": "skills/condition-based-waiting/references/preferred-patterns.md",
       "line_range": [
         137,
         174
@@ -614,7 +614,7 @@
       "domain_hint": "condition-based-waiting"
     },
     {
-      "file": "skills/condition-based-waiting/references/anti-patterns.md",
+      "file": "skills/condition-based-waiting/references/preferred-patterns.md",
       "line_range": [
         176,
         188
@@ -623,7 +623,7 @@
       "domain_hint": "condition-based-waiting"
     },
     {
-      "file": "skills/condition-based-waiting/references/anti-patterns.md",
+      "file": "skills/condition-based-waiting/references/preferred-patterns.md",
       "line_range": [
         189,
         202
@@ -632,7 +632,7 @@
       "domain_hint": "condition-based-waiting"
     },
     {
-      "file": "skills/condition-based-waiting/references/anti-patterns.md",
+      "file": "skills/condition-based-waiting/references/preferred-patterns.md",
       "line_range": [
         204,
         216
@@ -641,7 +641,7 @@
       "domain_hint": "condition-based-waiting"
     },
     {
-      "file": "skills/condition-based-waiting/references/anti-patterns.md",
+      "file": "skills/condition-based-waiting/references/preferred-patterns.md",
       "line_range": [
         217,
         237
@@ -1028,7 +1028,7 @@
       "domain_hint": "cron-job-auditor"
     },
     {
-      "file": "skills/data-analysis/references/anti-patterns.md",
+      "file": "skills/data-analysis/references/preferred-patterns.md",
       "line_range": [
         1,
         5
@@ -1037,7 +1037,7 @@
       "domain_hint": "data-analysis"
     },
     {
-      "file": "skills/data-analysis/references/anti-patterns.md",
+      "file": "skills/data-analysis/references/preferred-patterns.md",
       "line_range": [
         7,
         7
@@ -1046,7 +1046,7 @@
       "domain_hint": "data-analysis"
     },
     {
-      "file": "skills/data-analysis/references/anti-patterns.md",
+      "file": "skills/data-analysis/references/preferred-patterns.md",
       "line_range": [
         19,
         23
@@ -1055,7 +1055,7 @@
       "domain_hint": "data-analysis"
     },
     {
-      "file": "skills/data-analysis/references/anti-patterns.md",
+      "file": "skills/data-analysis/references/preferred-patterns.md",
       "line_range": [
         90,
         90
@@ -1064,7 +1064,7 @@
       "domain_hint": "data-analysis"
     },
     {
-      "file": "skills/data-analysis/references/anti-patterns.md",
+      "file": "skills/data-analysis/references/preferred-patterns.md",
       "line_range": [
         146,
         146
@@ -1073,7 +1073,7 @@
       "domain_hint": "data-analysis"
     },
     {
-      "file": "skills/data-analysis/references/anti-patterns.md",
+      "file": "skills/data-analysis/references/preferred-patterns.md",
       "line_range": [
         197,
         197
@@ -1082,7 +1082,7 @@
       "domain_hint": "data-analysis"
     },
     {
-      "file": "skills/decision-helper/references/decision-anti-patterns.md",
+      "file": "skills/decision-helper/references/decision-preferred-patterns.md",
       "line_range": [
         1,
         7
@@ -1091,7 +1091,7 @@
       "domain_hint": "decision-helper"
     },
     {
-      "file": "skills/decision-helper/references/decision-anti-patterns.md",
+      "file": "skills/decision-helper/references/decision-preferred-patterns.md",
       "line_range": [
         15,
         15
@@ -1100,7 +1100,7 @@
       "domain_hint": "decision-helper"
     },
     {
-      "file": "skills/decision-helper/references/decision-anti-patterns.md",
+      "file": "skills/decision-helper/references/decision-preferred-patterns.md",
       "line_range": [
         17,
         35
@@ -1109,7 +1109,7 @@
       "domain_hint": "decision-helper"
     },
     {
-      "file": "skills/decision-helper/references/decision-anti-patterns.md",
+      "file": "skills/decision-helper/references/decision-preferred-patterns.md",
       "line_range": [
         37,
         56
@@ -1118,7 +1118,7 @@
       "domain_hint": "decision-helper"
     },
     {
-      "file": "skills/decision-helper/references/decision-anti-patterns.md",
+      "file": "skills/decision-helper/references/decision-preferred-patterns.md",
       "line_range": [
         58,
         72
@@ -1127,7 +1127,7 @@
       "domain_hint": "decision-helper"
     },
     {
-      "file": "skills/decision-helper/references/decision-anti-patterns.md",
+      "file": "skills/decision-helper/references/decision-preferred-patterns.md",
       "line_range": [
         74,
         96
@@ -1136,7 +1136,7 @@
       "domain_hint": "decision-helper"
     },
     {
-      "file": "skills/decision-helper/references/decision-anti-patterns.md",
+      "file": "skills/decision-helper/references/decision-preferred-patterns.md",
       "line_range": [
         98,
         117
@@ -1145,7 +1145,7 @@
       "domain_hint": "decision-helper"
     },
     {
-      "file": "skills/decision-helper/references/decision-anti-patterns.md",
+      "file": "skills/decision-helper/references/decision-preferred-patterns.md",
       "line_range": [
         119,
         132
@@ -1154,7 +1154,7 @@
       "domain_hint": "decision-helper"
     },
     {
-      "file": "skills/decision-helper/references/decision-anti-patterns.md",
+      "file": "skills/decision-helper/references/decision-preferred-patterns.md",
       "line_range": [
         147,
         162
@@ -1276,7 +1276,7 @@
         60,
         67
       ],
-      "block_text": "### Phase 3: Anti-Pattern Checks\n\nCheck against anti-patterns in `references/anti-patterns.json`:\n- No purple (#8B5CF6, #A855F7) as accent on white background -- the most cliched color scheme in modern web design, signaling generic SaaS template\n- No evenly distributed colors without clear dominance\n- No generic blue (#3B82F6) as primary on white\n- No pastels without saturation variation\n- No pure black (#000000) or pure white (#FFFFFF) as dominant color\n",
+      "block_text": "### Phase 3: Anti-Pattern Checks\n\nCheck against anti-patterns in `references/preferred-patterns.json`:\n- No purple (#8B5CF6, #A855F7) as accent on white background -- the most cliched color scheme in modern web design, signaling generic SaaS template\n- No evenly distributed colors without clear dominance\n- No generic blue (#3B82F6) as primary on white\n- No pastels without saturation variation\n- No pure black (#000000) or pure white (#FFFFFF) as dominant color\n",
       "domain_hint": "distinctive-frontend-design"
     },
     {
@@ -1285,7 +1285,7 @@
         73,
         76
       ],
-      "block_text": "# Manual alternative: check palette against anti-patterns in references/anti-patterns.json\n```\n\nManually verify: no cliche patterns, clear 60/30/10 dominance ratio, sufficient contrast for accessibility. Report results with specific hex values rather than describing colors abstractly.\n",
+      "block_text": "# Manual alternative: check palette against anti-patterns in references/preferred-patterns.json\n```\n\nManually verify: no cliche patterns, clear 60/30/10 dominance ratio, sufficient contrast for accessibility. Report results with specific hex values rather than describing colors abstractly.\n",
       "domain_hint": "distinctive-frontend-design"
     },
     {
@@ -1442,7 +1442,7 @@
       "domain_hint": "endpoint-validator"
     },
     {
-      "file": "skills/endpoint-validator/references/endpoint-config-anti-patterns.md",
+      "file": "skills/endpoint-validator/references/endpoint-config-preferred-patterns.md",
       "line_range": [
         1,
         7
@@ -1451,7 +1451,7 @@
       "domain_hint": "endpoint-validator"
     },
     {
-      "file": "skills/endpoint-validator/references/endpoint-config-anti-patterns.md",
+      "file": "skills/endpoint-validator/references/endpoint-config-preferred-patterns.md",
       "line_range": [
         56,
         56
@@ -1460,7 +1460,7 @@
       "domain_hint": "endpoint-validator"
     },
     {
-      "file": "skills/endpoint-validator/references/endpoint-config-anti-patterns.md",
+      "file": "skills/endpoint-validator/references/endpoint-config-preferred-patterns.md",
       "line_range": [
         58,
         80
@@ -1469,7 +1469,7 @@
       "domain_hint": "endpoint-validator"
     },
     {
-      "file": "skills/endpoint-validator/references/endpoint-config-anti-patterns.md",
+      "file": "skills/endpoint-validator/references/endpoint-config-preferred-patterns.md",
       "line_range": [
         82,
         105
@@ -1478,7 +1478,7 @@
       "domain_hint": "endpoint-validator"
     },
     {
-      "file": "skills/endpoint-validator/references/endpoint-config-anti-patterns.md",
+      "file": "skills/endpoint-validator/references/endpoint-config-preferred-patterns.md",
       "line_range": [
         107,
         131
@@ -1487,7 +1487,7 @@
       "domain_hint": "endpoint-validator"
     },
     {
-      "file": "skills/endpoint-validator/references/endpoint-config-anti-patterns.md",
+      "file": "skills/endpoint-validator/references/endpoint-config-preferred-patterns.md",
       "line_range": [
         133,
         154
@@ -1496,7 +1496,7 @@
       "domain_hint": "endpoint-validator"
     },
     {
-      "file": "skills/endpoint-validator/references/endpoint-config-anti-patterns.md",
+      "file": "skills/endpoint-validator/references/endpoint-config-preferred-patterns.md",
       "line_range": [
         156,
         184
@@ -1505,7 +1505,7 @@
       "domain_hint": "endpoint-validator"
     },
     {
-      "file": "skills/endpoint-validator/references/endpoint-config-anti-patterns.md",
+      "file": "skills/endpoint-validator/references/endpoint-config-preferred-patterns.md",
       "line_range": [
         186,
         208
@@ -1550,7 +1550,7 @@
       "domain_hint": "endpoint-validator"
     },
     {
-      "file": "skills/explanation-traces/references/anti-patterns.md",
+      "file": "skills/explanation-traces/references/preferred-patterns.md",
       "line_range": [
         1,
         6
@@ -1559,7 +1559,7 @@
       "domain_hint": "explanation-traces"
     },
     {
-      "file": "skills/explanation-traces/references/anti-patterns.md",
+      "file": "skills/explanation-traces/references/preferred-patterns.md",
       "line_range": [
         8,
         8
@@ -1568,7 +1568,7 @@
       "domain_hint": "explanation-traces"
     },
     {
-      "file": "skills/explanation-traces/references/anti-patterns.md",
+      "file": "skills/explanation-traces/references/preferred-patterns.md",
       "line_range": [
         10,
         19
@@ -1577,7 +1577,7 @@
       "domain_hint": "explanation-traces"
     },
     {
-      "file": "skills/explanation-traces/references/anti-patterns.md",
+      "file": "skills/explanation-traces/references/preferred-patterns.md",
       "line_range": [
         20,
         37
@@ -1586,7 +1586,7 @@
       "domain_hint": "explanation-traces"
     },
     {
-      "file": "skills/explanation-traces/references/anti-patterns.md",
+      "file": "skills/explanation-traces/references/preferred-patterns.md",
       "line_range": [
         60,
         89
@@ -1595,7 +1595,7 @@
       "domain_hint": "explanation-traces"
     },
     {
-      "file": "skills/explanation-traces/references/anti-patterns.md",
+      "file": "skills/explanation-traces/references/preferred-patterns.md",
       "line_range": [
         97,
         124
@@ -1604,7 +1604,7 @@
       "domain_hint": "explanation-traces"
     },
     {
-      "file": "skills/explanation-traces/references/anti-patterns.md",
+      "file": "skills/explanation-traces/references/preferred-patterns.md",
       "line_range": [
         130,
         136
@@ -1613,7 +1613,7 @@
       "domain_hint": "explanation-traces"
     },
     {
-      "file": "skills/explanation-traces/references/anti-patterns.md",
+      "file": "skills/explanation-traces/references/preferred-patterns.md",
       "line_range": [
         137,
         162
@@ -1622,7 +1622,7 @@
       "domain_hint": "explanation-traces"
     },
     {
-      "file": "skills/explanation-traces/references/anti-patterns.md",
+      "file": "skills/explanation-traces/references/preferred-patterns.md",
       "line_range": [
         164,
         185
@@ -1631,7 +1631,7 @@
       "domain_hint": "explanation-traces"
     },
     {
-      "file": "skills/explanation-traces/references/anti-patterns.md",
+      "file": "skills/explanation-traces/references/preferred-patterns.md",
       "line_range": [
         187,
         187
@@ -1640,7 +1640,7 @@
       "domain_hint": "explanation-traces"
     },
     {
-      "file": "skills/explanation-traces/references/anti-patterns.md",
+      "file": "skills/explanation-traces/references/preferred-patterns.md",
       "line_range": [
         189,
         202
@@ -1649,7 +1649,7 @@
       "domain_hint": "explanation-traces"
     },
     {
-      "file": "skills/explanation-traces/references/anti-patterns.md",
+      "file": "skills/explanation-traces/references/preferred-patterns.md",
       "line_range": [
         204,
         216
@@ -1658,7 +1658,7 @@
       "domain_hint": "explanation-traces"
     },
     {
-      "file": "skills/explanation-traces/references/anti-patterns.md",
+      "file": "skills/explanation-traces/references/preferred-patterns.md",
       "line_range": [
         218,
         230
@@ -1730,7 +1730,7 @@
       "domain_hint": "feature-lifecycle"
     },
     {
-      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "file": "skills/fish-shell-config/references/fish-preferred-patterns.md",
       "line_range": [
         1,
         7
@@ -1739,7 +1739,7 @@
       "domain_hint": "fish-shell-config"
     },
     {
-      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "file": "skills/fish-shell-config/references/fish-preferred-patterns.md",
       "line_range": [
         15,
         15
@@ -1748,7 +1748,7 @@
       "domain_hint": "fish-shell-config"
     },
     {
-      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "file": "skills/fish-shell-config/references/fish-preferred-patterns.md",
       "line_range": [
         17,
         26
@@ -1757,7 +1757,7 @@
       "domain_hint": "fish-shell-config"
     },
     {
-      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "file": "skills/fish-shell-config/references/fish-preferred-patterns.md",
       "line_range": [
         27,
         42
@@ -1766,7 +1766,7 @@
       "domain_hint": "fish-shell-config"
     },
     {
-      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "file": "skills/fish-shell-config/references/fish-preferred-patterns.md",
       "line_range": [
         44,
         53
@@ -1775,7 +1775,7 @@
       "domain_hint": "fish-shell-config"
     },
     {
-      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "file": "skills/fish-shell-config/references/fish-preferred-patterns.md",
       "line_range": [
         54,
         67
@@ -1784,7 +1784,7 @@
       "domain_hint": "fish-shell-config"
     },
     {
-      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "file": "skills/fish-shell-config/references/fish-preferred-patterns.md",
       "line_range": [
         69,
         78
@@ -1793,7 +1793,7 @@
       "domain_hint": "fish-shell-config"
     },
     {
-      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "file": "skills/fish-shell-config/references/fish-preferred-patterns.md",
       "line_range": [
         79,
         93
@@ -1802,7 +1802,7 @@
       "domain_hint": "fish-shell-config"
     },
     {
-      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "file": "skills/fish-shell-config/references/fish-preferred-patterns.md",
       "line_range": [
         95,
         104
@@ -1811,7 +1811,7 @@
       "domain_hint": "fish-shell-config"
     },
     {
-      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "file": "skills/fish-shell-config/references/fish-preferred-patterns.md",
       "line_range": [
         105,
         113
@@ -1820,7 +1820,7 @@
       "domain_hint": "fish-shell-config"
     },
     {
-      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "file": "skills/fish-shell-config/references/fish-preferred-patterns.md",
       "line_range": [
         124,
         133
@@ -1829,7 +1829,7 @@
       "domain_hint": "fish-shell-config"
     },
     {
-      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "file": "skills/fish-shell-config/references/fish-preferred-patterns.md",
       "line_range": [
         134,
         157
@@ -1838,7 +1838,7 @@
       "domain_hint": "fish-shell-config"
     },
     {
-      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "file": "skills/fish-shell-config/references/fish-preferred-patterns.md",
       "line_range": [
         163,
         171
@@ -1847,7 +1847,7 @@
       "domain_hint": "fish-shell-config"
     },
     {
-      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "file": "skills/fish-shell-config/references/fish-preferred-patterns.md",
       "line_range": [
         172,
         182
@@ -1856,7 +1856,7 @@
       "domain_hint": "fish-shell-config"
     },
     {
-      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "file": "skills/fish-shell-config/references/fish-preferred-patterns.md",
       "line_range": [
         192,
         201
@@ -1865,7 +1865,7 @@
       "domain_hint": "fish-shell-config"
     },
     {
-      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "file": "skills/fish-shell-config/references/fish-preferred-patterns.md",
       "line_range": [
         202,
         225
@@ -1874,7 +1874,7 @@
       "domain_hint": "fish-shell-config"
     },
     {
-      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "file": "skills/fish-shell-config/references/fish-preferred-patterns.md",
       "line_range": [
         227,
         236
@@ -1883,7 +1883,7 @@
       "domain_hint": "fish-shell-config"
     },
     {
-      "file": "skills/fish-shell-config/references/fish-anti-patterns.md",
+      "file": "skills/fish-shell-config/references/fish-preferred-patterns.md",
       "line_range": [
         237,
         246
@@ -1901,7 +1901,7 @@
       "domain_hint": "gemini-image-generator"
     },
     {
-      "file": "skills/go-patterns/references/anti-patterns.md",
+      "file": "skills/go-patterns/references/preferred-patterns.md",
       "line_range": [
         2,
         4
@@ -1910,7 +1910,7 @@
       "domain_hint": "go-patterns"
     },
     {
-      "file": "skills/go-patterns/references/anti-patterns.md",
+      "file": "skills/go-patterns/references/preferred-patterns.md",
       "line_range": [
         14,
         28
@@ -1919,7 +1919,7 @@
       "domain_hint": "go-patterns"
     },
     {
-      "file": "skills/go-patterns/references/anti-patterns.md",
+      "file": "skills/go-patterns/references/preferred-patterns.md",
       "line_range": [
         58,
         58
@@ -1964,7 +1964,7 @@
       "domain_hint": "kb"
     },
     {
-      "file": "skills/kotlin-coroutines/references/anti-patterns.md",
+      "file": "skills/kotlin-coroutines/references/preferred-patterns.md",
       "line_range": [
         6,
         6
@@ -2185,7 +2185,7 @@
         215,
         238
       ],
-      "block_text": "## Agent 10: Anti-Patterns, LLM Tells, Community Divergences\n\n**Sections**: §22 (Divergences), §24 (Anti-Patterns), §25 (LLM Code Feedback), §33 (Portunus Architecture), §35 (Reinforcement Table)\n**Extra Reference**: `anti-patterns.md`\n\n**This is the highest-value agent.** It checks for patterns that LLMs generate by default but the project explicitly rejects:\n\n- Functional options pattern (project convention: positional params)\n- Table-driven tests (project convention: sequential scenario narra...",
+      "block_text": "## Agent 10: Anti-Patterns, LLM Tells, Community Divergences\n\n**Sections**: §22 (Divergences), §24 (Anti-Patterns), §25 (LLM Code Feedback), §33 (Portunus Architecture), §35 (Reinforcement Table)\n**Extra Reference**: `preferred-patterns.md`\n\n**This is the highest-value agent.** It checks for patterns that LLMs generate by default but the project explicitly rejects:\n\n- Functional options pattern (project convention: positional params)\n- Table-driven tests (project convention: sequential scenario narra...",
       "domain_hint": "sapcc-review"
     },
     {
@@ -2216,7 +2216,7 @@
       "domain_hint": "skill-composer"
     },
     {
-      "file": "skills/skill-creator/references/anti-patterns.md",
+      "file": "skills/skill-creator/references/preferred-patterns.md",
       "line_range": [
         1,
         3
@@ -2225,7 +2225,7 @@
       "domain_hint": "skill-creator"
     },
     {
-      "file": "skills/skill-creator/references/anti-patterns.md",
+      "file": "skills/skill-creator/references/preferred-patterns.md",
       "line_range": [
         30,
         33
@@ -2234,7 +2234,7 @@
       "domain_hint": "skill-creator"
     },
     {
-      "file": "skills/skill-creator/references/anti-patterns.md",
+      "file": "skills/skill-creator/references/preferred-patterns.md",
       "line_range": [
         201,
         204
@@ -2243,7 +2243,7 @@
       "domain_hint": "skill-creator"
     },
     {
-      "file": "skills/skill-creator/references/anti-patterns.md",
+      "file": "skills/skill-creator/references/preferred-patterns.md",
       "line_range": [
         231,
         234
@@ -2252,7 +2252,7 @@
       "domain_hint": "skill-creator"
     },
     {
-      "file": "skills/skill-creator/references/anti-patterns.md",
+      "file": "skills/skill-creator/references/preferred-patterns.md",
       "line_range": [
         271,
         274
@@ -2261,7 +2261,7 @@
       "domain_hint": "skill-creator"
     },
     {
-      "file": "skills/skill-creator/references/anti-patterns.md",
+      "file": "skills/skill-creator/references/preferred-patterns.md",
       "line_range": [
         382,
         385
@@ -2311,7 +2311,7 @@
         160,
         182
       ],
-      "block_text": "## Testing (test-driven-development, testing-anti-patterns, e2e-testing)\n\n**Primary sources**\n- [Playwright docs](https://playwright.dev/docs/intro) — extract: Page Object Model\n  structure, locator best practices, network interception patterns\n- [pytest docs](https://docs.pytest.org) — extract: fixture patterns, parametrize,\n  conftest scope decisions\n\n**Secondary sources**\n- Kent C. Dodds — Testing Trophy and [testing-library principles](https://testing-library.com/docs/guiding-principles)\n  —...",
+      "block_text": "## Testing (test-driven-development, testing-preferred-patterns, e2e-testing)\n\n**Primary sources**\n- [Playwright docs](https://playwright.dev/docs/intro) — extract: Page Object Model\n  structure, locator best practices, network interception patterns\n- [pytest docs](https://docs.pytest.org) — extract: fixture patterns, parametrize,\n  conftest scope decisions\n\n**Secondary sources**\n- Kent C. Dodds — Testing Trophy and [testing-library principles](https://testing-library.com/docs/guiding-principles)\n  —...",
       "domain_hint": "skill-creator"
     },
     {
@@ -2324,7 +2324,7 @@
       "domain_hint": "skill-eval"
     },
     {
-      "file": "skills/swift-concurrency/references/anti-patterns.md",
+      "file": "skills/swift-concurrency/references/preferred-patterns.md",
       "line_range": [
         6,
         6
@@ -2351,13 +2351,13 @@
       "domain_hint": "test-driven-development"
     },
     {
-      "file": "skills/testing-anti-patterns/references/anti-pattern-catalog.md",
+      "file": "skills/testing-preferred-patterns/references/preferred-pattern-catalog.md",
       "line_range": [
         1,
         5
       ],
       "block_text": "# Testing Anti-Pattern Catalog\n\nDetailed code examples for all 10 anti-patterns. Each section shows BAD (what to avoid) and GOOD (what to do instead) in Go, Python, and JavaScript where applicable.\n\n---\n",
-      "domain_hint": "testing-anti-patterns"
+      "domain_hint": "testing-preferred-patterns"
     },
     {
       "file": "skills/threejs-builder/references/advanced-animation.md",
@@ -2486,7 +2486,7 @@
       "domain_hint": "threejs-builder"
     },
     {
-      "file": "skills/toolkit-evolution/references/evolve-anti-patterns.md",
+      "file": "skills/toolkit-evolution/references/evolve-preferred-patterns.md",
       "line_range": [
         1,
         5
@@ -2495,7 +2495,7 @@
       "domain_hint": "toolkit-evolution"
     },
     {
-      "file": "skills/toolkit-evolution/references/evolve-anti-patterns.md",
+      "file": "skills/toolkit-evolution/references/evolve-preferred-patterns.md",
       "line_range": [
         7,
         18
@@ -2729,7 +2729,7 @@
       "domain_hint": "combat"
     },
     {
-      "file": "agents/data-engineer/references/anti-patterns.md",
+      "file": "agents/data-engineer/references/preferred-patterns.md",
       "line_range": [
         1,
         3
@@ -3116,7 +3116,7 @@
       "domain_hint": "github"
     },
     {
-      "file": "agents/golang-general-engineer/references/go-anti-patterns.md",
+      "file": "agents/golang-general-engineer/references/go-preferred-patterns.md",
       "line_range": [
         1,
         3
@@ -3233,7 +3233,7 @@
       "domain_hint": "golang-general-engineer-compact"
     },
     {
-      "file": "agents/hook-development-engineer/references/anti-patterns.md",
+      "file": "agents/hook-development-engineer/references/preferred-patterns.md",
       "line_range": [
         1,
         3
@@ -3359,7 +3359,7 @@
       "domain_hint": "kubernetes-helm-engineer"
     },
     {
-      "file": "agents/mcp-local-docs-engineer/references/mcp-anti-patterns.md",
+      "file": "agents/mcp-local-docs-engineer/references/mcp-preferred-patterns.md",
       "line_range": [
         5,
         11
@@ -3368,7 +3368,7 @@
       "domain_hint": "MCP Server Anti"
     },
     {
-      "file": "agents/mcp-local-docs-engineer/references/mcp-anti-patterns.md",
+      "file": "agents/mcp-local-docs-engineer/references/mcp-preferred-patterns.md",
       "line_range": [
         19,
         19
@@ -3377,7 +3377,7 @@
       "domain_hint": "MCP Server Anti"
     },
     {
-      "file": "agents/mcp-local-docs-engineer/references/mcp-anti-patterns.md",
+      "file": "agents/mcp-local-docs-engineer/references/mcp-preferred-patterns.md",
       "line_range": [
         27,
         69
@@ -3386,7 +3386,7 @@
       "domain_hint": "MCP Server Anti"
     },
     {
-      "file": "agents/mcp-local-docs-engineer/references/mcp-anti-patterns.md",
+      "file": "agents/mcp-local-docs-engineer/references/mcp-preferred-patterns.md",
       "line_range": [
         77,
         107
@@ -3395,7 +3395,7 @@
       "domain_hint": "MCP Server Anti"
     },
     {
-      "file": "agents/mcp-local-docs-engineer/references/mcp-anti-patterns.md",
+      "file": "agents/mcp-local-docs-engineer/references/mcp-preferred-patterns.md",
       "line_range": [
         114,
         145
@@ -3404,7 +3404,7 @@
       "domain_hint": "MCP Server Anti"
     },
     {
-      "file": "agents/mcp-local-docs-engineer/references/mcp-anti-patterns.md",
+      "file": "agents/mcp-local-docs-engineer/references/mcp-preferred-patterns.md",
       "line_range": [
         151,
         184
@@ -3413,7 +3413,7 @@
       "domain_hint": "MCP Server Anti"
     },
     {
-      "file": "agents/mcp-local-docs-engineer/references/mcp-anti-patterns.md",
+      "file": "agents/mcp-local-docs-engineer/references/mcp-preferred-patterns.md",
       "line_range": [
         192,
         221
@@ -3494,7 +3494,7 @@
       "domain_hint": "TypeScript Async Patterns for MCP Servers"
     },
     {
-      "file": "agents/nextjs-ecommerce-engineer/references/anti-patterns.md",
+      "file": "agents/nextjs-ecommerce-engineer/references/preferred-patterns.md",
       "line_range": [
         1,
         4
@@ -3773,7 +3773,7 @@
       "domain_hint": "OpenSearch/Elasticsearch Query Optimization"
     },
     {
-      "file": "agents/performance-optimization-engineer/references/anti-patterns.md",
+      "file": "agents/performance-optimization-engineer/references/preferred-patterns.md",
       "line_range": [
         1,
         3
@@ -3881,7 +3881,7 @@
       "domain_hint": "performance-optimization-engineer"
     },
     {
-      "file": "agents/pipeline-orchestrator-engineer/references/anti-patterns.md",
+      "file": "agents/pipeline-orchestrator-engineer/references/preferred-patterns.md",
       "line_range": [
         1,
         7
@@ -3890,7 +3890,7 @@
       "domain_hint": "pipeline-orchestrator-engineer"
     },
     {
-      "file": "agents/pipeline-orchestrator-engineer/references/anti-patterns.md",
+      "file": "agents/pipeline-orchestrator-engineer/references/preferred-patterns.md",
       "line_range": [
         15,
         15
@@ -3899,7 +3899,7 @@
       "domain_hint": "pipeline-orchestrator-engineer"
     },
     {
-      "file": "agents/pipeline-orchestrator-engineer/references/anti-patterns.md",
+      "file": "agents/pipeline-orchestrator-engineer/references/preferred-patterns.md",
       "line_range": [
         21,
         49
@@ -3908,7 +3908,7 @@
       "domain_hint": "pipeline-orchestrator-engineer"
     },
     {
-      "file": "agents/pipeline-orchestrator-engineer/references/anti-patterns.md",
+      "file": "agents/pipeline-orchestrator-engineer/references/preferred-patterns.md",
       "line_range": [
         57,
         66
@@ -3917,7 +3917,7 @@
       "domain_hint": "pipeline-orchestrator-engineer"
     },
     {
-      "file": "agents/pipeline-orchestrator-engineer/references/anti-patterns.md",
+      "file": "agents/pipeline-orchestrator-engineer/references/preferred-patterns.md",
       "line_range": [
         80,
         102
@@ -3926,7 +3926,7 @@
       "domain_hint": "pipeline-orchestrator-engineer"
     },
     {
-      "file": "agents/pipeline-orchestrator-engineer/references/anti-patterns.md",
+      "file": "agents/pipeline-orchestrator-engineer/references/preferred-patterns.md",
       "line_range": [
         110,
         126
@@ -3935,7 +3935,7 @@
       "domain_hint": "pipeline-orchestrator-engineer"
     },
     {
-      "file": "agents/pipeline-orchestrator-engineer/references/anti-patterns.md",
+      "file": "agents/pipeline-orchestrator-engineer/references/preferred-patterns.md",
       "line_range": [
         132,
         144
@@ -3944,7 +3944,7 @@
       "domain_hint": "pipeline-orchestrator-engineer"
     },
     {
-      "file": "agents/pipeline-orchestrator-engineer/references/anti-patterns.md",
+      "file": "agents/pipeline-orchestrator-engineer/references/preferred-patterns.md",
       "line_range": [
         152,
         185
@@ -4277,7 +4277,7 @@
       "domain_hint": "prometheus-grafana-engineer"
     },
     {
-      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "file": "agents/python-general-engineer/references/python-preferred-patterns.md",
       "line_range": [
         1,
         3
@@ -4286,7 +4286,7 @@
       "domain_hint": "python-general-engineer"
     },
     {
-      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "file": "agents/python-general-engineer/references/python-preferred-patterns.md",
       "line_range": [
         5,
         9
@@ -4295,7 +4295,7 @@
       "domain_hint": "python-general-engineer"
     },
     {
-      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "file": "agents/python-general-engineer/references/python-preferred-patterns.md",
       "line_range": [
         61,
         64
@@ -4304,7 +4304,7 @@
       "domain_hint": "python-general-engineer"
     },
     {
-      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "file": "agents/python-general-engineer/references/python-preferred-patterns.md",
       "line_range": [
         170,
         176
@@ -4313,7 +4313,7 @@
       "domain_hint": "python-general-engineer"
     },
     {
-      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "file": "agents/python-general-engineer/references/python-preferred-patterns.md",
       "line_range": [
         376,
         384
@@ -4322,7 +4322,7 @@
       "domain_hint": "python-general-engineer"
     },
     {
-      "file": "agents/python-general-engineer/references/python-anti-patterns.md",
+      "file": "agents/python-general-engineer/references/python-preferred-patterns.md",
       "line_range": [
         448,
         452
@@ -5051,7 +5051,7 @@
       "domain_hint": "reviewer-code"
     },
     {
-      "file": "agents/reviewer-domain/references/operational-anti-patterns.md",
+      "file": "agents/reviewer-domain/references/operational-preferred-patterns.md",
       "line_range": [
         1,
         3
@@ -5060,7 +5060,7 @@
       "domain_hint": "reviewer-domain"
     },
     {
-      "file": "agents/reviewer-domain/references/operational-anti-patterns.md",
+      "file": "agents/reviewer-domain/references/operational-preferred-patterns.md",
       "line_range": [
         5,
         8
@@ -5069,7 +5069,7 @@
       "domain_hint": "reviewer-domain"
     },
     {
-      "file": "agents/reviewer-domain/references/operational-anti-patterns.md",
+      "file": "agents/reviewer-domain/references/operational-preferred-patterns.md",
       "line_range": [
         127,
         132
@@ -5663,7 +5663,7 @@
       "domain_hint": "system-upgrade-engineer"
     },
     {
-      "file": "agents/system-upgrade-engineer/references/upgrade-anti-patterns.md",
+      "file": "agents/system-upgrade-engineer/references/upgrade-preferred-patterns.md",
       "line_range": [
         1,
         7
@@ -5672,7 +5672,7 @@
       "domain_hint": "system-upgrade-engineer"
     },
     {
-      "file": "agents/system-upgrade-engineer/references/upgrade-anti-patterns.md",
+      "file": "agents/system-upgrade-engineer/references/upgrade-preferred-patterns.md",
       "line_range": [
         18,
         18
@@ -5681,7 +5681,7 @@
       "domain_hint": "system-upgrade-engineer"
     },
     {
-      "file": "agents/system-upgrade-engineer/references/upgrade-anti-patterns.md",
+      "file": "agents/system-upgrade-engineer/references/upgrade-preferred-patterns.md",
       "line_range": [
         28,
         43
@@ -5690,7 +5690,7 @@
       "domain_hint": "system-upgrade-engineer"
     },
     {
-      "file": "agents/system-upgrade-engineer/references/upgrade-anti-patterns.md",
+      "file": "agents/system-upgrade-engineer/references/upgrade-preferred-patterns.md",
       "line_range": [
         45,
         52
@@ -5699,7 +5699,7 @@
       "domain_hint": "system-upgrade-engineer"
     },
     {
-      "file": "agents/system-upgrade-engineer/references/upgrade-anti-patterns.md",
+      "file": "agents/system-upgrade-engineer/references/upgrade-preferred-patterns.md",
       "line_range": [
         55,
         69
@@ -5708,7 +5708,7 @@
       "domain_hint": "system-upgrade-engineer"
     },
     {
-      "file": "agents/system-upgrade-engineer/references/upgrade-anti-patterns.md",
+      "file": "agents/system-upgrade-engineer/references/upgrade-preferred-patterns.md",
       "line_range": [
         81,
         92
@@ -5717,7 +5717,7 @@
       "domain_hint": "system-upgrade-engineer"
     },
     {
-      "file": "agents/system-upgrade-engineer/references/upgrade-anti-patterns.md",
+      "file": "agents/system-upgrade-engineer/references/upgrade-preferred-patterns.md",
       "line_range": [
         100,
         114
@@ -5726,7 +5726,7 @@
       "domain_hint": "system-upgrade-engineer"
     },
     {
-      "file": "agents/system-upgrade-engineer/references/upgrade-anti-patterns.md",
+      "file": "agents/system-upgrade-engineer/references/upgrade-preferred-patterns.md",
       "line_range": [
         124,
         135
@@ -5735,7 +5735,7 @@
       "domain_hint": "system-upgrade-engineer"
     },
     {
-      "file": "agents/system-upgrade-engineer/references/upgrade-anti-patterns.md",
+      "file": "agents/system-upgrade-engineer/references/upgrade-preferred-patterns.md",
       "line_range": [
         143,
         154
@@ -5744,7 +5744,7 @@
       "domain_hint": "system-upgrade-engineer"
     },
     {
-      "file": "agents/system-upgrade-engineer/references/upgrade-anti-patterns.md",
+      "file": "agents/system-upgrade-engineer/references/upgrade-preferred-patterns.md",
       "line_range": [
         224,
         225
@@ -5798,7 +5798,7 @@
       "domain_hint": "system"
     },
     {
-      "file": "agents/technical-documentation-engineer/references/api-doc-anti-patterns.md",
+      "file": "agents/technical-documentation-engineer/references/api-doc-preferred-patterns.md",
       "line_range": [
         1,
         7
@@ -5807,7 +5807,7 @@
       "domain_hint": "technical-documentation-engineer"
     },
     {
-      "file": "agents/technical-documentation-engineer/references/api-doc-anti-patterns.md",
+      "file": "agents/technical-documentation-engineer/references/api-doc-preferred-patterns.md",
       "line_range": [
         15,
         15
@@ -5816,7 +5816,7 @@
       "domain_hint": "technical-documentation-engineer"
     },
     {
-      "file": "agents/technical-documentation-engineer/references/api-doc-anti-patterns.md",
+      "file": "agents/technical-documentation-engineer/references/api-doc-preferred-patterns.md",
       "line_range": [
         24,
         40
@@ -5825,7 +5825,7 @@
       "domain_hint": "technical-documentation-engineer"
     },
     {
-      "file": "agents/technical-documentation-engineer/references/api-doc-anti-patterns.md",
+      "file": "agents/technical-documentation-engineer/references/api-doc-preferred-patterns.md",
       "line_range": [
         60,
         73
@@ -5834,7 +5834,7 @@
       "domain_hint": "technical-documentation-engineer"
     },
     {
-      "file": "agents/technical-documentation-engineer/references/api-doc-anti-patterns.md",
+      "file": "agents/technical-documentation-engineer/references/api-doc-preferred-patterns.md",
       "line_range": [
         87,
         103
@@ -5843,7 +5843,7 @@
       "domain_hint": "technical-documentation-engineer"
     },
     {
-      "file": "agents/technical-documentation-engineer/references/api-doc-anti-patterns.md",
+      "file": "agents/technical-documentation-engineer/references/api-doc-preferred-patterns.md",
       "line_range": [
         131,
         145
@@ -5852,7 +5852,7 @@
       "domain_hint": "technical-documentation-engineer"
     },
     {
-      "file": "agents/technical-documentation-engineer/references/api-doc-anti-patterns.md",
+      "file": "agents/technical-documentation-engineer/references/api-doc-preferred-patterns.md",
       "line_range": [
         158,
         177
@@ -5861,7 +5861,7 @@
       "domain_hint": "technical-documentation-engineer"
     },
     {
-      "file": "agents/technical-documentation-engineer/references/api-doc-anti-patterns.md",
+      "file": "agents/technical-documentation-engineer/references/api-doc-preferred-patterns.md",
       "line_range": [
         183,
         192
@@ -5870,7 +5870,7 @@
       "domain_hint": "technical-documentation-engineer"
     },
     {
-      "file": "agents/technical-documentation-engineer/references/api-doc-anti-patterns.md",
+      "file": "agents/technical-documentation-engineer/references/api-doc-preferred-patterns.md",
       "line_range": [
         193,
         206
@@ -6176,7 +6176,7 @@
       "domain_hint": "technical-journalist-writer"
     },
     {
-      "file": "agents/testing-automation-engineer/references/anti-patterns.md",
+      "file": "agents/testing-automation-engineer/references/preferred-patterns.md",
       "line_range": [
         1,
         3
@@ -6554,7 +6554,7 @@
       "domain_hint": "toolkit-governance-engineer"
     },
     {
-      "file": "agents/typescript-frontend-engineer/references/typescript-anti-patterns.md",
+      "file": "agents/typescript-frontend-engineer/references/typescript-preferred-patterns.md",
       "line_range": [
         1,
         3
@@ -6608,7 +6608,7 @@
       "domain_hint": "ui-design-engineer"
     },
     {
-      "file": "agents/ui-design-engineer/references/tailwind-anti-patterns.md",
+      "file": "agents/ui-design-engineer/references/tailwind-preferred-patterns.md",
       "line_range": [
         1,
         10
@@ -6617,7 +6617,7 @@
       "domain_hint": "ui-design-engineer"
     },
     {
-      "file": "agents/ui-design-engineer/references/tailwind-anti-patterns.md",
+      "file": "agents/ui-design-engineer/references/tailwind-preferred-patterns.md",
       "line_range": [
         12,
         12
@@ -6626,7 +6626,7 @@
       "domain_hint": "ui-design-engineer"
     },
     {
-      "file": "agents/ui-design-engineer/references/tailwind-anti-patterns.md",
+      "file": "agents/ui-design-engineer/references/tailwind-preferred-patterns.md",
       "line_range": [
         18,
         55
@@ -6635,7 +6635,7 @@
       "domain_hint": "ui-design-engineer"
     },
     {
-      "file": "agents/ui-design-engineer/references/tailwind-anti-patterns.md",
+      "file": "agents/ui-design-engineer/references/tailwind-preferred-patterns.md",
       "line_range": [
         62,
         97
@@ -6644,7 +6644,7 @@
       "domain_hint": "ui-design-engineer"
     },
     {
-      "file": "agents/ui-design-engineer/references/tailwind-anti-patterns.md",
+      "file": "agents/ui-design-engineer/references/tailwind-preferred-patterns.md",
       "line_range": [
         105,
         137
@@ -6653,7 +6653,7 @@
       "domain_hint": "ui-design-engineer"
     },
     {
-      "file": "agents/ui-design-engineer/references/tailwind-anti-patterns.md",
+      "file": "agents/ui-design-engineer/references/tailwind-preferred-patterns.md",
       "line_range": [
         145,
         183

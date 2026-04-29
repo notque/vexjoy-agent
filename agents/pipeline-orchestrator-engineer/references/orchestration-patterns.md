@@ -347,7 +347,7 @@ This notice applies even if the pipeline has no new agent (skill-only pipelines 
 
 ## See Also
 
-- `anti-patterns.md` — common pipeline creation mistakes with detection commands
+- `preferred-patterns.md` — common pipeline creation mistakes with detection commands
 - `skills/workflow/references/step-menu.md` — valid steps and type signatures
 - `skills/workflow/references/architecture-rules.md` — all 18+ architecture rules
 - `scripts/artifact-utils.py` — discovery, chain validation, step listing utilities

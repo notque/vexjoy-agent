@@ -40,7 +40,7 @@ Implement condition-based polling and retry patterns with bounded timeouts, jitt
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| implementation patterns | `anti-patterns.md` | Loads detailed guidance from `anti-patterns.md`. |
+| implementation patterns | `preferred-patterns.md` | Loads detailed guidance from `preferred-patterns.md`. |
 | implementation patterns | `implementation-patterns.md` | Loads detailed guidance from `implementation-patterns.md`. |
 | tests, implementation patterns | `testing-patterns.md` | Loads detailed guidance from `testing-patterns.md`. |
 
@@ -240,11 +240,11 @@ Solution:
 | Task Type | Signal Keywords | Load |
 |-----------|----------------|------|
 | Implementing any pattern | "implement", "add retry", "write polling", "create backoff" | `implementation-patterns.md` |
-| Reviewing existing code | "review", "check for", "find issues", "audit", "detect" | `anti-patterns.md` |
-| Replacing `sleep()` in tests | "sleep", "flaky test", "CI hang", "test timeout" | `anti-patterns.md` |
+| Reviewing existing code | "review", "check for", "find issues", "audit", "detect" | `preferred-patterns.md` |
+| Replacing `sleep()` in tests | "sleep", "flaky test", "CI hang", "test timeout" | `preferred-patterns.md` |
 | Writing tests for retry/wait code | "test", "pytest", "mock", "verify retry", "unit test" | `testing-patterns.md` |
 
 ### Reference Files
 - `${CLAUDE_SKILL_DIR}/references/implementation-patterns.md`: Complete Python/Bash implementations for all patterns
-- `${CLAUDE_SKILL_DIR}/references/anti-patterns.md`: Detection commands and fixes for common wait/retry mistakes
+- `${CLAUDE_SKILL_DIR}/references/preferred-patterns.md`: Detection commands and fixes for common wait/retry mistakes
 - `${CLAUDE_SKILL_DIR}/references/testing-patterns.md`: pytest patterns for testing polling, backoff, and circuit breaker code

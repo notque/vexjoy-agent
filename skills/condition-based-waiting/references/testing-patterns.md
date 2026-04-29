@@ -262,4 +262,4 @@ def test_retry_waits():
 ## See Also
 
 - `implementation-patterns.md` — complete implementations for all patterns
-- `anti-patterns.md` — detection commands for common wait/retry mistakes
+- `preferred-patterns.md` — detection commands for common wait/retry mistakes

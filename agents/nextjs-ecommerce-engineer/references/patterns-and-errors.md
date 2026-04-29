@@ -110,7 +110,7 @@ Common e-commerce errors. See [error-catalog.md](error-catalog.md) for comprehen
 
 ## Preferred Patterns
 
-Common e-commerce mistakes and corrections. See [anti-patterns.md](anti-patterns.md) for full catalog.
+Common e-commerce mistakes and corrections. See [preferred-patterns.md](preferred-patterns.md) for full catalog.
 
 ### Use Stripe Tokens for Payment Data
 **Signal**: Saving card numbers in database
