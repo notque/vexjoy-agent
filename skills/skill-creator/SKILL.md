@@ -106,6 +106,11 @@ if the user explicitly confirms creating a new skill after reviewing the overlap
 
 ### Research
 
+Read `docs/PHILOSOPHY.md` before writing any component. The philosophy contains
+binding architectural decisions — not suggestions — that govern how agents carry
+knowledge, how skills structure workflows, how references are organized, and how
+content is framed. Components that violate the philosophy will fail review.
+
 Read the repository CLAUDE.md before writing anything. Project conventions override
 default patterns.
 
@@ -274,8 +279,13 @@ the skill's workflow.
 
 ### Agent creation standard
 
-When this skill scaffolds a repo-level agent, apply the same maintenance-artifact
-rule to the agent package:
+When this skill scaffolds a repo-level agent, read `docs/PHILOSOPHY.md` first.
+The philosophy governs how agents carry knowledge (not thin wrappers), how review
+knowledge separates from implementation knowledge, and how references are
+organized for progressive disclosure. An agent built without reading the
+philosophy will misplace domain knowledge or violate structural conventions.
+
+Apply the same maintenance-artifact rule to the agent package:
 
 ```
 agents/
