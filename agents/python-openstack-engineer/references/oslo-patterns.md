@@ -157,7 +157,7 @@ def get_resource(context, resource_id: str):
 
 ## Pattern Catalog
 
-### ❌ Direct `import logging` in Service Code
+### Use oslo_log Instead of Direct logging Import
 
 **Detection**:
 ```bash
@@ -165,16 +165,16 @@ grep -rn '^import logging$' --include="*.py"
 grep -rn 'logging\.getLogger' --include="*.py" | grep -v "oslo_log\|# noqa"
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 import logging  # Wrong in OpenStack service modules
 
 LOG = logging.getLogger(__name__)
 ```
 
-**Why wrong**: Bypasses `oslo.log` integration. Log messages won't carry Oslo context fields (`request_id`, `project_id`), and runtime log level changes via `CONF.debug` won't apply to this logger.
+**Why this matters**: Bypasses `oslo.log` integration. Log messages won't carry Oslo context fields (`request_id`, `project_id`), and runtime log level changes via `CONF.debug` won't apply to this logger.
 
-**Do instead:**
+**Preferred action**:
 ```python
 from oslo_log import log as logging
 
@@ -183,22 +183,22 @@ LOG = logging.getLogger(__name__)
 
 ---
 
-### ❌ Hardcoded Transport URL in Code
+### Load Transport URL from oslo.config
 
 **Detection**:
 ```bash
 grep -rn 'rabbit://\|amqp://' --include="*.py" | grep -v "# example\|\.cfg\|test"
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 transport = messaging.get_rpc_transport(
     CONF, url='rabbit://guest:guest@localhost:5672/')
 ```
 
-**Why wrong**: Transport URL must come from oslo.config (`CONF.transport_url`) to be overridable in deployment configs and testable with `oslo_messaging.fake`.
+**Why this matters**: Transport URL must come from oslo.config (`CONF.transport_url`) to be overridable in deployment configs and testable with `oslo_messaging.fake`.
 
-**Do instead:**
+**Preferred action**:
 ```python
 # In opts registration:
 cfg.StrOpt('transport_url', default='rabbit://', help='...')
@@ -209,14 +209,14 @@ transport = messaging.get_rpc_transport(CONF)
 
 ---
 
-### ❌ Raw SQLAlchemy `create_engine` Without Oslo Session
+### Use oslo.db enginefacade for Database Sessions
 
 **Detection**:
 ```bash
 grep -rn 'create_engine\|sessionmaker' --include="*.py" | grep -v "enginefacade\|migration\|test"
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -226,29 +226,29 @@ Session = sessionmaker(bind=engine)
 session = Session()
 ```
 
-**Why wrong**: Bypasses oslo.db retry logic (deadlock retries via `@api.wrap_db_retry`), connection pool management, and the `sqlite+pysqlite:///:memory:` test override used in unit tests.
+**Why this matters**: Bypasses oslo.db retry logic (deadlock retries via `@api.wrap_db_retry`), connection pool management, and the `sqlite+pysqlite:///:memory:` test override used in unit tests.
 
-**Do instead:** Use `enginefacade.writer` / `enginefacade.reader` decorators as shown in the Correct Patterns section.
+**Preferred action**: Use `enginefacade.writer` / `enginefacade.reader` decorators as shown in the Correct Patterns section.
 
 ---
 
-### ❌ Missing `oslo.policy` Enforcement
+### Enforce oslo.policy on Every API Operation
 
 **Detection**:
 ```bash
 grep -rn 'def (create|update|delete|get|list)_' --include="*.py" -A 10 | grep -v "policy\|enforce"
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 def delete_resource(self, context, resource_id):
     # No policy check — any authenticated user can delete
     return db.resource_delete(context, resource_id)
 ```
 
-**Why wrong**: All API operations must enforce oslo.policy rules. Missing enforcement silently bypasses RBAC — a security vulnerability that won't be caught by unit tests unless policy enforcement is explicitly tested.
+**Why this matters**: All API operations must enforce oslo.policy rules. Missing enforcement silently bypasses RBAC — a security vulnerability that won't be caught by unit tests unless policy enforcement is explicitly tested.
 
-**Do instead:**
+**Preferred action**:
 ```python
 from oslo_policy import policy
 

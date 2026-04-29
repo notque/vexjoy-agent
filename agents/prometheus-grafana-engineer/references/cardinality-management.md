@@ -62,7 +62,7 @@ topk(20, count by (__name__)({__name__=~".+"}))
 ## Pattern Catalog
 <!-- no-pair-required: section header only -->
 
-### ❌ High-Cardinality Labels (user_id, request_id, session_id)
+### Use Bounded Labels Only
 
 **Detection**:
 ```bash
@@ -77,7 +77,7 @@ rg 'WithLabelValues|labels\.Set|prometheus\.Labels' --type go -A 3 | \
 count by (user_id) (http_requests_total)  # should return 0 results if correctly designed
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 // Go example — unbounded label
 httpRequests.With(prometheus.Labels{
@@ -87,9 +87,9 @@ httpRequests.With(prometheus.Labels{
 }).Inc()
 ```
 
-**Why wrong**: 100K users × 50 endpoints × 5 status codes = 25M series. Prometheus memory usage becomes `25M × 4KB = 100GB`. Queries against this metric scan all 25M series even with filters, because index lookup is by label, not by value range.
+**Why this matters**: 100K users × 50 endpoints × 5 status codes = 25M series. Prometheus memory usage becomes `25M × 4KB = 100GB`. Queries against this metric scan all 25M series even with filters, because index lookup is by label, not by value range.
 
-**Do instead:**
+**Preferred action**:
 ```go
 // Correct — bounded labels only
 httpRequests.With(prometheus.Labels{
@@ -102,7 +102,7 @@ httpRequests.With(prometheus.Labels{
 
 ---
 
-### ❌ No Relabeling Drop Rules for Internal Metrics
+### Add Relabeling Drop Rules for Internal Metrics
 
 **Detection**:
 ```bash
@@ -116,7 +116,7 @@ curl -s 'http://localhost:9090/api/v1/targets' | \
 ```
 <!-- no-pair-required: partial section — positive counterpart follows in next block -->
 
-**What it looks like**:
+**Signal**:
 ```yaml
 # prometheus.yml — no relabeling
 scrape_configs:
@@ -126,9 +126,9 @@ scrape_configs:
     # No relabel_configs — ingests all labels from pod annotations
 ```
 
-**Why wrong**: Kubernetes pods can expose dozens of labels (app, version, helm-release, git-commit, build-time, namespace). Without `relabel_configs`, all of these become Prometheus label dimensions. A git commit hash label creates unique series per deployment, exploding cardinality.
+**Why this matters**: Kubernetes pods can expose dozens of labels (app, version, helm-release, git-commit, build-time, namespace). Without `relabel_configs`, all of these become Prometheus label dimensions. A git commit hash label creates unique series per deployment, exploding cardinality.
 
-**Do instead:**
+**Preferred action**:
 ```yaml
 scrape_configs:
   - job_name: 'kubernetes-pods'
@@ -151,7 +151,7 @@ scrape_configs:
 
 ---
 
-### ❌ Recording Rules That Don't Reduce Cardinality
+### Exclude High-Cardinality Labels from Recording Rules
 
 **Detection**:
 ```bash
@@ -160,16 +160,16 @@ grep -A 5 'record:' prometheus-rules.yml | grep 'by (' | grep -i 'user\|request_
 rg 'record:' --type yaml -A 5 | grep 'by\s*\(' | grep -v 'service\|job\|namespace\|status'
 ```
 
-**What it looks like**:
+**Signal**:
 ```yaml
 - record: job:http_requests:rate5m
   expr: sum(rate(http_requests_total[5m])) by (job, user_id)
   # Aggregates but still fans out by user_id — doesn't help
 ```
 
-**Why wrong**: Recording rules are meant to reduce query cost by pre-aggregating. If the `by()` clause includes a high-cardinality label, the recording rule creates as many series as the original metric, with no benefit.
+**Why this matters**: Recording rules are meant to reduce query cost by pre-aggregating. If the `by()` clause includes a high-cardinality label, the recording rule creates as many series as the original metric, with no benefit.
 
-**Do instead:**
+**Preferred action**:
 ```yaml
 # Drop high-cardinality dimensions in recording rules
 - record: job:http_requests:rate5m
@@ -179,7 +179,7 @@ rg 'record:' --type yaml -A 5 | grep 'by\s*\(' | grep -v 'service\|job\|namespac
 
 ---
 
-### ❌ No Cardinality Alert
+### Add a Cardinality Alert
 
 **Detection**:
 ```bash
@@ -187,11 +187,11 @@ grep -rn 'tsdb_head_series\|cardinality' --include="*.yml"
 # If no results: no proactive cardinality monitoring
 ```
 
-**What it looks like**: No alert for growing series count — OOM is the first signal.
+**Signal**: No alert for growing series count — OOM is the first signal.
 
-**Why wrong**: Cardinality growth is gradual. A new deployment adds 50K series per day unnoticed until Prometheus hits memory limits under query load 2 weeks later. By then, the causing deployment is long merged and difficult to identify.
+**Why this matters**: Cardinality growth is gradual. A new deployment adds 50K series per day unnoticed until Prometheus hits memory limits under query load 2 weeks later. By then, the causing deployment is long merged and difficult to identify.
 
-**Do instead:**
+**Preferred action**:
 ```yaml
 - alert: PrometheusHighCardinality
   expr: prometheus_tsdb_head_series > 1500000

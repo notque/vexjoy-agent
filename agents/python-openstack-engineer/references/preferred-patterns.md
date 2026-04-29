@@ -2,20 +2,20 @@
 
 Common OpenStack development mistakes and their corrections.
 
-## ❌ Reinventing Oslo Libraries
-**What it looks like**: Implementing custom config/logging/RPC instead of using Oslo
-**Why wrong**: Violates OpenStack standards, incompatible with community tools
-**✅ Do instead**: Use oslo.config, oslo.log, oslo.messaging
+## Use Oslo Libraries
+**Signal**: Implementing custom config/logging/RPC instead of using Oslo
+**Why this matters**: Violates OpenStack standards, incompatible with community tools
+**Preferred action**: Use oslo.config, oslo.log, oslo.messaging
 
-## ❌ Bare Except Clauses
-**What it looks like**: `except:` without exception type
-**Why wrong**: H201 hacking rule violation, catches SystemExit/KeyboardInterrupt
-**✅ Do instead**: `except SpecificException:`
+## Catch Specific Exceptions
+**Signal**: `except:` without exception type
+**Why this matters**: H201 hacking rule violation, catches SystemExit/KeyboardInterrupt
+**Preferred action**: `except SpecificException:`
 
-## ❌ Missing RPC Versioning
-**What it looks like**: Changing RPC method signatures without version bump
-**Why wrong**: Breaks rolling upgrades
-**✅ Do instead**: Increment RPC_API_VERSION and handle both old and new signatures
+## Version All RPC Changes
+**Signal**: Changing RPC method signatures without version bump
+**Why this matters**: Breaks rolling upgrades
+**Preferred action**: Increment RPC_API_VERSION and handle both old and new signatures
 
 ## Anti-Rationalization
 

@@ -128,7 +128,7 @@ def handle_message(ch, method, properties, body):
 
 ## Pattern Catalog
 
-### ❌ Prefetch 0 (Unlimited)
+### Set Prefetch Count Before Consuming
 
 **Detection**:
 ```bash
@@ -141,19 +141,19 @@ rg 'basic_consume' --type py -B 10 | grep -v 'basic_qos'
 rg '\.Consume\(' --type go -B 10 | grep -v 'Qos\('
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 channel.basic_consume(queue='tasks', on_message_callback=handle)
 # No basic_qos call — broker pushes unlimited messages
 ```
 
-**Why wrong**: Broker pushes all queued messages to the first consumer that connects. Memory on the consumer grows without bound. Other consumers get nothing until the first consumer's buffer drains. Under spike load this causes OOM kills on consumer processes.
+**Why this matters**: Broker pushes all queued messages to the first consumer that connects. Memory on the consumer grows without bound. Other consumers get nothing until the first consumer's buffer drains. Under spike load this causes OOM kills on consumer processes.
 
-**Fix**: Always call `channel.basic_qos(prefetch_count=N)` before `basic_consume`. Start with `prefetch_count=10` and tune upward.
+**Preferred action**: Always call `channel.basic_qos(prefetch_count=N)` before `basic_consume`. Start with `prefetch_count=10` and tune upward.
 
 ---
 
-### ❌ No Message TTL on Persistent Queues
+### Set Message TTL on Persistent Queues
 
 **Detection**:
 ```bash
@@ -164,7 +164,7 @@ rg 'queue_declare' --type py -A 5 | grep -v 'x-message-ttl\|ttl'
 rabbitmqctl list_queues name policy | grep -v 'ttl\|expire'
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 channel.queue_declare(
     queue='notifications',
@@ -173,9 +173,9 @@ channel.queue_declare(
 )
 ```
 
-**Why wrong**: Queues without TTL or max-length policies grow unboundedly if consumers fall behind. A queue with 10M messages consumes GB of memory/disk. Memory alarm fires at 40% (default watermark), blocking all publishers on the node.
+**Why this matters**: Queues without TTL or max-length policies grow unboundedly if consumers fall behind. A queue with 10M messages consumes GB of memory/disk. Memory alarm fires at 40% (default watermark), blocking all publishers on the node.
 
-**Fix**:
+**Preferred action**:
 ```python
 channel.queue_declare(
     queue='notifications',
@@ -191,7 +191,7 @@ channel.queue_declare(
 
 ---
 
-### ❌ Classic Mirrored Queues for HA
+### Migrate to Quorum Queues for HA
 
 **Detection**:
 ```bash
@@ -202,14 +202,14 @@ rabbitmqctl list_policies | grep 'ha-mode'
 rg 'ha-mode|ha_mode' --type py --type go --type js
 ```
 
-**What it looks like**:
+**Signal**:
 ```bash
 rabbitmqctl set_policy ha-all ".*" '{"ha-mode":"all"}' --apply-to queues
 ```
 
-**Why wrong**: Classic mirrored queues replicate via synchronous replication to all mirror nodes. This causes write amplification proportional to cluster size. Under high throughput (>10K msg/s), mirrors can't keep up and the queue enters `slave_not_synchronized` state — at which point failover promotes an unsynchronized mirror, losing messages. Deprecated since 3.11, removed in 4.0.
+**Why this matters**: Classic mirrored queues replicate via synchronous replication to all mirror nodes. This causes write amplification proportional to cluster size. Under high throughput (>10K msg/s), mirrors can't keep up and the queue enters `slave_not_synchronized` state — at which point failover promotes an unsynchronized mirror, losing messages. Deprecated since 3.11, removed in 4.0.
 
-**Fix**:
+**Preferred action**:
 ```bash
 # Use quorum queues (Raft-based, stronger guarantees)
 rabbitmqctl set_policy quorum-ha "^ha\." \

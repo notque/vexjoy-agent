@@ -123,21 +123,21 @@ Step 3: Application agent → smoke test against deployed environment
 ## Routing Mismatches
 <!-- no-pair-required: section header, not an individual anti-pattern -->
 
-### ❌ General-Purpose Agent for Specialized Work
+### Route to the Specialist Agent
 
-**What it looks like**: Dispatching `Agent({ subagent_type: undefined })` for Go compilation errors.
+**Signal**: Dispatching `Agent({ subagent_type: undefined })` for Go compilation errors.
 
-**Why it matters**: A general-purpose agent lacks Go-specific pattern libraries, correction catalogs, and idiomatic guidance. It can still produce functional code, but the result often needs rework.
+**Why this matters**: A general-purpose agent lacks Go-specific pattern libraries, correction catalogs, and idiomatic guidance. It can still produce functional code, but the result often needs rework.
 
 **Preferred action**: Look up the task type in the Primary Routing Table above and specify the exact `subagent_type`. For Go compilation errors, use `golang-general-engineer`. Reserve the general-purpose agent for domains with no specialist listed.
 
 ---
 
-### ❌ Wrong Language Agent
+### Match Agent to Language Domain
 
-**What it looks like**: Sending TypeScript backend work to `typescript-frontend-engineer`.
+**Signal**: Sending TypeScript backend work to `typescript-frontend-engineer`.
 
-**Why it matters**: A frontend agent optimizes for bundle size, React patterns, and CSR/SSR rather than REST APIs, database connection pooling, or request middleware.
+**Why this matters**: A frontend agent optimizes for bundle size, React patterns, and CSR/SSR rather than REST APIs, database connection pooling, or request middleware.
 
 **Preferred action**: Run the detection commands below before dispatching. Backend imports (`express`, `@nestjs`, `fastify`) route to `nodejs-api-engineer`. Frontend imports (`react`, `next`) route to `typescript-frontend-engineer`. When the entry file has neither, read the first 20 lines and use the import block to resolve the domain.
 
@@ -151,11 +151,11 @@ rg "import.*react|import.*next" --files-with-matches src/
 
 ---
 
-### ❌ Application Agent Doing Schema Work
+### Route Schema Changes to the Database Agent
 
-**What it looks like**: Asking `nodejs-api-engineer` to add a database column.
+**Signal**: Asking `nodejs-api-engineer` to add a database column.
 
-**Why it matters**: An application agent may update the ORM model without creating the migration, which can cause runtime errors on deploy.
+**Why this matters**: An application agent may update the ORM model without creating the migration, which can cause runtime errors on deploy.
 
 **Preferred action**: Dispatch `database-engineer` first to create and verify the migration. Once the migration is committed, dispatch the application agent to update ORM models against the stable schema. Keep schema changes first and application changes second.
 

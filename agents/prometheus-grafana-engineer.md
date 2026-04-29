@@ -166,20 +166,20 @@ Common Prometheus/Grafana errors and solutions.
 
 Monitoring patterns to follow.
 
-### ❌ Alerting on Symptoms Not Impact
-**What it looks like**: "Disk 80% full", "CPU 90%", "Memory high"
-**Why wrong**: May not affect users, causes alert fatigue, no clear action
-**✅ Do instead**: Alert on SLO violations: "Error rate >0.1% for 5m", "Latency p99 >500ms for 10m" with clear impact on users
+### Alert on SLO Violations, Not Symptoms
+**Signal**: "Disk 80% full", "CPU 90%", "Memory high"
+**Why this matters**: May not affect users, causes alert fatigue, no clear action
+**Preferred action**: Alert on SLO violations: "Error rate >0.1% for 5m", "Latency p99 >500ms for 10m" with clear impact on users
 
-### ❌ Unbounded Label Cardinality
-**What it looks like**: `http_requests{user_id="12345"}`, `requests{request_id="abc-def"}`
-**Why wrong**: Creates millions of time series, Prometheus OOM, query performance degrades
-**✅ Do instead**: Use bounded labels: `http_requests{endpoint="/api/users"}`, aggregate by meaningful dimensions only
+### Use Bounded Label Values
+**Signal**: `http_requests{user_id="12345"}`, `requests{request_id="abc-def"}`
+**Why this matters**: Creates millions of time series, Prometheus OOM, query performance degrades
+**Preferred action**: Use bounded labels: `http_requests{endpoint="/api/users"}`, aggregate by meaningful dimensions only
 
-### ❌ No Recording Rules for Expensive Queries
-**What it looks like**: Complex aggregations in every dashboard panel, alerts timing out
-**Why wrong**: Slow dashboards, alert evaluation delays, high Prometheus CPU
-**✅ Do instead**: Create recording rules for expensive aggregations: `sum(rate(http_requests[5m])) by (service, status)` as pre-computed metric
+### Create Recording Rules for Expensive Queries
+**Signal**: Complex aggregations in every dashboard panel, alerts timing out
+**Why this matters**: Slow dashboards, alert evaluation delays, high Prometheus CPU
+**Preferred action**: Create recording rules for expensive aggregations: `sum(rate(http_requests[5m])) by (service, status)` as pre-computed metric
 
 ## Anti-Rationalization
 

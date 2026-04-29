@@ -269,7 +269,7 @@ stage.addChild(particleContainer);
 
 ## Pattern Catalog
 
-### ❌ Changing Tint Per Frame on Many Sprites
+### Group Tint Changes by Value
 
 **Detection**:
 ```bash
@@ -277,7 +277,7 @@ grep -rn "\.tint\s*=" --include="*.ts" --include="*.js"
 rg "ticker\.add|useTick" --type ts -A 20 | grep "\.tint"
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 app.ticker.add(() => {
   // BAD: tint change per frame flushes the batch for each sprite
@@ -287,9 +287,9 @@ app.ticker.add(() => {
 });
 ```
 
-**Why wrong**: Setting `.tint` marks the sprite as dirty and flushes the current batch. 100 sprites with per-frame tint changes = 100 draw calls instead of 1.
+**Why this matters**: Setting `.tint` marks the sprite as dirty and flushes the current batch. 100 sprites with per-frame tint changes = 100 draw calls instead of 1.
 
-**Fix**: Use a custom shader uniform instead of per-sprite tint changes, or group sprites by tint value and update once per group:
+**Preferred action**: Use a custom shader uniform instead of per-sprite tint changes, or group sprites by tint value and update once per group:
 ```typescript
 // Group by tint — batch-friendly
 const tintGroups = new Map<number, Sprite[]>();
@@ -305,7 +305,7 @@ tintGroups.forEach((group, tint) => {
 
 ---
 
-### ❌ Using Container Instead of ParticleContainer for Hundreds of Uniform Particles
+### Use ParticleContainer for Hundreds of Uniform Particles
 
 **Detection**:
 ```bash
@@ -313,7 +313,7 @@ grep -rn "new Container\|new PIXI\.Container" --include="*.ts" --include="*.js"
 rg "addChild.*Sprite" --type ts | grep -v "ParticleContainer"
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 const particleLayer = new Container();
 for (let i = 0; i < 1000; i++) {
@@ -322,9 +322,9 @@ for (let i = 0; i < 1000; i++) {
 }
 ```
 
-**Why wrong**: Regular Container renders each child individually during the batch flush. 1000 same-texture sprites in a Container use 1 draw call, but each child is inspected in JavaScript every frame — O(n) per-frame cost even with batching. Above ~500 children, the JS cost exceeds the GPU gain.
+**Why this matters**: Regular Container renders each child individually during the batch flush. 1000 same-texture sprites in a Container use 1 draw call, but each child is inspected in JavaScript every frame — O(n) per-frame cost even with batching. Above ~500 children, the JS cost exceeds the GPU gain.
 
-**Fix**: Use `ParticleContainer` for homogeneous particle sets:
+**Preferred action**: Use `ParticleContainer` for homogeneous particle sets:
 ```typescript
 const particleLayer = new ParticleContainer(1000, { position: true, alpha: true });
 for (let i = 0; i < 1000; i++) {
@@ -335,7 +335,7 @@ for (let i = 0; i < 1000; i++) {
 
 ---
 
-### ❌ Loading Individual Textures per Sprite (No Atlas)
+### Pack Sprites into a Texture Atlas
 
 **Detection**:
 ```bash
@@ -343,7 +343,7 @@ grep -rn "Texture\.from\|Assets\.load.*\.png" --include="*.ts" --include="*.js"
 rg "\.load\(['\"].*\.png['\"]" --type ts
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 // BAD: each unique PNG = separate GPU texture = separate draw call
 const playerTexture = await Assets.load('/sprites/player.png');
@@ -351,9 +351,9 @@ const enemyTexture  = await Assets.load('/sprites/enemy.png');
 const sparkTexture  = await Assets.load('/sprites/spark.png');
 ```
 
-**Why wrong**: Each unique GPU texture creates a batch boundary. 10 unique textures in a scene = minimum 10 draw calls, regardless of how many sprites use them. On mobile, each texture switch has a measurable cost.
+**Why this matters**: Each unique GPU texture creates a batch boundary. 10 unique textures in a scene = minimum 10 draw calls, regardless of how many sprites use them. On mobile, each texture switch has a measurable cost.
 
-**Fix**: Pack all sprites into one atlas. One `Assets.load('/atlases/combat.json')` loads everything:
+**Preferred action**: Pack all sprites into one atlas. One `Assets.load('/atlases/combat.json')` loads everything:
 ```typescript
 await Assets.load('/atlases/combat.json');
 // Now all frames share one GPU texture — single draw call for all sprites

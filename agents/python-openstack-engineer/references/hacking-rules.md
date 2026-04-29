@@ -105,7 +105,7 @@ raise exception.ResourceNotFound(msg=_('Resource %s not found') % res_id)
 
 ## Pattern Catalog
 
-### ❌ H201: Bare `except:` Clause
+### H201: Name the Exception Class
 
 **Detection**:
 ```bash
@@ -113,7 +113,7 @@ grep -rn 'except:' --include="*.py"
 rg 'except:\s*$' --type py
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 try:
     result = db.get_resource(context, resource_id)
@@ -122,9 +122,9 @@ except:   # H201 — catches SystemExit, KeyboardInterrupt, GeneratorExit
     return None
 ```
 
-**Why wrong**: Catches `SystemExit` and `KeyboardInterrupt`, preventing clean service shutdown. `tox -e pep8` hard blocks this.
+**Why this matters**: Catches `SystemExit` and `KeyboardInterrupt`, preventing clean service shutdown. `tox -e pep8` hard blocks this.
 
-**Do instead:**
+**Preferred action**:
 ```python
 try:
     result = db.get_resource(context, resource_id)
@@ -135,7 +135,7 @@ except exception.ResourceNotFound:
 
 ---
 
-### ❌ H303: Wildcard Imports
+### H303: Import Only What You Use
 
 **Detection**:
 ```bash
@@ -143,15 +143,15 @@ grep -rn 'from .* import \*' --include="*.py"
 rg 'from \S+ import \*' --type py
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 from oslo_config.cfg import *
 from myservice.common import *
 ```
 
-**Why wrong**: Pollutes namespace, breaks introspection, makes `tox -e pep8` fail, and hides dependency chain from code review tools like Zuul.
+**Why this matters**: Pollutes namespace, breaks introspection, makes `tox -e pep8` fail, and hides dependency chain from code review tools like Zuul.
 
-**Do instead:** Import only what you use explicitly.
+**Preferred action**: Import only what you use explicitly.
 
 ```python
 from oslo_config.cfg import CONF, StrOpt, IntOpt
@@ -159,7 +159,7 @@ from oslo_config.cfg import CONF, StrOpt, IntOpt
 
 ---
 
-### ❌ H304: Relative Imports
+### H304: Use Absolute Imports
 
 **Detection**:
 ```bash
@@ -167,15 +167,15 @@ grep -rn 'from \.' --include="*.py" | grep -v "test\|#"
 rg 'from \.' --type py
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 from .utils import format_id
 from ..exception import ResourceNotFound
 ```
 
-**Why wrong**: OpenStack enforces absolute imports throughout. Relative imports break `oslo-config-generator`, tox environments, and Zuul dependency resolution.
+**Why this matters**: OpenStack enforces absolute imports throughout. Relative imports break `oslo-config-generator`, tox environments, and Zuul dependency resolution.
 
-**Do instead:**
+**Preferred action**:
 ```python
 from myservice.common.utils import format_id
 from myservice import exception
@@ -183,7 +183,7 @@ from myservice import exception
 
 ---
 
-### ❌ H501: % Formatting with locals()/self.__dict__
+### H501: Use Explicit Dict for % Formatting
 
 **Detection**:
 ```bash
@@ -191,15 +191,15 @@ grep -rn 'locals()\|self\.__dict__' --include="*.py" | grep '%'
 rg '% (locals|self\.__dict__)' --type py
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 msg = 'Creating %(resource_type)s for user %(user_id)s' % locals()
 LOG.debug('State: %(state)s timeout: %(timeout)s' % self.__dict__)
 ```
 
-**Why wrong**: `locals()` captures entire local scope including sensitive values (passwords, tokens). Implicit coupling makes refactoring silently break string formatting.
+**Why this matters**: `locals()` captures entire local scope including sensitive values (passwords, tokens). Implicit coupling makes refactoring silently break string formatting.
 
-**Do instead:**
+**Preferred action**:
 ```python
 msg = ('Creating %(resource_type)s for user %(user_id)s'
        % {'resource_type': resource_type, 'user_id': user_id})

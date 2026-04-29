@@ -325,14 +325,14 @@ Multiple light sources: the shader above handles one light. For two lights (e.g.
 
 ## Patterns to Detect and Fix
 
-### ❌ Applying normal map to the root scene container
+### Apply Normal Map to Character Containers Only
 Filters applied to the root container process every pixel in the entire canvas at every frame — including the background, UI chrome, and all sprites simultaneously. Apply filters to character containers only.
 
-### ❌ Using GLSL ES 1.0 syntax in v8
+### Use GLSL ES 3.0 Syntax in v8
 PixiJS v8 requires GLSL ES 3.0. `varying` → `in`/`out`, `texture2D()` → `texture()`, `gl_FragColor` → custom `out vec4 fragColor`. The v8 renderer will silently fail to compile v1.0 shaders.
 
-### ❌ Not setting filter.resolution on retina displays
+### Set filter.resolution on Retina Displays
 A filter created without setting `resolution = window.devicePixelRatio` will render at 1x on retina displays, appearing blurry. Always set resolution from `app.renderer.resolution` after the application initializes.
 
-### ❌ Creating a new NormalMapFilter on every render
+### Create NormalMapFilter Once and Reuse
 Filter creation compiles a shader program on the GPU — expensive. Create the filter once in `useEffect`, store it in `useRef`, and update uniforms each frame rather than recreating the filter.

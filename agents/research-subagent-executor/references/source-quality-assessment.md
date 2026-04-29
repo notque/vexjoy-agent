@@ -83,7 +83,7 @@ Aggregator signals:
 
 ## Pattern Catalog
 
-### ❌ Using Aggregator as Primary Source
+### Find the Primary Source Behind Aggregators
 
 **Detection**:
 ```bash
@@ -92,19 +92,19 @@ grep -E "best-[0-9]|top-[0-9]|vs\.|comparison|alternative" urls.txt
 rg "(best|top|vs|versus|comparison|alternative)" fetched_urls.txt -i
 ```
 
-**What it looks like**:
+**Signal**:
 ```
 web_fetch("https://www.toolscomparison.io/best-kubernetes-monitoring-tools-2024/")
 → Report: "According to industry experts, Prometheus is the leading monitoring tool..."
 ```
 
-**Why wrong**: The aggregator's claim "according to industry experts" cites no specific expert. The actual source is likely a Prometheus marketing page or another aggregator. The fact launders through a middleman with no accountability.
+**Why this matters**: The aggregator's claim "according to industry experts" cites no specific expert. The actual source is likely a Prometheus marketing page or another aggregator. The fact launders through a middleman with no accountability.
 
-**Fix**: Find the primary source the aggregator is summarizing. Search for the original study, official docs, or named expert directly.
+**Preferred action**: Find the primary source the aggregator is summarizing. Search for the original study, official docs, or named expert directly.
 
 ---
 
-### ❌ Treating Forum Speculation as Fact
+### Label Forum Claims as Speculation
 
 **Detection**:
 ```bash
@@ -112,40 +112,40 @@ web_fetch("https://www.toolscomparison.io/best-kubernetes-monitoring-tools-2024/
 grep -E "(reddit\.com|news\.ycombinator\.com|stackoverflow\.com)" source_list.txt
 ```
 
-**What it looks like**:
+**Signal**:
 ```
 Source: HackerNews comment from user "fastdev99":
   "From what I've heard, they're planning to rewrite the scheduler in Rust next quarter"
 Report: "The project plans to rewrite the scheduler in Rust next quarter"
 ```
 
-**Why wrong**: HackerNews comments are unverified community speculation. Presenting them as planning facts will corrupt the coordinator's synthesis with rumors.
+**Why this matters**: HackerNews comments are unverified community speculation. Presenting them as planning facts will corrupt the coordinator's synthesis with rumors.
 
-**Fix**: Label the claim "SPECULATION" and include the source URL so the coordinator can judge whether to use it.
+**Preferred action**: Label the claim "SPECULATION" and include the source URL so the coordinator can judge whether to use it.
 ```
 SPECULATION: Some community members anticipate a Rust scheduler rewrite [hn.algolia.com/...] — no primary source found
 ```
 
 ---
 
-### ❌ Missing Source Citation for Precise Numbers
+### Cite Sources for Every Precise Number
 
-**What it looks like**:
+**Signal**:
 ```
 Report: "Kubernetes 1.28 reduced pod startup latency by 23%"
 [No URL, no source cited]
 ```
 
-**Why wrong**: Precise numbers (percentages, benchmarks, release dates, version numbers) are the most likely to be misremembered, misquoted, or context-dependent. Without a URL, the coordinator cannot verify or qualify the claim.
+**Why this matters**: Precise numbers (percentages, benchmarks, release dates, version numbers) are the most likely to be misremembered, misquoted, or context-dependent. Without a URL, the coordinator cannot verify or qualify the claim.
 
-**Fix**: Every numeric claim gets a citation.
+**Preferred action**: Every numeric claim gets a citation.
 ```
 FACT: Kubernetes 1.28 release notes claim ~23% reduction in pod startup time for large clusters [source: kubernetes.io/blog/2023/08/15/kubernetes-1-28-release/]
 ```
 
 ---
 
-### ❌ Accepting Marketing Language as Technical Fact
+### Extract Data Points, Discard Marketing Language
 
 **Detection**:
 ```bash
@@ -153,16 +153,16 @@ FACT: Kubernetes 1.28 release notes claim ~23% reduction in pod startup time for
 grep -iE "(industry.leading|best.in.class|enterprise.grade|cutting.edge|blazing.fast|seamless)" fetched_content.txt
 ```
 
-**What it looks like**:
+**Signal**:
 ```
 Source: vendor blog post
   "Our solution delivers enterprise-grade reliability with blazing-fast performance"
 Report: "Tool X delivers enterprise-grade reliability"
 ```
 
-**Why wrong**: Marketing superlatives have no technical definition. "Enterprise-grade" means nothing without benchmarks, SLA numbers, or comparative data. Including them in a research report reduces signal-to-noise ratio.
+**Why this matters**: Marketing superlatives have no technical definition. "Enterprise-grade" means nothing without benchmarks, SLA numbers, or comparative data. Including them in a research report reduces signal-to-noise ratio.
 
-**Fix**: Discard marketing language. If the page contains actual benchmark numbers or SLA specs buried under the marketing text, extract those specifically.
+**Preferred action**: Discard marketing language. If the page contains actual benchmark numbers or SLA specs buried under the marketing text, extract those specifically.
 
 ---
 

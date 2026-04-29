@@ -397,7 +397,7 @@ const attackFrames = sheet.animations['attack'];
 
 ## Patterns to Detect and Fix
 
-### ❌ Storing display objects in React state
+### Store Display Objects in useRef
 ```typescript
 // WRONG — triggers reconciliation on every mutation
 const [sprite, setSprite] = useState<Sprite | null>(null);
@@ -408,7 +408,7 @@ setSprite(existingSprite); // causes re-render
 const spriteRef = useRef<Sprite>(null);
 ```
 
-### ❌ Animating via React setState in useTick
+### Mutate Display Objects Directly in useTick
 ```typescript
 // WRONG — 60 setState calls per second = 60 React re-renders per second
 useTick(() => {
@@ -422,7 +422,7 @@ useTick(() => {
 });
 ```
 
-### ❌ Calling extend() inside a component
+### Call extend() at Module Top Level
 ```typescript
 // WRONG — re-registers on every render
 function CombatCanvas() {
@@ -438,7 +438,7 @@ function CombatCanvas() {
 }
 ```
 
-### ❌ Rendering UI in the PixiJS tree
+### Render UI in the DOM Layer
 ```typescript
 // WRONG — PixiJS Text has no accessibility, no DOM events
 <text text={`HP: ${playerHP}`} x={10} y={10} />

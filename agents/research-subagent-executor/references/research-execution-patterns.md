@@ -95,7 +95,7 @@ STOP if:
 
 ## Pattern Catalog
 
-### ❌ Repeating the Same Query
+### Vary Query Angle on Each Search
 
 **Detection**:
 ```bash
@@ -104,22 +104,22 @@ STOP if:
 grep -i "web_search" agent_log.txt | sort | uniq -d
 ```
 
-**What it looks like**:
+**Signal**:
 ```
 Turn 3: web_search("kubernetes pod crash loop")
 Turn 7: web_search("kubernetes pod crash loop")  # exact repeat
 ```
 
-**Why wrong**: Identical queries return identical results. Repeating them consumes budget with zero new information. The second call returns the same top-10 results as the first.
+**Why this matters**: Identical queries return identical results. Repeating them consumes budget with zero new information. The second call returns the same top-10 results as the first.
 
-**Fix**: Vary query angle, add specificity, or add a version/date qualifier.
+**Preferred action**: Vary query angle, add specificity, or add a version/date qualifier.
 ```
 Turn 7: web_search("k8s CrashLoopBackOff OOMKilled 2024")
 ```
 
 ---
 
-### ❌ Relying on Snippets for Factual Claims
+### Fetch Full Pages for Factual Claims
 
 **Detection**:
 ```bash
@@ -127,22 +127,22 @@ Turn 7: web_search("k8s CrashLoopBackOff OOMKilled 2024")
 grep -A5 "web_search" agent_log.txt | grep -v "web_fetch"
 ```
 
-**What it looks like**:
+**Signal**:
 ```
 web_search("Python 3.12 release date")
 → Snippet: "Python 3.12 was released..."
 Report: "Python 3.12 was released on October 2, 2023"  # from snippet alone
 ```
 
-**Why wrong**: Snippets are truncated, sometimes from outdated cached versions of pages. A claim sourced only from a snippet has no URL citation trail and may omit critical qualifiers ("Python 3.12.0 was released... but 3.12.1 patched a critical security issue two weeks later").
+**Why this matters**: Snippets are truncated, sometimes from outdated cached versions of pages. A claim sourced only from a snippet has no URL citation trail and may omit critical qualifiers ("Python 3.12.0 was released... but 3.12.1 patched a critical security issue two weeks later").
 
-**Fix**: web_fetch the source page for any precise date, version, number, or specification claim.
+**Preferred action**: web_fetch the source page for any precise date, version, number, or specification claim.
 
 ---
 
-### ❌ Starting Research Without a Budget
+### Set a Budget Before Starting Research
 
-**What it looks like**:
+**Signal**:
 ```
 Task received: "Research the state of WebAssembly tooling in 2025"
 Turn 1: web_search("WebAssembly 2025")  # No budget stated
@@ -151,25 +151,25 @@ Turn 19: web_search("WASI spec status")  # About to hit hard limit
 Turn 20: [forced termination]
 ```
 
-**Why wrong**: Without a budget, the agent has no early-warning system. Hitting turn 20 mid-research produces an incomplete report with no synthesis. The coordinator receives a truncated artifact.
+**Why this matters**: Without a budget, the agent has no early-warning system. Hitting turn 20 mid-research produces an incomplete report with no synthesis. The coordinator receives a truncated artifact.
 
-**Fix**: State the budget explicitly before turn 1.
+**Preferred action**: State the budget explicitly before turn 1.
 ```
 Budget: 12 tool calls (moderate complexity — multiple competing toolchains, need cross-reference)
 ```
 
 ---
 
-### ❌ Querying More Than 5 Words
+### Keep Search Queries Under 5 Words
 
-**What it looks like**:
+**Signal**:
 ```
 web_search("what are the best practices for configuring kubernetes resource limits in production")
 ```
 
-**Why wrong**: Search engines perform better with short, keyword-dense queries. Long natural-language queries introduce stop words that dilute ranking signals. They also reduce result diversity (engine interprets as a phrase match).
+**Why this matters**: Search engines perform better with short, keyword-dense queries. Long natural-language queries introduce stop words that dilute ranking signals. They also reduce result diversity (engine interprets as a phrase match).
 
-**Fix**:
+**Preferred action**:
 ```
 web_search("kubernetes resource limits production 2024")
 ```
