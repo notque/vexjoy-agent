@@ -258,27 +258,27 @@ Real skills from the Claude Code ecosystem categorized by complexity tier with r
 
 ## Complexity Tier Selection Guidelines
 
-### ❌ Over-Tiering
-**What it looks like**: Simple workflow (pr-workflow (cleanup)) implemented as Complex tier with references/, death loop prevention, 10+ error cases
+### Match Tier to Actual Complexity
+**Signal**: Simple workflow (pr-workflow (cleanup)) implemented as Complex tier with references/, death loop prevention, 10+ error cases
 
-**Why wrong**: Creates maintenance burden, confuses users, violates Over-Engineering Prevention
+**Why this matters**: Creates maintenance burden, confuses users, violates Over-Engineering Prevention
 
-**Fix**: Reduce to appropriate tier - Simple workflows stay Simple
-
----
-
-### ❌ Under-Tiering
-**What it looks like**: Multi-agent orchestration skill (parallel-code-review) implemented as Medium tier with no death loop prevention
-
-**Why wrong**: Missing critical patterns, will fail in production, no scaling considerations
-
-**Fix**: Upgrade to Complex tier, add death loop prevention, create references/
+**Preferred action**: Reduce to appropriate tier - Simple workflows stay Simple
 
 ---
 
-### ❌ Tier Drift
-**What it looks like**: Skill starts as Simple (400 lines), grows to 2000 lines over time without restructuring
+### Add Required Patterns for Complex Skills
+**Signal**: Multi-agent orchestration skill (parallel-code-review) implemented as Medium tier with no death loop prevention
 
-**Why wrong**: Violates progressive disclosure, bloats context, makes skill hard to maintain
+**Why this matters**: Missing critical patterns, will fail in production, no scaling considerations
 
-**Fix**: Promote to appropriate tier, extract references/, apply progressive disclosure
+**Preferred action**: Upgrade to Complex tier, add death loop prevention, create references/
+
+---
+
+### Restructure When Line Count Exceeds Tier Budget
+**Signal**: Skill starts as Simple (400 lines), grows to 2000 lines over time without restructuring
+
+**Why this matters**: Violates progressive disclosure, bloats context, makes skill hard to maintain
+
+**Preferred action**: Promote to appropriate tier, extract references/, apply progressive disclosure

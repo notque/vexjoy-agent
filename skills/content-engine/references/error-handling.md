@@ -14,7 +14,7 @@ The content-engine pipeline has two failure modes: artifact-level errors (source
 
 ## Pattern Catalog
 
-### ❌ Restarting the Full Pipeline on Gate Failure
+### Target the Flagged Section on Gate Failure
 
 **Detection**:
 ```bash
@@ -22,15 +22,15 @@ The content-engine pipeline has two failure modes: artifact-level errors (source
 grep -c "## Atomic Ideas" content_ideas.md
 ```
 
-**What it looks like**: Deleting `content_ideas.md` and `content_drafts.md` and starting over when Phase 4 flags a single hype phrase.
+**Signal**: Deleting `content_ideas.md` and `content_drafts.md` and starting over when Phase 4 flags a single hype phrase.
 
-**Why wrong**: Gate failures are surgical — one phrase in one draft. Restarting discards clean work from passing sections. The gate exists to target the failure, not trigger a full rewrite.
+**Why this matters**: Gate failures are surgical — one phrase in one draft. Restarting discards clean work from passing sections. The gate exists to target the failure, not trigger a full rewrite.
 
-**Fix**: Identify the flagged section, rewrite only that sentence, re-run the script. Preserve all sections that passed.
+**Preferred action**: Identify the flagged section, rewrite only that sentence, re-run the script. Preserve all sections that passed.
 
 ---
 
-### ❌ Skipping Script Gate and Substituting LLM Self-Assessment
+### Always Run Script Gates Before Advancing
 
 **Detection**:
 ```bash
@@ -39,15 +39,15 @@ grep "Status:" content_drafts.md
 # "DRAFT — pending Phase 4 gate" means gate was never run
 ```
 
-**What it looks like**: "I've reviewed the drafts carefully and they look clean. Proceeding to Phase 5."
+**Signal**: "I've reviewed the drafts carefully and they look clean. Proceeding to Phase 5."
 
-**Why wrong**: Self-assessment misses hype phrases embedded in context and cannot reliably detect verbatim cross-platform sentences. The scripts use exact string matching; LLMs use paraphrase matching — these produce different results.
+**Why this matters**: Self-assessment misses hype phrases embedded in context and cannot reliably detect verbatim cross-platform sentences. The scripts use exact string matching; LLMs use paraphrase matching — these produce different results.
 
-**Fix**: Always run both script checks before Phase 5. If scripts are unavailable, use the manual fallback procedures below — do not skip the check.
+**Preferred action**: Always run both script checks before Phase 5. If scripts are unavailable, use the manual fallback procedures below — do not skip the check.
 
 ---
 
-### ❌ Treating Platform-Not-Specified as a Proceed-with-All Signal
+### Confirm Target Platforms Before Drafting
 
 **Detection**:
 ```bash
@@ -56,15 +56,15 @@ grep -cE "^## (X|LinkedIn|TikTok|YouTube|Newsletter)" content_drafts.md
 # If count > platforms user asked for, drafts were overproduced
 ```
 
-**What it looks like**: User says "make some social posts" with no platform specified; skill produces drafts for X, LinkedIn, TikTok, and Newsletter simultaneously without asking.
+**Signal**: User says "make some social posts" with no platform specified; skill produces drafts for X, LinkedIn, TikTok, and Newsletter simultaneously without asking.
 
-**Why wrong**: Each platform requires distinct register, length, and hook style. Producing all platforms without platform-specific intent produces content that fits none of them natively. It also creates ambiguity downstream about which drafts to actually publish.
+**Why this matters**: Each platform requires distinct register, length, and hook style. Producing all platforms without platform-specific intent produces content that fits none of them natively. It also creates ambiguity downstream about which drafts to actually publish.
 
-**Fix**: Stop at Phase 1 gate. Ask: "Which platforms — X, LinkedIn, TikTok, YouTube, newsletter, or a subset?" Proceed only after the target is confirmed.
+**Preferred action**: Stop at Phase 1 gate. Ask: "Which platforms — X, LinkedIn, TikTok, YouTube, newsletter, or a subset?" Proceed only after the target is confirmed.
 
 ---
 
-### ❌ Synonym-Swapping Instead of Platform-Native Rewrite on Verbatim Failure
+### Rewrite from the Atomic Idea for Each Platform
 
 **Detection**:
 ```bash
@@ -72,11 +72,11 @@ grep -cE "^## (X|LinkedIn|TikTok|YouTube|Newsletter)" content_drafts.md
 grep -v "^#\|^---\|^$\|^Status:\|^Generated:\|^Primary" content_drafts.md | sort | uniq -d
 ```
 
-**What it looks like**: LinkedIn draft opens with "We cut deploy time by 80%. Here's what changed." X thread also opens with "We cut deploy time by 80%. Here's what changed." Rewrite swaps "Here's" to "This is".
+**Signal**: LinkedIn draft opens with "We cut deploy time by 80%. Here's what changed." X thread also opens with "We cut deploy time by 80%. Here's what changed." Rewrite swaps "Here's" to "This is".
 
-**Why wrong**: Synonym swaps preserve the same sentence structure, register, and cadence. A LinkedIn hook and an X hook serve different scroll-stopping functions and cannot share a sentence in any form — cross-platform readers notice the register mismatch even when words differ.
+**Why this matters**: Synonym swaps preserve the same sentence structure, register, and cadence. A LinkedIn hook and an X hook serve different scroll-stopping functions and cannot share a sentence in any form — cross-platform readers notice the register mismatch even when words differ.
 
-**Fix**: Rewrite the hook for the second platform from scratch, starting from the atomic idea (not from the other platform's draft). The two hooks should be unrecognizable as siblings.
+**Preferred action**: Rewrite the hook for the second platform from scratch, starting from the atomic idea (not from the other platform's draft). The two hooks should be unrecognizable as siblings.
 
 ---
 

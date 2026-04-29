@@ -85,7 +85,7 @@ rsync -avz source/ dest/ && echo "sync OK" || { echo "sync FAILED" >&2; exit 1; 
 <!-- no-pair-required: section heading; individual anti-patterns below carry Do-instead blocks -->
 ## Pattern Catalog
 
-### ❌ Missing set -e / no error handling
+### Enable set -euo pipefail in Every Script
 
 **Detection**:
 ```bash
@@ -93,7 +93,7 @@ grep -rL "set -e" --include="*.sh" scripts/ cron/ jobs/ bin/
 rg -L "set -e" --type sh
 ```
 
-**What it looks like**:
+**Signal**:
 ```bash
 #!/bin/bash
 cd /var/data
@@ -102,9 +102,9 @@ process_data.py input.csv > output.csv
 mv output.csv /var/reports/
 ```
 
-**Why wrong**: If `process_data.py` fails (non-zero exit), `mv` still runs, overwriting `/var/reports/` with an empty or corrupt file. The failure is invisible — cron marks the job as succeeded.
+**Why this matters**: If `process_data.py` fails (non-zero exit), `mv` still runs, overwriting `/var/reports/` with an empty or corrupt file. The failure is invisible — cron marks the job as succeeded.
 
-**Fix**:
+**Preferred action**:
 ```bash
 #!/bin/bash
 set -euo pipefail
@@ -112,7 +112,7 @@ set -euo pipefail
 
 ---
 
-### ❌ Piped commands ignoring pipeline failures
+### Enable pipefail for Pipeline Error Detection
 
 **Detection**:
 ```bash
@@ -120,7 +120,7 @@ grep -rl "\|" --include="*.sh" scripts/ cron/ | xargs grep -L "pipefail"
 rg '\|\s+\w+' --type sh -l | xargs rg -L 'pipefail'
 ```
 
-**What it looks like**:
+**Signal**:
 ```bash
 #!/bin/bash
 set -e  # but no pipefail!
@@ -128,7 +128,7 @@ pg_dump mydb | gzip > backup.sql.gz    # if pg_dump fails, gzip writes a 0-byte 
 find /data -name "*.log" | xargs gzip  # if find fails, gzip still runs on partial list
 ```
 
-**Why wrong**: Without `pipefail`, the exit code of a pipeline is the exit code of the last command. A failed `pg_dump` followed by a successful `gzip` returns 0, so the backup appears to succeed but contains no data.
+**Why this matters**: Without `pipefail`, the exit code of a pipeline is the exit code of the last command. A failed `pg_dump` followed by a successful `gzip` returns 0, so the backup appears to succeed but contains no data.
 
 **Do instead:**
 ```bash
@@ -141,7 +141,7 @@ pg_dump mydb | gzip > backup.sql.gz   # now fails if pg_dump fails
 
 ---
 
-### ❌ Undefined variable silently expanding to empty string
+### Enable set -u to Catch Undefined Variables
 
 **Detection**:
 ```bash
@@ -149,7 +149,7 @@ grep -rL "set -u\|set -euo\|nounset" --include="*.sh" scripts/ cron/
 grep -rn 'rm -rf.*\$' --include="*.sh" scripts/
 ```
 
-**What it looks like**:
+**Signal**:
 ```bash
 #!/bin/bash
 set -e
@@ -157,7 +157,7 @@ rm -rf "$BACKUP_DIR/"    # if BACKUP_DIR is unset, expands to "rm -rf /"
 rsync -avz "$SRC_PATH/" "$DEST/"   # silently copies nothing if SRC_PATH unset
 ```
 
-**Why wrong**: Without `set -u`, unset variables expand to empty string. `rm -rf "$BACKUP_DIR/"` becomes `rm -rf "/"` when `BACKUP_DIR` is unset. Catastrophic and silent.
+**Why this matters**: Without `set -u`, unset variables expand to empty string. `rm -rf "$BACKUP_DIR/"` becomes `rm -rf "/"` when `BACKUP_DIR` is unset. Catastrophic and silent.
 
 **Do instead:**
 ```bash
@@ -168,7 +168,7 @@ BACKUP_DIR="${BACKUP_DIR:?BACKUP_DIR must be set}"
 
 ---
 
-### ❌ Swallowing errors with bare || true
+### Log Failures Instead of Suppressing with || true
 
 **Detection**:
 ```bash
@@ -176,13 +176,13 @@ grep -rn "|| true" --include="*.sh" scripts/ cron/ jobs/
 rg '\|\|\s*true' --type sh
 ```
 
-**What it looks like**:
+**Signal**:
 ```bash
 create_schema.sql || true    # if schema creation fails, continue anyway
 validate_data.py || true     # silently ignores validation failures
 ```
 
-**Why wrong**: `|| true` converts any failure into success. Combined with `set -e`, it suppresses the exit but also suppresses the failure signal. The script then continues into a state it was never designed to handle.
+**Why this matters**: `|| true` converts any failure into success. Combined with `set -e`, it suppresses the exit but also suppresses the failure signal. The script then continues into a state it was never designed to handle.
 
 **Do instead:**
 ```bash

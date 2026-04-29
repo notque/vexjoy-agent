@@ -109,7 +109,7 @@ const _debug = process.env.DEBUG;
 
 ## Pattern Catalog
 
-### ❌ Using `==` instead of `===` (noDoubleEquals)
+### Use Strict Equality `===` (noDoubleEquals)
 
 **Detection**:
 ```bash
@@ -117,16 +117,16 @@ grep -rn '[^=!]==[^=]' --include="*.ts" --include="*.tsx" --include="*.js"
 rg '[^=!]==[^=]' --type ts --type js
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 if (value == null) { }     // catches undefined too, but not obvious
 if (count == "0") { }      // type coercion happens silently
 if (response.status == 200) { }
 ```
 
-**Why wrong**: `==` performs type coercion. `"0" == 0` is `true`. `null == undefined` is `true`. The behavior is defined but consistently surprises developers and makes code hard to reason about.
+**Why this matters**: `==` performs type coercion. `"0" == 0` is `true`. `null == undefined` is `true`. The behavior is defined but consistently surprises developers and makes code hard to reason about.
 
-**Fix**:
+**Preferred action**:
 ```typescript
 if (value === null || value === undefined) { }  // explicit
 if (count === "0") { }
@@ -137,7 +137,7 @@ if (response.status === 200) { }
 
 ---
 
-### ❌ Using `var` instead of `let`/`const` (noVar)
+### Use `let`/`const` Instead of `var` (noVar)
 
 **Detection**:
 ```bash
@@ -145,16 +145,16 @@ grep -rn '^\s*var ' --include="*.ts" --include="*.tsx" --include="*.js"
 rg '^\s+var ' --type ts --type js
 ```
 
-**What it looks like**:
+**Signal**:
 ```javascript
 var count = 0;
 var items = [];
 for (var i = 0; i < items.length; i++) { }
 ```
 
-**Why wrong**: `var` is function-scoped and hoisted. Loop variables bleed out of the loop body. Common source of closures capturing wrong values and use-before-declaration bugs.
+**Why this matters**: `var` is function-scoped and hoisted. Loop variables bleed out of the loop body. Common source of closures capturing wrong values and use-before-declaration bugs.
 
-**Fix**:
+**Preferred action**:
 ```typescript
 const count = 0;        // never reassigned
 let items: string[] = [];  // reassigned
@@ -163,7 +163,7 @@ for (let i = 0; i < items.length; i++) { }
 
 ---
 
-### ❌ Using `let` when `const` suffices (useConst)
+### Prefer `const` Over `let` for Immutable Bindings (useConst)
 
 **Detection**:
 ```bash
@@ -174,15 +174,15 @@ import json,sys; data=json.load(sys.stdin)
 "
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 let name = "Alice";   // never reassigned below
 let config = { debug: false };  // object reference never changes
 ```
 
-**Why wrong**: `let` signals intent to reassign. Using it for constants confuses readers about whether the value will change. Biome (useConst) and TypeScript compiler both flag this.
+**Why this matters**: `let` signals intent to reassign. Using it for constants confuses readers about whether the value will change. Biome (useConst) and TypeScript compiler both flag this.
 
-**Fix**:
+**Preferred action**:
 ```typescript
 const name = "Alice";
 const config = { debug: false };  // object contents can still mutate; reference is const
@@ -190,7 +190,7 @@ const config = { debug: false };  // object contents can still mutate; reference
 
 ---
 
-### ❌ TypeScript `any` type annotation (noExplicitAny)
+### Replace `any` with Specific Types (noExplicitAny)
 
 **Detection**:
 ```bash
@@ -198,7 +198,7 @@ grep -rn ': any\b\|as any\b' --include="*.ts" --include="*.tsx"
 rg ':\s*any\b|as any\b' --type ts
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 function process(data: any): any {
     return data.value;
@@ -206,9 +206,9 @@ function process(data: any): any {
 const result = response as any;
 ```
 
-**Why wrong**: `any` disables TypeScript's type checker for that value. Errors that TypeScript would catch at compile time become runtime crashes. Propagates through the codebase — one `any` can infect many downstream types.
+**Why this matters**: `any` disables TypeScript's type checker for that value. Errors that TypeScript would catch at compile time become runtime crashes. Propagates through the codebase — one `any` can infect many downstream types.
 
-**Fix**:
+**Preferred action**:
 ```typescript
 function process(data: Record<string, unknown>): string {
     return String(data.value);
@@ -221,7 +221,7 @@ const result = response as ApiResponse;  // narrow with interface, not any
 
 ---
 
-### ❌ String concatenation instead of template literals (useTemplate)
+### Use Template Literals for String Composition (useTemplate)
 
 **Detection**:
 ```bash
@@ -229,16 +229,16 @@ grep -rn '".*" + \|+ ".*"' --include="*.ts" --include="*.tsx" --include="*.js"
 rg '"[^"]*"\s*\+\s*\w+|\w+\s*\+\s*"[^"]*"' --type ts --type js
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 const message = "Hello " + name + "!";
 const path = "/api/" + version + "/users/" + userId;
 const sql = "SELECT * FROM " + table + " WHERE id = " + id;
 ```
 
-**Why wrong**: String concatenation is verbose, harder to read, and error-prone when mixing numbers and strings. Template literals are clearer and prevent accidental type coercion in concatenation.
+**Why this matters**: String concatenation is verbose, harder to read, and error-prone when mixing numbers and strings. Template literals are clearer and prevent accidental type coercion in concatenation.
 
-**Fix**:
+**Preferred action**:
 ```typescript
 const message = `Hello ${name}!`;
 const path = `/api/${version}/users/${userId}`;
@@ -247,7 +247,7 @@ const sql = `SELECT * FROM ${table} WHERE id = ${id}`;
 
 ---
 
-### Prefer optional chaining (useOptionalChain)
+### Use Optional Chaining `?.` (useOptionalChain)
 
 **Detection**:
 ```bash
@@ -255,16 +255,16 @@ grep -rn '&& .*\.' --include="*.ts" --include="*.tsx"
 rg '\w+\s*&&\s*\w+\.' --type ts
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 const city = user && user.address && user.address.city;
 const len = arr && arr.length;
 const name = response && response.data && response.data.user && response.data.user.name;
 ```
 
-**Why wrong**: Manual null checks via `&&` chains are verbose and easy to get wrong (short-circuits at wrong level). TypeScript 3.7+ optional chaining is safer and more readable.
+**Why this matters**: Manual null checks via `&&` chains are verbose and easy to get wrong (short-circuits at wrong level). TypeScript 3.7+ optional chaining is safer and more readable.
 
-**Fix**:
+**Preferred action**:
 ```typescript
 const city = user?.address?.city;
 const len = arr?.length;

@@ -274,7 +274,7 @@ renderer.dispose();
 
 ## Pattern Catalog
 
-### ❌ Creating Geometry in the Animation Loop
+### Create Geometry Once, Transform in the Loop
 
 **Detection**:
 ```bash
@@ -282,7 +282,7 @@ grep -rn "new THREE\.\(Box\|Sphere\|Plane\|Cylinder\)Geometry" --include="*.js" 
 rg "setAnimationLoop|useFrame" --type js -A 20 | grep "new THREE\."
 ```
 
-**What it looks like**:
+**Signal**:
 ```javascript
 renderer.setAnimationLoop((time) => {
   // BAD: allocates new geometry every frame at 60fps
@@ -292,9 +292,9 @@ renderer.setAnimationLoop((time) => {
 });
 ```
 
-**Why wrong**: Each new geometry allocates a GPU buffer. Old geometries are not freed without `dispose()`. At 60fps this creates 3,600 leaked GPU buffers per minute.
+**Why this matters**: Each new geometry allocates a GPU buffer. Old geometries are not freed without `dispose()`. At 60fps this creates 3,600 leaked GPU buffers per minute.
 
-**Fix**:
+**Preferred action**:
 ```javascript
 // Morph the existing geometry's buffer in place
 const geo = new THREE.SphereGeometry(1, 32, 32);
@@ -309,7 +309,7 @@ renderer.setAnimationLoop((time) => {
 
 ---
 
-### ❌ `new THREE.Vector3()` Inside render Loop
+### Allocate Scratch Objects Outside the Render Loop
 
 **Detection**:
 ```bash
@@ -317,7 +317,7 @@ grep -rn "new THREE\.Vector3\|new THREE\.Color\|new THREE\.Matrix4" --include="*
 rg "setAnimationLoop|useFrame" --type js -A 30 | grep "new THREE\."
 ```
 
-**What it looks like**:
+**Signal**:
 ```javascript
 renderer.setAnimationLoop(() => {
   // BAD: 3 allocations per frame = 10,800 objects/min of GC pressure
@@ -327,9 +327,9 @@ renderer.setAnimationLoop(() => {
 });
 ```
 
-**Why wrong**: JavaScript GC pauses correlate directly with allocation rate. At 60fps, even small allocation storms cause visible frame stutters every few seconds.
+**Why this matters**: JavaScript GC pauses correlate directly with allocation rate. At 60fps, even small allocation storms cause visible frame stutters every few seconds.
 
-**Fix**:
+**Preferred action**:
 ```javascript
 // Allocate once outside the loop, reuse as scratch
 const _pos = new THREE.Vector3();
@@ -344,14 +344,14 @@ renderer.setAnimationLoop(() => {
 
 ---
 
-### ❌ Using `renderer.render()` with EffectComposer
+### Use composer.render() When EffectComposer Is Active
 
 **Detection**:
 ```bash
 grep -rn "renderer\.render\|composer\.render" --include="*.js" --include="*.ts"
 ```
 
-**What it looks like**:
+**Signal**:
 ```javascript
 const composer = new EffectComposer(renderer);
 // ...
@@ -361,9 +361,9 @@ renderer.setAnimationLoop(() => {
 });
 ```
 
-**Why wrong**: `renderer.render()` writes directly to the canvas, bypassing the composer's pass chain. Postprocessing effects are invisible.
+**Why this matters**: `renderer.render()` writes directly to the canvas, bypassing the composer's pass chain. Postprocessing effects are invisible.
 
-**Fix**: Replace `renderer.render(scene, camera)` with `composer.render()` once EffectComposer is set up.
+**Preferred action**: Replace `renderer.render(scene, camera)` with `composer.render()` once EffectComposer is set up.
 
 ---
 
