@@ -216,4 +216,4 @@ echo "PROGRESS.md completed phases:" && grep -c "\[x\]" PROGRESS.md 2>/dev/null
 ## See Also
 
 - `communication-protocols.md` — PROGRESS.md and STATUS.md sync patterns
-- `anti-patterns.md` — Parallel execution and file domain conflict patterns
+- `preferred-patterns.md` — Parallel execution and file domain conflict patterns

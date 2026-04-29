@@ -562,7 +562,7 @@ but only if the queries are well-designed.
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| implementation patterns | `anti-patterns.md` | Loads detailed guidance from `anti-patterns.md`. |
+| implementation patterns | `preferred-patterns.md` | Loads detailed guidance from `preferred-patterns.md`. |
 | tasks related to this reference | `artifact-schemas.md` | Loads detailed guidance from `artifact-schemas.md`. |
 | tasks related to this reference | `bundled-components.md` | Loads detailed guidance from `bundled-components.md`. |
 | tasks related to this reference | `complexity-tiers.md` | Loads detailed guidance from `complexity-tiers.md`. |

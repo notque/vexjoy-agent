@@ -63,7 +63,7 @@ grep -h "FILE DOMAIN\|FILES:" HANDOFF*.md | sort | uniq -d
 
 **Root cause**: Two agents assigned to the same file in a parallel phase. One agent's write invalidates the other's assumptions.
 
-**Fix**: Serialize all modifications to shared files. Rebuild the HANDOFF.md to give each file to exactly one agent. See `anti-patterns.md` — "Overlapping File Domains."
+**Fix**: Serialize all modifications to shared files. Rebuild the HANDOFF.md to give each file to exactly one agent. See `preferred-patterns.md` — "Overlapping File Domains."
 
 ---
 
@@ -158,5 +158,5 @@ grep -l "ATTEMPTS: 3/3" STATUS.md 2>/dev/null && grep -c "BLOCKER-" BLOCKERS.md 
 ## See Also
 
 - `death-loop-prevention.md` — Retry loop patterns and intervention protocols
-- `anti-patterns.md` — Coordination mistakes that produce these errors
+- `preferred-patterns.md` — Coordination mistakes that produce these errors
 - `communication-protocols.md` — STATUS.md, HANDOFF.md, PROGRESS.md, BLOCKERS.md templates

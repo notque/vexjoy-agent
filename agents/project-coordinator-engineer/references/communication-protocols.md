@@ -270,4 +270,4 @@ grep "File Domain\|FILE DOMAIN" HANDOFF*.md | grep -oP '(?<=\s)\S+\.(js|py|go|ts
 ## See Also
 
 - `death-loop-prevention.md` — Attempt tracking and retry patterns
-- `anti-patterns.md` — What goes wrong when protocols are skipped
+- `preferred-patterns.md` — What goes wrong when protocols are skipped

@@ -252,7 +252,7 @@ Update `sapcc-review-report.md` with:
   - Agent 7: `architecture-patterns.md`
   - Agent 8: (none — rules inline in §14, §15, §29)
   - Agent 9: (none — rules inline in §16-18, §20)
-  - Agent 10: `anti-patterns.md`
+  - Agent 10: `preferred-patterns.md`
 - **Optional deep-dive references** (load only when findings need calibration):
   - `pr-mining-insights.md` — Review severity calibration across projects
   - `library-reference.md` — Approved/forbidden dependency table

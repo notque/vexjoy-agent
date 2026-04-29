@@ -12,7 +12,7 @@
       "reason": "reference-summary-header"
     },
     {
-      "file": "skills/data-analysis/references/anti-patterns.md",
+      "file": "skills/data-analysis/references/preferred-patterns.md",
       "line_start": 1,
       "line_end": 5,
       "heading": "# Data Analysis Anti-Patterns",
@@ -20,7 +20,7 @@
       "reason": "document-title"
     },
     {
-      "file": "skills/explanation-traces/references/anti-patterns.md",
+      "file": "skills/explanation-traces/references/preferred-patterns.md",
       "line_start": 1,
       "line_end": 6,
       "heading": "# Explanation Traces \u2014 Anti-Patterns",
@@ -28,7 +28,7 @@
       "reason": "document-title"
     },
     {
-      "file": "skills/go-patterns/references/anti-patterns.md",
+      "file": "skills/go-patterns/references/preferred-patterns.md",
       "line_start": 15,
       "line_end": 29,
       "heading": "### Phase 2: Scan for Anti-Patterns",
@@ -44,7 +44,7 @@
       "reason": "table-backed-section-header"
     },
     {
-      "file": "skills/testing-anti-patterns/references/anti-pattern-catalog.md",
+      "file": "skills/testing-preferred-patterns/references/preferred-pattern-catalog.md",
       "line_start": 1,
       "line_end": 5,
       "heading": "# Testing Anti-Pattern Catalog",
@@ -52,7 +52,7 @@
       "reason": "document-title"
     },
     {
-      "file": "agents/mcp-local-docs-engineer/references/mcp-anti-patterns.md",
+      "file": "agents/mcp-local-docs-engineer/references/mcp-preferred-patterns.md",
       "line_start": 6,
       "line_end": 12,
       "heading": "# MCP Server Anti-Patterns",
@@ -60,7 +60,7 @@
       "reason": "document-title"
     },
     {
-      "file": "agents/pipeline-orchestrator-engineer/references/anti-patterns.md",
+      "file": "agents/pipeline-orchestrator-engineer/references/preferred-patterns.md",
       "line_start": 1,
       "line_end": 7,
       "heading": "# Pipeline Orchestration \u2014 Anti-Patterns",

@@ -62,7 +62,7 @@ Skills are invoked via `/do [request]` (routed automatically) or directly as `/s
 | `python-quality-gate` | no | Python quality checks: ruff, pytest, mypy, bandit in deterministic order |
 | `verification-before-completion` | no | Defense-in-depth verification before declaring any task complete |
 | `with-anti-rationalization` | no | Anti-rationalization enforcement for maximum-rigor task execution |
-| `testing-anti-patterns` | no | Identify and fix testing mistakes: flaky, brittle, over-mocked tests |
+| `testing-preferred-patterns` | no | Identify and fix testing mistakes: flaky, brittle, over-mocked tests |
 | `roast` | no | Constructive critique via 5 HackerNews personas with claim validation |
 
 ---

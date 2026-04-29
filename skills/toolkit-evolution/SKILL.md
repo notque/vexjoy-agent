@@ -38,7 +38,7 @@ Schedulable (nightly) or manually-invoked 7-phase pipeline for continuous toolki
 
 Nightly sibling of `auto-dream` (2:07 AM consolidates memories; 3:07 AM this skill diagnoses and builds). They feed each other: dream's graduated learnings inform evolution's diagnosis; evolution's results become dream's next input.
 
-Invoke: `/evolve`, `/evolve routing`, `/evolve hooks`, `/evolve --discover`. Cron setup in `references/evolve-anti-patterns.md` § Scheduling.
+Invoke: `/evolve`, `/evolve routing`, `/evolve hooks`, `/evolve --discover`. Cron setup in `references/evolve-preferred-patterns.md` § Scheduling.
 
 ## Reference Loading Table
 
@@ -46,7 +46,7 @@ Invoke: `/evolve`, `/evolve routing`, `/evolve hooks`, `/evolve --discover`. Cro
 |---|---|---|
 | tasks related to this reference | `diagnose-scripts.md` | Loads detailed guidance from `diagnose-scripts.md`. |
 | tasks related to this reference | `evolution-report-template.md` | Loads detailed guidance from `evolution-report-template.md`. |
-| implementation patterns | `evolve-anti-patterns.md` | Loads detailed guidance from `evolve-anti-patterns.md`. |
+| implementation patterns | `evolve-preferred-patterns.md` | Loads detailed guidance from `evolve-preferred-patterns.md`. |
 | tasks related to this reference | `evolve-scripts.md` | Loads detailed guidance from `evolve-scripts.md`. |
 
 ## Instructions
@@ -69,7 +69,7 @@ Collect current toolkit state using the briefing data commands from `references/
 
 **Step 2: Dispatch 5 perspective agents in parallel**
 
-See `references/evolve-anti-patterns.md` § Phase 0 DISCOVER for the full agent table and proposal format. Dispatch all 5 simultaneously.
+See `references/evolve-preferred-patterns.md` § Phase 0 DISCOVER for the full agent table and proposal format. Dispatch all 5 simultaneously.
 
 **Step 3: Deduplicate and filter** -- remove duplicates of existing skills (check `skills/INDEX.json`), remove proposals with no evidence (require at least one concrete data point), group similar proposals and note convergent evidence.
 
@@ -187,7 +187,7 @@ Skill(skill="multi-persona-critique", args="Evaluate these toolkit improvement p
 
 **Step 2b: If NOT available -- use inline fallback**
 
-See `references/evolve-anti-patterns.md` § Phase 3 Inline Critique Fallback for the 3-agent dispatch prompts and scoring table.
+See `references/evolve-preferred-patterns.md` § Phase 3 Inline Critique Fallback for the 3-agent dispatch prompts and scoring table.
 
 **Step 3: Synthesize consensus**
 
@@ -283,9 +283,9 @@ Write the dated report to `evolution-reports/evolution-report-{YYYY-MM-DD}.md` u
 |--------|------|
 | Running Phase 0 DISCOVER (frequency check, briefing data commands needed) | `references/diagnose-scripts.md` |
 | Running Phase 1 DIAGNOSE (Steps 1-4c commands needed) | `references/diagnose-scripts.md` |
-| Phase 0 perspective agent table, proposal format | `references/evolve-anti-patterns.md` |
-| Phase 3 inline critique fallback (multi-persona not available) | `references/evolve-anti-patterns.md` |
-| Anti-patterns, error handling, cost estimate, cron scheduling | `references/evolve-anti-patterns.md` |
+| Phase 0 perspective agent table, proposal format | `references/evolve-preferred-patterns.md` |
+| Phase 3 inline critique fallback (multi-persona not available) | `references/evolve-preferred-patterns.md` |
+| Anti-patterns, error handling, cost estimate, cron scheduling | `references/evolve-preferred-patterns.md` |
 | Running Phase 6 EVOLVE (PR template, merge, cleanup, learning DB commands) | `references/evolve-scripts.md` |
 | Writing or reading the evolution report | `references/evolution-report-template.md` |
 
@@ -296,7 +296,7 @@ Write the dated report to `evolution-reports/evolution-report-{YYYY-MM-DD}.md` u
 - `references/evolution-report-template.md` -- Template for the evolution report
 - `references/diagnose-scripts.md` -- Phase 0 and Phase 1 bash/Python commands
 - `references/evolve-scripts.md` -- Phase 6 PR, merge, cleanup, and learning DB commands
-- `references/evolve-anti-patterns.md` -- Anti-patterns, error handling, cost, critique fallback, scheduling
+- `references/evolve-preferred-patterns.md` -- Anti-patterns, error handling, cost, critique fallback, scheduling
 - `skills/auto-dream/SKILL.md` -- Nightly sibling: memory consolidation and learning graduation
 - `skills/skill-eval/SKILL.md` -- Skill testing and benchmarking
 - `skills/multi-persona-critique/SKILL.md` -- Multi-persona evaluation (may not exist yet; inline fallback in references)

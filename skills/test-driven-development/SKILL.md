@@ -24,7 +24,7 @@ routing:
   category: testing
   pairs_with:
     - verification-before-completion
-    - testing-anti-patterns
+    - testing-preferred-patterns
     - vitest-runner
 ---
 

@@ -18,7 +18,7 @@ def validate_skill_structure() -> list[tuple[str, bool, str]]:
         "SKILL.md",
         "references/temporal-keywords.txt",
         "references/examples.md",
-        "references/anti-patterns.md",
+        "references/preferred-patterns.md",
     ]
 
     for file_path in required_files:
@@ -125,21 +125,21 @@ def validate_reference_files() -> list[tuple[str, bool, str]]:
     else:
         results.append(("examples.md exists", False, "Missing examples.md"))
 
-    # Validate anti-patterns.md content
-    antipatterns_file = references_dir / "anti-patterns.md"
+    # Validate preferred-patterns.md content
+    antipatterns_file = references_dir / "preferred-patterns.md"
     if antipatterns_file.exists():
         with open(antipatterns_file, "r", encoding="utf-8") as f:
             content = f.read()
             has_patterns = "Anti-Pattern" in content
             results.append(
                 (
-                    "anti-patterns.md has patterns",
+                    "preferred-patterns.md has patterns",
                     has_patterns,
                     "Missing anti-pattern content" if not has_patterns else "OK",
                 )
             )
     else:
-        results.append(("anti-patterns.md exists", False, "Missing anti-patterns.md"))
+        results.append(("preferred-patterns.md exists", False, "Missing preferred-patterns.md"))
 
     return results
 

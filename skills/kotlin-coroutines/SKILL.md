@@ -30,7 +30,7 @@ the correct reference based on the task at hand.
 | Concurrency | `concurrency-patterns.md` | Scopes, cancellation, dispatchers, exception handling |
 | Flow | `flow-patterns.md` | Flow builders, StateFlow, SharedFlow, operators |
 | Channels | `channel-patterns.md` | Producer-consumer, fan-in/fan-out patterns |
-| Anti-patterns | `anti-patterns.md` | GlobalScope, unstructured launch, CancellationException |
+| Anti-patterns | `preferred-patterns.md` | GlobalScope, unstructured launch, CancellationException |
 
 ## Instructions
 
@@ -44,7 +44,7 @@ Only load what is needed -- do not load all references for every task.
 | Concurrency | `references/concurrency-patterns.md` | Scopes, cancellation, dispatchers, exception handling |
 | Flow | `references/flow-patterns.md` | Flow builders, StateFlow, SharedFlow, operators |
 | Channels | `references/channel-patterns.md` | Producer-consumer, fan-in/fan-out patterns |
-| Anti-patterns | `references/anti-patterns.md` | GlobalScope, unstructured launch, CancellationException |
+| Anti-patterns | `references/preferred-patterns.md` | GlobalScope, unstructured launch, CancellationException |
 
 Multiple domains may apply. For example, reviewing code that uses both Flow and Channels
 should load both `flow-patterns.md` and `channel-patterns.md`.

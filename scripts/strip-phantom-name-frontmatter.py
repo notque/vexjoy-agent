@@ -35,7 +35,7 @@ The default audit is conservative: any substring match in the routing table
 or a pipeline JSON is treated as a dispatch dependency and the file is
 skipped. A prior investigation showed that for the 29 files under
 ``skills/workflow/references/*.md`` plus
-``skills/kotlin-coroutines/references/anti-patterns.md``, the substring
+``skills/kotlin-coroutines/references/preferred-patterns.md``, the substring
 matches are false positives for dispatch purposes:
 
 1. The pipeline dispatcher in ``scripts/index-router.py`` keys on JSON keys
@@ -102,7 +102,7 @@ ROUTING_TABLE = REPO_ROOT / "skills" / "do" / "references" / "routing-tables.md"
 # and after running with --verified-safe.
 VERIFIED_SAFE_PATHS: frozenset[str] = frozenset(
     {
-        "skills/kotlin-coroutines/references/anti-patterns.md",
+        "skills/kotlin-coroutines/references/preferred-patterns.md",
         "skills/workflow/references/agent-upgrade.md",
         "skills/workflow/references/article-evaluation-pipeline.md",
         "skills/workflow/references/auto-pipeline.md",

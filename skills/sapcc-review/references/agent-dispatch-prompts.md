@@ -215,7 +215,7 @@ Write ALL findings to: [output file path]
 ## Agent 10: Divergences, LLM Tells, and Community Gaps
 
 **Sections**: §22 (Divergences), §24 (Failure Modes), §25 (LLM Code Feedback), §33 (Portunus Architecture), §35 (Reinforcement Table)
-**Extra Reference**: `anti-patterns.md`
+**Extra Reference**: `preferred-patterns.md`
 
 **This is the highest-value agent.** It checks for patterns that LLMs generate by default but the project explicitly rejects:
 

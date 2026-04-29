@@ -162,7 +162,7 @@ Uses the **Implementation Schema**: ANALYZE (surface type, narrative brief, cont
 | design tokens, theme, CSS variables, color palette, font scale | `design-tokens.md` | Design system, Tailwind theme, CSS variables, color scales, typography, dark mode |
 | button, input, modal, dropdown, tab, accordion, toast | `component-library-interactive.md` | Buttons, inputs, modals, dropdowns, tabs, accordions, toasts, form controls |
 | card, table, badge, avatar, progress, alert | `component-library-display.md` | Cards, tables, badges, avatars, progress indicators, alerts |
-| Tailwind config, @apply, responsive, purge, JIT, arbitrary | `tailwind-anti-patterns.md` | Tailwind configuration, class composition, purge issues, `@apply`, responsive prefixes, arbitrary values |
+| Tailwind config, @apply, responsive, purge, JIT, arbitrary | `tailwind-preferred-patterns.md` | Tailwind configuration, class composition, purge issues, `@apply`, responsive prefixes, arbitrary values |
 | animation, Framer Motion, transition, reduced motion, exit, AnimatePresence | `animation-patterns.md` | Framer Motion, CSS transitions, prefers-reduced-motion, exit animations, AnimatePresence, micro-interactions |
 
 ## Error Handling
@@ -254,7 +254,7 @@ Load on demand — fetch only the file(s) relevant to the current task:
 | Design system, Tailwind theme, CSS variables, color scales, typography, dark mode | design tokens, theme, CSS variables, color palette, font scale | [references/design-tokens.md](references/design-tokens.md) |
 | Buttons, inputs, modals, dropdowns, tabs, accordions, toasts, form controls | button, input, modal, dropdown, tab, accordion, toast | [references/component-library-interactive.md](references/component-library-interactive.md) |
 | Cards, tables, badges, avatars, progress indicators, alerts | card, table, badge, avatar, progress, alert | [references/component-library-display.md](references/component-library-display.md) |
-| Tailwind configuration, class composition, purge issues, `@apply`, responsive prefixes, arbitrary values | Tailwind config, @apply, responsive, purge, JIT, arbitrary | [references/tailwind-anti-patterns.md](references/tailwind-anti-patterns.md) |
+| Tailwind configuration, class composition, purge issues, `@apply`, responsive prefixes, arbitrary values | Tailwind config, @apply, responsive, purge, JIT, arbitrary | [references/tailwind-preferred-patterns.md](references/tailwind-preferred-patterns.md) |
 | Framer Motion, CSS transitions, prefers-reduced-motion, exit animations, AnimatePresence, micro-interactions | animation, Framer Motion, transition, reduced motion, exit, AnimatePresence | [references/animation-patterns.md](references/animation-patterns.md) |
 
 **Shared Patterns**: [anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md) | [verification-checklist.md](../skills/shared-patterns/verification-checklist.md)

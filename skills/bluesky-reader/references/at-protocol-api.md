@@ -233,5 +233,5 @@ grep -B2 -A10 'getAuthorFeed' --include="*.py" -r | grep -c 'cursor'
 
 ## See Also
 
-- `at-protocol-anti-patterns.md` — Common mistakes using the AT Protocol API
+- `at-protocol-preferred-patterns.md` — Common mistakes using the AT Protocol API
 - AT Protocol Lexicon browser: https://atproto.com/lexicons/app-bsky-feed

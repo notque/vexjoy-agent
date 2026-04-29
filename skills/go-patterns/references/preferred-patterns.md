@@ -48,7 +48,7 @@ Rate severity based on the actual codebase context: a single-implementation inte
 
 For each flagged pattern, show the current code alongside the recommended alternative so the reader can compare directly. Explain WHY the current pattern is harmful, not just that it is -- root cause understanding prevents recurrence.
 
-Reference `${CLAUDE_SKILL_DIR}/references/anti-patterns/code-examples.md` for extended before/after examples covering all 7 anti-patterns.
+Reference `${CLAUDE_SKILL_DIR}/references/preferred-patterns/code-examples.md` for extended before/after examples covering all 7 anti-patterns.
 
 Do not rewrite working code without an explicit request from the user. Flag patterns for awareness and let the user decide whether to act. When the user does request changes, apply them one pattern at a time to keep diffs reviewable.
 
@@ -273,4 +273,4 @@ Result: Evidence-based recommendation with Go idiom context
 
 ## References
 
-- `${CLAUDE_SKILL_DIR}/references/anti-patterns/code-examples.md`: Extended before/after examples for all 7 anti-patterns
+- `${CLAUDE_SKILL_DIR}/references/preferred-patterns/code-examples.md`: Extended before/after examples for all 7 anti-patterns

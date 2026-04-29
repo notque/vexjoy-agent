@@ -2,7 +2,7 @@
 
 <!-- no-pair-required: document introduction, not an individual anti-pattern block -->
 
-Companion file to `anti-patterns.md`. Covers language-specific and documentation-targeted comment anti-patterns. Load alongside `anti-patterns.md` when reviewing code or documentation in Go, Python, JavaScript/TypeScript, or when auditing README/API documentation for temporal references.
+Companion file to `preferred-patterns.md`. Covers language-specific and documentation-targeted comment anti-patterns. Load alongside `preferred-patterns.md` when reviewing code or documentation in Go, Python, JavaScript/TypeScript, or when auditing README/API documentation for temporal references.
 
 ## Language-Specific Patterns
 

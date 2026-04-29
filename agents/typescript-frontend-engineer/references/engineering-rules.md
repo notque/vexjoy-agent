@@ -54,7 +54,7 @@ Common errors and their solutions. See [typescript-errors.md](typescript-errors.
 
 ## Preferred Patterns
 
-Patterns to follow. See [typescript-anti-patterns.md](typescript-anti-patterns.md) for full catalog.
+Patterns to follow. See [typescript-preferred-patterns.md](typescript-preferred-patterns.md) for full catalog.
 
 ### Define Proper Types Instead of `any`
 **Signal**: `const data: any = await fetch('/api/users')`
