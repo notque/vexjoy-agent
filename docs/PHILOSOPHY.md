@@ -22,6 +22,20 @@ This is not about hiding complexity. It's about absorbing it. The hooks, agents,
 
 **Automation corollary:** anything that can fire automatically, should. Gates enforce themselves via hooks. Context injects itself via SessionStart and UserPromptSubmit handlers. Quality checks run via CI. Learning happens via PostToolUse capture. The user's job is to describe intent. The system's job is everything else.
 
+## Plain English Is the Interface
+
+If a user has to learn special syntax, prompt engineering tricks, or insider vocabulary to get good results, the design failed. Plain English is not a fallback mode. It is the primary interface.
+
+The router treats raw human intent as its input signal. Not keywords. Not slash commands. Not carefully structured prompts that mimic system-prompt formatting. A person who says "make this faster" should get the same quality routing as someone who says "/do dispatch performance-agent with profiling skill against src/server.go." The second form is an escape hatch for power users who want explicit control. It is not how the system is meant to be used.
+
+**What this means in practice:**
+
+- A first-time user who types "this test is flaky, help" gets the same debugging methodology as someone who knows the systematic-debugging skill exists. The router reads intent, not vocabulary.
+- Users should never need to add system-prompt-like preambles ("You are an expert in...") to their requests. The system already carries the expertise in its agents. Adding it manually means the routing failed to select the right one.
+- If an A/B test shows that rephrasing a natural request into a structured format produces better results, that is a bug in the router, not a feature of the format.
+
+**The test:** take a request from a first-time user and the same request rewritten by someone who has read every agent description and skill file. If the rewritten version routes better or produces higher quality output, something upstream needs fixing. The system's job is to close the gap between plain speech and optimal dispatch — not to reward users who learn to speak its internal language.
+
 ## Everything That Can Be Deterministic, Should Be
 
 The foundational principle. LLMs should orchestrate deterministic programs, not simulate them.
@@ -190,6 +204,20 @@ The pipeline: **Deterministic first, fix failures, LLM evaluation, fix findings,
 
 **Verifier pattern:** For high-stakes work, separate the roles: planner (read-only, no side effects), executor (full access, implements), verifier (read-only, adversarial intent). The verifier's job is to try to break the result -- not to optimistically approve it. A verifier that only confirms success is a rubber stamp. Require evidence-bearing verdicts: the exact command run, the observed output, the expected value versus the actual. "Looks correct" is not a verdict. If the verifier cannot produce a falsifiable check, the result is not verified. This principle matters more under Opus 4.7, whose default is to reason in lieu of calling tools. The principle is unchanged; what changed is that the model's default now works against it, so verification-bearing skills must explicitly instruct tool execution rather than relying on the model's tendency to run commands.
 
+## Taste Is a Quality Gate
+
+Mechanically correct output that nobody would want to read, use, or sign their name to is not done. It passes the linter and fails the person.
+
+Taste is the judgment layer that deterministic checks cannot provide. A script can verify that frontmatter parses, that referenced files exist, that required sections are present. It cannot tell you whether the agent description sounds like it was written by someone who understands the domain or by someone filling in a template. That judgment is real, it matters, and it belongs in the quality pipeline alongside the automated checks.
+
+**What this means in practice:**
+
+- Technically correct but soulless output fails the quality bar. An agent file that has all required fields but reads like a form letter is not done. A blog post that hits every SEO checkbox but sounds like it was assembled from spare parts is not done.
+- Over-polishing is its own failure mode. Spending tokens buffing every sentence to a mirror shine erodes authenticity and wastes budget. Accept appropriate imperfection — the kind a skilled human would leave in because fixing it would make the result worse. A well-placed rough edge beats a plastic surface.
+- Lead with good patterns. The primary quality signal is "does this look like something a person with taste produced?" — not "can I find flaws in it?" Flaw-hunting is secondary to pattern-setting. A review that only finds problems without demonstrating what good looks like teaches nothing.
+
+**The test:** would a person with taste sign their name to this output? Not "is it perfect" — perfection is the enemy. The question is whether someone who cares about their craft would stand behind it. If the answer is "it's fine, I guess" — that's a no.
+
 ## Specialist Selection Over Generalism
 
 Same Claude prompts produce different results on different days. Generalist improvisation is unreliable.
@@ -353,6 +381,20 @@ The `/do` router's only job is to classify requests and dispatch them to agents.
 
 **The test:**
 If the main thread is reading source code, editing files, running scripts for analysis, or doing any work beyond routing — something is wrong. Stop and dispatch an agent.
+
+## The Router Composes, Not Just Selects
+
+Routing is not a lookup table that maps one request to one skill. The router reads full intent and dispatches the right combination — potentially multiple agents and skills in sequence or parallel.
+
+A user who says "fix this bug and make sure it doesn't introduce security issues" is expressing a compound intent. The correct response is not to pick whichever single skill seems most relevant. It is to dispatch debugging, then security review, then cleanup — a composed pipeline built from thin, chainable skills. The router handles this composition. The user does not need to decompose their own request into atomic units.
+
+**What this means in practice:**
+
+- Skills are designed to be thin enough to chain. A skill that tries to be comprehensive — debugging AND security AND cleanup all in one — is too fat to compose. Three thin skills that chain cleanly beat one thick skill that handles everything poorly.
+- The router reads the full request and dispatches the optimal combination. "Review this PR" might trigger security review + business logic review + architecture review in parallel, then a synthesis pass. That is three skills composed, not one mega-skill invoked.
+- Manual skill invocation (`/skillname`) is the escape hatch, not the normal path. It exists for power users who want to force a specific methodology. The default path is to describe what you want and let the router compose the answer.
+
+**The test:** if a user has to invoke three skills manually in sequence to get the result they want, the router should have composed those three automatically from the original request. Manual sequencing is a sign that routing composition is underbuilt for that intent pattern.
 
 ## Hooks for Gates, LLMs for Judgment
 
