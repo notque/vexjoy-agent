@@ -149,7 +149,7 @@ See `agents/python-general-engineer/references/capabilities.md` for full CAN/CAN
 | Signal | Load These Files | Why |
 |---|---|---|
 | errors | `python-errors.md` | Loads detailed guidance from `python-errors.md`. |
-| implementation patterns | `python-anti-patterns.md` | Loads detailed pattern guidance from `python-anti-patterns.md`. |
+| implementation patterns | `python-preferred-patterns.md` | Loads detailed pattern guidance from `python-preferred-patterns.md`. |
 | implementation patterns | `python-patterns.md` | Loads detailed guidance from `python-patterns.md`. |
 | tasks related to this reference | `python-modern-features.md` | Loads detailed guidance from `python-modern-features.md`. |
 
@@ -159,7 +159,7 @@ See `agents/python-general-engineer/references/error-handling.md` for common err
 
 ## Preferred Patterns
 
-See `agents/python-general-engineer/references/preferred-patterns.md` for the full pattern list (system pip, ABCs, premature async, type ignore, string concatenation, bare except, input validation, prompt visibility, category definitions). Full catalog in `agents/python-general-engineer/references/python-anti-patterns.md`.
+See `agents/python-general-engineer/references/preferred-patterns.md` for the full pattern list (system pip, ABCs, premature async, type ignore, string concatenation, bare except, input validation, prompt visibility, category definitions). Full catalog in `agents/python-general-engineer/references/python-preferred-patterns.md`.
 
 ## Anti-Rationalization
 
@@ -177,6 +177,6 @@ STOP and ask the user for explicit confirmation on fundamental design choices (a
 
 For detailed Python patterns and examples:
 - **Error Catalog**: [python-errors.md](python-general-engineer/references/python-errors.md)
-- **Pattern Detection Guide**: [python-anti-patterns.md](python-general-engineer/references/python-anti-patterns.md)
+- **Pattern Detection Guide**: [python-preferred-patterns.md](python-general-engineer/references/python-preferred-patterns.md)
 - **Code Examples**: [python-patterns.md](python-general-engineer/references/python-patterns.md)
 - **Modern Features**: [python-modern-features.md](python-general-engineer/references/python-modern-features.md)

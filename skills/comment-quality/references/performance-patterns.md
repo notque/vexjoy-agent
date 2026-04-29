@@ -339,6 +339,6 @@ grep -rn '//.*\b(reduced|less|lower|minimal)\b.*\bmemory\b' \
 
 ## See Also
 
-- `anti-patterns.md` — complete temporal anti-pattern catalog across all languages
+- `preferred-patterns.md` — complete temporal anti-pattern catalog across all languages
 - `error-handling-patterns.md` — temporal patterns in error handling code
 - `go-comment-patterns.md` — Go-specific temporal patterns (goroutines, context, generics)

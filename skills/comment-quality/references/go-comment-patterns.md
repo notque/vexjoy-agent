@@ -241,5 +241,5 @@ grep -rn '^// Package.*\b(new|old|recently|updated|improved|fixed)\b' --include=
 
 ## See Also
 
-- `anti-patterns.md` — complete temporal anti-pattern catalog across all languages
+- `preferred-patterns.md` — complete temporal anti-pattern catalog across all languages
 - `examples.md` — before/after rewrite examples

@@ -248,7 +248,7 @@ grep -rn "font-family:\s*sans-serif" --include="*.css" --include="*.scss"
 
 ## See Also
 
-- `anti-patterns.json` — full banned font list, cliche color catalog, layout cliche list
+- `preferred-patterns.json` — full banned font list, cliche color catalog, layout cliche list
 - `font-catalog.json` — pre-approved fonts by aesthetic category
 - `background-techniques.md` — layered gradient and atmospheric background recipes
 - `animation-patterns.md` — 2-to-3 rule implementation patterns with timing values

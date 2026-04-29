@@ -275,6 +275,6 @@ Resolution states (update as concerns are addressed):
 
 ## See Also
 
-- `consultation-anti-patterns.md` — ADR quality anti-patterns that reviewers should catch
+- `consultation-preferred-patterns.md` — ADR quality anti-patterns that reviewers should catch
 - `skills/parallel-code-review/SKILL.md` — Fan-out/fan-in pattern this skill adapts
 - `agents/reviewer-perspectives.md` — Perspectives agent (contrarian, user-advocate, meta-process lenses)

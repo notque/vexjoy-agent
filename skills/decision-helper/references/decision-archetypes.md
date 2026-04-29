@@ -168,4 +168,4 @@ When top two options are within 0.5 weighted score, run sensitivity analysis bef
 
 ## See Also
 
-- `decision-anti-patterns.md` — Behavioral failure modes in scoring and framing
+- `decision-preferred-patterns.md` — Behavioral failure modes in scoring and framing

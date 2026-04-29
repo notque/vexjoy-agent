@@ -57,7 +57,7 @@ Process up to ${DECOMP_MAX_TARGETS} targets from the targets list. For each targ
 
 6. **For each extractable block**, perform the extraction:
 
-   a. **Determine the reference filename.** Use the detection script's suggestion as a starting point. Follow the naming convention: `{domain}-{topic}.md` (e.g., `go-anti-patterns.md`, `voice-banned-patterns.md`).
+   a. **Determine the reference filename.** Use the detection script's suggestion as a starting point. Follow the naming convention: `{domain}-{topic}.md` (e.g., `go-preferred-patterns.md`, `voice-banned-patterns.md`).
 
    b. **Check for merge targets.** If a reference file with related content already exists, MERGE into it instead of creating a duplicate. Two files covering the same sub-domain is worse than one longer file.
 

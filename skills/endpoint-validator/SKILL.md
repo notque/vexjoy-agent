@@ -31,7 +31,7 @@ Deterministic HTTP endpoint validation following a **Discover, Validate, Report*
 | Signal | Load These Files | Why |
 |---|---|---|
 | Security header WARNs, HSTS/CSP/X-Frame issues | `security-headers.md` | Routes to the matching deep reference |
-| Config errors, hardcoded IPs, timeout problems | `endpoint-config-anti-patterns.md` | Routes to the matching deep reference |
+| Config errors, hardcoded IPs, timeout problems | `endpoint-config-preferred-patterns.md` | Routes to the matching deep reference |
 | 401/403 failures, Bearer/API-key/cookie auth | `auth-endpoint-patterns.md` | Routes to the matching deep reference |
 
 ## Instructions
@@ -217,7 +217,7 @@ Solution:
 | Task Type | Load This Reference |
 |-----------|-------------------|
 | Security header WARNs, HSTS/CSP/X-Frame issues | `references/security-headers.md` |
-| Config errors, hardcoded IPs, timeout problems | `references/endpoint-config-anti-patterns.md` |
+| Config errors, hardcoded IPs, timeout problems | `references/endpoint-config-preferred-patterns.md` |
 | 401/403 failures, Bearer/API-key/cookie auth | `references/auth-endpoint-patterns.md` |
 
 ---

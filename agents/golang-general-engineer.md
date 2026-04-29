@@ -102,7 +102,7 @@ Load these reference files when the task type matches:
 | Modern idiom replacement table, preferred patterns, hard gates, blockers, death loop prevention | [golang-general-engineer/references/patterns-and-gates.md](golang-general-engineer/references/patterns-and-gates.md) |
 | Go version features, modern idioms, migration checklist | [golang-general-engineer/references/go-modern-features.md](golang-general-engineer/references/go-modern-features.md) |
 | Error catalog (goroutine leak, race condition, nil pointer, context deadline) | [golang-general-engineer/references/go-errors.md](golang-general-engineer/references/go-errors.md) |
-| Code smell detection and pattern review | [golang-general-engineer/references/go-anti-patterns.md](golang-general-engineer/references/go-anti-patterns.md) |
+| Code smell detection and pattern review | [golang-general-engineer/references/go-preferred-patterns.md](golang-general-engineer/references/go-preferred-patterns.md) |
 | Concurrency patterns (worker pools, fan-out/fan-in, pipelines) | [golang-general-engineer/references/go-concurrency.md](golang-general-engineer/references/go-concurrency.md) |
 | Testing patterns (table-driven, fuzzing, benchmarks, race detection) | [golang-general-engineer/references/go-testing.md](golang-general-engineer/references/go-testing.md) |
 
@@ -143,7 +143,7 @@ Report exit status with real command output. No "should work" — either the gat
 
 See `agents/golang-general-engineer/references/patterns-and-gates.md` for the full preferred-patterns catalog (modern idiom replacements, hard gates, blockers, death-loop prevention).
 
-See `agents/golang-general-engineer/references/go-anti-patterns.md` for pattern examples with detection commands.
+See `agents/golang-general-engineer/references/go-preferred-patterns.md` for pattern examples with detection commands.
 
 ## Error Handling
 

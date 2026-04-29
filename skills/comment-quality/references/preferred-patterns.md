@@ -4,7 +4,7 @@
 
 This document catalogs common problematic patterns found in code comments and documentation, with explanations of why they're problematic and how to fix them.
 
-For language-specific (Go, Python, JavaScript/TypeScript) and documentation-targeted (README, API docs) anti-patterns, see `anti-patterns-language-specific.md`.
+For language-specific (Go, Python, JavaScript/TypeScript) and documentation-targeted (README, API docs) anti-patterns, see `preferred-patterns-language-specific.md`.
 
 ## High Priority Signals to Detect and Fix
 

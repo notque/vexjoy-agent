@@ -205,7 +205,7 @@ Performance optimization patterns to follow.
 **Why wrong**: Lab tests only approximate real user conditions (slow networks, old devices).
 **✅ Do instead**: Implement RUM with web-vitals library. Prioritize p75/p95 metrics from real users.
 
-See [performance-optimization/anti-patterns.md](performance-optimization-engineer/references/anti-patterns.md) for comprehensive pattern examples with detection and fixes.
+See [performance-optimization/preferred-patterns.md](performance-optimization-engineer/references/preferred-patterns.md) for comprehensive pattern examples with detection and fixes.
 
 ## Anti-Rationalization
 
@@ -259,7 +259,7 @@ STOP and ask the user (get explicit confirmation) before proceeding when:
 For detailed performance patterns and implementation examples:
 - **Core Web Vitals Implementation**: [performance-optimization/core-web-vitals.md](performance-optimization-engineer/references/core-web-vitals.md)
 - **Bundle Optimization**: [performance-optimization/bundle-optimization.md](performance-optimization-engineer/references/bundle-optimization.md)
-- **Pattern Detection Guide**: [performance-optimization/anti-patterns.md](performance-optimization-engineer/references/anti-patterns.md)
+- **Pattern Detection Guide**: [performance-optimization/preferred-patterns.md](performance-optimization-engineer/references/preferred-patterns.md)
 
 See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for Implementation Schema details.
 
@@ -279,4 +279,4 @@ Load these reference files when the task matches the keyword category. Reference
 | Lighthouse CI, performance budget, lhci, size-limit, CI/CD performance, regression, synthetic | [performance-testing.md](performance-optimization-engineer/references/performance-testing.md) | HIGH — Lighthouse CI setup, assertions, bundle gates, CI configuration |
 | Core Web Vitals implementation, LCP optimization, FID reduction, CLS fixes, web-vitals library | [core-web-vitals.md](performance-optimization-engineer/references/core-web-vitals.md) | CRITICAL — Core Web Vitals optimization patterns and thresholds |
 | webpack analyzer, code splitting, dynamic import, chunk optimization, tree shaking | [bundle-optimization.md](performance-optimization-engineer/references/bundle-optimization.md) | HIGH — Bundle size analysis and splitting strategies |
-| pattern examples, premature optimization, ignoring RUM, blocking main thread | [anti-patterns.md](performance-optimization-engineer/references/anti-patterns.md) | MEDIUM — Comprehensive pattern catalog with detection and fixes |
+| pattern examples, premature optimization, ignoring RUM, blocking main thread | [preferred-patterns.md](performance-optimization-engineer/references/preferred-patterns.md) | MEDIUM — Comprehensive pattern catalog with detection and fixes |

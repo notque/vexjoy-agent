@@ -45,7 +45,7 @@ COMPOSITION_CHAINS: dict[str, list[str]] = {
         "publish",
         "wordpress-live-validation",
     ],
-    "forensics": ["forensics", "testing-anti-patterns", "learn"],
+    "forensics": ["forensics", "testing-preferred-patterns", "learn"],
     "docs-sync-checker": ["docs-sync-checker", "doc-pipeline", "generate-claudemd"],
     "systematic-refactoring": ["systematic-refactoring", "code-linting", "verification-before-completion"],
 }

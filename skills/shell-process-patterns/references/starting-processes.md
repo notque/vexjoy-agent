@@ -42,7 +42,7 @@ What `nohup` does NOT do:
 - It does not prevent SIGTERM or SIGINT — only SIGHUP
 - It does not detach from the process group
 
-Because `nohup` is a wrapper binary (not a builtin), `$!` captures the wrapper PID on some systems rather than the child. See `pid-resolution.md` and `anti-patterns.md` AP-1.
+Because `nohup` is a wrapper binary (not a builtin), `$!` captures the wrapper PID on some systems rather than the child. See `pid-resolution.md` and `preferred-patterns.md` AP-1.
 
 ## Pattern 3: `disown`
 
@@ -149,4 +149,4 @@ Without `set -m`, non-interactive bash puts background jobs in the script's own 
 - For PID capture after start: `pid-resolution.md`
 - For signal handling of started children: `signals-and-traps.md`
 - For cleanup after start: `cleanup-verification.md`
-- For anti-patterns in starting (AP-1, AP-6): `anti-patterns.md`
+- For anti-patterns in starting (AP-1, AP-6): `preferred-patterns.md`

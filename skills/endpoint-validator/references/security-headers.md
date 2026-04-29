@@ -188,5 +188,5 @@ grep -rn "Content-Security-Policy\|add_header.*CSP" /etc/nginx/ 2>/dev/null
 
 ## See Also
 
-- `endpoint-config-anti-patterns.md` — configuration mistakes in endpoints.json
+- `endpoint-config-preferred-patterns.md` — configuration mistakes in endpoints.json
 - `auth-endpoint-patterns.md` — configuring authenticated endpoint validation

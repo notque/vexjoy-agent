@@ -112,7 +112,7 @@ This agent uses the **Implementation Schema**:
 
 Server scaffolding templates for TypeScript/Node.js (`DocsServer` class with `Server`, `StdioServerTransport`, handler setup, `run()`) and Go (`DocsServer` struct with `sync.RWMutex`, `IndexDocs()` via `filepath.WalkDir`) are in [references/server-templates.md](references/server-templates.md).
 
-Key patterns: async file I/O only (no `readFileSync`), index once at startup then serve from `Map`, use `docs://` URI scheme (never expose filesystem paths), wrap front matter parsing in try-catch. See [references/mcp-patterns.md](references/mcp-patterns.md) for detailed implementations and [references/mcp-anti-patterns.md](references/mcp-anti-patterns.md) for detection commands.
+Key patterns: async file I/O only (no `readFileSync`), index once at startup then serve from `Map`, use `docs://` URI scheme (never expose filesystem paths), wrap front matter parsing in try-catch. See [references/mcp-patterns.md](references/mcp-patterns.md) for detailed implementations and [references/mcp-preferred-patterns.md](references/mcp-preferred-patterns.md) for detection commands.
 
 ## Error Handling
 
@@ -188,5 +188,5 @@ This agent pairs well with:
 |------|------|
 | Scaffolding new server, TypeScript DocsServer class, Go DocsServer struct | [references/server-templates.md](references/server-templates.md) |
 | MCP server development, tool registration, SDK patterns | [references/mcp-patterns.md](references/mcp-patterns.md) |
-| Front matter parsing failures, URI issues, shortcode bugs | [references/mcp-anti-patterns.md](references/mcp-anti-patterns.md) |
+| Front matter parsing failures, URI issues, shortcode bugs | [references/mcp-preferred-patterns.md](references/mcp-preferred-patterns.md) |
 | Async file I/O, concurrency, EMFILE errors, slow indexing | [references/typescript-async-patterns.md](references/typescript-async-patterns.md) |

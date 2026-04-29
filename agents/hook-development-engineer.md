@@ -185,7 +185,7 @@ See [references/code-examples.md](references/code-examples.md) for detailed spec
 
 ## Error Handling and Preferred Patterns
 
-See [references/anti-patterns.md](references/anti-patterns.md) for the full pattern catalog: blocking on errors, synchronous heavy operations, direct database writes, registering before deploying, unguarded `main()`, UserPromptSubmit agent-context injection, and the atomic write pattern with code examples.
+See [references/preferred-patterns.md](references/preferred-patterns.md) for the full pattern catalog: blocking on errors, synchronous heavy operations, direct database writes, registering before deploying, unguarded `main()`, UserPromptSubmit agent-context injection, and the atomic write pattern with code examples.
 ## Anti-Rationalization
 
 See [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md) for universal patterns.
@@ -233,7 +233,7 @@ STOP and ask the user (get explicit confirmation) before proceeding when:
 | Signal | Reference File | When to Load |
 |--------|---------------|--------------|
 | Pipeline diagram, event flow, learning database directory structure | `references/architecture.md` | When explaining hook integration or reviewing system design |
-| Blocking errors, synchronous ops, direct writes, registration order, unguarded main(), UserPromptSubmit misuse | `references/anti-patterns.md` | When reviewing hook code or debugging session deadlocks — preferred patterns and detection |
+| Blocking errors, synchronous ops, direct writes, registration order, unguarded main(), UserPromptSubmit misuse | `references/preferred-patterns.md` | When reviewing hook code or debugging session deadlocks — preferred patterns and detection |
 | Production hook template, non-blocking pattern, complete implementations | `references/code-examples.md` | When scaffolding a new hook from scratch |
 | JSON schema, confidence scoring, atomic write ops, DB query patterns | `references/learning-database.md` | When implementing learning database operations |
 
@@ -241,7 +241,7 @@ STOP and ask the user (get explicit confirmation) before proceeding when:
 
 For detailed information:
 - **Architecture**: [references/architecture.md](references/architecture.md) - Event-driven pipeline diagram and learning database directory structure
-- **Preferred Patterns**: [references/anti-patterns.md](references/anti-patterns.md) - Signal/Why/Preferred action for hook mistakes with code examples
+- **Preferred Patterns**: [references/preferred-patterns.md](references/preferred-patterns.md) - Signal/Why/Preferred action for hook mistakes with code examples
 - **Hook Examples**: [references/code-examples.md](references/code-examples.md) - Production hook implementations and non-blocking template
 - **Learning Database**: [references/learning-database.md](references/learning-database.md) - Schema, operations, confidence tracking
 

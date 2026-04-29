@@ -189,12 +189,12 @@ Load on demand — only pull what the current task requires.
 | Error handling code (try/catch, `if err !=`, `raise`) | `references/error-handling-patterns.md` |
 | Performance code (cache, pool, batch, concurrency, goroutine) | `references/performance-patterns.md` |
 | General rewrite examples needed | `references/examples.md` |
-| Full anti-pattern reference | `references/anti-patterns.md` |
-| Language-specific (Go, Python, JS/TS) or documentation (README, API) comments | `references/anti-patterns-language-specific.md` |
+| Full anti-pattern reference | `references/preferred-patterns.md` |
+| Language-specific (Go, Python, JS/TS) or documentation (README, API) comments | `references/preferred-patterns-language-specific.md` |
 
 ### Reference Files
-- `${CLAUDE_SKILL_DIR}/references/anti-patterns.md`: Core temporal anti-pattern catalog (language-agnostic)
-- `${CLAUDE_SKILL_DIR}/references/anti-patterns-language-specific.md`: Language-specific and documentation-targeted anti-patterns
+- `${CLAUDE_SKILL_DIR}/references/preferred-patterns.md`: Core temporal anti-pattern catalog (language-agnostic)
+- `${CLAUDE_SKILL_DIR}/references/preferred-patterns-language-specific.md`: Language-specific and documentation-targeted anti-patterns
 - `${CLAUDE_SKILL_DIR}/references/examples.md`: Before/after examples of comment rewrites
 - `${CLAUDE_SKILL_DIR}/references/go-comment-patterns.md`: Go-specific temporal patterns with grep/rg detection commands
 - `${CLAUDE_SKILL_DIR}/references/error-handling-patterns.md`: Temporal patterns in error handling code with detection commands

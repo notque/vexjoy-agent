@@ -17,7 +17,7 @@ Result: Contextual, validated design specification ready for implementation
 User says: "This site looks too generic, review it for AI slop"
 Actions:
 1. Read existing CSS/design files to inventory current choices (PHASE 1)
-2. Check fonts against banned list and `references/anti-patterns.json` (PHASE 2)
+2. Check fonts against banned list and `references/preferred-patterns.json` (PHASE 2)
 3. Analyze color palette for cliches and dominance issues (PHASE 3)
 4. Review animation usage (too much or too little) (PHASE 4)
 5. Evaluate background depth (flat solid colors?) (PHASE 5)

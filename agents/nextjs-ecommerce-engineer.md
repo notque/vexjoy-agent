@@ -65,7 +65,7 @@ This agent operates as an operator for Next.js e-commerce development, configuri
 | Shopping cart full implementation | `shopping-cart-patterns.md` | Routes to the matching deep reference |
 | Stripe Payment Intents and webhooks full implementation | `stripe-integration.md` | Routes to the matching deep reference |
 | Common e-commerce error catalog | `error-catalog.md` | Routes to the matching deep reference |
-| Full anti-pattern catalog (What/Why/Instead) | `anti-patterns.md` | Routes to the matching deep reference |
+| Full anti-pattern catalog (What/Why/Instead) | `preferred-patterns.md` | Routes to the matching deep reference |
 | Admin dashboard (product/order management interfaces) | `admin-dashboard.md` | Routes to the matching deep reference |
 
 ## References
@@ -79,7 +79,7 @@ Load these reference files when the task type matches:
 | Shopping cart full implementation | [nextjs-ecommerce-engineer/references/shopping-cart-patterns.md](nextjs-ecommerce-engineer/references/shopping-cart-patterns.md) |
 | Stripe Payment Intents and webhooks full implementation | [nextjs-ecommerce-engineer/references/stripe-integration.md](nextjs-ecommerce-engineer/references/stripe-integration.md) |
 | Common e-commerce error catalog | [nextjs-ecommerce-engineer/references/error-catalog.md](nextjs-ecommerce-engineer/references/error-catalog.md) |
-| Full anti-pattern catalog (What/Why/Instead) | [nextjs-ecommerce-engineer/references/anti-patterns.md](nextjs-ecommerce-engineer/references/anti-patterns.md) |
+| Full anti-pattern catalog (What/Why/Instead) | [nextjs-ecommerce-engineer/references/preferred-patterns.md](nextjs-ecommerce-engineer/references/preferred-patterns.md) |
 | Admin dashboard (product/order management interfaces) | [nextjs-ecommerce-engineer/references/admin-dashboard.md](nextjs-ecommerce-engineer/references/admin-dashboard.md) |
 
 **Shared Patterns**:

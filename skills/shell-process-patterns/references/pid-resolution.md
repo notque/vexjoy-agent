@@ -183,12 +183,12 @@ done
 
 Or install `procps`/`iproute2` at image build time.
 
-<!-- no-pair-required: This section is a pointer index into anti-patterns.md; each referenced AP has its own paired "Do instead" block in that file. -->
+<!-- no-pair-required: This section is a pointer index into preferred-patterns.md; each referenced AP has its own paired "Do instead" block in that file. -->
 
 ## Patterns to Detect and Fix
 
 These come from the anti-patterns reference:
-- `$!` after `nohup` or any wrapper binary — see AP-1 in `anti-patterns.md`
+- `$!` after `nohup` or any wrapper binary — see AP-1 in `preferred-patterns.md`
 - `kill $!` without verification that the port/resource is actually freed — see AP-4
 - `sleep N; kill $!` with a fixed sleep in hopes the wrapper has forked by then — races, use `pgrep -P` or poll
 
@@ -197,4 +197,4 @@ These come from the anti-patterns reference:
 - For starting-process idioms this file assumes: `starting-processes.md`
 - For signal delivery after PID resolution: `signals-and-traps.md`
 - For verification after kill: `cleanup-verification.md`
-- For the concrete failure mode: `anti-patterns.md` AP-1
+- For the concrete failure mode: `preferred-patterns.md` AP-1

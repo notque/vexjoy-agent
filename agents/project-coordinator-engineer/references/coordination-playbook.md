@@ -134,7 +134,7 @@ Common coordination errors. See [error-catalog.md](error-catalog.md) for compreh
 
 ## Preferred Patterns
 
-Common coordination mistakes and corrections. See [anti-patterns.md](anti-patterns.md) for full catalog.
+Common coordination mistakes and corrections. See [preferred-patterns.md](preferred-patterns.md) for full catalog.
 
 ### Enforce 3-Attempt Maximum
 **Signal**: Agent fails, coordinator spawns again, fails, spawns again...

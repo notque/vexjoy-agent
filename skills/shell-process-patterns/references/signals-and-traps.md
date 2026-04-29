@@ -21,7 +21,7 @@ This file covers what signals mean in practice, how `trap` works in bash, and th
 | SIGCHLD | Ignore | Child state changed; used internally by shell job control | Yes | Yes |
 | SIGPIPE (13) | Terminate | Wrote to pipe with no reader (e.g. `producer \| head`) | Yes | Yes |
 
-**Rule of thumb:** always send SIGTERM first. Escalate to SIGKILL only after a grace period with verification that SIGTERM was ignored. See `anti-patterns.md` AP-7.
+**Rule of thumb:** always send SIGTERM first. Escalate to SIGKILL only after a grace period with verification that SIGTERM was ignored. See `preferred-patterns.md` AP-7.
 
 ## Sending signals
 
@@ -253,7 +253,7 @@ trap - SIGTERM
 
 ## Cross-references
 
-- For the trap-clobbers-exit-code anti-pattern: `anti-patterns.md` AP-3
-- For SIGKILL-first anti-pattern: `anti-patterns.md` AP-7
+- For the trap-clobbers-exit-code anti-pattern: `preferred-patterns.md` AP-3
+- For SIGKILL-first anti-pattern: `preferred-patterns.md` AP-7
 - For starting process groups: `starting-processes.md`
 - For cleanup verification after signaling: `cleanup-verification.md`
