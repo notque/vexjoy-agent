@@ -112,7 +112,7 @@ case <-ctx.Done():
 
 ## Pattern Catalog
 
-### ❌ Channel Per Message (Connection-Scoped Channel Churn)
+### Reuse Channels Across Messages
 
 **Detection**:
 ```bash
@@ -124,7 +124,7 @@ grep -rn '\.channel()' --include="*.py" | grep -v 'self\._channel\|self\.channel
 rg 'conn\.Channel\(\)' --type go | grep -v 'var ch\|:= ch'
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 def publish_event(body: bytes) -> None:
     connection = get_connection()
@@ -133,9 +133,9 @@ def publish_event(body: bytes) -> None:
     # channel not closed, leaked
 ```
 
-**Why wrong**: Each `channel()` call opens a new AMQP channel. Default channel limit is 2047 per connection (`channel_max`). Under publish load this exhausts the limit and the broker starts closing channels with a 503 error. Also: opening a channel involves a round-trip handshake (Channel.Open + Channel.OpenOk), adding latency per message.
+**Why this matters**: Each `channel()` call opens a new AMQP channel. Default channel limit is 2047 per connection (`channel_max`). Under publish load this exhausts the limit and the broker starts closing channels with a 503 error. Also: opening a channel involves a round-trip handshake (Channel.Open + Channel.OpenOk), adding latency per message.
 
-**Fix**:
+**Preferred action**:
 ```python
 class Publisher:
     def __init__(self, connection):
@@ -151,7 +151,7 @@ class Publisher:
 
 ---
 
-### ❌ Shared Channel Across Threads
+### Use One Channel Per Thread
 
 **Detection**:
 ```bash
@@ -163,7 +163,7 @@ rg 'self\.channel\.(basic_publish|basic_ack|basic_nack)' --type py
 rg 'go func.*ch\s+\*amqp\.Channel' --type go
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 class Worker:
     def __init__(self):
@@ -178,20 +178,20 @@ class Worker:
             self.channel.basic_ack(tag)  # multiple threads, same channel!
 ```
 
-**Why wrong**: AMQP frames from concurrent threads interleave on the wire. The broker sees malformed frames and closes the connection with a 505 (unexpected frame) or 503 error. pika's BlockingConnection is explicitly not thread-safe.
+**Why this matters**: AMQP frames from concurrent threads interleave on the wire. The broker sees malformed frames and closes the connection with a 505 (unexpected frame) or 503 error. pika's BlockingConnection is explicitly not thread-safe.
 
-**Fix**: One channel per thread, or use `pika.SelectConnection` with a single IO loop thread and a thread-safe queue to pass messages in.
+**Preferred action**: One channel per thread, or use `pika.SelectConnection` with a single IO loop thread and a thread-safe queue to pass messages in.
 
 ---
 
-### ❌ Forgetting to Drain Confirm Notifications
+### Drain Confirm Notifications After Publishing
 
 **Detection**:
 ```bash
 rg 'confirm_delivery|Confirm\(false\)' --type py --type go -A 3 | grep -v 'NotifyPublish\|wait_for_confirms'
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 channel.confirm_delivery()
 for msg in messages:
@@ -199,9 +199,9 @@ for msg in messages:
     # never calls channel.wait_for_confirms_or_die()
 ```
 
-**Why wrong**: Unread confirms accumulate in pika's internal buffer. After ~1000 unconfirmed messages the channel stalls waiting for the application to drain the buffer.
+**Why this matters**: Unread confirms accumulate in pika's internal buffer. After ~1000 unconfirmed messages the channel stalls waiting for the application to drain the buffer.
 
-**Fix**: Call `channel.wait_for_confirms_or_die()` after each publish batch, or use `channel.basic_publish()` with `mandatory=True` and handle `basic.return` callbacks.
+**Preferred action**: Call `channel.wait_for_confirms_or_die()` after each publish batch, or use `channel.basic_publish()` with `mandatory=True` and handle `basic.return` callbacks.
 
 ---
 

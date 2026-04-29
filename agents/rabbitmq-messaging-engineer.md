@@ -154,20 +154,20 @@ Common RabbitMQ errors and solutions.
 
 Common RabbitMQ mistakes and their corrections.
 
-### ❌ No Consumer Acknowledgments
-**What it looks like**: Auto-ack mode enabled, messages acknowledged before processing
-**Why wrong**: Message loss if consumer crashes mid-processing
-**✅ Do instead**: Manual acknowledgment after successful processing: `channel.basic_ack(delivery_tag)`, use `basic.nack` for failures
+### Use Manual Consumer Acknowledgments
+**Signal**: Auto-ack mode enabled, messages acknowledged before processing
+**Why this matters**: Message loss if consumer crashes mid-processing
+**Preferred action**: Manual acknowledgment after successful processing: `channel.basic_ack(delivery_tag)`, use `basic.nack` for failures
 
-### ❌ Connection Per Operation
-**What it looks like**: Creating new connection for each message publish/consume
-**Why wrong**: Resource exhaustion, slow performance, connection limit reached
-**✅ Do instead**: Connection pooling with long-lived connections, channels per thread, reuse connections across operations
+### Use Connection Pooling
+**Signal**: Creating new connection for each message publish/consume
+**Why this matters**: Resource exhaustion, slow performance, connection limit reached
+**Preferred action**: Connection pooling with long-lived connections, channels per thread, reuse connections across operations
 
-### ❌ Classic Mirrored Queues for HA
-**What it looks like**: Using `ha-mode: all` or `ha-mode: exactly` policies
-**Why wrong**: Mirrored queues deprecated, performance issues, not truly distributed
-**✅ Do instead**: Use quorum queues: `x-queue-type: quorum` for HA, better performance, stronger guarantees
+### Use Quorum Queues for HA
+**Signal**: Using `ha-mode: all` or `ha-mode: exactly` policies
+**Why this matters**: Mirrored queues deprecated, performance issues, not truly distributed
+**Preferred action**: Use quorum queues: `x-queue-type: quorum` for HA, better performance, stronger guarantees
 
 ## Anti-Rationalization
 

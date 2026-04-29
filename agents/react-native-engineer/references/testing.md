@@ -116,7 +116,7 @@ jest.mock('@react-native-async-storage/async-storage', () => mockAsyncStorage)
 
 ## Pattern Catalog
 
-### ❌ Querying by `testID` Instead of Accessible Attributes
+### Query by Accessible Attributes
 
 **Detection**:
 ```bash
@@ -124,15 +124,15 @@ grep -rn 'getByTestId\|findByTestId' --include="*.test.tsx" --include="*.spec.ts
 rg 'getByTestId|findByTestId' --type tsx
 ```
 
-**What it looks like**:
+**Signal**:
 ```tsx
 const button = screen.getByTestId('submit-button')
 fireEvent.press(button)
 ```
 
-**Why wrong**: `testID` is invisible to users and screen readers. Tests using it break if the component is refactored even when behavior is unchanged. They also don't verify accessibility — a button with no label passes the test but fails assistive technology users.
+**Why this matters**: `testID` is invisible to users and screen readers. Tests using it break if the component is refactored even when behavior is unchanged. They also don't verify accessibility — a button with no label passes the test but fails assistive technology users.
 
-**Fix**:
+**Preferred action**:
 ```tsx
 const button = screen.getByRole('button', { name: 'Submit' })
 fireEvent.press(button)
@@ -142,45 +142,45 @@ fireEvent.press(button)
 
 ---
 
-### ❌ Importing from `react-native` Instead of `@testing-library/react-native`
+### Import Test Utilities from @testing-library/react-native
 
 **Detection**:
 ```bash
 grep -rn "from 'react-native'" --include="*.test.tsx" --include="*.spec.tsx" | grep -v "^.*//.*from 'react-native'"
 ```
 
-**What it looks like**:
+**Signal**:
 ```tsx
 import { render } from 'react-native'  // wrong — no render export
 import { act } from 'react-native/test-utils'  // old pattern
 ```
 
-**Why wrong**: `react-native` doesn't export `render`. These imports cause `Cannot find module` errors or silently import the wrong `act` (react vs react-native differ on batching semantics).
+**Why this matters**: `react-native` doesn't export `render`. These imports cause `Cannot find module` errors or silently import the wrong `act` (react vs react-native differ on batching semantics).
 
-**Fix**:
+**Preferred action**:
 ```tsx
 import { render, fireEvent, screen, act, waitFor } from '@testing-library/react-native'
 ```
 
 ---
 
-### ❌ Mocking `useNavigation` Inside Individual Test Files
+### Mock Navigation Globally in __mocks__
 
 **Detection**:
 ```bash
 grep -rn "jest.mock.*navigation\|jest.mock.*router" --include="*.test.tsx"
 ```
 
-**What it looks like**:
+**Signal**:
 ```tsx
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: jest.fn() }),
 }))
 ```
 
-**Why wrong**: Repeated local mocks diverge over time. When the real API adds a new field (`navigation.setOptions`, `navigation.getId`), each test file needs updating separately. Components that call multiple navigation hooks get increasingly complex local mocks.
+**Why this matters**: Repeated local mocks diverge over time. When the real API adds a new field (`navigation.setOptions`, `navigation.getId`), each test file needs updating separately. Components that call multiple navigation hooks get increasingly complex local mocks.
 
-**Fix**: Create a single navigation mock in `__mocks__/@react-navigation/native.ts` and let jest auto-resolve it. Or use `createNavigationContainerRef` and wrap the component in a `NavigationContainer` in the test.
+**Preferred action**: Create a single navigation mock in `__mocks__/@react-navigation/native.ts` and let jest auto-resolve it. Or use `createNavigationContainerRef` and wrap the component in a `NavigationContainer` in the test.
 
 ```tsx
 import { NavigationContainer } from '@react-navigation/native'
@@ -192,7 +192,7 @@ function renderWithNavigation(ui: React.ReactElement) {
 
 ---
 
-### ❌ Using Snapshots for UI Components
+### Test Specific Rendered Output Instead of Snapshots
 
 **Detection**:
 ```bash
@@ -200,7 +200,7 @@ grep -rn 'toMatchSnapshot\|toMatchInlineSnapshot' --include="*.test.tsx"
 rg 'toMatchSnapshot' --type tsx
 ```
 
-**What it looks like**:
+**Signal**:
 ```tsx
 it('renders correctly', () => {
   const tree = render(<Card title="Hello" />).toJSON()
@@ -208,9 +208,9 @@ it('renders correctly', () => {
 })
 ```
 
-**Why wrong**: Snapshot tests fail on every styling or structure change, creating update churn. They assert nothing about behavior — a component that renders the wrong text passes if the snapshot was wrong to begin with. They're especially noisy in monorepos.
+**Why this matters**: Snapshot tests fail on every styling or structure change, creating update churn. They assert nothing about behavior — a component that renders the wrong text passes if the snapshot was wrong to begin with. They're especially noisy in monorepos.
 
-**Fix**: Test specific rendered output that reflects user-visible behavior:
+**Preferred action**: Test specific rendered output that reflects user-visible behavior:
 ```tsx
 it('displays the title', () => {
   render(<Card title="Hello" />)

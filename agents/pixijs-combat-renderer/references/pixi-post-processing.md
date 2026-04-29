@@ -363,14 +363,14 @@ The PixiJS stack in these references approximates all four of those systems.
 
 ## Patterns to Detect and Fix
 
-### ❌ Applying filters to the HTML canvas element via CSS
+### Apply Filters via the PixiJS Filter System
 ```css
 /* WRONG — CSS filters are CPU-only, bypass WebGL pipeline entirely */
 canvas { filter: brightness(1.1) contrast(1.2); }
 ```
 Apply all filters via the PixiJS filter system on display objects. CSS filters are calculated by the browser's compositor, not the GPU render pipeline, and cannot interact with PixiJS display objects.
 
-### ❌ Using @pixi/filter-bloom (v7 package) with PixiJS v8
+### Use pixi-filters v6+ for PixiJS v8
 ```typescript
 // WRONG — v7 package, will throw at runtime with PixiJS v8
 import { BloomFilter } from '@pixi/filter-bloom';
@@ -380,11 +380,11 @@ import { BloomFilter } from '@pixi/filter-bloom';
 import { AdvancedBloomFilter } from 'pixi-filters';
 ```
 
-### ❌ Not setting filter.resolution on retina displays
+### Set filter.resolution on Retina Displays
 Without matching resolution, filters render at 1x then upscale, appearing blurry on HiDPI screens. Always set `filter.resolution = app.renderer.resolution` after app init.
 
-### ❌ Applying bloom to the UI overlay
+### Apply Bloom to the Combat Scene Container Only
 Bloom applied to a container that includes text will blur the text. The filter processes everything in the container including children. Apply bloom only to the combat scene container, never to the HUD layer.
 
-### ❌ Running AdvancedBloomFilter quality: 8 continuously
+### Reserve High-Quality Bloom for Time-Limited Events
 High quality bloom with 9 passes is acceptable for a 1-second finisher freeze-frame. Running it continuously at 60fps on a 1080p canvas will drop mobile to 15fps and will stress desktop GPUs. Reserve high-quality settings for triggered, time-limited events.

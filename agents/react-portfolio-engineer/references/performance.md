@@ -134,7 +134,7 @@ export function Lightbox(props: LightboxProps) {
 
 ## Pattern Catalog
 
-### ❌ Multiple `priority` Images
+### Use priority Only on the First Above-Fold Image
 
 **Detection**:
 ```bash
@@ -142,7 +142,7 @@ grep -rn "priority" --include="*.tsx" | grep -v "//.*priority"
 rg "priority(?:={true})?" --type tsx
 ```
 
-**What it looks like**:
+**Signal**:
 ```tsx
 // Every gallery card has priority — defeats the purpose
 {artworks.map(art => (
@@ -150,9 +150,9 @@ rg "priority(?:={true})?" --type tsx
 ))}
 ```
 
-**Why wrong**: `priority` injects a `<link rel="preload">` for each image. With 12 gallery items, that's 12 preloads competing for bandwidth at page load. The browser's preload queue is limited; excess preloads are ignored or delay the actual LCP image. Initial page load slows down.
+**Why this matters**: `priority` injects a `<link rel="preload">` for each image. With 12 gallery items, that's 12 preloads competing for bandwidth at page load. The browser's preload queue is limited; excess preloads are ignored or delay the actual LCP image. Initial page load slows down.
 
-**Fix**: Use `priority` only for the first visible image (hero or first above-fold gallery item). For the rest, use default lazy loading:
+**Preferred action**: Use `priority` only for the first visible image (hero or first above-fold gallery item). For the rest, use default lazy loading:
 
 ```tsx
 {artworks.map((art, index) => (
@@ -169,7 +169,7 @@ rg "priority(?:={true})?" --type tsx
 
 ---
 
-### ❌ Missing `sizes` on Responsive Gallery Images
+### Add sizes Prop to Responsive Gallery Images
 
 **Detection**:
 ```bash
@@ -177,7 +177,7 @@ grep -rn "next/image\|from 'next/image'" --include="*.tsx" -l | xargs grep -L "s
 rg "width=\{[0-9]+\}.*height=\{[0-9]+\}" --type tsx | grep -v "sizes="
 ```
 
-**What it looks like**:
+**Signal**:
 ```tsx
 <Image
   src={artwork.src}
@@ -188,9 +188,9 @@ rg "width=\{[0-9]+\}.*height=\{[0-9]+\}" --type tsx | grep -v "sizes="
 />
 ```
 
-**Why wrong**: The browser requests a 1200px image even on a 375px mobile screen. The generated srcSet is useless without a `sizes` hint. A 3-column desktop grid serving 300px thumbnails will download 1200px source images on mobile — typically 4-8x the necessary payload.
+**Why this matters**: The browser requests a 1200px image even on a 375px mobile screen. The generated srcSet is useless without a `sizes` hint. A 3-column desktop grid serving 300px thumbnails will download 1200px source images on mobile — typically 4-8x the necessary payload.
 
-**Fix**: Add a `sizes` prop that matches the CSS layout:
+**Preferred action**: Add a `sizes` prop that matches the CSS layout:
 
 ```tsx
 <Image
@@ -206,7 +206,7 @@ rg "width=\{[0-9]+\}.*height=\{[0-9]+\}" --type tsx | grep -v "sizes="
 
 ---
 
-### ❌ Synchronous Heavy Computation on Filter Interaction
+### Memoize Heavy Computation on Filter Interaction
 
 **Detection**:
 ```bash
@@ -214,7 +214,7 @@ grep -rn "\.filter\(.*\.map\|\.sort\(.*\.filter" --include="*.tsx"
 rg "useMemo|useCallback" --type tsx -l
 ```
 
-**What it looks like**:
+**Signal**:
 ```tsx
 'use client'
 const filtered = artworks
@@ -224,9 +224,9 @@ const filtered = artworks
 // Runs on every render, including every keystroke in a search input
 ```
 
-**Why wrong**: Synchronous sort + map on 100+ artworks blocks the main thread. INP for the filter interaction will exceed 200ms on mid-range mobile devices. React re-renders include this computation on every state change.
+**Why this matters**: Synchronous sort + map on 100+ artworks blocks the main thread. INP for the filter interaction will exceed 200ms on mid-range mobile devices. React re-renders include this computation on every state change.
 
-**Fix**: Memoize with `useMemo` and stable dependencies:
+**Preferred action**: Memoize with `useMemo` and stable dependencies:
 
 ```tsx
 const filtered = useMemo(() =>
@@ -239,7 +239,7 @@ const filtered = useMemo(() =>
 
 ---
 
-### ❌ Importing Full Icon Libraries
+### Import Icons from Specific Module Paths
 
 **Detection**:
 ```bash
@@ -247,15 +247,15 @@ grep -rn "from 'react-icons'" --include="*.tsx"
 grep -rn "from '@heroicons/react'" --include="*.tsx" | grep "^[^/]"
 ```
 
-**What it looks like**:
+**Signal**:
 ```tsx
 import { FaArrowLeft, FaArrowRight, FaTimes } from 'react-icons/fa'
 // Imports entire react-icons/fa barrel — adds ~50KB to bundle
 ```
 
-**Why wrong**: Named imports from barrel files like `react-icons/fa` often pull in the entire icon set due to CommonJS export semantics. Even with tree-shaking, some bundler configurations ship the whole 500+ icon set.
+**Why this matters**: Named imports from barrel files like `react-icons/fa` often pull in the entire icon set due to CommonJS export semantics. Even with tree-shaking, some bundler configurations ship the whole 500+ icon set.
 
-**Fix**: Import from the specific icon's module path, or use inline SVGs for a handful of icons:
+**Preferred action**: Import from the specific icon's module path, or use inline SVGs for a handful of icons:
 
 ```tsx
 // Option A: path-specific import

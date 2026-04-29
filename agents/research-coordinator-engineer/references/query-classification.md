@@ -90,7 +90,7 @@ other content. Sources: Synergy Research, Gartner, IDC reports."
 
 ## Pattern Catalog
 
-### ❌ Depth-First Instructions Without Angle Differentiation
+### Assign Distinct Angles to Depth-First Subagents
 
 **Detection**:
 ```bash
@@ -100,20 +100,20 @@ grep -A5 "Subagent [0-9]" research/*/report.md | grep -c "same topic"
 grep "Subagent [0-9]\+:" research/*/plan.md | sort | uniq -d
 ```
 
-**What it looks like**:
+**Signal**:
 ```markdown
 Subagent 1: "Research AI regulation trends"
 Subagent 2: "Research AI regulation trends"
 Subagent 3: "Research AI regulation trends"
 ```
 
-**Why wrong**: All three subagents converge on the same sources and produce redundant content. The lead agent has nothing to reconcile — just three copies of similar findings. Synthesis produces an averaged summary, not an integrated analysis.
+**Why this matters**: All three subagents converge on the same sources and produce redundant content. The lead agent has nothing to reconcile — just three copies of similar findings. Synthesis produces an averaged summary, not an integrated analysis.
 
-**Fix**: Assign distinct methodological angles (theoretical / empirical / critical), distinct geographies (US / EU / China), or distinct timeframes (historical / current / projected).
+**Preferred action**: Assign distinct methodological angles (theoretical / empirical / critical), distinct geographies (US / EU / China), or distinct timeframes (historical / current / projected).
 
 ---
 
-### ❌ Breadth-First With Mismatched Deliverable Formats
+### Use Uniform Deliverable Format Across Parallel Subagents
 
 **Detection**:
 ```bash
@@ -121,7 +121,7 @@ Subagent 3: "Research AI regulation trends"
 grep -E "words|word count|[0-9]+-[0-9]+ word" research/*/plan.md
 ```
 
-**What it looks like**:
+**Signal**:
 ```markdown
 Subagent 1 (PostgreSQL): "Write a detailed technical analysis, include all relevant benchmarks,
 historical context, and community adoption trends."
@@ -131,13 +131,13 @@ Subagent 2 (MongoDB): "Provide a 200-word overview of write performance."
 Subagent 3 (Cassandra): "List the pros and cons."
 ```
 
-**Why wrong**: Lead agent cannot compare findings — one subagent returned 800 words of technical depth, another returned a bullet list. Synthesis requires resampling, not comparing.
+**Why this matters**: Lead agent cannot compare findings — one subagent returned 800 words of technical depth, another returned a bullet list. Synthesis requires resampling, not comparing.
 
-**Fix**: Specify identical format constraints across all parallel instructions: same word count range, same section headings, same required data points.
+**Preferred action**: Specify identical format constraints across all parallel instructions: same word count range, same section headings, same required data points.
 
 ---
 
-### ❌ Using Depth-First Strategy for a Comparison Query
+### Use Breadth-First Strategy for Comparison Queries
 
 **Detection**:
 ```bash
@@ -145,7 +145,7 @@ Subagent 3 (Cassandra): "List the pros and cons."
 grep -i "compare\|vs\.\|versus\|difference between" research/*/report.md | head -20
 ```
 
-**What it looks like**:
+**Signal**:
 ```markdown
 # Query: "Compare React vs Vue for enterprise apps"
 # Wrong strategy applied:
@@ -154,9 +154,9 @@ Subagent 2: "Historical evolution of JavaScript frameworks"
 Subagent 3: "Performance characteristics of SPAs"
 ```
 
-**Why wrong**: Angles don't map to options. The lead agent now has generic framework theory but cannot answer "which should I choose for enterprise apps?"
+**Why this matters**: Angles don't map to options. The lead agent now has generic framework theory but cannot answer "which should I choose for enterprise apps?"
 
-**Fix**: Detect comparison keywords and switch to breadth-first — one subagent per option.
+**Preferred action**: Detect comparison keywords and switch to breadth-first — one subagent per option.
 
 ---
 

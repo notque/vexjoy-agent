@@ -151,7 +151,7 @@ def __init__(self):
 
 ## Pattern Catalog
 
-### ❌ Changing Method Signature Without Version Bump
+### Bump Version When Changing Method Signature
 
 **Detection**:
 ```bash
@@ -161,7 +161,7 @@ git diff HEAD~1 HEAD -- '*.py' | grep -E '^\+.*def (create|update|delete|get|lis
 git diff HEAD~1 HEAD -- '*.py' | grep 'RPC_API_VERSION'
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 # Before (version still '1.2'):
 def create_resource(self, context, name):
@@ -172,20 +172,20 @@ def create_resource(self, context, name, resource_type):  # Added required arg
     ...
 ```
 
-**Why wrong**: Old nodes calling `create_resource(ctx, name)` will crash with `TypeError` on the new server. Rolling upgrade fails.
+**Why this matters**: Old nodes calling `create_resource(ctx, name)` will crash with `TypeError` on the new server. Rolling upgrade fails.
 
-**Do instead:** Bump `RPC_API_VERSION` to `'1.3'`, make `resource_type` optional with a default, and pin new client calls to `prepare(version='1.3')`.
+**Preferred action**: Bump `RPC_API_VERSION` to `'1.3'`, make `resource_type` optional with a default, and pin new client calls to `prepare(version='1.3')`.
 
 ---
 
-### ❌ Calling New Method Without Version Pin
+### Pin Version Before Calling New Methods
 
 **Detection**:
 ```bash
 grep -rn 'cctxt\.call\|cctxt\.cast' --include="*.py" -B 2 | grep -v "prepare"
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 # Client calling method added in 1.4 without prepare()
 def resize_resource(self, context, resource_id, new_size):
@@ -194,13 +194,13 @@ def resize_resource(self, context, resource_id, new_size):
                              new_size=new_size)
 ```
 
-**Why wrong**: `_client.call()` without `.prepare(version=X)` sends no version requirement. If the server is on `1.3` and doesn't have `resize_resource`, the call fails with `MethodNotFound`.
+**Why this matters**: `_client.call()` without `.prepare(version=X)` sends no version requirement. If the server is on `1.3` and doesn't have `resize_resource`, the call fails with `MethodNotFound`.
 
-**Do instead:** Always use `self._client.prepare(version='1.4').call(...)` before calls that require a specific version.
+**Preferred action**: Always use `self._client.prepare(version='1.4').call(...)` before calls that require a specific version.
 
 ---
 
-### ❌ Using `RPC_API_VERSION = '1.0'` Forever
+### Keep RPC_API_VERSION Current
 
 **Detection**:
 ```bash
@@ -209,7 +209,7 @@ grep -rn "RPC_API_VERSION = '1\.0'" --include="*.py"
 git log --follow --oneline agents/ | head -20
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 class MyServiceManager:
     RPC_API_VERSION = '1.0'  # Never changed despite 3 years of new methods
@@ -220,9 +220,9 @@ class MyServiceManager:
     def resize(self, context, id, size): ...   # added later, no version bump
 ```
 
-**Why wrong**: Clients can't use `prepare(version=X)` to protect against calling new methods on old servers. Every caller must assume all methods exist on all server versions — breaks rolling upgrades.
+**Why this matters**: Clients can't use `prepare(version=X)` to protect against calling new methods on old servers. Every caller must assume all methods exist on all server versions — breaks rolling upgrades.
 
-**Do instead:** Audit when each method was added, assign retrospective version numbers, and update `RPC_API_VERSION` to reflect the current maximum.
+**Preferred action**: Audit when each method was added, assign retrospective version numbers, and update `RPC_API_VERSION` to reflect the current maximum.
 
 ---
 

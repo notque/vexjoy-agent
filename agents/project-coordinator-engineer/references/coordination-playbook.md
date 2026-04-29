@@ -136,20 +136,20 @@ Common coordination errors. See [error-catalog.md](error-catalog.md) for compreh
 
 Common coordination mistakes and corrections. See [anti-patterns.md](anti-patterns.md) for full catalog.
 
-### ❌ Infinite Agent Retries
-**What it looks like**: Agent fails, coordinator spawns again, fails, spawns again...
-**Why wrong**: Wastes resources, indicates wrong strategy
-**✅ Do instead**: Enforce 3-attempt maximum, then STOP and reassess
+### Enforce 3-Attempt Maximum
+**Signal**: Agent fails, coordinator spawns again, fails, spawns again...
+**Why this matters**: Wastes resources, indicates wrong strategy
+**Preferred action**: Enforce 3-attempt maximum, then STOP and reassess
 
-### ❌ Lint Before Compilation
-**What it looks like**: Agent modifies code → assign linting → compilation breaks
-**Why wrong**: Linting changes can break compilation, creates death loop
-**✅ Do instead**: Verify compilation passes BEFORE assigning linting
+### Verify Compilation Before Linting
+**Signal**: Agent modifies code → assign linting → compilation breaks
+**Why this matters**: Linting changes can break compilation, creates death loop
+**Preferred action**: Verify compilation passes BEFORE assigning linting
 
-### ❌ Parallel File Modification
-**What it looks like**: Agent A and Agent B both modifying same file concurrently
-**Why wrong**: Creates merge conflicts, lost changes, race conditions
-**✅ Do instead**: Serialize same-file modifications or partition file domains
+### Serialize Same-File Modifications
+**Signal**: Agent A and Agent B both modifying same file concurrently
+**Why this matters**: Creates merge conflicts, lost changes, race conditions
+**Preferred action**: Serialize same-file modifications or partition file domains
 
 ## Anti-Rationalization
 

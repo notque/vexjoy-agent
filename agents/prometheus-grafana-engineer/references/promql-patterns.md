@@ -93,7 +93,7 @@ groups:
 ## Pattern Catalog
 <!-- no-pair-required: section header only -->
 
-### ❌ Using irate() in Alert Rules
+### Use rate() Instead of irate() in Alert Rules
 
 **Detection**:
 ```bash
@@ -102,16 +102,16 @@ rg 'irate\(' --type yaml
 ```
 <!-- no-pair-required: partial section — positive counterpart follows in next block -->
 
-**What it looks like**:
+**Signal**:
 ```yaml
 # alert_rules.yml
 - alert: HighErrorRate
   expr: irate(http_requests_total{status=~"5.."}[5m]) > 0.01
 ```
 
-**Why wrong**: `irate()` uses only the last two samples, making it extremely sensitive to single-scrape spikes. Alert rules evaluated every 30s will flap on transient spikes, generating spurious notifications. Production alert fatigue follows.
+**Why this matters**: `irate()` uses only the last two samples, making it extremely sensitive to single-scrape spikes. Alert rules evaluated every 30s will flap on transient spikes, generating spurious notifications. Production alert fatigue follows.
 
-**Do instead:**
+**Preferred action**:
 ```yaml
 - alert: HighErrorRate
   expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.01
@@ -120,7 +120,7 @@ rg 'irate\(' --type yaml
 
 ---
 
-### ❌ Missing `for:` Clause on Latency Alerts
+### Add a `for:` Clause on Latency Alerts
 
 **Detection**:
 ```bash
@@ -128,16 +128,16 @@ grep -B5 'latency\|duration\|p99\|p95\|quantile' --include="*.yml" --include="*.
 rg 'alert:.*[Ll]atency' --type yaml -A 10 | grep -v 'for:'
 ```
 
-**What it looks like**:
+**Signal**:
 ```yaml
 - alert: HighLatency
   expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) > 0.5
   # No for: clause!
 ```
 
-**Why wrong**: Without `for:`, a single evaluation above the threshold fires the alert immediately. Network hiccups, deployment restarts, or pod scheduling create transient spikes that produce immediate pages. The signal-to-noise ratio degrades fast.
+**Why this matters**: Without `for:`, a single evaluation above the threshold fires the alert immediately. Network hiccups, deployment restarts, or pod scheduling create transient spikes that produce immediate pages. The signal-to-noise ratio degrades fast.
 
-**Do instead:**
+**Preferred action**:
 ```yaml
 - alert: HighLatency
   expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) > 0.5
@@ -148,7 +148,7 @@ rg 'alert:.*[Ll]atency' --type yaml -A 10 | grep -v 'for:'
 
 ---
 
-### ❌ Querying Summaries with histogram_quantile()
+### Use Pre-Computed Quantile Labels for Summary Metrics
 
 **Detection**:
 ```bash
@@ -157,15 +157,15 @@ rg 'histogram_quantile' --type yaml -A 3 | grep 'quantile='
 ```
 <!-- no-pair-required: partial section — positive counterpart follows in next block -->
 
-**What it looks like**:
+**Signal**:
 ```promql
 # Wrong — using histogram_quantile on a summary type metric
 histogram_quantile(0.99, rate(rpc_duration_seconds{quantile="0.99"}[5m]))
 ```
 
-**Why wrong**: Summary metrics expose pre-computed quantiles (via the `quantile` label) that cannot be re-aggregated. Passing them to `histogram_quantile()` produces nonsense — the function expects `le` bucket labels, not pre-computed quantile values. The query may not error but will silently return wrong numbers.
+**Why this matters**: Summary metrics expose pre-computed quantiles (via the `quantile` label) that cannot be re-aggregated. Passing them to `histogram_quantile()` produces nonsense — the function expects `le` bucket labels, not pre-computed quantile values. The query may not error but will silently return wrong numbers.
 
-**Do instead:** Use the pre-computed quantile label directly:
+**Preferred action**: Use the pre-computed quantile label directly:
 ```promql
 # Correct for summary metrics
 rpc_duration_seconds{quantile="0.99", job="grpc-server"}
@@ -175,7 +175,7 @@ Version note: This confusion is extremely common when migrating from libraries t
 
 ---
 
-### ❌ Using `increase()` Across Different Windows for Comparison
+### Use rate() for Cross-Window Comparisons
 
 **Detection**:
 ```bash
@@ -183,15 +183,15 @@ grep -rn 'increase(' --include="*.yml" --include="*.yaml" | grep -v 'record:'
 ```
 <!-- no-pair-required: partial section — positive counterpart follows in next block -->
 
-**What it looks like**:
+**Signal**:
 ```promql
 # Wrong — comparing increase over different windows
 increase(http_requests_total[1h]) > increase(http_requests_total[24h]) * 0.1
 ```
 
-**Why wrong**: `increase()` results are not comparable across different window sizes without normalization. This expression always evaluates false since 1h increase is always < 24h × 0.1 for any reasonable traffic. Use `rate()` for comparisons.
+**Why this matters**: `increase()` results are not comparable across different window sizes without normalization. This expression always evaluates false since 1h increase is always < 24h × 0.1 for any reasonable traffic. Use `rate()` for comparisons.
 
-**Do instead:**
+**Preferred action**:
 ```promql
 # Correct — compare rates
 rate(http_requests_total[1h]) > rate(http_requests_total[24h]) * 1.5
@@ -199,23 +199,23 @@ rate(http_requests_total[1h]) > rate(http_requests_total[24h]) * 1.5
 
 ---
 
-### ❌ Absent Alert Without Sufficient For Clause
+### Use Sufficient for: Clause on Absent Alerts
 
 **Detection**:
 ```bash
 grep -rn 'absent(' --include="*.yml" --include="*.yaml" -A 5 | grep -v 'for:\s*[5-9][0-9]\|for:\s*[1-9][0-9][0-9]'
 ```
 
-**What it looks like**:
+**Signal**:
 ```yaml
 - alert: MetricMissing
   expr: absent(up{job="api"})
   for: 1m  # too short — scrape gaps cause false positives
 ```
 
-**Why wrong**: Scrape targets can have momentary gaps during pod restarts, rolling deployments, or network blips. A 1-minute `for:` fires during normal K8s pod recycling. This produces alert storms during every deployment.
+**Why this matters**: Scrape targets can have momentary gaps during pod restarts, rolling deployments, or network blips. A 1-minute `for:` fires during normal K8s pod recycling. This produces alert storms during every deployment.
 
-**Do instead:**
+**Preferred action**:
 ```yaml
 - alert: MetricMissing
   expr: absent(up{job="api"})

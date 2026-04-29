@@ -275,18 +275,18 @@ config.maxParticles = Math.floor(config.maxParticles * mobileMultiplier);
 
 ## Patterns to Detect and Fix
 
-### ❌ Using @pixi/particle-emitter (the v7 package) with PixiJS v8
-It uses v7's `Container` internally and fails at runtime. Use `@spd789562/pixi-v8-particle-emitter`.
+### Use the v8-Compatible Particle Emitter Package
+The original `@pixi/particle-emitter` uses v7's `Container` internally and fails at runtime. Use `@spd789562/pixi-v8-particle-emitter`.
 
-### ❌ Not calling emitter.update() in the ticker
+### Call emitter.update() in the Ticker
 ```typescript
 // WRONG — particles freeze
 // CORRECT:
 useTick((ticker) => { emitter.update(ticker.deltaMS * 0.001); });
 ```
 
-### ❌ Setting maxParticles below the burst peak
+### Set maxParticles to the Burst Peak
 A finisher with `maxParticles: 20` silently drops 30 particles when emitting 50 at once. No error is thrown. Always set `maxParticles` to the burst peak, not the average.
 
-### ❌ Not destroying emitters on component unmount
+### Destroy Emitters on Component Unmount
 Each emitter holds GPU memory. Emitters that are never destroyed accumulate silently. Always call `emitter.destroy()` or use the `ParticleManager` lifecycle tracking which destroys when particle count reaches zero.

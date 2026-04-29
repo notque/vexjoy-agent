@@ -110,7 +110,7 @@ File domains MUST NOT overlap. If they do, serialize instead of parallelizing.
 ## Pattern Catalog
 <!-- no-pair-required: section header, not an individual anti-pattern -->
 
-### ❌ Marking Complete Before Verification
+### Verify Before Marking Complete
 
 **Detection**:
 ```bash
@@ -119,18 +119,18 @@ grep -B5 "completed" todo*.md 2>/dev/null | grep -v "VERIFY\|exits 0\|tests pass
 # Any completed entry without verification evidence is premature
 ```
 
-**What it looks like**:
+**Signal**:
 ```markdown
 Task: "Implement user endpoint"
   status: completed  ← marked complete based on agent message alone
   note: "Agent said it was done"
 ```
 
-**Why wrong**: Agent self-report is not evidence of completion. The agent may have hit a timeout, written partial output, or misread a test result. Premature `completed` causes the next dependent task to start with missing inputs.
+**Why this matters**: Agent self-report is not evidence of completion. The agent may have hit a timeout, written partial output, or misread a test result. Premature `completed` causes the next dependent task to start with missing inputs.
 
-**Do instead**: Run the success criteria from the task's HANDOFF.md before updating the TodoWrite status. The `completed` transition requires a verification command result recorded in the task note — the output file exists, the test command exits 0, or the observable behavior matches the spec.
+**Preferred action**: Run the success criteria from the task's HANDOFF.md before updating the TodoWrite status. The `completed` transition requires a verification command result recorded in the task note — the output file exists, the test command exits 0, or the observable behavior matches the spec.
 
-**Fix**: Every `completed` transition must include a verification command result:
+**Example**: Every `completed` transition must include a verification command result:
 ```markdown
 Task: "Implement user endpoint"
   status: completed
@@ -139,7 +139,7 @@ Task: "Implement user endpoint"
 
 ---
 
-### ❌ Missing blockedBy on Dependent Tasks
+### Declare blockedBy on Every Dependent Task
 
 **Detection**:
 ```bash
@@ -147,22 +147,20 @@ Task: "Implement user endpoint"
 grep -B2 "Phase [2-9]\|depends on\|requires" todo*.md 2>/dev/null | grep -v "blockedBy"
 ```
 
-**What it looks like**:
+**Signal**:
 ```markdown
 Task: "Phase 2: Write ORM models using the schema"
   status: pending
   # No blockedBy — can be accidentally dispatched before Phase 1 completes
 ```
 
-**Why wrong**: Without `blockedBy`, the coordinator has no automated signal to wait. In multi-session or parallel scenarios, a fresh coordinator agent may dispatch Phase 2 before Phase 1's output exists.
+**Why this matters**: Without `blockedBy`, the coordinator has no automated signal to wait. In multi-session or parallel scenarios, a fresh coordinator agent may dispatch Phase 2 before Phase 1's output exists.
 
-**Do instead**: Add `blockedBy: {prior-task-id}` to every task that reads output from a prior task. At planning time, walk each task's inputs and identify which task produces them. If there is a dependency, there must be a blockedBy.
-
-**Fix**: Every task that consumes prior output must declare `blockedBy: {prior-task-id}`.
+**Preferred action**: Add `blockedBy: {prior-task-id}` to every task that reads output from a prior task. At planning time, walk each task's inputs and identify which task produces them. If there is a dependency, there must be a blockedBy.
 
 ---
 
-### ❌ Single Task Spanning Multiple Agents
+### Split Multi-Agent Work into Per-Agent Tasks
 
 **Detection**:
 ```bash
@@ -171,18 +169,16 @@ grep -A5 "assigned:" todo*.md 2>/dev/null | grep -E "assigned:.*,.*,"
 # Multiple agent assignments to one task without parallel_agents structure = ambiguous ownership
 ```
 
-**What it looks like**:
+**Signal**:
 ```markdown
 Task: "Implement and test the API"
   assigned: nodejs-api-engineer, python-general-engineer, database-engineer
   # Who owns what? What happens if one fails?
 ```
 
-**Why wrong**: Single-task multi-agent assignment has no file domain boundaries, no independent completion criteria, and no retry tracking per agent. If one agent fails, the entire task fails with no clear path to recovery.
+**Why this matters**: Single-task multi-agent assignment has no file domain boundaries, no independent completion criteria, and no retry tracking per agent. If one agent fails, the entire task fails with no clear path to recovery.
 
-**Do instead**: Split multi-agent work into separate tasks using the `parallel_agents` structure, with each sub-task having its own file domain, its own id, and its own success criteria. Each agent's retry count tracks independently, and a single agent's failure does not block the others.
-
-**Fix**: Split into per-agent tasks with explicit file domains and independent completion criteria.
+**Preferred action**: Split multi-agent work into separate tasks using the `parallel_agents` structure, with each sub-task having its own file domain, its own id, and its own success criteria. Each agent's retry count tracks independently, and a single agent's failure does not block the others.
 
 ---
 

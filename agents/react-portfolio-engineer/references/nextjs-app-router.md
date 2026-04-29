@@ -131,7 +131,7 @@ export async function generateStaticParams() {
 
 ## Pattern Catalog
 
-### ❌ Marking the Whole Page as Client Component
+### Keep Pages as Server Components
 
 **Detection**:
 ```bash
@@ -139,7 +139,7 @@ grep -rn "'use client'" app/ --include="*.tsx" | grep "page.tsx"
 rg "'use client'" --type tsx -l | xargs grep -l "export default function"
 ```
 
-**What it looks like**:
+**Signal**:
 ```tsx
 // app/gallery/page.tsx
 'use client'  // ← entire page becomes a Client Component
@@ -153,9 +153,9 @@ export default function GalleryPage() {
 }
 ```
 
-**Why wrong**: The entire gallery tree becomes client-rendered JavaScript. Static generation is disabled — Next.js must rerun the page on every request. Images lose build-time optimization hints. Bundle size includes all artwork metadata in the initial JS payload.
+**Why this matters**: The entire gallery tree becomes client-rendered JavaScript. Static generation is disabled — Next.js must rerun the page on every request. Images lose build-time optimization hints. Bundle size includes all artwork metadata in the initial JS payload.
 
-**Fix**: Extract `useState` filtering into a `FilterBar` Client Component. Keep `GalleryPage` as a Server Component that passes artworks down.
+**Preferred action**: Extract `useState` filtering into a `FilterBar` Client Component. Keep `GalleryPage` as a Server Component that passes artworks down.
 
 ```tsx
 // app/gallery/page.tsx — Server Component
@@ -169,7 +169,7 @@ export default function GalleryPage() {
 
 ---
 
-### ❌ Using useRouter for Category Filtering Instead of URL Search Params
+### Sync Filter State with URL Search Params
 
 **Detection**:
 ```bash
@@ -177,16 +177,16 @@ grep -rn "useRouter\|router.push" --include="*.tsx" app/
 rg "setFilter\|activeFilter" --type tsx
 ```
 
-**What it looks like**:
+**Signal**:
 ```tsx
 'use client'
 const [activeCategory, setActiveCategory] = useState('all')
 // Filter applied in memory, URL does not reflect state
 ```
 
-**Why wrong**: Filtering state disappears on page refresh. Users cannot share links to specific gallery categories. Back button loses filter context. Browser history is not updated.
+**Why this matters**: Filtering state disappears on page refresh. Users cannot share links to specific gallery categories. Back button loses filter context. Browser history is not updated.
 
-**Fix**: Use `useSearchParams` + `useRouter` to sync filter with URL:
+**Preferred action**: Use `useSearchParams` + `useRouter` to sync filter with URL:
 
 ```tsx
 'use client'
@@ -221,23 +221,23 @@ export function FilterBar({ categories }: { categories: string[] }) {
 
 ---
 
-### ❌ Calling getServerSideProps in App Router Pages
+### Fetch Data in Async Server Components
 
 **Detection**:
 ```bash
 grep -rn "getServerSideProps\|getStaticProps" app/ --include="*.tsx"
 ```
 
-**What it looks like**:
+**Signal**:
 ```tsx
 // app/gallery/page.tsx — WRONG in App Router
 export async function getStaticProps() { ... }
 export async function getServerSideProps() { ... }
 ```
 
-**Why wrong**: These are Pages Router APIs. In App Router they are silently ignored — the functions exist but never run. Data fetching must happen in the `async` component body directly.
+**Why this matters**: These are Pages Router APIs. In App Router they are silently ignored — the functions exist but never run. Data fetching must happen in the `async` component body directly.
 
-**Fix**: Fetch data directly in the async Server Component:
+**Preferred action**: Fetch data directly in the async Server Component:
 
 ```tsx
 export default async function GalleryPage() {

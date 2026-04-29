@@ -110,9 +110,9 @@ Step 3: nodejs-api-engineer → API handlers using models
 ## Pattern Catalog
 <!-- no-pair-required: section header, not an individual anti-pattern -->
 
-### ❌ Assumed Domain Isolation
+### Verify Domain Isolation Before Dispatch
 
-**What it looks like**: Dispatching 3 agents without checking if any share `pkg/config/config.go`.
+**Signal**: Dispatching 3 agents without checking if any share `pkg/config/config.go`.
 
 **Detection**:
 ```
@@ -120,33 +120,27 @@ grep -r "config/config" src/ | cut -d: -f1 | sort | uniq -d
 ```
 Any file appearing in multiple agent domains signals a conflict.
 
-**Do instead**: Run the domain conflict check before every parallel dispatch wave. When any file appears in two agent domains, assign it to exactly one agent and add that agent as a prerequisite for any other agent that reads it.
-
-**Fix**: Run domain conflict check before dispatch. Serialize agents that share any file.
+**Preferred action**: Run the domain conflict check before every parallel dispatch wave. When any file appears in two agent domains, assign it to exactly one agent and add that agent as a prerequisite for any other agent that reads it. Serialize agents that share any file.
 
 ---
 
-### ❌ Optimistic Parallelism on Generated Files
+### Treat Code Generation as a Sequential Gate
 
-**What it looks like**: Running `go generate` in STREAM A while STREAM B reads generated files.
+**Signal**: Running `go generate` in STREAM A while STREAM B reads generated files.
 
-**Why wrong**: Generated file content is undefined mid-generation. STREAM B reads partial state.
+**Why this matters**: Generated file content is undefined mid-generation. STREAM B reads partial state.
 
-**Do instead**: Treat code generation as a single-stream gate. STREAM A runs generation to completion, generation fan-in confirms the output files exist and are stable, then downstream consumers start in a new phase.
-
-**Fix**: Generation is always sequential. Downstream consumers wait for generation fan-in.
+**Preferred action**: Treat code generation as a single-stream gate. STREAM A runs generation to completion, generation fan-in confirms the output files exist and are stable, then downstream consumers start in a new phase. Generation is always sequential; downstream consumers wait for generation fan-in.
 
 ---
 
-### ❌ Lint/Format Before Compile in Parallel
+### Enforce Compile-Test-Lint-Format Sequence
 
-**What it looks like**: Dispatching lint agent and compile agent simultaneously.
+**Signal**: Dispatching lint agent and compile agent simultaneously.
 
-**Why wrong**: If compile fails, lint output is wasted work. If lint changes code, compile state is stale.
+**Why this matters**: If compile fails, lint output is wasted work. If lint changes code, compile state is stale.
 
-**Do instead**: Within any single file domain, enforce the fixed sequence: Compile, then Test, then Lint, then Format. Only move to the next step after the previous one exits 0. Never parallelize these steps within the same domain.
-
-**Fix**: Compile → Test → Lint → Format (always sequential, never parallel within a domain).
+**Preferred action**: Within any single file domain, enforce the fixed sequence: Compile, then Test, then Lint, then Format. Only move to the next step after the previous one exits 0. Never parallelize these steps within the same domain.
 
 ---
 

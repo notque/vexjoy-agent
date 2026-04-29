@@ -149,7 +149,7 @@ async function fetchUser(id: string): Promise<User> {
 
 ## Pattern Catalog
 
-### ❌ Using `console.error` as the Only Error Reporting
+### Report Errors to a Crash Service
 
 **Detection**:
 ```bash
@@ -157,7 +157,7 @@ grep -rn 'console\.error' --include="*.tsx" --include="*.ts" | grep -v "\.test\.
 rg 'console\.error' --type ts --type tsx | grep -v test
 ```
 
-**What it looks like**:
+**Signal**:
 ```tsx
 try {
   await syncData()
@@ -166,9 +166,9 @@ try {
 }
 ```
 
-**Why wrong**: `console.error` is stripped or suppressed in production builds. Errors logged this way are invisible to on-call and never trigger alerts. Crashes go undetected until users report them.
+**Why this matters**: `console.error` is stripped or suppressed in production builds. Errors logged this way are invisible to on-call and never trigger alerts. Crashes go undetected until users report them.
 
-**Fix**:
+**Preferred action**:
 ```tsx
 import { captureException } from '@sentry/react-native'
 
@@ -183,7 +183,7 @@ try {
 
 ---
 
-### ❌ Empty Catch Blocks
+### Handle Errors in Every Catch Block
 
 **Detection**:
 ```bash
@@ -191,7 +191,7 @@ grep -rn 'catch\s*(.*)\s*{\s*}' --include="*.ts" --include="*.tsx"
 rg 'catch\s*\(.*\)\s*\{\s*\}' --type ts
 ```
 
-**What it looks like**:
+**Signal**:
 ```ts
 try {
   await loadUserPreferences()
@@ -200,9 +200,9 @@ try {
 }
 ```
 
-**Why wrong**: Silent swallow. The error is gone. The app is now in an inconsistent state — preferences were not loaded, but no error boundary fired, no fallback rendered, no alert triggered. These are the hardest bugs to diagnose because there's no stack trace.
+**Why this matters**: Silent swallow. The error is gone. The app is now in an inconsistent state — preferences were not loaded, but no error boundary fired, no fallback rendered, no alert triggered. These are the hardest bugs to diagnose because there's no stack trace.
 
-**Fix**: At minimum, report and reset to a safe default:
+**Preferred action**: At minimum, report and reset to a safe default:
 ```ts
 try {
   await loadUserPreferences()
@@ -215,7 +215,7 @@ try {
 
 ---
 
-### ❌ Missing Error Boundary at Navigation Root
+### Wrap Navigation Root in ErrorBoundary
 
 **Detection**:
 ```bash
@@ -223,7 +223,7 @@ grep -rn 'Stack.Screen\|Tabs.Screen' --include="*.tsx" | grep -v ErrorBoundary
 rg 'NavigationContainer' --type tsx | grep -B5 -A10 'NavigationContainer'
 ```
 
-**What it looks like**:
+**Signal**:
 ```tsx
 export default function RootLayout() {
   return (
@@ -235,9 +235,9 @@ export default function RootLayout() {
 }
 ```
 
-**Why wrong**: If `ProfileScreen` throws during render, it unwinds the entire navigation tree. With no boundary, the app white-screens. Users must force-quit.
+**Why this matters**: If `ProfileScreen` throws during render, it unwinds the entire navigation tree. With no boundary, the app white-screens. Users must force-quit.
 
-**Fix**: Wrap each screen's content component in an ErrorBoundary, or add a root-level boundary around the entire navigator:
+**Preferred action**: Wrap each screen's content component in an ErrorBoundary, or add a root-level boundary around the entire navigator:
 ```tsx
 export default function RootLayout() {
   return (
@@ -253,7 +253,7 @@ export default function RootLayout() {
 
 ---
 
-### ❌ Accessing `.data` on an Unvalidated API Response
+### Validate API Response Shape Before Accessing
 
 **Detection**:
 ```bash
@@ -261,16 +261,16 @@ grep -rn '\.data\.' --include="*.ts" --include="*.tsx" | grep -v "\.test\." | gr
 rg '(await\s+\w+\(.*\))\.data\.' --type ts
 ```
 
-**What it looks like**:
+**Signal**:
 ```ts
 const response = await fetch('/api/user')
 const json = await response.json()
 setUser(json.data.profile.name)  // throws if data or profile is undefined
 ```
 
-**Why wrong**: API contracts break. A server returns `{ error: "not found" }` instead of `{ data: { profile: ... } }`. The chain `.data.profile.name` throws `Cannot read properties of undefined (reading 'profile')` — a crash with a misleading error message.
+**Why this matters**: API contracts break. A server returns `{ error: "not found" }` instead of `{ data: { profile: ... } }`. The chain `.data.profile.name` throws `Cannot read properties of undefined (reading 'profile')` — a crash with a misleading error message.
 
-**Fix**: Validate the response shape before accessing nested paths, or use optional chaining with a fallback:
+**Preferred action**: Validate the response shape before accessing nested paths, or use optional chaining with a fallback:
 ```ts
 const json = await response.json()
 if (!json.data?.profile) {

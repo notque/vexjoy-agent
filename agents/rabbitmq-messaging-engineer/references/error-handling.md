@@ -174,7 +174,7 @@ def handle_message(channel, method, properties, body):
 
 ## Pattern Catalog
 
-### ❌ Auto-Ack on Production Consumers
+### Use Manual Ack on Production Consumers
 
 **Detection**:
 ```bash
@@ -190,7 +190,7 @@ rg 'channel\.consume.*noAck.*true' --type js --type ts
 rg '\.Consume\(' --type go -A 3 | grep 'autoAck.*true'
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 channel.basic_consume(
     queue='orders',
@@ -199,13 +199,13 @@ channel.basic_consume(
 )
 ```
 
-**Why wrong**: Message is deleted from the queue the instant the broker delivers it to the consumer socket buffer — before `handle_order` even starts. Consumer crash, OOM kill, or application exception after delivery means the message is permanently lost.
+**Why this matters**: Message is deleted from the queue the instant the broker delivers it to the consumer socket buffer — before `handle_order` even starts. Consumer crash, OOM kill, or application exception after delivery means the message is permanently lost.
 
-**Fix**: Remove `auto_ack=True` (defaults to `False`) and call `channel.basic_ack()` after successful processing.
+**Preferred action**: Remove `auto_ack=True` (defaults to `False`) and call `channel.basic_ack()` after successful processing.
 
 ---
 
-### ❌ Infinite Requeue on Failure
+### Limit Retry Count Before Routing to DLX
 
 **Detection**:
 ```bash
@@ -217,7 +217,7 @@ grep -rn 'basic_reject.*requeue=True' --include="*.py"
 rg '\.Nack\(' --type go -A 2 | grep 'true'
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 except Exception as e:
     log.error("processing failed: %s", e)
@@ -225,13 +225,13 @@ except Exception as e:
     # Message goes back to queue head — immediately redelivered — infinite loop
 ```
 
-**Why wrong**: A poison message (malformed JSON, missing field, encoding error) that always raises an exception will loop: deliver → fail → requeue → deliver → fail → requeue. This drives consumer CPU to 100% and blocks all other messages in the queue.
+**Why this matters**: A poison message (malformed JSON, missing field, encoding error) that always raises an exception will loop: deliver → fail → requeue → deliver → fail → requeue. This drives consumer CPU to 100% and blocks all other messages in the queue.
 
-**Fix**: Track retry count in message headers. After N retries, `requeue=False` to route to DLX instead.
+**Preferred action**: Track retry count in message headers. After N retries, `requeue=False` to route to DLX instead.
 
 ---
 
-### ❌ No Dead Letter Exchange
+### Configure a Dead Letter Exchange for Every Production Queue
 
 **Detection**:
 ```bash
@@ -242,15 +242,15 @@ rg 'queue_declare' --type py -A 10 | grep -v 'x-dead-letter-exchange'
 rabbitmqctl list_queues name dead_letter_exchange | grep -v '\S\s\S'
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 channel.queue_declare(queue='payments', durable=True)
 # No DLX — rejected/expired messages vanish
 ```
 
-**Why wrong**: Any `basic_nack(requeue=False)` or expired message is silently dropped. There is no audit trail, no replay capability, no alerting on message failures.
+**Why this matters**: Any `basic_nack(requeue=False)` or expired message is silently dropped. There is no audit trail, no replay capability, no alerting on message failures.
 
-**Fix**: Always declare a DLX for any production queue. At minimum, route to a `{queue}.dead` queue with 7-day TTL for investigation.
+**Preferred action**: Always declare a DLX for any production queue. At minimum, route to a `{queue}.dead` queue with 7-day TTL for investigation.
 
 ---
 

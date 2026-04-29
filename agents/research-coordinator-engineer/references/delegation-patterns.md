@@ -120,7 +120,7 @@ DELIVERABLE: List of 5+ specific measured data points with source, date, and URL
 
 ## Pattern Catalog
 
-### ❌ Vague Scope Without Boundaries
+### Define Explicit Scope Boundaries
 
 **Detection**:
 ```bash
@@ -130,14 +130,14 @@ grep -rL "OUT OF SCOPE\|Not in scope\|Exclude" research/*/instructions/ 2>/dev/n
 awk 'NF>0{count+=NF} END{if(count<50) print FILENAME": too short ("count" words)"}' research/*/instructions/*.md 2>/dev/null
 ```
 
-**What it looks like**:
+**Signal**:
 ```markdown
 Subagent 1: "Research AI trends in 2025."
 ```
 
-**Why wrong**: No scope = no boundary = subagent expands to cover everything tangentially related to AI. The coordinator receives a 1000-word survey that overlaps with what the other two subagents produced. Synthesis degrades to picking the best paragraph from each, not integrating distinct findings.
+**Why this matters**: No scope = no boundary = subagent expands to cover everything tangentially related to AI. The coordinator receives a 1000-word survey that overlaps with what the other two subagents produced. Synthesis degrades to picking the best paragraph from each, not integrating distinct findings.
 
-**Fix**:
+**Preferred action**:
 ```markdown
 Subagent 1: "Research AI model training compute trends for frontier models (GPT-4 class and above)
 in 2024-2025. Focus on: training run sizes in FLOP, hardware configurations, cost estimates.
@@ -147,7 +147,7 @@ DELIVERABLE: 300-400 words with at least 2 specific training run statistics."
 
 ---
 
-### ❌ Sequential Dispatch of Independent Streams
+### Dispatch Independent Streams in Parallel
 
 **Detection**:
 ```bash
@@ -157,7 +157,7 @@ grep -i "wait for\|after.*completes\|once.*done\|then deploy" research/*/plan.md
 grep -c "Task\|TaskCreate\|subagent" research/*/plan.md
 ```
 
-**What it looks like**:
+**Signal**:
 ```markdown
 # Plan:
 1. Deploy subagent to research GPU supply
@@ -167,13 +167,13 @@ grep -c "Task\|TaskCreate\|subagent" research/*/plan.md
 5. Deploy subagent to research regulation
 ```
 
-**Why wrong**: These three topics are independent — none requires the GPU supply finding to start the energy research. Sequential deployment triples latency for no reason. On a 60-second subagent, sequential = 180 seconds; parallel = 60 seconds.
+**Why this matters**: These three topics are independent — none requires the GPU supply finding to start the energy research. Sequential deployment triples latency for no reason. On a 60-second subagent, sequential = 180 seconds; parallel = 60 seconds.
 
-**Fix**: Move all three Task calls into a single message. Only use sequential deployment when Stream B genuinely requires Stream A's output as an input.
+**Preferred action**: Move all three Task calls into a single message. Only use sequential deployment when Stream B genuinely requires Stream A's output as an input.
 
 ---
 
-### ❌ Missing Deliverable Format Specification
+### Specify Deliverable Format in Every Instruction
 
 **Detection**:
 ```bash
@@ -181,14 +181,14 @@ grep -c "Task\|TaskCreate\|subagent" research/*/plan.md
 grep -rL "word\|paragraph\|bullet\|table\|summary" research/*/instructions/ 2>/dev/null
 ```
 
-**What it looks like**:
+**Signal**:
 ```markdown
 "Research the regulatory landscape for AI development and provide your findings."
 ```
 
-**Why wrong**: Subagent may return a 50-word paragraph or a 1500-word essay. Lead agent cannot predict what arrives, making synthesis planning impossible. It also removes the quality bar — "provide your findings" accepts any output as correct.
+**Why this matters**: Subagent may return a 50-word paragraph or a 1500-word essay. Lead agent cannot predict what arrives, making synthesis planning impossible. It also removes the quality bar — "provide your findings" accepts any output as correct.
 
-**Fix**: Add explicit format: "DELIVERABLE: 300-500 word structured summary with: (1) current status, (2) key restrictions, (3) timeline outlook. No citations in body."
+**Preferred action**: Add explicit format: "DELIVERABLE: 300-500 word structured summary with: (1) current status, (2) key restrictions, (3) timeline outlook. No citations in body."
 
 ---
 

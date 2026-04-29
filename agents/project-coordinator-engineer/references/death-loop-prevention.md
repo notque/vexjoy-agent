@@ -121,7 +121,7 @@ ESCALATION: User approval needed to modify types.go (shared interface)
 ## Pattern Catalog
 <!-- no-pair-required: section header, not an individual anti-pattern -->
 
-### ❌ Silent Retry Without Strategy Change
+### Change Strategy Before Each Retry
 
 **Detection**:
 ```bash
@@ -130,20 +130,20 @@ grep -A2 "ATTEMPT" STATUS.md | grep "Error:" | sort | uniq -d
 # If uniq -d returns lines, identical errors are repeating
 ```
 
-**What it looks like**:
+**Signal**:
 ```markdown
 ATTEMPT 1 — Error: `undefined: UserRepository`
 ATTEMPT 2 — Error: `undefined: UserRepository`
 ATTEMPT 3 — Error: `undefined: UserRepository`
 ```
 
-**Why wrong**: Retrying without strategy change is guaranteed to fail. The 3-attempt limit exists specifically to prevent this. Each retry burns context budget with zero probability of success.
+**Why this matters**: Retrying without strategy change is guaranteed to fail. The 3-attempt limit exists specifically to prevent this. Each retry burns context budget with zero probability of success.
 
-**Do instead**: Before any retry, identify what changed. Read the error from the failed attempt, find the root cause, and write a HANDOFF that names the specific change in approach. If the answer to "what is different this time?" is "nothing", stop and document the pattern in BLOCKERS.md rather than consuming another attempt.
+**Preferred action**: Before any retry, identify what changed. Read the error from the failed attempt, find the root cause, and write a HANDOFF that names the specific change in approach. If the answer to "what is different this time?" is "nothing", stop and document the pattern in BLOCKERS.md rather than consuming another attempt.
 
 ---
 
-### ❌ Lint-Before-Compile Assignment
+### Verify Compilation Before and After Lint
 
 **Detection**:
 ```bash
@@ -152,17 +152,17 @@ grep -B5 "lint\|ruff\|golangci" HANDOFF.md | grep -i "success criteria"
 # Success criteria should reference compilation, not just lint exit code
 ```
 
-**What it looks like**:
+**Signal**:
 ```markdown
 TASK: Fix all linting errors in src/
 SUCCESS CRITERIA: `ruff check . --fix` exits 0
 ```
 
-**Why wrong**: `ruff --fix` can change syntax that breaks Python's AST. `gofmt` can reformat imports that expose missing packages. Assigning lint-only success criteria hides compilation regression.
+**Why this matters**: `ruff --fix` can change syntax that breaks Python's AST. `gofmt` can reformat imports that expose missing packages. Assigning lint-only success criteria hides compilation regression.
 
-**Do instead**: Add compilation verification as both the first and last step in every lint task's success criteria. The sequence is: verify compilation passes, run lint, verify compilation still passes. A lint task that breaks compilation is not a success.
+**Preferred action**: Add compilation verification as both the first and last step in every lint task's success criteria. The sequence is: verify compilation passes, run lint, verify compilation still passes. A lint task that breaks compilation is not a success.
 
-**Fix**:
+**Example**:
 ```markdown
 TASK: Fix all linting errors in src/
 SUCCESS CRITERIA:
@@ -173,7 +173,7 @@ SUCCESS CRITERIA:
 
 ---
 
-### ❌ Ambiguous "Fix It" Re-Dispatch
+### Include Root Cause and New Strategy in Re-Dispatch
 
 **Detection**:
 ```bash
@@ -182,18 +182,18 @@ grep -c "RETRY\|Re-assign\|Try again" HANDOFF.md
 # Any count > 0 warrants review of whether strategy changed
 ```
 
-**What it looks like**:
+**Signal**:
 ```markdown
 HANDOFF to golang-general-engineer:
   Previous attempt failed with compilation errors.
   Please try again and fix the compilation errors.
 ```
 
-**Why wrong**: "Try again" without specifying what to do differently is identical retry disguised as new instruction. The agent has no new information, so it will repeat the same approach.
+**Why this matters**: "Try again" without specifying what to do differently is identical retry disguised as new instruction. The agent has no new information, so it will repeat the same approach.
 
-**Do instead**: Write re-dispatch HANDOFFs with three required sections: (1) the specific error from the prior attempt, (2) the root cause identified, and (3) the new strategy with explicit file and line scope. A re-dispatch without all three sections is retry theater.
+**Preferred action**: Write re-dispatch HANDOFFs with three required sections: (1) the specific error from the prior attempt, (2) the root cause identified, and (3) the new strategy with explicit file and line scope. A re-dispatch without all three sections is retry theater.
 
-**Fix**:
+**Example**:
 ```markdown
 HANDOFF to golang-general-engineer:
   Previous attempt failed: `undefined: Logger` in server.go:44
