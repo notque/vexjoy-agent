@@ -224,6 +224,26 @@ A thin wrapper that says "You are a Go expert" adds nothing. The model already k
 
 **Progressive disclosure** enforces the balance: the main agent file stays navigable (under 10k words) with the concrete tables, anti-patterns, and decision rules. Deep reference material lives in `references/` subdirectories, loaded only when the task requires it. The agent carries exactly what's needed — no more, no less.
 
+## Review Knowledge vs Implementation Knowledge
+
+Domain knowledge splits into two types, each with its own home.
+
+**Review knowledge** is "what to look for." Vulnerability classes, exploitation patterns, CVE-backed examples of what goes wrong. It lives in the review agent's references — `reviewer-system/references/security-authz.md`, for instance — and is loaded when reviewing code. The review agent reads a diff and hunts for problems.
+
+**Implementation knowledge** is "what correct code looks like." Secure patterns in a specific language, the right way to handle auth in Django, safe subprocess usage in Go. It lives in each technology agent's references — `golang-general-engineer/references/go-security.md`, for instance — and is loaded when writing or modifying code. The implementation agent writes code and needs to get it right the first time.
+
+Both follow the same format rules: positive-instruction framing (correct approach first), detection commands, CVE citations where applicable. They overlap in subject matter but serve different workflows.
+
+**Context efficiency drives the separation.** Loading review knowledge during implementation wastes tokens on threat models the implementer does not need. Loading implementation knowledge during review wastes tokens on idioms the reviewer does not need. Each agent loads only its own knowledge. This is progressive disclosure applied at the knowledge-type level — same principle, different axis.
+
+**Finding templates replace exclusion lists.** Instead of listing what not to report — negative framing that violates the positive-instruction principle — define a structured finding template that requires evidence fields. A finding that cannot fill in "exploitation path" with a concrete source-to-sink trace does not pass the template. The structure filters. No negative list needed.
+
+**What this means in practice:**
+
+- The review agent knows that `tarfile.extractall()` without `filter="data"` is CVE-2007-4559 — a path traversal that lets a crafted archive write files outside the target directory. That knowledge lives in `reviewer-system/references/security-path-traversal.md` and loads during code review.
+- The Python agent knows what safe archive extraction looks like in Python: `tarfile.open(path).extractall(target, filter="data")`, with the filter parameter that was added to fix the vulnerability. That knowledge lives in `python-general-engineer/references/python-security.md` and loads during implementation.
+- Same vulnerability, different knowledge, different homes. The review agent does not carry the implementation pattern. The Python agent does not carry the exploitation taxonomy. Each carries exactly what its workflow demands.
+
 ## Model Policy by Task Class
 
 Model choice is a routing policy, not an ego signal. The standard fleet is:
