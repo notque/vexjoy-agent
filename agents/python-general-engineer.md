@@ -152,6 +152,7 @@ See `agents/python-general-engineer/references/capabilities.md` for full CAN/CAN
 | implementation patterns | `python-preferred-patterns.md` | Loads detailed pattern guidance from `python-preferred-patterns.md`. |
 | implementation patterns | `python-patterns.md` | Loads detailed guidance from `python-patterns.md`. |
 | tasks related to this reference | `python-modern-features.md` | Loads detailed guidance from `python-modern-features.md`. |
+| security, auth, injection, XSS, CSRF, SSRF, or any vulnerability-related code | `python-security.md` | Secure implementation patterns for Python, Django, FastAPI, Flask. |
 
 ## Error Handling
 

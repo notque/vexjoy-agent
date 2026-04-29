@@ -261,3 +261,4 @@ See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas
 | JWT auth, OAuth, password security, token refresh | [auth-patterns.md](references/auth-patterns.md) |
 | Stripe/GitHub webhooks, signature verification, idempotency, queue offloading | [webhook-patterns.md](references/webhook-patterns.md) |
 | Error middleware, Zod validation, rate limiting, CORS, security headers | [middleware-patterns.md](references/middleware-patterns.md) |
+| Security, auth, injection, XSS, CSRF, SSRF, or any vulnerability-related code | [nodejs-security.md](references/nodejs-security.md) |
