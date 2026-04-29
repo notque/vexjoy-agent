@@ -106,7 +106,7 @@ await expect(page).toHaveURL('/items');
 
 ## Pattern Catalog
 
-### ❌ `waitForTimeout` as a Timing Fix
+### Wait for Observable Events Instead of Timeouts
 
 **Detection**:
 ```bash
@@ -114,16 +114,16 @@ grep -rn 'waitForTimeout' --include="*.ts" --include="*.spec.ts"
 rg 'waitForTimeout\(' --type ts
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 await page.getByTestId('save-button').click();
 await page.waitForTimeout(2000); // "give it time to save"
 await expect(page.getByTestId('success-banner')).toBeVisible();
 ```
 
-**Why wrong**: Hard-coded delays fail silently on slow CI (timeout too short) or waste time on fast machines (timeout too long). `waitForTimeout` is a symptom of not knowing what observable event to wait for.
+**Why this matters**: Hard-coded delays fail silently on slow CI (timeout too short) or waste time on fast machines (timeout too long). `waitForTimeout` is a symptom of not knowing what observable event to wait for.
 
-**Fix**:
+**Preferred action**:
 ```typescript
 await Promise.all([
   page.waitForResponse(r => r.url().includes('/api/save')),
@@ -136,7 +136,7 @@ await expect(page.getByTestId('success-banner')).toBeVisible();
 
 ---
 
-### ❌ Fire-and-Forget Click (Missing Await on Navigation)
+### Await Navigation After Click Actions
 
 **Detection**:
 ```bash
@@ -144,15 +144,15 @@ grep -rn '\.click()$' --include="*.spec.ts"
 rg '\.click\(\)[^;]' --type ts
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 page.getByTestId('submit').click(); // missing await
 await expect(page).toHaveURL('/confirmation'); // races with navigation
 ```
 
-**Why wrong**: Without `await`, the click fires but the test proceeds immediately. If the URL check runs before navigation completes, it sees the old URL and fails intermittently.
+**Why this matters**: Without `await`, the click fires but the test proceeds immediately. If the URL check runs before navigation completes, it sees the old URL and fails intermittently.
 
-**Fix**:
+**Preferred action**:
 ```typescript
 await Promise.all([
   page.waitForURL('/confirmation'),
@@ -162,7 +162,7 @@ await Promise.all([
 
 ---
 
-### ❌ Async Fixture Without Teardown
+### Include Teardown in Every Async Fixture
 
 **Detection**:
 ```bash
@@ -170,7 +170,7 @@ grep -rn "test\.extend" --include="*.ts" -A 10
 rg 'test\.extend\b' --type ts -A 10
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 export const test = base.extend<{ db: Database }>({
   db: async ({}, use) => {
@@ -181,9 +181,9 @@ export const test = base.extend<{ db: Database }>({
 });
 ```
 
-**Why wrong**: Leaked connections accumulate across the test suite. In CI with 100 tests, this exhausts connection pools and causes later tests to fail with unrelated errors.
+**Why this matters**: Leaked connections accumulate across the test suite. In CI with 100 tests, this exhausts connection pools and causes later tests to fail with unrelated errors.
 
-**Fix**:
+**Preferred action**:
 ```typescript
 export const test = base.extend<{ db: Database }>({
   db: async ({}, use) => {
@@ -199,7 +199,7 @@ export const test = base.extend<{ db: Database }>({
 
 ---
 
-### ❌ Sequential Waits for Independent Elements
+### Await Independent Elements in Parallel
 
 **Detection**:
 ```bash
@@ -207,16 +207,16 @@ grep -rn '\.waitFor(' --include="*.spec.ts" -A 1
 rg 'waitFor\(' --type ts --include="*.spec.ts"
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 await page.getByTestId('widget-a').waitFor({ state: 'visible' });
 await page.getByTestId('widget-b').waitFor({ state: 'visible' });
 await page.getByTestId('widget-c').waitFor({ state: 'visible' });
 ```
 
-**Why wrong**: Each wait is sequential. If each element takes 500ms to render, this adds 1.5s of latency. Elements that load independently should be awaited in parallel.
+**Why this matters**: Each wait is sequential. If each element takes 500ms to render, this adds 1.5s of latency. Elements that load independently should be awaited in parallel.
 
-**Fix**:
+**Preferred action**:
 ```typescript
 await Promise.all([
   page.getByTestId('widget-a').waitFor({ state: 'visible' }),

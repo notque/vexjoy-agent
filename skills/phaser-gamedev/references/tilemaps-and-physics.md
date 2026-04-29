@@ -257,7 +257,7 @@ this.physics.add.collider(this.player, platforms);
 
 ## Pattern Catalog
 
-### ❌ Calling setCollisionByProperty After Layer Already Has Colliders
+### Set Tile Collision Before Creating Matter Layer Bodies
 
 **Detection**:
 ```bash
@@ -265,16 +265,16 @@ grep -rn "setCollisionByProperty\|setCollision\b" --include="*.ts" --include="*.
 rg "setCollision" --type ts
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 // BAD: setting collision after a Matter tilemapLayer already generated bodies
 this.matter.add.tilemapLayer(groundLayer, { isStatic: true });
 groundLayer.setCollisionByProperty({ collides: true }); // no effect — Matter ignores this
 ```
 
-**Why wrong**: `matter.add.tilemapLayer()` generates Matter.js body shapes from the layer's existing collision data. Calling `setCollisionByProperty` after has no effect — the bodies are already created and don't re-read tile properties.
+**Why this matters**: `matter.add.tilemapLayer()` generates Matter.js body shapes from the layer's existing collision data. Calling `setCollisionByProperty` after has no effect — the bodies are already created and don't re-read tile properties.
 
-**Fix**: Set tile collision BEFORE creating the Matter layer body:
+**Preferred action**: Set tile collision BEFORE creating the Matter layer body:
 ```typescript
 groundLayer.setCollisionByProperty({ collides: true });  // first
 this.matter.add.tilemapLayer(groundLayer, { isStatic: true }); // then
@@ -282,7 +282,7 @@ this.matter.add.tilemapLayer(groundLayer, { isStatic: true }); // then
 
 ---
 
-### ❌ Creating Physics Bodies Inside update()
+### Pool Physics Bodies in create(), Recycle in update()
 
 **Detection**:
 ```bash
@@ -290,7 +290,7 @@ grep -rn "matter\.add\.\(sprite\|image\|circle\|rectangle\)" --include="*.ts" --
 rg "update\b" --type ts -A 40 | grep "matter\.add\|physics\.add\.sprite"
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 update(_time: number, delta: number): void {
   if (this.fireButton.isDown) {
@@ -301,9 +301,9 @@ update(_time: number, delta: number): void {
 }
 ```
 
-**Why wrong**: Matter.js body creation is expensive — it runs constraint solving, broadphase insertion, and event binding. Creating bodies in `update()` causes progressive frame time growth. At 60fps with rapid fire, frame time doubles within 3 seconds.
+**Why this matters**: Matter.js body creation is expensive — it runs constraint solving, broadphase insertion, and event binding. Creating bodies in `update()` causes progressive frame time growth. At 60fps with rapid fire, frame time doubles within 3 seconds.
 
-**Fix**: Pool bullets, set active/inactive, reposition via `setPosition()`:
+**Preferred action**: Pool bullets, set active/inactive, reposition via `setPosition()`:
 ```typescript
 create(): void {
   this.bulletPool = this.matter.world.add; // use matter composite for pooling
@@ -313,14 +313,14 @@ create(): void {
 
 ---
 
-### ❌ Using `overlap()` Instead of `collider()` for Terrain
+### Use collider() for Terrain Physics Resolution
 
 **Detection**:
 ```bash
 grep -rn "physics\.add\.overlap" --include="*.ts" --include="*.js"
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 // BAD: overlap doesn't apply physics resolution (no bounce, no stop)
 this.physics.add.overlap(this.player, this.groundLayer, () => {
@@ -328,9 +328,9 @@ this.physics.add.overlap(this.player, this.groundLayer, () => {
 });
 ```
 
-**Why wrong**: `overlap()` detects intersection but does NOT resolve physics. The player clips through the terrain; `setVelocityY(0)` is a manual patch that doesn't handle slope normals, one-way platforms, or edge cases. The player will jitter and occasionally fall through.
+**Why this matters**: `overlap()` detects intersection but does NOT resolve physics. The player clips through the terrain; `setVelocityY(0)` is a manual patch that doesn't handle slope normals, one-way platforms, or edge cases. The player will jitter and occasionally fall through.
 
-**Fix**: Use `collider()` for terrain:
+**Preferred action**: Use `collider()` for terrain:
 ```typescript
 this.physics.add.collider(this.player, this.groundLayer);
 // overlap() is correct for triggers (item pickups, damage zones) — not terrain

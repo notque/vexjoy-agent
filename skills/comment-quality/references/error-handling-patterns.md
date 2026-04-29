@@ -22,7 +22,7 @@ them to explain what the error handling actually does today.
 
 <!-- no-pair-required: section heading organizing multiple anti-pattern blocks -->
 
-### ❌ "Fixed bug where X caused error Y" — Bug archaeology
+### Describe the Guard, Not the Bug History
 
 **Detection**:
 ```bash
@@ -31,7 +31,7 @@ grep -rn '//.*[Ff]ixed.*\(bug\|issue\|error\|problem\|crash\)\|//.*[Bb]ug.*fix' 
 rg '//\s*(Fixed|Fixes|Patched|Resolved) (bug|issue|error|crash|problem)' -i
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 // Fixed bug where nil map access caused panic during error aggregation
 if errs == nil {
@@ -44,12 +44,12 @@ if err != nil {
 }
 ```
 
-**Why wrong**: The bug is gone. "Fixed bug" tells future readers nothing useful about what
+**Why this matters**: The bug is gone. "Fixed bug" tells future readers nothing useful about what
 the code does or why the guard exists.
 
-**Do instead**: Describe the guard and what it prevents, not the bug that prompted it.
+**Preferred action**: Describe the guard and what it prevents, not the bug that prompted it.
 
-**Fix**:
+**Preferred action**:
 ```go
 // Initializes error map on first use; callers may pass nil to request a fresh map.
 if errs == nil {
@@ -64,7 +64,7 @@ if err != nil {
 
 ---
 
-### ❌ "Better/improved/enhanced error messages" — Enhancement residue
+### Name the Context the Error Carries
 
 **Detection**:
 ```bash
@@ -73,7 +73,7 @@ grep -rn '//.*\(better\|improved\|enhanced\|richer\|more descriptive\).*\(error\
 rg '//\s*(better|improved|enhanced) (error|err|message)' -i
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 // Provides better error messages with more context
 return fmt.Errorf("validate user %d: field %q: %w", id, field, err)
@@ -82,12 +82,12 @@ return fmt.Errorf("validate user %d: field %q: %w", id, field, err)
 log.WithField("request_id", reqID).Error("request failed")
 ```
 
-**Why wrong**: "Better" is relative. The comment should describe what context is included
+**Why this matters**: "Better" is relative. The comment should describe what context is included
 and why it helps, not that it is better than before.
 
-**Do instead**: List the specific context the error includes and why it matters to callers.
+**Preferred action**: List the specific context the error includes and why it matters to callers.
 
-**Fix**:
+**Preferred action**:
 ```go
 // Error includes user ID and field name so callers can surface field-level validation failures.
 return fmt.Errorf("validate user %d: field %q: %w", id, field, err)
@@ -98,7 +98,7 @@ log.WithField("request_id", reqID).Error("request failed")
 
 ---
 
-### ❌ "Added retry logic" / "Now retries on failure" — Capability addition
+### State Retry Policy and Exhaustion Behavior
 
 **Detection**:
 ```bash
@@ -107,7 +107,7 @@ grep -rn '//.*added.*retr\|//.*now.*retr\|//.*retr.*added\|//.*retr.*now' \
 rg '//\s*(added|now (has|includes|uses)) retry' -i
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 // Added retry logic to handle transient failures
 func callWithRetry(ctx context.Context, fn func() error) error {
@@ -124,12 +124,12 @@ func callWithRetry(ctx context.Context, fn func() error) error {
 resp, err := client.Do(req)
 ```
 
-**Why wrong**: "Added retry logic" describes when the retry was introduced. The reader needs
+**Why this matters**: "Added retry logic" describes when the retry was introduced. The reader needs
 to know the retry policy, which errors trigger it, and what happens on exhaustion.
 
-**Do instead**: State the retry count, backoff schedule, and what happens when retries are exhausted.
+**Preferred action**: State the retry count, backoff schedule, and what happens when retries are exhausted.
 
-**Fix**:
+**Preferred action**:
 ```go
 // Retries fn up to 3 times with exponential backoff (1s, 2s, 4s).
 // Does not retry if ctx is canceled. Returns the last error on exhaustion.
@@ -149,7 +149,7 @@ resp, err := client.Do(req)
 
 ---
 
-### ❌ "Changed error type from X to Y" — Migration narrative
+### Document the Current Error Contract
 
 **Detection**:
 ```bash
@@ -158,7 +158,7 @@ grep -rn '//.*changed.*error\|//.*error.*changed\|//.*switched.*error\|//.*error
 rg '//\s*(changed|switched|migrated) (error|exception) (type|from|to)' -i
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 // Changed from returning bool to returning error for better composability
 func Validate(input string) error { ... }
@@ -170,11 +170,11 @@ type ValidationError struct {
 }
 ```
 
-**Why wrong**: The caller needs to know the current contract, not the migration history.
+**Why this matters**: The caller needs to know the current contract, not the migration history.
 
-**Do instead**: Document the current return type and what it carries, without mentioning what it replaced.
+**Preferred action**: Document the current return type and what it carries, without mentioning what it replaced.
 
-**Fix**:
+**Preferred action**:
 ```go
 // Returns nil if valid; returns ValidationError describing the first failed constraint.
 func Validate(input string) error { ... }
@@ -188,9 +188,9 @@ type ValidationError struct {
 
 ---
 
-### ❌ Python: "Added exception handling for X"
+### Python: State What the Handler Catches and Returns
 
-**Do instead**: State what the handler catches and what callers receive (propagated error, default value, or logged result).
+**Preferred action**: State what the handler catches and what callers receive (propagated error, default value, or logged result).
 
 **Detection**:
 ```bash
@@ -199,7 +199,7 @@ grep -rn '#.*added.*except\|#.*now.*except\|#.*handles.*exception.*added' \
 rg '#\s*(added|now handles|catches) (exception|error)' --type py -i
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 # Added exception handling for connection failures
 try:
@@ -215,11 +215,11 @@ except ValueError:
     return default
 ```
 
-**Why wrong**: Describes the history of adding the handler, not what it handles or why.
+**Why this matters**: Describes the history of adding the handler, not what it handles or why.
 
-**Do instead**: State what the handler catches and what callers receive (propagated error, default value, or logged result).
+**Preferred action**: State what the handler catches and what callers receive (propagated error, default value, or logged result).
 
-**Fix**:
+**Preferred action**:
 ```python
 # Propagates ConnectionError after logging; callers decide whether to retry.
 try:
@@ -237,7 +237,7 @@ except ValueError:
 
 ---
 
-### ❌ TypeScript/JavaScript: "Now handles promise rejection"
+### TypeScript/JavaScript: State Catch Behavior and Caller Expectations
 
 **Detection**:
 ```bash
@@ -246,7 +246,7 @@ grep -rn '//.*now.*reject\|//.*added.*catch\|//.*handles.*rejection.*now' \
 rg '//\s*(now handles|added) (promise rejection|catch|error handling)' -i
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 // Now handles promise rejection to prevent unhandled promise errors
 async function fetchData(url: string): Promise<Data> {
@@ -260,9 +260,9 @@ async function fetchData(url: string): Promise<Data> {
 }
 ```
 
-**Do instead**: State what the catch block does and what callers should expect after the throw.
+**Preferred action**: State what the catch block does and what callers should expect after the throw.
 
-**Fix**:
+**Preferred action**:
 ```typescript
 // Logs fetch failures with URL context before re-throwing; callers handle retry/fallback.
 async function fetchData(url: string): Promise<Data> {

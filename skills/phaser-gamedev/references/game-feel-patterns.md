@@ -293,7 +293,7 @@ onEnemyDeath(x: number, y: number): void {
 
 ## Pattern Catalog
 
-### ❌ Using Alpha Tweens Instead of Particle Bursts for Hit Effects
+### Use Particle Bursts as Primary Hit Feedback
 
 **Detection**:
 ```bash
@@ -301,7 +301,7 @@ grep -rn "tween.*alpha\|alpha.*tween" --include="*.ts" --include="*.js"
 rg "alpha.*0\b" --type ts -B 2 | grep "onHit\|takeDamage\|damage\|hit"
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 // BAD: alpha blink communicates "invisible" not "impact"
 onHit(): void {
@@ -314,9 +314,9 @@ onHit(): void {
 }
 ```
 
-**Why wrong**: Alpha blink is invisible feedback — it removes the visual, it doesn't add one. Players learn to "feel" hits through additive signals: particles appear, camera moves, sound plays. Removing the player sprite subtracts the signal.
+**Why this matters**: Alpha blink is invisible feedback — it removes the visual, it doesn't add one. Players learn to "feel" hits through additive signals: particles appear, camera moves, sound plays. Removing the player sprite subtracts the signal.
 
-**Fix**: Use alpha blink for invincibility indication (secondary) and add a particle burst (primary hit feedback):
+**Preferred action**: Use alpha blink for invincibility indication (secondary) and add a particle burst (primary hit feedback):
 ```typescript
 onHit(): void {
   // Primary: add particles at hit position
@@ -330,7 +330,7 @@ onHit(): void {
 
 ---
 
-### ❌ Creating Physics Bodies Inside update()
+### Pool Physics Bodies in create(), Recycle in update()
 
 **Detection**:
 ```bash
@@ -338,7 +338,7 @@ grep -rn "physics\.add\.\(sprite\|image\|existing\)\|add\.group" --include="*.ts
 rg "update\(.*delta\)" --type ts -A 30 | grep "physics\.add"
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 update(_time: number, _delta: number): void {
   if (this.fireButton.isDown) {
@@ -349,9 +349,9 @@ update(_time: number, _delta: number): void {
 }
 ```
 
-**Why wrong**: Creating physics bodies in `update()` allocates Box2D/Arcade body objects and THREE.js objects every frame. GC pressure causes visible stuttering at sustained fire rates. Frame rate drops from 60 to 30 after ~5 seconds of firing.
+**Why this matters**: Creating physics bodies in `update()` allocates Box2D/Arcade body objects and THREE.js objects every frame. GC pressure causes visible stuttering at sustained fire rates. Frame rate drops from 60 to 30 after ~5 seconds of firing.
 
-**Fix**: Pool bullets in `create()`, recycle in `update()`:
+**Preferred action**: Pool bullets in `create()`, recycle in `update()`:
 ```typescript
 create(): void {
   this.bullets = this.physics.add.group({
@@ -371,7 +371,7 @@ fireBullet(): void {
 
 ---
 
-### ❌ Camera Shake Without Bounds
+### Set Camera Bounds Before Shake Calls
 
 **Detection**:
 ```bash
@@ -379,15 +379,15 @@ grep -rn "camera\.shake\|cameras\.main\.shake" --include="*.ts" --include="*.js"
 rg "cameras\.main" --type ts | grep -v "bounds\|follow\|setZoom"
 ```
 
-**What it looks like**:
+**Signal**:
 ```typescript
 // BAD: camera shakes past world edge, revealing void outside the map
 this.cameras.main.shake(300, 0.05); // no world bounds set
 ```
 
-**Why wrong**: Camera shake pans the camera. Without bounds, the camera reveals empty space outside the tilemap, breaking immersion.
+**Why this matters**: Camera shake pans the camera. Without bounds, the camera reveals empty space outside the tilemap, breaking immersion.
 
-**Fix**:
+**Preferred action**:
 ```typescript
 // Set bounds before any shake call
 this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);

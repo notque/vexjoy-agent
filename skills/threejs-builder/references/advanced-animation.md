@@ -331,7 +331,7 @@ renderer.setAnimationLoop((time) => {
 
 ## Pattern Catalog
 
-### ❌ Calling mixer.update() with Raw Timestamp (Not Delta)
+### Pass Delta Time to mixer.update()
 
 **Detection**:
 ```bash
@@ -339,16 +339,16 @@ grep -rn "mixer\.update" --include="*.js" --include="*.ts"
 rg "mixer\.update\(time\)" --type js
 ```
 
-**What it looks like**:
+**Signal**:
 ```javascript
 renderer.setAnimationLoop((time) => {
   mixer.update(time); // BAD: time is ms since page load (~120000ms after 2 minutes)
 });
 ```
 
-**Why wrong**: `mixer.update()` expects elapsed seconds since last frame (delta), not absolute timestamp. Passing raw `time` makes animations play at 1000x speed because time is in milliseconds.
+**Why this matters**: `mixer.update()` expects elapsed seconds since last frame (delta), not absolute timestamp. Passing raw `time` makes animations play at 1000x speed because time is in milliseconds.
 
-**Fix**:
+**Preferred action**:
 ```javascript
 const clock = new THREE.Clock();
 renderer.setAnimationLoop(() => {
@@ -360,14 +360,14 @@ renderer.setAnimationLoop(() => {
 
 ---
 
-### ❌ Applying Bone Rotation After mixer.update()
+### Apply Bone Overrides After mixer.update()
 
 **Detection**:
 ```bash
 grep -rn "bone\.rotation\|bone\.quaternion" --include="*.js" --include="*.ts"
 ```
 
-**What it looks like**:
+**Signal**:
 ```javascript
 renderer.setAnimationLoop(() => {
   mixer.update(delta); // sets bone transforms from keyframe data
@@ -375,9 +375,9 @@ renderer.setAnimationLoop(() => {
 });
 ```
 
-**Why wrong**: `mixer.update()` overwrites bone transforms from animation keyframes on the same frame tick. Manual bone changes set before or on the same tick are overwritten.
+**Why this matters**: `mixer.update()` overwrites bone transforms from animation keyframes on the same frame tick. Manual bone changes set before or on the same tick are overwritten.
 
-**Fix**: Apply bone overrides AFTER `mixer.update()` in the same frame:
+**Preferred action**: Apply bone overrides AFTER `mixer.update()` in the same frame:
 ```javascript
 renderer.setAnimationLoop(() => {
   mixer.update(delta);
@@ -389,7 +389,7 @@ renderer.setAnimationLoop(() => {
 
 ---
 
-### ❌ Not Disposing Mixer on Component Unmount
+### Dispose Mixer on Component Unmount
 
 **Detection**:
 ```bash
@@ -397,7 +397,7 @@ grep -rn "AnimationMixer" --include="*.js" --include="*.ts"
 rg "mixer\." --type js | grep -v "dispose\|update\|stopAll"
 ```
 
-**What it looks like**:
+**Signal**:
 ```javascript
 // In a React Three Fiber component:
 useEffect(() => {
@@ -406,9 +406,9 @@ useEffect(() => {
 }, []);
 ```
 
-**Why wrong**: `AnimationMixer` holds references to scene objects, preventing GC. Multiple mixers accumulate on route changes.
+**Why this matters**: `AnimationMixer` holds references to scene objects, preventing GC. Multiple mixers accumulate on route changes.
 
-**Fix**:
+**Preferred action**:
 ```javascript
 useEffect(() => {
   const mixer = new THREE.AnimationMixer(scene);

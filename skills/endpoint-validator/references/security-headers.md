@@ -92,14 +92,14 @@ If CSP already contains `frame-ancestors`, skip the X-Frame-Options check to avo
 
 ## Pattern Catalog
 
-### ❌ Checking Security Headers on localhost
+### Skip Security Header Checks on localhost
 
 **Detection**:
 ```bash
 grep -rn '"base_url".*localhost\|"base_url".*127\.0\.0\.1' endpoints.json
 ```
 
-**What it looks like**:
+**Signal**:
 ```json
 {
   "base_url": "http://localhost:8000",
@@ -107,31 +107,31 @@ grep -rn '"base_url".*localhost\|"base_url".*127\.0\.0\.1' endpoints.json
 }
 ```
 
-**Why wrong**: Development servers don't set these headers. Running the check against localhost
+**Why this matters**: Development servers don't set these headers. Running the check against localhost
 generates spurious WARNs on every local run, training developers to ignore warnings entirely.
 
-**Do instead**: The validator skips security header checks when `base_url` contains `localhost` or
+**Preferred action**: The validator skips security header checks when `base_url` contains `localhost` or
 `127.0.0.1` by default. Only override with `force_security_check: true` when explicitly needed.
 
 ---
 
-### ❌ Treating WARN as PASS in CI
+### Fail CI on Security Header Regressions
 
 **Detection**:
 ```bash
 grep -rn "|| true\|--allow-warn\|exit 0" .github/workflows/ .gitlab-ci.yml 2>/dev/null
 ```
 
-**What it looks like**:
+**Signal**:
 ```yaml
 - run: endpoint-validator || true  # suppress all failures
 ```
 
-**Why wrong**: Suppressing exit codes means security header regressions (a deploy that removes
+**Why this matters**: Suppressing exit codes means security header regressions (a deploy that removes
 CSP) pass CI silently. Use `--fail-on-warn` in production validation runs so header removal
 triggers a build failure.
 
-**Do instead**:
+**Preferred action**:
 ```yaml
 - run: endpoint-validator --base-url $PROD_URL --fail-on-warn
   env:
@@ -140,22 +140,22 @@ triggers a build failure.
 
 ---
 
-### ❌ HSTS Expected on HTTP Endpoint
+### Validate HSTS Only on HTTPS Endpoints
 
 **Detection**:
 ```bash
 grep -rn '"base_url".*"http://' endpoints.json | grep -v "localhost\|127\.0\.0\.1"
 ```
 
-**What it looks like**:
+**Signal**:
 ```json
 {"base_url": "http://api.example.com"}
 ```
 
-**Why wrong**: HSTS is only meaningful over HTTPS. Browsers ignore HSTS headers delivered
+**Why this matters**: HSTS is only meaningful over HTTPS. Browsers ignore HSTS headers delivered
 over HTTP (per RFC 6797 section 8.1). Checking for it on HTTP endpoints always generates misleading WARNs.
 
-**Do instead**: Use `https://` base_url for production validation, or the validator should auto-skip
+**Preferred action**: Use `https://` base_url for production validation, or the validator should auto-skip
 HSTS checks when base_url starts with `http://`.
 
 ---

@@ -84,7 +84,7 @@ trap 'rm -f "$PID_FILE"' EXIT
 <!-- no-pair-required: section heading; individual anti-patterns below carry Do-instead blocks -->
 ## Pattern Catalog
 
-### ❌ No concurrency protection at all
+### Add Lock Protection to Every Cron Script
 
 **Detection**:
 ```bash
@@ -92,7 +92,7 @@ grep -rL "flock\|\.lock\|\.pid\|lockrun" --include="*.sh" scripts/ cron/ jobs/
 rg -L 'flock|\.lock|\.pid' --type sh
 ```
 
-**What it looks like**:
+**Signal**:
 ```bash
 #!/bin/bash
 set -euo pipefail
@@ -100,13 +100,13 @@ cd /var/data
 python3 process_all_records.py   # runs for 45 min, cron fires again at minute 0
 ```
 
-**Why wrong**: If the job takes longer than its interval, two instances run simultaneously. Both read the same input, both write to the same output, both update the same DB rows — producing duplicates, data corruption, or deadlocks.
+**Why this matters**: If the job takes longer than its interval, two instances run simultaneously. Both read the same input, both write to the same output, both update the same DB rows — producing duplicates, data corruption, or deadlocks.
 
 **Do instead:** Add `flock` at the top of the script (see correct pattern above).
 
 ---
 
-### ❌ Testing lock file existence without flock (TOCTOU race)
+### Use Atomic Lock Acquisition with flock
 
 **Detection**:
 ```bash
@@ -114,7 +114,7 @@ grep -rn "if \[ -f.*lock\|test -f.*lock" --include="*.sh" scripts/ cron/
 rg 'if \[ -f.*lock' --type sh
 ```
 
-**What it looks like**:
+**Signal**:
 ```bash
 LOCK="/tmp/myjob.lock"
 if [ -f "$LOCK" ]; then
@@ -125,7 +125,7 @@ touch "$LOCK"    # race window between [ -f ] check and touch
 trap 'rm -f $LOCK' EXIT
 ```
 
-**Why wrong**: There is a TOCTOU race: two instances can both pass `[ -f "$LOCK" ]` before either creates the file. On a loaded system or slow filesystem, this happens. Result: both instances run concurrently despite the "protection."
+**Why this matters**: There is a TOCTOU race: two instances can both pass `[ -f "$LOCK" ]` before either creates the file. On a loaded system or slow filesystem, this happens. Result: both instances run concurrently despite the "protection."
 
 **Do instead:** Use `flock -n` — the kernel makes the lock acquisition atomic.
 
@@ -136,7 +136,7 @@ flock -n 200 || exit 0
 
 ---
 
-### ❌ Using sleep-retry as a "lock"
+### Use flock Instead of Sleep-Retry Loops
 
 **Detection**:
 ```bash
@@ -144,7 +144,7 @@ grep -rn "while.*lock\|sleep.*lock" --include="*.sh" scripts/ cron/
 rg 'while.*lock' --type sh
 ```
 
-**What it looks like**:
+**Signal**:
 ```bash
 while [ -f /tmp/myjob.lock ]; do
     sleep 5
@@ -154,7 +154,7 @@ touch /tmp/myjob.lock
 rm /tmp/myjob.lock
 ```
 
-**Why wrong**: Busy-waits waste CPU, has the same TOCTOU race as file existence checks, and if the script crashes before `rm`, subsequent runs loop forever.
+**Why this matters**: Busy-waits waste CPU, has the same TOCTOU race as file existence checks, and if the script crashes before `rm`, subsequent runs loop forever.
 
 **Do instead:** Use `flock -w TIMEOUT` for waiting with a timeout, or `flock -n` to exit immediately.
 
@@ -165,7 +165,7 @@ flock -w 300 /tmp/myjob.lock -c 'your_command'
 
 ---
 
-### ❌ Not removing the lock on abnormal exit
+### Use trap EXIT for Lock Cleanup
 
 **Detection**:
 ```bash
@@ -174,14 +174,14 @@ grep -rl "lock\|\.pid" --include="*.sh" scripts/ cron/ | xargs grep -L "trap"
 rg -l 'lock|\.pid' --type sh | xargs rg -L 'trap'
 ```
 
-**What it looks like**:
+**Signal**:
 ```bash
 touch /tmp/myjob.lock
 do_work
 rm /tmp/myjob.lock   # only runs on success; if set -e fires, lock is never removed
 ```
 
-**Why wrong**: With `set -e`, any failure exits the script immediately — `rm` never runs. The lock file persists. All future runs think a job is still running and exit immediately, silently. The job never runs again until someone manually removes the lock.
+**Why this matters**: With `set -e`, any failure exits the script immediately — `rm` never runs. The lock file persists. All future runs think a job is still running and exit immediately, silently. The job never runs again until someone manually removes the lock.
 
 **Do instead:** Always use `trap 'rm -f "$LOCK_FILE"' EXIT` instead of relying on explicit cleanup at the end.
 

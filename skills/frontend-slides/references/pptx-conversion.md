@@ -127,7 +127,7 @@ def validate_extraction(slides: list[dict], pptx_path: str) -> None:
 
 ## Pattern Catalog
 
-### ❌ Accessing `text_frame` without checking `has_text_frame`
+### Guard text_frame Access with has_text_frame
 
 **Detection**:
 ```bash
@@ -135,13 +135,13 @@ grep -n '\.text_frame' convert.py | grep -v 'has_text_frame'
 rg 'shape\.text_frame' --type py | grep -v 'has_text_frame'
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 for shape in slide.shapes:
     text = shape.text_frame.text  # AttributeError on Picture, Table, GroupShape
 ```
 
-**Why wrong**: `AttributeError: 'Picture' object has no attribute 'text_frame'` on the first slide with an image. Extraction aborts with no output.
+**Why this matters**: `AttributeError: 'Picture' object has no attribute 'text_frame'` on the first slide with an image. Extraction aborts with no output.
 
 **Do instead:** Guard every `text_frame` access with `shape.has_text_frame`:
 
@@ -153,7 +153,7 @@ for shape in slide.shapes:
 
 ---
 
-### ❌ Notes access without AttributeError guard
+### Wrap Notes Access in try/except AttributeError
 
 **Detection**:
 ```bash
@@ -161,12 +161,12 @@ grep -n 'notes_slide' convert.py | grep -v 'try\|except\|AttributeError'
 rg 'notes_text_frame' --type py | grep -v 'try\|except'
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 notes = slide.notes_slide.notes_text_frame.text
 ```
 
-**Why wrong**: Raises `AttributeError: 'NoneType' object has no attribute 'notes_text_frame'` on slides with no notes. PPTX files created from blank templates frequently have no notes placeholder on every slide.
+**Why this matters**: Raises `AttributeError: 'NoneType' object has no attribute 'notes_text_frame'` on slides with no notes. PPTX files created from blank templates frequently have no notes placeholder on every slide.
 
 **Do instead:** Wrap notes access in a `try/except AttributeError` block:
 
@@ -179,7 +179,7 @@ except AttributeError:
 
 ---
 
-### ❌ Saving images to disk instead of embedding as data URIs
+### Embed Images as Base64 Data URIs
 
 **Detection**:
 ```bash
@@ -187,14 +187,14 @@ grep -n 'open.*wb\|\.write(img' convert.py
 rg 'image\.blob.*open|with open.*image' --type py
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 with open(f'slide_{i}_img.png', 'wb') as f:
     f.write(shape.image.blob)
 # Then references <img src="slide_1_img.png"> in HTML
 ```
 
-**Why wrong**: The output must be a single self-contained `.html` file with no external dependencies. External image files break when the HTML is shared or opened from a different directory.
+**Why this matters**: The output must be a single self-contained `.html` file with no external dependencies. External image files break when the HTML is shared or opened from a different directory.
 
 **Do instead:** Embed images as base64 data URIs so the HTML file is self-contained:
 
@@ -207,7 +207,7 @@ data_uri = f'data:image/{shape.image.ext};base64,{b64}'
 
 ---
 
-### ❌ Skipping grouped shapes silently
+### Recurse into Grouped Shapes
 
 **Detection**:
 ```bash
@@ -215,14 +215,14 @@ grep -n 'MSO_SHAPE_TYPE\|shape_type' convert.py | grep -v 'GROUP'
 rg 'for shape in slide\.shapes' --type py -A 5 | grep -v 'GROUP\|group'
 ```
 
-**What it looks like**:
+**Signal**:
 ```python
 for shape in slide.shapes:
     if shape.has_text_frame:
         ...  # GroupShape has no text_frame — silently skipped
 ```
 
-**Why wrong**: `GROUP` shapes contain child shapes with text. Skipping them silently drops bullet points and labels that appear in the original slide.
+**Why this matters**: `GROUP` shapes contain child shapes with text. Skipping them silently drops bullet points and labels that appear in the original slide.
 
 **Do instead:** Use a recursive generator to walk into grouped shapes before processing:
 

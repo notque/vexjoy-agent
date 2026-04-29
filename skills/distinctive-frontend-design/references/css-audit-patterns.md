@@ -15,7 +15,7 @@ This file provides runnable detection commands to audit a frontend codebase for 
 ## Pattern Catalog
 <!-- no-pair-required: section-header-only; pairs live in each sub-section below -->
 
-### ❌ Banned Fonts in CSS/HTML
+### Select Fonts from the Approved Catalog
 
 **Detection**:
 ```bash
@@ -32,7 +32,7 @@ grep -rn 'fonts.googleapis.com.*\(Inter\|Roboto\|Space.Grotesk\)' --include="*.h
 grep -rn "next/font.*\(inter\|roboto\)" --include="*.tsx" --include="*.jsx" -i
 ```
 
-**What it looks like**:
+**Signal**:
 ```css
 body {
   font-family: Inter, -apple-system, sans-serif; /* banned: Inter + system stack */
@@ -42,9 +42,9 @@ h1 {
 }
 ```
 
-**Why wrong**: These fonts are overused to the point of invisibility. They signal generic AI output, not contextual design. Every project that reaches for Inter as a default produces the same page. Using them makes the design indistinguishable from a template.
+**Why this matters**: These fonts are overused to the point of invisibility. They signal generic AI output, not contextual design. Every project that reaches for Inter as a default produces the same page. Using them makes the design indistinguishable from a template.
 
-**Do instead**: Select from `references/font-catalog.json` under the matching aesthetic category. An editorial serif or a constructed grotesque chosen for the project context will distinguish the work from every other Inter page:
+**Preferred action**: Select from `references/font-catalog.json` under the matching aesthetic category. An editorial serif or a constructed grotesque chosen for the project context will distinguish the work from every other Inter page:
 ```css
 /* Use a pre-approved font from references/font-catalog.json */
 body {
@@ -57,7 +57,7 @@ h1 {
 
 ---
 
-### ❌ Hardcoded Colors Bypassing CSS Custom Properties
+### Define All Colors as CSS Custom Properties
 
 **Detection**:
 ```bash
@@ -72,7 +72,7 @@ rg 'background(-color)?:\s*(rgb|rgba|hsl|hsla)\(' --type css
 rg 'text-\[#[0-9a-fA-F]+\]|bg-\[#[0-9a-fA-F]+\]|border-\[#[0-9a-fA-F]+\]' -g "*.tsx" -g "*.jsx"
 ```
 
-**What it looks like**:
+**Signal**:
 ```css
 .hero-title {
   color: #1a1a2e;           /* hardcoded — bypasses token system */
@@ -80,9 +80,9 @@ rg 'text-\[#[0-9a-fA-F]+\]|bg-\[#[0-9a-fA-F]+\]|border-\[#[0-9a-fA-F]+\]' -g "*.
 }
 ```
 
-**Why wrong**: Hardcoded colors scattered across files break the 60/30/10 dominance ratio audit. You cannot verify palette coherence when the palette exists only in scattered hex literals. Palette changes require grep-and-replace across dozens of files instead of one `:root` edit.
+**Why this matters**: Hardcoded colors scattered across files break the 60/30/10 dominance ratio audit. You cannot verify palette coherence when the palette exists only in scattered hex literals. Palette changes require grep-and-replace across dozens of files instead of one `:root` edit.
 
-**Do instead**: Define all palette values as CSS custom properties in a single `:root` block, then reference them everywhere via `var()`. Palette auditing becomes a one-file operation:
+**Preferred action**: Define all palette values as CSS custom properties in a single `:root` block, then reference them everywhere via `var()`. Palette auditing becomes a one-file operation:
 ```css
 :root {
   --color-dominant: #1a1a2e;
@@ -96,7 +96,7 @@ rg 'text-\[#[0-9a-fA-F]+\]|bg-\[#[0-9a-fA-F]+\]|border-\[#[0-9a-fA-F]+\]' -g "*.
 
 ---
 
-### ❌ Over-Animation (Violating the 2-to-3 Rule)
+### Limit Animations to Three Intentional Slots
 
 **Detection**:
 ```bash
@@ -114,7 +114,7 @@ grep -rn '\*\s*{[^}]*transition' --include="*.css" --include="*.scss"
 grep -rn 'transition:\s*all' --include="*.css" --include="*.scss"
 ```
 
-**What it looks like**:
+**Signal**:
 ```css
 /* Animating everything — loses impact */
 .hero         { animation: fade-in 0.4s ease; }
@@ -127,9 +127,9 @@ grep -rn 'transition:\s*all' --include="*.css" --include="*.scss"
 /* 7 animations — three times over budget */
 ```
 
-**Why wrong**: When everything moves, nothing stands out. Motion creates hierarchy; animating every element collapses that hierarchy. Ten animations communicate noise, three intentional animations communicate craft.
+**Why this matters**: When everything moves, nothing stands out. Motion creates hierarchy; animating every element collapses that hierarchy. Ten animations communicate noise, three intentional animations communicate craft.
 
-**Do instead**: Fill exactly three motion slots (entrance, scroll-reveal, interaction) and animate nothing else. Silence is hierarchy:
+**Preferred action**: Fill exactly three motion slots (entrance, scroll-reveal, interaction) and animate nothing else. Silence is hierarchy:
 ```css
 /* 3 intentional slots: entrance, scroll-reveal (JS), interaction */
 .hero-title { animation: slide-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
@@ -140,7 +140,7 @@ grep -rn 'transition:\s*all' --include="*.css" --include="*.scss"
 
 ---
 
-### ❌ Single-Layer Flat Backgrounds
+### Layer Gradients for Atmospheric Depth
 
 **Detection**:
 ```bash
@@ -152,7 +152,7 @@ grep -rn '^\s*background:\s*#\|^\s*background:\s*rgb\|^\s*background:\s*var(' --
 grep -rn '\.hero\b\|\.landing\b\|\.page-hero\b' --include="*.css" -A 8 | grep -c 'gradient'
 ```
 
-**What it looks like**:
+**Signal**:
 ```css
 .hero {
   background-color: #0a0a1a; /* flat — fails the 2-layer Phase 5 gate */
@@ -162,9 +162,9 @@ grep -rn '\.hero\b\|\.landing\b\|\.page-hero\b' --include="*.css" -A 8 | grep -c
 }
 ```
 
-**Why wrong**: A flat background creates no visual depth, no focal point, no mood. It is the visual equivalent of saying nothing. The Phase 5 gate requires at least two layers (base color plus gradient layer) because depth is what separates distinctive design from a stylesheet reset.
+**Why this matters**: A flat background creates no visual depth, no focal point, no mood. It is the visual equivalent of saying nothing. The Phase 5 gate requires at least two layers (base color plus gradient layer) because depth is what separates distinctive design from a stylesheet reset.
 
-**Do instead**: Layer at least one radial gradient above the base color to create focal direction and atmospheric depth. Reference `background-techniques.md` for recipe options:
+**Preferred action**: Layer at least one radial gradient above the base color to create focal direction and atmospheric depth. Reference `background-techniques.md` for recipe options:
 ```css
 .hero {
   background:
@@ -176,7 +176,7 @@ grep -rn '\.hero\b\|\.landing\b\|\.page-hero\b' --include="*.css" -A 8 | grep -c
 
 ---
 
-### ❌ `sans-serif` Bare Fallback (No Named Fallback)
+### Include a Named Fallback in Every Font Stack
 
 **Detection**:
 ```bash
@@ -188,15 +188,15 @@ rg "font-family:\s*sans-serif\b" --type css
 grep -rn "font-family:\s*'[^']*'" --include="*.css" | grep -v ','
 ```
 
-**What it looks like**:
+**Signal**:
 ```css
 body { font-family: sans-serif; }        /* OS default — different on every platform */
 h1   { font-family: 'Outfit'; }          /* no fallback — FOUT on slow connections */
 ```
 
-**Why wrong**: `sans-serif` alone renders as Helvetica (macOS), Arial (Windows), or Liberation Sans (Linux): three different pages. A missing fallback causes FOUT (flash of unstyled text) on slow connections when the web font has not loaded.
+**Why this matters**: `sans-serif` alone renders as Helvetica (macOS), Arial (Windows), or Liberation Sans (Linux): three different pages. A missing fallback causes FOUT (flash of unstyled text) on slow connections when the web font has not loaded.
 
-**Do instead**: Add one named system fallback between the web font and the generic family. The named fallback degrades gracefully while the web font loads:
+**Preferred action**: Add one named system fallback between the web font and the generic family. The named fallback degrades gracefully while the web font loads:
 ```css
 body { font-family: 'DM Sans', 'Gill Sans', sans-serif; }
 h1   { font-family: 'Fraunces', Georgia, serif; }

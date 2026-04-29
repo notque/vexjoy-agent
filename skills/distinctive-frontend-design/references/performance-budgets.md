@@ -119,7 +119,7 @@ Use `will-change` only on elements that will actually animate, and remove it aft
 ## Pattern Catalog
 <!-- no-pair-required: section-header-only; pairs live in each sub-section below -->
 
-### ❌ Animating Layout Properties (width/height/top/left/margin)
+### Use transform Instead of Layout Properties for Animation
 
 **Detection**:
 ```bash
@@ -134,7 +134,7 @@ grep -rn 'transition:.*\(width\|height\|top\|left\|margin\)' --include="*.css" -
 rg 'transition-property:\s*(width|height|top|left|margin)' --type css
 ```
 
-**What it looks like**:
+**Signal**:
 ```css
 @keyframes expand {
   from { width: 0; height: 0; }
@@ -145,9 +145,9 @@ rg 'transition-property:\s*(width|height|top|left|margin)' --type css
 }
 ```
 
-**Why wrong**: Layout properties trigger the full pipeline (Layout, Paint, Composite) on every frame. At 60fps this means 60 layout recalculations per second. On mid-range mobile this consistently drops below 30fps and causes visible jank.
+**Why this matters**: Layout properties trigger the full pipeline (Layout, Paint, Composite) on every frame. At 60fps this means 60 layout recalculations per second. On mid-range mobile this consistently drops below 30fps and causes visible jank.
 
-**Do instead**: Replace layout properties with their `transform` equivalents. `transform: scale` replaces `width`/`height` expansion; `transform: translate` replaces `top`/`left` movement:
+**Preferred action**: Replace layout properties with their `transform` equivalents. `transform: scale` replaces `width`/`height` expansion; `transform: translate` replaces `top`/`left` movement:
 ```css
 @keyframes expand {
   from { transform: scale(0); }
@@ -160,7 +160,7 @@ rg 'transition-property:\s*(width|height|top|left|margin)' --type css
 
 ---
 
-### ❌ Animating background-color or color
+### Animate Opacity of Pre-Rendered Pseudo-Elements for Color
 
 **Detection**:
 ```bash
@@ -172,16 +172,16 @@ grep -rn 'transition:.*background-color\|transition-property:\s*background-color
 rg '@keyframes' --type css -A 15 | grep -E 'color:|background-color:'
 ```
 
-**What it looks like**:
+**Signal**:
 ```css
 .nav-link {
   transition: color 0.2s ease, background-color 0.2s ease;
 }
 ```
 
-**Why wrong**: Both `color` and `background-color` trigger paint. For short transitions (under 200ms) this is acceptable on desktop. On mobile, or for elements that appear many times on the page (nav items, list rows), it causes accumulated paint cost.
+**Why this matters**: Both `color` and `background-color` trigger paint. For short transitions (under 200ms) this is acceptable on desktop. On mobile, or for elements that appear many times on the page (nav items, list rows), it causes accumulated paint cost.
 
-**Do instead**: Animate the opacity of a positioned pseudo-element that contains the colored state. The pseudo-element is pre-rendered; only its opacity changes, keeping the transition on the compositor:
+**Preferred action**: Animate the opacity of a positioned pseudo-element that contains the colored state. The pseudo-element is pre-rendered; only its opacity changes, keeping the transition on the compositor:
 ```css
 /* Animate a positioned pseudo-element's opacity instead of the text color */
 .nav-link {
@@ -201,7 +201,7 @@ rg '@keyframes' --type css -A 15 | grep -E 'color:|background-color:'
 
 ---
 
-### ❌ `transition: all` (Blanket Transitions)
+### Declare Explicit Transition Properties
 
 **Detection**:
 ```bash
@@ -210,16 +210,16 @@ grep -rn 'transition:\s*all\b' --include="*.css" --include="*.scss" --include="*
 rg 'transition:\s*all\b' --type css
 ```
 
-**What it looks like**:
+**Signal**:
 ```css
 .card {
   transition: all 0.3s ease; /* animates everything that changes */
 }
 ```
 
-**Why wrong**: `transition: all` watches every animatable property. Adding a layout-triggering property later (even indirectly through a media query) silently introduces jank. It also animates properties you never intended to animate (e.g., `display`, `visibility`, inherited colors).
+**Why this matters**: `transition: all` watches every animatable property. Adding a layout-triggering property later (even indirectly through a media query) silently introduces jank. It also animates properties you never intended to animate (e.g., `display`, `visibility`, inherited colors).
 
-**Do instead**: Declare only the compositor-safe properties you actually want to animate. Explicit lists are self-documenting and immune to accidental layout animations:
+**Preferred action**: Declare only the compositor-safe properties you actually want to animate. Explicit lists are self-documenting and immune to accidental layout animations:
 ```css
 .card {
   transition: transform 0.3s ease, opacity 0.2s ease; /* explicit, compositor-safe */
@@ -228,7 +228,7 @@ rg 'transition:\s*all\b' --type css
 
 ---
 
-### ❌ `will-change` on Everything
+### Scope will-change to Actively Animating Elements
 
 **Detection**:
 ```bash
@@ -237,15 +237,15 @@ grep -rn 'will-change:' --include="*.css" --include="*.scss" --include="*.module
 rg 'will-change:' --type css
 ```
 
-**What it looks like**:
+**Signal**:
 ```css
 * { will-change: transform; }  /* nuclear option — crashes low-end devices */
 .card { will-change: transform, opacity, filter; } /* too many properties */
 ```
 
-**Why wrong**: Each `will-change` layer consumes GPU memory. Blanket use exhausts VRAM on low-end mobile (typically 512MB to 1GB GPU memory budget), causing the browser to fall back to software rendering, which is slower than not using `will-change` at all.
+**Why this matters**: Each `will-change` layer consumes GPU memory. Blanket use exhausts VRAM on low-end mobile (typically 512MB to 1GB GPU memory budget), causing the browser to fall back to software rendering, which is slower than not using `will-change` at all.
 
-**Do instead**: Apply `will-change` only to the element immediately before its animation starts, and remove it via JS after the animation ends. Use the AnimationEvent `animationend` listener or a class swap:
+**Preferred action**: Apply `will-change` only to the element immediately before its animation starts, and remove it via JS after the animation ends. Use the AnimationEvent `animationend` listener or a class swap:
 ```js
 el.classList.add('is-animating'); // CSS sets will-change: transform
 el.addEventListener('animationend', () => {
