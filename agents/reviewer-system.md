@@ -50,6 +50,12 @@ Based on the review request, load the appropriate reference(s):
 | Docs Validator | [references/docs-validator.md](reviewer-system/references/docs-validator.md) | README, CLAUDE.md, CI/CD, build system, project metadata |
 
 **Security sub-references** (loaded when security domain is active):
+- [references/security-finding-template.md](reviewer-system/references/security-finding-template.md) — Structured output format for security findings
+- [references/security-authz.md](reviewer-system/references/security-authz.md) — Authorization: IDOR, mass assignment, JWT, session, RBAC
+- [references/security-injection.md](reviewer-system/references/security-injection.md) — Injection: command, deserialization, SSTI, eval, prototype pollution
+- [references/security-data-exfil.md](reviewer-system/references/security-data-exfil.md) — Data exfiltration: SSRF, path traversal, SQL injection, XXE, response leakage
+- [references/security-ci-cd.md](reviewer-system/references/security-ci-cd.md) — CI/CD: GitHub Actions, expression injection, supply chain, credentials
+- [references/security-pii.md](reviewer-system/references/security-pii.md) — PII: logs, fixtures, URLs, error responses, serialized output
 - [references/stride-threat-model.md](reviewer-system/references/stride-threat-model.md) — STRIDE threat modeling methodology
 - [references/compliance-checklists.md](reviewer-system/references/compliance-checklists.md) — GDPR, SOC2, PCI-DSS, HIPAA code-level checks
 - [references/sovereign-cloud-data-residency.md](reviewer-system/references/sovereign-cloud-data-residency.md) — German/EU data residency requirements
@@ -170,6 +176,12 @@ Each finding must follow this structure:
 | Signal | Load These Files | Why |
 |---|---|---|
 | Security | `security.md` | OWASP, auth, injection, XSS, CSRF, secrets, vulnerabilities |
+| Security finding output format needed | `security-finding-template.md` | Structured finding format with exploitation path, verification, and correct pattern |
+| Auth, permission, access control, RBAC, IDOR, JWT, session | `security-authz.md` | Authorization: scoped queries, fail-closed checks, mass assignment, JWT pinning, Server Actions |
+| eval, exec, subprocess, pickle, template, deserialize, prototype | `security-injection.md` | Injection: command, deserialization, SSTI, eval/Function, prototype pollution |
+| URL fetch, file path, SQL, XML, response, serializer, debug | `security-data-exfil.md` | Data exfiltration: SSRF, path traversal, SQL injection, XXE, response leakage, debug modes |
+| .github/workflows, actions, CI, pipeline, runner | `security-ci-cd.md` | CI/CD: pwn requests, expression injection, supply chain, credentials, reusable workflows |
+| email, phone, SSN, PII, personal data, logging user | `security-pii.md` | PII: test fixtures, logs, URLs, error responses, serialized output, git history |
 | Concurrency | `concurrency.md` | Race conditions, goroutine leaks, deadlocks, mutex, channels, thread safety |
 | Silent Failures | `silent-failures.md` | Swallowed errors, empty catch blocks, ignored error returns, fallback behavior |
 | Error Messages | `error-messages.md` | Error text quality, actionable messages, context, formatting, audience separation |
