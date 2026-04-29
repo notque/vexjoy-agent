@@ -259,6 +259,26 @@ Do not treat `opus` as the default upgrade path for ordinary agents or skills.
 If a component can only perform adequately on `opus`, that is a sign to inspect
 its prompt shape, references, and task decomposition before raising model cost.
 
+## Delegate Data Gathering to Cheap Models
+
+Raw data consumption and synthesis are different tasks requiring different capabilities. Reading a file and extracting the relevant section requires attention but not deep reasoning. Deciding what the extracted information means requires reasoning but not attention to every line. Different tasks, different models.
+
+When an agent reads data directly, every tool call output persists in its context window. By turn 15 of a complex investigation, the agent has accumulated raw file contents, grep results, and search output from earlier turns that answered earlier questions. This noise degrades the quality of later decisions. The model cannot unsee what it has already read.
+
+The pattern: spawn a Haiku sub-agent with a directed prompt ("read file X, return the section about Y"), get back a focused extract (typically 10-50x smaller than the raw data), and discard the sub-agent's context. The expensive agent never sees the raw data — it reasons over summaries.
+
+This is "Load Only What You Need" applied at the turn level. Progressive disclosure keeps irrelevant reference files out of context. Delegated data gathering keeps stale tool output out of context. Same principle, different mechanism.
+
+**Where the boundary sits:** agents that need to EDIT files must read them directly (the Edit tool requires the file content in context). Agents that need to UNDERSTAND files to make decisions should delegate the reading. Reading-to-edit is implementation. Reading-to-decide is investigation. Delegate the investigation.
+
+Haiku's input/output ratio for directed reading tasks runs around 80:1 — it reads a lot and returns focused extracts. The expensive agent's ratio is closer to 5:1 — it receives focused input and produces structured analysis. Each model operates at its natural ratio.
+
+**What this means in practice:**
+
+- A Complex-class debugging agent investigating a failure across 8 files spawns Haiku sub-agents with prompts like "read `pkg/server/handler.go` and return the error handling in the `ServeHTTP` method" and "search for all callers of `validateToken` and list them with surrounding context." The debugging agent receives two focused extracts and reasons over them — not 400 lines of raw Go source.
+- A code review agent spanning 12 changed files dispatches Haiku readers to extract the diff hunks and their surrounding context for each file. The review agent sees structured summaries of what changed, not the full file contents that the diff tool returned.
+- A research agent analyzing a codebase for migration candidates sends Haiku sub-agents to scan specific directories and return inventory lists. The research agent plans the migration from inventories, not from raw `find` output.
+
 ## Prompt Phrasing Does Not Replace Domain Knowledge
 
 Ego-boosting prompts ("you have an IQ of 200+"), urgency framing ("production is down, my manager is watching"), and other emotional prompt engineering techniques produce small measurable effects (+9-12% on aggregate scores) but do not produce reliable, predictable improvements.
