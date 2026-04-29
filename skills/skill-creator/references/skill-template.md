@@ -6,32 +6,71 @@ Complete SKILL.md template with all required sections.
 
 ```yaml
 ---
-name: skill-slug-name
-description: |
+name: skill-slug-name                   # REQUIRED — must match directory name exactly
+description: |                           # REQUIRED — 1024 char max
   [WHAT it does — 1-2 sentences]. [WHEN to use it — trigger phrases users
   would actually say]. Use when user says "[phrase 1]", "[phrase 2]", or
   "[phrase 3]". Keep the scope specific enough that adjacent skills do not
   accidentally match.
-# Optional fields:
+# Optional top-level fields:
 # allowed-tools: [Read, Write, Bash, Grep, Glob]
 # compatibility: "Requires Python 3.10+, network access for API calls"
 # user-invocable: false
 # agent: golang-general-engineer
 # model: sonnet
-routing:
-  triggers:
+routing:                                 # REQUIRED — must be a mapping
+  triggers:                              # REQUIRED — non-empty list
     - keyword1
     - keyword2
-  pairs_with:
+  pairs_with:                            # Optional — MUST be under routing:, never top-level
     - related-skill
   complexity: Simple | Medium | Medium-Complex | Complex
-  category: language | infrastructure | review | meta | content
+  category: language | infrastructure | review | meta | content | voice | code-quality | analysis | testing | process | meta-tooling | git-workflow | frontend | research | security | decision-support | documentation | kubernetes | video-creation | image-generation | kotlin | php | swift | github  # REQUIRED
+  # force_route: true                    # Optional — only for skills that must bypass scoring
 ---
 ```
 
 **Description Formula**: `[WHAT] + [WHEN] + [capabilities] + [clear scope boundary when needed]`
 
 **Max length**: 1024 characters (Anthropic enforced limit)
+
+### Common Mistakes (Invalid Frontmatter)
+
+These patterns cause validation failures and silent routing breakage:
+
+```yaml
+# WRONG: pairs_with at top level (must be under routing:)
+---
+name: my-skill
+description: "Does something."
+pairs_with:                    # ERROR — this belongs under routing:
+  - other-skill
+routing:
+  triggers: [my skill]
+  category: engineering
+---
+
+# WRONG: force_routing instead of force_route
+---
+name: my-skill
+description: "Does something."
+routing:
+  triggers: [my skill]
+  category: engineering
+  force_routing: true          # ERROR — use force_route, not force_routing
+---
+
+# WRONG: missing routing: wrapper
+---
+name: my-skill
+description: "Does something."
+triggers:                      # ERROR — triggers must be under routing:
+  - my skill
+category: engineering          # ERROR — category must be under routing:
+---
+```
+
+Validate after writing: `python3 scripts/validate-skill-frontmatter.py skills/<name>/SKILL.md`
 
 **Triggering note**: Claude tends to "undertrigger" skills — not invoking them when they'd be helpful. To combat this, make descriptions slightly assertive. Instead of just stating what the skill does, explicitly list trigger contexts. Example: "Make sure to use this skill whenever the user mentions X, Y, or Z, even if they don't explicitly ask for it."
 

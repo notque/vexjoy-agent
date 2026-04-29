@@ -175,6 +175,17 @@ surface and the slash-command namespace; both are scarce.
 
 > See `references/skill-template.md` for the complete frontmatter template with all fields and valid values.
 
+**Frontmatter validation (mandatory post-write gate):** After writing SKILL.md,
+validate YAML frontmatter:
+
+```bash
+python3 scripts/validate-skill-frontmatter.py skills/<skill-name>/SKILL.md
+```
+
+Scaffold is not complete until this exits 0. The validator catches: broken YAML,
+name/directory mismatch, missing routing section, missing triggers, missing
+category, top-level `pairs_with`, and `force_routing` typo.
+
 The description is the primary triggering mechanism. Claude tends to undertrigger skills -- be explicit about trigger contexts. Include "Use for" with concrete phrases users would say.
 
 **Body** -- workflow first, then context:
