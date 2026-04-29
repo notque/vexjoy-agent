@@ -155,6 +155,7 @@ Load the relevant reference file(s) before implementing. References are loaded o
 | useState, useEffect, derived state, memo, useRef, transitions | [react-client-state-patterns.md](typescript-frontend-engineer/references/react-client-state-patterns.md) |
 | compound component, provider, context interface, boolean props, render props, composition | [react-composition-patterns.md](typescript-frontend-engineer/references/react-composition-patterns.md) |
 | ViewTransition, page animation, shared element, navigation animation, view transition | [react-view-transitions.md](typescript-frontend-engineer/references/react-view-transitions.md) |
+| security, auth, XSS, CSRF, SSRF, Server Action auth, middleware bypass | [nextjs-security.md](typescript-frontend-engineer/references/nextjs-security.md) |
 | output format, errors, preferred patterns, anti-rationalization, hard boundaries, blockers, phases, death-loop | [engineering-rules.md](typescript-frontend-engineer/references/engineering-rules.md) |
 
 **Reference Descriptions:**
