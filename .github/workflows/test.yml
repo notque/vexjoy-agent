@@ -14,11 +14,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install ruff
+      - run: pip install ruff pyyaml
       - run: ruff check . --config pyproject.toml
       - run: ruff format --check . --config pyproject.toml
       - run: python scripts/validate-references.py --check-do-framing
-      - run: pip install pyyaml
       - run: python scripts/validate-skill-frontmatter.py
 
   test:

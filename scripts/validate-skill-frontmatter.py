@@ -48,17 +48,17 @@ def validate_skill(filepath: Path, strict: bool = False) -> list[str]:
         List of error strings. Empty list means valid.
     """
     errors: list[str] = []
-    rel = str(filepath)
+    display_path = str(filepath)
 
     try:
         content = filepath.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as e:
-        return [f"{rel}: Cannot read file: {e}"]
+        return [f"{display_path}: Cannot read file: {e}"]
 
     # Extract frontmatter block
     match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
     if not match:
-        return [f"{rel}: No YAML frontmatter found (missing --- delimiters)"]
+        return [f"{display_path}: No YAML frontmatter found (missing --- delimiters)"]
 
     yaml_content = match.group(1)
 
@@ -66,59 +66,63 @@ def validate_skill(filepath: Path, strict: bool = False) -> list[str]:
     try:
         fm = yaml.safe_load(yaml_content)
     except yaml.YAMLError as e:
-        return [f"{rel}: YAML parse error: {e}"]
+        return [f"{display_path}: YAML parse error: {e}"]
 
     if not isinstance(fm, dict):
-        return [f"{rel}: Frontmatter is not a mapping (got {type(fm).__name__})"]
+        return [f"{display_path}: Frontmatter is not a mapping (got {type(fm).__name__})"]
 
     # Derive expected name from directory
     dir_name = filepath.parent.name
 
     # Check: name exists and matches directory
     if "name" not in fm:
-        errors.append(f"{rel}: Missing 'name' field")
+        errors.append(f"{display_path}: Missing 'name' field")
     elif fm["name"] != dir_name:
-        errors.append(f"{rel}: Name mismatch: '{fm['name']}' vs directory '{dir_name}'")
+        errors.append(f"{display_path}: Name mismatch: '{fm['name']}' vs directory '{dir_name}'")
 
     # Check: description exists and is non-empty
     desc = fm.get("description")
     if not desc or (isinstance(desc, str) and not desc.strip()):
-        errors.append(f"{rel}: Missing or empty description")
+        errors.append(f"{display_path}: Missing or empty description")
 
     # Check: routing section exists and is a dict
     routing = fm.get("routing")
     if routing is None:
-        errors.append(f"{rel}: Missing routing section")
+        errors.append(f"{display_path}: Missing routing section")
     elif not isinstance(routing, dict):
-        errors.append(f"{rel}: routing must be a mapping, got {type(routing).__name__}")
+        errors.append(f"{display_path}: routing must be a mapping, got {type(routing).__name__}")
     else:
         # Check: routing.triggers is non-empty list
         triggers = routing.get("triggers")
         if triggers is None:
-            errors.append(f"{rel}: Missing routing.triggers")
+            errors.append(f"{display_path}: Missing routing.triggers")
         elif not isinstance(triggers, list):
-            errors.append(f"{rel}: routing.triggers must be a list, got {type(triggers).__name__}")
+            errors.append(f"{display_path}: routing.triggers must be a list, got {type(triggers).__name__}")
         elif len(triggers) == 0:
-            errors.append(f"{rel}: routing.triggers is empty (need at least one trigger)")
+            errors.append(f"{display_path}: routing.triggers is empty (need at least one trigger)")
+
+        # Check: non-string trigger items
+        if isinstance(triggers, list) and any(not isinstance(t, str) for t in triggers):
+            errors.append(f"{display_path}: routing.triggers contains non-string items")
 
         # Check: routing.category exists
         if "category" not in routing:
-            errors.append(f"{rel}: Missing routing.category")
+            errors.append(f"{display_path}: Missing routing.category")
 
     # Check: pairs_with NOT at top level (must be under routing:)
     if "pairs_with" in fm:
-        errors.append(f"{rel}: pairs_with at top level; must be under routing:")
+        errors.append(f"{display_path}: pairs_with at top level; must be under routing:")
 
     # Check: no force_routing key anywhere (should be force_route)
     if _find_key_recursive(fm, "force_routing"):
-        errors.append(f"{rel}: Found 'force_routing'; use 'force_route'")
+        errors.append(f"{display_path}: Found 'force_routing'; use 'force_route'")
 
     # Strict mode: check optional fields
     if strict:
         if "version" not in fm:
-            errors.append(f"{rel}: [strict] Missing 'version' field")
+            errors.append(f"{display_path}: [strict] Missing 'version' field")
         if "allowed-tools" not in fm:
-            errors.append(f"{rel}: [strict] Missing 'allowed-tools' field")
+            errors.append(f"{display_path}: [strict] Missing 'allowed-tools' field")
 
     return errors
 

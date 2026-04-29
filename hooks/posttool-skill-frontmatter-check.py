@@ -71,8 +71,8 @@ def main():
                     print(f"  {line.strip()}")
             print("[skill-frontmatter] Fix frontmatter before proceeding.")
 
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[skill-frontmatter] hook error: {e}", file=sys.stderr)
     finally:
         sys.exit(0)
 
