@@ -357,6 +357,12 @@ Category overrides (regardless of complexity class). Always inject "Think carefu
 
 Record the injected directive in the Phase 2 Step 4 `--tags` field as `thinking:slow` (for "think carefully") or `thinking:fast` (for "respond quickly"), so the learning-db can correlate dispatch outcome with thinking-rate choice.
 
+**Complex-class context hygiene:** For Complex tasks involving multi-file investigation (3+ files), inject this instruction into the dispatched agent's prompt:
+
+"For data-gathering (reading files you won't edit, searching code, analyzing outputs), spawn Haiku sub-agents with directed prompts rather than reading directly. Give each sub-agent a specific question: 'read file X and return the section about Y' or 'search for pattern Z and list the matches with surrounding context.' Reason over the extracts they return, not raw file contents. This keeps your context clean for synthesis. Exception: files you will edit must be read directly (the Edit tool requires file content in your context)."
+
+This applies only to Complex-class tasks. Simple and Medium tasks typically read 1-3 files — the overhead of sub-agent dispatch outweighs the context benefit.
+
 Route to agents that create feature branches for all commits. Feature branches isolate the change so it ships cleanly after review, and the branch itself becomes the unit of review and revert.
 
 When dispatching agents for file modifications, explicitly include "commit your changes on the branch" in the agent prompt. That instruction closes the loop so the orchestrator sees the committed work and moves forward with it as the authoritative state.
