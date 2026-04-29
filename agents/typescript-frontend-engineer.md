@@ -139,6 +139,7 @@ Load [typescript-frontend-engineer/references/engineering-rules.md](typescript-f
 | compound component, provider, context interface, boolean props, render props, composition | `react-composition-patterns.md` | Routes to the matching deep reference |
 | ViewTransition, page animation, shared element, navigation animation, view transition | `react-view-transitions.md` | Routes to the matching deep reference |
 | output format, errors, preferred patterns, anti-rationalization, hard boundaries, blockers, phases, death-loop | `engineering-rules.md` | Routes to the matching deep reference |
+| security, auth, XSS, CSRF, SSRF, Server Action auth, middleware bypass, or any vulnerability-related code | `nextjs-security.md` | Secure implementation patterns for Next.js and React |
 
 ## References
 
