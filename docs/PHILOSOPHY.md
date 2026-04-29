@@ -4,6 +4,8 @@
 
 The principles behind the toolkit's architecture. These aren't aspirational. They're the decisions that shaped every agent, skill, hook, and pipeline in the system.
 
+This document states a deliberate, consistent perspective. A coherent viewpoint — even an imperfect one — enables iteration, debugging, and contributor alignment better than a collection of unconnected rules.
+
 ## Zero-Expertise Operation
 
 The system should require no specialized knowledge from the user. Say what you want done. The system handles the rest.
@@ -144,6 +146,8 @@ Spending tokens on the right context ensures correctness. Spending tokens on unf
 This does NOT mean "stuff more context." It means: dispatch parallel review agents, run deterministic validation scripts, create plans before executing, and never skip quality gates to save tokens. The token spend goes toward **breadth of analysis**, not depth of prompt. Breadth means more specialized agents, not longer prompts per agent. Each agent loads only the reference files its current task needs. Context that could be loaded on demand and is not — that is the waste.
 
 The primary lever is progressive disclosure. Each agent carries only the domain knowledge its current task requires. Reference files live on disk and are loaded when the phase needs them, not injected wholesale at session start. This is not token frugality for its own sake — it is how the model receives relevant signal without reasoning over noise.
+
+Good context costs tokens upfront but saves them downstream. A well-structured skill with the right reference files reduces backtracking, hallucinations, and rework — even if the initial prompt is longer. The expensive path is the one that sends the agent in blind and fixes mistakes after.
 
 Eager routing is non-negotiable. Dispatching agents is not a token cost to avoid; it is the core execution model. Under-loading context is as wrong as over-loading it — reference files are on disk for a reason. Load eagerly within the current task's scope.
 
@@ -357,6 +361,8 @@ Third, at n=1 per condition, individual task comparisons may be random variation
 - Verify claims programmatically. The fabricated proofs were undetectable by reading the output — they looked rigorous. Only running the algorithm against the stated examples caught the error. Deterministic verification catches what emotional prompting cannot.
 - Treat prompt phrasing experiments with the same rigor as any other engineering claim: measure, replicate, and do not ship on n=1.
 
+Emotional or ego-framing techniques — "you are the world's best programmer", "take a deep breath" — add minor, unpredictable variance at best. Domain knowledge, structured methodology, and taste beat motivational preambles every time.
+
 *Evidence: benchmark/iq-boost-ab-test/report.md (Experiment 1), benchmark/iq-boost-ab-test/emotion-vector-report.md (Experiment 2), benchmark/tone-ab-test/results.md (Experiment 3), benchmark/adaptive-thinking-ab-test/results.md (Experiment 4). Experiments 1-2 based on Anthropic's "Emotion Concepts Function" research on internal emotion vectors. Experiment 3 tested prompt-level tone independent of agent definitions. Experiment 4 tested CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING=1 (structural parameter, not prompt phrasing).*
 
 ## Anti-Rationalization as Infrastructure
@@ -364,6 +370,8 @@ Third, at n=1 per condition, individual task comparisons may be random variation
 The biggest risk is not malice but rationalization. "Already done" (assumption, not verification). "Code looks correct" (looking, not testing). "Should work" (should, not does).
 
 Anti-rationalization is not a nice-to-have. It's infrastructure, auto-injected into every code modification, review, security, and testing task. The toolkit makes it structurally difficult to skip verification, not just culturally discouraged.
+
+Hooks and verifier loops make rationalization structurally difficult. An agent can rationalize past an instruction; it cannot rationalize past an exit code or a failing test.
 
 ## Router as Orchestrator, Not Worker
 
@@ -461,6 +469,8 @@ Making a skill shorter by deleting content is not progressive disclosure — it'
 - Tested via `run_eval.py` against its own workspace
 - Reviewed as a single unit — all the tooling is visible in one tree
 - Deleted without orphaning dependencies elsewhere
+
+Skills should feel like they were written by one coherent mind. Inconsistent structure or stub skills that exist only to claim coverage dilute quality across the whole system. Maintenance artifacts — licenses, contribution guidelines, changelogs — stay out of runtime files.
 
 **Repo-level `scripts/`** is reserved for toolkit-wide operations (learning-db.py, INDEX generation) — tools that operate on the system as a whole, not on a single skill's workflow.
 
@@ -629,6 +639,10 @@ Ideas matter less than open sharing. In an AI-assisted world, provenance becomes
 - Convergent evolution is inevitable (others will build similar things independently)
 - Knowledge should spread and be understood, not gatekept
 - Collective progress beats individual credit
+
+Convergent evolution is expected and welcomed. When external work arrives at similar patterns through different paths, that validates the direction. Study it for what it got right, then rebuild aligned to this philosophy.
+
+The toolkit itself should embody its own principles. Ship good, evolving skills rather than waiting for unattainable perfection. A working skill that improves over three PRs is worth more than a perfect skill that ships never.
 
 We're all working through this together.
 
