@@ -25,7 +25,7 @@ routing:                                 # REQUIRED — must be a mapping
   pairs_with:                            # Optional — MUST be under routing:, never top-level
     - related-skill
   complexity: Simple | Medium | Medium-Complex | Complex
-  category: engineering                  # REQUIRED — string
+  category: language | infrastructure | review | meta | content | voice | code-quality | analysis | testing | process | meta-tooling | git-workflow | frontend | research | security | decision-support | documentation | kubernetes | video-creation | image-generation | kotlin | php | swift | github  # REQUIRED
   # force_route: true                    # Optional — only for skills that must bypass scoring
 ---
 ```
