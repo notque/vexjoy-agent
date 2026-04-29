@@ -56,20 +56,20 @@ Common errors and their solutions. See [typescript-errors.md](typescript-errors.
 
 Patterns to follow. See [typescript-anti-patterns.md](typescript-anti-patterns.md) for full catalog.
 
-### ❌ Using `any` to Bypass Type Errors
-**What it looks like**: `const data: any = await fetch('/api/users')`
-**Why wrong**: Defeats the purpose of TypeScript, loses autocomplete, allows runtime errors
-**✅ Do instead**: Define proper types and validate with Zod: `const UserSchema = z.object({...}); const users = UserSchema.array().parse(data)`
+### Define Proper Types Instead of `any`
+**Signal**: `const data: any = await fetch('/api/users')`
+**Why this matters**: Defeats the purpose of TypeScript, loses autocomplete, allows runtime errors
+**Preferred action**: Define proper types and validate with Zod: `const UserSchema = z.object({...}); const users = UserSchema.array().parse(data)`
 
-### ❌ Not Validating External Data
-**What it looks like**: `return response.json() as User` (type assertion without validation)
-**Why wrong**: API can return unexpected data, causes runtime errors, no protection against API changes
-**✅ Do instead**: Always validate: `const data = await response.json(); return UserSchema.parse(data)`
+### Validate External Data with Zod
+**Signal**: `return response.json() as User` (type assertion without validation)
+**Why this matters**: API can return unexpected data, causes runtime errors, no protection against API changes
+**Preferred action**: Always validate: `const data = await response.json(); return UserSchema.parse(data)`
 
-### ❌ Not Using Discriminated Unions for State
-**What it looks like**: `interface State { data?: T; error?: string; loading?: boolean }` (allows invalid states)
-**Why wrong**: Allows impossible states (loading + data + error), requires complex null checks, TypeScript can't narrow types
-**✅ Do instead**: Use discriminated unions: `type State<T> = { status: 'idle' } | { status: 'loading' } | { status: 'success'; data: T } | { status: 'error'; error: string }`
+### Use Discriminated Unions for State
+**Signal**: `interface State { data?: T; error?: string; loading?: boolean }` (allows invalid states)
+**Why this matters**: Allows impossible states (loading + data + error), requires complex null checks, TypeScript can't narrow types
+**Preferred action**: Use discriminated unions: `type State<T> = { status: 'idle' } | { status: 'loading' } | { status: 'success'; data: T } | { status: 'error'; error: string }`
 
 ## Anti-Rationalization
 

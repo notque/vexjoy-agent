@@ -156,7 +156,7 @@ grep -n '—' memory/MEMORY.md | sort -k3  # sort by description to spot semanti
 ## Pattern Catalog
 <!-- no-pair-required: section heading only, paired Do instead blocks appear in each sub-entry below -->
 
-### ❌ Writing MEMORY.md directly (non-atomic)
+### Write MEMORY.md via Atomic Rename
 
 **Detection**:
 ```bash
@@ -165,7 +165,7 @@ grep -rn 'MEMORY\.md' hooks/ scripts/ | grep -v '\.tmp' | grep -v 'read\|cat\|gr
 rg 'write.*MEMORY\.md(?!\.tmp)' --type py
 ```
 
-**What it looks like**:
+**Signal**:
 <!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
 ```python
 with open("memory/MEMORY.md", "w") as f:
@@ -173,11 +173,11 @@ with open("memory/MEMORY.md", "w") as f:
 # If interrupted here, MEMORY.md is partially written
 ```
 
-**Why wrong**: A partial write leaves MEMORY.md in an invalid state. The session-start hook reads this file to load context — a corrupted index means no memory injection at all until manually repaired.
+**Why this matters**: A partial write leaves MEMORY.md in an invalid state. The session-start hook reads this file to load context — a corrupted index means no memory injection at all until manually repaired.
 
-**Do instead**: Write all MEMORY.md updates to a `.tmp` file first, then use `os.rename()` to atomically replace the live index. The rename either fully succeeds or leaves the original intact — no partial state is possible.
+**Preferred action**: Write all MEMORY.md updates to a `.tmp` file first, then use `os.rename()` to atomically replace the live index. The rename either fully succeeds or leaves the original intact — no partial state is possible.
 
-**Fix**:
+**Preferred action**:
 ```python
 with open("memory/MEMORY.md.tmp", "w") as f:
     f.write(new_index_content)
@@ -186,7 +186,7 @@ os.rename("memory/MEMORY.md.tmp", "memory/MEMORY.md")
 
 ---
 
-### ❌ Deleting memory files instead of archiving
+### Archive Memory Files Instead of Deleting
 
 **Detection**:
 ```bash
@@ -195,17 +195,17 @@ grep -rn 'rm.*memory/' scripts/ hooks/
 rg 'os\.remove|os\.unlink|Path.*unlink' --type py | grep -i 'memory'
 ```
 
-**What it looks like**:
+**Signal**:
 <!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
 ```bash
 rm memory/stale-project-memory.md  # Unrecoverable if assessment was wrong
 ```
 
-**Why wrong**: Staleness assessment can be wrong. A memory that looks inactive (no recent git refs, no session refs) might still be valid ongoing guidance. Archive preserves reversibility; deletion does not. Dream cycle design rule: "Never delete files."
+**Why this matters**: Staleness assessment can be wrong. A memory that looks inactive (no recent git refs, no session refs) might still be valid ongoing guidance. Archive preserves reversibility; deletion does not. Dream cycle design rule: "Never delete files."
 
-**Do instead**: Move stale files to `memory/archive/` rather than deleting them. Archived files are out of active rotation but available for manual review if the staleness assessment turns out to be wrong.
+**Preferred action**: Move stale files to `memory/archive/` rather than deleting them. Archived files are out of active rotation but available for manual review if the staleness assessment turns out to be wrong.
 
-**Fix**:
+**Preferred action**:
 ```bash
 mkdir -p memory/archive/
 mv memory/stale-project-memory.md memory/archive/stale-project-memory.md
@@ -213,7 +213,7 @@ mv memory/stale-project-memory.md memory/archive/stale-project-memory.md
 
 ---
 
-### ❌ Auto-resolving conflicts between contradictory memories
+### Flag Contradictory Memories for Human Review
 
 **Detection**:
 ```bash
@@ -222,7 +222,7 @@ mv memory/stale-project-memory.md memory/archive/stale-project-memory.md
 grep -rn 'conflict\|contradict' scripts/ | grep -v 'flag\|report\|human'
 ```
 
-**What it looks like**:
+**Signal**:
 <!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
 ```
 Memory A: "Use ruff for Python linting"
@@ -230,15 +230,15 @@ Memory B: "Use flake8 for Python linting"
 → Auto-consolidation picks A because it's newer and deletes B
 ```
 
-**Why wrong**: The conflict may reflect a real, unresolved project decision. Auto-resolution buries the disagreement. The human reviewer needs to see both to make the call.
+**Why this matters**: The conflict may reflect a real, unresolved project decision. Auto-resolution buries the disagreement. The human reviewer needs to see both to make the call.
 
-**Do instead**: When CONSOLIDATE finds contradictory memories, leave both files untouched and record the conflict in the dream report under "Conflicts Requiring Review" with the exact contradiction described. Human judgment resolves the conflict on the next review cycle.
+**Preferred action**: When CONSOLIDATE finds contradictory memories, leave both files untouched and record the conflict in the dream report under "Conflicts Requiring Review" with the exact contradiction described. Human judgment resolves the conflict on the next review cycle.
 
-**Fix**: Leave both files untouched. Record in the dream report under "Conflicts Requiring Review" with the specific contradiction described. Do not modify either file.
+**Preferred action**: Leave both files untouched. Record in the dream report under "Conflicts Requiring Review" with the specific contradiction described. Do not modify either file.
 
 ---
 
-### ❌ Exceeding 200-line MEMORY.md index
+### Keep MEMORY.md Index Under 200 Lines
 
 **Detection**:
 ```bash
@@ -246,15 +246,15 @@ wc -l memory/MEMORY.md
 # Should be under 200 lines; every line after 200 is truncated in context injection
 ```
 
-**What it looks like**:
+**Signal**:
 <!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
 An index that grows unbounded as new memories are added without old ones being consolidated or archived, eventually exceeding the 200-line truncation limit.
 
-**Why wrong**: The session-start hook injects MEMORY.md contents. Context injection is truncated at 200 lines — memories after that line are silently excluded from session context, defeating the purpose of writing them.
+**Why this matters**: The session-start hook injects MEMORY.md contents. Context injection is truncated at 200 lines — memories after that line are silently excluded from session context, defeating the purpose of writing them.
 
-**Do instead**: Treat MEMORY.md line count as a managed resource. Each dream cycle should consolidate or archive at least as many memories as it adds. When the index approaches 150 lines, prioritize archiving stale project memories before adding new ones.
+**Preferred action**: Treat MEMORY.md line count as a managed resource. Each dream cycle should consolidate or archive at least as many memories as it adds. When the index approaches 150 lines, prioritize archiving stale project memories before adding new ones.
 
-**Fix**: Each dream cycle should consolidate at least as many memories as it adds. If MEMORY.md approaches 150 lines, prioritize archiving stale project memories in the next cycle.
+**Preferred action**: Each dream cycle should consolidate at least as many memories as it adds. If MEMORY.md approaches 150 lines, prioritize archiving stale project memories in the next cycle.
 
 ---
 

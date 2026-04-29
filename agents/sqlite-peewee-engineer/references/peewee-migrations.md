@@ -182,7 +182,7 @@ reads AND writes (default journal mode). Batching limits each lock window to `ba
 ## Pattern Catalog
 <!-- no-pair-required: section header with no content -->
 
-### ❌ Manual SQL for Schema Changes
+### Use Playhouse Migrate for Schema Changes
 
 **Detection**:
 ```bash
@@ -191,20 +191,20 @@ grep -rn 'execute_sql.*ALTER TABLE\|execute_sql.*CREATE TABLE\|execute_sql.*DROP
 rg 'execute_sql\([\'\"](ALTER|CREATE|DROP)' --type py
 ```
 
-**Do instead:** Use `playhouse.migrate` — see fix below.
+**Preferred action:** Use `playhouse.migrate` — see fix below.
 
-**What it looks like**:
+**Signal**:
 ```python
 # WRONG: Bypasses Playhouse migration tracking and SQLite safety checks
 db.execute_sql("ALTER TABLE user ADD COLUMN phone TEXT")
 db.execute_sql("DROP TABLE IF EXISTS temp_data")
 ```
 
-**Why wrong**: Raw schema SQL skips Playhouse's pre-flight checks (e.g., does column already
+**Why this matters**: Raw schema SQL skips Playhouse's pre-flight checks (e.g., does column already
 exist?), produces no migration record, and on SQLite may silently succeed when the operation
 has unintended side effects (like dropping all triggers on a table).
 
-**Do instead:**
+**Preferred action:**
 
 Use `playhouse.migrate` for all schema changes so operations are tracked, pre-flight checked,
 and wrapped in a single atomic call:
@@ -220,7 +220,7 @@ with db.atomic():
 
 ---
 
-### ❌ Adding NOT NULL Column Without Default on Non-Empty Table
+### Add Nullable Column First, Then Backfill
 
 **Detection**:
 ```bash
@@ -228,19 +228,19 @@ grep -rn 'add_column' --include="*.py" -A 2 | grep -v 'null=True\|default='
 rg 'add_column\([^)]*\)' --type py | grep -v 'null=True|default='
 ```
 
-**Do instead:** Add the column as `null=True` first, backfill existing rows, then constrain in a later migration.
+**Preferred action:** Add the column as `null=True` first, backfill existing rows, then constrain in a later migration.
 
-**What it looks like**:
+**Signal**:
 ```python
 # FAILS on any non-empty table — existing rows have no value for 'status'
 migrate(migrator.add_column('post', 'status', CharField()))
 ```
 
-**Why wrong**: SQLite requires all existing rows to have a valid value for the new column.
+**Why this matters**: SQLite requires all existing rows to have a valid value for the new column.
 A non-null column with no default fails with `OperationalError: Cannot add a NOT NULL column
 with default value NULL`.
 
-**Do instead:**
+**Preferred action:**
 
 Add the column as nullable, backfill existing rows, then enforce the constraint via a table
 rebuild in a separate migration if strictly required:
@@ -258,7 +258,7 @@ db.execute_sql("UPDATE post SET status = 'draft' WHERE status IS NULL")
 
 ---
 
-### ❌ Dropping Column on SQLite < 3.35
+### Guard Column Drop with SQLite Version Check
 
 **Detection**:
 ```bash
@@ -266,19 +266,19 @@ grep -rn 'drop_column' --include="*.py"
 rg 'migrator\.drop_column\(' --type py
 ```
 
-**Do instead:** Guard with a SQLite version check and fall back to a table rebuild on older SQLite.
+**Preferred action:** Guard with a SQLite version check and fall back to a table rebuild on older SQLite.
 
-**What it looks like**:
+**Signal**:
 ```python
 # Fails silently or errors on SQLite < 3.35
 migrate(migrator.drop_column('user', 'legacy_field'))
 ```
 
-**Why wrong**: `DROP COLUMN` was not supported in SQLite before version 3.35 (released 2021-03-12).
+**Why this matters**: `DROP COLUMN` was not supported in SQLite before version 3.35 (released 2021-03-12).
 Many Linux distributions ship SQLite 3.31 or earlier. Calling `drop_column()` on older SQLite
 either raises `OperationalError` or does nothing depending on Playhouse version.
 
-**Do instead:**
+**Preferred action:**
 
 Check the SQLite version at migration time and either call `drop_column()` on 3.35+ or raise
 with a clear message directing the developer to implement a table rebuild:
@@ -307,7 +307,7 @@ Ubuntu 22.04 LTS ships SQLite 3.37.2 (supports DROP COLUMN).
 
 ---
 
-### ❌ Running Schema Changes Outside Transaction
+### Wrap Schema Changes in a Single Transaction
 
 **Detection**:
 ```bash
@@ -315,9 +315,9 @@ grep -rn 'migrate(' --include="*.py" -B 3 | grep -v 'atomic\|with db'
 rg 'migrate\(' --type py -B 3 | grep -v 'atomic'
 ```
 
-**Do instead:** Wrap all `migrate()` calls in a single `db.atomic()` block so they commit together or roll back together.
+**Preferred action:** Wrap all `migrate()` calls in a single `db.atomic()` block so they commit together or roll back together.
 
-**What it looks like**:
+**Signal**:
 ```python
 migrator = SqliteMigrator(db)
 migrate(migrator.add_column('user', 'email', TextField(null=True)))  # No atomic()!
@@ -325,10 +325,10 @@ migrate(migrator.add_index('user', ('email',), False))               # Separate 
 # If second migrate() fails, first is committed — schema partially updated
 ```
 
-**Why wrong**: Each `migrate()` call is its own implicit transaction. If the second call fails,
+**Why this matters**: Each `migrate()` call is its own implicit transaction. If the second call fails,
 the first is already committed. The schema is now partially updated with no clean rollback path.
 
-**Do instead:**
+**Preferred action:**
 
 Pass all related operations to a single `migrate()` call inside `db.atomic()` so they form
 one atomic unit:

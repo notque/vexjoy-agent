@@ -114,7 +114,7 @@ Analysis pieces examine existing data, behavior, or systems. The finding comes f
 <!-- no-pair-required: section-header-only — catalog heading, individual blocks carry the do-framing -->
 ## Pattern Catalog
 
-### ❌ Clickbait Headers
+### Use Descriptive Headers
 
 **Detection**:
 ```bash
@@ -122,16 +122,16 @@ rg '^#{1,3} .*(Nobody|Everything|Changes Everything|Will Surprise|You Won.t Beli
 rg '^#{1,3} (The Problem|The Solution|Why This Matters|What Comes Next|The Future)$' --type md
 ```
 
-**What it looks like**:
+**Signal**:
 ```
 The Problem Nobody Saw Coming
 The Solution That Changes Everything
 What Happens Next Will Surprise You
 ```
 
-**Why wrong**: Clickbait headers delay information by making the reader read the section to find out what it covers. Descriptive headers function as navigation — the reader scans headers to find relevant sections.
+**Why this matters**: Clickbait headers delay information by making the reader read the section to find out what it covers. Descriptive headers function as navigation — the reader scans headers to find relevant sections.
 
-**Do instead:**
+**Preferred action:**
 ```markdown
 ### Why Schema Files Failed at Scale
 ### How Migration Scripts Fix Deployment Ordering
@@ -142,7 +142,7 @@ What Happens Next Will Surprise You
 
 ---
 
-### ❌ Missing Topic Sentences
+### Lead Each Paragraph with a Topic Sentence
 
 **Detection**:
 ```bash
@@ -150,16 +150,16 @@ grep -n '^This \|^It ' article.md | head -10
 grep -n '^However,\|^Additionally,\|^Furthermore,\|^Also,' article.md
 ```
 
-**What it looks like**:
+**Signal**:
 ```
 Rollback strategies are an important consideration when thinking about
 migrations. There are several things to keep in mind when approaching
 this problem...
 ```
 
-**Why wrong**: The first sentence doesn't state what the paragraph covers. "Important consideration" is a label, not information. The reader can't tell from the first sentence whether to keep reading this paragraph.
+**Why this matters**: The first sentence doesn't state what the paragraph covers. "Important consideration" is a label, not information. The reader can't tell from the first sentence whether to keep reading this paragraph.
 
-**Do instead:**
+**Preferred action:**
 ```
 The rollback strategy handles three failure modes. Syntax errors abort before
 any rows change. Partial constraint violations require row-level rollback.
@@ -168,33 +168,33 @@ Lock timeout failures leave the schema unchanged but require manual state verifi
 
 ---
 
-### ❌ Burying the Lead
+### State the Core Finding First
 
 **Detection**:
 ```bash
 awk '/^$/{para++} para>=3 && /[0-9]%|[0-9]ms|[A-Z][a-z]+ (changed|failed|broke)/{print NR": first concrete claim at paragraph "para; exit}' article.md
 ```
 
-**What it looks like**:
+**Signal**:
 ```
 [3 paragraphs of context and background]
 [Paragraph 4: "The system failed because the lock timeout was 30 seconds."]
 ```
 
-**Why wrong**: The reader has to read through context to find the information they came for. Technical readers skim; burying the lead means many readers miss the core point.
+**Why this matters**: The reader has to read through context to find the information they came for. Technical readers skim; burying the lead means many readers miss the core point.
 
-**Do instead:** State the core finding in the first paragraph. Use subsequent paragraphs to support, not to build up to.
+**Preferred action:** State the core finding in the first paragraph. Use subsequent paragraphs to support, not to build up to.
 
 ---
 
-### ❌ Unsupported Section Length
+### Develop or Remove Single-Paragraph Sections
 
 **Detection**:
 ```bash
 awk '/^#{1,3}/{section=$0} /^$/{if(para==1) print "Single-para section: "section; para=0} /^[^#]/{para++}' article.md
 ```
 
-**What it looks like**:
+**Signal**:
 ```
 Why This Matters
 
@@ -203,9 +203,9 @@ This is important because it affects system reliability.
 What To Do
 ```
 
-**Why wrong**: A section with one short paragraph is either padding (can be deleted) or incomplete (the idea wasn't developed). The journalist voice covers each point thoroughly or cuts it.
+**Why this matters**: A section with one short paragraph is either padding (can be deleted) or incomplete (the idea wasn't developed). The journalist voice covers each point thoroughly or cuts it.
 
-**Do instead:** Either develop the section with specific examples, data, or mechanisms — or remove the section header and fold the content into an adjacent paragraph.
+**Preferred action:** Either develop the section with specific examples, data, or mechanisms — or remove the section header and fold the content into an adjacent paragraph.
 
 ---
 
