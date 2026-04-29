@@ -256,4 +256,4 @@ for r in set(refs):
 ## See Also
 
 - `security-headers.md` — HSTS, CSP, and other response header validation
-- `endpoint-config-anti-patterns.md` — general configuration mistakes
+- `endpoint-config-preferred-patterns.md` — general configuration mistakes

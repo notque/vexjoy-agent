@@ -286,6 +286,6 @@ grep -rn 'setRequestHandler.*request.*=>' --include="*.ts" src/ | grep -v 'async
 
 ## See Also
 
-- `mcp-anti-patterns.md` — Front matter, caching, and URI anti-patterns catalog
+- `mcp-preferred-patterns.md` — Front matter, caching, and URI anti-patterns catalog
 - MCP Specification: https://spec.modelcontextprotocol.io/
 - SDK source: https://github.com/modelcontextprotocol/typescript-sdk

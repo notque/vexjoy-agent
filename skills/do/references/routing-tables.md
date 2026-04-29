@@ -74,7 +74,7 @@ Route to these agents based on the user's task domain. Each entry describes what
 | **e2e-testing** | User wants Playwright-based end-to-end testing: page object models, browser tests, test flakiness reduction. NOT: unit tests or integration tests (use test-driven-development or vitest-runner). |
 | **kotlin-coroutines** | User wants Kotlin structured concurrency patterns: coroutineScope, Flow, Channel, SupervisorJob, or dispatchers. Companion skill for kotlin-general-engineer. |
 | **kotlin-testing** | User wants Kotlin testing patterns: JUnit 5, Kotest, coroutine test dispatchers, MockK. Companion skill for kotlin-general-engineer. |
-| **testing-anti-patterns** | User wants to identify or fix flaky tests, or review tests for common anti-patterns. |
+| **testing-preferred-patterns** | User wants to identify or fix flaky tests, or review tests for common anti-patterns. |
 | **subagent-driven-development** | User wants to execute a complex plan using subagents in fresh contexts, or needs a two-stage review/implementation cycle. |
 | **workflow-orchestrator** | User wants to execute an existing plan with structured phases, or says "run the plan", "execute this". |
 | **parallel-code-review** | User wants comprehensive review of a codebase from multiple reviewer perspectives simultaneously. |

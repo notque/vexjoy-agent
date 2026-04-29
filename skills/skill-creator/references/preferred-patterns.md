@@ -68,7 +68,7 @@ Structure complex skills with SKILL.md as a thin orchestrator (~500 lines) and d
 └── references/
     ├── error-catalog.md (1200 lines)
     ├── code-examples.md (800 lines)
-    ├── anti-patterns.md (600 lines)
+    ├── preferred-patterns.md (600 lines)
     └── workflows.md (400 lines)
 ```
 

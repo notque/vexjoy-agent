@@ -32,7 +32,7 @@ def load_json_file(file_path: Path) -> Dict[str, Any]:
 def load_anti_patterns() -> Dict[str, Any]:
     """Load anti-patterns database."""
     skill_dir = Path(__file__).parent.parent
-    anti_patterns_path = skill_dir / "references" / "anti-patterns.json"
+    anti_patterns_path = skill_dir / "references" / "preferred-patterns.json"
 
     if not anti_patterns_path.exists():
         # Return default anti-patterns if file doesn't exist

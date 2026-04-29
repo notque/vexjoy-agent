@@ -563,7 +563,7 @@ class TestResolveAgentPairsWithPaths:
         entries = self._build_entries(
             extra_skills=[
                 {
-                    "name": "testing-anti-patterns",
+                    "name": "testing-preferred-patterns",
                     "triggers": ["testing anti-patterns", "flaky tests"],
                     "pairs_with": ["test-driven-development", "systematic-debugging"],
                 },
@@ -571,7 +571,7 @@ class TestResolveAgentPairsWithPaths:
         )
         candidate = index_router.Candidate(
             entry_type="skill",
-            name="testing-anti-patterns",
+            name="testing-preferred-patterns",
             score=0.6,
             agent=None,
         )

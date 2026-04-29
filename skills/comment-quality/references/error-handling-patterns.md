@@ -322,4 +322,4 @@ grep -rn '//.*\b(better|improved)\b.*\bfmt\.Errorf\|//.*fmt\.Errorf.*\b(better|i
 ## See Also
 
 - `go-comment-patterns.md` — Go-specific temporal patterns with goroutine and context focus
-- `anti-patterns.md` — complete temporal anti-pattern catalog across all languages
+- `preferred-patterns.md` — complete temporal anti-pattern catalog across all languages

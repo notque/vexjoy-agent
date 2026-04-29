@@ -198,7 +198,7 @@ This creates a flywheel: every failure makes the generator smarter, and every re
 
 ## Output Format and Error Handling
 
-Uses the **Planning Schema** (6 required sections: Discovery Report, Pipeline Spec, Execution Plan, Integration Checklist, Completion Report, Session Restart Notice). The Session Restart Notice is MANDATORY verbatim output after every pipeline creation. Error-fix mappings (Duplicate Component, Template Validation Failure, Routing Conflict, Chain Validation Failure, Domain Research Insufficient) and Preferred Patterns (5 patterns with preferred actions) are in [references/anti-patterns.md](references/anti-patterns.md). The Session Restart Notice verbatim text and output schema are in [references/orchestration-patterns.md](references/orchestration-patterns.md).
+Uses the **Planning Schema** (6 required sections: Discovery Report, Pipeline Spec, Execution Plan, Integration Checklist, Completion Report, Session Restart Notice). The Session Restart Notice is MANDATORY verbatim output after every pipeline creation. Error-fix mappings (Duplicate Component, Template Validation Failure, Routing Conflict, Chain Validation Failure, Domain Research Insufficient) and Preferred Patterns (5 patterns with preferred actions) are in [references/preferred-patterns.md](references/preferred-patterns.md). The Session Restart Notice verbatim text and output schema are in [references/orchestration-patterns.md](references/orchestration-patterns.md).
 
 ## Anti-Rationalization
 
@@ -235,15 +235,15 @@ Load these files when the matched signal appears in the task:
 | Signal | Reference File | When to Load |
 |--------|---------------|--------------|
 | Sub-agent dispatch, fan-out, parallel scaffolding, output schema, Session Restart Notice, capabilities | `references/orchestration-patterns.md` | Before any Phase 3 SCAFFOLD or when preparing sub-agent context packages |
-| Pattern detection, duplicate component, skipping discovery, routing conflict, error-fix mappings, preferred patterns | `references/anti-patterns.md` | Before Phase 1 DISCOVER, before Phase 4 INTEGRATE, when reviewing pipeline for issues |
-| Error from `validate-chain`, `audit-tool-restrictions`, `adr-query` | `references/anti-patterns.md` (Error-Fix Mappings section) | When any of these scripts returns an error |
+| Pattern detection, duplicate component, skipping discovery, routing conflict, error-fix mappings, preferred patterns | `references/preferred-patterns.md` | Before Phase 1 DISCOVER, before Phase 4 INTEGRATE, when reviewing pipeline for issues |
+| Error from `validate-chain`, `audit-tool-restrictions`, `adr-query` | `references/preferred-patterns.md` (Error-Fix Mappings section) | When any of these scripts returns an error |
 | Gate enforcement, phase transition, fan-in collection | `references/orchestration-patterns.md` (Phase Gate Enforcement section) | Before transitioning between any two phases |
 
 ## References
 
 For detailed information:
 - **Orchestration Patterns**: [references/orchestration-patterns.md](references/orchestration-patterns.md)
-- **Preferred Patterns**: [references/anti-patterns.md](references/anti-patterns.md)
+- **Preferred Patterns**: [references/preferred-patterns.md](references/preferred-patterns.md)
 - **Workflow Skill**: [workflow/SKILL.md](../skills/workflow/SKILL.md)
 - **Agent Template**: [AGENT_TEMPLATE_V2.md](../AGENT_TEMPLATE_V2.md)
 - **Artifact Utilities**: [artifact-utils.py](../scripts/artifact-utils.py)

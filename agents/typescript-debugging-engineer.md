@@ -140,7 +140,7 @@ Test Plan: [How to reproduce]
 |---|---|---|
 | workflow steps | `debugging-workflows.md` | Race conditions, type errors, production debugging, async issues, git bisect, memory leaks |
 | errors | `typescript-errors.md` | Build errors, type system errors, React errors |
-| implementation patterns | `typescript-anti-patterns.md` | Preferred patterns and detection |
+| implementation patterns | `typescript-preferred-patterns.md` | Preferred patterns and detection |
 
 ## Error Handling
 
@@ -160,7 +160,7 @@ Common debugging scenarios and approaches. See [references/debugging-workflows.m
 
 ## Preferred Patterns
 
-Debugging patterns to follow. See [typescript-frontend-engineer/references/typescript-anti-patterns.md](../typescript-frontend-engineer/references/typescript-anti-patterns.md) for TypeScript-specific patterns.
+Debugging patterns to follow. See [typescript-frontend-engineer/references/typescript-preferred-patterns.md](../typescript-frontend-engineer/references/typescript-preferred-patterns.md) for TypeScript-specific patterns.
 
 ### Guessing Without Hypothesis
 **What it looks like**: "Try changing X", "Maybe add this check", "What if you use Y instead"
@@ -256,6 +256,6 @@ These checkpoints are mandatory. Do not skip them even when confident.
 For detailed debugging workflows:
 - **Debugging Workflows**: [typescript-debugging-engineer/references/debugging-workflows.md](typescript-debugging-engineer/references/debugging-workflows.md) - Race conditions, type errors, production debugging, async issues, git bisect, memory leaks
 - **TypeScript Errors**: [typescript-frontend-engineer/references/typescript-errors.md](../typescript-frontend-engineer/references/typescript-errors.md) - Build errors, type system errors, React errors
-- **TypeScript Pattern Detection**: [typescript-frontend-engineer/references/typescript-anti-patterns.md](../typescript-frontend-engineer/references/typescript-anti-patterns.md) - Preferred patterns and detection
+- **TypeScript Pattern Detection**: [typescript-frontend-engineer/references/typescript-preferred-patterns.md](../typescript-frontend-engineer/references/typescript-preferred-patterns.md) - Preferred patterns and detection
 
 See [shared-patterns/output-schemas.md](../skills/shared-patterns/output-schemas.md) for output format details.

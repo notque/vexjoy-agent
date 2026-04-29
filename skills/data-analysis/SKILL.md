@@ -48,7 +48,7 @@ Every analysis begins with the decision being supported, works backward to the e
 
 | Signal | Load These Files | Why |
 |---|---|---|
-| implementation patterns | `anti-patterns.md` | Loads detailed guidance from `anti-patterns.md`. |
+| implementation patterns | `preferred-patterns.md` | Loads detailed guidance from `preferred-patterns.md`. |
 | example-driven tasks | `compute-examples.md` | Loads detailed guidance from `compute-examples.md`. |
 | errors, error handling | `error-handling.md` | Loads detailed guidance from `error-handling.md`. |
 | tasks related to this reference | `output-templates.md` | Loads detailed guidance from `output-templates.md`. |
@@ -242,7 +242,7 @@ Save `analysis-report.md` using the template from `references/output-templates.m
 | Any phase -- saving an artifact file | `references/output-templates.md` |
 | Working examples of the full 5-phase flow | `references/worked-examples.md` |
 | Data parse failure, segment size issue, definition revision | `references/error-handling.md` |
-| Anti-pattern recognition (p-hacking, survivorship bias, etc.) | `references/anti-patterns.md` |
+| Anti-pattern recognition (p-hacking, survivorship bias, etc.) | `references/preferred-patterns.md` |
 
 ---
 
@@ -253,4 +253,4 @@ Save `analysis-report.md` using the template from `references/output-templates.m
 - **Compute Examples**: `references/compute-examples.md` - Python computation patterns for extraction and analysis
 - **Worked Examples**: `references/worked-examples.md` - Three end-to-end examples (A/B test, trend, distribution)
 - **Error Handling**: `references/error-handling.md` - Error recovery procedures and blocker criteria
-- **Anti-Patterns**: `references/anti-patterns.md` - Extended pattern catalog with code examples
+- **Anti-Patterns**: `references/preferred-patterns.md` - Extended pattern catalog with code examples

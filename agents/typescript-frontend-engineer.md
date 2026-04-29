@@ -131,7 +131,7 @@ Load [typescript-frontend-engineer/references/engineering-rules.md](typescript-f
 | Signal | Load These Files | Why |
 |---|---|---|
 | type error, build error, tsc, tsconfig, compilation | `typescript-errors.md` | Routes to the matching deep reference |
-| any, type assertion, validation, pattern detection | `typescript-anti-patterns.md` | Routes to the matching deep reference |
+| any, type assertion, validation, pattern detection | `typescript-preferred-patterns.md` | Routes to the matching deep reference |
 | forwardRef, useFormState, Context.Provider, React 19 migration | `react19-typescript-patterns.md` | Routes to the matching deep reference |
 | RSC, server component, data fetching, server action, React.cache, LRU, serialization | `react-server-patterns.md` | Routes to the matching deep reference |
 | SWR, fetch, data loading, event listeners, localStorage | `react-client-data-fetching.md` | Routes to the matching deep reference |
@@ -147,7 +147,7 @@ Load the relevant reference file(s) before implementing. References are loaded o
 | Task Keywords | Reference File |
 |---------------|---------------|
 | type error, build error, tsc, tsconfig, compilation | [typescript-errors.md](typescript-frontend-engineer/references/typescript-errors.md) |
-| any, type assertion, validation, pattern detection | [typescript-anti-patterns.md](typescript-frontend-engineer/references/typescript-anti-patterns.md) |
+| any, type assertion, validation, pattern detection | [typescript-preferred-patterns.md](typescript-frontend-engineer/references/typescript-preferred-patterns.md) |
 | forwardRef, useFormState, Context.Provider, React 19 migration | [react19-typescript-patterns.md](typescript-frontend-engineer/references/react19-typescript-patterns.md) |
 | RSC, server component, data fetching, server action, React.cache, LRU, serialization | [react-server-patterns.md](typescript-frontend-engineer/references/react-server-patterns.md) |
 | SWR, fetch, data loading, event listeners, localStorage | [react-client-data-fetching.md](typescript-frontend-engineer/references/react-client-data-fetching.md) |
@@ -158,7 +158,7 @@ Load the relevant reference file(s) before implementing. References are loaded o
 
 **Reference Descriptions:**
 - **typescript-errors.md** — Build errors, type system errors, React errors, form errors, API errors, performance issues
-- **typescript-anti-patterns.md** — Pattern detection: using any, over-engineering types, not validating data, ignoring errors, incorrect state patterns, type vs interface confusion, deprecated React patterns
+- **typescript-preferred-patterns.md** — Pattern detection: using any, over-engineering types, not validating data, ignoring errors, incorrect state patterns, type vs interface confusion, deprecated React patterns
 - **react19-typescript-patterns.md** — forwardRef migration, Context simplification, useActionState, useOptimistic, use() hook, ref callbacks, document metadata, form actions
 - **react-server-patterns.md** — RSC parallel fetching, React.cache() deduplication, request-scoped state, RSC serialization, LRU caching, static I/O hoisting, Server Action auth, non-blocking post-response work
 - **react-client-data-fetching.md** — SWR deduplication, global listener deduplication, passive event listeners, localStorage versioning and schema migration patterns

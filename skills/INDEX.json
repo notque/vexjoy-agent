@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-04-28T20:39:19Z",
+  "generated": "2026-04-29T00:21:33Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -2030,7 +2030,7 @@
       "user_invocable": false,
       "pairs_with": [
         "verification-before-completion",
-        "testing-anti-patterns",
+        "testing-preferred-patterns",
         "vitest-runner"
       ]
     },
@@ -2051,8 +2051,8 @@
         "subagent-driven-development"
       ]
     },
-    "testing-anti-patterns": {
-      "file": "skills/testing-anti-patterns/SKILL.md",
+    "testing-preferred-patterns": {
+      "file": "skills/testing-preferred-patterns/SKILL.md",
       "description": "Identify and fix testing mistakes: flaky, brittle, over-mocked tests.",
       "triggers": [
         "flaky test",
