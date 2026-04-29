@@ -239,6 +239,12 @@
             "command": "python3 \"$HOME/.claude/hooks/posttool-security-scan.py\"",
             "description": "Advisory scan for credentials and SQL injection in Write/Edit output",
             "timeout": 3000
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/posttool-skill-frontmatter-check.py\"",
+            "description": "Validate skill YAML frontmatter after Write/Edit on SKILL.md files",
+            "timeout": 5000
           }
         ]
       },
