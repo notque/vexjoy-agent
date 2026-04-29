@@ -118,7 +118,7 @@ Decision unchanged.
 ## Pattern Catalog
 <!-- no-pair-required: section header with no content -->
 
-### ❌ Proposed to Implemented Without Accepted Step
+### Include Accepted Step Before Implementing
 
 **Detection**:
 ```bash
@@ -129,26 +129,26 @@ grep -rn "Implemented" adr/*.md | cut -d: -f1 | sort -u | xargs grep -L "Accepte
 grep -rn "Implemented" adr/*.md | cut -d: -f1 | sort -u | xargs grep -L "Validation Criteria"
 ```
 
-**What it looks like**: <!-- no-pair-required: sub-block split by code-comment heading; Do instead is inline below -->
+**Signal**: <!-- no-pair-required: sub-block split by code-comment heading; Do instead is inline below -->
 ```markdown
 ## Status
 Implemented — 2026-04-15
 # (no Accepted state, no Validation Criteria section)
 ```
 
-**Do instead:** Add an explicit `Accepted` state before `Implemented`. See the positive guidance below.
+**Preferred action:** Add an explicit `Accepted` state before `Implemented`. See the positive guidance below.
 
-**Why wrong**: Skipping `Accepted` means the decision was never formally reviewed and alternatives were never documented. `Implemented` status becomes meaningless — it cannot be distinguished from "I started writing code" versus "all criteria verified."
+**Why this matters**: Skipping `Accepted` means the decision was never formally reviewed and alternatives were never documented. `Implemented` status becomes meaningless — it cannot be distinguished from "I started writing code" versus "all criteria verified."
 
-**Do instead:**
+**Preferred action:**
 
 Add an explicit `Accepted` state with a completed `## Alternatives Considered` section and a checkable `## Validation Criteria` section before moving to `Implemented`. Run `grep -L "Accepted" adr/*.md` to find ADRs that skipped this step.
 
-**Fix**: Add an `Accepted` block with alternatives and validation criteria, then re-evaluate whether `Implemented` is truly warranted.
+**Preferred action**: Add an `Accepted` block with alternatives and validation criteria, then re-evaluate whether `Implemented` is truly warranted.
 
 ---
 
-### ❌ Deleting ADRs Instead of Superseding or Rejecting
+### Supersede or Reject ADRs, Never Delete
 
 **Detection**:
 ```bash
@@ -167,17 +167,17 @@ if nums:
 "
 ```
 
-**Why wrong**: Deleting an ADR erases the decision history. Future contributors cannot tell whether a feature was rejected (do not implement it) or just never decided (still open). The absence looks like a gap in thinking rather than a deliberate choice.
+**Why this matters**: Deleting an ADR erases the decision history. Future contributors cannot tell whether a feature was rejected (do not implement it) or just never decided (still open). The absence looks like a gap in thinking rather than a deliberate choice.
 
-**Do instead:**
+**Preferred action:**
 
 Set the status to `Rejected — YYYY-MM-DD. [one-line reason]` or `Superseded — YYYY-MM-DD. Superseded by ADR-NNN.` The file stays in `adr/` permanently. Run the numbering-gap detection script to find any ADRs that were already deleted and document the gap.
 
-**Fix**: Set status to `Rejected — YYYY-MM-DD. [reason]` or `Superseded — YYYY-MM-DD. Superseded by ADR-NNN.` Never delete.
+**Preferred action**: Set status to `Rejected — YYYY-MM-DD. [reason]` or `Superseded — YYYY-MM-DD. Superseded by ADR-NNN.` Never delete.
 
 ---
 
-### ❌ Missing Date in Status Line
+### Include Date in Every Status Line
 
 **Detection**:
 ```bash
@@ -188,30 +188,30 @@ grep -n "^## Status" adr/*.md -A1 | grep -v " — [0-9]\|^adr\|^--\|^$"
 grep -rn "^Proposed\|^Accepted\|^Implemented\|^Superseded\|^Rejected" adr/*.md | grep -v " — 20[0-9][0-9]-"
 ```
 
-**What it looks like**: <!-- no-pair-required: sub-block split by code-comment heading; Do instead is inline below -->
+**Signal**: <!-- no-pair-required: sub-block split by code-comment heading; Do instead is inline below -->
 ```markdown
 ## Status
 Implemented
 ```
 
-**Do instead:** Always append ` — YYYY-MM-DD` to every status line. See the positive guidance below.
+**Preferred action:** Always append ` — YYYY-MM-DD` to every status line. See the positive guidance below.
 
-**Why wrong**: `scripts/adr-status.py` parses the date from the status line to compute age and detect stale proposals. Missing dates silently break age-based reporting and make the audit trail unreliable.
+**Why this matters**: `scripts/adr-status.py` parses the date from the status line to compute age and detect stale proposals. Missing dates silently break age-based reporting and make the audit trail unreliable.
 
-**Do instead:**
+**Preferred action:**
 
 Always write the full status line: `Proposed — YYYY-MM-DD` (or `Accepted`, `Implemented`, `Superseded`, `Rejected`). Use the detection command `grep -rn "^Proposed\|^Accepted\|^Implemented" adr/*.md | grep -v " — 20"` to find lines missing the date.
 
-**Fix**: Always append ` — YYYY-MM-DD` to every status line.
+**Preferred action**: Always append ` — YYYY-MM-DD` to every status line.
 
 ---
 
-### ❌ Validation Criteria Written After Marking Implemented
+### Write Validation Criteria During Accepted Phase
 
-**What it looks like**:
+**Signal**:
 Criteria written in future tense ("will verify", "should check") or added to the ADR after the `Implemented` date stamp.
 
-**Do instead:** Write criteria in present-tense checkboxes during the `Accepted` phase, before any implementation begins. See the positive guidance below.
+**Preferred action:** Write criteria in present-tense checkboxes during the `Accepted` phase, before any implementation begins. See the positive guidance below.
 
 **Detection**:
 ```bash
@@ -219,13 +219,13 @@ Criteria written in future tense ("will verify", "should check") or added to the
 grep -rn "will verify\|should check\|to be verified\|TBD" adr/*.md
 ```
 
-**Why wrong**: Validation criteria written after the fact are retroactive justifications, not pre-agreed standards. They cannot prove the implementation met a standard that didn't exist when work was done.
+**Why this matters**: Validation criteria written after the fact are retroactive justifications, not pre-agreed standards. They cannot prove the implementation met a standard that didn't exist when work was done.
 
-**Do instead:**
+**Preferred action:**
 
 Write validation criteria as present-tense checkboxes in the `## Validation Criteria` section while the ADR is in `Accepted` state. Each criterion must be falsifiable: a specific command to run or a specific condition to check. Only mark `Implemented` after every checkbox is confirmed.
 
-**Fix**: Write criteria in present tense as checkboxes during the `Accepted` phase. Mark each criterion complete only when verified during implementation.
+**Preferred action**: Write criteria in present tense as checkboxes during the `Accepted` phase. Mark each criterion complete only when verified during implementation.
 
 ---
 

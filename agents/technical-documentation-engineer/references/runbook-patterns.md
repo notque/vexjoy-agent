@@ -146,7 +146,7 @@ If any prerequisite fails, escalate to `#oncall-platform` immediately.
 
 <!-- no-pair-required: section header with no content -->
 
-### ❌ Vague Symptoms Section
+### List Concrete Observable Symptoms
 
 **Detection**:
 ```bash
@@ -154,9 +154,9 @@ grep -n "may\|might\|could\|possibly\|sometimes" runbooks/**/*.md | grep -i "sym
 rg "(may|might|could) (be|indicate|suggest|mean)" --glob "runbooks/**/*.md"
 ```
 
-**Do instead:** List each symptom as a concrete, named signal: the exact alert expression that fired, the observed user-facing failure, and a dashboard URL. Every symptom must be specific enough that the oncall engineer can confirm the diagnosis without guessing.
+**Preferred action:** List each symptom as a concrete, named signal: the exact alert expression that fired, the observed user-facing failure, and a dashboard URL. Every symptom must be specific enough that the oncall engineer can confirm the diagnosis without guessing.
 
-**What it looks like**:
+**Signal**:
 ```markdown
 ## Symptoms
 <!-- no-pair-required: example code block fragment, not an individual anti-pattern block -->
@@ -164,11 +164,11 @@ The service may be experiencing issues. Performance might degrade under load.
 Users could see errors.
 ```
 
-**Why wrong**: "May be experiencing issues" is a description of the alert condition, not the symptom. The oncall engineer is reading this because they got paged — they already know something is wrong. They need to know what specific signal confirms the diagnosis.
+**Why this matters**: "May be experiencing issues" is a description of the alert condition, not the symptom. The oncall engineer is reading this because they got paged — they already know something is wrong. They need to know what specific signal confirms the diagnosis.
 
-**Do instead:** Write symptoms as concrete, observable signals: the exact alert name and threshold that fired, the user-visible behavior (specific action that fails), and a link to the relevant dashboard. The oncall engineer should be able to confirm they are looking at the right problem with a single glance.
+**Preferred action:** Write symptoms as concrete, observable signals: the exact alert name and threshold that fired, the user-visible behavior (specific action that fails), and a link to the relevant dashboard. The oncall engineer should be able to confirm they are looking at the right problem with a single glance.
 
-**Fix**:
+**Preferred action**:
 ```markdown
 ## Symptoms
 <!-- no-pair-required: example code block fragment, not an individual anti-pattern block -->
@@ -179,7 +179,7 @@ Users could see errors.
 
 ---
 
-### ❌ Fix Steps Without Verification
+### Add Verification After Every Fix Step
 
 **Detection**:
 ```bash
@@ -191,7 +191,7 @@ grep -n "kubectl\|curl\|systemctl\|service\b" runbooks/**/*.md \
 grep -A5 "^## Fix\|^## Resolution" runbooks/**/*.md | grep -c "verify\|confirm\|check"
 ```
 
-**What it looks like**:
+**Signal**:
 ```markdown
 ## Fix
 <!-- no-pair-required: example code block fragment, not an individual anti-pattern block -->
@@ -203,11 +203,11 @@ kubectl rollout restart deploy/checkout -n prod
 ```
 *(no verification step after)*
 
-**Why wrong**: The restart command runs but the deployment might fail (OOMKilled, ImagePullError). The oncall engineer thinks they fixed it but the pods are crash-looping. The alert fires again in 2 minutes.
+**Why this matters**: The restart command runs but the deployment might fail (OOMKilled, ImagePullError). The oncall engineer thinks they fixed it but the pods are crash-looping. The alert fires again in 2 minutes.
 
-**Do instead:** Follow every fix command with a verification step that checks the expected outcome explicitly. The verification command must show what "success" looks like (e.g., `"successfully rolled out"`) so the engineer knows whether the fix worked before closing the incident.
+**Preferred action:** Follow every fix command with a verification step that checks the expected outcome explicitly. The verification command must show what "success" looks like (e.g., `"successfully rolled out"`) so the engineer knows whether the fix worked before closing the incident.
 
-**Fix**:
+**Preferred action**:
 ```markdown
 Restart the service:
 ```bash
@@ -229,7 +229,7 @@ kubectl describe pod -n prod -l app=checkout | tail -20
 
 ---
 
-### ❌ Escalation Section Without Contact Details
+### Include Named Channels in Escalation
 
 **Detection**:
 ```bash
@@ -238,9 +238,9 @@ grep -n "escalate\|contact\|reach out\|ask" runbooks/**/*.md \
 rg "escalate to (the )?team|contact support" --glob "runbooks/**/*.md"
 ```
 
-**Do instead:** Write escalation steps with named Slack channels, PagerDuty policy names, and time thresholds (e.g., "If not resolved in 15 minutes, post in `#oncall-platform`"). Every escalation path must be actionable without prior knowledge of the team structure.
+**Preferred action:** Write escalation steps with named Slack channels, PagerDuty policy names, and time thresholds (e.g., "If not resolved in 15 minutes, post in `#oncall-platform`"). Every escalation path must be actionable without prior knowledge of the team structure.
 
-**What it looks like**:
+**Signal**:
 ```markdown
 ## Escalation
 <!-- no-pair-required: example code block fragment, not an individual anti-pattern block -->
@@ -248,11 +248,11 @@ rg "escalate to (the )?team|contact support" --glob "runbooks/**/*.md"
 If the issue persists, escalate to the platform team.
 ```
 
-**Why wrong**: "The platform team" doesn't exist at 2am — specific people and channels do. Vague escalation paths cause delay while the oncall engineer asks "who is the platform team?"
+**Why this matters**: "The platform team" doesn't exist at 2am — specific people and channels do. Vague escalation paths cause delay while the oncall engineer asks "who is the platform team?"
 
-**Do instead:** Name specific Slack channels, PagerDuty policies, and war room links with a time threshold for each escalation step. Include a brief summary of what information to include when escalating (alert link, pod state, what was tried), so the engineer doesn't have to improvise under stress.
+**Preferred action:** Name specific Slack channels, PagerDuty policies, and war room links with a time threshold for each escalation step. Include a brief summary of what information to include when escalating (alert link, pod state, what was tried), so the engineer doesn't have to improvise under stress.
 
-**Fix**:
+**Preferred action**:
 ```markdown
 ## Escalation
 <!-- no-pair-required: example code block fragment, not an individual anti-pattern block -->
@@ -266,7 +266,7 @@ If not resolved in 15 minutes:
 
 ---
 
-### ❌ Missing Rollback Procedure for Deploy Runbooks
+### Include Rollback Section in Deploy Runbooks
 
 **Detection**:
 ```bash
@@ -278,13 +278,13 @@ grep -l "deploy\|release" runbooks/**/*.md \
   | xargs grep -L "rollback\|undo\|revert"
 ```
 
-**What it looks like**: A deploy runbook with steps to apply a new version, but no section on what to do if the deploy breaks production.
+**Signal**: A deploy runbook with steps to apply a new version, but no section on what to do if the deploy breaks production.
 
-**Why wrong**: When a deploy causes a P0, the first question is "how do we roll back?" A missing rollback section means someone must figure this out under pressure without documentation.
+**Why this matters**: When a deploy causes a P0, the first question is "how do we roll back?" A missing rollback section means someone must figure this out under pressure without documentation.
 
-**Do instead:** Add a `## Rollback` section to every deploy runbook with the exact rollback command, the verification step confirming the previous version is running, and the post-rollback action (e.g., file an incident review ticket). Rollback is not an afterthought — it is a required section.
+**Preferred action:** Add a `## Rollback` section to every deploy runbook with the exact rollback command, the verification step confirming the previous version is running, and the post-rollback action (e.g., file an incident review ticket). Rollback is not an afterthought — it is a required section.
 
-**Fix**: Every deploy runbook needs:
+**Preferred action**: Every deploy runbook needs:
 ```markdown
 ## Rollback
 

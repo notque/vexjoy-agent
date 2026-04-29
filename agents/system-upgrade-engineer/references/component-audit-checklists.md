@@ -159,7 +159,7 @@ grep -B 1 "No trigger\|no keywords\|\[\]" skills/do/references/routing-tables.md
 <!-- no-pair-required: section header, not a standalone anti-pattern block -->
 ## Pattern Catalog
 
-### ❌ Auditing File Names Without Opening Files
+### Open and Read Component Frontmatter During Audit
 
 **Detection**:
 ```bash
@@ -168,7 +168,7 @@ grep -c "triggers:\|allowed-tools:\|model:" task_plan.md
 # Should be > 0 for a real audit
 ```
 
-**Why wrong**: File existence confirms a component exists; it does not confirm it's stale or
+**Why this matters**: File existence confirms a component exists; it does not confirm it's stale or
 current. Triggers that are never phrased by actual users will never route. A model name frozen
 at an old value will use the wrong capability tier.
 
@@ -176,7 +176,7 @@ Do instead: Open and read each component's frontmatter and body. Check specific 
 
 ---
 
-### ❌ Running Comprehensive Audit for a Scoped Change
+### Scope Audit to Affected Component Types
 
 **Detection**:
 ```bash
@@ -185,7 +185,7 @@ wc -l task_plan.md
 # An audit for 2 hooks should not produce a 500-line task plan
 ```
 
-**Why wrong**: Auditing 120+ skills for a single hook event change produces noise and makes
+**Why this matters**: Auditing 120+ skills for a single hook event change produces noise and makes
 it impossible to distinguish affected from unaffected components. Tier assignment degrades.
 
 Do instead: Scope audit to the component types identified in the Change Manifest signal column.

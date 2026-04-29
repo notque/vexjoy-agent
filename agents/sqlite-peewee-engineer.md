@@ -173,15 +173,15 @@ Peewee/SQLite patterns to follow.
 **Preferred action**: `users = User.select().prefetch(Post); for user in users: print(len(user.posts))`
 **Why this matters**: `for user in User.select(): print(user.posts.count())` executes a separate query per user, which is very slow
 
-### ❌ No Transactions for Multi-Step Operations
-**What it looks like**: `user.save(); post.save(); comment.save()` without atomic()
-**Why wrong**: Partial commit on error, data inconsistency
-**✅ Do instead**: `with db.atomic(): user.save(); post.save(); comment.save()`
+### Wrap Multi-Step Operations in atomic()
+**Signal**: `user.save(); post.save(); comment.save()` without atomic()
+**Why this matters**: Partial commit on error, data inconsistency
+**Preferred action**: `with db.atomic(): user.save(); post.save(); comment.save()`
 
-### ❌ Manual SQL for Schema Changes
-**What it looks like**: `db.execute_sql("ALTER TABLE users ADD COLUMN email TEXT")`
-**Why wrong**: No rollback, not tracked, SQLite ALTER limitations
-**✅ Do instead**: Use playhouse.migrate: `migrator.add_column('users', 'email', TextField(null=True))`
+### Use Playhouse Migrate for Schema Changes
+**Signal**: `db.execute_sql("ALTER TABLE users ADD COLUMN email TEXT")`
+**Why this matters**: No rollback, not tracked, SQLite ALTER limitations
+**Preferred action**: Use playhouse.migrate: `migrator.add_column('users', 'email', TextField(null=True))`
 
 ## Anti-Rationalization
 

@@ -121,7 +121,7 @@ find "${LOG_DIR}" -name 'run-*.log' -mtime +30 -delete
 ## Pattern Catalog
 <!-- no-pair-required: section heading only, paired Do instead blocks appear in each sub-entry below -->
 
-### ❌ Using `last-dream.md` date to confirm the cycle ran today
+### Cross-Check Cron Log and Report Date
 
 **Detection**:
 ```bash
@@ -130,18 +130,18 @@ grep '^# Dream Report' ~/.claude/state/last-dream.md
 ls -t cron-logs/auto-dream/run-*.log | head -1
 ```
 
-**What it looks like**:
+**Signal**:
 <!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
 ```bash
 head -1 ~/.claude/state/last-dream.md
 # Dream Report: 2026-04-15   ← yesterday's date, today's cron supposedly ran
 ```
 
-**Why wrong**: `last-dream.md` is written by the REPORT phase. If today's run was blocked by the lockfile (prior run still active) or crashed before REPORT, the file retains yesterday's content. The file date confirms the *last successful* cycle, not whether *today's* cycle ran.
+**Why this matters**: `last-dream.md` is written by the REPORT phase. If today's run was blocked by the lockfile (prior run still active) or crashed before REPORT, the file retains yesterday's content. The file date confirms the *last successful* cycle, not whether *today's* cycle ran.
 
-**Do instead**: Cross-check the cron log file timestamp against the date in the report header. Both must reflect today for the cycle to be considered confirmed. The cron log exists even when the run is skipped by the lockfile; the report date tells you whether REPORT actually ran.
+**Preferred action**: Cross-check the cron log file timestamp against the date in the report header. Both must reflect today for the cycle to be considered confirmed. The cron log exists even when the run is skipped by the lockfile; the report date tells you whether REPORT actually ran.
 
-**Fix**:
+**Preferred action**:
 ```bash
 # Cross-check the cron log timestamp with the report date
 echo "Cron log: $(ls -t cron-logs/auto-dream/run-*.log | head -1)"
@@ -150,7 +150,7 @@ echo "Report date: $(head -1 ~/.claude/state/last-dream.md)"
 
 ---
 
-### ❌ Grepping raw cron log for success without checking report
+### Verify All Phase Markers, Not Just Any
 
 **Detection**:
 ```bash
@@ -158,7 +158,7 @@ echo "Report date: $(head -1 ~/.claude/state/last-dream.md)"
 grep 'success\|complete\|done' "$(ls -t cron-logs/auto-dream/run-*.log | head -1)"
 ```
 
-**What it looks like**:
+**Signal**:
 <!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
 ```bash
 # Cron log says "SCAN complete" but CONSOLIDATE crashed halfway through
@@ -168,11 +168,11 @@ grep 'complete' run-2026-04-16-020712.log
 # (CONSOLIDATE then crashed — but grep found "complete" so we thought it worked)
 ```
 
-**Why wrong**: The dream cycle writes "phase X complete" at the end of each phase. If CONSOLIDATE crashes mid-write, the log contains "ANALYZE complete" but no "CONSOLIDATE complete". Grepping for any "complete" produces a false positive.
+**Why this matters**: The dream cycle writes "phase X complete" at the end of each phase. If CONSOLIDATE crashes mid-write, the log contains "ANALYZE complete" but no "CONSOLIDATE complete". Grepping for any "complete" produces a false positive.
 
-**Do instead**: Check for every phase marker (SCAN, ANALYZE, CONSOLIDATE, SYNTHESIZE, SELECT, REPORT) individually, or rely on `last-dream.md` as the canonical success signal — it is only written when REPORT completes, so its presence confirms all prior phases ran.
+**Preferred action**: Check for every phase marker (SCAN, ANALYZE, CONSOLIDATE, SYNTHESIZE, SELECT, REPORT) individually, or rely on `last-dream.md` as the canonical success signal — it is only written when REPORT completes, so its presence confirms all prior phases ran.
 
-**Fix**:
+**Preferred action**:
 ```bash
 # Check for ALL phase completions, not just any
 for phase in SCAN ANALYZE CONSOLIDATE SYNTHESIZE SELECT REPORT; do
@@ -184,7 +184,7 @@ cat ~/.claude/state/last-dream.md | head -20
 
 ---
 
-### ❌ Logging dream output to a path that changes each run without cleanup
+### Rotate Logs to Keep Last 30 Days
 
 **Detection**:
 ```bash
@@ -193,7 +193,7 @@ ls cron-logs/auto-dream/run-*.log | wc -l
 # > 100 files suggests no rotation policy
 ```
 
-**What it looks like**:
+**Signal**:
 <!-- no-pair-required: this is the detection sub-block inside a code fence; Do instead appears in the enclosing anti-pattern entry -->
 ```bash
 # Wrapper script creates new log each run but never deletes old ones
@@ -202,11 +202,11 @@ claude ... | tee "${RUN_LOG}"
 # No cleanup step — files accumulate forever
 ```
 
-**Why wrong**: At nightly frequency, 365 log files/year is manageable, but after a few years the directory becomes hard to navigate and the disk usage is non-trivial. More importantly, missing a rotation policy means the first time you actually need to debug a failure, you have to scroll through hundreds of files to find the relevant one.
+**Why this matters**: At nightly frequency, 365 log files/year is manageable, but after a few years the directory becomes hard to navigate and the disk usage is non-trivial. More importantly, missing a rotation policy means the first time you actually need to debug a failure, you have to scroll through hundreds of files to find the relevant one.
 
-**Do instead**: Add a `find -mtime +30 -delete` rotation step to the end of the wrapper script so each run cleans up logs older than 30 days. The last 30 days is sufficient for debugging any recurring issue and keeps the directory navigable.
+**Preferred action**: Add a `find -mtime +30 -delete` rotation step to the end of the wrapper script so each run cleans up logs older than 30 days. The last 30 days is sufficient for debugging any recurring issue and keeps the directory navigable.
 
-**Fix**: Add to the end of the wrapper script:
+**Preferred action**: Add to the end of the wrapper script:
 ```bash
 # Rotate: keep last 30 days of logs
 find "${LOG_DIR}" -name 'run-*.log' -mtime +30 -delete

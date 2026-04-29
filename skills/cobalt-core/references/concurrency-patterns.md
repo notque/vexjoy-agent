@@ -127,7 +127,7 @@ for _, domain := range domains {
 
 ## Pattern Catalog
 
-### ❌ Unbounded Goroutine-Per-Domain
+### Cap Goroutines with a Semaphore
 
 **Detection**:
 ```bash
@@ -136,7 +136,7 @@ rg 'go func\(' --type go internal/
 grep -rn 'go func(' --include="*.go" internal/
 ```
 
-**What it looks like**:
+**Signal**:
 ```go
 for _, domain := range domains {
     go func(d libvirt.Domain) {
@@ -145,13 +145,13 @@ for _, domain := range domains {
 }
 ```
 
-**Why wrong**: On a hypervisor with 500 VMs, this launches 500 goroutines simultaneously. Each goroutine makes libvirt RPC calls over the same Unix socket. libvirt queues drop, connections time out, and the exporter logs hundreds of "connection refused" per scrape.
+**Why this matters**: On a hypervisor with 500 VMs, this launches 500 goroutines simultaneously. Each goroutine makes libvirt RPC calls over the same Unix socket. libvirt queues drop, connections time out, and the exporter logs hundreds of "connection refused" per scrape.
 
-**Fix**: Add buffered channel semaphore with cap ≤ 50 as shown in Correct Patterns above.
+**Preferred action**: Add buffered channel semaphore with cap ≤ 50 as shown in Correct Patterns above.
 
 ---
 
-### ❌ Blocking Lock in Prometheus Collect Path
+### Use TryLock in Prometheus Collect Path
 
 **Detection**:
 ```bash
@@ -160,7 +160,7 @@ grep -n "\.Lock()" internal/libvirt/*.go
 ```
 Review if `Lock()` appears in any `Collect()` or `Describe()` method.
 
-**What it looks like**:
+**Signal**:
 ```go
 func (s *ServiceImpl) Collect(ch chan<- prometheus.Metric) {
     s.mu.Lock()         // blocks if previous scrape running
@@ -169,15 +169,15 @@ func (s *ServiceImpl) Collect(ch chan<- prometheus.Metric) {
 }
 ```
 
-**Why wrong**: Prometheus's default scrape timeout is 10s. If collection takes 35s and Prometheus fires every 30s, the second `Collect()` call blocks, then the third — goroutines stack until the scrape target appears hung and alerts fire.
+**Why this matters**: Prometheus's default scrape timeout is 10s. If collection takes 35s and Prometheus fires every 30s, the second `Collect()` call blocks, then the third — goroutines stack until the scrape target appears hung and alerts fire.
 
-**Fix**: Replace `s.mu.Lock()` with `if !s.mu.TryLock() { return }`.
+**Preferred action**: Replace `s.mu.Lock()` with `if !s.mu.TryLock() { return }`.
 
 **Version note**: `TryLock` added in Go 1.18. For earlier versions, use `sync/atomic` swap-based implementation.
 
 ---
 
-### ❌ Skipping ClearScrapeCache() on Error Exit
+### Defer ClearScrapeCache() at Function Start
 
 **Detection**:
 ```bash
@@ -186,7 +186,7 @@ grep -rn 'ClearScrapeCache' --include="*.go" .
 ```
 Confirm it is called in `defer` or in all exit paths of `retrieveMetrics`.
 
-**What it looks like**:
+**Signal**:
 ```go
 func (s *ServiceImpl) retrieveMetrics(ctx context.Context, ch chan<- prometheus.Metric) {
     if err := s.connectLibvirt(); err != nil {
@@ -198,13 +198,13 @@ func (s *ServiceImpl) retrieveMetrics(ctx context.Context, ch chan<- prometheus.
 }
 ```
 
-**Why wrong**: Per-scrape caches (PID lookup, VM counters) accumulate stale entries. On the next successful scrape, the exporter reads stale PIDs for domains restarted since last scrape, emitting metrics for dead processes.
+**Why this matters**: Per-scrape caches (PID lookup, VM counters) accumulate stale entries. On the next successful scrape, the exporter reads stale PIDs for domains restarted since last scrape, emitting metrics for dead processes.
 
-**Fix**: `defer s.ch.ClearScrapeCache()` at the top of `retrieveMetrics`, before any error paths.
+**Preferred action**: `defer s.ch.ClearScrapeCache()` at the top of `retrieveMetrics`, before any error paths.
 
 ---
 
-### ❌ Plain map for Concurrent Domain State
+### Use sync.Map for Concurrent Domain State
 
 **Detection**:
 ```bash
@@ -213,7 +213,7 @@ grep -n "map\[string\]" internal/libvirt/*.go
 ```
 Any `map[string]` accessed from goroutines without a wrapping mutex is a data race.
 
-**What it looks like**:
+**Signal**:
 ```go
 var history = map[string]uint64{} // shared, no mutex
 
@@ -224,9 +224,9 @@ func updateHistory(key string, val uint64) uint64 {
 }
 ```
 
-**Why wrong**: Go's race detector (`go test -race`) catches this. In production without `-race`, it causes silent map corruption or `panic: concurrent map read and map write`.
+**Why this matters**: Go's race detector (`go test -race`) catches this. In production without `-race`, it causes silent map corruption or `panic: concurrent map read and map write`.
 
-**Fix**: Use `sync.Map` for stable read-heavy key sets (domain IDs), or a `sync.RWMutex`-protected map if you need `range` iteration.
+**Preferred action**: Use `sync.Map` for stable read-heavy key sets (domain IDs), or a `sync.RWMutex`-protected map if you need `range` iteration.
 
 ---
 

@@ -93,7 +93,7 @@ allowed-tools: [Read, Edit, Glob, Grep]
 ## Pattern Catalog
 <!-- no-pair-required: section header with no content -->
 
-### ❌ Missing `allowed-tools` in Agent Frontmatter
+### Include `allowed-tools` in Agent Frontmatter
 
 **Detection**:
 ```bash
@@ -101,7 +101,7 @@ grep -rL "allowed-tools" agents/*.md
 rg -L 'allowed-tools' --glob 'agents/*.md'
 ```
 
-**What it looks like**: <!-- no-pair-required: sub-block split by code-comment heading; Do instead is inline below -->
+**Signal**: <!-- no-pair-required: sub-block split by code-comment heading; Do instead is inline below -->
 ```yaml
 ---
 name: my-agent
@@ -114,17 +114,17 @@ routing:
 ---
 ```
 
-**Why wrong**: Without `allowed-tools`, the agent inherits an undefined tool set. Behavior varies by runtime — some runtimes grant all tools (dangerous), others grant none (agent cannot function).
+**Why this matters**: Without `allowed-tools`, the agent inherits an undefined tool set. Behavior varies by runtime — some runtimes grant all tools (dangerous), others grant none (agent cannot function).
 
-**Do instead:**
+**Preferred action:**
 
 Add `allowed-tools` matched to the agent's role: reviewers get `[Read, Glob, Grep]`, code modifiers get `[Read, Edit, Write, Bash, Glob, Grep]`, orchestrators get `[Read, Agent, Bash]`. Consult the Tool Restrictions table at the top of this file for the full mapping.
 
-**Fix**: Add `allowed-tools` matching the agent's role type per the Tool Restrictions table above.
+**Preferred action**: Add `allowed-tools` matching the agent's role type per the Tool Restrictions table above.
 
 ---
 
-### ❌ Unquoted Description with Colon
+### Quote Descriptions Containing Colons
 
 **Detection**:
 ```bash
@@ -132,56 +132,56 @@ grep -n "^description: [^\"'].*:" agents/*.md
 grep -n "^description: [^\"'].*:" skills/*/SKILL.md
 ```
 
-**What it looks like**:
+**Signal**:
 ```yaml
 description: Toolkit governance: edit skills, update routing  # YAML parse error
 ```
 
-**Why wrong**: The YAML parser sees `Toolkit governance` as the value and `edit skills` as an unknown key, producing a parse error. The component becomes invisible to the routing system.
+**Why this matters**: The YAML parser sees `Toolkit governance` as the value and `edit skills` as an unknown key, producing a parse error. The component becomes invisible to the routing system.
 
-**Do instead:**
+**Preferred action:**
 
 Wrap any description containing a colon, comma, or markdown syntax in double quotes: `description: "Toolkit governance: edit skills, update routing"`. Run `grep -n "^description: [^\"'].*:" agents/*.md` to find all unquoted descriptions with colons.
 
-**Fix**:
+**Preferred action**:
 ```yaml
 description: "Toolkit governance: edit skills, update routing"
 ```
 
 ---
 
-### ❌ Wrong Complexity Casing
+### Use Exact Casing for Complexity Values
 
 **Detection**:
 ```bash
 grep -rn "complexity:" agents/*.md skills/*/SKILL.md | grep -vE "complexity: (Low|Medium|High)"
 ```
 
-**What it looks like**:
+**Signal**:
 ```yaml
 routing:
   complexity: moderate  # wrong casing
   complexity: medium    # wrong casing — must be capitalized
 ```
 
-**Why wrong**: Complexity matching is case-sensitive. `medium` does not match `Medium` — the router silently assigns a default.
+**Why this matters**: Complexity matching is case-sensitive. `medium` does not match `Medium` — the router silently assigns a default.
 
-**Do instead:**
+**Preferred action:**
 
 Use exactly `Low`, `Medium`, or `High` (capital first letter). Run `grep -rn "complexity:" agents/*.md | grep -vE "complexity: (Low|Medium|High)"` to find all mismatched values and correct them.
 
-**Fix**: Use exactly `Low`, `Medium`, or `High`.
+**Preferred action**: Use exactly `Low`, `Medium`, or `High`.
 
 ---
 
-### ❌ Reviewer Agent with Write/Edit Tools (ADR-063 Violation)
+### Restrict Reviewer Agents to Read-Only Tools (ADR-063)
 
 **Detection**:
 ```bash
 grep -l "reviewer" agents/*.md | xargs grep -l "Edit\|Write"
 ```
 
-**What it looks like**:
+**Signal**:
 ```yaml
 name: reviewer-code-quality
 allowed-tools:
@@ -190,34 +190,34 @@ allowed-tools:
   - Grep
 ```
 
-**Why wrong**: Reviewer agents with write access can modify files during review passes, creating unintended side-effects. ADR-063 requires reviewers to be read-only.
+**Why this matters**: Reviewer agents with write access can modify files during review passes, creating unintended side-effects. ADR-063 requires reviewers to be read-only.
 
-**Do instead:**
+**Preferred action:**
 
 Set reviewer `allowed-tools` to `[Read, Glob, Grep]` only. Run `grep -l "reviewer" agents/*.md | xargs grep -l "Edit\|Write"` to find violations. Remove `Edit` and `Write` from any reviewer's tool list and verify the agent still functions correctly with read-only access.
 
-**Fix**: Remove `Edit` and `Write` from reviewer `allowed-tools`. Reviewers use `Read`, `Glob`, `Grep` only.
+**Preferred action**: Remove `Edit` and `Write` from reviewer `allowed-tools`. Reviewers use `Read`, `Glob`, `Grep` only.
 
 ---
 
-### ❌ Pre-Production Version on Stable Agent
+### Bump Stable Agents to v1.0.0+
 
 **Detection**:
 ```bash
 grep -rn "^version: 0\." agents/*.md
 ```
 
-**What it looks like**:
+**Signal**:
 ```yaml
 ```
 
-**Why wrong**: Agents in active production use should be at `1.x.x` or higher. `0.x.x` affects coverage reporting confidence scores.
+**Why this matters**: Agents in active production use should be at `1.x.x` or higher. `0.x.x` affects coverage reporting confidence scores.
 
-**Do instead:**
+**Preferred action:**
 
 Bump to `version: 1.0.0` when the agent ships its first production-ready capability. Run `grep -rn "^version: 0\." agents/*.md` to find all pre-production versioned agents that are in active routing use and need a version bump.
 
-**Fix**: Bump to `version: 1.0.0` once the agent is in stable use.
+**Preferred action**: Bump to `version: 1.0.0` once the agent is in stable use.
 
 ---
 

@@ -119,7 +119,7 @@ for u in users:
 ## Pattern Catalog
 <!-- no-pair-required: section header with no content -->
 
-### ❌ N+1 Queries via Loop Attribute Access
+### Use Prefetch to Load Related Data
 
 **Detection**:
 ```bash
@@ -130,9 +130,9 @@ rg 'for \w+ in \w+\.\w+:' --type py
 rg '\.select\(\)' --type py -A 5 | grep '\.\w+\.\w+'
 ```
 
-**Do instead:** Use `User.select().prefetch(Post)` to load all related data in 2 queries instead of N+1.
+**Preferred action:** Use `User.select().prefetch(Post)` to load all related data in 2 queries instead of N+1.
 
-**What it looks like**:
+**Signal**:
 ```python
 users = User.select()
 for user in users:
@@ -141,11 +141,11 @@ for user in users:
     latest = user.posts.order_by(Post.created_at.desc()).first()
 ```
 
-**Why wrong**: Each `user.posts` access opens a new database connection and executes a SELECT.
+**Why this matters**: Each `user.posts` access opens a new database connection and executes a SELECT.
 With 500 users this is 1001 queries. SQLite holds a read lock per query — accumulated latency
 grows linearly with row count.
 
-**Do instead:**
+**Preferred action:**
 
 Use `prefetch()` to load all related data in 2 queries, or annotate with a subquery to compute
 aggregates in a single SQL statement:
@@ -172,7 +172,7 @@ for user in users:
 
 ---
 
-### ❌ Missing Index on ForeignKeyField
+### Index Every ForeignKeyField
 
 **Detection**:
 ```bash
@@ -182,20 +182,20 @@ grep -rn 'ForeignKeyField' --include="*.py"
 rg 'ForeignKeyField\([^)]*\)' --type py | grep -v 'index=True'
 ```
 
-**Do instead:** Add `index=True` to every `ForeignKeyField` and declare composite indexes in `Meta.indexes` for multi-column query patterns.
+**Preferred action:** Add `index=True` to every `ForeignKeyField` and declare composite indexes in `Meta.indexes` for multi-column query patterns.
 
-**What it looks like**:
+**Signal**:
 ```python
 class Post(Model):
     user = ForeignKeyField(User, backref='posts')  # No index!
     category = ForeignKeyField(Category, backref='posts')  # No index!
 ```
 
-**Why wrong**: Peewee does NOT automatically index ForeignKeyField (unlike Django). Queries
+**Why this matters**: Peewee does NOT automatically index ForeignKeyField (unlike Django). Queries
 filtering on `Post.user == user_id` do a full table scan. At 10k rows this is noticeable; at
 100k rows it's a reported bug.
 
-**Do instead:**
+**Preferred action:**
 
 Declare `index=True` on every `ForeignKeyField` and add composite indexes in `Meta.indexes`
 for any query patterns that filter on multiple columns:
@@ -217,7 +217,7 @@ In 3.x you must declare `index=True` explicitly.
 
 ---
 
-### ❌ Cartesian Product from Prefetch + Join Combination
+### Use Join or Prefetch, Not Both
 
 **Detection**:
 ```bash
@@ -225,9 +225,9 @@ rg '\.prefetch\(' --type py -A 2 | grep '\.join\('
 grep -rn 'prefetch' --include="*.py" -A 3 | grep 'join'
 ```
 
-**Do instead:** Use `join()` alone when filtering on a related field, or `prefetch()` alone when loading related data. Never combine both for the same model.
+**Preferred action:** Use `join()` alone when filtering on a related field, or `prefetch()` alone when loading related data. Never combine both for the same model.
 
-**What it looks like**:
+**Signal**:
 ```python
 # BUG: join + prefetch on same model produces cartesian product rows
 users = (User
@@ -236,11 +236,11 @@ users = (User
     .prefetch(Post))  # Also prefetches — duplicates Post rows
 ```
 
-**Why wrong**: `join()` and `prefetch()` for the same model are mutually exclusive operations.
+**Why this matters**: `join()` and `prefetch()` for the same model are mutually exclusive operations.
 Using both causes Post rows to appear multiple times in `user.posts` after prefetch populates
 from the JOIN result set.
 
-**Do instead:**
+**Preferred action:**
 
 Pick one strategy per query: `join()` for filter/order operations, `prefetch()` for loading
 related objects into memory:
@@ -255,7 +255,7 @@ users = User.select().prefetch(Post)
 
 ---
 
-### ❌ SELECT * on Wide Tables
+### Select Only Needed Columns
 
 **Detection**:
 ```bash
@@ -264,9 +264,9 @@ rg '\.select\(\s*\)' --type py
 grep -rn '\.select()' --include="*.py" | grep -v 'select(.*\.'
 ```
 
-**Do instead:** Specify only the columns you need: `Post.select(Post.id, Post.title, Post.created_at)`.
+**Preferred action:** Specify only the columns you need: `Post.select(Post.id, Post.title, Post.created_at)`.
 
-**What it looks like**:
+**Signal**:
 ```python
 # Loads all columns including large TEXT/BLOB fields
 posts = Post.select()  # Includes body, attachments_json, etc.
@@ -274,10 +274,10 @@ for post in posts:
     print(post.title)  # Only needed title
 ```
 
-**Why wrong**: SQLite reads entire row pages into cache. Loading unused large columns wastes
+**Why this matters**: SQLite reads entire row pages into cache. Loading unused large columns wastes
 cache and increases I/O, especially in list views rendering only titles or IDs.
 
-**Do instead:**
+**Preferred action:**
 
 Select only the columns required for the operation, keeping queries narrow and cache-efficient:
 
