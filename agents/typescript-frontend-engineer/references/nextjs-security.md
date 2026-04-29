@@ -200,9 +200,9 @@ rg -n 'X-Frame-Options|frame-ancestors' .
 
 ---
 
-## Avoid dangerouslySetInnerHTML
+## Render Content Through React's Built-in Escaping
 
-Use React's default JSX escaping. If raw HTML rendering is unavoidable, sanitize with DOMPurify or a server-side sanitizer first.
+Use React's default JSX escaping for all user-facing content. When raw HTML rendering is genuinely needed (CMS content, markdown output), sanitize with DOMPurify or a server-side sanitizer first.
 
 ```tsx
 // Correct: React JSX auto-escapes by default
