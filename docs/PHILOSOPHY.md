@@ -261,23 +261,40 @@ its prompt shape, references, and task decomposition before raising model cost.
 
 ## Delegate Data Gathering to Cheap Models
 
-Raw data consumption and synthesis are different tasks requiring different capabilities. Reading a file and extracting the relevant section requires attention but not deep reasoning. Deciding what the extracted information means requires reasoning but not attention to every line. Different tasks, different models.
+Data extraction and data analysis are different tasks requiring different capabilities — and different cost profiles. We measured this.
 
-When an agent reads data directly, every tool call output persists in its context window. By turn 15 of a complex investigation, the agent has accumulated raw file contents, grep results, and search output from earlier turns that answered earlier questions. This noise degrades the quality of later decisions. The model cannot unsee what it has already read.
+Three rounds of A/B testing compared "one Opus agent reads all files" against "7 parallel Haiku readers feed an Opus synthesizer" on a 7-file security review task. Blind-reviewed by separate Sonnet sessions, scored on a 50-point scale. Opus 4.7 vs Haiku 4.5, real pricing (Opus $5/$25 per MTok, Haiku $1/$5 per MTok).
 
-The pattern: spawn a Haiku sub-agent with a directed prompt ("read file X, return the section about Y"), get back a focused extract (typically 10-50x smaller than the raw data), and discard the sub-agent's context. The expensive agent never sees the raw data — it reasons over summaries.
+| Metric | Opus direct | Haiku readers + Opus synth | Delta |
+|--------|:-----------:|:--------------------------:|-------|
+| Cost | $0.75 | $0.47 | Haiku 38% cheaper |
+| Speed | 265 seconds | 204 seconds | Haiku 23% faster (parallel) |
+| Quality (blind-reviewed, 50-point) | 44/50 | 32/50 | Opus wins on analysis |
 
-This is "Load Only What You Need" applied at the turn level. Progressive disclosure keeps irrelevant reference files out of context. Delegated data gathering keeps stale tool output out of context. Same principle, different mechanism.
+The quality gap tells the whole story. Haiku readers caught structural issues — duplicate headings, missing CVEs, broken commands with hard errors like `--type tsx`. They missed semantic issues: 32 `rg` commands using `\|` instead of `|`, a silent failure where the wrong regex exits 0 with no matches, indistinguishable from the right regex finding nothing. Running the commands deterministically catches hard failures but cannot catch silent wrong answers. Semantic reasoning about regex correctness requires the expensive model.
 
-**Where the boundary sits:** agents that need to EDIT files must read them directly (the Edit tool requires the file content in context). Agents that need to UNDERSTAND files to make decisions should delegate the reading. Reading-to-edit is implementation. Reading-to-decide is investigation. Delegate the investigation.
+**The verb-based dispatch rule.** The task verb determines the mode. The coordinator makes this decision, not the downstream agent.
 
-Haiku's input/output ratio for directed reading tasks runs around 80:1 — it reads a lot and returns focused extracts. The expensive agent's ratio is closer to 5:1 — it receives focused input and produces structured analysis. Each model operates at its natural ratio.
+| Verb class | Model | Why |
+|---|---|---|
+| list, count, extract, inventory, search, check, find, grep | Haiku readers (parallel) | Structured extraction with known schema — Haiku matches quality, 5x cheaper per token, parallelizable |
+| review, audit, assess, analyze, debug, investigate, evaluate | Opus direct | Requires semantic reasoning about correctness — Haiku misses silent failures |
+
+This is a structural decision. The coordinator dispatches the mode. Downstream agents cannot be trusted to self-delegate.
+
+**Why prompt injection fails for this.** We tested three approaches to make agents delegate their own reading: (1) prompt injection telling agents to dispatch Haiku sub-agents, (2) MANDATORY-framed instructions to spawn sub-agents, (3) asking agents to use cheap models for data gathering. All three failed — agents acknowledged the instruction ("I'll dispatch 7 Haiku sub-agents"), then read files directly. 3/3 tests, 100% failure rate. The model optimizes for efficiency and finds the shortcut genuinely better. This is not disobedience — it is correct behavior for the model's optimization target. The lesson: behavioral changes that conflict with the model's efficiency instinct require structural enforcement (coordinator-level dispatch), not prompt-level instruction.
+
+**The extract step is lossy.** When a cheap model summarizes "this file has 20 detection commands," it discards the signal that lets the expensive model catch syntax bugs. The expensive model can only reason over what it sees. The coordinator's job is to route extraction tasks to cheap models AND analysis tasks to expensive models — not to make everything cheap.
+
+**Where the boundary sits:** agents that need to EDIT files must read them directly (the Edit tool requires the file content in context). Agents that need to UNDERSTAND files to make decisions get cheap readers for extraction and expensive readers for analysis. Reading-to-edit is implementation. Reading-to-count is extraction. Reading-to-judge is analysis. The verb determines the routing.
 
 **What this means in practice:**
 
-- A Complex-class debugging agent investigating a failure across 8 files spawns Haiku sub-agents with prompts like "read `pkg/server/handler.go` and return the error handling in the `ServeHTTP` method" and "search for all callers of `validateToken` and list them with surrounding context." The debugging agent receives two focused extracts and reasons over them — not 400 lines of raw Go source.
-- A code review agent spanning 12 changed files dispatches Haiku readers to extract the diff hunks and their surrounding context for each file. The review agent sees structured summaries of what changed, not the full file contents that the diff tool returned.
-- A research agent analyzing a codebase for migration candidates sends Haiku sub-agents to scan specific directories and return inventory lists. The research agent plans the migration from inventories, not from raw `find` output.
+- A Complex-class task that needs to inventory CVEs across 7 security reference files dispatches parallel Haiku readers with directed prompts: "read file X, return: CVE identifiers, detection commands, and affected versions." The Opus synthesizer compiles the inventory from extracts. Cost: $0.47 instead of $0.75. Quality: equivalent for extraction.
+- The same task, but the goal is to assess whether each CVE applies to the right technology — does the Python path-traversal CVE belong in the Go agent's references? — goes to Opus directly. Haiku cannot reason about whether a CVE's exploitation path crosses language boundaries. Cost: $0.75. Quality: 44/50 instead of 32/50.
+- A debugging agent investigating silent regex failures reads files directly. The bug is that `\|` in `rg` is not the same as `|`, and the wrong version exits 0 with no matches. No amount of structured extraction catches this — the expensive model needs to see the actual command strings and reason about regex semantics.
+
+*Evidence: 3 rounds A/B testing, blind-reviewed by separate Sonnet sessions, 7-file security review task, Opus 4.7 vs Haiku 4.5. Cost, speed, and quality numbers measured, not theorized.*
 
 ## Prompt Phrasing Does Not Replace Domain Knowledge
 
