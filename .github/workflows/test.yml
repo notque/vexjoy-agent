@@ -30,7 +30,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - run: pip install pytest pyyaml pillow numpy
+      - run: pip install pytest pyyaml pillow numpy tree-sitter tree-sitter-python tree-sitter-javascript tree-sitter-typescript tree-sitter-go tree-sitter-php tree-sitter-bash tree-sitter-kotlin tree-sitter-swift
       - run: python -m pytest --tb=short -q
 
   routing-benchmark:

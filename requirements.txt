@@ -38,3 +38,14 @@ python-dotenv>=1.0
 
 # Required for Google Search Indexing API (optional)
 google-auth>=2.22
+
+# Required for scripts/code-outline.py (optional — falls back to regex without these)
+tree-sitter>=0.24.0
+tree-sitter-python>=0.23.0
+tree-sitter-javascript>=0.23.0
+tree-sitter-typescript>=0.23.0
+tree-sitter-go>=0.23.0
+tree-sitter-php>=0.23.0
+tree-sitter-bash>=0.23.0
+tree-sitter-kotlin>=1.0.0
+tree-sitter-swift>=0.0.1
