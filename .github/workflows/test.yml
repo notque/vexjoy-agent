@@ -18,6 +18,8 @@ jobs:
       - run: ruff check . --config pyproject.toml
       - run: ruff format --check . --config pyproject.toml
       - run: python scripts/validate-references.py --check-do-framing
+      - run: pip install pyyaml
+      - run: python scripts/validate-skill-frontmatter.py
 
   test:
     runs-on: ubuntu-latest
