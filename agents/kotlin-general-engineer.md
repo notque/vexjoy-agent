@@ -216,3 +216,4 @@ See [references/kotlin-security-testing.md](references/kotlin-security-testing.m
 |---|---|---|
 | [`references/kotlin-patterns.md`](references/kotlin-patterns.md) | `kotlin-patterns.md)` | Null safety (`!!` alternatives, Java interop), coroutines/Flow (structured concurrency, dispatchers, StateFlow, `runTest`), sealed classes/enums/data classes, Koin DI |
 | [`references/kotlin-security-testing.md`](references/kotlin-security-testing.md) | `kotlin-security-testing.md)` | Secrets via environment, Exposed DSL parameterized queries, Ktor JWT auth, null safety as security property, pattern corrections table, Kotest styles, MockK, Kover coverage |
+| Security, auth, injection, deserialization, WebView, content provider, or any vulnerability-related code | [`references/kotlin-security.md`](references/kotlin-security.md) | Secure implementation patterns for Kotlin JVM and Android |

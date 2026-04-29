@@ -185,3 +185,4 @@ See [references/swift-security-testing.md](swift-general-engineer/references/swi
 |---|---|---|
 | implementation patterns | `swift-patterns.md` | Loads detailed guidance from `swift-patterns.md`. |
 | security-sensitive work, tests | `swift-security-testing.md` | Loads detailed guidance from `swift-security-testing.md`. |
+| security, auth, Keychain, ATS, WebView, biometrics, deep links, or any vulnerability-related code | `swift-security.md` | Secure implementation patterns for Swift iOS, macOS, and server-side. |
