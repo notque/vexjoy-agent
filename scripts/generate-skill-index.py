@@ -23,6 +23,7 @@ Exit codes:
     0 - Success
     1 - Fatal error (directory not found, write failed)
     2 - Trigger collisions detected among force-routed entries
+    3 - Regex fallback was used (non-strict mode warning)
 """
 
 import argparse
@@ -273,6 +274,7 @@ def generate_index(
     collection_key: str,
     is_pipeline: bool = False,
     include_private: bool = False,
+    strict: bool = False,
 ) -> tuple[dict, list[str]]:
     """Generate a dict-keyed routing index from all SKILL.md files in a directory.
 
@@ -283,6 +285,7 @@ def generate_index(
         is_pipeline: Whether entries are pipelines (enables phase extraction).
         include_private: When True, include symlinked directories. When False (default),
             only directly-tracked directories are indexed.
+        strict: When True, YAML parse failure skips the skill (no regex fallback).
 
     Returns:
         tuple: (index dict with version/generated/generated_by/collection,
@@ -318,6 +321,11 @@ def generate_index(
         try:
             frontmatter, used_fallback = extract_frontmatter(content)
             if used_fallback:
+                if strict:
+                    warnings.append(
+                        f"  - {skill_dir.name}: YAML parsing failed (strict mode: skipping, no regex fallback)"
+                    )
+                    continue
                 warnings.append(f"  - {skill_dir.name}: Used regex fallback (YAML parsing failed)")
         except re.error as e:
             warnings.append(f"  - {skill_dir.name}: Regex error in frontmatter: {e}")
@@ -417,6 +425,12 @@ def main() -> int:
         default=None,
         help="Output file path (default: skills/INDEX.json relative to repo root).",
     )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        default=False,
+        help="Disable regex fallback. YAML parse failure = skip the skill and log an error.",
+    )
     args = parser.parse_args()
 
     script_dir = Path(__file__).parent
@@ -437,6 +451,7 @@ def main() -> int:
         collection_key="skills",
         is_pipeline=False,
         include_private=args.include_private,
+        strict=args.strict,
     )
 
     # Report warnings if any
@@ -510,7 +525,16 @@ def main() -> int:
         print(f"\nCompleted with {len(collisions)} trigger collision(s)", file=sys.stderr)
         return 2
 
-    # Return warning exit code if there were parse issues
+    # Return exit code 3 if regex fallback was used (non-strict mode)
+    fallback_warnings = [w for w in skills_warnings if "regex fallback" in w.lower()]
+    if fallback_warnings:
+        print(
+            f"\nCompleted with {len(fallback_warnings)} regex fallback(s) — fix YAML in these skills",
+            file=sys.stderr,
+        )
+        return 3
+
+    # Report non-fallback warnings
     if skills_warnings:
         print(f"\nCompleted with {len(skills_warnings)} warning(s)", file=sys.stderr)
 
