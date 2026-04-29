@@ -1,8 +1,4 @@
 ---
-  pairs_with:
-    - voice-writer
-    - voice-validator
-    - anti-ai-editor
 name: voice-feynman
 user-invocable: false
 allowed-tools:
@@ -26,7 +22,18 @@ description: |
 version: 1.0.0
 command: /voice-feynman
 routing:
-  force_routing: true
+  triggers:
+    - voice-feynman
+    - feynman voice
+    - richard feynman voice
+    - feynman writing style
+    - feynman explanation
+  pairs_with:
+    - voice-writer
+    - voice-validator
+    - anti-ai-editor
+  category: voice
+  force_route: true
 ---
 
 ## Operator Context
