@@ -4,6 +4,8 @@
 
 The principles behind the toolkit's architecture. These aren't aspirational. They're the decisions that shaped every agent, skill, hook, and pipeline in the system.
 
+This document states a deliberate, consistent perspective. A coherent viewpoint — even an imperfect one — enables iteration, debugging, and contributor alignment better than a collection of unconnected rules.
+
 ## Zero-Expertise Operation
 
 The system should require no specialized knowledge from the user. Say what you want done. The system handles the rest.
@@ -21,6 +23,20 @@ A user who has never heard of agents, skills, hooks, pipelines, routing tables, 
 This is not about hiding complexity. It's about absorbing it. The hooks, agents, and skills exist precisely so that expertise is encoded in the system rather than required from the person using it. A first-time user and a power user should both get production-quality results — the power user just understands *why* it works.
 
 **Automation corollary:** anything that can fire automatically, should. Gates enforce themselves via hooks. Context injects itself via SessionStart and UserPromptSubmit handlers. Quality checks run via CI. Learning happens via PostToolUse capture. The user's job is to describe intent. The system's job is everything else.
+
+## Plain English Is the Interface
+
+If a user has to learn special syntax, prompt engineering tricks, or insider vocabulary to get good results, the design failed. Plain English is not a fallback mode. It is the primary interface.
+
+The router treats raw human intent as its input signal. Not keywords. Not slash commands. Not carefully structured prompts that mimic system-prompt formatting. A person who says "make this faster" should get the same quality routing as someone who says "/do dispatch performance-agent with profiling skill against src/server.go." The second form is an escape hatch for power users who want explicit control. It is not how the system is meant to be used.
+
+**What this means in practice:**
+
+- A first-time user who types "this test is flaky, help" gets the same debugging methodology as someone who knows the systematic-debugging skill exists. The router reads intent, not vocabulary.
+- Users should never need to add system-prompt-like preambles ("You are an expert in...") to their requests. The system already carries the expertise in its agents. Adding it manually means the routing failed to select the right one.
+- If an A/B test shows that rephrasing a natural request into a structured format produces better results, that is a bug in the router, not a feature of the format.
+
+**The test:** take a request from a first-time user and the same request rewritten by someone who has read every agent description and skill file. If the rewritten version routes better or produces higher quality output, something upstream needs fixing. The system's job is to close the gap between plain speech and optimal dispatch — not to reward users who learn to speak its internal language.
 
 ## Everything That Can Be Deterministic, Should Be
 
@@ -131,6 +147,8 @@ This does NOT mean "stuff more context." It means: dispatch parallel review agen
 
 The primary lever is progressive disclosure. Each agent carries only the domain knowledge its current task requires. Reference files live on disk and are loaded when the phase needs them, not injected wholesale at session start. This is not token frugality for its own sake — it is how the model receives relevant signal without reasoning over noise.
 
+Good context costs tokens upfront but saves them downstream. A well-structured skill with the right reference files reduces backtracking, hallucinations, and rework — even if the initial prompt is longer. The expensive path is the one that sends the agent in blind and fixes mistakes after.
+
 Eager routing is non-negotiable. Dispatching agents is not a token cost to avoid; it is the core execution model. Under-loading context is as wrong as over-loading it — reference files are on disk for a reason. Load eagerly within the current task's scope.
 
 The arithmetic: for non-trivial production changes, thorough pre-merge review consistently pays for itself. The cost scales with the bug class — a concurrency issue in production costs orders of magnitude more than the tokens that would have caught it. The updated economics of Opus 4.7 (higher per-token cost, adaptive reasoning that processes whatever is in context) make relevant loading more important, not less. More context is not more quality. More relevant context is more quality.
@@ -189,6 +207,20 @@ Neither tier replaces the other. Deterministic checks catch mechanical failures 
 The pipeline: **Deterministic first, fix failures, LLM evaluation, fix findings, final score.**
 
 **Verifier pattern:** For high-stakes work, separate the roles: planner (read-only, no side effects), executor (full access, implements), verifier (read-only, adversarial intent). The verifier's job is to try to break the result -- not to optimistically approve it. A verifier that only confirms success is a rubber stamp. Require evidence-bearing verdicts: the exact command run, the observed output, the expected value versus the actual. "Looks correct" is not a verdict. If the verifier cannot produce a falsifiable check, the result is not verified. This principle matters more under Opus 4.7, whose default is to reason in lieu of calling tools. The principle is unchanged; what changed is that the model's default now works against it, so verification-bearing skills must explicitly instruct tool execution rather than relying on the model's tendency to run commands.
+
+## Taste Is a Quality Gate
+
+Mechanically correct output that nobody would want to read, use, or sign their name to is not done. It passes the linter and fails the person.
+
+Taste is the judgment layer that deterministic checks cannot provide. A script can verify that frontmatter parses, that referenced files exist, that required sections are present. It cannot tell you whether the agent description sounds like it was written by someone who understands the domain or by someone filling in a template. That judgment is real, it matters, and it belongs in the quality pipeline alongside the automated checks.
+
+**What this means in practice:**
+
+- Technically correct but soulless output fails the quality bar. An agent file that has all required fields but reads like a form letter is not done. A blog post that hits every SEO checkbox but sounds like it was assembled from spare parts is not done.
+- Over-polishing is its own failure mode. Spending tokens buffing every sentence to a mirror shine erodes authenticity and wastes budget. Accept appropriate imperfection — the kind a skilled human would leave in because fixing it would make the result worse. A well-placed rough edge beats a plastic surface.
+- Lead with good patterns. The primary quality signal is "does this look like something a person with taste produced?" — not "can I find flaws in it?" Flaw-hunting is secondary to pattern-setting. A review that only finds problems without demonstrating what good looks like teaches nothing.
+
+**The test:** would a person with taste sign their name to this output? Not "is it perfect" — perfection is the enemy. The question is whether someone who cares about their craft would stand behind it. If the answer is "it's fine, I guess" — that's a no.
 
 ## Specialist Selection Over Generalism
 
@@ -329,6 +361,8 @@ Third, at n=1 per condition, individual task comparisons may be random variation
 - Verify claims programmatically. The fabricated proofs were undetectable by reading the output — they looked rigorous. Only running the algorithm against the stated examples caught the error. Deterministic verification catches what emotional prompting cannot.
 - Treat prompt phrasing experiments with the same rigor as any other engineering claim: measure, replicate, and do not ship on n=1.
 
+Emotional or ego-framing techniques — "you are the world's best programmer", "take a deep breath" — add minor, unpredictable variance at best. Domain knowledge, structured methodology, and taste beat motivational preambles every time.
+
 *Evidence: benchmark/iq-boost-ab-test/report.md (Experiment 1), benchmark/iq-boost-ab-test/emotion-vector-report.md (Experiment 2), benchmark/tone-ab-test/results.md (Experiment 3), benchmark/adaptive-thinking-ab-test/results.md (Experiment 4). Experiments 1-2 based on Anthropic's "Emotion Concepts Function" research on internal emotion vectors. Experiment 3 tested prompt-level tone independent of agent definitions. Experiment 4 tested CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING=1 (structural parameter, not prompt phrasing).*
 
 ## Anti-Rationalization as Infrastructure
@@ -336,6 +370,8 @@ Third, at n=1 per condition, individual task comparisons may be random variation
 The biggest risk is not malice but rationalization. "Already done" (assumption, not verification). "Code looks correct" (looking, not testing). "Should work" (should, not does).
 
 Anti-rationalization is not a nice-to-have. It's infrastructure, auto-injected into every code modification, review, security, and testing task. The toolkit makes it structurally difficult to skip verification, not just culturally discouraged.
+
+Hooks and verifier loops make rationalization structurally difficult. An agent can rationalize past an instruction; it cannot rationalize past an exit code or a failing test.
 
 ## Router as Orchestrator, Not Worker
 
@@ -353,6 +389,20 @@ The `/do` router's only job is to classify requests and dispatch them to agents.
 
 **The test:**
 If the main thread is reading source code, editing files, running scripts for analysis, or doing any work beyond routing — something is wrong. Stop and dispatch an agent.
+
+## The Router Composes, Not Just Selects
+
+Routing is not a lookup table that maps one request to one skill. The router reads full intent and dispatches the right combination — potentially multiple agents and skills in sequence or parallel.
+
+A user who says "fix this bug and make sure it doesn't introduce security issues" is expressing a compound intent. The correct response is not to pick whichever single skill seems most relevant. It is to dispatch debugging, then security review, then cleanup — a composed pipeline built from thin, chainable skills. The router handles this composition. The user does not need to decompose their own request into atomic units.
+
+**What this means in practice:**
+
+- Skills are designed to be thin enough to chain. A skill that tries to be comprehensive — debugging AND security AND cleanup all in one — is too fat to compose. Three thin skills that chain cleanly beat one thick skill that handles everything poorly.
+- The router reads the full request and dispatches the optimal combination. "Review this PR" might trigger security review + business logic review + architecture review in parallel, then a synthesis pass. That is three skills composed, not one mega-skill invoked.
+- Manual skill invocation (`/skillname`) is the escape hatch, not the normal path. It exists for power users who want to force a specific methodology. The default path is to describe what you want and let the router compose the answer.
+
+**The test:** if a user has to invoke three skills manually in sequence to get the result they want, the router should have composed those three automatically from the original request. Manual sequencing is a sign that routing composition is underbuilt for that intent pattern.
 
 ## Hooks for Gates, LLMs for Judgment
 
@@ -419,6 +469,8 @@ Making a skill shorter by deleting content is not progressive disclosure — it'
 - Tested via `run_eval.py` against its own workspace
 - Reviewed as a single unit — all the tooling is visible in one tree
 - Deleted without orphaning dependencies elsewhere
+
+Skills should feel like they were written by one coherent mind. Inconsistent structure or stub skills that exist only to claim coverage dilute quality across the whole system. Maintenance artifacts — licenses, contribution guidelines, changelogs — stay out of runtime files.
 
 **Repo-level `scripts/`** is reserved for toolkit-wide operations (learning-db.py, INDEX generation) — tools that operate on the system as a whole, not on a single skill's workflow.
 
@@ -587,6 +639,10 @@ Ideas matter less than open sharing. In an AI-assisted world, provenance becomes
 - Convergent evolution is inevitable (others will build similar things independently)
 - Knowledge should spread and be understood, not gatekept
 - Collective progress beats individual credit
+
+Convergent evolution is expected and welcomed. When external work arrives at similar patterns through different paths, that validates the direction. Study it for what it got right, then rebuild aligned to this philosophy.
+
+The toolkit itself should embody its own principles. Ship good, evolving skills rather than waiting for unattainable perfection. A working skill that improves over three PRs is worth more than a perfect skill that ships never.
 
 We're all working through this together.
 
