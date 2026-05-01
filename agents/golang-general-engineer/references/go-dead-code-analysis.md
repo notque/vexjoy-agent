@@ -1,6 +1,6 @@
 # Go Dead Code Analysis
 
-Tools and decision guidance for dead code detection and call-graph navigation in Go codebases. Load when the task involves finding unused functions, cleanup, refactoring prep, or understanding call chains.
+Tool and decision guidance for dead code detection in Go codebases. Load when the task involves finding unused functions, cleanup, or refactoring prep.
 
 ## deadcode — Primary Tool for Dead Code Detection
 
@@ -43,6 +43,9 @@ deadcode's SSA analysis builds the complete call graph including these edges. A 
 ```bash
 # Confirm the function is used in tests before dismissing the finding
 grep -rn "setupTestDB" --include="*_test.go"
+
+# To include test binary entry points in the analysis
+deadcode -test ./...
 ```
 
 **Exported API surface**: Libraries expose exported functions for external consumers. deadcode cannot see callers outside the module. For library code, focus deadcode findings on unexported functions.
@@ -62,7 +65,7 @@ deadcode is not mandatory for every task. It adds value when the question is "wh
 # VERIFY phase sequence for cleanup tasks
 go vet ./...
 deadcode ./...
-go test -v -race ./...
+go test ./...
 ```
 
 ## Why Not Tree-Sitter for Go?
