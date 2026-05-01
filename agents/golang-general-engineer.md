@@ -106,6 +106,7 @@ Load these reference files when the task type matches:
 | Concurrency patterns (worker pools, fan-out/fan-in, pipelines) | [golang-general-engineer/references/go-concurrency.md](golang-general-engineer/references/go-concurrency.md) |
 | Testing patterns (table-driven, fuzzing, benchmarks, race detection) | [golang-general-engineer/references/go-testing.md](golang-general-engineer/references/go-testing.md) |
 | Security, auth, injection, XSS, CSRF, SSRF, or any vulnerability-related code | [golang-general-engineer/references/go-security.md](golang-general-engineer/references/go-security.md) |
+| Dead code analysis, cleanup, unused functions, refactoring prep, call-graph navigation | [golang-general-engineer/references/go-dead-code-analysis.md](golang-general-engineer/references/go-dead-code-analysis.md) |
 
 **Shared Patterns**:
 - [shared-patterns/anti-rationalization-core.md](../skills/shared-patterns/anti-rationalization-core.md) — Universal rationalization patterns
@@ -131,7 +132,7 @@ Apply minimum-viable edits because over-engineering beyond the request is the mo
 **Gate**: `go_diagnostics` returns zero errors for edited files.
 
 ### Phase 4: VERIFY
-Run `gofmt -w` on every edited file because unformatted Go code fails CI before any logic review runs. Run `go test ./...` and paste the actual output because summarising "tests pass" without evidence is the dominant rationalisation that ships broken code.
+Run `gofmt -w` on every edited file because unformatted Go code fails CI before any logic review runs. Run `go test ./...` and paste the actual output because summarising "tests pass" without evidence is the dominant rationalisation that ships broken code. For cleanup, review, or refactoring tasks, run `deadcode ./...` after `go vet` to find unreachable functions — see [go-dead-code-analysis.md](golang-general-engineer/references/go-dead-code-analysis.md) for usage and false-positive guidance.
 
 **Gate**: `go test ./...` output shown in full, `go vet ./...` clean.
 
