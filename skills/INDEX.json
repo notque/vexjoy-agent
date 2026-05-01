@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generated": "2026-05-01T02:13:43Z",
+  "generated": "2026-05-01T18:00:20Z",
   "generated_by": "scripts/generate-skill-index.py",
   "skills": {
     "adr-consultation": {
@@ -74,6 +74,27 @@
         "voice-writer",
         "voice-validator",
         "joy-check"
+      ]
+    },
+    "architecture-deepening": {
+      "file": "skills/architecture-deepening/SKILL.md",
+      "description": "Proactive architecture improvement: find shallow modules, propose deepening opportunities, design conversation.",
+      "triggers": [
+        "deepen architecture",
+        "find shallow modules",
+        "architecture improvement",
+        "module depth analysis",
+        "deepening opportunities",
+        "improve module interfaces",
+        "reduce complexity",
+        "architecture deepening"
+      ],
+      "category": "analysis",
+      "user_invocable": true,
+      "pairs_with": [
+        "full-repo-review",
+        "adr-consultation",
+        "codebase-overview"
       ]
     },
     "auto-dream": {
@@ -1652,7 +1673,7 @@
     },
     "repo-value-analysis": {
       "file": "skills/repo-value-analysis/SKILL.md",
-      "description": "Analyze external repositories for adoptable ideas and patterns, then implement HIGH-value findings in our architecture.",
+      "description": "Analyze external repositories for adoptable ideas and patterns.",
       "triggers": [
         "repo value analysis",
         "does repo add value",
