@@ -146,6 +146,40 @@ List any failing audits that cannot be fixed at the content level. These are inf
 
 ---
 
+## Auto-Fix Protocol
+
+When PageSpeed Insights is invoked from the pre-publish checker (`pre-publish.md` Step 8) or SEO optimizer (`seo.md` Step 0), this protocol defines which fixes are mechanical (apply without confirmation) and which require user approval. The distinction is whether the fix is deterministic and content-safe, or whether it requires judgment about branding, structure, or site-wide rendering.
+
+### Mechanical Fixes (auto-apply without confirmation)
+
+These fixes are deterministic — the correct action is unambiguous and the risk of harm is near zero. Apply them during the calling workflow's current phase.
+
+| PSI Audit | Fix | How |
+|---|---|---|
+| `meta-description` missing | Generate from first 155 characters of post content | Add as `description` field in front matter. Strip trailing mid-word breaks. If the post already has a `summary` field, use that as `description` instead of generating. |
+| `robots-txt` syntax error | Report exact error and suggest fix | Show the specific line and the corrected version. Auto-apply only if the fix is a single-line syntax correction (missing colon, extra whitespace). |
+| `image-alt` missing | Flag file path and line number | Cannot auto-generate meaningful alt text — alt text requires understanding the image content. Flag as BLOCKER with the specific `![](path)` location so the user can add it. |
+
+### User Approval Required
+
+These fixes involve judgment calls that affect branding, content flow, or site-wide rendering. Present the suggestion and wait for confirmation.
+
+| PSI Audit | Why Approval Needed |
+|---|---|
+| `document-title` changes | Title affects branding, social sharing previews, and existing inbound links. Changing it without approval risks breaking bookmarks and social cards. |
+| `heading-order` restructuring | Reordering headers changes content flow. The current order may be intentional for narrative reasons the machine cannot assess. Flag the violation but do not restructure. |
+| Theme/CSS changes (`color-contrast`, `html-has-lang`, `render-blocking-resources`) | These modify theme files that affect every page on the site, not just the current post. Never auto-apply. |
+| Infrastructure changes (`uses-text-compression`, `server-response-time`, `uses-long-cache-ttl`) | These require hosting/CDN configuration changes outside the content layer. Report as INFO. |
+
+### Protocol Usage
+
+The pre-publish and SEO workflows call into this protocol when they encounter PSI findings:
+1. Check the finding against the "Mechanical Fixes" table. If it matches, apply immediately.
+2. If not in the mechanical table, check "User Approval Required." Present the finding with the suggested fix and wait.
+3. If the finding is not in either table (new audit type), treat it as requiring user approval — default to safety.
+
+---
+
 ## Error Handling
 
 ### Error: "API error: HTTP 429"
