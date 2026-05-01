@@ -86,6 +86,12 @@ Read `references/output-templates.md` for the report scaffold, per-finding forma
 
 Deduplicate by `file:line`. Write `sapcc-audit-report.md`. Display verdict, must-fix count, and top 5 findings inline.
 
+**Schema Validation (automatic):** After writing the report, validate structure:
+```bash
+python3 scripts/validate-review-output.py --type sapcc-audit sapcc-audit-report.md
+```
+This checks: package_summary present, must_fix/should_fix/nit sections populated, findings have file:line references.
+
 **Gate**: Report complete.
 
 ---

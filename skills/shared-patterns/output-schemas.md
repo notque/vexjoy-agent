@@ -186,3 +186,26 @@ Domain-specific agents may extend base schemas:
 For example, `reviewer-security` extends Reviewer Schema with:
 - OWASP Top 10 Coverage
 - Compliance Status
+
+---
+
+## JSON Schema Validation
+
+Review output structure is enforced by JSON Schemas in `skills/shared-patterns/schemas/`:
+
+| Schema File | Review Type | Validates |
+|-------------|------------|-----------|
+| `review-output-base.schema.json` | All reviews | verdict, findings with file:line, positives |
+| `systematic-code-review.schema.json` | systematic-code-review | + risk_level, severity: blocking/should_fix/suggestions |
+| `parallel-code-review.schema.json` | parallel-code-review | + severity_matrix, reviewer attribution per finding |
+| `sapcc-review.schema.json` | sapcc-review | + 10-agent scorecard, quick_wins |
+| `sapcc-audit.schema.json` | sapcc-audit | + package_summary, must_fix/should_fix/nit |
+
+**Usage:**
+```bash
+python3 scripts/validate-review-output.py --type {type} output.md
+```
+
+Exit codes: 0 = valid, 1 = structural errors, 2 = parse error.
+
+Schemas enforce Tier 1 (deterministic) validation per PHILOSOPHY.md. Content quality remains Tier 2 (LLM-judged).
