@@ -285,7 +285,7 @@ def _ensure_symlink(src: Path, dst: Path) -> bool:
     """
     if dst.is_symlink():
         try:
-            current_target = Path(os.readlink(dst)).resolve()
+            current_target = dst.resolve()
             if current_target == src.resolve():
                 return True  # Already correct
         except OSError:
