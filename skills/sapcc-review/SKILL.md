@@ -176,6 +176,12 @@ These go in a "Quick Wins" section at the top of the report.
 
 Create `sapcc-review-report.md` using the full template in `references/report-template.md`.
 
+**Schema Validation (automatic):** After writing the report, validate structure:
+```bash
+python3 scripts/validate-review-output.py --type sapcc-review sapcc-review-report.md
+```
+This checks: 10-agent scorecard present, quick_wins section populated, findings have file:line references.
+
 **Gate**: Report written. Display summary to user. Proceed to Phase 4 if `--fix` specified.
 
 ---
