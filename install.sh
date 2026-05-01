@@ -44,6 +44,8 @@ FACTORY_DIR="${HOME}/.factory"
 FACTORY_SKILLS_DIR="${FACTORY_DIR}/skills"
 FACTORY_DROIDS_DIR="${FACTORY_DIR}/droids"
 FACTORY_HOOKS_DIR="${FACTORY_DIR}/hooks"
+FACTORY_COMMANDS_DIR="${FACTORY_DIR}/commands"
+FACTORY_SCRIPTS_DIR="${FACTORY_DIR}/scripts"
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║                VexJoy Agent - Installation Script               ║${NC}"
@@ -543,9 +545,9 @@ os.rename(tmp, dst)
     # Phase 3.9: Clean toolkit-owned Factory mirror
     echo ""
     echo -e "${YELLOW}Cleaning Factory mirror...${NC}"
-    for dir_var in FACTORY_SKILLS_DIR FACTORY_DROIDS_DIR FACTORY_HOOKS_DIR; do
+    for dir_var in FACTORY_SKILLS_DIR FACTORY_DROIDS_DIR FACTORY_HOOKS_DIR FACTORY_COMMANDS_DIR FACTORY_SCRIPTS_DIR; do
         target="${!dir_var}"
-        if [ -d "$target" ]; then
+        if [ -L "$target" ] || [ -d "$target" ]; then
             if [ "$DRY_RUN" = true ]; then
                 echo -e "${BLUE}  Would remove: ${target}${NC}"
             else
@@ -730,15 +732,13 @@ fi
 echo -e "${GREEN}✓ ${GEMINI_AGENTS_DIR} ready${NC}"
 
 echo ""
-echo -e "${YELLOW}Setting up ~/.factory directories...${NC}"
+echo -e "${YELLOW}Setting up ~/.factory directory...${NC}"
 if [ "$DRY_RUN" = true ]; then
-    echo -e "${BLUE}  Would create: ${FACTORY_SKILLS_DIR}${NC}"
-    echo -e "${BLUE}  Would create: ${FACTORY_DROIDS_DIR}${NC}"
-    echo -e "${BLUE}  Would create: ${FACTORY_HOOKS_DIR}${NC}"
+    echo -e "${BLUE}  Would create: ${FACTORY_DIR}${NC}"
 else
-    mkdir -p "${FACTORY_SKILLS_DIR}" "${FACTORY_DROIDS_DIR}" "${FACTORY_HOOKS_DIR}"
+    mkdir -p "${FACTORY_DIR}"
 fi
-echo -e "${GREEN}✓ Factory directories ready${NC}"
+echo -e "${GREEN}✓ ${FACTORY_DIR} ready${NC}"
 
 # Install components
 echo ""
@@ -746,8 +746,10 @@ echo -e "${YELLOW}Installing components (mode: ${MODE})...${NC}"
 
 install_component() {
     local name=$1
+    local base_dir=${2:-$CLAUDE_DIR}
+    local target_name=${3:-$name}
     local source="${SCRIPT_DIR}/${name}"
-    local target="${CLAUDE_DIR}/${name}"
+    local target="${base_dir}/${target_name}"
 
     # Check if target exists
     if [ -e "$target" ] || [ -L "$target" ]; then
@@ -1023,74 +1025,48 @@ else
 fi
 
 echo ""
-echo -e "${YELLOW}Syncing Factory skills mirror...${NC}"
-FACTORY_SKILL_COUNT=0
-for item in "${SCRIPT_DIR}/skills/"*; do
-    [ -e "$item" ] || continue
-    target="${FACTORY_SKILLS_DIR}/$(basename "$item")"
-    sync_codex_entry "$item" "$target"
-    FACTORY_SKILL_COUNT=$((FACTORY_SKILL_COUNT + 1))
+echo -e "${YELLOW}Installing Factory components (mode: ${MODE})...${NC}"
+# Factory uses the same top-level symlink/copy pattern as Claude.
+# Only difference: 'agents' is named 'droids' under ~/.factory.
+for component in agents skills hooks commands scripts; do
+    if [ -d "${SCRIPT_DIR}/${component}" ]; then
+        target_name="$component"
+        [ "$component" = "agents" ] && target_name="droids"
+        install_component "$component" "$FACTORY_DIR" "$target_name"
+    fi
 done
 
-if [ -d "${SCRIPT_DIR}/private-voices" ]; then
-    for voice_dir in "${SCRIPT_DIR}/private-voices/"*; do
-        [ -d "$voice_dir" ] || continue
-        skill_src="${voice_dir}/skill"
-        [ -d "$skill_src" ] || continue
-        voice_name=$(basename "$voice_dir")
-        target="${FACTORY_SKILLS_DIR}/voice-${voice_name}"
-        sync_codex_entry "$skill_src" "$target"
-        FACTORY_SKILL_COUNT=$((FACTORY_SKILL_COUNT + 1))
-    done
-fi
-
-if [ -d "${SCRIPT_DIR}/private-skills" ]; then
-    for item in "${SCRIPT_DIR}/private-skills/"*; do
-        [ -e "$item" ] || continue
-        target="${FACTORY_SKILLS_DIR}/$(basename "$item")"
-        sync_codex_entry "$item" "$target"
-        FACTORY_SKILL_COUNT=$((FACTORY_SKILL_COUNT + 1))
-    done
-fi
-
-echo ""
-echo -e "${YELLOW}Syncing Factory droids mirror...${NC}"
-FACTORY_DROID_COUNT=0
-for item in "${SCRIPT_DIR}/agents/"*; do
-    [ -e "$item" ] || continue
-    target="${FACTORY_DROIDS_DIR}/$(basename "$item")"
-    sync_codex_entry "$item" "$target"
-    FACTORY_DROID_COUNT=$((FACTORY_DROID_COUNT + 1))
+# Install private Factory components (mirrors Claude private overlay logic)
+for private_dir in private-agents private-skills private-hooks; do
+    public_name="${private_dir#private-}"
+    [ "$public_name" = "agents" ] && public_name="droids"
+    if [ -d "${SCRIPT_DIR}/${private_dir}" ]; then
+        echo ""
+        echo -e "${YELLOW}Installing Factory private ${public_name}...${NC}"
+        for item in "${SCRIPT_DIR}/${private_dir}/"*; do
+            [ -e "$item" ] || continue
+            item_name=$(basename "$item")
+            target="${FACTORY_DIR}/${public_name}/${item_name}"
+            if [ "$DRY_RUN" = true ]; then
+                echo -e "${BLUE}  Would install Factory private: ${item_name}${NC}"
+            else
+                rm -rf "$target" 2>/dev/null
+                if [ "$MODE" = "symlink" ]; then
+                    ln -sf "$item" "$target"
+                    echo -e "${GREEN}  ✓ Linked Factory private ${item_name}${NC}"
+                else
+                    cp -r "$item" "$target"
+                    echo -e "${GREEN}  ✓ Copied Factory private ${item_name}${NC}"
+                fi
+            fi
+        done
+    fi
 done
 
-if [ -d "${SCRIPT_DIR}/private-agents" ]; then
-    for item in "${SCRIPT_DIR}/private-agents/"*; do
-        [ -e "$item" ] || continue
-        target="${FACTORY_DROIDS_DIR}/$(basename "$item")"
-        sync_codex_entry "$item" "$target"
-        FACTORY_DROID_COUNT=$((FACTORY_DROID_COUNT + 1))
-    done
-fi
-
-# Sync Factory hooks mirror (no allowlist — mirror all hooks like Claude does)
-echo ""
-echo -e "${YELLOW}Syncing Factory hooks mirror...${NC}"
-FACTORY_HOOK_COUNT=0
-for item in "${SCRIPT_DIR}/hooks/"*; do
-    [ -e "$item" ] || continue
-    bname=$(basename "$item")
-    [ "$bname" = "__pycache__" ] && continue
-    [ "$bname" = "tests" ] && continue
-    if [ -f "$item" ] && [[ "$item" != *.py ]]; then continue; fi
-    target="${FACTORY_HOOKS_DIR}/${bname}"
-    sync_codex_entry "$item" "$target"
-    FACTORY_HOOK_COUNT=$((FACTORY_HOOK_COUNT + 1))
-done
-
-if [ -d "${SCRIPT_DIR}/hooks/lib" ]; then
-    lib_target="${FACTORY_HOOKS_DIR}/lib"
-    sync_codex_entry "${SCRIPT_DIR}/hooks/lib" "$lib_target"
-fi
+# Component counts for the install summary (count source dirs, not per-entry)
+FACTORY_SKILL_COUNT=$(ls -1 "${SCRIPT_DIR}/skills/"*/SKILL.md 2>/dev/null | wc -l)
+FACTORY_DROID_COUNT=$(ls -1 "${SCRIPT_DIR}/agents/"*.md 2>/dev/null | grep -v README | wc -l)
+FACTORY_HOOK_COUNT=$(ls -1 "${SCRIPT_DIR}/hooks/"*.py 2>/dev/null | grep -cv '__init__')
 
 # Generate ~/.factory/settings.json
 if [ "$DRY_RUN" = true ]; then
