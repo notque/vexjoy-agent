@@ -69,12 +69,12 @@ https://github.com/mattpocock/skills
 Focused collection of 12 active Claude Code skills centered on DDD-inspired domain modeling, grilling-based requirement clarification, and "deep module" architecture improvement. Small repo (57 files) with high-quality, opinionated patterns. Studied 2026-05-01.
 
 **Patterns adopted:**
-- Domain glossary convention (CONTEXT.md format). A formalized project-level domain vocabulary file with terms, aliases to avoid, relationships, and flagged ambiguities. Rebuilt as `skills/generate-claudemd/references/domain-glossary-convention.md` with extraction methodology (grep patterns for business-named types) and integration into the generate-claudemd workflow.
-- Architecture deepening vocabulary and methodology (ADR drafted). Their `/improve-codebase-architecture` skill's coherent vocabulary (module depth, seams, leverage, locality) and deletion test for finding shallow modules. ADR at `adr/architecture-deepening.md` for follow-up implementation via skill-creator.
+- Architecture deepening vocabulary and methodology. Their `/improve-codebase-architecture` skill's coherent vocabulary (module depth, seams, leverage, locality) and deletion test for finding shallow modules. Rebuilt as `skills/architecture-deepening/` skill with 3-phase workflow (EXPLORE, PRESENT CANDIDATES, DESIGN CONVERSATION) and reference files for vocabulary, interface design, and deepening strategies.
+- Feedback-loop-first debugging methodology. Their `/diagnose` skill's 10 loop construction methods and "the loop IS the skill" philosophy. Rebuilt as `skills/workflow/references/feedback-loop-construction.md`, integrated into the OBSERVE phase of systematic-debugging.
 
 **Patterns noted but not adopted:**
+- Domain glossary convention (CONTEXT.md format). Formalized project-level domain vocabulary. Evaluated and reverted — our agents already carry domain vocabulary in their own files, and the convention solves a problem we don't have.
 - Grilling / requirement interviewing (`/grill-me`). Our `planning` skill's `depth-first-interview.md` already provides equivalent decision-tree traversal with ranked branches and max 5 questions.
-- Feedback-loop-first debugging emphasis. Their `/diagnose` skill's 10 loop construction methods are worth adding as a reference file to our existing debugging workflow in a future session, but not a new skill.
 - Issue triage state machine (`/triage`). Specific to GitHub Issues project management workflows, not aligned with our toolkit's focus.
 - Compressed communication mode (`/caveman`). Marginal token savings relative to total session cost. Conflicts with our plain language philosophy.
 - Agent briefs format (AGENT-BRIEF.md). Interesting durable behavioral spec for async agents, but we already have task decomposition in our planning skill.
