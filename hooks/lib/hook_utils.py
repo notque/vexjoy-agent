@@ -519,6 +519,9 @@ def get_tool_output(result: dict) -> str:
     """Return the tool's stdout/output string.
 
     Claude/Codex/Gemini use 'output'; Factory uses 'stdout'.
+
+    Note: key presence, not truthiness, determines the field — an empty
+    'output' key returns '' without falling through to 'stdout'.
     """
     if "output" in result:
         return result["output"] or ""
