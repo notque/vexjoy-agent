@@ -42,7 +42,9 @@ Before writing any code or creating any files, read `docs/PHILOSOPHY.md` in full
 1. **Search existing components** — verify nothing already covers this gap
 2. **Design the solution** — decide: new reference file on existing component? New script? Extension to existing skill phase?
 3. **Build it** — create files following our conventions
-4. **Register it** — if you created a new agent or skill, it needs routing triggers and INDEX registration
+4. **Register it** — if you created a new agent or skill, TWO registrations are required:
+   - **Routing table**: add an entry to `skills/do/references/routing-tables.md` — this is the canonical routing table. Every skill and agent must have an entry there (not in skill-local files, not in agent frontmatter alone). Run `python3 scripts/check-routing-drift.py` after adding the entry to verify it was added correctly — CI enforces this check.
+   - **INDEX.json**: regenerate with `python3 scripts/generate-skill-index.py` (for skills) or `python3 scripts/generate-agent-index.py` (for agents)
 5. **Validate it** — run the applicable quality gates:
    - Python files: `ruff check . --config pyproject.toml && ruff format --check . --config pyproject.toml`
    - New agent/skill reference files: `python3 scripts/validate-references.py`
