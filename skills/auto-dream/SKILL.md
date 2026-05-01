@@ -122,14 +122,14 @@ Use `crontab-manager.py` (not raw `crontab -e`) to install. The wrapper script h
 python3 ~/.claude/scripts/crontab-manager.py add \
   --tag "auto-dream" \
   --schedule "7 2 * * *" \
-  --command "/home/feedgen/claude-code-toolkit/scripts/auto-dream-cron.sh --execute >> /home/feedgen/claude-code-toolkit/cron-logs/auto-dream/cron.log 2>&1" \
+  --command "/home/feedgen/vexjoy-agent/scripts/auto-dream-cron.sh --execute >> /home/feedgen/vexjoy-agent/cron-logs/auto-dream/cron.log 2>&1" \
   --dry-run
 
 # Install (after dry-run testing passes)
 python3 ~/.claude/scripts/crontab-manager.py add \
   --tag "auto-dream" \
   --schedule "7 2 * * *" \
-  --command "/home/feedgen/claude-code-toolkit/scripts/auto-dream-cron.sh --execute >> /home/feedgen/claude-code-toolkit/cron-logs/auto-dream/cron.log 2>&1"
+  --command "/home/feedgen/vexjoy-agent/scripts/auto-dream-cron.sh --execute >> /home/feedgen/vexjoy-agent/cron-logs/auto-dream/cron.log 2>&1"
 
 # Verify
 python3 ~/.claude/scripts/crontab-manager.py verify --tag auto-dream

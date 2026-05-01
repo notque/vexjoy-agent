@@ -14,7 +14,7 @@
 #   ./scripts/reference-enrichment-cron.sh --decompose
 #
 # Cron example (hourly at :07):
-#   7 * * * * /home/feedgen/claude-code-toolkit/scripts/reference-enrichment-cron.sh --execute >> /home/feedgen/claude-code-toolkit/cron-logs/reference-enrichment/cron.log 2>&1
+#   7 * * * * /home/feedgen/vexjoy-agent/scripts/reference-enrichment-cron.sh --execute >> /home/feedgen/vexjoy-agent/cron-logs/reference-enrichment/cron.log 2>&1
 
 # Ensure claude CLI is in PATH (cron doesn't inherit user PATH)
 export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node/ 2>/dev/null | tail -1)/bin:$PATH"

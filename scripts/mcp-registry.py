@@ -3,7 +3,7 @@
 mcp-registry.py -- Single source of truth for MCP server metadata.
 
 Used by /install, /do router, and install-doctor.py to discover,
-configure, and validate MCP servers in the Claude Code Toolkit.
+configure, and validate MCP servers in the VexJoy Agent.
 
 Usage:
     python3 scripts/mcp-registry.py list              # Table of all MCPs
@@ -195,7 +195,7 @@ def build_parser() -> argparse.ArgumentParser:
     """Build the argument parser."""
     parser = argparse.ArgumentParser(
         prog="mcp-registry.py",
-        description="MCP server registry for the Claude Code Toolkit.",
+        description="MCP server registry for the VexJoy Agent.",
     )
     sub = parser.add_subparsers(dest="command")
 

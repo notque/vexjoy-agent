@@ -85,7 +85,7 @@ Read from `~/.claude/config/kairos.json`. Example structure:
 ```json
 {
   "repos": [
-    {"owner": "notque", "repo": "claude-code-toolkit", "branches": ["main"]}
+    {"owner": "notque", "repo": "vexjoy-agent", "branches": ["main"]}
   ],
   "thresholds": {
     "stale_branch_days": 7,
@@ -123,13 +123,13 @@ Use `crontab-manager.py` (not raw `crontab -e`) to install both schedules.
 python3 ~/.claude/scripts/crontab-manager.py add \
   --tag "kairos-quick" \
   --schedule "0 8,12,16 * * 1-5" \
-  --command "CLAUDE_KAIROS_ENABLED=true /home/feedgen/claude-code-toolkit/scripts/kairos-cron.sh >> /home/feedgen/claude-code-toolkit/cron-logs/kairos/quick.log 2>&1"
+  --command "CLAUDE_KAIROS_ENABLED=true /home/feedgen/vexjoy-agent/scripts/kairos-cron.sh >> /home/feedgen/vexjoy-agent/cron-logs/kairos/quick.log 2>&1"
 
 # Deep scan nightly at 2:30 AM
 python3 ~/.claude/scripts/crontab-manager.py add \
   --tag "kairos-deep" \
   --schedule "30 2 * * *" \
-  --command "CLAUDE_KAIROS_ENABLED=true KAIROS_MODE=deep /home/feedgen/claude-code-toolkit/scripts/kairos-cron.sh >> /home/feedgen/claude-code-toolkit/cron-logs/kairos/deep.log 2>&1"
+  --command "CLAUDE_KAIROS_ENABLED=true KAIROS_MODE=deep /home/feedgen/vexjoy-agent/scripts/kairos-cron.sh >> /home/feedgen/vexjoy-agent/cron-logs/kairos/deep.log 2>&1"
 
 # Verify
 python3 ~/.claude/scripts/crontab-manager.py verify --tag kairos-quick

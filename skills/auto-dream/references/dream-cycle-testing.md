@@ -84,13 +84,13 @@ To test CONSOLIDATE and SYNTHESIZE without risk to real memories:
 ```bash
 # 1. Copy your real memory directory to a temp location
 SNAP="/tmp/test-dream-memory-$(date +%Y%m%d)"
-cp -r ~/.claude/projects/-home-feedgen-claude-code-toolkit/memory/ "${SNAP}/"
+cp -r ~/.claude/projects/-home-feedgen-vexjoy-agent/memory/ "${SNAP}/"
 
 # 2. Run a live cycle against the snapshot only
 DREAM_MEMORY_DIR="${SNAP}" ./scripts/auto-dream-cron.sh --execute
 
 # 3. Inspect what changed in the snapshot
-diff -r ~/.claude/projects/-home-feedgen-claude-code-toolkit/memory/ "${SNAP}/"
+diff -r ~/.claude/projects/-home-feedgen-vexjoy-agent/memory/ "${SNAP}/"
 
 # 4. Read the report (always written to ~/.claude/state/)
 cat ~/.claude/state/last-dream.md
@@ -116,7 +116,7 @@ STATE_DIR="${HOME}/.claude/state"
 [ -f "${STATE_DIR}/last-dream.md" ] && echo "PASS: report" || echo "FAIL: report missing"
 
 # Injection payload (SELECT phase, all modes — read-only)
-HASH=$(echo "/home/feedgen/claude-code-toolkit" | md5sum | cut -c1-8)
+HASH=$(echo "/home/feedgen/vexjoy-agent" | md5sum | cut -c1-8)
 [ -f "${STATE_DIR}/dream-injection-${HASH}.md" ] && echo "PASS: injection payload" || echo "FAIL: injection payload missing"
 ```
 

@@ -212,7 +212,7 @@ See `references/review-fix-loop.md` for the full loop logic, steps 1-5 with code
 
 **Goal**: Record review findings as retro learnings, graduate them, and embed patterns in the responsible agents/skills to prevent recurrence.
 
-**Skip condition**: If the repo is NOT the claude-code-toolkit repo, skip this phase entirely. Detection: check if both `agents/` and `skills/` directories exist at the project root. If either is missing, skip directly to Phase 5.
+**Skip condition**: If the repo is NOT the vexjoy-agent repo, skip this phase entirely. Detection: check if both `agents/` and `skills/` directories exist at the project root. If either is missing, skip directly to Phase 5.
 
 Five steps: collect findings from Phases 2 and 4b, record per-component learnings, boost to 1.0 and graduate immediately, embed graduated patterns in the responsible agent/skill files, and stage the updated files.
 
@@ -535,7 +535,7 @@ REVIEW-FIX ITERATION [N/3]
 # Retro and ADR Validation Phases
 
 Full details for Phase 4c (RETRO) and Phase 4d (ADR VALIDATION) of the PR Pipeline.
-Both phases apply to the claude-code-toolkit repo only.
+Both phases apply to the vexjoy-agent repo only.
 
 ---
 

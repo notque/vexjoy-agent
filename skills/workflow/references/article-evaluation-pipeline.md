@@ -81,7 +81,7 @@ Do not guess voice profiles. Wrong profile produces meaningless scores and inval
 **Step 1: Voice pattern validation**
 
 ```bash
-python3 $HOME/claude-code-toolkit/scripts/voice-validator.py validate \
+python3 $HOME/vexjoy-agent/scripts/voice-validator.py validate \
   --content /tmp/article-evaluation.md \
   --voice [voice-name] \
   --format json
@@ -92,7 +92,7 @@ Pass criteria: Score >= 60, zero hard errors.
 **Step 2: Banned pattern check**
 
 ```bash
-python3 $HOME/claude-code-toolkit/scripts/voice-validator.py check-banned \
+python3 $HOME/vexjoy-agent/scripts/voice-validator.py check-banned \
   --content /tmp/article-evaluation.md
 ```
 
@@ -186,7 +186,7 @@ Result: Fast pass/fail with scores, no wabi-sabi breakdown
 Cause: `scripts/voice-validator.py` not at expected path or not executable
 
 Solution:
-1. Verify path: `ls $HOME/claude-code-toolkit/scripts/voice-validator.py`
+1. Verify path: `ls $HOME/vexjoy-agent/scripts/voice-validator.py`
 2. Check permissions: `chmod +x` if needed
 3. If missing, cannot proceed — deterministic validation via the script is a non-negotiable requirement
 

@@ -37,7 +37,7 @@ apply_update = _MOD.apply_update
 
 # A realistic config drawn from the ADR context.
 REALISTIC_CONFIG = """\
-[projects."/home/feedgen/claude-code-toolkit"]
+[projects."/home/feedgen/vexjoy-agent"]
 trust_level = "trusted"
 
 [projects."/home/feedgen/road-to-aew"]
@@ -149,7 +149,7 @@ class TestApplyUpdate:
         result = apply_update(REALISTIC_CONFIG)
         assert REALISTIC_CONFIG in result
         parsed = tomllib.loads(result)
-        assert parsed["projects"]["/home/feedgen/claude-code-toolkit"]["trust_level"] == "trusted"
+        assert parsed["projects"]["/home/feedgen/vexjoy-agent"]["trust_level"] == "trusted"
         assert parsed["plugins"]["github@openai-curated"]["enabled"] is True
         assert parsed["notice"]["hide_rate_limit_model_nudge"] is True
         assert parsed["features"]["codex_hooks"] is True

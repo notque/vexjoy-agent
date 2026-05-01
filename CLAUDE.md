@@ -1,4 +1,4 @@
-# Claude Code Toolkit
+# VexJoy Agent
 
 ## How This Toolkit Works
 

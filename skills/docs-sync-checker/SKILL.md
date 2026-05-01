@@ -52,7 +52,7 @@ Optional flags: `--auto-fix` (experimental, requires explicit opt-in), `--strict
 **Step 1: Run the scan script**
 
 ```bash
-python3 skills/docs-sync-checker/scripts/scan_tools.py --repo-root $HOME/claude-code-toolkit
+python3 skills/docs-sync-checker/scripts/scan_tools.py --repo-root $HOME/vexjoy-agent
 ```
 
 **Step 2: Validate discovery results**
@@ -91,7 +91,7 @@ YAML errors: [N] (must be 0 to proceed)
 **Step 1: Run the documentation parser**
 
 ```bash
-python3 skills/docs-sync-checker/scripts/parse_docs.py --repo-root $HOME/claude-code-toolkit --scan-results /tmp/scan_results.json
+python3 skills/docs-sync-checker/scripts/parse_docs.py --repo-root $HOME/vexjoy-agent --scan-results /tmp/scan_results.json
 ```
 
 **Step 2: Parse each documentation file**
