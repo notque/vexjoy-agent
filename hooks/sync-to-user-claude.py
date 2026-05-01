@@ -242,6 +242,69 @@ def _backup_settings_json(settings_path: Path, keep: int = 3) -> None:
                 pass
 
 
+def _read_install_mode(user_claude: Path) -> str:
+    """Read the install mode from the install manifest.
+
+    Returns "symlink" or "copy" (default).
+    """
+    manifest_path = user_claude / ".install-manifest.json"
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        return manifest.get("mode", "copy")
+    except (json.JSONDecodeError, OSError):
+        return "copy"
+
+
+def _update_manifest_toolkit_path(user_claude: Path, repo_root: Path) -> None:
+    """Update the toolkit_path in the install manifest when the repo has moved.
+
+    This happens when the repo is re-cloned to a different directory (e.g.,
+    renamed from claude-code-toolkit to vexjoy-agent). The manifest records
+    the old path, which breaks symlink validation. Update it to the current
+    repo root so future runs and install-doctor can find the source.
+    """
+    manifest_path = user_claude / ".install-manifest.json"
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return
+
+    recorded_path = manifest.get("toolkit_path", "")
+    current_path = str(repo_root)
+    if recorded_path != current_path:
+        manifest["toolkit_path"] = current_path
+        _atomic_json_write(manifest_path, manifest)
+
+
+def _ensure_symlink(src: Path, dst: Path) -> bool:
+    """Ensure dst is a symlink pointing to src.
+
+    If dst is already the correct symlink, returns True (no change needed).
+    If dst is a broken symlink, stale symlink, or regular directory, removes
+    it and creates the correct symlink. Returns True on success.
+    """
+    if dst.is_symlink():
+        try:
+            current_target = Path(os.readlink(dst)).resolve()
+            if current_target == src.resolve():
+                return True  # Already correct
+        except OSError:
+            pass
+        # Wrong target or unreadable — remove and recreate
+        dst.unlink()
+
+    elif dst.is_dir():
+        # Regular directory from a previous copy-mode install or broken sync.
+        # Remove it so we can replace with a symlink.
+        shutil.rmtree(dst)
+
+    elif dst.exists():
+        dst.unlink()
+
+    dst.symlink_to(src)
+    return True
+
+
 def main():
     # Only run when in the agents repo
     cwd = Path.cwd()
@@ -254,6 +317,14 @@ def main():
     # Paths - use CWD as repo root (not script location, since script may be in ~/.claude/hooks/)
     repo_root = cwd
     user_claude = Path.home() / ".claude"
+
+    # Detect install mode from manifest. In symlink mode, components that
+    # support it get directory-level symlinks instead of file-by-file copies.
+    install_mode = _read_install_mode(user_claude)
+
+    # Update the manifest's toolkit_path if the repo has moved (e.g., renamed
+    # from claude-code-toolkit to vexjoy-agent and re-cloned).
+    _update_manifest_toolkit_path(user_claude, repo_root)
 
     # Components to sync (directories)
     components = [
@@ -275,6 +346,11 @@ def main():
     # knowledge accumulated from other repos in ~/.claude/retro/.
     merge_components = {"retro"}
 
+    # Components eligible for symlink mode. Merge components (retro) and
+    # additive components (commands) must always use file-by-file sync because
+    # they aggregate content from multiple sources.
+    symlinkable_components = {"agents", "skills", "hooks", "scripts"}
+
     synced = []
     errors = []
 
@@ -293,7 +369,16 @@ def main():
             continue
 
         try:
-            # Resolve symlinks to a real directory before syncing
+            # Symlink mode: create a directory-level symlink for eligible components.
+            # This preserves the symlinks created by install.sh --symlink instead of
+            # destroying them and replacing with file copies.
+            if install_mode == "symlink" and src_name in symlinkable_components:
+                _ensure_symlink(src, dst)
+                synced.append(f"{dst_name}(symlink)")
+                continue
+
+            # Copy mode: resolve any existing symlinks to a real directory before
+            # file-by-file sync. This handles the transition from symlink to copy mode.
             if dst.is_symlink():
                 dst.unlink()
 
@@ -477,25 +562,32 @@ def main():
     private_voices_dir = repo_root / "private-voices"
     if private_voices_dir.is_dir():
         voice_count = 0
+        # Resolve the skills target directory. In symlink mode, ~/.claude/skills
+        # is a symlink to repo/skills/, so we create voice symlinks inside it.
+        skills_base = user_claude / "skills"
         for voice_dir in sorted(private_voices_dir.iterdir()):
             if not voice_dir.is_dir():
                 continue
             skill_src = voice_dir / "skill"
             if not skill_src.is_dir():
                 continue
-            # Map private-voices/{name}/skill/ -> ~/.claude/skills/voice-{name}/
             voice_name = voice_dir.name
-            skill_dst = user_claude / "skills" / f"voice-{voice_name}"
+            skill_dst = skills_base / f"voice-{voice_name}"
             try:
-                skill_dst.mkdir(parents=True, exist_ok=True)
-                for item in skill_src.rglob("*"):
-                    if item.is_file():
-                        rel = item.relative_to(skill_src)
-                        target = skill_dst / rel
-                        target.parent.mkdir(parents=True, exist_ok=True)
-                        if target.exists() and filecmp.cmp(item, target, shallow=False):
-                            continue
-                        shutil.copy2(item, target)
+                if install_mode == "symlink":
+                    # In symlink mode, create individual symlinks for private
+                    # voice skills, matching install.sh --symlink behavior.
+                    _ensure_symlink(skill_src, skill_dst)
+                else:
+                    skill_dst.mkdir(parents=True, exist_ok=True)
+                    for item in skill_src.rglob("*"):
+                        if item.is_file():
+                            rel = item.relative_to(skill_src)
+                            target = skill_dst / rel
+                            target.parent.mkdir(parents=True, exist_ok=True)
+                            if target.exists() and filecmp.cmp(item, target, shallow=False):
+                                continue
+                            shutil.copy2(item, target)
                 voice_count += 1
             except Exception as e:
                 errors.append(f"voice-{voice_name}: {e}")
