@@ -9,6 +9,7 @@ import importlib.util
 import io
 import json
 import os
+import re
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -692,3 +693,263 @@ class TestFieldCompatibility:
         """Event with no tool identifier passes through (unknown tool)."""
         payload = json.dumps({"tool_input": {"command": "git push origin main"}})
         assert _run_main(payload) == 0
+
+
+# ---------------------------------------------------------------------------
+# TestRmFlagOrderingEvasion (Bug 1)
+# ---------------------------------------------------------------------------
+
+
+class TestRmFlagOrderingEvasion:
+    """rm patterns must catch -r and -f flags in ANY order, not just -rf."""
+
+    # --- Existing patterns that must still be blocked ---
+
+    def test_rm_rf_root_blocked(self):
+        payload = _make_bash_event("rm -rf /")
+        assert _run_main(payload) == 2
+
+    def test_rm_fr_root_blocked(self):
+        payload = _make_bash_event("rm -fr /")
+        assert _run_main(payload) == 2
+
+    # --- Separated flags (previously bypassed) ---
+
+    def test_rm_r_f_root_blocked(self):
+        """rm -r -f / was bypassing the guard."""
+        payload = _make_bash_event("rm -r -f /")
+        assert _run_main(payload) == 2
+
+    def test_rm_f_r_root_blocked(self):
+        """rm -f -r / was bypassing the guard."""
+        payload = _make_bash_event("rm -f -r /")
+        assert _run_main(payload) == 2
+
+    def test_rm_r_f_home_blocked(self):
+        """rm -r -f ~ was bypassing the guard."""
+        payload = _make_bash_event("rm -r -f ~")
+        assert _run_main(payload) == 2
+
+    def test_rm_r_f_dot_blocked(self):
+        """rm -r -f . was bypassing the guard."""
+        payload = _make_bash_event("rm -r -f .")
+        assert _run_main(payload) == 2
+
+    # --- Long-form flags (previously bypassed) ---
+
+    def test_rm_recursive_force_root_blocked(self):
+        """rm --recursive --force / was bypassing the guard."""
+        payload = _make_bash_event("rm --recursive --force /")
+        assert _run_main(payload) == 2
+
+    def test_rm_recursive_f_root_blocked(self):
+        """rm --recursive -f / was bypassing the guard."""
+        payload = _make_bash_event("rm --recursive -f /")
+        assert _run_main(payload) == 2
+
+    def test_rm_r_force_root_blocked(self):
+        """rm -r --force / was bypassing the guard."""
+        payload = _make_bash_event("rm -r --force /")
+        assert _run_main(payload) == 2
+
+    # --- Long-form flags on other targets ---
+
+    def test_rm_recursive_force_home_blocked(self):
+        payload = _make_bash_event("rm --recursive --force ~")
+        assert _run_main(payload) == 2
+
+    def test_rm_recursive_force_dot_blocked(self):
+        payload = _make_bash_event("rm --recursive --force .")
+        assert _run_main(payload) == 2
+
+    def test_rm_recursive_force_root_star_blocked(self):
+        payload = _make_bash_event("rm --recursive --force /*")
+        assert _run_main(payload) == 2
+
+    # --- Safe rm commands that must NOT be blocked ---
+
+    def test_rm_single_file_allowed(self):
+        """rm file.txt is safe — no recursive flag."""
+        payload = _make_bash_event("rm file.txt")
+        assert _run_main(payload) == 0
+
+    def test_rm_f_single_file_allowed(self):
+        """rm -f file.txt is safe — force but no recursive."""
+        payload = _make_bash_event("rm -f file.txt")
+        assert _run_main(payload) == 0
+
+    def test_rm_r_subdir_allowed(self):
+        """rm -r ./build is safe — recursive but no force on dangerous target."""
+        payload = _make_bash_event("rm -r ./build/output")
+        assert _run_main(payload) == 0
+
+
+# ---------------------------------------------------------------------------
+# TestGuardPatternsMalformedEntry (Bug 2)
+# ---------------------------------------------------------------------------
+
+
+class TestGuardPatternsMalformedEntry:
+    """_load_guard_patterns must not crash on malformed regex entries."""
+
+    def test_malformed_entry_skipped_valid_entry_works(self, tmp_path):
+        """A malformed .guard-patterns entry alongside a valid entry:
+        (1) the valid entry still works, (2) no crash, (3) warning on stderr.
+        """
+        guard_file = tmp_path / ".guard-patterns"
+        # Deliberately broken regex that would fail re.compile (unmatched group)
+        # after re.escape, this would actually be fine, but let's use something
+        # that re.escape + glob conversion wouldn't fix — actually with re.escape
+        # all metacharacters get escaped, so we need to test the warning path.
+        # We'll mock to force a re.error on one entry.
+        guard_file.write_text("/valid/secret/path\n")
+
+        stderr_capture = io.StringIO()
+        with patch("pathlib.Path.cwd", return_value=tmp_path):
+            # First: verify valid entry works normally
+            patterns = mod._load_guard_patterns()
+            assert len(patterns) == 1
+            assert patterns[0][1] == "custom"
+
+        # Now test with a forced re.error on one entry while a valid entry follows
+        guard_file.write_text("bad-entry-here\n/valid/secret/path\n")
+
+        original_compile = re.compile
+
+        def patched_compile(pattern, *args, **kwargs):
+            # Force error only for the pattern derived from "bad-entry-here"
+            if pattern == r"bad\-entry\-here":
+                raise re.error("mock error")
+            return original_compile(pattern, *args, **kwargs)
+
+        with (
+            patch("pathlib.Path.cwd", return_value=tmp_path),
+            patch.object(re, "compile", side_effect=patched_compile),
+            patch("sys.stderr", stderr_capture),
+        ):
+            patterns = mod._load_guard_patterns()
+
+        # Valid entry survived
+        assert len(patterns) == 1
+        assert patterns[0][2] == "/valid/secret/path"
+
+        # Warning was printed for the bad entry
+        stderr_output = stderr_capture.getvalue()
+        assert "WARN" in stderr_output
+        assert "bad-entry-here" in stderr_output
+
+    def test_all_malformed_entries_produce_empty_list(self, tmp_path):
+        """If every entry is malformed, return empty list, not crash."""
+        guard_file = tmp_path / ".guard-patterns"
+        guard_file.write_text("bad1\nbad2\n")
+
+        original_compile = re.compile
+
+        def always_fail(pattern, *args, **kwargs):
+            raise re.error("all bad")
+
+        stderr_capture = io.StringIO()
+        with (
+            patch("pathlib.Path.cwd", return_value=tmp_path),
+            patch.object(re, "compile", side_effect=always_fail),
+            patch("sys.stderr", stderr_capture),
+        ):
+            patterns = mod._load_guard_patterns()
+
+        assert patterns == []
+        assert stderr_capture.getvalue().count("WARN") == 2
+
+
+# ---------------------------------------------------------------------------
+# TestGlobToRegexEscaping (Bug 3)
+# ---------------------------------------------------------------------------
+
+
+class TestGlobToRegexEscaping:
+    """Glob-to-regex conversion must escape ALL regex metacharacters."""
+
+    def test_brackets_treated_literally(self, tmp_path):
+        """A .guard-patterns entry with brackets like /path/[secret]/config
+        must match the literal path and NOT interpret [] as a character class.
+        """
+        guard_file = tmp_path / ".guard-patterns"
+        guard_file.write_text("/path/[secret]/config\n")
+
+        with patch("pathlib.Path.cwd", return_value=tmp_path):
+            patterns = mod._load_guard_patterns()
+
+        assert len(patterns) == 1
+        pattern = patterns[0][0]
+
+        # Must match the literal path with brackets
+        assert pattern.search("/path/[secret]/config") is not None
+
+        # Must NOT match /path/s/config (which would happen if [] was a char class)
+        assert pattern.search("/path/s/config") is None
+
+    def test_parens_treated_literally(self, tmp_path):
+        """Parentheses in .guard-patterns must be treated as literal characters."""
+        guard_file = tmp_path / ".guard-patterns"
+        guard_file.write_text("/path/(group)/config\n")
+
+        with patch("pathlib.Path.cwd", return_value=tmp_path):
+            patterns = mod._load_guard_patterns()
+
+        assert len(patterns) == 1
+        pattern = patterns[0][0]
+
+        # Must match the literal path with parens
+        assert pattern.search("/path/(group)/config") is not None
+
+        # Must NOT match /path/group/config (which would happen if () was a group)
+        assert pattern.search("/path/group/config") is None
+
+    def test_plus_caret_pipe_treated_literally(self, tmp_path):
+        """Characters +, ^, | in .guard-patterns must be literal."""
+        guard_file = tmp_path / ".guard-patterns"
+        guard_file.write_text("/path/a+b^c|d\n")
+
+        with patch("pathlib.Path.cwd", return_value=tmp_path):
+            patterns = mod._load_guard_patterns()
+
+        assert len(patterns) == 1
+        pattern = patterns[0][0]
+
+        # Must match the literal path
+        assert pattern.search("/path/a+b^c|d") is not None
+
+        # Must NOT match variations that regex would allow
+        assert pattern.search("/path/aab^c|d") is None  # + as quantifier
+        assert pattern.search("/path/a+bXc|d") is None  # ^ as anchor
+        assert pattern.search("/path/a+b^cd") is None  # | as alternation
+
+    def test_glob_star_still_works(self, tmp_path):
+        """Glob * should still convert to .* for wildcard matching."""
+        guard_file = tmp_path / ".guard-patterns"
+        guard_file.write_text("/secrets/*.key\n")
+
+        with patch("pathlib.Path.cwd", return_value=tmp_path):
+            patterns = mod._load_guard_patterns()
+
+        assert len(patterns) == 1
+        pattern = patterns[0][0]
+
+        assert pattern.search("/secrets/server.key") is not None
+        assert pattern.search("/secrets/client.key") is not None
+        assert pattern.search("/other/server.key") is None
+
+    def test_glob_question_mark_still_works(self, tmp_path):
+        """Glob ? should still convert to . for single-char matching."""
+        guard_file = tmp_path / ".guard-patterns"
+        guard_file.write_text("/secrets/key?.pem\n")
+
+        with patch("pathlib.Path.cwd", return_value=tmp_path):
+            patterns = mod._load_guard_patterns()
+
+        assert len(patterns) == 1
+        pattern = patterns[0][0]
+
+        assert pattern.search("/secrets/key1.pem") is not None
+        assert pattern.search("/secrets/keyA.pem") is not None
+        assert pattern.search("/secrets/key.pem") is None  # ? requires exactly one char
+        assert pattern.search("/secrets/key12.pem") is None  # ? matches only one char
