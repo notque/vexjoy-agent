@@ -49,7 +49,7 @@ python3 ~/.claude/scripts/install-doctor.py check
 python3 ~/.claude/scripts/install-doctor.py inventory
 ```
 
-`check` verifies the install layout, settings, hook paths, learning DB access, and both Codex skill and agent mirrors. `~/.claude/inventory` shows what Claude and Codex can currently see. If you pull new toolkit changes later and want Codex, Gemini, or Factory to pick up new skills or agents, rerun `./install.sh`.
+`check` verifies the install layout, settings, hook paths, learning DB access, and both Codex skill and agent mirrors. `inventory` lists what Claude and Codex can currently see. If you pull new toolkit changes later and want Codex, Gemini, or Factory to pick up new skills or agents, rerun `./install.sh`.
 
 ## Your First Commands
 

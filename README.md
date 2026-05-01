@@ -118,7 +118,7 @@ The toolkit mirrors agents, skills, and a curated subset of hooks into `~/.facto
 
 - **Droids**: every agent under `agents/` (and `private-agents/` if present) is copied or symlinked to `~/.factory/droids/`. Factory calls agents "droids"; the directory name differs but the content is identical.
 - **Skills**: every skill under `skills/`, `private-skills/`, and `private-voices/*/skill/` goes to `~/.factory/skills/`.
-- **Hooks**: the same Phase 1 hooks as Codex and Gemini, with Factory-compatible event names, go to `~/.factory/hooks/`. Hook configuration is merged into `~/.factory/settings.json` (only the `hooks` key is modified; all other settings are preserved). See `scripts/factory-hooks-allowlist.txt`.
+- **Hooks**: all hooks are mirrored to `~/.factory/hooks/` (no allowlist — same set as Claude Code). Hook configuration is merged into `~/.factory/settings.json` with paths rewritten from `$HOME/.claude/` to `$HOME/.factory/` (only the `hooks` key is modified; all other settings are preserved).
 
 **Hook runtime compatibility**
 
